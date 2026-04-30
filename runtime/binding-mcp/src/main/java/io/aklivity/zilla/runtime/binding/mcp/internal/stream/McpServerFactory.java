@@ -53,6 +53,7 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.HttpBeginExFW
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.HttpResetExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpFlushExFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpProgressFlushExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.WindowFW;
@@ -157,7 +158,8 @@ public final class McpServerFactory implements McpStreamFactory
         "/id",
         "/method",
         "/params/name",
-        "/params/uri");
+        "/params/uri",
+        "/params/_meta/progressToken");
     private final JsonParserFactory parserFactory;
 
     private final McpServerDecoder decodeJsonRpc = this::decodeJsonRpc;
@@ -173,6 +175,9 @@ public final class McpServerFactory implements McpStreamFactory
     private final McpServerDecoder decodeJsonRpcMethodParamValue = this::decodeJsonRpcMethodParamValue;
     private final McpServerDecoder decodeJsonRpcParamsSkipValue = this::decodeJsonRpcParamsSkipValue;
     private final McpServerDecoder decodeJsonRpcSkipObject = this::decodeJsonRpcSkipObject;
+    private final McpServerDecoder decodeJsonRpcMetaStart = this::decodeJsonRpcMetaStart;
+    private final McpServerDecoder decodeJsonRpcMetaNext = this::decodeJsonRpcMetaNext;
+    private final McpServerDecoder decodeJsonRpcProgressToken = this::decodeJsonRpcProgressToken;
     private final McpServerDecoder decodeIgnore = this::decodeIgnore;
 
     private final Long2ObjectHashMap<McpBindingConfig> bindings;
@@ -392,6 +397,7 @@ public final class McpServerFactory implements McpStreamFactory
         server.decodedId = null;
         server.decodedMethod = null;
         server.decodedMethodParam = null;
+        server.decodedProgressToken = null;
         server.decodableJson = parserFactory.createParser(input);
         server.decoder = decodeJsonRpcStart;
 
@@ -755,21 +761,31 @@ public final class McpServerFactory implements McpStreamFactory
         if (parser.hasNext())
         {
             final JsonParser.Event event = parser.next();
-            if (event != JsonParser.Event.KEY_NAME)
+            switch (event)
             {
+            case JsonParser.Event.KEY_NAME:
+                final String key = parser.getString();
+                if (server.decodedMethodParam != null && server.decodedMethodParam.equals(key))
+                {
+                    server.decoder = decodeJsonRpcMethodParamValue;
+                }
+                else if ("_meta".equals(key))
+                {
+                    server.decoder = decodeJsonRpcMetaStart;
+                }
+                else
+                {
+                    server.decodedSkipObjectThen = decodeJsonRpcMethodWithParam;
+                    server.decoder = decodeJsonRpcParamsSkipValue;
+                }
+                break;
+            case JsonParser.Event.END_OBJECT:
+                server.decoder = decodeJsonRpcParamsEnd;
+                break;
+            default:
                 server.onDecodeParseError(traceId, authorization);
                 server.decoder = decodeIgnore;
                 break decode;
-            }
-
-            final String key = parser.getString();
-            if (server.decodedMethodParam.equals(key))
-            {
-                server.decoder = decodeJsonRpcMethodParamValue;
-            }
-            else
-            {
-                server.decoder = decodeJsonRpcParamsSkipValue;
             }
         }
 
@@ -799,9 +815,15 @@ public final class McpServerFactory implements McpStreamFactory
             {
             case JsonParser.Event.START_OBJECT:
                 server.decodedSkipObjectDepth = 1;
-                server.decodedSkipObjectThen = decodeJsonRpcMethodWithParam;
                 server.decoder = decodeJsonRpcSkipObject;
                 break decode;
+            case JsonParser.Event.VALUE_STRING:
+            case JsonParser.Event.VALUE_NUMBER:
+            case JsonParser.Event.VALUE_TRUE:
+            case JsonParser.Event.VALUE_FALSE:
+            case JsonParser.Event.VALUE_NULL:
+                server.decoder = server.decodedSkipObjectThen;
+                break;
             default:
                 server.onDecodeParseError(traceId, authorization);
                 server.decoder = decodeIgnore;
@@ -852,9 +874,119 @@ public final class McpServerFactory implements McpStreamFactory
                 break;
             }
 
-            server.decodedSkipObjectDepth = 1;
-            server.decodedSkipObjectThen = decodeJsonRpcParamsEnd;
-            server.decoder = decodeJsonRpcSkipObject;
+            server.decoder = decodeJsonRpcMethodWithParam;
+
+            progress = offset + server.decodedParamsProgress - server.decodedParserProgress;
+        }
+
+        return progress;
+    }
+
+    private int decodeJsonRpcMetaStart(
+        McpServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBuffer buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        JsonParser parser = server.decodableJson;
+
+        decode:
+        if (parser.hasNext())
+        {
+            final JsonParser.Event event = parser.next();
+            if (event != JsonParser.Event.START_OBJECT)
+            {
+                server.onDecodeParseError(traceId, authorization);
+                server.decoder = decodeIgnore;
+                break decode;
+            }
+
+            server.decoder = decodeJsonRpcMetaNext;
+
+            progress = offset + server.decodedParamsProgress - server.decodedParserProgress;
+        }
+
+        return progress;
+    }
+
+    private int decodeJsonRpcMetaNext(
+        McpServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBuffer buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        JsonParser parser = server.decodableJson;
+
+        decode:
+        if (parser.hasNext())
+        {
+            final JsonParser.Event event = parser.next();
+            switch (event)
+            {
+            case JsonParser.Event.KEY_NAME:
+                final String key = parser.getString();
+                if ("progressToken".equals(key))
+                {
+                    server.decoder = decodeJsonRpcProgressToken;
+                }
+                else
+                {
+                    server.decoder = decodeJsonRpcParamsSkipValue;
+                    server.decodedSkipObjectThen = decodeJsonRpcMetaNext;
+                }
+                break;
+            case JsonParser.Event.END_OBJECT:
+                server.decoder = decodeJsonRpcMethodWithParam;
+                break;
+            default:
+                server.onDecodeParseError(traceId, authorization);
+                server.decoder = decodeIgnore;
+                break decode;
+            }
+
+            progress = offset + server.decodedParamsProgress - server.decodedParserProgress;
+        }
+
+        return progress;
+    }
+
+    private int decodeJsonRpcProgressToken(
+        McpServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBuffer buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        JsonParser parser = server.decodableJson;
+
+        decode:
+        if (parser.hasNext())
+        {
+            final JsonParser.Event event = parser.next();
+            if (event != JsonParser.Event.VALUE_STRING &&
+                event != JsonParser.Event.VALUE_NUMBER)
+            {
+                server.onDecodeParseError(traceId, authorization);
+                server.decoder = decodeIgnore;
+                break decode;
+            }
+
+            server.decodedProgressToken = parser.getString();
+            server.decoder = decodeJsonRpcMetaNext;
 
             progress = offset + server.decodedParamsProgress - server.decodedParserProgress;
         }
@@ -991,11 +1123,13 @@ public final class McpServerFactory implements McpStreamFactory
 
         private McpServerDecoder decoder;
         private boolean sseUpgrade;
+        private boolean responseStarted;
 
         private JsonParser decodableJson;
         private String decodedMethod;
         private String decodedMethodParam;
         private String decodedId;
+        private String decodedProgressToken;
         private int decodedParamsProgress;
         private McpServerRequestParamsConsumer decodedRequest;
         private McpServerDecoder decodedSkipObjectThen;
@@ -1746,12 +1880,40 @@ public final class McpServerFactory implements McpStreamFactory
             doNetBegin(traceId, authorization, extension);
         }
 
+        private void doEncodeRequestEvent(
+            long traceId,
+            long authorization,
+            String streamIdPrefix,
+            McpFlushExFW flushEx)
+        {
+            final int length;
+            switch (flushEx.kind())
+            {
+            case McpFlushExFW.KIND_RESUME:
+                length = encodeSseNotifyEvent(codecBuffer, 0, streamIdPrefix,
+                    flushEx.resume().id(), null);
+                break;
+            case McpFlushExFW.KIND_PROGRESS:
+                length = encodeSseProgressEvent(codecBuffer, 0, streamIdPrefix, flushEx.progress());
+                break;
+            default:
+                length = 0;
+                break;
+            }
+
+            if (length > 0)
+            {
+                doNetData(traceId, authorization, codecBuffer, 0, length);
+            }
+        }
+
         private void doEncodeResponsePreamble(
             long traceId,
             long authorization)
         {
-            if (replySeq == 0L)
+            if (!responseStarted)
             {
+                responseStarted = true;
                 final String prefix = sseUpgrade ? "data: " : "";
                 final int codecLimit = codecBuffer.putStringWithoutLengthAscii(0,
                     "%s{\"jsonrpc\":\"2.0\",\"id\":%s,\"result\":".formatted(prefix, decodedId));
@@ -3189,7 +3351,21 @@ public final class McpServerFactory implements McpStreamFactory
 
             session.touch();
 
-            if (!server.sseUpgrade)
+            if (!server.sseUpgrade && server.decodedProgressToken != null)
+            {
+                server.sseUpgrade = true;
+            }
+
+            if (server.sseUpgrade)
+            {
+                server.doEncodeResponseBegin(traceId, authorization,
+                    httpBeginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
+                        .typeId(httpTypeId)
+                        .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(STATUS_200))
+                        .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_EVENT_STREAM))
+                        .build());
+            }
+            else
             {
                 server.doEncodeResponseBegin(traceId, authorization,
                     httpBeginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
@@ -3237,8 +3413,8 @@ public final class McpServerFactory implements McpStreamFactory
             final long acknowledge = flush.acknowledge();
             final long traceId = flush.traceId();
             final long authorization = flush.authorization();
-            final long budgetId = flush.budgetId();
             final int reserved = flush.reserved();
+            final OctetsFW extension = flush.extension();
 
             assert acknowledge <= sequence;
             assert sequence >= replySeq;
@@ -3256,9 +3432,14 @@ public final class McpServerFactory implements McpStreamFactory
             {
                 cleanupApp(traceId, authorization);
             }
-            else
+            else if (extension.sizeof() > 0)
             {
-                server.doNetFlush(traceId, authorization, budgetId, reserved);
+                final McpFlushExFW flushEx =
+                    mcpFlushExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit());
+                if (flushEx != null)
+                {
+                    server.doEncodeRequestEvent(traceId, authorization, requestId, flushEx);
+                }
             }
         }
 
@@ -3693,6 +3874,54 @@ public final class McpServerFactory implements McpStreamFactory
         }
 
         return progress - offset;
+    }
+
+    private int encodeSseProgressEvent(
+        MutableDirectBuffer out,
+        int offset,
+        String streamIdPrefix,
+        McpProgressFlushExFW progress)
+    {
+        int progress0 = offset;
+
+        out.putBytes(progress0, SSE_ID_PREFIX_BYTES);
+        progress0 += SSE_ID_PREFIX_BYTES.length;
+        progress0 += out.putStringWithoutLengthAscii(progress0, streamIdPrefix);
+        out.putByte(progress0, (byte) ':');
+        progress0 += 1;
+        final String16FW idValue = progress.id();
+        if (idValue.length() > 0)
+        {
+            out.putBytes(progress0, idValue.value(), 0, idValue.length());
+            progress0 += idValue.length();
+        }
+        out.putByte(progress0, (byte) '\n');
+        progress0 += 1;
+
+        out.putBytes(progress0, SSE_DATA_PREFIX_BYTES);
+        progress0 += SSE_DATA_PREFIX_BYTES.length;
+
+        final StringBuilder body = new StringBuilder(160);
+        body.append("{\"jsonrpc\":\"2.0\",\"method\":\"notifications/progress\",\"params\":{\"progressToken\":\"")
+            .append(progress.token().asString())
+            .append("\",\"progress\":")
+            .append(progress.progress());
+        if (progress.total() != -1L)
+        {
+            body.append(",\"total\":").append(progress.total());
+        }
+        final String16FW message = progress.message();
+        if (message.length() != -1)
+        {
+            body.append(",\"message\":\"").append(message.asString()).append("\"");
+        }
+        body.append("}}");
+        progress0 += out.putStringWithoutLengthAscii(progress0, body.toString());
+
+        out.putBytes(progress0, SSE_MESSAGE_TERMINATOR_BYTES);
+        progress0 += SSE_MESSAGE_TERMINATOR_BYTES.length;
+
+        return progress0 - offset;
     }
 
     private int encodeSseEvent(
