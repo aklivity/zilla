@@ -19,6 +19,7 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTes
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_CLIENT_NAME_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_CLIENT_VERSION_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_INACTIVITY_TIMEOUT_NAME;
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BUFFER_SLOT_CAPACITY;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -45,6 +46,7 @@ public class McpClientIT
     private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
         .countersBufferCapacity(8192)
+        .configure(ENGINE_BUFFER_SLOT_CAPACITY, 262144)
         .configurationRoot("io/aklivity/zilla/specs/binding/mcp/config")
         .configure(MCP_CLIENT_NAME_NAME, "test")
         .configure(MCP_CLIENT_VERSION_NAME, "1.0")
@@ -386,6 +388,16 @@ public class McpClientIT
         "${app}/tools.call.10k.with.progress/client",
         "${net}/tools.call.10k.with.progress/server"})
     public void shouldCallToolWith10kParamsWithProgress() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/tools.call.100k.with.progress/client",
+        "${net}/tools.call.100k.with.progress/server"})
+    public void shouldCallToolWith100kParamsWithProgress() throws Exception
     {
         k3po.finish();
     }
