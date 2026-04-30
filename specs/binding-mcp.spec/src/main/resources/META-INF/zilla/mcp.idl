@@ -43,7 +43,7 @@ scope mcp
             case 1: mcp::stream::McpToolsListChangedFlushEx toolsListChanged;
             case 2: mcp::stream::McpPromptsListChangedFlushEx promptsListChanged;
             case 3: mcp::stream::McpResourcesListChangedFlushEx resourcesListChanged;
-            case 4: mcp::stream::McpNotifyProgressFlushEx notifyProgress;
+            case 4: mcp::stream::McpProgressFlushEx progress;
         }
 
         struct McpResumeFlushEx
@@ -66,7 +66,7 @@ scope mcp
             string16 id;
         }
 
-        struct McpNotifyProgressFlushEx
+        struct McpProgressFlushEx
         {
             string16 id;
             string16 progressToken;
