@@ -1895,9 +1895,9 @@ public final class McpServerFactory implements McpStreamFactory
             final int length;
             switch (flushEx.kind())
             {
-            case McpFlushExFW.KIND_RESUME:
+            case McpFlushExFW.KIND_RESUMABLE:
                 length = encodeSseNotifyEvent(codecBuffer, 0, streamIdPrefix,
-                    flushEx.resume().id(), null);
+                    flushEx.resumable().id(), null);
                 break;
             case McpFlushExFW.KIND_PROGRESS:
                 length = encodeSseProgressEvent(codecBuffer, 0, streamIdPrefix, flushEx.progress());
@@ -2427,14 +2427,14 @@ public final class McpServerFactory implements McpStreamFactory
             long traceId,
             long authorization)
         {
-            final McpFlushExFW resumeEx = mcpFlushExRW
+            final McpChallengeExFW resumeEx = mcpChallengeExRW
                 .wrap(codecBuffer, 0, codecBuffer.capacity())
                 .typeId(mcpTypeId)
-                .resume(b -> b.id(""))
+                .resume(b ->
+                {
+                })
                 .build();
-            doFlush(app, originId, routedId, initialId,
-                initialSeq, initialAck, initialMax,
-                traceId, authorization, 0L, 0, resumeEx);
+            doAppChallenge(traceId, authorization, resumeEx);
         }
 
         private void doAppAbort(
@@ -2623,9 +2623,9 @@ public final class McpServerFactory implements McpStreamFactory
         {
             switch (flushEx.kind())
             {
-            case McpFlushExFW.KIND_RESUME:
+            case McpFlushExFW.KIND_RESUMABLE:
                 eventStream.doEncodeNotifyEvent(traceId, authorization, LIFECYCLE_STREAM_ID_PREFIX,
-                    flushEx.resume().id(), null);
+                    flushEx.resumable().id(), null);
                 break;
             case McpFlushExFW.KIND_TOOLS_LIST_CHANGED:
                 eventStream.doEncodeNotifyEvent(traceId, authorization, LIFECYCLE_STREAM_ID_PREFIX,

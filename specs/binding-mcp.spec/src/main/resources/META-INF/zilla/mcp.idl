@@ -39,7 +39,7 @@ scope mcp
 
         union McpFlushEx switch (uint8) extends core::stream::Extension
         {
-            case 0: mcp::stream::McpResumeFlushEx resume;
+            case 0: mcp::stream::McpResumableFlushEx resumable;
             case 1: mcp::stream::McpToolsListChangedFlushEx toolsListChanged;
             case 2: mcp::stream::McpPromptsListChangedFlushEx promptsListChanged;
             case 3: mcp::stream::McpResourcesListChangedFlushEx resourcesListChanged;
@@ -53,7 +53,7 @@ scope mcp
             case 1: mcp::stream::McpSuspendedChallengeEx suspended;
         }
 
-        struct McpResumeFlushEx
+        struct McpResumableFlushEx
         {
             string16 id;
         }

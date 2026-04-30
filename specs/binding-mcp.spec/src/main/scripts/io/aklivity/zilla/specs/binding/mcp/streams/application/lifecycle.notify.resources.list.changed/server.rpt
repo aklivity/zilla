@@ -36,15 +36,15 @@ write zilla:begin.ext ${mcp:beginEx()
                            .build()}
 write flush
 
-read advised zilla:flush ${mcp:matchFlushEx()
-                               .typeId(zilla:id("mcp"))
-                               .resume()
-                                   .build()
-                               .build()}
+write advised zilla:challenge ${mcp:matchChallengeEx()
+                                    .typeId(zilla:id("mcp"))
+                                    .resume()
+                                        .build()
+                                    .build()}
 
 write advise zilla:flush ${mcp:flushEx()
                               .typeId(zilla:id("mcp"))
-                              .resume()
+                              .resumable()
                                   .id("0")
                                   .build()
                               .build()}
@@ -55,3 +55,7 @@ write advise zilla:flush ${mcp:flushEx()
                                   .id("1")
                                   .build()
                               .build()}
+
+read closed
+
+write close

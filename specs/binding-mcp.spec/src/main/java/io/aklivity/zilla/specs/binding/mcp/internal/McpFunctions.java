@@ -37,8 +37,8 @@ import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpPromptsListC
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpResourcesListBeginExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpResourcesListChangedFlushExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpResourcesReadBeginExFW;
+import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpResumableFlushExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpResumeChallengeExFW;
-import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpResumeFlushExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpSuspendFlushExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpToolsCallBeginExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpToolsListBeginExFW;
@@ -699,9 +699,9 @@ public final class McpFunctions
             return this;
         }
 
-        public McpResumeFlushExBuilder resume()
+        public McpResumableFlushExBuilder resumable()
         {
-            return new McpResumeFlushExBuilder();
+            return new McpResumableFlushExBuilder();
         }
 
         public McpToolsListChangedFlushExBuilder toolsListChanged()
@@ -736,11 +736,11 @@ public final class McpFunctions
             return array;
         }
 
-        public final class McpResumeFlushExBuilder
+        public final class McpResumableFlushExBuilder
         {
             private String id;
 
-            public McpResumeFlushExBuilder id(
+            public McpResumableFlushExBuilder id(
                 String id)
             {
                 this.id = id;
@@ -749,7 +749,7 @@ public final class McpFunctions
 
             public McpFlushExBuilder build()
             {
-                flushExRW.resume(b -> b.id(id));
+                flushExRW.resumable(b -> b.id(id));
                 return McpFlushExBuilder.this;
             }
         }
@@ -898,10 +898,10 @@ public final class McpFunctions
             return this;
         }
 
-        public McpResumeFlushExMatcherBuilder resume()
+        public McpResumableFlushExMatcherBuilder resumable()
         {
-            this.kind = McpFlushExFW.KIND_RESUME;
-            final McpResumeFlushExMatcherBuilder matcher = new McpResumeFlushExMatcherBuilder();
+            this.kind = McpFlushExFW.KIND_RESUMABLE;
+            final McpResumableFlushExMatcherBuilder matcher = new McpResumableFlushExMatcherBuilder();
             this.caseMatcher = matcher::match;
             return matcher;
         }
@@ -992,11 +992,11 @@ public final class McpFunctions
             return caseMatcher == null || caseMatcher.test(flushEx);
         }
 
-        public final class McpResumeFlushExMatcherBuilder
+        public final class McpResumableFlushExMatcherBuilder
         {
             private String16FW id;
 
-            public McpResumeFlushExMatcherBuilder id(
+            public McpResumableFlushExMatcherBuilder id(
                 String id)
             {
                 this.id = new String16FW(id);
@@ -1011,13 +1011,13 @@ public final class McpFunctions
             private boolean match(
                 McpFlushExFW flushEx)
             {
-                return matchId(flushEx.resume());
+                return matchId(flushEx.resumable());
             }
 
             private boolean matchId(
-                McpResumeFlushExFW resume)
+                McpResumableFlushExFW resumable)
             {
-                return id == null || id.equals(resume.id());
+                return id == null || id.equals(resumable.id());
             }
         }
 

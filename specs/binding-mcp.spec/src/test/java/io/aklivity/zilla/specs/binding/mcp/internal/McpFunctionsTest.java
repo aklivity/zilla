@@ -454,11 +454,11 @@ public class McpFunctionsTest
     }
 
     @Test
-    public void shouldGenerateResumeFlushEx()
+    public void shouldGenerateResumableFlushEx()
     {
         byte[] bytes = McpFunctions.flushEx()
             .typeId(0)
-            .resume()
+            .resumable()
                 .id("2:0")
                 .build()
             .build();
@@ -467,11 +467,11 @@ public class McpFunctionsTest
     }
 
     @Test
-    public void shouldMatchResumeFlushEx() throws Exception
+    public void shouldMatchResumableFlushEx() throws Exception
     {
         BytesMatcher matcher = McpFunctions.matchFlushEx()
             .typeId(0)
-            .resume()
+            .resumable()
                 .id("2:0")
                 .build()
             .build();
@@ -481,7 +481,7 @@ public class McpFunctionsTest
         new McpFlushExFW.Builder()
             .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
-            .resume(b -> b.id("2:0"))
+            .resumable(b -> b.id("2:0"))
             .build();
 
         assertNotNull(matcher.match(byteBuf));

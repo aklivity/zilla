@@ -38,11 +38,11 @@ write zilla:begin.ext ${mcp:beginEx()
                            .build()}
 write flush
 
-read advised zilla:flush ${mcp:matchFlushEx()
-                               .typeId(zilla:id("mcp"))
-                               .resume()
-                                   .build()
-                               .build()}
+write advised zilla:challenge ${mcp:matchChallengeEx()
+                                    .typeId(zilla:id("mcp"))
+                                    .resume()
+                                        .build()
+                                    .build()}
 
 read advise zilla:challenge ${mcp:matchChallengeEx()
                                   .typeId(zilla:id("mcp"))

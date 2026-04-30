@@ -664,7 +664,7 @@ public final class McpClientFactory implements McpStreamFactory
         }
         else if (http.sseEventId != null && http.sseEventData.length() == 0)
         {
-            http.mcp.relayResume(traceId, authorization, stripSseEventIdPrefix(http.sseEventId));
+            http.mcp.relayResumable(traceId, authorization, stripSseEventIdPrefix(http.sseEventId));
         }
         else if (http.sseEventData.length() > 0)
         {
@@ -974,7 +974,7 @@ public final class McpClientFactory implements McpStreamFactory
         {
         }
 
-        void relayResume(
+        void relayResumable(
             long traceId,
             long authorization,
             String id)
@@ -1435,7 +1435,7 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         @Override
-        void relayResume(
+        void relayResumable(
             long traceId,
             long authorization,
             String id)
@@ -1443,7 +1443,7 @@ public final class McpClientFactory implements McpStreamFactory
             final McpFlushExFW flushEx = mcpFlushExRW
                 .wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(mcpTypeId)
-                .resume(b -> b.id(id))
+                .resumable(b -> b.id(id))
                 .build();
             doAppFlush(traceId, authorization, flushEx);
         }
@@ -1774,7 +1774,7 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         @Override
-        void relayResume(
+        void relayResumable(
             long traceId,
             long authorization,
             String id)
@@ -1782,7 +1782,7 @@ public final class McpClientFactory implements McpStreamFactory
             final McpFlushExFW flushEx = mcpFlushExRW
                 .wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(mcpTypeId)
-                .resume(b -> b.id(id))
+                .resumable(b -> b.id(id))
                 .build();
             doAppFlush(traceId, authorization, flushEx);
         }
@@ -3016,7 +3016,7 @@ public final class McpClientFactory implements McpStreamFactory
             }
             else if (currentEventId != null && currentEventData.length() == 0)
             {
-                lifecycle.relayResume(traceId, authorization, stripEventIdPrefix(currentEventId));
+                lifecycle.relayResumable(traceId, authorization, stripEventIdPrefix(currentEventId));
             }
             else if (currentEventData.length() > 0)
             {

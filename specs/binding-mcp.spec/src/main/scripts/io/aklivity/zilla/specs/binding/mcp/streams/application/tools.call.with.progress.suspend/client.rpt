@@ -65,7 +65,7 @@ write close
 
 read advised zilla:flush ${mcp:matchFlushEx()
                                .typeId(zilla:id("mcp"))
-                               .resume()
+                               .resumable()
                                    .id("0")
                                    .build()
                                .build()}

@@ -299,6 +299,51 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/lifecycle.notify.tools.list.changed/client",
+        "${app}/lifecycle.notify.tools.list.changed/server"})
+    public void shouldNotifyToolsListChanged() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/lifecycle.notify.prompts.list.changed/client",
+        "${app}/lifecycle.notify.prompts.list.changed/server"})
+    public void shouldNotifyPromptsListChanged() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/lifecycle.notify.resources.list.changed/client",
+        "${app}/lifecycle.notify.resources.list.changed/server"})
+    public void shouldNotifyResourcesListChanged() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/lifecycle.suspend.events/client",
+        "${app}/lifecycle.suspend.events/server"})
+    public void shouldLifecycleSuspendEvents() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/lifecycle.suspended.events/client",
+        "${app}/lifecycle.suspended.events/server"})
+    public void shouldLifecycleSuspendedEvents() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/tools.call.with.progress/client",
         "${app}/tools.call.with.progress/server"})
     public void shouldCallToolWithProgress() throws Exception
