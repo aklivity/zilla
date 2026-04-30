@@ -290,6 +290,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/lifecycle.events.resume/client",
+        "${net}/lifecycle.events.resume/server"})
+    public void shouldResumeLifecycleEvents() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/lifecycle.events.session.unknown/client",
         "${net}/lifecycle.events.session.unknown/server"})
     public void shouldRejectLifecycleEventsSessionUnknown() throws Exception

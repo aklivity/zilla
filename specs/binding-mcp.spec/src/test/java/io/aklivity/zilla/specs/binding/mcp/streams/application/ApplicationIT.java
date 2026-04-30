@@ -282,6 +282,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/lifecycle.events.resume/client",
+        "${app}/lifecycle.events.resume/server"})
+    public void shouldResumeLifecycleEvents() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/lifecycle.shutdown.events/client",
         "${app}/lifecycle.shutdown.events/server"})
     public void shouldLifecycleShutdownEvents() throws Exception

@@ -49,6 +49,7 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpRouteConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.OctetsFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.ChallengeFW;
@@ -89,6 +90,7 @@ public final class McpClientFactory implements McpStreamFactory
     private static final String HTTP_HEADER_ACCEPT = "accept";
     private static final String HTTP_HEADER_SESSION = "mcp-session-id";
     private static final String HTTP_HEADER_MCP_VERSION = "mcp-protocol-version";
+    private static final String HTTP_HEADER_LAST_EVENT_ID = "last-event-id";
     private static final String CONTENT_TYPE_JSON = "application/json";
     private static final String CONTENT_TYPE_JSON_AND_EVENT_STREAM = "application/json, text/event-stream";
     private static final String CONTENT_TYPE_EVENT_STREAM = "text/event-stream";
@@ -1728,7 +1730,9 @@ public final class McpClientFactory implements McpStreamFactory
                 if (challengeEx != null && challengeEx.kind() == McpChallengeExFW.KIND_RESUME &&
                     eventStream == null)
                 {
-                    eventStream = new HttpEventStream(this);
+                    final String16FW resumeId = challengeEx.resume().id();
+                    final String lastEventId = resumeId != null ? resumeId.asString() : null;
+                    eventStream = new HttpEventStream(this, lastEventId);
                     eventStream.doNetStart(traceId, authorization);
                 }
             }
@@ -3026,6 +3030,7 @@ public final class McpClientFactory implements McpStreamFactory
         private final long initialId;
         private final long replyId;
         private final long affinity;
+        private final String lastEventId;
 
         private MessageConsumer net;
 
@@ -3047,7 +3052,8 @@ public final class McpClientFactory implements McpStreamFactory
         private long currentEventRetry;
 
         HttpEventStream(
-            McpLifecycleStream lifecycle)
+            McpLifecycleStream lifecycle,
+            String lastEventId)
         {
             this.lifecycle = lifecycle;
             this.originId = lifecycle.routedId;
@@ -3056,6 +3062,7 @@ public final class McpClientFactory implements McpStreamFactory
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.affinity = lifecycle.affinity;
             this.replyMax = decodeMax;
+            this.lastEventId = lastEventId;
         }
 
         void doNetStart(
@@ -3071,12 +3078,16 @@ public final class McpClientFactory implements McpStreamFactory
                 lifecycle.with.headers.forEach((name, value) ->
                     builder.headersItem(h -> h.name(name).value(value)));
             }
-            final HttpBeginExFW httpBeginEx = builder
+            builder
                 .headersItem(h -> h.name(HTTP_HEADER_METHOD).value(HTTP_METHOD_GET))
                 .headersItem(h -> h.name(HTTP_HEADER_ACCEPT).value(CONTENT_TYPE_EVENT_STREAM))
                 .headersItem(h -> h.name(HTTP_HEADER_MCP_VERSION).value(MCP_PROTOCOL_VERSION))
-                .headersItem(h -> h.name(HTTP_HEADER_SESSION).value(sid))
-                .build();
+                .headersItem(h -> h.name(HTTP_HEADER_SESSION).value(sid));
+            if (lastEventId != null && !lastEventId.isEmpty())
+            {
+                builder.headersItem(h -> h.name(HTTP_HEADER_LAST_EVENT_ID).value(lastEventId));
+            }
+            final HttpBeginExFW httpBeginEx = builder.build();
 
             state = McpState.openingInitial(state);
             net = newStream(this::onNetMessage,

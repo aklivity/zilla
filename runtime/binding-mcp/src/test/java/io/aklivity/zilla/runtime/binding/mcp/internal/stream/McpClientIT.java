@@ -303,6 +303,16 @@ public class McpClientIT
     @Test
     @Configuration("client.yaml")
     @Specification({
+        "${app}/lifecycle.events.resume/client",
+        "${net}/lifecycle.events.resume/server"})
+    public void shouldResumeLifecycleEvents() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
         "${app}/lifecycle.notify.tools.list.changed/client",
         "${net}/lifecycle.notify.tools.list.changed/server"})
     public void shouldNotifyToolsListChanged() throws Exception
