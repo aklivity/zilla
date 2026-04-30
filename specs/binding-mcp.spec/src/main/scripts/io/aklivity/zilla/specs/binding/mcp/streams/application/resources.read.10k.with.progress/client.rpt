@@ -42,17 +42,15 @@ connect await LIFECYCLE_INITIALIZED
 
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
-                           .toolsCall()
+                           .resourcesRead()
                                .sessionId("session-1")
-                               .name("get_weather")
+                               .uri("file:///data/image.png")
                                .build()
                            .build()}
 
 connected
 
-write '{"name":"get_weather","arguments":{"image":"'
-write ${core:randomBase64(10000)}
-write '","location":"New York"},"_meta":{"progressToken":"abc123"}}'
+write '{"uri":"file:///data/image.png","_meta":{"progressToken":"abc123"}}'
 write close
 
 read advised zilla:flush ${mcp:matchFlushEx()
@@ -69,9 +67,11 @@ read advised zilla:flush ${mcp:matchFlushEx()
                                    .token("abc123")
                                    .progress(50)
                                    .total(100)
-                                   .message("Checking if Lady Liberty needs an umbrella...")
+                                   .message("Reading image bytes...")
                                    .build()
                                .build()}
 
-read  '{"content":[{"type": "text","text": "ok"}],"isError": false}'
+read '{"contents":[{"uri":"file:///data/image.png","mimeType":"image/png","text":"'
+read ${core:randomBase64(10000)}
+read '"}]}'
 read closed

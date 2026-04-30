@@ -42,17 +42,15 @@ accepted
 
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
-                          .toolsCall()
+                          .promptsGet()
                               .sessionId("session-1")
-                              .name("get_weather")
+                              .name("weather_prompt")
                               .build()
                           .build()}
 
 connected
 
-read '{"name":"get_weather","arguments":{"image":"'
-read ${core:randomBase64(100000)}
-read '","location":"New York"},"_meta":{"progressToken":"abc123"}}'
+read  '{"name":"weather_prompt","_meta":{"progressToken":"abc123"}}'
 read closed
 
 write flush
@@ -71,11 +69,13 @@ write advise zilla:flush ${mcp:flushEx()
                                   .token("abc123")
                                   .progress(50)
                                   .total(100)
-                                  .message("Checking if Lady Liberty needs an umbrella...")
+                                  .message("Composing the prompt...")
                                   .build()
                               .build()}
 
-write '{"content":[{"type": "text","text": "ok"}],"isError": false}'
+write '{"messages":[{"role":"user","content":{"type":"text","text":"'
+write ${core:randomBase64(10000)}
+write '"}}]}'
 write flush
 
 write close

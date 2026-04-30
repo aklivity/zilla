@@ -88,10 +88,7 @@ write zilla:begin.ext ${http:beginEx()
 
 connected
 
-write '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"get_weather","arguments":{"image":"'
-write ${core:randomBase64(100000)}
-write '","location":"New York"},"_meta":{"progressToken":"abc123"}}}'
-
+write '{"jsonrpc":"2.0","id":2,"method":"prompts/get","params":{"name":"weather_prompt","_meta":{"progressToken":"abc123"}}}'
 write close
 
 read zilla:begin.ext ${http:matchBeginEx()
@@ -104,10 +101,12 @@ read 'id: 2:0\n'
 read '\n'
 
 read 'id: 2:1\n'
-read 'data: {"jsonrpc":"2.0","method":"notifications/progress","params":{"progressToken":"abc123","progress":50,"total":100,"message":"Checking if Lady Liberty needs an umbrella..."}}\n'
+read 'data: {"jsonrpc":"2.0","method":"notifications/progress","params":{"progressToken":"abc123","progress":50,"total":100,"message":"Composing the prompt..."}}\n'
 read '\n'
 
-read 'data: {"jsonrpc":"2.0","id":2,"result":{"content":[{"type": "text","text": "ok"}],"isError": false}}\n'
+read 'data: {"jsonrpc":"2.0","id":2,"result":{"messages":[{"role":"user","content":{"type":"text","text":"'
+read ${core:randomBase64(100000)}
+read '"}}]}}\n'
 read '\n'
 
 read closed

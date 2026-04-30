@@ -75,9 +75,7 @@ write advise zilla:flush ${mcp:flushEx()
                                   .build()
                               .build()}
 
-write '{"content":[{"type":"text","text":"'
-write ${core:randomBase64(10000)}
-write '"}],"isError":false}'
+write '{"content":[{"type": "text","text": "ok"}],"isError": false}'
 write flush
 
 write close

@@ -42,17 +42,15 @@ connect await LIFECYCLE_INITIALIZED
 
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
-                           .toolsCall()
+                           .promptsGet()
                                .sessionId("session-1")
-                               .name("get_weather")
+                               .name("weather_prompt")
                                .build()
                            .build()}
 
 connected
 
-write '{"name":"get_weather","arguments":{"image":"'
-write ${core:randomBase64(10000)}
-write '","location":"New York"},"_meta":{"progressToken":"abc123"}}'
+write '{"name":"weather_prompt","_meta":{"progressToken":"abc123"}}'
 write close
 
 read advised zilla:flush ${mcp:matchFlushEx()
@@ -69,9 +67,11 @@ read advised zilla:flush ${mcp:matchFlushEx()
                                    .token("abc123")
                                    .progress(50)
                                    .total(100)
-                                   .message("Checking if Lady Liberty needs an umbrella...")
+                                   .message("Composing the prompt...")
                                    .build()
                                .build()}
 
-read  '{"content":[{"type": "text","text": "ok"}],"isError": false}'
+read '{"messages":[{"role":"user","content":{"type":"text","text":"'
+read ${core:randomBase64(10000)}
+read '"}}]}'
 read closed

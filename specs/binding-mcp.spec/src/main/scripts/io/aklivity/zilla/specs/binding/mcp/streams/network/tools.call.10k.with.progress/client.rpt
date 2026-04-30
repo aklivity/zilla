@@ -107,9 +107,7 @@ read 'id: 2:1\n'
 read 'data: {"jsonrpc":"2.0","method":"notifications/progress","params":{"progressToken":"abc123","progress":50,"total":100,"message":"Checking if Lady Liberty needs an umbrella..."}}\n'
 read '\n'
 
-read 'data: {"jsonrpc":"2.0","id":2,"result":{"content":[{"type":"text","text":"'
-read ${core:randomBase64(10000)}
-read '"}],"isError":false}}\n'
+read 'data: {"jsonrpc":"2.0","id":2,"result":{"content":[{"type": "text","text": "ok"}],"isError": false}}\n'
 read '\n'
 
 read closed

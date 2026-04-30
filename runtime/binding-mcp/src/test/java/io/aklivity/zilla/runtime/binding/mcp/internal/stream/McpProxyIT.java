@@ -395,4 +395,48 @@ public class McpProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${app}/resources.read.10k.with.progress/client",
+        "${app}/resources.read.10k.with.progress/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldReadResourceWith10kContentWithProgress() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${app}/resources.read.100k.with.progress/client",
+        "${app}/resources.read.100k.with.progress/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldReadResourceWith100kContentWithProgress() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${app}/prompts.get.10k.with.progress/client",
+        "${app}/prompts.get.10k.with.progress/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldGetPromptWith10kMessageWithProgress() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${app}/prompts.get.100k.with.progress/client",
+        "${app}/prompts.get.100k.with.progress/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldGetPromptWith100kMessageWithProgress() throws Exception
+    {
+        k3po.finish();
+    }
 }

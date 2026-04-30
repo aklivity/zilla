@@ -107,9 +107,7 @@ write 'data: {"jsonrpc":"2.0","method":"notifications/progress","params":{"progr
 write '\n'
 write flush
 
-write 'data: {"jsonrpc":"2.0","id":2,"result":{"content":[{"type":"text","text":"'
-write ${core:randomBase64(10000)}
-write '"}],"isError":false}}\n'
+write 'data: {"jsonrpc":"2.0","id":2,"result":{"content":[{"type": "text","text": "ok"}],"isError": false}}\n'
 write '\n'
 write flush
 

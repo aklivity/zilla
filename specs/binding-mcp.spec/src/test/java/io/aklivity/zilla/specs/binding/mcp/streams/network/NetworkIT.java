@@ -413,4 +413,40 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/resources.read.10k.with.progress/client",
+        "${net}/resources.read.10k.with.progress/server"})
+    public void shouldReadResourceWith10kContentWithProgress() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/resources.read.100k.with.progress/client",
+        "${net}/resources.read.100k.with.progress/server"})
+    public void shouldReadResourceWith100kContentWithProgress() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/prompts.get.10k.with.progress/client",
+        "${net}/prompts.get.10k.with.progress/server"})
+    public void shouldGetPromptWith10kMessageWithProgress() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/prompts.get.100k.with.progress/client",
+        "${net}/prompts.get.100k.with.progress/server"})
+    public void shouldGetPromptWith100kMessageWithProgress() throws Exception
+    {
+        k3po.finish();
+    }
 }
