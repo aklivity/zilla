@@ -88,9 +88,12 @@ public final class McpClientFactory implements McpStreamFactory
     private static final String HTTP_HEADER_METHOD = ":method";
     private static final String HTTP_HEADER_CONTENT_TYPE = "content-type";
     private static final String HTTP_HEADER_ACCEPT = "accept";
+    private static final String HTTP_HEADER_STATUS = ":status";
     private static final String HTTP_HEADER_SESSION = "mcp-session-id";
     private static final String HTTP_HEADER_MCP_VERSION = "mcp-protocol-version";
     private static final String HTTP_HEADER_LAST_EVENT_ID = "last-event-id";
+    private static final String STATUS_405 = "405";
+    private static final long SUSPEND_RETRY_NEVER = -1L;
     private static final String CONTENT_TYPE_JSON = "application/json";
     private static final String CONTENT_TYPE_JSON_AND_EVENT_STREAM = "application/json, text/event-stream";
     private static final String CONTENT_TYPE_EVENT_STREAM = "text/event-stream";
@@ -1668,6 +1671,7 @@ public final class McpClientFactory implements McpStreamFactory
         private long lastActiveAt;
         private int failedKeepalives;
         HttpEventStream eventStream;
+        boolean eventsUnsupported;
 
         McpLifecycleStream(
             MessageConsumer sender,
@@ -1730,10 +1734,17 @@ public final class McpClientFactory implements McpStreamFactory
                 if (challengeEx != null && challengeEx.kind() == McpChallengeExFW.KIND_RESUME &&
                     eventStream == null)
                 {
-                    final String16FW resumeId = challengeEx.resume().id();
-                    final String lastEventId = resumeId != null ? resumeId.asString() : null;
-                    eventStream = new HttpEventStream(this, lastEventId);
-                    eventStream.doNetStart(traceId, authorization);
+                    if (eventsUnsupported)
+                    {
+                        relaySuspend(traceId, authorization, SUSPEND_RETRY_NEVER);
+                    }
+                    else
+                    {
+                        final String16FW resumeId = challengeEx.resume().id();
+                        final String lastEventId = resumeId != null ? resumeId.asString() : null;
+                        eventStream = new HttpEventStream(this, lastEventId);
+                        eventStream.doNetStart(traceId, authorization);
+                    }
                 }
             }
         }
@@ -3172,7 +3183,34 @@ public final class McpClientFactory implements McpStreamFactory
             replyMax = decodeMax;
             state = McpState.openedReply(state);
 
-            doNetWindow(traceId, authorization, 0L, 0);
+            final OctetsFW ext = begin.extension();
+            String status = null;
+            if (ext.sizeof() > 0)
+            {
+                final HttpBeginExFW httpBeginEx = httpBeginExRO.tryWrap(
+                    ext.buffer(), ext.offset(), ext.limit());
+                if (httpBeginEx != null)
+                {
+                    final HttpHeaderFW statusHeader = httpBeginEx.headers()
+                        .matchFirst(h -> HTTP_HEADER_STATUS.equals(h.name().asString()));
+                    if (statusHeader != null)
+                    {
+                        status = statusHeader.value().asString();
+                    }
+                }
+            }
+
+            if (STATUS_405.equals(status))
+            {
+                lifecycle.eventsUnsupported = true;
+                lifecycle.relaySuspend(traceId, authorization, SUSPEND_RETRY_NEVER);
+                doNetReset(traceId, authorization);
+                detach();
+            }
+            else
+            {
+                doNetWindow(traceId, authorization, 0L, 0);
+            }
         }
 
         private void onNetData(

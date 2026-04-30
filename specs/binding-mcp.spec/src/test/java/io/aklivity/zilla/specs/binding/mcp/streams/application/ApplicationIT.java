@@ -291,6 +291,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/lifecycle.events.unsupported/client",
+        "${app}/lifecycle.events.unsupported/server"})
+    public void shouldRejectLifecycleEventsUnsupported() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/lifecycle.shutdown.events/client",
         "${app}/lifecycle.shutdown.events/server"})
     public void shouldLifecycleShutdownEvents() throws Exception

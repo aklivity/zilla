@@ -865,7 +865,7 @@ public final class McpFunctions
 
         public final class McpSuspendFlushExBuilder
         {
-            private long retry = -1L;
+            private long retry = 0L;
 
             public McpSuspendFlushExBuilder retry(
                 long retry)

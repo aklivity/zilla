@@ -84,7 +84,7 @@ scope mcp
 
         struct McpSuspendFlushEx
         {
-            int64 retry = -1;
+            int64 retry = 0;
         }
 
         struct McpResumeChallengeEx

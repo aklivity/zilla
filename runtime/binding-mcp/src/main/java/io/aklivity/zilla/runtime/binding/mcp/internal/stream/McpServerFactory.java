@@ -90,6 +90,7 @@ public final class McpServerFactory implements McpStreamFactory
     private static final String STATUS_400 = "400";
     private static final String STATUS_405 = "405";
     private static final String STATUS_406 = "406";
+    private static final long SUSPEND_RETRY_NEVER = -1L;
 
     private static final int SSE_KEEPALIVE_SIGNAL_ID = 2;
     private static final byte[] SSE_KEEPALIVE_BYTES = ":\n\n".getBytes();
@@ -317,6 +318,10 @@ public final class McpServerFactory implements McpStreamFactory
                 else if (resolvedSession == null)
                 {
                     newStream = new McpRejectHandler(sender, STATUS_400)::onNetBegin;
+                }
+                else if (resolvedSession.eventsUnsupported)
+                {
+                    newStream = new McpRejectHandler(sender, STATUS_405)::onNetBegin;
                 }
                 else
                 {
@@ -1903,7 +1908,10 @@ public final class McpServerFactory implements McpStreamFactory
                 length = encodeSseProgressEvent(codecBuffer, 0, streamIdPrefix, flushEx.progress());
                 break;
             case McpFlushExFW.KIND_SUSPEND:
-                length = encodeSseRetry(codecBuffer, 0, flushEx.suspend().retry());
+                final long requestRetry = flushEx.suspend().retry();
+                length = requestRetry > 0
+                    ? encodeSseRetry(codecBuffer, 0, requestRetry)
+                    : 0;
                 break;
             default:
                 length = 0;
@@ -2360,6 +2368,7 @@ public final class McpServerFactory implements McpStreamFactory
         private long lastActiveAt;
         private long inactiveId = Signaler.NO_CANCEL_ID;
         private McpEventStream eventStream;
+        private boolean eventsUnsupported;
 
         private McpLifecycleStream(
             McpServer server)
@@ -2640,8 +2649,19 @@ public final class McpServerFactory implements McpStreamFactory
                     flushEx.resourcesListChanged().id(), NOTIFICATIONS_RESOURCES_LIST_CHANGED_BYTES);
                 break;
             case McpFlushExFW.KIND_SUSPEND:
-                eventStream.doEncodeRetryEvent(traceId, authorization, flushEx.suspend().retry());
-                eventStream.doNetEnd(traceId, authorization);
+                final long suspendRetry = flushEx.suspend().retry();
+                if (suspendRetry == SUSPEND_RETRY_NEVER)
+                {
+                    eventsUnsupported = true;
+                }
+                if (eventStream != null)
+                {
+                    if (suspendRetry > 0)
+                    {
+                        eventStream.doEncodeRetryEvent(traceId, authorization, suspendRetry);
+                    }
+                    eventStream.doNetEnd(traceId, authorization);
+                }
                 break;
             default:
                 break;
