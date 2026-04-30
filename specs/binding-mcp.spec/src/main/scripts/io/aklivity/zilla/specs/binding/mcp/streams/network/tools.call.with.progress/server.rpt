@@ -101,7 +101,6 @@ write 'data: {"jsonrpc":"2.0","method":"notifications/progress","params":{"progr
 write '\n'
 write flush
 
-write 'id: request:2\n'
 write 'data: {"jsonrpc":"2.0","id":2,"result":{"content":[{"type": "text","text": "Current weather in New York:\\nTemperature: 72°F\\nConditions: Partly cloudy"}],"isError": false}}\n'
 write '\n'
 write flush

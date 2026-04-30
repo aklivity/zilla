@@ -102,7 +102,6 @@ read 'id: request:1\n'
 read 'data: {"jsonrpc":"2.0","method":"notifications/progress","params":{"progressToken":"abc","progress":50,"total":100,"message":"halfway"}}\n'
 read '\n'
 
-read 'id: request:2\n'
 read 'data: {"jsonrpc":"2.0","id":2,"result":{"content":[{"type": "text","text": "Current weather in New York:\\nTemperature: 72°F\\nConditions: Partly cloudy"}],"isError": false}}\n'
 read '\n'
 
