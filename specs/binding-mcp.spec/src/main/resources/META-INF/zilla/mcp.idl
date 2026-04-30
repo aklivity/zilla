@@ -44,6 +44,13 @@ scope mcp
             case 2: mcp::stream::McpPromptsListChangedFlushEx promptsListChanged;
             case 3: mcp::stream::McpResourcesListChangedFlushEx resourcesListChanged;
             case 4: mcp::stream::McpProgressFlushEx progress;
+            case 5: mcp::stream::McpSuspendFlushEx suspend;
+        }
+
+        union McpChallengeEx switch (uint8) extends core::stream::Extension
+        {
+            case 0: mcp::stream::McpResumeChallengeEx resume;
+            case 1: mcp::stream::McpSuspendedChallengeEx suspended;
         }
 
         struct McpResumeFlushEx
@@ -73,6 +80,20 @@ scope mcp
             int64 progress;
             int64 total = -1;
             string16 message = null;
+        }
+
+        struct McpSuspendFlushEx
+        {
+            int64 retryMillis = -1;
+        }
+
+        struct McpResumeChallengeEx
+        {
+            string16 id;
+        }
+
+        struct McpSuspendedChallengeEx
+        {
         }
 
         struct McpLifecycleBeginEx
