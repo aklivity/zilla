@@ -69,7 +69,7 @@ scope mcp
         struct McpProgressFlushEx
         {
             string16 id;
-            string16 progressToken;
+            string16 token;
             int64 progress;
             int64 total = -1;
             string16 message = null;
