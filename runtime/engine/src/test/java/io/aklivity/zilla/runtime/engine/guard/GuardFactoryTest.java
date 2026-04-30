@@ -15,14 +15,17 @@
  */
 package io.aklivity.zilla.runtime.engine.guard;
 
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import org.agrona.collections.MutableLong;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.config.GuardConfig;
+import io.aklivity.zilla.runtime.engine.guard.GuardHandler.LongCompletionCallback;
 import io.aklivity.zilla.runtime.engine.test.internal.guard.TestGuard;
 import io.aklivity.zilla.runtime.engine.test.internal.guard.TestGuardConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.guard.TestGuardHandler;
@@ -46,5 +49,68 @@ public final class GuardFactoryTest
         GuardHandler handler = new TestGuardHandler(new TestGuardConfig(config));
 
         assertThat(handler.preauthorize(0L, 0L, 0L, null), nullValue());
+    }
+
+    @Test
+    public void shouldDelegateAsyncReauthorizeToSyncByDefault()
+    {
+        GuardConfig config = GuardConfig.builder().namespace("test").name("test").type("test").build();
+        GuardHandler handler = new TestGuardHandler(new TestGuardConfig(config));
+
+        MutableLong result = new MutableLong(Long.MIN_VALUE);
+        MutableLong completedContextId = new MutableLong(Long.MIN_VALUE);
+        LongCompletionCallback completion = new LongCompletionCallback()
+        {
+            @Override
+            public void completed(
+                long contextId,
+                long sessionId)
+            {
+                completedContextId.value = contextId;
+                result.value = sessionId;
+            }
+
+            @Override
+            public void failed(
+                long contextId,
+                Throwable ex)
+            {
+                throw new AssertionError("unexpected failure", ex);
+            }
+        };
+
+        handler.reauthorize(0L, 0L, 42L, null, completion);
+
+        assertThat(result.value, equalTo(handler.reauthorize(0L, 0L, 42L, null)));
+        assertThat(completedContextId.value, equalTo(42L));
+    }
+
+    @Test
+    public void shouldBridgeBoxedCompletionToPrimitive()
+    {
+        MutableLong primitive = new MutableLong(Long.MIN_VALUE);
+        LongCompletionCallback completion = new LongCompletionCallback()
+        {
+            @Override
+            public void completed(
+                long contextId,
+                long sessionId)
+            {
+                primitive.value = sessionId;
+            }
+
+            @Override
+            public void failed(
+                long contextId,
+                Throwable ex)
+            {
+                throw new AssertionError(ex);
+            }
+        };
+
+        // exercise the default Long-bridge on LongCompletionCallback
+        completion.completed(7L, Long.valueOf(123L));
+
+        assertThat(primitive.value, equalTo(123L));
     }
 }

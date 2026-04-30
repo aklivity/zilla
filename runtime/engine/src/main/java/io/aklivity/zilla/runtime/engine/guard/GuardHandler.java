@@ -85,6 +85,51 @@ public interface GuardHandler
         String credentials);
 
     /**
+     * Async variant of {@link #reauthorize} for guards whose authorization decision
+     * requires non-blocking I/O (for example, an upstream token exchange after an
+     * out-of-band consent step). The result is delivered to {@code completion} on
+     * the same engine worker thread that invoked this method; implementations that
+     * do off-thread work must dispatch back via {@code EngineContext.signaler()}
+     * before invoking the callback.
+     * <p>
+     * The default implementation delegates to the synchronous {@link #reauthorize},
+     * so guards that always decide locally need no source change. Exceptions thrown
+     * by the synchronous variant are routed to {@link CompletionCallback#failed}.
+     * </p>
+     * <p>
+     * The {@code contextId} supplied at the call site is echoed back through the
+     * callback so a single shared {@link LongCompletionCallback} instance can route
+     * results to the correct stream — typically by issuing a {@code Signaler}
+     * signal — without per-call lambda capture.
+     * </p>
+     *
+     * @param traceId      the trace identifier for diagnostics
+     * @param bindingId    the binding identifier requesting authorization
+     * @param contextId    a context identifier (e.g., connection id), or {@code 0} if none
+     * @param credentials  the raw credential string; the format is guard-specific
+     * @param completion   callback invoked with a positive session id on success,
+     *                     {@link #NOT_AUTHORIZED} on failure, or {@link #NEEDS_PREAUTHORIZE}
+     *                     if pre-authorization is required first
+     */
+    default void reauthorize(
+        long traceId,
+        long bindingId,
+        long contextId,
+        String credentials,
+        LongCompletionCallback completion)
+    {
+        try
+        {
+            long result = reauthorize(traceId, bindingId, contextId, credentials);
+            completion.completed(contextId, result);
+        }
+        catch (Throwable ex)
+        {
+            completion.failed(contextId, ex);
+        }
+    }
+
+    /**
      * Invalidates and releases the given session.
      *
      * @param sessionId  the session identifier to deauthorize
@@ -191,5 +236,63 @@ public interface GuardHandler
         String callback)
     {
         return null;
+    }
+
+    /**
+     * Generic completion handler for asynchronous guard operations, modelled after
+     * {@link java.nio.channels.CompletionHandler}. The {@code contextId} supplied by
+     * the caller is echoed back to both methods so a single shared callback instance
+     * can dispatch results to the originating stream — typically via {@code Signaler}
+     * — without per-call lambda capture.
+     *
+     * @param <V> the result type
+     */
+    interface CompletionCallback<V>
+    {
+        /**
+         * Invoked when the operation completes successfully.
+         *
+         * @param contextId  the {@code contextId} supplied to the originating call
+         * @param result     the operation result
+         */
+        void completed(
+            long contextId,
+            V result);
+
+        /**
+         * Invoked when the operation fails.
+         *
+         * @param contextId  the {@code contextId} supplied to the originating call
+         * @param ex         the failure cause
+         */
+        void failed(
+            long contextId,
+            Throwable ex);
+    }
+
+    /**
+     * Specialisation of {@link CompletionCallback} for {@code long}-valued results,
+     * avoiding boxing on the hot path. Implementations override only the primitive
+     * {@link #completed(long, long)} method; the boxed bridge is provided by default.
+     */
+    interface LongCompletionCallback extends CompletionCallback<Long>
+    {
+        @Override
+        default void completed(
+            long contextId,
+            Long result)
+        {
+            completed(contextId, result.longValue());
+        }
+
+        /**
+         * Primitive {@code long} variant of {@link #completed(long, Long)}.
+         *
+         * @param contextId  the {@code contextId} supplied to the originating call
+         * @param result     the operation result
+         */
+        void completed(
+            long contextId,
+            long result);
     }
 }
