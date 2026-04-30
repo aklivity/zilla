@@ -2303,9 +2303,6 @@ public final class McpServerFactory implements McpStreamFactory
             if (msgTypeId == BeginFW.TYPE_ID)
             {
                 final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-                doWindow(net, begin.originId(), begin.routedId(), begin.streamId(),
-                    begin.sequence(), begin.acknowledge(), 0,
-                    begin.traceId(), 0L, 0, 0);
                 doReset(net, begin.originId(), begin.routedId(), begin.streamId(),
                     begin.sequence(), begin.acknowledge(), 0,
                     begin.traceId(), begin.authorization(), httpResetExRW
