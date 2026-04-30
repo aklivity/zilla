@@ -79,7 +79,7 @@ write advise zilla:flush ${mcp:flushEx()
                                   .token("abc123")
                                   .progress(50)
                                   .total(100)
-                                  .message("halfway")
+                                  .message("Checking if Lady Liberty needs an umbrella...")
                                   .build()
                               .build()}
 
