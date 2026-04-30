@@ -84,4 +84,33 @@ public final class GuardFactoryTest
         assertThat(result.value, equalTo(handler.reauthorize(0L, 0L, 42L, null)));
         assertThat(completedContextId.value, equalTo(42L));
     }
+
+    @Test
+    public void shouldBridgeBoxedCompletionToPrimitive()
+    {
+        MutableLong primitive = new MutableLong(Long.MIN_VALUE);
+        LongCompletionCallback completion = new LongCompletionCallback()
+        {
+            @Override
+            public void completed(
+                long contextId,
+                long sessionId)
+            {
+                primitive.value = sessionId;
+            }
+
+            @Override
+            public void failed(
+                long contextId,
+                Throwable ex)
+            {
+                throw new AssertionError(ex);
+            }
+        };
+
+        // exercise the default Long-bridge on LongCompletionCallback
+        completion.completed(7L, Long.valueOf(123L));
+
+        assertThat(primitive.value, equalTo(123L));
+    }
 }
