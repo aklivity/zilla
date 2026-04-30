@@ -37,6 +37,38 @@ scope mcp
             case 6: mcp::stream::McpResourcesReadBeginEx resourcesRead;
         }
 
+        union McpFlushEx switch (uint8) extends core::stream::Extension
+        {
+            case 0: mcp::stream::McpToolsListChangedFlushEx toolsListChanged;
+            case 1: mcp::stream::McpPromptsListChangedFlushEx promptsListChanged;
+            case 2: mcp::stream::McpResourcesListChangedFlushEx resourcesListChanged;
+            case 3: mcp::stream::McpProgressFlushEx progress;
+        }
+
+        struct McpToolsListChangedFlushEx
+        {
+            string16 eventId;
+        }
+
+        struct McpPromptsListChangedFlushEx
+        {
+            string16 eventId;
+        }
+
+        struct McpResourcesListChangedFlushEx
+        {
+            string16 eventId;
+        }
+
+        struct McpProgressFlushEx
+        {
+            string16 eventId;
+            string16 progressToken;
+            int64 progress;
+            int64 total = -1;
+            string16 message = null;
+        }
+
         struct McpLifecycleBeginEx
         {
             string16 sessionId;
