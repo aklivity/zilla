@@ -39,11 +39,16 @@ scope mcp
 
         union McpFlushEx switch (uint8) extends core::stream::Extension
         {
-            case 0: mcp::stream::McpToolsListChangedFlushEx toolsListChanged;
-            case 1: mcp::stream::McpPromptsListChangedFlushEx promptsListChanged;
-            case 2: mcp::stream::McpResourcesListChangedFlushEx resourcesListChanged;
-            case 3: mcp::stream::McpProgressFlushEx progress;
-            case 4: mcp::stream::McpResumeFlushEx resume;
+            case 0: mcp::stream::McpResumeFlushEx resume;
+            case 1: mcp::stream::McpToolsListChangedFlushEx toolsListChanged;
+            case 2: mcp::stream::McpPromptsListChangedFlushEx promptsListChanged;
+            case 3: mcp::stream::McpResourcesListChangedFlushEx resourcesListChanged;
+            case 4: mcp::stream::McpProgressFlushEx progress;
+        }
+
+        struct McpResumeFlushEx
+        {
+            string16 eventId;
         }
 
         struct McpToolsListChangedFlushEx
@@ -68,11 +73,6 @@ scope mcp
             int64 progress;
             int64 total = -1;
             string16 message = null;
-        }
-
-        struct McpResumeFlushEx
-        {
-            string16 eventId;
         }
 
         struct McpLifecycleBeginEx
