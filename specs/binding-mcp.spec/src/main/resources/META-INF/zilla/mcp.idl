@@ -89,7 +89,7 @@ scope mcp
 
         struct McpResumeChallengeEx
         {
-            string16 id;
+            string16 id = null;
         }
 
         struct McpSuspendedChallengeEx
