@@ -51,11 +51,14 @@ read zilla:begin.ext ${mcp:matchBeginEx()
 connected
 
 read  '{'
-        '"_meta":{"progressToken":"abc"},'
         '"name":"get_weather",'
         '"arguments":'
         '{'
           '"location": "New York"'
+        '},'
+        '"_meta":'
+        '{'
+          '"progressToken":"abc123"'
         '}'
       '}'
 read closed
@@ -73,7 +76,7 @@ write advise zilla:flush ${mcp:flushEx()
                               .typeId(zilla:id("mcp"))
                               .progress()
                                   .id("request:1")
-                                  .progressToken("abc")
+                                  .progressToken("abc123")
                                   .progress(50)
                                   .total(100)
                                   .message("halfway")
