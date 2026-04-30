@@ -329,4 +329,24 @@ public class McpClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/lifecycle.suspend.events/client",
+        "${net}/lifecycle.suspend.events/server"})
+    public void shouldLifecycleSuspendEvents() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/lifecycle.suspended.events/client",
+        "${net}/lifecycle.suspended.events/server"})
+    public void shouldLifecycleSuspendedEvents() throws Exception
+    {
+        k3po.finish();
+    }
 }

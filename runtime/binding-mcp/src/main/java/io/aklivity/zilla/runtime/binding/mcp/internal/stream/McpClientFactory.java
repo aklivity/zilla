@@ -118,8 +118,10 @@ public final class McpClientFactory implements McpStreamFactory
     private final FlushFW.Builder flushRW = new FlushFW.Builder();
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
+    private final ChallengeFW.Builder challengeRW = new ChallengeFW.Builder();
     private final HttpBeginExFW.Builder httpBeginExRW = new HttpBeginExFW.Builder();
     private final McpBeginExFW.Builder mcpBeginExRW = new McpBeginExFW.Builder();
+    private final McpChallengeExFW.Builder mcpChallengeExRW = new McpChallengeExFW.Builder();
     private final McpFlushExFW.Builder mcpFlushExRW = new McpFlushExFW.Builder();
 
     private final DirectBufferInputStreamEx inputRO = new DirectBufferInputStreamEx();
@@ -1058,6 +1060,16 @@ public final class McpClientFactory implements McpStreamFactory
                 traceId, authorization, replyBud, 0, extension);
         }
 
+        void doAppChallenge(
+            long traceId,
+            long authorization,
+            Flyweight extension)
+        {
+            doChallenge(sender, originId, routedId, replyId,
+                replySeq, replyAck, replyMax,
+                traceId, authorization, extension);
+        }
+
         void doAppAbort(
             long traceId,
             long authorization)
@@ -1213,6 +1225,33 @@ public final class McpClientFactory implements McpStreamFactory
                 .resume(b -> b.id(id))
                 .build();
             doAppFlush(traceId, authorization, flushEx);
+        }
+
+        void relaySuspend(
+            long traceId,
+            long authorization,
+            long retry)
+        {
+            final McpFlushExFW flushEx = mcpFlushExRW
+                .wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(mcpTypeId)
+                .suspend(b -> b.retry(retry))
+                .build();
+            doAppFlush(traceId, authorization, flushEx);
+        }
+
+        void relaySuspended(
+            long traceId,
+            long authorization)
+        {
+            final McpChallengeExFW challengeEx = mcpChallengeExRW
+                .wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(mcpTypeId)
+                .suspended(b ->
+                {
+                })
+                .build();
+            doAppChallenge(traceId, authorization, challengeEx);
         }
 
         void relayNotification(
@@ -2350,6 +2389,7 @@ public final class McpClientFactory implements McpStreamFactory
 
         private String currentEventId;
         private final StringBuilder currentEventData = new StringBuilder();
+        private long currentEventRetry;
 
         HttpEventStream(
             McpLifecycleStream lifecycle)
@@ -2497,8 +2537,16 @@ public final class McpClientFactory implements McpStreamFactory
         private void onNetAbort(
             AbortFW abort)
         {
+            final long traceId = abort.traceId();
+            final long authorization = abort.authorization();
+
             state = McpState.closedReply(state);
             cleanupDecodeSlot();
+
+            if (lifecycle.eventStream == this)
+            {
+                lifecycle.relaySuspended(traceId, authorization);
+            }
             detach();
         }
 
@@ -2599,6 +2647,7 @@ public final class McpClientFactory implements McpStreamFactory
         {
             currentEventId = null;
             currentEventData.setLength(0);
+            currentEventRetry = -1L;
 
             int lineStart = eventStart;
             for (int i = eventStart; i < eventEnd; i++)
@@ -2614,7 +2663,11 @@ public final class McpClientFactory implements McpStreamFactory
                 decodeSseLine(buffer, lineStart, eventEnd);
             }
 
-            if (currentEventId != null && currentEventData.length() == 0)
+            if (currentEventRetry >= 0)
+            {
+                lifecycle.relaySuspend(traceId, authorization, currentEventRetry);
+            }
+            else if (currentEventId != null && currentEventData.length() == 0)
             {
                 lifecycle.relayResume(traceId, authorization, stripEventIdPrefix(currentEventId));
             }
@@ -2670,6 +2723,15 @@ public final class McpClientFactory implements McpStreamFactory
                     currentEventData.append('\n');
                 }
                 currentEventData.append(fieldValue);
+                break;
+            case "retry":
+                try
+                {
+                    currentEventRetry = Long.parseLong(fieldValue);
+                }
+                catch (NumberFormatException ignored)
+                {
+                }
                 break;
             default:
                 break;
@@ -3567,6 +3629,33 @@ public final class McpClientFactory implements McpStreamFactory
             .build();
 
         receiver.accept(flush.typeId(), flush.buffer(), flush.offset(), flush.sizeof());
+    }
+
+    private void doChallenge(
+        MessageConsumer receiver,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        Flyweight extension)
+    {
+        final ChallengeFW challenge = challengeRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+            .originId(originId)
+            .routedId(routedId)
+            .streamId(streamId)
+            .sequence(sequence)
+            .acknowledge(acknowledge)
+            .maximum(maximum)
+            .traceId(traceId)
+            .authorization(authorization)
+            .extension(extension.buffer(), extension.offset(), extension.sizeof())
+            .build();
+
+        receiver.accept(challenge.typeId(), challenge.buffer(), challenge.offset(), challenge.sizeof());
     }
 
     private void doWindow(
