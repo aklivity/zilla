@@ -26,12 +26,17 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeg
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 
+import java.io.StringReader;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.function.LongUnaryOperator;
 
+import jakarta.json.Json;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonReader;
+import jakarta.json.JsonValue;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParserFactory;
 
@@ -247,6 +252,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private final HttpResponseDecoder decodeJsonRpc = this::decodeJsonRpc;
+    private final HttpResponseDecoder decodeSse = this::decodeSse;
     private final HttpResponseDecoder decodeJsonRpcStart = this::decodeJsonRpcStart;
     private final HttpResponseDecoder decodeJsonRpcNext = this::decodeJsonRpcNext;
     private final HttpResponseDecoder decodeJsonRpcEnd = this::decodeJsonRpcEnd;
@@ -597,6 +603,182 @@ public final class McpClientFactory implements McpStreamFactory
         return limit;
     }
 
+    private int decodeSse(
+        HttpStream http,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBuffer buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        int eventStart = progress;
+        while (progress < limit - 1)
+        {
+            if (buffer.getByte(progress) == (byte) '\n' &&
+                buffer.getByte(progress + 1) == (byte) '\n')
+            {
+                decodeSseEvent(http, traceId, authorization, buffer, eventStart, progress);
+                progress += 2;
+                eventStart = progress;
+            }
+            else
+            {
+                progress++;
+            }
+        }
+        return eventStart;
+    }
+
+    private void decodeSseEvent(
+        HttpStream http,
+        long traceId,
+        long authorization,
+        DirectBuffer buffer,
+        int eventStart,
+        int eventEnd)
+    {
+        http.sseEventId = null;
+        http.sseEventData.setLength(0);
+        http.sseEventRetry = -1L;
+
+        int lineStart = eventStart;
+        for (int i = eventStart; i < eventEnd; i++)
+        {
+            if (buffer.getByte(i) == (byte) '\n')
+            {
+                decodeSseLine(http, buffer, lineStart, i);
+                lineStart = i + 1;
+            }
+        }
+        if (lineStart < eventEnd)
+        {
+            decodeSseLine(http, buffer, lineStart, eventEnd);
+        }
+
+        if (http.sseEventRetry >= 0)
+        {
+            http.mcp.relaySuspend(traceId, authorization, http.sseEventRetry);
+        }
+        else if (http.sseEventId != null && http.sseEventData.length() == 0)
+        {
+            http.mcp.relayResume(traceId, authorization, stripSseEventIdPrefix(http.sseEventId));
+        }
+        else if (http.sseEventData.length() > 0)
+        {
+            decodeSseEventData(http, traceId, authorization, http.sseEventData.toString());
+        }
+    }
+
+    private void decodeSseLine(
+        HttpStream http,
+        DirectBuffer buffer,
+        int lineStart,
+        int lineEnd)
+    {
+        final int length = lineEnd - lineStart;
+        if (length == 0 || buffer.getByte(lineStart) == (byte) ':')
+        {
+            return;
+        }
+
+        int colon = -1;
+        for (int i = lineStart; i < lineEnd; i++)
+        {
+            if (buffer.getByte(i) == (byte) ':')
+            {
+                colon = i;
+                break;
+            }
+        }
+        if (colon < 0)
+        {
+            return;
+        }
+
+        int valueStart = colon + 1;
+        if (valueStart < lineEnd && buffer.getByte(valueStart) == (byte) ' ')
+        {
+            valueStart++;
+        }
+
+        final String fieldName = buffer.getStringWithoutLengthAscii(lineStart, colon - lineStart);
+        final String fieldValue = buffer.getStringWithoutLengthAscii(valueStart, lineEnd - valueStart);
+
+        switch (fieldName)
+        {
+        case "id":
+            http.sseEventId = fieldValue;
+            break;
+        case "data":
+            if (http.sseEventData.length() > 0)
+            {
+                http.sseEventData.append('\n');
+            }
+            http.sseEventData.append(fieldValue);
+            break;
+        case "retry":
+            try
+            {
+                http.sseEventRetry = Long.parseLong(fieldValue);
+            }
+            catch (NumberFormatException ignored)
+            {
+            }
+            break;
+        default:
+            break;
+        }
+    }
+
+    private void decodeSseEventData(
+        HttpStream http,
+        long traceId,
+        long authorization,
+        String data)
+    {
+        try (JsonReader reader = Json.createReader(new StringReader(data)))
+        {
+            final JsonObject obj = reader.readObject();
+            final String method = obj.containsKey("method") ? obj.getString("method", null) : null;
+            if ("notifications/progress".equals(method))
+            {
+                final JsonObject params = obj.getJsonObject("params");
+                final String token = params != null && params.containsKey("progressToken")
+                    ? params.getString("progressToken", null) : null;
+                final long progressVal = params != null && params.containsKey("progress")
+                    ? params.getJsonNumber("progress").longValue() : 0L;
+                final long total = params != null && params.containsKey("total")
+                    ? params.getJsonNumber("total").longValue() : -1L;
+                final String message = params != null && params.containsKey("message")
+                    ? params.getString("message", null) : null;
+                http.mcp.relayProgress(traceId, authorization,
+                    stripSseEventIdPrefix(http.sseEventId), token, progressVal, total, message);
+            }
+            else if (obj.containsKey("result"))
+            {
+                final JsonValue result = obj.get("result");
+                http.mcp.relayResult(traceId, authorization, result.toString());
+            }
+        }
+        catch (Exception ignored)
+        {
+        }
+    }
+
+    private static String stripSseEventIdPrefix(
+        String id)
+    {
+        if (id == null)
+        {
+            return "";
+        }
+        final int colon = id.lastIndexOf(':');
+        return colon < 0 ? id : id.substring(colon + 1);
+    }
+
     @Override
     public int originTypeId()
     {
@@ -789,6 +971,38 @@ public final class McpClientFactory implements McpStreamFactory
 
         void onAppSignal(
             SignalFW signal)
+        {
+        }
+
+        void relayResume(
+            long traceId,
+            long authorization,
+            String id)
+        {
+        }
+
+        void relayProgress(
+            long traceId,
+            long authorization,
+            String id,
+            String token,
+            long progress,
+            long total,
+            String message)
+        {
+        }
+
+        void relayResult(
+            long traceId,
+            long authorization,
+            String result)
+        {
+        }
+
+        void relaySuspend(
+            long traceId,
+            long authorization,
+            long retry)
         {
         }
 
@@ -1214,6 +1428,7 @@ public final class McpClientFactory implements McpStreamFactory
             }
         }
 
+        @Override
         void relayResume(
             long traceId,
             long authorization,
@@ -1227,6 +1442,7 @@ public final class McpClientFactory implements McpStreamFactory
             doAppFlush(traceId, authorization, flushEx);
         }
 
+        @Override
         void relaySuspend(
             long traceId,
             long authorization,
@@ -1549,6 +1765,76 @@ public final class McpClientFactory implements McpStreamFactory
         {
             doAppEnd(traceId, authorization);
         }
+
+        @Override
+        void relayResume(
+            long traceId,
+            long authorization,
+            String id)
+        {
+            final McpFlushExFW flushEx = mcpFlushExRW
+                .wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(mcpTypeId)
+                .resume(b -> b.id(id))
+                .build();
+            doAppFlush(traceId, authorization, flushEx);
+        }
+
+        @Override
+        void relayProgress(
+            long traceId,
+            long authorization,
+            String id,
+            String token,
+            long progress,
+            long total,
+            String message)
+        {
+            final McpFlushExFW flushEx = mcpFlushExRW
+                .wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(mcpTypeId)
+                .progress(b ->
+                {
+                    b.id(id);
+                    if (token != null)
+                    {
+                        b.token(token);
+                    }
+                    b.progress(progress);
+                    b.total(total);
+                    if (message != null)
+                    {
+                        b.message(message);
+                    }
+                })
+                .build();
+            doAppFlush(traceId, authorization, flushEx);
+        }
+
+        @Override
+        void relayResult(
+            long traceId,
+            long authorization,
+            String result)
+        {
+            final byte[] bytes = result.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+            codecBuffer.putBytes(0, bytes);
+            doAppData(traceId, authorization, codecBuffer, 0, bytes.length);
+        }
+
+        @Override
+        void relaySuspend(
+            long traceId,
+            long authorization,
+            long retry)
+        {
+            final McpFlushExFW flushEx = mcpFlushExRW
+                .wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(mcpTypeId)
+                .suspend(b -> b.retry(retry))
+                .build();
+            doAppFlush(traceId, authorization, flushEx);
+        }
     }
 
     private final class McpToolsListStream extends McpRequestStream
@@ -1689,6 +1975,10 @@ public final class McpClientFactory implements McpStreamFactory
         protected HttpResponseDecoder decodedSkipObjectThen;
         protected int decodedSkipObjectDepth;
 
+        protected String sseEventId;
+        protected final StringBuilder sseEventData = new StringBuilder();
+        protected long sseEventRetry;
+
         private int state;
 
         HttpStream(
@@ -1761,6 +2051,23 @@ public final class McpClientFactory implements McpStreamFactory
             replyMax = decodeMax;
 
             assert replyAck <= replySeq;
+
+            final OctetsFW ext = begin.extension();
+            if (ext.sizeof() > 0)
+            {
+                final HttpBeginExFW httpBeginEx = httpBeginExRO.tryWrap(
+                    ext.buffer(), ext.offset(), ext.limit());
+                if (httpBeginEx != null)
+                {
+                    final HttpHeaderFW contentType = httpBeginEx.headers()
+                        .matchFirst(h -> HTTP_HEADER_CONTENT_TYPE.equals(h.name().asString()));
+                    if (contentType != null &&
+                        CONTENT_TYPE_EVENT_STREAM.equals(contentType.value().asString()))
+                    {
+                        decoder = decodeSse;
+                    }
+                }
+            }
 
             mcp.onNetBegin(begin);
 

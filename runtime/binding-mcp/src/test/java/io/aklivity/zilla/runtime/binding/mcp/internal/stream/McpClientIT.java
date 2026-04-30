@@ -349,4 +349,14 @@ public class McpClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/tools.call.with.progress/client",
+        "${net}/tools.call.with.progress/server"})
+    public void shouldCallToolWithProgress() throws Exception
+    {
+        k3po.finish();
+    }
 }
