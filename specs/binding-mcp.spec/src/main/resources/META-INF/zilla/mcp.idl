@@ -43,6 +43,7 @@ scope mcp
             case 1: mcp::stream::McpPromptsListChangedFlushEx promptsListChanged;
             case 2: mcp::stream::McpResourcesListChangedFlushEx resourcesListChanged;
             case 3: mcp::stream::McpProgressFlushEx progress;
+            case 4: mcp::stream::McpResumableFlushEx resumable;
         }
 
         struct McpToolsListChangedFlushEx
@@ -67,6 +68,11 @@ scope mcp
             int64 progress;
             int64 total = -1;
             string16 message = null;
+        }
+
+        struct McpResumableFlushEx
+        {
+            string16 eventId;
         }
 
         struct McpLifecycleBeginEx
