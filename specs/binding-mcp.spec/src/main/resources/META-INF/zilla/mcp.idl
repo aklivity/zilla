@@ -48,27 +48,27 @@ scope mcp
 
         struct McpResumeFlushEx
         {
-            string16 eventId;
+            string16 id;
         }
 
         struct McpToolsListChangedFlushEx
         {
-            string16 eventId;
+            string16 id;
         }
 
         struct McpPromptsListChangedFlushEx
         {
-            string16 eventId;
+            string16 id;
         }
 
         struct McpResourcesListChangedFlushEx
         {
-            string16 eventId;
+            string16 id;
         }
 
         struct McpNotifyProgressFlushEx
         {
-            string16 eventId;
+            string16 id;
             string16 progressToken;
             int64 progress;
             int64 total = -1;
