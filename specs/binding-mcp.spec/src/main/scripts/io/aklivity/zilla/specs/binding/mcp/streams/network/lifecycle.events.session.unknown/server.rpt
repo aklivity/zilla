@@ -28,8 +28,12 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .header("mcp-session-id", "session-unknown")
                            .build()}
 
-# TODO: enable once k3po allows reading frames before connected fires
-#       (RESET should be observable in opened state per zilla stream protocol)
+# TODO: enable once k3po supports a `reject zilla:reset.ext ${...}` primitive
+#       that responds to the inbound BEGIN with a RESET carrying the given
+#       extension without transitioning through `connected`. Paired client-side
+#       enhancement: `connect aborted` followed by `read zilla:reset.ext ${...}`
+#       to assert the extension on the RESET that caused the abort. Both are
+#       needed together so client and server scripts can verify each other.
 # write zilla:reset.ext ${http:resetEx()
 #                             .typeId(zilla:id("http"))
 #                             .header(":status", "400")
