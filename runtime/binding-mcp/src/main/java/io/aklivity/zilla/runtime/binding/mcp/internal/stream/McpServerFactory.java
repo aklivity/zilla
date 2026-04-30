@@ -93,7 +93,6 @@ public final class McpServerFactory implements McpStreamFactory
     private static final int SSE_KEEPALIVE_SIGNAL_ID = 2;
     private static final byte[] SSE_KEEPALIVE_BYTES = ":\n\n".getBytes();
     private static final byte[] SSE_DATA_PREFIX_BYTES = "data: ".getBytes();
-    private static final byte[] SSE_DATA_NEWLINE_BYTES = "\ndata: ".getBytes();
     private static final byte[] SSE_MESSAGE_TERMINATOR_BYTES = "\n\n".getBytes();
     private static final byte[] SSE_ID_PREFIX_BYTES = "id: ".getBytes();
     private static final String LIFECYCLE_STREAM_ID_PREFIX = "";
@@ -4000,31 +3999,15 @@ public final class McpServerFactory implements McpStreamFactory
         int payloadOffset,
         int payloadLength)
     {
-        int progress = offset;
-        int chunkStart = payloadOffset;
-        final int payloadLimit = payloadOffset + payloadLength;
-        for (int cursor = payloadOffset; cursor < payloadLimit; cursor++)
+        out.putBytes(offset, payload, payloadOffset, payloadLength);
+        for (int i = 0; i < payloadLength; i++)
         {
-            if (payload.getByte(cursor) == (byte) '\n')
+            if (out.getByte(offset + i) == (byte) '\n')
             {
-                final int chunkLen = cursor - chunkStart;
-                if (chunkLen > 0)
-                {
-                    out.putBytes(progress, payload, chunkStart, chunkLen);
-                    progress += chunkLen;
-                }
-                out.putBytes(progress, SSE_DATA_NEWLINE_BYTES);
-                progress += SSE_DATA_NEWLINE_BYTES.length;
-                chunkStart = cursor + 1;
+                out.putByte(offset + i, (byte) ' ');
             }
         }
-
-        final int tailLen = payloadLimit - chunkStart;
-        if (tailLen > 0)
-        {
-            out.putBytes(progress, payload, chunkStart, tailLen);
-            progress += tailLen;
-        }
+        final int progress = offset + payloadLength;
 
         return progress - offset;
     }
