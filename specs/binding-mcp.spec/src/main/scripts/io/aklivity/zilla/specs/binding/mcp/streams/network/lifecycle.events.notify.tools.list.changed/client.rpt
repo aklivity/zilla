@@ -94,7 +94,7 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .header("mcp-session-id", "session-1")
                            .build()}
 
-read 'id: 1\n'
+read 'id: lifecycle:1\n'
 read 'data: {"jsonrpc":"2.0","method":"notifications/tools/list_changed"}\n'
 read '\n'
 
