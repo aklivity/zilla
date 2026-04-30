@@ -52,6 +52,7 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.HttpResetExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpChallengeExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpFlushExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpProgressFlushExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.ResetFW;
@@ -127,9 +128,11 @@ public final class McpServerFactory implements McpStreamFactory
     private final FlushFW.Builder flushRW = new FlushFW.Builder();
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
+    private final ChallengeFW.Builder challengeRW = new ChallengeFW.Builder();
     private final HttpBeginExFW.Builder httpBeginExRW = new HttpBeginExFW.Builder();
     private final HttpResetExFW.Builder httpResetExRW = new HttpResetExFW.Builder();
     private final McpBeginExFW.Builder mcpBeginExRW = new McpBeginExFW.Builder();
+    private final McpChallengeExFW.Builder mcpChallengeExRW = new McpChallengeExFW.Builder();
     private final McpFlushExFW.Builder mcpFlushExRW = new McpFlushExFW.Builder();
 
     private final Supplier<String> supplySessionId;
@@ -1281,7 +1284,14 @@ public final class McpServerFactory implements McpStreamFactory
 
             if (stream != null)
             {
-                stream.doAppAbort(traceId, authorization);
+                if (sseUpgrade)
+                {
+                    stream.doAppChallenge(traceId, authorization, suspendedChallengeEx());
+                }
+                else
+                {
+                    stream.doAppAbort(traceId, authorization);
+                }
             }
         }
 
@@ -1358,7 +1368,14 @@ public final class McpServerFactory implements McpStreamFactory
 
             if (stream != null)
             {
-                stream.doAppAbort(traceId, authorization);
+                if (sseUpgrade)
+                {
+                    stream.doAppChallenge(traceId, authorization, suspendedChallengeEx());
+                }
+                else
+                {
+                    stream.doAppAbort(traceId, authorization);
+                }
             }
 
             cleanupEncodeSlot();
@@ -1885,6 +1902,9 @@ public final class McpServerFactory implements McpStreamFactory
             case McpFlushExFW.KIND_PROGRESS:
                 length = encodeSseProgressEvent(codecBuffer, 0, streamIdPrefix, flushEx.progress());
                 break;
+            case McpFlushExFW.KIND_SUSPEND:
+                length = encodeSseRetry(codecBuffer, 0, flushEx.suspend().retry());
+                break;
             default:
                 length = 0;
                 break;
@@ -1940,7 +1960,10 @@ public final class McpServerFactory implements McpStreamFactory
             long traceId,
             long authorization)
         {
-            doEncodeResponsePostamble(traceId, authorization);
+            if (responseStarted)
+            {
+                doEncodeResponsePostamble(traceId, authorization);
+            }
 
             state = McpState.closingReply(state);
 
@@ -2453,6 +2476,16 @@ public final class McpServerFactory implements McpStreamFactory
             }
         }
 
+        private void doAppChallenge(
+            long traceId,
+            long authorization,
+            Flyweight extension)
+        {
+            doChallenge(app, originId, routedId, replyId,
+                replySeq, replyAck, replyMax,
+                traceId, authorization, extension);
+        }
+
         private void onAppMessage(
             int msgTypeId,
             DirectBuffer buffer,
@@ -2605,6 +2638,10 @@ public final class McpServerFactory implements McpStreamFactory
             case McpFlushExFW.KIND_RESOURCES_LIST_CHANGED:
                 eventStream.doEncodeNotifyEvent(traceId, authorization, LIFECYCLE_STREAM_ID_PREFIX,
                     flushEx.resourcesListChanged().id(), NOTIFICATIONS_RESOURCES_LIST_CHANGED_BYTES);
+                break;
+            case McpFlushExFW.KIND_SUSPEND:
+                eventStream.doEncodeRetryEvent(traceId, authorization, flushEx.suspend().retry());
+                eventStream.doNetEnd(traceId, authorization);
                 break;
             default:
                 break;
@@ -2837,6 +2874,8 @@ public final class McpServerFactory implements McpStreamFactory
 
             state = McpState.closedInitial(state);
 
+            notifySuspendedToSession(traceId, authorization);
+
             doNetAbort(traceId, authorization);
         }
 
@@ -2869,7 +2908,20 @@ public final class McpServerFactory implements McpStreamFactory
             final long traceId = reset.traceId();
             final long authorization = reset.authorization();
 
+            notifySuspendedToSession(traceId, authorization);
+
             cleanupNet(traceId, authorization);
+        }
+
+        private void notifySuspendedToSession(
+            long traceId,
+            long authorization)
+        {
+            if (session.eventStream == this)
+            {
+                session.eventStream = null;
+                session.doAppChallenge(traceId, authorization, suspendedChallengeEx());
+            }
         }
 
         private void onNetSignal(
@@ -2923,6 +2975,20 @@ public final class McpServerFactory implements McpStreamFactory
             }
 
             final int length = encodeSseNotifyEvent(codecBuffer, 0, streamIdPrefix, id, body);
+            doNetData(traceId, authorization, codecBuffer, 0, length);
+        }
+
+        private void doEncodeRetryEvent(
+            long traceId,
+            long authorization,
+            long retry)
+        {
+            if (McpState.replyClosed(state))
+            {
+                return;
+            }
+
+            final int length = encodeSseRetry(codecBuffer, 0, retry);
             doNetData(traceId, authorization, codecBuffer, 0, length);
         }
 
@@ -3278,6 +3344,16 @@ public final class McpServerFactory implements McpStreamFactory
             server.doNetBegin(traceId, authorization, emptyRO);
             server.doNetAbort(traceId, authorization);
             doAppReset(traceId, authorization);
+        }
+
+        private void doAppChallenge(
+            long traceId,
+            long authorization,
+            Flyweight extension)
+        {
+            doChallenge(app, originId, routedId, replyId,
+                replySeq, replyAck, replyMax,
+                traceId, authorization, extension);
         }
 
         private void flushAppWindow(
@@ -3756,6 +3832,33 @@ public final class McpServerFactory implements McpStreamFactory
         receiver.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
     }
 
+    private void doChallenge(
+        MessageConsumer receiver,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        Flyweight extension)
+    {
+        final ChallengeFW challenge = challengeRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+            .originId(originId)
+            .routedId(routedId)
+            .streamId(streamId)
+            .sequence(sequence)
+            .acknowledge(acknowledge)
+            .maximum(maximum)
+            .traceId(traceId)
+            .authorization(authorization)
+            .extension(extension.buffer(), extension.offset(), extension.sizeof())
+            .build();
+
+        receiver.accept(challenge.typeId(), challenge.buffer(), challenge.offset(), challenge.sizeof());
+    }
+
     private void doWindow(
         MessageConsumer receiver,
         long originId,
@@ -3834,6 +3937,28 @@ public final class McpServerFactory implements McpStreamFactory
     {
         out.putBytes(offset, SSE_KEEPALIVE_BYTES);
         return SSE_KEEPALIVE_BYTES.length;
+    }
+
+    private int encodeSseRetry(
+        MutableDirectBuffer out,
+        int offset,
+        long retry)
+    {
+        int progress = offset;
+        progress += out.putStringWithoutLengthAscii(progress, "retry: " + retry + "\n");
+        out.putByte(progress, (byte) '\n');
+        progress += 1;
+        return progress - offset;
+    }
+
+    private McpChallengeExFW suspendedChallengeEx()
+    {
+        return mcpChallengeExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
+            .typeId(mcpTypeId)
+            .suspended(b ->
+            {
+            })
+            .build();
     }
 
     private int encodeSseNotifyEvent(
