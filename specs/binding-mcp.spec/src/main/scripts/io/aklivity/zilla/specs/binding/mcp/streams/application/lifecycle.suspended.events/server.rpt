@@ -44,10 +44,8 @@ write advised zilla:challenge ${mcp:matchChallengeEx()
                                         .build()
                                     .build()}
 
-read advise zilla:challenge ${mcp:matchChallengeEx()
-                                  .typeId(zilla:id("mcp"))
-                                  .suspended()
-                                      .build()
-                                  .build()}
-
-write close
+write advised zilla:challenge ${mcp:matchChallengeEx()
+                                    .typeId(zilla:id("mcp"))
+                                    .suspended()
+                                        .build()
+                                    .build()}

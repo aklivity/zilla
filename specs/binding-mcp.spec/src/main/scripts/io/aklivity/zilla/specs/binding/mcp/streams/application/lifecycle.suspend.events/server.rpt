@@ -50,5 +50,3 @@ write advise zilla:flush ${mcp:flushEx()
                                   .retry(60000)
                                   .build()
                               .build()}
-
-write close
