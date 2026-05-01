@@ -443,6 +443,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/initialize.elicit.declined/client",
+        "${app}/initialize.elicit.declined/server"})
+    public void shouldInitializeElicitDeclined() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/tools.call.10k.with.progress/client",
         "${app}/tools.call.10k.with.progress/server"})
     public void shouldCallToolWith10kParamsWithProgress() throws Exception
