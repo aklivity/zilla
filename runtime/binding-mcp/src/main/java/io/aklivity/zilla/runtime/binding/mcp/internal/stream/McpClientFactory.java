@@ -26,18 +26,12 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeg
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 
-import java.io.StringReader;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.function.LongUnaryOperator;
 
-import jakarta.json.Json;
-import jakarta.json.JsonObject;
-import jakarta.json.JsonReader;
-import jakarta.json.JsonString;
-import jakarta.json.JsonValue;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParserFactory;
 
@@ -257,7 +251,7 @@ public final class McpClientFactory implements McpStreamFactory
     private interface HttpResponseDecoder
     {
         int decode(
-            HttpStream http,
+            McpHttpStream http,
             long traceId,
             long authorization,
             long budgetId,
@@ -289,7 +283,7 @@ public final class McpClientFactory implements McpStreamFactory
     private final HttpResponseDecoder decodeIgnore = this::decodeIgnore;
 
     private int decodeJsonRpc(
-        HttpStream http,
+        McpHttpStream http,
         long traceId,
         long authorization,
         long budgetId,
@@ -315,7 +309,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private int decodeJsonRpcStart(
-        HttpStream http,
+        McpHttpStream http,
         long traceId,
         long authorization,
         long budgetId,
@@ -348,7 +342,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private int decodeJsonRpcNext(
-        HttpStream http,
+        McpHttpStream http,
         long traceId,
         long authorization,
         long budgetId,
@@ -407,7 +401,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private int decodeJsonRpcEnd(
-        HttpStream http,
+        McpHttpStream http,
         long traceId,
         long authorization,
         long budgetId,
@@ -440,7 +434,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private int decodeJsonRpcVersion(
-        HttpStream http,
+        McpHttpStream http,
         long traceId,
         long authorization,
         long budgetId,
@@ -474,7 +468,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private int decodeJsonRpcId(
-        HttpStream http,
+        McpHttpStream http,
         long traceId,
         long authorization,
         long budgetId,
@@ -508,7 +502,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private int decodeJsonRpcResultStart(
-        HttpStream http,
+        McpHttpStream http,
         long traceId,
         long authorization,
         long budgetId,
@@ -544,7 +538,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private int decodeJsonRpcResultEnd(
-        HttpStream http,
+        McpHttpStream http,
         long traceId,
         long authorization,
         long budgetId,
@@ -577,7 +571,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private int decodeJsonRpcSkipObject(
-        HttpStream http,
+        McpHttpStream http,
         long traceId,
         long authorization,
         long budgetId,
@@ -623,7 +617,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private int decodeJsonRpcMethod(
-        HttpStream http,
+        McpHttpStream http,
         long traceId,
         long authorization,
         long budgetId,
@@ -651,6 +645,10 @@ public final class McpClientFactory implements McpStreamFactory
             {
                 http.sseEventProgress = true;
             }
+            else
+            {
+                http.sseEventMethod = method;
+            }
             http.decoder = decodeJsonRpcNext;
             progress = limit - input.available();
         }
@@ -659,7 +657,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private int decodeJsonRpcParamsStart(
-        HttpStream http,
+        McpHttpStream http,
         long traceId,
         long authorization,
         long budgetId,
@@ -690,7 +688,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private int decodeJsonRpcParamsNext(
-        HttpStream http,
+        McpHttpStream http,
         long traceId,
         long authorization,
         long budgetId,
@@ -745,7 +743,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private int decodeJsonRpcParamsToken(
-        HttpStream http,
+        McpHttpStream http,
         long traceId,
         long authorization,
         long budgetId,
@@ -770,7 +768,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private int decodeJsonRpcParamsProgress(
-        HttpStream http,
+        McpHttpStream http,
         long traceId,
         long authorization,
         long budgetId,
@@ -795,7 +793,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private int decodeJsonRpcParamsTotal(
-        HttpStream http,
+        McpHttpStream http,
         long traceId,
         long authorization,
         long budgetId,
@@ -820,7 +818,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private int decodeJsonRpcParamsMessage(
-        HttpStream http,
+        McpHttpStream http,
         long traceId,
         long authorization,
         long budgetId,
@@ -845,7 +843,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private int decodeIgnore(
-        HttpStream http,
+        McpHttpStream http,
         long traceId,
         long authorization,
         long budgetId,
@@ -859,7 +857,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private int decodeSse(
-        HttpStream http,
+        McpHttpStream http,
         long traceId,
         long authorization,
         long budgetId,
@@ -1002,7 +1000,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private int decodeSseEventEnd(
-        HttpStream http,
+        McpHttpStream http,
         long traceId,
         long authorization,
         long budgetId,
@@ -1037,7 +1035,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private void finalizeSseEvent(
-        HttpStream http,
+        McpHttpStream http,
         long traceId,
         long authorization)
     {
@@ -1054,6 +1052,11 @@ public final class McpClientFactory implements McpStreamFactory
         {
             http.mcp.onDecodeSuspend(traceId, authorization, http.sseEventRetry);
         }
+        else if (http.sseEventMethod != null)
+        {
+            http.mcp.onDecodeNotification(traceId, authorization,
+                stripSseEventIdPrefix(http.sseEventId), http.sseEventMethod);
+        }
         else if (http.sseEventId != null && !http.sseEventHasData)
         {
             http.mcp.onDecodeResumable(traceId, authorization, stripSseEventIdPrefix(http.sseEventId));
@@ -1061,12 +1064,13 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private void resetSseEvent(
-        HttpStream http)
+        McpHttpStream http)
     {
         http.sseEventId = null;
         http.sseEventRetry = -1L;
         http.sseEventHasData = false;
         http.sseEventProgress = false;
+        http.sseEventMethod = null;
         http.sseProgressToken = null;
         http.sseProgress = 0L;
         http.sseProgressTotal = -1L;
@@ -1324,7 +1328,7 @@ public final class McpClientFactory implements McpStreamFactory
             long traceId,
             long authorization,
             String id,
-            String data)
+            String method)
         {
         }
 
@@ -1878,40 +1882,40 @@ public final class McpClientFactory implements McpStreamFactory
             doAppChallenge(traceId, authorization, challengeEx);
         }
 
+        @Override
         void onDecodeNotification(
             long traceId,
             long authorization,
             String id,
-            String data)
+            String method)
         {
             final McpFlushExFW flushEx;
-            if (data.contains("notifications/tools/list_changed"))
+            switch (method)
             {
+            case "notifications/tools/list_changed":
                 flushEx = mcpFlushExRW
                     .wrap(extBuffer, 0, extBuffer.capacity())
                     .typeId(mcpTypeId)
                     .toolsListChanged(b -> b.id(id))
                     .build();
-            }
-            else if (data.contains("notifications/prompts/list_changed"))
-            {
+                break;
+            case "notifications/prompts/list_changed":
                 flushEx = mcpFlushExRW
                     .wrap(extBuffer, 0, extBuffer.capacity())
                     .typeId(mcpTypeId)
                     .promptsListChanged(b -> b.id(id))
                     .build();
-            }
-            else if (data.contains("notifications/resources/list_changed"))
-            {
+                break;
+            case "notifications/resources/list_changed":
                 flushEx = mcpFlushExRW
                     .wrap(extBuffer, 0, extBuffer.capacity())
                     .typeId(mcpTypeId)
                     .resourcesListChanged(b -> b.id(id))
                     .build();
-            }
-            else
-            {
+                break;
+            default:
                 flushEx = null;
+                break;
             }
 
             if (flushEx != null)
@@ -2360,46 +2364,6 @@ public final class McpClientFactory implements McpStreamFactory
             doAppEnd(traceId, authorization);
         }
 
-        @Override
-        void onDecodeNotification(
-            long traceId,
-            long authorization,
-            String id,
-            String data)
-        {
-            try (JsonReader reader = Json.createReader(new StringReader(data)))
-            {
-                final JsonObject json = reader.readObject();
-                final String method = json.containsKey("method") ? json.getString("method") : null;
-                if ("notifications/progress".equals(method) && json.containsKey("params"))
-                {
-                    final JsonObject params = json.getJsonObject("params");
-                    final String token = params.containsKey("progressToken") &&
-                        params.get("progressToken") instanceof JsonString js
-                        ? js.getString()
-                        : null;
-                    final long progress = params.containsKey("progress")
-                        ? params.getJsonNumber("progress").longValueExact()
-                        : 0L;
-                    final long total = params.containsKey("total")
-                        ? params.getJsonNumber("total").longValueExact()
-                        : -1L;
-                    final String message = params.containsKey("message") &&
-                        params.get("message") instanceof JsonString jsm
-                        ? jsm.getString()
-                        : null;
-                    onDecodeProgress(traceId, authorization, id, token, progress, total, message);
-                }
-                else if (json.containsKey("result"))
-                {
-                    final JsonValue result = json.get("result");
-                    onDecodeResult(traceId, authorization, result.toString());
-                }
-            }
-            catch (Exception ignored)
-            {
-            }
-        }
     }
 
     private final class McpToolsListStream extends McpRequestStream
@@ -2504,30 +2468,24 @@ public final class McpClientFactory implements McpStreamFactory
         }
     }
 
-    private abstract class HttpStream
+    private abstract class McpHttpStream
     {
+        protected final McpStream mcp;
         protected final long originId;
         protected final long routedId;
         protected final long initialId;
         protected final long replyId;
         protected final long affinity;
-        protected final McpStream mcp;
 
         protected MessageConsumer net;
 
-        private long initialSeq;
-        private long initialAck;
-        private int initialMax;
-        private int initialPad;
+        protected long initialSeq;
+        protected long initialAck;
+        protected int initialMax;
 
-        private long replySeq;
-        private long replyAck;
-        private int replyMax;
-
-        private int encodeSlot = NO_SLOT;
-        private int encodeSlotOffset;
-        private long encodeSlotTraceId;
-        private long encodeSlotAuthorization;
+        protected long replySeq;
+        protected long replyAck;
+        protected int replyMax;
 
         protected int decodeSlot = NO_SLOT;
         protected int decodeSlotOffset;
@@ -2548,24 +2506,67 @@ public final class McpClientFactory implements McpStreamFactory
         protected final StringBuilder sseSmallValue = new StringBuilder();
         protected boolean sseEventHasData;
         protected boolean sseEventProgress;
+        protected String sseEventMethod;
         protected String sseProgressToken;
         protected long sseProgress;
         protected long sseProgressTotal = -1L;
         protected String sseProgressMessage;
 
-        private int state;
+        protected int state;
 
-        HttpStream(
+        McpHttpStream(
             McpStream mcp)
         {
+            this.mcp = mcp;
             this.originId = mcp.routedId;
             this.routedId = mcp.resolvedId;
             this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.affinity = mcp.affinity;
-            this.mcp = mcp;
-            this.decoder = decodeIgnore;
             this.replyMax = decodeMax;
+        }
+
+        abstract void onDecodeParseError(
+            long traceId,
+            long authorization);
+
+        abstract void onDecodeInvalidResponse(
+            long traceId,
+            long authorization);
+
+        abstract int onDecodeResponseResult(
+            long traceId,
+            long authorization,
+            DirectBuffer buffer,
+            int offset,
+            int limit);
+
+        protected void cleanupDecodeSlot()
+        {
+            if (decodeSlot != NO_SLOT)
+            {
+                decodePool.release(decodeSlot);
+                decodeSlot = NO_SLOT;
+                decodeSlotOffset = 0;
+                decodeSlotReserved = 0;
+            }
+        }
+    }
+
+    private abstract class HttpStream extends McpHttpStream
+    {
+        private int initialPad;
+
+        private int encodeSlot = NO_SLOT;
+        private int encodeSlotOffset;
+        private long encodeSlotTraceId;
+        private long encodeSlotAuthorization;
+
+        HttpStream(
+            McpStream mcp)
+        {
+            super(mcp);
+            this.decoder = decodeIgnore;
         }
 
         void onNetMessage(
@@ -3018,7 +3019,8 @@ public final class McpClientFactory implements McpStreamFactory
             }
         }
 
-        private int onDecodeResponseResult(
+        @Override
+        int onDecodeResponseResult(
             long traceId,
             long authorization,
             DirectBuffer buffer,
@@ -3028,14 +3030,16 @@ public final class McpClientFactory implements McpStreamFactory
             return mcp != null ? mcp.doAppData(traceId, authorization, buffer, offset, limit) : offset;
         }
 
-        private void onDecodeParseError(
+        @Override
+        void onDecodeParseError(
             long traceId,
             long authorization)
         {
             cleanupNet(traceId, authorization);
         }
 
-        private void onDecodeInvalidResponse(
+        @Override
+        void onDecodeInvalidResponse(
             long traceId,
             long authorization)
         {
@@ -3105,17 +3109,6 @@ public final class McpClientFactory implements McpStreamFactory
                 encodeSlotOffset = 0;
                 encodeSlotTraceId = 0;
                 encodeSlotAuthorization = 0;
-            }
-        }
-
-        protected void cleanupDecodeSlot()
-        {
-            if (decodeSlot != NO_SLOT)
-            {
-                decodePool.release(decodeSlot);
-                decodeSlot = NO_SLOT;
-                decodeSlotOffset = 0;
-                decodeSlotReserved = 0;
             }
         }
 
@@ -3245,46 +3238,17 @@ public final class McpClientFactory implements McpStreamFactory
         }
     }
 
-    private final class HttpEventStream
+    private final class HttpEventStream extends McpHttpStream
     {
-        private final McpStream lifecycle;
-        private final long originId;
-        private final long routedId;
-        private final long initialId;
-        private final long replyId;
-        private final long affinity;
         private final String lastEventId;
 
-        private MessageConsumer net;
-
-        private long initialSeq;
-        private long initialAck;
-        private int initialMax;
-
-        private long replySeq;
-        private long replyAck;
-        private int replyMax;
-
-        private int state;
-
-        private int decodeSlot = NO_SLOT;
-        private int decodeSlotOffset;
-
-        private String currentEventId;
-        private final StringBuilder currentEventData = new StringBuilder();
-        private long currentEventRetry;
-
         HttpEventStream(
-            McpStream lifecycle,
+            McpStream mcp,
             String lastEventId)
         {
-            this.lifecycle = lifecycle;
-            this.originId = lifecycle.routedId;
-            this.routedId = lifecycle.resolvedId;
-            this.initialId = supplyInitialId.applyAsLong(routedId);
-            this.replyId = supplyReplyId.applyAsLong(initialId);
-            this.affinity = lifecycle.affinity;
-            this.replyMax = decodeMax;
+            super(mcp);
+            this.decoder = decodeSse;
+            this.sseMode = true;
             this.lastEventId = lastEventId;
         }
 
@@ -3292,13 +3256,13 @@ public final class McpClientFactory implements McpStreamFactory
             long traceId,
             long authorization)
         {
-            final String sid = lifecycle.resumeSessionId();
+            final String sid = mcp.resumeSessionId();
             final HttpBeginExFW.Builder builder = httpBeginExRW
                 .wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(httpTypeId);
-            if (lifecycle.with != null && lifecycle.with.headers != null)
+            if (mcp.with != null && mcp.with.headers != null)
             {
-                lifecycle.with.headers.forEach((name, value) ->
+                mcp.with.headers.forEach((name, value) ->
                     builder.headersItem(h -> h.name(name).value(value)));
             }
             builder
@@ -3414,14 +3378,14 @@ public final class McpClientFactory implements McpStreamFactory
 
             if (STATUS_405.equals(status))
             {
-                lifecycle.markEventsUnsupported();
-                lifecycle.onDecodeSuspend(traceId, authorization, SUSPEND_RETRY_NEVER);
+                mcp.markEventsUnsupported();
+                mcp.onDecodeSuspend(traceId, authorization, SUSPEND_RETRY_NEVER);
                 doNetReset(traceId, authorization);
                 detach();
             }
             else
             {
-                lifecycle.onDecodeResumable(traceId, authorization, null);
+                mcp.onDecodeResumable(traceId, authorization, null);
                 doNetWindow(traceId, authorization, 0L, 0);
             }
         }
@@ -3430,17 +3394,96 @@ public final class McpClientFactory implements McpStreamFactory
             DataFW data)
         {
             final long traceId = data.traceId();
+            final long sequence = data.sequence();
+            final long acknowledge = data.acknowledge();
             final long authorization = data.authorization();
             final long budgetId = data.budgetId();
-            replySeq = data.sequence() + data.reserved();
 
-            final OctetsFW payload = data.payload();
-            if (payload != null)
+            assert acknowledge <= sequence;
+            assert sequence >= replySeq;
+
+            replySeq = sequence + data.reserved();
+
+            if (replySeq > replyAck + decodeMax)
             {
-                decodeSse(traceId, authorization, payload.buffer(), payload.offset(), payload.limit());
+                cleanupNet(traceId, authorization);
+            }
+            else
+            {
+                final OctetsFW payload = data.payload();
+                int reserved = data.reserved();
+                DirectBuffer buffer = payload.buffer();
+                int offset = payload.offset();
+                int limit = payload.limit();
+
+                if (decodeSlot != NO_SLOT)
+                {
+                    final MutableDirectBuffer slotBuffer = decodePool.buffer(decodeSlot);
+                    slotBuffer.putBytes(decodeSlotOffset, payload.buffer(), payload.offset(), payload.sizeof());
+                    decodeSlotOffset += payload.sizeof();
+                    decodeSlotReserved += reserved;
+
+                    buffer = slotBuffer;
+                    offset = 0;
+                    limit = decodeSlotOffset;
+                    reserved = decodeSlotReserved;
+                }
+
+                if (decodableJson != null)
+                {
+                    final int delta = (int) (decodableJson.getLocation().getStreamOffset() - decodedParserProgress);
+                    final DirectBufferInputStreamEx input = inputRO;
+                    input.wrap(buffer, offset + delta, limit - offset - delta);
+                }
+
+                decodeNet(traceId, authorization, budgetId, reserved, buffer, offset, limit);
             }
 
             doNetWindow(traceId, authorization, budgetId, 0);
+        }
+
+        private void decodeNet(
+            long traceId,
+            long authorization,
+            long budgetId,
+            int reserved,
+            DirectBuffer buffer,
+            int offset,
+            int limit)
+        {
+            HttpResponseDecoder previous = null;
+            int progress = offset;
+            while (progress <= limit && previous != decoder)
+            {
+                previous = decoder;
+                progress = decoder.decode(this, traceId, authorization, budgetId, reserved, buffer, offset, progress, limit);
+            }
+
+            decodedParserProgress += progress - offset;
+
+            if (progress < limit)
+            {
+                if (decodeSlot == NO_SLOT)
+                {
+                    decodeSlot = decodePool.acquire(replyId);
+                }
+
+                if (decodeSlot == NO_SLOT)
+                {
+                    cleanupNet(traceId, authorization);
+                }
+                else
+                {
+                    final MutableDirectBuffer slot = decodePool.buffer(decodeSlot);
+                    slot.putBytes(0, buffer, progress, limit - progress);
+                    decodeSlotOffset = limit - progress;
+                    decodeSlotReserved = (int) ((long) reserved * (limit - progress) / (limit - offset));
+                }
+            }
+            else
+            {
+                cleanupDecodeSlot();
+            }
         }
 
         private void onNetEnd(
@@ -3450,7 +3493,7 @@ public final class McpClientFactory implements McpStreamFactory
             final long authorization = end.authorization();
             state = McpState.closedReply(state);
             cleanupDecodeSlot();
-            lifecycle.onDecodeCompletion(traceId, authorization);
+            mcp.onDecodeCompletion(traceId, authorization);
             detach();
         }
 
@@ -3463,9 +3506,9 @@ public final class McpClientFactory implements McpStreamFactory
             state = McpState.closedReply(state);
             cleanupDecodeSlot();
 
-            if (lifecycle.eventStreamRef() == this)
+            if (mcp.eventStreamRef() == this)
             {
-                lifecycle.onDecodeSuspended(traceId, authorization);
+                mcp.onDecodeSuspended(traceId, authorization);
             }
             detach();
         }
@@ -3494,188 +3537,51 @@ public final class McpClientFactory implements McpStreamFactory
                 traceId, authorization, budgetId, padding);
         }
 
-        private void detach()
+        @Override
+        void onDecodeParseError(
+            long traceId,
+            long authorization)
         {
-            if (lifecycle.eventStreamRef() == this)
-            {
-                lifecycle.clearEventStream();
-            }
+            cleanupNet(traceId, authorization);
         }
 
-        private void decodeSse(
+        @Override
+        void onDecodeInvalidResponse(
+            long traceId,
+            long authorization)
+        {
+            cleanupNet(traceId, authorization);
+        }
+
+        @Override
+        int onDecodeResponseResult(
             long traceId,
             long authorization,
             DirectBuffer buffer,
             int offset,
             int limit)
         {
-            final int length = limit - offset;
-
-            if (decodeSlot == NO_SLOT)
-            {
-                decodeSlot = decodePool.acquire(replyId);
-            }
-
-            if (decodeSlot == NO_SLOT)
-            {
-                return;
-            }
-
-            final MutableDirectBuffer slotBuffer = decodePool.buffer(decodeSlot);
-            slotBuffer.putBytes(decodeSlotOffset, buffer, offset, length);
-            decodeSlotOffset += length;
-
-            int progress = 0;
-            int eventStart = 0;
-            while (progress < decodeSlotOffset - 1)
-            {
-                if (slotBuffer.getByte(progress) == (byte) '\n' &&
-                    slotBuffer.getByte(progress + 1) == (byte) '\n')
-                {
-                    decodeSseEvent(traceId, authorization, slotBuffer, eventStart, progress);
-                    progress += 2;
-                    eventStart = progress;
-                }
-                else
-                {
-                    progress++;
-                }
-            }
-
-            if (eventStart > 0)
-            {
-                final int remaining = decodeSlotOffset - eventStart;
-                if (remaining > 0)
-                {
-                    slotBuffer.putBytes(0, slotBuffer, eventStart, remaining);
-                }
-                decodeSlotOffset = remaining;
-            }
-
-            if (decodeSlotOffset == 0)
-            {
-                cleanupDecodeSlot();
-            }
+            return mcp.doAppData(traceId, authorization, buffer, offset, limit);
         }
 
-        private void decodeSseEvent(
+        private void cleanupNet(
             long traceId,
-            long authorization,
-            DirectBuffer buffer,
-            int eventStart,
-            int eventEnd)
+            long authorization)
         {
-            currentEventId = null;
-            currentEventData.setLength(0);
-            currentEventRetry = -1L;
-
-            int lineStart = eventStart;
-            for (int i = eventStart; i < eventEnd; i++)
+            doNetReset(traceId, authorization);
+            cleanupDecodeSlot();
+            if (mcp.eventStreamRef() == this)
             {
-                if (buffer.getByte(i) == (byte) '\n')
-                {
-                    decodeSseLine(buffer, lineStart, i);
-                    lineStart = i + 1;
-                }
+                mcp.onDecodeSuspended(traceId, authorization);
             }
-            if (lineStart < eventEnd)
-            {
-                decodeSseLine(buffer, lineStart, eventEnd);
-            }
-
-            if (currentEventRetry >= 0)
-            {
-                lifecycle.onDecodeSuspend(traceId, authorization, currentEventRetry);
-            }
-            else if (currentEventId != null && currentEventData.length() == 0)
-            {
-                lifecycle.onDecodeResumable(traceId, authorization, stripEventIdPrefix(currentEventId));
-            }
-            else if (currentEventData.length() > 0)
-            {
-                lifecycle.onDecodeNotification(traceId, authorization,
-                    stripEventIdPrefix(currentEventId), currentEventData.toString());
-            }
+            detach();
         }
 
-        private void decodeSseLine(
-            DirectBuffer buffer,
-            int lineStart,
-            int lineEnd)
+        private void detach()
         {
-            final int length = lineEnd - lineStart;
-            if (length == 0 || buffer.getByte(lineStart) == (byte) ':')
+            if (mcp.eventStreamRef() == this)
             {
-                return;
-            }
-
-            int colon = -1;
-            for (int i = lineStart; i < lineEnd; i++)
-            {
-                if (buffer.getByte(i) == (byte) ':')
-                {
-                    colon = i;
-                    break;
-                }
-            }
-            if (colon < 0)
-            {
-                return;
-            }
-
-            int valueStart = colon + 1;
-            if (valueStart < lineEnd && buffer.getByte(valueStart) == (byte) ' ')
-            {
-                valueStart++;
-            }
-
-            final String fieldName = buffer.getStringWithoutLengthAscii(lineStart, colon - lineStart);
-            final String fieldValue = buffer.getStringWithoutLengthAscii(valueStart, lineEnd - valueStart);
-
-            switch (fieldName)
-            {
-            case "id":
-                currentEventId = fieldValue;
-                break;
-            case "data":
-                if (currentEventData.length() > 0)
-                {
-                    currentEventData.append('\n');
-                }
-                currentEventData.append(fieldValue);
-                break;
-            case "retry":
-                try
-                {
-                    currentEventRetry = Long.parseLong(fieldValue);
-                }
-                catch (NumberFormatException ignored)
-                {
-                }
-                break;
-            default:
-                break;
-            }
-        }
-
-        private String stripEventIdPrefix(
-            String id)
-        {
-            if (id == null)
-            {
-                return "";
-            }
-            final int colon = id.lastIndexOf(':');
-            return colon < 0 ? id : id.substring(colon + 1);
-        }
-
-        private void cleanupDecodeSlot()
-        {
-            if (decodeSlot != NO_SLOT)
-            {
-                decodePool.release(decodeSlot);
-                decodeSlot = NO_SLOT;
-                decodeSlotOffset = 0;
+                mcp.clearEventStream();
             }
         }
     }
