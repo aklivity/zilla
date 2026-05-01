@@ -434,6 +434,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/initialize.elicit.completed/client",
+        "${app}/initialize.elicit.completed/server"})
+    public void shouldInitializeElicitCompleted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/tools.call.10k.with.progress/client",
         "${app}/tools.call.10k.with.progress/server"})
     public void shouldCallToolWith10kParamsWithProgress() throws Exception
