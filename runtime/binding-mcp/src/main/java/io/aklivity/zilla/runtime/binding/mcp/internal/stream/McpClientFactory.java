@@ -101,6 +101,25 @@ public final class McpClientFactory implements McpStreamFactory
     private static final String HTTP_METHOD_GET = "GET";
     private static final String HTTP_METHOD_POST = "POST";
 
+    private static final String JSON_RPC_REQUEST_ID_PREFIX = "{\"jsonrpc\":\"2.0\",\"id\":";
+    private static final String JSON_RPC_TOOLS_LIST_METHOD = ",\"method\":\"tools/list\"}";
+    private static final String JSON_RPC_TOOLS_CALL_METHOD = ",\"method\":\"tools/call\",\"params\":";
+    private static final String JSON_RPC_PROMPTS_LIST_METHOD = ",\"method\":\"prompts/list\"}";
+    private static final String JSON_RPC_PROMPTS_GET_METHOD = ",\"method\":\"prompts/get\",\"params\":";
+    private static final String JSON_RPC_RESOURCES_LIST_METHOD = ",\"method\":\"resources/list\"}";
+    private static final String JSON_RPC_RESOURCES_READ_METHOD = ",\"method\":\"resources/read\",\"params\":";
+    private static final String JSON_RPC_PING_METHOD = ",\"method\":\"ping\"}";
+    private static final String JSON_RPC_NOTIFY_CANCELLED_PREFIX =
+        "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/cancelled\",\"params\":{\"requestId\":";
+    private static final String JSON_RPC_NOTIFY_CANCELLED_SUFFIX = ",\"reason\":\"User cancelled\"}}";
+    private static final String JSON_RPC_INITIALIZE_PREFIX =
+        "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"";
+    private static final String JSON_RPC_INITIALIZE_CLIENT_INFO = "\",\"capabilities\":{},\"clientInfo\":{\"name\":\"";
+    private static final String JSON_RPC_INITIALIZE_VERSION_PREFIX = "\",\"version\":\"";
+    private static final String JSON_RPC_INITIALIZE_SUFFIX = "\"}}}";
+    private static final String JSON_RPC_NOTIFY_INITIALIZED = "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}";
+    private static final String JSON_RPC_PARAMS_CLOSE = "}";
+
     private static final int DATA_FLAGS_COMPLETE = 0x03;
 
     private final BeginFW beginRO = new BeginFW();
@@ -957,16 +976,16 @@ public final class McpClientFactory implements McpStreamFactory
                 final byte b = buffer.getByte(progress);
                 if (b == (byte) '\n')
                 {
-                    final String value = http.sseSmallValue.toString();
                     if (http.sseFieldKind == (byte) 'i')
                     {
-                        http.sseEventId = value;
+                        http.sseEventId = http.sseSmallValue.toString();
                     }
                     else if (http.sseFieldKind == (byte) 'r')
                     {
                         try
                         {
-                            http.sseEventRetry = Long.parseLong(value);
+                            http.sseEventRetry =
+                                Long.parseLong(http.sseSmallValue, 0, http.sseSmallValue.length(), 10);
                         }
                         catch (NumberFormatException ignored)
                         {
@@ -1301,13 +1320,6 @@ public final class McpClientFactory implements McpStreamFactory
             long progress,
             long total,
             String message)
-        {
-        }
-
-        void onDecodeResult(
-            long traceId,
-            long authorization,
-            String result)
         {
         }
 
@@ -2301,17 +2313,6 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         @Override
-        void onDecodeResult(
-            long traceId,
-            long authorization,
-            String result)
-        {
-            final byte[] bytes = result.getBytes(java.nio.charset.StandardCharsets.UTF_8);
-            codecBuffer.putBytes(0, bytes);
-            doAppData(traceId, authorization, codecBuffer, 0, bytes.length);
-        }
-
-        @Override
         void onDecodeSuspend(
             long traceId,
             long authorization,
@@ -3150,11 +3151,14 @@ public final class McpClientFactory implements McpStreamFactory
                 .headersItem(h -> h.name(HTTP_HEADER_MCP_VERSION).value(MCP_PROTOCOL_VERSION))
                 .build();
 
-            final int codecLength = codecBuffer.putStringWithoutLengthAscii(0,
-                """
-                {"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"%s","capabilities":{},\
-                "clientInfo":{"name":"%s","version":"%s"}}}\
-                """.formatted(MCP_PROTOCOL_VERSION, clientName, clientVersion));
+            int codecLength = 0;
+            codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, JSON_RPC_INITIALIZE_PREFIX);
+            codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, MCP_PROTOCOL_VERSION);
+            codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, JSON_RPC_INITIALIZE_CLIENT_INFO);
+            codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, clientName);
+            codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, JSON_RPC_INITIALIZE_VERSION_PREFIX);
+            codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, clientVersion);
+            codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, JSON_RPC_INITIALIZE_SUFFIX);
 
             doNetBegin(traceId, authorization, httpBeginEx);
             doNetData(traceId, authorization, codecBuffer, 0, codecLength);
@@ -3191,8 +3195,7 @@ public final class McpClientFactory implements McpStreamFactory
                 .headersItem(h -> h.name(HTTP_HEADER_SESSION).value(sid))
                 .build();
 
-            final int codecLength = codecBuffer.putStringWithoutLengthAscii(0,
-                "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}");
+            final int codecLength = codecBuffer.putStringWithoutLengthAscii(0, JSON_RPC_NOTIFY_INITIALIZED);
 
             doNetBegin(traceId, authorization, httpBeginEx);
             doNetData(traceId, authorization, codecBuffer, 0, codecLength);
@@ -3229,9 +3232,10 @@ public final class McpClientFactory implements McpStreamFactory
                 .headersItem(h -> h.name(HTTP_HEADER_SESSION).value(sid))
                 .build();
 
-            final int codecLength = codecBuffer.putStringWithoutLengthAscii(0,
-                "{\"jsonrpc\":\"2.0\",\"id\":%d,\"method\":\"ping\"}"
-                    .formatted(((McpLifecycleStream) mcp).nextRequestId++));
+            int codecLength = 0;
+            codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, JSON_RPC_REQUEST_ID_PREFIX);
+            codecLength += codecBuffer.putIntAscii(codecLength, ((McpLifecycleStream) mcp).nextRequestId++);
+            codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, JSON_RPC_PING_METHOD);
 
             doNetBegin(traceId, authorization, httpBeginEx);
             doNetData(traceId, authorization, codecBuffer, 0, codecLength);
@@ -3631,8 +3635,10 @@ public final class McpClientFactory implements McpStreamFactory
 
             final HttpBeginExFW httpBeginEx = extBuilder.build();
 
-            final int codecLength = codecBuffer.putStringWithoutLengthAscii(0,
-                "{\"jsonrpc\":\"2.0\",\"id\":%d,\"method\":\"tools/list\"}".formatted(request.requestId));
+            int codecLength = 0;
+            codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, JSON_RPC_REQUEST_ID_PREFIX);
+            codecLength += codecBuffer.putIntAscii(codecLength, request.requestId);
+            codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, JSON_RPC_TOOLS_LIST_METHOD);
 
             doNetBegin(traceId, authorization, httpBeginEx);
             doNetData(traceId, authorization, codecBuffer, 0, codecLength);
@@ -3671,8 +3677,10 @@ public final class McpClientFactory implements McpStreamFactory
 
             final HttpBeginExFW httpBeginEx = extBuilder.build();
 
-            final int codecLength = codecBuffer.putStringWithoutLengthAscii(0,
-                "{\"jsonrpc\":\"2.0\",\"id\":%d,\"method\":\"tools/call\",\"params\":".formatted(request.requestId));
+            int codecLength = 0;
+            codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, JSON_RPC_REQUEST_ID_PREFIX);
+            codecLength += codecBuffer.putIntAscii(codecLength, request.requestId);
+            codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, JSON_RPC_TOOLS_CALL_METHOD);
 
             doNetBegin(traceId, authorization, httpBeginEx);
             doNetData(traceId, authorization, codecBuffer, 0, codecLength);
@@ -3683,7 +3691,7 @@ public final class McpClientFactory implements McpStreamFactory
             long traceId,
             long authorization)
         {
-            final int codecLength = codecBuffer.putStringWithoutLengthAscii(0, "}");
+            final int codecLength = codecBuffer.putStringWithoutLengthAscii(0, JSON_RPC_PARAMS_CLOSE);
             doNetData(traceId, authorization, codecBuffer, 0, codecLength);
             doNetEnd(traceId, authorization);
         }
@@ -3721,8 +3729,10 @@ public final class McpClientFactory implements McpStreamFactory
 
             final HttpBeginExFW httpBeginEx = extBuilder.build();
 
-            final int codecLength = codecBuffer.putStringWithoutLengthAscii(0,
-                "{\"jsonrpc\":\"2.0\",\"id\":%d,\"method\":\"prompts/list\"}".formatted(request.requestId));
+            int codecLength = 0;
+            codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, JSON_RPC_REQUEST_ID_PREFIX);
+            codecLength += codecBuffer.putIntAscii(codecLength, request.requestId);
+            codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, JSON_RPC_PROMPTS_LIST_METHOD);
 
             doNetBegin(traceId, authorization, httpBeginEx);
             doNetData(traceId, authorization, codecBuffer, 0, codecLength);
@@ -3762,8 +3772,10 @@ public final class McpClientFactory implements McpStreamFactory
 
             final HttpBeginExFW httpBeginEx = extBuilder.build();
 
-            final int codecLength = codecBuffer.putStringWithoutLengthAscii(0,
-                "{\"jsonrpc\":\"2.0\",\"id\":%d,\"method\":\"prompts/get\",\"params\":".formatted(request.requestId));
+            int codecLength = 0;
+            codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, JSON_RPC_REQUEST_ID_PREFIX);
+            codecLength += codecBuffer.putIntAscii(codecLength, request.requestId);
+            codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, JSON_RPC_PROMPTS_GET_METHOD);
 
             doNetBegin(traceId, authorization, httpBeginEx);
             doNetData(traceId, authorization, codecBuffer, 0, codecLength);
@@ -3774,7 +3786,7 @@ public final class McpClientFactory implements McpStreamFactory
             long traceId,
             long authorization)
         {
-            final int codecLength = codecBuffer.putStringWithoutLengthAscii(0, "}");
+            final int codecLength = codecBuffer.putStringWithoutLengthAscii(0, JSON_RPC_PARAMS_CLOSE);
             doNetData(traceId, authorization, codecBuffer, 0, codecLength);
             doNetEnd(traceId, authorization);
         }
@@ -3813,8 +3825,10 @@ public final class McpClientFactory implements McpStreamFactory
 
             final HttpBeginExFW httpBeginEx = extBuilder.build();
 
-            final int codecLength = codecBuffer.putStringWithoutLengthAscii(0,
-                "{\"jsonrpc\":\"2.0\",\"id\":%d,\"method\":\"resources/list\"}".formatted(request.requestId));
+            int codecLength = 0;
+            codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, JSON_RPC_REQUEST_ID_PREFIX);
+            codecLength += codecBuffer.putIntAscii(codecLength, request.requestId);
+            codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, JSON_RPC_RESOURCES_LIST_METHOD);
 
             doNetBegin(traceId, authorization, httpBeginEx);
             doNetData(traceId, authorization, codecBuffer, 0, codecLength);
@@ -3854,8 +3868,10 @@ public final class McpClientFactory implements McpStreamFactory
 
             final HttpBeginExFW httpBeginEx = extBuilder.build();
 
-            final int codecLength = codecBuffer.putStringWithoutLengthAscii(0,
-                "{\"jsonrpc\":\"2.0\",\"id\":%d,\"method\":\"resources/read\",\"params\":".formatted(request.requestId));
+            int codecLength = 0;
+            codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, JSON_RPC_REQUEST_ID_PREFIX);
+            codecLength += codecBuffer.putIntAscii(codecLength, request.requestId);
+            codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, JSON_RPC_RESOURCES_READ_METHOD);
 
             doNetBegin(traceId, authorization, httpBeginEx);
             doNetData(traceId, authorization, codecBuffer, 0, codecLength);
@@ -3866,7 +3882,7 @@ public final class McpClientFactory implements McpStreamFactory
             long traceId,
             long authorization)
         {
-            final int codecLength = codecBuffer.putStringWithoutLengthAscii(0, "}");
+            final int codecLength = codecBuffer.putStringWithoutLengthAscii(0, JSON_RPC_PARAMS_CLOSE);
             doNetData(traceId, authorization, codecBuffer, 0, codecLength);
             doNetEnd(traceId, authorization);
         }
@@ -4181,11 +4197,10 @@ public final class McpClientFactory implements McpStreamFactory
 
             if (!McpState.initialClosed(state))
             {
-                final int codecLength = codecBuffer.putStringWithoutLengthAscii(0,
-                    """
-                    {"jsonrpc":"2.0","method":"notifications/cancelled","params":\
-                    {"requestId":%d,"reason":"User cancelled"}}\
-                    """.formatted(requestId));
+                int codecLength = 0;
+                codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, JSON_RPC_NOTIFY_CANCELLED_PREFIX);
+                codecLength += codecBuffer.putIntAscii(codecLength, requestId);
+                codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, JSON_RPC_NOTIFY_CANCELLED_SUFFIX);
 
                 doNetData(traceId, authorization, codecBuffer, 0, codecLength);
                 doNetEnd(traceId, authorization);

@@ -100,6 +100,27 @@ public final class McpServerFactory implements McpStreamFactory
     private static final byte[] SSE_ID_PREFIX_BYTES = "id: ".getBytes();
     private static final String LIFECYCLE_STREAM_ID_PREFIX = "";
 
+    private static final String SSE_DATA_PREFIX = "data: ";
+    private static final String JSON_RPC_RESULT_PREFIX = "{\"jsonrpc\":\"2.0\",\"id\":";
+    private static final String JSON_RPC_RESULT_MIDDLE = ",\"result\":";
+    private static final String JSON_RPC_ERROR_PREFIX = "{\"jsonrpc\":\"2.0\",\"id\":";
+    private static final String JSON_RPC_ERROR_CODE = ",\"error\":{\"code\":";
+    private static final String JSON_RPC_ERROR_MESSAGE = ",\"message\":\"";
+    private static final String JSON_RPC_ERROR_SUFFIX = "\"}}";
+    private static final String INITIALIZE_RESPONSE_PROTOCOL_PREFIX =
+        "{\"protocolVersion\":\"2025-11-25\"," +
+        "\"capabilities\":{\"prompts\":{},\"resources\":{},\"tools\":{}}," +
+        "\"serverInfo\":{\"name\":\"";
+    private static final String INITIALIZE_RESPONSE_VERSION_PREFIX = "\",\"version\":\"";
+    private static final String INITIALIZE_RESPONSE_SUFFIX = "\"}}";
+    private static final String SSE_PROGRESS_BODY_PREFIX =
+        "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/progress\",\"params\":{\"progressToken\":\"";
+    private static final String SSE_PROGRESS_BODY_PROGRESS = "\",\"progress\":";
+    private static final String SSE_PROGRESS_BODY_TOTAL = ",\"total\":";
+    private static final String SSE_PROGRESS_BODY_MESSAGE_PREFIX = ",\"message\":\"";
+    private static final String SSE_PROGRESS_BODY_MESSAGE_SUFFIX = "\"";
+    private static final String SSE_PROGRESS_BODY_SUFFIX = "}}";
+
     private static final byte[] NOTIFICATIONS_TOOLS_LIST_CHANGED_BYTES =
         "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/tools/list_changed\"}".getBytes();
     private static final byte[] NOTIFICATIONS_PROMPTS_LIST_CHANGED_BYTES =
@@ -1674,13 +1695,8 @@ public final class McpServerFactory implements McpStreamFactory
                 .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_JSON))
                 .headersItem(h -> h.name(HTTP_HEADER_SESSION).value(session.sessionId))
                 .build());
-            String8FW payload = new String8FW(("""
-                {
-                "protocolVersion":"2025-11-25",
-                "capabilities":{"prompts":{},"resources":{},"tools":{}},
-                "serverInfo":{"name":"%s","version":"%s"}
-                }
-                """.replaceAll("\n", "")).formatted(serverName, serverVersion));
+            String8FW payload = new String8FW(INITIALIZE_RESPONSE_PROTOCOL_PREFIX + serverName +
+                INITIALIZE_RESPONSE_VERSION_PREFIX + serverVersion + INITIALIZE_RESPONSE_SUFFIX);
             doEncodeResponseData(traceId, authorization, payload.value());
             doEncodeResponseEnd(traceId, authorization);
         }
@@ -1960,9 +1976,14 @@ public final class McpServerFactory implements McpStreamFactory
             if (!responseStarted)
             {
                 responseStarted = true;
-                final String prefix = sseUpgrade ? "data: " : "";
-                final int codecLimit = codecBuffer.putStringWithoutLengthAscii(0,
-                    "%s{\"jsonrpc\":\"2.0\",\"id\":%s,\"result\":".formatted(prefix, decodedId));
+                int codecLimit = 0;
+                if (sseUpgrade)
+                {
+                    codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, SSE_DATA_PREFIX);
+                }
+                codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, JSON_RPC_RESULT_PREFIX);
+                codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, decodedId);
+                codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, JSON_RPC_RESULT_MIDDLE);
                 doNetData(traceId, authorization, codecBuffer, 0, codecLimit);
             }
         }
@@ -3137,8 +3158,10 @@ public final class McpServerFactory implements McpStreamFactory
             }
 
             int progress0 = 0;
-            progress0 += codecBuffer.putStringWithoutLengthAscii(progress0,
-                "data: {\"jsonrpc\":\"2.0\",\"id\":%s,\"result\":".formatted(requestId));
+            progress0 += codecBuffer.putStringWithoutLengthAscii(progress0, SSE_DATA_PREFIX);
+            progress0 += codecBuffer.putStringWithoutLengthAscii(progress0, JSON_RPC_RESULT_PREFIX);
+            progress0 += codecBuffer.putStringWithoutLengthAscii(progress0, requestId);
+            progress0 += codecBuffer.putStringWithoutLengthAscii(progress0, JSON_RPC_RESULT_MIDDLE);
             progress0 += rewriteSseDataLines(codecBuffer, progress0, payload, 0, payload.capacity());
             doNetData(traceId, authorization, codecBuffer, 0, progress0);
         }
@@ -4294,22 +4317,23 @@ public final class McpServerFactory implements McpStreamFactory
         out.putBytes(progress0, SSE_DATA_PREFIX_BYTES);
         progress0 += SSE_DATA_PREFIX_BYTES.length;
 
-        final StringBuilder body = new StringBuilder(160);
-        body.append("{\"jsonrpc\":\"2.0\",\"method\":\"notifications/progress\",\"params\":{\"progressToken\":\"")
-            .append(progress.token().asString())
-            .append("\",\"progress\":")
-            .append(progress.progress());
+        progress0 += out.putStringWithoutLengthAscii(progress0, SSE_PROGRESS_BODY_PREFIX);
+        progress0 += out.putStringWithoutLengthAscii(progress0, progress.token().asString());
+        progress0 += out.putStringWithoutLengthAscii(progress0, SSE_PROGRESS_BODY_PROGRESS);
+        progress0 += out.putLongAscii(progress0, progress.progress());
         if (progress.total() != -1L)
         {
-            body.append(",\"total\":").append(progress.total());
+            progress0 += out.putStringWithoutLengthAscii(progress0, SSE_PROGRESS_BODY_TOTAL);
+            progress0 += out.putLongAscii(progress0, progress.total());
         }
         final String16FW message = progress.message();
         if (message.length() != -1)
         {
-            body.append(",\"message\":\"").append(message.asString()).append("\"");
+            progress0 += out.putStringWithoutLengthAscii(progress0, SSE_PROGRESS_BODY_MESSAGE_PREFIX);
+            progress0 += out.putStringWithoutLengthAscii(progress0, message.asString());
+            progress0 += out.putStringWithoutLengthAscii(progress0, SSE_PROGRESS_BODY_MESSAGE_SUFFIX);
         }
-        body.append("}}");
-        progress0 += out.putStringWithoutLengthAscii(progress0, body.toString());
+        progress0 += out.putStringWithoutLengthAscii(progress0, SSE_PROGRESS_BODY_SUFFIX);
 
         out.putBytes(progress0, SSE_MESSAGE_TERMINATOR_BYTES);
         progress0 += SSE_MESSAGE_TERMINATOR_BYTES.length;
