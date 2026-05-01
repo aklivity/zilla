@@ -1043,7 +1043,7 @@ public final class McpClientFactory implements McpStreamFactory
     {
         if (http.sseEventProgress)
         {
-            http.mcp.relayProgress(traceId, authorization,
+            http.mcp.onDecodeProgress(traceId, authorization,
                 stripSseEventIdPrefix(http.sseEventId),
                 http.sseProgressToken,
                 http.sseProgress,
@@ -1052,11 +1052,11 @@ public final class McpClientFactory implements McpStreamFactory
         }
         else if (http.sseEventRetry >= 0)
         {
-            http.mcp.relaySuspend(traceId, authorization, http.sseEventRetry);
+            http.mcp.onDecodeSuspend(traceId, authorization, http.sseEventRetry);
         }
         else if (http.sseEventId != null && !http.sseEventHasData)
         {
-            http.mcp.relayResumable(traceId, authorization, stripSseEventIdPrefix(http.sseEventId));
+            http.mcp.onDecodeResumable(traceId, authorization, stripSseEventIdPrefix(http.sseEventId));
         }
     }
 
@@ -1282,14 +1282,14 @@ public final class McpClientFactory implements McpStreamFactory
         {
         }
 
-        void relayResumable(
+        void onDecodeResumable(
             long traceId,
             long authorization,
             String id)
         {
         }
 
-        void relayProgress(
+        void onDecodeProgress(
             long traceId,
             long authorization,
             String id,
@@ -1300,27 +1300,27 @@ public final class McpClientFactory implements McpStreamFactory
         {
         }
 
-        void relayResult(
+        void onDecodeResult(
             long traceId,
             long authorization,
             String result)
         {
         }
 
-        void relaySuspend(
+        void onDecodeSuspend(
             long traceId,
             long authorization,
             long retry)
         {
         }
 
-        void relaySuspended(
+        void onDecodeSuspended(
             long traceId,
             long authorization)
         {
         }
 
-        void relayNotification(
+        void onDecodeNotification(
             long traceId,
             long authorization,
             String id,
@@ -1328,7 +1328,7 @@ public final class McpClientFactory implements McpStreamFactory
         {
         }
 
-        void relayCompletion(
+        void onDecodeCompletion(
             long traceId,
             long authorization)
         {
@@ -1811,7 +1811,7 @@ public final class McpClientFactory implements McpStreamFactory
                         }
                         else if (eventsUnsupported)
                         {
-                            relaySuspend(traceId, authorization, SUSPEND_RETRY_NEVER);
+                            onDecodeSuspend(traceId, authorization, SUSPEND_RETRY_NEVER);
                         }
                         else
                         {
@@ -1836,7 +1836,7 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         @Override
-        void relayResumable(
+        void onDecodeResumable(
             long traceId,
             long authorization,
             String id)
@@ -1850,7 +1850,7 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         @Override
-        void relaySuspend(
+        void onDecodeSuspend(
             long traceId,
             long authorization,
             long retry)
@@ -1864,7 +1864,7 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         @Override
-        void relaySuspended(
+        void onDecodeSuspended(
             long traceId,
             long authorization)
         {
@@ -1878,7 +1878,7 @@ public final class McpClientFactory implements McpStreamFactory
             doAppChallenge(traceId, authorization, challengeEx);
         }
 
-        void relayNotification(
+        void onDecodeNotification(
             long traceId,
             long authorization,
             String id,
@@ -2252,7 +2252,7 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         @Override
-        void relayResumable(
+        void onDecodeResumable(
             long traceId,
             long authorization,
             String id)
@@ -2266,7 +2266,7 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         @Override
-        void relayProgress(
+        void onDecodeProgress(
             long traceId,
             long authorization,
             String id,
@@ -2297,7 +2297,7 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         @Override
-        void relayResult(
+        void onDecodeResult(
             long traceId,
             long authorization,
             String result)
@@ -2308,7 +2308,7 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         @Override
-        void relaySuspend(
+        void onDecodeSuspend(
             long traceId,
             long authorization,
             long retry)
@@ -2322,7 +2322,7 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         @Override
-        void relaySuspended(
+        void onDecodeSuspended(
             long traceId,
             long authorization)
         {
@@ -2344,7 +2344,7 @@ public final class McpClientFactory implements McpStreamFactory
         {
             if (http.sseMode)
             {
-                relaySuspended(traceId, authorization);
+                onDecodeSuspended(traceId, authorization);
             }
             else
             {
@@ -2353,7 +2353,7 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         @Override
-        void relayCompletion(
+        void onDecodeCompletion(
             long traceId,
             long authorization)
         {
@@ -2361,7 +2361,7 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         @Override
-        void relayNotification(
+        void onDecodeNotification(
             long traceId,
             long authorization,
             String id,
@@ -2388,12 +2388,12 @@ public final class McpClientFactory implements McpStreamFactory
                         params.get("message") instanceof JsonString jsm
                         ? jsm.getString()
                         : null;
-                    relayProgress(traceId, authorization, id, token, progress, total, message);
+                    onDecodeProgress(traceId, authorization, id, token, progress, total, message);
                 }
                 else if (json.containsKey("result"))
                 {
                     final JsonValue result = json.get("result");
-                    relayResult(traceId, authorization, result.toString());
+                    onDecodeResult(traceId, authorization, result.toString());
                 }
             }
             catch (Exception ignored)
@@ -3415,13 +3415,13 @@ public final class McpClientFactory implements McpStreamFactory
             if (STATUS_405.equals(status))
             {
                 lifecycle.markEventsUnsupported();
-                lifecycle.relaySuspend(traceId, authorization, SUSPEND_RETRY_NEVER);
+                lifecycle.onDecodeSuspend(traceId, authorization, SUSPEND_RETRY_NEVER);
                 doNetReset(traceId, authorization);
                 detach();
             }
             else
             {
-                lifecycle.relayResumable(traceId, authorization, null);
+                lifecycle.onDecodeResumable(traceId, authorization, null);
                 doNetWindow(traceId, authorization, 0L, 0);
             }
         }
@@ -3450,7 +3450,7 @@ public final class McpClientFactory implements McpStreamFactory
             final long authorization = end.authorization();
             state = McpState.closedReply(state);
             cleanupDecodeSlot();
-            lifecycle.relayCompletion(traceId, authorization);
+            lifecycle.onDecodeCompletion(traceId, authorization);
             detach();
         }
 
@@ -3465,7 +3465,7 @@ public final class McpClientFactory implements McpStreamFactory
 
             if (lifecycle.eventStreamRef() == this)
             {
-                lifecycle.relaySuspended(traceId, authorization);
+                lifecycle.onDecodeSuspended(traceId, authorization);
             }
             detach();
         }
@@ -3585,15 +3585,15 @@ public final class McpClientFactory implements McpStreamFactory
 
             if (currentEventRetry >= 0)
             {
-                lifecycle.relaySuspend(traceId, authorization, currentEventRetry);
+                lifecycle.onDecodeSuspend(traceId, authorization, currentEventRetry);
             }
             else if (currentEventId != null && currentEventData.length() == 0)
             {
-                lifecycle.relayResumable(traceId, authorization, stripEventIdPrefix(currentEventId));
+                lifecycle.onDecodeResumable(traceId, authorization, stripEventIdPrefix(currentEventId));
             }
             else if (currentEventData.length() > 0)
             {
-                lifecycle.relayNotification(traceId, authorization,
+                lifecycle.onDecodeNotification(traceId, authorization,
                     stripEventIdPrefix(currentEventId), currentEventData.toString());
             }
         }
