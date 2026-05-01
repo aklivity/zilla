@@ -313,6 +313,16 @@ public class McpClientIT
     @Test
     @Configuration("client.yaml")
     @Specification({
+        "${app}/lifecycle.events.resume.duplicate/client",
+        "${net}/lifecycle.events.open/server"})
+    public void shouldRejectLifecycleEventsResumeDuplicate() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
         "${app}/lifecycle.events.unsupported/client",
         "${net}/lifecycle.events.unsupported/server"})
     public void shouldRejectLifecycleEventsUnsupported() throws Exception

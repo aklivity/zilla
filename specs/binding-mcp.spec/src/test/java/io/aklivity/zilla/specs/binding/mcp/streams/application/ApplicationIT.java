@@ -291,6 +291,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/lifecycle.events.resume.duplicate/client",
+        "${app}/lifecycle.events.resume.duplicate/server"})
+    public void shouldRejectLifecycleEventsResumeDuplicate() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/lifecycle.events.unsupported/client",
         "${app}/lifecycle.events.unsupported/server"})
     public void shouldRejectLifecycleEventsUnsupported() throws Exception
