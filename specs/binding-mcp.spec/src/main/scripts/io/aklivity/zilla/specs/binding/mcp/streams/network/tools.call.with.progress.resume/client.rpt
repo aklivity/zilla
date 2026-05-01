@@ -104,9 +104,9 @@ read '\n'
 read 'id: 2:1\n'
 read 'data: {"jsonrpc":"2.0","method":"notifications/progress","params":{"progressToken":"abc123","progress":50,"total":100,"message":"Checking if Lady Liberty needs an umbrella..."}}\n'
 read '\n'
-read notify TOOLS_CALL_SUSPENDED
 
 read abort
+read notify TOOLS_CALL_SUSPENDED
 
 connect await TOOLS_CALL_SUSPENDED
         "zilla://streams/net0"
