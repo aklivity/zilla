@@ -452,6 +452,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/tools.call.elicit.timeout/client",
+        "${net}/tools.call.elicit.timeout/server"})
+    public void shouldCallToolElicitTimeout() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/reject.auth.callback.unknown.elicitation/client",
         "${net}/reject.auth.callback.unknown.elicitation/server"})
     public void shouldRejectAuthCallbackUnknownElicitation() throws Exception
