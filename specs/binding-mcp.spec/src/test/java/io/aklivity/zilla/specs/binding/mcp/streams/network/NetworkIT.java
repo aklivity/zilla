@@ -434,9 +434,9 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/tools.call.elicit.complete/client",
-        "${net}/tools.call.elicit.complete/server"})
-    public void shouldCallToolElicitComplete() throws Exception
+        "${net}/tools.call.elicit.completed/client",
+        "${net}/tools.call.elicit.completed/server"})
+    public void shouldCallToolElicitCompleted() throws Exception
     {
         k3po.finish();
     }
