@@ -1317,6 +1317,29 @@ public final class McpClientFactory implements McpStreamFactory
         {
         }
 
+        String resumeSessionId()
+        {
+            return sessionId;
+        }
+
+        boolean isEventsUnsupported()
+        {
+            return false;
+        }
+
+        void markEventsUnsupported()
+        {
+        }
+
+        HttpEventStream eventStreamRef()
+        {
+            return null;
+        }
+
+        void clearEventStream()
+        {
+        }
+
         private void onAppBegin(
             BeginFW begin)
         {
@@ -1672,6 +1695,36 @@ public final class McpClientFactory implements McpStreamFactory
         private int failedKeepalives;
         HttpEventStream eventStream;
         boolean eventsUnsupported;
+
+        @Override
+        String resumeSessionId()
+        {
+            return responseSessionId != null ? responseSessionId : sessionId;
+        }
+
+        @Override
+        boolean isEventsUnsupported()
+        {
+            return eventsUnsupported;
+        }
+
+        @Override
+        void markEventsUnsupported()
+        {
+            eventsUnsupported = true;
+        }
+
+        @Override
+        HttpEventStream eventStreamRef()
+        {
+            return eventStream;
+        }
+
+        @Override
+        void clearEventStream()
+        {
+            eventStream = null;
+        }
 
         McpLifecycleStream(
             MessageConsumer sender,
