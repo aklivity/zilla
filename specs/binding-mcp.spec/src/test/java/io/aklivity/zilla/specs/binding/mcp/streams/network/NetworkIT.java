@@ -434,6 +434,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/tools.call.elicit.complete/client",
+        "${net}/tools.call.elicit.complete/server"})
+    public void shouldCallToolElicitComplete() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/tools.call.with.progress.resume/client",
         "${net}/tools.call.with.progress.resume/server"})
     public void shouldCallToolWithProgressResume() throws Exception
