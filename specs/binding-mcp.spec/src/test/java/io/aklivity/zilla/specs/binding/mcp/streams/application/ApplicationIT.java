@@ -17,7 +17,6 @@ package io.aklivity.zilla.specs.binding.mcp.streams.application;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -361,8 +360,6 @@ public class ApplicationIT
         k3po.finish();
     }
 
-    @Ignore("k3po readExtBuffer reuse cannot deliver two consecutive CHALLENGE frames peer-to-peer; " +
-        "exercised via the binding in McpServerIT and McpClientIT instead")
     @Test
     @Specification({
         "${app}/lifecycle.suspended.events/client",
