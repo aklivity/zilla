@@ -32,6 +32,11 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.function.LongUnaryOperator;
 
+import jakarta.json.Json;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonReader;
+import jakarta.json.JsonString;
+import jakarta.json.JsonValue;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParserFactory;
 
@@ -1317,6 +1322,20 @@ public final class McpClientFactory implements McpStreamFactory
         {
         }
 
+        void relayNotification(
+            long traceId,
+            long authorization,
+            String id,
+            String data)
+        {
+        }
+
+        void relayCompletion(
+            long traceId,
+            long authorization)
+        {
+        }
+
         String resumeSessionId()
         {
             return sessionId;
@@ -2105,6 +2124,7 @@ public final class McpClientFactory implements McpStreamFactory
     {
         final McpLifecycleStream session;
         final int requestId;
+        HttpEventStream eventStream;
 
         McpRequestStream(
             McpLifecycleStream session,
@@ -2120,6 +2140,82 @@ public final class McpClientFactory implements McpStreamFactory
                 session.sessionId, session.with, httpFactory);
             this.session = session;
             this.requestId = session.register(this);
+        }
+
+        @Override
+        String resumeSessionId()
+        {
+            return session.resumeSessionId();
+        }
+
+        @Override
+        boolean isEventsUnsupported()
+        {
+            return session.isEventsUnsupported();
+        }
+
+        @Override
+        void markEventsUnsupported()
+        {
+            session.markEventsUnsupported();
+        }
+
+        @Override
+        HttpEventStream eventStreamRef()
+        {
+            return eventStream;
+        }
+
+        @Override
+        void clearEventStream()
+        {
+            eventStream = null;
+        }
+
+        @Override
+        void onAppChallenge(
+            ChallengeFW challenge)
+        {
+            final long traceId = challenge.traceId();
+            final long authorization = challenge.authorization();
+            final OctetsFW extension = challenge.extension();
+
+            if (extension.sizeof() > 0)
+            {
+                final McpChallengeExFW challengeEx = mcpChallengeExRO.tryWrap(
+                    extension.buffer(), extension.offset(), extension.limit());
+                if (challengeEx != null)
+                {
+                    switch (challengeEx.kind())
+                    {
+                    case McpChallengeExFW.KIND_RESUME:
+                        if (eventStream == null)
+                        {
+                            final String16FW resumeId = challengeEx.resume().id();
+                            final String suffix = resumeId != null ? resumeId.asString() : null;
+                            final String prefixedId = suffix != null && !suffix.isEmpty()
+                                ? requestId + ":" + suffix
+                                : null;
+                            eventStream = new HttpEventStream(this, prefixedId);
+                            eventStream.doNetStart(traceId, authorization);
+                        }
+                        break;
+                    case McpChallengeExFW.KIND_SUSPENDED:
+                        if (http != null)
+                        {
+                            http.doNetReset(traceId, authorization);
+                        }
+                        if (eventStream != null)
+                        {
+                            eventStream.doNetAbort(traceId, authorization);
+                            eventStream.detach();
+                        }
+                        break;
+                    default:
+                        break;
+                    }
+                }
+            }
         }
 
         @Override
@@ -2257,6 +2353,55 @@ public final class McpClientFactory implements McpStreamFactory
             else
             {
                 doAppAbort(traceId, authorization);
+            }
+        }
+
+        @Override
+        void relayCompletion(
+            long traceId,
+            long authorization)
+        {
+            doAppEnd(traceId, authorization);
+        }
+
+        @Override
+        void relayNotification(
+            long traceId,
+            long authorization,
+            String id,
+            String data)
+        {
+            try (JsonReader reader = Json.createReader(new java.io.StringReader(data)))
+            {
+                final JsonObject json = reader.readObject();
+                final String method = json.containsKey("method") ? json.getString("method") : null;
+                if ("notifications/progress".equals(method) && json.containsKey("params"))
+                {
+                    final JsonObject params = json.getJsonObject("params");
+                    final String token = params.containsKey("progressToken") &&
+                        params.get("progressToken") instanceof JsonString js
+                        ? js.getString()
+                        : null;
+                    final long progress = params.containsKey("progress")
+                        ? params.getJsonNumber("progress").longValueExact()
+                        : 0L;
+                    final long total = params.containsKey("total")
+                        ? params.getJsonNumber("total").longValueExact()
+                        : -1L;
+                    final String message = params.containsKey("message") &&
+                        params.get("message") instanceof JsonString jsm
+                        ? jsm.getString()
+                        : null;
+                    relayProgress(traceId, authorization, id, token, progress, total, message);
+                }
+                else if (json.containsKey("result"))
+                {
+                    final JsonValue result = json.get("result");
+                    relayResult(traceId, authorization, result.toString());
+                }
+            }
+            catch (Exception ignored)
+            {
             }
         }
     }
@@ -3106,7 +3251,7 @@ public final class McpClientFactory implements McpStreamFactory
 
     private final class HttpEventStream
     {
-        private final McpLifecycleStream lifecycle;
+        private final McpStream lifecycle;
         private final long originId;
         private final long routedId;
         private final long initialId;
@@ -3134,7 +3279,7 @@ public final class McpClientFactory implements McpStreamFactory
         private long currentEventRetry;
 
         HttpEventStream(
-            McpLifecycleStream lifecycle,
+            McpStream lifecycle,
             String lastEventId)
         {
             this.lifecycle = lifecycle;
@@ -3151,7 +3296,7 @@ public final class McpClientFactory implements McpStreamFactory
             long traceId,
             long authorization)
         {
-            final String sid = lifecycle.responseSessionId;
+            final String sid = lifecycle.resumeSessionId();
             final HttpBeginExFW.Builder builder = httpBeginExRW
                 .wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(httpTypeId);
@@ -3273,7 +3418,7 @@ public final class McpClientFactory implements McpStreamFactory
 
             if (STATUS_405.equals(status))
             {
-                lifecycle.eventsUnsupported = true;
+                lifecycle.markEventsUnsupported();
                 lifecycle.relaySuspend(traceId, authorization, SUSPEND_RETRY_NEVER);
                 doNetReset(traceId, authorization);
                 detach();
@@ -3305,8 +3450,11 @@ public final class McpClientFactory implements McpStreamFactory
         private void onNetEnd(
             EndFW end)
         {
+            final long traceId = end.traceId();
+            final long authorization = end.authorization();
             state = McpState.closedReply(state);
             cleanupDecodeSlot();
+            lifecycle.relayCompletion(traceId, authorization);
             detach();
         }
 
@@ -3319,7 +3467,7 @@ public final class McpClientFactory implements McpStreamFactory
             state = McpState.closedReply(state);
             cleanupDecodeSlot();
 
-            if (lifecycle.eventStream == this)
+            if (lifecycle.eventStreamRef() == this)
             {
                 lifecycle.relaySuspended(traceId, authorization);
             }
@@ -3352,9 +3500,9 @@ public final class McpClientFactory implements McpStreamFactory
 
         private void detach()
         {
-            if (lifecycle.eventStream == this)
+            if (lifecycle.eventStreamRef() == this)
             {
-                lifecycle.eventStream = null;
+                lifecycle.clearEventStream();
             }
         }
 
