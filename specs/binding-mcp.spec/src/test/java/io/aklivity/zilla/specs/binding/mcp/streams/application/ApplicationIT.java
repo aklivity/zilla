@@ -452,6 +452,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/initialize.elicit.timeout/client",
+        "${app}/initialize.elicit.timeout/server"})
+    public void shouldInitializeElicitTimeout() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/tools.call.10k.with.progress/client",
         "${app}/tools.call.10k.with.progress/server"})
     public void shouldCallToolWith10kParamsWithProgress() throws Exception
