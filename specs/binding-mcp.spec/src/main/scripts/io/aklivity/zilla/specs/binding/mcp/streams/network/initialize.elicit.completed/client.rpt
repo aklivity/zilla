@@ -1,0 +1,58 @@
+#
+# Copyright 2021-2024 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+connect "zilla://streams/net0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${http:beginEx()
+                            .typeId(zilla:id("http"))
+                            .header(":method", "POST")
+                            .header(":scheme", "http")
+                            .header(":authority", "localhost:8080")
+                            .header(":path", "/mcp")
+                            .header("content-type", "application/json")
+                            .header("accept", "application/json, text/event-stream")
+                            .header("mcp-protocol-version", "2025-11-25")
+                            .build()}
+
+connected
+
+write '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}}}'
+write close
+
+read zilla:begin.ext ${http:matchBeginEx()
+                           .typeId(zilla:id("http"))
+                           .header(":status", "200")
+                           .header("content-type", "text/event-stream")
+                           .header("mcp-session-id", "session-1")
+                           .build()}
+
+read 'id: 1:0\n'
+read '\n'
+
+read 'id: 1:1\n'
+read 'data: {"jsonrpc":"2.0","method":"elicitation/create","params":{"mode":"url","elicitationId":"elicit-1","url":"https://provider.example/authorize?state=session-1.7f3a9b1c&redirect_uri=https://localhost:8080/mcp/auth/callback"}}\n'
+read '\n'
+
+read 'id: 1:2\n'
+read 'data: {"jsonrpc":"2.0","method":"elicitation/complete","params":{"elicitationId":"elicit-1","status":"completed"}}\n'
+read '\n'
+
+read 'id: 1:3\n'
+read 'data: {"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-11-25","capabilities":{"prompts":{},"resources":{},"tools":{}},"serverInfo":{"name":"zilla","version":"1.0"}}}\n'
+read '\n'
+
+read closed

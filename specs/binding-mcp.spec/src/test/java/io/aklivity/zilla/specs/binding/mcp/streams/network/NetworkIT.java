@@ -461,6 +461,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/initialize.elicit.completed/client",
+        "${net}/initialize.elicit.completed/server"})
+    public void shouldInitializeElicitCompleted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/reject.auth.callback.unknown.elicitation/client",
         "${net}/reject.auth.callback.unknown.elicitation/server"})
     public void shouldRejectAuthCallbackUnknownElicitation() throws Exception
