@@ -55,7 +55,7 @@ scope mcp
 
         struct McpResumableFlushEx
         {
-            string16 id;
+            string16 id = null;
         }
 
         struct McpToolsListChangedFlushEx

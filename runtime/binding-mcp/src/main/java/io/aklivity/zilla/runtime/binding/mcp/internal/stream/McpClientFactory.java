@@ -1731,19 +1731,37 @@ public final class McpClientFactory implements McpStreamFactory
             {
                 final McpChallengeExFW challengeEx = mcpChallengeExRO.tryWrap(
                     extension.buffer(), extension.offset(), extension.limit());
-                if (challengeEx != null && challengeEx.kind() == McpChallengeExFW.KIND_RESUME &&
-                    eventStream == null)
+                if (challengeEx != null)
                 {
-                    if (eventsUnsupported)
+                    switch (challengeEx.kind())
                     {
-                        relaySuspend(traceId, authorization, SUSPEND_RETRY_NEVER);
-                    }
-                    else
-                    {
-                        final String16FW resumeId = challengeEx.resume().id();
-                        final String lastEventId = resumeId != null ? resumeId.asString() : null;
-                        eventStream = new HttpEventStream(this, lastEventId);
-                        eventStream.doNetStart(traceId, authorization);
+                    case McpChallengeExFW.KIND_RESUME:
+                        if (eventStream != null)
+                        {
+                            doAppReset(traceId, authorization);
+                            doAppAbort(traceId, authorization);
+                        }
+                        else if (eventsUnsupported)
+                        {
+                            relaySuspend(traceId, authorization, SUSPEND_RETRY_NEVER);
+                        }
+                        else
+                        {
+                            final String16FW resumeId = challengeEx.resume().id();
+                            final String lastEventId = resumeId != null ? resumeId.asString() : null;
+                            eventStream = new HttpEventStream(this, lastEventId);
+                            eventStream.doNetStart(traceId, authorization);
+                        }
+                        break;
+                    case McpChallengeExFW.KIND_SUSPENDED:
+                        if (eventStream != null)
+                        {
+                            eventStream.doNetAbort(traceId, authorization);
+                            eventStream.detach();
+                        }
+                        break;
+                    default:
+                        break;
                     }
                 }
             }
@@ -3209,6 +3227,7 @@ public final class McpClientFactory implements McpStreamFactory
             }
             else
             {
+                lifecycle.relayResumable(traceId, authorization, null);
                 doNetWindow(traceId, authorization, 0L, 0);
             }
         }

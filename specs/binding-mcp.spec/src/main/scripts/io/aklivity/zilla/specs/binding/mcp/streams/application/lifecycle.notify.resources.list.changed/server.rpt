@@ -45,6 +45,12 @@ write advised zilla:challenge ${mcp:matchChallengeEx()
 write advise zilla:flush ${mcp:flushEx()
                               .typeId(zilla:id("mcp"))
                               .resumable()
+                                  .build()
+                              .build()}
+
+write advise zilla:flush ${mcp:flushEx()
+                              .typeId(zilla:id("mcp"))
+                              .resumable()
                                   .id("0")
                                   .build()
                               .build()}

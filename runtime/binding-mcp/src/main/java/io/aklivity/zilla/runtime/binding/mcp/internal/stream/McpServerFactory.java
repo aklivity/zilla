@@ -2633,8 +2633,12 @@ public final class McpServerFactory implements McpStreamFactory
             switch (flushEx.kind())
             {
             case McpFlushExFW.KIND_RESUMABLE:
-                eventStream.doEncodeNotifyEvent(traceId, authorization, LIFECYCLE_STREAM_ID_PREFIX,
-                    flushEx.resumable().id(), null);
+                final String16FW resumableId = flushEx.resumable().id();
+                if (eventStream != null && resumableId != null && resumableId.length() != -1)
+                {
+                    eventStream.doEncodeNotifyEvent(traceId, authorization, LIFECYCLE_STREAM_ID_PREFIX,
+                        resumableId, null);
+                }
                 break;
             case McpFlushExFW.KIND_TOOLS_LIST_CHANGED:
                 eventStream.doEncodeNotifyEvent(traceId, authorization, LIFECYCLE_STREAM_ID_PREFIX,
