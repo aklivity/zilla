@@ -416,6 +416,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/tools.call.with.progress.resume/client",
+        "${net}/tools.call.with.progress.resume/server"})
+    public void shouldCallToolWithProgressResume() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/tools.call.10k.with.progress/client",
         "${net}/tools.call.10k.with.progress/server"})
     public void shouldCallToolWith10kParamsWithProgress() throws Exception

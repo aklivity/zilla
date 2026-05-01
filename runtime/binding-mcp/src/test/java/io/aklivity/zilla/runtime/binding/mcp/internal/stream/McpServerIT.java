@@ -467,6 +467,16 @@ public class McpServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/tools.call.with.progress.resume/client",
+        "${app}/tools.call.with.progress.resume/server"})
+    public void shouldCallToolWithProgressResume() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/lifecycle.suspend.events/client",
         "${app}/lifecycle.suspend.events/server"})
     @Configure(name = MCP_SSE_KEEPALIVE_INTERVAL_NAME, value = "PT30S")

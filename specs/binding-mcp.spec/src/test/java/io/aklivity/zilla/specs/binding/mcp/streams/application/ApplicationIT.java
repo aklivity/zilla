@@ -398,6 +398,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/tools.call.with.progress.resume/client",
+        "${app}/tools.call.with.progress.resume/server"})
+    public void shouldCallToolWithProgressResume() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/tools.call.10k.with.progress/client",
         "${app}/tools.call.10k.with.progress/server"})
     public void shouldCallToolWith10kParamsWithProgress() throws Exception
