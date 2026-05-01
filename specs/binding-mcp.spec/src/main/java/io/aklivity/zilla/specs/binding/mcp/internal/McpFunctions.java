@@ -27,13 +27,22 @@ import io.aklivity.k3po.runtime.lang.el.spi.FunctionMapperSpi;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.String16FW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpAbortExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpBeginExFW;
+import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpChallengeExFW;
+import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpFlushExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpLifecycleBeginExFW;
+import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpProgressFlushExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpPromptsGetBeginExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpPromptsListBeginExFW;
+import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpPromptsListChangedFlushExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpResourcesListBeginExFW;
+import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpResourcesListChangedFlushExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpResourcesReadBeginExFW;
+import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpResumableFlushExFW;
+import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpResumeChallengeExFW;
+import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpSuspendFlushExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpToolsCallBeginExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpToolsListBeginExFW;
+import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpToolsListChangedFlushExFW;
 
 public final class McpFunctions
 {
@@ -659,6 +668,759 @@ public final class McpFunctions
     public static McpAbortExMatcherBuilder matchAbortEx()
     {
         return new McpAbortExMatcherBuilder();
+    }
+
+    @Function
+    public static McpFlushExBuilder flushEx()
+    {
+        return new McpFlushExBuilder();
+    }
+
+    @Function
+    public static McpFlushExMatcherBuilder matchFlushEx()
+    {
+        return new McpFlushExMatcherBuilder();
+    }
+
+    public static final class McpFlushExBuilder
+    {
+        private final MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024]);
+        private final McpFlushExFW.Builder flushExRW = new McpFlushExFW.Builder();
+
+        private McpFlushExBuilder()
+        {
+            flushExRW.wrap(writeBuffer, 0, writeBuffer.capacity());
+        }
+
+        public McpFlushExBuilder typeId(
+            int typeId)
+        {
+            flushExRW.typeId(typeId);
+            return this;
+        }
+
+        public McpResumableFlushExBuilder resumable()
+        {
+            return new McpResumableFlushExBuilder();
+        }
+
+        public McpToolsListChangedFlushExBuilder toolsListChanged()
+        {
+            return new McpToolsListChangedFlushExBuilder();
+        }
+
+        public McpPromptsListChangedFlushExBuilder promptsListChanged()
+        {
+            return new McpPromptsListChangedFlushExBuilder();
+        }
+
+        public McpResourcesListChangedFlushExBuilder resourcesListChanged()
+        {
+            return new McpResourcesListChangedFlushExBuilder();
+        }
+
+        public McpProgressFlushExBuilder progress()
+        {
+            return new McpProgressFlushExBuilder();
+        }
+
+        public McpSuspendFlushExBuilder suspend()
+        {
+            return new McpSuspendFlushExBuilder();
+        }
+
+        public byte[] build()
+        {
+            final byte[] array = new byte[flushExRW.limit()];
+            writeBuffer.getBytes(0, array);
+            return array;
+        }
+
+        public final class McpResumableFlushExBuilder
+        {
+            private String id;
+
+            public McpResumableFlushExBuilder id(
+                String id)
+            {
+                this.id = id;
+                return this;
+            }
+
+            public McpFlushExBuilder build()
+            {
+                flushExRW.resumable(b -> b.id(id));
+                return McpFlushExBuilder.this;
+            }
+        }
+
+        public final class McpToolsListChangedFlushExBuilder
+        {
+            private String id;
+
+            public McpToolsListChangedFlushExBuilder id(
+                String id)
+            {
+                this.id = id;
+                return this;
+            }
+
+            public McpFlushExBuilder build()
+            {
+                flushExRW.toolsListChanged(b -> b.id(id));
+                return McpFlushExBuilder.this;
+            }
+        }
+
+        public final class McpPromptsListChangedFlushExBuilder
+        {
+            private String id;
+
+            public McpPromptsListChangedFlushExBuilder id(
+                String id)
+            {
+                this.id = id;
+                return this;
+            }
+
+            public McpFlushExBuilder build()
+            {
+                flushExRW.promptsListChanged(b -> b.id(id));
+                return McpFlushExBuilder.this;
+            }
+        }
+
+        public final class McpResourcesListChangedFlushExBuilder
+        {
+            private String id;
+
+            public McpResourcesListChangedFlushExBuilder id(
+                String id)
+            {
+                this.id = id;
+                return this;
+            }
+
+            public McpFlushExBuilder build()
+            {
+                flushExRW.resourcesListChanged(b -> b.id(id));
+                return McpFlushExBuilder.this;
+            }
+        }
+
+        public final class McpProgressFlushExBuilder
+        {
+            private String id;
+            private String token;
+            private long progress;
+            private long total = -1L;
+            private String message;
+
+            public McpProgressFlushExBuilder id(
+                String id)
+            {
+                this.id = id;
+                return this;
+            }
+
+            public McpProgressFlushExBuilder token(
+                String token)
+            {
+                this.token = token;
+                return this;
+            }
+
+            public McpProgressFlushExBuilder progress(
+                long progress)
+            {
+                this.progress = progress;
+                return this;
+            }
+
+            public McpProgressFlushExBuilder total(
+                long total)
+            {
+                this.total = total;
+                return this;
+            }
+
+            public McpProgressFlushExBuilder message(
+                String message)
+            {
+                this.message = message;
+                return this;
+            }
+
+            public McpFlushExBuilder build()
+            {
+                flushExRW.progress(b -> b
+                    .id(id)
+                    .token(token)
+                    .progress(progress)
+                    .total(total)
+                    .message(message));
+                return McpFlushExBuilder.this;
+            }
+        }
+
+        public final class McpSuspendFlushExBuilder
+        {
+            private long retry = 0L;
+
+            public McpSuspendFlushExBuilder retry(
+                long retry)
+            {
+                this.retry = retry;
+                return this;
+            }
+
+            public McpFlushExBuilder build()
+            {
+                flushExRW.suspend(b -> b.retry(retry));
+                return McpFlushExBuilder.this;
+            }
+        }
+    }
+
+    public static final class McpFlushExMatcherBuilder
+    {
+        private final DirectBuffer bufferRO = new UnsafeBuffer();
+        private final McpFlushExFW flushExRO = new McpFlushExFW();
+
+        private Integer typeId;
+        private Integer kind;
+        private Predicate<McpFlushExFW> caseMatcher;
+
+        public McpFlushExMatcherBuilder typeId(
+            int typeId)
+        {
+            this.typeId = typeId;
+            return this;
+        }
+
+        public McpResumableFlushExMatcherBuilder resumable()
+        {
+            this.kind = McpFlushExFW.KIND_RESUMABLE;
+            final McpResumableFlushExMatcherBuilder matcher = new McpResumableFlushExMatcherBuilder();
+            this.caseMatcher = matcher::match;
+            return matcher;
+        }
+
+        public McpToolsListChangedFlushExMatcherBuilder toolsListChanged()
+        {
+            this.kind = McpFlushExFW.KIND_TOOLS_LIST_CHANGED;
+            final McpToolsListChangedFlushExMatcherBuilder matcher = new McpToolsListChangedFlushExMatcherBuilder();
+            this.caseMatcher = matcher::match;
+            return matcher;
+        }
+
+        public McpPromptsListChangedFlushExMatcherBuilder promptsListChanged()
+        {
+            this.kind = McpFlushExFW.KIND_PROMPTS_LIST_CHANGED;
+            final McpPromptsListChangedFlushExMatcherBuilder matcher = new McpPromptsListChangedFlushExMatcherBuilder();
+            this.caseMatcher = matcher::match;
+            return matcher;
+        }
+
+        public McpResourcesListChangedFlushExMatcherBuilder resourcesListChanged()
+        {
+            this.kind = McpFlushExFW.KIND_RESOURCES_LIST_CHANGED;
+            final McpResourcesListChangedFlushExMatcherBuilder matcher = new McpResourcesListChangedFlushExMatcherBuilder();
+            this.caseMatcher = matcher::match;
+            return matcher;
+        }
+
+        public McpProgressFlushExMatcherBuilder progress()
+        {
+            this.kind = McpFlushExFW.KIND_PROGRESS;
+            final McpProgressFlushExMatcherBuilder matcher = new McpProgressFlushExMatcherBuilder();
+            this.caseMatcher = matcher::match;
+            return matcher;
+        }
+
+        public McpSuspendFlushExMatcherBuilder suspend()
+        {
+            this.kind = McpFlushExFW.KIND_SUSPEND;
+            final McpSuspendFlushExMatcherBuilder matcher = new McpSuspendFlushExMatcherBuilder();
+            this.caseMatcher = matcher::match;
+            return matcher;
+        }
+
+        public BytesMatcher build()
+        {
+            return typeId != null || kind != null ? this::match : buf -> null;
+        }
+
+        private McpFlushExFW match(
+            ByteBuffer byteBuf) throws Exception
+        {
+            if (!byteBuf.hasRemaining())
+            {
+                return null;
+            }
+
+            bufferRO.wrap(byteBuf);
+            final McpFlushExFW flushEx = flushExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.capacity());
+
+            if (flushEx != null &&
+                matchTypeId(flushEx) &&
+                matchKind(flushEx) &&
+                matchCase(flushEx))
+            {
+                byteBuf.position(byteBuf.position() + flushEx.sizeof());
+                return flushEx;
+            }
+
+            throw new Exception(flushEx != null ? flushEx.toString() : "null");
+        }
+
+        private boolean matchTypeId(
+            McpFlushExFW flushEx)
+        {
+            return typeId == null || typeId == flushEx.typeId();
+        }
+
+        private boolean matchKind(
+            McpFlushExFW flushEx)
+        {
+            return kind == null || kind == flushEx.kind();
+        }
+
+        private boolean matchCase(
+            McpFlushExFW flushEx)
+        {
+            return caseMatcher == null || caseMatcher.test(flushEx);
+        }
+
+        public final class McpResumableFlushExMatcherBuilder
+        {
+            private String16FW id;
+
+            public McpResumableFlushExMatcherBuilder id(
+                String id)
+            {
+                this.id = new String16FW(id);
+                return this;
+            }
+
+            public McpFlushExMatcherBuilder build()
+            {
+                return McpFlushExMatcherBuilder.this;
+            }
+
+            private boolean match(
+                McpFlushExFW flushEx)
+            {
+                return matchId(flushEx.resumable());
+            }
+
+            private boolean matchId(
+                McpResumableFlushExFW resumable)
+            {
+                return id == null || id.equals(resumable.id());
+            }
+        }
+
+        public final class McpToolsListChangedFlushExMatcherBuilder
+        {
+            private String16FW id;
+
+            public McpToolsListChangedFlushExMatcherBuilder id(
+                String id)
+            {
+                this.id = new String16FW(id);
+                return this;
+            }
+
+            public McpFlushExMatcherBuilder build()
+            {
+                return McpFlushExMatcherBuilder.this;
+            }
+
+            private boolean match(
+                McpFlushExFW flushEx)
+            {
+                return matchId(flushEx.toolsListChanged());
+            }
+
+            private boolean matchId(
+                McpToolsListChangedFlushExFW toolsListChanged)
+            {
+                return id == null || id.equals(toolsListChanged.id());
+            }
+        }
+
+        public final class McpPromptsListChangedFlushExMatcherBuilder
+        {
+            private String16FW id;
+
+            public McpPromptsListChangedFlushExMatcherBuilder id(
+                String id)
+            {
+                this.id = new String16FW(id);
+                return this;
+            }
+
+            public McpFlushExMatcherBuilder build()
+            {
+                return McpFlushExMatcherBuilder.this;
+            }
+
+            private boolean match(
+                McpFlushExFW flushEx)
+            {
+                return matchId(flushEx.promptsListChanged());
+            }
+
+            private boolean matchId(
+                McpPromptsListChangedFlushExFW promptsListChanged)
+            {
+                return id == null || id.equals(promptsListChanged.id());
+            }
+        }
+
+        public final class McpResourcesListChangedFlushExMatcherBuilder
+        {
+            private String16FW id;
+
+            public McpResourcesListChangedFlushExMatcherBuilder id(
+                String id)
+            {
+                this.id = new String16FW(id);
+                return this;
+            }
+
+            public McpFlushExMatcherBuilder build()
+            {
+                return McpFlushExMatcherBuilder.this;
+            }
+
+            private boolean match(
+                McpFlushExFW flushEx)
+            {
+                return matchId(flushEx.resourcesListChanged());
+            }
+
+            private boolean matchId(
+                McpResourcesListChangedFlushExFW resourcesListChanged)
+            {
+                return id == null || id.equals(resourcesListChanged.id());
+            }
+        }
+
+        public final class McpProgressFlushExMatcherBuilder
+        {
+            private String16FW id;
+            private String16FW token;
+            private Long progress;
+            private Long total;
+            private String16FW message;
+
+            public McpProgressFlushExMatcherBuilder id(
+                String id)
+            {
+                this.id = new String16FW(id);
+                return this;
+            }
+
+            public McpProgressFlushExMatcherBuilder token(
+                String token)
+            {
+                this.token = new String16FW(token);
+                return this;
+            }
+
+            public McpProgressFlushExMatcherBuilder progress(
+                long progress)
+            {
+                this.progress = progress;
+                return this;
+            }
+
+            public McpProgressFlushExMatcherBuilder total(
+                long total)
+            {
+                this.total = total;
+                return this;
+            }
+
+            public McpProgressFlushExMatcherBuilder message(
+                String message)
+            {
+                this.message = new String16FW(message);
+                return this;
+            }
+
+            public McpFlushExMatcherBuilder build()
+            {
+                return McpFlushExMatcherBuilder.this;
+            }
+
+            private boolean match(
+                McpFlushExFW flushEx)
+            {
+                final McpProgressFlushExFW progress = flushEx.progress();
+                return matchId(progress) && matchToken(progress) && matchProgress(progress) &&
+                    matchTotal(progress) && matchMessage(progress);
+            }
+
+            private boolean matchId(
+                McpProgressFlushExFW progress)
+            {
+                return id == null || id.equals(progress.id());
+            }
+
+            private boolean matchToken(
+                McpProgressFlushExFW progress)
+            {
+                return token == null || token.equals(progress.token());
+            }
+
+            private boolean matchProgress(
+                McpProgressFlushExFW progress)
+            {
+                return this.progress == null || this.progress == progress.progress();
+            }
+
+            private boolean matchTotal(
+                McpProgressFlushExFW progress)
+            {
+                return total == null || total == progress.total();
+            }
+
+            private boolean matchMessage(
+                McpProgressFlushExFW progress)
+            {
+                return message == null || message.equals(progress.message());
+            }
+        }
+
+        public final class McpSuspendFlushExMatcherBuilder
+        {
+            private Long retry;
+
+            public McpSuspendFlushExMatcherBuilder retry(
+                long retry)
+            {
+                this.retry = retry;
+                return this;
+            }
+
+            public McpFlushExMatcherBuilder build()
+            {
+                return McpFlushExMatcherBuilder.this;
+            }
+
+            private boolean match(
+                McpFlushExFW flushEx)
+            {
+                return matchRetry(flushEx.suspend());
+            }
+
+            private boolean matchRetry(
+                McpSuspendFlushExFW suspend)
+            {
+                return retry == null || retry == suspend.retry();
+            }
+        }
+    }
+
+    @Function
+    public static McpChallengeExBuilder challengeEx()
+    {
+        return new McpChallengeExBuilder();
+    }
+
+    @Function
+    public static McpChallengeExMatcherBuilder matchChallengeEx()
+    {
+        return new McpChallengeExMatcherBuilder();
+    }
+
+    public static final class McpChallengeExBuilder
+    {
+        private final MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024]);
+        private final McpChallengeExFW.Builder challengeExRW = new McpChallengeExFW.Builder();
+
+        private McpChallengeExBuilder()
+        {
+            challengeExRW.wrap(writeBuffer, 0, writeBuffer.capacity());
+        }
+
+        public McpChallengeExBuilder typeId(
+            int typeId)
+        {
+            challengeExRW.typeId(typeId);
+            return this;
+        }
+
+        public McpResumeChallengeExBuilder resume()
+        {
+            return new McpResumeChallengeExBuilder();
+        }
+
+        public McpSuspendedChallengeExBuilder suspended()
+        {
+            return new McpSuspendedChallengeExBuilder();
+        }
+
+        public byte[] build()
+        {
+            final byte[] array = new byte[challengeExRW.limit()];
+            writeBuffer.getBytes(0, array);
+            return array;
+        }
+
+        public final class McpResumeChallengeExBuilder
+        {
+            private String id;
+
+            public McpResumeChallengeExBuilder id(
+                String id)
+            {
+                this.id = id;
+                return this;
+            }
+
+            public McpChallengeExBuilder build()
+            {
+                challengeExRW.resume(b -> b.id(id));
+                return McpChallengeExBuilder.this;
+            }
+        }
+
+        public final class McpSuspendedChallengeExBuilder
+        {
+            public McpChallengeExBuilder build()
+            {
+                challengeExRW.suspended(b ->
+                {
+                });
+                return McpChallengeExBuilder.this;
+            }
+        }
+    }
+
+    public static final class McpChallengeExMatcherBuilder
+    {
+        private final DirectBuffer bufferRO = new UnsafeBuffer();
+        private final McpChallengeExFW challengeExRO = new McpChallengeExFW();
+
+        private Integer typeId;
+        private Integer kind;
+        private Predicate<McpChallengeExFW> caseMatcher;
+
+        public McpChallengeExMatcherBuilder typeId(
+            int typeId)
+        {
+            this.typeId = typeId;
+            return this;
+        }
+
+        public McpResumeChallengeExMatcherBuilder resume()
+        {
+            this.kind = McpChallengeExFW.KIND_RESUME;
+            final McpResumeChallengeExMatcherBuilder matcher = new McpResumeChallengeExMatcherBuilder();
+            this.caseMatcher = matcher::match;
+            return matcher;
+        }
+
+        public McpSuspendedChallengeExMatcherBuilder suspended()
+        {
+            this.kind = McpChallengeExFW.KIND_SUSPENDED;
+            final McpSuspendedChallengeExMatcherBuilder matcher = new McpSuspendedChallengeExMatcherBuilder();
+            this.caseMatcher = matcher::match;
+            return matcher;
+        }
+
+        public BytesMatcher build()
+        {
+            return typeId != null || kind != null ? this::match : buf -> null;
+        }
+
+        private McpChallengeExFW match(
+            ByteBuffer byteBuf) throws Exception
+        {
+            if (!byteBuf.hasRemaining())
+            {
+                return null;
+            }
+
+            bufferRO.wrap(byteBuf);
+            final McpChallengeExFW challengeEx = challengeExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.capacity());
+
+            if (challengeEx != null &&
+                matchTypeId(challengeEx) &&
+                matchKind(challengeEx) &&
+                matchCase(challengeEx))
+            {
+                byteBuf.position(byteBuf.position() + challengeEx.sizeof());
+                return challengeEx;
+            }
+
+            throw new Exception(challengeEx != null ? challengeEx.toString() : "null");
+        }
+
+        private boolean matchTypeId(
+            McpChallengeExFW challengeEx)
+        {
+            return typeId == null || typeId == challengeEx.typeId();
+        }
+
+        private boolean matchKind(
+            McpChallengeExFW challengeEx)
+        {
+            return kind == null || kind == challengeEx.kind();
+        }
+
+        private boolean matchCase(
+            McpChallengeExFW challengeEx)
+        {
+            return caseMatcher == null || caseMatcher.test(challengeEx);
+        }
+
+        public final class McpResumeChallengeExMatcherBuilder
+        {
+            private String16FW id;
+
+            public McpResumeChallengeExMatcherBuilder id(
+                String id)
+            {
+                this.id = new String16FW(id);
+                return this;
+            }
+
+            public McpChallengeExMatcherBuilder build()
+            {
+                return McpChallengeExMatcherBuilder.this;
+            }
+
+            private boolean match(
+                McpChallengeExFW challengeEx)
+            {
+                return matchId(challengeEx.resume());
+            }
+
+            private boolean matchId(
+                McpResumeChallengeExFW resume)
+            {
+                return id == null || id.equals(resume.id());
+            }
+        }
+
+        public final class McpSuspendedChallengeExMatcherBuilder
+        {
+            public McpChallengeExMatcherBuilder build()
+            {
+                return McpChallengeExMatcherBuilder.this;
+            }
+
+            private boolean match(
+                McpChallengeExFW challengeEx)
+            {
+                return challengeEx.kind() == McpChallengeExFW.KIND_SUSPENDED;
+            }
+        }
     }
 
     public static final class McpAbortExBuilder

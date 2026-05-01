@@ -37,6 +37,7 @@ public class McpConfiguration extends Configuration
     public static final PropertyDef<String> MCP_CLIENT_VERSION;
     public static final PropertyDef<Duration> MCP_INACTIVITY_TIMEOUT;
     public static final IntPropertyDef MCP_KEEPALIVE_TOLERANCE;
+    public static final PropertyDef<Duration> MCP_SSE_KEEPALIVE_INTERVAL;
 
     static
     {
@@ -54,6 +55,8 @@ public class McpConfiguration extends Configuration
         MCP_INACTIVITY_TIMEOUT = config.property(Duration.class, "inactivity.timeout",
             (c, v) -> Duration.parse(v), "PT60S");
         MCP_KEEPALIVE_TOLERANCE = config.property("keepalive.tolerance", 2);
+        MCP_SSE_KEEPALIVE_INTERVAL = config.property(Duration.class, "sse.keepalive.interval",
+            (c, v) -> Duration.parse(v), "PT15S");
         MCP_CONFIG = config;
     }
 
@@ -101,6 +104,11 @@ public class McpConfiguration extends Configuration
     public int keepaliveTolerance()
     {
         return MCP_KEEPALIVE_TOLERANCE.getAsInt(this);
+    }
+
+    public Duration sseKeepaliveInterval()
+    {
+        return MCP_SSE_KEEPALIVE_INTERVAL.get(this);
     }
 
     @FunctionalInterface
