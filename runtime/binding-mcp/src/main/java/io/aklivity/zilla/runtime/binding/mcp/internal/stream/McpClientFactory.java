@@ -26,6 +26,7 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeg
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 
+import java.io.StringReader;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -498,8 +499,6 @@ public final class McpClientFactory implements McpStreamFactory
                 break decode;
             }
 
-            final String id = parser.getString();
-            // TODO: verify response id matches request id
             http.decoder = decodeJsonRpcNext;
 
             progress = limit - input.available();
@@ -532,7 +531,6 @@ public final class McpClientFactory implements McpStreamFactory
                 break decode;
             }
 
-            // position of '{' in cumulative stream coordinates is just before the current offset
             http.decodedResultProgress = (int) parser.getLocation().getStreamOffset() - 1;
 
             http.decodedSkipObjectDepth = 1;
@@ -1590,8 +1588,6 @@ public final class McpClientFactory implements McpStreamFactory
             {
                 final int reserved = length + replyPad;
 
-                // session.touch();
-
                 doData(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, DATA_FLAGS_COMPLETE, replyBud, reserved, buffer, offset, length);
 
@@ -2371,7 +2367,7 @@ public final class McpClientFactory implements McpStreamFactory
             String id,
             String data)
         {
-            try (JsonReader reader = Json.createReader(new java.io.StringReader(data)))
+            try (JsonReader reader = Json.createReader(new StringReader(data)))
             {
                 final JsonObject json = reader.readObject();
                 final String method = json.containsKey("method") ? json.getString("method") : null;

@@ -751,7 +751,6 @@ public final class McpServerFactory implements McpStreamFactory
                 break decode;
             }
 
-            // position of '{' in cumulative stream coordinates is just before the current offset
             server.decodedParamsProgress = (int) parser.getLocation().getStreamOffset() - 1;
 
             if (server.decodedMethodParam != null)
