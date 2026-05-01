@@ -313,7 +313,7 @@ public class McpServerIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/lifecycle.events.open/client",
-        "${app}/lifecycle.initialize/server"})
+        "${app}/lifecycle.events.open/server"})
     @Configure(name = MCP_SSE_KEEPALIVE_INTERVAL_NAME, value = "PT30S")
     public void shouldOpenLifecycleEvents() throws Exception
     {
@@ -360,7 +360,7 @@ public class McpServerIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/lifecycle.events.keepalive/client",
-        "${app}/lifecycle.initialize/server"})
+        "${app}/lifecycle.events.keepalive/server"})
     @Configure(name = MCP_SSE_KEEPALIVE_INTERVAL_NAME, value = "PT0.5S")
     public void shouldKeepaliveLifecycleEvents() throws Exception
     {
@@ -371,7 +371,7 @@ public class McpServerIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/lifecycle.events.evict/client",
-        "${app}/lifecycle.initialize/server"})
+        "${app}/lifecycle.events.evict/server"})
     @Configure(name = MCP_SSE_KEEPALIVE_INTERVAL_NAME, value = "PT30S")
     public void shouldEvictLifecycleEvents() throws Exception
     {

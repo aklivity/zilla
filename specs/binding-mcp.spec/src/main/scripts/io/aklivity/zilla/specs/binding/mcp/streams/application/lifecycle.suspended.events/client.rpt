@@ -39,6 +39,12 @@ read advise zilla:challenge ${mcp:challengeEx()
                                       .build()
                                   .build()}
 
+read advised zilla:flush ${mcp:matchFlushEx()
+                               .typeId(zilla:id("mcp"))
+                               .resumable()
+                                   .build()
+                               .build()}
+
 read advise zilla:challenge ${mcp:challengeEx()
                                   .typeId(zilla:id("mcp"))
                                   .suspended()

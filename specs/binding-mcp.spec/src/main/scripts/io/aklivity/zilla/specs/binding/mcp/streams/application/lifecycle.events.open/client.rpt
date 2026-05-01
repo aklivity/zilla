@@ -44,7 +44,3 @@ read advised zilla:flush ${mcp:matchFlushEx()
                                .resumable()
                                    .build()
                                .build()}
-
-write close
-
-read closed

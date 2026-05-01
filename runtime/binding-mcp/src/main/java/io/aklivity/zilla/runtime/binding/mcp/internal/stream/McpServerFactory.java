@@ -2633,11 +2633,18 @@ public final class McpServerFactory implements McpStreamFactory
             switch (flushEx.kind())
             {
             case McpFlushExFW.KIND_RESUMABLE:
-                final String16FW resumableId = flushEx.resumable().id();
-                if (eventStream != null && resumableId != null && resumableId.length() != -1)
+                if (eventStream != null)
                 {
-                    eventStream.doEncodeNotifyEvent(traceId, authorization, LIFECYCLE_STREAM_ID_PREFIX,
-                        resumableId, null);
+                    if (!McpState.replyOpening(eventStream.state))
+                    {
+                        eventStream.doNetBeginAccepted(traceId, authorization);
+                    }
+                    final String16FW resumableId = flushEx.resumable().id();
+                    if (resumableId != null && resumableId.length() != -1)
+                    {
+                        eventStream.doEncodeNotifyEvent(traceId, authorization, LIFECYCLE_STREAM_ID_PREFIX,
+                            resumableId, null);
+                    }
                 }
                 break;
             case McpFlushExFW.KIND_TOOLS_LIST_CHANGED:
@@ -2660,11 +2667,30 @@ public final class McpServerFactory implements McpStreamFactory
                 }
                 if (eventStream != null)
                 {
-                    if (suspendRetry > 0)
+                    if (!McpState.replyOpening(eventStream.state))
                     {
-                        eventStream.doEncodeRetryEvent(traceId, authorization, suspendRetry);
+                        if (suspendRetry == SUSPEND_RETRY_NEVER)
+                        {
+                            eventStream.doNetBeginRejected(traceId, authorization, STATUS_405);
+                        }
+                        else
+                        {
+                            eventStream.doNetBeginAccepted(traceId, authorization);
+                            if (suspendRetry > 0)
+                            {
+                                eventStream.doEncodeRetryEvent(traceId, authorization, suspendRetry);
+                            }
+                            eventStream.doNetEnd(traceId, authorization);
+                        }
                     }
-                    eventStream.doNetEnd(traceId, authorization);
+                    else
+                    {
+                        if (suspendRetry > 0)
+                        {
+                            eventStream.doEncodeRetryEvent(traceId, authorization, suspendRetry);
+                        }
+                        eventStream.doNetEnd(traceId, authorization);
+                    }
                 }
                 break;
             default:
@@ -2778,6 +2804,8 @@ public final class McpServerFactory implements McpStreamFactory
         private int encodeSlotOffset;
         private long encodeSlotTraceId;
 
+        private boolean endPending;
+
         private long keepaliveCancelId = Signaler.NO_CANCEL_ID;
 
         private McpEventStream(
@@ -2856,6 +2884,13 @@ public final class McpServerFactory implements McpStreamFactory
             }
             session.eventStream = this;
 
+            session.doAppResume(traceId, authorization);
+        }
+
+        private void doNetBeginAccepted(
+            long traceId,
+            long authorization)
+        {
             doNetBegin(traceId, authorization, httpBeginExRW
                 .wrap(codecBuffer, 0, codecBuffer.capacity())
                 .typeId(httpTypeId)
@@ -2867,8 +2902,20 @@ public final class McpServerFactory implements McpStreamFactory
             doNetWindow(traceId, authorization, 0, 0);
 
             scheduleKeepalive(traceId);
+        }
 
-            session.doAppResume(traceId, authorization);
+        private void doNetBeginRejected(
+            long traceId,
+            long authorization,
+            String status)
+        {
+            doNetBegin(traceId, authorization, httpBeginExRW
+                .wrap(codecBuffer, 0, codecBuffer.capacity())
+                .typeId(httpTypeId)
+                .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(status))
+                .build());
+
+            doNetEnd(traceId, authorization);
         }
 
         private void onNetData(
@@ -2923,6 +2970,12 @@ public final class McpServerFactory implements McpStreamFactory
                 final MutableDirectBuffer buffer = encodePool.buffer(encodeSlot);
                 final int limit = encodeSlotOffset;
                 encodeNet(encodeSlotTraceId, authorization, buffer, 0, limit);
+            }
+
+            if (endPending && encodeSlot == NO_SLOT)
+            {
+                endPending = false;
+                doNetEnd(traceId, authorization);
             }
         }
 
@@ -3076,6 +3129,12 @@ public final class McpServerFactory implements McpStreamFactory
             long traceId,
             long authorization)
         {
+            if (encodeSlot != NO_SLOT)
+            {
+                endPending = true;
+                return;
+            }
+
             cancelKeepalive();
             if (session.eventStream == this)
             {
