@@ -443,6 +443,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/reject.auth.callback.unknown.elicitation/client",
+        "${net}/reject.auth.callback.unknown.elicitation/server"})
+    public void shouldRejectAuthCallbackUnknownElicitation() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/tools.call.with.progress.resume/client",
         "${net}/tools.call.with.progress.resume/server"})
     public void shouldCallToolWithProgressResume() throws Exception
