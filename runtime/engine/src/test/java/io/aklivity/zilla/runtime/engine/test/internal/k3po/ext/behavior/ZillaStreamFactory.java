@@ -176,6 +176,20 @@ public final class ZillaStreamFactory
             final long acknowledge = begin.acknowledge();
             final OctetsFW beginExt = begin.extension();
 
+            final ZillaChannelConfig config = channel.getConfig();
+            if (channel instanceof ZillaChildChannel && config.hasAffinity())
+            {
+                final long expectedAffinity = config.getAffinity();
+                final long actualAffinity = begin.affinity();
+                if (actualAffinity != expectedAffinity)
+                {
+                    fireExceptionCaught(channel, new IllegalStateException(String.format(
+                        "expected zilla:affinity 0x%016x but received 0x%016x",
+                        expectedAffinity, actualAffinity)));
+                    return;
+                }
+            }
+
             int beginExtBytes = beginExt.sizeof();
             if (beginExtBytes != 0)
             {
@@ -196,7 +210,6 @@ public final class ZillaStreamFactory
 
             channel.beginInputFuture().setSuccess();
 
-            final ZillaChannelConfig config = channel.getConfig();
             if (config.getUpdate() == ZillaUpdateMode.HANDSHAKE ||
                 config.getUpdate() == ZillaUpdateMode.STREAM)
             {
