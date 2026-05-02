@@ -163,6 +163,25 @@
                                     "type": "string"
                                 }
                             },
+                            "self":
+                            {
+                                "title": "Self Authority",
+                                "description": "Externally reachable authority for this gateway instance, e.g. host:port. Required when 'store' is set.",
+                                "type": "string"
+                            },
+                            "store":
+                            {
+                                "title": "Store",
+                                "description": "Reference to a store binding. Presence enables cross-instance affinity lookups.",
+                                "type": "string"
+                            },
+                            "alt-svc-max-age":
+                            {
+                                "title": "Alt-Svc Max Age (seconds)",
+                                "type": "integer",
+                                "default": 86400,
+                                "minimum": 0
+                            },
                             "requests":
                             {
                                 "type": "array",
@@ -345,7 +364,11 @@
                                 }
                             }
                         },
-                        "additionalProperties": false
+                        "additionalProperties": false,
+                        "dependentRequired":
+                        {
+                            "store": [ "self" ]
+                        }
                     },
                     "routes":
                     {
@@ -398,6 +421,40 @@
                                                     }
                                                 }
                                             },
+                                            "additionalProperties": false
+                                        },
+                                        "affinity":
+                                        {
+                                            "title": "Affinity",
+                                            "type": "object",
+                                            "properties":
+                                            {
+                                                "header":
+                                                {
+                                                    "title": "Header Name",
+                                                    "type": "string"
+                                                },
+                                                "query":
+                                                {
+                                                    "title": "Query Parameter Name",
+                                                    "type": "string"
+                                                },
+                                                "match":
+                                                {
+                                                    "title": "Match Regex",
+                                                    "type": "string",
+                                                    "format": "regex"
+                                                }
+                                            },
+                                            "oneOf":
+                                            [
+                                                {
+                                                    "required": [ "header" ]
+                                                },
+                                                {
+                                                    "required": [ "query" ]
+                                                }
+                                            ],
                                             "additionalProperties": false
                                         }
                                     },
