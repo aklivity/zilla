@@ -45,4 +45,85 @@ public class AffinityIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/request.with.header.affinity.match/client",
+        "${net}/request.with.header.affinity.match/server"})
+    public void shouldRequestWithHeaderAffinityMatch() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/request.with.header.affinity.no.match/client",
+        "${net}/request.with.header.affinity.no.match/server"})
+    public void shouldRequestWithHeaderAffinityNoMatch() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/request.with.header.affinity.missing/client",
+        "${net}/request.with.header.affinity.missing/server"})
+    public void shouldRequestWithHeaderAffinityMissing() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/request.with.header.affinity.migrate/client",
+        "${net}/request.with.header.affinity.migrate/server"})
+    public void shouldRequestWithHeaderAffinityMigrate() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/request.with.query.affinity/client",
+        "${net}/request.with.query.affinity/server"})
+    public void shouldRequestWithQueryAffinity() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/request.with.query.affinity.match/client",
+        "${net}/request.with.query.affinity.match/server"})
+    public void shouldRequestWithQueryAffinityMatch() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/request.with.query.affinity.no.match/client",
+        "${net}/request.with.query.affinity.no.match/server"})
+    public void shouldRequestWithQueryAffinityNoMatch() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/request.with.query.affinity.missing/client",
+        "${net}/request.with.query.affinity.missing/server"})
+    public void shouldRequestWithQueryAffinityMissing() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/request.with.query.affinity.migrate/client",
+        "${net}/request.with.query.affinity.migrate/server"})
+    public void shouldRequestWithQueryAffinityMigrate() throws Exception
+    {
+        k3po.finish();
+    }
 }
