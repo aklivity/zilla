@@ -434,20 +434,7 @@ public interface EngineContext
         long storeId);
 
     /**
-     * Returns the externally-reachable hostname for this engine instance, configured via
-     * {@code zilla.engine.service.hostname}. Used by bindings (e.g. http) to compose a
-     * per-instance authority for cross-instance redirect responses. The port portion of
-     * the authority is composed from each network connection's destination port at use site.
-     *
-     * @return the configured service hostname, or {@code null} if unset
-     */
-    String serviceHostname();
-
-    /**
-     * Returns the engine-level shared store handle, resolved from the qualified name
-     * configured via {@code zilla.engine.store.name} (default {@code sys:state}). When
-     * {@code zilla.engine.store.type} is unset and the user has not declared a store
-     * binding under the configured name, this returns {@code null}.
+     * Returns the engine-level shared store handle.
      *
      * @return the engine store handle, or {@code null} if no store is configured
      */

@@ -16,11 +16,8 @@
 package io.aklivity.zilla.runtime.engine.store;
 
 import java.net.URL;
-import java.util.Optional;
 
-import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 
 /**
  * Entry point for a mutable runtime state store plugin.
@@ -68,27 +65,17 @@ public interface Store
     URL type();
 
     /**
-     * Optionally contributes a built-in {@link NamespaceConfig} that the engine merges into
-     * its namespace registry ahead of resolving user-declared namespaces from {@code zilla.yaml}.
+     * Returns a URL pointing to a JSON patch document that contributes a built-in store
+     * binding under the engine's {@code system} namespace, or {@code null} when this store
+     * makes no system contribution.
      * <p>
-     * Default returns empty (no contribution).
-     * </p>
-     * <p>
-     * The intended pattern: a store implementation inspects
-     * {@link EngineConfiguration#storeName() storeName()} and
-     * {@link EngineConfiguration#storeType() storeType()}, and contributes a binding only when
-     * the configured qname's namespace is the implementation's reserved namespace (e.g.
-     * {@code "sys"}) and the configured store type matches the implementation's own
-     * {@link #name()}. This lets the engine ship a usable default store implementation without
-     * requiring the user to declare it in {@code zilla.yaml}.
+     * Default returns {@code null}.
      * </p>
      *
-     * @param config  the engine configuration
-     * @return a non-empty {@link Optional} when this store contributes; empty otherwise
+     * @return the system patch URL, or {@code null}
      */
-    default Optional<NamespaceConfig> contribute(
-        EngineConfiguration config)
+    default URL system()
     {
-        return Optional.empty();
+        return null;
     }
 }

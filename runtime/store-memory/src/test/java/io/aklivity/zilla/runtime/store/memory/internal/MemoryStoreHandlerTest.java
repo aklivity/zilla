@@ -22,6 +22,7 @@ import org.agrona.collections.MutableReference;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.config.StoreConfig;
 import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 
@@ -32,7 +33,7 @@ public class MemoryStoreHandlerTest
     @Before
     public void setUp()
     {
-        handler = new MemoryStore(new MemoryStoreConfiguration())
+        handler = new MemoryStore(new EngineConfiguration())
             .supply(null)
             .attach(StoreConfig.builder()
                 .namespace("test")

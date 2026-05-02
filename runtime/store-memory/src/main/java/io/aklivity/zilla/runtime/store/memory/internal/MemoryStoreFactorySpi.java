@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.store.memory.internal;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.store.Store;
 import io.aklivity.zilla.runtime.engine.store.StoreFactorySpi;
 
@@ -30,6 +31,6 @@ public final class MemoryStoreFactorySpi implements StoreFactorySpi
     public Store create(
         Configuration config)
     {
-        return new MemoryStore(new MemoryStoreConfiguration(config));
+        return new MemoryStore(new EngineConfiguration(config));
     }
 }

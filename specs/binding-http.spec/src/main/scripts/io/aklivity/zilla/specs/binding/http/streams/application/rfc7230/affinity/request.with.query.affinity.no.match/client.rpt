@@ -14,11 +14,6 @@
 # under the License.
 #
 
-# `state` query parameter value is "no-dots-here"; the binding's
-# affinity rule uses match: "[^.]+\.([^.]+)\.[^.]+" which does NOT match.
-# Rule yields no key, so the BEGIN flows through with the network-level
-# affinity (default 0L) unchanged.
-
 connect "zilla://streams/app0"
     option zilla:window 8192
     option zilla:transmission "half-duplex"

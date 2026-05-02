@@ -14,10 +14,6 @@
 # under the License.
 #
 
-# extracted key (state query parameter "sess-2") is owned by a peer gateway
-# instance per options.store; binding short-circuits with 429 + alt-svc
-# pointing at the peer authority
-
 connect "http://server.example.com:8080/auth/callback?state=sess-2"
   option http:transport "zilla://streams/net0"
   option zilla:window 8192

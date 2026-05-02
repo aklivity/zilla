@@ -81,7 +81,6 @@ import io.aklivity.zilla.runtime.engine.internal.event.EngineEventContext;
 import io.aklivity.zilla.runtime.engine.internal.watcher.EngineConfigWatchTask;
 import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 import io.aklivity.zilla.runtime.engine.resolver.Resolver;
-import io.aklivity.zilla.runtime.engine.store.Store;
 import io.aklivity.zilla.runtime.engine.util.function.LongObjectBiFunction;
 import io.aklivity.zilla.runtime.engine.util.function.LongObjectPredicate;
 
@@ -108,7 +107,6 @@ public class EngineManager
     private final Path localConfigPath;
     private final EngineConfigWatchTask watchTask;
     private final EngineEventContext events;
-    private final Collection<Store> stores;
 
     private String currentText;
     private EngineConfig current;
@@ -128,8 +126,7 @@ public class EngineManager
         EngineExtContext context,
         EngineConfiguration config,
         EngineEventContext events,
-        List<EngineExtSpi> extensions,
-        Collection<Store> stores)
+        List<EngineExtSpi> extensions)
     {
         this.schemaTypes = schemaTypes;
         this.systemConfigs = systemConfigs;
@@ -150,7 +147,6 @@ public class EngineManager
         this.localConfigPath = Optional.ofNullable(config.localConfigURI()).map(Path::of).orElse(null);
         this.watchTask = new WatchTaskImpl(config, events, configPath);
         this.events = events;
-        this.stores = stores;
     }
 
     public void start() throws Exception
@@ -341,21 +337,6 @@ public class EngineManager
                 logger);
 
             engine = reader.read(configText);
-
-            // merge any namespaces contributed by store implementations (e.g. memory store
-            // contributes sys:state when ENGINE_STORE_NAME's namespace is sys and
-            // ENGINE_STORE_TYPE matches its own type) ahead of user-declared namespaces
-            final List<NamespaceConfig> contributed = stores.stream()
-                .map(s -> s.contribute(config))
-                .filter(Optional::isPresent)
-                .map(Optional::get)
-                .collect(toList());
-            if (!contributed.isEmpty())
-            {
-                final List<NamespaceConfig> combined = new java.util.ArrayList<>(contributed);
-                combined.addAll(engine.namespaces);
-                engine = EngineConfig.builder().namespaces(combined).build();
-            }
 
             final List<GuardConfig> guards = engine.namespaces.stream()
                 .map(n -> n.guards)

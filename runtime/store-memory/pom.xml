@@ -100,7 +100,10 @@
                   </fileMappers>
                 </artifactItem>
               </artifactItems>
-              <includes>io/aklivity/zilla/specs/store/memory/schema/memory.schema.patch.json</includes>
+              <includes>
+                io/aklivity/zilla/specs/store/memory/schema/memory.schema.patch.json,
+                io/aklivity/zilla/specs/store/memory/system/memory.system.patch.json
+              </includes>
               <outputDirectory>${project.build.directory}/classes</outputDirectory>
             </configuration>
           </execution>

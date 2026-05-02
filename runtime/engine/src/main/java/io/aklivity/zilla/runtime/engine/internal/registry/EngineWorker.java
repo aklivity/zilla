@@ -787,12 +787,6 @@ public class EngineWorker implements EngineContext, Agent
         return store != null ? store.handler() : null;
     }
 
-    @Override
-    public String serviceHostname()
-    {
-        return config.serviceHostname();
-    }
-
     private StoreHandler engineStore;
     private boolean engineStoreResolved;
 

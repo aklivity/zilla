@@ -48,6 +48,7 @@ import java.util.function.LongConsumer;
 import java.util.function.LongSupplier;
 import java.util.function.ToIntFunction;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.agrona.ErrorHandler;
 import org.agrona.collections.Int2ObjectHashMap;
@@ -219,8 +220,9 @@ public final class Engine implements Collector, AutoCloseable
         schemaTypes.addAll(models.stream().map(Model::type).filter(Objects::nonNull).collect(toList()));
         schemaTypes.addAll(stores.stream().map(Store::type).filter(Objects::nonNull).collect(toList()));
 
-        final Collection<URL> systemConfigs = exporters.stream()
-            .map(Exporter::system)
+        final Collection<URL> systemConfigs = Stream.concat(
+                exporters.stream().map(Exporter::system),
+                stores.stream().map(Store::system))
             .filter(Objects::nonNull)
             .toList();
 
@@ -246,8 +248,7 @@ public final class Engine implements Collector, AutoCloseable
             context,
             config,
             events,
-            extensions,
-            stores);
+            extensions);
 
         this.bindings = bindings;
         this.tasks = tasks;

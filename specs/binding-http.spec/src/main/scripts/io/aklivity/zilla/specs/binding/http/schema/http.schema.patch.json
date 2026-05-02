@@ -345,11 +345,7 @@
                                 }
                             }
                         },
-                        "additionalProperties": false,
-                        "dependentRequired":
-                        {
-                            "store": [ "self" ]
-                        }
+                        "additionalProperties": false
                     },
                     "routes":
                     {

@@ -15,14 +15,12 @@
 package io.aklivity.zilla.runtime.store.memory.internal;
 
 import java.net.URL;
-import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.store.Store;
 import io.aklivity.zilla.runtime.engine.store.StoreContext;
 
@@ -30,11 +28,13 @@ final class MemoryStore implements Store
 {
     static final String NAME = "memory";
 
+    private final EngineConfiguration config;
     private final ConcurrentMap<Long, MemoryStorage> storage;
 
     MemoryStore(
-        MemoryStoreConfiguration config)
+        EngineConfiguration config)
     {
+        this.config = config;
         this.storage = new ConcurrentHashMap<>();
     }
 
@@ -58,33 +58,11 @@ final class MemoryStore implements Store
     }
 
     @Override
-    public Optional<NamespaceConfig> contribute(
-        EngineConfiguration config)
+    public URL system()
     {
-        final String storeType = config.storeType();
-        final String storeName = config.storeName();
-        if (!NAME.equals(storeType) || storeName == null)
-        {
-            return Optional.empty();
-        }
-        final int colon = storeName.indexOf(':');
-        if (colon <= 0 || colon >= storeName.length() - 1)
-        {
-            return Optional.empty();
-        }
-        final String namespace = storeName.substring(0, colon);
-        final String name = storeName.substring(colon + 1);
-        if (!"sys".equals(namespace))
-        {
-            return Optional.empty();
-        }
-        return Optional.of(NamespaceConfig.builder()
-            .name(namespace)
-            .store()
-                .name(name)
-                .type(NAME)
-                .build()
-            .build());
+        return NAME.equals(config.storeType())
+            ? getClass().getResource("system/memory.system.patch.json")
+            : null;
     }
 
     private ConcurrentMap<String, MemoryEntry> acquireEntries(

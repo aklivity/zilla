@@ -324,12 +324,6 @@ public class EchoWorker implements EngineContext
     }
 
     @Override
-    public String serviceHostname()
-    {
-        return null;
-    }
-
-    @Override
     public StoreHandler store()
     {
         return null;
