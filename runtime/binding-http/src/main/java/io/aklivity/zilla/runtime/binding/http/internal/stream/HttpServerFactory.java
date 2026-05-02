@@ -209,6 +209,14 @@ public final class HttpServerFactory implements HttpStreamFactory
     private static final byte[] MIGRATE_429_INFIX = "\"; ma=".getBytes(US_ASCII);
     private static final byte[] MIGRATE_429_SUFFIX = "\r\n\r\n".getBytes(US_ASCII);
 
+    private static final byte[] MIGRATE_ALT_SVC_HTTP2_PREFIX = "h2=\"".getBytes(US_ASCII);
+    private static final byte[] MIGRATE_ALT_SVC_HTTP2_INFIX = "\"; ma=".getBytes(US_ASCII);
+
+    private static final String16FW STATUS_429 = new String16FW("429");
+    private static final String16FW VALUE_RETRY_AFTER_NOW = new String16FW("0");
+    private static final String8FW HEADER_RETRY_AFTER = new String8FW("retry-after");
+    private static final String8FW HEADER_ALT_SVC = new String8FW("alt-svc");
+
     private static final DirectBuffer ZERO_CHUNK = new UnsafeBuffer("0\r\n\r\n".getBytes(US_ASCII));
 
     private static final DirectBuffer ERROR_400_BAD_REQUEST =
@@ -1192,10 +1200,10 @@ public final class HttpServerFactory implements HttpStreamFactory
                                 requestAffinity = server.affinity;
                             }
 
-                            DirectBuffer migrate = migrate(affinityKey, server.serviceHost);
-                            if (migrate != null)
+                            String migratePeer = migratePeer(affinityKey, server.serviceHost);
+                            if (migratePeer != null)
                             {
-                                error = migrate;
+                                error = buildMigrate429Http11(migratePeer);
                             }
                             else
                             {
@@ -5229,21 +5237,31 @@ public final class HttpServerFactory implements HttpStreamFactory
                                 requestAffinity = Http2Server.this.affinity;
                             }
 
-                            final Http2Exchange exchange = new Http2Exchange(originId, routedId, requestId, requestAffinity,
-                                streamId, exchangeAuth, traceId, policy, origin, contentLength, requestType);
-
-                            boolean headersValid = exchange.validateHeaders(beginEx);
-                            if (headersValid)
+                            String migratePeer = migratePeer(affinityKey, serviceHost);
+                            if (migratePeer != null)
                             {
-                                exchange.doRequestBegin(traceId, beginEx);
-                                if (endRequest)
-                                {
-                                    exchange.doRequestEnd(traceId, EMPTY_OCTETS);
-                                }
+                                doEncodeHeaders(traceId, authorization, streamId,
+                                    buildMigrate429Http2(migratePeer), true);
                             }
                             else
                             {
-                                doEncodeHeaders(traceId, authorization, streamId, headers400, true);
+                                final Http2Exchange exchange = new Http2Exchange(originId, routedId, requestId,
+                                    requestAffinity, streamId, exchangeAuth, traceId, policy, origin, contentLength,
+                                    requestType);
+
+                                boolean headersValid = exchange.validateHeaders(beginEx);
+                                if (headersValid)
+                                {
+                                    exchange.doRequestBegin(traceId, beginEx);
+                                    if (endRequest)
+                                    {
+                                        exchange.doRequestEnd(traceId, EMPTY_OCTETS);
+                                    }
+                                }
+                                else
+                                {
+                                    doEncodeHeaders(traceId, authorization, streamId, headers400, true);
+                                }
                             }
                         }
                     }
@@ -7326,11 +7344,11 @@ public final class HttpServerFactory implements HttpStreamFactory
         }
     }
 
-    private DirectBuffer migrate(
+    private String migratePeer(
         String affinityKey,
         String serviceHost)
     {
-        DirectBuffer migrate = null;
+        String peer = null;
         if (affinityKey != null && serviceHost != null)
         {
             StoreHandler store = context.store();
@@ -7341,11 +7359,11 @@ public final class HttpServerFactory implements HttpStreamFactory
                 String prior = migrateHolder[0];
                 if (prior != null && !prior.equals(serviceHost))
                 {
-                    migrate = buildMigrate429Http11(prior);
+                    peer = prior;
                 }
             }
         }
-        return migrate;
+        return peer;
     }
 
     private DirectBuffer buildMigrate429Http11(
@@ -7362,6 +7380,29 @@ public final class HttpServerFactory implements HttpStreamFactory
         offset += MIGRATE_429_SUFFIX.length;
         migrateBufferRO.wrap(migrateBuffer, 0, offset);
         return migrateBufferRO;
+    }
+
+    private Array32FW<HttpHeaderFW> buildMigrate429Http2(
+        String peer)
+    {
+        int altSvcOffset = 0;
+        migrateBuffer.putBytes(altSvcOffset, MIGRATE_ALT_SVC_HTTP2_PREFIX);
+        altSvcOffset += MIGRATE_ALT_SVC_HTTP2_PREFIX.length;
+        altSvcOffset += migrateBuffer.putStringWithoutLengthAscii(altSvcOffset, peer);
+        migrateBuffer.putBytes(altSvcOffset, MIGRATE_ALT_SVC_HTTP2_INFIX);
+        altSvcOffset += MIGRATE_ALT_SVC_HTTP2_INFIX.length;
+        altSvcOffset += migrateBuffer.putIntAscii(altSvcOffset, altSvcMaxAge);
+        migrateBuffer.putByte(altSvcOffset, (byte) '"');
+        altSvcOffset += 1;
+        final int altSvcLength = altSvcOffset;
+
+        return headersRW
+            .wrap(extBuffer, 0, extBuffer.capacity())
+            .item(h -> h.name(HEADER_STATUS).value(STATUS_429))
+            .item(h -> h.name(HEADER_CONTENT_LENGTH).value("0"))
+            .item(h -> h.name(HEADER_RETRY_AFTER).value(VALUE_RETRY_AFTER_NOW))
+            .item(h -> h.name(HEADER_ALT_SVC).value(migrateBuffer, 0, altSvcLength))
+            .build();
     }
 
     private GuardHandler resolveGuard(
