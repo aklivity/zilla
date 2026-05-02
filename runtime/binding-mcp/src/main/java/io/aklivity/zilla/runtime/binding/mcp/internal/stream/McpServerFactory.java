@@ -19,6 +19,7 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabiliti
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabilities.CLIENT_SAMPLING;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
@@ -55,6 +56,9 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.HttpBeginExFW
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.HttpResetExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpChallengeExFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpElicitCompleteFlushExFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpElicitCreateChallengeExFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpElicitStatus;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpFlushExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpProgressFlushExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.ResetFW;
@@ -82,6 +86,7 @@ public final class McpServerFactory implements McpStreamFactory
     private static final String JSON_RPC_VERSION = "2.0";
     private static final String HTTP_HEADER_METHOD = ":method";
     private static final String HTTP_HEADER_PATH = ":path";
+    private static final String HTTP_HEADER_AUTHORITY = ":authority";
     private static final String HTTP_HEADER_SESSION = "mcp-session-id";
     private static final String HTTP_HEADER_STATUS = ":status";
     private static final String HTTP_HEADER_CONTENT_TYPE = "content-type";
@@ -324,6 +329,10 @@ public final class McpServerFactory implements McpStreamFactory
                 .matchFirst(h -> HTTP_HEADER_PATH.equals(h.name().asString()));
             final String path = pathHeader != null ? pathHeader.value().asString() : null;
 
+            final HttpHeaderFW authorityHeader = httpBeginEx.headers()
+                .matchFirst(h -> HTTP_HEADER_AUTHORITY.equals(h.name().asString()));
+            final String authority = authorityHeader != null ? authorityHeader.value().asString() : null;
+
             final McpLifecycleStream resolvedSession = session;
 
             switch (method)
@@ -335,13 +344,15 @@ public final class McpServerFactory implements McpStreamFactory
                 }
                 else
                 {
+                    final String redirectUri = computeRedirectUri(binding, authority, path);
                     newStream = new McpServer(
                         sender,
                         originId,
                         routedId,
                         initialId,
                         resolvedId,
-                        resolvedSession)::onNetMessage;
+                        resolvedSession,
+                        redirectUri)::onNetMessage;
                 }
                 break;
             case "GET":
@@ -1205,13 +1216,18 @@ public final class McpServerFactory implements McpStreamFactory
 
         private McpRequestStream stream;
 
+        private final String redirectUri;
+        private boolean elicitMode;
+        private int elicitSeq;
+
         private McpServer(
             MessageConsumer sender,
             long originId,
             long routedId,
             long initialId,
             long resolvedId,
-            McpLifecycleStream session)
+            McpLifecycleStream session,
+            String redirectUri)
         {
             this.net = sender;
             this.originId = originId;
@@ -1222,6 +1238,7 @@ public final class McpServerFactory implements McpStreamFactory
             this.session = session;
             this.decoder = decodeJsonRpc;
             this.initialMax = decodeMax;
+            this.redirectUri = redirectUri;
         }
 
         private void onNetMessage(
@@ -2000,6 +2017,10 @@ public final class McpServerFactory implements McpStreamFactory
                 int codecLimit = 0;
                 if (sseUpgrade)
                 {
+                    if (elicitMode)
+                    {
+                        codecLimit += encodeSseIdLine(codecBuffer, codecLimit, decodedId, ++elicitSeq);
+                    }
                     codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, SSE_DATA_PREFIX);
                 }
                 codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, JSON_RPC_RESULT_PREFIX);
@@ -2007,6 +2028,54 @@ public final class McpServerFactory implements McpStreamFactory
                 codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, JSON_RPC_RESULT_MIDDLE);
                 doNetData(traceId, authorization, codecBuffer, 0, codecLimit);
             }
+        }
+
+        private void doEncodeElicitInitEvent(
+            long traceId,
+            long authorization)
+        {
+            int codecLimit = encodeSseIdLine(codecBuffer, 0, decodedId, elicitSeq);
+            codecBuffer.putByte(codecLimit, (byte) '\n');
+            codecLimit += 1;
+            doNetData(traceId, authorization, codecBuffer, 0, codecLimit);
+        }
+
+        private void doEncodeElicitCreateDataEvent(
+            long traceId,
+            long authorization,
+            String elicitationId,
+            String url)
+        {
+            int codecLimit = encodeSseIdLine(codecBuffer, 0, decodedId, ++elicitSeq);
+            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, SSE_DATA_PREFIX);
+            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit,
+                "{\"jsonrpc\":\"2.0\",\"method\":\"elicitation/create\",\"params\":{\"mode\":\"url\",\"elicitationId\":\"");
+            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, elicitationId);
+            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, "\",\"url\":\"");
+            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, url);
+            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, "\"}}");
+            codecBuffer.putBytes(codecLimit, SSE_MESSAGE_TERMINATOR_BYTES);
+            codecLimit += SSE_MESSAGE_TERMINATOR_BYTES.length;
+            doNetData(traceId, authorization, codecBuffer, 0, codecLimit);
+        }
+
+        private void doEncodeElicitCompleteDataEvent(
+            long traceId,
+            long authorization,
+            String elicitationId,
+            McpElicitStatus status)
+        {
+            int codecLimit = encodeSseIdLine(codecBuffer, 0, decodedId, ++elicitSeq);
+            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, SSE_DATA_PREFIX);
+            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit,
+                "{\"jsonrpc\":\"2.0\",\"method\":\"elicitation/complete\",\"params\":{\"elicitationId\":\"");
+            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, elicitationId);
+            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, "\",\"status\":\"");
+            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, status.name().toLowerCase());
+            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, "\"}}");
+            codecBuffer.putBytes(codecLimit, SSE_MESSAGE_TERMINATOR_BYTES);
+            codecLimit += SSE_MESSAGE_TERMINATOR_BYTES.length;
+            doNetData(traceId, authorization, codecBuffer, 0, codecLimit);
         }
 
         private void doEncodeResponseData(
@@ -3706,6 +3775,8 @@ public final class McpServerFactory implements McpStreamFactory
 
         McpEventStream eventStream;
 
+        private String stateToken;
+
         private int state;
 
         private long initialSeq;
@@ -3978,8 +4049,45 @@ public final class McpServerFactory implements McpStreamFactory
         {
             final long traceId = challenge.traceId();
             final long authorization = challenge.authorization();
+            final OctetsFW extension = challenge.extension();
+
+            McpChallengeExFW challengeEx = null;
+            if (extension.sizeof() > 0)
+            {
+                challengeEx = mcpChallengeExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit());
+            }
+
+            if (challengeEx != null && challengeEx.kind() == McpChallengeExFW.KIND_ELICIT_CREATE)
+            {
+                onAppChallengeElicitCreate(traceId, authorization, challengeEx.elicitCreate());
+            }
+            else
+            {
+                server.onAppChallenge(traceId, authorization);
+            }
+        }
+
+        private void onAppChallengeElicitCreate(
+            long traceId,
+            long authorization,
+            McpElicitCreateChallengeExFW elicitCreate)
+        {
+            final String elicitationId = elicitCreate.id().asString();
+            final String originalUrl = elicitCreate.url().asString();
+            final int queryAt = originalUrl.indexOf('?');
+            final String token = queryAt >= 0 ? extractQueryParam(originalUrl, queryAt + 1, "state") : null;
+            final String manipulatedUrl = manipulateElicitUrl(originalUrl, session.sessionId, server.redirectUri);
+
+            if (token != null)
+            {
+                stateToken = token;
+                session.elicitations.put(token, this);
+            }
 
             server.onAppChallenge(traceId, authorization);
+            server.elicitMode = true;
+            server.doEncodeElicitInitEvent(traceId, authorization);
+            server.doEncodeElicitCreateDataEvent(traceId, authorization, elicitationId, manipulatedUrl);
         }
 
         private void onAppBegin(
@@ -4095,7 +4203,11 @@ public final class McpServerFactory implements McpStreamFactory
                     mcpFlushExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit());
                 if (flushEx != null)
                 {
-                    if (eventStream != null)
+                    if (flushEx.kind() == McpFlushExFW.KIND_ELICIT_COMPLETE)
+                    {
+                        onAppFlushElicitComplete(traceId, authorization, flushEx.elicitComplete());
+                    }
+                    else if (eventStream != null)
                     {
                         encodeRequestEventViaEventStream(traceId, authorization, flushEx);
                     }
@@ -4105,6 +4217,23 @@ public final class McpServerFactory implements McpStreamFactory
                     }
                 }
             }
+        }
+
+        private void onAppFlushElicitComplete(
+            long traceId,
+            long authorization,
+            McpElicitCompleteFlushExFW elicitComplete)
+        {
+            final String elicitationId = elicitComplete.id().asString();
+            final McpElicitStatus status = elicitComplete.status().get();
+
+            if (stateToken != null)
+            {
+                session.elicitations.remove(stateToken);
+                stateToken = null;
+            }
+
+            server.doEncodeElicitCompleteDataEvent(traceId, authorization, elicitationId, status);
         }
 
         private void encodeRequestEventViaEventStream(
@@ -4544,6 +4673,98 @@ public final class McpServerFactory implements McpStreamFactory
              accept.contains("text/*"));
     }
 
+    private static String computeRedirectUri(
+        McpBindingConfig binding,
+        String authority,
+        String path)
+    {
+        String redirectUri = null;
+        if (authority != null && path != null)
+        {
+            McpElicitationConfig elicitation = binding != null && binding.options != null
+                ? binding.options.elicitation : null;
+            String callback = elicitation != null ? elicitation.callback : McpElicitationConfig.DEFAULT_CALLBACK_PATH;
+            int queryAt = path.indexOf('?');
+            String pathOnly = queryAt >= 0 ? path.substring(0, queryAt) : path;
+            redirectUri = "https://" + authority + pathOnly + "/" + callback;
+        }
+        return redirectUri;
+    }
+
+    private static String manipulateElicitUrl(
+        String originalUrl,
+        String sessionId,
+        String redirectUri)
+    {
+        if (originalUrl == null)
+        {
+            return null;
+        }
+        final int queryAt = originalUrl.indexOf('?');
+        if (queryAt < 0)
+        {
+            return originalUrl;
+        }
+
+        final String prefix = originalUrl.substring(0, queryAt + 1);
+        final String query = originalUrl.substring(queryAt + 1);
+        final String encodedRedirect = redirectUri != null
+            ? URLEncoder.encode(redirectUri, StandardCharsets.UTF_8)
+            : null;
+
+        final StringBuilder result = new StringBuilder(originalUrl.length() + sessionId.length() + 64);
+        result.append(prefix);
+
+        int cursor = 0;
+        boolean first = true;
+        final int qLen = query.length();
+        while (cursor < qLen)
+        {
+            final int eq = query.indexOf('=', cursor);
+            if (eq < 0)
+            {
+                if (!first)
+                {
+                    result.append('&');
+                }
+                result.append(query, cursor, qLen);
+                break;
+            }
+            final int amp = query.indexOf('&', eq + 1);
+            final int valueEnd = amp < 0 ? qLen : amp;
+            final String name = query.substring(cursor, eq);
+            final String value = query.substring(eq + 1, valueEnd);
+
+            if (!first)
+            {
+                result.append('&');
+            }
+            first = false;
+
+            result.append(name).append('=');
+            if ("state".equals(name))
+            {
+                result.append(sessionId).append('.').append(value);
+            }
+            else if ("redirect_uri".equals(name) && encodedRedirect != null)
+            {
+                result.append(encodedRedirect);
+            }
+            else
+            {
+                result.append(value);
+            }
+
+            if (amp < 0)
+            {
+                break;
+            }
+            cursor = amp + 1;
+        }
+
+        return result.toString();
+    }
+
     private static String extractQueryParam(
         String text,
         int from,
@@ -4598,6 +4819,27 @@ public final class McpServerFactory implements McpStreamFactory
     {
         out.putBytes(offset, SSE_KEEPALIVE_BYTES);
         return SSE_KEEPALIVE_BYTES.length;
+    }
+
+    private int encodeSseIdLine(
+        MutableDirectBuffer out,
+        int offset,
+        String prefix,
+        int seq)
+    {
+        int progress = offset;
+        out.putBytes(progress, SSE_ID_PREFIX_BYTES);
+        progress += SSE_ID_PREFIX_BYTES.length;
+        if (prefix != null)
+        {
+            progress += out.putStringWithoutLengthAscii(progress, prefix);
+        }
+        out.putByte(progress, (byte) ':');
+        progress += 1;
+        progress += out.putIntAscii(progress, seq);
+        out.putByte(progress, (byte) '\n');
+        progress += 1;
+        return progress - offset;
     }
 
     private int encodeSseRetry(
