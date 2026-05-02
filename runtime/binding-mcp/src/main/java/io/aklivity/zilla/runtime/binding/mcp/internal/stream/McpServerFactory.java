@@ -19,6 +19,7 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabiliti
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabilities.CLIENT_SAMPLING;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.function.LongUnaryOperator;
@@ -34,6 +35,7 @@ import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
+import io.aklivity.zilla.runtime.binding.mcp.config.McpElicitationConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.internal.codec.McpNotifyCanceledParams;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpBindingConfig;
@@ -79,6 +81,7 @@ public final class McpServerFactory implements McpStreamFactory
 
     private static final String JSON_RPC_VERSION = "2.0";
     private static final String HTTP_HEADER_METHOD = ":method";
+    private static final String HTTP_HEADER_PATH = ":path";
     private static final String HTTP_HEADER_SESSION = "mcp-session-id";
     private static final String HTTP_HEADER_STATUS = ":status";
     private static final String HTTP_HEADER_CONTENT_TYPE = "content-type";
@@ -86,11 +89,15 @@ public final class McpServerFactory implements McpStreamFactory
     private static final String HTTP_HEADER_LAST_EVENT_ID = "last-event-id";
     private static final String CONTENT_TYPE_JSON = "application/json";
     private static final String CONTENT_TYPE_EVENT_STREAM = "text/event-stream";
+    private static final String CONTENT_TYPE_TEXT_PLAIN = "text/plain";
     private static final String STATUS_200 = "200";
     private static final String STATUS_202 = "202";
     private static final String STATUS_400 = "400";
     private static final String STATUS_405 = "405";
     private static final String STATUS_406 = "406";
+    private static final String STATUS_410 = "410";
+    private static final String AUTH_CALLBACK_OK_BODY = "Authorization complete, you may close this tab.";
+    private static final String AUTH_CALLBACK_GONE_BODY = "Authorization session expired or unknown.";
     private static final long SUSPEND_RETRY_NEVER = -1L;
 
     private static final int SSE_KEEPALIVE_SIGNAL_ID = 2;
@@ -312,6 +319,10 @@ public final class McpServerFactory implements McpStreamFactory
                 .matchFirst(h -> HTTP_HEADER_ACCEPT.equals(h.name().asString()));
             final String accept = acceptHeader != null ? acceptHeader.value().asString() : null;
 
+            final HttpHeaderFW pathHeader = httpBeginEx.headers()
+                .matchFirst(h -> HTTP_HEADER_PATH.equals(h.name().asString()));
+            final String path = pathHeader != null ? pathHeader.value().asString() : null;
+
             final McpLifecycleStream resolvedSession = session;
 
             switch (method)
@@ -333,7 +344,15 @@ public final class McpServerFactory implements McpStreamFactory
                 }
                 break;
             case "GET":
-                if (!acceptIncludesEventStream(accept))
+                if (isAuthCallbackPath(binding, path))
+                {
+                    newStream = new McpAuthCallbackHandler(
+                        sender,
+                        originId,
+                        routedId,
+                        initialId)::onNetMessage;
+                }
+                else if (!acceptIncludesEventStream(accept))
                 {
                     newStream = new McpRejectHandler(sender, STATUS_406)::onNetBegin;
                 }
@@ -2395,6 +2414,231 @@ public final class McpServerFactory implements McpStreamFactory
         }
     }
 
+    private final class McpAuthCallbackHandler
+    {
+        private final MessageConsumer net;
+        private final long originId;
+        private final long routedId;
+        private final long initialId;
+        private final long replyId;
+
+        private long initialSeq;
+        private long initialAck;
+        private int initialMax;
+
+        private long replySeq;
+        private long replyAck;
+        private int replyMax;
+
+        private int state;
+
+        private McpAuthCallbackHandler(
+            MessageConsumer sender,
+            long originId,
+            long routedId,
+            long initialId)
+        {
+            this.net = sender;
+            this.originId = originId;
+            this.routedId = routedId;
+            this.initialId = initialId;
+            this.replyId = supplyReplyId.applyAsLong(initialId);
+        }
+
+        private void onNetMessage(
+            int msgTypeId,
+            DirectBuffer buffer,
+            int index,
+            int length)
+        {
+            switch (msgTypeId)
+            {
+            case BeginFW.TYPE_ID:
+                final BeginFW begin = beginRO.wrap(buffer, index, index + length);
+                onNetBegin(begin);
+                break;
+            case DataFW.TYPE_ID:
+                final DataFW data = dataRO.wrap(buffer, index, index + length);
+                onNetData(data);
+                break;
+            case EndFW.TYPE_ID:
+                final EndFW end = endRO.wrap(buffer, index, index + length);
+                onNetEnd(end);
+                break;
+            case AbortFW.TYPE_ID:
+                final AbortFW abort = abortRO.wrap(buffer, index, index + length);
+                onNetAbort(abort);
+                break;
+            case ResetFW.TYPE_ID:
+                final ResetFW reset = resetRO.wrap(buffer, index, index + length);
+                onNetReset(reset);
+                break;
+            default:
+                break;
+            }
+        }
+
+        private void onNetBegin(
+            BeginFW begin)
+        {
+            final long traceId = begin.traceId();
+            final long authorization = begin.authorization();
+
+            initialSeq = begin.sequence();
+            initialAck = begin.acknowledge();
+            initialMax = begin.maximum();
+
+            state = McpState.openedInitial(state);
+            doNetWindow(traceId, authorization, 0, 0);
+        }
+
+        private void onNetData(
+            DataFW data)
+        {
+            final long sequence = data.sequence();
+            final long traceId = data.traceId();
+            final long authorization = data.authorization();
+            final long budgetId = data.budgetId();
+
+            initialSeq = sequence + data.reserved();
+
+            if (initialSeq > initialAck + decodeMax)
+            {
+                cleanupNet(traceId, authorization);
+            }
+            else
+            {
+                initialAck = initialSeq;
+                doNetWindow(traceId, authorization, budgetId, 0);
+            }
+        }
+
+        private void onNetEnd(
+            EndFW end)
+        {
+            final long traceId = end.traceId();
+            final long authorization = end.authorization();
+
+            state = McpState.closingInitial(state);
+
+            doNetBegin(traceId, authorization, httpBeginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
+                .typeId(httpTypeId)
+                .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(STATUS_200))
+                .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_TEXT_PLAIN))
+                .build());
+
+            final byte[] body = AUTH_CALLBACK_OK_BODY.getBytes(StandardCharsets.UTF_8);
+            codecBuffer.putBytes(0, body);
+            doNetData(traceId, authorization, 0L, body.length, codecBuffer, 0, body.length);
+
+            doNetEnd(traceId, authorization);
+        }
+
+        private void onNetAbort(
+            AbortFW abort)
+        {
+            final long traceId = abort.traceId();
+            final long authorization = abort.authorization();
+
+            doNetAbort(traceId, authorization);
+        }
+
+        private void onNetReset(
+            ResetFW reset)
+        {
+            final long traceId = reset.traceId();
+            final long authorization = reset.authorization();
+
+            doNetReset(traceId, authorization);
+        }
+
+        private void doNetBegin(
+            long traceId,
+            long authorization,
+            Flyweight extension)
+        {
+            if (!McpState.replyOpening(state))
+            {
+                doBegin(net, originId, routedId, replyId,
+                    replySeq, replyAck, replyMax, traceId, authorization, 0,
+                    extension);
+
+                state = McpState.openingReply(state);
+            }
+        }
+
+        private void doNetData(
+            long traceId,
+            long authorization,
+            long budgetId,
+            int reserved,
+            DirectBuffer buffer,
+            int offset,
+            int length)
+        {
+            doData(net, originId, routedId, replyId,
+                replySeq, replyAck, replyMax, traceId, authorization,
+                0x03, budgetId, reserved, buffer, offset, length);
+            replySeq += reserved;
+        }
+
+        private void doNetEnd(
+            long traceId,
+            long authorization)
+        {
+            if (!McpState.replyClosed(state))
+            {
+                state = McpState.closedReply(state);
+                doEnd(net, originId, routedId, replyId,
+                    replySeq, replyAck, replyMax, traceId, authorization);
+            }
+        }
+
+        private void doNetAbort(
+            long traceId,
+            long authorization)
+        {
+            if (!McpState.replyClosed(state))
+            {
+                state = McpState.closedReply(state);
+                doAbort(net, originId, routedId, replyId,
+                    replySeq, replyAck, replyMax, traceId, authorization);
+            }
+        }
+
+        private void doNetWindow(
+            long traceId,
+            long authorization,
+            long budgetId,
+            int padding)
+        {
+            state = McpState.openedInitial(state);
+
+            doWindow(net, originId, routedId, initialId,
+                initialSeq, initialAck, decodeMax, traceId, authorization, budgetId, padding);
+        }
+
+        private void doNetReset(
+            long traceId,
+            long authorization)
+        {
+            if (!McpState.initialClosed(state))
+            {
+                state = McpState.closedInitial(state);
+                doReset(net, originId, routedId, initialId,
+                    initialSeq, initialAck, initialMax, traceId, authorization, emptyRO);
+            }
+        }
+
+        private void cleanupNet(
+            long traceId,
+            long authorization)
+        {
+            doNetReset(traceId, authorization);
+            doNetAbort(traceId, authorization);
+        }
+    }
+
     private final class McpLifecycleStream
     {
         private final String sessionId;
@@ -4219,6 +4463,23 @@ public final class McpServerFactory implements McpStreamFactory
             (accept.contains(CONTENT_TYPE_EVENT_STREAM) ||
              accept.contains("*/*") ||
              accept.contains("text/*"));
+    }
+
+    private static boolean isAuthCallbackPath(
+        McpBindingConfig binding,
+        String path)
+    {
+        boolean match = false;
+        if (binding != null && path != null)
+        {
+            McpElicitationConfig elicitation = binding.options != null ? binding.options.elicitation : null;
+            String callback = elicitation != null ? elicitation.callback : McpElicitationConfig.DEFAULT_CALLBACK_PATH;
+            int queryAt = path.indexOf('?');
+            String pathOnly = queryAt >= 0 ? path.substring(0, queryAt) : path;
+            String suffix = "/" + callback;
+            match = pathOnly.endsWith(suffix);
+        }
+        return match;
     }
 
     private int encodeSseKeepAlive(
