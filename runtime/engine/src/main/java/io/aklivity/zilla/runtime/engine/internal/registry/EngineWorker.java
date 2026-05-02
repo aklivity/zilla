@@ -788,6 +788,38 @@ public class EngineWorker implements EngineContext, Agent
     }
 
     @Override
+    public String serviceHostname()
+    {
+        return config.serviceHostname();
+    }
+
+    private StoreHandler engineStore;
+    private boolean engineStoreResolved;
+
+    @Override
+    public StoreHandler store()
+    {
+        if (!engineStoreResolved)
+        {
+            engineStoreResolved = true;
+            final String qname = config.storeName();
+            if (qname != null)
+            {
+                final int colon = qname.indexOf(':');
+                if (colon > 0 && colon < qname.length() - 1)
+                {
+                    final int namespaceId = labels.supplyLabelId(qname.substring(0, colon));
+                    final int storeLocalId = labels.supplyLabelId(qname.substring(colon + 1));
+                    final long storeId = NamespacedId.id(namespaceId, storeLocalId);
+                    final StoreRegistry storeRegistry = registry.resolveStore(storeId);
+                    engineStore = storeRegistry != null ? storeRegistry.handler() : null;
+                }
+            }
+        }
+        return engineStore;
+    }
+
+    @Override
     public VaultHandler supplyVault(
         long vaultId)
     {

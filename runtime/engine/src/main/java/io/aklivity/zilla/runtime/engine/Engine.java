@@ -246,7 +246,8 @@ public final class Engine implements Collector, AutoCloseable
             context,
             config,
             events,
-            extensions);
+            extensions,
+            stores);
 
         this.bindings = bindings;
         this.tasks = tasks;

@@ -392,6 +392,18 @@ public class TlsWorker implements EngineContext
     }
 
     @Override
+    public String serviceHostname()
+    {
+        return null;
+    }
+
+    @Override
+    public StoreHandler store()
+    {
+        return null;
+    }
+
+    @Override
     public ValidatorHandler supplyValidator(
         ModelConfig config)
     {
