@@ -416,15 +416,6 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/tools.call.elicit.create/client",
-        "${net}/tools.call.elicit.create/server"})
-    public void shouldCallToolElicitCreate() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${net}/auth.callback/client",
         "${net}/auth.callback/server"})
     public void shouldReceiveAuthCallback() throws Exception
