@@ -74,7 +74,14 @@ read [0x00 0x00 0x38]                                     # length = 56
 # response HEADERS
 write [0x00 0x00 0x01]                  # length = 1
       [0x01]                            # HTTP2 HEADERS frame
-      [0x05]                            # END_HEADERS | END_STREAM
+      [0x04]                            # END_HEADERS
       [0x00 0x00 0x00 0x01]             # stream_id = 1
       [0x88]                             # :status: 200
+write flush
+
+# response DATA (empty body, END_STREAM)
+write [0x00 0x00 0x00]                  # length = 0
+      [0x00]                            # HTTP2 DATA frame
+      [0x01]                            # END_STREAM
+      [0x00 0x00 0x00 0x01]             # stream_id = 1
 write flush

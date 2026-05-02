@@ -74,9 +74,15 @@ read [0x00 0x00 0x00]                   # length = 0
      [0x01]                             # ACK
      [0x00 0x00 0x00 0x00]              # stream_id = 0
 
-# response HEADERS - status 200, no body
+# response HEADERS
 read [0x00 0x00 0x01]                   # length = 1
      [0x01]                             # HTTP2 HEADERS frame
-     [0x05]                             # END_HEADERS | END_STREAM
+     [0x04]                             # END_HEADERS
      [0x00 0x00 0x00 0x01]              # stream_id = 1
      [0x88]                             # :status: 200
+
+# response DATA (empty body, END_STREAM)
+read [0x00 0x00 0x00]                   # length = 0
+     [0x00]                             # HTTP2 DATA frame
+     [0x01]                             # END_STREAM
+     [0x00 0x00 0x00 0x01]              # stream_id = 1
