@@ -37,6 +37,8 @@ public final class HttpOptionsConfigBuilder<T> extends ConfigBuilder<T, HttpOpti
     private HttpAccessControlConfig access;
     private HttpAuthorizationConfig authorization;
     private List<HttpRequestConfig> requests;
+    private String self;
+    private String store;
 
     HttpOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
@@ -125,9 +127,23 @@ public final class HttpOptionsConfigBuilder<T> extends ConfigBuilder<T, HttpOpti
         return new HttpAccessControlConfigBuilder<>(this::access);
     }
 
+    public HttpOptionsConfigBuilder<T> self(
+        String self)
+    {
+        this.self = self;
+        return this;
+    }
+
+    public HttpOptionsConfigBuilder<T> store(
+        String store)
+    {
+        this.store = store;
+        return this;
+    }
+
     @Override
     public T build()
     {
-        return mapper.apply(new HttpOptionsConfig(versions, overrides, access, authorization, requests));
+        return mapper.apply(new HttpOptionsConfig(versions, overrides, access, authorization, requests, self, store));
     }
 }

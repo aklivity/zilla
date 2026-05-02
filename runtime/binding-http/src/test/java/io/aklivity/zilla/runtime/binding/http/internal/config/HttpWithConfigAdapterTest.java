@@ -26,14 +26,21 @@ import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
 
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
+import io.aklivity.zilla.runtime.binding.http.config.HttpAffinityConfig;
+import io.aklivity.zilla.runtime.binding.http.config.HttpAffinitySource;
 import io.aklivity.zilla.runtime.binding.http.config.HttpWithConfig;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
 
 public class HttpWithConfigAdapterTest
 {
+    @Rule
+    public final ExpectedException thrown = ExpectedException.none();
+
     private Jsonb jsonb;
 
     @Before
@@ -85,5 +92,130 @@ public class HttpWithConfigAdapterTest
 
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo(expected));
+    }
+
+    @Test
+    public void shouldReadWithHeaderAffinity()
+    {
+        String text =
+            "{" +
+                "\"affinity\":" +
+                "{" +
+                    "\"header\":\"session-id\"" +
+                "}" +
+            "}";
+
+        HttpWithConfig with = jsonb.fromJson(text, HttpWithConfig.class);
+
+        assertThat(with, not(nullValue()));
+        assertThat(with.affinity, not(nullValue()));
+        assertThat(with.affinity.source, equalTo(HttpAffinitySource.HEADER));
+        assertThat(with.affinity.name, equalTo("session-id"));
+        assertThat(with.affinity.match, nullValue());
+    }
+
+    @Test
+    public void shouldWriteWithHeaderAffinity()
+    {
+        HttpWithConfig with = HttpWithConfig.builder()
+            .affinity()
+                .header("session-id")
+                .build()
+            .build();
+
+        String text = jsonb.toJson(with);
+
+        String expected =
+            "{" +
+                "\"affinity\":" +
+                "{" +
+                    "\"header\":\"session-id\"" +
+                "}" +
+            "}";
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo(expected));
+    }
+
+    @Test
+    public void shouldReadWithQueryAffinityAndMatch()
+    {
+        String text =
+            "{" +
+                "\"affinity\":" +
+                "{" +
+                    "\"query\":\"state\"," +
+                    "\"match\":\"[^.]+\"" +
+                "}" +
+            "}";
+
+        HttpWithConfig with = jsonb.fromJson(text, HttpWithConfig.class);
+
+        assertThat(with, not(nullValue()));
+        assertThat(with.affinity, not(nullValue()));
+        assertThat(with.affinity.source, equalTo(HttpAffinitySource.QUERY));
+        assertThat(with.affinity.name, equalTo("state"));
+        assertThat(with.affinity.match, not(nullValue()));
+        assertThat(with.affinity.match.pattern(), equalTo("[^.]+"));
+    }
+
+    @Test
+    public void shouldWriteWithQueryAffinityAndMatch()
+    {
+        HttpAffinityConfig affinity = HttpAffinityConfig.builder()
+            .query("state")
+            .match("[^.]+")
+            .build();
+
+        HttpWithConfig with = HttpWithConfig.builder()
+            .affinity(affinity)
+            .build();
+
+        String text = jsonb.toJson(with);
+
+        String expected =
+            "{" +
+                "\"affinity\":" +
+                "{" +
+                    "\"query\":\"state\"," +
+                    "\"match\":\"[^.]+\"" +
+                "}" +
+            "}";
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo(expected));
+    }
+
+    @Test
+    public void shouldRejectAffinityWithBothHeaderAndQuery()
+    {
+        thrown.expect(Exception.class);
+
+        String text =
+            "{" +
+                "\"affinity\":" +
+                "{" +
+                    "\"header\":\"session-id\"," +
+                    "\"query\":\"state\"" +
+                "}" +
+            "}";
+
+        jsonb.fromJson(text, HttpWithConfig.class);
+    }
+
+    @Test
+    public void shouldRejectAffinityWithNeitherHeaderNorQuery()
+    {
+        thrown.expect(Exception.class);
+
+        String text =
+            "{" +
+                "\"affinity\":" +
+                "{" +
+                    "\"match\":\"[^.]+\"" +
+                "}" +
+            "}";
+
+        jsonb.fromJson(text, HttpWithConfig.class);
     }
 }

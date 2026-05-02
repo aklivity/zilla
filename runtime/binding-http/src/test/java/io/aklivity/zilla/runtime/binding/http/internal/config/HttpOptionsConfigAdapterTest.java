@@ -35,7 +35,9 @@ import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
 
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfig;
@@ -46,6 +48,9 @@ import io.aklivity.zilla.runtime.engine.test.internal.model.config.TestModelConf
 
 public class HttpOptionsConfigAdapterTest
 {
+    @Rule
+    public final ExpectedException thrown = ExpectedException.none();
+
     private Jsonb jsonb;
 
     @Before
@@ -304,5 +309,54 @@ public class HttpOptionsConfigAdapterTest
         // THEN
         assertThat(json, not(nullValue()));
         assertThat(json, equalTo(expectedJson));
+    }
+
+    @Test
+    public void shouldReadOptionsWithSelfAndStore()
+    {
+        String json =
+            "{" +
+                "\"self\":\"server-2.example.net:8080\"," +
+                "\"store\":\"test0\"" +
+            "}";
+
+        HttpOptionsConfig options = jsonb.fromJson(json, HttpOptionsConfig.class);
+
+        assertThat(options, not(nullValue()));
+        assertThat(options.self, equalTo("server-2.example.net:8080"));
+        assertThat(options.store, equalTo("test0"));
+    }
+
+    @Test
+    public void shouldWriteOptionsWithSelfAndStore()
+    {
+        HttpOptionsConfig options = HttpOptionsConfig.builder()
+            .self("server-2.example.net:8080")
+            .store("test0")
+            .build();
+
+        String json = jsonb.toJson(options);
+
+        String expected =
+            "{" +
+                "\"self\":\"server-2.example.net:8080\"," +
+                "\"store\":\"test0\"" +
+            "}";
+
+        assertThat(json, not(nullValue()));
+        assertThat(json, equalTo(expected));
+    }
+
+    @Test
+    public void shouldRejectStoreWithoutSelf()
+    {
+        thrown.expect(Exception.class);
+
+        String json =
+            "{" +
+                "\"store\":\"test0\"" +
+            "}";
+
+        jsonb.fromJson(json, HttpOptionsConfig.class);
     }
 }

@@ -37,6 +37,8 @@ public final class HttpOptionsConfig extends OptionsConfig
     public final HttpAccessControlConfig access;
     public final HttpAuthorizationConfig authorization;
     public final List<HttpRequestConfig> requests;
+    public final String self;
+    public final String store;
 
     public static HttpOptionsConfigBuilder<HttpOptionsConfig> builder()
     {
@@ -54,7 +56,9 @@ public final class HttpOptionsConfig extends OptionsConfig
         Map<String8FW, String16FW> overrides,
         HttpAccessControlConfig access,
         HttpAuthorizationConfig authorization,
-        List<HttpRequestConfig> requests)
+        List<HttpRequestConfig> requests,
+        String self,
+        String store)
     {
         super(resolveModels(requests), List.of());
         this.versions = versions;
@@ -62,6 +66,8 @@ public final class HttpOptionsConfig extends OptionsConfig
         this.access = access;
         this.authorization = authorization;
         this.requests = requests;
+        this.self = self;
+        this.store = store;
     }
 
     private static List<ModelConfig> resolveModels(
