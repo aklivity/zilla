@@ -14,20 +14,15 @@
 # under the License.
 #
 
-# extracted key (session-id: sess-1) is owned by a peer gateway
-# instance per options.store; binding short-circuits with 429 + alt-svc
-# pointing at the peer authority
-
-connect "http://localhost:8080/"
+accept "http://localhost:8080/auth/callback?state=sess-2"
   option http:transport "zilla://streams/net0"
   option zilla:window 8192
   option zilla:transmission "duplex"
+accepted
 connected
 
-write http:method "GET"
-write http:header "session-id" "sess-1"
-write close
+read http:method "GET"
+read closed
 
-read http:status "429" "Too Many Requests"
-read http:header "retry-after" "0"
-read http:header "alt-svc" "http/1.1=\"peer-1.example:443\"; ma=86400"
+write http:status "200" "OK"
+write close
