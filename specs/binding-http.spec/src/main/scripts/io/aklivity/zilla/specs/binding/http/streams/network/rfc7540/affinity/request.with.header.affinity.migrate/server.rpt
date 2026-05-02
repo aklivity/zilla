@@ -73,12 +73,12 @@ read [0x00 0x00 0x36]                                     # length = 54
      [0x40] [0x0a] "session-id" [0x06] "sess-1"
 
 # response HEADERS
-write [0x00 0x00 0x41]                  # length = 65
+write [0x00 0x00 0x3b]                  # length = 59
       [0x01]                            # HTTP2 HEADERS frame
       [0x05]                            # END_HEADERS | END_STREAM
       [0x00 0x00 0x00 0x01]             # stream_id = 1
       [0x08] [0x03] "429"                # :status: 429
       [0x0f 0x26] [0x01] "0"             # retry-after: 0
       [0x00] [0x07] "alt-svc"
-             [0x2e] "http/1.1=\"server-1.example.net:8080\"; ma=86400"
+             [0x28] "h2=\"server-1.example.net:8080\"; ma=86400"
 write flush
