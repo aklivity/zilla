@@ -25,10 +25,10 @@ connect "zilla://streams/app0"
 
 write zilla:begin.ext ${http:beginEx()
                               .typeId(zilla:id("http"))
-                              .header(":scheme", "http")
+                              .header(":scheme", "https")
                               .header(":method", "GET")
                               .header(":path", "/items")
-                              .header(":authority", "localhost:8080")
+                              .header(":authority", "server.example.com")
                               .header("session-id", "prefix.sess-1.suffix")
                               .build()}
 connected

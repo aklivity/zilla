@@ -14,7 +14,7 @@
 # under the License.
 #
 
-accept "http://localhost:8080/auth/callback?state=no-dots-here"
+accept "http://server.example.com/auth/callback?state=no-dots-here"
   option http:transport "zilla://streams/net0"
   option zilla:window 8192
   option zilla:transmission "duplex"

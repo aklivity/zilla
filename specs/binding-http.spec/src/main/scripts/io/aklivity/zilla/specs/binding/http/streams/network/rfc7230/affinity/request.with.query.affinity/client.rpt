@@ -14,7 +14,7 @@
 # under the License.
 #
 
-connect "http://localhost:8080/auth/callback?state=sess-2"
+connect "http://server.example.com/auth/callback?state=sess-2"
   option http:transport "zilla://streams/net0"
   option zilla:window 8192
   option zilla:transmission "duplex"

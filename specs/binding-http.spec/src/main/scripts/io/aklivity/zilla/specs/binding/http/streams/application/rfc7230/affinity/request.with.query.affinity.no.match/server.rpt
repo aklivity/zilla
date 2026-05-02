@@ -25,10 +25,10 @@ accepted
 
 read zilla:begin.ext ${http:beginEx()
                              .typeId(zilla:id("http"))
-                             .header(":scheme", "http")
+                             .header(":scheme", "https")
                              .header(":method", "GET")
                              .header(":path", "/auth/callback?state=no-dots-here")
-                             .header(":authority", "localhost:8080")
+                             .header(":authority", "server.example.com")
                              .build()}
 connected
 

@@ -18,7 +18,7 @@
 # instance per options.store; binding short-circuits with 429 + alt-svc
 # pointing at the peer authority
 
-connect "http://localhost:8080/auth/callback?state=sess-2"
+connect "http://server.example.com/auth/callback?state=sess-2"
   option http:transport "zilla://streams/net0"
   option zilla:window 8192
   option zilla:transmission "duplex"
@@ -29,4 +29,4 @@ write close
 
 read http:status "429" "Too Many Requests"
 read http:header "retry-after" "0"
-read http:header "alt-svc" "http/1.1=\"peer-1.example:443\"; ma=86400"
+read http:header "alt-svc" "http/1.1=\"peer-1.example.net:443\"; ma=86400"
