@@ -59,6 +59,21 @@
                                     "required": [ "name" ],
                                     "additionalProperties": false
                                 }
+                            },
+                            "elicitation":
+                            {
+                                "title": "Elicitation",
+                                "type": "object",
+                                "properties":
+                                {
+                                    "callback":
+                                    {
+                                        "title": "Authorization Callback Path",
+                                        "type": "string",
+                                        "default": "auth/callback"
+                                    }
+                                },
+                                "additionalProperties": false
                             }
                         },
                         "additionalProperties": false

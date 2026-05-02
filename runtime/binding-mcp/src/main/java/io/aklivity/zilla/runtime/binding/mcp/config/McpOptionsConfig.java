@@ -22,11 +22,14 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 public final class McpOptionsConfig extends OptionsConfig
 {
     public final List<McpPromptConfig> prompts;
+    public final McpElicitationConfig elicitation;
 
     public McpOptionsConfig(
-        List<McpPromptConfig> prompts)
+        List<McpPromptConfig> prompts,
+        McpElicitationConfig elicitation)
     {
         this.prompts = prompts;
+        this.elicitation = elicitation;
     }
 
     public static McpOptionsConfigBuilder<McpOptionsConfig> builder()
