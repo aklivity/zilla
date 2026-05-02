@@ -29,4 +29,4 @@ write close
 
 read http:status "429" "Too Many Requests"
 read http:header "retry-after" "0"
-read http:header "alt-svc" "http/1.1=\"peer-1.example.net:8080\"; ma=86400"
+read http:header "alt-svc" "http/1.1=\"server-1.example.net:8080\"; ma=86400"
