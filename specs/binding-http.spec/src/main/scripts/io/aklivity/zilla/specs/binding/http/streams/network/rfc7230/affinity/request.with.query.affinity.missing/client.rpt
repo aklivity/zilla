@@ -14,7 +14,7 @@
 # under the License.
 #
 
-connect "http://server.example.com/auth/callback"
+connect "http://server.example.com:8080/auth/callback"
   option http:transport "zilla://streams/net0"
   option zilla:window 8192
   option zilla:transmission "duplex"

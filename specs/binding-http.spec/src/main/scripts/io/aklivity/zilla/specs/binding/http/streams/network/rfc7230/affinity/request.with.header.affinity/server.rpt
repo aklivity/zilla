@@ -14,7 +14,7 @@
 # under the License.
 #
 
-accept "http://server.example.com/items"
+accept "http://server.example.com:8080/items"
   option http:transport "zilla://streams/net0"
   option zilla:window 8192
   option zilla:transmission "duplex"

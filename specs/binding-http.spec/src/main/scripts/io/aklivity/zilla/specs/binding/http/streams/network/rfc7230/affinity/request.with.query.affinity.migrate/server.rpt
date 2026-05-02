@@ -18,7 +18,7 @@
 # by a peer instance: read the request, immediately respond with 429
 # + retry-after: 0 + alt-svc pointing at the peer authority.
 
-accept "http://server.example.com/auth/callback?state=sess-2"
+accept "http://server.example.com:8080/auth/callback?state=sess-2"
   option http:transport "zilla://streams/net0"
   option zilla:window 8192
   option zilla:transmission "duplex"
@@ -30,5 +30,5 @@ read closed
 
 write http:status "429" "Too Many Requests"
 write http:header "retry-after" "0"
-write http:header "alt-svc" "http/1.1=\"peer-1.example.net:443\"; ma=86400"
+write http:header "alt-svc" "http/1.1=\"peer-1.example.net:8080\"; ma=86400"
 write close

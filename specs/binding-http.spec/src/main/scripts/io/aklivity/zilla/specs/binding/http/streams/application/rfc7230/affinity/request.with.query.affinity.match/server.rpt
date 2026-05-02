@@ -27,10 +27,10 @@ accepted
 
 read zilla:begin.ext ${http:beginEx()
                              .typeId(zilla:id("http"))
-                             .header(":scheme", "https")
+                             .header(":scheme", "http")
                              .header(":method", "GET")
                              .header(":path", "/auth/callback?state=prefix.sess-2.suffix")
-                             .header(":authority", "server.example.com")
+                             .header(":authority", "server.example.com:8080")
                              .build()}
 connected
 
