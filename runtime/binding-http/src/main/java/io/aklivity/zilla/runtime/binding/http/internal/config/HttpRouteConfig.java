@@ -68,6 +68,11 @@ public final class HttpRouteConfig
         return with != null ? with.compositeId() : NO_COMPOSITE_ID;
     }
 
+    public HttpAffinityResolver affinity()
+    {
+        return with != null ? with.affinity() : null;
+    }
+
     public Map<String8FW, String16FW> overrides()
     {
         if (with != null)
