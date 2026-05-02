@@ -151,6 +151,7 @@ import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
+import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 
 public final class HttpServerFactory implements HttpStreamFactory
 {
@@ -199,6 +200,14 @@ public final class HttpServerFactory implements HttpStreamFactory
 
     private static final byte[] HTTP_1_1_BYTES = "HTTP/1.1".getBytes(US_ASCII);
     private static final byte[] REASON_UNRECOGNIZED_STATUS_BYTES = "Unrecognized Status".getBytes(US_ASCII);
+
+    private static final byte[] MIGRATE_429_PREFIX = (
+        "HTTP/1.1 429 Too Many Requests\r\n" +
+        "Retry-After: 0\r\n" +
+        "Connection: close\r\n" +
+        "Alt-Svc: http/1.1=\"").getBytes(US_ASCII);
+    private static final byte[] MIGRATE_429_INFIX = "\"; ma=".getBytes(US_ASCII);
+    private static final byte[] MIGRATE_429_SUFFIX = "\r\n\r\n".getBytes(US_ASCII);
 
     private static final DirectBuffer ZERO_CHUNK = new UnsafeBuffer("0\r\n\r\n".getBytes(US_ASCII));
 
@@ -566,6 +575,9 @@ public final class HttpServerFactory implements HttpStreamFactory
     private final String serviceHostname;
     private final EngineContext context;
     private final int altSvcMaxAge;
+    private final MutableDirectBuffer migrateBuffer;
+    private final UnsafeBuffer migrateBufferRO;
+    private final String[] migrateHolder;
 
     public HttpServerFactory(
         HttpConfiguration config,
@@ -603,6 +615,9 @@ public final class HttpServerFactory implements HttpStreamFactory
         this.serviceHostname = ENGINE_SERVICE_HOSTNAME.get(config);
         this.context = context;
         this.altSvcMaxAge = config.altSvcMaxAge();
+        this.migrateBuffer = new UnsafeBuffer(new byte[1024]);
+        this.migrateBufferRO = new UnsafeBuffer(0, 0);
+        this.migrateHolder = new String[1];
 
         this.headers200 = initHeaders(config, STATUS_200);
         this.headers204 = initHeaders(config, STATUS_204);
@@ -1177,12 +1192,20 @@ public final class HttpServerFactory implements HttpStreamFactory
                                 requestAffinity = server.affinity;
                             }
 
-                            HttpRequestType requestType = binding.resolveRequestType(beginEx);
-                            boolean headersValid = server.onDecodeHeaders(server.routedId, route.id, requestId,
-                                requestAffinity, traceId, exchangeAuth, policy, origin, beginEx, requestType);
-                            if (!headersValid)
+                            DirectBuffer migrate = migrate(affinityKey, server.serviceHost);
+                            if (migrate != null)
                             {
-                                error = response400;
+                                error = migrate;
+                            }
+                            else
+                            {
+                                HttpRequestType requestType = binding.resolveRequestType(beginEx);
+                                boolean headersValid = server.onDecodeHeaders(server.routedId, route.id, requestId,
+                                    requestAffinity, traceId, exchangeAuth, policy, origin, beginEx, requestType);
+                                if (!headersValid)
+                                {
+                                    error = response400;
+                                }
                             }
                         }
                         else
@@ -7301,6 +7324,44 @@ public final class HttpServerFactory implements HttpStreamFactory
         default:
             return 0;
         }
+    }
+
+    private DirectBuffer migrate(
+        String affinityKey,
+        String serviceHost)
+    {
+        DirectBuffer migrate = null;
+        if (affinityKey != null && serviceHost != null)
+        {
+            StoreHandler store = context.store();
+            if (store != null)
+            {
+                migrateHolder[0] = null;
+                store.putIfAbsent(affinityKey, serviceHost, Long.MAX_VALUE, p -> migrateHolder[0] = p);
+                String prior = migrateHolder[0];
+                if (prior != null && !prior.equals(serviceHost))
+                {
+                    migrate = buildMigrate429Http11(prior);
+                }
+            }
+        }
+        return migrate;
+    }
+
+    private DirectBuffer buildMigrate429Http11(
+        String peer)
+    {
+        int offset = 0;
+        migrateBuffer.putBytes(offset, MIGRATE_429_PREFIX);
+        offset += MIGRATE_429_PREFIX.length;
+        offset += migrateBuffer.putStringWithoutLengthAscii(offset, peer);
+        migrateBuffer.putBytes(offset, MIGRATE_429_INFIX);
+        offset += MIGRATE_429_INFIX.length;
+        offset += migrateBuffer.putIntAscii(offset, altSvcMaxAge);
+        migrateBuffer.putBytes(offset, MIGRATE_429_SUFFIX);
+        offset += MIGRATE_429_SUFFIX.length;
+        migrateBufferRO.wrap(migrateBuffer, 0, offset);
+        return migrateBufferRO;
     }
 
     private GuardHandler resolveGuard(
