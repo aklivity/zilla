@@ -101,14 +101,6 @@ public class SchemaTest
     }
 
     @Test
-    public void shouldValidateHttp11ServerAffinityMigrate()
-    {
-        JsonObject config = schema.validate("v1.1/server.affinity.migrate.yaml");
-
-        assertThat(config, not(nullValue()));
-    }
-
-    @Test
     public void shouldValidateHttp11ServerAccessControlCrossOrigin()
     {
         JsonObject config = schema.validate("v1.1/server.access.control.cross.origin.yaml");
@@ -256,14 +248,6 @@ public class SchemaTest
     public void shouldValidateHttp2ServerAffinity()
     {
         JsonObject config = schema.validate("v2/server.affinity.yaml");
-
-        assertThat(config, not(nullValue()));
-    }
-
-    @Test
-    public void shouldValidateHttp2ServerAffinityMigrate()
-    {
-        JsonObject config = schema.validate("v2/server.affinity.migrate.yaml");
 
         assertThat(config, not(nullValue()));
     }

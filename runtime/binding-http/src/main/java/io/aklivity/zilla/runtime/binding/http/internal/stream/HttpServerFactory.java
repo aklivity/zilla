@@ -63,7 +63,6 @@ import java.util.function.LongBinaryOperator;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
-import java.util.function.ToIntFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -148,7 +147,6 @@ import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
-import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 
 public final class HttpServerFactory implements HttpStreamFactory
 {
@@ -545,8 +543,6 @@ public final class HttpServerFactory implements HttpStreamFactory
     private final LongUnaryOperator supplyReplyId;
     private final LongSupplier supplyBudgetId;
     private final LongFunction<GuardHandler> supplyGuard;
-    private final LongFunction<StoreHandler> supplyStore;
-    private final ToIntFunction<String> supplyTypeId;
     private final LongBinaryOperator supplyInitialIdByHash;
     private final Signaler signaler;
     private final Http2Settings initialSettings;
@@ -579,8 +575,6 @@ public final class HttpServerFactory implements HttpStreamFactory
         this.supplyReplyId = context::supplyReplyId;
         this.supplyBudgetId = context::supplyBudgetId;
         this.supplyGuard = context::supplyGuard;
-        this.supplyStore = context::supplyStore;
-        this.supplyTypeId = context::supplyTypeId;
         this.signaler = context.signaler();
         this.headersPool = bufferPool.duplicate();
         this.initialSettings = new Http2Settings(config, headersPool);
@@ -622,8 +616,7 @@ public final class HttpServerFactory implements HttpStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        HttpBindingConfig httpBinding = new HttpBindingConfig(binding, supplyValidator, supplyTypeId, supplyStore,
-            supplyInitialIdByHash);
+        HttpBindingConfig httpBinding = new HttpBindingConfig(binding, supplyValidator, supplyInitialIdByHash);
         bindings.put(binding.id, httpBinding);
     }
 

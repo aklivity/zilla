@@ -163,18 +163,6 @@
                                     "type": "string"
                                 }
                             },
-                            "self":
-                            {
-                                "title": "Self Authority",
-                                "description": "Externally reachable authority for this gateway instance, e.g. host:port. Required when 'store' is set.",
-                                "type": "string"
-                            },
-                            "store":
-                            {
-                                "title": "Store",
-                                "description": "Reference to a store binding. Presence enables cross-instance affinity lookups.",
-                                "type": "string"
-                            },
                             "requests":
                             {
                                 "type": "array",

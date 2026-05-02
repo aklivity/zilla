@@ -53,8 +53,6 @@ public final class HttpOptionsConfigAdapter implements OptionsConfigAdapterSpi, 
 {
     private static final String VERSIONS_NAME = "versions";
     private static final String OVERRIDES_NAME = "overrides";
-    private static final String SELF_NAME = "self";
-    private static final String STORE_NAME = "store";
     private static final String ACCESS_CONTROL_NAME = "access-control";
     private static final String POLICY_NAME = "policy";
     private static final String POLICY_VALUE_SAME_ORIGIN = "same-origin";
@@ -243,16 +241,6 @@ public final class HttpOptionsConfigAdapter implements OptionsConfigAdapterSpi, 
             object.add(REQUESTS_NAME, requests);
         }
 
-        if (httpOptions.self != null)
-        {
-            object.add(SELF_NAME, httpOptions.self);
-        }
-
-        if (httpOptions.store != null)
-        {
-            object.add(STORE_NAME, httpOptions.store);
-        }
-
         return object.build();
     }
 
@@ -404,21 +392,6 @@ public final class HttpOptionsConfigAdapter implements OptionsConfigAdapterSpi, 
                 .map(item -> httpRequest.adaptFromJson((JsonObject) item))
                 .collect(Collectors.toList());
             httpOptions.requests(requests);
-        }
-
-        if (object.containsKey(SELF_NAME))
-        {
-            httpOptions.self(object.getString(SELF_NAME));
-        }
-
-        if (object.containsKey(STORE_NAME))
-        {
-            if (!object.containsKey(SELF_NAME))
-            {
-                throw new IllegalArgumentException(
-                    "options.self is required when options.store is set");
-            }
-            httpOptions.store(object.getString(STORE_NAME));
         }
 
         return httpOptions.build();

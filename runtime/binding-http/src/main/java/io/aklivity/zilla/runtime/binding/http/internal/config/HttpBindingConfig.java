@@ -31,8 +31,6 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.function.Function;
 import java.util.function.LongBinaryOperator;
-import java.util.function.LongFunction;
-import java.util.function.ToIntFunction;
 import java.util.function.ToLongFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -54,8 +52,6 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
-import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
-import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 
 public final class HttpBindingConfig
 {
@@ -79,20 +75,17 @@ public final class HttpBindingConfig
     public final ToLongFunction<String> resolveId;
     public final Function<Function<String, String>, String> credentials;
     public final List<HttpRequestType> requests;
-    public final StoreHandler store;
 
     public HttpBindingConfig(
         BindingConfig binding,
         Function<ModelConfig, ValidatorHandler> supplyValidator)
     {
-        this(binding, supplyValidator, null, null, null);
+        this(binding, supplyValidator, null);
     }
 
     public HttpBindingConfig(
         BindingConfig binding,
         Function<ModelConfig, ValidatorHandler> supplyValidator,
-        ToIntFunction<String> supplyTypeId,
-        LongFunction<StoreHandler> supplyStore,
         LongBinaryOperator supplyInitialId)
     {
         this.id = binding.id;
@@ -108,9 +101,6 @@ public final class HttpBindingConfig
         this.credentials = options != null && options.authorization != null ?
                 asAccessor(options.authorization.credentials) : DEFAULT_CREDENTIALS;
         this.requests = supplyValidator == null ? null : createRequestTypes(supplyValidator);
-        this.store = options != null && options.store != null && supplyStore != null && supplyTypeId != null
-            ? supplyStore.apply(NamespacedId.id(NamespacedId.namespaceId(binding.id), supplyTypeId.applyAsInt(options.store)))
-            : null;
     }
 
     public HttpRouteConfig resolve(
