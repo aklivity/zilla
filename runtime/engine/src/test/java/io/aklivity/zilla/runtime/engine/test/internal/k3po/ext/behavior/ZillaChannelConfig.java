@@ -19,6 +19,8 @@ import io.aklivity.k3po.runtime.driver.internal.netty.bootstrap.channel.ChannelC
 
 public interface ZillaChannelConfig extends ChannelConfig
 {
+    long NO_AFFINITY = 0L;
+
     void setTransmission(ZillaTransmission transmission);
 
     ZillaTransmission getTransmission();
@@ -52,8 +54,6 @@ public interface ZillaChannelConfig extends ChannelConfig
     void setAffinity(long affinity);
 
     long getAffinity();
-
-    boolean hasAffinity();
 
     void setStreamId(long streamId);
 

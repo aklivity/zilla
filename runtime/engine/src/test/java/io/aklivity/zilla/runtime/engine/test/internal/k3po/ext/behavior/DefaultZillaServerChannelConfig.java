@@ -48,7 +48,6 @@ public class DefaultZillaServerChannelConfig extends DefaultServerChannelConfig 
     private ZillaThrottleMode throttle = ZillaThrottleMode.STREAM;
     private ZillaUpdateMode update = ZillaUpdateMode.STREAM;
     private long affinity;
-    private boolean affinityExplicit;
     private byte capabilities;
     private boolean timestamps;
 
@@ -159,19 +158,12 @@ public class DefaultZillaServerChannelConfig extends DefaultServerChannelConfig 
         long affinity)
     {
         this.affinity = affinity;
-        this.affinityExplicit = true;
     }
 
     @Override
     public long getAffinity()
     {
         return affinity;
-    }
-
-    @Override
-    public boolean hasAffinity()
-    {
-        return affinityExplicit;
     }
 
     @Override

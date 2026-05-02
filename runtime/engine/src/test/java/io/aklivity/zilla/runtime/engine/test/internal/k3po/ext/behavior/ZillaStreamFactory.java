@@ -177,9 +177,9 @@ public final class ZillaStreamFactory
             final OctetsFW beginExt = begin.extension();
 
             final ZillaChannelConfig config = channel.getConfig();
-            if (channel instanceof ZillaChildChannel && config.hasAffinity())
+            final long expectedAffinity = config.getAffinity();
+            if (channel instanceof ZillaChildChannel && expectedAffinity != ZillaChannelConfig.NO_AFFINITY)
             {
-                final long expectedAffinity = config.getAffinity();
                 final long actualAffinity = begin.affinity();
                 if (actualAffinity != expectedAffinity)
                 {
