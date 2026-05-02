@@ -1,0 +1,35 @@
+#
+# Copyright 2021-2024 Aklivity Inc.
+#
+# Aklivity licenses this file to you under the Apache License,
+# version 2.0 (the "License"); you may not use this file except in compliance
+# with the License. You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+
+# Mocks the http server binding's behavior when the affinity key is owned
+# by a peer instance: read the request, immediately respond with 429
+# + retry-after: 0 + alt-svc pointing at the peer authority.
+
+accept "http://localhost:8080/"
+  option http:transport "zilla://streams/net0"
+  option zilla:window 8192
+  option zilla:transmission "duplex"
+accepted
+connected
+
+read http:method "GET"
+read http:header "mcp-session-id" "sess-1"
+read closed
+
+write http:status "429" "Too Many Requests"
+write http:header "retry-after" "0"
+write http:header "alt-svc" "http/1.1=\"peer-1.example:443\"; ma=86400"
+write close
