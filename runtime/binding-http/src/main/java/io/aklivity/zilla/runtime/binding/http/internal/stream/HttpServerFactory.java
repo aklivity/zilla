@@ -25,11 +25,15 @@ import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackContext
 import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackHeaderFieldFW.HeaderFieldType.UNKNOWN;
 import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackLiteralHeaderFieldFW.LiteralType.INCREMENTAL_INDEXING;
 import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackLiteralHeaderFieldFW.LiteralType.WITHOUT_INDEXING;
+import static io.aklivity.zilla.runtime.binding.http.internal.types.ProxyAddressFamily.INET;
+import static io.aklivity.zilla.runtime.binding.http.internal.types.ProxyAddressFamily.INET4;
+import static io.aklivity.zilla.runtime.binding.http.internal.types.ProxyAddressFamily.INET6;
 import static io.aklivity.zilla.runtime.binding.http.internal.types.ProxyInfoType.ALPN;
 import static io.aklivity.zilla.runtime.binding.http.internal.types.ProxyInfoType.SECURE;
 import static io.aklivity.zilla.runtime.binding.http.internal.types.ProxySecureInfoType.VERSION;
 import static io.aklivity.zilla.runtime.binding.http.internal.util.BufferUtil.indexOfByte;
 import static io.aklivity.zilla.runtime.binding.http.internal.util.BufferUtil.limitOfBytes;
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_SERVICE_HOSTNAME;
 import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_CREDITOR_INDEX;
 import static io.aklivity.zilla.runtime.engine.budget.BudgetDebitor.NO_DEBITOR_INDEX;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
@@ -559,6 +563,9 @@ public final class HttpServerFactory implements HttpStreamFactory
     private final int maximumHeadersSize;
     private final Long2ObjectHashMap<HttpBindingConfig> bindings;
     private final HttpEventContext event;
+    private final String serviceHostname;
+    private final EngineContext context;
+    private final int altSvcMaxAge;
 
     public HttpServerFactory(
         HttpConfiguration config,
@@ -593,6 +600,9 @@ public final class HttpServerFactory implements HttpStreamFactory
         this.encodeMax = bufferPool.slotCapacity();
         this.bindings = new Long2ObjectHashMap<>();
         this.event = new HttpEventContext(context);
+        this.serviceHostname = ENGINE_SERVICE_HOSTNAME.get(config);
+        this.context = context;
+        this.altSvcMaxAge = config.altSvcMaxAge();
 
         this.headers200 = initHeaders(config, STATUS_200);
         this.headers204 = initHeaders(config, STATUS_204);
@@ -650,6 +660,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
             HttpVersion version = null;
             boolean secure = false;
+            String serviceHost = null;
 
             ProxyBeginExFW beginEx = begin.extension().get(proxyBeginExRO::tryWrap);
             if (beginEx != null && beginEx.typeId() == proxyTypeId)
@@ -662,6 +673,15 @@ public final class HttpServerFactory implements HttpStreamFactory
                 if (secure && alpn != null)
                 {
                     version = HttpVersion.of(alpn.alpn().asString());
+                }
+
+                if (serviceHostname != null)
+                {
+                    final int destinationPort = destinationPort(beginEx);
+                    if (destinationPort != 0)
+                    {
+                        serviceHost = serviceHostname + ":" + destinationPort;
+                    }
                 }
             }
 
@@ -680,12 +700,13 @@ public final class HttpServerFactory implements HttpStreamFactory
                 case HTTP_1_1:
                     final boolean upgrade = !secure && supportedVersions.contains(HttpVersion.HTTP_2);
                     final HttpServer http11 =
-                            new HttpServer(binding, network, originId, routedId, initialId, affinity, secure, upgrade);
+                            new HttpServer(binding, network, originId, routedId, initialId, affinity, secure, upgrade,
+                                serviceHost);
                     newStream = upgrade ? http11::onNetworkUpgradeable : http11::onNetwork;
                     break;
                 case HTTP_2:
                     final Http2Server http2 =
-                        new Http2Server(binding, network, originId, routedId, initialId, affinity);
+                        new Http2Server(binding, network, originId, routedId, initialId, affinity, serviceHost);
                     newStream = http2::onNetwork;
                     break;
                 }
@@ -1654,6 +1675,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         private final long replyId;
         private final long affinity;
         private final boolean upgrade;
+        private final String serviceHost;
         private final GuardHandler guard;
         private final Function<Function<String, String>, String> credentials;
 
@@ -1693,7 +1715,8 @@ public final class HttpServerFactory implements HttpStreamFactory
             long initialId,
             long affinity,
             boolean secure,
-            boolean upgrade)
+            boolean upgrade,
+            String serviceHost)
         {
             this.binding = binding;
             this.network = network;
@@ -1704,6 +1727,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.decoder = decodeEmptyLines;
             this.upgrade = upgrade;
+            this.serviceHost = serviceHost;
             this.decodeScheme = secure ? SCHEME_HTTPS : SCHEME_HTTP;
             this.decodeSlot = NO_SLOT;
             this.encodeSlot = NO_SLOT;
@@ -3972,6 +3996,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         private final long replyId;
         private final long affinity;
         private final long budgetId;
+        private final String serviceHost;
         private final GuardHandler guard;
         private final Function<Function<String, String>, String> credentials;
 
@@ -4033,7 +4058,8 @@ public final class HttpServerFactory implements HttpStreamFactory
             long originId,
             long routedId,
             long initialId,
-            long affinity)
+            long affinity,
+            String serviceHost)
         {
             this.binding = binding;
             this.network = network;
@@ -4041,6 +4067,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             this.routedId = routedId;
             this.initialId = initialId;
             this.affinity = affinity;
+            this.serviceHost = serviceHost;
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.budgetId = supplyBudgetId.getAsLong();
             this.localSettings = new Http2Settings();
@@ -4060,7 +4087,8 @@ public final class HttpServerFactory implements HttpStreamFactory
         private Http2Server(
             HttpServer server)
         {
-            this(server.binding, server.network, server.originId, server.routedId, server.initialId, server.affinity);
+            this(server.binding, server.network, server.originId, server.routedId, server.initialId, server.affinity,
+                server.serviceHost);
         }
 
         private int replyPendingAck()
@@ -7257,6 +7285,22 @@ public final class HttpServerFactory implements HttpStreamFactory
         }
 
         return targetURI;
+    }
+
+    private static int destinationPort(
+        ProxyBeginExFW beginEx)
+    {
+        switch (beginEx.address().kind())
+        {
+        case INET:
+            return beginEx.address().inet().destinationPort();
+        case INET4:
+            return beginEx.address().inet4().destinationPort();
+        case INET6:
+            return beginEx.address().inet6().destinationPort();
+        default:
+            return 0;
+        }
     }
 
     private GuardHandler resolveGuard(
