@@ -175,13 +175,6 @@
                                 "description": "Reference to a store binding. Presence enables cross-instance affinity lookups.",
                                 "type": "string"
                             },
-                            "alt-svc-max-age":
-                            {
-                                "title": "Alt-Svc Max Age (seconds)",
-                                "type": "integer",
-                                "default": 86400,
-                                "minimum": 0
-                            },
                             "requests":
                             {
                                 "type": "array",
