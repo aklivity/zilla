@@ -62,7 +62,7 @@ write advised zilla:challenge ${mcp:matchChallengeEx()
                                     .typeId(zilla:id("mcp"))
                                     .elicitCreate()
                                         .id("elicit-1")
-                                        .url("https://provider.example/authorize?state=7f3a9b1c&redirect_uri=https://replace.me/callback")
+                                        .url("https://server.example.com/authorize?state=7f3a9b1c&redirect_uri=https%3A%2F%2Freplace.me%2Fcallback")
                                         .build()
                                     .build()}
 

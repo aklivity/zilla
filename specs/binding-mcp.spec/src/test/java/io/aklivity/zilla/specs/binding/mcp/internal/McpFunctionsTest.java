@@ -776,7 +776,7 @@ public class McpFunctionsTest
             .typeId(0)
             .elicitCreate()
                 .id("elicit-1")
-                .url("https://provider.example/authorize?state=expected")
+                .url("https://server.example.com/authorize?state=expected")
                 .build()
             .build();
 
@@ -787,7 +787,7 @@ public class McpFunctionsTest
             .typeId(0)
             .elicitCreate(b -> b
                 .id("elicit-1")
-                .url("https://provider.example/authorize?state=actual"))
+                .url("https://server.example.com/authorize?state=actual"))
             .build();
 
         matcher.match(byteBuf);
