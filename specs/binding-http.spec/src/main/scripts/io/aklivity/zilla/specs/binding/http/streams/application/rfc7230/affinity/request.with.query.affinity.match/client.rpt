@@ -28,7 +28,7 @@ write zilla:begin.ext ${http:beginEx()
                               .typeId(zilla:id("http"))
                               .header(":scheme", "http")
                               .header(":method", "GET")
-                              .header(":path", "/auth/callback?state=prefix.sess-2.suffix")
+                              .header(":path", "/auth/callback/match?state=prefix.sess-2.suffix")
                               .header(":authority", "server.example.com:8080")
                               .build()}
 connected

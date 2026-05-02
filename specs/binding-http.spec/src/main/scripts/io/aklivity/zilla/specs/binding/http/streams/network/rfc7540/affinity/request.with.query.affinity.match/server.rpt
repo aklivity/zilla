@@ -62,13 +62,13 @@ write [0x00 0x00 0x00]                  # length = 0
 write flush
 
 # request HEADERS
-read [0x00 0x00 0x46]                                     # length = 70
+read [0x00 0x00 0x4c]                                     # length = 76
      [0x01]                                               # HEADERS frame
      [0x05]                                               # END_HEADERS | END_STREAM
      [0x00 0x00 0x00 0x01]                                # stream_id = 1
      [0x82]                                               # :method: GET
      [0x86]                                               # :scheme: http
-     [0x44] [0x29] "/auth/callback?state=prefix.sess-2.suffix"
+     [0x44] [0x2f] "/auth/callback/match?state=prefix.sess-2.suffix"
      [0x01] [0x17] "server.example.com:8080"              # :authority: server.example.com:8080
 
 # response HEADERS

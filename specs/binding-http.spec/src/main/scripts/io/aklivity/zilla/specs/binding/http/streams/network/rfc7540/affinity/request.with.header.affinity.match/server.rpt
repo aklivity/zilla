@@ -62,13 +62,13 @@ write [0x00 0x00 0x00]                  # length = 0
 write flush
 
 # request HEADERS
-read [0x00 0x00 0x44]                                     # length = 68
+read [0x00 0x00 0x4a]                                     # length = 74
      [0x01]                                               # HEADERS frame
      [0x05]                                               # END_HEADERS | END_STREAM
      [0x00 0x00 0x00 0x01]                                # stream_id = 1
      [0x82]                                               # :method: GET
      [0x86]                                               # :scheme: http
-     [0x44] [0x06] "/items"
+     [0x44] [0x0c] "/items/match"
      [0x01] [0x17] "server.example.com:8080"              # :authority: server.example.com:8080
      [0x40] [0x0a] "session-id" [0x14] "prefix.sess-1.suffix"
 

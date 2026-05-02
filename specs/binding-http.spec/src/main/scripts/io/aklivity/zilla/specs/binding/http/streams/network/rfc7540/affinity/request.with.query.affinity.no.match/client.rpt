@@ -58,13 +58,13 @@ write [0x00 0x00 0x04]                         # length
 write flush
 
 # request HEADERS
-write [0x00 0x00 0x3e]                                     # length = 62
+write [0x00 0x00 0x44]                                     # length = 68
       [0x01]                                               # HEADERS frame
       [0x05]                                               # END_HEADERS | END_STREAM
       [0x00 0x00 0x00 0x01]                                # stream_id = 1
       [0x82]                                               # :method: GET
       [0x86]                                               # :scheme: http
-      [0x44] [0x21] "/auth/callback?state=no-dots-here"
+      [0x44] [0x27] "/auth/callback/match?state=no-dots-here"
       [0x01] [0x17] "server.example.com:8080"              # :authority: server.example.com:8080
 write flush
 

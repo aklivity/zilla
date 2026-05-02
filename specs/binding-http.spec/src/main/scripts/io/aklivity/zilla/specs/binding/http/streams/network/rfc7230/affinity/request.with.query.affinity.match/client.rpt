@@ -14,7 +14,7 @@
 # under the License.
 #
 
-connect "http://server.example.com:8080/auth/callback?state=prefix.sess-2.suffix"
+connect "http://server.example.com:8080/auth/callback/match?state=prefix.sess-2.suffix"
   option http:transport "zilla://streams/net0"
   option zilla:window 8192
   option zilla:transmission "duplex"

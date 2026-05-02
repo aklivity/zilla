@@ -27,7 +27,7 @@ write zilla:begin.ext ${http:beginEx()
                               .typeId(zilla:id("http"))
                               .header(":scheme", "http")
                               .header(":method", "GET")
-                              .header(":path", "/items")
+                              .header(":path", "/items/match")
                               .header(":authority", "server.example.com:8080")
                               .header("session-id", "no-dots-here")
                               .build()}
