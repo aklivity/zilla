@@ -48,9 +48,27 @@ public class AffinityIT
 
     @Test
     @Specification({
-        "${app}/request.with.affinity.source.absent/client",
-        "${app}/request.with.affinity.source.absent/server"})
-    public void shouldRequestWithAffinitySourceAbsent() throws Exception
+        "${app}/request.with.header.affinity.match/client",
+        "${app}/request.with.header.affinity.match/server"})
+    public void shouldRequestWithHeaderAffinityMatch() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/request.with.header.affinity.no.match/client",
+        "${app}/request.with.header.affinity.no.match/server"})
+    public void shouldRequestWithHeaderAffinityNoMatch() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/request.with.header.affinity.missing/client",
+        "${app}/request.with.header.affinity.missing/server"})
+    public void shouldRequestWithHeaderAffinityMissing() throws Exception
     {
         k3po.finish();
     }
@@ -66,27 +84,27 @@ public class AffinityIT
 
     @Test
     @Specification({
-        "${app}/request.with.affinity.regex.captured/client",
-        "${app}/request.with.affinity.regex.captured/server"})
-    public void shouldRequestWithAffinityRegexCaptured() throws Exception
+        "${app}/request.with.query.affinity.match/client",
+        "${app}/request.with.query.affinity.match/server"})
+    public void shouldRequestWithQueryAffinityMatch() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${app}/request.with.affinity.no.match/client",
-        "${app}/request.with.affinity.no.match/server"})
-    public void shouldRequestWithAffinityNoMatch() throws Exception
+        "${app}/request.with.query.affinity.no.match/client",
+        "${app}/request.with.query.affinity.no.match/server"})
+    public void shouldRequestWithQueryAffinityNoMatch() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${app}/request.with.affinity.local.dispatch/client",
-        "${app}/request.with.affinity.local.dispatch/server"})
-    public void shouldRequestWithAffinityLocalDispatch() throws Exception
+        "${app}/request.with.query.affinity.missing/client",
+        "${app}/request.with.query.affinity.missing/server"})
+    public void shouldRequestWithQueryAffinityMissing() throws Exception
     {
         k3po.finish();
     }

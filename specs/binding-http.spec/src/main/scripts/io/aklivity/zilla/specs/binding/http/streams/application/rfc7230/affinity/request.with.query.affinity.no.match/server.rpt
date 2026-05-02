@@ -14,23 +14,21 @@
 # under the License.
 #
 
-# store lookup for "sess-1" yields options.self, so the binding
-# dispatches locally with the hashed key as affinity.
-# affinity = "sess-1".hashCode() & 0xffff_ffffL = 0xca029156
+# `state` query parameter value "no-dots-here" does not match the
+# binding's regex, so no affinity assertion fires (default network-level
+# affinity flows through unchanged)
 
 accept "zilla://streams/app0"
        option zilla:window 8192
        option zilla:transmission "half-duplex"
-       option zilla:affinity 0x00000000ca029156L
 accepted
 
 read zilla:begin.ext ${http:beginEx()
                              .typeId(zilla:id("http"))
                              .header(":scheme", "http")
                              .header(":method", "GET")
-                             .header(":path", "/items")
+                             .header(":path", "/auth/callback?state=no-dots-here")
                              .header(":authority", "localhost:8080")
-                             .header("session-id", "sess-1")
                              .build()}
 connected
 

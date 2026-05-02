@@ -14,24 +14,20 @@
 # under the License.
 #
 
-# options.store is configured and the store's putIfAbsent for the
-# extracted key "sess-1" yields options.self, so the binding dispatches
-# locally with affinity = "sess-1".hashCode() & 0xffff_ffffL = 0xca029156.
-# (Same observable contract on the application stream as
-# request.with.header.affinity, but the configured topology differs.)
+# affinity source (`state` query parameter) absent from request, so the
+# route's affinity rule yields no key and the application BEGIN carries
+# the network-level affinity (here defaulted to 0L)
 
 connect "zilla://streams/app0"
     option zilla:window 8192
     option zilla:transmission "half-duplex"
-    option zilla:affinity 0x00000000ca029156L
 
 write zilla:begin.ext ${http:beginEx()
                               .typeId(zilla:id("http"))
                               .header(":scheme", "http")
                               .header(":method", "GET")
-                              .header(":path", "/items")
+                              .header(":path", "/auth/callback")
                               .header(":authority", "localhost:8080")
-                              .header("session-id", "sess-1")
                               .build()}
 connected
 
