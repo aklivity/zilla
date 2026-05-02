@@ -59,6 +59,7 @@ import java.util.SortedSet;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.LongBinaryOperator;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
@@ -541,12 +542,12 @@ public final class HttpServerFactory implements HttpStreamFactory
     private final BindingHandler streamFactory;
     private final LongFunction<BudgetDebitor> supplyDebitor;
     private final LongUnaryOperator supplyInitialId;
-    private final EngineContext context;
     private final LongUnaryOperator supplyReplyId;
     private final LongSupplier supplyBudgetId;
     private final LongFunction<GuardHandler> supplyGuard;
     private final LongFunction<StoreHandler> supplyStore;
     private final ToIntFunction<String> supplyTypeId;
+    private final LongBinaryOperator supplyInitialIdByHash;
     private final Signaler signaler;
     private final Http2Settings initialSettings;
     private final BufferPool headersPool;
@@ -574,7 +575,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         this.streamFactory = context.streamFactory();
         this.supplyDebitor = context::supplyDebitor;
         this.supplyInitialId = context::supplyInitialId;
-        this.context = context;
+        this.supplyInitialIdByHash = (routedId, hash) -> context.supplyInitialId(routedId, (int) hash);
         this.supplyReplyId = context::supplyReplyId;
         this.supplyBudgetId = context::supplyBudgetId;
         this.supplyGuard = context::supplyGuard;
@@ -621,7 +622,8 @@ public final class HttpServerFactory implements HttpStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        HttpBindingConfig httpBinding = new HttpBindingConfig(binding, supplyValidator, supplyTypeId, supplyStore);
+        HttpBindingConfig httpBinding = new HttpBindingConfig(binding, supplyValidator, supplyTypeId, supplyStore,
+            supplyInitialIdByHash);
         bindings.put(binding.id, httpBinding);
     }
 
@@ -1143,16 +1145,27 @@ public final class HttpServerFactory implements HttpStreamFactory
                             HttpPolicyConfig policy = binding.access().effectivePolicy(headers);
                             final String origin = policy == CROSS_ORIGIN ? headers.get(HEADER_NAME_ORIGIN) : null;
 
-                            String affinityKey = null;
+                            final long requestId;
+                            final long requestAffinity;
                             HttpAffinityResolver affinityResolver = route.affinity();
-                            if (affinityResolver != null)
+                            String affinityKey = affinityResolver != null
+                                ? affinityResolver.resolveKey(headers::get, headers.get(HEADER_NAME_PATH))
+                                : null;
+                            if (affinityKey != null)
                             {
-                                affinityKey = affinityResolver.resolveKey(headers::get, headers.get(HEADER_NAME_PATH));
+                                final int hash = affinityKey.hashCode();
+                                requestId = route.supplyInitialId(hash);
+                                requestAffinity = hash & 0xffff_ffffL;
+                            }
+                            else
+                            {
+                                requestId = supplyInitialId.applyAsLong(route.id);
+                                requestAffinity = server.affinity;
                             }
 
                             HttpRequestType requestType = binding.resolveRequestType(beginEx);
-                            boolean headersValid = server.onDecodeHeaders(server.routedId, route.id, traceId, exchangeAuth,
-                                policy, origin, beginEx, requestType, affinityKey);
+                            boolean headersValid = server.onDecodeHeaders(server.routedId, route.id, requestId,
+                                requestAffinity, traceId, exchangeAuth, policy, origin, beginEx, requestType);
                             if (!headersValid)
                             {
                                 error = response400;
@@ -2346,29 +2359,16 @@ public final class HttpServerFactory implements HttpStreamFactory
         private boolean onDecodeHeaders(
             long originId,
             long routedId,
+            long requestId,
+            long affinity,
             long traceId,
             long authorization,
             HttpPolicyConfig policy,
             String origin,
             HttpBeginExFW beginEx,
-            HttpRequestType requestType,
-            String affinityKey)
+            HttpRequestType requestType)
         {
-            final long requestId;
-            final long requestAffinity;
-            if (affinityKey != null)
-            {
-                final int hash = affinityKey.hashCode();
-                requestId = context.supplyInitialId(routedId, hash);
-                requestAffinity = hash & 0xffff_ffffL;
-            }
-            else
-            {
-                requestId = supplyInitialId.applyAsLong(routedId);
-                requestAffinity = HttpServer.this.affinity;
-            }
-
-            final HttpExchange exchange = new HttpExchange(originId, routedId, requestId, requestAffinity,
+            final HttpExchange exchange = new HttpExchange(originId, routedId, requestId, affinity,
                 authorization, traceId, policy, origin, requestType);
             boolean headersValid = exchange.validateHeaders(beginEx);
             if (headersValid)
@@ -5176,7 +5176,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                             if (affinityKey != null)
                             {
                                 final int hash = affinityKey.hashCode();
-                                requestId = context.supplyInitialId(routedId, hash);
+                                requestId = route.supplyInitialId(hash);
                                 requestAffinity = hash & 0xffff_ffffL;
                             }
                             else

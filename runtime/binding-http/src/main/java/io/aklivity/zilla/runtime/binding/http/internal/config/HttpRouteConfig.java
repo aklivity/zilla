@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.function.LongUnaryOperator;
 import java.util.function.UnaryOperator;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpConditionConfig;
@@ -40,10 +41,19 @@ public final class HttpRouteConfig
     private final HttpWithResolver with;
     private final LongObjectPredicate<UnaryOperator<String>> authorized;
     private final Map<String8FW, String16FW> overrides;
+    private final LongUnaryOperator supplyInitialId;
 
     public HttpRouteConfig(
         RouteConfig route,
         Map<String8FW, String16FW> overrides)
+    {
+        this(route, overrides, null);
+    }
+
+    public HttpRouteConfig(
+        RouteConfig route,
+        Map<String8FW, String16FW> overrides,
+        LongUnaryOperator supplyInitialId)
     {
         this.id = route.id;
         this.with = Optional.ofNullable(route.with)
@@ -61,6 +71,7 @@ public final class HttpRouteConfig
         {
             this.overrides.putAll(overrides);
         }
+        this.supplyInitialId = supplyInitialId;
     }
 
     public long compositeId()
@@ -71,6 +82,12 @@ public final class HttpRouteConfig
     public HttpAffinityResolver affinity()
     {
         return with != null ? with.affinity() : null;
+    }
+
+    public long supplyInitialId(
+        long hash)
+    {
+        return supplyInitialId.applyAsLong(hash);
     }
 
     public Map<String8FW, String16FW> overrides()

@@ -30,6 +30,7 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.function.Function;
+import java.util.function.LongBinaryOperator;
 import java.util.function.LongFunction;
 import java.util.function.ToIntFunction;
 import java.util.function.ToLongFunction;
@@ -84,21 +85,25 @@ public final class HttpBindingConfig
         BindingConfig binding,
         Function<ModelConfig, ValidatorHandler> supplyValidator)
     {
-        this(binding, supplyValidator, null, null);
+        this(binding, supplyValidator, null, null, null);
     }
 
     public HttpBindingConfig(
         BindingConfig binding,
         Function<ModelConfig, ValidatorHandler> supplyValidator,
         ToIntFunction<String> supplyTypeId,
-        LongFunction<StoreHandler> supplyStore)
+        LongFunction<StoreHandler> supplyStore,
+        LongBinaryOperator supplyInitialId)
     {
         this.id = binding.id;
         this.name = binding.name;
         this.kind = binding.kind;
         this.options = HttpOptionsConfig.class.cast(binding.options);
         this.routes = binding.routes.stream().map(route ->
-            new HttpRouteConfig(route, options != null ? options.overrides : null)).collect(toList());
+            new HttpRouteConfig(route, options != null ? options.overrides : null,
+                supplyInitialId != null
+                    ? hash -> supplyInitialId.applyAsLong(route.id, hash)
+                    : null)).collect(toList());
         this.resolveId = binding.resolveId;
         this.credentials = options != null && options.authorization != null ?
                 asAccessor(options.authorization.credentials) : DEFAULT_CREDENTIALS;
