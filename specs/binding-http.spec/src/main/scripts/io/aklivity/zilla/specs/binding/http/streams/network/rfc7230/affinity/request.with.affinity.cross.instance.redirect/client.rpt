@@ -14,7 +14,7 @@
 # under the License.
 #
 
-# extracted key (mcp-session-id: sess-1) is owned by a peer gateway
+# extracted key (session-id: sess-1) is owned by a peer gateway
 # instance per options.store; binding short-circuits with 429 + alt-svc
 # pointing at the peer authority
 
@@ -25,7 +25,7 @@ connect "http://localhost:8080/"
 connected
 
 write http:method "GET"
-write http:header "mcp-session-id" "sess-1"
+write http:header "session-id" "sess-1"
 write close
 
 read http:status "429" "Too Many Requests"

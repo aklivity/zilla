@@ -26,7 +26,7 @@ accepted
 connected
 
 read http:method "GET"
-read http:header "mcp-session-id" "sess-1"
+read http:header "session-id" "sess-1"
 read closed
 
 write http:status "429" "Too Many Requests"

@@ -26,9 +26,9 @@ read zilla:begin.ext ${http:beginEx()
                              .typeId(zilla:id("http"))
                              .header(":scheme", "http")
                              .header(":method", "GET")
-                             .header(":path", "/mcp")
+                             .header(":path", "/items")
                              .header(":authority", "localhost:8080")
-                             .header("mcp-session-id", "sess-1")
+                             .header("session-id", "sess-1")
                              .build()}
 connected
 

@@ -26,7 +26,7 @@ write zilla:begin.ext ${http:beginEx()
                               .typeId(zilla:id("http"))
                               .header(":scheme", "http")
                               .header(":method", "GET")
-                              .header(":path", "/mcp/auth/callback?state=sess-2")
+                              .header(":path", "/auth/callback?state=sess-2")
                               .header(":authority", "localhost:8080")
                               .build()}
 connected

@@ -14,7 +14,7 @@
 # under the License.
 #
 
-# affinity source (mcp-session-id header) absent from request, so the
+# affinity source (session-id header) absent from request, so the
 # route's affinity rule yields no key and no zilla:affinity assertion
 # fires (default network-level affinity flows through unchanged)
 
@@ -27,7 +27,7 @@ read zilla:begin.ext ${http:beginEx()
                              .typeId(zilla:id("http"))
                              .header(":scheme", "http")
                              .header(":method", "GET")
-                             .header(":path", "/mcp")
+                             .header(":path", "/items")
                              .header(":authority", "localhost:8080")
                              .build()}
 connected
