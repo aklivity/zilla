@@ -559,8 +559,8 @@ public class McpServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/auth.callback/client"})
-    public void shouldReceiveAuthCallback() throws Exception
+        "${net}/reject.auth.callback.unknown.elicitation/client"})
+    public void shouldRejectAuthCallbackUnknownElicitation() throws Exception
     {
         k3po.finish();
     }

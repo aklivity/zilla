@@ -148,6 +148,7 @@ public final class McpServerFactory implements McpStreamFactory
     private final SignalFW signalRO = new SignalFW();
     private final ChallengeFW challengeRO = new ChallengeFW();
     private final HttpBeginExFW httpBeginExRO = new HttpBeginExFW();
+    private final McpChallengeExFW mcpChallengeExRO = new McpChallengeExFW();
     private final McpFlushExFW mcpFlushExRO = new McpFlushExFW();
     private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBuffer(), 0, 0);
 
@@ -350,7 +351,8 @@ public final class McpServerFactory implements McpStreamFactory
                         sender,
                         originId,
                         routedId,
-                        initialId)::onNetMessage;
+                        initialId,
+                        path)::onNetMessage;
                 }
                 else if (!acceptIncludesEventStream(accept))
                 {
@@ -2421,6 +2423,7 @@ public final class McpServerFactory implements McpStreamFactory
         private final long routedId;
         private final long initialId;
         private final long replyId;
+        private final String path;
 
         private long initialSeq;
         private long initialAck;
@@ -2436,13 +2439,15 @@ public final class McpServerFactory implements McpStreamFactory
             MessageConsumer sender,
             long originId,
             long routedId,
-            long initialId)
+            long initialId,
+            String path)
         {
             this.net = sender;
             this.originId = originId;
             this.routedId = routedId;
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
+            this.path = path;
         }
 
         private void onNetMessage(
@@ -2521,17 +2526,73 @@ public final class McpServerFactory implements McpStreamFactory
 
             state = McpState.closingInitial(state);
 
+            final McpRequestStream resolved = resolveElicitation(path);
+
+            if (resolved != null)
+            {
+                resolved.doAppFlushElicitCallback(traceId, authorization, path);
+                doNetReply200(traceId, authorization, AUTH_CALLBACK_OK_BODY);
+            }
+            else
+            {
+                doNetReply(traceId, authorization, STATUS_410, AUTH_CALLBACK_GONE_BODY);
+            }
+        }
+
+        private void doNetReply200(
+            long traceId,
+            long authorization,
+            String bodyText)
+        {
+            doNetReply(traceId, authorization, STATUS_200, bodyText);
+        }
+
+        private void doNetReply(
+            long traceId,
+            long authorization,
+            String status,
+            String bodyText)
+        {
             doNetBegin(traceId, authorization, httpBeginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
                 .typeId(httpTypeId)
-                .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(STATUS_200))
+                .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(status))
                 .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_TEXT_PLAIN))
                 .build());
 
-            final byte[] body = AUTH_CALLBACK_OK_BODY.getBytes(StandardCharsets.UTF_8);
+            final byte[] body = bodyText.getBytes(StandardCharsets.UTF_8);
             codecBuffer.putBytes(0, body);
             doNetData(traceId, authorization, 0L, body.length, codecBuffer, 0, body.length);
 
             doNetEnd(traceId, authorization);
+        }
+
+        private McpRequestStream resolveElicitation(
+            String requestPath)
+        {
+            McpRequestStream resolved = null;
+            if (requestPath != null)
+            {
+                final int queryAt = requestPath.indexOf('?');
+                if (queryAt >= 0)
+                {
+                    final String stateValue = extractQueryParam(requestPath, queryAt + 1, "state");
+                    if (stateValue != null)
+                    {
+                        final int dotAt = stateValue.indexOf('.');
+                        if (dotAt > 0)
+                        {
+                            final String sessionId = stateValue.substring(0, dotAt);
+                            final String elicitationId = stateValue.substring(dotAt + 1);
+                            final McpLifecycleStream session = sessions.get(sessionId);
+                            if (session != null)
+                            {
+                                resolved = session.elicitations.get(elicitationId);
+                            }
+                        }
+                    }
+                }
+            }
+            return resolved;
         }
 
         private void onNetAbort(
@@ -2643,6 +2704,7 @@ public final class McpServerFactory implements McpStreamFactory
     {
         private final String sessionId;
         private final Object2ObjectHashMap<String, McpRequestStream> requests;
+        private final Object2ObjectHashMap<String, McpRequestStream> elicitations;
 
         private final long originId;
         private final long routedId;
@@ -2669,6 +2731,7 @@ public final class McpServerFactory implements McpStreamFactory
         {
             this.sessionId = supplySessionId.get();
             this.requests = new Object2ObjectHashMap<>();
+            this.elicitations = new Object2ObjectHashMap<>();
             this.originId = server.routedId;
             this.routedId = server.resolvedId;
             this.initialId = supplyInitialId.applyAsLong(server.resolvedId);
@@ -3724,6 +3787,22 @@ public final class McpServerFactory implements McpStreamFactory
             }
         }
 
+        private void doAppFlushElicitCallback(
+            long traceId,
+            long authorization,
+            String callbackUrl)
+        {
+            final McpFlushExFW flushEx = mcpFlushExRW
+                .wrap(codecBuffer, 0, codecBuffer.capacity())
+                .typeId(mcpTypeId)
+                .elicitCallback(b -> b.url(callbackUrl))
+                .build();
+
+            doFlush(app, originId, routedId, initialId,
+                initialSeq, initialAck, initialMax, traceId, authorization,
+                0L, 0, flushEx);
+        }
+
         private void doAppEnd(
             long traceId,
             long authorization)
@@ -4463,6 +4542,37 @@ public final class McpServerFactory implements McpStreamFactory
             (accept.contains(CONTENT_TYPE_EVENT_STREAM) ||
              accept.contains("*/*") ||
              accept.contains("text/*"));
+    }
+
+    private static String extractQueryParam(
+        String text,
+        int from,
+        String name)
+    {
+        String value = null;
+        int cursor = from;
+        final int length = text.length();
+        while (cursor < length)
+        {
+            final int eq = text.indexOf('=', cursor);
+            if (eq < 0)
+            {
+                break;
+            }
+            final int amp = text.indexOf('&', eq + 1);
+            final int valueEnd = amp < 0 ? length : amp;
+            if (eq - cursor == name.length() && text.regionMatches(cursor, name, 0, name.length()))
+            {
+                value = text.substring(eq + 1, valueEnd);
+                break;
+            }
+            if (amp < 0)
+            {
+                break;
+            }
+            cursor = amp + 1;
+        }
+        return value;
     }
 
     private static boolean isAuthCallbackPath(

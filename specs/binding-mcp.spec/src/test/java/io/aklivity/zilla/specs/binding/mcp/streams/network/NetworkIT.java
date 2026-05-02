@@ -416,15 +416,6 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/auth.callback/client",
-        "${net}/auth.callback/server"})
-    public void shouldReceiveAuthCallback() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${net}/tools.call.elicit.completed/client",
         "${net}/tools.call.elicit.completed/server"})
     public void shouldCallToolElicitCompleted() throws Exception
