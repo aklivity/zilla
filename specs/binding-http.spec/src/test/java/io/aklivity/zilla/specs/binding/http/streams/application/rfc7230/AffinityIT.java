@@ -54,4 +54,40 @@ public class AffinityIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/request.with.query.affinity/client",
+        "${app}/request.with.query.affinity/server"})
+    public void shouldRequestWithQueryAffinity() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/request.with.affinity.regex.captured/client",
+        "${app}/request.with.affinity.regex.captured/server"})
+    public void shouldRequestWithAffinityRegexCaptured() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/request.with.affinity.no.match/client",
+        "${app}/request.with.affinity.no.match/server"})
+    public void shouldRequestWithAffinityNoMatch() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/request.with.affinity.local.dispatch/client",
+        "${app}/request.with.affinity.local.dispatch/server"})
+    public void shouldRequestWithAffinityLocalDispatch() throws Exception
+    {
+        k3po.finish();
+    }
 }
