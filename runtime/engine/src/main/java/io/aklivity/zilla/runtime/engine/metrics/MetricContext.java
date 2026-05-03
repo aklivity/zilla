@@ -18,7 +18,6 @@ package io.aklivity.zilla.runtime.engine.metrics;
 import java.util.List;
 import java.util.function.IntFunction;
 import java.util.function.LongConsumer;
-import java.util.function.ToIntFunction;
 
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.config.AttributeConfig;
@@ -91,19 +90,18 @@ public interface MetricContext
      * <p>
      * The {@code recorder} function maps an {@code attributesId} to the {@link LongConsumer}
      * that writes into the correct metric slot. The handler extracts attribute values from
-     * stream frames, serializes them as a deterministic label string, and calls
-     * {@code supplyLabelId} to obtain the integer {@code attributesId}.
+     * stream frames, serializes them as a deterministic label string, and uses the
+     * {@code supplyLabelId} captured at construction time to obtain the integer
+     * {@code attributesId}.
      * </p>
      *
      * @param recorder       function mapping {@code attributesId} to a metric value recorder
      * @param attributes     the configured attribute expressions to resolve from stream data
-     * @param supplyLabelId  function that registers an attribute combination string and returns its id
      * @return a {@link MessageConsumer} to interpose on the stream pipeline
      */
     default MessageConsumer supply(
         IntFunction<LongConsumer> recorder,
-        List<AttributeConfig> attributes,
-        ToIntFunction<String> supplyLabelId)
+        List<AttributeConfig> attributes)
     {
         return supply(recorder.apply(0));
     }

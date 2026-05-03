@@ -279,7 +279,8 @@ public class EngineManager
         try
         {
             JsonObject systemBase = Json.createObjectBuilder()
-                .add("name", "system")
+                .add("name", "sys")
+                .add("bindings", Json.createObjectBuilder())
                 .build();
 
             JsonObject systemPatched = systemBase;
@@ -373,6 +374,11 @@ public class EngineManager
         for (GuardConfig guard : namespace.guards)
         {
             guard.id = resolver.resolve(guard.name);
+            if (guard.store != null)
+            {
+                guard.storeId = resolver.resolve(guard.store);
+                guard.qstore = resolver.format(guard.storeId);
+            }
         }
 
         for (StoreConfig store : namespace.stores)

@@ -34,27 +34,100 @@ public interface GuardHandler
     /** Sentinel session id indicating that authorization failed or is not valid. */
     long NOT_AUTHORIZED = 0L;
 
+    /**
+     * Sentinel session id indicating the credentials are recognized but require an
+     * out-of-band pre-authorization step before a session can be created. The caller
+     * should then invoke {@link #preauthorize} to obtain the URL the user must visit.
+     * <p>
+     * The value is encoded with the high bit set and {@link #MASK_AUTHORIZED} bits zero,
+     * so callers can use {@code (sessionId & MASK_AUTHORIZED) != 0} to test for a valid
+     * session and {@code (sessionId & MASK_AUTHORIZED) == 0} to test for any
+     * unauthorized result without enumerating the individual sentinel values.
+     * </p>
+     */
+    long NEEDS_PREAUTHORIZE = 0x8000_0000_0000_0000L;
+
+    /**
+     * Bitmask isolating the bits that hold a valid session id. Used by callers to test
+     * a return value from {@link #reauthorize}: {@code (sessionId & MASK_AUTHORIZED) != 0}
+     * if the session id is valid (i.e. neither {@link #NOT_AUTHORIZED} nor
+     * {@link #NEEDS_PREAUTHORIZE}).
+     */
+    long MASK_AUTHORIZED = 0x7fff_ffff_ffff_ffffL;
+
     /** Sentinel expiry time indicating a session that never expires. */
     long EXPIRES_NEVER = Long.MAX_VALUE;
 
     /**
      * Validates the given credentials and returns a session id for the authorized session.
      * <p>
-     * If the credentials are valid, returns a positive session id that can be used to query
-     * session state. If authorization fails, returns {@link #NOT_AUTHORIZED}.
+     * Possible outcomes:
+     * <ul>
+     *   <li>positive session id — credentials accepted, session created</li>
+     *   <li>{@link #NOT_AUTHORIZED} — credentials rejected</li>
+     *   <li>{@link #NEEDS_PREAUTHORIZE} — credentials recognized but the upstream has no
+     *       prior consent for this subject; the caller should invoke {@link #preauthorize}
+     *       to obtain a URL for the user to visit</li>
+     * </ul>
      * </p>
      *
      * @param traceId    the trace identifier for diagnostics
      * @param bindingId  the binding identifier requesting authorization
      * @param contextId  a context identifier (e.g., connection id), or {@code 0} if none
-     * @param credentials  the raw credential string (e.g., a JWT bearer token)
-     * @return a positive session id if authorized, or {@link #NOT_AUTHORIZED} on failure
+     * @param credentials  the raw credential string; the format is guard-specific
+     * @return a positive session id if authorized, {@link #NOT_AUTHORIZED} on failure,
+     *         or {@link #NEEDS_PREAUTHORIZE} if pre-authorization is required first
      */
     long reauthorize(
         long traceId,
         long bindingId,
         long contextId,
         String credentials);
+
+    /**
+     * Async variant of {@link #reauthorize} for guards whose authorization decision
+     * requires non-blocking I/O (for example, an upstream token exchange after an
+     * out-of-band consent step). The result is delivered to {@code completion} on
+     * the same engine worker thread that invoked this method; implementations that
+     * do off-thread work must dispatch back via {@code EngineContext.signaler()}
+     * before invoking the callback.
+     * <p>
+     * The default implementation delegates to the synchronous {@link #reauthorize},
+     * so guards that always decide locally need no source change. Exceptions thrown
+     * by the synchronous variant are routed to {@link CompletionCallback#failed}.
+     * </p>
+     * <p>
+     * The {@code contextId} supplied at the call site is echoed back through the
+     * callback so a single shared {@link LongCompletionCallback} instance can route
+     * results to the correct stream — typically by issuing a {@code Signaler}
+     * signal — without per-call lambda capture.
+     * </p>
+     *
+     * @param traceId      the trace identifier for diagnostics
+     * @param bindingId    the binding identifier requesting authorization
+     * @param contextId    a context identifier (e.g., connection id), or {@code 0} if none
+     * @param credentials  the raw credential string; the format is guard-specific
+     * @param completion   callback invoked with a positive session id on success,
+     *                     {@link #NOT_AUTHORIZED} on failure, or {@link #NEEDS_PREAUTHORIZE}
+     *                     if pre-authorization is required first
+     */
+    default void reauthorize(
+        long traceId,
+        long bindingId,
+        long contextId,
+        String credentials,
+        LongCompletionCallback completion)
+    {
+        try
+        {
+            long result = reauthorize(traceId, bindingId, contextId, credentials);
+            completion.completed(contextId, result);
+        }
+        catch (Throwable ex)
+        {
+            completion.failed(contextId, ex);
+        }
+    }
 
     /**
      * Invalidates and releases the given session.
@@ -135,4 +208,91 @@ public interface GuardHandler
     boolean challenge(
         long sessionId,
         long now);
+
+    /**
+     * Begins the out-of-band pre-authorization step for the in-flight request and returns
+     * the URL the user must visit to complete it. Returns {@code null} for guards that
+     * never require pre-authorization; the default implementation returns {@code null}.
+     * <p>
+     * A caller may invoke this after {@link #reauthorize} returns
+     * {@link #NEEDS_PREAUTHORIZE} to recover an authorization URL to surface upstream.
+     * Once the user completes the step and {@code callback} is invoked, the caller
+     * passes the resulting URL back to {@link #reauthorize} as the credentials.
+     * </p>
+     *
+     * @param traceId    the trace identifier for diagnostics
+     * @param bindingId  the binding identifier requesting authorization
+     * @param contextId  a context identifier (e.g., connection id), or {@code 0} if none
+     * @param callback   the URL the upstream should redirect the user back to once the
+     *                   pre-authorization step is complete; the guard treats this as
+     *                   opaque and embeds it on the returned URL in whatever form the
+     *                   upstream protocol requires
+     * @return the URL the user must visit, or {@code null} if not applicable
+     */
+    default String preauthorize(
+        long traceId,
+        long bindingId,
+        long contextId,
+        String callback)
+    {
+        return null;
+    }
+
+    /**
+     * Generic completion handler for asynchronous guard operations, modelled after
+     * {@link java.nio.channels.CompletionHandler}. The {@code contextId} supplied by
+     * the caller is echoed back to both methods so a single shared callback instance
+     * can dispatch results to the originating stream — typically via {@code Signaler}
+     * — without per-call lambda capture.
+     *
+     * @param <V> the result type
+     */
+    interface CompletionCallback<V>
+    {
+        /**
+         * Invoked when the operation completes successfully.
+         *
+         * @param contextId  the {@code contextId} supplied to the originating call
+         * @param result     the operation result
+         */
+        void completed(
+            long contextId,
+            V result);
+
+        /**
+         * Invoked when the operation fails.
+         *
+         * @param contextId  the {@code contextId} supplied to the originating call
+         * @param ex         the failure cause
+         */
+        void failed(
+            long contextId,
+            Throwable ex);
+    }
+
+    /**
+     * Specialisation of {@link CompletionCallback} for {@code long}-valued results,
+     * avoiding boxing on the hot path. Implementations override only the primitive
+     * {@link #completed(long, long)} method; the boxed bridge is provided by default.
+     */
+    interface LongCompletionCallback extends CompletionCallback<Long>
+    {
+        @Override
+        default void completed(
+            long contextId,
+            Long result)
+        {
+            completed(contextId, result.longValue());
+        }
+
+        /**
+         * Primitive {@code long} variant of {@link #completed(long, Long)}.
+         *
+         * @param contextId  the {@code contextId} supplied to the originating call
+         * @param result     the operation result
+         */
+        void completed(
+            long contextId,
+            long result);
+    }
 }

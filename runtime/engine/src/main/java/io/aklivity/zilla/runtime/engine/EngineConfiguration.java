@@ -26,6 +26,7 @@ import java.io.File;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
+import java.lang.module.ModuleDescriptor;
 import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -44,6 +45,7 @@ import org.agrona.concurrent.ringbuffer.RingBufferDescriptor;
 
 import com.sun.management.OperatingSystemMXBean;
 
+import io.aklivity.zilla.runtime.engine.Configuration.BooleanPropertyDef;
 import io.aklivity.zilla.runtime.engine.internal.layouts.BudgetsLayout;
 import io.aklivity.zilla.runtime.engine.security.RevocationStrategy;
 
@@ -60,6 +62,7 @@ public class EngineConfiguration extends Configuration
     public static final BooleanPropertyDef ENGINE_CONFIG_WATCH;
     public static final IntPropertyDef ENGINE_CONFIG_POLL_INTERVAL_SECONDS;
     public static final PropertyDef<String> ENGINE_NAME;
+    public static final PropertyDef<String> ENGINE_VERSION;
     public static final PropertyDef<String> ENGINE_DIRECTORY;
     public static final PropertyDef<Path> ENGINE_CACHE_DIRECTORY;
     public static final PropertyDef<HostResolver> ENGINE_HOST_RESOLVER;
@@ -85,6 +88,7 @@ public class EngineConfiguration extends Configuration
     public static final LongPropertyDef ENGINE_BACKOFF_MAX_PARK_NANOS_BEFORE_SELECT;
     public static final IntPropertyDef ENGINE_BACKOFF_MAX_SELECT_MILLIS;
     public static final BooleanPropertyDef ENGINE_DRAIN_ON_CLOSE;
+    public static final BooleanPropertyDef ENGINE_DETACH_ON_CLOSE;
     public static final BooleanPropertyDef ENGINE_SYNTHETIC_ABORT;
     public static final LongPropertyDef ENGINE_ROUTED_DELAY_MILLIS;
     public static final LongPropertyDef ENGINE_CREDITOR_CHILD_CLEANUP_LINGER_MILLIS;
@@ -121,6 +125,7 @@ public class EngineConfiguration extends Configuration
         ENGINE_CONFIG_WATCH = config.property("config.watch", true);
         ENGINE_CONFIG_POLL_INTERVAL_SECONDS = config.property("config.poll.interval.seconds", 60);
         ENGINE_NAME = config.property("name", EngineConfiguration::defaultName);
+        ENGINE_VERSION = config.property("version", EngineConfiguration::defaultVersion);
         ENGINE_DIRECTORY = config.property("directory", EngineConfiguration::defaultDirectory);
         ENGINE_CACHE_DIRECTORY = config.property(Path.class, "cache.directory", EngineConfiguration::cacheDirectory, "cache");
         ENGINE_HOST_RESOLVER = config.property(HostResolver.class, "host.resolver",
@@ -150,6 +155,7 @@ public class EngineConfiguration extends Configuration
         ENGINE_BACKOFF_MAX_PARK_NANOS = config.property("backoff.max.park.nanos", MILLISECONDS.toNanos(100L));
         ENGINE_BACKOFF_MAX_SELECT_MILLIS = config.property("backoff.max.select.millis", 5);
         ENGINE_DRAIN_ON_CLOSE = config.property("drain.on.close", false);
+        ENGINE_DETACH_ON_CLOSE = config.property("detach.on.close", true);
         ENGINE_SYNTHETIC_ABORT = config.property("synthetic.abort", false);
         ENGINE_ROUTED_DELAY_MILLIS = config.property("routed.delay.millis", 0L);
         ENGINE_CREDITOR_CHILD_CLEANUP_LINGER_MILLIS = config.property("child.cleanup.linger", SECONDS.toMillis(5L));
@@ -158,7 +164,7 @@ public class EngineConfiguration extends Configuration
         ENGINE_VERBOSE_COMPOSITES = config.property("verbose.composites", false);
         ENGINE_VERBOSE_SCHEMA = config.property("verbose.schema", false);
         ENGINE_VERBOSE_SCHEMA_PLAIN = config.property("verbose.schema.plain", false);
-        ENGINE_VERBOSE_EXCEPTIONS = config.property("exception-traces", false);
+        ENGINE_VERBOSE_EXCEPTIONS = config.property("verbose.exceptions", false);
         ENGINE_VERBOSE_EVENTS = config.property("verbose.events", false);
         ENGINE_CLOCK = config.property(Clock.class, "clock",
             EngineConfiguration::decodeCLock, EngineConfiguration::defaultClock);
@@ -231,6 +237,11 @@ public class EngineConfiguration extends Configuration
     public String name()
     {
         return ENGINE_NAME.get(this);
+    }
+
+    public String version()
+    {
+        return ENGINE_VERSION.get(this);
     }
 
     @Override
@@ -333,6 +344,11 @@ public class EngineConfiguration extends Configuration
     {
         int maxParks = (int)(Math.ceil(Math.log(maxParkNanosBeforeSelect() /  (double) minParkNanos()) / Math.log(2)));
         return maxSpins() + maxYields() + maxParks;
+    }
+
+    public boolean detachOnClose()
+    {
+        return ENGINE_DETACH_ON_CLOSE.getAsBoolean(this);
     }
 
     public boolean drainOnClose()
@@ -572,6 +588,15 @@ public class EngineConfiguration extends Configuration
         Configuration config)
     {
         return System.getProperty(ZILLA_NAME_PROPERTY, "zilla");
+    }
+
+    private static String defaultVersion(
+        Configuration config)
+    {
+        ModuleDescriptor descriptor = EngineConfiguration.class.getModule().getDescriptor();
+        return descriptor != null
+            ? descriptor.version().map(ModuleDescriptor.Version::toString).orElse("develop-SNAPSHOT")
+            : "develop-SNAPSHOT";
     }
 
     private static String defaultDirectory(

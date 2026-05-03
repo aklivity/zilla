@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Base64;
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -92,6 +93,16 @@ public final class CoreFunctions
         }
 
         return new String(result, StandardCharsets.UTF_8);
+    }
+
+    @Function
+    public static String randomBase64(
+        int length)
+    {
+        Random random = new Random(length);
+        byte[] bytes = new byte[length];
+        random.nextBytes(bytes);
+        return Base64.getEncoder().encodeToString(bytes);
     }
 
     @Function

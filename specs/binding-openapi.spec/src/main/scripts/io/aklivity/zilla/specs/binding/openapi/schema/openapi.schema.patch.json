@@ -125,7 +125,8 @@
                         },
                         "additionalProperties": false
                     },
-                    "routes": false
+                    "routes": false,
+                    "entry": false
                 },
                 "oneOf":
                 [

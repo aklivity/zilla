@@ -34,7 +34,8 @@
                     "catalog": false,
                     "vault": false,
                     "options": false,
-                    "routes": false
+                    "routes": false,
+                    "entry": false
                 },
                 "anyOf":
                 [

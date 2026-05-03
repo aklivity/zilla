@@ -290,6 +290,57 @@ navigating the class from the top encounter the stream logic first; the
 low-level frame-writing helpers at the bottom are only consulted when needed
 and do not need to be scrolled past to reach the interesting code.
 
+### Per-stream field naming
+
+Each inner stream class (in server, client, and proxy bindings) maintains a
+standard set of fields tracking stream identity, flow control, and state. These
+fields follow a strict `initialXxx` / `replyXxx` naming convention
+corresponding to the two directions of a bidirectional stream (initial =
+request direction, reply = response direction).
+
+**Stream identity fields:**
+
+| Field           | Type   | Purpose                                            |
+|-----------------|--------|----------------------------------------------------|
+| `initialId`     | `long` | Stream identifier for the initial direction        |
+| `replyId`       | `long` | Stream identifier for the reply direction          |
+| `originId`      | `long` | Origin binding identifier                          |
+| `routedId`      | `long` | Routed binding identifier                          |
+| `authorization` | `long` | Authorization context carried on the stream        |
+| `affinity`      | `long` | Affinity hint for stream routing                   |
+
+**Flow-control fields (declared per direction):**
+
+| Suffix | Full name   | Type   | Purpose                                          |
+|--------|-------------|--------|--------------------------------------------------|
+| `Seq`  | sequence    | `long` | Running byte-position counter                    |
+| `Ack`  | acknowledge | `long` | Acknowledged byte-position from peer             |
+| `Max`  | maximum     | `int`  | Maximum window size (bytes in flight)            |
+| `Bud`  | budget id   | `long` | Shared budget identifier for credit allocation   |
+| `Pad`  | padding     | `int`  | Reserved bytes per frame (protocol overhead)     |
+
+Every stream class declares both directions:
+
+```java
+private long initialSeq;
+private long initialAck;
+private int  initialMax;
+private long initialBud;
+private int  initialPad;
+
+private long replySeq;
+private long replyAck;
+private int  replyMax;
+private long replyBud;
+private int  replyPad;
+```
+
+**State field:**
+
+- `state` (`int`) — a bitfield tracking open/closing/closed for both
+  directions, managed by an `XxxState` utility class with static bitmask
+  methods (e.g., `openingInitial(state)`, `closedReply(state)`)
+
 ### Buffer slot usage
 
 When a binding needs to buffer data mid-decode or mid-encode (e.g., to
@@ -602,11 +653,12 @@ Follow this order — tests before implementation:
    `LICENSE-AklivityCommunity`, `COPYRIGHT-AklivityCommunity`, and
    `NOTICE-AklivityCommunity` from the top-level repository directory, renaming
    them to `LICENSE`, `COPYRIGHT`, and `NOTICE.template` respectively in the
-   new module. Then generate `NOTICE` by running `./mvnw notice:generate` in
-   the new module directory; do not copy `NOTICE` from another module as it
-   must reflect the new module's actual dependencies. Never edit `NOTICE`
-   directly — it is always regenerated from `NOTICE.template` and the
-   module's dependency list by Maven; manual edits will be overwritten. Source file headers must carry the Aklivity
+   new module. Then generate `NOTICE` by running
+   `./mvnw notice:generate --projects <path/to/project>` from the repository
+   root; do not copy `NOTICE` from another module as it must reflect the new
+   module's actual dependencies. Never edit `NOTICE` files directly — always
+   regenerate via `./mvnw notice:generate --projects <path/to/project>`;
+   manual edits will be overwritten. Source file headers must carry the Aklivity
    Community License copyright notice (`Copyright 2021-2024 Aklivity Inc`);
    run `./mvnw license:format` to apply the correct header automatically
 4. Declare `module-info.java` — exports SPI packages only, keeps `internal.*`
@@ -695,7 +747,10 @@ it. This means:
 
 Scripts are organised under `streams/network/` and `streams/application/`
 within the spec project. Each scenario is a subdirectory containing a
-`client.rpt` and a `server.rpt`. The `network/` and `application/` trees are
+`client.rpt` and a `server.rpt`. Never copy scripts from the spec project into
+the runtime project — the spec module is declared as a test-scoped dependency
+in the runtime module's `pom.xml`, so scripts are resolved automatically via
+the classpath at test time. The `network/` and `application/` trees are
 **shared between the server-kind and client-kind** ITs for the same binding
 type — there is no duplication. The IT class declares a `K3poRule` script root
 pointing at `streams/network/...` or `streams/application/...` and references
@@ -964,6 +1019,10 @@ private void onNetworkData(
 - Prefer interface types over implementation classes for field, parameter, and
   return types where a suitable interface exists (e.g., `List` over `ArrayList`,
   `Map` over `HashMap`, `ConcurrentMap` over `ConcurrentHashMap`)
+- Never use fully qualified class names as field, parameter, or variable types —
+  add an `import` and use the simple type name. The only exception is a naming
+  collision where two different packages define the same class name; in that
+  case qualify the less-frequently-used type
 - Package-private classes preferred over public where there is no SPI contract
 - `final` on all fields; immutable config objects
 - Flyweight field names use the `*RO` / `*RW` suffix convention consistently
@@ -1000,6 +1059,32 @@ import io.aklivity.zilla.runtime.engine.vault.VaultHandler;        // v
 When adding a new import, insert it at the correct alphabetical position —
 do not append it at the end of the group.
 
+### Engine SPI conventions
+
+The engine SPI interfaces (`GuardHandler`, `BindingHandler`, `VaultHandler`,
+`StoreHandler`, etc.) are consumed by many independently-developed modules.
+Two conventions to follow when adding to or modifying them:
+
+- **Javadoc stays protocol-neutral.** Describe the contract — what the method
+  receives, what it returns, what callers can rely on — without referencing
+  specific upstream protocols or specific
+  bindings. Protocol-specific terminology (e.g. authorization-server `state`
+  parameters, `redirect_uri`, JWT `sub` claims) belongs in the implementing
+  module's source, not the engine SPI. When the parameter format depends on
+  the implementation, say "the format is guard-specific" (or
+  binding-/vault-/store-specific) and let the implementing module document
+  the specifics.
+- **Default methods return `null` for absent values, not empty collections.**
+  Matches the nullable convention already used by `identity`, `attribute`, and
+  `credentials` on `GuardHandler`. Even though the JDK collection factories
+  (`Set.of()`, `List.of()`) return cached singletons, the project convention
+  is `null` so callers learn one rule across the SPI rather than mixing styles.
+
+PR descriptions for engine SPI changes follow the same neutrality — describe
+the engine-level addition and the in-tree consumer that justifies it (e.g.
+"required by `binding-mcp` elicitation flow"); do not name downstream products
+or proprietary modules as motivation.
+
 ---
 
 ## Key dependencies
@@ -1025,6 +1110,15 @@ do not append it at the end of the group.
    `feat(binding-http): add trailers support`
    `fix(engine): release mmap'd segment on log rotation`
 6. Do not include generated sources (`target/`) or IDE files in commits
+
+### Diagnosing PR build failures
+
+When a PR build fails, always fetch the actual CI logs before attempting to
+diagnose or fix the failure. Do not guess at the cause based on the change
+diff alone — retrieve the logs first using GitHub MCP tools, or ask the user
+to provide them. Build failures often have non-obvious root causes (e.g., a
+checkstyle violation, a transitive module-info issue, or a flaky unrelated
+test) that are impossible to diagnose without the log output.
 
 For significant new bindings or behavior changes, open a GitHub Issue first
 to discuss the design before writing code.

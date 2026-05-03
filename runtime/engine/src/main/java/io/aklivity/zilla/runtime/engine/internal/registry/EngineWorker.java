@@ -1006,7 +1006,10 @@ public class EngineWorker implements EngineContext, Agent
     @Override
     public void onClose()
     {
-        registry.detachAll();
+        if (config.detachOnClose())
+        {
+            registry.detachAll();
+        }
 
         poller.onClose();
 

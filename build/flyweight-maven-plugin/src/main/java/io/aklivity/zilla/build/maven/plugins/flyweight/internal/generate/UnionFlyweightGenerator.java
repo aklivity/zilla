@@ -991,6 +991,7 @@ public final class UnionFlyweightGenerator extends ClassSpecGenerator
             buildMethod.build();
             return builder.addMethod(constructor())
                           .addMethod(wrapMethod.generate())
+                          .addMethod(injectMethod())
                           .build();
         }
 
@@ -999,6 +1000,18 @@ public final class UnionFlyweightGenerator extends ClassSpecGenerator
             return constructorBuilder()
                     .addModifiers(PUBLIC)
                     .addStatement("super(new $T())", unionType)
+                    .build();
+        }
+
+        private MethodSpec injectMethod()
+        {
+            ClassName consumerType = ClassName.get(Consumer.class);
+            return methodBuilder("inject")
+                    .addModifiers(PUBLIC)
+                    .returns(thisName)
+                    .addParameter(ParameterizedTypeName.get(consumerType, thisName), "injector")
+                    .addStatement("injector.accept(this)")
+                    .addStatement("return this")
                     .build();
         }
 

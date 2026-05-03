@@ -27,6 +27,7 @@
     <module>binding-tls.spec</module>
     <module>binding-http.spec</module>
     <module>binding-grpc.spec</module>
+    <module>binding-mcp.spec</module>
     <module>binding-mqtt.spec</module>
     <module>binding-openapi.spec</module>
     <module>binding-openapi-asyncapi.spec</module>
@@ -120,6 +121,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>binding-http-filesystem.spec</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>binding-mcp.spec</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

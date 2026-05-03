@@ -1,5 +1,76 @@
 # Changelog
 
+## [1.2.1](https://github.com/aklivity/zilla/tree/1.2.1) (2026-04-30)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/1.2.0...1.2.1)
+
+**Implemented enhancements:**
+
+- binding-mcp: implement mcp · proxy binding [\#1669](https://github.com/aklivity/zilla/issues/1669)
+
+**Merged pull requests:**
+
+- feat\(engine\): add async reauthorize overload on GuardHandler [\#1741](https://github.com/aklivity/zilla/pull/1741) ([akrambek](https://github.com/akrambek))
+- feat\(schema\): add entry: false to all binding schemas except kafka-grpc [\#1740](https://github.com/aklivity/zilla/pull/1740) ([ankitk-me](https://github.com/ankitk-me))
+- feat\(engine\): add store reference, preauthorize, and roles on GuardHandler [\#1734](https://github.com/aklivity/zilla/pull/1734) ([akrambek](https://github.com/akrambek))
+- feat\(binding-mcp\): implement mcp proxy binding [\#1709](https://github.com/aklivity/zilla/pull/1709) ([jfallows](https://github.com/jfallows))
+
+## [1.2.0](https://github.com/aklivity/zilla/tree/1.2.0) (2026-04-28)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/1.1.9...1.2.0)
+
+**Implemented enhancements:**
+
+- engine: implement sys: system namespace with built-in egress bindings [\#1677](https://github.com/aklivity/zilla/issues/1677)
+- binding-http: derive ProxyBeginEx from :authority in HttpBeginEx for stream-driven destination routing [\#1676](https://github.com/aklivity/zilla/issues/1676)
+- binding-mcp: implement mcp · client binding [\#1670](https://github.com/aklivity/zilla/issues/1670)
+
+**Merged pull requests:**
+
+- feat\(flyweight-maven-plugin\): add inject\(Consumer&lt;Builder&gt;\) on generated struct + union builders [\#1738](https://github.com/aklivity/zilla/pull/1738) ([jfallows](https://github.com/jfallows))
+- fix\(binding-tcp\): prevent NPE when retrying accept across contexts [\#1735](https://github.com/aklivity/zilla/pull/1735) ([akrambek](https://github.com/akrambek))
+- feat\(engine\): add sys:http\_client, sys:tls\_client, sys:tcp\_client built-in egress bindings \(\#1677\) [\#1717](https://github.com/aklivity/zilla/pull/1717) ([jfallows](https://github.com/jfallows))
+- feat\(binding-http\): derive ProxyBeginEx from :authority for stream-driven routing [\#1713](https://github.com/aklivity/zilla/pull/1713) ([jfallows](https://github.com/jfallows))
+- feat\(binding-mcp\): implement mcp client binding [\#1711](https://github.com/aklivity/zilla/pull/1711) ([jfallows](https://github.com/jfallows))
+
+## [1.1.9](https://github.com/aklivity/zilla/tree/1.1.9) (2026-04-22)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/1.1.8...1.1.9)
+
+**Merged pull requests:**
+
+- test\(engine\): add store operation drivers to TestBinding [\#1732](https://github.com/aklivity/zilla/pull/1732) ([akrambek](https://github.com/akrambek))
+
+## [1.1.8](https://github.com/aklivity/zilla/tree/1.1.8) (2026-04-20)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/1.1.7...1.1.8)
+
+**Implemented enhancements:**
+
+- binding-mcp: implement mcp · server binding [\#1668](https://github.com/aklivity/zilla/issues/1668)
+
+**Merged pull requests:**
+
+- Enhance metric resolution for raw protocol bindings [\#1730](https://github.com/aklivity/zilla/pull/1730) ([akrambek](https://github.com/akrambek))
+- fix\(ci\): wrap teardown if-expression entirely in ${{ }} [\#1729](https://github.com/aklivity/zilla/pull/1729) ([jfallows](https://github.com/jfallows))
+- feat\(binding-mcp\): implement mcp · server binding [\#1705](https://github.com/aklivity/zilla/pull/1705) ([jfallows](https://github.com/jfallows))
+
+## [1.1.7](https://github.com/aklivity/zilla/tree/1.1.7) (2026-04-17)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/1.1.6...1.1.7)
+
+**Closed issues:**
+
+- `SafeBuffer`: `AtomicBuffer` implementation backed by `MemorySegment` [\#1719](https://github.com/aklivity/zilla/issues/1719)
+- Design configuration syntax for metrics with arbitrary attributes [\#1636](https://github.com/aklivity/zilla/issues/1636)
+- Deliver support for metrics with arbitrary attributes [\#1577](https://github.com/aklivity/zilla/issues/1577)
+
+**Merged pull requests:**
+
+- Enhance metric resolution for raw protocol bindings [\#1725](https://github.com/aklivity/zilla/pull/1725) ([akrambek](https://github.com/akrambek))
+- feat\(engine\): add SafeBuffer backed by MemorySegment FFM API [\#1720](https://github.com/aklivity/zilla/pull/1720) ([jfallows](https://github.com/jfallows))
+- Support configuration syntax for metrics with arbitrary attributes [\#1696](https://github.com/aklivity/zilla/pull/1696) ([akrambek](https://github.com/akrambek))
+
 ## [1.1.6](https://github.com/aklivity/zilla/tree/1.1.6) (2026-04-08)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/1.1.5...1.1.6)

@@ -1,0 +1,134 @@
+[
+    {
+        "op": "add",
+        "path": "/$defs/binding/properties/type/enum/-",
+        "value": "mcp"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/binding/allOf/-",
+        "value":
+        {
+            "if":
+            {
+               "properties":
+                {
+                    "type":
+                    {
+                        "const": "mcp"
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "type":
+                    {
+                        "const": "mcp"
+                    },
+                    "kind":
+                    {
+                        "enum": [ "server", "client", "proxy" ]
+                    },
+                    "entry": false,
+                    "options":
+                    {
+                        "properties":
+                        {
+                            "prompts":
+                            {
+                                "title": "Local Prompts",
+                                "type": "array",
+                                "items":
+                                {
+                                    "type": "object",
+                                    "properties":
+                                    {
+                                        "name":
+                                        {
+                                            "title": "Prompt Name",
+                                            "type": "string"
+                                        },
+                                        "description":
+                                        {
+                                            "title": "Prompt Description",
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [ "name" ],
+                                    "additionalProperties": false
+                                }
+                            }
+                        },
+                        "additionalProperties": false
+                    },
+                    "routes":
+                    {
+                        "title": "Routes",
+                        "type": "array",
+                        "items":
+                        {
+                            "type": "object",
+                            "properties":
+                            {
+                                "when":
+                                {
+                                    "title": "When",
+                                    "type": "array",
+                                    "items":
+                                    {
+                                        "type": "object",
+                                        "properties":
+                                        {
+                                            "toolkit":
+                                            {
+                                                "title": "Toolkit",
+                                                "type": "string"
+                                            },
+                                            "capability":
+                                            {
+                                                "title": "Capability",
+                                                "type": "array",
+                                                "items":
+                                                {
+                                                    "type": "string",
+                                                    "enum": [ "tools", "prompts", "resources" ]
+                                                },
+                                                "minItems": 1,
+                                                "uniqueItems": true
+                                            }
+                                        },
+                                        "additionalProperties": false
+                                    }
+                                },
+                                "with":
+                                {
+                                    "title": "With",
+                                    "type": "object",
+                                    "properties":
+                                    {
+                                        "headers":
+                                        {
+                                            "title": "Headers",
+                                            "type": "object",
+                                            "patternProperties":
+                                            {
+                                                "^(?!(:method|content-type|mcp-))[A-Za-z0-9:-]+$":
+                                                {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "additionalProperties": false
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+]

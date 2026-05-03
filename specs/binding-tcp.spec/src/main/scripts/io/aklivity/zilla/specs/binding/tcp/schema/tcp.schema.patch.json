@@ -37,6 +37,7 @@
                     {
                         "$ref": "#/$defs/options/binding/tcp"
                     },
+                    "entry": false,
                     "routes":
                     {
                         "title": "Routes",

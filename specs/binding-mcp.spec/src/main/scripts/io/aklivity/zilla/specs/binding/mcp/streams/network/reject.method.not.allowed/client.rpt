@@ -1,0 +1,39 @@
+#
+# Copyright 2021-2024 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+connect "zilla://streams/net0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${http:beginEx()
+                            .typeId(zilla:id("http"))
+                            .header(":method", "PUT")
+                            .header(":scheme", "http")
+                            .header(":authority", "localhost:8080")
+                            .header(":path", "/mcp")
+                            .header("mcp-protocol-version", "2025-11-25")
+                            .build()}
+
+# TODO: enable once k3po supports `connect aborted` followed by `read zilla:reset.ext`
+#       to assert the extension on the RESET that caused the abort.
+#       Paired peer-side enhancement: a `reject zilla:reset.ext ${...}` primitive
+#       that responds to the inbound BEGIN with a RESET carrying the given
+#       extension without transitioning through `connected`. Both are needed
+#       together so client and server scripts can verify each other.
+# read zilla:reset.ext ${http:resetEx()
+#                            .typeId(zilla:id("http"))
+#                            .header(":status", "405")
+#                            .build()}
+

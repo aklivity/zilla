@@ -106,6 +106,7 @@ public final class ZillaStreamFactory
 
         final ZillaTarget sender = supplySender.apply(streamId);
         sender.doChallenge(channel, originId, routedId, streamId, sequence, acknowledge, traceId, maximum, challengeExt);
+        challengeExt.clear();
     }
 
     public MessageHandler newStream(

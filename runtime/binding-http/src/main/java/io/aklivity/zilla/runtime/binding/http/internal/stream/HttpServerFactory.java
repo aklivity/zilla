@@ -39,7 +39,7 @@ import static io.aklivity.zilla.runtime.engine.budget.BudgetDebitor.NO_DEBITOR_I
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static io.aklivity.zilla.runtime.engine.guard.GuardHandler.EXPIRES_NEVER;
-import static io.aklivity.zilla.runtime.engine.guard.GuardHandler.NOT_AUTHORIZED;
+import static io.aklivity.zilla.runtime.engine.guard.GuardHandler.MASK_AUTHORIZED;
 import static java.lang.Character.toLowerCase;
 import static java.lang.Character.toUpperCase;
 import static java.lang.Integer.parseInt;
@@ -1218,7 +1218,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                         }
                         else
                         {
-                            error = guard != null && exchangeAuth == NOT_AUTHORIZED
+                            error = guard != null && (exchangeAuth & MASK_AUTHORIZED) == 0
                                 ? credentialsMatch != null ? response403 : response401
                                 : response404;
                         }
@@ -5191,7 +5191,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                         if (route == null)
                         {
                             Array32FW<HttpHeaderFW> headers40x =
-                                guard != null && exchangeAuth == NOT_AUTHORIZED
+                                guard != null && (exchangeAuth & MASK_AUTHORIZED) == 0
                                     ? credentialsMatch != null ? headers403 : headers401
                                     : headers404;
                             doEncodeHeaders(traceId, authorization, streamId, headers40x, true);
@@ -6227,7 +6227,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
             private void deauthorizeIfNecessary()
             {
-                if (HttpState.closed(state) && sessionId != 0L && guard != null)
+                if (HttpState.closed(state) && (sessionId & MASK_AUTHORIZED) != 0 && guard != null)
                 {
                     guard.deauthorize(sessionId);
                 }
@@ -7430,7 +7430,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         int contextId)
     {
         long expiringId = NO_CANCEL_ID;
-        if (sessionId != NOT_AUTHORIZED)
+        if ((sessionId & MASK_AUTHORIZED) != 0)
         {
             final long expiringAt = guard.expiringAt(sessionId);
             if (expiringAt != EXPIRES_NEVER)

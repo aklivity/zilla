@@ -54,6 +54,6 @@ public class HttpRequestSizeMetric implements Metric
     public MetricContext supply(
         EngineContext context)
     {
-        return new HttpSizeMetricContext(GROUP, kind(), RECEIVED);
+        return new HttpSizeMetricContext(GROUP, kind(), RECEIVED, context::supplyTypeId);
     }
 }
