@@ -244,9 +244,6 @@ final class TestBindingFactory implements BindingHandler
         }
         else
         {
-            // Always go through the async overload — sync guards run inline via the default
-            // {@link GuardHandler#reauthorize(long,long,long,String,LongCompletionCallback)}
-            // bridge; only OAuth-style guards actually defer the callback.
             TestSource deferred = new TestSource(source, originId, routedId, initialId, replyId, 0L);
             newStream = deferred::onMessage;
             doAuthorize(begin.traceId(), routedId, deferred, binding);
@@ -300,11 +297,6 @@ final class TestBindingFactory implements BindingHandler
             onAuthorized(traceId, routedId, deferred, binding, NOT_AUTHORIZED);
             return;
         }
-        // Per the GuardHandler.preauthorize contract, the redirect-callback URL is passed
-        // back to reauthorize as the credentials. Forward whatever query params the guard
-        // embedded in the preauthorize URL verbatim, then append any additional params the
-        // test configured. The test binding stays guard-agnostic — it doesn't interpret any
-        // specific param name.
         String callbackResponse = buildCallbackResponse(callbackUri, url, callbackParams);
         guard.reauthorize(traceId, routedId, 0, callbackResponse, new LongCompletionCallback()
         {
