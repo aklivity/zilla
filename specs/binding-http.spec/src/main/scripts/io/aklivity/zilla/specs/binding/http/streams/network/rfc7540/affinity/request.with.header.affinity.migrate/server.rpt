@@ -18,6 +18,18 @@ accept "zilla://streams/net0"
        option zilla:window 8192
        option zilla:transmission "duplex"
 accepted
+
+read zilla:begin.ext ${proxy:beginEx()
+                            .typeId(zilla:id("proxy"))
+                            .addressInet4()
+                              .protocol("stream")
+                              .source("0.0.0.0")
+                              .destination("0.0.0.0")
+                              .sourcePort(0)
+                              .destinationPort(8080)
+                              .build()
+                            .build()}
+
 connected
 
 # server connection preface - SETTINGS frame

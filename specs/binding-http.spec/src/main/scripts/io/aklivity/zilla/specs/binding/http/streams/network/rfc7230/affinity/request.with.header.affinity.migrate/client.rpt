@@ -14,16 +14,32 @@
 # under the License.
 #
 
-connect "http://server.example.com:8080/items"
-  option http:transport "zilla://streams/net0"
+connect "zilla://streams/net0"
   option zilla:window 8192
   option zilla:transmission "duplex"
+
+write zilla:begin.ext ${proxy:beginEx()
+                             .typeId(zilla:id("proxy"))
+                             .addressInet4()
+                               .protocol("stream")
+                               .source("0.0.0.0")
+                               .destination("0.0.0.0")
+                               .sourcePort(0)
+                               .destinationPort(8080)
+                               .build()
+                             .build()}
+
 connected
 
-write http:method "GET"
-write http:header "session-id" "sess-1"
+write "GET /items HTTP/1.1\r\n"
+      "Host: server.example.com:8080\r\n"
+      "session-id: sess-1\r\n"
+      "\r\n"
 write close
 
-read http:status "429" "Too Many Requests"
-read http:header "retry-after" "0"
-read http:header "alt-svc" "http/1.1=\"server-1.example.net:8080\"; ma=86400"
+read "HTTP/1.1 429 Too Many Requests\r\n"
+     "Retry-After: 0\r\n"
+     "Connection: close\r\n"
+     "Alt-Svc: http/1.1=\"server-1.example.net:8080\"; ma=86400\r\n"
+     "\r\n"
+read closed

@@ -25,12 +25,26 @@ import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 
 public final class TestStoreHandler implements StoreHandler
 {
+    private static final Map<String, String> SEEDS = new HashMap<>();
+
+    public static void seed(
+        String key,
+        String value)
+    {
+        SEEDS.put(key, value);
+    }
+
+    public static void clearSeeds()
+    {
+        SEEDS.clear();
+    }
+
     private final Map<String, String> entries;
 
     public TestStoreHandler(
         StoreConfig store)
     {
-        this.entries = new HashMap<>();
+        this.entries = new HashMap<>(SEEDS);
     }
 
     @Override
