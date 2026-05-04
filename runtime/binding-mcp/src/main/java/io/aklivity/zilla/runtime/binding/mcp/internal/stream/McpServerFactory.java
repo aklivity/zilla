@@ -86,7 +86,6 @@ public final class McpServerFactory implements McpStreamFactory
     private static final String JSON_RPC_VERSION = "2.0";
     private static final String HTTP_HEADER_METHOD = ":method";
     private static final String HTTP_HEADER_PATH = ":path";
-    private static final String HTTP_HEADER_AUTHORITY = ":authority";
     private static final String HTTP_HEADER_SESSION = "mcp-session-id";
     private static final String HTTP_HEADER_STATUS = ":status";
     private static final String HTTP_HEADER_CONTENT_TYPE = "content-type";
@@ -329,10 +328,6 @@ public final class McpServerFactory implements McpStreamFactory
                 .matchFirst(h -> HTTP_HEADER_PATH.equals(h.name().asString()));
             final String path = pathHeader != null ? pathHeader.value().asString() : null;
 
-            final HttpHeaderFW authorityHeader = httpBeginEx.headers()
-                .matchFirst(h -> HTTP_HEADER_AUTHORITY.equals(h.name().asString()));
-            final String authority = authorityHeader != null ? authorityHeader.value().asString() : null;
-
             final McpLifecycleStream resolvedSession = session;
 
             switch (method)
@@ -344,7 +339,7 @@ public final class McpServerFactory implements McpStreamFactory
                 }
                 else
                 {
-                    final String redirectUri = computeRedirectUri(binding, authority, path);
+                    final String redirectUri = binding != null ? binding.resolveRedirectUri(httpBeginEx) : null;
                     newStream = new McpServer(
                         sender,
                         originId,
@@ -4671,24 +4666,6 @@ public final class McpServerFactory implements McpStreamFactory
             (accept.contains(CONTENT_TYPE_EVENT_STREAM) ||
              accept.contains("*/*") ||
              accept.contains("text/*"));
-    }
-
-    private static String computeRedirectUri(
-        McpBindingConfig binding,
-        String authority,
-        String path)
-    {
-        String redirectUri = null;
-        if (authority != null && path != null)
-        {
-            McpElicitationConfig elicitation = binding != null && binding.options != null
-                ? binding.options.elicitation : null;
-            String callback = elicitation != null ? elicitation.callback : McpElicitationConfig.DEFAULT_CALLBACK_PATH;
-            int queryAt = path.indexOf('?');
-            String pathOnly = queryAt >= 0 ? path.substring(0, queryAt) : path;
-            redirectUri = "https://" + authority + pathOnly + "/" + callback;
-        }
-        return redirectUri;
     }
 
     private static String manipulateElicitUrl(

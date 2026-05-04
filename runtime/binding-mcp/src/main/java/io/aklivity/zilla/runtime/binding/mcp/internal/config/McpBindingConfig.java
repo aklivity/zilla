@@ -18,12 +18,18 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import io.aklivity.zilla.runtime.binding.mcp.config.McpElicitationConfig;
 import io.aklivity.zilla.runtime.binding.mcp.config.McpOptionsConfig;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.HttpHeaderFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class McpBindingConfig
 {
+    private static final String HTTP_HEADER_AUTHORITY = ":authority";
+    private static final String HTTP_HEADER_PATH = ":path";
+
     public final long id;
     public final McpOptionsConfig options;
 
@@ -121,5 +127,31 @@ public final class McpBindingConfig
         }
 
         return result;
+    }
+
+    public String resolveRedirectUri(
+        HttpBeginExFW httpBeginEx)
+    {
+        String redirectUri = null;
+        if (httpBeginEx != null)
+        {
+            final HttpHeaderFW authorityHeader = httpBeginEx.headers()
+                .matchFirst(h -> HTTP_HEADER_AUTHORITY.equals(h.name().asString()));
+            final HttpHeaderFW pathHeader = httpBeginEx.headers()
+                .matchFirst(h -> HTTP_HEADER_PATH.equals(h.name().asString()));
+            if (authorityHeader != null && pathHeader != null)
+            {
+                final String authority = authorityHeader.value().asString();
+                final String path = pathHeader.value().asString();
+                final int queryAt = path.indexOf('?');
+                final String pathOnly = queryAt >= 0 ? path.substring(0, queryAt) : path;
+                final McpElicitationConfig elicitation = options != null ? options.elicitation : null;
+                final String callback = elicitation != null
+                    ? elicitation.callback
+                    : McpElicitationConfig.DEFAULT_CALLBACK_PATH;
+                redirectUri = "https://" + authority + pathOnly + "/" + callback;
+            }
+        }
+        return redirectUri;
     }
 }
