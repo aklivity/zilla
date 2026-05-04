@@ -34,6 +34,7 @@ public class HttpWithResolver
 
     private final Matcher paramsMatcher;
     private final HttpWithConfig with;
+    private final HttpAffinityResolver affinity;
 
     private Function<MatchResult, String> replacer = r -> null;
 
@@ -42,6 +43,14 @@ public class HttpWithResolver
     {
         this.paramsMatcher = PARAMS_PATTERN.matcher("");
         this.with = with;
+        this.affinity = with != null && with.affinity != null
+            ? new HttpAffinityResolver(with.affinity)
+            : null;
+    }
+
+    public HttpAffinityResolver affinity()
+    {
+        return affinity;
     }
 
     public void onConditionMatched(

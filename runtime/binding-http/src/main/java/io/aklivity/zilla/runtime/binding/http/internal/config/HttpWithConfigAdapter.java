@@ -21,6 +21,9 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonString;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.runtime.binding.http.config.HttpAffinityConfig;
+import io.aklivity.zilla.runtime.binding.http.config.HttpAffinityConfigBuilder;
+import io.aklivity.zilla.runtime.binding.http.config.HttpAffinitySource;
 import io.aklivity.zilla.runtime.binding.http.config.HttpWithConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpWithConfigBuilder;
 import io.aklivity.zilla.runtime.binding.http.internal.HttpBinding;
@@ -33,6 +36,10 @@ public class HttpWithConfigAdapter implements WithConfigAdapterSpi, JsonbAdapter
 {
     private static final String HEADERS_NAME = "headers";
     private static final String OVERRIDES_NAME = "overrides";
+    private static final String AFFINITY_NAME = "affinity";
+    private static final String AFFINITY_HEADER_NAME = "header";
+    private static final String AFFINITY_QUERY_NAME = "query";
+    private static final String AFFINITY_MATCH_NAME = "match";
 
     @Override
     public String type()
@@ -57,6 +64,25 @@ public class HttpWithConfigAdapter implements WithConfigAdapterSpi, JsonbAdapter
             object.add(HEADERS_NAME, object.add(OVERRIDES_NAME, entries));
         }
 
+        if (config.affinity != null)
+        {
+            JsonObjectBuilder affinity = Json.createObjectBuilder();
+            switch (config.affinity.source)
+            {
+            case HEADER:
+                affinity.add(AFFINITY_HEADER_NAME, config.affinity.name);
+                break;
+            case QUERY:
+                affinity.add(AFFINITY_QUERY_NAME, config.affinity.name);
+                break;
+            }
+            if (config.affinity.match != null)
+            {
+                affinity.add(AFFINITY_MATCH_NAME, config.affinity.match.pattern());
+            }
+            object.add(AFFINITY_NAME, affinity);
+        }
+
         return object.build();
     }
 
@@ -75,6 +101,40 @@ public class HttpWithConfigAdapter implements WithConfigAdapterSpi, JsonbAdapter
                     .forEach((k, v) ->
                         with.override(new String8FW(k), new String16FW(JsonString.class.cast(v).getString())));
             }
+        }
+
+        if (object.containsKey(AFFINITY_NAME))
+        {
+            JsonObject affinity = object.getJsonObject(AFFINITY_NAME);
+
+            HttpAffinityConfigBuilder<HttpAffinityConfig> builder = HttpAffinityConfig.builder();
+            HttpAffinitySource source = null;
+
+            if (affinity.containsKey(AFFINITY_HEADER_NAME))
+            {
+                builder.header(affinity.getString(AFFINITY_HEADER_NAME));
+                source = HttpAffinitySource.HEADER;
+            }
+            if (affinity.containsKey(AFFINITY_QUERY_NAME))
+            {
+                if (source != null)
+                {
+                    throw new IllegalArgumentException(
+                        "with.affinity must specify exactly one of 'header' or 'query', not both");
+                }
+                builder.query(affinity.getString(AFFINITY_QUERY_NAME));
+                source = HttpAffinitySource.QUERY;
+            }
+            if (source == null)
+            {
+                throw new IllegalArgumentException(
+                    "with.affinity must specify exactly one of 'header' or 'query'");
+            }
+            if (affinity.containsKey(AFFINITY_MATCH_NAME))
+            {
+                builder.match(affinity.getString(AFFINITY_MATCH_NAME));
+            }
+            with.affinity(builder.build());
         }
 
         return with.build();

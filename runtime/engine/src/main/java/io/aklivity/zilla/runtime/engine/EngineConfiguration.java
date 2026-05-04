@@ -107,6 +107,9 @@ public class EngineConfiguration extends Configuration
     public static final PropertyDef<ErrorReporter> ENGINE_ERROR_REPORTER;
     public static final PropertyDef<RevocationStrategy> ENGINE_CERTIFICATE_REVOCATION_STRATEGY;
     public static final PropertyDef<Path> ENGINE_DIAGNOSTICS_DIRECTORY;
+    public static final PropertyDef<String> ENGINE_SERVICE_HOSTNAME;
+    public static final PropertyDef<String> ENGINE_STORE_TYPE;
+    public static final PropertyDef<String> ENGINE_STORE_NAME;
 
     private static final ConfigurationDef ENGINE_CONFIG;
 
@@ -175,6 +178,9 @@ public class EngineConfiguration extends Configuration
             EngineConfiguration::decodeRevocationStrategy, RevocationStrategy.NONE);
         ENGINE_DIAGNOSTICS_DIRECTORY = config.property(Path.class, "diagnostics.directory",
             EngineConfiguration::decodeDiagnosticsDirectory, (String) null);
+        ENGINE_SERVICE_HOSTNAME = config.property("service.hostname");
+        ENGINE_STORE_TYPE = config.property("store.type");
+        ENGINE_STORE_NAME = config.property("store.name", "sys:state");
         ENGINE_CONFIG = config;
     }
 
@@ -413,6 +419,21 @@ public class EngineConfiguration extends Configuration
     public String cacertsStorePass()
     {
         return ENGINE_CACERTS_STORE_PASS.get(this);
+    }
+
+    public String serviceHostname()
+    {
+        return ENGINE_SERVICE_HOSTNAME.get(this);
+    }
+
+    public String storeType()
+    {
+        return ENGINE_STORE_TYPE.get(this);
+    }
+
+    public String storeName()
+    {
+        return ENGINE_STORE_NAME.get(this);
     }
 
     public Consumer<Throwable> errorReporter()

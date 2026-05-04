@@ -228,6 +228,10 @@ public final class Engine implements Collector, AutoCloseable
             .map(Exporter::system)
             .filter(Objects::nonNull)
             .forEach(systemConfigs::add);
+        stores.stream()
+            .map(Store::system)
+            .filter(Objects::nonNull)
+            .forEach(systemConfigs::add);
 
         final Map<String, Binding> bindingsByType = bindings.stream()
             .collect(Collectors.toMap(b -> b.name(), b -> b));

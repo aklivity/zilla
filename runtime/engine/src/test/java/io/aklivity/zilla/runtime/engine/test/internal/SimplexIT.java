@@ -117,6 +117,16 @@ public class SimplexIT
 
     @Test
     @Specification({
+        "handshake.affinity/client",
+        "handshake.affinity/server"
+    })
+    public void shouldHandshakeWithAffinity() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "handshake.budget.id/client",
         "handshake.budget.id/server"
     })

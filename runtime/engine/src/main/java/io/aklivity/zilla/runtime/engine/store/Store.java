@@ -63,4 +63,19 @@ public interface Store
      * @return the configuration schema URL
      */
     URL type();
+
+    /**
+     * Returns a URL pointing to a JSON patch document that contributes a built-in store
+     * binding under the engine's {@code system} namespace, or {@code null} when this store
+     * makes no system contribution.
+     * <p>
+     * Default returns {@code null}.
+     * </p>
+     *
+     * @return the system patch URL, or {@code null}
+     */
+    default URL system()
+    {
+        return null;
+    }
 }

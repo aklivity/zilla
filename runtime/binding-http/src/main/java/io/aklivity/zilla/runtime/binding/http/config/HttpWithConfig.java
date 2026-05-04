@@ -25,6 +25,7 @@ import io.aklivity.zilla.runtime.engine.config.WithConfig;
 public final class HttpWithConfig extends WithConfig
 {
     public final Map<String8FW, String16FW> overrides;
+    public final HttpAffinityConfig affinity;
 
     public static HttpWithConfigBuilder<HttpWithConfig> builder()
     {
@@ -39,9 +40,11 @@ public final class HttpWithConfig extends WithConfig
 
     HttpWithConfig(
         long compositeId,
-        Map<String8FW, String16FW> overrides)
+        Map<String8FW, String16FW> overrides,
+        HttpAffinityConfig affinity)
     {
         super(compositeId);
         this.overrides = overrides;
+        this.affinity = affinity;
     }
 }

@@ -77,6 +77,9 @@ public final class EngineRule implements TestRule
     public static final String ENGINE_LOCAL_CONFIG_URI_NAME = "zilla.engine.local.config.uri";
     public static final String ENGINE_WORKER_CAPACITY_NAME = "zilla.engine.worker.capacity";
     public static final String ENGINE_CLOCK_NAME = "zilla.engine.clock";
+    public static final String ENGINE_SERVICE_HOSTNAME_NAME = "zilla.engine.service.hostname";
+    public static final String ENGINE_STORE_TYPE_NAME = "zilla.engine.store.type";
+    public static final String ENGINE_STORE_NAME_NAME = "zilla.engine.store.name";
 
     private static final long EXTERNAL_AFFINITY_MASK = 1L << (Long.SIZE - 1);
     private static final Pattern DATA_FILENAME_PATTERN = Pattern.compile("data\\d+");
