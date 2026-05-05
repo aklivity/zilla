@@ -116,9 +116,16 @@ public class FileSystemVaultHandler implements VaultHandler
 
         if (config != null)
         {
+            load:
             try
             {
                 Path storePath = resolvePath.apply(config.store);
+                if (!Files.exists(storePath))
+                {
+                    System.out.println("[vault-filesystem] store not found: " + storePath);
+                    break load;
+                }
+
                 try (InputStream input = Files.newInputStream(storePath))
                 {
                     String type = Optional.ofNullable(config.type).orElse(STORE_TYPE_DEFAULT);

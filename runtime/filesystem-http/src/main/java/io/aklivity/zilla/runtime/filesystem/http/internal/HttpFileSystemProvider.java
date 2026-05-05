@@ -234,11 +234,22 @@ public class HttpFileSystemProvider extends FileSystemProvider
     }
 
     @Override
+    public boolean exists(
+        Path path,
+        LinkOption... options)
+    {
+        HttpPath httpPath = checkPath(path);
+        httpPath.readBody();
+        return httpPath.exists();
+    }
+
+    @Override
     public void checkAccess(
         Path path,
         AccessMode... modes)
     {
         Objects.requireNonNull(path);
+        checkPath(path);
     }
 
     @Override
