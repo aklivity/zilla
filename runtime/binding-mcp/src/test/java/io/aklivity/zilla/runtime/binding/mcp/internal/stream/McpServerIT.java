@@ -190,12 +190,11 @@ public class McpServerIT
         k3po.finish();
     }
 
-    @Ignore("k3po write-advised CHALLENGE does not produce a wire CHALLENGE through the " +
-        "zilla driver today, so the app cannot trigger SSE upgrade for elicit-create from " +
-        "McpServerIT. Peer-to-peer ApplicationIT and NetworkIT cover the same script as " +
-        "written. Re-enabling requires either a k3po-driver-zilla fix to emit CHALLENGE " +
-        "frames on write-advised, or moving elicitCreate from CHALLENGE onto a FLUSH " +
-        "extension (which does flow through the driver today).")
+    @Ignore("Requires the request stream's initial-forward to stay open while the app emits " +
+        "CHALLENGE elicitCreate (read-advise) so zilla receives it before the network END is " +
+        "propagated to the app. Zilla currently forwards END eagerly, closing initial before " +
+        "the app's read-advise can fire. Peer-to-peer ApplicationIT and NetworkIT exercise " +
+        "the same scripts and pass.")
     @Test
     @Configuration("server.yaml")
     @Specification({

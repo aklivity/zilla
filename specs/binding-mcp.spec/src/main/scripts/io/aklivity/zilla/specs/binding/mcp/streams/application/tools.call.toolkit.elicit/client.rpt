@@ -58,13 +58,13 @@ write '{'
         '}'
       '}'
 
-read advise zilla:challenge ${mcp:challengeEx()
-                                  .typeId(zilla:id("mcp"))
-                                  .elicitCreate()
-                                      .id("elicit-1")
-                                      .url("https://server.example.com/authorize?state=bluesky__7f3a9b1c&redirect_uri=https%3A%2F%2Freplace.me%2Fcallback")
-                                      .build()
-                                  .build()}
+write advised zilla:challenge ${mcp:matchChallengeEx()
+                                    .typeId(zilla:id("mcp"))
+                                    .elicitCreate()
+                                        .id("elicit-1")
+                                        .url("https://server.example.com/authorize?state=bluesky__7f3a9b1c&redirect_uri=https%3A%2F%2Freplace.me%2Fcallback")
+                                        .build()
+                                    .build()}
 
 write advise zilla:flush ${mcp:flushEx()
                               .typeId(zilla:id("mcp"))
