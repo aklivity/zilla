@@ -24,11 +24,22 @@ import java.util.function.Consumer;
  * A {@code StoreHandler} is obtained from {@link StoreContext#attach(StoreConfig)} and is
  * confined to a single I/O thread. It maintains mutable runtime state — session tokens, JWKS
  * keys, idempotency records, rate-limit counters, OAuth nonces — and evaluates operations on
- * the hot path without blocking or synchronization.
+ * the hot path without blocking or holding the calling thread.
+ * </p>
+ * <p>
+ * <b>All operations complete asynchronously.</b> Each method takes a completion callback. The
+ * callback fires <em>strictly later</em> than the call returns — never synchronously, even
+ * when the underlying backend can compute the result inline. The callback fires on the
+ * caller's I/O thread; the implementation owns the responsibility for thread alignment. For a
+ * local backend this means deferring via the engine signaler to the next event-loop tick of
+ * the same worker; for a networked backend it means hopping the network-completion event
+ * back onto the calling worker's signaler before invoking the callback. In either case the
+ * caller observes "callback runs on my thread, later".
  * </p>
  * <p>
  * Completion callbacks are pre-allocated per-stream and passed into each operation to avoid
- * heap allocation on the data path.
+ * heap allocation on the data path. The result of an operation is only valid inside the
+ * callback.
  * </p>
  *
  * @see StoreContext

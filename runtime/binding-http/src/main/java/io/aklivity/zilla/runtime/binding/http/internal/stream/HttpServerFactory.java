@@ -585,7 +585,6 @@ public final class HttpServerFactory implements HttpStreamFactory
     private final int altSvcMaxAge;
     private final MutableDirectBuffer migrateBuffer;
     private final UnsafeBuffer migrateBufferRO;
-    private final String[] migrateHolder;
 
     public HttpServerFactory(
         HttpConfiguration config,
@@ -625,7 +624,6 @@ public final class HttpServerFactory implements HttpStreamFactory
         this.altSvcMaxAge = config.altSvcMaxAge();
         this.migrateBuffer = new UnsafeBuffer(new byte[1024]);
         this.migrateBufferRO = new UnsafeBuffer(0, 0);
-        this.migrateHolder = new String[1];
 
         this.headers200 = initHeaders(config, STATUS_200);
         this.headers204 = initHeaders(config, STATUS_204);
@@ -1200,10 +1198,13 @@ public final class HttpServerFactory implements HttpStreamFactory
                                 requestAffinity = server.affinity;
                             }
 
-                            String migratePeer = migratePeer(affinityKey, server.serviceHost);
-                            if (migratePeer != null)
+                            final StoreHandler store = context.store();
+                            if (affinityKey != null && server.serviceHost != null && store != null)
                             {
-                                error = buildMigrate429Http11(migratePeer);
+                                server.suspendForMigrate(traceId, authorization, exchangeAuth,
+                                    route, requestId, requestAffinity, policy, origin, headers);
+                                store.putIfAbsent(affinityKey, server.serviceHost,
+                                    Long.MAX_VALUE, server::onMigrateResolved);
                             }
                             else
                             {
@@ -1738,6 +1739,18 @@ public final class HttpServerFactory implements HttpStreamFactory
         private long replyBudgetId;
         private int replyMax;
 
+        // migrate-pending state — populated when store.putIfAbsent is in flight
+        private boolean migratePending;
+        private long migrateTraceId;
+        private long migrateAuthorization;
+        private long migrateExchangeAuth;
+        private HttpRouteConfig migrateRoute;
+        private long migrateRequestId;
+        private long migrateRequestAffinity;
+        private HttpPolicyConfig migratePolicy;
+        private String migrateOrigin;
+        private Map<String, String> migrateHeaders;
+
         private HttpServer(
             HttpBindingConfig binding,
             MessageConsumer network,
@@ -1958,7 +1971,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 {
                     exchange.onNetworkEnd(traceId);
                 }
-                else
+                else if (!migratePending)
                 {
                     doNetworkEnd(traceId, authorization);
                 }
@@ -2430,6 +2443,80 @@ public final class HttpServerFactory implements HttpStreamFactory
                 this.exchange = exchange;
             }
             return headersValid;
+        }
+
+        private void suspendForMigrate(
+            long traceId,
+            long authorization,
+            long exchangeAuth,
+            HttpRouteConfig route,
+            long requestId,
+            long requestAffinity,
+            HttpPolicyConfig policy,
+            String origin,
+            Map<String, String> headers)
+        {
+            migratePending = true;
+            migrateTraceId = traceId;
+            migrateAuthorization = authorization;
+            migrateExchangeAuth = exchangeAuth;
+            migrateRoute = route;
+            migrateRequestId = requestId;
+            migrateRequestAffinity = requestAffinity;
+            migratePolicy = policy;
+            migrateOrigin = origin;
+            migrateHeaders = headers;
+            decoder = decodeIgnore;
+        }
+
+        private void onMigrateResolved(
+            String prior)
+        {
+            if (!migratePending)
+            {
+                // stream cleaned up before callback fired; ignore late completion
+                return;
+            }
+
+            final long traceId = migrateTraceId;
+            final long authorization = migrateAuthorization;
+            final long exchangeAuth = migrateExchangeAuth;
+            final HttpRouteConfig route = migrateRoute;
+            final long requestId = migrateRequestId;
+            final long requestAffinity = migrateRequestAffinity;
+            final HttpPolicyConfig policy = migratePolicy;
+            final String origin = migrateOrigin;
+            final Map<String, String> headers = migrateHeaders;
+
+            // clear migrate-pending state
+            migratePending = false;
+            migrateRoute = null;
+            migratePolicy = null;
+            migrateOrigin = null;
+            migrateHeaders = null;
+
+            if (prior != null && !prior.equals(serviceHost))
+            {
+                // peer claim — emit 429 + alt-svc, do not forward to app
+                onDecodeHeadersError(traceId, authorization, buildMigrate429Http11(prior));
+                return;
+            }
+
+            // self-claim — rebuild beginEx from stashed headers and proceed as local-dispatch
+            final HttpBeginExFW.Builder builder = newBeginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
+                .typeId(httpTypeId);
+            headers.forEach((k, v) -> builder.headersItem(i -> i.name(k).value(v)));
+            final HttpBeginExFW beginEx = builder.build();
+            codecBuffer.putLong(beginEx.offset() + HttpBeginExFW.FIELD_OFFSET_COMPOSITE_ID, route.compositeId());
+            final HttpRequestType requestType = binding.resolveRequestType(beginEx);
+
+            decoder = decodeHeadersOnly;
+            boolean headersValid = onDecodeHeaders(routedId, route.id, requestId, requestAffinity,
+                traceId, exchangeAuth, policy, origin, beginEx, requestType);
+            if (!headersValid)
+            {
+                onDecodeHeadersError(traceId, authorization, response400);
+            }
         }
 
         private void onDecodeHeadersOnly(
@@ -4083,6 +4170,21 @@ public final class HttpServerFactory implements HttpStreamFactory
         private byte decodedFlags;
         private int decodableDataBytes;
 
+        // migrate-pending state — populated when store.putIfAbsent is in flight
+        private boolean migratePending;
+        private long migrateTraceId;
+        private long migrateAuthorization;
+        private long migrateExchangeAuth;
+        private int migrateStreamId;
+        private long migrateContentLength;
+        private boolean migrateEndRequest;
+        private HttpRouteConfig migrateRoute;
+        private long migrateRequestId;
+        private long migrateRequestAffinity;
+        private HttpPolicyConfig migratePolicy;
+        private String migrateOrigin;
+        private Map<String, String> migrateHeaders;
+
         private Http2Server(
             HttpBindingConfig binding,
             MessageConsumer network,
@@ -5237,11 +5339,25 @@ public final class HttpServerFactory implements HttpStreamFactory
                                 requestAffinity = Http2Server.this.affinity;
                             }
 
-                            String migratePeer = migratePeer(affinityKey, serviceHost);
-                            if (migratePeer != null)
+                            final StoreHandler store = context.store();
+                            if (affinityKey != null && serviceHost != null && store != null)
                             {
-                                doEncodeHeaders(traceId, authorization, streamId,
-                                    buildMigrate429Http2(migratePeer), true);
+                                // suspend; await async migrate decision
+                                migratePending = true;
+                                migrateTraceId = traceId;
+                                migrateAuthorization = authorization;
+                                migrateExchangeAuth = exchangeAuth;
+                                migrateStreamId = streamId;
+                                migrateContentLength = contentLength;
+                                migrateEndRequest = endRequest;
+                                migrateRoute = route;
+                                migrateRequestId = requestId;
+                                migrateRequestAffinity = requestAffinity;
+                                migratePolicy = policy;
+                                migrateOrigin = origin;
+                                migrateHeaders = headers;
+                                store.putIfAbsent(affinityKey, serviceHost,
+                                    Long.MAX_VALUE, this::onMigrateResolved);
                             }
                             else
                             {
@@ -5266,6 +5382,68 @@ public final class HttpServerFactory implements HttpStreamFactory
                         }
                     }
                 }
+            }
+        }
+
+        private void onMigrateResolved(
+            String prior)
+        {
+            if (!migratePending)
+            {
+                // stream cleaned up before callback fired; ignore late completion
+                return;
+            }
+
+            final long traceId = migrateTraceId;
+            final long authorization = migrateAuthorization;
+            final long exchangeAuth = migrateExchangeAuth;
+            final int streamId = migrateStreamId;
+            final long contentLength = migrateContentLength;
+            final boolean endRequest = migrateEndRequest;
+            final HttpRouteConfig route = migrateRoute;
+            final long requestId = migrateRequestId;
+            final long requestAffinity = migrateRequestAffinity;
+            final HttpPolicyConfig policy = migratePolicy;
+            final String origin = migrateOrigin;
+            final Map<String, String> headers = migrateHeaders;
+
+            // clear migrate-pending state
+            migratePending = false;
+            migrateRoute = null;
+            migratePolicy = null;
+            migrateOrigin = null;
+            migrateHeaders = null;
+
+            if (prior != null && !prior.equals(serviceHost))
+            {
+                // peer claim — emit 429 + alt-svc HEADERS frame
+                doEncodeHeaders(traceId, authorization, streamId, buildMigrate429Http2(prior), true);
+                return;
+            }
+
+            // self-claim — rebuild beginEx and proceed as local-dispatch
+            final HttpBeginExFW beginEx = beginExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                .compositeId(route.compositeId())
+                .typeId(httpTypeId)
+                .headers(hs -> headers.forEach((n, v) -> hs.item(h -> h.name(n).value(v))))
+                .build();
+            final HttpRequestType requestType = binding.resolveRequestType(beginEx);
+
+            final Http2Exchange exchange = new Http2Exchange(routedId, route.id, requestId, requestAffinity,
+                streamId, exchangeAuth, traceId, policy, origin, contentLength, requestType);
+
+            boolean headersValid = exchange.validateHeaders(beginEx);
+            if (headersValid)
+            {
+                exchange.doRequestBegin(traceId, beginEx);
+                if (endRequest)
+                {
+                    exchange.doRequestEnd(traceId, EMPTY_OCTETS);
+                }
+            }
+            else
+            {
+                doEncodeHeaders(traceId, authorization, streamId, headers400, true);
             }
         }
 
@@ -7342,28 +7520,6 @@ public final class HttpServerFactory implements HttpStreamFactory
         default:
             return 0;
         }
-    }
-
-    private String migratePeer(
-        String affinityKey,
-        String serviceHost)
-    {
-        String peer = null;
-        if (affinityKey != null && serviceHost != null)
-        {
-            StoreHandler store = context.store();
-            if (store != null)
-            {
-                migrateHolder[0] = null;
-                store.putIfAbsent(affinityKey, serviceHost, Long.MAX_VALUE, p -> migrateHolder[0] = p);
-                String prior = migrateHolder[0];
-                if (prior != null && !prior.equals(serviceHost))
-                {
-                    peer = prior;
-                }
-            }
-        }
-        return peer;
     }
 
     private DirectBuffer buildMigrate429Http11(
