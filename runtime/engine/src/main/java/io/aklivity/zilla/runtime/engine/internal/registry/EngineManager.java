@@ -374,6 +374,7 @@ public class EngineManager
         for (GuardConfig guard : namespace.guards)
         {
             guard.id = resolver.resolve(guard.name);
+            guard.resolveId = resolver::resolve;
             if (guard.store != null)
             {
                 guard.storeId = resolver.resolve(guard.store);

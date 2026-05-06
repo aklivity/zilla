@@ -136,9 +136,9 @@ public class NamespaceRegistry
     public void attach()
     {
         namespace.vaults.forEach(this::attachVault);
+        namespace.stores.forEach(this::attachStore);
         namespace.guards.forEach(this::attachGuard);
         namespace.catalogs.forEach(this::attachCatalog);
-        namespace.stores.forEach(this::attachStore);
         namespace.telemetry.metrics.forEach(this::attachMetric);
         namespace.bindings.forEach(this::attachBinding);
         namespace.telemetry.exporters.forEach(this::attachExporter);
@@ -147,10 +147,10 @@ public class NamespaceRegistry
     public void detach()
     {
         namespace.vaults.forEach(this::detachVault);
+        namespace.bindings.forEach(this::detachBinding);
         namespace.guards.forEach(this::detachGuard);
         namespace.catalogs.forEach(this::detachCatalog);
         namespace.stores.forEach(this::detachStore);
-        namespace.bindings.forEach(this::detachBinding);
         namespace.telemetry.metrics.forEach(this::detachMetric);
         namespace.telemetry.exporters.forEach(this::detachExporter);
     }
