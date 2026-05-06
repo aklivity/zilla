@@ -18,13 +18,9 @@ package io.aklivity.zilla.runtime.binding.http.internal.streams.rfc7540.server;
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_CONCURRENT_STREAMS;
 import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_SERVICE_HOSTNAME_NAME;
 import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_STORE_NAME_NAME;
-import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_STORE_TYPE_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -35,7 +31,6 @@ import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
-import io.aklivity.zilla.runtime.engine.test.internal.store.TestStoreHandler;
 
 public class AffinityMigrateIT
 {
@@ -50,7 +45,6 @@ public class AffinityMigrateIT
         .configure(HTTP_CONCURRENT_STREAMS, 100)
         .configurationRoot("io/aklivity/zilla/specs/binding/http/config/v2")
         .configure(ENGINE_SERVICE_HOSTNAME_NAME, "server-2.example.net")
-        .configure(ENGINE_STORE_TYPE_NAME, "test")
         .configure(ENGINE_STORE_NAME_NAME, "test:cluster")
         .external("app0")
         .clean();
@@ -58,21 +52,7 @@ public class AffinityMigrateIT
     @Rule
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
-    @Before
-    public void seedClusterStore()
-    {
-        TestStoreHandler.seed("sess-1", "server-1.example.net:8080");
-        TestStoreHandler.seed("sess-2", "server-1.example.net:8080");
-    }
-
-    @After
-    public void clearClusterStore()
-    {
-        TestStoreHandler.clearSeeds();
-    }
-
     @Test
-    @Ignore("binding-level migrate dispatch needs debug; raw-bytes script returns 404 instead of 429")
     @Configuration("server.affinity.migrate.yaml")
     @Specification({
         "${net}/request.with.header.affinity.migrate/client" })
@@ -82,7 +62,6 @@ public class AffinityMigrateIT
     }
 
     @Test
-    @Ignore("binding-level migrate dispatch needs debug; raw-bytes script returns 404 instead of 429")
     @Configuration("server.affinity.migrate.yaml")
     @Specification({
         "${net}/request.with.query.affinity.migrate/client" })

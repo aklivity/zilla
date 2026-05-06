@@ -22,29 +22,24 @@ import java.util.function.Consumer;
 
 import io.aklivity.zilla.runtime.engine.config.StoreConfig;
 import io.aklivity.zilla.runtime.engine.store.StoreHandler;
+import io.aklivity.zilla.runtime.engine.test.internal.store.config.TestStoreOptionsConfig;
 
 public final class TestStoreHandler implements StoreHandler
 {
-    private static final Map<String, String> SEEDS = new HashMap<>();
-
-    public static void seed(
-        String key,
-        String value)
-    {
-        SEEDS.put(key, value);
-    }
-
-    public static void clearSeeds()
-    {
-        SEEDS.clear();
-    }
-
     private final Map<String, String> entries;
 
     public TestStoreHandler(
         StoreConfig store)
     {
-        this.entries = new HashMap<>(SEEDS);
+        this.entries = new HashMap<>();
+        if (store != null && store.options instanceof TestStoreOptionsConfig)
+        {
+            TestStoreOptionsConfig options = (TestStoreOptionsConfig) store.options;
+            if (options.entries != null)
+            {
+                this.entries.putAll(options.entries);
+            }
+        }
     }
 
     @Override

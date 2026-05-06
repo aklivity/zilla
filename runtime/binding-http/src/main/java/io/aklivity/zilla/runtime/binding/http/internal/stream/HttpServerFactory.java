@@ -7392,14 +7392,11 @@ public final class HttpServerFactory implements HttpStreamFactory
         migrateBuffer.putBytes(altSvcOffset, MIGRATE_ALT_SVC_HTTP2_INFIX);
         altSvcOffset += MIGRATE_ALT_SVC_HTTP2_INFIX.length;
         altSvcOffset += migrateBuffer.putIntAscii(altSvcOffset, altSvcMaxAge);
-        migrateBuffer.putByte(altSvcOffset, (byte) '"');
-        altSvcOffset += 1;
         final int altSvcLength = altSvcOffset;
 
         return headersRW
             .wrap(extBuffer, 0, extBuffer.capacity())
             .item(h -> h.name(HEADER_STATUS).value(STATUS_429))
-            .item(h -> h.name(HEADER_CONTENT_LENGTH).value("0"))
             .item(h -> h.name(HEADER_RETRY_AFTER).value(VALUE_RETRY_AFTER_NOW))
             .item(h -> h.name(HEADER_ALT_SVC).value(migrateBuffer, 0, altSvcLength))
             .build();

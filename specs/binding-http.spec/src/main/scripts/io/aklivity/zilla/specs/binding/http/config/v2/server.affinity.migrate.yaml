@@ -16,6 +16,13 @@
 
 ---
 name: test
+stores:
+  cluster:
+    type: test
+    options:
+      entries:
+        sess-1: server-1.example.net:8080
+        sess-2: server-1.example.net:8080
 bindings:
   net0:
     type: http
@@ -38,6 +45,3 @@ bindings:
           affinity:
             query: state
         exit: app0
-stores:
-  cluster:
-    type: test
