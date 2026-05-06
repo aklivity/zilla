@@ -24,6 +24,7 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTes
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -185,6 +186,22 @@ public class McpServerIT
         "${net}/tools.call/client",
         "${app}/tools.call/server"})
     public void shouldCallTool() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Ignore("k3po write-advised CHALLENGE does not produce a wire CHALLENGE through the " +
+        "zilla driver today, so the app cannot trigger SSE upgrade for elicit-create from " +
+        "McpServerIT. Peer-to-peer ApplicationIT and NetworkIT cover the same script as " +
+        "written. Re-enabling requires either a k3po-driver-zilla fix to emit CHALLENGE " +
+        "frames on write-advised, or moving elicitCreate from CHALLENGE onto a FLUSH " +
+        "extension (which does flow through the driver today).")
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/tools.call.elicit.completed/client",
+        "${app}/tools.call.elicit.completed/server"})
+    public void shouldCallToolElicitCompleted() throws Exception
     {
         k3po.finish();
     }
