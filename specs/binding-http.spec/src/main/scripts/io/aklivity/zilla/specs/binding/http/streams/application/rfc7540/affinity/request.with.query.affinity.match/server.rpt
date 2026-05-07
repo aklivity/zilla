@@ -14,11 +14,6 @@
 # under the License.
 #
 
-# `state` query parameter value is "prefix.sess-2.suffix"; the binding's
-# affinity rule uses match: "[^.]+\.([^.]+)\.[^.]+" which captures
-# group 1 = "sess-2"
-# affinity = "sess-2".hashCode() & 0xffff_ffffL = 0xca029157
-
 accept "zilla://streams/app0"
        option zilla:window 8192
        option zilla:transmission "half-duplex"

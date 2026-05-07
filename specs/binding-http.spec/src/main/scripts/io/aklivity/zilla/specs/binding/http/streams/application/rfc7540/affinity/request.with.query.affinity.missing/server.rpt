@@ -14,10 +14,6 @@
 # under the License.
 #
 
-# affinity source (`state` query parameter) absent from request, so the
-# route's affinity rule yields no key and no zilla:affinity assertion
-# fires (default network-level affinity flows through unchanged)
-
 accept "zilla://streams/app0"
        option zilla:window 8192
        option zilla:transmission "half-duplex"

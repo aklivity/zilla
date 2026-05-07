@@ -14,9 +14,6 @@
 # under the License.
 #
 
-# affinity = "sess-2".hashCode() & 0xffff_ffffL = 0xca029157
-# (the binding extracted "sess-2" from the `state` query parameter)
-
 accept "zilla://streams/app0"
        option zilla:window 8192
        option zilla:transmission "half-duplex"

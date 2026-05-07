@@ -14,10 +14,6 @@
 # under the License.
 #
 
-# header value "no-dots-here" does not match the binding's regex, so
-# no affinity assertion fires (default network-level affinity flows
-# through unchanged)
-
 accept "zilla://streams/app0"
        option zilla:window 8192
        option zilla:transmission "half-duplex"

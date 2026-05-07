@@ -14,8 +14,6 @@
 # under the License.
 #
 
-# affinity = "sess-1".hashCode() & 0xffff_ffffL = 0xca029156
-
 accept "zilla://streams/app0"
        option zilla:window 8192
        option zilla:transmission "half-duplex"
