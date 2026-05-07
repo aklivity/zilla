@@ -18,3 +18,11 @@ name: test
 stores:
     memory0:
         type: memory
+bindings:
+    net0:
+        type: test
+        kind: server
+        options:
+            store: memory0
+        routes:
+            - exit: app0

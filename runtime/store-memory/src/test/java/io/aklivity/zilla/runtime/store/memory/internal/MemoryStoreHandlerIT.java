@@ -39,7 +39,7 @@ public class MemoryStoreHandlerIT
     private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
         .countersBufferCapacity(4096)
-        .configurationRoot("io/aklivity/zilla/specs/engine/config")
+        .configurationRoot("io/aklivity/zilla/specs/store/memory/config")
         .external("app0")
         .clean();
 
@@ -47,7 +47,7 @@ public class MemoryStoreHandlerIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("server-memory-store.yaml")
+    @Configuration("store.yaml")
     @Specification({
         "${net}/handshake/client",
         "${app}/handshake/server"})
