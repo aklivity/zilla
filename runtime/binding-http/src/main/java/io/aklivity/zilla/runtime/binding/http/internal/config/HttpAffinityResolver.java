@@ -47,8 +47,8 @@ public abstract class HttpAffinityResolver
 
         return switch (affinity.source)
         {
-        case HEADER -> new HeaderAffinityResolver(affinity.name, matcher);
-        case QUERY -> new QueryAffinityResolver(affinity.name, matcher);
+        case HEADER -> new ByHeader(affinity.name, matcher);
+        case QUERY -> new ByQueryParameter(affinity.name, matcher);
         };
     }
 
@@ -72,12 +72,12 @@ public abstract class HttpAffinityResolver
         return key;
     }
 
-    private static final class HeaderAffinityResolver extends HttpAffinityResolver
+    private static final class ByHeader extends HttpAffinityResolver
     {
         private final String name;
         private final Matcher matcher;
 
-        private HeaderAffinityResolver(
+        private ByHeader(
             String name,
             Matcher matcher)
         {
@@ -93,12 +93,12 @@ public abstract class HttpAffinityResolver
         }
     }
 
-    private static final class QueryAffinityResolver extends HttpAffinityResolver
+    private static final class ByQueryParameter extends HttpAffinityResolver
     {
         private final Matcher queryMatcher;
         private final Matcher matcher;
 
-        private QueryAffinityResolver(
+        private ByQueryParameter(
             String name,
             Matcher matcher)
         {

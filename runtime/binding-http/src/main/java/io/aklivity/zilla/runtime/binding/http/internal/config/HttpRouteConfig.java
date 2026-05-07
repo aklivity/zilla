@@ -42,6 +42,7 @@ public final class HttpRouteConfig
     private final EngineContext context;
     private final List<HttpConditionMatcher> when;
     private final HttpWithResolver with;
+    private final HttpAffinityResolver affinity;
     private final LongObjectPredicate<UnaryOperator<String>> authorized;
     private final Map<String8FW, String16FW> overrides;
 
@@ -56,6 +57,7 @@ public final class HttpRouteConfig
             .map(HttpWithConfig.class::cast)
             .map(HttpWithResolver::new)
             .orElse(null);
+        this.affinity = with != null ? with.affinity() : HttpAffinityResolver.NONE;
         this.when = route.when.stream()
             .map(HttpConditionConfig.class::cast)
             .map(HttpConditionMatcher::new)
@@ -74,15 +76,10 @@ public final class HttpRouteConfig
         return with != null ? with.compositeId() : NO_COMPOSITE_ID;
     }
 
-    public HttpAffinityResolver affinity()
-    {
-        return with != null ? with.affinity() : HttpAffinityResolver.NONE;
-    }
-
-    public HttpRouteAffinity resolveAffinity(
+    public HttpRouteAffinity resolve(
         Function<String, String> headerByName)
     {
-        final String key = affinity().resolveKey(headerByName);
+        final String key = affinity.resolveKey(headerByName);
         final long initialId;
         final long affinity;
         if (key == null)
@@ -94,9 +91,9 @@ public final class HttpRouteConfig
         {
             final CRC32C crc = new CRC32C();
             crc.update(key.getBytes(UTF_8));
-            final long hash = crc.getValue();
+            final int hash = (int) crc.getValue();
             initialId = context.supplyInitialId(id, hash);
-            affinity = hash;
+            affinity = hash & 0xffff_ffffL;
         }
         return new HttpRouteAffinity(initialId, affinity);
     }

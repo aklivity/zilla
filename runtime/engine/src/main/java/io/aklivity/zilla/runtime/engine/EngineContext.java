@@ -116,13 +116,13 @@ public interface EngineContext
      * for the same logical key.
      *
      * @param bindingId  the binding id to associate with the new stream
-     * @param hash       opaque hash of the affinity key; same hash yields
+     * @param hash       opaque integer hash of the affinity key; same hash yields
      *                   the same worker for a given binding affinity mask
      * @return a new unique initial stream id pinned to the worker selected by hash
      */
     long supplyInitialId(
         long bindingId,
-        long hash);
+        int hash);
 
     /**
      * Returns the reply (outbound) stream id paired with the given initial stream id.

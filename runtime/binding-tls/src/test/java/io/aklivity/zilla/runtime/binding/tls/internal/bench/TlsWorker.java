@@ -150,7 +150,7 @@ public class TlsWorker implements EngineContext
     @Override
     public long supplyInitialId(
         long bindingId,
-        long hash)
+        int hash)
     {
         return supplyInitialId(bindingId);
     }

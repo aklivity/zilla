@@ -78,8 +78,7 @@ public final class HttpBindingConfig
 
     public HttpBindingConfig(
         EngineContext context,
-        BindingConfig binding,
-        Function<ModelConfig, ValidatorHandler> supplyValidator)
+        BindingConfig binding)
     {
         this.id = binding.id;
         this.name = binding.name;
@@ -91,7 +90,7 @@ public final class HttpBindingConfig
         this.resolveId = binding.resolveId;
         this.credentials = options != null && options.authorization != null ?
                 asAccessor(options.authorization.credentials) : DEFAULT_CREDENTIALS;
-        this.requests = supplyValidator == null ? null : createRequestTypes(supplyValidator);
+        this.requests = createRequestTypes(context::supplyValidator);
     }
 
     public HttpRouteConfig resolve(
