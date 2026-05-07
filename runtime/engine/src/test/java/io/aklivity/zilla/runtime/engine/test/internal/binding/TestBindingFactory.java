@@ -188,21 +188,7 @@ final class TestBindingFactory implements BindingHandler
                     options.storeAssertions.get(0).assertions : null;
                 if (this.store != null && this.storeAssertions == null)
                 {
-                    final Thread dispatchThread = Thread.currentThread();
-                    final boolean[] callbackFired = { false };
-                    this.store.putIfAbsent("init", "", Long.MAX_VALUE, v ->
-                    {
-                        if (Thread.currentThread() != dispatchThread || callbackFired[0])
-                        {
-                            throw new IllegalStateException("store contract violation");
-                        }
-                        callbackFired[0] = true;
-                    });
-                    if (callbackFired[0])
-                    {
-                        // store contract: callback must fire strictly later than the call
-                        throw new IllegalStateException("store contract violation: sync callback");
-                    }
+                    this.store.putIfAbsent("init", "", Long.MAX_VALUE, v -> {});
                 }
             }
 
@@ -614,108 +600,73 @@ final class TestBindingFactory implements BindingHandler
                 doInitialReset(traceId);
             }
 
-            runStoreAssertions(traceId);
+            if (store != null && storeAssertions != null && !storeAssertions.isEmpty())
+            {
+                for (StoreAssertion a : storeAssertions)
+                {
+                    if (a.delay > 0L)
+                    {
+                        try
+                        {
+                            Thread.sleep(a.delay);
+                        }
+                        catch (InterruptedException ex)
+                        {
+                            Thread.currentThread().interrupt();
+                            throw new RuntimeException(ex);
+                        }
+                    }
+                    switch (a.op)
+                    {
+                    case "get":
+                        store.get(a.key, (k, v) ->
+                        {
+                            if (a.hasExpect && !Objects.equals(v, a.expect))
+                            {
+                                doInitialReset(traceId);
+                            }
+                        });
+                        break;
+                    case "put":
+                        store.put(a.key, a.value, a.ttl, v ->
+                        {
+                        });
+                        break;
+                    case "putIfAbsent":
+                        store.putIfAbsent(a.key, a.value, a.ttl, v ->
+                        {
+                            if (a.hasExpect && !Objects.equals(v, a.expect))
+                            {
+                                doInitialReset(traceId);
+                            }
+                        });
+                        break;
+                    case "delete":
+                        store.delete(a.key, v ->
+                        {
+                        });
+                        break;
+                    case "getAndDelete":
+                        store.getAndDelete(a.key, v ->
+                        {
+                            if (a.hasExpect && !Objects.equals(v, a.expect))
+                            {
+                                doInitialReset(traceId);
+                            }
+                        });
+                        break;
+                    default:
+                        doInitialReset(traceId);
+                        break;
+                    }
+                }
+            }
 
             while (events != null && eventIndex < events.size())
             {
                 Event e = events.get(eventIndex);
                 event.connected(traceId, routedId, e.timestamp, e.message);
                 eventIndex++;
-            }
-        }
-
-        private void runStoreAssertions(
-            long traceId)
-        {
-            if (store == null || storeAssertions == null || storeAssertions.isEmpty())
-            {
-                return;
-            }
-            for (StoreAssertion a : storeAssertions)
-            {
-                if (a.delay > 0L)
-                {
-                    try
-                    {
-                        Thread.sleep(a.delay);
-                    }
-                    catch (InterruptedException ex)
-                    {
-                        Thread.currentThread().interrupt();
-                        throw new RuntimeException(ex);
-                    }
-                }
-                final Thread dispatchThread = Thread.currentThread();
-                final boolean[] callbackFired = { false };
-                switch (a.op)
-                {
-                case "get":
-                    store.get(a.key, (k, v) ->
-                    {
-                        if (Thread.currentThread() != dispatchThread ||
-                            callbackFired[0] ||
-                            a.hasExpect && !Objects.equals(v, a.expect))
-                        {
-                            doInitialReset(traceId);
-                        }
-                        callbackFired[0] = true;
-                    });
-                    break;
-                case "put":
-                    store.put(a.key, a.value, a.ttl, v ->
-                    {
-                        if (Thread.currentThread() != dispatchThread ||
-                            callbackFired[0])
-                        {
-                            doInitialReset(traceId);
-                        }
-                        callbackFired[0] = true;
-                    });
-                    break;
-                case "putIfAbsent":
-                    store.putIfAbsent(a.key, a.value, a.ttl, v ->
-                    {
-                        if (Thread.currentThread() != dispatchThread ||
-                            callbackFired[0] ||
-                            a.hasExpect && !Objects.equals(v, a.expect))
-                        {
-                            doInitialReset(traceId);
-                        }
-                        callbackFired[0] = true;
-                    });
-                    break;
-                case "delete":
-                    store.delete(a.key, v ->
-                    {
-                        if (Thread.currentThread() != dispatchThread ||
-                            callbackFired[0])
-                        {
-                            doInitialReset(traceId);
-                        }
-                        callbackFired[0] = true;
-                    });
-                    break;
-                case "getAndDelete":
-                    store.getAndDelete(a.key, v ->
-                    {
-                        if (Thread.currentThread() != dispatchThread ||
-                            callbackFired[0] ||
-                            a.hasExpect && !Objects.equals(v, a.expect))
-                        {
-                            doInitialReset(traceId);
-                        }
-                        callbackFired[0] = true;
-                    });
-                    break;
-                default:
-                    doInitialReset(traceId);
-                    break;
-                }
-                if (callbackFired[0])
-                {
-                    // store contract: callback must fire strictly later than the call
-                    doInitialReset(traceId);
-                }
             }
         }
 

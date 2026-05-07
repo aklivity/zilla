@@ -19,7 +19,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.store.Store;
 import io.aklivity.zilla.runtime.engine.store.StoreContext;
@@ -28,13 +27,11 @@ final class MemoryStore implements Store
 {
     static final String NAME = "memory";
 
-    private final EngineConfiguration config;
     private final ConcurrentMap<Long, MemoryStorage> storage;
 
     MemoryStore(
-        EngineConfiguration config)
+        MemoryStoreConfiguration config)
     {
-        this.config = config;
         this.storage = new ConcurrentHashMap<>();
     }
 
@@ -48,21 +45,13 @@ final class MemoryStore implements Store
     public StoreContext supply(
         EngineContext context)
     {
-        return new MemoryStoreContext(this::acquireEntries, this::releaseEntries, context.signaler());
+        return new MemoryStoreContext(this::acquireEntries, this::releaseEntries);
     }
 
     @Override
     public URL type()
     {
         return getClass().getResource("schema/memory.schema.patch.json");
-    }
-
-    @Override
-    public URL system()
-    {
-        return NAME.equals(config.storeType())
-            ? getClass().getResource("system/memory.system.patch.json")
-            : null;
     }
 
     private ConcurrentMap<String, MemoryEntry> acquireEntries(

@@ -324,12 +324,6 @@ public class EchoWorker implements EngineContext
     }
 
     @Override
-    public StoreHandler store()
-    {
-        return null;
-    }
-
-    @Override
     public ValidatorHandler supplyValidator(
         ModelConfig config)
     {

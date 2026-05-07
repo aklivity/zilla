@@ -18,7 +18,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.function.LongConsumer;
 import java.util.function.LongFunction;
 
-import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.StoreConfig;
 import io.aklivity.zilla.runtime.engine.store.StoreContext;
 import io.aklivity.zilla.runtime.engine.store.StoreHandler;
@@ -27,23 +26,20 @@ final class MemoryStoreContext implements StoreContext
 {
     private final LongFunction<ConcurrentMap<String, MemoryEntry>> supplyEntries;
     private final LongConsumer removeEntries;
-    private final Signaler signaler;
 
     MemoryStoreContext(
         LongFunction<ConcurrentMap<String, MemoryEntry>> supplyEntries,
-        LongConsumer removeEntries,
-        Signaler signaler)
+        LongConsumer removeEntries)
     {
         this.supplyEntries = supplyEntries;
         this.removeEntries = removeEntries;
-        this.signaler = signaler;
     }
 
     @Override
     public StoreHandler attach(
         StoreConfig config)
     {
-        return new MemoryStoreHandler(supplyEntries.apply(config.id), signaler);
+        return new MemoryStoreHandler(supplyEntries.apply(config.id));
     }
 
     @Override

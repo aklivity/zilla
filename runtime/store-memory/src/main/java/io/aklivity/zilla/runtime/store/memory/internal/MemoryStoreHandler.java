@@ -18,26 +18,16 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 
 final class MemoryStoreHandler implements StoreHandler
 {
     private final ConcurrentMap<String, MemoryEntry> entries;
-    private final Signaler signaler;
 
     MemoryStoreHandler(
         ConcurrentMap<String, MemoryEntry> entries)
     {
-        this(entries, null);
-    }
-
-    MemoryStoreHandler(
-        ConcurrentMap<String, MemoryEntry> entries,
-        Signaler signaler)
-    {
         this.entries = entries;
-        this.signaler = signaler;
     }
 
     @Override
@@ -47,7 +37,7 @@ final class MemoryStoreHandler implements StoreHandler
     {
         final MemoryEntry entry = entries.get(key);
         final String value = entry != null && !entry.expired() ? entry.value() : null;
-        defer(() -> completion.accept(key, value));
+        completion.accept(key, value);
     }
 
     @Override
@@ -59,7 +49,7 @@ final class MemoryStoreHandler implements StoreHandler
     {
         final long expiresAt = ttlMillis == Long.MAX_VALUE ? Long.MAX_VALUE : System.currentTimeMillis() + ttlMillis;
         entries.put(key, new MemoryEntry(value, expiresAt));
-        defer(() -> completion.accept(null));
+        completion.accept(null);
     }
 
     @Override
@@ -77,7 +67,7 @@ final class MemoryStoreHandler implements StoreHandler
             entries.replace(key, existing, newEntry);
         }
         final String result = existing != null && !existing.expired() ? existing.value() : null;
-        defer(() -> completion.accept(result));
+        completion.accept(result);
     }
 
     @Override
@@ -86,7 +76,7 @@ final class MemoryStoreHandler implements StoreHandler
         Consumer<String> completion)
     {
         entries.remove(key);
-        defer(() -> completion.accept(null));
+        completion.accept(null);
     }
 
     @Override
@@ -96,21 +86,6 @@ final class MemoryStoreHandler implements StoreHandler
     {
         final MemoryEntry entry = entries.remove(key);
         final String value = entry != null && !entry.expired() ? entry.value() : null;
-        defer(() -> completion.accept(value));
-    }
-
-    private void defer(
-        Runnable task)
-    {
-        // contract: callback fires strictly later than the call, on the caller's I/O thread
-        if (signaler != null)
-        {
-            signaler.signalAt(System.currentTimeMillis(), 0, ignored -> task.run());
-        }
-        else
-        {
-            // unit-test fallback (no engine context); run immediately
-            task.run();
-        }
+        completion.accept(value);
     }
 }

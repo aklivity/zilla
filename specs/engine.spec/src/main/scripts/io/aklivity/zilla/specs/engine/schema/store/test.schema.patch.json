@@ -26,22 +26,6 @@
                     "type":
                     {
                         "const": "test"
-                    },
-                    "options":
-                    {
-                        "type": "object",
-                        "properties":
-                        {
-                            "entries":
-                            {
-                                "type": "object",
-                                "additionalProperties":
-                                {
-                                    "type": "string"
-                                }
-                            }
-                        },
-                        "additionalProperties": false
                     }
                 }
             }

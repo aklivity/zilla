@@ -434,13 +434,6 @@ public interface EngineContext
         long storeId);
 
     /**
-     * Returns the engine-level shared store handle.
-     *
-     * @return the engine store handle, or {@code null} if no store is configured
-     */
-    StoreHandler store();
-
-    /**
      * Returns the {@link VaultHandler} for the given vault id.
      *
      * @param vaultId  the vault id

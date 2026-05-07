@@ -24,15 +24,8 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
  * <p>
  * A {@code Store} holds mutable runtime state — session tokens, JWKS keys, parsed specs,
  * idempotency records, rate-limit counters, OAuth nonces — written and read during request
- * processing. The store is accessed on the I/O thread via the {@link StoreHandler}
- * returned from its {@link StoreContext}.
- * </p>
- * <p>
- * <b>State-sharing scope is implementation-defined.</b> The SPI does not prescribe whether
- * state is local to one worker, shared across workers, shared across processes, or shared
- * across a cluster — that is the implementation's contract with its operator. A consumer of
- * the SPI writes its code to be correct regardless of scope, and the operator chooses an
- * implementation whose scope matches their topology.
+ * processing. The store is accessed synchronously on the I/O thread via the
+ * {@link StoreHandler} returned from its {@link StoreContext}.
  * </p>
  * <p>
  * Implementations are discovered via {@link java.util.ServiceLoader} through {@link StoreFactorySpi}.
@@ -70,19 +63,4 @@ public interface Store
      * @return the configuration schema URL
      */
     URL type();
-
-    /**
-     * Returns a URL pointing to a JSON patch document that contributes a built-in store
-     * binding under the engine's {@code system} namespace, or {@code null} when this store
-     * makes no system contribution.
-     * <p>
-     * Default returns {@code null}.
-     * </p>
-     *
-     * @return the system patch URL, or {@code null}
-     */
-    default URL system()
-    {
-        return null;
-    }
 }

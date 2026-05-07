@@ -17,18 +17,6 @@
 connect "zilla://streams/net0"
         option zilla:window 8192
         option zilla:transmission "duplex"
-
-write zilla:begin.ext ${proxy:beginEx()
-                             .typeId(zilla:id("proxy"))
-                             .addressInet4()
-                               .protocol("stream")
-                               .source("0.0.0.0")
-                               .destination("0.0.0.0")
-                               .sourcePort(0)
-                               .destinationPort(8080)
-                               .build()
-                             .build()}
-
 connected
 
 # client connection preface
@@ -86,11 +74,11 @@ read [0x00 0x00 0x00]                   # length = 0
      [0x00 0x00 0x00 0x00]              # stream_id = 0
 
 # response HEADERS
-read [0x00 0x00 0x3b]                   # length = 59
+read [0x00 0x00 0x41]                   # length = 65
      [0x01]                             # HTTP2 HEADERS frame
      [0x05]                             # END_HEADERS | END_STREAM
      [0x00 0x00 0x00 0x01]              # stream_id = 1
      [0x08] [0x03] "429"                # :status: 429
      [0x0f 0x26] [0x01] "0"             # retry-after: 0
      [0x00] [0x07] "alt-svc"
-            [0x28] "h2=\"server-1.example.net:8080\"; ma=86400"
+            [0x2e] "http/1.1=\"server-1.example.net:8080\"; ma=86400"

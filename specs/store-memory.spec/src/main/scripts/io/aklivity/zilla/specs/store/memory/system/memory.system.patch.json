@@ -1,8 +1,0 @@
-[
-  { "op": "add", "path": "/stores", "value": {} },
-  {
-    "op": "add",
-    "path": "/stores/state",
-    "value": { "type": "memory" }
-  }
-]

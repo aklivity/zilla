@@ -20,36 +20,17 @@ import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.StoreConfig;
 import io.aklivity.zilla.runtime.engine.store.StoreHandler;
-import io.aklivity.zilla.runtime.engine.test.internal.store.config.TestStoreOptionsConfig;
 
 public final class TestStoreHandler implements StoreHandler
 {
     private final Map<String, String> entries;
-    private final Signaler signaler;
 
     public TestStoreHandler(
         StoreConfig store)
     {
-        this(store, null);
-    }
-
-    public TestStoreHandler(
-        StoreConfig store,
-        Signaler signaler)
-    {
         this.entries = new HashMap<>();
-        this.signaler = signaler;
-        if (store != null && store.options instanceof TestStoreOptionsConfig)
-        {
-            TestStoreOptionsConfig options = (TestStoreOptionsConfig) store.options;
-            if (options.entries != null)
-            {
-                this.entries.putAll(options.entries);
-            }
-        }
     }
 
     @Override
@@ -57,8 +38,7 @@ public final class TestStoreHandler implements StoreHandler
         String key,
         BiConsumer<String, String> completion)
     {
-        final String value = entries.get(key);
-        defer(() -> completion.accept(key, value));
+        completion.accept(key, entries.get(key));
     }
 
     @Override
@@ -69,7 +49,7 @@ public final class TestStoreHandler implements StoreHandler
         Consumer<String> completion)
     {
         entries.put(key, value);
-        defer(() -> completion.accept(null));
+        completion.accept(null);
     }
 
     @Override
@@ -79,8 +59,8 @@ public final class TestStoreHandler implements StoreHandler
         long ttl,
         Consumer<String> completion)
     {
-        final String existing = entries.putIfAbsent(key, value);
-        defer(() -> completion.accept(existing));
+        String existing = entries.putIfAbsent(key, value);
+        completion.accept(existing);
     }
 
     @Override
@@ -89,7 +69,7 @@ public final class TestStoreHandler implements StoreHandler
         Consumer<String> completion)
     {
         entries.remove(key);
-        defer(() -> completion.accept(null));
+        completion.accept(null);
     }
 
     @Override
@@ -97,22 +77,6 @@ public final class TestStoreHandler implements StoreHandler
         String key,
         Consumer<String> completion)
     {
-        final String prior = entries.remove(key);
-        defer(() -> completion.accept(prior));
-    }
-
-    private void defer(
-        Runnable task)
-    {
-        // contract: callback fires strictly later than the call, on the caller's I/O thread
-        if (signaler != null)
-        {
-            signaler.signalAt(System.currentTimeMillis(), 0, ignored -> task.run());
-        }
-        else
-        {
-            // unit-test fallback (no engine context); run immediately
-            task.run();
-        }
+        completion.accept(entries.remove(key));
     }
 }

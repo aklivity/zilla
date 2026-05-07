@@ -346,7 +346,11 @@
                                 }
                             }
                         },
-                        "additionalProperties": false
+                        "additionalProperties": false,
+                        "dependentRequired":
+                        {
+                            "store": [ "self" ]
+                        }
                     },
                     "routes":
                     {

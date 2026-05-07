@@ -16,25 +16,21 @@
 package io.aklivity.zilla.runtime.engine.test.internal.store;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.StoreConfig;
 import io.aklivity.zilla.runtime.engine.store.StoreContext;
 
 public final class TestStoreContext implements StoreContext
 {
-    private final Signaler signaler;
-
     public TestStoreContext(
         EngineContext context)
     {
-        this.signaler = context.signaler();
     }
 
     @Override
     public TestStoreHandler attach(
         StoreConfig store)
     {
-        return new TestStoreHandler(store, signaler);
+        return new TestStoreHandler(store);
     }
 
     @Override
