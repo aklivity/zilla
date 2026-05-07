@@ -290,7 +290,7 @@ public final class ZillaEngine implements Runnable, ExternalResourceReleasable
         return scope;
     }
 
-    private void submitTask(
+    void submitTask(
         Runnable task)
     {
         submitTask(task, false);

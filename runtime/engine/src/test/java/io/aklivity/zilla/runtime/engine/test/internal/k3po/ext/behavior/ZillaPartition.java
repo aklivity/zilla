@@ -310,14 +310,20 @@ final class ZillaPartition implements AutoCloseable
             {
                 if (future.isSuccess())
                 {
-                    fireChannelConnected(childChannel, childChannel.getRemoteAddress());
-
                     final ZillaChannelConfig childConfig = childChannel.getConfig();
                     if (childConfig.getUpdate() == ZillaUpdateMode.HANDSHAKE ||
                         childConfig.getUpdate() == ZillaUpdateMode.STREAM)
                     {
-                        sender.doWindow(childChannel);
+                        // submit via task queue so the WINDOW write is ordered
+                        // after any AdviseInputTask queued by a `read advise`
+                        // statement that the script placed before `connected`,
+                        // and before any tasks queued by statements that follow
+                        // `connected` (since those run inside fireChannelConnected
+                        // below)
+                        childChannel.engine.submitTask(() -> sender.doWindow(childChannel));
                     }
+
+                    fireChannelConnected(childChannel, childChannel.getRemoteAddress());
                 }
             });
         }

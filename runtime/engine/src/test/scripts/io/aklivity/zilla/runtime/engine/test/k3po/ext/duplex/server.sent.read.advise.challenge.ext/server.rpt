@@ -19,6 +19,7 @@ accept "zilla://streams/server#0"
        option zilla:window 8192
 
 accepted
-connected
 
 read advise zilla:challenge [0x12 0x34] [0x0c] "Hello, world"
+
+connected
