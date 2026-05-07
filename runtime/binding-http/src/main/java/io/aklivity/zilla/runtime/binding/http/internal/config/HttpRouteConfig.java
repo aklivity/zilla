@@ -16,7 +16,6 @@
 package io.aklivity.zilla.runtime.binding.http.internal.config;
 
 import static io.aklivity.zilla.runtime.engine.config.WithConfig.NO_COMPOSITE_ID;
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.stream.Collectors.toList;
 
 import java.util.LinkedHashMap;
@@ -43,6 +42,7 @@ public final class HttpRouteConfig
     private final List<HttpConditionMatcher> when;
     private final HttpWithResolver with;
     private final HttpAffinityResolver affinity;
+    private final CRC32C affinityHasher;
     private final LongObjectPredicate<UnaryOperator<String>> authorized;
     private final Map<String8FW, String16FW> overrides;
 
@@ -57,7 +57,10 @@ public final class HttpRouteConfig
             .map(HttpWithConfig.class::cast)
             .map(HttpWithResolver::new)
             .orElse(null);
-        this.affinity = with != null ? with.affinity() : HttpAffinityResolver.NONE;
+        this.affinity = Optional.ofNullable(with)
+            .map(HttpWithResolver::affinity)
+            .orElse(HttpAffinityResolver.NONE);
+        this.affinityHasher = new CRC32C();
         this.when = route.when.stream()
             .map(HttpConditionConfig.class::cast)
             .map(HttpConditionMatcher::new)
@@ -80,22 +83,28 @@ public final class HttpRouteConfig
         Function<String, String> headerByName)
     {
         final String key = affinity.resolveKey(headerByName);
-        final long initialId;
-        final long affinity;
+        final HttpRouteAffinity resolved;
         if (key == null)
         {
-            initialId = context.supplyInitialId(id);
-            affinity = 0L;
+            final long initialId = context.supplyInitialId(id);
+            resolved = new HttpRouteAffinity(initialId, 0L);
         }
         else
         {
-            final CRC32C crc = new CRC32C();
-            crc.update(key.getBytes(UTF_8));
-            final int hash = (int) crc.getValue();
-            initialId = context.supplyInitialId(id, hash);
-            affinity = hash & 0xffff_ffffL;
+            affinityHasher.reset();
+            for (int i = 0; i < key.length(); i++)
+            {
+                final char c = key.charAt(i);
+                affinityHasher.update(c & 0xff);
+                affinityHasher.update((c >>> 8) & 0xff);
+            }
+            final int hash = (int) affinityHasher.getValue();
+            final long initialId = context.supplyInitialId(id, hash);
+            final long affinity = hash & 0xffff_ffffL;
+            resolved = new HttpRouteAffinity(initialId, affinity);
         }
-        return new HttpRouteAffinity(initialId, affinity);
+
+        return resolved;
     }
 
     public Map<String8FW, String16FW> overrides()

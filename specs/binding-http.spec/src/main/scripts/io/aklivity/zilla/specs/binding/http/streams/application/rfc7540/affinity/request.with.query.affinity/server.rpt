@@ -17,7 +17,7 @@
 accept "zilla://streams/app0"
        option zilla:window 8192
        option zilla:transmission "half-duplex"
-       option zilla:affinity 0x00000000f9c091e6L
+       option zilla:affinity 0x000000002be3f8b2L
 accepted
 
 read zilla:begin.ext ${http:beginEx()
