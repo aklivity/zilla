@@ -26,6 +26,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.LongUnaryOperator;
 import java.util.function.Supplier;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.stream.JsonParser;
@@ -118,6 +120,9 @@ public final class McpServerFactory implements McpStreamFactory
     private static final int ELICIT_INIT_SEQ = 0;
     private static final int ELICIT_CREATE_SEQ = 1;
     private static final int ELICIT_COMPLETE_SEQ = 2;
+
+    private static final Pattern STATE_PARAM_PATTERN = Pattern.compile("(?<=[?&])state=([^&]*)");
+    private static final Pattern REDIRECT_URI_PARAM_PATTERN = Pattern.compile("(?<=[?&])redirect_uri=[^&]*");
     private static final String JSON_RPC_RESULT_PREFIX = "{\"jsonrpc\":\"2.0\",\"id\":";
     private static final String JSON_RPC_RESULT_MIDDLE = ",\"result\":";
     private static final String JSON_RPC_ERROR_PREFIX = "{\"jsonrpc\":\"2.0\",\"id\":";
@@ -340,7 +345,7 @@ public final class McpServerFactory implements McpStreamFactory
                 }
                 else
                 {
-                    final String redirectURI = binding.resolveRedirectUri(httpBeginEx);
+                    final String redirectURI = binding.resolveRedirectURI(httpBeginEx);
                     newStream = new McpServer(
                         sender,
                         originId,
@@ -4726,73 +4731,22 @@ public final class McpServerFactory implements McpStreamFactory
         String sessionId,
         String redirectURI)
     {
-        if (originalUrl == null)
-        {
-            return null;
-        }
-        final int queryAt = originalUrl.indexOf('?');
-        if (queryAt < 0)
+        if (originalUrl == null || originalUrl.indexOf('?') < 0)
         {
             return originalUrl;
         }
 
-        final String prefix = originalUrl.substring(0, queryAt + 1);
-        final String query = originalUrl.substring(queryAt + 1);
-        final String encodedRedirect = redirectURI != null
-            ? URLEncoder.encode(redirectURI, StandardCharsets.UTF_8)
-            : null;
+        String result = STATE_PARAM_PATTERN.matcher(originalUrl)
+            .replaceFirst(Matcher.quoteReplacement("state=" + sessionId + ".") + "$1");
 
-        final StringBuilder result = new StringBuilder(originalUrl.length() + sessionId.length() + 64);
-        result.append(prefix);
-
-        int cursor = 0;
-        boolean first = true;
-        final int qLen = query.length();
-        while (cursor < qLen)
+        if (redirectURI != null)
         {
-            final int eq = query.indexOf('=', cursor);
-            if (eq < 0)
-            {
-                if (!first)
-                {
-                    result.append('&');
-                }
-                result.append(query, cursor, qLen);
-                break;
-            }
-            final int amp = query.indexOf('&', eq + 1);
-            final int valueEnd = amp < 0 ? qLen : amp;
-            final String name = query.substring(cursor, eq);
-            final String value = query.substring(eq + 1, valueEnd);
-
-            if (!first)
-            {
-                result.append('&');
-            }
-            first = false;
-
-            result.append(name).append('=');
-            if ("state".equals(name))
-            {
-                result.append(sessionId).append('.').append(value);
-            }
-            else if ("redirect_uri".equals(name) && encodedRedirect != null)
-            {
-                result.append(encodedRedirect);
-            }
-            else
-            {
-                result.append(value);
-            }
-
-            if (amp < 0)
-            {
-                break;
-            }
-            cursor = amp + 1;
+            final String encodedRedirect = URLEncoder.encode(redirectURI, StandardCharsets.UTF_8);
+            result = REDIRECT_URI_PARAM_PATTERN.matcher(result)
+                .replaceFirst(Matcher.quoteReplacement("redirect_uri=" + encodedRedirect));
         }
 
-        return result.toString();
+        return result;
     }
 
     private static String extractQueryParam(

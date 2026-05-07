@@ -130,10 +130,10 @@ public final class McpBindingConfig
         return result;
     }
 
-    public String resolveRedirectUri(
+    public String resolveRedirectURI(
         HttpBeginExFW httpBeginEx)
     {
-        String redirectUri = null;
+        String redirectURI = null;
         if (httpBeginEx != null)
         {
             final String authority = Optional.ofNullable(httpBeginEx.headers()
@@ -152,9 +152,9 @@ public final class McpBindingConfig
                     .map(o -> o.elicitation)
                     .map(e -> e.callback)
                     .orElse(DEFAULT_CALLBACK_PATH);
-                redirectUri = "https://" + authority + pathOnly + "/" + callback;
+                redirectURI = "https://" + authority + pathOnly + "/" + callback;
             }
         }
-        return redirectUri;
+        return redirectURI;
     }
 }
