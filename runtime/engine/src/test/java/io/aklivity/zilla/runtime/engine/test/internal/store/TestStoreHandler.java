@@ -20,17 +20,27 @@ import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
+import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.StoreConfig;
 import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 
 public final class TestStoreHandler implements StoreHandler
 {
     private final Map<String, String> entries;
+    private final Signaler signaler;
 
     public TestStoreHandler(
         StoreConfig store)
     {
+        this(store, null);
+    }
+
+    public TestStoreHandler(
+        StoreConfig store,
+        Signaler signaler)
+    {
         this.entries = new HashMap<>();
+        this.signaler = signaler;
     }
 
     @Override
@@ -38,7 +48,8 @@ public final class TestStoreHandler implements StoreHandler
         String key,
         BiConsumer<String, String> completion)
     {
-        completion.accept(key, entries.get(key));
+        final String value = entries.get(key);
+        defer(() -> completion.accept(key, value));
     }
 
     @Override
@@ -49,7 +60,7 @@ public final class TestStoreHandler implements StoreHandler
         Consumer<String> completion)
     {
         entries.put(key, value);
-        completion.accept(null);
+        defer(() -> completion.accept(null));
     }
 
     @Override
@@ -59,8 +70,8 @@ public final class TestStoreHandler implements StoreHandler
         long ttl,
         Consumer<String> completion)
     {
-        String existing = entries.putIfAbsent(key, value);
-        completion.accept(existing);
+        final String existing = entries.putIfAbsent(key, value);
+        defer(() -> completion.accept(existing));
     }
 
     @Override
@@ -69,7 +80,7 @@ public final class TestStoreHandler implements StoreHandler
         Consumer<String> completion)
     {
         entries.remove(key);
-        completion.accept(null);
+        defer(() -> completion.accept(null));
     }
 
     @Override
@@ -77,6 +88,22 @@ public final class TestStoreHandler implements StoreHandler
         String key,
         Consumer<String> completion)
     {
-        completion.accept(entries.remove(key));
+        final String prior = entries.remove(key);
+        defer(() -> completion.accept(prior));
+    }
+
+    private void defer(
+        Runnable task)
+    {
+        // contract: callback fires strictly later than the call, on the caller's I/O thread
+        if (signaler != null)
+        {
+            signaler.signalAt(System.currentTimeMillis(), 0, ignored -> task.run());
+        }
+        else
+        {
+            // unit-test fallback (no engine context); run immediately
+            task.run();
+        }
     }
 }
