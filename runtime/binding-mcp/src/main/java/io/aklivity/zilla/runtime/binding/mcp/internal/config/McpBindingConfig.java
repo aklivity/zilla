@@ -137,12 +137,15 @@ public final class McpBindingConfig
         {
             final HttpHeaderFW authorityHeader = httpBeginEx.headers()
                 .matchFirst(h -> HTTP_HEADER_AUTHORITY.equals(h.name().asString()));
+            // matchFirst returns a shared flyweight; copy its value out before
+            // calling matchFirst again, otherwise the next call re-wraps the
+            // shared instance and authorityHeader.value() reads the wrong header
+            final String authority = authorityHeader != null ? authorityHeader.value().asString() : null;
             final HttpHeaderFW pathHeader = httpBeginEx.headers()
                 .matchFirst(h -> HTTP_HEADER_PATH.equals(h.name().asString()));
-            if (authorityHeader != null && pathHeader != null)
+            final String path = pathHeader != null ? pathHeader.value().asString() : null;
+            if (authority != null && path != null)
             {
-                final String authority = authorityHeader.value().asString();
-                final String path = pathHeader.value().asString();
                 final int queryAt = path.indexOf('?');
                 final String pathOnly = queryAt >= 0 ? path.substring(0, queryAt) : path;
                 final McpElicitationConfig elicitation = options != null ? options.elicitation : null;

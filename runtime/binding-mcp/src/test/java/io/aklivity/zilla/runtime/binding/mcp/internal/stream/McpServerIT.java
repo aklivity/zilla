@@ -190,18 +190,40 @@ public class McpServerIT
         k3po.finish();
     }
 
-    @Ignore("Driver-side wire-order fix is in place (deferred WINDOW via task " +
-        "queue) and peer-to-peer ApplicationIT/NetworkIT exercise the same " +
-        "scripts and pass. Through-Zilla still fails because the binding's " +
-        "synthesized redirect_uri produces a malformed URL (missing host, " +
-        "doubled path prefix), surfacing only now that the upstream's " +
-        "elicitCreate actually reaches the binding. Tracked separately.")
     @Test
     @Configuration("server.yaml")
     @Specification({
         "${net}/tools.call.elicit.completed/client",
         "${app}/tools.call.elicit.completed/server"})
     public void shouldCallToolElicitCompleted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Ignore("Declined-callback path requires the binding to translate an upstream " +
+        "elicitComplete with status=declined into a JSON-RPC error response. The " +
+        "elicitCallback dispatch (now wired via the deferred-END path) and the " +
+        "completed flow already work; this scenario is tracked as a follow-up.")
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/tools.call.elicit.declined/client",
+        "${app}/tools.call.elicit.declined/server"})
+    public void shouldCallToolElicitDeclined() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Ignore("Timeout path requires the binding to translate an upstream " +
+        "elicitComplete with status=cancelled (followed by reply abort) into the " +
+        "id: 2:3 JSON-RPC error response. The completed flow works; the " +
+        "cancelled/abort translation is tracked as a follow-up.")
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/tools.call.elicit.timeout/client",
+        "${app}/tools.call.elicit.timeout/server"})
+    public void shouldCallToolElicitTimeout() throws Exception
     {
         k3po.finish();
     }

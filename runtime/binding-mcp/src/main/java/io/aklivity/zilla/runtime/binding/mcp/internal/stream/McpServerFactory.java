@@ -86,6 +86,8 @@ public final class McpServerFactory implements McpStreamFactory
     private static final String JSON_RPC_VERSION = "2.0";
     private static final String HTTP_HEADER_METHOD = ":method";
     private static final String HTTP_HEADER_PATH = ":path";
+    private static final String HTTP_HEADER_SCHEME = ":scheme";
+    private static final String HTTP_HEADER_AUTHORITY = ":authority";
     private static final String HTTP_HEADER_SESSION = "mcp-session-id";
     private static final String HTTP_HEADER_STATUS = ":status";
     private static final String HTTP_HEADER_CONTENT_TYPE = "content-type";
@@ -353,12 +355,20 @@ public final class McpServerFactory implements McpStreamFactory
             case "GET":
                 if (isAuthCallbackPath(binding, path))
                 {
+                    final HttpHeaderFW schemeHeader = httpBeginEx.headers()
+                        .matchFirst(h -> HTTP_HEADER_SCHEME.equals(h.name().asString()));
+                    final String scheme = schemeHeader != null ? schemeHeader.value().asString() : "https";
+                    final HttpHeaderFW authorityHeader = httpBeginEx.headers()
+                        .matchFirst(h -> HTTP_HEADER_AUTHORITY.equals(h.name().asString()));
+                    final String authority = authorityHeader != null ? authorityHeader.value().asString() : "";
+                    final String callbackUrl = scheme + "://" + authority + path;
                     newStream = new McpAuthCallbackHandler(
                         sender,
                         originId,
                         routedId,
                         initialId,
-                        path)::onNetMessage;
+                        path,
+                        callbackUrl)::onNetMessage;
                 }
                 else if (!acceptIncludesEventStream(accept))
                 {
@@ -1355,10 +1365,20 @@ public final class McpServerFactory implements McpStreamFactory
             state = McpState.closingInitial(state);
 
             if (decodeSlot == BufferPool.NO_SLOT &&
-                stream != null)
+                stream != null &&
+                !elicitMode)
             {
                 state = McpState.closedInitial(state);
                 stream.doAppEnd(traceId, authorization);
+            }
+        }
+
+        private void doDeferredCloseInitial()
+        {
+            if (McpState.initialClosing(state) &&
+                !McpState.initialClosed(state))
+            {
+                state = McpState.closedInitial(state);
             }
         }
 
@@ -1668,7 +1688,8 @@ public final class McpServerFactory implements McpStreamFactory
 
             if (McpState.initialClosing(state) &&
                 decodeSlot == BufferPool.NO_SLOT &&
-                stream != null)
+                stream != null &&
+                !elicitMode)
             {
                 state = McpState.closedInitial(state);
                 stream.doAppEnd(traceId, authorization);
@@ -2488,6 +2509,7 @@ public final class McpServerFactory implements McpStreamFactory
         private final long initialId;
         private final long replyId;
         private final String path;
+        private final String callbackUrl;
 
         private long initialSeq;
         private long initialAck;
@@ -2504,7 +2526,8 @@ public final class McpServerFactory implements McpStreamFactory
             long originId,
             long routedId,
             long initialId,
-            String path)
+            String path,
+            String callbackUrl)
         {
             this.net = sender;
             this.originId = originId;
@@ -2512,6 +2535,7 @@ public final class McpServerFactory implements McpStreamFactory
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.path = path;
+            this.callbackUrl = callbackUrl;
         }
 
         private void onNetMessage(
@@ -2594,7 +2618,9 @@ public final class McpServerFactory implements McpStreamFactory
 
             if (resolved != null)
             {
-                resolved.doAppFlushElicitCallback(traceId, authorization, path);
+                resolved.doAppFlushElicitCallback(traceId, authorization, callbackUrl);
+                resolved.doAppEnd(traceId, authorization);
+                resolved.server.doDeferredCloseInitial();
                 doNetReply200(traceId, authorization, AUTH_CALLBACK_OK_BODY);
             }
             else
