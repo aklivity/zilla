@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.engine.test.internal.store;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -30,17 +31,11 @@ public final class TestStoreHandler implements StoreHandler
     private final Signaler signaler;
 
     public TestStoreHandler(
-        StoreConfig store)
-    {
-        this(store, null);
-    }
-
-    public TestStoreHandler(
         StoreConfig store,
         Signaler signaler)
     {
         this.entries = new HashMap<>();
-        this.signaler = signaler;
+        this.signaler = Objects.requireNonNull(signaler);
     }
 
     @Override
@@ -96,14 +91,6 @@ public final class TestStoreHandler implements StoreHandler
         Runnable task)
     {
         // contract: callback fires strictly later than the call, on the caller's I/O thread
-        if (signaler != null)
-        {
-            signaler.signalAt(System.currentTimeMillis(), 0, ignored -> task.run());
-        }
-        else
-        {
-            // unit-test fallback (no engine context); run immediately
-            task.run();
-        }
+        signaler.signalAt(System.currentTimeMillis(), 0, ignored -> task.run());
     }
 }

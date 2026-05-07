@@ -32,6 +32,7 @@ import java.util.function.LongConsumer;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
+import org.agrona.collections.MutableBoolean;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -189,16 +190,16 @@ final class TestBindingFactory implements BindingHandler
                 if (this.store != null && this.storeAssertions == null)
                 {
                     final Thread dispatchThread = Thread.currentThread();
-                    final boolean[] callbackFired = { false };
+                    final MutableBoolean callbackFired = new MutableBoolean();
                     this.store.putIfAbsent("init", "", Long.MAX_VALUE, v ->
                     {
-                        if (Thread.currentThread() != dispatchThread || callbackFired[0])
+                        if (Thread.currentThread() != dispatchThread || callbackFired.value)
                         {
                             throw new IllegalStateException("store contract violation");
                         }
-                        callbackFired[0] = true;
+                        callbackFired.value = true;
                     });
-                    if (callbackFired[0])
+                    if (callbackFired.value)
                     {
                         // store contract: callback must fire strictly later than the call
                         throw new IllegalStateException("store contract violation: sync callback");
@@ -646,72 +647,72 @@ final class TestBindingFactory implements BindingHandler
                     }
                 }
                 final Thread dispatchThread = Thread.currentThread();
-                final boolean[] callbackFired = { false };
+                final MutableBoolean callbackFired = new MutableBoolean();
                 switch (a.op)
                 {
                 case "get":
                     store.get(a.key, (k, v) ->
                     {
                         if (Thread.currentThread() != dispatchThread ||
-                            callbackFired[0] ||
+                            callbackFired.value ||
                             a.hasExpect && !Objects.equals(v, a.expect))
                         {
                             doInitialReset(traceId);
                         }
-                        callbackFired[0] = true;
+                        callbackFired.value = true;
                     });
                     break;
                 case "put":
                     store.put(a.key, a.value, a.ttl, v ->
                     {
                         if (Thread.currentThread() != dispatchThread ||
-                            callbackFired[0])
+                            callbackFired.value)
                         {
                             doInitialReset(traceId);
                         }
-                        callbackFired[0] = true;
+                        callbackFired.value = true;
                     });
                     break;
                 case "putIfAbsent":
                     store.putIfAbsent(a.key, a.value, a.ttl, v ->
                     {
                         if (Thread.currentThread() != dispatchThread ||
-                            callbackFired[0] ||
+                            callbackFired.value ||
                             a.hasExpect && !Objects.equals(v, a.expect))
                         {
                             doInitialReset(traceId);
                         }
-                        callbackFired[0] = true;
+                        callbackFired.value = true;
                     });
                     break;
                 case "delete":
                     store.delete(a.key, v ->
                     {
                         if (Thread.currentThread() != dispatchThread ||
-                            callbackFired[0])
+                            callbackFired.value)
                         {
                             doInitialReset(traceId);
                         }
-                        callbackFired[0] = true;
+                        callbackFired.value = true;
                     });
                     break;
                 case "getAndDelete":
                     store.getAndDelete(a.key, v ->
                     {
                         if (Thread.currentThread() != dispatchThread ||
-                            callbackFired[0] ||
+                            callbackFired.value ||
                             a.hasExpect && !Objects.equals(v, a.expect))
                         {
                             doInitialReset(traceId);
                         }
-                        callbackFired[0] = true;
+                        callbackFired.value = true;
                     });
                     break;
                 default:
                     doInitialReset(traceId);
                     break;
                 }
-                if (callbackFired[0])
+                if (callbackFired.value)
                 {
                     // store contract: callback must fire strictly later than the call
                     doInitialReset(traceId);

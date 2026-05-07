@@ -37,9 +37,7 @@ import java.util.function.Consumer;
  * caller observes "callback runs on my thread, later".
  * </p>
  * <p>
- * Completion callbacks are pre-allocated per-stream and passed into each operation to avoid
- * heap allocation on the data path. The result of an operation is only valid inside the
- * callback.
+ * The result of an operation is only valid inside the callback.
  * </p>
  *
  * @see StoreContext
@@ -50,7 +48,7 @@ public interface StoreHandler
      * Retrieves the value associated with the given key.
      *
      * @param key        the key to look up
-     * @param completion a pre-allocated callback that receives {@code (key, value)};
+     * @param completion a callback that receives {@code (key, value)};
      *                   {@code value} is {@code null} if the key is not present
      */
     void get(
@@ -63,7 +61,7 @@ public interface StoreHandler
      * @param key        the key to store
      * @param value      the value to associate
      * @param ttl        the time-to-live in milliseconds, or {@code Long.MAX_VALUE} for no expiry
-     * @param completion a pre-allocated callback invoked when the operation completes
+     * @param completion a callback invoked when the operation completes
      */
     void put(
         String key,
@@ -77,7 +75,7 @@ public interface StoreHandler
      * @param key        the key to store
      * @param value      the value to associate if absent
      * @param ttl        the time-to-live in milliseconds, or {@code Long.MAX_VALUE} for no expiry
-     * @param completion a pre-allocated callback that receives the existing value if present,
+     * @param completion a callback that receives the existing value if present,
      *                   or {@code null} if the key was absent and the value was stored
      */
     void putIfAbsent(
@@ -90,7 +88,7 @@ public interface StoreHandler
      * Removes the entry for the given key.
      *
      * @param key        the key to remove
-     * @param completion a pre-allocated callback invoked when the operation completes
+     * @param completion a callback invoked when the operation completes
      */
     void delete(
         String key,
@@ -100,7 +98,7 @@ public interface StoreHandler
      * Atomically retrieves and removes the entry for the given key.
      *
      * @param key        the key to retrieve and remove
-     * @param completion a pre-allocated callback that receives the value that was removed,
+     * @param completion a callback that receives the value that was removed,
      *                   or {@code null} if the key was not present
      */
     void getAndDelete(

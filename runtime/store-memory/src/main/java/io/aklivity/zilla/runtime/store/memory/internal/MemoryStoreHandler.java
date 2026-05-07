@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.store.memory.internal;
 
+import java.util.Objects;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -27,17 +28,11 @@ final class MemoryStoreHandler implements StoreHandler
     private final Signaler signaler;
 
     MemoryStoreHandler(
-        ConcurrentMap<String, MemoryEntry> entries)
-    {
-        this(entries, null);
-    }
-
-    MemoryStoreHandler(
         ConcurrentMap<String, MemoryEntry> entries,
         Signaler signaler)
     {
         this.entries = entries;
-        this.signaler = signaler;
+        this.signaler = Objects.requireNonNull(signaler);
     }
 
     @Override
@@ -103,14 +98,6 @@ final class MemoryStoreHandler implements StoreHandler
         Runnable task)
     {
         // contract: callback fires strictly later than the call, on the caller's I/O thread
-        if (signaler != null)
-        {
-            signaler.signalAt(System.currentTimeMillis(), 0, ignored -> task.run());
-        }
-        else
-        {
-            // unit-test fallback (no engine context); run immediately
-            task.run();
-        }
+        signaler.signalAt(System.currentTimeMillis(), 0, ignored -> task.run());
     }
 }
