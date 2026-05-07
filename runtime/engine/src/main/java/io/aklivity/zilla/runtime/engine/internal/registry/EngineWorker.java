@@ -572,7 +572,7 @@ public class EngineWorker implements EngineContext, Agent
     @Override
     public long supplyInitialId(
         long bindingId,
-        int hash)
+        long hash)
     {
         final int remoteIndex = resolveRemoteIndex(bindingId, hash);
 
@@ -2064,7 +2064,7 @@ public class EngineWorker implements EngineContext, Agent
 
     private int resolveRemoteIndex(
         long bindingId,
-        int hash)
+        long hash)
     {
         final Affinity affinity = supplyAffinity(bindingId);
         final BitSet mask = affinity.mask;
@@ -2073,7 +2073,7 @@ public class EngineWorker implements EngineContext, Agent
         assert cardinality != 0;
 
         // pick the n-th set bit of the mask, where n = floorMod(hash, cardinality)
-        int slot = Math.floorMod(hash, cardinality);
+        int slot = (int) Math.floorMod(hash, (long) cardinality);
         int remoteIndex = mask.nextSetBit(0);
         while (slot-- > 0)
         {

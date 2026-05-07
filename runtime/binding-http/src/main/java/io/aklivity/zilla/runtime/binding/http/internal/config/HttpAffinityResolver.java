@@ -20,74 +20,106 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpAffinityConfig;
-import io.aklivity.zilla.runtime.binding.http.config.HttpAffinitySource;
 
-public final class HttpAffinityResolver
+public abstract class HttpAffinityResolver
 {
-    private final HttpAffinitySource source;
-    private final String name;
-    private final Matcher matcher;
-    private final Pattern queryPattern;
-    private final Matcher queryMatcher;
+    public static final HttpAffinityResolver NONE = new HttpAffinityResolver()
+    {
+        @Override
+        public String resolveKey(
+            Function<String, String> headerByName)
+        {
+            return null;
+        }
+    };
 
-    public HttpAffinityResolver(
+    private static final String HEADER_PATH = ":path";
+
+    public static HttpAffinityResolver of(
         HttpAffinityConfig affinity)
     {
-        this.source = affinity.source;
-        this.name = affinity.name;
-        this.matcher = affinity.match != null ? affinity.match.matcher("") : null;
-        if (source == HttpAffinitySource.QUERY)
+        if (affinity == null)
         {
-            // matches `?<name>=<value>` or `&<name>=<value>` in :path; group 1 is the value
-            this.queryPattern = Pattern.compile("[?&]" + Pattern.quote(name) + "=([^&]*)");
-            this.queryMatcher = queryPattern.matcher("");
+            return NONE;
         }
-        else
+
+        final Matcher matcher = affinity.match != null ? affinity.match.matcher("") : null;
+
+        return switch (affinity.source)
         {
-            this.queryPattern = null;
-            this.queryMatcher = null;
+        case HEADER -> new HeaderAffinityResolver(affinity.name, matcher);
+        case QUERY -> new QueryAffinityResolver(affinity.name, matcher);
+        };
+    }
+
+    public abstract String resolveKey(
+        Function<String, String> headerByName);
+
+    private static String applyMatcher(
+        String value,
+        Matcher matcher)
+    {
+        String key = value;
+
+        if (value != null &&
+            matcher != null)
+        {
+            key = matcher.reset(value).find()
+                ? matcher.groupCount() > 0 ? matcher.group(1) : matcher.group(0)
+                : null;
+        }
+
+        return key;
+    }
+
+    private static final class HeaderAffinityResolver extends HttpAffinityResolver
+    {
+        private final String name;
+        private final Matcher matcher;
+
+        private HeaderAffinityResolver(
+            String name,
+            Matcher matcher)
+        {
+            this.name = name;
+            this.matcher = matcher;
+        }
+
+        @Override
+        public String resolveKey(
+            Function<String, String> headerByName)
+        {
+            return applyMatcher(headerByName.apply(name), matcher);
         }
     }
 
-    public String resolveKey(
-        Function<String, String> headerByName,
-        String path)
+    private static final class QueryAffinityResolver extends HttpAffinityResolver
     {
-        String value = null;
+        private final Matcher queryMatcher;
+        private final Matcher matcher;
 
-        switch (source)
+        private QueryAffinityResolver(
+            String name,
+            Matcher matcher)
         {
-        case HEADER:
-            value = headerByName.apply(name);
-            break;
-        case QUERY:
-            if (path != null)
+            // matches `?<name>=<value>` or `&<name>=<value>` in :path; group 1 is the value
+            this.queryMatcher = Pattern.compile("[?&]" + Pattern.quote(name) + "=([^&]*)").matcher("");
+            this.matcher = matcher;
+        }
+
+        @Override
+        public String resolveKey(
+            Function<String, String> headerByName)
+        {
+            final String path = headerByName.apply(HEADER_PATH);
+            String value = null;
+
+            if (path != null && queryMatcher.reset(path).find())
             {
-                queryMatcher.reset(path);
-                if (queryMatcher.find())
-                {
-                    value = queryMatcher.group(1);
-                }
+                value = queryMatcher.group(1);
             }
-            break;
-        }
 
-        if (value == null)
-        {
-            return null;
+            return applyMatcher(value, matcher);
         }
-
-        if (matcher == null)
-        {
-            return value;
-        }
-
-        matcher.reset(value);
-        if (!matcher.find())
-        {
-            return null;
-        }
-
-        return matcher.groupCount() > 0 ? matcher.group(1) : matcher.group(0);
     }
 }

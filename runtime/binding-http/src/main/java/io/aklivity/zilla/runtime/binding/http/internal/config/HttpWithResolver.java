@@ -43,9 +43,7 @@ public class HttpWithResolver
     {
         this.paramsMatcher = PARAMS_PATTERN.matcher("");
         this.with = with;
-        this.affinity = with != null && with.affinity != null
-            ? new HttpAffinityResolver(with.affinity)
-            : null;
+        this.affinity = HttpAffinityResolver.of(with != null ? with.affinity : null);
     }
 
     public HttpAffinityResolver affinity()

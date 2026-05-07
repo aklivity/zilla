@@ -80,7 +80,7 @@ public class EchoWorker implements EngineContext
     @Override
     public long supplyInitialId(
         long bindingId,
-        int hash)
+        long hash)
     {
         return 0;
     }

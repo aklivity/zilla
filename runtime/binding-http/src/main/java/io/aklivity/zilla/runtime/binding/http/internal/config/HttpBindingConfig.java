@@ -30,8 +30,6 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.function.Function;
-import java.util.function.LongBinaryOperator;
-import java.util.function.LongUnaryOperator;
 import java.util.function.ToLongFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -49,6 +47,7 @@ import io.aklivity.zilla.runtime.binding.http.config.HttpVersion;
 import io.aklivity.zilla.runtime.binding.http.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.HttpBeginExFW;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
@@ -78,30 +77,17 @@ public final class HttpBindingConfig
     public final List<HttpRequestType> requests;
 
     public HttpBindingConfig(
+        EngineContext context,
         BindingConfig binding,
         Function<ModelConfig, ValidatorHandler> supplyValidator)
-    {
-        this(binding, supplyValidator, null, null);
-    }
-
-    public HttpBindingConfig(
-        BindingConfig binding,
-        Function<ModelConfig, ValidatorHandler> supplyValidator,
-        LongUnaryOperator supplyInitialId,
-        LongBinaryOperator supplyInitialIdByHash)
     {
         this.id = binding.id;
         this.name = binding.name;
         this.kind = binding.kind;
         this.options = HttpOptionsConfig.class.cast(binding.options);
         this.routes = binding.routes.stream().map(route ->
-            new HttpRouteConfig(route, options != null ? options.overrides : null,
-                supplyInitialId != null
-                    ? () -> supplyInitialId.applyAsLong(route.id)
-                    : null,
-                supplyInitialIdByHash != null
-                    ? hash -> supplyInitialIdByHash.applyAsLong(route.id, hash)
-                    : null)).collect(toList());
+            new HttpRouteConfig(context, route, options != null ? options.overrides : null))
+            .collect(toList());
         this.resolveId = binding.resolveId;
         this.credentials = options != null && options.authorization != null ?
                 asAccessor(options.authorization.credentials) : DEFAULT_CREDENTIALS;
