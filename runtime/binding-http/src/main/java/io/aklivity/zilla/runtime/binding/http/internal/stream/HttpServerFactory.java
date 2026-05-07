@@ -101,9 +101,9 @@ import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2RstStreamFW;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2Setting;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2SettingsFW;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2WindowUpdateFW;
-import io.aklivity.zilla.runtime.binding.http.internal.config.HttpAffinityResolver;
 import io.aklivity.zilla.runtime.binding.http.internal.config.HttpBindingConfig;
 import io.aklivity.zilla.runtime.binding.http.internal.config.HttpRequestType;
+import io.aklivity.zilla.runtime.binding.http.internal.config.HttpRouteAffinity;
 import io.aklivity.zilla.runtime.binding.http.internal.config.HttpRouteConfig;
 import io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackContext;
 import io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackHeaderBlockFW;
@@ -616,7 +616,7 @@ public final class HttpServerFactory implements HttpStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        HttpBindingConfig httpBinding = new HttpBindingConfig(binding, supplyValidator, supplyInitialIdByHash);
+        HttpBindingConfig httpBinding = new HttpBindingConfig(binding, supplyValidator, supplyInitialId, supplyInitialIdByHash);
         bindings.put(binding.id, httpBinding);
     }
 
@@ -1138,27 +1138,12 @@ public final class HttpServerFactory implements HttpStreamFactory
                             HttpPolicyConfig policy = binding.access().effectivePolicy(headers);
                             final String origin = policy == CROSS_ORIGIN ? headers.get(HEADER_NAME_ORIGIN) : null;
 
-                            final long requestId;
-                            final long requestAffinity;
-                            HttpAffinityResolver affinityResolver = route.affinity();
-                            String affinityKey = affinityResolver != null
-                                ? affinityResolver.resolveKey(headers::get, headers.get(HEADER_NAME_PATH))
-                                : null;
-                            if (affinityKey != null)
-                            {
-                                final int hash = affinityKey.hashCode();
-                                requestId = route.supplyInitialId(hash);
-                                requestAffinity = hash & 0xffff_ffffL;
-                            }
-                            else
-                            {
-                                requestId = supplyInitialId.applyAsLong(route.id);
-                                requestAffinity = server.affinity;
-                            }
+                            final HttpRouteAffinity routeAffinity = route.resolveAffinity(headers::get,
+                                headers.get(HEADER_NAME_PATH));
 
                             HttpRequestType requestType = binding.resolveRequestType(beginEx);
-                            boolean headersValid = server.onDecodeHeaders(server.routedId, route.id, requestId,
-                                requestAffinity, traceId, exchangeAuth, policy, origin, beginEx, requestType);
+                            boolean headersValid = server.onDecodeHeaders(server.routedId, route.id, routeAffinity.initialId(),
+                                routeAffinity.affinity(), traceId, exchangeAuth, policy, origin, beginEx, requestType);
                             if (!headersValid)
                             {
                                 error = response400;
@@ -5160,25 +5145,11 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                             HttpRequestType requestType = binding.resolveRequestType(beginEx);
 
-                            final long requestId;
-                            final long requestAffinity;
-                            final HttpAffinityResolver affinityResolver = route.affinity();
-                            final String affinityKey = affinityResolver != null
-                                ? affinityResolver.resolveKey(headers::get, headers.get(HEADER_NAME_PATH))
-                                : null;
-                            if (affinityKey != null)
-                            {
-                                final int hash = affinityKey.hashCode();
-                                requestId = route.supplyInitialId(hash);
-                                requestAffinity = hash & 0xffff_ffffL;
-                            }
-                            else
-                            {
-                                requestId = NO_REQUEST_ID;
-                                requestAffinity = Http2Server.this.affinity;
-                            }
+                            final HttpRouteAffinity routeAffinity = route.resolveAffinity(headers::get,
+                                headers.get(HEADER_NAME_PATH));
 
-                            final Http2Exchange exchange = new Http2Exchange(originId, routedId, requestId, requestAffinity,
+                            final Http2Exchange exchange = new Http2Exchange(originId, routedId,
+                                routeAffinity.initialId(), routeAffinity.affinity(),
                                 streamId, exchangeAuth, traceId, policy, origin, contentLength, requestType);
 
                             boolean headersValid = exchange.validateHeaders(beginEx);

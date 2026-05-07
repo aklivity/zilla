@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.binding.http.internal.config;
 
 import static io.aklivity.zilla.runtime.engine.config.WithConfig.NO_COMPOSITE_ID;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.stream.Collectors.toList;
 
 import java.util.LinkedHashMap;
@@ -23,8 +24,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
 import java.util.function.UnaryOperator;
+import java.util.zip.CRC32C;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpConditionConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpWithConfig;
@@ -41,19 +44,21 @@ public final class HttpRouteConfig
     private final HttpWithResolver with;
     private final LongObjectPredicate<UnaryOperator<String>> authorized;
     private final Map<String8FW, String16FW> overrides;
-    private final LongUnaryOperator supplyInitialId;
+    private final LongSupplier supplyInitialId;
+    private final LongUnaryOperator supplyInitialIdByHash;
 
     public HttpRouteConfig(
         RouteConfig route,
         Map<String8FW, String16FW> overrides)
     {
-        this(route, overrides, null);
+        this(route, overrides, null, null);
     }
 
     public HttpRouteConfig(
         RouteConfig route,
         Map<String8FW, String16FW> overrides,
-        LongUnaryOperator supplyInitialId)
+        LongSupplier supplyInitialId,
+        LongUnaryOperator supplyInitialIdByHash)
     {
         this.id = route.id;
         this.with = Optional.ofNullable(route.with)
@@ -72,6 +77,7 @@ public final class HttpRouteConfig
             this.overrides.putAll(overrides);
         }
         this.supplyInitialId = supplyInitialId;
+        this.supplyInitialIdByHash = supplyInitialIdByHash;
     }
 
     public long compositeId()
@@ -84,10 +90,22 @@ public final class HttpRouteConfig
         return with != null ? with.affinity() : null;
     }
 
-    public long supplyInitialId(
-        long hash)
+    public HttpRouteAffinity resolveAffinity(
+        Function<String, String> headers,
+        String path)
     {
-        return supplyInitialId.applyAsLong(hash);
+        final HttpAffinityResolver resolver = affinity();
+        final String key = resolver != null
+            ? resolver.resolveKey(headers, path)
+            : null;
+        if (key == null)
+        {
+            return new HttpRouteAffinity(supplyInitialId.getAsLong(), 0L);
+        }
+        final CRC32C crc = new CRC32C();
+        crc.update(key.getBytes(UTF_8));
+        final int hash = (int) crc.getValue();
+        return new HttpRouteAffinity(supplyInitialIdByHash.applyAsLong(hash), hash & 0xffff_ffffL);
     }
 
     public Map<String8FW, String16FW> overrides()

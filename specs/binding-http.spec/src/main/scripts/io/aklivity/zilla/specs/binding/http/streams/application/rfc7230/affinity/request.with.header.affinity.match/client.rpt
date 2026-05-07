@@ -17,7 +17,7 @@
 connect "zilla://streams/app0"
     option zilla:window 8192
     option zilla:transmission "half-duplex"
-    option zilla:affinity 0x00000000ca029156L
+    option zilla:affinity 0x00000000ea906212L
 
 write zilla:begin.ext ${http:beginEx()
                               .typeId(zilla:id("http"))

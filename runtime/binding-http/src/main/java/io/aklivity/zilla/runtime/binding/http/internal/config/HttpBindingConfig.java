@@ -31,6 +31,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.function.Function;
 import java.util.function.LongBinaryOperator;
+import java.util.function.LongUnaryOperator;
 import java.util.function.ToLongFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -80,13 +81,14 @@ public final class HttpBindingConfig
         BindingConfig binding,
         Function<ModelConfig, ValidatorHandler> supplyValidator)
     {
-        this(binding, supplyValidator, null);
+        this(binding, supplyValidator, null, null);
     }
 
     public HttpBindingConfig(
         BindingConfig binding,
         Function<ModelConfig, ValidatorHandler> supplyValidator,
-        LongBinaryOperator supplyInitialId)
+        LongUnaryOperator supplyInitialId,
+        LongBinaryOperator supplyInitialIdByHash)
     {
         this.id = binding.id;
         this.name = binding.name;
@@ -95,7 +97,10 @@ public final class HttpBindingConfig
         this.routes = binding.routes.stream().map(route ->
             new HttpRouteConfig(route, options != null ? options.overrides : null,
                 supplyInitialId != null
-                    ? hash -> supplyInitialId.applyAsLong(route.id, hash)
+                    ? () -> supplyInitialId.applyAsLong(route.id)
+                    : null,
+                supplyInitialIdByHash != null
+                    ? hash -> supplyInitialIdByHash.applyAsLong(route.id, hash)
                     : null)).collect(toList());
         this.resolveId = binding.resolveId;
         this.credentials = options != null && options.authorization != null ?
