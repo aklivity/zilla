@@ -190,11 +190,12 @@ public class McpServerIT
         k3po.finish();
     }
 
-    @Ignore("Requires the request stream's initial-forward to stay open while the app emits " +
-        "CHALLENGE elicitCreate (read-advise) so zilla receives it before the network END is " +
-        "propagated to the app. Zilla currently forwards END eagerly, closing initial before " +
-        "the app's read-advise can fire. Peer-to-peer ApplicationIT and NetworkIT exercise " +
-        "the same scripts and pass.")
+    @Ignore("Driver-side wire-order fix is in place (deferred WINDOW via task " +
+        "queue) and peer-to-peer ApplicationIT/NetworkIT exercise the same " +
+        "scripts and pass. Through-Zilla still fails because the binding's " +
+        "synthesized redirect_uri produces a malformed URL (missing host, " +
+        "doubled path prefix), surfacing only now that the upstream's " +
+        "elicitCreate actually reaches the binding. Tracked separately.")
     @Test
     @Configuration("server.yaml")
     @Specification({

@@ -48,6 +48,14 @@ read zilla:begin.ext ${mcp:matchBeginEx()
                               .build()
                           .build()}
 
+read advise zilla:challenge ${mcp:challengeEx()
+                                  .typeId(zilla:id("mcp"))
+                                  .elicitCreate()
+                                      .id("elicit-1")
+                                      .url("https://server.example.com/authorize?state=7f3a9b1c&redirect_uri=https%3A%2F%2Freplace.me%2Fcallback")
+                                      .build()
+                                  .build()}
+
 connected
 
 read  '{'
@@ -57,14 +65,6 @@ read  '{'
           '"location": "New York"'
         '}'
       '}'
-
-read advise zilla:challenge ${mcp:challengeEx()
-                                  .typeId(zilla:id("mcp"))
-                                  .elicitCreate()
-                                      .id("elicit-1")
-                                      .url("https://server.example.com/authorize?state=7f3a9b1c&redirect_uri=https%3A%2F%2Freplace.me%2Fcallback")
-                                      .build()
-                                  .build()}
 
 # no elicitCallback arrives within timeout — give up
 
