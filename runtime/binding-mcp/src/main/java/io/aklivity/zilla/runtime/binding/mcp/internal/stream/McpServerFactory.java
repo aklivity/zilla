@@ -117,9 +117,6 @@ public final class McpServerFactory implements McpStreamFactory
     private static final String LIFECYCLE_STREAM_ID_PREFIX = "";
 
     private static final String SSE_DATA_PREFIX = "data: ";
-    private static final int ELICIT_INIT_SEQ = 0;
-    private static final int ELICIT_CREATE_SEQ = 1;
-    private static final int ELICIT_COMPLETE_SEQ = 2;
 
     private static final Pattern STATE_PARAM_PATTERN = Pattern.compile("(?<=[?&])state=([^&]*)");
     private static final Pattern REDIRECT_URI_PARAM_PATTERN = Pattern.compile("(?<=[?&])redirect_uri=[^&]*");
@@ -2046,23 +2043,13 @@ public final class McpServerFactory implements McpStreamFactory
             }
         }
 
-        private void doEncodeElicitInitEvent(
-            long traceId,
-            long authorization)
-        {
-            int codecLimit = encodeSseIdLine(codecBuffer, 0, decodedId, ELICIT_INIT_SEQ);
-            codecBuffer.putByte(codecLimit, (byte) '\n');
-            codecLimit += 1;
-            doNetData(traceId, authorization, codecBuffer, 0, codecLimit);
-        }
-
         private void doEncodeElicitCreateDataEvent(
             long traceId,
             long authorization,
             String elicitationId,
             String url)
         {
-            int codecLimit = encodeSseIdLine(codecBuffer, 0, decodedId, ELICIT_CREATE_SEQ);
+            int codecLimit = encodeSseElicitIdLine(codecBuffer, 0, decodedId, elicitationId);
             codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, SSE_DATA_PREFIX);
             codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit,
                 "{\"jsonrpc\":\"2.0\",\"method\":\"elicitation/create\",\"params\":{\"mode\":\"url\",\"elicitationId\":\"");
@@ -2081,7 +2068,7 @@ public final class McpServerFactory implements McpStreamFactory
             String elicitationId,
             McpElicitStatus status)
         {
-            int codecLimit = encodeSseIdLine(codecBuffer, 0, decodedId, ELICIT_COMPLETE_SEQ);
+            int codecLimit = encodeSseElicitIdLine(codecBuffer, 0, decodedId, elicitationId);
             codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, SSE_DATA_PREFIX);
             codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit,
                 "{\"jsonrpc\":\"2.0\",\"method\":\"elicitation/complete\",\"params\":{\"elicitationId\":\"");
@@ -4125,7 +4112,6 @@ public final class McpServerFactory implements McpStreamFactory
             }
 
             server.onAppChallenge(traceId, authorization);
-            server.doEncodeElicitInitEvent(traceId, authorization);
             server.doEncodeElicitCreateDataEvent(traceId, authorization, elicitationId, manipulatedUrl);
         }
 
@@ -4805,22 +4791,22 @@ public final class McpServerFactory implements McpStreamFactory
         return SSE_KEEPALIVE_BYTES.length;
     }
 
-    private int encodeSseIdLine(
+    private int encodeSseElicitIdLine(
         MutableDirectBuffer out,
         int offset,
-        String prefix,
-        int seq)
+        String requestId,
+        String elicitationId)
     {
         int progress = offset;
         out.putBytes(progress, SSE_ID_PREFIX_BYTES);
         progress += SSE_ID_PREFIX_BYTES.length;
-        if (prefix != null)
+        if (requestId != null)
         {
-            progress += out.putStringWithoutLengthAscii(progress, prefix);
+            progress += out.putStringWithoutLengthAscii(progress, requestId);
         }
         out.putByte(progress, (byte) ':');
         progress += 1;
-        progress += out.putIntAscii(progress, seq);
+        progress += out.putStringWithoutLengthAscii(progress, elicitationId);
         out.putByte(progress, (byte) '\n');
         progress += 1;
         return progress - offset;
