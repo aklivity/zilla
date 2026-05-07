@@ -96,7 +96,7 @@ write zilla:begin.ext ${http:beginEx()
                             .build()}
 write flush
 
-write 'id: 2:elicit-1\n'
+write 'id: 2:1\n'
 write 'data: {'
         '"jsonrpc":"2.0",'
         '"method":"elicitation/create",'
@@ -104,7 +104,7 @@ write 'data: {'
         '{'
           '"mode":"url",'
           '"elicitationId":"elicit-1",'
-          '"url":"https://server.example.com/authorize?state=session-1.7f3a9b1c&redirect_uri='
+          '"url":"https://server.example.com/authorize?state=elicit-1.7f3a9b1c&redirect_uri='
          ${http:encodeQuery("https://localhost:8080/mcp/auth/callback")}
          '"'
         '}'
@@ -112,7 +112,7 @@ write 'data: {'
 write '\n'
 write flush
 
-write 'id: 2:elicit-1\n'
+write 'id: 2:1\n'
 write 'data: {'
         '"jsonrpc":"2.0",'
         '"method":"elicitation/complete",'

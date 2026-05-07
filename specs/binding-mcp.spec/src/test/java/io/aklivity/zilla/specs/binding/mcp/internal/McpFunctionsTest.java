@@ -769,6 +769,20 @@ public class McpFunctionsTest
         assertNull(matcher.match(ByteBuffer.allocate(0)));
     }
 
+    @Test
+    public void shouldGenerateElicitCreateChallengeEx()
+    {
+        byte[] bytes = McpFunctions.challengeEx()
+            .typeId(0)
+            .elicitCreate()
+                .id("1")
+                .url("https://server.example.com/authorize?state=7f3a9b1c")
+                .build()
+            .build();
+
+        assertNotNull(bytes);
+    }
+
     @Test(expected = Exception.class)
     public void shouldFailWhenElicitCreateChallengeUrlMismatch() throws Exception
     {

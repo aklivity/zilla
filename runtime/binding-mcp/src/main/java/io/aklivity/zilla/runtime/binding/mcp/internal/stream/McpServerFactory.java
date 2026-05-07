@@ -179,6 +179,7 @@ public final class McpServerFactory implements McpStreamFactory
     private final McpFlushExFW.Builder mcpFlushExRW = new McpFlushExFW.Builder();
 
     private final Supplier<String> supplySessionId;
+    private final Supplier<String> supplyElicitationId;
     private final String serverName;
     private final String serverVersion;
     private final long inactivityTimeoutMillis;
@@ -227,12 +228,14 @@ public final class McpServerFactory implements McpStreamFactory
 
     private final Long2ObjectHashMap<McpBindingConfig> bindings;
     private final Map<String, McpServerFactory.McpLifecycleStream> sessions;
+    private final Map<String, McpRequestStream> elicitations;
 
     public McpServerFactory(
         McpConfiguration config,
         EngineContext context)
     {
         this.supplySessionId = config.sessionIdSupplier();
+        this.supplyElicitationId = config.elicitationIdSupplier();
         this.serverName = config.serverName();
         this.serverVersion = config.serverVersion();
         this.inactivityTimeoutMillis = config.inactivityTimeout().toMillis();
@@ -251,6 +254,7 @@ public final class McpServerFactory implements McpStreamFactory
         this.decodeMax = decodePool.slotCapacity();
         this.encodeMax = encodePool.slotCapacity();
         this.sessions = new Object2ObjectHashMap<>();
+        this.elicitations = new Object2ObjectHashMap<>();
         this.parserFactory = StreamingJson.createParserFactory(Map.of(
             StreamingJson.PATH_INCLUDES, SERVER_JSON_PATH_INCLUDES,
             StreamingJson.TOKEN_MAX_BYTES, decodeMax));
@@ -1367,7 +1371,7 @@ public final class McpServerFactory implements McpStreamFactory
 
             if (decodeSlot == BufferPool.NO_SLOT &&
                 stream != null &&
-                stream.stateToken == null)
+                stream.elicitationId == null)
             {
                 state = McpState.closedInitial(state);
                 stream.doAppEnd(traceId, authorization);
@@ -1690,7 +1694,7 @@ public final class McpServerFactory implements McpStreamFactory
             if (McpState.initialClosing(state) &&
                 decodeSlot == BufferPool.NO_SLOT &&
                 stream != null &&
-                stream.stateToken == null)
+                stream.elicitationId == null)
             {
                 state = McpState.closedInitial(state);
                 stream.doAppEnd(traceId, authorization);
@@ -2046,10 +2050,11 @@ public final class McpServerFactory implements McpStreamFactory
         private void doEncodeElicitCreateDataEvent(
             long traceId,
             long authorization,
+            String elicitId,
             String elicitationId,
             String url)
         {
-            int codecLimit = encodeSseElicitIdLine(codecBuffer, 0, decodedId, elicitationId);
+            int codecLimit = encodeSseElicitIdLine(codecBuffer, 0, decodedId, elicitId);
             codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, SSE_DATA_PREFIX);
             codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit,
                 "{\"jsonrpc\":\"2.0\",\"method\":\"elicitation/create\",\"params\":{\"mode\":\"url\",\"elicitationId\":\"");
@@ -2065,10 +2070,11 @@ public final class McpServerFactory implements McpStreamFactory
         private void doEncodeElicitCompleteDataEvent(
             long traceId,
             long authorization,
+            String elicitId,
             String elicitationId,
             McpElicitStatus status)
         {
-            int codecLimit = encodeSseElicitIdLine(codecBuffer, 0, decodedId, elicitationId);
+            int codecLimit = encodeSseElicitIdLine(codecBuffer, 0, decodedId, elicitId);
             codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, SSE_DATA_PREFIX);
             codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit,
                 "{\"jsonrpc\":\"2.0\",\"method\":\"elicitation/complete\",\"params\":{\"elicitationId\":\"");
@@ -2675,16 +2681,8 @@ public final class McpServerFactory implements McpStreamFactory
                     if (stateValue != null)
                     {
                         final int dotAt = stateValue.indexOf('.');
-                        if (dotAt > 0)
-                        {
-                            final String sessionId = stateValue.substring(0, dotAt);
-                            final String elicitationId = stateValue.substring(dotAt + 1);
-                            final McpLifecycleStream session = sessions.get(sessionId);
-                            if (session != null)
-                            {
-                                resolved = session.elicitations.get(elicitationId);
-                            }
-                        }
+                        final String resolvedElicitationId = dotAt > 0 ? stateValue.substring(0, dotAt) : stateValue;
+                        resolved = elicitations.get(resolvedElicitationId);
                     }
                 }
             }
@@ -2800,7 +2798,6 @@ public final class McpServerFactory implements McpStreamFactory
     {
         private final String sessionId;
         private final Object2ObjectHashMap<String, McpRequestStream> requests;
-        private final Object2ObjectHashMap<String, McpRequestStream> elicitations;
 
         private final long originId;
         private final long routedId;
@@ -2827,7 +2824,6 @@ public final class McpServerFactory implements McpStreamFactory
         {
             this.sessionId = supplySessionId.get();
             this.requests = new Object2ObjectHashMap<>();
-            this.elicitations = new Object2ObjectHashMap<>();
             this.originId = server.routedId;
             this.routedId = server.resolvedId;
             this.initialId = supplyInitialId.applyAsLong(server.resolvedId);
@@ -3802,7 +3798,7 @@ public final class McpServerFactory implements McpStreamFactory
 
         McpEventStream eventStream;
 
-        private String stateToken;
+        private String elicitationId;
 
         private int state;
 
@@ -4099,20 +4095,16 @@ public final class McpServerFactory implements McpStreamFactory
             long authorization,
             McpElicitCreateChallengeExFW elicitCreate)
         {
-            final String elicitationId = elicitCreate.id().asString();
+            final String elicitId = elicitCreate.id().asString();
             final String originalUrl = elicitCreate.url().asString();
-            final int queryAt = originalUrl.indexOf('?');
-            final String token = queryAt >= 0 ? extractQueryParam(originalUrl, queryAt + 1, "state") : null;
-            final String manipulatedUrl = manipulateElicitUrl(originalUrl, session.sessionId, server.redirectURI);
+            final String synthesisedElicitationId = supplyElicitationId.get();
+            final String manipulatedUrl = manipulateElicitUrl(originalUrl, synthesisedElicitationId, server.redirectURI);
 
-            if (token != null)
-            {
-                stateToken = token;
-                session.elicitations.put(token, this);
-            }
+            elicitationId = synthesisedElicitationId;
+            elicitations.put(synthesisedElicitationId, this);
 
             server.onAppChallenge(traceId, authorization);
-            server.doEncodeElicitCreateDataEvent(traceId, authorization, elicitationId, manipulatedUrl);
+            server.doEncodeElicitCreateDataEvent(traceId, authorization, elicitId, synthesisedElicitationId, manipulatedUrl);
         }
 
         private void onAppBegin(
@@ -4249,16 +4241,17 @@ public final class McpServerFactory implements McpStreamFactory
             long authorization,
             McpElicitCompleteFlushExFW elicitComplete)
         {
-            final String elicitationId = elicitComplete.id().asString();
+            final String elicitId = elicitComplete.id().asString();
             final McpElicitStatus status = elicitComplete.status().get();
+            final String resolvedElicitationId = elicitationId;
 
-            if (stateToken != null)
+            if (resolvedElicitationId != null)
             {
-                session.elicitations.remove(stateToken);
-                stateToken = null;
+                elicitations.remove(resolvedElicitationId);
+                elicitationId = null;
             }
 
-            server.doEncodeElicitCompleteDataEvent(traceId, authorization, elicitationId, status);
+            server.doEncodeElicitCompleteDataEvent(traceId, authorization, elicitId, resolvedElicitationId, status);
 
             switch (status)
             {
@@ -4714,7 +4707,7 @@ public final class McpServerFactory implements McpStreamFactory
 
     private static String manipulateElicitUrl(
         String originalUrl,
-        String sessionId,
+        String elicitationId,
         String redirectURI)
     {
         if (originalUrl == null || originalUrl.indexOf('?') < 0)
@@ -4723,7 +4716,7 @@ public final class McpServerFactory implements McpStreamFactory
         }
 
         String result = STATE_PARAM_PATTERN.matcher(originalUrl)
-            .replaceFirst(Matcher.quoteReplacement("state=" + sessionId + ".") + "$1");
+            .replaceFirst(Matcher.quoteReplacement("state=" + elicitationId + ".") + "$1");
 
         if (redirectURI != null)
         {
@@ -4795,7 +4788,7 @@ public final class McpServerFactory implements McpStreamFactory
         MutableDirectBuffer out,
         int offset,
         String requestId,
-        String elicitationId)
+        String elicitId)
     {
         int progress = offset;
         out.putBytes(progress, SSE_ID_PREFIX_BYTES);
@@ -4806,7 +4799,7 @@ public final class McpServerFactory implements McpStreamFactory
         }
         out.putByte(progress, (byte) ':');
         progress += 1;
-        progress += out.putStringWithoutLengthAscii(progress, elicitationId);
+        progress += out.putStringWithoutLengthAscii(progress, elicitId);
         out.putByte(progress, (byte) '\n');
         progress += 1;
         return progress - offset;
