@@ -92,6 +92,14 @@ public class SchemaTest
     }
 
     @Test
+    public void shouldValidateHttp11ServerAffinity()
+    {
+        JsonObject config = schema.validate("v1.1/server.affinity.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
     public void shouldValidateHttp11ServerAccessControlCrossOrigin()
     {
         JsonObject config = schema.validate("v1.1/server.access.control.cross.origin.yaml");
@@ -231,6 +239,14 @@ public class SchemaTest
     public void shouldValidateHttp2ServerWithRouteHeaderOverrides()
     {
         JsonObject config = schema.validate("v2/server.with.route.header.overrides.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateHttp2ServerAffinity()
+    {
+        JsonObject config = schema.validate("v2/server.affinity.yaml");
 
         assertThat(config, not(nullValue()));
     }

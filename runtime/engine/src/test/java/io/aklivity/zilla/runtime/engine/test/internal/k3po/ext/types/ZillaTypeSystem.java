@@ -93,6 +93,7 @@ public final class ZillaTypeSystem implements TypeSystemSpi
         acceptOptions.add(OPTION_TRANSMISSION);
         acceptOptions.add(OPTION_BYTE_ORDER);
         acceptOptions.add(OPTION_ALIGNMENT);
+        acceptOptions.add(OPTION_AFFINITY);
         acceptOptions.add(OPTION_CAPABILITIES);
         acceptOptions.add(OPTION_TIMESTAMPS);
         this.acceptOptions = unmodifiableSet(acceptOptions);

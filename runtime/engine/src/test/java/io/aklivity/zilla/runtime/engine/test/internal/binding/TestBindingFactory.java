@@ -32,6 +32,7 @@ import java.util.function.LongConsumer;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
+import org.agrona.collections.MutableBoolean;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -188,7 +189,21 @@ final class TestBindingFactory implements BindingHandler
                     options.storeAssertions.get(0).assertions : null;
                 if (this.store != null && this.storeAssertions == null)
                 {
-                    this.store.putIfAbsent("init", "", Long.MAX_VALUE, v -> {});
+                    final Thread dispatchThread = Thread.currentThread();
+                    final MutableBoolean callbackFired = new MutableBoolean();
+                    this.store.putIfAbsent("init", "", Long.MAX_VALUE, v ->
+                    {
+                        if (Thread.currentThread() != dispatchThread || callbackFired.value)
+                        {
+                            throw new IllegalStateException("store contract violation");
+                        }
+                        callbackFired.value = true;
+                    });
+                    if (callbackFired.value)
+                    {
+                        // store contract: callback must fire strictly later than the call
+                        throw new IllegalStateException("store contract violation: sync callback");
+                    }
                 }
             }
 
@@ -600,73 +615,108 @@ final class TestBindingFactory implements BindingHandler
                 doInitialReset(traceId);
             }
 
-            if (store != null && storeAssertions != null && !storeAssertions.isEmpty())
-            {
-                for (StoreAssertion a : storeAssertions)
-                {
-                    if (a.delay > 0L)
-                    {
-                        try
-                        {
-                            Thread.sleep(a.delay);
-                        }
-                        catch (InterruptedException ex)
-                        {
-                            Thread.currentThread().interrupt();
-                            throw new RuntimeException(ex);
-                        }
-                    }
-                    switch (a.op)
-                    {
-                    case "get":
-                        store.get(a.key, (k, v) ->
-                        {
-                            if (a.hasExpect && !Objects.equals(v, a.expect))
-                            {
-                                doInitialReset(traceId);
-                            }
-                        });
-                        break;
-                    case "put":
-                        store.put(a.key, a.value, a.ttl, v ->
-                        {
-                        });
-                        break;
-                    case "putIfAbsent":
-                        store.putIfAbsent(a.key, a.value, a.ttl, v ->
-                        {
-                            if (a.hasExpect && !Objects.equals(v, a.expect))
-                            {
-                                doInitialReset(traceId);
-                            }
-                        });
-                        break;
-                    case "delete":
-                        store.delete(a.key, v ->
-                        {
-                        });
-                        break;
-                    case "getAndDelete":
-                        store.getAndDelete(a.key, v ->
-                        {
-                            if (a.hasExpect && !Objects.equals(v, a.expect))
-                            {
-                                doInitialReset(traceId);
-                            }
-                        });
-                        break;
-                    default:
-                        doInitialReset(traceId);
-                        break;
-                    }
-                }
-            }
+            runStoreAssertions(traceId);
 
             while (events != null && eventIndex < events.size())
             {
                 Event e = events.get(eventIndex);
                 event.connected(traceId, routedId, e.timestamp, e.message);
                 eventIndex++;
+            }
+        }
+
+        private void runStoreAssertions(
+            long traceId)
+        {
+            if (store == null || storeAssertions == null || storeAssertions.isEmpty())
+            {
+                return;
+            }
+            for (StoreAssertion a : storeAssertions)
+            {
+                if (a.delay > 0L)
+                {
+                    try
+                    {
+                        Thread.sleep(a.delay);
+                    }
+                    catch (InterruptedException ex)
+                    {
+                        Thread.currentThread().interrupt();
+                        throw new RuntimeException(ex);
+                    }
+                }
+                final Thread dispatchThread = Thread.currentThread();
+                final MutableBoolean callbackFired = new MutableBoolean();
+                switch (a.op)
+                {
+                case "get":
+                    store.get(a.key, (k, v) ->
+                    {
+                        if (Thread.currentThread() != dispatchThread ||
+                            callbackFired.value ||
+                            a.hasExpect && !Objects.equals(v, a.expect))
+                        {
+                            doInitialReset(traceId);
+                        }
+                        callbackFired.value = true;
+                    });
+                    break;
+                case "put":
+                    store.put(a.key, a.value, a.ttl, v ->
+                    {
+                        if (Thread.currentThread() != dispatchThread ||
+                            callbackFired.value)
+                        {
+                            doInitialReset(traceId);
+                        }
+                        callbackFired.value = true;
+                    });
+                    break;
+                case "putIfAbsent":
+                    store.putIfAbsent(a.key, a.value, a.ttl, v ->
+                    {
+                        if (Thread.currentThread() != dispatchThread ||
+                            callbackFired.value ||
+                            a.hasExpect && !Objects.equals(v, a.expect))
+                        {
+                            doInitialReset(traceId);
+                        }
+                        callbackFired.value = true;
+                    });
+                    break;
+                case "delete":
+                    store.delete(a.key, v ->
+                    {
+                        if (Thread.currentThread() != dispatchThread ||
+                            callbackFired.value)
+                        {
+                            doInitialReset(traceId);
+                        }
+                        callbackFired.value = true;
+                    });
+                    break;
+                case "getAndDelete":
+                    store.getAndDelete(a.key, v ->
+                    {
+                        if (Thread.currentThread() != dispatchThread ||
+                            callbackFired.value ||
+                            a.hasExpect && !Objects.equals(v, a.expect))
+                        {
+                            doInitialReset(traceId);
+                        }
+                        callbackFired.value = true;
+                    });
+                    break;
+                default:
+                    doInitialReset(traceId);
+                    break;
+                }
+                if (callbackFired.value)
+                {
+                    // store contract: callback must fire strictly later than the call
+                    doInitialReset(traceId);
+                }
             }
         }
 

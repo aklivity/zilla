@@ -400,6 +400,40 @@
                                                 }
                                             },
                                             "additionalProperties": false
+                                        },
+                                        "affinity":
+                                        {
+                                            "title": "Affinity",
+                                            "type": "object",
+                                            "properties":
+                                            {
+                                                "header":
+                                                {
+                                                    "title": "Header Name",
+                                                    "type": "string"
+                                                },
+                                                "query":
+                                                {
+                                                    "title": "Query Parameter Name",
+                                                    "type": "string"
+                                                },
+                                                "match":
+                                                {
+                                                    "title": "Match Regex",
+                                                    "type": "string",
+                                                    "format": "regex"
+                                                }
+                                            },
+                                            "oneOf":
+                                            [
+                                                {
+                                                    "required": [ "header" ]
+                                                },
+                                                {
+                                                    "required": [ "query" ]
+                                                }
+                                            ],
+                                            "additionalProperties": false
                                         }
                                     },
                                     "additionalProperties": false

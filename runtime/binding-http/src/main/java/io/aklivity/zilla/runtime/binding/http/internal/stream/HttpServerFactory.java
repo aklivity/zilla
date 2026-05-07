@@ -102,6 +102,7 @@ import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2SettingsFW;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2WindowUpdateFW;
 import io.aklivity.zilla.runtime.binding.http.internal.config.HttpBindingConfig;
 import io.aklivity.zilla.runtime.binding.http.internal.config.HttpRequestType;
+import io.aklivity.zilla.runtime.binding.http.internal.config.HttpRouteAffinity;
 import io.aklivity.zilla.runtime.binding.http.internal.config.HttpRouteConfig;
 import io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackContext;
 import io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackHeaderBlockFW;
@@ -534,6 +535,7 @@ public final class HttpServerFactory implements HttpStreamFactory
     private final MutableDirectBuffer frameBuffer;
     private final BufferPool bufferPool;
     private final BudgetCreditor creditor;
+    private final EngineContext context;
     private final BindingHandler streamFactory;
     private final LongFunction<BudgetDebitor> supplyDebitor;
     private final LongUnaryOperator supplyInitialId;
@@ -561,6 +563,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         EngineContext context)
     {
         this.config = config;
+        this.context = context;
         this.writeBuffer = context.writeBuffer();
         this.bufferPool = context.bufferPool();
         this.creditor = context.creditor();
@@ -611,7 +614,7 @@ public final class HttpServerFactory implements HttpStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        HttpBindingConfig httpBinding = new HttpBindingConfig(binding, supplyValidator);
+        HttpBindingConfig httpBinding = new HttpBindingConfig(context, binding);
         bindings.put(binding.id, httpBinding);
     }
 
@@ -1133,9 +1136,11 @@ public final class HttpServerFactory implements HttpStreamFactory
                             HttpPolicyConfig policy = binding.access().effectivePolicy(headers);
                             final String origin = policy == CROSS_ORIGIN ? headers.get(HEADER_NAME_ORIGIN) : null;
 
+                            final HttpRouteAffinity resolved = route.resolve(headers::get);
+
                             HttpRequestType requestType = binding.resolveRequestType(beginEx);
-                            boolean headersValid = server.onDecodeHeaders(server.routedId, route.id, traceId, exchangeAuth,
-                                policy, origin, beginEx, requestType);
+                            boolean headersValid = server.onDecodeHeaders(server.routedId, route.id, resolved.initialId(),
+                                resolved.affinity(), traceId, exchangeAuth, policy, origin, beginEx, requestType);
                             if (!headersValid)
                             {
                                 error = response400;
@@ -1612,6 +1617,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             int offset,
             int limit);
     }
+
 
     private enum HttpExchangeState
     {
@@ -2328,6 +2334,8 @@ public final class HttpServerFactory implements HttpStreamFactory
         private boolean onDecodeHeaders(
             long originId,
             long routedId,
+            long requestId,
+            long affinity,
             long traceId,
             long authorization,
             HttpPolicyConfig policy,
@@ -2335,8 +2343,8 @@ public final class HttpServerFactory implements HttpStreamFactory
             HttpBeginExFW beginEx,
             HttpRequestType requestType)
         {
-            final HttpExchange exchange = new HttpExchange(originId, routedId, authorization,
-                traceId, policy, origin, requestType);
+            final HttpExchange exchange = new HttpExchange(originId, routedId, requestId, affinity,
+                authorization, traceId, policy, origin, requestType);
             boolean headersValid = exchange.validateHeaders(beginEx);
             if (headersValid)
             {
@@ -2828,6 +2836,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             private final long requestId;
             private final long responseId;
             private final long sessionId;
+            private final long affinity;
             private final HttpPolicyConfig policy;
             private final String origin;
             private final HttpRequestType requestType;
@@ -2855,6 +2864,8 @@ public final class HttpServerFactory implements HttpStreamFactory
             private HttpExchange(
                 long originId,
                 long routedId,
+                long requestId,
+                long affinity,
                 long sessionId,
                 long traceId,
                 HttpPolicyConfig policy,
@@ -2868,7 +2879,8 @@ public final class HttpServerFactory implements HttpStreamFactory
                 this.policy = policy;
                 this.origin = origin;
                 this.requestType = requestType;
-                this.requestId = supplyInitialId.applyAsLong(routedId);
+                this.requestId = requestId;
+                this.affinity = affinity;
                 this.responseId = supplyReplyId.applyAsLong(requestId);
                 this.requestState = HttpExchangeState.PENDING;
                 this.responseState = HttpExchangeState.PENDING;
@@ -5130,8 +5142,11 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                             HttpRequestType requestType = binding.resolveRequestType(beginEx);
 
-                            final Http2Exchange exchange = new Http2Exchange(originId, routedId, NO_REQUEST_ID, streamId,
-                                exchangeAuth, traceId, policy, origin, contentLength, requestType);
+                            final HttpRouteAffinity resolved = route.resolve(headers::get);
+
+                            final Http2Exchange exchange = new Http2Exchange(originId, routedId,
+                                resolved.initialId(), resolved.affinity(),
+                                streamId, exchangeAuth, traceId, policy, origin, contentLength, requestType);
 
                             boolean headersValid = exchange.validateHeaders(beginEx);
                             if (headersValid)
@@ -5514,8 +5529,8 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                     doEncodePushPromise(traceId, authorization, pushId, promiseId, promise);
 
-                    final Http2Exchange exchange = new Http2Exchange(originId, routedId, requestId, promiseId,
-                                exchangeAuth, traceId, policy, origin, contentLength, null);
+                    final Http2Exchange exchange = new Http2Exchange(originId, routedId, requestId, Http2Server.this.affinity,
+                                promiseId, exchangeAuth, traceId, policy, origin, contentLength, null);
 
                     final HttpBeginExFW beginEx = beginExRW.wrap(extBuffer, 0, extBuffer.capacity())
                             .compositeId(route.compositeId())
@@ -5803,6 +5818,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             private final long requestId;
             private final long responseId;
             private final int streamId;
+            private final long affinity;
             private final HttpPolicyConfig policy;
             private final String origin;
             private final long requestContentLength;
@@ -5839,6 +5855,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 long originId,
                 long routedId,
                 long requestId,
+                long affinity,
                 int streamId,
                 long authorization,
                 long traceId,
@@ -5856,6 +5873,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 this.origin = origin;
                 this.requestContentLength = requestContentLength;
                 this.requestId = requestId == NO_REQUEST_ID ? supplyInitialId.applyAsLong(routedId) : requestId;
+                this.affinity = affinity;
                 this.responseId = supplyReplyId.applyAsLong(this.requestId);
                 this.expiringId = expireIfNecessary(guard, sessionId, originId, routedId, replyId, traceId, streamId);
                 this.requestType = requestType;
