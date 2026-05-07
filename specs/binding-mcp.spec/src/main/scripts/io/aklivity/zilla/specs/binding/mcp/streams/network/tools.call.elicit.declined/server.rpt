@@ -128,7 +128,6 @@ write 'data: {'
 write '\n'
 write flush
 
-write 'id: 2:3\n'
 write 'data: {'
         '"jsonrpc":"2.0",'
         '"id":2,'

@@ -14,13 +14,14 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal.config;
 
+import static io.aklivity.zilla.runtime.binding.mcp.config.McpElicitationConfig.DEFAULT_CALLBACK_PATH;
+
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
-import io.aklivity.zilla.runtime.binding.mcp.config.McpElicitationConfig;
 import io.aklivity.zilla.runtime.binding.mcp.config.McpOptionsConfig;
-import io.aklivity.zilla.runtime.binding.mcp.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
@@ -135,23 +136,22 @@ public final class McpBindingConfig
         String redirectUri = null;
         if (httpBeginEx != null)
         {
-            final HttpHeaderFW authorityHeader = httpBeginEx.headers()
-                .matchFirst(h -> HTTP_HEADER_AUTHORITY.equals(h.name().asString()));
-            // matchFirst returns a shared flyweight; copy its value out before
-            // calling matchFirst again, otherwise the next call re-wraps the
-            // shared instance and authorityHeader.value() reads the wrong header
-            final String authority = authorityHeader != null ? authorityHeader.value().asString() : null;
-            final HttpHeaderFW pathHeader = httpBeginEx.headers()
-                .matchFirst(h -> HTTP_HEADER_PATH.equals(h.name().asString()));
-            final String path = pathHeader != null ? pathHeader.value().asString() : null;
+            final String authority = Optional.ofNullable(httpBeginEx.headers()
+                    .matchFirst(h -> HTTP_HEADER_AUTHORITY.equals(h.name().asString())))
+                .map(h -> h.value().asString())
+                .orElse(null);
+            final String path = Optional.ofNullable(httpBeginEx.headers()
+                    .matchFirst(h -> HTTP_HEADER_PATH.equals(h.name().asString())))
+                .map(h -> h.value().asString())
+                .orElse(null);
             if (authority != null && path != null)
             {
                 final int queryAt = path.indexOf('?');
                 final String pathOnly = queryAt >= 0 ? path.substring(0, queryAt) : path;
-                final McpElicitationConfig elicitation = options != null ? options.elicitation : null;
-                final String callback = elicitation != null
-                    ? elicitation.callback
-                    : McpElicitationConfig.DEFAULT_CALLBACK_PATH;
+                final String callback = Optional.ofNullable(options)
+                    .map(o -> o.elicitation)
+                    .map(e -> e.callback)
+                    .orElse(DEFAULT_CALLBACK_PATH);
                 redirectUri = "https://" + authority + pathOnly + "/" + callback;
             }
         }
