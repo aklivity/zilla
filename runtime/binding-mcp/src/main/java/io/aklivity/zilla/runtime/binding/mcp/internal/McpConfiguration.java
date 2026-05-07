@@ -17,7 +17,9 @@ package io.aklivity.zilla.runtime.binding.mcp.internal;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
+import java.security.SecureRandom;
 import java.time.Duration;
+import java.util.HexFormat;
 import java.util.UUID;
 import java.util.function.Supplier;
 
@@ -220,6 +222,11 @@ public class McpConfiguration extends Configuration
 
     private static String defaultElicitationIdSupplier()
     {
-        return UUID.randomUUID().toString();
+        final byte[] bytes = new byte[4];
+        ELICITATION_ID_RANDOM.nextBytes(bytes);
+        return ELICITATION_ID_HEX.formatHex(bytes);
     }
+
+    private static final SecureRandom ELICITATION_ID_RANDOM = new SecureRandom();
+    private static final HexFormat ELICITATION_ID_HEX = HexFormat.of();
 }

@@ -228,7 +228,6 @@ public final class McpServerFactory implements McpStreamFactory
 
     private final Long2ObjectHashMap<McpBindingConfig> bindings;
     private final Map<String, McpServerFactory.McpLifecycleStream> sessions;
-    private final Map<String, McpRequestStream> elicitations;
 
     public McpServerFactory(
         McpConfiguration config,
@@ -254,7 +253,6 @@ public final class McpServerFactory implements McpStreamFactory
         this.decodeMax = decodePool.slotCapacity();
         this.encodeMax = encodePool.slotCapacity();
         this.sessions = new Object2ObjectHashMap<>();
-        this.elicitations = new Object2ObjectHashMap<>();
         this.parserFactory = StreamingJson.createParserFactory(Map.of(
             StreamingJson.PATH_INCLUDES, SERVER_JSON_PATH_INCLUDES,
             StreamingJson.TOKEN_MAX_BYTES, decodeMax));
@@ -2680,9 +2678,18 @@ public final class McpServerFactory implements McpStreamFactory
                     final String stateValue = extractQueryParam(requestPath, queryAt + 1, "state");
                     if (stateValue != null)
                     {
-                        final int dotAt = stateValue.indexOf('.');
-                        final String resolvedElicitationId = dotAt > 0 ? stateValue.substring(0, dotAt) : stateValue;
-                        resolved = elicitations.get(resolvedElicitationId);
+                        final int firstDotAt = stateValue.indexOf('.');
+                        final int secondDotAt = firstDotAt > 0 ? stateValue.indexOf('.', firstDotAt + 1) : -1;
+                        if (secondDotAt > firstDotAt)
+                        {
+                            final String resolvedSessionId = stateValue.substring(0, firstDotAt);
+                            final String resolvedElicitationId = stateValue.substring(firstDotAt + 1, secondDotAt);
+                            final McpLifecycleStream session = sessions.get(resolvedSessionId);
+                            if (session != null)
+                            {
+                                resolved = session.elicitations.get(resolvedElicitationId);
+                            }
+                        }
                     }
                 }
             }
@@ -2798,6 +2805,7 @@ public final class McpServerFactory implements McpStreamFactory
     {
         private final String sessionId;
         private final Object2ObjectHashMap<String, McpRequestStream> requests;
+        private final Object2ObjectHashMap<String, McpRequestStream> elicitations;
 
         private final long originId;
         private final long routedId;
@@ -2824,6 +2832,7 @@ public final class McpServerFactory implements McpStreamFactory
         {
             this.sessionId = supplySessionId.get();
             this.requests = new Object2ObjectHashMap<>();
+            this.elicitations = new Object2ObjectHashMap<>();
             this.originId = server.routedId;
             this.routedId = server.resolvedId;
             this.initialId = supplyInitialId.applyAsLong(server.resolvedId);
@@ -4098,10 +4107,11 @@ public final class McpServerFactory implements McpStreamFactory
             final String elicitId = elicitCreate.id().asString();
             final String originalUrl = elicitCreate.url().asString();
             final String synthesisedElicitationId = supplyElicitationId.get();
-            final String manipulatedUrl = manipulateElicitUrl(originalUrl, synthesisedElicitationId, server.redirectURI);
+            final String manipulatedUrl =
+                manipulateElicitUrl(originalUrl, session.sessionId, synthesisedElicitationId, server.redirectURI);
 
             elicitationId = synthesisedElicitationId;
-            elicitations.put(synthesisedElicitationId, this);
+            session.elicitations.put(synthesisedElicitationId, this);
 
             server.onAppChallenge(traceId, authorization);
             server.doEncodeElicitCreateDataEvent(traceId, authorization, elicitId, synthesisedElicitationId, manipulatedUrl);
@@ -4247,7 +4257,7 @@ public final class McpServerFactory implements McpStreamFactory
 
             if (resolvedElicitationId != null)
             {
-                elicitations.remove(resolvedElicitationId);
+                session.elicitations.remove(resolvedElicitationId);
                 elicitationId = null;
             }
 
@@ -4707,6 +4717,7 @@ public final class McpServerFactory implements McpStreamFactory
 
     private static String manipulateElicitUrl(
         String originalUrl,
+        String sessionId,
         String elicitationId,
         String redirectURI)
     {
@@ -4716,7 +4727,7 @@ public final class McpServerFactory implements McpStreamFactory
         }
 
         String result = STATE_PARAM_PATTERN.matcher(originalUrl)
-            .replaceFirst(Matcher.quoteReplacement("state=" + elicitationId + ".") + "$1");
+            .replaceFirst(Matcher.quoteReplacement("state=" + sessionId + "." + elicitationId + ".") + "$1");
 
         if (redirectURI != null)
         {

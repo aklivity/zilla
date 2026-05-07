@@ -104,7 +104,7 @@ write 'data: {'
         '{'
           '"mode":"url",'
           '"elicitationId":"elicit-1",'
-          '"url":"https://server.example.com/authorize?state=elicit-1.7f3a9b1c&redirect_uri='
+          '"url":"https://server.example.com/authorize?state=session-1.elicit-1.7f3a9b1c&redirect_uri='
          ${http:encodeQuery("https://localhost:8080/mcp/auth/callback")}
          '"'
         '}'
@@ -147,7 +147,7 @@ read await ELICIT_CREATED
 read zilla:begin.ext ${http:matchBeginEx()
                            .typeId(zilla:id("http"))
                            .header(":method", "GET")
-                           .header(":path", "/mcp/auth/callback?error=access_denied&state=elicit-1.7f3a9b1c")
+                           .header(":path", "/mcp/auth/callback?error=access_denied&state=session-1.elicit-1.7f3a9b1c")
                            .build()}
 
 connected
