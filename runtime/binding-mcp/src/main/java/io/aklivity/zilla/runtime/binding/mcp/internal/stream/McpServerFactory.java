@@ -2094,6 +2094,26 @@ public final class McpServerFactory implements McpStreamFactory
             doNetData(traceId, authorization, codecBuffer, 0, codecLimit);
         }
 
+        private void doEncodeElicitErrorEvent(
+            long traceId,
+            long authorization,
+            int code,
+            String message)
+        {
+            int codecLimit = encodeSseIdLine(codecBuffer, 0, decodedId, ++elicitSeq);
+            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, SSE_DATA_PREFIX);
+            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, JSON_RPC_ERROR_PREFIX);
+            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, decodedId);
+            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, JSON_RPC_ERROR_CODE);
+            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, Integer.toString(code));
+            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, JSON_RPC_ERROR_MESSAGE);
+            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, message);
+            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, JSON_RPC_ERROR_SUFFIX);
+            codecBuffer.putBytes(codecLimit, SSE_MESSAGE_TERMINATOR_BYTES);
+            codecLimit += SSE_MESSAGE_TERMINATOR_BYTES.length;
+            doNetData(traceId, authorization, codecBuffer, 0, codecLimit);
+        }
+
         private void doEncodeResponseData(
             long traceId,
             long authorization,
@@ -4255,6 +4275,20 @@ public final class McpServerFactory implements McpStreamFactory
             }
 
             server.doEncodeElicitCompleteDataEvent(traceId, authorization, elicitationId, status);
+
+            switch (status)
+            {
+            case DECLINED:
+                server.doEncodeElicitErrorEvent(traceId, authorization, -32000, "Authorization declined");
+                server.doEncodeResponseEnd(traceId, authorization);
+                break;
+            case CANCELLED:
+                server.doEncodeElicitErrorEvent(traceId, authorization, -32000, "Authorization timed out");
+                server.doEncodeResponseEnd(traceId, authorization);
+                break;
+            default:
+                break;
+            }
         }
 
         private void encodeRequestEventViaEventStream(

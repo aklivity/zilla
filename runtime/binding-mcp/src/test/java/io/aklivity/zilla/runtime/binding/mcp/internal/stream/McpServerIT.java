@@ -24,7 +24,6 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTes
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -200,10 +199,6 @@ public class McpServerIT
         k3po.finish();
     }
 
-    @Ignore("Declined-callback path requires the binding to translate an upstream " +
-        "elicitComplete with status=declined into a JSON-RPC error response. The " +
-        "elicitCallback dispatch (now wired via the deferred-END path) and the " +
-        "completed flow already work; this scenario is tracked as a follow-up.")
     @Test
     @Configuration("server.yaml")
     @Specification({
@@ -214,10 +209,6 @@ public class McpServerIT
         k3po.finish();
     }
 
-    @Ignore("Timeout path requires the binding to translate an upstream " +
-        "elicitComplete with status=cancelled (followed by reply abort) into the " +
-        "id: 2:3 JSON-RPC error response. The completed flow works; the " +
-        "cancelled/abort translation is tracked as a follow-up.")
     @Test
     @Configuration("server.yaml")
     @Specification({
