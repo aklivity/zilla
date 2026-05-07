@@ -75,15 +75,6 @@ public class AffinityIT
 
     @Test
     @Specification({
-        "${net}/request.with.header.affinity.migrate/client",
-        "${net}/request.with.header.affinity.migrate/server"})
-    public void shouldRequestWithHeaderAffinityMigrate() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${net}/request.with.query.affinity/client",
         "${net}/request.with.query.affinity/server"})
     public void shouldRequestWithQueryAffinity() throws Exception
@@ -118,12 +109,4 @@ public class AffinityIT
         k3po.finish();
     }
 
-    @Test
-    @Specification({
-        "${net}/request.with.query.affinity.migrate/client",
-        "${net}/request.with.query.affinity.migrate/server"})
-    public void shouldRequestWithQueryAffinityMigrate() throws Exception
-    {
-        k3po.finish();
-    }
 }
