@@ -107,6 +107,7 @@ public class EngineConfiguration extends Configuration
     public static final PropertyDef<ErrorReporter> ENGINE_ERROR_REPORTER;
     public static final PropertyDef<RevocationStrategy> ENGINE_CERTIFICATE_REVOCATION_STRATEGY;
     public static final PropertyDef<Path> ENGINE_DIAGNOSTICS_DIRECTORY;
+    public static final PropertyDef<String> ENGINE_ROUTER;
 
     private static final ConfigurationDef ENGINE_CONFIG;
 
@@ -175,6 +176,7 @@ public class EngineConfiguration extends Configuration
             EngineConfiguration::decodeRevocationStrategy, RevocationStrategy.NONE);
         ENGINE_DIAGNOSTICS_DIRECTORY = config.property(Path.class, "diagnostics.directory",
             EngineConfiguration::decodeDiagnosticsDirectory, (String) null);
+        ENGINE_ROUTER = config.property("router", (String) null);
         ENGINE_CONFIG = config;
     }
 
@@ -423,6 +425,11 @@ public class EngineConfiguration extends Configuration
     public Function<String, InetAddress[]> hostResolver()
     {
         return ENGINE_HOST_RESOLVER.get(this)::resolve;
+    }
+
+    public String routerName()
+    {
+        return ENGINE_ROUTER.get(this);
     }
 
     private static int defaultTaskParallelism(

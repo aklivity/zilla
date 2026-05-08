@@ -33,6 +33,7 @@ module io.aklivity.zilla.runtime.engine
     exports io.aklivity.zilla.runtime.engine.metrics.reader;
     exports io.aklivity.zilla.runtime.engine.reader;
     exports io.aklivity.zilla.runtime.engine.resolver;
+    exports io.aklivity.zilla.runtime.engine.router;
     exports io.aklivity.zilla.runtime.engine.security;
     exports io.aklivity.zilla.runtime.engine.util.function;
     exports io.aklivity.zilla.runtime.engine.vault;
@@ -78,4 +79,5 @@ module io.aklivity.zilla.runtime.engine
     uses io.aklivity.zilla.runtime.engine.vault.VaultFactorySpi;
     uses io.aklivity.zilla.runtime.engine.ext.EngineExtSpi;
     uses io.aklivity.zilla.runtime.engine.resolver.ResolverFactorySpi;
+    uses io.aklivity.zilla.runtime.engine.router.RouterFactorySpi;
 }

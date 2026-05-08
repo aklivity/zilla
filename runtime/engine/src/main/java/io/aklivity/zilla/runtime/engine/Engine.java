@@ -58,6 +58,7 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageReader;
 import io.aklivity.zilla.runtime.engine.catalog.Catalog;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
+import io.aklivity.zilla.runtime.engine.config.RouterConfig;
 import io.aklivity.zilla.runtime.engine.diagnostic.EngineDiagnosticsTask;
 import io.aklivity.zilla.runtime.engine.event.EventFormatterFactory;
 import io.aklivity.zilla.runtime.engine.exporter.Exporter;
@@ -77,6 +78,7 @@ import io.aklivity.zilla.runtime.engine.metrics.Collector;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
 import io.aklivity.zilla.runtime.engine.model.Model;
 import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
+import io.aklivity.zilla.runtime.engine.router.Router;
 import io.aklivity.zilla.runtime.engine.store.Store;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
 
@@ -115,6 +117,8 @@ public final class Engine implements Collector, AutoCloseable
         Collection<Catalog> catalogs,
         Collection<Model> models,
         Collection<Store> stores,
+        Router router,
+        RouterConfig routerConfig,
         EventFormatterFactory eventFormatterFactory,
         ErrorHandler errorHandler,
         Collection<EngineAffinity> affinities,
@@ -195,8 +199,8 @@ public final class Engine implements Collector, AutoCloseable
         {
             EngineWorker worker =
                 new EngineWorker(config, tasks, labels, diagnoseOnError, tuning::affinity, bindings, exporters,
-                    guards, vaults, catalogs, models, metricGroups, stores, this, this::supplyEventReader,
-                    eventFormatterFactory, workerIndex, readonly, this::process, boss);
+                    guards, vaults, catalogs, models, metricGroups, stores, router, routerConfig, this,
+                    this::supplyEventReader, eventFormatterFactory, workerIndex, readonly, this::process, boss);
             workers.add(worker);
         }
         this.workers = workers;

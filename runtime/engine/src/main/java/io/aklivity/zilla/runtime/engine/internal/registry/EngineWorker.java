@@ -110,6 +110,7 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.EngineConfigWriter;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
+import io.aklivity.zilla.runtime.engine.config.RouterConfig;
 import io.aklivity.zilla.runtime.engine.event.EventFormatter;
 import io.aklivity.zilla.runtime.engine.event.EventFormatterFactory;
 import io.aklivity.zilla.runtime.engine.exporter.Exporter;
@@ -156,6 +157,9 @@ import io.aklivity.zilla.runtime.engine.model.ModelContext;
 import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
+import io.aklivity.zilla.runtime.engine.router.RouteableContext;
+import io.aklivity.zilla.runtime.engine.router.Router;
+import io.aklivity.zilla.runtime.engine.router.RouterContext;
 import io.aklivity.zilla.runtime.engine.store.Store;
 import io.aklivity.zilla.runtime.engine.store.StoreContext;
 import io.aklivity.zilla.runtime.engine.store.StoreHandler;
@@ -254,6 +258,10 @@ public class EngineWorker implements EngineContext, Agent
     private long budgetId;
     private long authorizedId;
 
+    private BindingHandler streamFactory;
+    private RouterContext routerContext;
+    private long routerConfigId;
+
     private long lastReadStreamId;
 
     private int idleCount;
@@ -274,6 +282,8 @@ public class EngineWorker implements EngineContext, Agent
         Collection<Model> models,
         Collection<MetricGroup> metricGroups,
         Collection<Store> stores,
+        Router router,
+        RouterConfig routerConfig,
         Collector collector,
         Supplier<MessageReader> supplyEventReader,
         EventFormatterFactory eventFormatterFactory,
@@ -493,6 +503,16 @@ public class EngineWorker implements EngineContext, Agent
         this.supplyEventReader = supplyEventReader;
         this.eventFormatterFactory = eventFormatterFactory;
         this.usageMetric = supplyGauge(NO_NAMESPACED_ID, labels.supplyLabelId(EngineWorkersUsageMetric.NAME), 0);
+
+        BindingHandler streamFactory = this::newStream;
+        if (router != null)
+        {
+            RouteableContext routeableContext = new EngineRouteableContext(config, streamFactory, this);
+            this.routerContext = router.supply(routeableContext);
+            this.routerConfigId = routerConfig.id;
+            streamFactory = this.routerContext.attach(routerConfig);
+        }
+        this.streamFactory = streamFactory;
     }
 
     public static int indexOfId(
@@ -768,7 +788,7 @@ public class EngineWorker implements EngineContext, Agent
     @Override
     public BindingHandler streamFactory()
     {
-        return this::newStream;
+        return streamFactory;
     }
 
     @Override
@@ -983,6 +1003,12 @@ public class EngineWorker implements EngineContext, Agent
         if (config.detachOnClose())
         {
             registry.detachAll();
+        }
+
+        if (routerContext != null)
+        {
+            routerContext.detach(routerConfigId);
+            routerContext = null;
         }
 
         poller.onClose();
