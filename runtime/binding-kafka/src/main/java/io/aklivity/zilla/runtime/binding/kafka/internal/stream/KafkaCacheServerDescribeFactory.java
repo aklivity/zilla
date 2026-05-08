@@ -42,7 +42,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfi
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaRouteConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.ArrayFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaConfigFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaConfigDetailFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.AbortFW;
@@ -152,7 +152,7 @@ public final class KafkaCacheServerDescribeFactory implements BindingHandler
         final KafkaBeginExFW kafkaBeginEx = extension.get(kafkaBeginExRO::tryWrap);
         assert kafkaBeginEx.kind() == KafkaBeginExFW.KIND_DESCRIBE;
         final KafkaDescribeBeginExFW kafkaDescribeBeginEx = kafkaBeginEx.describe();
-        final String16FW beginTopic = kafkaDescribeBeginEx.topic();
+        final String16FW beginTopic = kafkaDescribeBeginEx.name();
         final String topicName = beginTopic.asString();
 
         MessageConsumer newStream = null;
@@ -471,7 +471,8 @@ public final class KafkaCacheServerDescribeFactory implements BindingHandler
                 final KafkaDataExFW kafkaDataEx =
                         kafkaDataExRW.wrap(extBuffer, 0, extBuffer.capacity())
                                      .typeId(kafkaTypeId)
-                                     .describe(d -> configValues.forEach((n, v) -> d.configsItem(i -> i.name(n).value(v))))
+                                     .describe(d -> d.configs(cs -> configValues.forEach(
+                                         (n, v) -> cs.item(i -> i.name(n).value(v).isDefault(0).isSensitive(0)))))
                                      .build();
                 member.doDescribeReplyDataIfNecessary(traceId, kafkaDataEx);
             }
@@ -527,7 +528,7 @@ public final class KafkaCacheServerDescribeFactory implements BindingHandler
                 traceId, authorization, 0L,
                 ex -> ex.set((b, o, l) -> kafkaBeginExRW.wrap(b, o, l)
                         .typeId(kafkaTypeId)
-                        .describe(d -> d.topic(topic.name())
+                        .describe(d -> d.name(topic.name())
                                         .configs(cs -> configNames.forEach(c -> cs.item(i -> i.set(c, UTF_8)))))
                         .build()
                         .sizeof()));
@@ -711,7 +712,7 @@ public final class KafkaCacheServerDescribeFactory implements BindingHandler
 
             if (kafkaDescribeDataEx != null)
             {
-                final ArrayFW<KafkaConfigFW> changedConfigs = kafkaDescribeDataEx.configs();
+                final ArrayFW<KafkaConfigDetailFW> changedConfigs = kafkaDescribeDataEx.configs();
                 if (configValues == null)
                 {
                     configValues = new LinkedHashMap<>();
@@ -726,7 +727,7 @@ public final class KafkaCacheServerDescribeFactory implements BindingHandler
         }
 
         private void onDescribeFanoutConfigChanged(
-            KafkaConfigFW config)
+            KafkaConfigDetailFW config)
         {
             final String16FW configName = config.name();
             final String16FW configValue = config.value();
@@ -1021,7 +1022,7 @@ public final class KafkaCacheServerDescribeFactory implements BindingHandler
                     traceId, authorization, affinity,
                 ex -> ex.set((b, o, l) -> kafkaBeginExRW.wrap(b, o, l)
                         .typeId(kafkaTypeId)
-                        .describe(m -> m.topic(group.topic.name())
+                        .describe(m -> m.name(group.topic.name())
                                         .configs(cs -> group.configNames.forEach(c -> cs.item(i -> i.set(c, UTF_8)))))
                         .build()
                         .sizeof()));

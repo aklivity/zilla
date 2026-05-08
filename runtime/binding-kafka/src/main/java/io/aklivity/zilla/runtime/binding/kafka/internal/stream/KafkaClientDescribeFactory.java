@@ -206,7 +206,7 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
 
         assert kafkaBeginEx.kind() == KafkaBeginExFW.KIND_DESCRIBE;
         final KafkaDescribeBeginExFW kafkaDescribeBeginEx = kafkaBeginEx.describe();
-        final String16FW beginTopic = kafkaDescribeBeginEx.topic();
+        final String16FW beginTopic = kafkaDescribeBeginEx.name();
         final String topicName = beginTopic.asString();
 
         MessageConsumer newStream = null;
@@ -823,7 +823,7 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
                 ex -> ex.set((b, o, l) -> kafkaBeginExRW.wrap(b, o, l)
                                                         .typeId(kafkaTypeId)
                                                         .describe(m -> m
-                                                            .topic(topic)
+                                                            .name(topic)
                                                             .configs(cs -> configs.forEach(n ->
                                                             {
                                                                 cs.item(i -> i.set(n, UTF_8));
@@ -1675,7 +1675,7 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
                 {
                     final KafkaDataExFW kafkaDataEx = kafkaDataExRW.wrap(extBuffer, 0, extBuffer.capacity())
                         .typeId(kafkaTypeId)
-                        .describe(d -> changedConfigs.forEach(n -> d.configsItem(ci -> ci.name(n).value(configs.get(n)))))
+                        .describe(d -> changedConfigs.forEach(n -> d.configsItem(ci -> ci.name(n).value(configs.get(n)).isDefault(0).isSensitive(0))))
                         .build();
 
                     doApplicationData(traceId, authorization, kafkaDataEx);

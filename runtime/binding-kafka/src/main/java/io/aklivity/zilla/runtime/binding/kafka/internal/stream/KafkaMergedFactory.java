@@ -53,7 +53,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaAckMode;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaCapabilities;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaConditionFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaConfigFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaConfigDetailFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaDeltaFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaDeltaType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaEvaluation;
@@ -65,7 +65,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaKeyFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaNotFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaPartitionFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaPartitionMetadataFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaValueMatchFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.String16FW;
@@ -1984,7 +1984,7 @@ public final class KafkaMergedFactory implements BindingHandler
 
         private void onTopicConfigChanged(
             long traceId,
-            ArrayFW<KafkaConfigFW> configs)
+            ArrayFW<KafkaConfigDetailFW> configs)
         {
             configs.forEach(c ->
             {
@@ -1998,7 +1998,7 @@ public final class KafkaMergedFactory implements BindingHandler
 
         private void onTopicMetaDataChanged(
             long traceId,
-            ArrayFW<KafkaPartitionFW> partitions)
+            ArrayFW<KafkaPartitionMetadataFW> partitions)
         {
             leadersByPartitionId.clear();
             partitions.forEach(p -> leadersByPartitionId.put(p.partitionId(), p.leaderId()));
@@ -2390,7 +2390,7 @@ public final class KafkaMergedFactory implements BindingHandler
                 traceId, merged.authorization, 0L,
                 ex -> ex.set((b, o, l) -> kafkaBeginExRW.wrap(b, o, l)
                         .typeId(kafkaTypeId)
-                        .describe(m -> m.topic(merged.topic)
+                        .describe(m -> m.name(merged.topic)
                                         .configsItem(ci -> ci.set(CONFIG_NAME_CLEANUP_POLICY))
                                         .configsItem(ci -> ci.set(CONFIG_NAME_MAX_MESSAGE_BYTES))
                                         .configsItem(ci -> ci.set(CONFIG_NAME_SEGMENT_BYTES))
@@ -2513,7 +2513,7 @@ public final class KafkaMergedFactory implements BindingHandler
             {
                 final KafkaDataExFW kafkaDataEx = extension.get(kafkaDataExRO::wrap);
                 final KafkaDescribeDataExFW kafkaDescribeDataEx = kafkaDataEx.describe();
-                final ArrayFW<KafkaConfigFW> configs = kafkaDescribeDataEx.configs();
+                final ArrayFW<KafkaConfigDetailFW> configs = kafkaDescribeDataEx.configs();
                 merged.onTopicConfigChanged(traceId, configs);
 
                 doDescribeReplyWindow(traceId, 0, replyMax);
@@ -2769,7 +2769,7 @@ public final class KafkaMergedFactory implements BindingHandler
             {
                 final KafkaDataExFW kafkaDataEx = extension.get(kafkaDataExRO::wrap);
                 final KafkaMetaDataExFW kafkaMetaDataEx = kafkaDataEx.meta();
-                final ArrayFW<KafkaPartitionFW> partitions = kafkaMetaDataEx.partitions();
+                final ArrayFW<KafkaPartitionMetadataFW> partitions = kafkaMetaDataEx.partitions();
                 merged.onTopicMetaDataChanged(traceId, partitions);
 
                 doMetaReplyWindow(traceId, 0, replyMax);
