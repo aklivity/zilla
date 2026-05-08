@@ -14,15 +14,20 @@
 # under the License.
 #
 
-accept "http://localhost:8080/items"
-  option http:transport "zilla://streams/net0"
+accept "zilla://streams/net0"
   option zilla:window 8192
   option zilla:transmission "duplex"
 accepted
 connected
 
-read http:method "GET"
-read closed
+read "POST /items HTTP/1.1\r\n"
+     "Host: localhost:8080\r\n"
+     "Content-Length: 100\r\n"
+     "\r\n"
 
-write http:status "200" "OK"
+write "HTTP/1.1 200 OK\r\n"
+      "Connection: close\r\n"
+      "\r\n"
+write flush
+
 write close

@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.specs.binding.http.streams.network.rfc7230;
+package io.aklivity.zilla.runtime.binding.http.internal.streams.rfc7230.server;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -26,21 +26,32 @@ import org.junit.rules.Timeout;
 
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
+import io.aklivity.zilla.runtime.engine.test.EngineRule;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
 public class RedirectIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/http/streams/network/rfc7230/redirect");
+        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/http/streams/network/rfc7230/redirect")
+        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/http/streams/application/rfc7230/redirect");
 
-    private final TestRule timeout = new DisableOnDebug(new Timeout(5, SECONDS));
+    private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
+
+    private final EngineRule engine = new EngineRule()
+        .directory("target/zilla-itests")
+        .countersBufferCapacity(4096)
+        .configurationRoot("io/aklivity/zilla/specs/binding/http/config/v1.1")
+        .external("app0")
+        .clean();
 
     @Rule
-    public final TestRule chain = outerRule(k3po).around(timeout);
+    public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
+    @Configuration("server.redirect.yaml")
     @Specification({
         "${net}/request.redirect/client",
-        "${net}/request.redirect/server"})
+        "${app}/request.redirect/server" })
     public void shouldRequestRedirect() throws Exception
     {
         k3po.finish();

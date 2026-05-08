@@ -14,13 +14,20 @@
 # under the License.
 #
 
-connect "http://localhost:8080/items"
-  option http:transport "zilla://streams/net0"
+connect "zilla://streams/net0"
   option zilla:window 8192
   option zilla:transmission "duplex"
+
 connected
 
-write http:method "GET"
-write close
+write "POST /items HTTP/1.1\r\n"
+      "Host: localhost:8080\r\n"
+      "Content-Length: 100\r\n"
+      "\r\n"
+write flush
 
-read http:status "200" "OK"
+read "HTTP/1.1 200 OK\r\n"
+read "Connection: close\r\n"
+read "\r\n"
+
+read closed
