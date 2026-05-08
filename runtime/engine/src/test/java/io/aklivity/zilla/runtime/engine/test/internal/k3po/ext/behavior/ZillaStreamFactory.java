@@ -33,6 +33,8 @@ import static org.jboss.netty.channel.Channels.fireChannelUnbound;
 import static org.jboss.netty.channel.Channels.fireExceptionCaught;
 import static org.jboss.netty.channel.Channels.fireMessageReceived;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.function.LongConsumer;
 import java.util.function.LongFunction;
 
@@ -114,8 +116,13 @@ public final class ZillaStreamFactory
         ZillaChannel channel,
         long traceId)
     {
-        final ChannelBuffer redirectHash = channel.writeExtBuffer(REDIRECT, true);
+        final ChannelBuffer redirectEx = channel.writeExtBuffer(REDIRECT, true);
         final ChannelBuffer beginExt = channel.readExtBuffer(BEGIN, true);
+
+        final long affinity = redirectEx.readableBytes() == 8
+            ? ByteBuffer.wrap(redirectEx.array(), redirectEx.arrayOffset() + redirectEx.readerIndex(), 8)
+                .order(ByteOrder.BIG_ENDIAN).getLong()
+            : 0L;
 
         final long originId = channel.originId();
         final long routedId = channel.routedId();
@@ -123,13 +130,12 @@ public final class ZillaStreamFactory
         final long sequence = channel.sourceSeq();
         final long acknowledge = channel.sourceAck();
         final long authorization = channel.sourceAuth();
-        final long affinity = channel.getConfig().getAffinity();
         final int maximum = channel.sourceMax();
 
         final ZillaTarget sender = supplySender.apply(streamId);
         sender.doRedirect(channel, originId, routedId, streamId, sequence, acknowledge, traceId,
-            authorization, affinity, maximum, redirectHash, beginExt);
-        redirectHash.clear();
+            authorization, affinity, maximum, beginExt);
+        redirectEx.clear();
         unregisterStream.accept(streamId);
     }
 

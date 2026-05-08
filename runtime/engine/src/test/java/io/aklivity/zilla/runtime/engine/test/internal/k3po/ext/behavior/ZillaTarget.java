@@ -45,6 +45,8 @@ import static org.jboss.netty.channel.Channels.fireWriteComplete;
 import static org.jboss.netty.channel.Channels.future;
 import static org.jboss.netty.channel.Channels.succeededFuture;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.file.Path;
 import java.util.Deque;
 import java.util.function.Consumer;
@@ -956,11 +958,8 @@ final class ZillaTarget implements AutoCloseable
         final long authorization,
         final long affinity,
         final int maximum,
-        final ChannelBuffer hash,
         final ChannelBuffer beginExt)
     {
-        final byte[] hashCopy = writeExtCopy(hash);
-        final UnsafeBuffer hashBuffer = new UnsafeBuffer(hashCopy);
         final byte[] extensionCopy = roundTripExtCopy(beginExt);
 
         final RedirectFW redirect = redirectRW.wrap(writeBuffer, 0, writeBuffer.capacity())
@@ -974,7 +973,6 @@ final class ZillaTarget implements AutoCloseable
                 .traceId(traceId)
                 .authorization(authorization)
                 .affinity(affinity)
-                .hash(hashBuffer, 0, hashCopy.length)
                 .extension(p -> p.set(extensionCopy))
                 .build();
 
@@ -1052,17 +1050,13 @@ final class ZillaTarget implements AutoCloseable
             RedirectFW redirect)
         {
             final long acknowledge = redirect.acknowledge();
-            final DirectBuffer hash = redirect.hash().value();
+            final long affinity = redirect.affinity();
 
             channel.targetAck(acknowledge);
 
-            if (hash != null && hash.capacity() != 0)
-            {
-                final byte[] hashCopy = new byte[hash.capacity()];
-                hash.getBytes(0, hashCopy);
-
-                channel.writeExtBuffer(REDIRECT, false).writeBytes(hashCopy);
-            }
+            final byte[] affinityBytes = new byte[8];
+            ByteBuffer.wrap(affinityBytes).order(ByteOrder.BIG_ENDIAN).putLong(affinity);
+            channel.writeExtBuffer(REDIRECT, false).writeBytes(affinityBytes);
 
             unregisterThrottle.accept(redirect.streamId());
             fireOutputAdvised(channel, ADVISORY_REDIRECT);
