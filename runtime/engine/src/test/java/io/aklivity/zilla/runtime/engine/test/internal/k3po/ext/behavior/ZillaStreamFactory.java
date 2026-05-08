@@ -25,6 +25,7 @@ import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.Z
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.ZillaExtensionKind.DATA;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.ZillaExtensionKind.END;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.ZillaExtensionKind.FLUSH;
+import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.ZillaExtensionKind.REDIRECT;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.ADVISORY_FLUSH;
 import static org.jboss.netty.channel.Channels.fireChannelClosed;
 import static org.jboss.netty.channel.Channels.fireChannelDisconnected;
@@ -107,6 +108,28 @@ public final class ZillaStreamFactory
         final ZillaTarget sender = supplySender.apply(streamId);
         sender.doChallenge(channel, originId, routedId, streamId, sequence, acknowledge, traceId, maximum, challengeExt);
         challengeExt.clear();
+    }
+
+    public void doRedirect(
+        ZillaChannel channel,
+        long traceId)
+    {
+        final ChannelBuffer redirectExt = channel.readExtBuffer(REDIRECT, true);
+
+        final long originId = channel.originId();
+        final long routedId = channel.routedId();
+        final long streamId = channel.sourceId();
+        final long sequence = channel.sourceSeq();
+        final long acknowledge = channel.sourceAck();
+        final long authorization = channel.sourceAuth();
+        final long affinity = channel.getConfig().getAffinity();
+        final int maximum = channel.sourceMax();
+
+        final ZillaTarget sender = supplySender.apply(streamId);
+        sender.doRedirect(channel, originId, routedId, streamId, sequence, acknowledge, traceId,
+            authorization, affinity, maximum, redirectExt);
+        redirectExt.clear();
+        unregisterStream.accept(streamId);
     }
 
     public MessageHandler newStream(

@@ -143,6 +143,7 @@ import io.aklivity.zilla.runtime.engine.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.FrameFW;
+import io.aklivity.zilla.runtime.engine.internal.types.stream.RedirectFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.WindowFW;
@@ -1468,6 +1469,10 @@ public class EngineWorker implements EngineContext, Agent
                 case ChallengeFW.TYPE_ID:
                     throttle.accept(msgTypeId, buffer, index, length);
                     break;
+                case RedirectFW.TYPE_ID:
+                    throttle.accept(msgTypeId, buffer, index, length);
+                    dispatcher.remove(instanceId);
+                    break;
                 default:
                     break;
                 }
@@ -1659,6 +1664,10 @@ public class EngineWorker implements EngineContext, Agent
                     break;
                 case ChallengeFW.TYPE_ID:
                     throttle.accept(msgTypeId, buffer, index, length);
+                    break;
+                case RedirectFW.TYPE_ID:
+                    throttle.accept(msgTypeId, buffer, index, length);
+                    dispatcher.remove(instanceId);
                     break;
                 default:
                     break;

@@ -250,6 +250,16 @@ public class SimplexIT
 
     @Test
     @Specification({
+        "server.sent.read.advise.redirect.ext/client",
+        "server.sent.read.advise.redirect.ext/server"
+    })
+    public void shouldReceiveServerSentReadAdviseRedirectWithExtension() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "server.sent.throttle/client",
         "server.sent.throttle/server"
     })

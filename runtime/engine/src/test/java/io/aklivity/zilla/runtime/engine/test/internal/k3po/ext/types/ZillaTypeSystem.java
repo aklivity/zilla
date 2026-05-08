@@ -68,6 +68,8 @@ public final class ZillaTypeSystem implements TypeSystemSpi
             new StructuredTypeInfo(NAME, "flush", emptyList(), MAX_VALUE);
     public static final StructuredTypeInfo ADVISORY_CHALLENGE =
             new StructuredTypeInfo(NAME, "challenge", emptyList(), MAX_VALUE);
+    public static final StructuredTypeInfo ADVISORY_REDIRECT =
+            new StructuredTypeInfo(NAME, "redirect", emptyList(), MAX_VALUE);
 
 
     private final Set<TypeInfo<?>> acceptOptions;
@@ -147,6 +149,7 @@ public final class ZillaTypeSystem implements TypeSystemSpi
 
         Set<StructuredTypeInfo> readAdvisories = new LinkedHashSet<>();
         readAdvisories.add(ADVISORY_CHALLENGE);
+        readAdvisories.add(ADVISORY_REDIRECT);
         this.readAdvisories = readAdvisories;
 
         Set<StructuredTypeInfo> writeAdvisories = new LinkedHashSet<>();

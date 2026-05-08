@@ -25,6 +25,7 @@ public enum ZillaExtensionKind
     ABORT,
     END,
     CHALLENGE(false),
+    REDIRECT(false),
     RESET(false);
 
     private final boolean aligned;
