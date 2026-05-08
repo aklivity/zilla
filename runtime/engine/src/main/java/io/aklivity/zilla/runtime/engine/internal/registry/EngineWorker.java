@@ -110,7 +110,6 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.EngineConfigWriter;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
-import io.aklivity.zilla.runtime.engine.config.RouterConfig;
 import io.aklivity.zilla.runtime.engine.event.EventFormatter;
 import io.aklivity.zilla.runtime.engine.event.EventFormatterFactory;
 import io.aklivity.zilla.runtime.engine.exporter.Exporter;
@@ -158,7 +157,6 @@ import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
 import io.aklivity.zilla.runtime.engine.router.RouteableContext;
-import io.aklivity.zilla.runtime.engine.router.Router;
 import io.aklivity.zilla.runtime.engine.store.Store;
 import io.aklivity.zilla.runtime.engine.store.StoreContext;
 import io.aklivity.zilla.runtime.engine.store.StoreHandler;
@@ -279,8 +277,7 @@ public class EngineWorker implements EngineContext, Agent
         Collection<Model> models,
         Collection<MetricGroup> metricGroups,
         Collection<Store> stores,
-        Router router,
-        RouterConfig routerConfig,
+        EngineRouter engineRouter,
         Collector collector,
         Supplier<MessageReader> supplyEventReader,
         EventFormatterFactory eventFormatterFactory,
@@ -408,7 +405,8 @@ public class EngineWorker implements EngineContext, Agent
         BindingHandler defaultStreamFactory = this::newStream;
         RouteableContext routeable = new EngineRouteableContext(config, defaultStreamFactory,
             this::attachComposite, this::detachComposite);
-        this.engineRouter = new EngineRouter(router, routerConfig, routeable, defaultStreamFactory);
+        this.engineRouter = engineRouter;
+        this.engineRouter.attach(defaultStreamFactory, routeable);
 
         Map<String, BindingContext> bindingsByType = new LinkedHashMap<>();
         for (Binding binding : bindings)
