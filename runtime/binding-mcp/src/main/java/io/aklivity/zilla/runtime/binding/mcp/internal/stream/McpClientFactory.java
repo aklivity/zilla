@@ -59,6 +59,7 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpChallengeExFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpElicitStatus;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpFlushExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.SignalFW;
@@ -175,7 +176,11 @@ public final class McpClientFactory implements McpStreamFactory
         "/params/progressToken",
         "/params/progress",
         "/params/total",
-        "/params/message");
+        "/params/message",
+        "/params/elicitationId",
+        "/params/url",
+        "/params/mode",
+        "/params/status");
 
     private static final int SSE_LINE_START = 0;
     private static final int SSE_FIELD_NAME = 1;
@@ -299,6 +304,10 @@ public final class McpClientFactory implements McpStreamFactory
     private final HttpResponseDecoder decodeJsonRpcParamsProgress = this::decodeJsonRpcParamsProgress;
     private final HttpResponseDecoder decodeJsonRpcParamsTotal = this::decodeJsonRpcParamsTotal;
     private final HttpResponseDecoder decodeJsonRpcParamsMessage = this::decodeJsonRpcParamsMessage;
+    private final HttpResponseDecoder decodeJsonRpcParamsElicitationId = this::decodeJsonRpcParamsElicitationId;
+    private final HttpResponseDecoder decodeJsonRpcParamsUrl = this::decodeJsonRpcParamsUrl;
+    private final HttpResponseDecoder decodeJsonRpcParamsMode = this::decodeJsonRpcParamsMode;
+    private final HttpResponseDecoder decodeJsonRpcParamsStatus = this::decodeJsonRpcParamsStatus;
     private final HttpResponseDecoder decodeIgnore = this::decodeIgnore;
 
     private int decodeJsonRpc(
@@ -742,6 +751,18 @@ public final class McpClientFactory implements McpStreamFactory
                 case "message":
                     http.decoder = decodeJsonRpcParamsMessage;
                     break;
+                case "elicitationId":
+                    http.decoder = decodeJsonRpcParamsElicitationId;
+                    break;
+                case "url":
+                    http.decoder = decodeJsonRpcParamsUrl;
+                    break;
+                case "mode":
+                    http.decoder = decodeJsonRpcParamsMode;
+                    break;
+                case "status":
+                    http.decoder = decodeJsonRpcParamsStatus;
+                    break;
                 default:
                     http.decoder = decodeJsonRpcParamsNext;
                     break;
@@ -854,6 +875,106 @@ public final class McpClientFactory implements McpStreamFactory
         {
             parser.next();
             http.sseProgressMessage = parser.getString();
+            http.decoder = decodeJsonRpcParamsNext;
+            progress = limit - input.available();
+        }
+
+        return progress;
+    }
+
+    private int decodeJsonRpcParamsElicitationId(
+        McpHttpStream http,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBuffer buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        DirectBufferInputStreamEx input = inputRO;
+        JsonParser parser = http.decodableJson;
+
+        if (parser.hasNext())
+        {
+            parser.next();
+            http.sseElicitationId = parser.getString();
+            http.decoder = decodeJsonRpcParamsNext;
+            progress = limit - input.available();
+        }
+
+        return progress;
+    }
+
+    private int decodeJsonRpcParamsUrl(
+        McpHttpStream http,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBuffer buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        DirectBufferInputStreamEx input = inputRO;
+        JsonParser parser = http.decodableJson;
+
+        if (parser.hasNext())
+        {
+            parser.next();
+            http.sseElicitUrl = parser.getString();
+            http.decoder = decodeJsonRpcParamsNext;
+            progress = limit - input.available();
+        }
+
+        return progress;
+    }
+
+    private int decodeJsonRpcParamsMode(
+        McpHttpStream http,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBuffer buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        DirectBufferInputStreamEx input = inputRO;
+        JsonParser parser = http.decodableJson;
+
+        if (parser.hasNext())
+        {
+            parser.next();
+            http.sseElicitMode = parser.getString();
+            http.decoder = decodeJsonRpcParamsNext;
+            progress = limit - input.available();
+        }
+
+        return progress;
+    }
+
+    private int decodeJsonRpcParamsStatus(
+        McpHttpStream http,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBuffer buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        DirectBufferInputStreamEx input = inputRO;
+        JsonParser parser = http.decodableJson;
+
+        if (parser.hasNext())
+        {
+            parser.next();
+            http.sseElicitStatus = parser.getString();
             http.decoder = decodeJsonRpcParamsNext;
             progress = limit - input.available();
         }
@@ -1071,6 +1192,20 @@ public final class McpClientFactory implements McpStreamFactory
         {
             http.mcp.onDecodeSuspend(traceId, authorization, http.sseEventRetry);
         }
+        else if ("elicitation/create".equals(http.sseEventMethod))
+        {
+            http.mcp.onDecodeElicitCreate(traceId, authorization,
+                stripSseEventIdPrefix(http.sseEventId),
+                http.sseElicitationId,
+                http.sseElicitUrl);
+        }
+        else if ("elicitation/complete".equals(http.sseEventMethod))
+        {
+            http.mcp.onDecodeElicitComplete(traceId, authorization,
+                stripSseEventIdPrefix(http.sseEventId),
+                http.sseElicitationId,
+                http.sseElicitStatus);
+        }
         else if (http.sseEventMethod != null)
         {
             http.mcp.onDecodeNotification(traceId, authorization,
@@ -1094,6 +1229,10 @@ public final class McpClientFactory implements McpStreamFactory
         http.sseProgress = 0L;
         http.sseProgressTotal = -1L;
         http.sseProgressMessage = null;
+        http.sseElicitationId = null;
+        http.sseElicitUrl = null;
+        http.sseElicitMode = null;
+        http.sseElicitStatus = null;
         http.sseFieldKind = 0;
         http.sseSmallValue.setLength(0);
         http.sseLineState = SSE_LINE_START;
@@ -1341,6 +1480,24 @@ public final class McpClientFactory implements McpStreamFactory
             long authorization,
             String id,
             String method)
+        {
+        }
+
+        void onDecodeElicitCreate(
+            long traceId,
+            long authorization,
+            String id,
+            String elicitationId,
+            String url)
+        {
+        }
+
+        void onDecodeElicitComplete(
+            long traceId,
+            long authorization,
+            String id,
+            String elicitationId,
+            String status)
         {
         }
 
@@ -2342,6 +2499,39 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         @Override
+        void onDecodeElicitCreate(
+            long traceId,
+            long authorization,
+            String id,
+            String elicitationId,
+            String url)
+        {
+            final McpChallengeExFW challengeEx = mcpChallengeExRW
+                .wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(mcpTypeId)
+                .elicitCreate(b -> b.id(id).url(url))
+                .build();
+            doAppChallenge(traceId, authorization, challengeEx);
+        }
+
+        @Override
+        void onDecodeElicitComplete(
+            long traceId,
+            long authorization,
+            String id,
+            String elicitationId,
+            String status)
+        {
+            final McpElicitStatus resolvedStatus = resolveElicitStatus(status);
+            final McpFlushExFW flushEx = mcpFlushExRW
+                .wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(mcpTypeId)
+                .elicitComplete(b -> b.id(id).status(s -> s.set(resolvedStatus)))
+                .build();
+            doAppFlush(traceId, authorization, flushEx);
+        }
+
+        @Override
         void onNetAbort(
             HttpStream http,
             long traceId,
@@ -2365,6 +2555,26 @@ public final class McpClientFactory implements McpStreamFactory
             doAppEnd(traceId, authorization);
         }
 
+    }
+
+    private static McpElicitStatus resolveElicitStatus(
+        String status)
+    {
+        final McpElicitStatus resolved;
+        switch (status)
+        {
+        case "completed":
+            resolved = McpElicitStatus.COMPLETED;
+            break;
+        case "declined":
+            resolved = McpElicitStatus.DECLINED;
+            break;
+        case "cancelled":
+        default:
+            resolved = McpElicitStatus.CANCELLED;
+            break;
+        }
+        return resolved;
     }
 
     private final class McpToolsListStream extends McpRequestStream
@@ -2512,6 +2722,10 @@ public final class McpClientFactory implements McpStreamFactory
         protected long sseProgress;
         protected long sseProgressTotal = -1L;
         protected String sseProgressMessage;
+        protected String sseElicitationId;
+        protected String sseElicitUrl;
+        protected String sseElicitMode;
+        protected String sseElicitStatus;
 
         protected int state;
 
