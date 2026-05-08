@@ -42,7 +42,6 @@ public final class HttpRouteConfig
     private final EngineContext context;
     private final List<HttpConditionMatcher> when;
     private final HttpWithResolver with;
-    private final HttpAffinityResolver affinity;
     private final LongObjectPredicate<UnaryOperator<String>> authorized;
     private final Map<String8FW, String16FW> overrides;
 
@@ -57,9 +56,6 @@ public final class HttpRouteConfig
             .map(HttpWithConfig.class::cast)
             .map(HttpWithResolver::new)
             .orElse(null);
-        this.affinity = Optional.ofNullable(with)
-            .map(HttpWithResolver::affinity)
-            .orElse(HttpAffinityResolver.NONE);
         this.when = route.when.stream()
             .map(HttpConditionConfig.class::cast)
             .map(HttpConditionMatcher::new)
@@ -78,17 +74,19 @@ public final class HttpRouteConfig
         return with != null ? with.compositeId() : NO_COMPOSITE_ID;
     }
 
-    public HttpRouteAffinity resolve(
-        Function<String, String> headerByName)
+    public HttpRouteAffinity resolve()
     {
-        final String key = affinity.resolveKey(headerByName);
-        return key != null
-            ? new HttpRouteAffinity(
-                context.supplyInitialId(id, key.hashCode()),
-                key.hashCode() & 0xffff_ffffL)
-            : new HttpRouteAffinity(
-                context.supplyInitialId(id),
-                NO_AFFINITY);
+        return new HttpRouteAffinity(
+            context.supplyInitialId(id),
+            NO_AFFINITY);
+    }
+
+    public HttpRouteAffinity resolve(
+        long affinity)
+    {
+        return new HttpRouteAffinity(
+            context.supplyInitialId(id, Long.hashCode(affinity)),
+            affinity);
     }
 
     public Map<String8FW, String16FW> overrides()

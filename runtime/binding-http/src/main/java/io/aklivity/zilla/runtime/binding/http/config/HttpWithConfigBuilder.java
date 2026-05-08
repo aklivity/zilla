@@ -32,7 +32,6 @@ public final class HttpWithConfigBuilder<T> extends ConfigBuilder<T, HttpWithCon
 
     private long compositeId = NO_COMPOSITE_ID;
     private Map<String8FW, String16FW> overrides;
-    private HttpAffinityConfig affinity;
 
     HttpWithConfigBuilder(
         Function<WithConfig, T> mapper)
@@ -77,20 +76,8 @@ public final class HttpWithConfigBuilder<T> extends ConfigBuilder<T, HttpWithCon
         return this;
     }
 
-    public HttpWithConfigBuilder<T> affinity(
-        HttpAffinityConfig affinity)
-    {
-        this.affinity = affinity;
-        return this;
-    }
-
-    public HttpAffinityConfigBuilder<HttpWithConfigBuilder<T>> affinity()
-    {
-        return new HttpAffinityConfigBuilder<>(this::affinity);
-    }
-
     public T build()
     {
-        return mapper.apply(new HttpWithConfig(compositeId, overrides, affinity));
+        return mapper.apply(new HttpWithConfig(compositeId, overrides));
     }
 }
