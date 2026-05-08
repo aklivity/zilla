@@ -73,6 +73,7 @@ import io.aklivity.zilla.runtime.engine.internal.event.io.EventReader;
 import io.aklivity.zilla.runtime.engine.internal.event.io.EventWriter;
 import io.aklivity.zilla.runtime.engine.internal.registry.EngineBoss;
 import io.aklivity.zilla.runtime.engine.internal.registry.EngineManager;
+import io.aklivity.zilla.runtime.engine.internal.registry.EngineRouter;
 import io.aklivity.zilla.runtime.engine.internal.registry.EngineWorker;
 import io.aklivity.zilla.runtime.engine.metrics.Collector;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
@@ -207,9 +208,10 @@ public final class Engine implements Collector, AutoCloseable
         List<EngineWorker> workers = new ArrayList<>(workerCount);
         for (int workerIndex = 0; workerIndex < workerCount; workerIndex++)
         {
+            EngineRouter engineRouter = new EngineRouter(router, routerConfig);
             EngineWorker worker =
                 new EngineWorker(config, tasks, labels, diagnoseOnError, tuning::affinity, bindings, exporters,
-                    guards, vaults, catalogs, models, metricGroups, stores, router, routerConfig, this,
+                    guards, vaults, catalogs, models, metricGroups, stores, engineRouter, this,
                     this::supplyEventReader, eventFormatterFactory, workerIndex, readonly, this::process, boss);
             workers.add(worker);
         }
