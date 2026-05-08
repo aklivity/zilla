@@ -956,9 +956,12 @@ final class ZillaTarget implements AutoCloseable
         final long authorization,
         final long affinity,
         final int maximum,
-        final ChannelBuffer extension)
+        final ChannelBuffer hash,
+        final ChannelBuffer beginExt)
     {
-        final byte[] extensionCopy = writeExtCopy(extension);
+        final byte[] hashCopy = writeExtCopy(hash);
+        final UnsafeBuffer hashBuffer = new UnsafeBuffer(hashCopy);
+        final byte[] extensionCopy = roundTripExtCopy(beginExt);
 
         final RedirectFW redirect = redirectRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
@@ -971,11 +974,23 @@ final class ZillaTarget implements AutoCloseable
                 .traceId(traceId)
                 .authorization(authorization)
                 .affinity(affinity)
-                .hash("")
+                .hash(hashBuffer, 0, hashCopy.length)
                 .extension(p -> p.set(extensionCopy))
                 .build();
 
         streamsBuffer.write(redirect.typeId(), redirect.buffer(), redirect.offset(), redirect.sizeof());
+    }
+
+    private byte[] roundTripExtCopy(
+        ChannelBuffer ext)
+    {
+        final int writerIndex = ext.writerIndex();
+        final byte[] copy = new byte[writerIndex];
+        if (writerIndex != 0)
+        {
+            ext.getBytes(0, copy, 0, writerIndex);
+        }
+        return copy;
     }
 
     private final class Throttle
@@ -1037,20 +1052,16 @@ final class ZillaTarget implements AutoCloseable
             RedirectFW redirect)
         {
             final long acknowledge = redirect.acknowledge();
-            final OctetsFW redirectExt = redirect.extension();
+            final DirectBuffer hash = redirect.hash().value();
 
             channel.targetAck(acknowledge);
 
-            int redirectExtBytes = redirectExt.sizeof();
-            if (redirectExtBytes != 0)
+            if (hash != null && hash.capacity() != 0)
             {
-                final DirectBuffer buffer = redirectExt.buffer();
-                final int offset = redirectExt.offset();
+                final byte[] hashCopy = new byte[hash.capacity()];
+                hash.getBytes(0, hashCopy);
 
-                final byte[] redirectExtCopy = new byte[redirectExtBytes];
-                buffer.getBytes(offset, redirectExtCopy);
-
-                channel.writeExtBuffer(REDIRECT, false).writeBytes(redirectExtCopy);
+                channel.writeExtBuffer(REDIRECT, false).writeBytes(hashCopy);
             }
 
             unregisterThrottle.accept(redirect.streamId());
