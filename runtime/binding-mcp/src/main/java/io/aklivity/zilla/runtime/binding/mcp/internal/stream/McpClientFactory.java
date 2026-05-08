@@ -74,6 +74,7 @@ import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
+import io.aklivity.zilla.runtime.engine.guard.GuardHandler.LongCompletionCallback;
 
 public final class McpClientFactory implements McpStreamFactory
 {
@@ -86,6 +87,8 @@ public final class McpClientFactory implements McpStreamFactory
     private static final String MCP_TYPE_NAME = "mcp";
 
     private static final int KEEPALIVE_SIGNAL_ID = 1;
+    private static final int ELICIT_TIMEOUT_SIGNAL_ID = 2;
+    private static final String ELICIT_ID = "1";
 
     private static final String JSON_RPC_VERSION = "2.0";
     private static final String HTTP_HEADER_METHOD = ":method";
@@ -1841,8 +1844,9 @@ public final class McpClientFactory implements McpStreamFactory
             long authorization,
             Flyweight extension)
         {
-            doChallenge(sender, originId, routedId, replyId,
-                replySeq, replyAck, replyMax,
+            // client-kind throttle is wired on initialId
+            doChallenge(sender, originId, routedId, initialId,
+                initialSeq, initialAck, initialMax,
                 traceId, authorization, extension);
         }
 
@@ -2643,6 +2647,34 @@ public final class McpClientFactory implements McpStreamFactory
 
     private final class McpToolsCallStream extends McpRequestStream
     {
+        private boolean pendingAuth;
+        private boolean aborted;
+        private boolean endBuffered;
+        private byte[] bufferedBody;
+        private int bufferedBodyLength;
+        private long elicitTraceId;
+        private long elicitAuthorization;
+        private long elicitTimeoutId = Signaler.NO_CANCEL_ID;
+
+        private final LongCompletionCallback elicitCompletion = new LongCompletionCallback()
+        {
+            @Override
+            public void completed(
+                long contextId,
+                long sessionId)
+            {
+                onElicitCompleted(sessionId);
+            }
+
+            @Override
+            public void failed(
+                long contextId,
+                Throwable ex)
+            {
+                onElicitFailed();
+            }
+        };
+
         McpToolsCallStream(
             McpLifecycleStream session,
             MessageConsumer sender,
@@ -2655,6 +2687,221 @@ public final class McpClientFactory implements McpStreamFactory
         {
             super(session, sender, originId, routedId, initialId, resolvedId, affinity,
                 HttpToolsCallStream::new);
+        }
+
+        @Override
+        boolean proceedWithRequest(
+            long traceId,
+            long authorization,
+            McpBeginExFW mcpBeginEx)
+        {
+            final GuardHandler guard = session.binding.guard;
+            if (guard == null)
+            {
+                return true;
+            }
+
+            final long sessionId = guard.reauthorize(traceId, session.binding.id, initialId, null);
+
+            if ((sessionId & GuardHandler.MASK_AUTHORIZED) != 0L)
+            {
+                credentials = guard.credentials(sessionId);
+                return true;
+            }
+
+            if (sessionId == GuardHandler.NEEDS_PREAUTHORIZE)
+            {
+                final String preauthorizeUrl = guard.preauthorize(traceId, session.binding.id, initialId, null);
+                if (preauthorizeUrl == null)
+                {
+                    doAppReset(traceId, authorization);
+                    doAppAbort(traceId, authorization);
+                    return false;
+                }
+
+                pendingAuth = true;
+                elicitTraceId = traceId;
+                elicitAuthorization = authorization;
+
+                doAppBegin(traceId, authorization, null);
+
+                final McpChallengeExFW challengeEx = mcpChallengeExRW
+                    .wrap(extBuffer, 0, extBuffer.capacity())
+                    .typeId(mcpTypeId)
+                    .elicitCreate(b -> b.id(ELICIT_ID).url(preauthorizeUrl))
+                    .build();
+                doAppChallenge(traceId, authorization, challengeEx);
+
+                elicitTimeoutId = signaler.signalAt(
+                    System.currentTimeMillis() + inactivityTimeoutMillis,
+                    originId, routedId, replyId,
+                    traceId, ELICIT_TIMEOUT_SIGNAL_ID, 0);
+
+                return false;
+            }
+
+            doAppReset(traceId, authorization);
+            doAppAbort(traceId, authorization);
+            return false;
+        }
+
+        @Override
+        boolean bufferAppData(
+            long traceId,
+            long authorization,
+            OctetsFW payload)
+        {
+            if (!pendingAuth)
+            {
+                return false;
+            }
+
+            final int payloadLength = payload.sizeof();
+            final int needed = bufferedBodyLength + payloadLength;
+            if (bufferedBody == null || bufferedBody.length < needed)
+            {
+                final int newSize = Math.max(needed,
+                    bufferedBody != null ? bufferedBody.length * 2 : 256);
+                final byte[] newBuffer = new byte[newSize];
+                if (bufferedBody != null)
+                {
+                    System.arraycopy(bufferedBody, 0, newBuffer, 0, bufferedBodyLength);
+                }
+                bufferedBody = newBuffer;
+            }
+            payload.buffer().getBytes(payload.offset(), bufferedBody, bufferedBodyLength, payloadLength);
+            bufferedBodyLength += payloadLength;
+            return true;
+        }
+
+        @Override
+        boolean deferAppEnd(
+            long traceId,
+            long authorization)
+        {
+            if (pendingAuth || aborted)
+            {
+                endBuffered = true;
+                return true;
+            }
+            return false;
+        }
+
+        @Override
+        void onAppFlush(
+            FlushFW flush)
+        {
+            super.onAppFlush(flush);
+
+            if (!pendingAuth)
+            {
+                return;
+            }
+
+            final OctetsFW extension = flush.extension();
+            if (extension.sizeof() == 0)
+            {
+                return;
+            }
+
+            final McpFlushExFW flushEx = mcpFlushExRO.tryWrap(
+                extension.buffer(), extension.offset(), extension.limit());
+            if (flushEx == null || flushEx.kind() != McpFlushExFW.KIND_ELICIT_CALLBACK)
+            {
+                return;
+            }
+
+            final GuardHandler guard = session.binding.guard;
+            if (guard == null)
+            {
+                return;
+            }
+
+            final long traceId = flush.traceId();
+            elicitTraceId = traceId;
+            elicitAuthorization = flush.authorization();
+
+            final String callbackUrl = flushEx.elicitCallback().url().asString();
+            guard.reauthorize(traceId, session.binding.id, initialId, callbackUrl, elicitCompletion);
+        }
+
+        @Override
+        void onAppSignal(
+            SignalFW signal)
+        {
+            if (signal.signalId() == ELICIT_TIMEOUT_SIGNAL_ID && pendingAuth)
+            {
+                elicitTimeoutId = Signaler.NO_CANCEL_ID;
+                final long traceId = signal.traceId();
+                final long authorization = signal.authorization();
+                pendingAuth = false;
+                aborted = true;
+                emitElicitComplete(traceId, authorization, McpElicitStatus.CANCELLED);
+                doAppAbort(traceId, authorization);
+                return;
+            }
+
+            super.onAppSignal(signal);
+        }
+
+        private void onElicitCompleted(
+            long sessionId)
+        {
+            cancelElicitTimeout();
+            pendingAuth = false;
+
+            if ((sessionId & GuardHandler.MASK_AUTHORIZED) != 0L)
+            {
+                credentials = session.binding.guard.credentials(sessionId);
+                emitElicitComplete(elicitTraceId, elicitAuthorization, McpElicitStatus.COMPLETED);
+
+                http.doEncodeRequestBegin(elicitTraceId, elicitAuthorization);
+                if (bufferedBodyLength > 0)
+                {
+                    final UnsafeBuffer body = new UnsafeBuffer(bufferedBody, 0, bufferedBodyLength);
+                    http.doEncodeRequestData(elicitTraceId, elicitAuthorization, body, 0, bufferedBodyLength);
+                }
+                if (endBuffered)
+                {
+                    http.doEncodeRequestEnd(elicitTraceId, elicitAuthorization);
+                }
+            }
+            else
+            {
+                aborted = true;
+                emitElicitComplete(elicitTraceId, elicitAuthorization, McpElicitStatus.DECLINED);
+                doAppAbort(elicitTraceId, elicitAuthorization);
+            }
+        }
+
+        private void onElicitFailed()
+        {
+            cancelElicitTimeout();
+            pendingAuth = false;
+            aborted = true;
+            doAppAbort(elicitTraceId, elicitAuthorization);
+        }
+
+        private void cancelElicitTimeout()
+        {
+            if (elicitTimeoutId != Signaler.NO_CANCEL_ID)
+            {
+                signaler.cancel(elicitTimeoutId);
+                elicitTimeoutId = Signaler.NO_CANCEL_ID;
+            }
+        }
+
+        private void emitElicitComplete(
+            long traceId,
+            long authorization,
+            McpElicitStatus status)
+        {
+            final McpFlushExFW flushEx = mcpFlushExRW
+                .wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(mcpTypeId)
+                .elicitComplete(b -> b.id(ELICIT_ID).status(s -> s.set(status)))
+                .build();
+            doAppFlush(traceId, authorization, flushEx);
         }
     }
 

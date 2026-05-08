@@ -143,6 +143,37 @@ public class McpClientIT
     }
 
     @Test
+    @Configuration("client.guarded.yaml")
+    @Specification({
+        "${app}/tools.call.elicit.completed/client",
+        "${net}/tools.call/server"})
+    public void shouldCallToolElicitCompletedGuarded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.guarded.yaml")
+    @Specification({
+        "${app}/tools.call.elicit.declined/client",
+        "${net}/lifecycle.initialize/server"})
+    public void shouldCallToolElicitDeclinedGuarded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.guarded.yaml")
+    @Specification({
+        "${app}/tools.call.elicit.timeout/client",
+        "${net}/lifecycle.initialize/server"})
+    @Configure(name = MCP_INACTIVITY_TIMEOUT_NAME, value = "PT0.2S")
+    public void shouldCallToolElicitTimeoutGuarded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("client.yaml")
     @Specification({
         "${app}/tools.call/client",
