@@ -45,8 +45,6 @@ import static org.jboss.netty.channel.Channels.fireWriteComplete;
 import static org.jboss.netty.channel.Channels.future;
 import static org.jboss.netty.channel.Channels.succeededFuture;
 
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.nio.file.Path;
 import java.util.Deque;
 import java.util.function.Consumer;
@@ -1054,9 +1052,7 @@ final class ZillaTarget implements AutoCloseable
 
             channel.targetAck(acknowledge);
 
-            final byte[] affinityBytes = new byte[8];
-            ByteBuffer.wrap(affinityBytes).order(ByteOrder.BIG_ENDIAN).putLong(affinity);
-            channel.writeExtBuffer(REDIRECT, false).writeBytes(affinityBytes);
+            channel.writeExtBuffer(REDIRECT, false).writeLong(affinity);
 
             unregisterThrottle.accept(redirect.streamId());
             fireOutputAdvised(channel, ADVISORY_REDIRECT);

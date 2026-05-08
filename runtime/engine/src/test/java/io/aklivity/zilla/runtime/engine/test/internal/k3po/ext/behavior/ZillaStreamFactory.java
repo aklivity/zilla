@@ -33,8 +33,6 @@ import static org.jboss.netty.channel.Channels.fireChannelUnbound;
 import static org.jboss.netty.channel.Channels.fireExceptionCaught;
 import static org.jboss.netty.channel.Channels.fireMessageReceived;
 
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.util.function.LongConsumer;
 import java.util.function.LongFunction;
 
@@ -119,10 +117,7 @@ public final class ZillaStreamFactory
         final ChannelBuffer redirectEx = channel.writeExtBuffer(REDIRECT, true);
         final ChannelBuffer beginExt = channel.readExtBuffer(BEGIN, true);
 
-        final long affinity = redirectEx.readableBytes() == 8
-            ? ByteBuffer.wrap(redirectEx.array(), redirectEx.arrayOffset() + redirectEx.readerIndex(), 8)
-                .order(ByteOrder.BIG_ENDIAN).getLong()
-            : 0L;
+        final long affinity = redirectEx.readableBytes() == 8 ? redirectEx.getLong(redirectEx.readerIndex()) : 0L;
 
         final long originId = channel.originId();
         final long routedId = channel.routedId();
