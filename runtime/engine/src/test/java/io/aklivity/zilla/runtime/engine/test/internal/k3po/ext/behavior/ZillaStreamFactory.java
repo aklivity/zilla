@@ -114,7 +114,8 @@ public final class ZillaStreamFactory
         ZillaChannel channel,
         long traceId)
     {
-        final ChannelBuffer redirectExt = channel.readExtBuffer(REDIRECT, true);
+        final ChannelBuffer redirectHash = channel.writeExtBuffer(REDIRECT, true);
+        final ChannelBuffer beginExt = channel.readExtBuffer(BEGIN, true);
 
         final long originId = channel.originId();
         final long routedId = channel.routedId();
@@ -127,8 +128,8 @@ public final class ZillaStreamFactory
 
         final ZillaTarget sender = supplySender.apply(streamId);
         sender.doRedirect(channel, originId, routedId, streamId, sequence, acknowledge, traceId,
-            authorization, affinity, maximum, redirectExt);
-        redirectExt.clear();
+            authorization, affinity, maximum, redirectHash, beginExt);
+        redirectHash.clear();
         unregisterStream.accept(streamId);
     }
 
