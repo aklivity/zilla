@@ -28,7 +28,6 @@ import io.aklivity.zilla.runtime.engine.binding.Binding;
 import io.aklivity.zilla.runtime.engine.binding.BindingFactory;
 import io.aklivity.zilla.runtime.engine.catalog.Catalog;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogFactory;
-import io.aklivity.zilla.runtime.engine.config.RouterConfig;
 import io.aklivity.zilla.runtime.engine.event.EventFormatterFactory;
 import io.aklivity.zilla.runtime.engine.exporter.Exporter;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterFactory;
@@ -38,8 +37,6 @@ import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroupFactory;
 import io.aklivity.zilla.runtime.engine.model.Model;
 import io.aklivity.zilla.runtime.engine.model.ModelFactory;
-import io.aklivity.zilla.runtime.engine.router.Router;
-import io.aklivity.zilla.runtime.engine.router.RouterFactory;
 import io.aklivity.zilla.runtime.engine.store.Store;
 import io.aklivity.zilla.runtime.engine.store.StoreFactory;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
@@ -154,19 +151,6 @@ public class EngineBuilder
             stores.add(store);
         }
 
-        final RouterFactory routerFactory = RouterFactory.instantiate();
-        final String routerName = config.routerName();
-        Router router = null;
-        RouterConfig routerConfig = null;
-        if (routerName != null)
-        {
-            router = routerFactory.create(routerName, config);
-            routerConfig = RouterConfig.builder()
-                .id(0L)
-                .name(routerName)
-                .build();
-        }
-
         EventFormatterFactory eventFormatterFactory = EventFormatterFactory.instantiate();
 
         final ErrorHandler errorHandler = requireNonNull(this.errorHandler, "errorHandler");
@@ -179,6 +163,6 @@ public class EngineBuilder
         };
 
         return new Engine(config, bindings, exporters, guards, metricGroups, vaults,
-                catalogs, models, stores, router, routerConfig, eventFormatterFactory, onError, affinities, readonly);
+                catalogs, models, stores, eventFormatterFactory, onError, affinities, readonly);
     }
 }

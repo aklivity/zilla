@@ -15,8 +15,9 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.registry;
 
+import java.util.function.Consumer;
+
 import io.aklivity.zilla.runtime.engine.Configuration;
-import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.router.RouteableContext;
@@ -25,16 +26,19 @@ final class EngineRouteableContext implements RouteableContext
 {
     private final Configuration config;
     private final BindingHandler streamFactory;
-    private final EngineContext engineContext;
+    private final Consumer<NamespaceConfig> attachComposite;
+    private final Consumer<NamespaceConfig> detachComposite;
 
     EngineRouteableContext(
         Configuration config,
         BindingHandler streamFactory,
-        EngineContext engineContext)
+        Consumer<NamespaceConfig> attachComposite,
+        Consumer<NamespaceConfig> detachComposite)
     {
         this.config = config;
         this.streamFactory = streamFactory;
-        this.engineContext = engineContext;
+        this.attachComposite = attachComposite;
+        this.detachComposite = detachComposite;
     }
 
     @Override
@@ -53,13 +57,13 @@ final class EngineRouteableContext implements RouteableContext
     public void attachComposite(
         NamespaceConfig composite)
     {
-        engineContext.attachComposite(composite);
+        attachComposite.accept(composite);
     }
 
     @Override
     public void detachComposite(
         NamespaceConfig composite)
     {
-        engineContext.detachComposite(composite);
+        detachComposite.accept(composite);
     }
 }
