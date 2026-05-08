@@ -106,7 +106,6 @@ scope core
         struct Redirect extends Frame [0x40000005]
         {
             int64 affinity;
-            string16 hash;
             octets extension;
         }
     }
