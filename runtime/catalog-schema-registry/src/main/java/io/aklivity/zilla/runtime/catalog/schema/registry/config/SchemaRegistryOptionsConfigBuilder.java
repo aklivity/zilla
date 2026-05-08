@@ -44,9 +44,19 @@ public final class SchemaRegistryOptionsConfigBuilder<T>
         List<String> keys,
         List<String> trust,
         boolean trustcacerts,
-        String authorization)
+        String authorization,
+        String username,
+        String password)
     {
-        return new SchemaRegistryOptionsConfig(url, context, maxAge, keys, trust, trustcacerts, authorization);
+        return new SchemaRegistryOptionsConfig(url,
+                context,
+                maxAge,
+                keys,
+                trust,
+                trustcacerts,
+                authorization,
+                username,
+                password);
     }
 
 }

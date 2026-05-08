@@ -1,0 +1,17 @@
+{
+    "users": [
+        {
+            "username": "user1",
+            "algorithm": "sha512",
+            "salt": "KHOXN_9AmhX17BaUT1CPww",
+            "password_hash": "N9AReOAyqHYuCXZ4w5hTr7BIj6NguPfl1EoMZaRqOWD\/\/jnBlRL6V3cDnTYF5ZEaVKKZu76PNnYnq8HJBDz9xQ=="
+        }
+    ],
+    "permissions": [
+        {
+            "username": "user1",
+            "operation": "Write",
+            "resource": ".*"
+        }
+    ]
+}
