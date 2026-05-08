@@ -16,6 +16,9 @@
 
 connect "zilla://streams/server#0"
         option zilla:window 8192
+
+write zilla:begin.ext [0x12 0x34] [0x0c] "Hello, world"
+
 connected
 
-write advised zilla:redirect [0x12 0x34] [0x0c] "Hello, world"
+write advised zilla:redirect "abc123xyz"
