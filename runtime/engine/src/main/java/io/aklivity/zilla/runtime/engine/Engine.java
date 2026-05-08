@@ -79,6 +79,7 @@ import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
 import io.aklivity.zilla.runtime.engine.model.Model;
 import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 import io.aklivity.zilla.runtime.engine.router.Router;
+import io.aklivity.zilla.runtime.engine.router.RouterFactory;
 import io.aklivity.zilla.runtime.engine.store.Store;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
 
@@ -117,8 +118,6 @@ public final class Engine implements Collector, AutoCloseable
         Collection<Catalog> catalogs,
         Collection<Model> models,
         Collection<Store> stores,
-        Router router,
-        RouterConfig routerConfig,
         EventFormatterFactory eventFormatterFactory,
         ErrorHandler errorHandler,
         Collection<EngineAffinity> affinities,
@@ -193,6 +192,17 @@ public final class Engine implements Collector, AutoCloseable
                 rethrowUnchecked(ex);
             }
         }
+
+        final String routerName = config.router();
+        final Router router = routerName != null
+            ? RouterFactory.instantiate().create(routerName, config)
+            : null;
+        final RouterConfig routerConfig = routerName != null
+            ? RouterConfig.builder()
+                .id(0L)
+                .name(routerName)
+                .build()
+            : null;
 
         List<EngineWorker> workers = new ArrayList<>(workerCount);
         for (int workerIndex = 0; workerIndex < workerCount; workerIndex++)
