@@ -125,9 +125,9 @@
                                         "items":
                                         {
                                             "title": "Service",
-                                            "type": "string"
-                                        },
-                                        "deprecated": true
+                                            "type": "string",
+                                            "enum": ["grpc.health.v1.Health"]
+                                        }
                                     }
                                 },
                                 "additionalProperties": false

@@ -6,6 +6,7 @@ catalogs:
       subjects:
         echo:
           path: protos/echo.proto
+
 bindings:
   north_tcp_server:
     type: tcp
@@ -30,6 +31,9 @@ bindings:
   north_grpc_server:
     type: grpc
     kind: server
+    options:
+      services:
+        - grpc.health.v1.Health
     catalog:
       host_filesystem:
         - subject: echo
@@ -40,6 +44,7 @@ bindings:
   north_echo_server:
     type: echo
     kind: server
+
 telemetry:
   exporters:
     stdout_logs_exporter:

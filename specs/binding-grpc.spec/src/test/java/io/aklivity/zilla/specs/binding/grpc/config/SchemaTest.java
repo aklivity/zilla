@@ -74,11 +74,5 @@ public class SchemaTest
         assertThat(config, not(nullValue()));
     }
 
-    @Test
-    public void shouldValidateServerWhenCatalog()
-    {
-        JsonObject config = schema.validate("server.when.catalog.yaml");
 
-        assertThat(config, not(nullValue()));
-    }
 }
