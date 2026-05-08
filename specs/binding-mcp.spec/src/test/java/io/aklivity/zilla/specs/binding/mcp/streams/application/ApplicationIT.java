@@ -416,9 +416,27 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/tools.call.elicit.completed.proxied/client",
+        "${app}/tools.call.elicit.completed.proxied/server"})
+    public void shouldCallToolElicitCompletedProxied() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/tools.call.elicit.declined/client",
         "${app}/tools.call.elicit.declined/server"})
     public void shouldCallToolElicitDeclined() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/tools.call.elicit.declined.proxied/client",
+        "${app}/tools.call.elicit.declined.proxied/server"})
+    public void shouldCallToolElicitDeclinedProxied() throws Exception
     {
         k3po.finish();
     }
