@@ -427,7 +427,7 @@ public class EngineConfiguration extends Configuration
         return ENGINE_HOST_RESOLVER.get(this)::resolve;
     }
 
-    public String routerName()
+    public String router()
     {
         return ENGINE_ROUTER.get(this);
     }
