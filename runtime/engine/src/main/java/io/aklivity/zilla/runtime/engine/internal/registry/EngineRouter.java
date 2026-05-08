@@ -24,30 +24,27 @@ import io.aklivity.zilla.runtime.engine.router.RouteableContext;
 import io.aklivity.zilla.runtime.engine.router.Router;
 import io.aklivity.zilla.runtime.engine.router.RouterContext;
 
-// Acts as the engine's stable BindingHandler reference cached by binding factories at supply time.
-// On start(), if a Router is configured, swaps the internal delegate to the router-wrapped factory
-// so cached references transparently dispatch through the router from then on.
-final class EngineRouter implements BindingHandler
+// Per-worker BindingHandler that EngineWorker exposes via streamFactory() and binding factories cache
+// at supply time. Engine constructs one EngineRouter per worker. The owning worker provides its default
+// stream factory and routeable context via attach(...) before binding.supply, so the cached reference
+// already dispatches correctly. start() (called from EngineWorker.onStart) swaps the internal delegate
+// to the router-wrapped factory; close() (from onClose) restores the default and detaches.
+public final class EngineRouter implements BindingHandler
 {
     private final Router router;
     private final RouterConfig config;
-    private final RouteableContext routeable;
-    private final BindingHandler defaultDelegate;
 
     private BindingHandler delegate;
+    private BindingHandler defaultDelegate;
+    private RouteableContext routeable;
     private RouterContext context;
 
-    EngineRouter(
+    public EngineRouter(
         Router router,
-        RouterConfig config,
-        RouteableContext routeable,
-        BindingHandler defaultDelegate)
+        RouterConfig config)
     {
         this.router = router;
         this.config = config;
-        this.routeable = routeable;
-        this.defaultDelegate = defaultDelegate;
-        this.delegate = defaultDelegate;
     }
 
     @Override
@@ -59,6 +56,15 @@ final class EngineRouter implements BindingHandler
         MessageConsumer sender)
     {
         return delegate.newStream(msgTypeId, buffer, index, length, sender);
+    }
+
+    void attach(
+        BindingHandler defaultStreamFactory,
+        RouteableContext routeable)
+    {
+        this.defaultDelegate = defaultStreamFactory;
+        this.delegate = defaultStreamFactory;
+        this.routeable = routeable;
     }
 
     void start()
