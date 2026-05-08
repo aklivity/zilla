@@ -46,7 +46,7 @@ default implementation of the new method or the build will fail.
 ## Test implementations for engine concepts
 
 Every engine concept (binding, guard, vault, catalog, exporter, metric group,
-model, resolver) has a minimal **test implementation** that lives in this
+model, resolver, router) has a minimal **test implementation** that lives in this
 module's test sources under
 `src/test/java/.../engine/test/internal/<concept>/`. For example:
 
@@ -60,6 +60,7 @@ module's test sources under
 | metric group | `TestMetricGroupFactorySpi`, `TestMetricGroup` |
 | model | `TestModelFactorySpi`, `TestModel`, `TestModelContext` |
 | resolver | `TestResolverFactorySpi`, `TestResolverSpi` |
+| router | `TestRouterFactorySpi`, `TestRouter`, `TestRouterContext` |
 
 The engine module is built with Maven's `test-jar` packaging so these classes
 are published as `engine:<version>:test-jar`. Every `specs/*.spec` module
