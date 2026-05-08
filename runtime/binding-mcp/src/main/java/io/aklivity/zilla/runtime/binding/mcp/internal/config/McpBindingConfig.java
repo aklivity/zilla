@@ -19,12 +19,14 @@ import static io.aklivity.zilla.runtime.binding.mcp.config.McpElicitationConfig.
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.LongFunction;
 import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.binding.mcp.config.McpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
 public final class McpBindingConfig
 {
@@ -33,17 +35,28 @@ public final class McpBindingConfig
 
     public final long id;
     public final McpOptionsConfig options;
+    public final GuardHandler guard;
 
     private final List<McpRouteConfig> routes;
 
     public McpBindingConfig(
         BindingConfig binding)
     {
+        this(binding, null);
+    }
+
+    public McpBindingConfig(
+        BindingConfig binding,
+        LongFunction<GuardHandler> supplyGuard)
+    {
         this.id = binding.id;
         this.options = (McpOptionsConfig) binding.options;
         this.routes = binding.routes.stream()
             .map(McpRouteConfig::new)
             .collect(Collectors.toList());
+        this.guard = supplyGuard != null && options != null && options.authorization != null
+            ? supplyGuard.apply(binding.resolveId.applyAsLong(options.authorization.name))
+            : null;
     }
 
     public McpRouteConfig resolve(

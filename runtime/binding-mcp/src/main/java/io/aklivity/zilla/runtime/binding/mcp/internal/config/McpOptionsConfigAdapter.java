@@ -38,6 +38,8 @@ public final class McpOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
     private static final String ELICITATION_NAME = "elicitation";
     private static final String ELICITATION_CALLBACK_NAME = "callback";
 
+    private static final String AUTHORIZATION_NAME = "authorization";
+
     @Override
     public Kind kind()
     {
@@ -81,6 +83,13 @@ public final class McpOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
             object.add(ELICITATION_NAME, elicitation);
         }
 
+        if (mcpOptions.authorization != null)
+        {
+            JsonObjectBuilder authorization = Json.createObjectBuilder();
+            authorization.add("name", mcpOptions.authorization.name);
+            object.add(AUTHORIZATION_NAME, authorization);
+        }
+
         return object.build();
     }
 
@@ -112,6 +121,14 @@ public final class McpOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
                 : McpElicitationConfig.DEFAULT_CALLBACK_PATH;
             builder.elicitation()
                 .callback(callback)
+                .build();
+        }
+
+        if (object.containsKey(AUTHORIZATION_NAME))
+        {
+            JsonObject authorization = object.getJsonObject(AUTHORIZATION_NAME);
+            builder.authorization()
+                .name(authorization.getString("name"))
                 .build();
         }
 

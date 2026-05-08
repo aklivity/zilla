@@ -74,6 +74,21 @@
                                     }
                                 },
                                 "additionalProperties": false
+                            },
+                            "authorization":
+                            {
+                                "title": "Authorization",
+                                "type": "object",
+                                "properties":
+                                {
+                                    "name":
+                                    {
+                                        "title": "Guard Name",
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [ "name" ],
+                                "additionalProperties": false
                             }
                         },
                         "additionalProperties": false

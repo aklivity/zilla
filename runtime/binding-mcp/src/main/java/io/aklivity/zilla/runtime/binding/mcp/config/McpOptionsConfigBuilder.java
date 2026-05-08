@@ -27,6 +27,7 @@ public final class McpOptionsConfigBuilder<T> extends ConfigBuilder<T, McpOption
 
     private List<McpPromptConfig> prompts;
     private McpElicitationConfig elicitation;
+    private McpAuthorizationConfig authorization;
 
     public McpOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
@@ -58,6 +59,18 @@ public final class McpOptionsConfigBuilder<T> extends ConfigBuilder<T, McpOption
         return McpElicitationConfig.builder(this::elicitation);
     }
 
+    public McpOptionsConfigBuilder<T> authorization(
+        McpAuthorizationConfig authorization)
+    {
+        this.authorization = authorization;
+        return this;
+    }
+
+    public McpAuthorizationConfigBuilder<McpOptionsConfigBuilder<T>> authorization()
+    {
+        return McpAuthorizationConfig.builder(this::authorization);
+    }
+
     @Override
     @SuppressWarnings("unchecked")
     protected Class<McpOptionsConfigBuilder<T>> thisType()
@@ -68,6 +81,6 @@ public final class McpOptionsConfigBuilder<T> extends ConfigBuilder<T, McpOption
     @Override
     public T build()
     {
-        return mapper.apply(new McpOptionsConfig(prompts, elicitation));
+        return mapper.apply(new McpOptionsConfig(prompts, elicitation, authorization));
     }
 }
