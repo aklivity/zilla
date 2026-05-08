@@ -159,7 +159,7 @@ public class JsonDecoder extends ParsingDecoder
         {
             in.nextToken();
         }
-        else
+        else if (in.getCurrentToken() != JsonToken.END_OBJECT)
         {
             throw error("null");
         }
