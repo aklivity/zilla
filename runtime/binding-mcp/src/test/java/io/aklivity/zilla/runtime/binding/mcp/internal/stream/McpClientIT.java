@@ -22,7 +22,6 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTes
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -98,35 +97,32 @@ public class McpClientIT
         k3po.finish();
     }
 
-    @Ignore("requires elicit decode in McpClientFactory (Phase 2)")
     @Test
     @Configuration("client.yaml")
     @Specification({
         "${app}/tools.call.elicit.completed.proxied/client",
-        "${net}/tools.call.elicit.completed/server"})
+        "${net}/tools.call.elicit.completed.proxied/server"})
     public void shouldCallToolElicitCompletedProxied() throws Exception
     {
         k3po.finish();
     }
 
-    @Ignore("requires elicit decode in McpClientFactory (Phase 2)")
     @Test
     @Configuration("client.yaml")
     @Specification({
         "${app}/tools.call.elicit.declined.proxied/client",
-        "${net}/tools.call.elicit.declined/server"})
+        "${net}/tools.call.elicit.declined.proxied/server"})
     public void shouldCallToolElicitDeclinedProxied() throws Exception
     {
         k3po.finish();
     }
 
-    @Ignore("requires elicit decode in McpClientFactory (Phase 2)")
     @Test
     @Configuration("client.yaml")
     @Specification({
-        "${app}/tools.call.elicit.timeout/client",
+        "${app}/tools.call.elicit.timeout.proxied/client",
         "${net}/tools.call.elicit.timeout/server"})
-    public void shouldCallToolElicitTimeout() throws Exception
+    public void shouldCallToolElicitTimeoutProxied() throws Exception
     {
         k3po.finish();
     }

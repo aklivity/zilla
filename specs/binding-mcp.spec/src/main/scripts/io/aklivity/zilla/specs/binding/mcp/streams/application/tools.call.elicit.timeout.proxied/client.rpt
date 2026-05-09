@@ -66,11 +66,13 @@ write advised zilla:challenge ${mcp:matchChallengeEx()
                                         .build()
                                     .build()}
 
+# user does not complete OAuth in browser — upstream times out and emits cancelled
+
 read advised zilla:flush ${mcp:matchFlushEx()
                                .typeId(zilla:id("mcp"))
                                .elicitComplete()
                                    .id("1")
-                                   .status("DECLINED")
+                                   .status("CANCELLED")
                                    .build()
                                .build()}
 

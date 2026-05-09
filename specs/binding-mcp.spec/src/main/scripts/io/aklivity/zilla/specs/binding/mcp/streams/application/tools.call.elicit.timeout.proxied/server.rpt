@@ -66,28 +66,18 @@ read advise zilla:challenge ${mcp:challengeEx()
                                       .build()
                                   .build()}
 
+# user does not complete OAuth in browser — upstream times out and emits cancelled
+
 write flush
 
 write advise zilla:flush ${mcp:flushEx()
                               .typeId(zilla:id("mcp"))
                               .elicitComplete()
                                   .id("1")
-                                  .status("COMPLETED")
+                                  .status("CANCELLED")
                                   .build()
                               .build()}
 
-write '{'
-        '"content":'
-        '['
-          '{'
-            '"type": "text",'
-            '"text": "Current weather in New York:\\nTemperature: 72°F\\nConditions: Partly cloudy"'
-          '}'
-        '],'
-        '"isError": false'
-      '}'
-write flush
-
-write close
+write abort
 
 read closed

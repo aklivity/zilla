@@ -452,6 +452,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/tools.call.elicit.timeout.proxied/client",
+        "${app}/tools.call.elicit.timeout.proxied/server"})
+    public void shouldCallToolElicitTimeoutProxied() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/tools.call.elicit.completed.guarded/client",
         "${app}/tools.call.elicit.completed.guarded/server"})
     public void shouldCallToolElicitCompletedGuarded() throws Exception

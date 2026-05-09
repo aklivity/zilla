@@ -2698,6 +2698,8 @@ public final class McpClientFactory implements McpStreamFactory
             long authorization,
             McpBeginExFW mcpBeginEx)
         {
+            doAppBegin(traceId, authorization, null);
+
             final GuardHandler guard = session.binding.guard;
             if (guard == null)
             {
@@ -2725,8 +2727,6 @@ public final class McpClientFactory implements McpStreamFactory
                 pendingAuth = true;
                 elicitTraceId = traceId;
                 elicitAuthorization = authorization;
-
-                doAppBegin(traceId, authorization, null);
 
                 final McpChallengeExFW challengeEx = mcpChallengeExRW
                     .wrap(extBuffer, 0, extBuffer.capacity())
