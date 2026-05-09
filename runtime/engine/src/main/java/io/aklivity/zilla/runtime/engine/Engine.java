@@ -73,7 +73,6 @@ import io.aklivity.zilla.runtime.engine.internal.event.io.EventReader;
 import io.aklivity.zilla.runtime.engine.internal.event.io.EventWriter;
 import io.aklivity.zilla.runtime.engine.internal.registry.EngineBoss;
 import io.aklivity.zilla.runtime.engine.internal.registry.EngineManager;
-import io.aklivity.zilla.runtime.engine.internal.registry.EngineRouter;
 import io.aklivity.zilla.runtime.engine.internal.registry.EngineWorker;
 import io.aklivity.zilla.runtime.engine.metrics.Collector;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
@@ -195,10 +194,7 @@ public final class Engine implements Collector, AutoCloseable
             }
         }
 
-        final String routerName = config.router();
-        final Router router = routerName != null
-            ? RouterFactory.instantiate().create(routerName, config)
-            : new EngineRouter();
+        final Router router = RouterFactory.instantiate().create(config.router(), config);
         final RouterConfig routerConfig = RouterConfig.builder()
             .id(0L)
             .name(router.name())
