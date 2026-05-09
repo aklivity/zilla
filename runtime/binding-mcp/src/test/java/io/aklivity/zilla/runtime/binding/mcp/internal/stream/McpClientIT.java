@@ -145,7 +145,7 @@ public class McpClientIT
     @Test
     @Configuration("client.guarded.yaml")
     @Specification({
-        "${app}/tools.call.elicit.completed/client",
+        "${app}/tools.call.elicit.completed.guarded/client",
         "${net}/tools.call/server"})
     public void shouldCallToolElicitCompletedGuarded() throws Exception
     {
@@ -155,7 +155,7 @@ public class McpClientIT
     @Test
     @Configuration("client.guarded.yaml")
     @Specification({
-        "${app}/tools.call.elicit.declined/client",
+        "${app}/tools.call.elicit.declined.guarded/client",
         "${net}/lifecycle.initialize/server"})
     public void shouldCallToolElicitDeclinedGuarded() throws Exception
     {
@@ -165,7 +165,7 @@ public class McpClientIT
     @Test
     @Configuration("client.guarded.yaml")
     @Specification({
-        "${app}/tools.call.elicit.timeout/client",
+        "${app}/tools.call.elicit.timeout.guarded/client",
         "${net}/lifecycle.initialize/server"})
     @Configure(name = MCP_INACTIVITY_TIMEOUT_NAME, value = "PT0.2S")
     public void shouldCallToolElicitTimeoutGuarded() throws Exception

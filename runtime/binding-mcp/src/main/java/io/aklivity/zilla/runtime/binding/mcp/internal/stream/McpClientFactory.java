@@ -2648,8 +2648,7 @@ public final class McpClientFactory implements McpStreamFactory
     private final class McpToolsCallStream extends McpRequestStream
     {
         private boolean pendingAuth;
-        private boolean aborted;
-        private boolean endBuffered;
+        private boolean requestSent;
         private byte[] bufferedBody;
         private int bufferedBodyLength;
         private long elicitTraceId;
@@ -2779,12 +2778,16 @@ public final class McpClientFactory implements McpStreamFactory
             long traceId,
             long authorization)
         {
-            if (pendingAuth || aborted)
+            if (pendingAuth)
             {
-                endBuffered = true;
+                cancelElicitTimeout();
+                pendingAuth = false;
+                requestSent = true;
+                doAppReset(traceId, authorization);
+                doAppAbort(traceId, authorization);
                 return true;
             }
-            return false;
+            return requestSent;
         }
 
         @Override
@@ -2835,7 +2838,7 @@ public final class McpClientFactory implements McpStreamFactory
                 final long traceId = signal.traceId();
                 final long authorization = signal.authorization();
                 pendingAuth = false;
-                aborted = true;
+                requestSent = true;
                 emitElicitComplete(traceId, authorization, McpElicitStatus.CANCELLED);
                 doAppAbort(traceId, authorization);
                 return;
@@ -2849,6 +2852,7 @@ public final class McpClientFactory implements McpStreamFactory
         {
             cancelElicitTimeout();
             pendingAuth = false;
+            requestSent = true;
 
             if ((sessionId & GuardHandler.MASK_AUTHORIZED) != 0L)
             {
@@ -2861,14 +2865,10 @@ public final class McpClientFactory implements McpStreamFactory
                     final UnsafeBuffer body = new UnsafeBuffer(bufferedBody, 0, bufferedBodyLength);
                     http.doEncodeRequestData(elicitTraceId, elicitAuthorization, body, 0, bufferedBodyLength);
                 }
-                if (endBuffered)
-                {
-                    http.doEncodeRequestEnd(elicitTraceId, elicitAuthorization);
-                }
+                http.doEncodeRequestEnd(elicitTraceId, elicitAuthorization);
             }
             else
             {
-                aborted = true;
                 emitElicitComplete(elicitTraceId, elicitAuthorization, McpElicitStatus.DECLINED);
                 doAppAbort(elicitTraceId, elicitAuthorization);
             }
@@ -2878,7 +2878,7 @@ public final class McpClientFactory implements McpStreamFactory
         {
             cancelElicitTimeout();
             pendingAuth = false;
-            aborted = true;
+            requestSent = true;
             doAppAbort(elicitTraceId, elicitAuthorization);
         }
 

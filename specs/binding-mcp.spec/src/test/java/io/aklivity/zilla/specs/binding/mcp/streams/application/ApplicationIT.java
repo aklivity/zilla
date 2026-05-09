@@ -452,6 +452,33 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/tools.call.elicit.completed.guarded/client",
+        "${app}/tools.call.elicit.completed.guarded/server"})
+    public void shouldCallToolElicitCompletedGuarded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/tools.call.elicit.declined.guarded/client",
+        "${app}/tools.call.elicit.declined.guarded/server"})
+    public void shouldCallToolElicitDeclinedGuarded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/tools.call.elicit.timeout.guarded/client",
+        "${app}/tools.call.elicit.timeout.guarded/server"})
+    public void shouldCallToolElicitTimeoutGuarded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/tools.call.10k.with.progress/client",
         "${app}/tools.call.10k.with.progress/server"})
     public void shouldCallToolWith10kParamsWithProgress() throws Exception
