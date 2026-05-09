@@ -157,6 +157,8 @@ import io.aklivity.zilla.runtime.engine.model.ModelContext;
 import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
+import io.aklivity.zilla.runtime.engine.router.Router;
+import io.aklivity.zilla.runtime.engine.router.RouterContext;
 import io.aklivity.zilla.runtime.engine.store.Store;
 import io.aklivity.zilla.runtime.engine.store.StoreContext;
 import io.aklivity.zilla.runtime.engine.store.StoreHandler;
@@ -192,7 +194,17 @@ public class EngineWorker implements EngineContext, Agent
     private final Function<String, InetAddress[]> resolveHost;
     private final boolean timestamps;
     private final Object2ObjectHashMap<Metric.Kind, LongIntIntFunction<LongConsumer>> metricWriterSuppliers;
-    private final Map<String, MetricGroup> metricGroupsByName;
+    private final Collection<Binding> bindings;
+    private final Collection<Exporter> exporters;
+    private final Collection<Guard> guards;
+    private final Collection<Vault> vaults;
+    private final Collection<Catalog> catalogs;
+    private final Collection<Model> models;
+    private final Collection<MetricGroup> metricGroups;
+    private final Collection<Store> stores;
+    private final Collector collector;
+    private final Consumer<NamespaceConfig> process;
+    private Map<String, MetricGroup> metricGroupsByName;
     private final StreamsLayout streamsLayout;
     private final BufferPoolLayout bufferPoolLayout;
     private final RingBuffer streamsBuffer;
@@ -225,9 +237,9 @@ public class EngineWorker implements EngineContext, Agent
     private final EngineSignaler signaler;
     private final Long2ObjectHashMap<MessageConsumer> correlations;
     private final Long2ObjectHashMap<AgentRunner> exportersById;
-    private final Map<String, ModelContext> modelsByType;
+    private Map<String, ModelContext> modelsByType;
 
-    private final EngineRegistry registry;
+    private EngineRegistry registry;
     private final Deque<Runnable> taskQueue;
     private final LongUnaryOperator affinityMask;
     private final Path configPath;
@@ -245,7 +257,7 @@ public class EngineWorker implements EngineContext, Agent
     private final Int2ObjectHashMap<String> eventNames;
     private final Supplier<MessageReader> supplyEventReader;
     private final EventFormatterFactory eventFormatterFactory;
-    private final LongSupplier usageMetric;
+    private LongSupplier usageMetric;
     private final boolean readonly;
     private final int maxIdleCount;
 
@@ -255,9 +267,9 @@ public class EngineWorker implements EngineContext, Agent
     private long budgetId;
     private long authorizedId;
 
-    private final EngineRouter router;
+    private final RouterContext router;
     private final RouterConfig routerConfig;
-    private final BindingHandler streamFactory;
+    private BindingHandler streamFactory;
 
     private long lastReadStreamId;
 
@@ -279,7 +291,8 @@ public class EngineWorker implements EngineContext, Agent
         Collection<Model> models,
         Collection<MetricGroup> metricGroups,
         Collection<Store> stores,
-        EngineRouter router,
+        Router router,
+        RouterConfig routerConfig,
         Collector collector,
         Supplier<MessageReader> supplyEventReader,
         EventFormatterFactory eventFormatterFactory,
@@ -404,98 +417,21 @@ public class EngineWorker implements EngineContext, Agent
             signaler::executeTaskAt, config.childCleanupLingerMillis());
         this.debitorsByIndex = new Int2ObjectHashMap<DefaultBudgetDebitor>();
 
-        this.routerConfig = router.config();
+        this.routerConfig = routerConfig;
         EngineRouteable routeable = new EngineRouteable(config, this::newStream,
             this::attachComposite, this::detachComposite);
-        this.router = router.supplyContext(routeable);
-        this.streamFactory = this.router.attach(routerConfig);
+        this.router = router.supply(routeable);
 
-        Map<String, BindingContext> bindingsByType = new LinkedHashMap<>();
-        for (Binding binding : bindings)
-        {
-            String type = binding.name();
-            bindingsByType.put(type, binding.supply(this));
-        }
-
-        Map<String, ExporterContext> exportersByType = new LinkedHashMap<>();
-        for (Exporter exporter : exporters)
-        {
-            String type = exporter.name();
-            exportersByType.put(type, exporter.supply(this));
-        }
-
-        Map<String, GuardContext> guardsByType = new LinkedHashMap<>();
-        for (Guard guard : guards)
-        {
-            String type = guard.name();
-            guardsByType.put(type, guard.supply(this));
-        }
-
-        Map<String, VaultContext> vaultsByType = new LinkedHashMap<>();
-        for (Vault vault : vaults)
-        {
-            String type = vault.name();
-            Set<String> aliases = vault.aliases();
-
-            VaultContext context = vault.supply(this);
-
-            vaultsByType.put(type, context);
-            for (String alias : aliases)
-            {
-                vaultsByType.put(alias, context);
-            }
-        }
-
-        Map<String, CatalogContext> catalogsByType = new LinkedHashMap<>();
-        for (Catalog catalog : catalogs)
-        {
-            String type = catalog.name();
-            Set<String> aliases = catalog.aliases();
-
-            CatalogContext context = catalog.supply(this);
-
-            catalogsByType.put(type, context);
-            for (String alias : aliases)
-            {
-                catalogsByType.put(alias, context);
-            }
-        }
-
-        Map<String, StoreContext> storesByType = new LinkedHashMap<>();
-        for (Store store : stores)
-        {
-            String type = store.name();
-            storesByType.put(type, store.supply(this));
-        }
-
-        Map<String, ModelContext> modelsByType = new LinkedHashMap<>();
-        for (Model model : models)
-        {
-            String type = model.name();
-            modelsByType.put(type, model.supply(this));
-        }
-        this.modelsByType = modelsByType;
-
-        Map<String, MetricContext> metricsByName = new LinkedHashMap<>();
-        for (MetricGroup metricGroup : metricGroups)
-        {
-            for (String metricName : metricGroup.metricNames())
-            {
-                Metric metric = metricGroup.supply(metricName);
-                metricsByName.put(metricName, metric.supply(this));
-            }
-        }
-
-        this.metricGroupsByName = new Object2ObjectHashMap<>();
-        for (MetricGroup metricGroup : metricGroups)
-        {
-            metricGroupsByName.put(metricGroup.name(), metricGroup);
-        }
-
-        this.registry = new EngineRegistry(
-                bindingsByType::get, guardsByType::get, vaultsByType::get, catalogsByType::get, metricsByName::get,
-                exportersByType::get, storesByType::get, labels::supplyLabelId, this::onExporterAttached,
-                this::onExporterDetached, this::supplyMetricWriter, this::detachStreams, collector, process);
+        this.bindings = bindings;
+        this.exporters = exporters;
+        this.guards = guards;
+        this.vaults = vaults;
+        this.catalogs = catalogs;
+        this.models = models;
+        this.metricGroups = metricGroups;
+        this.stores = stores;
+        this.collector = collector;
+        this.process = process;
 
         this.taskQueue = new ConcurrentLinkedDeque<>();
         this.correlations = new Long2ObjectHashMap<>();
@@ -504,7 +440,6 @@ public class EngineWorker implements EngineContext, Agent
         this.exportersById = new Long2ObjectHashMap<>();
         this.supplyEventReader = supplyEventReader;
         this.eventFormatterFactory = eventFormatterFactory;
-        this.usageMetric = supplyGauge(NO_NAMESPACED_ID, labels.supplyLabelId(EngineWorkersUsageMetric.NAME), 0);
     }
 
     public static int indexOfId(
@@ -972,6 +907,93 @@ public class EngineWorker implements EngineContext, Agent
     @Override
     public void onStart()
     {
+        this.streamFactory = router.attach(routerConfig);
+
+        Map<String, BindingContext> bindingsByType = new LinkedHashMap<>();
+        for (Binding binding : bindings)
+        {
+            bindingsByType.put(binding.name(), binding.supply(this));
+        }
+
+        Map<String, ExporterContext> exportersByType = new LinkedHashMap<>();
+        for (Exporter exporter : exporters)
+        {
+            exportersByType.put(exporter.name(), exporter.supply(this));
+        }
+
+        Map<String, GuardContext> guardsByType = new LinkedHashMap<>();
+        for (Guard guard : guards)
+        {
+            guardsByType.put(guard.name(), guard.supply(this));
+        }
+
+        Map<String, VaultContext> vaultsByType = new LinkedHashMap<>();
+        for (Vault vault : vaults)
+        {
+            String type = vault.name();
+            Set<String> aliases = vault.aliases();
+
+            VaultContext context = vault.supply(this);
+
+            vaultsByType.put(type, context);
+            for (String alias : aliases)
+            {
+                vaultsByType.put(alias, context);
+            }
+        }
+
+        Map<String, CatalogContext> catalogsByType = new LinkedHashMap<>();
+        for (Catalog catalog : catalogs)
+        {
+            String type = catalog.name();
+            Set<String> aliases = catalog.aliases();
+
+            CatalogContext context = catalog.supply(this);
+
+            catalogsByType.put(type, context);
+            for (String alias : aliases)
+            {
+                catalogsByType.put(alias, context);
+            }
+        }
+
+        Map<String, StoreContext> storesByType = new LinkedHashMap<>();
+        for (Store store : stores)
+        {
+            storesByType.put(store.name(), store.supply(this));
+        }
+
+        Map<String, ModelContext> modelsByType = new LinkedHashMap<>();
+        for (Model model : models)
+        {
+            modelsByType.put(model.name(), model.supply(this));
+        }
+        this.modelsByType = modelsByType;
+
+        Map<String, MetricContext> metricsByName = new LinkedHashMap<>();
+        for (MetricGroup metricGroup : metricGroups)
+        {
+            for (String metricName : metricGroup.metricNames())
+            {
+                Metric metric = metricGroup.supply(metricName);
+                metricsByName.put(metricName, metric.supply(this));
+            }
+        }
+
+        Map<String, MetricGroup> metricGroupsByName = new Object2ObjectHashMap<>();
+        for (MetricGroup metricGroup : metricGroups)
+        {
+            metricGroupsByName.put(metricGroup.name(), metricGroup);
+        }
+        this.metricGroupsByName = metricGroupsByName;
+
+        this.registry = new EngineRegistry(
+                bindingsByType::get, guardsByType::get, vaultsByType::get, catalogsByType::get, metricsByName::get,
+                exportersByType::get, storesByType::get, labels::supplyLabelId, this::onExporterAttached,
+                this::onExporterDetached, this::supplyMetricWriter, this::detachStreams, collector, process);
+
+        this.usageMetric = supplyGauge(NO_NAMESPACED_ID, labels.supplyLabelId(EngineWorkersUsageMetric.NAME), 0);
+
         if (!readonly)
         {
             int workersMetricId = labels.supplyLabelId(EngineWorkersCountMetric.NAME);
@@ -997,7 +1019,7 @@ public class EngineWorker implements EngineContext, Agent
             registry.detachAll();
         }
 
-        router.detach(routerConfig);
+        router.detach(routerConfig.id);
 
         poller.onClose();
 
