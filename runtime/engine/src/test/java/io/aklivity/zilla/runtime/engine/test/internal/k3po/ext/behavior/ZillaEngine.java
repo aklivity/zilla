@@ -128,6 +128,9 @@ public final class ZillaEngine implements Runnable, ExternalResourceReleasable
         ChannelFuture handlerFuture,
         Object value)
     {
+        // an inbound advise placed before `connected` (e.g., `read advise zilla:challenge`)
+        // signals the script wants its frames written ahead of the accepted-side WINDOW
+        channel.setWindowNeedsTask();
         submitTask(new AdviseInputTask(channel, handlerFuture, value));
     }
 
