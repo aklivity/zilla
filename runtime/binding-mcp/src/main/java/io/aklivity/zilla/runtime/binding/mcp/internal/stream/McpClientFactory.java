@@ -2655,6 +2655,10 @@ public final class McpClientFactory implements McpStreamFactory
         private long elicitAuthorization;
         private long elicitTimeoutId = Signaler.NO_CANCEL_ID;
 
+        private int paramsBraceDepth;
+        private boolean paramsInString;
+        private boolean paramsEscaped;
+
         private final LongCompletionCallback elicitCompletion = new LongCompletionCallback()
         {
             @Override
@@ -2788,6 +2792,73 @@ public final class McpClientFactory implements McpStreamFactory
                 return true;
             }
             return requestSent;
+        }
+
+        @Override
+        void onAppData(
+            DataFW data)
+        {
+            super.onAppData(data);
+
+            if (!pendingAuth && !requestSent)
+            {
+                final OctetsFW payload = data.payload();
+                if (payload != null && payload.sizeof() > 0 && advanceParamsBraceDepth(payload))
+                {
+                    requestSent = true;
+                    http.doEncodeRequestEnd(data.traceId(), data.authorization());
+                }
+            }
+        }
+
+        private boolean advanceParamsBraceDepth(
+            OctetsFW payload)
+        {
+            final DirectBuffer buf = payload.buffer();
+            final int end = payload.limit();
+            int depth = paramsBraceDepth;
+            boolean inStr = paramsInString;
+            boolean esc = paramsEscaped;
+            boolean done = false;
+            for (int i = payload.offset(); i < end && !done; i++)
+            {
+                final byte b = buf.getByte(i);
+                if (esc)
+                {
+                    esc = false;
+                }
+                else if (inStr)
+                {
+                    if (b == '\\')
+                    {
+                        esc = true;
+                    }
+                    else if (b == '"')
+                    {
+                        inStr = false;
+                    }
+                }
+                else if (b == '"')
+                {
+                    inStr = true;
+                }
+                else if (b == '{')
+                {
+                    depth++;
+                }
+                else if (b == '}')
+                {
+                    depth--;
+                    if (depth == 0)
+                    {
+                        done = true;
+                    }
+                }
+            }
+            paramsBraceDepth = depth;
+            paramsInString = inStr;
+            paramsEscaped = esc;
+            return done;
         }
 
         @Override
