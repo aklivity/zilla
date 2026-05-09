@@ -2834,19 +2834,19 @@ public final class HttpServerFactory implements HttpStreamFactory
 
         private final class HttpExchange
         {
-            private MessageConsumer application;
             private final long originId;
             private final long routedId;
             private final long traceId;
-            private long requestId;
-            private long responseId;
             private final long sessionId;
-            private long affinity;
             private final HttpPolicyConfig policy;
             private final String origin;
             private final HttpRequestType requestType;
             private final ValidatorHandler contentType;
 
+            private MessageConsumer application;
+            private long requestId;
+            private long responseId;
+            private long affinity;
             private long expiringId;
 
             private long requestSeq;
@@ -5882,21 +5882,22 @@ public final class HttpServerFactory implements HttpStreamFactory
 
         private final class Http2Exchange
         {
-            private MessageConsumer application;
             private final long originId;
             private final long routedId;
             private final long traceId;
-            private long requestId;
-            private long responseId;
             private final int streamId;
-            private long affinity;
-            private boolean redirected;
+            private final long sessionId;
             private final HttpPolicyConfig policy;
             private final String origin;
             private final long requestContentLength;
-            private final long sessionId;
             private final HttpRequestType requestType;
             private final ValidatorHandler contentType;
+
+            private MessageConsumer application;
+            private long requestId;
+            private long responseId;
+            private long affinity;
+            private boolean redirected;
 
             private long responseContentLength;
             private long responseContentObserved;
