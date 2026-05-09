@@ -15,24 +15,30 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.registry;
 
-import io.aklivity.zilla.runtime.engine.router.RouteableContext;
-import io.aklivity.zilla.runtime.engine.router.Router;
+import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.config.RouterConfig;
 import io.aklivity.zilla.runtime.engine.router.RouterContext;
 
-public final class EngineRouter implements Router
+final class EngineRouterContext implements RouterContext
 {
-    public static final String NAME = "engine";
+    private final BindingHandler streamFactory;
 
-    @Override
-    public String name()
+    EngineRouterContext(
+        BindingHandler streamFactory)
     {
-        return NAME;
+        this.streamFactory = streamFactory;
     }
 
     @Override
-    public RouterContext supply(
-        RouteableContext context)
+    public BindingHandler attach(
+        RouterConfig config)
     {
-        return new EngineRouterContext(context.streamFactory());
+        return streamFactory;
+    }
+
+    @Override
+    public void detach(
+        long routerId)
+    {
     }
 }
