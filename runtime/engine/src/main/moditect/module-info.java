@@ -61,6 +61,8 @@ module io.aklivity.zilla.runtime.engine
         with io.aklivity.zilla.runtime.engine.internal.event.EngineEventFormatterFactory;
     provides io.aklivity.zilla.runtime.engine.metrics.MetricGroupFactorySpi
         with io.aklivity.zilla.runtime.engine.internal.metrics.EngineMetricGroupFactorySpi;
+    provides io.aklivity.zilla.runtime.engine.router.RouterFactorySpi
+        with io.aklivity.zilla.runtime.engine.internal.registry.EngineRouterFactorySpi;
 
     uses io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
     uses io.aklivity.zilla.runtime.engine.config.CompositeBindingAdapterSpi;

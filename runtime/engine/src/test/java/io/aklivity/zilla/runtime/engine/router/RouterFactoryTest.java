@@ -16,7 +16,7 @@
 package io.aklivity.zilla.runtime.engine.router;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
@@ -28,11 +28,11 @@ import io.aklivity.zilla.runtime.engine.Configuration;
 public class RouterFactoryTest
 {
     @Test
-    public void shouldDiscoverRegisteredRouterName() throws Exception
+    public void shouldDiscoverRegisteredRouterNames() throws Exception
     {
         RouterFactory factory = RouterFactory.instantiate();
 
-        assertThat(factory.names(), contains("test"));
+        assertThat(factory.names(), containsInAnyOrder("engine", "test"));
     }
 
     @Test
@@ -46,6 +46,16 @@ public class RouterFactoryTest
     }
 
     @Test
+    public void shouldCreateDefaultEngineRouter() throws Exception
+    {
+        RouterFactory factory = RouterFactory.instantiate();
+
+        Router router = factory.create("engine", new Configuration());
+
+        assertNotNull(router);
+    }
+
+    @Test
     public void shouldRejectUnrecognizedRouterNameCitingAvailableNames() throws Exception
     {
         RouterFactory factory = RouterFactory.instantiate();
@@ -54,6 +64,7 @@ public class RouterFactoryTest
             () -> factory.create("unknown", new Configuration()));
 
         assertThat(error.getMessage(), containsString("unknown"));
+        assertThat(error.getMessage(), containsString("engine"));
         assertThat(error.getMessage(), containsString("test"));
     }
 }
