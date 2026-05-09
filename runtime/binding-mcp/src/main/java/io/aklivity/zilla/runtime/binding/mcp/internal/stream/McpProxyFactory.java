@@ -442,7 +442,8 @@ public final class McpProxyFactory implements McpStreamFactory
         private void onServerFlush(
             FlushFW flush)
         {
-            // pass-through flush — no action required for proxy kind
+            client.doClientFlush(flush.traceId(), flush.authorization(),
+                flush.budgetId(), flush.reserved(), flush.extension());
         }
 
         private void onServerWindow(
@@ -662,6 +663,18 @@ public final class McpProxyFactory implements McpStreamFactory
                     flags, budgetId, reserved, payload, offset, length);
                 initialSeq += reserved;
             }
+        }
+
+        private void doClientFlush(
+            long traceId,
+            long authorization,
+            long budgetId,
+            int reserved,
+            OctetsFW extension)
+        {
+            doFlush(sender, server.lifecycle.originId, resolvedId, initialId,
+                initialSeq, initialAck, initialMax,
+                traceId, authorization, budgetId, reserved, extension);
         }
 
         private void doClientEnd(
