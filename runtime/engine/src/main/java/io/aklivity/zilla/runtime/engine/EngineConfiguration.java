@@ -176,7 +176,7 @@ public class EngineConfiguration extends Configuration
             EngineConfiguration::decodeRevocationStrategy, RevocationStrategy.NONE);
         ENGINE_DIAGNOSTICS_DIRECTORY = config.property(Path.class, "diagnostics.directory",
             EngineConfiguration::decodeDiagnosticsDirectory, (String) null);
-        ENGINE_ROUTER = config.property("router", (String) null);
+        ENGINE_ROUTER = config.property("router", "engine");
         ENGINE_CONFIG = config;
     }
 
