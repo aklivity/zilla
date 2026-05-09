@@ -31,6 +31,7 @@ read zilla:begin.ext ${http:matchBeginEx()
 connected
 
 read advise zilla:redirect 0x00000000000000b1L
+write aborted
 
 accepted
 
@@ -48,7 +49,6 @@ connected
 write zilla:begin.ext ${http:beginEx()
                               .typeId(zilla:id("http"))
                               .header(":status", "200")
-                              .header("connection", "close")
                               .build()}
 
 write close

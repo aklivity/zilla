@@ -22,11 +22,14 @@ connected
 
 read "POST /items HTTP/1.1\r\n"
      "Host: localhost:8080\r\n"
+     "Connection: close\r\n"
      "Content-Length: 100\r\n"
      "\r\n"
 
 write "HTTP/1.1 200 OK\r\n"
-      "Connection: close\r\n"
+      "Transfer-Encoding: chunked\r\n"
+      "\r\n"
+      "0\r\n"
       "\r\n"
 write flush
 

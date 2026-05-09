@@ -3053,23 +3053,14 @@ public final class HttpServerFactory implements HttpStreamFactory
                 redirected = true;
                 final boolean wasRequestClosed = requestState == HttpExchangeState.CLOSED;
 
-                doReset(application, originId, routedId, responseId, responseSeq, responseAck, responseMax,
-                    traceId, sessionId);
+                doResponseReset(traceId);
+                requestState = HttpExchangeState.CLOSED;
 
-                final long newRequestId = context.supplyInitialId(routedId, Long.hashCode(newAffinity));
-                requestId = newRequestId;
-                responseId = supplyReplyId.applyAsLong(newRequestId);
+                clear();
+
+                requestId = context.supplyInitialId(routedId, Long.hashCode(newAffinity));
+                responseId = supplyReplyId.applyAsLong(requestId);
                 affinity = newAffinity;
-
-                requestSeq = 0;
-                requestAck = 0;
-                requestMax = 0;
-                requestPad = 0;
-                requestCaps = 0;
-                responseSeq = 0;
-                responseAck = 0;
-                responseMax = 0;
-                requestState = HttpExchangeState.PENDING;
 
                 application = newStream(this::onExchange, originId, routedId, requestId, requestSeq, requestAck, requestMax,
                     traceId, sessionId, affinity, extension);
@@ -3082,6 +3073,26 @@ public final class HttpServerFactory implements HttpStreamFactory
                 }
 
                 doResponseWindow(traceId);
+            }
+
+            private void clear()
+            {
+                assert requestState == HttpExchangeState.CLOSED;
+                assert responseState == HttpExchangeState.CLOSED;
+
+                requestId = 0;
+                responseId = 0;
+                affinity = 0L;
+                requestSeq = 0;
+                requestAck = 0;
+                requestMax = 0;
+                requestPad = 0;
+                requestCaps = 0;
+                responseSeq = 0;
+                responseAck = 0;
+                responseMax = 0;
+                requestState = HttpExchangeState.PENDING;
+                responseState = HttpExchangeState.PENDING;
             }
 
             private void onRequestReset(
@@ -6102,33 +6113,44 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                 redirected = true;
 
-                doReset(application, originId, routedId, responseId, responseSeq, responseAck, responseMax,
-                    traceId, sessionId);
-
+                doResponseReset(traceId);
                 state = HttpState.closeInitial(state);
                 cleanupRequestDebitorIfNecessary();
                 streams.remove(streamId);
 
-                final long newRequestId = context.supplyInitialId(routedId, Long.hashCode(newAffinity));
-                requestId = newRequestId;
-                responseId = supplyReplyId.applyAsLong(newRequestId);
-                affinity = newAffinity;
+                clear();
 
+                requestId = context.supplyInitialId(routedId, Long.hashCode(newAffinity));
+                responseId = supplyReplyId.applyAsLong(requestId);
+                affinity = newAffinity;
+                state = HttpState.openingInitial(state);
+                localBudget = localSettings.initialWindowSize;
+
+                application = newStream(this::onExchange, originId, routedId, requestId, requestSeq, requestAck, requestMax,
+                    traceId, sessionId, affinity, extension);
+                streams.put(streamId, this);
+
+                onResponseWindowUpdate(traceId, sessionId, remoteSettings.initialWindowSize);
+            }
+
+            private void clear()
+            {
+                assert HttpState.closed(state);
+
+                requestId = 0;
+                responseId = 0;
+                affinity = 0L;
                 requestSeq = 0;
                 requestAck = 0;
                 requestMax = 0;
                 requestPad = 0;
                 requestBud = 0L;
                 requestCaps = 0;
+                responseSeq = 0;
+                responseAck = 0;
+                responseMax = 0;
                 state = 0;
-                state = HttpState.openingInitial(state);
-
-                application = newStream(this::onExchange, originId, routedId, requestId, requestSeq, requestAck, requestMax,
-                    traceId, sessionId, affinity, extension);
-                streams.put(streamId, this);
-                localBudget = localSettings.initialWindowSize;
-
-                onResponseWindowUpdate(traceId, sessionId, remoteSettings.initialWindowSize);
+                localBudget = 0;
             }
 
             private void onRequestReset(

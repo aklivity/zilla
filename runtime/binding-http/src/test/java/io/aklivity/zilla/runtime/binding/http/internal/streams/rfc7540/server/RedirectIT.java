@@ -52,7 +52,7 @@ public class RedirectIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("server.redirect.yaml")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/request.redirect/client",
         "${app}/request.redirect/server" })
