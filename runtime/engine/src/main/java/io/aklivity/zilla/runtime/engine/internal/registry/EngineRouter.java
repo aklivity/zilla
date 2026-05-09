@@ -15,74 +15,72 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.registry;
 
-import org.agrona.DirectBuffer;
-
+import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
-import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.config.RouterConfig;
 import io.aklivity.zilla.runtime.engine.router.RouteableContext;
 import io.aklivity.zilla.runtime.engine.router.Router;
 import io.aklivity.zilla.runtime.engine.router.RouterContext;
+import io.aklivity.zilla.runtime.engine.router.RouterFactory;
 
-// Per-worker BindingHandler that EngineWorker exposes via streamFactory() and binding factories cache
-// at supply time. Engine constructs one EngineRouter per worker. The owning worker provides its default
-// stream factory and routeable context via attach(...) before binding.supply, so the cached reference
-// already dispatches correctly. start() (called from EngineWorker.onStart) swaps the internal delegate
-// to the router-wrapped factory; close() (from onClose) restores the default and detaches.
-public final class EngineRouter implements BindingHandler
+public final class EngineRouter
 {
     private final Router router;
     private final RouterConfig config;
-
-    private BindingHandler delegate;
-    private BindingHandler defaultDelegate;
-    private RouteableContext routeable;
-    private RouterContext context;
+    private final RouterContext context;
+    private final BindingHandler streamFactory;
 
     public EngineRouter(
-        Router router,
-        RouterConfig config)
+        EngineConfiguration config)
     {
-        this.router = router;
-        this.config = config;
+        String routerName = config.router();
+        this.router = routerName != null
+            ? RouterFactory.instantiate().create(routerName, config)
+            : null;
+        this.config = routerName != null
+            ? RouterConfig.builder()
+                .id(0L)
+                .name(routerName)
+                .build()
+            : null;
+        this.context = null;
+        this.streamFactory = null;
     }
 
-    @Override
-    public MessageConsumer newStream(
-        int msgTypeId,
-        DirectBuffer buffer,
-        int index,
-        int length,
-        MessageConsumer sender)
+    public EngineRouter(
+        RouterContext context,
+        BindingHandler streamFactory)
     {
-        return delegate.newStream(msgTypeId, buffer, index, length, sender);
+        this.context = context;
+        this.streamFactory = streamFactory;
+        this.router = null;
+        this.config = null;
     }
 
-    void attach(
-        BindingHandler defaultStreamFactory,
+    public RouterConfig config()
+    {
+        return config;
+    }
+
+    EngineRouter supplyContext(
         RouteableContext routeable)
     {
-        this.defaultDelegate = defaultStreamFactory;
-        this.delegate = defaultStreamFactory;
-        this.routeable = routeable;
+        RouterContext context = router != null ? router.supply(routeable) : null;
+        return new EngineRouter(context, routeable.streamFactory());
     }
 
-    void start()
+    BindingHandler attach(
+        RouterConfig config)
     {
-        if (router != null && context == null)
-        {
-            context = router.supply(routeable);
-            delegate = context.attach(config);
-        }
+        return context != null ? context.attach(config) : streamFactory;
     }
 
-    void close()
+    void detach(
+        RouterConfig config)
     {
         if (context != null)
         {
             context.detach(config.id);
-            context = null;
-            delegate = defaultDelegate;
         }
     }
 }
