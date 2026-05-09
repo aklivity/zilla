@@ -3043,15 +3043,18 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                 if (redirected || responseState != HttpExchangeState.PENDING)
                 {
+                    doResponseReset(traceId);
                     doEncodeHeaders(this, traceId, sessionId, 0L, headers500);
                     requestState = HttpExchangeState.CLOSED;
-                    responseState = HttpExchangeState.CLOSED;
                     HttpServer.this.exchange = null;
                     return;
                 }
 
                 redirected = true;
                 final boolean wasRequestClosed = requestState == HttpExchangeState.CLOSED;
+
+                doReset(application, originId, routedId, responseId, responseSeq, responseAck, responseMax,
+                    traceId, sessionId);
 
                 final long newRequestId = context.supplyInitialId(routedId, Long.hashCode(newAffinity));
                 requestId = newRequestId;
@@ -6090,6 +6093,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                 if (redirected || HttpState.replyOpened(state))
                 {
+                    doResponseResetIfNecessary(traceId);
                     doEncodeHeaders(traceId, sessionId, streamId, headers500, true);
                     decodeNetworkIfNecessary(traceId);
                     cleanup(traceId);
@@ -6097,6 +6101,9 @@ public final class HttpServerFactory implements HttpStreamFactory
                 }
 
                 redirected = true;
+
+                doReset(application, originId, routedId, responseId, responseSeq, responseAck, responseMax,
+                    traceId, sessionId);
 
                 state = HttpState.closeInitial(state);
                 cleanupRequestDebitorIfNecessary();
