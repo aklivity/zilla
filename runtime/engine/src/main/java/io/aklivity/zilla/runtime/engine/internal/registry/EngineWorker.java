@@ -60,6 +60,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -273,6 +274,8 @@ public class EngineWorker implements EngineContext, Agent
     private long lastReadStreamId;
     private int idleCount;
     private volatile Thread thread;
+
+    private final CountDownLatch started = new CountDownLatch(1);
 
     private Map<String, ModelContext> modelsByType;
     private EngineRegistry registry;
@@ -856,6 +859,16 @@ public class EngineWorker implements EngineContext, Agent
     public void doStart()
     {
         thread = startOnThread(runner, Thread::new);
+
+        try
+        {
+            started.await();
+        }
+        catch (InterruptedException ex)
+        {
+            Thread.currentThread().interrupt();
+            rethrowUnchecked(ex);
+        }
     }
 
     public void doClose()
@@ -915,6 +928,18 @@ public class EngineWorker implements EngineContext, Agent
 
     @Override
     public void onStart()
+    {
+        try
+        {
+            doInit();
+        }
+        finally
+        {
+            started.countDown();
+        }
+    }
+
+    private void doInit()
     {
         this.streamFactory = router.attach(routerConfig);
 
