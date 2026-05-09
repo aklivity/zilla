@@ -41,6 +41,7 @@ import static java.lang.System.currentTimeMillis;
 import static java.lang.ThreadLocal.withInitial;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static java.util.stream.Collectors.toMap;
 import static org.agrona.CloseHelper.quietClose;
 import static org.agrona.LangUtil.rethrowUnchecked;
 import static org.agrona.concurrent.AgentRunner.startOnThread;
@@ -204,7 +205,7 @@ public class EngineWorker implements EngineContext, Agent
     private final Collection<Store> stores;
     private final Collector collector;
     private final Consumer<NamespaceConfig> process;
-    private Map<String, MetricGroup> metricGroupsByName;
+    private final Map<String, MetricGroup> metricGroupsByName;
     private final StreamsLayout streamsLayout;
     private final BufferPoolLayout bufferPoolLayout;
     private final RingBuffer streamsBuffer;
@@ -237,9 +238,7 @@ public class EngineWorker implements EngineContext, Agent
     private final EngineSignaler signaler;
     private final Long2ObjectHashMap<MessageConsumer> correlations;
     private final Long2ObjectHashMap<AgentRunner> exportersById;
-    private Map<String, ModelContext> modelsByType;
 
-    private EngineRegistry registry;
     private final Deque<Runnable> taskQueue;
     private final LongUnaryOperator affinityMask;
     private final Path configPath;
@@ -257,9 +256,12 @@ public class EngineWorker implements EngineContext, Agent
     private final Int2ObjectHashMap<String> eventNames;
     private final Supplier<MessageReader> supplyEventReader;
     private final EventFormatterFactory eventFormatterFactory;
-    private LongSupplier usageMetric;
+    private final LongSupplier usageMetric;
     private final boolean readonly;
     private final int maxIdleCount;
+
+    private final RouterContext router;
+    private final RouterConfig routerConfig;
 
     private long initialId;
     private long promiseId;
@@ -267,15 +269,13 @@ public class EngineWorker implements EngineContext, Agent
     private long budgetId;
     private long authorizedId;
 
-    private final RouterContext router;
-    private final RouterConfig routerConfig;
-    private BindingHandler streamFactory;
-
     private long lastReadStreamId;
-
     private int idleCount;
-
     private volatile Thread thread;
+
+    private Map<String, ModelContext> modelsByType;
+    private EngineRegistry registry;
+    private BindingHandler streamFactory;
 
     public EngineWorker(
         EngineConfiguration config,
@@ -440,6 +440,14 @@ public class EngineWorker implements EngineContext, Agent
         this.exportersById = new Long2ObjectHashMap<>();
         this.supplyEventReader = supplyEventReader;
         this.eventFormatterFactory = eventFormatterFactory;
+
+        Map<String, MetricGroup> metricGroupsByName = new Object2ObjectHashMap<>();
+        for (MetricGroup metricGroup : metricGroups)
+        {
+            metricGroupsByName.put(metricGroup.name(), metricGroup);
+        }
+        this.metricGroupsByName = metricGroupsByName;
+        this.usageMetric = supplyGauge(NO_NAMESPACED_ID, labels.supplyLabelId(EngineWorkersUsageMetric.NAME), 0);
     }
 
     public static int indexOfId(
@@ -909,23 +917,14 @@ public class EngineWorker implements EngineContext, Agent
     {
         this.streamFactory = router.attach(routerConfig);
 
-        Map<String, BindingContext> bindingsByType = new LinkedHashMap<>();
-        for (Binding binding : bindings)
-        {
-            bindingsByType.put(binding.name(), binding.supply(this));
-        }
+        Map<String, BindingContext> bindingsByType = bindings.stream()
+            .collect(toMap(Binding::name, b -> b.supply(this), (a, b) -> a, LinkedHashMap::new));
 
-        Map<String, ExporterContext> exportersByType = new LinkedHashMap<>();
-        for (Exporter exporter : exporters)
-        {
-            exportersByType.put(exporter.name(), exporter.supply(this));
-        }
+        Map<String, ExporterContext> exportersByType = exporters.stream()
+            .collect(toMap(Exporter::name, e -> e.supply(this), (a, b) -> a, LinkedHashMap::new));
 
-        Map<String, GuardContext> guardsByType = new LinkedHashMap<>();
-        for (Guard guard : guards)
-        {
-            guardsByType.put(guard.name(), guard.supply(this));
-        }
+        Map<String, GuardContext> guardsByType = guards.stream()
+            .collect(toMap(Guard::name, g -> g.supply(this), (a, b) -> a, LinkedHashMap::new));
 
         Map<String, VaultContext> vaultsByType = new LinkedHashMap<>();
         for (Vault vault : vaults)
@@ -957,18 +956,11 @@ public class EngineWorker implements EngineContext, Agent
             }
         }
 
-        Map<String, StoreContext> storesByType = new LinkedHashMap<>();
-        for (Store store : stores)
-        {
-            storesByType.put(store.name(), store.supply(this));
-        }
+        Map<String, StoreContext> storesByType = stores.stream()
+            .collect(toMap(Store::name, s -> s.supply(this), (a, b) -> a, LinkedHashMap::new));
 
-        Map<String, ModelContext> modelsByType = new LinkedHashMap<>();
-        for (Model model : models)
-        {
-            modelsByType.put(model.name(), model.supply(this));
-        }
-        this.modelsByType = modelsByType;
+        this.modelsByType = models.stream()
+            .collect(toMap(Model::name, m -> m.supply(this), (a, b) -> a, LinkedHashMap::new));
 
         Map<String, MetricContext> metricsByName = new LinkedHashMap<>();
         for (MetricGroup metricGroup : metricGroups)
@@ -980,19 +972,10 @@ public class EngineWorker implements EngineContext, Agent
             }
         }
 
-        Map<String, MetricGroup> metricGroupsByName = new Object2ObjectHashMap<>();
-        for (MetricGroup metricGroup : metricGroups)
-        {
-            metricGroupsByName.put(metricGroup.name(), metricGroup);
-        }
-        this.metricGroupsByName = metricGroupsByName;
-
         this.registry = new EngineRegistry(
                 bindingsByType::get, guardsByType::get, vaultsByType::get, catalogsByType::get, metricsByName::get,
                 exportersByType::get, storesByType::get, labels::supplyLabelId, this::onExporterAttached,
                 this::onExporterDetached, this::supplyMetricWriter, this::detachStreams, collector, process);
-
-        this.usageMetric = supplyGauge(NO_NAMESPACED_ID, labels.supplyLabelId(EngineWorkersUsageMetric.NAME), 0);
 
         if (!readonly)
         {
