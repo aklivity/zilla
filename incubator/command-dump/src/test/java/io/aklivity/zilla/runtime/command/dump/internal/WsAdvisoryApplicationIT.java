@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.command.dump.internal;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -46,6 +47,16 @@ public class WsAdvisoryApplicationIT
         "${app}/client.sent.challenge/client",
         "${app}/client.sent.challenge/server" })
     public void shouldReceiveClientSentChallenge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Ignore("Pending regeneration of WsAdvisoryApplicationIT_shouldReceiveClientSentRedirect.txt via tshark")
+    @Test
+    @Specification({
+        "${app}/client.sent.redirect/client",
+        "${app}/client.sent.redirect/server" })
+    public void shouldReceiveClientSentRedirect() throws Exception
     {
         k3po.finish();
     }
