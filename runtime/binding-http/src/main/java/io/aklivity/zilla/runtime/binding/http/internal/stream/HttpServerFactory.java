@@ -130,6 +130,7 @@ import io.aklivity.zilla.runtime.binding.http.internal.types.stream.HttpEndExFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.HttpFlushExFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.HttpResetExFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.ProxyBeginExFW;
+import io.aklivity.zilla.runtime.binding.http.internal.types.stream.RedirectFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.WindowFW;
@@ -258,6 +259,7 @@ public final class HttpServerFactory implements HttpStreamFactory
     private static final String16FW STATUS_401 = new String16FW("401");
     private static final String16FW STATUS_403 = new String16FW("403");
     private static final String16FW STATUS_404 = new String16FW("404");
+    private static final String16FW STATUS_500 = new String16FW("500");
     private static final String16FW TRANSFER_ENCODING_CHUNKED = new String16FW("chunked");
 
     private static final HttpHeaderFW HEADER_ACCESS_CONTROL_ALLOW_ORIGIN_WILDCARD =
@@ -415,6 +417,7 @@ public final class HttpServerFactory implements HttpStreamFactory
     private final Array32FW<HttpHeaderFW> headers401;
     private final Array32FW<HttpHeaderFW> headers403;
     private final Array32FW<HttpHeaderFW> headers404;
+    private final Array32FW<HttpHeaderFW> headers500;
     private final DirectBuffer response400;
     private final DirectBuffer response401;
     private final DirectBuffer response403;
@@ -446,6 +449,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
     private final WindowFW windowRO = new WindowFW();
     private final ResetFW resetRO = new ResetFW();
+    private final RedirectFW redirectRO = new RedirectFW();
     private final SignalFW signalRO = new SignalFW();
 
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
@@ -598,6 +602,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         this.headers401 = initHeaders(config, STATUS_401);
         this.headers403 = initHeaders(config, STATUS_403);
         this.headers404 = initHeadersEmpty(config, STATUS_404);
+        this.headers500 = initHeadersEmpty(config, STATUS_500);
         this.response400 = initResponse(config, 400, "Bad Request");
         this.response401 = initResponse(config, 401, "Unauthorized");
         this.response403 = initResponse(config, 403, "Forbidden");
@@ -1136,7 +1141,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                             HttpPolicyConfig policy = binding.access().effectivePolicy(headers);
                             final String origin = policy == CROSS_ORIGIN ? headers.get(HEADER_NAME_ORIGIN) : null;
 
-                            final HttpRouteAffinity resolved = route.resolve(headers::get);
+                            final HttpRouteAffinity resolved = route.resolve();
 
                             HttpRequestType requestType = binding.resolveRequestType(beginEx);
                             boolean headersValid = server.onDecodeHeaders(server.routedId, route.id, resolved.initialId(),
@@ -2829,19 +2834,19 @@ public final class HttpServerFactory implements HttpStreamFactory
 
         private final class HttpExchange
         {
-            private MessageConsumer application;
             private final long originId;
             private final long routedId;
             private final long traceId;
-            private final long requestId;
-            private final long responseId;
             private final long sessionId;
-            private final long affinity;
             private final HttpPolicyConfig policy;
             private final String origin;
             private final HttpRequestType requestType;
             private final ValidatorHandler contentType;
 
+            private MessageConsumer application;
+            private long requestId;
+            private long responseId;
+            private long affinity;
             private long expiringId;
 
             private long requestSeq;
@@ -2860,6 +2865,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             private boolean responseChunked;
             private boolean responseClosing;
             private int responseRemaining;
+            private boolean redirected;
 
             private HttpExchange(
                 long originId,
@@ -3005,6 +3011,10 @@ public final class HttpServerFactory implements HttpStreamFactory
                     final WindowFW window = windowRO.wrap(buffer, index, index + length);
                     onRequestWindow(window);
                     break;
+                case RedirectFW.TYPE_ID:
+                    final RedirectFW redirect = redirectRO.wrap(buffer, index, index + length);
+                    onRequestRedirect(redirect);
+                    break;
                 case BeginFW.TYPE_ID:
                     final BeginFW begin = beginRO.wrap(buffer, index, index + length);
                     onResponseBegin(begin);
@@ -3022,6 +3032,67 @@ public final class HttpServerFactory implements HttpStreamFactory
                     onResponseAbort(abort);
                     break;
                 }
+            }
+
+            private void onRequestRedirect(
+                RedirectFW redirect)
+            {
+                final long traceId = redirect.traceId();
+                final long newAffinity = redirect.affinity();
+                final OctetsFW extension = redirect.extension();
+
+                if (redirected || responseState != HttpExchangeState.PENDING)
+                {
+                    doResponseReset(traceId);
+                    doEncodeHeaders(this, traceId, sessionId, 0L, headers500);
+                    requestState = HttpExchangeState.CLOSED;
+                    HttpServer.this.exchange = null;
+                    return;
+                }
+
+                redirected = true;
+                final boolean wasRequestClosed = requestState == HttpExchangeState.CLOSED;
+
+                doResponseReset(traceId);
+                requestState = HttpExchangeState.CLOSED;
+
+                clear();
+
+                requestId = context.supplyInitialId(routedId, Long.hashCode(newAffinity));
+                responseId = supplyReplyId.applyAsLong(requestId);
+                affinity = newAffinity;
+
+                application = newStream(this::onExchange, originId, routedId, requestId, requestSeq, requestAck, requestMax,
+                    traceId, sessionId, affinity, extension);
+
+                if (wasRequestClosed)
+                {
+                    doEnd(application, originId, routedId, requestId, requestSeq, requestAck, requestMax,
+                        traceId, sessionId, EMPTY_OCTETS);
+                    requestState = HttpExchangeState.CLOSED;
+                }
+
+                doResponseWindow(traceId);
+            }
+
+            private void clear()
+            {
+                assert requestState == HttpExchangeState.CLOSED;
+                assert responseState == HttpExchangeState.CLOSED;
+
+                requestId = 0;
+                responseId = 0;
+                affinity = 0L;
+                requestSeq = 0;
+                requestAck = 0;
+                requestMax = 0;
+                requestPad = 0;
+                requestCaps = 0;
+                responseSeq = 0;
+                responseAck = 0;
+                responseMax = 0;
+                requestState = HttpExchangeState.PENDING;
+                responseState = HttpExchangeState.PENDING;
             }
 
             private void onRequestReset(
@@ -5142,7 +5213,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                             HttpRequestType requestType = binding.resolveRequestType(beginEx);
 
-                            final HttpRouteAffinity resolved = route.resolve(headers::get);
+                            final HttpRouteAffinity resolved = route.resolve();
 
                             final Http2Exchange exchange = new Http2Exchange(originId, routedId,
                                 resolved.initialId(), resolved.affinity(),
@@ -5811,20 +5882,22 @@ public final class HttpServerFactory implements HttpStreamFactory
 
         private final class Http2Exchange
         {
-            private MessageConsumer application;
             private final long originId;
             private final long routedId;
             private final long traceId;
-            private final long requestId;
-            private final long responseId;
             private final int streamId;
-            private final long affinity;
+            private final long sessionId;
             private final HttpPolicyConfig policy;
             private final String origin;
             private final long requestContentLength;
-            private final long sessionId;
             private final HttpRequestType requestType;
             private final ValidatorHandler contentType;
+
+            private MessageConsumer application;
+            private long requestId;
+            private long responseId;
+            private long affinity;
+            private boolean redirected;
 
             private long responseContentLength;
             private long responseContentObserved;
@@ -5996,6 +6069,10 @@ public final class HttpServerFactory implements HttpStreamFactory
                     final WindowFW window = windowRO.wrap(buffer, index, index + length);
                     onRequestWindow(window);
                     break;
+                case RedirectFW.TYPE_ID:
+                    final RedirectFW redirect = redirectRO.wrap(buffer, index, index + length);
+                    onRequestRedirect(redirect);
+                    break;
                 case BeginFW.TYPE_ID:
                     final BeginFW begin = beginRO.wrap(buffer, index, index + length);
                     onResponseBegin(begin);
@@ -6017,6 +6094,64 @@ public final class HttpServerFactory implements HttpStreamFactory
                     onResponseFlush(flush);
                     break;
                 }
+            }
+
+            private void onRequestRedirect(
+                RedirectFW redirect)
+            {
+                final long traceId = redirect.traceId();
+                final long newAffinity = redirect.affinity();
+                final OctetsFW extension = redirect.extension();
+
+                if (redirected || HttpState.replyOpened(state))
+                {
+                    doResponseResetIfNecessary(traceId);
+                    doEncodeHeaders(traceId, sessionId, streamId, headers500, true);
+                    decodeNetworkIfNecessary(traceId);
+                    cleanup(traceId);
+                    return;
+                }
+
+                redirected = true;
+
+                doResponseReset(traceId);
+                state = HttpState.closeInitial(state);
+                cleanupRequestDebitorIfNecessary();
+                streams.remove(streamId);
+
+                clear();
+
+                requestId = context.supplyInitialId(routedId, Long.hashCode(newAffinity));
+                responseId = supplyReplyId.applyAsLong(requestId);
+                affinity = newAffinity;
+                state = HttpState.openingInitial(state);
+                localBudget = localSettings.initialWindowSize;
+
+                application = newStream(this::onExchange, originId, routedId, requestId, requestSeq, requestAck, requestMax,
+                    traceId, sessionId, affinity, extension);
+                streams.put(streamId, this);
+
+                onResponseWindowUpdate(traceId, sessionId, remoteSettings.initialWindowSize);
+            }
+
+            private void clear()
+            {
+                assert HttpState.closed(state);
+
+                requestId = 0;
+                responseId = 0;
+                affinity = 0L;
+                requestSeq = 0;
+                requestAck = 0;
+                requestMax = 0;
+                requestPad = 0;
+                requestBud = 0L;
+                requestCaps = 0;
+                responseSeq = 0;
+                responseAck = 0;
+                responseMax = 0;
+                state = 0;
+                localBudget = 0;
             }
 
             private void onRequestReset(

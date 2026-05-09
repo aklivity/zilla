@@ -23,6 +23,7 @@ import jakarta.json.JsonObject;
 
 import org.junit.Rule;
 import org.junit.Test;
+import org.leadpony.justify.api.JsonValidatingException;
 
 import io.aklivity.zilla.specs.engine.config.ConfigSchemaRule;
 
@@ -87,14 +88,6 @@ public class SchemaTest
     public void shouldValidateHttp11ServerWithRouteHeaderOverrides()
     {
         JsonObject config = schema.validate("v1.1/server.with.route.header.overrides.yaml");
-
-        assertThat(config, not(nullValue()));
-    }
-
-    @Test
-    public void shouldValidateHttp11ServerAffinity()
-    {
-        JsonObject config = schema.validate("v1.1/server.affinity.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -244,14 +237,6 @@ public class SchemaTest
     }
 
     @Test
-    public void shouldValidateHttp2ServerAffinity()
-    {
-        JsonObject config = schema.validate("v2/server.affinity.yaml");
-
-        assertThat(config, not(nullValue()));
-    }
-
-    @Test
     public void shouldValidateHttp2ServerAccessControlCrossOrigin()
     {
         JsonObject config = schema.validate("v2/server.access.control.cross.origin.yaml");
@@ -337,5 +322,11 @@ public class SchemaTest
         JsonObject config = schema.validate("v2/server.authorization.credentials.basic.yaml");
 
         assertThat(config, not(nullValue()));
+    }
+
+    @Test(expected = JsonValidatingException.class)
+    public void shouldRejectWithAffinity()
+    {
+        schema.validate("v1.1/server.with.affinity.invalid.yaml");
     }
 }
