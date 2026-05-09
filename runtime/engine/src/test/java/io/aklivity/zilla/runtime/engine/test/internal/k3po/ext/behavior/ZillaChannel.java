@@ -76,7 +76,6 @@ public abstract class ZillaChannel extends AbstractChannel<ZillaChannelConfig>
 
     private int capabilities;
     private boolean flushable;
-    private boolean windowNeedsTask;
 
     private DefaultBudgetDebitor debitor;
     private long debitorIndex = -1L;
@@ -669,16 +668,6 @@ public abstract class ZillaChannel extends AbstractChannel<ZillaChannelConfig>
     public void setFlushable()
     {
         flushable = true;
-    }
-
-    public void setWindowNeedsTask()
-    {
-        windowNeedsTask = true;
-    }
-
-    public boolean windowNeedsTask()
-    {
-        return windowNeedsTask;
     }
 
     public boolean isFlushable()

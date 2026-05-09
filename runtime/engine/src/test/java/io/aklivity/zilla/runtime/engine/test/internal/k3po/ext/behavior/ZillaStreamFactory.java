@@ -201,14 +201,15 @@ public final class ZillaStreamFactory
             if (config.getUpdate() == ZillaUpdateMode.HANDSHAKE ||
                 config.getUpdate() == ZillaUpdateMode.STREAM)
             {
-                if (channel.getParent() == null)
+                if (channel.getParent() != null)
                 {
-                    sender.doWindow(channel);
+                    // accept-side child: drain any tasks queued during the
+                    // beginInputFuture listener chain (e.g., AdviseInputTask
+                    // from a `read advise` placed before `connected`) so their
+                    // frames land on the streamsBuffer ahead of this WINDOW
+                    channel.engine.drainTasks();
                 }
-                // accept-side child channels defer WINDOW to handleBeginInitial's
-                // windowFuture listener so any advised statements that the script
-                // places before `connected` (e.g. `read advise zilla:challenge`)
-                // get a chance to write their frames first.
+                sender.doWindow(channel);
             }
 
             beginFuture.setSuccess();
