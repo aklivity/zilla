@@ -1047,6 +1047,7 @@ final class ZillaTarget implements AutoCloseable
         private void onRedirect(
             RedirectFW redirect)
         {
+            final long streamId = redirect.streamId();
             final long acknowledge = redirect.acknowledge();
             final long affinity = redirect.affinity();
 
@@ -1054,8 +1055,23 @@ final class ZillaTarget implements AutoCloseable
 
             channel.writeExtBuffer(REDIRECT, false).writeLong(affinity);
 
-            unregisterThrottle.accept(redirect.streamId());
+            unregisterThrottle.accept(streamId);
             fireOutputAdvised(channel, ADVISORY_REDIRECT);
+
+            if (channel.setWriteAborted())
+            {
+                if (channel.setWriteClosed())
+                {
+                    fireOutputAborted(channel);
+                    fireChannelDisconnected(channel);
+                    fireChannelUnbound(channel);
+                    fireChannelClosed(channel);
+                }
+                else
+                {
+                    fireOutputAborted(channel);
+                }
+            }
         }
 
         private void onChallenge(
