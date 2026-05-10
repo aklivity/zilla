@@ -31,6 +31,8 @@
                     {
                         "enum": [ "server", "client", "proxy" ]
                     },
+                    "catalog": false,
+                    "vault": false,
                     "entry": false,
                     "options":
                     {
@@ -153,7 +155,8 @@
                                         }
                                     },
                                     "additionalProperties": false
-                                }
+                                },
+                                "guarded": false
                             }
                         }
                     }

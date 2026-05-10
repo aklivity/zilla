@@ -21,6 +21,10 @@ public final class TestAuthorizationConfig
 {
     public final String name;
     public final String credentials;
+    public final String callback;
+    public final Map<String, String> callbackParams;
+    public final String expectIdentity;
+    public final String expectCredentials;
     public final Map<String, String> attributes;
 
     public TestAuthorizationConfig(
@@ -28,8 +32,24 @@ public final class TestAuthorizationConfig
         String credentials,
         Map<String, String> attributes)
     {
+        this(name, credentials, null, null, null, null, attributes);
+    }
+
+    public TestAuthorizationConfig(
+        String name,
+        String credentials,
+        String callback,
+        Map<String, String> callbackParams,
+        String expectIdentity,
+        String expectCredentials,
+        Map<String, String> attributes)
+    {
         this.name = name;
         this.credentials = credentials;
+        this.callback = callback;
+        this.callbackParams = callbackParams;
+        this.expectIdentity = expectIdentity;
+        this.expectCredentials = expectCredentials;
         this.attributes = attributes;
     }
 }

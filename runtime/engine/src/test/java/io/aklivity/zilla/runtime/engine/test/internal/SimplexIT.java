@@ -117,6 +117,16 @@ public class SimplexIT
 
     @Test
     @Specification({
+        "handshake.affinity/client",
+        "handshake.affinity/server"
+    })
+    public void shouldHandshakeWithAffinity() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "handshake.budget.id/client",
         "handshake.budget.id/server"
     })
@@ -234,6 +244,16 @@ public class SimplexIT
         "server.sent.read.advise.challenge.ext/server"
     })
     public void shouldReceiveServerSentReadAdviseChallengeWithExtension() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "server.sent.read.advise.redirect.ext/client",
+        "server.sent.read.advise.redirect.ext/server"
+    })
+    public void shouldReceiveServerSentReadAdviseRedirectWithExtension() throws Exception
     {
         k3po.finish();
     }

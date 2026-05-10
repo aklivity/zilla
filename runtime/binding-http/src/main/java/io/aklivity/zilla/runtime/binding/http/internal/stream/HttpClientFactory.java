@@ -408,7 +408,7 @@ public final class HttpClientFactory implements HttpStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        HttpBindingConfig httpBinding = new HttpBindingConfig(binding, supplyValidator);
+        HttpBindingConfig httpBinding = new HttpBindingConfig(context, binding);
         bindings.put(binding.id, httpBinding);
     }
 

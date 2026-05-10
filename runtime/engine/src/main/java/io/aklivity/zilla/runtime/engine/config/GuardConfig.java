@@ -18,11 +18,14 @@ package io.aklivity.zilla.runtime.engine.config;
 import static java.util.Objects.requireNonNull;
 import static java.util.function.Function.identity;
 
+import java.util.function.ToLongFunction;
+
 public class GuardConfig
 {
     public transient long id;
     public transient long storeId;
     public transient String qstore;
+    public transient ToLongFunction<String> resolveId;
 
     public final String namespace;
     public final String name;
