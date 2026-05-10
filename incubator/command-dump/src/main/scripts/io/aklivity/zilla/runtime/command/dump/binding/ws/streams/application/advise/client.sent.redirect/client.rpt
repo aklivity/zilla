@@ -30,3 +30,5 @@ write zilla:begin.ext ${ws:beginEx()
 connected
 
 write advised zilla:redirect 0x00000000000000b1L
+
+read abort
