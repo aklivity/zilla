@@ -128,6 +128,15 @@ public final class ZillaSource implements AutoCloseable
             streamFactory.doRedirect(channel, traceId);
 
             adviseFuture.setSuccess();
+            if (channel.setReadAborted())
+            {
+                if (channel.setReadClosed())
+                {
+                    fireChannelDisconnected(channel);
+                    fireChannelUnbound(channel);
+                    fireChannelClosed(channel);
+                }
+            }
         }
         else
         {
