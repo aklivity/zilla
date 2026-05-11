@@ -544,6 +544,15 @@ public final class McpProxyFactory implements McpStreamFactory
                 traceId, authorization, budgetId, reserved, extension);
         }
 
+        private void doServerChallenge(
+            long traceId,
+            long authorization,
+            OctetsFW extension)
+        {
+            doChallenge(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                traceId, authorization, extension);
+        }
+
         private void doServerWindow(
             long traceId,
             long budgetId,
@@ -783,6 +792,10 @@ public final class McpProxyFactory implements McpStreamFactory
                 final ResetFW reset = resetRO.wrap(buffer, index, index + length);
                 onClientReset(reset);
                 break;
+            case ChallengeFW.TYPE_ID:
+                final ChallengeFW challenge = challengeRO.wrap(buffer, index, index + length);
+                onClientChallenge(challenge);
+                break;
             default:
                 break;
             }
@@ -793,6 +806,12 @@ public final class McpProxyFactory implements McpStreamFactory
         {
             server.doServerFlush(flush.traceId(), flush.authorization(),
                 flush.budgetId(), flush.reserved(), flush.extension());
+        }
+
+        private void onClientChallenge(
+            ChallengeFW challenge)
+        {
+            server.doServerChallenge(challenge.traceId(), challenge.authorization(), challenge.extension());
         }
 
         private void onClientBegin(
