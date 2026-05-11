@@ -102,6 +102,12 @@ scope core
         {
             octets extension;
         }
+
+        struct Redirect extends Frame [0x40000005]
+        {
+            int64 affinity;
+            octets extension;
+        }
     }
 
     scope event

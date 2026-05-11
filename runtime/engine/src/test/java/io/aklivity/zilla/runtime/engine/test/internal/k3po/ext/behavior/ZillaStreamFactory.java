@@ -25,6 +25,7 @@ import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.Z
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.ZillaExtensionKind.DATA;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.ZillaExtensionKind.END;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.ZillaExtensionKind.FLUSH;
+import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.ZillaExtensionKind.REDIRECT;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.ADVISORY_FLUSH;
 import static org.jboss.netty.channel.Channels.fireChannelClosed;
 import static org.jboss.netty.channel.Channels.fireChannelDisconnected;
@@ -106,6 +107,31 @@ public final class ZillaStreamFactory
 
         final ZillaTarget sender = supplySender.apply(streamId);
         sender.doChallenge(channel, originId, routedId, streamId, sequence, acknowledge, traceId, maximum, challengeExt);
+        challengeExt.clear();
+    }
+
+    public void doRedirect(
+        ZillaChannel channel,
+        long traceId)
+    {
+        final ChannelBuffer redirectEx = channel.writeExtBuffer(REDIRECT, true);
+        final ChannelBuffer beginExt = channel.readExtBuffer(BEGIN, true);
+
+        final long affinity = redirectEx.readableBytes() == 8 ? redirectEx.getLong(redirectEx.readerIndex()) : 0L;
+
+        final long originId = channel.originId();
+        final long routedId = channel.routedId();
+        final long streamId = channel.sourceId();
+        final long sequence = channel.sourceSeq();
+        final long acknowledge = channel.sourceAck();
+        final long authorization = channel.sourceAuth();
+        final int maximum = channel.sourceMax();
+
+        final ZillaTarget sender = supplySender.apply(streamId);
+        sender.doRedirect(channel, originId, routedId, streamId, sequence, acknowledge, traceId,
+            authorization, affinity, maximum, beginExt);
+        redirectEx.clear();
+        unregisterStream.accept(streamId);
     }
 
     public MessageHandler newStream(
@@ -176,6 +202,20 @@ public final class ZillaStreamFactory
             final long acknowledge = begin.acknowledge();
             final OctetsFW beginExt = begin.extension();
 
+            final ZillaChannelConfig config = channel.getConfig();
+            final long expectedAffinity = config.getAffinity();
+            if (channel instanceof ZillaChildChannel && expectedAffinity != ZillaChannelConfig.NO_AFFINITY)
+            {
+                final long actualAffinity = begin.affinity();
+                if (actualAffinity != expectedAffinity)
+                {
+                    fireExceptionCaught(channel, new IllegalStateException(String.format(
+                        "expected zilla:affinity 0x%016x but received 0x%016x",
+                        expectedAffinity, actualAffinity)));
+                    return;
+                }
+            }
+
             int beginExtBytes = beginExt.sizeof();
             if (beginExtBytes != 0)
             {
@@ -196,7 +236,6 @@ public final class ZillaStreamFactory
 
             channel.beginInputFuture().setSuccess();
 
-            final ZillaChannelConfig config = channel.getConfig();
             if (config.getUpdate() == ZillaUpdateMode.HANDSHAKE ||
                 config.getUpdate() == ZillaUpdateMode.STREAM)
             {

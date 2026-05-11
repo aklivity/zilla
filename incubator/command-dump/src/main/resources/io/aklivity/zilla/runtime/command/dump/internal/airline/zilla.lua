@@ -41,6 +41,7 @@ RESET_ID = 0x40000001
 WINDOW_ID = 0x40000002
 SIGNAL_ID = 0x40000003
 CHALLENGE_ID = 0x40000004
+REDIRECT_ID = 0x40000005
 
 AMQP_ID = 0x112dc182
 FILESYSTEM_ID = 0xe4e6aa9e
@@ -867,6 +868,8 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
         handle_signal_frame(buffer, next_offset, subtree, pinfo, info)
     elseif frame_type_id == ABORT_ID or frame_type_id == RESET_ID or frame_type_id == CHALLENGE_ID then
         handle_extension(buffer, subtree, pinfo, info, next_offset, frame_type_id)
+    elseif frame_type_id == REDIRECT_ID then
+        handle_redirect_frame(buffer, next_offset, subtree, pinfo, info)
     end
 end
 
@@ -874,6 +877,12 @@ function handle_begin_frame(buffer, offset, subtree, pinfo, info)
     local slice_affinity = buffer(offset, 8)
     subtree:add_le(fields.affinity, slice_affinity)
     handle_extension(buffer, subtree, pinfo, info, offset + 8, BEGIN_ID)
+end
+
+function handle_redirect_frame(buffer, offset, subtree, pinfo, info)
+    local slice_affinity = buffer(offset, 8)
+    subtree:add_le(fields.affinity, slice_affinity)
+    handle_extension(buffer, subtree, pinfo, info, offset + 8, REDIRECT_ID)
 end
 
 function handle_data_frame(buffer, offset, tree, subtree, sequence, acknowledge, maximum, pinfo, info, protocol_type)
@@ -974,6 +983,7 @@ function resolve_frame_type(frame_type_id)
     elseif frame_type_id == WINDOW_ID    then frame_type = "WINDOW"
     elseif frame_type_id == SIGNAL_ID    then frame_type = "SIGNAL"
     elseif frame_type_id == CHALLENGE_ID then frame_type = "CHALLENGE"
+    elseif frame_type_id == REDIRECT_ID  then frame_type = "REDIRECT"
     end
     return frame_type
 end
@@ -1280,7 +1290,8 @@ function add_proxy_string_as_subtree(buffer, tree, label_format, slice_type_id, 
 end
 
 function handle_http_extension(buffer, offset, ext_subtree, frame_type_id)
-    if frame_type_id == BEGIN_ID or frame_type_id == RESET_ID or frame_type_id == CHALLENGE_ID then
+    if frame_type_id == BEGIN_ID or frame_type_id == RESET_ID or frame_type_id == CHALLENGE_ID or
+            frame_type_id == REDIRECT_ID then
         dissect_and_add_http_headers(buffer, offset, ext_subtree, "Headers", "Header")
     elseif frame_type_id == END_ID then
         dissect_and_add_http_headers(buffer, offset, ext_subtree, "Trailers", "Trailer")
@@ -1311,7 +1322,7 @@ function dissect_and_add_http_headers(buffer, offset, tree, plural_name, singula
 end
 
 function handle_grpc_extension(buffer, offset, ext_subtree, frame_type_id)
-    if frame_type_id == BEGIN_ID then
+    if frame_type_id == BEGIN_ID or frame_type_id == REDIRECT_ID then
         handle_grpc_begin_extension(buffer, offset, ext_subtree)
     elseif frame_type_id == DATA_ID then
         handle_grpc_data_extension(buffer, offset, ext_subtree)
@@ -1464,7 +1475,7 @@ function decode_varuint32(buffer, offset)
 end
 
 function handle_sse_extension(buffer, offset, ext_subtree, frame_type_id)
-    if frame_type_id == BEGIN_ID then
+    if frame_type_id == BEGIN_ID or frame_type_id == REDIRECT_ID then
         handle_sse_begin_extension(buffer, offset, ext_subtree)
     elseif frame_type_id == DATA_ID then
         handle_sse_data_extension(buffer, offset, ext_subtree)
@@ -1521,7 +1532,7 @@ function handle_sse_end_extension(buffer, offset, ext_subtree)
 end
 
 function handle_ws_extension(buffer, offset, ext_subtree, frame_type_id)
-    if frame_type_id == BEGIN_ID then
+    if frame_type_id == BEGIN_ID or frame_type_id == REDIRECT_ID then
         handle_ws_begin_extension(buffer, offset, ext_subtree)
     elseif frame_type_id == DATA_ID then
         handle_ws_data_extension(buffer, offset, ext_subtree)
@@ -1629,12 +1640,13 @@ function handle_filesystem_extension(buffer, offset, ext_subtree)
 end
 
 function handle_mqtt_extension(buffer, offset, ext_subtree, frame_type_id)
-    if frame_type_id == BEGIN_ID or frame_type_id == DATA_ID or frame_type_id == FLUSH_ID then
+    if frame_type_id == BEGIN_ID or frame_type_id == DATA_ID or frame_type_id == FLUSH_ID or
+            frame_type_id == REDIRECT_ID then
         local kind_length = 1
         local slice_kind = buffer(offset, kind_length)
         local kind = mqtt_ext_kinds[slice_kind:le_int()]
         ext_subtree:add_le(fields.mqtt_ext_kind, slice_kind)
-        if frame_type_id == BEGIN_ID then
+        if frame_type_id == BEGIN_ID or frame_type_id == REDIRECT_ID then
             if kind == "PUBLISH" then
                 handle_mqtt_begin_publish_extension(buffer, offset + kind_length, ext_subtree)
             elseif kind == "SUBSCRIBE" then
@@ -2046,12 +2058,13 @@ function handle_mqtt_reset_extension(buffer, offset, ext_subtree)
 end
 
 function handle_kafka_extension(buffer, offset, ext_subtree, frame_type_id)
-    if frame_type_id == BEGIN_ID or frame_type_id == DATA_ID or frame_type_id == FLUSH_ID then
+    if frame_type_id == BEGIN_ID or frame_type_id == DATA_ID or frame_type_id == FLUSH_ID or
+            frame_type_id == REDIRECT_ID then
         local api_length = 1
         local slice_api = buffer(offset, api_length)
         local api = kafka_ext_apis[slice_api:le_uint()]
         ext_subtree:add_le(fields.kafka_ext_api, slice_api)
-        if frame_type_id == BEGIN_ID then
+        if frame_type_id == BEGIN_ID or frame_type_id == REDIRECT_ID then
             if api == "CONSUMER" then
                 handle_kafka_begin_consumer_extension(buffer, offset + api_length, ext_subtree)
             elseif api == "GROUP" then

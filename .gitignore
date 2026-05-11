@@ -36,3 +36,4 @@ hs_err_pid*.log
 gen/
 examples/grpc-clicker.json
 .claude/
+AGENTS.override.md

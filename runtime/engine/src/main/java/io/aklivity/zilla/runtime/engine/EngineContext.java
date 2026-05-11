@@ -109,6 +109,22 @@ public interface EngineContext
         long bindingId);
 
     /**
+     * Allocates a new initial (inbound) stream id for the given binding, selecting
+     * a deterministic worker by {@code Math.floorMod(hash, mask.cardinality())}
+     * over the binding's affinity mask. Used to pin per-key application streams to
+     * a specific worker so per-worker session state remains valid across requests
+     * for the same logical key.
+     *
+     * @param bindingId  the binding id to associate with the new stream
+     * @param hash       opaque integer hash of the affinity key; same hash yields
+     *                   the same worker for a given binding affinity mask
+     * @return a new unique initial stream id pinned to the worker selected by hash
+     */
+    long supplyInitialId(
+        long bindingId,
+        int hash);
+
+    /**
      * Returns the reply (outbound) stream id paired with the given initial stream id.
      *
      * @param initialId  the initial stream id

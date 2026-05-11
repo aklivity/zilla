@@ -289,4 +289,194 @@ public class McpClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/lifecycle.events.open/client",
+        "${net}/lifecycle.events.open/server"})
+    public void shouldOpenLifecycleEvents() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/lifecycle.events.resume/client",
+        "${net}/lifecycle.events.resume/server"})
+    public void shouldResumeLifecycleEvents() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/lifecycle.events.resume.duplicate/client",
+        "${net}/lifecycle.events.open/server"})
+    public void shouldRejectLifecycleEventsResumeDuplicate() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/lifecycle.events.unsupported/client",
+        "${net}/lifecycle.events.unsupported/server"})
+    public void shouldRejectLifecycleEventsUnsupported() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/lifecycle.notify.tools.list.changed/client",
+        "${net}/lifecycle.notify.tools.list.changed/server"})
+    public void shouldNotifyToolsListChanged() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/lifecycle.notify.prompts.list.changed/client",
+        "${net}/lifecycle.notify.prompts.list.changed/server"})
+    public void shouldNotifyPromptsListChanged() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/lifecycle.notify.resources.list.changed/client",
+        "${net}/lifecycle.notify.resources.list.changed/server"})
+    public void shouldNotifyResourcesListChanged() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/lifecycle.suspend.events/client",
+        "${net}/lifecycle.suspend.events/server"})
+    public void shouldLifecycleSuspendEvents() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/lifecycle.suspended.events/client",
+        "${net}/lifecycle.suspended.events/server"})
+    public void shouldLifecycleSuspendedEvents() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/tools.call.with.progress/client",
+        "${net}/tools.call.with.progress/server"})
+    public void shouldCallToolWithProgress() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/tools.call.with.progress.suspend/client",
+        "${net}/tools.call.with.progress.suspend/server"})
+    public void shouldCallToolWithProgressSuspend() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/tools.call.with.progress.suspended/client",
+        "${net}/tools.call.with.progress.suspended/server"})
+    public void shouldCallToolWithProgressSuspended() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/tools.call.with.progress.resume/client",
+        "${net}/tools.call.with.progress.resume/server"})
+    public void shouldCallToolWithProgressResume() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/tools.call.10k.with.progress/client",
+        "${net}/tools.call.10k.with.progress/server"})
+    public void shouldCallToolWith10kParamsWithProgress() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/tools.call.100k.with.progress/client",
+        "${net}/tools.call.100k.with.progress/server"})
+    public void shouldCallToolWith100kParamsWithProgress() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/resources.read.10k.with.progress/client",
+        "${net}/resources.read.10k.with.progress/server"})
+    public void shouldReadResourceWith10kContentWithProgress() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/resources.read.100k.with.progress/client",
+        "${net}/resources.read.100k.with.progress/server"})
+    public void shouldReadResourceWith100kContentWithProgress() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/prompts.get.10k.with.progress/client",
+        "${net}/prompts.get.10k.with.progress/server"})
+    public void shouldGetPromptWith10kMessageWithProgress() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/prompts.get.100k.with.progress/client",
+        "${net}/prompts.get.100k.with.progress/server"})
+    public void shouldGetPromptWith100kMessageWithProgress() throws Exception
+    {
+        k3po.finish();
+    }
 }

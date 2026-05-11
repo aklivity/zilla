@@ -45,7 +45,7 @@ final class MemoryStore implements Store
     public StoreContext supply(
         EngineContext context)
     {
-        return new MemoryStoreContext(this::acquireEntries, this::releaseEntries);
+        return new MemoryStoreContext(this::acquireEntries, this::releaseEntries, context.signaler());
     }
 
     @Override

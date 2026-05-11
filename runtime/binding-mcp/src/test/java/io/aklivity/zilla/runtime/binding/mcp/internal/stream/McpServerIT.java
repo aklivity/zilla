@@ -20,6 +20,7 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTes
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_SERVER_NAME_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_SERVER_VERSION_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_SESSION_ID_NAME;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_SSE_KEEPALIVE_INTERVAL_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -304,6 +305,253 @@ public class McpServerIT
         "${net}/resources.read/client",
         "${app}/resources.read/server"})
     public void shouldReadResource() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/lifecycle.events.open/client",
+        "${app}/lifecycle.events.open/server"})
+    @Configure(name = MCP_SSE_KEEPALIVE_INTERVAL_NAME, value = "PT30S")
+    public void shouldOpenLifecycleEvents() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/lifecycle.events.session.unknown/client"})
+    public void shouldRejectLifecycleEventsSessionUnknown() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/lifecycle.events.session.missing/client"})
+    public void shouldRejectLifecycleEventsSessionMissing() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/reject.method.not.allowed/client"})
+    public void shouldRejectMethodNotAllowed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/reject.accept.unsupported/client"})
+    public void shouldRejectAcceptUnsupported() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/lifecycle.events.keepalive/client",
+        "${app}/lifecycle.events.keepalive/server"})
+    @Configure(name = MCP_SSE_KEEPALIVE_INTERVAL_NAME, value = "PT0.5S")
+    public void shouldKeepaliveLifecycleEvents() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/lifecycle.events.evict/client",
+        "${app}/lifecycle.events.evict/server"})
+    @Configure(name = MCP_SSE_KEEPALIVE_INTERVAL_NAME, value = "PT30S")
+    public void shouldEvictLifecycleEvents() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/lifecycle.shutdown.events/client",
+        "${app}/lifecycle.shutdown.events/server"})
+    @Configure(name = MCP_SSE_KEEPALIVE_INTERVAL_NAME, value = "PT30S")
+    public void shouldLifecycleShutdownEvents() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/lifecycle.timeout.events/client",
+        "${app}/lifecycle.timeout.events/server"})
+    @Configure(name = MCP_INACTIVITY_TIMEOUT_NAME, value = "PT1S")
+    @Configure(name = MCP_SSE_KEEPALIVE_INTERVAL_NAME, value = "PT30S")
+    public void shouldLifecycleTimeoutEvents() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/lifecycle.notify.tools.list.changed/client",
+        "${app}/lifecycle.notify.tools.list.changed/server"})
+    @Configure(name = MCP_SSE_KEEPALIVE_INTERVAL_NAME, value = "PT30S")
+    public void shouldNotifyToolsListChanged() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/lifecycle.notify.prompts.list.changed/client",
+        "${app}/lifecycle.notify.prompts.list.changed/server"})
+    @Configure(name = MCP_SSE_KEEPALIVE_INTERVAL_NAME, value = "PT30S")
+    public void shouldNotifyPromptsListChanged() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/lifecycle.notify.resources.list.changed/client",
+        "${app}/lifecycle.notify.resources.list.changed/server"})
+    @Configure(name = MCP_SSE_KEEPALIVE_INTERVAL_NAME, value = "PT30S")
+    public void shouldNotifyResourcesListChanged() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/tools.call.with.progress/client",
+        "${app}/tools.call.with.progress/server"})
+    public void shouldCallToolWithProgress() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/tools.call.with.progress.suspend/client",
+        "${app}/tools.call.with.progress.suspend/server"})
+    public void shouldCallToolWithProgressSuspend() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/tools.call.with.progress.suspended/client",
+        "${app}/tools.call.with.progress.suspended/server"})
+    public void shouldCallToolWithProgressSuspended() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/tools.call.with.progress.resume/client",
+        "${app}/tools.call.with.progress.resume/server"})
+    public void shouldCallToolWithProgressResume() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/lifecycle.suspend.events/client",
+        "${app}/lifecycle.suspend.events/server"})
+    @Configure(name = MCP_SSE_KEEPALIVE_INTERVAL_NAME, value = "PT30S")
+    public void shouldLifecycleSuspendEvents() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/lifecycle.suspended.events/client",
+        "${app}/lifecycle.suspended.events/server"})
+    @Configure(name = MCP_SSE_KEEPALIVE_INTERVAL_NAME, value = "PT30S")
+    public void shouldLifecycleSuspendedEvents() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/tools.call.10k.with.progress/client",
+        "${app}/tools.call.10k.with.progress/server"})
+    public void shouldCallToolWith10kParamsWithProgress() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/tools.call.100k.with.progress/client",
+        "${app}/tools.call.100k.with.progress/server"})
+    public void shouldCallToolWith100kParamsWithProgress() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/resources.read.10k.with.progress/client",
+        "${app}/resources.read.10k.with.progress/server"})
+    public void shouldReadResourceWith10kContentWithProgress() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/resources.read.100k.with.progress/client",
+        "${app}/resources.read.100k.with.progress/server"})
+    public void shouldReadResourceWith100kContentWithProgress() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/prompts.get.10k.with.progress/client",
+        "${app}/prompts.get.10k.with.progress/server"})
+    public void shouldGetPromptWith10kMessageWithProgress() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/prompts.get.100k.with.progress/client",
+        "${app}/prompts.get.100k.with.progress/server"})
+    public void shouldGetPromptWith100kMessageWithProgress() throws Exception
     {
         k3po.finish();
     }

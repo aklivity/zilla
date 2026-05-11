@@ -269,4 +269,193 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/lifecycle.events.open/client",
+        "${app}/lifecycle.events.open/server"})
+    public void shouldOpenLifecycleEvents() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/lifecycle.events.resume/client",
+        "${app}/lifecycle.events.resume/server"})
+    public void shouldResumeLifecycleEvents() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/lifecycle.events.resume.duplicate/client",
+        "${app}/lifecycle.events.resume.duplicate/server"})
+    public void shouldRejectLifecycleEventsResumeDuplicate() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/lifecycle.events.unsupported/client",
+        "${app}/lifecycle.events.unsupported/server"})
+    public void shouldRejectLifecycleEventsUnsupported() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/lifecycle.shutdown.events/client",
+        "${app}/lifecycle.shutdown.events/server"})
+    public void shouldLifecycleShutdownEvents() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/lifecycle.timeout.events/client",
+        "${app}/lifecycle.timeout.events/server"})
+    public void shouldLifecycleTimeoutEvents() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/lifecycle.notify.tools.list.changed/client",
+        "${app}/lifecycle.notify.tools.list.changed/server"})
+    public void shouldNotifyToolsListChanged() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/lifecycle.notify.prompts.list.changed/client",
+        "${app}/lifecycle.notify.prompts.list.changed/server"})
+    public void shouldNotifyPromptsListChanged() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/lifecycle.notify.resources.list.changed/client",
+        "${app}/lifecycle.notify.resources.list.changed/server"})
+    public void shouldNotifyResourcesListChanged() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/lifecycle.suspend.events/client",
+        "${app}/lifecycle.suspend.events/server"})
+    public void shouldLifecycleSuspendEvents() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/lifecycle.suspended.events/client",
+        "${app}/lifecycle.suspended.events/server"})
+    public void shouldLifecycleSuspendedEvents() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/tools.call.with.progress/client",
+        "${app}/tools.call.with.progress/server"})
+    public void shouldCallToolWithProgress() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/tools.call.with.progress.suspend/client",
+        "${app}/tools.call.with.progress.suspend/server"})
+    public void shouldCallToolWithProgressSuspend() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/tools.call.with.progress.suspended/client",
+        "${app}/tools.call.with.progress.suspended/server"})
+    public void shouldCallToolWithProgressSuspended() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/tools.call.with.progress.resume/client",
+        "${app}/tools.call.with.progress.resume/server"})
+    public void shouldCallToolWithProgressResume() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/tools.call.10k.with.progress/client",
+        "${app}/tools.call.10k.with.progress/server"})
+    public void shouldCallToolWith10kParamsWithProgress() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/tools.call.100k.with.progress/client",
+        "${app}/tools.call.100k.with.progress/server"})
+    public void shouldCallToolWith100kParamsWithProgress() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/resources.read.10k.with.progress/client",
+        "${app}/resources.read.10k.with.progress/server"})
+    public void shouldReadResourceWith10kContentWithProgress() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/resources.read.100k.with.progress/client",
+        "${app}/resources.read.100k.with.progress/server"})
+    public void shouldReadResourceWith100kContentWithProgress() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/prompts.get.10k.with.progress/client",
+        "${app}/prompts.get.10k.with.progress/server"})
+    public void shouldGetPromptWith10kMessageWithProgress() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/prompts.get.100k.with.progress/client",
+        "${app}/prompts.get.100k.with.progress/server"})
+    public void shouldGetPromptWith100kMessageWithProgress() throws Exception
+    {
+        k3po.finish();
+    }
 }

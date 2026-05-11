@@ -47,6 +47,7 @@ import io.aklivity.zilla.runtime.binding.http.config.HttpVersion;
 import io.aklivity.zilla.runtime.binding.http.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.HttpBeginExFW;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
@@ -76,19 +77,20 @@ public final class HttpBindingConfig
     public final List<HttpRequestType> requests;
 
     public HttpBindingConfig(
-        BindingConfig binding,
-        Function<ModelConfig, ValidatorHandler> supplyValidator)
+        EngineContext context,
+        BindingConfig binding)
     {
         this.id = binding.id;
         this.name = binding.name;
         this.kind = binding.kind;
         this.options = HttpOptionsConfig.class.cast(binding.options);
         this.routes = binding.routes.stream().map(route ->
-            new HttpRouteConfig(route, options != null ? options.overrides : null)).collect(toList());
+            new HttpRouteConfig(context, route, options != null ? options.overrides : null))
+            .collect(toList());
         this.resolveId = binding.resolveId;
         this.credentials = options != null && options.authorization != null ?
                 asAccessor(options.authorization.credentials) : DEFAULT_CREDENTIALS;
-        this.requests = supplyValidator == null ? null : createRequestTypes(supplyValidator);
+        this.requests = createRequestTypes(context::supplyValidator);
     }
 
     public HttpRouteConfig resolve(

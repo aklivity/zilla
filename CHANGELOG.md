@@ -2,7 +2,32 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/1.2.0...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/1.2.1...HEAD)
+
+**Closed issues:**
+
+- binding-http: handle REDIRECT and remove `with.affinity` syntax [\#1756](https://github.com/aklivity/zilla/issues/1756)
+- Add RouterFactorySpi for pluggable engine stream factory composition [\#1754](https://github.com/aklivity/zilla/issues/1754)
+- Add REDIRECT control frame to defer affinity routing to sender [\#1753](https://github.com/aklivity/zilla/issues/1753)
+- `binding-http`: per-route affinity extraction [\#1744](https://github.com/aklivity/zilla/issues/1744)
+
+**Merged pull requests:**
+
+- fix\(engine\): await worker/boss onStart before EngineManager registration [\#1760](https://github.com/aklivity/zilla/pull/1760) ([jfallows](https://github.com/jfallows))
+- feat\(command-dump\): add REDIRECT control frame support [\#1759](https://github.com/aklivity/zilla/pull/1759) ([jfallows](https://github.com/jfallows))
+- feat\(binding-http\): handle REDIRECT and remove `with.affinity` syntax [\#1758](https://github.com/aklivity/zilla/pull/1758) ([jfallows](https://github.com/jfallows))
+- feat\(engine\): add RouterFactorySpi for pluggable stream factory composition [\#1757](https://github.com/aklivity/zilla/pull/1757) ([jfallows](https://github.com/jfallows))
+- feat\(engine\): add REDIRECT control frame primitive [\#1755](https://github.com/aklivity/zilla/pull/1755) ([jfallows](https://github.com/jfallows))
+- Update `store-memory` to disable `options` [\#1749](https://github.com/aklivity/zilla/pull/1749) ([ankitk-me](https://github.com/ankitk-me))
+- update binding-mcp schema to disable catalog, vault & guarded [\#1748](https://github.com/aklivity/zilla/pull/1748) ([ankitk-me](https://github.com/ankitk-me))
+- support both Claude Code and Codex via hierarchical `AGENTS.md` [\#1747](https://github.com/aklivity/zilla/pull/1747) ([jfallows](https://github.com/jfallows))
+- feat\(engine, binding-http\): per-route affinity extraction with worker pinning \(\#1744\) [\#1745](https://github.com/aklivity/zilla/pull/1745) ([jfallows](https://github.com/jfallows))
+- feat\(engine\): drive guard preauthorize from test binding; resolveId on GuardConfig [\#1743](https://github.com/aklivity/zilla/pull/1743) ([akrambek](https://github.com/akrambek))
+- feat\(binding-mcp\): SSE response transport \(Streamable HTTP\) [\#1742](https://github.com/aklivity/zilla/pull/1742) ([jfallows](https://github.com/jfallows))
+
+## [1.2.1](https://github.com/aklivity/zilla/tree/1.2.1) (2026-04-30)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/1.2.0...1.2.1)
 
 **Implemented enhancements:**
 

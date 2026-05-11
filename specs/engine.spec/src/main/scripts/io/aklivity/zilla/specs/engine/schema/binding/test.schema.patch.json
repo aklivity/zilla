@@ -171,6 +171,30 @@
                                                 {
                                                     "type": "string"
                                                 },
+                                                "callback":
+                                                {
+                                                    "type": "string"
+                                                },
+                                                "callbackParams":
+                                                {
+                                                    "type": "object",
+                                                    "patternProperties":
+                                                    {
+                                                        "^[a-zA-Z]+[a-zA-Z0-9._-]*$":
+                                                        {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "additionalProperties": false
+                                                },
+                                                "expectIdentity":
+                                                {
+                                                    "type": "string"
+                                                },
+                                                "expectCredentials":
+                                                {
+                                                    "type": "string"
+                                                },
                                                 "attributes":
                                                 {
                                                     "type": "object",
