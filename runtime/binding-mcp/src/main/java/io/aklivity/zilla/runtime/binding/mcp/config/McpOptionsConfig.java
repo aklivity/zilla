@@ -22,11 +22,17 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 public final class McpOptionsConfig extends OptionsConfig
 {
     public final List<McpPromptConfig> prompts;
+    public final McpElicitationConfig elicitation;
+    public final McpAuthorizationConfig authorization;
 
     public McpOptionsConfig(
-        List<McpPromptConfig> prompts)
+        List<McpPromptConfig> prompts,
+        McpElicitationConfig elicitation,
+        McpAuthorizationConfig authorization)
     {
         this.prompts = prompts;
+        this.elicitation = elicitation;
+        this.authorization = authorization;
     }
 
     public static McpOptionsConfigBuilder<McpOptionsConfig> builder()

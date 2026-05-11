@@ -439,4 +439,37 @@ public class McpProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${app}/tools.call.elicit.completed.proxied/client",
+        "${app}/tools.call.elicit.completed.proxied/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldCallToolElicitCompletedProxied() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${app}/tools.call.elicit.declined.proxied/client",
+        "${app}/tools.call.elicit.declined.proxied/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldCallToolElicitDeclinedProxied() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${app}/tools.call.elicit.timeout.proxied/client",
+        "${app}/tools.call.elicit.timeout.proxied/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldCallToolElicitTimeoutProxied() throws Exception
+    {
+        k3po.finish();
+    }
 }

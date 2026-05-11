@@ -442,7 +442,8 @@ public final class McpProxyFactory implements McpStreamFactory
         private void onServerFlush(
             FlushFW flush)
         {
-            // pass-through flush — no action required for proxy kind
+            client.doClientFlush(flush.traceId(), flush.authorization(),
+                flush.budgetId(), flush.reserved(), flush.extension());
         }
 
         private void onServerWindow(
@@ -541,6 +542,15 @@ public final class McpProxyFactory implements McpStreamFactory
         {
             doFlush(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
                 traceId, authorization, budgetId, reserved, extension);
+        }
+
+        private void doServerChallenge(
+            long traceId,
+            long authorization,
+            OctetsFW extension)
+        {
+            doChallenge(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                traceId, authorization, extension);
         }
 
         private void doServerWindow(
@@ -664,6 +674,18 @@ public final class McpProxyFactory implements McpStreamFactory
             }
         }
 
+        private void doClientFlush(
+            long traceId,
+            long authorization,
+            long budgetId,
+            int reserved,
+            OctetsFW extension)
+        {
+            doFlush(sender, server.lifecycle.originId, resolvedId, initialId,
+                initialSeq, initialAck, initialMax,
+                traceId, authorization, budgetId, reserved, extension);
+        }
+
         private void doClientEnd(
             long traceId)
         {
@@ -770,6 +792,10 @@ public final class McpProxyFactory implements McpStreamFactory
                 final ResetFW reset = resetRO.wrap(buffer, index, index + length);
                 onClientReset(reset);
                 break;
+            case ChallengeFW.TYPE_ID:
+                final ChallengeFW challenge = challengeRO.wrap(buffer, index, index + length);
+                onClientChallenge(challenge);
+                break;
             default:
                 break;
             }
@@ -780,6 +806,12 @@ public final class McpProxyFactory implements McpStreamFactory
         {
             server.doServerFlush(flush.traceId(), flush.authorization(),
                 flush.budgetId(), flush.reserved(), flush.extension());
+        }
+
+        private void onClientChallenge(
+            ChallengeFW challenge)
+        {
+            server.doServerChallenge(challenge.traceId(), challenge.authorization(), challenge.extension());
         }
 
         private void onClientBegin(

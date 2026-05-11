@@ -61,6 +61,36 @@
                                     "required": [ "name" ],
                                     "additionalProperties": false
                                 }
+                            },
+                            "elicitation":
+                            {
+                                "title": "Elicitation",
+                                "type": "object",
+                                "properties":
+                                {
+                                    "callback":
+                                    {
+                                        "title": "Authorization Callback Path",
+                                        "type": "string",
+                                        "default": "auth/callback"
+                                    }
+                                },
+                                "additionalProperties": false
+                            },
+                            "authorization":
+                            {
+                                "title": "Authorization",
+                                "type": "object",
+                                "properties":
+                                {
+                                    "name":
+                                    {
+                                        "title": "Guard Name",
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [ "name" ],
+                                "additionalProperties": false
                             }
                         },
                         "additionalProperties": false

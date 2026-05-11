@@ -17,7 +17,9 @@ package io.aklivity.zilla.runtime.binding.mcp.internal;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
+import java.security.SecureRandom;
 import java.time.Duration;
+import java.util.HexFormat;
 import java.util.UUID;
 import java.util.function.Supplier;
 
@@ -31,6 +33,7 @@ public class McpConfiguration extends Configuration
     private static final ConfigurationDef MCP_CONFIG;
 
     public static final PropertyDef<SessionIdSupplier> MCP_SESSION_ID;
+    public static final PropertyDef<ElicitationIdSupplier> MCP_ELICITATION_ID;
     public static final PropertyDef<String> MCP_SERVER_NAME;
     public static final PropertyDef<String> MCP_SERVER_VERSION;
     public static final PropertyDef<String> MCP_CLIENT_NAME;
@@ -44,6 +47,8 @@ public class McpConfiguration extends Configuration
         final ConfigurationDef config = new ConfigurationDef("zilla.binding.mcp");
         MCP_SESSION_ID = config.property(SessionIdSupplier.class, "session.id",
             McpConfiguration::decodeSessionIdSupplier, McpConfiguration::defaultSessionIdSupplier);
+        MCP_ELICITATION_ID = config.property(ElicitationIdSupplier.class, "elicitation.id",
+            McpConfiguration::decodeElicitationIdSupplier, McpConfiguration::defaultElicitationIdSupplier);
         MCP_SERVER_NAME = config.property(String.class, "server.name", (c, v) -> v,
             McpConfiguration::defaultServerName);
         MCP_SERVER_VERSION = config.property(String.class, "server.version", (c, v) -> v,
@@ -74,6 +79,11 @@ public class McpConfiguration extends Configuration
     public Supplier<String> sessionIdSupplier()
     {
         return MCP_SESSION_ID.get(this)::get;
+    }
+
+    public Supplier<String> elicitationIdSupplier()
+    {
+        return MCP_ELICITATION_ID.get(this)::get;
     }
 
     public String serverName()
@@ -113,6 +123,12 @@ public class McpConfiguration extends Configuration
 
     @FunctionalInterface
     public interface SessionIdSupplier
+    {
+        String get();
+    }
+
+    @FunctionalInterface
+    public interface ElicitationIdSupplier
     {
         String get();
     }
@@ -168,4 +184,49 @@ public class McpConfiguration extends Configuration
     {
         return UUID.randomUUID().toString();
     }
+
+    private static ElicitationIdSupplier decodeElicitationIdSupplier(
+        String value)
+    {
+        ElicitationIdSupplier supplier = null;
+
+        try
+        {
+            MethodType signature = MethodType.methodType(String.class);
+            String[] parts = value.split("::");
+            Class<?> ownerClass = Class.forName(parts[0]);
+            String methodName = parts[1];
+            MethodHandle method = MethodHandles.publicLookup().findStatic(ownerClass, methodName, signature);
+            supplier = () ->
+            {
+                String elicitationId = null;
+                try
+                {
+                    elicitationId = (String) method.invoke();
+                }
+                catch (Throwable ex)
+                {
+                    LangUtil.rethrowUnchecked(ex);
+                }
+
+                return elicitationId;
+            };
+        }
+        catch (Throwable ex)
+        {
+            LangUtil.rethrowUnchecked(ex);
+        }
+
+        return supplier;
+    }
+
+    private static String defaultElicitationIdSupplier()
+    {
+        final byte[] bytes = new byte[4];
+        ELICITATION_ID_RANDOM.nextBytes(bytes);
+        return ELICITATION_ID_HEX.formatHex(bytes);
+    }
+
+    private static final SecureRandom ELICITATION_ID_RANDOM = new SecureRandom();
+    private static final HexFormat ELICITATION_ID_HEX = HexFormat.of();
 }

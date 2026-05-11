@@ -37,6 +37,7 @@ public final class TestGuardOptionsConfigAdapter implements OptionsConfigAdapter
     private static final String ROLES_NAME = "roles";
     private static final String IDENTITY_NAME = "identity";
     private static final String ATTRIBUTES_NAME = "attributes";
+    private static final String PREAUTHORIZE_NAME = "preauthorize";
 
     @Override
     public Kind kind()
@@ -93,6 +94,11 @@ public final class TestGuardOptionsConfigAdapter implements OptionsConfigAdapter
             object.add(ATTRIBUTES_NAME, entries);
         }
 
+        if (testOptions.preauthorize != null)
+        {
+            object.add(PREAUTHORIZE_NAME, testOptions.preauthorize);
+        }
+
         return object.build();
     }
 
@@ -136,6 +142,11 @@ public final class TestGuardOptionsConfigAdapter implements OptionsConfigAdapter
             {
                 object.getJsonObject(ATTRIBUTES_NAME)
                     .forEach((key, value) -> testOptions.attribute(key, ((JsonString) value).getString()));
+            }
+
+            if (object.containsKey(PREAUTHORIZE_NAME))
+            {
+                testOptions.preauthorize(object.getString(PREAUTHORIZE_NAME));
             }
         }
 

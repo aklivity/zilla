@@ -407,6 +407,87 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/tools.call.elicit.completed/client",
+        "${app}/tools.call.elicit.completed/server"})
+    public void shouldCallToolElicitCompleted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/tools.call.elicit.completed.proxied/client",
+        "${app}/tools.call.elicit.completed.proxied/server"})
+    public void shouldCallToolElicitCompletedProxied() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/tools.call.elicit.declined/client",
+        "${app}/tools.call.elicit.declined/server"})
+    public void shouldCallToolElicitDeclined() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/tools.call.elicit.declined.proxied/client",
+        "${app}/tools.call.elicit.declined.proxied/server"})
+    public void shouldCallToolElicitDeclinedProxied() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/tools.call.elicit.timeout/client",
+        "${app}/tools.call.elicit.timeout/server"})
+    public void shouldCallToolElicitTimeout() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/tools.call.elicit.timeout.proxied/client",
+        "${app}/tools.call.elicit.timeout.proxied/server"})
+    public void shouldCallToolElicitTimeoutProxied() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/tools.call.elicit.completed.guarded/client",
+        "${app}/tools.call.elicit.completed.guarded/server"})
+    public void shouldCallToolElicitCompletedGuarded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/tools.call.elicit.declined.guarded/client",
+        "${app}/tools.call.elicit.declined.guarded/server"})
+    public void shouldCallToolElicitDeclinedGuarded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/tools.call.elicit.timeout.guarded/client",
+        "${app}/tools.call.elicit.timeout.guarded/server"})
+    public void shouldCallToolElicitTimeoutGuarded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/tools.call.10k.with.progress/client",
         "${app}/tools.call.10k.with.progress/server"})
     public void shouldCallToolWith10kParamsWithProgress() throws Exception

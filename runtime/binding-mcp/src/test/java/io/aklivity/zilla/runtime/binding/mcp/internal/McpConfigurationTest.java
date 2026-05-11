@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.binding.mcp.internal;
 
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_CLIENT_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_CLIENT_VERSION;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_ELICITATION_ID;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_INACTIVITY_TIMEOUT;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_KEEPALIVE_TOLERANCE;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_SERVER_NAME;
@@ -33,6 +34,7 @@ public class McpConfigurationTest
     public static final String ENGINE_DETACH_ON_CLOSE_NAME = "zilla.engine.detach.on.close";
     public static final String ENGINE_SYNTHETIC_ABORT_NAME = "zilla.engine.synthetic.abort";
     public static final String MCP_SESSION_ID_NAME = "zilla.binding.mcp.session.id";
+    public static final String MCP_ELICITATION_ID_NAME = "zilla.binding.mcp.elicitation.id";
     public static final String MCP_SERVER_NAME_NAME = "zilla.binding.mcp.server.name";
     public static final String MCP_SERVER_VERSION_NAME = "zilla.binding.mcp.server.version";
     public static final String MCP_CLIENT_NAME_NAME = "zilla.binding.mcp.client.name";
@@ -47,6 +49,7 @@ public class McpConfigurationTest
         assertEquals(ENGINE_DETACH_ON_CLOSE.name(), ENGINE_DETACH_ON_CLOSE_NAME);
         assertEquals(ENGINE_SYNTHETIC_ABORT.name(), ENGINE_SYNTHETIC_ABORT_NAME);
         assertEquals(MCP_SESSION_ID.name(), MCP_SESSION_ID_NAME);
+        assertEquals(MCP_ELICITATION_ID.name(), MCP_ELICITATION_ID_NAME);
         assertEquals(MCP_SERVER_NAME.name(), MCP_SERVER_NAME_NAME);
         assertEquals(MCP_SERVER_VERSION.name(), MCP_SERVER_VERSION_NAME);
         assertEquals(MCP_CLIENT_NAME.name(), MCP_CLIENT_NAME_NAME);

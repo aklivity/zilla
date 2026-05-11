@@ -100,10 +100,71 @@ public class McpClientIT
     @Test
     @Configuration("client.yaml")
     @Specification({
+        "${app}/tools.call.elicit.completed.proxied/client",
+        "${net}/tools.call.elicit.completed.proxied/server"})
+    public void shouldCallToolElicitCompletedProxied() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/tools.call.elicit.declined.proxied/client",
+        "${net}/tools.call.elicit.declined.proxied/server"})
+    public void shouldCallToolElicitDeclinedProxied() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/tools.call.elicit.timeout.proxied/client",
+        "${net}/tools.call.elicit.timeout/server"})
+    public void shouldCallToolElicitTimeoutProxied() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
         "${app}/lifecycle.timeout.rejected/client",
         "${net}/lifecycle.timeout.rejected/server"})
     @Configure(name = MCP_INACTIVITY_TIMEOUT_NAME, value = "PT0.2S")
     public void shouldTimeoutLifecycleRejected() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.guarded.yaml")
+    @Specification({
+        "${app}/tools.call.elicit.completed.guarded/client",
+        "${net}/tools.call/server"})
+    public void shouldCallToolElicitCompletedGuarded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.guarded.yaml")
+    @Specification({
+        "${app}/tools.call.elicit.declined.guarded/client",
+        "${net}/lifecycle.initialize/server"})
+    public void shouldCallToolElicitDeclinedGuarded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.guarded.yaml")
+    @Specification({
+        "${app}/tools.call.elicit.timeout.guarded/client",
+        "${net}/lifecycle.initialize/server"})
+    @Configure(name = MCP_INACTIVITY_TIMEOUT_NAME, value = "PT0.2S")
+    public void shouldCallToolElicitTimeoutGuarded() throws Exception
     {
         k3po.finish();
     }
