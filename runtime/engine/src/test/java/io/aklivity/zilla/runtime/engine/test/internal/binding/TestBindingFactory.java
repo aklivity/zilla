@@ -220,7 +220,6 @@ final class TestBindingFactory implements BindingHandler
                     writer.accept(metric.values[context.index()]);
                 }
             }
-
         }
     }
 
@@ -261,76 +260,9 @@ final class TestBindingFactory implements BindingHandler
         {
             TestSource deferred = new TestSource(source, originId, routedId, initialId, replyId, 0L);
             newStream = deferred::onMessage;
-            doAuthorize(begin.traceId(), routedId, deferred, binding);
         }
 
         return newStream;
-    }
-
-    private void doAuthorize(
-        long traceId,
-        long routedId,
-        TestSource deferred,
-        TestBindingConfig binding)
-    {
-        guard.reauthorize(traceId, routedId, 0, credentials, new LongCompletionCallback()
-        {
-            @Override
-            public void completed(
-                long contextId,
-                long sessionId)
-            {
-                if (sessionId == NEEDS_PREAUTHORIZE && callbackUri != null)
-                {
-                    doPreauthorizeAndCallback(traceId, routedId, deferred, binding);
-                }
-                else
-                {
-                    onAuthorized(traceId, routedId, deferred, binding, sessionId);
-                }
-            }
-
-            @Override
-            public void failed(
-                long contextId,
-                Throwable ex)
-            {
-                onAuthorized(traceId, routedId, deferred, binding, NOT_AUTHORIZED);
-            }
-        });
-    }
-
-    private void doPreauthorizeAndCallback(
-        long traceId,
-        long routedId,
-        TestSource deferred,
-        TestBindingConfig binding)
-    {
-        String url = guard.preauthorize(traceId, routedId, 0, callbackUri);
-        if (url == null)
-        {
-            onAuthorized(traceId, routedId, deferred, binding, NOT_AUTHORIZED);
-            return;
-        }
-        String callbackResponse = buildCallbackResponse(callbackUri, url, callbackParams);
-        guard.reauthorize(traceId, routedId, 0, callbackResponse, new LongCompletionCallback()
-        {
-            @Override
-            public void completed(
-                long contextId,
-                long sessionId)
-            {
-                onAuthorized(traceId, routedId, deferred, binding, sessionId);
-            }
-
-            @Override
-            public void failed(
-                long contextId,
-                Throwable ex)
-            {
-                onAuthorized(traceId, routedId, deferred, binding, NOT_AUTHORIZED);
-            }
-        });
     }
 
     private static String buildCallbackResponse(
@@ -359,25 +291,6 @@ final class TestBindingFactory implements BindingHandler
             }
         }
         return builder.toString();
-    }
-
-    private void onAuthorized(
-        long traceId,
-        long routedId,
-        TestSource deferred,
-        TestBindingConfig binding,
-        long sessionId)
-    {
-        authorization = sessionId;
-        TestRouteConfig route = binding != null ? binding.resolve(authorization) : null;
-        if (route != null)
-        {
-            deferred.onAuthResolved(traceId, route.id);
-        }
-        else
-        {
-            deferred.onAuthRejected(traceId);
-        }
     }
 
     private final class TestSource
@@ -420,6 +333,93 @@ final class TestBindingFactory implements BindingHandler
             this.initialId = initialId;
             this.replyId = replyId;
             this.target = resolvedId != 0L ? new TestTarget(routedId, resolvedId) : null;
+        }
+
+        private void doAuthorize(
+            long traceId,
+            long authorization)
+        {
+            if (guard == null)
+            {
+                onAuthorized(traceId, authorization);
+            }
+            else
+            {
+                guard.reauthorize(traceId, routedId, 0, credentials, new LongCompletionCallback()
+                {
+                    @Override
+                    public void completed(
+                        long contextId,
+                        long sessionId)
+                    {
+                        if (sessionId == NEEDS_PREAUTHORIZE && callbackUri != null)
+                        {
+                            doPreauthorizeAndCallback(traceId);
+                        }
+                        else
+                        {
+                            onAuthorized(traceId, sessionId);
+                        }
+                    }
+
+                    @Override
+                    public void failed(
+                        long contextId,
+                        Throwable ex)
+                    {
+                        onAuthorized(traceId, NOT_AUTHORIZED);
+                    }
+                });
+            }
+        }
+
+        private void doPreauthorizeAndCallback(
+            long traceId)
+        {
+            String url = guard.preauthorize(traceId, routedId, 0, callbackUri);
+            if (url == null)
+            {
+                onAuthorized(traceId, NOT_AUTHORIZED);
+                return;
+            }
+
+            String callbackResponse = buildCallbackResponse(callbackUri, url, callbackParams);
+            guard.reauthorize(traceId, routedId, 0, callbackResponse, new LongCompletionCallback()
+            {
+                @Override
+                public void completed(
+                    long contextId,
+                    long sessionId)
+                {
+                    onAuthorized(traceId, sessionId);
+                }
+
+                @Override
+                public void failed(
+                    long contextId,
+                    Throwable ex)
+                {
+                    onAuthorized(traceId, NOT_AUTHORIZED);
+                }
+            });
+        }
+
+        private void onAuthorized(
+            long traceId,
+            long sessionId)
+        {
+            authorization = sessionId;
+
+            TestBindingConfig binding = bindings.get(routedId);
+            TestRouteConfig route = binding != null ? binding.resolve(authorization) : null;
+            if (route != null)
+            {
+                onAuthResolved(traceId, route.id);
+            }
+            else
+            {
+                onAuthRejected(traceId);
+            }
         }
 
         private void onAuthResolved(
@@ -488,12 +488,15 @@ final class TestBindingFactory implements BindingHandler
         {
             long traceId = begin.traceId();
 
+            doAuthorize(traceId, authorization);
+
             if (target == null)
             {
                 pendingBegin = true;
                 pendingTraceId = traceId;
                 return;
             }
+
             runInitialBeginBody(traceId);
         }
 
