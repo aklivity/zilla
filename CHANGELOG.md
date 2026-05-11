@@ -1,5 +1,13 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/1.2.2...HEAD)
+
+**Merged pull requests:**
+
+- Fix test binding guard auth [\#1762](https://github.com/aklivity/zilla/pull/1762) ([jfallows](https://github.com/jfallows))
+
 ## [1.2.2](https://github.com/aklivity/zilla/tree/1.2.2) (2026-05-11)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/1.2.1...1.2.2)
