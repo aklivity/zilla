@@ -5036,8 +5036,6 @@ public final class McpServerFactory implements McpStreamFactory
             .maximum(0)
             .traceId(traceId)
             .authorization(authorization)
-            .budgetId(0L)
-            .padding(0)
             .affinity(affinity)
             .extension(extension.buffer(), extension.offset(), extension.sizeof())
             .build();
