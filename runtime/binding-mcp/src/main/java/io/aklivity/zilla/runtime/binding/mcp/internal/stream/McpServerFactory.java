@@ -5161,3 +5161,4 @@ public final class McpServerFactory implements McpStreamFactory
                 sessionId.hashCode(), extension);
         }
     }
+}
