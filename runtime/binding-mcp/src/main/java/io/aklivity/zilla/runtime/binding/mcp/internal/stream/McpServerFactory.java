@@ -18,7 +18,9 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabiliti
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabilities.CLIENT_ROOTS;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabilities.CLIENT_SAMPLING;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
+import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.streamIndex;
 
+import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -64,6 +66,7 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpElicitCrea
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpElicitStatus;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpFlushExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpProgressFlushExFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.RedirectFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.WindowFW;
@@ -75,6 +78,7 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.util.function.LongLongFunction;
 
 public final class McpServerFactory implements McpStreamFactory
 {
@@ -171,6 +175,7 @@ public final class McpServerFactory implements McpStreamFactory
     private final FlushFW.Builder flushRW = new FlushFW.Builder();
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
+    private final RedirectFW.Builder redirectRW = new RedirectFW.Builder();
     private final ChallengeFW.Builder challengeRW = new ChallengeFW.Builder();
     private final HttpBeginExFW.Builder httpBeginExRW = new HttpBeginExFW.Builder();
     private final HttpResetExFW.Builder httpResetExRW = new HttpResetExFW.Builder();
@@ -189,6 +194,7 @@ public final class McpServerFactory implements McpStreamFactory
     private final MutableDirectBuffer codecBuffer;
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
+    private final LongLongFunction<Long> supplyInitialIdByHash;
     private final LongUnaryOperator supplyReplyId;
     private final int httpTypeId;
     private final int mcpTypeId;
@@ -196,6 +202,7 @@ public final class McpServerFactory implements McpStreamFactory
     private final BufferPool encodePool;
     private final int decodeMax;
     private final int encodeMax;
+    private final int sessionIdAttempts;
 
     private final DirectBufferInputStreamEx inputRO = new DirectBufferInputStreamEx();
 
@@ -228,6 +235,7 @@ public final class McpServerFactory implements McpStreamFactory
 
     private final Long2ObjectHashMap<McpBindingConfig> bindings;
     private final Map<String, McpServerFactory.McpLifecycleStream> sessions;
+    private final int localIndex;
 
     public McpServerFactory(
         McpConfiguration config,
@@ -244,6 +252,7 @@ public final class McpServerFactory implements McpStreamFactory
         this.codecBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
+        this.supplyInitialIdByHash = (bindingId, hash) -> context.supplyInitialId(bindingId, (int) hash);
         this.supplyReplyId = context::supplyReplyId;
         this.bindings = new Long2ObjectHashMap<>();
         this.httpTypeId = context.supplyTypeId(HTTP_TYPE_NAME);
@@ -252,7 +261,9 @@ public final class McpServerFactory implements McpStreamFactory
         this.encodePool = context.bufferPool().duplicate();
         this.decodeMax = decodePool.slotCapacity();
         this.encodeMax = encodePool.slotCapacity();
+        this.sessionIdAttempts = config.sessionIdAttempts();
         this.sessions = new Object2ObjectHashMap<>();
+        this.localIndex = context.index();
         this.parserFactory = StreamingJson.createParserFactory(Map.of(
             StreamingJson.PATH_INCLUDES, SERVER_JSON_PATH_INCLUDES,
             StreamingJson.TOKEN_MAX_BYTES, decodeMax));
@@ -334,6 +345,26 @@ public final class McpServerFactory implements McpStreamFactory
                     .matchFirst(h -> HTTP_HEADER_PATH.equals(h.name().asString())))
                 .map(h -> h.value().asString())
                 .orElse(null);
+
+            final String sessionId = Optional.ofNullable(httpBeginEx.headers()
+                    .matchFirst(h -> HTTP_HEADER_SESSION.equals(h.name().asString())))
+                .map(h -> h.value().asString())
+                .orElseGet(() -> extractSessionIdFromState(path));
+
+            if (sessionId != null && !isSessionIdAligned(resolvedId, sessionId))
+            {
+                newStream = new McpRedirectHandler(
+                    sender,
+                    originId,
+                    routedId,
+                    initialId,
+                    initialSeq,
+                    initialAck,
+                    traceId,
+                    extension,
+                    sessionId)::onNetMessage;
+                return newStream;
+            }
 
             switch (method)
             {
@@ -1703,11 +1734,19 @@ public final class McpServerFactory implements McpStreamFactory
             long traceId,
             long authorization)
         {
-            McpLifecycleStream session = new McpLifecycleStream(this);
-            sessions.put(session.sessionId, session);
+            final String sessionId = newSessionId(resolvedId);
+            if (sessionId == null)
+            {
+                doNetReset(traceId, authorization);
+            }
+            else
+            {
+                McpLifecycleStream session = new McpLifecycleStream(this, sessionId);
+                sessions.put(session.sessionId, session);
 
-            assert this.session == null;
-            this.session = session;
+                assert this.session == null;
+                this.session = session;
+            }
         }
 
         private void onLifecycleInitialized(
@@ -2828,9 +2867,10 @@ public final class McpServerFactory implements McpStreamFactory
         private boolean eventsUnsupported;
 
         private McpLifecycleStream(
-            McpServer server)
+            McpServer server,
+            String sessionId)
         {
-            this.sessionId = supplySessionId.get();
+            this.sessionId = sessionId;
             this.requests = new Object2ObjectHashMap<>();
             this.elicitations = new Object2ObjectHashMap<>();
             this.originId = server.routedId;
@@ -4974,4 +5014,150 @@ public final class McpServerFactory implements McpStreamFactory
 
         return progress - offset;
     }
-}
+
+    private void doRedirect(
+        MessageConsumer sender,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        long traceId,
+        long authorization,
+        long affinity,
+        Flyweight extension)
+    {
+        final RedirectFW redirect = redirectRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+            .originId(originId)
+            .routedId(routedId)
+            .streamId(streamId)
+            .sequence(sequence)
+            .acknowledge(acknowledge)
+            .maximum(0)
+            .traceId(traceId)
+            .authorization(authorization)
+            .budgetId(0L)
+            .padding(0)
+            .affinity(affinity)
+            .extension(extension.buffer(), extension.offset(), extension.sizeof())
+            .build();
+
+        sender.accept(redirect.typeId(), redirect.buffer(), redirect.offset(), redirect.sizeof());
+    }
+
+    private String newSessionId(
+        long resolvedId)
+    {
+        String sessionId = null;
+
+        for (int i = 0; i < sessionIdAttempts; i++)
+        {
+            final String candidate = supplySessionId.get();
+            if (isSessionIdAligned(resolvedId, candidate))
+            {
+                sessionId = candidate;
+                break;
+            }
+        }
+
+        return sessionId;
+    }
+
+    private boolean isSessionIdAligned(
+        long resolvedId,
+        String sessionId)
+    {
+        final long initialId = supplyInitialIdByHash.apply(resolvedId, sessionId.hashCode());
+        final int alignedIndex = streamIndex(initialId);
+        return alignedIndex == localIndex;
+    }
+
+    private String extractSessionIdFromState(
+        String path)
+    {
+        String sessionId = null;
+
+        if (path != null)
+        {
+            final Matcher matcher = STATE_PARAM_PATTERN.matcher(path);
+            if (matcher.find())
+            {
+                final String state = URLDecoder.decode(matcher.group(1), StandardCharsets.UTF_8);
+                final int dotAt = state.indexOf('.');
+                if (dotAt > 0)
+                {
+                    sessionId = state.substring(0, dotAt);
+                }
+            }
+        }
+
+        return sessionId;
+    }
+
+    private final class McpRedirectHandler
+    {
+        private final MessageConsumer sender;
+        private final long originId;
+        private final long routedId;
+        private final long streamId;
+        private final long sequence;
+        private final long acknowledge;
+        private final long traceId;
+        private final OctetsFW extension;
+        private final String sessionId;
+
+        private McpRedirectHandler(
+            MessageConsumer sender,
+            long originId,
+            long routedId,
+            long streamId,
+            long sequence,
+            long acknowledge,
+            long traceId,
+            OctetsFW extension,
+            String sessionId)
+        {
+            this.sender = sender;
+            this.originId = originId;
+            this.routedId = routedId;
+            this.streamId = streamId;
+            this.sequence = sequence;
+            this.acknowledge = acknowledge;
+            this.traceId = traceId;
+            this.extension = extension;
+            this.sessionId = sessionId;
+        }
+
+        private void onNetMessage(
+            int msgTypeId,
+            DirectBuffer buffer,
+            int index,
+            int length)
+        {
+            switch (msgTypeId)
+            {
+            case BeginFW.TYPE_ID:
+                final BeginFW begin = beginRO.wrap(buffer, index, index + length);
+                onNetBegin(begin);
+                break;
+            case AbortFW.TYPE_ID:
+            case DataFW.TYPE_ID:
+            case FlushFW.TYPE_ID:
+            case EndFW.TYPE_ID:
+            case ResetFW.TYPE_ID:
+            case WindowFW.TYPE_ID:
+            case ChallengeFW.TYPE_ID:
+                break;
+            default:
+                break;
+            }
+        }
+
+        private void onNetBegin(
+            BeginFW begin)
+        {
+            final long authorization = begin.authorization();
+            doRedirect(sender, originId, routedId, streamId, sequence, acknowledge, traceId, authorization,
+                sessionId.hashCode(), extension);
+        }
+    }
