@@ -1,0 +1,46 @@
+#
+# Copyright 2021-2024 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+# dialect: none
+# streaming: false
+# aspect: conflicting detection signals — anthropic-version on openai path rejected with 400
+
+connect "zilla://streams/net0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${http:beginEx()
+                            .typeId(zilla:id("http"))
+                            .header(":method", "POST")
+                            .header(":scheme", "http")
+                            .header(":authority", "localhost:8080")
+                            .header(":path", "/v1/chat/completions")
+                            .header("content-type", "application/json")
+                            .header("anthropic-version", "2023-06-01")
+                            .build()}
+
+connected
+
+write '{"model":"gpt-4o-mini","messages":[{"role":"user","content":"ping"}]}'
+write close
+
+read zilla:begin.ext ${http:matchBeginEx()
+                           .typeId(zilla:id("http"))
+                           .header(":status", "400")
+                           .header("content-type", "application/json")
+                           .build()}
+
+read '{"error":{"type":"invalid_request_error","message":"conflicting dialect signals: path indicates openai but anthropic-version header is present"}}'
+read closed

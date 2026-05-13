@@ -1,0 +1,46 @@
+#
+# Copyright 2021-2024 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+# dialect: anthropic
+# streaming: false
+# aspect: non-streaming POST /v1/messages with top-level response object including usage
+
+connect "zilla://streams/net0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${http:beginEx()
+                            .typeId(zilla:id("http"))
+                            .header(":method", "POST")
+                            .header(":scheme", "https")
+                            .header(":authority", "api.anthropic.com")
+                            .header(":path", "/v1/messages")
+                            .header("content-type", "application/json")
+                            .header("anthropic-version", "2023-06-01")
+                            .build()}
+
+connected
+
+write '{"model":"claude-3-5-sonnet-20241022","max_tokens":1024,"messages":[{"role":"user","content":"Hello"}],"stream":false}'
+write close
+
+read zilla:begin.ext ${http:matchBeginEx()
+                           .typeId(zilla:id("http"))
+                           .header(":status", "200")
+                           .header("content-type", "application/json")
+                           .build()}
+
+read '{"id":"msg_01","type":"message","role":"assistant","content":[{"type":"text","text":"Hi there!"}],"model":"claude-3-5-sonnet-20241022","stop_reason":"end_turn","stop_sequence":null,"usage":{"input_tokens":8,"output_tokens":4}}'
+read closed

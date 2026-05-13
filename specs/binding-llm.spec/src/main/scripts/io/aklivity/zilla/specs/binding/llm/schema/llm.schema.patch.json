@@ -1,0 +1,159 @@
+[
+    {
+        "op": "add",
+        "path": "/$defs/binding/properties/type/enum/-",
+        "value": "llm"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/binding/allOf/-",
+        "value":
+        {
+            "if":
+            {
+                "properties":
+                {
+                    "type":
+                    {
+                        "const": "llm"
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "type":
+                    {
+                        "const": "llm"
+                    },
+                    "kind":
+                    {
+                        "enum": [ "server", "client", "proxy" ]
+                    },
+                    "catalog": false,
+                    "entry": false,
+                    "options":
+                    {
+                        "properties":
+                        {
+                            "dialect":
+                            {
+                                "title": "Dialect",
+                                "type": "string",
+                                "enum": [ "openai", "anthropic", "ollama" ]
+                            },
+                            "system":
+                            {
+                                "title": "System Prompt",
+                                "type": "object",
+                                "properties":
+                                {
+                                    "prefix":
+                                    {
+                                        "title": "Prefix Injection",
+                                        "type": "string"
+                                    },
+                                    "replace":
+                                    {
+                                        "title": "Replace Injection",
+                                        "type": "string"
+                                    },
+                                    "suffix":
+                                    {
+                                        "title": "Suffix Injection",
+                                        "type": "string"
+                                    }
+                                },
+                                "additionalProperties": false
+                            },
+                            "maxTokens":
+                            {
+                                "title": "Max Tokens",
+                                "type": "object",
+                                "properties":
+                                {
+                                    "default":
+                                    {
+                                        "title": "Default",
+                                        "type": "integer",
+                                        "minimum": 1
+                                    },
+                                    "cap":
+                                    {
+                                        "title": "Cap",
+                                        "type": "integer",
+                                        "minimum": 1
+                                    }
+                                },
+                                "additionalProperties": false
+                            },
+                            "authorization":
+                            {
+                                "title": "Authorization",
+                                "type": "object",
+                                "properties":
+                                {
+                                    "credentials":
+                                    {
+                                        "title": "Credentials",
+                                        "type": "object",
+                                        "properties":
+                                        {
+                                            "vault":
+                                            {
+                                                "title": "Vault Name",
+                                                "type": "string"
+                                            },
+                                            "key":
+                                            {
+                                                "title": "Key Reference",
+                                                "type": "string"
+                                            }
+                                        },
+                                        "required": [ "vault", "key" ],
+                                        "additionalProperties": false
+                                    }
+                                },
+                                "additionalProperties": false
+                            }
+                        },
+                        "additionalProperties": false
+                    },
+                    "routes":
+                    {
+                        "title": "Routes",
+                        "type": "array",
+                        "items":
+                        {
+                            "type": "object",
+                            "properties":
+                            {
+                                "when":
+                                {
+                                    "title": "When",
+                                    "type": "array",
+                                    "items":
+                                    {
+                                        "type": "object",
+                                        "properties":
+                                        {
+                                            "dialect":
+                                            {
+                                                "title": "Dialect",
+                                                "type": "string",
+                                                "enum": [ "openai", "anthropic", "ollama" ]
+                                            }
+                                        },
+                                        "additionalProperties": false
+                                    }
+                                },
+                                "guarded": false
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+]

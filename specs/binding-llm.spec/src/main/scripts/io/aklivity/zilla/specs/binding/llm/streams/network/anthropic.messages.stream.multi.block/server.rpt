@@ -1,0 +1,65 @@
+#
+# Copyright 2021-2024 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+# dialect: anthropic
+# streaming: true
+# aspect: multi-block indexed content where assistant emits a text block (index 0) followed by a tool_use block (index 1)
+
+accept "zilla://streams/net0"
+       option zilla:window 8192
+       option zilla:transmission "half-duplex"
+
+accepted
+
+read zilla:begin.ext ${http:matchBeginEx()
+                           .typeId(zilla:id("http"))
+                           .header(":method", "POST")
+                           .header(":path", "/v1/messages")
+                           .header("content-type", "application/json")
+                           .header("anthropic-version", "2023-06-01")
+                           .build()}
+
+connected
+
+read '{"model":"claude-3-5-sonnet-20241022","max_tokens":1024,"tools":[{"name":"get_weather","description":"Get weather","input_schema":{"type":"object","properties":{"location":{"type":"string"}},"required":["location"]}}],"messages":[{"role":"user","content":"Weather in NYC?"}],"stream":true}'
+read closed
+
+write zilla:begin.ext ${http:beginEx()
+                            .typeId(zilla:id("http"))
+                            .header(":status", "200")
+                            .header("content-type", "text/event-stream")
+                            .build()}
+write flush
+
+write 'event: message_start\ndata: {"type":"message_start","message":{"id":"msg_01","type":"message","role":"assistant","content":[],"model":"claude-3-5-sonnet-20241022","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":42,"output_tokens":1}}}\n\n'
+write flush
+write 'event: content_block_start\ndata: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}\n\n'
+write flush
+write 'event: content_block_delta\ndata: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Let me check"}}\n\n'
+write flush
+write 'event: content_block_stop\ndata: {"type":"content_block_stop","index":0}\n\n'
+write flush
+write 'event: content_block_start\ndata: {"type":"content_block_start","index":1,"content_block":{"type":"tool_use","id":"toolu_02","name":"get_weather","input":{}}}\n\n'
+write flush
+write 'event: content_block_delta\ndata: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"{\"location\":\"NYC\"}"}}\n\n'
+write flush
+write 'event: content_block_stop\ndata: {"type":"content_block_stop","index":1}\n\n'
+write flush
+write 'event: message_delta\ndata: {"type":"message_delta","delta":{"stop_reason":"tool_use","stop_sequence":null},"usage":{"output_tokens":20}}\n\n'
+write flush
+write 'event: message_stop\ndata: {"type":"message_stop"}\n\n'
+write flush
+
+write close

@@ -1,0 +1,45 @@
+#
+# Copyright 2021-2024 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+# dialect: openai
+# streaming: false
+# aspect: openai system prompt replace — incoming system message is replaced by configured text
+
+connect "zilla://streams/net0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${http:beginEx()
+                            .typeId(zilla:id("http"))
+                            .header(":method", "POST")
+                            .header(":scheme", "https")
+                            .header(":authority", "api.openai.com")
+                            .header(":path", "/v1/chat/completions")
+                            .header("content-type", "application/json")
+                            .build()}
+
+connected
+
+write '{"model":"gpt-4o-mini","messages":[{"role":"system","content":"You are a careful assistant."},{"role":"user","content":"Bonjour"}]}'
+write close
+
+read zilla:begin.ext ${http:matchBeginEx()
+                           .typeId(zilla:id("http"))
+                           .header(":status", "200")
+                           .header("content-type", "application/json")
+                           .build()}
+
+read '{"id":"chatcmpl-s","object":"chat.completion","created":1700000000,"model":"gpt-4o-mini","choices":[{"index":0,"message":{"role":"assistant","content":"Bonjour !"},"finish_reason":"stop"}],"usage":{"prompt_tokens":10,"completion_tokens":3,"total_tokens":13}}'
+read closed
