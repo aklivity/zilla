@@ -17,27 +17,24 @@ package io.aklivity.zilla.runtime.binding.tls.config;
 
 import java.util.function.Function;
 
-public final class TlsCertConditionConfig
+public final class TlsSignerConditionConfig
 {
-    public final Boolean present;
-    public final TlsSignerConditionConfig signer;
+    public final String cn;
 
-    public static TlsCertConditionConfigBuilder<TlsCertConditionConfig> builder()
+    public static TlsSignerConditionConfigBuilder<TlsSignerConditionConfig> builder()
     {
-        return new TlsCertConditionConfigBuilder<>(Function.identity());
+        return new TlsSignerConditionConfigBuilder<>(Function.identity());
     }
 
-    public static <T> TlsCertConditionConfigBuilder<T> builder(
-        Function<TlsCertConditionConfig, T> mapper)
+    public static <T> TlsSignerConditionConfigBuilder<T> builder(
+        Function<TlsSignerConditionConfig, T> mapper)
     {
-        return new TlsCertConditionConfigBuilder<>(mapper);
+        return new TlsSignerConditionConfigBuilder<>(mapper);
     }
 
-    TlsCertConditionConfig(
-        Boolean present,
-        TlsSignerConditionConfig signer)
+    TlsSignerConditionConfig(
+        String cn)
     {
-        this.present = present;
-        this.signer = signer;
+        this.cn = cn;
     }
 }

@@ -31,8 +31,10 @@ import org.agrona.collections.IntHashSet;
 import org.agrona.collections.MutableInteger;
 
 import io.aklivity.zilla.runtime.binding.tls.config.TlsCertConditionConfig;
+import io.aklivity.zilla.runtime.binding.tls.config.TlsCertConditionConfigBuilder;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsConditionConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsConditionConfigBuilder;
+import io.aklivity.zilla.runtime.binding.tls.config.TlsSignerConditionConfig;
 import io.aklivity.zilla.runtime.binding.tls.internal.TlsBinding;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
@@ -42,8 +44,8 @@ public final class TlsConditionConfigAdapter implements ConditionConfigAdapterSp
     private static final String AUTHORITY_NAME = "authority";
     private static final String ALPN_NAME = "alpn";
     private static final String PORT_NAME = "port";
-    private static final String CLIENT_NAME = "client";
     private static final String CERT_NAME = "cert";
+    private static final String SIGNER_NAME = "signer";
     private static final String CN_NAME = "cn";
 
     @Override
@@ -90,25 +92,27 @@ public final class TlsConditionConfigAdapter implements ConditionConfigAdapterSp
 
         if (tlsCondition.cert != null)
         {
-            JsonObjectBuilder client = Json.createObjectBuilder();
             TlsCertConditionConfig cert = tlsCondition.cert;
 
-            if (cert.cn != null)
+            if (cert.signer != null)
             {
+                JsonObjectBuilder signerObject = Json.createObjectBuilder();
+                if (cert.signer.cn != null)
+                {
+                    signerObject.add(CN_NAME, cert.signer.cn);
+                }
                 JsonObjectBuilder certObject = Json.createObjectBuilder();
-                certObject.add(CN_NAME, cert.cn);
-                client.add(CERT_NAME, certObject);
+                certObject.add(SIGNER_NAME, signerObject);
+                object.add(CERT_NAME, certObject);
             }
             else if (Boolean.FALSE.equals(cert.present))
             {
-                client.add(CERT_NAME, JsonValue.FALSE);
+                object.add(CERT_NAME, JsonValue.FALSE);
             }
             else
             {
-                client.add(CERT_NAME, JsonValue.TRUE);
+                object.add(CERT_NAME, JsonValue.TRUE);
             }
-
-            object.add(CLIENT_NAME, client);
         }
 
         return object.build();
@@ -153,15 +157,10 @@ public final class TlsConditionConfigAdapter implements ConditionConfigAdapterSp
             tlsCondition.ports(ports);
         }
 
-        if (object.containsKey(CLIENT_NAME))
+        if (object.containsKey(CERT_NAME))
         {
-            JsonObject client = object.getJsonObject(CLIENT_NAME);
-
-            if (client.containsKey(CERT_NAME))
-            {
-                JsonValue certValue = client.get(CERT_NAME);
-                tlsCondition.cert(adaptCertValueFromJson(certValue));
-            }
+            JsonValue certValue = object.get(CERT_NAME);
+            tlsCondition.cert(adaptCertValueFromJson(certValue));
         }
 
         return tlsCondition.build();
@@ -182,11 +181,15 @@ public final class TlsConditionConfigAdapter implements ConditionConfigAdapterSp
         case OBJECT:
         default:
             JsonObject certObject = value.asJsonObject();
-            String cn = certObject.containsKey(CN_NAME) ? certObject.getString(CN_NAME) : null;
-            cert = TlsCertConditionConfig.builder()
-                .present(true)
-                .cn(cn)
-                .build();
+            TlsCertConditionConfigBuilder<TlsCertConditionConfig> certBuilder = TlsCertConditionConfig.builder()
+                .present(true);
+            if (certObject.containsKey(SIGNER_NAME))
+            {
+                JsonObject signerObject = certObject.getJsonObject(SIGNER_NAME);
+                String cn = signerObject.containsKey(CN_NAME) ? signerObject.getString(CN_NAME) : null;
+                certBuilder.signer(TlsSignerConditionConfig.builder().cn(cn).build());
+            }
+            cert = certBuilder.build();
             break;
         }
         return cert;

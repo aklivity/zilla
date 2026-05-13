@@ -91,36 +91,36 @@
                                                     }
                                                 ]
                                             },
-                                            "client":
+                                            "cert":
                                             {
-                                                "title": "Client",
-                                                "type": "object",
-                                                "properties":
-                                                {
-                                                    "cert":
+                                                "title": "Client Certificate",
+                                                "oneOf":
+                                                [
                                                     {
-                                                        "title": "Client Certificate",
-                                                        "oneOf":
-                                                        [
+                                                        "type": "boolean"
+                                                    },
+                                                    {
+                                                        "type": "object",
+                                                        "properties":
+                                                        {
+                                                            "signer":
                                                             {
-                                                                "type": "boolean"
-                                                            },
-                                                            {
+                                                                "title": "Signer",
                                                                 "type": "object",
                                                                 "properties":
                                                                 {
                                                                     "cn":
                                                                     {
-                                                                        "title": "Signer Common Name",
+                                                                        "title": "Common Name",
                                                                         "type": "string"
                                                                     }
                                                                 },
                                                                 "additionalProperties": false
                                                             }
-                                                        ]
+                                                        },
+                                                        "additionalProperties": false
                                                     }
-                                                },
-                                                "additionalProperties": false
+                                                ]
                                             }
                                         },
                                         "additionalProperties": false

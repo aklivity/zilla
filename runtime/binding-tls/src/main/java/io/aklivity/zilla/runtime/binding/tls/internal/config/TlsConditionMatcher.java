@@ -41,7 +41,9 @@ public final class TlsConditionMatcher
 
         TlsCertConditionConfig cert = condition.cert;
         this.clientCertPresent = cert != null ? cert.present : null;
-        this.clientCertCnMatch = cert != null && cert.cn != null ? asMatcher(cert.cn) : null;
+        this.clientCertCnMatch = cert != null && cert.signer != null && cert.signer.cn != null
+            ? asMatcher(cert.signer.cn)
+            : null;
     }
 
     public boolean matches(

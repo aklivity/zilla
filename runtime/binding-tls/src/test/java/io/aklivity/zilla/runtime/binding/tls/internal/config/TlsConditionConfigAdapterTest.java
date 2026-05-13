@@ -144,13 +144,13 @@ public class TlsConditionConfigAdapterTest
     }
 
     @Test
-    public void shouldReadConditionWithClientCertCn()
+    public void shouldReadConditionWithCertSignerCn()
     {
         String text =
                 "{" +
-                    "\"client\":" +
+                    "\"cert\":" +
                     "{" +
-                        "\"cert\":" +
+                        "\"signer\":" +
                         "{" +
                             "\"cn\": \"clientca\"" +
                         "}" +
@@ -162,34 +162,34 @@ public class TlsConditionConfigAdapterTest
         assertThat(condition, not(nullValue()));
         assertThat(condition.cert, not(nullValue()));
         assertThat(condition.cert.present, equalTo(Boolean.TRUE));
-        assertThat(condition.cert.cn, equalTo("clientca"));
+        assertThat(condition.cert.signer, not(nullValue()));
+        assertThat(condition.cert.signer.cn, equalTo("clientca"));
     }
 
     @Test
-    public void shouldWriteConditionWithClientCertCn()
+    public void shouldWriteConditionWithCertSignerCn()
     {
         TlsConditionConfig condition = TlsConditionConfig.builder()
             .inject(identity())
             .cert()
-                .cn("clientca")
+                .signer()
+                    .cn("clientca")
+                    .build()
                 .build()
             .build();
 
         String text = jsonb.toJson(condition);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"client\":{\"cert\":{\"cn\":\"clientca\"}}}"));
+        assertThat(text, equalTo("{\"cert\":{\"signer\":{\"cn\":\"clientca\"}}}"));
     }
 
     @Test
-    public void shouldReadConditionWithClientCertPresent()
+    public void shouldReadConditionWithCertPresent()
     {
         String text =
                 "{" +
-                    "\"client\":" +
-                    "{" +
-                        "\"cert\": true" +
-                    "}" +
+                    "\"cert\": true" +
                 "}";
 
         TlsConditionConfig condition = jsonb.fromJson(text, TlsConditionConfig.class);
@@ -197,11 +197,11 @@ public class TlsConditionConfigAdapterTest
         assertThat(condition, not(nullValue()));
         assertThat(condition.cert, not(nullValue()));
         assertThat(condition.cert.present, equalTo(Boolean.TRUE));
-        assertThat(condition.cert.cn, nullValue());
+        assertThat(condition.cert.signer, nullValue());
     }
 
     @Test
-    public void shouldWriteConditionWithClientCertPresent()
+    public void shouldWriteConditionWithCertPresent()
     {
         TlsConditionConfig condition = TlsConditionConfig.builder()
             .inject(identity())
@@ -211,18 +211,15 @@ public class TlsConditionConfigAdapterTest
         String text = jsonb.toJson(condition);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"client\":{\"cert\":true}}"));
+        assertThat(text, equalTo("{\"cert\":true}"));
     }
 
     @Test
-    public void shouldReadConditionWithClientCertAbsent()
+    public void shouldReadConditionWithCertAbsent()
     {
         String text =
                 "{" +
-                    "\"client\":" +
-                    "{" +
-                        "\"cert\": false" +
-                    "}" +
+                    "\"cert\": false" +
                 "}";
 
         TlsConditionConfig condition = jsonb.fromJson(text, TlsConditionConfig.class);
@@ -230,11 +227,11 @@ public class TlsConditionConfigAdapterTest
         assertThat(condition, not(nullValue()));
         assertThat(condition.cert, not(nullValue()));
         assertThat(condition.cert.present, equalTo(Boolean.FALSE));
-        assertThat(condition.cert.cn, nullValue());
+        assertThat(condition.cert.signer, nullValue());
     }
 
     @Test
-    public void shouldWriteConditionWithClientCertAbsent()
+    public void shouldWriteConditionWithCertAbsent()
     {
         TlsConditionConfig condition = TlsConditionConfig.builder()
             .inject(identity())
@@ -244,6 +241,6 @@ public class TlsConditionConfigAdapterTest
         String text = jsonb.toJson(condition);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"client\":{\"cert\":false}}"));
+        assertThat(text, equalTo("{\"cert\":false}"));
     }
 }

@@ -131,11 +131,10 @@ bindings:
             mutual: requested
         routes:
             - when:
-                - client:
-                    cert:
+                - cert:
+                    signer:
                       cn: serverca
               exit: app0
             - when:
-                - client:
-                    cert: false
+                - cert: false
               exit: app1

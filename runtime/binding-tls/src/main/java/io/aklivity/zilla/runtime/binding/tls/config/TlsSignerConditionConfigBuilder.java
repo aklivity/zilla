@@ -19,48 +19,35 @@ import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 
-public final class TlsCertConditionConfigBuilder<T> extends ConfigBuilder<T, TlsCertConditionConfigBuilder<T>>
+public final class TlsSignerConditionConfigBuilder<T> extends ConfigBuilder<T, TlsSignerConditionConfigBuilder<T>>
 {
-    private final Function<TlsCertConditionConfig, T> mapper;
+    private final Function<TlsSignerConditionConfig, T> mapper;
 
-    private Boolean present;
-    private TlsSignerConditionConfig signer;
+    private String cn;
 
-    TlsCertConditionConfigBuilder(
-        Function<TlsCertConditionConfig, T> mapper)
+    TlsSignerConditionConfigBuilder(
+        Function<TlsSignerConditionConfig, T> mapper)
     {
         this.mapper = mapper;
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    protected Class<TlsCertConditionConfigBuilder<T>> thisType()
+    protected Class<TlsSignerConditionConfigBuilder<T>> thisType()
     {
-        return (Class<TlsCertConditionConfigBuilder<T>>) getClass();
+        return (Class<TlsSignerConditionConfigBuilder<T>>) getClass();
     }
 
-    public TlsCertConditionConfigBuilder<T> present(
-        boolean present)
+    public TlsSignerConditionConfigBuilder<T> cn(
+        String cn)
     {
-        this.present = present;
+        this.cn = cn;
         return this;
-    }
-
-    public TlsCertConditionConfigBuilder<T> signer(
-        TlsSignerConditionConfig signer)
-    {
-        this.signer = signer;
-        return this;
-    }
-
-    public TlsSignerConditionConfigBuilder<TlsCertConditionConfigBuilder<T>> signer()
-    {
-        return TlsSignerConditionConfig.builder(this::signer);
     }
 
     @Override
     public T build()
     {
-        return mapper.apply(new TlsCertConditionConfig(present, signer));
+        return mapper.apply(new TlsSignerConditionConfig(cn));
     }
 }
