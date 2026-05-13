@@ -29,7 +29,7 @@
                     },
                     "kind":
                     {
-                        "enum": [ "server", "client", "proxy" ]
+                        "enum": [ "server", "client", "proxy", "cache" ]
                     },
                     "catalog": false,
                     "vault": false,
@@ -38,6 +38,64 @@
                     {
                         "properties":
                         {
+                            "warmup":
+                            {
+                                "title": "Warmup",
+                                "type": "object",
+                                "properties":
+                                {
+                                    "authorization":
+                                    {
+                                        "title": "Authorization",
+                                        "type": "object",
+                                        "patternProperties":
+                                        {
+                                            "^[A-Za-z0-9_-]+$":
+                                            {
+                                                "type": "object",
+                                                "properties":
+                                                {
+                                                    "credentials":
+                                                    {
+                                                        "title": "Credentials",
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "additionalProperties": false
+                                            }
+                                        },
+                                        "additionalProperties": false
+                                    }
+                                },
+                                "additionalProperties": false
+                            },
+                            "ttl":
+                            {
+                                "title": "Refresh TTL by method type",
+                                "type": "object",
+                                "properties":
+                                {
+                                    "tools":
+                                    {
+                                        "title": "Tools refresh TTL",
+                                        "type": "string",
+                                        "format": "duration"
+                                    },
+                                    "resources":
+                                    {
+                                        "title": "Resources refresh TTL",
+                                        "type": "string",
+                                        "format": "duration"
+                                    },
+                                    "prompts":
+                                    {
+                                        "title": "Prompts refresh TTL",
+                                        "type": "string",
+                                        "format": "duration"
+                                    }
+                                },
+                                "additionalProperties": false
+                            },
                             "prompts":
                             {
                                 "title": "Local Prompts",
