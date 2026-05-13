@@ -30,6 +30,7 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 import org.agrona.collections.IntHashSet;
 import org.agrona.collections.MutableInteger;
 
+import io.aklivity.zilla.runtime.binding.tls.config.TlsCertConditionConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsConditionConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsConditionConfigBuilder;
 import io.aklivity.zilla.runtime.binding.tls.internal.TlsBinding;
@@ -41,6 +42,9 @@ public final class TlsConditionConfigAdapter implements ConditionConfigAdapterSp
     private static final String AUTHORITY_NAME = "authority";
     private static final String ALPN_NAME = "alpn";
     private static final String PORT_NAME = "port";
+    private static final String CLIENT_NAME = "client";
+    private static final String CERT_NAME = "cert";
+    private static final String CN_NAME = "cn";
 
     @Override
     public String type()
@@ -82,6 +86,29 @@ public final class TlsConditionConfigAdapter implements ConditionConfigAdapterSp
 
                 object.add(PORT_NAME, ports);
             }
+        }
+
+        if (tlsCondition.cert != null)
+        {
+            JsonObjectBuilder client = Json.createObjectBuilder();
+            TlsCertConditionConfig cert = tlsCondition.cert;
+
+            if (cert.cn != null)
+            {
+                JsonObjectBuilder certObject = Json.createObjectBuilder();
+                certObject.add(CN_NAME, cert.cn);
+                client.add(CERT_NAME, certObject);
+            }
+            else if (Boolean.FALSE.equals(cert.present))
+            {
+                client.add(CERT_NAME, JsonValue.FALSE);
+            }
+            else
+            {
+                client.add(CERT_NAME, JsonValue.TRUE);
+            }
+
+            object.add(CLIENT_NAME, client);
         }
 
         return object.build();
@@ -126,7 +153,43 @@ public final class TlsConditionConfigAdapter implements ConditionConfigAdapterSp
             tlsCondition.ports(ports);
         }
 
+        if (object.containsKey(CLIENT_NAME))
+        {
+            JsonObject client = object.getJsonObject(CLIENT_NAME);
+
+            if (client.containsKey(CERT_NAME))
+            {
+                JsonValue certValue = client.get(CERT_NAME);
+                tlsCondition.cert(adaptCertValueFromJson(certValue));
+            }
+        }
+
         return tlsCondition.build();
+    }
+
+    private static TlsCertConditionConfig adaptCertValueFromJson(
+        JsonValue value)
+    {
+        TlsCertConditionConfig cert;
+        switch (value.getValueType())
+        {
+        case TRUE:
+            cert = TlsCertConditionConfig.builder().present(true).build();
+            break;
+        case FALSE:
+            cert = TlsCertConditionConfig.builder().present(false).build();
+            break;
+        case OBJECT:
+        default:
+            JsonObject certObject = value.asJsonObject();
+            String cn = certObject.containsKey(CN_NAME) ? certObject.getString(CN_NAME) : null;
+            cert = TlsCertConditionConfig.builder()
+                .present(true)
+                .cn(cn)
+                .build();
+            break;
+        }
+        return cert;
     }
 
     private static void adaptPortsValueFromJson(

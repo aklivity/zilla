@@ -1682,8 +1682,31 @@ public final class TlsServerFactory implements TlsStreamFactory
 
             String tlsProtocol = "".equals(alpn) ? null : alpn;
 
+            boolean clientCertPresent = false;
+            String clientCertCn = null;
+            try
+            {
+                Certificate[] peerCerts = tlsSession.getPeerCertificates();
+                if (peerCerts.length > 0)
+                {
+                    X509Certificate leaf = (X509Certificate) peerCerts[0];
+                    clientCertPresent = true;
+                    String issuerDn = leaf.getIssuerX500Principal().getName();
+                    if (matchCN.reset(issuerDn).find())
+                    {
+                        clientCertCn = matchCN.group("cn");
+                    }
+                }
+            }
+            catch (SSLPeerUnverifiedException ex)
+            {
+                // no client cert presented under mutual: requested
+            }
+
             final TlsBindingConfig binding = bindings.get(routedId);
-            final TlsRouteConfig route = binding != null ? binding.resolve(authorization, tlsHostname, tlsProtocol, port) : null;
+            final TlsRouteConfig route = binding != null
+                ? binding.resolve(authorization, tlsHostname, tlsProtocol, port, clientCertPresent, clientCertCn)
+                : null;
 
             if (route != null)
             {

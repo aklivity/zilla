@@ -21,6 +21,7 @@ import java.util.regex.Pattern;
 
 import org.agrona.collections.IntHashSet;
 
+import io.aklivity.zilla.runtime.binding.tls.config.TlsCertConditionConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsConditionConfig;
 
 public final class TlsConditionMatcher
@@ -28,6 +29,8 @@ public final class TlsConditionMatcher
     public final Matcher authorityMatch;
     public final Matcher alpnMatch;
     public final IntHashSet ports;
+    public final Boolean clientCertPresent;
+    public final Matcher clientCertCnMatch;
 
     public TlsConditionMatcher(
         TlsConditionConfig condition)
@@ -35,9 +38,26 @@ public final class TlsConditionMatcher
         this.authorityMatch = condition.authority != null ? asMatcher(condition.authority) : null;
         this.alpnMatch = condition.alpn != null ? asMatcher(condition.alpn) : null;
         this.ports = condition.ports != null ? asIntHashSet(condition.ports) : null;
+
+        TlsCertConditionConfig cert = condition.cert;
+        this.clientCertPresent = cert != null ? cert.present : null;
+        this.clientCertCnMatch = cert != null && cert.cn != null ? asMatcher(cert.cn) : null;
     }
 
     public boolean matches(
+        String authority,
+        String alpn,
+        int port,
+        boolean clientCertPresent,
+        String clientCertCn)
+    {
+        return matchesAuthority(authority) &&
+                matchesAlpn(alpn) &&
+                matchesPort(port) &&
+                matchesClientCert(clientCertPresent, clientCertCn);
+    }
+
+    public boolean matchesIgnoringCert(
         String authority,
         String alpn,
         int port)
@@ -69,6 +89,22 @@ public final class TlsConditionMatcher
         int port)
     {
         return ports == null || ports.contains(port);
+    }
+
+    private boolean matchesClientCert(
+        boolean present,
+        String cn)
+    {
+        boolean matches = true;
+        if (clientCertPresent != null && clientCertPresent.booleanValue() != present)
+        {
+            matches = false;
+        }
+        else if (clientCertCnMatch != null)
+        {
+            matches = present && cn != null && clientCertCnMatch.reset(cn).matches();
+        }
+        return matches;
     }
 
     private static Matcher asMatcher(

@@ -148,7 +148,7 @@ public final class TlsBindingConfig
 
         int port = resolveDestinationPort(beginEx);
 
-        return resolve(authorization, authority, alpn, port);
+        return resolve(authorization, authority, alpn, port, false, null);
     }
 
     public TlsRouteConfig resolvePortOnly(
@@ -193,10 +193,13 @@ public final class TlsBindingConfig
         long authorization,
         String hostname,
         String alpn,
-        int port)
+        int port,
+        boolean clientCertPresent,
+        String clientCertCn)
     {
         return routes.stream()
-                .filter(r -> r.authorized(authorization) && r.matches(hostname, alpn, port))
+                .filter(r -> r.authorized(authorization) &&
+                    r.matches(hostname, alpn, port, clientCertPresent, clientCertCn))
                 .findFirst()
                 .orElse(null);
     }
@@ -364,7 +367,7 @@ public final class TlsBindingConfig
                             }
 
                             if (route.authorized(authorization) &&
-                                route.matches(authority, protocol, port))
+                                route.matchesIgnoringCert(authority, protocol, port))
                             {
                                 selected = protocol;
                                 break;
@@ -386,7 +389,7 @@ public final class TlsBindingConfig
                     }
 
                     if (route.authorized(authorization) &&
-                        route.matches(null, protocol, port))
+                        route.matchesIgnoringCert(null, protocol, port))
                     {
                         selected = protocol;
                         break;

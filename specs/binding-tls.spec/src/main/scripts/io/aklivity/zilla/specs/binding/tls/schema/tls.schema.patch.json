@@ -90,6 +90,37 @@
                                                         }
                                                     }
                                                 ]
+                                            },
+                                            "client":
+                                            {
+                                                "title": "Client",
+                                                "type": "object",
+                                                "properties":
+                                                {
+                                                    "cert":
+                                                    {
+                                                        "title": "Client Certificate",
+                                                        "oneOf":
+                                                        [
+                                                            {
+                                                                "type": "boolean"
+                                                            },
+                                                            {
+                                                                "type": "object",
+                                                                "properties":
+                                                                {
+                                                                    "cn":
+                                                                    {
+                                                                        "title": "Signer Common Name",
+                                                                        "type": "string"
+                                                                    }
+                                                                },
+                                                                "additionalProperties": false
+                                                            }
+                                                        ]
+                                                    }
+                                                },
+                                                "additionalProperties": false
                                             }
                                         },
                                         "additionalProperties": false

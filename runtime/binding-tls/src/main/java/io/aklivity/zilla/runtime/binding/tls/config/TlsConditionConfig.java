@@ -24,6 +24,7 @@ public final class TlsConditionConfig extends ConditionConfig
     public final String authority;
     public final String alpn;
     public final int[] ports;
+    public final TlsCertConditionConfig cert;
 
     public static TlsConditionConfigBuilder<TlsConditionConfig> builder()
     {
@@ -39,10 +40,12 @@ public final class TlsConditionConfig extends ConditionConfig
     TlsConditionConfig(
         String authority,
         String alpn,
-        int[] ports)
+        int[] ports,
+        TlsCertConditionConfig cert)
     {
         this.authority = authority;
         this.alpn = alpn;
         this.ports = ports;
+        this.cert = cert;
     }
 }
