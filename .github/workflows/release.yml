@@ -164,33 +164,36 @@ jobs:
     - name: Setup buildx to publish multi-arch images
       run: docker buildx create --driver docker-container --name release --use
 
-    - name: Publish zilla image to GitHub Container Registry
+    - name: Extract docker build contexts
       run: |
-        TARGET=cloud/docker-image/target/docker/ghcr.io/aklivity/zilla/${{ inputs.version }}
-        CTX=$TARGET/tmp/docker-build
-        rm -rf $CTX
-        mkdir -p $CTX
-        tar -xf $TARGET/tmp/docker-build.tar -C $CTX
-        docker buildx build --push \
-          --platform linux/amd64,linux/arm64 \
-          --provenance=false \
-          --tag ghcr.io/aklivity/zilla:${{ inputs.version }} \
-          ${{ steps.tag.outputs.latest && format('--tag ghcr.io/aklivity/zilla:{0}', steps.tag.outputs.latest) || '' }} \
-          -f $CTX/Dockerfile $CTX
+        find cloud/docker-image/target/docker -name docker-build.tar -print0 | while IFS= read -r -d '' tar; do
+          ctx="${tar%.tar}"
+          rm -rf "$ctx" && mkdir -p "$ctx"
+          tar -xf "$tar" -C "$ctx"
+        done
+
+    - name: Publish zilla image to GitHub Container Registry
+      uses: docker/build-push-action@v6
+      with:
+        context: cloud/docker-image/target/docker/ghcr.io/aklivity/zilla/${{ inputs.version }}/tmp/docker-build
+        platforms: linux/amd64,linux/arm64
+        push: true
+        provenance: false
+        tags: |
+          ghcr.io/aklivity/zilla:${{ inputs.version }}
+          ${{ steps.tag.outputs.latest && format('ghcr.io/aklivity/zilla:{0}', steps.tag.outputs.latest) || '' }}
 
     - name: Publish zilla-alpine image to GitHub Container Registry
-      run: |
-        TARGET=cloud/docker-image/target/docker/ghcr.io/aklivity/zilla/${{ inputs.version }}-alpine
-        CTX=$TARGET/tmp/docker-build
-        rm -rf $CTX
-        mkdir -p $CTX
-        tar -xf $TARGET/tmp/docker-build.tar -C $CTX
-        docker buildx build --push \
-          --platform linux/amd64 \
-          --provenance=false \
-          --tag ghcr.io/aklivity/zilla:${{ inputs.version }}-alpine \
-          ${{ steps.tag.outputs.latest && '--tag ghcr.io/aklivity/zilla:alpine' || '' }} \
-          -f $CTX/alpine.Dockerfile $CTX
+      uses: docker/build-push-action@v6
+      with:
+        context: cloud/docker-image/target/docker/ghcr.io/aklivity/zilla/${{ inputs.version }}-alpine/tmp/docker-build
+        file: cloud/docker-image/target/docker/ghcr.io/aklivity/zilla/${{ inputs.version }}-alpine/tmp/docker-build/alpine.Dockerfile
+        platforms: linux/amd64
+        push: true
+        provenance: false
+        tags: |
+          ghcr.io/aklivity/zilla:${{ inputs.version }}-alpine
+          ${{ steps.tag.outputs.latest && 'ghcr.io/aklivity/zilla:alpine' || '' }}
 
     - name: Setup helm
       uses: azure/setup-helm@v4
