@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.2.4-rc2](https://github.com/aklivity/zilla/tree/1.2.4-rc2) (2026-05-15)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/1.2.3...1.2.4-rc2)
+
+**Closed issues:**
+
+- binding-mcp server: align mcp-session-id worker affinity via REDIRECT [\#1761](https://github.com/aklivity/zilla/issues/1761)
+- `binding-mcp` support elicitation [\#1739](https://github.com/aklivity/zilla/issues/1739)
+
+**Merged pull requests:**
+
+- mcp: session id alignment + redirect handling and configurable attempts [\#1764](https://github.com/aklivity/zilla/pull/1764) ([jfallows](https://github.com/jfallows))
+- Cache Maven repository in release workflow using actions/cache and generated cache key [\#1763](https://github.com/aklivity/zilla/pull/1763) ([jfallows](https://github.com/jfallows))
+- feat\(binding-mcp\): MCP elicitation across server, proxy, and client kinds \(\#1739\) [\#1752](https://github.com/aklivity/zilla/pull/1752) ([jfallows](https://github.com/jfallows))
+- Bump ubuntu from jammy-20260109 to jammy-20260410 in /cloud/docker-image/src/main/docker [\#1727](https://github.com/aklivity/zilla/pull/1727) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump alpine from 3.23.2 to 3.23.4 in /cloud/docker-image/src/main/docker [\#1726](https://github.com/aklivity/zilla/pull/1726) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump actions/upload-artifact from 6 to 7 [\#1644](https://github.com/aklivity/zilla/pull/1644) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump lycheeverse/lychee-action from 2.7.0 to 2.8.0 [\#1643](https://github.com/aklivity/zilla/pull/1643) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump github/codeql-action from 3 to 4 [\#1584](https://github.com/aklivity/zilla/pull/1584) ([dependabot[bot]](https://github.com/apps/dependabot))
+
 ## [1.2.3](https://github.com/aklivity/zilla/tree/1.2.3) (2026-05-11)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/1.2.2...1.2.3)
