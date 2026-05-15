@@ -156,7 +156,7 @@ jobs:
 
     - name: Deploy via Maven
       run: |
-        ./mvnw -B -U -nsu clean deploy -U -Drelease -Ddocker.latest.tag=${{ steps.tag.outputs.latest }}
+        ./mvnw -B -U -nsu -ntp clean deploy -Drelease -Ddocker.latest.tag=${{ steps.tag.outputs.latest }}
       env:
         GITHUB_ACTOR: ${{ github.actor }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
