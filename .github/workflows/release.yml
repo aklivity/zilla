@@ -161,6 +161,15 @@ jobs:
         GITHUB_ACTOR: ${{ github.actor }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+    - name: Uncache Maven project release artifacts
+      if: always()
+      run: |
+        GROUP_ID=`./mvnw help:evaluate -Dexpression=project.groupId -q -DforceStdout`
+        rm -fr ~/.m2/repository/$(echo $GROUP_ID | tr . /)
+      env:
+        GITHUB_ACTOR: ${{ github.actor }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
     - name: Setup buildx to publish multi-arch images
       run: docker buildx create --driver docker-container --name release --use
 
@@ -201,14 +210,6 @@ jobs:
     - name: Publish zilla chart to GitHub Container Registry
       run: |
         helm push cloud/helm-chart/target/helm/repo/zilla-${{ inputs.version }}.tgz oci://ghcr.io/aklivity/charts
-
-    - name: Uncache Maven project release artifacts
-      run: |
-        GROUP_ID=`./mvnw help:evaluate -Dexpression=project.groupId -q -DforceStdout`
-        rm -fr ~/.m2/repository/$(echo $GROUP_ID | tr . /)
-      env:
-        GITHUB_ACTOR: ${{ github.actor }}
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   finalize:
     name: Finalize ${{ inputs.version }}
