@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>cloud</artifactId>
-    <version>1.2.3</version>
+    <version>1.2.4-rc2</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -58,20 +58,7 @@
           <chartVersion>${project.version}</chartVersion>
           <appVersion>${project.version}</appVersion>
           <skipUpload>true</skipUpload>
-          <skipPushLogin>true</skipPushLogin>
-          <uploadRepoStable>
-            <name>github</name>
-            <url>ghcr.io/aklivity/charts</url>
-          </uploadRepoStable>
         </configuration>
-        <executions>
-          <execution>
-            <goals>
-              <goal>lint</goal>
-              <goal>push</goal>
-            </goals>
-          </execution>
-        </executions>
       </plugin>
       <plugin>
         <groupId>org.jasig.maven</groupId>

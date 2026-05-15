@@ -16,11 +16,13 @@ package io.aklivity.zilla.runtime.binding.mcp.internal;
 
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_CLIENT_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_CLIENT_VERSION;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_ELICITATION_ID;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_INACTIVITY_TIMEOUT;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_KEEPALIVE_TOLERANCE;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_SERVER_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_SERVER_VERSION;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_SESSION_ID;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_SESSION_ID_ATTEMPTS;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_SSE_KEEPALIVE_INTERVAL;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DETACH_ON_CLOSE;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_SYNTHETIC_ABORT;
@@ -33,11 +35,13 @@ public class McpConfigurationTest
     public static final String ENGINE_DETACH_ON_CLOSE_NAME = "zilla.engine.detach.on.close";
     public static final String ENGINE_SYNTHETIC_ABORT_NAME = "zilla.engine.synthetic.abort";
     public static final String MCP_SESSION_ID_NAME = "zilla.binding.mcp.session.id";
+    public static final String MCP_ELICITATION_ID_NAME = "zilla.binding.mcp.elicitation.id";
     public static final String MCP_SERVER_NAME_NAME = "zilla.binding.mcp.server.name";
     public static final String MCP_SERVER_VERSION_NAME = "zilla.binding.mcp.server.version";
     public static final String MCP_CLIENT_NAME_NAME = "zilla.binding.mcp.client.name";
     public static final String MCP_CLIENT_VERSION_NAME = "zilla.binding.mcp.client.version";
     public static final String MCP_INACTIVITY_TIMEOUT_NAME = "zilla.binding.mcp.inactivity.timeout";
+    public static final String MCP_SESSION_ID_ATTEMPTS_NAME = "zilla.binding.mcp.session.id.attempts";
     public static final String MCP_KEEPALIVE_TOLERANCE_NAME = "zilla.binding.mcp.keepalive.tolerance";
     public static final String MCP_SSE_KEEPALIVE_INTERVAL_NAME = "zilla.binding.mcp.sse.keepalive.interval";
 
@@ -47,11 +51,13 @@ public class McpConfigurationTest
         assertEquals(ENGINE_DETACH_ON_CLOSE.name(), ENGINE_DETACH_ON_CLOSE_NAME);
         assertEquals(ENGINE_SYNTHETIC_ABORT.name(), ENGINE_SYNTHETIC_ABORT_NAME);
         assertEquals(MCP_SESSION_ID.name(), MCP_SESSION_ID_NAME);
+        assertEquals(MCP_ELICITATION_ID.name(), MCP_ELICITATION_ID_NAME);
         assertEquals(MCP_SERVER_NAME.name(), MCP_SERVER_NAME_NAME);
         assertEquals(MCP_SERVER_VERSION.name(), MCP_SERVER_VERSION_NAME);
         assertEquals(MCP_CLIENT_NAME.name(), MCP_CLIENT_NAME_NAME);
         assertEquals(MCP_CLIENT_VERSION.name(), MCP_CLIENT_VERSION_NAME);
         assertEquals(MCP_INACTIVITY_TIMEOUT.name(), MCP_INACTIVITY_TIMEOUT_NAME);
+        assertEquals(MCP_SESSION_ID_ATTEMPTS.name(), MCP_SESSION_ID_ATTEMPTS_NAME);
         assertEquals(MCP_KEEPALIVE_TOLERANCE.name(), MCP_KEEPALIVE_TOLERANCE_NAME);
         assertEquals(MCP_SSE_KEEPALIVE_INTERVAL.name(), MCP_SSE_KEEPALIVE_INTERVAL_NAME);
     }

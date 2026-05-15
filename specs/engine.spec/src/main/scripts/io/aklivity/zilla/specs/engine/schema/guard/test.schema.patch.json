@@ -69,6 +69,10 @@
                                     }
                                 },
                                 "additionalProperties": false
+                            },
+                            "preauthorize":
+                            {
+                                "type": "string"
                             }
                         },
                         "additionalProperties": false

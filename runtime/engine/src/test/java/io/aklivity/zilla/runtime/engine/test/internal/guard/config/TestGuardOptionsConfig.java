@@ -31,6 +31,7 @@ public final class TestGuardOptionsConfig extends OptionsConfig
     public final String identity;
     public final List<String> roles;
     public final Map<String, String> attributes;
+    public final String preauthorize;
 
     public static TestGuardOptionsConfigBuilder<TestGuardOptionsConfig> builder()
     {
@@ -49,7 +50,8 @@ public final class TestGuardOptionsConfig extends OptionsConfig
         Duration challenge,
         String identity,
         List<String> roles,
-        Map<String, String> attributes)
+        Map<String, String> attributes,
+        String preauthorize)
     {
         this.credentials = credentials;
         this.lifetime = Objects.requireNonNull(lifetime);
@@ -57,5 +59,6 @@ public final class TestGuardOptionsConfig extends OptionsConfig
         this.identity = identity;
         this.roles = roles;
         this.attributes = attributes;
+        this.preauthorize = preauthorize;
     }
 }

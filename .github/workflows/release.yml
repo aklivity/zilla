@@ -44,7 +44,7 @@ jobs:
         git clone https://github.com/petervanderdoes/gitflow-avh.git
         cd gitflow-avh
         sudo make install
-    
+
     - name: Configure git credentials
       run: |
         git config --global user.name "github-actions[bot]"
@@ -76,13 +76,6 @@ jobs:
       with:
         java-version: 25
         distribution: zulu
-
-    - name: Cache Maven packages
-      uses: actions/cache@v5
-      with:
-        path: ~/.m2
-        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-        restore-keys: ${{ runner.os }}-m2
 
     - name: Update POM versions on release branch
       run: |
@@ -125,24 +118,86 @@ jobs:
       with:
         java-version: 25
         distribution: zulu
-        cache: maven
         server-id: github
         server-username: GITHUB_ACTOR
         server-password: GITHUB_TOKEN
 
+    - name: Create Maven cache key input
+      run: |
+        find . -name pom.xml -print0 \
+          | sort -z \
+          | xargs -0 sed -E '0,/<version>[^<]+<\/version>/s//<version>IGNORED<\/version>/' \
+          > .maven-cache-key
+
+    - name: Cache Maven packages
+      uses: actions/cache@v5
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('.maven-cache-key') }}
+        restore-keys: ${{ runner.os }}-m2-
+
     - name: Log in to GitHub Container Registry
-      uses: docker/login-action@v3
+      uses: docker/login-action@v4
       with:
         registry: ghcr.io
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
+    - name: Determine docker tag
+      id: tag
+      run: |
+        VERSION="${{ github.event.inputs.version }}"
+        if [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          TAG="latest"
+        else
+          TAG=""
+        fi
+        echo "latest=$TAG" >> $GITHUB_OUTPUT
+
     - name: Deploy via Maven
       run: |
-        ./mvnw -B -U -nsu clean deploy -U -Drelease
+        ./mvnw -B -U -nsu clean deploy -U -Drelease -Ddocker.latest.tag=${{ steps.tag.outputs.latest }}
       env:
         GITHUB_ACTOR: ${{ github.actor }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Setup buildx to publish multi-arch images
+      run: docker buildx create --driver docker-container --name release --use
+
+    - name: Publish zilla image to GitHub Container Registry
+      run: |
+        TARGET=cloud/docker-image/target/docker/ghcr.io/aklivity/zilla/${{ inputs.version }}
+        CTX=$TARGET/tmp/docker-build
+        rm -rf $CTX
+        mkdir -p $CTX
+        tar -xf $TARGET/tmp/docker-build.tar -C $CTX
+        docker buildx build --push \
+          --platform linux/amd64,linux/arm64 \
+          --provenance=false \
+          --tag ghcr.io/aklivity/zilla:${{ inputs.version }} \
+          ${{ steps.tag.outputs.latest && format('--tag ghcr.io/aklivity/zilla:{0}', steps.tag.outputs.latest) || '' }} \
+          -f $CTX/Dockerfile $CTX
+
+    - name: Publish zilla-alpine image to GitHub Container Registry
+      run: |
+        TARGET=cloud/docker-image/target/docker/ghcr.io/aklivity/zilla/${{ inputs.version }}-alpine
+        CTX=$TARGET/tmp/docker-build
+        rm -rf $CTX
+        mkdir -p $CTX
+        tar -xf $TARGET/tmp/docker-build.tar -C $CTX
+        docker buildx build --push \
+          --platform linux/amd64 \
+          --provenance=false \
+          --tag ghcr.io/aklivity/zilla:${{ inputs.version }}-alpine \
+          ${{ steps.tag.outputs.latest && '--tag ghcr.io/aklivity/zilla:alpine' || '' }} \
+          -f $CTX/alpine.Dockerfile $CTX
+
+    - name: Setup helm
+      uses: azure/setup-helm@v4
+
+    - name: Publish zilla chart to GitHub Container Registry
+      run: |
+        helm push cloud/helm-chart/target/helm/repo/zilla-${{ inputs.version }}.tgz oci://ghcr.io/aklivity/charts
 
     - name: Uncache Maven project release artifacts
       run: |
@@ -178,7 +233,7 @@ jobs:
         git clone https://github.com/petervanderdoes/gitflow-avh.git
         cd gitflow-avh
         sudo make install
-    
+
     - name: Configure git credentials
       run: |
         git config --global user.name "github-actions[bot]"

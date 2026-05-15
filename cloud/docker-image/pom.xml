@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>cloud</artifactId>
-    <version>1.2.3</version>
+    <version>1.2.4-rc2</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -424,15 +424,6 @@
                 <tags>
                   <tag>${docker.latest.tag}</tag>
                 </tags>
-                <buildx>
-                  <platforms>
-                    <platform>linux/amd64</platform>
-                    <platform>linux/arm64</platform>
-                  </platforms>
-                  <attestations>
-                    <provenance>false</provenance>
-                  </attestations>
-                </buildx>
                 <assemblies>
                   <assembly>
                     <descriptor>assembly.xml</descriptor>
@@ -446,7 +437,6 @@
           <execution>
             <goals>
               <goal>build</goal>
-              <goal>push</goal>
             </goals>
           </execution>
         </executions>
@@ -479,14 +469,6 @@
                     <tags>
                       <tag>alpine</tag>
                     </tags>
-                    <buildx>
-                      <platforms>
-                        <platform>linux/amd64</platform>
-                      </platforms>
-                      <attestations>
-                        <provenance>false</provenance>
-                      </attestations>
-                    </buildx>
                     <assemblies>
                       <assembly>
                         <descriptor>assembly.xml</descriptor>

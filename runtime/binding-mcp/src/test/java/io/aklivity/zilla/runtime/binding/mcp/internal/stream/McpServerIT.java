@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.ENGINE_DETACH_ON_CLOSE_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.ENGINE_SYNTHETIC_ABORT_NAME;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_ELICITATION_ID_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_INACTIVITY_TIMEOUT_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_SERVER_NAME_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_SERVER_VERSION_NAME;
@@ -49,6 +50,7 @@ public class McpServerIT
         .countersBufferCapacity(8192)
         .configurationRoot("io/aklivity/zilla/specs/binding/mcp/config")
         .configure(MCP_SESSION_ID_NAME, "%s::sessionId".formatted(McpServerIT.class.getName()))
+        .configure(MCP_ELICITATION_ID_NAME, "%s::elicitationId".formatted(McpServerIT.class.getName()))
         .configure(MCP_SERVER_NAME_NAME, "zilla")
         .configure(MCP_SERVER_VERSION_NAME, "1.0")
         .external("app0")
@@ -185,6 +187,36 @@ public class McpServerIT
         "${net}/tools.call/client",
         "${app}/tools.call/server"})
     public void shouldCallTool() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/tools.call.elicit.completed/client",
+        "${app}/tools.call.elicit.completed/server"})
+    public void shouldCallToolElicitCompleted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/tools.call.elicit.declined/client",
+        "${app}/tools.call.elicit.declined/server"})
+    public void shouldCallToolElicitDeclined() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/tools.call.elicit.timeout/client",
+        "${app}/tools.call.elicit.timeout/server"})
+    public void shouldCallToolElicitTimeout() throws Exception
     {
         k3po.finish();
     }
@@ -556,8 +588,22 @@ public class McpServerIT
         k3po.finish();
     }
 
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/reject.auth.callback.unknown.elicitation/client"})
+    public void shouldRejectAuthCallbackUnknownElicitation() throws Exception
+    {
+        k3po.finish();
+    }
+
     public static String sessionId()
     {
         return "session-1";
+    }
+
+    public static String elicitationId()
+    {
+        return "elicit-1";
     }
 }

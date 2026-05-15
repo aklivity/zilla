@@ -18,7 +18,9 @@ package io.aklivity.zilla.specs.binding.http.internal;
 import static java.lang.Character.toLowerCase;
 import static java.lang.Character.toUpperCase;
 
+import java.net.URLEncoder;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -84,6 +86,13 @@ public final class HttpFunctions
     public static HttpChallengeExBuilder challengeEx()
     {
         return new HttpChallengeExBuilder();
+    }
+
+    @Function
+    public static String encodeQuery(
+        String value)
+    {
+        return URLEncoder.encode(value, StandardCharsets.UTF_8).replace("+", "%20");
     }
 
     @Function

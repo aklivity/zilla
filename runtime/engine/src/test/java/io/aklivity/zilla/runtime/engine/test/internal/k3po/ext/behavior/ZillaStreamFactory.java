@@ -239,6 +239,14 @@ public final class ZillaStreamFactory
             if (config.getUpdate() == ZillaUpdateMode.HANDSHAKE ||
                 config.getUpdate() == ZillaUpdateMode.STREAM)
             {
+                if (channel.getParent() != null)
+                {
+                    // accept-side child: drain any tasks queued during the
+                    // beginInputFuture listener chain (e.g., AdviseInputTask
+                    // from a `read advise` placed before `connected`) so their
+                    // frames land on the streamsBuffer ahead of this WINDOW
+                    channel.engine.drainTasks();
+                }
                 sender.doWindow(channel);
             }
 

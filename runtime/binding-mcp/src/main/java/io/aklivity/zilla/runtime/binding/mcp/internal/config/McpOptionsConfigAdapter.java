@@ -21,6 +21,7 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.runtime.binding.mcp.config.McpElicitationConfig;
 import io.aklivity.zilla.runtime.binding.mcp.config.McpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mcp.config.McpOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.mcp.config.McpPromptConfig;
@@ -33,6 +34,11 @@ public final class McpOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
     private static final String PROMPTS_NAME = "prompts";
     private static final String PROMPT_NAME_NAME = "name";
     private static final String PROMPT_DESCRIPTION_NAME = "description";
+
+    private static final String ELICITATION_NAME = "elicitation";
+    private static final String ELICITATION_CALLBACK_NAME = "callback";
+
+    private static final String AUTHORIZATION_NAME = "authorization";
 
     @Override
     public Kind kind()
@@ -70,6 +76,20 @@ public final class McpOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
             object.add(PROMPTS_NAME, prompts);
         }
 
+        if (mcpOptions.elicitation != null)
+        {
+            JsonObjectBuilder elicitation = Json.createObjectBuilder();
+            elicitation.add(ELICITATION_CALLBACK_NAME, mcpOptions.elicitation.callback);
+            object.add(ELICITATION_NAME, elicitation);
+        }
+
+        if (mcpOptions.authorization != null)
+        {
+            JsonObjectBuilder authorization = Json.createObjectBuilder();
+            authorization.add("name", mcpOptions.authorization.name);
+            object.add(AUTHORIZATION_NAME, authorization);
+        }
+
         return object.build();
     }
 
@@ -91,6 +111,25 @@ public final class McpOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
                     : null;
                 builder.prompt(name, description);
             }
+        }
+
+        if (object.containsKey(ELICITATION_NAME))
+        {
+            JsonObject elicitation = object.getJsonObject(ELICITATION_NAME);
+            String callback = elicitation.containsKey(ELICITATION_CALLBACK_NAME)
+                ? elicitation.getString(ELICITATION_CALLBACK_NAME)
+                : McpElicitationConfig.DEFAULT_CALLBACK_PATH;
+            builder.elicitation()
+                .callback(callback)
+                .build();
+        }
+
+        if (object.containsKey(AUTHORIZATION_NAME))
+        {
+            JsonObject authorization = object.getJsonObject(AUTHORIZATION_NAME);
+            builder.authorization()
+                .name(authorization.getString("name"))
+                .build();
         }
 
         return builder.build();

@@ -37,6 +37,7 @@ public final class TestGuardHandler implements GuardHandler
     private final String identity;
     private final List<String> roles;
     private final Map<String, String> attributes;
+    private final String preauthorize;
 
     private final Long2LongHashMap sessions;
     private final MutableLong nextSessionId;
@@ -49,6 +50,7 @@ public final class TestGuardHandler implements GuardHandler
         this.challenge = config.options != null ? config.options.challenge : DEFAULT_CHALLENGE_NEVER;
         this.identity = config.options != null ? config.options.identity : DEFAULT_IDENTITY;
         this.roles = config.options != null ? config.options.roles : null;
+        this.preauthorize = config.options != null ? config.options.preauthorize : null;
         this.sessions = new Long2LongHashMap(-1L);
         this.nextSessionId = new MutableLong(1L);
         this.attributes = config.options != null ? config.options.attributes : null;
@@ -61,18 +63,45 @@ public final class TestGuardHandler implements GuardHandler
         long contextId,
         String credentials)
     {
-        long sessionId = 0L;
+        long sessionId = NOT_AUTHORIZED;
 
         if (this.credentials != null && this.credentials.equals(credentials))
         {
-            long expiresAt = DEFAULT_LIFETIME_FOREVER.equals(lifetime)
-                    ? EXPIRES_NEVER
-                    : Instant.now().toEpochMilli() + lifetime.toMillis();
-
-            sessionId = nextSessionId.value++;
-            sessions.put(sessionId, expiresAt);
+            sessionId = createSession();
+        }
+        else if (preauthorize != null)
+        {
+            if (credentials == null)
+            {
+                sessionId = NEEDS_PREAUTHORIZE;
+            }
+            else if (credentials.contains("code="))
+            {
+                sessionId = createSession();
+            }
         }
 
+        return sessionId;
+    }
+
+    @Override
+    public String preauthorize(
+        long traceId,
+        long bindingId,
+        long contextId,
+        String callback)
+    {
+        return preauthorize;
+    }
+
+    private long createSession()
+    {
+        long expiresAt = DEFAULT_LIFETIME_FOREVER.equals(lifetime)
+                ? EXPIRES_NEVER
+                : Instant.now().toEpochMilli() + lifetime.toMillis();
+
+        long sessionId = nextSessionId.value++;
+        sessions.put(sessionId, expiresAt);
         return sessionId;
     }
 
