@@ -71,4 +71,13 @@ public class ProxyCacheToolsListIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/cache.serve.tools.list.hydrating/client",
+        "${app}/cache.serve.tools.list.hydrating/server" })
+    public void shouldServeToolsListHydrating() throws Exception
+    {
+        k3po.finish();
+    }
 }

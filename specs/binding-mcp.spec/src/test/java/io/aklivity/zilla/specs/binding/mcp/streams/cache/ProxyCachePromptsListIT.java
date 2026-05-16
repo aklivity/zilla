@@ -62,4 +62,13 @@ public class ProxyCachePromptsListIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/cache.serve.prompts.list.hydrating/client",
+        "${app}/cache.serve.prompts.list.hydrating/server" })
+    public void shouldServePromptsListHydrating() throws Exception
+    {
+        k3po.finish();
+    }
 }

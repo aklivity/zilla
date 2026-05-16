@@ -86,4 +86,15 @@ public class McpProxyCacheToolsListIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.cache.yaml")
+    @Specification({
+        "${app}/cache.serve.tools.list.hydrating/client",
+        "${app}/cache.serve.tools.list.hydrating/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldServeToolsListHydrating() throws Exception
+    {
+        k3po.finish();
+    }
 }
