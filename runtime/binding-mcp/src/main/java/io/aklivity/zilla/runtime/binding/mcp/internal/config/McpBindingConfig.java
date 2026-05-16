@@ -36,6 +36,7 @@ public final class McpBindingConfig
     public final long id;
     public final McpOptionsConfig options;
     public final GuardHandler guard;
+    public McpListCache cache;
 
     private final List<McpRouteConfig> routes;
 

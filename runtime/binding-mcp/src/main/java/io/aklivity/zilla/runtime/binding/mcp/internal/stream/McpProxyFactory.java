@@ -44,6 +44,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpBindingConfig;
+import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpListCache;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpRouteConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpRoutePrefix;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.Flyweight;
@@ -74,10 +75,6 @@ public final class McpProxyFactory implements McpStreamFactory
 
     private static final int SIGNAL_INITIATE_HYDRATE = 1;
     private static final String HYDRATE_SESSION_ID = "hydrate-1";
-    private static final String STORE_KEY_TOOLS = "tools";
-    private static final String STORE_KEY_RESOURCES = "resources";
-    private static final String STORE_KEY_PROMPTS = "prompts";
-    private static final long STORE_TTL_FOREVER = Long.MAX_VALUE;
 
     private static final List<String> TOOLS_LIST_ITEM_JSON_PATH_INCLUDES = List.of("/tools/-/name");
     private static final List<String> PROMPTS_LIST_ITEM_JSON_PATH_INCLUDES = List.of("/prompts/-/name");
@@ -130,7 +127,6 @@ public final class McpProxyFactory implements McpStreamFactory
     private final Long2ObjectHashMap<McpBindingConfig> bindings;
     private final Map<String, McpLifecycleServer> sessions;
     private final Long2ObjectHashMap<HydrateSession> hydrateSessions;
-    private final Long2ObjectHashMap<StoreHandler> cacheStores;
 
     private final JsonParserFactory toolsListItemParserFactory;
     private final JsonParserFactory promptsListItemParserFactory;
@@ -152,7 +148,6 @@ public final class McpProxyFactory implements McpStreamFactory
         this.bindings = new Long2ObjectHashMap<>();
         this.sessions = new Object2ObjectHashMap<>();
         this.hydrateSessions = new Long2ObjectHashMap<>();
-        this.cacheStores = new Long2ObjectHashMap<>();
         this.mcpTypeId = context.supplyTypeId(MCP_TYPE_NAME);
         this.toolsListItemParserFactory = StreamingJson.createParserFactory(
             Map.of(StreamingJson.PATH_INCLUDES, TOOLS_LIST_ITEM_JSON_PATH_INCLUDES));
@@ -179,12 +174,12 @@ public final class McpProxyFactory implements McpStreamFactory
         {
             final long storeId = binding.resolveId.applyAsLong(newBinding.options.cache.store);
             final StoreHandler store = supplyStore.apply(storeId);
-            cacheStores.put(newBinding.id, store);
+            newBinding.cache = new McpListCache(store);
 
             McpRouteConfig route = newBinding.resolve(0L);
             if (route != null)
             {
-                HydrateSession hydrate = new HydrateSession(newBinding.id, route.id, store);
+                HydrateSession hydrate = new HydrateSession(newBinding.id, route.id, newBinding.cache);
                 hydrateSessions.put(newBinding.id, hydrate);
                 signaler.signalAt(currentTimeMillis(), SIGNAL_INITIATE_HYDRATE, hydrate::onInitiateSignal);
             }
@@ -196,7 +191,6 @@ public final class McpProxyFactory implements McpStreamFactory
         long bindingId)
     {
         bindings.remove(bindingId);
-        cacheStores.remove(bindingId);
 
         HydrateSession hydrate = hydrateSessions.remove(bindingId);
         if (hydrate != null)
@@ -252,8 +246,8 @@ public final class McpProxyFactory implements McpStreamFactory
                 {
                     if (isListKind(kind))
                     {
-                        final StoreHandler cacheStore = cacheStores.get(routedId);
-                        if (cacheStore != null)
+                        final McpListCache cache = binding.cache;
+                        if (cache != null)
                         {
                             newStream = new McpCacheListServer(
                                 lifecycle,
@@ -261,8 +255,7 @@ public final class McpProxyFactory implements McpStreamFactory
                                 initialId,
                                 affinity,
                                 authorization,
-                                cacheStore,
-                                storeKeyForListKind(kind))::onServerMessage;
+                                cache)::onServerMessage;
                         }
                         else
                         {
@@ -2818,8 +2811,7 @@ public final class McpProxyFactory implements McpStreamFactory
         private final long replyId;
         private final long affinity;
         private final long authorization;
-        private final StoreHandler store;
-        private final String storeKey;
+        private final McpListCache cache;
 
         private int state;
         private boolean fetched;
@@ -2842,8 +2834,7 @@ public final class McpProxyFactory implements McpStreamFactory
             long initialId,
             long affinity,
             long authorization,
-            StoreHandler store,
-            String storeKey)
+            McpListCache cache)
         {
             this.lifecycle = lifecycle;
             this.kind = kind;
@@ -2851,8 +2842,7 @@ public final class McpProxyFactory implements McpStreamFactory
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.affinity = affinity;
             this.authorization = authorization;
-            this.store = store;
-            this.storeKey = storeKey;
+            this.cache = cache;
         }
 
         private void onServerMessage(
@@ -2894,7 +2884,7 @@ public final class McpProxyFactory implements McpStreamFactory
 
             doServerBegin(traceId);
             doServerWindow(traceId, 0L, 0);
-            store.get(storeKey, this::onStoreResult);
+            cache.get(kind, this::onStoreResult);
         }
 
         private void onStoreResult(
@@ -3050,11 +3040,10 @@ public final class McpProxyFactory implements McpStreamFactory
         private final long routedId;
         private final long initialId;
         private final long replyId;
-        private final StoreHandler store;
+        private final McpListCache cache;
 
         private MessageConsumer receiver;
         private int state;
-        private boolean hydrated;
 
         private long initialSeq;
         private long initialAck;
@@ -3067,11 +3056,11 @@ public final class McpProxyFactory implements McpStreamFactory
         HydrateSession(
             long originId,
             long routedId,
-            StoreHandler store)
+            McpListCache cache)
         {
             this.originId = originId;
             this.routedId = routedId;
-            this.store = store;
+            this.cache = cache;
             this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.replyMax = bufferPool.slotCapacity();
@@ -3128,12 +3117,20 @@ public final class McpProxyFactory implements McpStreamFactory
         private void onBegin(
             BeginFW begin)
         {
+            final long traceId = begin.traceId();
             state = McpState.openingReply(state);
-            doReplyWindow(begin.traceId());
+            doReplyWindow(traceId);
 
-            if (!hydrated)
+            for (int kind : new int[] { KIND_TOOLS_LIST, KIND_RESOURCES_LIST, KIND_PROMPTS_LIST })
             {
-                startListStream(KIND_TOOLS_LIST, begin.traceId());
+                final int listKind = kind;
+                cache.get(listKind, (key, value) ->
+                {
+                    if (value == null)
+                    {
+                        startListStream(listKind, traceId);
+                    }
+                });
             }
         }
 
@@ -3148,30 +3145,8 @@ public final class McpProxyFactory implements McpStreamFactory
             int kind,
             long traceId)
         {
-            final String storeKey = switch (kind)
-            {
-            case KIND_TOOLS_LIST -> STORE_KEY_TOOLS;
-            case KIND_RESOURCES_LIST -> STORE_KEY_RESOURCES;
-            case KIND_PROMPTS_LIST -> STORE_KEY_PROMPTS;
-            default -> null;
-            };
-            HydrateListStream list = new HydrateListStream(this, originId, routedId, kind, storeKey, store);
+            HydrateListStream list = new HydrateListStream(originId, routedId, kind, cache);
             list.initiate(traceId);
-        }
-
-        private void onListStreamComplete(
-            int kind,
-            long traceId)
-        {
-            switch (kind)
-            {
-            case KIND_TOOLS_LIST -> startListStream(KIND_RESOURCES_LIST, traceId);
-            case KIND_RESOURCES_LIST -> startListStream(KIND_PROMPTS_LIST, traceId);
-            case KIND_PROMPTS_LIST -> hydrated = true;
-            default ->
-            {
-            }
-            }
         }
 
         private void cleanup(
@@ -3188,12 +3163,10 @@ public final class McpProxyFactory implements McpStreamFactory
 
     private final class HydrateListStream
     {
-        private final HydrateSession session;
         private final long originId;
         private final long routedId;
         private final int kind;
-        private final String storeKey;
-        private final StoreHandler store;
+        private final McpListCache cache;
         private final long initialId;
         private final long replyId;
 
@@ -3211,19 +3184,15 @@ public final class McpProxyFactory implements McpStreamFactory
         private int replyMax;
 
         HydrateListStream(
-            HydrateSession session,
             long originId,
             long routedId,
             int kind,
-            String storeKey,
-            StoreHandler store)
+            McpListCache cache)
         {
-            this.session = session;
             this.originId = originId;
             this.routedId = routedId;
             this.kind = kind;
-            this.storeKey = storeKey;
-            this.store = store;
+            this.cache = cache;
             this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.replyMax = bufferPool.slotCapacity();
@@ -3278,7 +3247,6 @@ public final class McpProxyFactory implements McpStreamFactory
             case AbortFW.TYPE_ID:
             case ResetFW.TYPE_ID:
                 state = McpState.closedReply(state);
-                session.onListStreamComplete(kind, supplyTraceId.getAsLong());
                 break;
             default:
                 break;
@@ -3320,14 +3288,13 @@ public final class McpProxyFactory implements McpStreamFactory
             EndFW end)
         {
             state = McpState.closedReply(state);
-            if (store != null && storeKey != null && bodyLen > 0)
+            if (cache != null && bodyLen > 0)
             {
                 final String value = new String(body, 0, bodyLen, StandardCharsets.UTF_8);
-                store.put(storeKey, value, STORE_TTL_FOREVER, k ->
+                cache.put(kind, value, k ->
                 {
                 });
             }
-            session.onListStreamComplete(kind, end.traceId());
         }
 
         private void doReplyWindow(
@@ -3342,18 +3309,6 @@ public final class McpProxyFactory implements McpStreamFactory
         int kind)
     {
         return kind == KIND_TOOLS_LIST || kind == KIND_PROMPTS_LIST || kind == KIND_RESOURCES_LIST;
-    }
-
-    private static String storeKeyForListKind(
-        int kind)
-    {
-        return switch (kind)
-        {
-        case KIND_TOOLS_LIST -> STORE_KEY_TOOLS;
-        case KIND_RESOURCES_LIST -> STORE_KEY_RESOURCES;
-        case KIND_PROMPTS_LIST -> STORE_KEY_PROMPTS;
-        default -> throw new IllegalStateException("unexpected list kind: " + kind);
-        };
     }
 
     private static int indexOfByte(
