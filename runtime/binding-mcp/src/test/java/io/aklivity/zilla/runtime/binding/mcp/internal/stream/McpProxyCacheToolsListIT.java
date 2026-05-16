@@ -31,7 +31,6 @@ import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
 
-@Ignore("TODO: enable when proxy cache option lands")
 public class McpProxyCacheToolsListIT
 {
     private final K3poRule k3po = new K3poRule()
@@ -70,6 +69,7 @@ public class McpProxyCacheToolsListIT
         k3po.finish();
     }
 
+    @Ignore("TODO: enable when periodic refresh lands")
     @Test
     @Configuration("proxy.cache.refresh.yaml")
     @Specification({
@@ -80,6 +80,7 @@ public class McpProxyCacheToolsListIT
         k3po.finish();
     }
 
+    @Ignore("TODO: enable when periodic refresh lands")
     @Test
     @Configuration("proxy.cache.refresh.yaml")
     @Specification({
@@ -90,6 +91,7 @@ public class McpProxyCacheToolsListIT
         k3po.finish();
     }
 
+    @Ignore("TODO: enable when hydrating-wait lands")
     @Test
     @Configuration("proxy.cache.yaml")
     @Specification({
