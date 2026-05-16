@@ -31,6 +31,7 @@ import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
+@Ignore("TODO: enable when proxy cache option lands")
 public class McpProxyCacheContentionIT
 {
     private final K3poRule k3po = new K3poRule()
@@ -49,7 +50,6 @@ public class McpProxyCacheContentionIT
     @Rule
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
-    @Ignore("TODO: enable when proxy cache option lands")
     @Test
     @Configuration("proxy.cache.refresh.yaml")
     @Specification({
