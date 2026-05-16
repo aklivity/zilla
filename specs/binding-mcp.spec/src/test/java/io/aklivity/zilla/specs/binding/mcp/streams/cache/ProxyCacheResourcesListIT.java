@@ -26,7 +26,7 @@ import org.junit.rules.Timeout;
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 
-public class CachePromptsListIT
+public class ProxyCacheResourcesListIT
 {
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("app", "io/aklivity/zilla/specs/binding/mcp/streams/application");
@@ -38,18 +38,18 @@ public class CachePromptsListIT
 
     @Test
     @Specification({
-        "${app}/cache.warmup.session.prompts.list/client",
-        "${app}/cache.warmup.session.prompts.list/server" })
-    public void shouldPopulatePromptsViaWarmup() throws Exception
+        "${app}/cache.hydrate.session.resources.list/client",
+        "${app}/cache.hydrate.session.resources.list/server" })
+    public void shouldPopulateResourcesViaHydrate() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${app}/cache.agent.prompts.list.from.cache/client",
-        "${app}/cache.agent.prompts.list.from.cache/server" })
-    public void shouldServeAgentPromptsListFromCache() throws Exception
+        "${app}/cache.agent.resources.list.from.cache/client",
+        "${app}/cache.agent.resources.list.from.cache/server" })
+    public void shouldServeAgentResourcesListFromCache() throws Exception
     {
         k3po.finish();
     }

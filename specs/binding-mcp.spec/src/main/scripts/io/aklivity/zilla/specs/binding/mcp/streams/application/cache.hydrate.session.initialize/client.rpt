@@ -13,43 +13,22 @@
 # specific language governing permissions and limitations under the License.
 #
 
-# Downstream errors out during warmup tools/list. Lifecycle session must
-# survive so the cache can retry later or continue with other list types.
-
-property serverAddress "zilla://streams/app0"
-
-accept ${serverAddress}
-       option zilla:window 8192
-       option zilla:transmission "half-duplex"
-
-accepted
-
-read zilla:begin.ext ${mcp:matchBeginEx()
-                          .typeId(zilla:id("mcp"))
-                          .lifecycle()
-                              .sessionId("warmup-1")
-                              .build()
-                          .build()}
-
-connected
+connect "zilla://streams/app0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
 
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .lifecycle()
-                               .sessionId("warmup-1")
+                               .sessionId("hydrate-1")
                                .build()
                            .build()}
-write flush
-
-accepted
-
-read zilla:begin.ext ${mcp:matchBeginEx()
-                          .typeId(zilla:id("mcp"))
-                          .toolsList()
-                              .sessionId("warmup-1")
-                              .build()
-                          .build()}
 
 connected
 
-write abort
+read zilla:begin.ext ${mcp:matchBeginEx()
+                          .typeId(zilla:id("mcp"))
+                          .lifecycle()
+                              .sessionId("hydrate-1")
+                              .build()
+                          .build()}

@@ -13,45 +13,56 @@
 # specific language governing permissions and limitations under the License.
 #
 
-# Downstream errors out during warmup tools/list. Lifecycle session must
-# survive so the cache can retry later or continue with other list types.
+property serverAddress "zilla://streams/app0"
 
-connect "zilla://streams/app0"
-        option zilla:window 8192
-        option zilla:transmission "half-duplex"
+accept ${serverAddress}
+       option zilla:window 8192
+       option zilla:transmission "half-duplex"
 
-write zilla:begin.ext ${mcp:beginEx()
-                           .typeId(zilla:id("mcp"))
-                           .lifecycle()
-                               .sessionId("warmup-1")
-                               .build()
-                           .build()}
-
-connected
+accepted
 
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .lifecycle()
-                              .sessionId("warmup-1")
+                              .sessionId("hydrate-1")
                               .build()
                           .build()}
 
-read notify LIFECYCLE_INITIALIZED
-
-connect await LIFECYCLE_INITIALIZED
-        "zilla://streams/app0"
-        option zilla:window 8192
-        option zilla:transmission "half-duplex"
+connected
 
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
-                           .toolsList()
-                               .sessionId("warmup-1")
+                           .lifecycle()
+                               .sessionId("hydrate-1")
                                .build()
                            .build()}
+write flush
+
+accepted
+
+read zilla:begin.ext ${mcp:matchBeginEx()
+                          .typeId(zilla:id("mcp"))
+                          .resourcesList()
+                              .sessionId("hydrate-1")
+                              .build()
+                          .build()}
 
 connected
 
-write close
+write flush
 
-read aborted
+read closed
+
+write '{"resources":'
+        '['
+          '{'
+            '"uri": "file:///docs/welcome.md",'
+            '"name": "welcome",'
+            '"description": "Welcome document",'
+            '"mimeType": "text/markdown"'
+          '}'
+        ']'
+      '}'
+write flush
+
+write close

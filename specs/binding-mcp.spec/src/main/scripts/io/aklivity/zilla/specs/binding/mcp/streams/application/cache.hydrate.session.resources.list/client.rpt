@@ -20,7 +20,7 @@ connect "zilla://streams/app0"
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .lifecycle()
-                               .sessionId("warmup-1")
+                               .sessionId("hydrate-1")
                                .build()
                            .build()}
 
@@ -29,7 +29,7 @@ connected
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .lifecycle()
-                              .sessionId("warmup-1")
+                              .sessionId("hydrate-1")
                               .build()
                           .build()}
 
@@ -43,7 +43,7 @@ connect await LIFECYCLE_INITIALIZED
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .resourcesList()
-                               .sessionId("warmup-1")
+                               .sessionId("hydrate-1")
                                .build()
                            .build()}
 

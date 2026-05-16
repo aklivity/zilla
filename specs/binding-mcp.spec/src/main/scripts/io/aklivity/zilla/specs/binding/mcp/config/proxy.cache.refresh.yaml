@@ -15,19 +15,19 @@
 
 ---
 name: test
-guards:
-  test0:
-    type: test
-    options:
-      credentials: "warmup-token"
+stores:
+  memory0:
+    type: memory
 bindings:
   app0:
     type: mcp
-    kind: cache
+    kind: proxy
     options:
-      warmup:
-        authorization:
-          test0:
-            credentials: "Bearer warmup-token"
+      cache:
+        store: memory0
+        ttl:
+          tools: PT1S
+          resources: PT2S
+          prompts: PT3S
     routes:
       - exit: app1

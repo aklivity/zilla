@@ -26,7 +26,7 @@ import org.junit.rules.Timeout;
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 
-public class CacheResourcesListIT
+public class ProxyCacheLifecycleIT
 {
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("app", "io/aklivity/zilla/specs/binding/mcp/streams/application");
@@ -38,18 +38,36 @@ public class CacheResourcesListIT
 
     @Test
     @Specification({
-        "${app}/cache.warmup.session.resources.list/client",
-        "${app}/cache.warmup.session.resources.list/server" })
-    public void shouldPopulateResourcesViaWarmup() throws Exception
+        "${app}/cache.hydrate.session.initialize/client",
+        "${app}/cache.hydrate.session.initialize/server" })
+    public void shouldOpenHydrateSessionAndInitialize() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${app}/cache.agent.resources.list.from.cache/client",
-        "${app}/cache.agent.resources.list.from.cache/server" })
-    public void shouldServeAgentResourcesListFromCache() throws Exception
+        "${app}/cache.hydrate.session.persists/client",
+        "${app}/cache.hydrate.session.persists/server" })
+    public void shouldKeepHydrateSessionOpenAfterEnumeration() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/cache.hydrate.session.downstream.error/client",
+        "${app}/cache.hydrate.session.downstream.error/server" })
+    public void shouldSurviveDownstreamErrorDuringHydrate() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/cache.agent.initialize.from.cache/client",
+        "${app}/cache.agent.initialize.from.cache/server" })
+    public void shouldServeAgentInitializeFromCache() throws Exception
     {
         k3po.finish();
     }

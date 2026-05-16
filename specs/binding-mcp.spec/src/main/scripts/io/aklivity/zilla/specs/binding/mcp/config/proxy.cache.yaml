@@ -15,16 +15,15 @@
 
 ---
 name: test
+stores:
+  memory0:
+    type: memory
 bindings:
   app0:
     type: mcp
-    kind: cache
+    kind: proxy
     options:
-      warmup: {}
+      cache:
+        store: memory0
     routes:
       - exit: app1
-        when:
-          - toolkit: bluesky
-      - exit: app2
-        when:
-          - toolkit: quartz

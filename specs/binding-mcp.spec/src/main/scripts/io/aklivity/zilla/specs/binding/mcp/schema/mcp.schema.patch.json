@@ -29,7 +29,7 @@
                     },
                     "kind":
                     {
-                        "enum": [ "server", "client", "proxy", "cache" ]
+                        "enum": [ "server", "client", "proxy" ]
                     },
                     "catalog": false,
                     "vault": false,
@@ -38,12 +38,44 @@
                     {
                         "properties":
                         {
-                            "warmup":
+                            "cache":
                             {
-                                "title": "Warmup",
+                                "title": "Cache",
                                 "type": "object",
                                 "properties":
                                 {
+                                    "store":
+                                    {
+                                        "title": "Store",
+                                        "type": "string"
+                                    },
+                                    "ttl":
+                                    {
+                                        "title": "Refresh TTL by method type",
+                                        "type": "object",
+                                        "properties":
+                                        {
+                                            "tools":
+                                            {
+                                                "title": "Tools refresh TTL",
+                                                "type": "string",
+                                                "format": "duration"
+                                            },
+                                            "resources":
+                                            {
+                                                "title": "Resources refresh TTL",
+                                                "type": "string",
+                                                "format": "duration"
+                                            },
+                                            "prompts":
+                                            {
+                                                "title": "Prompts refresh TTL",
+                                                "type": "string",
+                                                "format": "duration"
+                                            }
+                                        },
+                                        "additionalProperties": false
+                                    },
                                     "authorization":
                                     {
                                         "title": "Authorization",
@@ -67,33 +99,7 @@
                                         "additionalProperties": false
                                     }
                                 },
-                                "additionalProperties": false
-                            },
-                            "ttl":
-                            {
-                                "title": "Refresh TTL by method type",
-                                "type": "object",
-                                "properties":
-                                {
-                                    "tools":
-                                    {
-                                        "title": "Tools refresh TTL",
-                                        "type": "string",
-                                        "format": "duration"
-                                    },
-                                    "resources":
-                                    {
-                                        "title": "Resources refresh TTL",
-                                        "type": "string",
-                                        "format": "duration"
-                                    },
-                                    "prompts":
-                                    {
-                                        "title": "Prompts refresh TTL",
-                                        "type": "string",
-                                        "format": "duration"
-                                    }
-                                },
+                                "required": [ "store" ],
                                 "additionalProperties": false
                             },
                             "prompts":

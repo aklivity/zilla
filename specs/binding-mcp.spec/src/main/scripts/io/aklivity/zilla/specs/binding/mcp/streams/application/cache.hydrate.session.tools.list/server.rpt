@@ -24,7 +24,7 @@ accepted
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .lifecycle()
-                              .sessionId("warmup-1")
+                              .sessionId("hydrate-1")
                               .build()
                           .build()}
 
@@ -33,7 +33,7 @@ connected
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .lifecycle()
-                               .sessionId("warmup-1")
+                               .sessionId("hydrate-1")
                                .build()
                            .build()}
 write flush
@@ -43,7 +43,7 @@ accepted
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .toolsList()
-                              .sessionId("warmup-1")
+                              .sessionId("hydrate-1")
                               .build()
                           .build()}
 
@@ -53,50 +53,35 @@ write flush
 
 read closed
 
-write '{"tools":[]}'
+write '{"tools":'
+        '['
+          '{'
+            '"name": "get_weather",'
+            '"title": "Weather Information Provider",'
+            '"description": "Get current weather information for a location",'
+            '"inputSchema": {'
+              '"type": "object",'
+              '"properties": {'
+                '"location": {'
+                  '"type": "string",'
+                  '"description": "City name or zip code"'
+                '}'
+              '},'
+              '"required": ["location"]'
+            '},'
+            '"icons": ['
+              '{'
+                '"src": "https://example.com/weather-icon.png",'
+                '"mimeType": "image/png",'
+                '"sizes": ["48x48"]'
+              '}'
+            '],'
+            '"execution": {'
+              '"taskSupport": "optional"'
+            '}'
+          '}'
+        ']'
+      '}'
 write flush
 
 write close
-
-accepted
-
-read zilla:begin.ext ${mcp:matchBeginEx()
-                          .typeId(zilla:id("mcp"))
-                          .resourcesList()
-                              .sessionId("warmup-1")
-                              .build()
-                          .build()}
-
-connected
-
-write flush
-
-read closed
-
-write '{"resources":[]}'
-write flush
-
-write close
-
-accepted
-
-read zilla:begin.ext ${mcp:matchBeginEx()
-                          .typeId(zilla:id("mcp"))
-                          .promptsList()
-                              .sessionId("warmup-1")
-                              .build()
-                          .build()}
-
-connected
-
-write flush
-
-read closed
-
-write '{"prompts":[]}'
-write flush
-
-write close
-
-# After all three list streams close, the lifecycle stream must remain open;
-# k3po finishes here without observing END/ABORT on the lifecycle accept above.

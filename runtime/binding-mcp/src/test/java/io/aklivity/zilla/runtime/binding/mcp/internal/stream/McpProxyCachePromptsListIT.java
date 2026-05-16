@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.specs.binding.mcp.streams.cache;
+package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -23,33 +23,46 @@ import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
 
+import io.aklivity.k3po.runtime.junit.annotation.ScriptProperty;
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
+import io.aklivity.zilla.runtime.engine.test.EngineRule;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
-public class CacheToolsListIT
+public class McpProxyCachePromptsListIT
 {
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("app", "io/aklivity/zilla/specs/binding/mcp/streams/application");
 
-    private final TestRule timeout = new DisableOnDebug(new Timeout(5, SECONDS));
+    private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
+
+    private final EngineRule engine = new EngineRule()
+        .directory("target/zilla-itests")
+        .countersBufferCapacity(8192)
+        .configurationRoot("io/aklivity/zilla/specs/binding/mcp/config")
+        .external("app1")
+        .clean();
 
     @Rule
-    public final TestRule chain = outerRule(k3po).around(timeout);
+    public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
+    @Configuration("proxy.cache.yaml")
     @Specification({
-        "${app}/cache.warmup.session.tools.list/client",
-        "${app}/cache.warmup.session.tools.list/server" })
-    public void shouldPopulateToolsViaWarmup() throws Exception
+        "${app}/cache.hydrate.session.prompts.list/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldPopulatePromptsViaHydrate() throws Exception
     {
         k3po.finish();
     }
 
     @Test
+    @Configuration("proxy.cache.yaml")
     @Specification({
-        "${app}/cache.agent.tools.list.from.cache/client",
-        "${app}/cache.agent.tools.list.from.cache/server" })
-    public void shouldServeAgentToolsListFromCache() throws Exception
+        "${app}/cache.agent.prompts.list.from.cache/client",
+        "${app}/cache.hydrate.session.prompts.list/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldServeAgentPromptsListFromCache() throws Exception
     {
         k3po.finish();
     }

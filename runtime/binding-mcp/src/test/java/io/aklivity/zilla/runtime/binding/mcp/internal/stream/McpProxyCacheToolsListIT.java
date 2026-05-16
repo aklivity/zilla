@@ -29,7 +29,7 @@ import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
-public class McpCacheToolsListIT
+public class McpProxyCacheToolsListIT
 {
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("app", "io/aklivity/zilla/specs/binding/mcp/streams/application");
@@ -47,20 +47,20 @@ public class McpCacheToolsListIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("cache.yaml")
+    @Configuration("proxy.cache.yaml")
     @Specification({
-        "${app}/cache.warmup.session.tools.list/server" })
+        "${app}/cache.hydrate.session.tools.list/server" })
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
-    public void shouldPopulateToolsViaWarmup() throws Exception
+    public void shouldPopulateToolsViaHydrate() throws Exception
     {
         k3po.finish();
     }
 
     @Test
-    @Configuration("cache.yaml")
+    @Configuration("proxy.cache.yaml")
     @Specification({
         "${app}/cache.agent.tools.list.from.cache/client",
-        "${app}/cache.warmup.session.tools.list/server" })
+        "${app}/cache.hydrate.session.tools.list/server" })
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldServeAgentToolsListFromCache() throws Exception
     {

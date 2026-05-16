@@ -20,7 +20,7 @@ connect "zilla://streams/app0"
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .lifecycle()
-                               .sessionId("warmup-1")
+                               .sessionId("hydrate-1")
                                .build()
                            .build()}
 
@@ -29,7 +29,7 @@ connected
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .lifecycle()
-                              .sessionId("warmup-1")
+                              .sessionId("hydrate-1")
                               .build()
                           .build()}
 
@@ -43,7 +43,7 @@ connect await LIFECYCLE_INITIALIZED
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .toolsList()
-                               .sessionId("warmup-1")
+                               .sessionId("hydrate-1")
                                .build()
                            .build()}
 
@@ -51,33 +51,49 @@ connected
 
 write close
 
-read  '{"tools":'
-        '['
-          '{'
-            '"name": "get_weather",'
-            '"title": "Weather Information Provider",'
-            '"description": "Get current weather information for a location",'
-            '"inputSchema": {'
-              '"type": "object",'
-              '"properties": {'
-                '"location": {'
-                  '"type": "string",'
-                  '"description": "City name or zip code"'
-                '}'
-              '},'
-              '"required": ["location"]'
-            '},'
-            '"icons": ['
-              '{'
-                '"src": "https://example.com/weather-icon.png",'
-                '"mimeType": "image/png",'
-                '"sizes": ["48x48"]'
-              '}'
-            '],'
-            '"execution": {'
-              '"taskSupport": "optional"'
-            '}'
-          '}'
-        ']'
-      '}'
+read '{"tools":[]}'
 read closed
+
+read notify TOOLS_LIST_COMPLETE
+
+connect await TOOLS_LIST_COMPLETE
+        "zilla://streams/app0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${mcp:beginEx()
+                           .typeId(zilla:id("mcp"))
+                           .resourcesList()
+                               .sessionId("hydrate-1")
+                               .build()
+                           .build()}
+
+connected
+
+write close
+
+read '{"resources":[]}'
+read closed
+
+read notify RESOURCES_LIST_COMPLETE
+
+connect await RESOURCES_LIST_COMPLETE
+        "zilla://streams/app0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${mcp:beginEx()
+                           .typeId(zilla:id("mcp"))
+                           .promptsList()
+                               .sessionId("hydrate-1")
+                               .build()
+                           .build()}
+
+connected
+
+write close
+
+read '{"prompts":[]}'
+read closed
+
+# Lifecycle connection (opened first) remains open here — no close issued.

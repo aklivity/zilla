@@ -26,7 +26,7 @@ import org.junit.rules.Timeout;
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 
-public class CacheLifecycleIT
+public class ProxyCacheToolsListIT
 {
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("app", "io/aklivity/zilla/specs/binding/mcp/streams/application");
@@ -38,45 +38,18 @@ public class CacheLifecycleIT
 
     @Test
     @Specification({
-        "${app}/cache.warmup.session.initialize/client",
-        "${app}/cache.warmup.session.initialize/server" })
-    public void shouldOpenWarmupSessionAndInitialize() throws Exception
+        "${app}/cache.hydrate.session.tools.list/client",
+        "${app}/cache.hydrate.session.tools.list/server" })
+    public void shouldPopulateToolsViaHydrate() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${app}/cache.warmup.session.persists/client",
-        "${app}/cache.warmup.session.persists/server" })
-    public void shouldKeepWarmupSessionOpenAfterEnumeration() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/cache.warmup.session.uses.test.guard.credentials/client",
-        "${app}/cache.warmup.session.uses.test.guard.credentials/server" })
-    public void shouldIssueWarmupWithTestGuardCredentials() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/cache.warmup.session.downstream.error/client",
-        "${app}/cache.warmup.session.downstream.error/server" })
-    public void shouldSurviveDownstreamErrorDuringWarmup() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/cache.agent.initialize.from.cache/client",
-        "${app}/cache.agent.initialize.from.cache/server" })
-    public void shouldServeAgentInitializeFromCache() throws Exception
+        "${app}/cache.agent.tools.list.from.cache/client",
+        "${app}/cache.agent.tools.list.from.cache/server" })
+    public void shouldServeAgentToolsListFromCache() throws Exception
     {
         k3po.finish();
     }

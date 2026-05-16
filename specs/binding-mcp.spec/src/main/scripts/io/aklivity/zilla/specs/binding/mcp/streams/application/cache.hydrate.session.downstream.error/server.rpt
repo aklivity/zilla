@@ -13,6 +13,9 @@
 # specific language governing permissions and limitations under the License.
 #
 
+# Downstream errors out during hydrate tools/list. Lifecycle session must
+# survive so the cache can retry later or continue with other list types.
+
 property serverAddress "zilla://streams/app0"
 
 accept ${serverAddress}
@@ -24,7 +27,7 @@ accepted
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .lifecycle()
-                              .sessionId("warmup-1")
+                              .sessionId("hydrate-1")
                               .build()
                           .build()}
 
@@ -33,7 +36,20 @@ connected
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .lifecycle()
-                               .sessionId("warmup-1")
+                               .sessionId("hydrate-1")
                                .build()
                            .build()}
 write flush
+
+accepted
+
+read zilla:begin.ext ${mcp:matchBeginEx()
+                          .typeId(zilla:id("mcp"))
+                          .toolsList()
+                              .sessionId("hydrate-1")
+                              .build()
+                          .build()}
+
+connected
+
+write abort

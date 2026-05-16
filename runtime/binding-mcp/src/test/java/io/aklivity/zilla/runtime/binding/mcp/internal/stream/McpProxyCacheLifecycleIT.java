@@ -29,7 +29,7 @@ import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
-public class McpCacheLifecycleIT
+public class McpProxyCacheLifecycleIT
 {
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("app", "io/aklivity/zilla/specs/binding/mcp/streams/application");
@@ -47,50 +47,40 @@ public class McpCacheLifecycleIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("cache.yaml")
+    @Configuration("proxy.cache.yaml")
     @Specification({
-        "${app}/cache.warmup.session.initialize/server" })
+        "${app}/cache.hydrate.session.initialize/server" })
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
-    public void shouldOpenWarmupSessionAndInitialize() throws Exception
+    public void shouldOpenHydrateSessionAndInitialize() throws Exception
     {
         k3po.finish();
     }
 
     @Test
-    @Configuration("cache.yaml")
+    @Configuration("proxy.cache.yaml")
     @Specification({
-        "${app}/cache.warmup.session.persists/server" })
+        "${app}/cache.hydrate.session.persists/server" })
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
-    public void shouldKeepWarmupSessionOpenAfterEnumeration() throws Exception
+    public void shouldKeepHydrateSessionOpenAfterEnumeration() throws Exception
     {
         k3po.finish();
     }
 
     @Test
-    @Configuration("cache.guarded.yaml")
+    @Configuration("proxy.cache.yaml")
     @Specification({
-        "${app}/cache.warmup.session.uses.test.guard.credentials/server" })
+        "${app}/cache.hydrate.session.downstream.error/server" })
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
-    public void shouldIssueWarmupWithTestGuardCredentials() throws Exception
+    public void shouldSurviveDownstreamErrorDuringHydrate() throws Exception
     {
         k3po.finish();
     }
 
     @Test
-    @Configuration("cache.yaml")
-    @Specification({
-        "${app}/cache.warmup.session.downstream.error/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
-    public void shouldSurviveDownstreamErrorDuringWarmup() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("cache.yaml")
+    @Configuration("proxy.cache.yaml")
     @Specification({
         "${app}/cache.agent.initialize.from.cache/client",
-        "${app}/cache.warmup.session.initialize/server" })
+        "${app}/cache.hydrate.session.initialize/server" })
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldServeAgentInitializeFromCache() throws Exception
     {

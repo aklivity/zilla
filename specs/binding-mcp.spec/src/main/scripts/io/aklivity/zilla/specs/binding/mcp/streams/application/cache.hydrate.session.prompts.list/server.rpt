@@ -13,13 +13,6 @@
 # specific language governing permissions and limitations under the License.
 #
 
-# Verifies that the cache's warmup session is established when a guard is
-# configured under options.warmup.authorization.<guard>.credentials.
-# The TestGuard captures the configured credentials; the cache must consult
-# the guard to acquire an authorization context before issuing the warmup
-# lifecycle BEGIN downstream. The non-zero authorization carried on the
-# BEGIN frame demonstrates the guard was invoked.
-
 property serverAddress "zilla://streams/app0"
 
 accept ${serverAddress}
@@ -31,7 +24,7 @@ accepted
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .lifecycle()
-                              .sessionId("warmup-1")
+                              .sessionId("hydrate-1")
                               .build()
                           .build()}
 
@@ -40,7 +33,34 @@ connected
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .lifecycle()
-                               .sessionId("warmup-1")
+                               .sessionId("hydrate-1")
                                .build()
                            .build()}
 write flush
+
+accepted
+
+read zilla:begin.ext ${mcp:matchBeginEx()
+                          .typeId(zilla:id("mcp"))
+                          .promptsList()
+                              .sessionId("hydrate-1")
+                              .build()
+                          .build()}
+
+connected
+
+write flush
+
+read closed
+
+write '{"prompts":'
+        '['
+          '{'
+            '"name": "summarize",'
+            '"description": "Summarize a document"'
+          '}'
+        ']'
+      '}'
+write flush
+
+write close

@@ -24,7 +24,7 @@ accepted
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .lifecycle()
-                              .sessionId("warmup-1")
+                              .sessionId("hydrate-1")
                               .build()
                           .build()}
 
@@ -33,34 +33,7 @@ connected
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .lifecycle()
-                               .sessionId("warmup-1")
+                               .sessionId("hydrate-1")
                                .build()
                            .build()}
 write flush
-
-accepted
-
-read zilla:begin.ext ${mcp:matchBeginEx()
-                          .typeId(zilla:id("mcp"))
-                          .promptsList()
-                              .sessionId("warmup-1")
-                              .build()
-                          .build()}
-
-connected
-
-write flush
-
-read closed
-
-write '{"prompts":'
-        '['
-          '{'
-            '"name": "summarize",'
-            '"description": "Summarize a document"'
-          '}'
-        ']'
-      '}'
-write flush
-
-write close
