@@ -1294,15 +1294,6 @@ public final class McpServerFactory implements McpStreamFactory
             this.altSvc = altSvc;
         }
 
-        private void applyAltSvc(
-            HttpBeginExFW.Builder builder)
-        {
-            if (altSvc != null)
-            {
-                builder.headersItem(h -> h.name(HTTP_HEADER_ALT_SVC).value(altSvc));
-            }
-        }
-
         private void onNetMessage(
             int msgTypeId,
             DirectBuffer buffer,
@@ -1813,7 +1804,7 @@ public final class McpServerFactory implements McpStreamFactory
                 .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(STATUS_200))
                 .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_JSON))
                 .headersItem(h -> h.name(HTTP_HEADER_SESSION).value(session.sessionId))
-                .inject(this::applyAltSvc)
+                .inject(this::injectAltSvc)
                 .build());
             String8FW payload = new String8FW(INITIALIZE_RESPONSE_PROTOCOL_PREFIX + serverName +
                 INITIALIZE_RESPONSE_VERSION_PREFIX + serverVersion + INITIALIZE_RESPONSE_SUFFIX);
@@ -1839,7 +1830,7 @@ public final class McpServerFactory implements McpStreamFactory
                     .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(STATUS_200))
                     .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_JSON))
                     .headersItem(h -> h.name(HTTP_HEADER_SESSION).value(session.sessionId))
-                    .inject(this::applyAltSvc)
+                    .inject(this::injectAltSvc)
                     .build());
             doNetEnd(traceId, authorization);
         }
@@ -1856,7 +1847,7 @@ public final class McpServerFactory implements McpStreamFactory
                     .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(STATUS_200))
                     .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_JSON))
                     .headersItem(h -> h.name(HTTP_HEADER_SESSION).value(session.sessionId))
-                    .inject(this::applyAltSvc)
+                    .inject(this::injectAltSvc)
                     .build());
             String8FW payload = new String8FW("{}");
             doEncodeResponseData(traceId, authorization, payload.value());
@@ -2006,7 +1997,7 @@ public final class McpServerFactory implements McpStreamFactory
                     .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(STATUS_202))
                     .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_JSON))
                     .headersItem(h -> h.name(HTTP_HEADER_SESSION).value(session.sessionId))
-                    .inject(this::applyAltSvc)
+                    .inject(this::injectAltSvc)
                     .build());
             doNetEnd(traceId, authorization);
         }
@@ -2019,7 +2010,7 @@ public final class McpServerFactory implements McpStreamFactory
                 httpBeginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
                     .typeId(httpTypeId)
                     .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(STATUS_400))
-                    .inject(this::applyAltSvc)
+                    .inject(this::injectAltSvc)
                     .build(),
                 -32700,
                 "Parse error");
@@ -2033,7 +2024,7 @@ public final class McpServerFactory implements McpStreamFactory
                 httpBeginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
                     .typeId(httpTypeId)
                     .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(STATUS_400))
-                    .inject(this::applyAltSvc)
+                    .inject(this::injectAltSvc)
                     .build(),
                 -32600,
                 "Invalid request");
@@ -2050,7 +2041,7 @@ public final class McpServerFactory implements McpStreamFactory
                 .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(STATUS_200))
                 .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_EVENT_STREAM))
                 .headersItem(h -> h.name(HTTP_HEADER_SESSION).value(session.sessionId))
-                .inject(this::applyAltSvc)
+                .inject(this::injectAltSvc)
                 .build());
         }
 
@@ -2323,6 +2314,15 @@ public final class McpServerFactory implements McpStreamFactory
             doNetReset(traceId, authorization);
             doNetAbort(traceId, authorization);
         }
+
+        private void injectAltSvc(
+            HttpBeginExFW.Builder builder)
+        {
+            if (altSvc != null)
+            {
+                builder.headersItem(h -> h.name(HTTP_HEADER_ALT_SVC).value(altSvc));
+            }
+        }
     }
 
     private final class McpShutdownHandler
@@ -2362,15 +2362,6 @@ public final class McpServerFactory implements McpStreamFactory
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.session = session;
             this.altSvc = altSvc;
-        }
-
-        private void applyAltSvc(
-            HttpBeginExFW.Builder builder)
-        {
-            if (altSvc != null)
-            {
-                builder.headersItem(h -> h.name(HTTP_HEADER_ALT_SVC).value(altSvc));
-            }
         }
 
         private void onNetMessage(
@@ -2427,7 +2418,7 @@ public final class McpServerFactory implements McpStreamFactory
             doNetBegin(traceId, authorization, httpBeginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
                 .typeId(httpTypeId)
                 .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(STATUS_200))
-                .inject(this::applyAltSvc)
+                .inject(this::injectAltSvc)
                 .build());
         }
 
@@ -2558,6 +2549,15 @@ public final class McpServerFactory implements McpStreamFactory
             doNetReset(traceId, authorization);
             doNetAbort(traceId, authorization);
         }
+
+        private void injectAltSvc(
+            HttpBeginExFW.Builder builder)
+        {
+            if (altSvc != null)
+            {
+                builder.headersItem(h -> h.name(HTTP_HEADER_ALT_SVC).value(altSvc));
+            }
+        }
     }
 
     private final class McpRejectHandler
@@ -2631,15 +2631,6 @@ public final class McpServerFactory implements McpStreamFactory
             this.path = path;
             this.callbackURL = callbackURL;
             this.altSvc = altSvc;
-        }
-
-        private void applyAltSvc(
-            HttpBeginExFW.Builder builder)
-        {
-            if (altSvc != null)
-            {
-                builder.headersItem(h -> h.name(HTTP_HEADER_ALT_SVC).value(altSvc));
-            }
         }
 
         private void onNetMessage(
@@ -2751,7 +2742,7 @@ public final class McpServerFactory implements McpStreamFactory
                 .typeId(httpTypeId)
                 .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(status))
                 .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_TEXT_PLAIN))
-                .inject(this::applyAltSvc)
+                .inject(this::injectAltSvc)
                 .build());
 
             final byte[] body = bodyText.getBytes(StandardCharsets.UTF_8);
@@ -2893,6 +2884,15 @@ public final class McpServerFactory implements McpStreamFactory
         {
             doNetReset(traceId, authorization);
             doNetAbort(traceId, authorization);
+        }
+
+        private void injectAltSvc(
+            HttpBeginExFW.Builder builder)
+        {
+            if (altSvc != null)
+            {
+                builder.headersItem(h -> h.name(HTTP_HEADER_ALT_SVC).value(altSvc));
+            }
         }
     }
 
@@ -3388,15 +3388,6 @@ public final class McpServerFactory implements McpStreamFactory
             this.altSvc = altSvc;
         }
 
-        private void applyAltSvc(
-            HttpBeginExFW.Builder builder)
-        {
-            if (altSvc != null)
-            {
-                builder.headersItem(h -> h.name(HTTP_HEADER_ALT_SVC).value(altSvc));
-            }
-        }
-
         private void onNetMessage(
             int msgTypeId,
             DirectBuffer buffer,
@@ -3481,7 +3472,7 @@ public final class McpServerFactory implements McpStreamFactory
                 .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(STATUS_200))
                 .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_EVENT_STREAM))
                 .headersItem(h -> h.name(HTTP_HEADER_SESSION).value(session.sessionId))
-                .inject(this::applyAltSvc)
+                .inject(this::injectAltSvc)
                 .build());
 
             doNetWindow(traceId, authorization, 0, 0);
@@ -3498,7 +3489,7 @@ public final class McpServerFactory implements McpStreamFactory
                 .wrap(codecBuffer, 0, codecBuffer.capacity())
                 .typeId(httpTypeId)
                 .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(status))
-                .inject(this::applyAltSvc)
+                .inject(this::injectAltSvc)
                 .build());
 
             doNetEnd(traceId, authorization);
@@ -3902,6 +3893,15 @@ public final class McpServerFactory implements McpStreamFactory
             doNetReset(traceId, authorization);
             doNetAbort(traceId, authorization);
         }
+
+        private void injectAltSvc(
+            HttpBeginExFW.Builder builder)
+        {
+            if (altSvc != null)
+            {
+                builder.headersItem(h -> h.name(HTTP_HEADER_ALT_SVC).value(altSvc));
+            }
+        }
     }
 
     private final class McpRequestStream
@@ -4258,7 +4258,7 @@ public final class McpServerFactory implements McpStreamFactory
                         .typeId(httpTypeId)
                         .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(STATUS_200))
                         .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_EVENT_STREAM))
-                        .inject(server::applyAltSvc)
+                        .inject(server::injectAltSvc)
                         .build());
             }
             else
@@ -4268,7 +4268,7 @@ public final class McpServerFactory implements McpStreamFactory
                         .typeId(httpTypeId)
                         .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(STATUS_200))
                         .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_JSON))
-                        .inject(server::applyAltSvc)
+                        .inject(server::injectAltSvc)
                         .build());
             }
         }
