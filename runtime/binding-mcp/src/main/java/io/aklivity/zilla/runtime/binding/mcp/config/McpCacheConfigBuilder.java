@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.config;
 
-import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Function;
@@ -26,9 +25,7 @@ public final class McpCacheConfigBuilder<T> extends ConfigBuilder<T, McpCacheCon
     private final Function<McpCacheConfig, T> mapper;
 
     private String store;
-    private Duration ttlTools;
-    private Duration ttlResources;
-    private Duration ttlPrompts;
+    private McpCacheTtlConfig ttl;
     private Map<String, String> authorization;
 
     McpCacheConfigBuilder(
@@ -51,25 +48,16 @@ public final class McpCacheConfigBuilder<T> extends ConfigBuilder<T, McpCacheCon
         return this;
     }
 
-    public McpCacheConfigBuilder<T> ttlTools(
-        Duration ttlTools)
+    public McpCacheConfigBuilder<T> ttl(
+        McpCacheTtlConfig ttl)
     {
-        this.ttlTools = ttlTools;
+        this.ttl = ttl;
         return this;
     }
 
-    public McpCacheConfigBuilder<T> ttlResources(
-        Duration ttlResources)
+    public McpCacheTtlConfigBuilder<McpCacheConfigBuilder<T>> ttl()
     {
-        this.ttlResources = ttlResources;
-        return this;
-    }
-
-    public McpCacheConfigBuilder<T> ttlPrompts(
-        Duration ttlPrompts)
-    {
-        this.ttlPrompts = ttlPrompts;
-        return this;
+        return McpCacheTtlConfig.builder(this::ttl);
     }
 
     public McpCacheConfigBuilder<T> authorization(
@@ -87,6 +75,6 @@ public final class McpCacheConfigBuilder<T> extends ConfigBuilder<T, McpCacheCon
     @Override
     public T build()
     {
-        return mapper.apply(new McpCacheConfig(store, ttlTools, ttlResources, ttlPrompts, authorization));
+        return mapper.apply(new McpCacheConfig(store, ttl, authorization));
     }
 }

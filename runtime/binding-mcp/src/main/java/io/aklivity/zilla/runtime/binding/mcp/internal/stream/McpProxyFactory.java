@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
+import java.util.function.Supplier;
 
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParserFactory;
@@ -74,7 +75,6 @@ public final class McpProxyFactory implements McpStreamFactory
     private static final String MCP_TYPE_NAME = "mcp";
 
     private static final int SIGNAL_INITIATE_HYDRATE = 1;
-    private static final String HYDRATE_SESSION_ID = "hydrate-1";
 
     private static final List<String> TOOLS_LIST_ITEM_JSON_PATH_INCLUDES = List.of("/tools/-/name");
     private static final List<String> PROMPTS_LIST_ITEM_JSON_PATH_INCLUDES = List.of("/prompts/-/name");
@@ -121,12 +121,13 @@ public final class McpProxyFactory implements McpStreamFactory
     private final LongUnaryOperator supplyReplyId;
     private final LongSupplier supplyTraceId;
     private final LongFunction<StoreHandler> supplyStore;
+    private final Supplier<String> supplyHydrateSessionId;
     private final Signaler signaler;
     private final int mcpTypeId;
 
     private final Long2ObjectHashMap<McpBindingConfig> bindings;
     private final Map<String, McpLifecycleServer> sessions;
-    private final Long2ObjectHashMap<HydrateSession> hydrateSessions;
+    private final Long2ObjectHashMap<McpHydrateSession> hydrateSessions;
 
     private final JsonParserFactory toolsListItemParserFactory;
     private final JsonParserFactory promptsListItemParserFactory;
@@ -144,6 +145,7 @@ public final class McpProxyFactory implements McpStreamFactory
         this.supplyReplyId = context::supplyReplyId;
         this.supplyTraceId = context::supplyTraceId;
         this.supplyStore = context::supplyStore;
+        this.supplyHydrateSessionId = config.sessionIdSupplier();
         this.signaler = context.signaler();
         this.bindings = new Long2ObjectHashMap<>();
         this.sessions = new Object2ObjectHashMap<>();
@@ -179,7 +181,7 @@ public final class McpProxyFactory implements McpStreamFactory
             McpRouteConfig route = newBinding.resolve(0L);
             if (route != null)
             {
-                HydrateSession hydrate = new HydrateSession(newBinding.id, route.id, newBinding.cache);
+                McpHydrateSession hydrate = new McpHydrateSession(newBinding.id, route.id, newBinding.cache);
                 hydrateSessions.put(newBinding.id, hydrate);
                 signaler.signalAt(currentTimeMillis(), SIGNAL_INITIATE_HYDRATE, hydrate::onInitiateSignal);
             }
@@ -192,7 +194,7 @@ public final class McpProxyFactory implements McpStreamFactory
     {
         bindings.remove(bindingId);
 
-        HydrateSession hydrate = hydrateSessions.remove(bindingId);
+        McpHydrateSession hydrate = hydrateSessions.remove(bindingId);
         if (hydrate != null)
         {
             hydrate.cleanup(supplyTraceId.getAsLong());
@@ -3034,13 +3036,14 @@ public final class McpProxyFactory implements McpStreamFactory
         }
     }
 
-    private final class HydrateSession
+    private final class McpHydrateSession
     {
         private final long originId;
         private final long routedId;
         private final long initialId;
         private final long replyId;
         private final McpListCache cache;
+        private final String sessionId;
 
         private MessageConsumer receiver;
         private int state;
@@ -3053,7 +3056,7 @@ public final class McpProxyFactory implements McpStreamFactory
         private long replyAck;
         private int replyMax;
 
-        HydrateSession(
+        McpHydrateSession(
             long originId,
             long routedId,
             McpListCache cache)
@@ -3061,6 +3064,7 @@ public final class McpProxyFactory implements McpStreamFactory
             this.originId = originId;
             this.routedId = routedId;
             this.cache = cache;
+            this.sessionId = supplyHydrateSessionId.get();
             this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.replyMax = bufferPool.slotCapacity();
@@ -3084,7 +3088,7 @@ public final class McpProxyFactory implements McpStreamFactory
             final McpBeginExFW beginEx = mcpBeginExRW
                 .wrap(codecBuffer, 0, codecBuffer.capacity())
                 .typeId(mcpTypeId)
-                .lifecycle(l -> l.sessionId(HYDRATE_SESSION_ID))
+                .lifecycle(l -> l.sessionId(sessionId))
                 .build();
 
             receiver = newStream(this::onMessage, originId, routedId, initialId,
@@ -3145,7 +3149,7 @@ public final class McpProxyFactory implements McpStreamFactory
             int kind,
             long traceId)
         {
-            HydrateListStream list = new HydrateListStream(originId, routedId, kind, cache);
+            HydrateListStream list = new HydrateListStream(originId, routedId, kind, cache, sessionId);
             list.initiate(traceId);
         }
 
@@ -3167,6 +3171,7 @@ public final class McpProxyFactory implements McpStreamFactory
         private final long routedId;
         private final int kind;
         private final McpListCache cache;
+        private final String sessionId;
         private final long initialId;
         private final long replyId;
 
@@ -3187,12 +3192,14 @@ public final class McpProxyFactory implements McpStreamFactory
             long originId,
             long routedId,
             int kind,
-            McpListCache cache)
+            McpListCache cache,
+            String sessionId)
         {
             this.originId = originId;
             this.routedId = routedId;
             this.kind = kind;
             this.cache = cache;
+            this.sessionId = sessionId;
             this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.replyMax = bufferPool.slotCapacity();
@@ -3202,7 +3209,7 @@ public final class McpProxyFactory implements McpStreamFactory
         private void initiate(
             long traceId)
         {
-            final String sid = HYDRATE_SESSION_ID;
+            final String sid = sessionId;
             final McpBeginExFW beginEx = mcpBeginExRW
                 .wrap(codecBuffer, 0, codecBuffer.capacity())
                 .typeId(mcpTypeId)

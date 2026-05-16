@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_SESSION_ID_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -42,6 +43,7 @@ public class McpProxyCacheLifecycleIT
         .countersBufferCapacity(8192)
         .configurationRoot("io/aklivity/zilla/specs/binding/mcp/config")
         .external("app1")
+        .configure(MCP_SESSION_ID_NAME, "%s::hydrateSessionId".formatted(McpProxyCacheLifecycleIT.class.getName()))
         .clean();
 
     @Rule
@@ -86,5 +88,10 @@ public class McpProxyCacheLifecycleIT
     public void shouldServeInitialize() throws Exception
     {
         k3po.finish();
+    }
+
+    public static String hydrateSessionId()
+    {
+        return "hydrate-1";
     }
 }

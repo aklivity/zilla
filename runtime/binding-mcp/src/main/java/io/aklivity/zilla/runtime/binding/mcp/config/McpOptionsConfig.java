@@ -26,7 +26,7 @@ public final class McpOptionsConfig extends OptionsConfig
     public final McpAuthorizationConfig authorization;
     public final McpCacheConfig cache;
 
-    public McpOptionsConfig(
+    McpOptionsConfig(
         List<McpPromptConfig> prompts,
         McpElicitationConfig elicitation,
         McpAuthorizationConfig authorization,

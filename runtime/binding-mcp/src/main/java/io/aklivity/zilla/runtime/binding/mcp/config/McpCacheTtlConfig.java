@@ -16,33 +16,33 @@ package io.aklivity.zilla.runtime.binding.mcp.config;
 
 import static java.util.function.Function.identity;
 
-import java.util.Map;
+import java.time.Duration;
 import java.util.function.Function;
 
-public final class McpCacheConfig
+public final class McpCacheTtlConfig
 {
-    public final String store;
-    public final McpCacheTtlConfig ttl;
-    public final Map<String, String> authorization;
+    public final Duration tools;
+    public final Duration resources;
+    public final Duration prompts;
 
-    McpCacheConfig(
-        String store,
-        McpCacheTtlConfig ttl,
-        Map<String, String> authorization)
+    McpCacheTtlConfig(
+        Duration tools,
+        Duration resources,
+        Duration prompts)
     {
-        this.store = store;
-        this.ttl = ttl;
-        this.authorization = authorization;
+        this.tools = tools;
+        this.resources = resources;
+        this.prompts = prompts;
     }
 
-    public static McpCacheConfigBuilder<McpCacheConfig> builder()
+    public static McpCacheTtlConfigBuilder<McpCacheTtlConfig> builder()
     {
-        return new McpCacheConfigBuilder<>(identity());
+        return new McpCacheTtlConfigBuilder<>(identity());
     }
 
-    public static <T> McpCacheConfigBuilder<T> builder(
-        Function<McpCacheConfig, T> mapper)
+    public static <T> McpCacheTtlConfigBuilder<T> builder(
+        Function<McpCacheTtlConfig, T> mapper)
     {
-        return new McpCacheConfigBuilder<>(mapper);
+        return new McpCacheTtlConfigBuilder<>(mapper);
     }
 }
