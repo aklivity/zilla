@@ -13,8 +13,6 @@
 # specific language governing permissions and limitations under the License.
 #
 
-# Downstream errors out during hydrate tools/list. Lifecycle session must
-# survive so the cache can retry later or continue with other list types.
 
 connect "zilla://streams/app0"
         option zilla:window 8192

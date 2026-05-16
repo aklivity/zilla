@@ -96,4 +96,3 @@ write close
 read '{"prompts":[]}'
 read closed
 
-# Lifecycle connection (opened first) remains open here — no close issued.

@@ -13,9 +13,6 @@
 # specific language governing permissions and limitations under the License.
 #
 
-# Agent's tools/list arrives while hydrate is still in progress.
-# The cache must hold the agent's request until hydrate completes for the
-# tools slice, then respond from cache.
 
 connect "zilla://streams/app0"
         option zilla:window 8192

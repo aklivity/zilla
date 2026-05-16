@@ -98,5 +98,3 @@ write flush
 
 write close
 
-# After all three list streams close, the lifecycle stream must remain open;
-# k3po finishes here without observing END/ABORT on the lifecycle accept above.

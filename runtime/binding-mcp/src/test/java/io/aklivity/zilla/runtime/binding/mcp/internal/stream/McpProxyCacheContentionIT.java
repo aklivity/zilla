@@ -32,11 +32,6 @@ import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
-// Multi-worker cache contention tests. Configured with workers=2 so each
-// worker instantiates its own cache binding and the two race for the
-// hydrate / refresh leases backed by the shared store. The wire pattern
-// observable at the downstream is two lifecycle sessions but only the
-// lease-winner issues each list call.
 public class McpProxyCacheContentionIT
 {
     private final K3poRule k3po = new K3poRule()

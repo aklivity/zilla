@@ -29,5 +29,4 @@ bindings:
           tools: PT1S
           resources: PT2S
           prompts: PT3S
-    routes:
-      - exit: app1
+    exit: app1

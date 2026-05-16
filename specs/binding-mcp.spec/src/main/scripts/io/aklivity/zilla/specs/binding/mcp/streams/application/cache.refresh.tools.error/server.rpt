@@ -13,9 +13,6 @@
 # specific language governing permissions and limitations under the License.
 #
 
-# Hydrate succeeds; refresh attempt aborts downstream.
-# Lifecycle session must survive so the cache can retry later, and the prior
-# cached entry must be retained.
 
 property serverAddress "zilla://streams/app0"
 

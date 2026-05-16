@@ -13,10 +13,6 @@
 # specific language governing permissions and limitations under the License.
 #
 
-# Downstream of a 2-worker cache: each worker opens its own hydrate
-# lifecycle, but only one performs the initial tools/list and only one
-# performs the refresh tools/list — the other observes a held lease and
-# reads from the shared store.
 
 property serverAddress "zilla://streams/app0"
 
@@ -24,7 +20,6 @@ accept ${serverAddress}
        option zilla:window 8192
        option zilla:transmission "half-duplex"
 
-# Worker A lifecycle
 accepted
 
 read zilla:begin.ext ${mcp:matchBeginEx()
@@ -44,7 +39,6 @@ write zilla:begin.ext ${mcp:beginEx()
                            .build()}
 write flush
 
-# Worker A hydrate tools/list — winner of capabilities.lock
 accepted
 
 read zilla:begin.ext ${mcp:matchBeginEx()
@@ -65,7 +59,6 @@ write flush
 
 write close
 
-# Worker B lifecycle
 accepted
 
 read zilla:begin.ext ${mcp:matchBeginEx()
@@ -85,8 +78,6 @@ write zilla:begin.ext ${mcp:beginEx()
                            .build()}
 write flush
 
-# Refresh tick: only worker A's refresh reaches downstream (worker B saw the
-# tools.lock held and skipped). The refresh runs on worker A's lifecycle.
 accepted
 
 read zilla:begin.ext ${mcp:matchBeginEx()

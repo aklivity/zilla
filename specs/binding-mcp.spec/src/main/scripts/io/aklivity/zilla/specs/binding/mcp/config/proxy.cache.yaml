@@ -25,5 +25,4 @@ bindings:
     options:
       cache:
         store: memory0
-    routes:
-      - exit: app1
+    exit: app1

@@ -13,8 +13,6 @@
 # specific language governing permissions and limitations under the License.
 #
 
-# Peer-to-peer: cache binding's role facing the agent for tools/list.
-# Responds with cached catalog without making any downstream call.
 
 property serverAddress "zilla://streams/app0"
 

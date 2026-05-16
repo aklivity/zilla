@@ -13,9 +13,6 @@
 # specific language governing permissions and limitations under the License.
 #
 
-# Cache facade simulating an in-progress hydrate: agent's tools/list BEGIN
-# arrives, the request is read in full, but the response is held until the
-# hydrate barrier fires (simulating tools hydrate completion).
 
 property serverAddress "zilla://streams/app0"
 
@@ -57,7 +54,6 @@ write flush
 
 read closed
 
-# hydrate completes for the tools slice; only now does the response go out
 write notify TOOLS_HYDRATED
 read await TOOLS_HYDRATED
 

@@ -13,9 +13,6 @@
 # specific language governing permissions and limitations under the License.
 #
 
-# Peer-to-peer: this script plays the cache binding's role facing the agent.
-# In an engine-driven test the cache binding itself would respond; this script
-# models the contract the binding must satisfy.
 
 property serverAddress "zilla://streams/app0"
 
