@@ -22,12 +22,14 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeg
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_CALL;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
+import static java.lang.System.currentTimeMillis;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
 import java.util.Map;
+import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
 
 import jakarta.json.stream.JsonParser;
@@ -61,11 +63,15 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
+import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class McpProxyFactory implements McpStreamFactory
 {
     private static final String MCP_TYPE_NAME = "mcp";
+
+    private static final int SIGNAL_INITIATE_HYDRATE = 1;
+    private static final String HYDRATE_SESSION_ID = "hydrate-1";
 
     private static final List<String> TOOLS_LIST_ITEM_JSON_PATH_INCLUDES = List.of("/tools/-/name");
     private static final List<String> PROMPTS_LIST_ITEM_JSON_PATH_INCLUDES = List.of("/prompts/-/name");
@@ -110,10 +116,13 @@ public final class McpProxyFactory implements McpStreamFactory
     private final BufferPool bufferPool;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
+    private final LongSupplier supplyTraceId;
+    private final Signaler signaler;
     private final int mcpTypeId;
 
     private final Long2ObjectHashMap<McpBindingConfig> bindings;
     private final Map<String, McpLifecycleServer> sessions;
+    private final Long2ObjectHashMap<HydrateSession> hydrateSessions;
 
     private final JsonParserFactory toolsListItemParserFactory;
     private final JsonParserFactory promptsListItemParserFactory;
@@ -129,8 +138,11 @@ public final class McpProxyFactory implements McpStreamFactory
         this.bufferPool = context.bufferPool();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
+        this.supplyTraceId = context::supplyTraceId;
+        this.signaler = context.signaler();
         this.bindings = new Long2ObjectHashMap<>();
         this.sessions = new Object2ObjectHashMap<>();
+        this.hydrateSessions = new Long2ObjectHashMap<>();
         this.mcpTypeId = context.supplyTypeId(MCP_TYPE_NAME);
         this.toolsListItemParserFactory = StreamingJson.createParserFactory(
             Map.of(StreamingJson.PATH_INCLUDES, TOOLS_LIST_ITEM_JSON_PATH_INCLUDES));
@@ -152,6 +164,17 @@ public final class McpProxyFactory implements McpStreamFactory
     {
         McpBindingConfig newBinding = new McpBindingConfig(binding);
         bindings.put(binding.id, newBinding);
+
+        if (newBinding.options != null && newBinding.options.cache != null)
+        {
+            McpRouteConfig route = newBinding.resolve(0L);
+            if (route != null)
+            {
+                HydrateSession hydrate = new HydrateSession(newBinding.id, route.id);
+                hydrateSessions.put(newBinding.id, hydrate);
+                signaler.signalAt(currentTimeMillis(), SIGNAL_INITIATE_HYDRATE, hydrate::onInitiateSignal);
+            }
+        }
     }
 
     @Override
@@ -159,6 +182,12 @@ public final class McpProxyFactory implements McpStreamFactory
         long bindingId)
     {
         bindings.remove(bindingId);
+
+        HydrateSession hydrate = hydrateSessions.remove(bindingId);
+        if (hydrate != null)
+        {
+            hydrate.cleanup(supplyTraceId.getAsLong());
+        }
     }
 
     @Override
@@ -2747,6 +2776,109 @@ public final class McpProxyFactory implements McpStreamFactory
                 initialAck = newInitialAck;
                 initialMax = newInitialMax;
                 doServerWindow(traceId, budgetId, padding);
+            }
+        }
+    }
+
+    private final class HydrateSession
+    {
+        private final long originId;
+        private final long routedId;
+        private final long initialId;
+        private final long replyId;
+
+        private MessageConsumer receiver;
+        private int state;
+
+        private long initialSeq;
+        private long initialAck;
+        private int initialMax;
+
+        private long replySeq;
+        private long replyAck;
+        private int replyMax;
+
+        HydrateSession(
+            long originId,
+            long routedId)
+        {
+            this.originId = originId;
+            this.routedId = routedId;
+            this.initialId = supplyInitialId.applyAsLong(routedId);
+            this.replyId = supplyReplyId.applyAsLong(initialId);
+            this.replyMax = bufferPool.slotCapacity();
+        }
+
+        private void onInitiateSignal(
+            int signalId)
+        {
+            assert signalId == SIGNAL_INITIATE_HYDRATE;
+            doLifecycleBegin(supplyTraceId.getAsLong());
+        }
+
+        private void doLifecycleBegin(
+            long traceId)
+        {
+            if (McpState.initialOpening(state))
+            {
+                return;
+            }
+
+            final McpBeginExFW beginEx = mcpBeginExRW
+                .wrap(codecBuffer, 0, codecBuffer.capacity())
+                .typeId(mcpTypeId)
+                .lifecycle(l -> l.sessionId(HYDRATE_SESSION_ID))
+                .build();
+
+            receiver = newStream(this::onMessage, originId, routedId, initialId,
+                initialSeq, initialAck, initialMax, traceId, 0L, 0L, beginEx);
+            state = McpState.openingInitial(state);
+        }
+
+        private void onMessage(
+            int msgTypeId,
+            DirectBuffer buffer,
+            int index,
+            int length)
+        {
+            switch (msgTypeId)
+            {
+            case BeginFW.TYPE_ID:
+                onBegin(beginRO.wrap(buffer, index, index + length));
+                break;
+            case EndFW.TYPE_ID:
+            case AbortFW.TYPE_ID:
+            case ResetFW.TYPE_ID:
+                state = McpState.closedInitial(state);
+                state = McpState.closedReply(state);
+                break;
+            default:
+                break;
+            }
+        }
+
+        private void onBegin(
+            BeginFW begin)
+        {
+            state = McpState.openingReply(state);
+            doReplyWindow(begin.traceId());
+        }
+
+        private void doReplyWindow(
+            long traceId)
+        {
+            doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                traceId, 0L, 0L, 0);
+        }
+
+        private void cleanup(
+            long traceId)
+        {
+            if (receiver != null && !McpState.initialClosed(state))
+            {
+                doEnd(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                    traceId, 0L);
+                state = McpState.closedInitial(state);
             }
         }
     }
