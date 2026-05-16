@@ -336,7 +336,7 @@ public final class HttpFunctions
         private final HttpBeginExFW beginExRO = new HttpBeginExFW();
 
         private final Map<String, Predicate<String>> headers = new LinkedHashMap<>();
-        private final Set<String> missingHeaders = new LinkedHashSet<>();
+        private final Set<String> headersMissing = new LinkedHashSet<>();
 
         private Long compositeId;
         private Integer typeId;
@@ -375,7 +375,7 @@ public final class HttpFunctions
         public HttpBeginExMatcherBuilder headerMissing(
             String name)
         {
-            missingHeaders.add(name);
+            headersMissing.add(name);
             return this;
         }
 
@@ -399,7 +399,7 @@ public final class HttpFunctions
                 matchCompositeId(beginEx) &&
                 matchTypeId(beginEx) &&
                 matchHeaders(beginEx) &&
-                matchMissingHeaders(beginEx))
+                matchHeadersMissing(beginEx))
             {
                 byteBuf.position(byteBuf.position() + beginEx.sizeof());
                 return beginEx;
@@ -423,11 +423,11 @@ public final class HttpFunctions
             return match.value;
         }
 
-        private boolean matchMissingHeaders(
+        private boolean matchHeadersMissing(
             HttpBeginExFW beginEx)
         {
             MutableBoolean match = new MutableBoolean(true);
-            missingHeaders.forEach(name -> match.value &=
+            headersMissing.forEach(name -> match.value &=
                 !beginEx.headers().anyMatch(h -> name.equals(h.name().asString())));
             return match.value;
         }
