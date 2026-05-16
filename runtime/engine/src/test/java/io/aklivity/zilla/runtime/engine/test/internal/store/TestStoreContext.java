@@ -15,10 +15,13 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.store;
 
+import java.util.Map;
+
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.StoreConfig;
 import io.aklivity.zilla.runtime.engine.store.StoreContext;
+import io.aklivity.zilla.runtime.engine.test.internal.store.config.TestStoreOptionsConfig;
 
 public final class TestStoreContext implements StoreContext
 {
@@ -34,7 +37,12 @@ public final class TestStoreContext implements StoreContext
     public TestStoreHandler attach(
         StoreConfig store)
     {
-        return new TestStoreHandler(store, signaler);
+        Map<String, String> entries = null;
+        if (store.options instanceof TestStoreOptionsConfig options)
+        {
+            entries = options.entries;
+        }
+        return new TestStoreHandler(store, signaler, entries);
     }
 
     @Override

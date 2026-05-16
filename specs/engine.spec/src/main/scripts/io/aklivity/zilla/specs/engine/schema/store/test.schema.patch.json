@@ -26,6 +26,22 @@
                     "type":
                     {
                         "const": "test"
+                    },
+                    "options":
+                    {
+                        "properties":
+                        {
+                            "entries":
+                            {
+                                "title": "Initial entries",
+                                "type": "object",
+                                "additionalProperties":
+                                {
+                                    "type": "string"
+                                }
+                            }
+                        },
+                        "additionalProperties": false
                     }
                 }
             }

@@ -32,9 +32,10 @@ public final class TestStoreHandler implements StoreHandler
 
     public TestStoreHandler(
         StoreConfig store,
-        Signaler signaler)
+        Signaler signaler,
+        Map<String, String> seedEntries)
     {
-        this.entries = new HashMap<>();
+        this.entries = seedEntries != null ? new HashMap<>(seedEntries) : new HashMap<>();
         this.signaler = Objects.requireNonNull(signaler);
     }
 
