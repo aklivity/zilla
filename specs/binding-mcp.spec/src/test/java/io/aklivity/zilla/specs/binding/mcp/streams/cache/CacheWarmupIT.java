@@ -89,4 +89,13 @@ public class CacheWarmupIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/cache.warmup.session.downstream.error/client",
+        "${app}/cache.warmup.session.downstream.error/server" })
+    public void shouldSurviveDownstreamErrorDuringWarmup() throws Exception
+    {
+        k3po.finish();
+    }
 }

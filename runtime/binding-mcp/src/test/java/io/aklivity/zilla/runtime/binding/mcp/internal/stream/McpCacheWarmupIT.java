@@ -105,4 +105,14 @@ public class McpCacheWarmupIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("cache.yaml")
+    @Specification({
+        "${app}/cache.warmup.session.downstream.error/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldSurviveDownstreamErrorDuringWarmup() throws Exception
+    {
+        k3po.finish();
+    }
 }
