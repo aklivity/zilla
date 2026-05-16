@@ -46,6 +46,8 @@ import org.agrona.concurrent.UnsafeBuffer;
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpBindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpListCache;
+import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpProxyHydrate;
+import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpProxySession;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpRouteConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpRoutePrefix;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.Flyweight;
@@ -126,8 +128,6 @@ public final class McpProxyFactory implements McpStreamFactory
     private final int mcpTypeId;
 
     private final Long2ObjectHashMap<McpBindingConfig> bindings;
-    private final Map<String, McpLifecycleServer> sessions;
-    private final Long2ObjectHashMap<McpHydrateSession> hydrateSessions;
 
     private final JsonParserFactory toolsListItemParserFactory;
     private final JsonParserFactory promptsListItemParserFactory;
@@ -148,8 +148,6 @@ public final class McpProxyFactory implements McpStreamFactory
         this.supplyHydrateSessionId = config.sessionIdSupplier();
         this.signaler = context.signaler();
         this.bindings = new Long2ObjectHashMap<>();
-        this.sessions = new Object2ObjectHashMap<>();
-        this.hydrateSessions = new Long2ObjectHashMap<>();
         this.mcpTypeId = context.supplyTypeId(MCP_TYPE_NAME);
         this.toolsListItemParserFactory = StreamingJson.createParserFactory(
             Map.of(StreamingJson.PATH_INCLUDES, TOOLS_LIST_ITEM_JSON_PATH_INCLUDES));
@@ -170,6 +168,7 @@ public final class McpProxyFactory implements McpStreamFactory
         BindingConfig binding)
     {
         McpBindingConfig newBinding = new McpBindingConfig(binding);
+        newBinding.sessions = new Object2ObjectHashMap<>();
         bindings.put(binding.id, newBinding);
 
         if (newBinding.options != null && newBinding.options.cache != null)
@@ -182,7 +181,7 @@ public final class McpProxyFactory implements McpStreamFactory
             if (route != null)
             {
                 McpHydrateSession hydrate = new McpHydrateSession(newBinding.id, route.id, newBinding.cache);
-                hydrateSessions.put(newBinding.id, hydrate);
+                newBinding.hydrate = hydrate;
                 signaler.signalAt(currentTimeMillis(), SIGNAL_INITIATE_HYDRATE, hydrate::onInitiateSignal);
             }
         }
@@ -192,12 +191,11 @@ public final class McpProxyFactory implements McpStreamFactory
     public void detach(
         long bindingId)
     {
-        bindings.remove(bindingId);
+        McpBindingConfig binding = bindings.remove(bindingId);
 
-        McpHydrateSession hydrate = hydrateSessions.remove(bindingId);
-        if (hydrate != null)
+        if (binding != null && binding.hydrate != null)
         {
-            hydrate.cleanup(supplyTraceId.getAsLong());
+            binding.hydrate.cleanup(supplyTraceId.getAsLong());
         }
     }
 
@@ -235,66 +233,62 @@ public final class McpProxyFactory implements McpStreamFactory
                 {
                     final int clientCapabilities = beginEx.lifecycle().capabilities();
                     final McpLifecycleServer lifecycle = new McpLifecycleServer(
-                        sender, originId, routedId, initialId, affinity, authorization,
+                        binding, sender, originId, routedId, initialId, affinity, authorization,
                         clientCapabilities, sessionId);
-                    sessions.put(sessionId, lifecycle);
+                    binding.sessions.put(sessionId, lifecycle);
                     newStream = lifecycle::onServerMessage;
                 }
             }
-            else
+            else if (binding.sessions.get(sessionId) instanceof McpLifecycleServer lifecycle)
             {
-                final McpLifecycleServer lifecycle = sessions.get(sessionId);
-                if (lifecycle != null)
+                if (isListKind(kind))
                 {
-                    if (isListKind(kind))
+                    final McpListCache cache = binding.cache;
+                    if (cache != null)
                     {
-                        final McpListCache cache = binding.cache;
-                        if (cache != null)
-                        {
-                            newStream = new McpCacheListServer(
-                                lifecycle,
-                                kind,
-                                initialId,
-                                affinity,
-                                authorization,
-                                cache)::onServerMessage;
-                        }
-                        else
-                        {
-                            final List<McpRoutePrefix> prefixes = binding.resolveAll(beginEx, authorization)
-                                .stream()
-                                .map(r -> new McpRoutePrefix(r.id, r.prefix(kind)))
-                                .toList();
-                            newStream = new McpListServer(
-                                lifecycle,
-                                kind,
-                                initialId,
-                                affinity,
-                                authorization,
-                                prefixes)::onServerMessage;
-                        }
+                        newStream = new McpCacheListServer(
+                            lifecycle,
+                            kind,
+                            initialId,
+                            affinity,
+                            authorization,
+                            cache)::onServerMessage;
                     }
                     else
                     {
-                        final McpRouteConfig route = binding.resolve(beginEx, authorization);
-                        if (route != null)
-                        {
-                            final String identifier = route.strip(beginEx);
-                            final String prefix = route.prefix(beginEx);
+                        final List<McpRoutePrefix> prefixes = binding.resolveAll(beginEx, authorization)
+                            .stream()
+                            .map(r -> new McpRoutePrefix(r.id, r.prefix(kind)))
+                            .toList();
+                        newStream = new McpListServer(
+                            lifecycle,
+                            kind,
+                            initialId,
+                            affinity,
+                            authorization,
+                            prefixes)::onServerMessage;
+                    }
+                }
+                else
+                {
+                    final McpRouteConfig route = binding.resolve(beginEx, authorization);
+                    if (route != null)
+                    {
+                        final String identifier = route.strip(beginEx);
+                        final String prefix = route.prefix(beginEx);
 
-                            newStream = new McpServer(
-                                lifecycle,
-                                kind,
-                                sender,
-                                originId,
-                                routedId,
-                                initialId,
-                                route.id,
-                                affinity,
-                                authorization,
-                                identifier,
-                                prefix)::onServerMessage;
-                        }
+                        newStream = new McpServer(
+                            lifecycle,
+                            kind,
+                            sender,
+                            originId,
+                            routedId,
+                            initialId,
+                            route.id,
+                            affinity,
+                            authorization,
+                            identifier,
+                            prefix)::onServerMessage;
                     }
                 }
             }
@@ -1026,8 +1020,9 @@ public final class McpProxyFactory implements McpStreamFactory
         }
     }
 
-    private final class McpLifecycleServer
+    private final class McpLifecycleServer implements McpProxySession
     {
+        private final McpBindingConfig binding;
         private final MessageConsumer sender;
         private final long originId;
         private final long routedId;
@@ -1053,6 +1048,7 @@ public final class McpProxyFactory implements McpStreamFactory
         private int replyPad;
 
         private McpLifecycleServer(
+            McpBindingConfig binding,
             MessageConsumer sender,
             long originId,
             long routedId,
@@ -1062,6 +1058,7 @@ public final class McpProxyFactory implements McpStreamFactory
             int clientCapabilities,
             String sessionId)
         {
+            this.binding = binding;
             this.sender = sender;
             this.originId = originId;
             this.routedId = routedId;
@@ -1295,7 +1292,7 @@ public final class McpProxyFactory implements McpStreamFactory
         private void cleanup(
             long traceId)
         {
-            sessions.remove(sessionId);
+            binding.sessions.remove(sessionId);
 
             for (McpLifecycleClient upstream : clients.values())
             {
@@ -3036,7 +3033,7 @@ public final class McpProxyFactory implements McpStreamFactory
         }
     }
 
-    private final class McpHydrateSession
+    private final class McpHydrateSession implements McpProxyHydrate
     {
         private final long originId;
         private final long routedId;
@@ -3153,7 +3150,8 @@ public final class McpProxyFactory implements McpStreamFactory
             list.initiate(traceId);
         }
 
-        private void cleanup(
+        @Override
+        public void cleanup(
             long traceId)
         {
             if (receiver != null && !McpState.initialClosed(state))

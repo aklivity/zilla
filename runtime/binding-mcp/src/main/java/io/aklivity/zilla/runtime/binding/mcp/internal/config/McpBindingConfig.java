@@ -18,6 +18,7 @@ import static io.aklivity.zilla.runtime.binding.mcp.config.McpElicitationConfig.
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.LongFunction;
 import java.util.stream.Collectors;
@@ -37,6 +38,8 @@ public final class McpBindingConfig
     public final McpOptionsConfig options;
     public final GuardHandler guard;
     public McpListCache cache;
+    public Map<String, McpProxySession> sessions;
+    public McpProxyHydrate hydrate;
 
     private final List<McpRouteConfig> routes;
 
