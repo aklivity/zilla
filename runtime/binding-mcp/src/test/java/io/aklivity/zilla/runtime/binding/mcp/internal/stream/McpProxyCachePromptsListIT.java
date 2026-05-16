@@ -49,9 +49,9 @@ public class McpProxyCachePromptsListIT
     @Test
     @Configuration("proxy.cache.yaml")
     @Specification({
-        "${app}/cache.hydrate.session.prompts.list/server" })
+        "${app}/cache.hydrate.prompts/server" })
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
-    public void shouldPopulatePromptsViaHydrate() throws Exception
+    public void shouldHydratePrompts() throws Exception
     {
         k3po.finish();
     }
@@ -59,10 +59,10 @@ public class McpProxyCachePromptsListIT
     @Test
     @Configuration("proxy.cache.yaml")
     @Specification({
-        "${app}/cache.agent.prompts.list.from.cache/client",
-        "${app}/cache.hydrate.session.prompts.list/server" })
+        "${app}/cache.serve.prompts.list/client",
+        "${app}/cache.hydrate.prompts/server" })
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
-    public void shouldServeAgentPromptsListFromCache() throws Exception
+    public void shouldServePromptsList() throws Exception
     {
         k3po.finish();
     }

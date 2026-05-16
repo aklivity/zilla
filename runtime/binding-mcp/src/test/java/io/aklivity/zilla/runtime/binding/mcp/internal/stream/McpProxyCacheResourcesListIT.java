@@ -49,9 +49,9 @@ public class McpProxyCacheResourcesListIT
     @Test
     @Configuration("proxy.cache.yaml")
     @Specification({
-        "${app}/cache.hydrate.session.resources.list/server" })
+        "${app}/cache.hydrate.resources/server" })
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
-    public void shouldPopulateResourcesViaHydrate() throws Exception
+    public void shouldHydrateResources() throws Exception
     {
         k3po.finish();
     }
@@ -59,10 +59,10 @@ public class McpProxyCacheResourcesListIT
     @Test
     @Configuration("proxy.cache.yaml")
     @Specification({
-        "${app}/cache.agent.resources.list.from.cache/client",
-        "${app}/cache.hydrate.session.resources.list/server" })
+        "${app}/cache.serve.resources.list/client",
+        "${app}/cache.hydrate.resources/server" })
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
-    public void shouldServeAgentResourcesListFromCache() throws Exception
+    public void shouldServeResourcesList() throws Exception
     {
         k3po.finish();
     }

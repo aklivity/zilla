@@ -49,9 +49,9 @@ public class McpProxyCacheToolsListIT
     @Test
     @Configuration("proxy.cache.yaml")
     @Specification({
-        "${app}/cache.hydrate.session.tools.list/server" })
+        "${app}/cache.hydrate.tools/server" })
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
-    public void shouldPopulateToolsViaHydrate() throws Exception
+    public void shouldHydrateTools() throws Exception
     {
         k3po.finish();
     }
@@ -59,10 +59,10 @@ public class McpProxyCacheToolsListIT
     @Test
     @Configuration("proxy.cache.yaml")
     @Specification({
-        "${app}/cache.agent.tools.list.from.cache/client",
-        "${app}/cache.hydrate.session.tools.list/server" })
+        "${app}/cache.serve.tools.list/client",
+        "${app}/cache.hydrate.tools/server" })
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
-    public void shouldServeAgentToolsListFromCache() throws Exception
+    public void shouldServeToolsList() throws Exception
     {
         k3po.finish();
     }

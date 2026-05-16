@@ -49,9 +49,9 @@ public class McpProxyCacheLifecycleIT
     @Test
     @Configuration("proxy.cache.yaml")
     @Specification({
-        "${app}/cache.hydrate.session.initialize/server" })
+        "${app}/cache.hydrate/server" })
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
-    public void shouldOpenHydrateSessionAndInitialize() throws Exception
+    public void shouldHydrate() throws Exception
     {
         k3po.finish();
     }
@@ -59,9 +59,9 @@ public class McpProxyCacheLifecycleIT
     @Test
     @Configuration("proxy.cache.yaml")
     @Specification({
-        "${app}/cache.hydrate.session.persists/server" })
+        "${app}/cache.hydrate.persist/server" })
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
-    public void shouldKeepHydrateSessionOpenAfterEnumeration() throws Exception
+    public void shouldHydratePersist() throws Exception
     {
         k3po.finish();
     }
@@ -69,9 +69,9 @@ public class McpProxyCacheLifecycleIT
     @Test
     @Configuration("proxy.cache.yaml")
     @Specification({
-        "${app}/cache.hydrate.session.downstream.error/server" })
+        "${app}/cache.hydrate.downstream.error/server" })
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
-    public void shouldSurviveDownstreamErrorDuringHydrate() throws Exception
+    public void shouldHydrateDownstreamError() throws Exception
     {
         k3po.finish();
     }
@@ -79,10 +79,10 @@ public class McpProxyCacheLifecycleIT
     @Test
     @Configuration("proxy.cache.yaml")
     @Specification({
-        "${app}/cache.agent.initialize.from.cache/client",
-        "${app}/cache.hydrate.session.initialize/server" })
+        "${app}/cache.serve.initialize/client",
+        "${app}/cache.hydrate/server" })
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
-    public void shouldServeAgentInitializeFromCache() throws Exception
+    public void shouldServeInitialize() throws Exception
     {
         k3po.finish();
     }

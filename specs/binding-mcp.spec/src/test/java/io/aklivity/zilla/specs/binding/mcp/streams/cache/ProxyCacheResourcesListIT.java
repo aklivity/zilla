@@ -38,18 +38,18 @@ public class ProxyCacheResourcesListIT
 
     @Test
     @Specification({
-        "${app}/cache.hydrate.session.resources.list/client",
-        "${app}/cache.hydrate.session.resources.list/server" })
-    public void shouldPopulateResourcesViaHydrate() throws Exception
+        "${app}/cache.hydrate.resources/client",
+        "${app}/cache.hydrate.resources/server" })
+    public void shouldHydrateResources() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${app}/cache.agent.resources.list.from.cache/client",
-        "${app}/cache.agent.resources.list.from.cache/server" })
-    public void shouldServeAgentResourcesListFromCache() throws Exception
+        "${app}/cache.serve.resources.list/client",
+        "${app}/cache.serve.resources.list/server" })
+    public void shouldServeResourcesList() throws Exception
     {
         k3po.finish();
     }

@@ -38,18 +38,18 @@ public class ProxyCacheToolsListIT
 
     @Test
     @Specification({
-        "${app}/cache.hydrate.session.tools.list/client",
-        "${app}/cache.hydrate.session.tools.list/server" })
-    public void shouldPopulateToolsViaHydrate() throws Exception
+        "${app}/cache.hydrate.tools/client",
+        "${app}/cache.hydrate.tools/server" })
+    public void shouldHydrateTools() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${app}/cache.agent.tools.list.from.cache/client",
-        "${app}/cache.agent.tools.list.from.cache/server" })
-    public void shouldServeAgentToolsListFromCache() throws Exception
+        "${app}/cache.serve.tools.list/client",
+        "${app}/cache.serve.tools.list/server" })
+    public void shouldServeToolsList() throws Exception
     {
         k3po.finish();
     }

@@ -38,36 +38,36 @@ public class ProxyCacheLifecycleIT
 
     @Test
     @Specification({
-        "${app}/cache.hydrate.session.initialize/client",
-        "${app}/cache.hydrate.session.initialize/server" })
-    public void shouldOpenHydrateSessionAndInitialize() throws Exception
+        "${app}/cache.hydrate/client",
+        "${app}/cache.hydrate/server" })
+    public void shouldHydrate() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${app}/cache.hydrate.session.persists/client",
-        "${app}/cache.hydrate.session.persists/server" })
-    public void shouldKeepHydrateSessionOpenAfterEnumeration() throws Exception
+        "${app}/cache.hydrate.persist/client",
+        "${app}/cache.hydrate.persist/server" })
+    public void shouldHydratePersist() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${app}/cache.hydrate.session.downstream.error/client",
-        "${app}/cache.hydrate.session.downstream.error/server" })
-    public void shouldSurviveDownstreamErrorDuringHydrate() throws Exception
+        "${app}/cache.hydrate.downstream.error/client",
+        "${app}/cache.hydrate.downstream.error/server" })
+    public void shouldHydrateDownstreamError() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${app}/cache.agent.initialize.from.cache/client",
-        "${app}/cache.agent.initialize.from.cache/server" })
-    public void shouldServeAgentInitializeFromCache() throws Exception
+        "${app}/cache.serve.initialize/client",
+        "${app}/cache.serve.initialize/server" })
+    public void shouldServeInitialize() throws Exception
     {
         k3po.finish();
     }
