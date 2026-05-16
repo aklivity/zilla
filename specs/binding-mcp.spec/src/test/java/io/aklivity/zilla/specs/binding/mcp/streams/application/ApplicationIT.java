@@ -47,6 +47,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/lifecycle.initialize.alt.svc/client",
+        "${app}/lifecycle.initialize.alt.svc/server"})
+    public void shouldInitializeLifecycleAltSvc() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/lifecycle.shutdown/client",
         "${app}/lifecycle.shutdown/server"})
     public void shouldShutdownLifecycle() throws Exception
