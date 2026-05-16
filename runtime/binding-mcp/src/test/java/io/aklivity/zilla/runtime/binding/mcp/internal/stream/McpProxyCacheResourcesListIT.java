@@ -66,4 +66,14 @@ public class McpProxyCacheResourcesListIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.cache.refresh.yaml")
+    @Specification({
+        "${app}/cache.refresh.resources/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldRefreshResources() throws Exception
+    {
+        k3po.finish();
+    }
 }

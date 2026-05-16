@@ -53,4 +53,22 @@ public class ProxyCacheToolsListIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/cache.refresh.tools/client",
+        "${app}/cache.refresh.tools/server" })
+    public void shouldRefreshTools() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/cache.refresh.tools.error/client",
+        "${app}/cache.refresh.tools.error/server" })
+    public void shouldRefreshToolsError() throws Exception
+    {
+        k3po.finish();
+    }
 }

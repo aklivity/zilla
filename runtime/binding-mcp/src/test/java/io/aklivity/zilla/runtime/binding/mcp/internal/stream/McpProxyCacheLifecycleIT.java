@@ -69,9 +69,9 @@ public class McpProxyCacheLifecycleIT
     @Test
     @Configuration("proxy.cache.yaml")
     @Specification({
-        "${app}/cache.hydrate.downstream.error/server" })
+        "${app}/cache.hydrate.error/server" })
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
-    public void shouldHydrateDownstreamError() throws Exception
+    public void shouldHydrateError() throws Exception
     {
         k3po.finish();
     }

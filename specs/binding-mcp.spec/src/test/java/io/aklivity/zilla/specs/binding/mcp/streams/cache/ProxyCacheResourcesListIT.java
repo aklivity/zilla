@@ -53,4 +53,13 @@ public class ProxyCacheResourcesListIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/cache.refresh.resources/client",
+        "${app}/cache.refresh.resources/server" })
+    public void shouldRefreshResources() throws Exception
+    {
+        k3po.finish();
+    }
 }

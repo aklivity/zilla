@@ -53,4 +53,13 @@ public class ProxyCachePromptsListIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/cache.refresh.prompts/client",
+        "${app}/cache.refresh.prompts/server" })
+    public void shouldRefreshPrompts() throws Exception
+    {
+        k3po.finish();
+    }
 }

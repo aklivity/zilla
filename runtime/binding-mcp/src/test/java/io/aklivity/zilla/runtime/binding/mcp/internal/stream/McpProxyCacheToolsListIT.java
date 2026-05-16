@@ -66,4 +66,24 @@ public class McpProxyCacheToolsListIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.cache.refresh.yaml")
+    @Specification({
+        "${app}/cache.refresh.tools/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldRefreshTools() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.cache.refresh.yaml")
+    @Specification({
+        "${app}/cache.refresh.tools.error/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldRefreshToolsError() throws Exception
+    {
+        k3po.finish();
+    }
 }

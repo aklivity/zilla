@@ -56,9 +56,9 @@ public class ProxyCacheLifecycleIT
 
     @Test
     @Specification({
-        "${app}/cache.hydrate.downstream.error/client",
-        "${app}/cache.hydrate.downstream.error/server" })
-    public void shouldHydrateDownstreamError() throws Exception
+        "${app}/cache.hydrate.error/client",
+        "${app}/cache.hydrate.error/server" })
+    public void shouldHydrateError() throws Exception
     {
         k3po.finish();
     }

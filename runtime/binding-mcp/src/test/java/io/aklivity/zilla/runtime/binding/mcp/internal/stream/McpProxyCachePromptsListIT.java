@@ -66,4 +66,14 @@ public class McpProxyCachePromptsListIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.cache.refresh.yaml")
+    @Specification({
+        "${app}/cache.refresh.prompts/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldRefreshPrompts() throws Exception
+    {
+        k3po.finish();
+    }
 }
