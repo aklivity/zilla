@@ -2789,6 +2789,7 @@ public final class McpProxyFactory implements McpStreamFactory
 
         private MessageConsumer receiver;
         private int state;
+        private boolean hydrated;
 
         private long initialSeq;
         private long initialAck;
@@ -2862,6 +2863,11 @@ public final class McpProxyFactory implements McpStreamFactory
         {
             state = McpState.openingReply(state);
             doReplyWindow(begin.traceId());
+
+            if (!hydrated)
+            {
+                startListStream(KIND_TOOLS_LIST, begin.traceId());
+            }
         }
 
         private void doReplyWindow(
@@ -2869,6 +2875,29 @@ public final class McpProxyFactory implements McpStreamFactory
         {
             doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
                 traceId, 0L, 0L, 0);
+        }
+
+        private void startListStream(
+            int kind,
+            long traceId)
+        {
+            HydrateListStream list = new HydrateListStream(this, originId, routedId, kind);
+            list.initiate(traceId);
+        }
+
+        private void onListStreamComplete(
+            int kind,
+            long traceId)
+        {
+            switch (kind)
+            {
+            case KIND_TOOLS_LIST -> startListStream(KIND_RESOURCES_LIST, traceId);
+            case KIND_RESOURCES_LIST -> startListStream(KIND_PROMPTS_LIST, traceId);
+            case KIND_PROMPTS_LIST -> hydrated = true;
+            default ->
+            {
+            }
+            }
         }
 
         private void cleanup(
@@ -2880,6 +2909,125 @@ public final class McpProxyFactory implements McpStreamFactory
                     traceId, 0L);
                 state = McpState.closedInitial(state);
             }
+        }
+    }
+
+    private final class HydrateListStream
+    {
+        private final HydrateSession session;
+        private final long originId;
+        private final long routedId;
+        private final int kind;
+        private final long initialId;
+        private final long replyId;
+
+        private MessageConsumer receiver;
+        private int state;
+
+        private long initialSeq;
+        private long initialAck;
+        private int initialMax;
+
+        private long replySeq;
+        private long replyAck;
+        private int replyMax;
+
+        HydrateListStream(
+            HydrateSession session,
+            long originId,
+            long routedId,
+            int kind)
+        {
+            this.session = session;
+            this.originId = originId;
+            this.routedId = routedId;
+            this.kind = kind;
+            this.initialId = supplyInitialId.applyAsLong(routedId);
+            this.replyId = supplyReplyId.applyAsLong(initialId);
+            this.replyMax = bufferPool.slotCapacity();
+        }
+
+        private void initiate(
+            long traceId)
+        {
+            final String sid = HYDRATE_SESSION_ID;
+            final McpBeginExFW beginEx = mcpBeginExRW
+                .wrap(codecBuffer, 0, codecBuffer.capacity())
+                .typeId(mcpTypeId)
+                .inject(b ->
+                {
+                    switch (kind)
+                    {
+                    case KIND_TOOLS_LIST -> b.toolsList(t -> t.sessionId(sid));
+                    case KIND_RESOURCES_LIST -> b.resourcesList(r -> r.sessionId(sid));
+                    case KIND_PROMPTS_LIST -> b.promptsList(p -> p.sessionId(sid));
+                    default -> throw new IllegalStateException("unexpected hydrate list kind: " + kind);
+                    }
+                })
+                .build();
+
+            receiver = newStream(this::onMessage, originId, routedId, initialId,
+                initialSeq, initialAck, initialMax, traceId, 0L, 0L, beginEx);
+            state = McpState.openingInitial(state);
+
+            doEnd(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                traceId, 0L);
+            state = McpState.closedInitial(state);
+        }
+
+        private void onMessage(
+            int msgTypeId,
+            DirectBuffer buffer,
+            int index,
+            int length)
+        {
+            switch (msgTypeId)
+            {
+            case BeginFW.TYPE_ID:
+                onBegin(beginRO.wrap(buffer, index, index + length));
+                break;
+            case DataFW.TYPE_ID:
+                onData(dataRO.wrap(buffer, index, index + length));
+                break;
+            case EndFW.TYPE_ID:
+                onEnd(endRO.wrap(buffer, index, index + length));
+                break;
+            case AbortFW.TYPE_ID:
+            case ResetFW.TYPE_ID:
+                state = McpState.closedReply(state);
+                session.onListStreamComplete(kind, supplyTraceId.getAsLong());
+                break;
+            default:
+                break;
+            }
+        }
+
+        private void onBegin(
+            BeginFW begin)
+        {
+            state = McpState.openingReply(state);
+            doReplyWindow(begin.traceId());
+        }
+
+        private void onData(
+            DataFW data)
+        {
+            // Phase C: discard response body; store integration arrives in Phase D
+            doReplyWindow(data.traceId());
+        }
+
+        private void onEnd(
+            EndFW end)
+        {
+            state = McpState.closedReply(state);
+            session.onListStreamComplete(kind, end.traceId());
+        }
+
+        private void doReplyWindow(
+            long traceId)
+        {
+            doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                traceId, 0L, 0L, 0);
         }
     }
 

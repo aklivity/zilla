@@ -31,6 +31,7 @@ import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
+
 @Ignore("TODO: enable when proxy cache option lands")
 public class McpProxyCacheContentionIT
 {

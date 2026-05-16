@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -30,7 +29,7 @@ import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
-@Ignore("TODO: enable when proxy cache option lands")
+
 public class McpProxyCacheLifecycleIT
 {
     private final K3poRule k3po = new K3poRule()
