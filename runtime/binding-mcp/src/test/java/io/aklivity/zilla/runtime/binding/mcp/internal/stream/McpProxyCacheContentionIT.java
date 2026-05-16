@@ -17,6 +17,9 @@ package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKERS;
+
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -29,7 +32,12 @@ import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
-public class McpProxyCacheToolsListIT
+// Multi-worker cache contention tests. Configured with workers=2 so each
+// worker instantiates its own cache binding and the two race for the
+// hydrate / refresh leases backed by the shared store. The wire pattern
+// observable at the downstream is two lifecycle sessions but only the
+// lease-winner issues each list call.
+public class McpProxyCacheContentionIT
 {
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("app", "io/aklivity/zilla/specs/binding/mcp/streams/application");
@@ -41,59 +49,19 @@ public class McpProxyCacheToolsListIT
         .countersBufferCapacity(8192)
         .configurationRoot("io/aklivity/zilla/specs/binding/mcp/config")
         .external("app1")
+        .configure(ENGINE_WORKERS, 2)
         .clean();
 
     @Rule
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
-    @Test
-    @Configuration("proxy.cache.yaml")
-    @Specification({
-        "${app}/cache.hydrate.tools/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
-    public void shouldHydrateTools() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("proxy.cache.yaml")
-    @Specification({
-        "${app}/cache.serve.tools.list/client",
-        "${app}/cache.hydrate.tools/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
-    public void shouldServeToolsList() throws Exception
-    {
-        k3po.finish();
-    }
-
+    @Ignore("TODO: enable when proxy cache option lands")
     @Test
     @Configuration("proxy.cache.refresh.yaml")
     @Specification({
-        "${app}/cache.refresh.tools/server" })
+        "${app}/cache.refresh.tools.contended/server" })
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
-    public void shouldRefreshTools() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("proxy.cache.refresh.yaml")
-    @Specification({
-        "${app}/cache.refresh.tools.error/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
-    public void shouldRefreshToolsError() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("proxy.cache.yaml")
-    @Specification({
-        "${app}/cache.serve.tools.list.hydrating/client",
-        "${app}/cache.serve.tools.list.hydrating/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
-    public void shouldServeToolsListHydrating() throws Exception
+    public void shouldRefreshToolsContended() throws Exception
     {
         k3po.finish();
     }

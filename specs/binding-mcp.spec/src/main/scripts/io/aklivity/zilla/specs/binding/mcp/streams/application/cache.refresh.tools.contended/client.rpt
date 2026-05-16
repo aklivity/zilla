@@ -1,0 +1,110 @@
+#
+# Copyright 2021-2024 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+# Two workers each open a hydrate session; only one wins the lease and runs
+# tools/list against downstream. After TTL elapses, only one of the two
+# refresh ticks wins and re-issues tools/list. Net wire pattern: two
+# lifecycle sessions, exactly two tools/list calls (one hydrate, one refresh).
+
+# Worker A — wins both hydrate and refresh leases
+connect "zilla://streams/app0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${mcp:beginEx()
+                           .typeId(zilla:id("mcp"))
+                           .lifecycle()
+                               .sessionId("hydrate-A")
+                               .build()
+                           .build()}
+
+connected
+
+read zilla:begin.ext ${mcp:matchBeginEx()
+                          .typeId(zilla:id("mcp"))
+                          .lifecycle()
+                              .sessionId("hydrate-A")
+                              .build()
+                          .build()}
+
+read notify A_LIFECYCLE
+
+# Worker A wins capabilities.lock — issues tools/list (initial hydrate)
+connect await A_LIFECYCLE
+        "zilla://streams/app0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${mcp:beginEx()
+                           .typeId(zilla:id("mcp"))
+                           .toolsList()
+                               .sessionId("hydrate-A")
+                               .build()
+                           .build()}
+
+connected
+
+write close
+
+read '{"tools":[{"name":"get_weather"}]}'
+read closed
+
+read notify A_HYDRATED
+
+# Worker B opens its own hydrate session; loses capabilities.lock and reads
+# the cached entry from the store instead of issuing its own tools/list.
+connect await A_HYDRATED
+        "zilla://streams/app0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${mcp:beginEx()
+                           .typeId(zilla:id("mcp"))
+                           .lifecycle()
+                               .sessionId("hydrate-B")
+                               .build()
+                           .build()}
+
+connected
+
+read zilla:begin.ext ${mcp:matchBeginEx()
+                          .typeId(zilla:id("mcp"))
+                          .lifecycle()
+                              .sessionId("hydrate-B")
+                              .build()
+                          .build()}
+
+read notify B_LIFECYCLE
+
+# Refresh tick fires on both workers; worker A wins tools.lock again,
+# worker B sees the lease held and skips its refresh.
+connect await B_LIFECYCLE
+        "zilla://streams/app0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${mcp:beginEx()
+                           .typeId(zilla:id("mcp"))
+                           .toolsList()
+                               .sessionId("hydrate-A")
+                               .build()
+                           .build()}
+
+connected
+
+write close
+
+read '{"tools":[{"name":"get_weather"},{"name":"get_time"}]}'
+read closed
