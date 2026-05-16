@@ -26,7 +26,7 @@ import org.junit.rules.Timeout;
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 
-public class CacheListIT
+public class CacheResourcesListIT
 {
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("app", "io/aklivity/zilla/specs/binding/mcp/streams/application");
@@ -38,18 +38,9 @@ public class CacheListIT
 
     @Test
     @Specification({
-        "${app}/cache.agent.initialize.from.cache/client",
-        "${app}/cache.agent.initialize.from.cache/server" })
-    public void shouldServeAgentInitializeFromCache() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/cache.agent.tools.list.from.cache/client",
-        "${app}/cache.agent.tools.list.from.cache/server" })
-    public void shouldServeAgentToolsListFromCache() throws Exception
+        "${app}/cache.warmup.session.resources.list/client",
+        "${app}/cache.warmup.session.resources.list/server" })
+    public void shouldPopulateResourcesViaWarmup() throws Exception
     {
         k3po.finish();
     }
@@ -59,15 +50,6 @@ public class CacheListIT
         "${app}/cache.agent.resources.list.from.cache/client",
         "${app}/cache.agent.resources.list.from.cache/server" })
     public void shouldServeAgentResourcesListFromCache() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/cache.agent.prompts.list.from.cache/client",
-        "${app}/cache.agent.prompts.list.from.cache/server" })
-    public void shouldServeAgentPromptsListFromCache() throws Exception
     {
         k3po.finish();
     }

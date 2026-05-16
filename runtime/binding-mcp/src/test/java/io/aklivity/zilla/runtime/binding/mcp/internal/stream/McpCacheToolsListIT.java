@@ -29,7 +29,7 @@ import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
-public class McpCacheWarmupIT
+public class McpCacheToolsListIT
 {
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("app", "io/aklivity/zilla/specs/binding/mcp/streams/application");
@@ -49,16 +49,6 @@ public class McpCacheWarmupIT
     @Test
     @Configuration("cache.yaml")
     @Specification({
-        "${app}/cache.warmup.session.initialize/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
-    public void shouldOpenWarmupSessionAndInitialize() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("cache.yaml")
-    @Specification({
         "${app}/cache.warmup.session.tools.list/server" })
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldPopulateToolsViaWarmup() throws Exception
@@ -69,49 +59,10 @@ public class McpCacheWarmupIT
     @Test
     @Configuration("cache.yaml")
     @Specification({
-        "${app}/cache.warmup.session.resources.list/server" })
+        "${app}/cache.agent.tools.list.from.cache/client",
+        "${app}/cache.warmup.session.tools.list/server" })
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
-    public void shouldPopulateResourcesViaWarmup() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("cache.yaml")
-    @Specification({
-        "${app}/cache.warmup.session.prompts.list/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
-    public void shouldPopulatePromptsViaWarmup() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("cache.yaml")
-    @Specification({
-        "${app}/cache.warmup.session.persists/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
-    public void shouldKeepWarmupSessionOpenAfterEnumeration() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("cache.guarded.yaml")
-    @Specification({
-        "${app}/cache.warmup.session.uses.test.guard.credentials/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
-    public void shouldIssueWarmupWithTestGuardCredentials() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("cache.yaml")
-    @Specification({
-        "${app}/cache.warmup.session.downstream.error/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
-    public void shouldSurviveDownstreamErrorDuringWarmup() throws Exception
+    public void shouldServeAgentToolsListFromCache() throws Exception
     {
         k3po.finish();
     }

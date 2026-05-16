@@ -26,7 +26,7 @@ import org.junit.rules.Timeout;
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 
-public class CacheWarmupIT
+public class CacheLifecycleIT
 {
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("app", "io/aklivity/zilla/specs/binding/mcp/streams/application");
@@ -41,33 +41,6 @@ public class CacheWarmupIT
         "${app}/cache.warmup.session.initialize/client",
         "${app}/cache.warmup.session.initialize/server" })
     public void shouldOpenWarmupSessionAndInitialize() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/cache.warmup.session.tools.list/client",
-        "${app}/cache.warmup.session.tools.list/server" })
-    public void shouldPopulateToolsViaWarmup() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/cache.warmup.session.resources.list/client",
-        "${app}/cache.warmup.session.resources.list/server" })
-    public void shouldPopulateResourcesViaWarmup() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/cache.warmup.session.prompts.list/client",
-        "${app}/cache.warmup.session.prompts.list/server" })
-    public void shouldPopulatePromptsViaWarmup() throws Exception
     {
         k3po.finish();
     }
@@ -95,6 +68,15 @@ public class CacheWarmupIT
         "${app}/cache.warmup.session.downstream.error/client",
         "${app}/cache.warmup.session.downstream.error/server" })
     public void shouldSurviveDownstreamErrorDuringWarmup() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/cache.agent.initialize.from.cache/client",
+        "${app}/cache.agent.initialize.from.cache/server" })
+    public void shouldServeAgentInitializeFromCache() throws Exception
     {
         k3po.finish();
     }
