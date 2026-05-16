@@ -1,5 +1,13 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/1.2.4-rc2...HEAD)
+
+**Merged pull requests:**
+
+- Refactor Docker image publishing to use build-push-action [\#1771](https://github.com/aklivity/zilla/pull/1771) ([jfallows](https://github.com/jfallows))
+
 ## [1.2.4-rc2](https://github.com/aklivity/zilla/tree/1.2.4-rc2) (2026-05-15)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/1.2.3...1.2.4-rc2)
