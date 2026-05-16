@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -94,6 +95,23 @@ public class McpProxyCacheToolsListIT
         "${app}/cache.serve.tools.list.hydrating/server" })
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldServeToolsListHydrating() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // Engine-driven contention test: the TestStore seeds tools.lock = "worker-0"
+    // before bring-up, so the cache's refresh-tick putIfAbsent returns the seeded
+    // value and the refresh path is skipped. The downstream server.rpt models
+    // only the hydrate exchange — if the implementation incorrectly issues a
+    // refresh tools/list anyway, the unmatched stream causes a test failure.
+    // Currently ignored because cache binding implementation does not yet exist.
+    @Ignore("TODO: enable when proxy cache option lands")
+    @Test
+    @Configuration("proxy.cache.contended.yaml")
+    @Specification({
+        "${app}/cache.hydrate.tools/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldRefreshToolsContended() throws Exception
     {
         k3po.finish();
     }
