@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.ENGINE_DETACH_ON_CLOSE_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.ENGINE_SYNTHETIC_ABORT_NAME;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_ALT_SVC_ENABLED_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_ELICITATION_ID_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_INACTIVITY_TIMEOUT_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_SERVER_NAME_NAME;
@@ -65,6 +66,17 @@ public class McpServerIT
         "${net}/lifecycle.initialize/client",
         "${app}/lifecycle.initialize/server"})
     public void shouldInitializeLifecycle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/lifecycle.initialize.alt.svc/client",
+        "${app}/lifecycle.initialize.alt.svc/server"})
+    @Configure(name = MCP_ALT_SVC_ENABLED_NAME, value = "true")
+    public void shouldInitializeLifecycleAltSvc() throws Exception
     {
         k3po.finish();
     }
