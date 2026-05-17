@@ -24,6 +24,8 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeg
 import static java.lang.System.currentTimeMillis;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.IntPredicate;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
@@ -194,6 +196,15 @@ public final class McpProxyFactory implements McpStreamFactory
         return newStream;
     }
 
+    private record PendingAwait(
+        long originId,
+        long routedId,
+        long streamId,
+        long traceId,
+        int signalId)
+    {
+    }
+
     private final class McpHydrateSession implements McpProxyHydrate
     {
         private final long originId;
@@ -202,9 +213,13 @@ public final class McpProxyFactory implements McpStreamFactory
         private final long replyId;
         private final McpListCache cache;
         private final String sessionId;
+        private final List<PendingAwait> pending = new ArrayList<>();
 
         private MessageConsumer receiver;
         private int state;
+        private int totalKinds;
+        private int settledKinds;
+        private boolean complete;
 
         private long initialSeq;
         private long initialAck;
@@ -283,20 +298,41 @@ public final class McpProxyFactory implements McpStreamFactory
             state = McpState.openingReply(state);
             doReplyWindow(traceId);
 
+            int filtered = 0;
             for (int kind : new int[] { KIND_TOOLS_LIST, KIND_RESOURCES_LIST, KIND_PROMPTS_LIST })
             {
-                if (!hydrateKindFilter.test(kind))
+                if (hydrateKindFilter.test(kind))
                 {
-                    continue;
+                    filtered++;
                 }
-                final int listKind = kind;
-                cache.get(listKind, (key, value) ->
+            }
+            totalKinds = filtered;
+
+            if (totalKinds == 0)
+            {
+                markComplete();
+            }
+            else
+            {
+                for (int kind : new int[] { KIND_TOOLS_LIST, KIND_RESOURCES_LIST, KIND_PROMPTS_LIST })
                 {
-                    if (value == null)
+                    if (!hydrateKindFilter.test(kind))
                     {
-                        startListStream(listKind, traceId);
+                        continue;
                     }
-                });
+                    final int listKind = kind;
+                    cache.get(listKind, (key, value) ->
+                    {
+                        if (value != null)
+                        {
+                            settle();
+                        }
+                        else
+                        {
+                            startListStream(listKind, traceId);
+                        }
+                    });
+                }
             }
         }
 
@@ -311,14 +347,51 @@ public final class McpProxyFactory implements McpStreamFactory
             int kind,
             long traceId)
         {
-            HydrateListStream list = new HydrateListStream(originId, routedId, kind, cache, sessionId);
+            HydrateListStream list = new HydrateListStream(this, originId, routedId, kind, cache, sessionId);
             list.initiate(traceId);
+        }
+
+        private void settle()
+        {
+            if (!complete && ++settledKinds >= totalKinds)
+            {
+                markComplete();
+            }
+        }
+
+        private void markComplete()
+        {
+            complete = true;
+            for (PendingAwait p : pending)
+            {
+                signaler.signalNow(p.originId(), p.routedId(), p.streamId(), p.traceId(), p.signalId(), 0);
+            }
+            pending.clear();
+        }
+
+        @Override
+        public void awaitComplete(
+            long originId,
+            long routedId,
+            long streamId,
+            long traceId,
+            int signalId)
+        {
+            if (complete)
+            {
+                signaler.signalNow(originId, routedId, streamId, traceId, signalId, 0);
+            }
+            else
+            {
+                pending.add(new PendingAwait(originId, routedId, streamId, traceId, signalId));
+            }
         }
 
         @Override
         public void cleanup(
             long traceId)
         {
+            pending.clear();
             if (receiver != null && !McpState.initialClosed(state))
             {
                 doEnd(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
@@ -330,6 +403,7 @@ public final class McpProxyFactory implements McpStreamFactory
 
     private final class HydrateListStream
     {
+        private final McpHydrateSession parent;
         private final long originId;
         private final long routedId;
         private final int kind;
@@ -342,6 +416,7 @@ public final class McpProxyFactory implements McpStreamFactory
         private int state;
         private byte[] body;
         private int bodyLen;
+        private boolean settled;
 
         private long initialSeq;
         private long initialAck;
@@ -352,12 +427,14 @@ public final class McpProxyFactory implements McpStreamFactory
         private int replyMax;
 
         HydrateListStream(
+            McpHydrateSession parent,
             long originId,
             long routedId,
             int kind,
             McpListCache cache,
             String sessionId)
         {
+            this.parent = parent;
             this.originId = originId;
             this.routedId = routedId;
             this.kind = kind;
@@ -417,6 +494,7 @@ public final class McpProxyFactory implements McpStreamFactory
             case AbortFW.TYPE_ID:
             case ResetFW.TYPE_ID:
                 state = McpState.closedReply(state);
+                settle();
                 break;
             default:
                 break;
@@ -461,9 +539,11 @@ public final class McpProxyFactory implements McpStreamFactory
             if (cache != null && bodyLen > 0)
             {
                 final String value = new String(body, 0, bodyLen, StandardCharsets.UTF_8);
-                cache.put(kind, value, k ->
-                {
-                });
+                cache.put(kind, value, k -> settle());
+            }
+            else
+            {
+                settle();
             }
         }
 
@@ -472,6 +552,15 @@ public final class McpProxyFactory implements McpStreamFactory
         {
             doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
                 traceId, 0L, 0L, 0);
+        }
+
+        private void settle()
+        {
+            if (!settled)
+            {
+                settled = true;
+                parent.settle();
+            }
         }
     }
 

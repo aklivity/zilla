@@ -80,7 +80,7 @@ public class McpProxyCacheLifecycleIT
     }
 
     @Test
-    @Configuration("proxy.cache.yaml")
+    @Configuration("proxy.cache.seeded.yaml")
     @Specification({
         "${app}/cache.serve.initialize/client",
         "${app}/cache.hydrate/server" })

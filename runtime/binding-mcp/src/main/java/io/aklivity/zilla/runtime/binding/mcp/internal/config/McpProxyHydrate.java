@@ -18,4 +18,11 @@ public interface McpProxyHydrate
 {
     void cleanup(
         long traceId);
+
+    void awaitComplete(
+        long originId,
+        long routedId,
+        long streamId,
+        long traceId,
+        int signalId);
 }

@@ -39,6 +39,7 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpChallengeExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.ResetFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
@@ -46,6 +47,8 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 
 final class McpProxyLifecycleFactory implements BindingHandler
 {
+    static final int SIGNAL_HYDRATE_COMPLETE = 1;
+
     private static final String MCP_TYPE_NAME = "mcp";
 
     private final BeginFW beginRO = new BeginFW();
@@ -56,6 +59,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
     private final WindowFW windowRO = new WindowFW();
     private final ResetFW resetRO = new ResetFW();
     private final ChallengeFW challengeRO = new ChallengeFW();
+    private final SignalFW signalRO = new SignalFW();
     private final McpBeginExFW mcpBeginExRO = new McpBeginExFW();
     private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBuffer(), 0, 0);
 
@@ -223,6 +227,10 @@ final class McpProxyLifecycleFactory implements BindingHandler
                 final ChallengeFW challenge = challengeRO.wrap(buffer, index, index + length);
                 onServerChallenge(challenge);
                 break;
+            case SignalFW.TYPE_ID:
+                final SignalFW signal = signalRO.wrap(buffer, index, index + length);
+                onServerSignal(signal);
+                break;
             default:
                 break;
             }
@@ -253,7 +261,35 @@ final class McpProxyLifecycleFactory implements BindingHandler
 
             state = McpState.openingInitial(state);
 
-            final McpBindingConfig binding = supplyBinding.apply(routedId);
+            doServerWindow(traceId, 0L, 0);
+
+            if (binding.hydrate != null)
+            {
+                binding.hydrate.awaitComplete(originId, routedId, replyId, traceId, SIGNAL_HYDRATE_COMPLETE);
+            }
+            else
+            {
+                doDeferredServerBegin(traceId);
+            }
+        }
+
+        private void onServerSignal(
+            SignalFW signal)
+        {
+            if (signal.signalId() == SIGNAL_HYDRATE_COMPLETE)
+            {
+                doDeferredServerBegin(signal.traceId());
+            }
+        }
+
+        private void doDeferredServerBegin(
+            long traceId)
+        {
+            if (McpState.replyOpened(state) || McpState.replyClosed(state))
+            {
+                return;
+            }
+
             final int serverCapabilities = binding.serverCapabilities(authorization);
             final String sid = sessionId;
             final McpBeginExFW beginEx = mcpBeginExRW
@@ -263,8 +299,6 @@ final class McpProxyLifecycleFactory implements BindingHandler
                 .build();
 
             doServerBegin(traceId, beginEx);
-
-            doServerWindow(traceId, 0L, 0);
         }
 
         private void onServerEnd(
