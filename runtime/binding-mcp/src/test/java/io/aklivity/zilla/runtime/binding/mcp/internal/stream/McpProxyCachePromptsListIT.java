@@ -14,9 +14,13 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_HYDRATE_KIND_FILTER_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_SESSION_ID_NAME;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_PROMPTS_LIST;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
+
+import java.util.function.IntPredicate;
 
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -45,6 +49,8 @@ public class McpProxyCachePromptsListIT
         .configurationRoot("io/aklivity/zilla/specs/binding/mcp/config")
         .external("app1")
         .configure(MCP_SESSION_ID_NAME, "%s::hydrateSessionId".formatted(McpProxyCachePromptsListIT.class.getName()))
+        .configure(MCP_HYDRATE_KIND_FILTER_NAME,
+            "%s::hydrateKindFilter".formatted(McpProxyCachePromptsListIT.class.getName()))
         .clean();
 
     @Rule
@@ -97,5 +103,10 @@ public class McpProxyCachePromptsListIT
     public static String hydrateSessionId()
     {
         return "hydrate-1";
+    }
+
+    public static IntPredicate hydrateKindFilter()
+    {
+        return kind -> kind == KIND_PROMPTS_LIST;
     }
 }

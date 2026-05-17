@@ -23,6 +23,7 @@ import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.HexFormat;
 import java.util.UUID;
+import java.util.function.IntPredicate;
 import java.util.function.Supplier;
 
 import org.agrona.LangUtil;
@@ -44,6 +45,7 @@ public class McpConfiguration extends Configuration
     public static final IntPropertyDef MCP_SESSION_ID_ATTEMPTS;
     public static final IntPropertyDef MCP_KEEPALIVE_TOLERANCE;
     public static final PropertyDef<Duration> MCP_SSE_KEEPALIVE_INTERVAL;
+    public static final PropertyDef<IntPredicate> MCP_HYDRATE_KIND_FILTER;
 
     static
     {
@@ -67,6 +69,8 @@ public class McpConfiguration extends Configuration
         MCP_KEEPALIVE_TOLERANCE = config.property("keepalive.tolerance", 2);
         MCP_SSE_KEEPALIVE_INTERVAL = config.property(Duration.class, "sse.keepalive.interval",
             (c, v) -> Duration.parse(v), "PT15S");
+        MCP_HYDRATE_KIND_FILTER = config.property(IntPredicate.class, "hydrate.kind.filter",
+            McpConfiguration::decodeHydrateKindFilter, McpConfiguration::defaultHydrateKindFilter);
         MCP_CONFIG = config;
     }
 
@@ -129,6 +133,11 @@ public class McpConfiguration extends Configuration
     public Duration sseKeepaliveInterval()
     {
         return MCP_SSE_KEEPALIVE_INTERVAL.get(this);
+    }
+
+    public IntPredicate hydrateKindFilter()
+    {
+        return MCP_HYDRATE_KIND_FILTER.get(this);
     }
 
     @FunctionalInterface
@@ -234,6 +243,34 @@ public class McpConfiguration extends Configuration
         }
 
         return supplier;
+    }
+
+    private static IntPredicate decodeHydrateKindFilter(
+        String value)
+    {
+        IntPredicate filter = null;
+
+        try
+        {
+            MethodType signature = MethodType.methodType(IntPredicate.class);
+            String[] parts = value.split("::");
+            Class<?> ownerClass = Class.forName(parts[0]);
+            String methodName = parts[1];
+            MethodHandle method = MethodHandles.publicLookup().findStatic(ownerClass, methodName, signature);
+            filter = (IntPredicate) method.invoke();
+        }
+        catch (Throwable ex)
+        {
+            LangUtil.rethrowUnchecked(ex);
+        }
+
+        return filter;
+    }
+
+    private static boolean defaultHydrateKindFilter(
+        int kind)
+    {
+        return true;
     }
 
     private static String defaultElicitationIdSupplier()

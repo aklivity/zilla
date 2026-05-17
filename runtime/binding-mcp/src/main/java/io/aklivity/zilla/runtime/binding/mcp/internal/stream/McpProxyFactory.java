@@ -29,6 +29,7 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
 import java.util.Map;
+import java.util.function.IntPredicate;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
@@ -122,6 +123,7 @@ public final class McpProxyFactory implements McpStreamFactory
     private final LongSupplier supplyTraceId;
     private final LongFunction<StoreHandler> supplyStore;
     private final Supplier<String> supplyHydrateSessionId;
+    private final IntPredicate hydrateKindFilter;
     private final Signaler signaler;
     private final int mcpTypeId;
 
@@ -145,6 +147,7 @@ public final class McpProxyFactory implements McpStreamFactory
         this.supplyTraceId = context::supplyTraceId;
         this.supplyStore = context::supplyStore;
         this.supplyHydrateSessionId = config.sessionIdSupplier();
+        this.hydrateKindFilter = config.hydrateKindFilter();
         this.signaler = context.signaler();
         this.bindings = new Long2ObjectHashMap<>();
         this.factories = new Int2ObjectHashMap<>();
@@ -1829,6 +1832,10 @@ public final class McpProxyFactory implements McpStreamFactory
 
             for (int kind : new int[] { KIND_TOOLS_LIST, KIND_RESOURCES_LIST, KIND_PROMPTS_LIST })
             {
+                if (!hydrateKindFilter.test(kind))
+                {
+                    continue;
+                }
                 final int listKind = kind;
                 cache.get(listKind, (key, value) ->
                 {
