@@ -397,7 +397,7 @@ public final class McpProxyFactory implements McpStreamFactory
             int kind,
             long traceId)
         {
-            HydrateListStream list = new HydrateListStream(this, originId, routedId, kind, cache, sessionId);
+            McpHydrateListStream list = new McpHydrateListStream(this, originId, routedId, kind, cache, sessionId);
             list.initiate(traceId);
         }
 
@@ -530,7 +530,7 @@ public final class McpProxyFactory implements McpStreamFactory
         }
     }
 
-    private final class HydrateListStream
+    private final class McpHydrateListStream
     {
         private final McpHydrateSession parent;
         private final long originId;
@@ -555,7 +555,7 @@ public final class McpProxyFactory implements McpStreamFactory
         private long replyAck;
         private int replyMax;
 
-        HydrateListStream(
+        McpHydrateListStream(
             McpHydrateSession parent,
             long originId,
             long routedId,
