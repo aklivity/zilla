@@ -37,6 +37,8 @@ public final class McpBindingConfig
     public final long id;
     public final McpOptionsConfig options;
     public final GuardHandler guard;
+    public final GuardHandler cacheGuard;
+    public final String cacheCredentials;
     public McpListCache cache;
     public Map<String, McpProxySession> sessions;
     public McpProxyHydrate hydrate;
@@ -61,6 +63,22 @@ public final class McpBindingConfig
         this.guard = supplyGuard != null && options != null && options.authorization != null
             ? supplyGuard.apply(binding.resolveId.applyAsLong(options.authorization.name))
             : null;
+
+        if (supplyGuard != null &&
+            options != null &&
+            options.cache != null &&
+            options.cache.authorization != null &&
+            !options.cache.authorization.isEmpty())
+        {
+            final Map.Entry<String, String> entry = options.cache.authorization.entrySet().iterator().next();
+            this.cacheGuard = supplyGuard.apply(binding.resolveId.applyAsLong(entry.getKey()));
+            this.cacheCredentials = entry.getValue();
+        }
+        else
+        {
+            this.cacheGuard = null;
+            this.cacheCredentials = null;
+        }
     }
 
     public McpRouteConfig resolve(

@@ -65,6 +65,15 @@ public class ProxyCacheLifecycleIT
 
     @Test
     @Specification({
+        "${app}/cache.hydrate.auth/client",
+        "${app}/cache.hydrate.auth/server" })
+    public void shouldHydrateAuth() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/cache.serve.initialize/client",
         "${app}/cache.serve.initialize/server" })
     public void shouldServeInitialize() throws Exception

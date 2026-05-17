@@ -61,6 +61,7 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 
 public final class McpProxyFactory implements McpStreamFactory
@@ -90,6 +91,7 @@ public final class McpProxyFactory implements McpStreamFactory
     private final LongUnaryOperator supplyReplyId;
     private final LongSupplier supplyTraceId;
     private final LongFunction<StoreHandler> supplyStore;
+    private final LongFunction<GuardHandler> supplyGuard;
     private final Supplier<String> supplyHydrateSessionId;
     private final IntPredicate hydrateKindFilter;
     private final Signaler signaler;
@@ -110,6 +112,7 @@ public final class McpProxyFactory implements McpStreamFactory
         this.supplyReplyId = context::supplyReplyId;
         this.supplyTraceId = context::supplyTraceId;
         this.supplyStore = context::supplyStore;
+        this.supplyGuard = context::supplyGuard;
         this.supplyHydrateSessionId = config.sessionIdSupplier();
         this.hydrateKindFilter = config.hydrateKindFilter();
         this.signaler = context.signaler();
@@ -142,7 +145,7 @@ public final class McpProxyFactory implements McpStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        McpBindingConfig newBinding = new McpBindingConfig(binding);
+        McpBindingConfig newBinding = new McpBindingConfig(binding, supplyGuard);
         newBinding.sessions = new Object2ObjectHashMap<>();
         bindings.put(binding.id, newBinding);
 
@@ -155,8 +158,19 @@ public final class McpProxyFactory implements McpStreamFactory
             McpRouteConfig route = newBinding.resolve(0L);
             if (route != null)
             {
+                final long cacheAuthorization;
+                if (newBinding.cacheGuard != null)
+                {
+                    cacheAuthorization = newBinding.cacheGuard.reauthorize(supplyTraceId.getAsLong(),
+                        binding.id, 0L, newBinding.cacheCredentials);
+                }
+                else
+                {
+                    cacheAuthorization = 0L;
+                }
+
                 McpHydrateSession hydrate = new McpHydrateSession(newBinding.id, route.id, newBinding.cache,
-                    newBinding.options.cache.ttl);
+                    newBinding.options.cache.ttl, cacheAuthorization);
                 newBinding.hydrate = hydrate;
                 signaler.signalAt(currentTimeMillis(), SIGNAL_INITIATE_HYDRATE, hydrate::onInitiateSignal);
             }
@@ -217,6 +231,7 @@ public final class McpProxyFactory implements McpStreamFactory
         private final long routedId;
         private final long initialId;
         private final long replyId;
+        private final long authorization;
         private final McpListCache cache;
         private final McpCacheTtlConfig ttl;
         private final String sessionId;
@@ -240,12 +255,14 @@ public final class McpProxyFactory implements McpStreamFactory
             long originId,
             long routedId,
             McpListCache cache,
-            McpCacheTtlConfig ttl)
+            McpCacheTtlConfig ttl,
+            long authorization)
         {
             this.originId = originId;
             this.routedId = routedId;
             this.cache = cache;
             this.ttl = ttl;
+            this.authorization = authorization;
             this.sessionId = supplyHydrateSessionId.get();
             this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
@@ -274,7 +291,7 @@ public final class McpProxyFactory implements McpStreamFactory
                 .build();
 
             receiver = newStream(this::onMessage, originId, routedId, initialId,
-                initialSeq, initialAck, initialMax, traceId, 0L, 0L, beginEx);
+                initialSeq, initialAck, initialMax, traceId, authorization, 0L, beginEx);
             state = McpState.openingInitial(state);
         }
 
@@ -349,7 +366,7 @@ public final class McpProxyFactory implements McpStreamFactory
             long traceId)
         {
             doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                traceId, 0L, 0L, 0);
+                traceId, authorization, 0L, 0);
         }
 
         private void startListStream(
@@ -467,7 +484,7 @@ public final class McpProxyFactory implements McpStreamFactory
             if (receiver != null && !McpState.initialClosed(state))
             {
                 doEnd(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, 0L);
+                    traceId, authorization);
                 state = McpState.closedInitial(state);
             }
         }
@@ -538,11 +555,11 @@ public final class McpProxyFactory implements McpStreamFactory
                 .build();
 
             receiver = newStream(this::onMessage, originId, routedId, initialId,
-                initialSeq, initialAck, initialMax, traceId, 0L, 0L, beginEx);
+                initialSeq, initialAck, initialMax, traceId, parent.authorization, 0L, beginEx);
             state = McpState.openingInitial(state);
 
             doEnd(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                traceId, 0L);
+                traceId, parent.authorization);
             state = McpState.closedInitial(state);
         }
 
@@ -623,7 +640,7 @@ public final class McpProxyFactory implements McpStreamFactory
             long traceId)
         {
             doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                traceId, 0L, 0L, 0);
+                traceId, parent.authorization, 0L, 0);
         }
 
         private void settle()

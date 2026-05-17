@@ -96,7 +96,8 @@
                                                 "additionalProperties": false
                                             }
                                         },
-                                        "additionalProperties": false
+                                        "additionalProperties": false,
+                                        "maxProperties": 1
                                     }
                                 },
                                 "required": [ "store" ],

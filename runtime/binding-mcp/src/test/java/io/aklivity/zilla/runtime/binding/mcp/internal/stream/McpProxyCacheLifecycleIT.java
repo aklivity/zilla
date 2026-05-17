@@ -80,6 +80,16 @@ public class McpProxyCacheLifecycleIT
     }
 
     @Test
+    @Configuration("proxy.cache.auth.yaml")
+    @Specification({
+        "${app}/cache.hydrate.auth/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldHydrateAuth() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.cache.seeded.yaml")
     @Specification({
         "${app}/cache.serve.initialize/client",
