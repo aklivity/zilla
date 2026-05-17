@@ -15,7 +15,8 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.store;
 
-import java.util.Map;
+import java.util.concurrent.ConcurrentMap;
+import java.util.function.LongFunction;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
@@ -26,21 +27,24 @@ import io.aklivity.zilla.runtime.engine.test.internal.store.config.TestStoreOpti
 public final class TestStoreContext implements StoreContext
 {
     private final Signaler signaler;
+    private final LongFunction<ConcurrentMap<String, String>> supplyEntries;
 
     public TestStoreContext(
-        EngineContext context)
+        EngineContext context,
+        LongFunction<ConcurrentMap<String, String>> supplyEntries)
     {
         this.signaler = context.signaler();
+        this.supplyEntries = supplyEntries;
     }
 
     @Override
     public TestStoreHandler attach(
         StoreConfig store)
     {
-        Map<String, String> entries = null;
-        if (store.options instanceof TestStoreOptionsConfig options)
+        final ConcurrentMap<String, String> entries = supplyEntries.apply(store.id);
+        if (store.options instanceof TestStoreOptionsConfig options && options.entries != null)
         {
-            entries = options.entries;
+            options.entries.forEach(entries::putIfAbsent);
         }
         return new TestStoreHandler(store, signaler, entries);
     }

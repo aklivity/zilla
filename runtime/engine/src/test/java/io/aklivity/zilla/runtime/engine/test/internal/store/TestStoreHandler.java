@@ -15,9 +15,8 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.store;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentMap;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -27,15 +26,15 @@ import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 
 public final class TestStoreHandler implements StoreHandler
 {
-    private final Map<String, String> entries;
+    private final ConcurrentMap<String, String> entries;
     private final Signaler signaler;
 
     public TestStoreHandler(
         StoreConfig store,
         Signaler signaler,
-        Map<String, String> seedEntries)
+        ConcurrentMap<String, String> entries)
     {
-        this.entries = seedEntries != null ? new HashMap<>(seedEntries) : new HashMap<>();
+        this.entries = Objects.requireNonNull(entries);
         this.signaler = Objects.requireNonNull(signaler);
     }
 
