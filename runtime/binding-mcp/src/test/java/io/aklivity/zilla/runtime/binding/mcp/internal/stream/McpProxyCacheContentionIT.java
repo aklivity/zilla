@@ -14,12 +14,16 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_HYDRATE_KIND_FILTER_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_SESSION_ID_NAME;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKERS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
-import org.junit.Ignore;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.IntPredicate;
+
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -33,7 +37,6 @@ import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
 
-@Ignore("TODO: enable when proxy cache option lands")
 public class McpProxyCacheContentionIT
 {
     private final K3poRule k3po = new K3poRule()
@@ -48,6 +51,8 @@ public class McpProxyCacheContentionIT
         .external("app1")
         .configure(ENGINE_WORKERS, 2)
         .configure(MCP_SESSION_ID_NAME, "%s::hydrateSessionId".formatted(McpProxyCacheContentionIT.class.getName()))
+        .configure(MCP_HYDRATE_KIND_FILTER_NAME,
+            "%s::hydrateKindFilter".formatted(McpProxyCacheContentionIT.class.getName()))
         .clean();
 
     @Rule
@@ -63,8 +68,16 @@ public class McpProxyCacheContentionIT
         k3po.finish();
     }
 
+    private static final String[] SESSION_IDS = { "hydrate-A", "hydrate-B" };
+    private static final AtomicInteger SESSION_INDEX = new AtomicInteger();
+
     public static String hydrateSessionId()
     {
-        return "hydrate-1";
+        return SESSION_IDS[SESSION_INDEX.getAndIncrement() % SESSION_IDS.length];
+    }
+
+    public static IntPredicate hydrateKindFilter()
+    {
+        return kind -> kind == KIND_TOOLS_LIST;
     }
 }

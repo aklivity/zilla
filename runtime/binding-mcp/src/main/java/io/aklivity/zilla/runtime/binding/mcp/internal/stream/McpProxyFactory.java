@@ -72,6 +72,8 @@ public final class McpProxyFactory implements McpStreamFactory
     private static final int SIGNAL_REFRESH_TOOLS = 2;
     private static final int SIGNAL_REFRESH_RESOURCES = 3;
     private static final int SIGNAL_REFRESH_PROMPTS = 4;
+    private static final long LEASE_TTL_MS = Duration.ofSeconds(30).toMillis();
+    private static final long LEASE_RETRY_MS = 100L;
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -273,7 +275,19 @@ public final class McpProxyFactory implements McpStreamFactory
             int signalId)
         {
             assert signalId == SIGNAL_INITIATE_HYDRATE;
-            doLifecycleBegin(supplyTraceId.getAsLong());
+            final long traceId = supplyTraceId.getAsLong();
+            cache.acquireLifecycleLease(LEASE_TTL_MS, acquired ->
+            {
+                if (acquired)
+                {
+                    doLifecycleBegin(traceId);
+                }
+                else
+                {
+                    signaler.signalAt(currentTimeMillis() + LEASE_RETRY_MS, SIGNAL_INITIATE_HYDRATE,
+                        this::onInitiateSignal);
+                }
+            });
         }
 
         private void doLifecycleBegin(
@@ -351,11 +365,21 @@ public final class McpProxyFactory implements McpStreamFactory
                     {
                         if (value != null)
                         {
-                            settle(listKind);
+                            markSettled(listKind);
                         }
                         else
                         {
-                            startListStream(listKind, traceId);
+                            cache.acquireLease(listKind, LEASE_TTL_MS, acquired ->
+                            {
+                                if (acquired)
+                                {
+                                    startListStream(listKind, traceId);
+                                }
+                                else
+                                {
+                                    markSettled(listKind);
+                                }
+                            });
                         }
                     });
                 }
@@ -377,13 +401,19 @@ public final class McpProxyFactory implements McpStreamFactory
             list.initiate(traceId);
         }
 
-        private void settle(
+        private void markSettled(
             int kind)
         {
             if (!complete && ++settledKinds >= totalKinds)
             {
                 markComplete();
             }
+        }
+
+        private void settle(
+            int kind)
+        {
+            markSettled(kind);
             scheduleRefresh(kind);
         }
 
@@ -403,7 +433,14 @@ public final class McpProxyFactory implements McpStreamFactory
             final int kind = kindForSignalId(signalId);
             if (kind != 0)
             {
-                startListStream(kind, supplyTraceId.getAsLong());
+                final long traceId = supplyTraceId.getAsLong();
+                cache.acquireLease(kind, LEASE_TTL_MS, acquired ->
+                {
+                    if (acquired)
+                    {
+                        startListStream(kind, traceId);
+                    }
+                });
             }
         }
 
@@ -456,6 +493,9 @@ public final class McpProxyFactory implements McpStreamFactory
                 signaler.signalNow(p.originId(), p.routedId(), p.streamId(), p.traceId(), p.signalId(), 0);
             }
             pending.clear();
+            cache.releaseLifecycleLease(k ->
+            {
+            });
         }
 
         @Override
@@ -583,7 +623,14 @@ public final class McpProxyFactory implements McpStreamFactory
             case AbortFW.TYPE_ID:
             case ResetFW.TYPE_ID:
                 state = McpState.closedReply(state);
-                settle();
+                if (cache != null)
+                {
+                    cache.releaseLease(kind, l -> settle());
+                }
+                else
+                {
+                    settle();
+                }
                 break;
             default:
                 break;
@@ -628,7 +675,11 @@ public final class McpProxyFactory implements McpStreamFactory
             if (cache != null && bodyLen > 0)
             {
                 final String value = new String(body, 0, bodyLen, StandardCharsets.UTF_8);
-                cache.put(kind, value, k -> settle());
+                cache.put(kind, value, k -> cache.releaseLease(kind, l -> settle()));
+            }
+            else if (cache != null)
+            {
+                cache.releaseLease(kind, l -> settle());
             }
             else
             {

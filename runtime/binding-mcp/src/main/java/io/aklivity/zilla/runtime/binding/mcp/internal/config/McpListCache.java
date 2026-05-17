@@ -28,6 +28,9 @@ public final class McpListCache
     private static final String STORE_KEY_TOOLS = "tools";
     private static final String STORE_KEY_RESOURCES = "resources";
     private static final String STORE_KEY_PROMPTS = "prompts";
+    private static final String STORE_LOCK_SUFFIX = ".lock";
+    private static final String STORE_LOCK_VALUE = "1";
+    private static final String STORE_LOCK_KEY_LIFECYCLE = "lifecycle.lock";
     private static final long STORE_TTL_FOREVER = Long.MAX_VALUE;
 
     private final StoreHandler store;
@@ -53,6 +56,36 @@ public final class McpListCache
         store.put(storeKeyForListKind(kind), value, STORE_TTL_FOREVER, completion);
     }
 
+    public void acquireLease(
+        int kind,
+        long ttl,
+        Consumer<Boolean> completion)
+    {
+        store.putIfAbsent(storeLockKeyForListKind(kind), STORE_LOCK_VALUE, ttl,
+            prior -> completion.accept(prior == null));
+    }
+
+    public void releaseLease(
+        int kind,
+        Consumer<String> completion)
+    {
+        store.delete(storeLockKeyForListKind(kind), completion);
+    }
+
+    public void acquireLifecycleLease(
+        long ttl,
+        Consumer<Boolean> completion)
+    {
+        store.putIfAbsent(STORE_LOCK_KEY_LIFECYCLE, STORE_LOCK_VALUE, ttl,
+            prior -> completion.accept(prior == null));
+    }
+
+    public void releaseLifecycleLease(
+        Consumer<String> completion)
+    {
+        store.delete(STORE_LOCK_KEY_LIFECYCLE, completion);
+    }
+
     private static String storeKeyForListKind(
         int kind)
     {
@@ -63,5 +96,11 @@ public final class McpListCache
         case KIND_PROMPTS_LIST -> STORE_KEY_PROMPTS;
         default -> throw new IllegalStateException("unexpected list kind: " + kind);
         };
+    }
+
+    private static String storeLockKeyForListKind(
+        int kind)
+    {
+        return storeKeyForListKind(kind) + STORE_LOCK_SUFFIX;
     }
 }
