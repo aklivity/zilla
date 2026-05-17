@@ -22,7 +22,6 @@ import static org.junit.rules.RuleChain.outerRule;
 
 import java.util.function.IntPredicate;
 
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -76,7 +75,6 @@ public class McpProxyCacheToolsListIT
         k3po.finish();
     }
 
-    @Ignore("TODO: enable when periodic refresh lands")
     @Test
     @Configuration("proxy.cache.refresh.yaml")
     @Specification({
@@ -87,7 +85,6 @@ public class McpProxyCacheToolsListIT
         k3po.finish();
     }
 
-    @Ignore("TODO: enable when periodic refresh lands")
     @Test
     @Configuration("proxy.cache.refresh.yaml")
     @Specification({
