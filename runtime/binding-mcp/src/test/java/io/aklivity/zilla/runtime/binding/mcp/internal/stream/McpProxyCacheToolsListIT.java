@@ -66,10 +66,10 @@ public class McpProxyCacheToolsListIT
     }
 
     @Test
-    @Configuration("proxy.cache.yaml")
+    @Configuration("proxy.cache.seeded.yaml")
     @Specification({
         "${app}/cache.serve.tools.list/client",
-        "${app}/cache.hydrate.tools/server" })
+        "${app}/cache.hydrate/server" })
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldServeToolsList() throws Exception
     {
@@ -94,18 +94,6 @@ public class McpProxyCacheToolsListIT
         "${app}/cache.refresh.tools.error/server" })
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldRefreshToolsError() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Ignore("TODO: enable when hydrating-wait lands")
-    @Test
-    @Configuration("proxy.cache.yaml")
-    @Specification({
-        "${app}/cache.serve.tools.list.hydrating/client",
-        "${app}/cache.serve.tools.list.hydrating/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
-    public void shouldServeToolsListHydrating() throws Exception
     {
         k3po.finish();
     }

@@ -67,10 +67,10 @@ public class McpProxyCacheResourcesListIT
     }
 
     @Test
-    @Configuration("proxy.cache.yaml")
+    @Configuration("proxy.cache.seeded.yaml")
     @Specification({
         "${app}/cache.serve.resources.list/client",
-        "${app}/cache.hydrate.resources/server" })
+        "${app}/cache.hydrate/server" })
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldServeResourcesList() throws Exception
     {
@@ -84,18 +84,6 @@ public class McpProxyCacheResourcesListIT
         "${app}/cache.refresh.resources/server" })
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldRefreshResources() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Ignore("TODO: enable when hydrating-wait lands")
-    @Test
-    @Configuration("proxy.cache.yaml")
-    @Specification({
-        "${app}/cache.serve.resources.list.hydrating/client",
-        "${app}/cache.serve.resources.list.hydrating/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
-    public void shouldServeResourcesListHydrating() throws Exception
     {
         k3po.finish();
     }

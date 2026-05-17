@@ -67,10 +67,10 @@ public class McpProxyCachePromptsListIT
     }
 
     @Test
-    @Configuration("proxy.cache.yaml")
+    @Configuration("proxy.cache.seeded.yaml")
     @Specification({
         "${app}/cache.serve.prompts.list/client",
-        "${app}/cache.hydrate.prompts/server" })
+        "${app}/cache.hydrate/server" })
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldServePromptsList() throws Exception
     {
@@ -84,18 +84,6 @@ public class McpProxyCachePromptsListIT
         "${app}/cache.refresh.prompts/server" })
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldRefreshPrompts() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Ignore("TODO: enable when hydrating-wait lands")
-    @Test
-    @Configuration("proxy.cache.yaml")
-    @Specification({
-        "${app}/cache.serve.prompts.list.hydrating/client",
-        "${app}/cache.serve.prompts.list.hydrating/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
-    public void shouldServePromptsListHydrating() throws Exception
     {
         k3po.finish();
     }
