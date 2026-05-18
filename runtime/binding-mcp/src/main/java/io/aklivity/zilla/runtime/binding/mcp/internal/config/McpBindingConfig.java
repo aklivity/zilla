@@ -20,16 +20,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.LongFunction;
 import java.util.stream.Collectors;
 
+import io.aklivity.zilla.runtime.binding.mcp.config.McpAuthorizationConfig;
+import io.aklivity.zilla.runtime.binding.mcp.config.McpCacheConfig;
 import io.aklivity.zilla.runtime.binding.mcp.config.McpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyCacheHydrater;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
-import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 
 public final class McpBindingConfig
 {
@@ -48,33 +49,26 @@ public final class McpBindingConfig
     private final List<McpRouteConfig> routes;
 
     public McpBindingConfig(
-        BindingConfig binding)
-    {
-        this(binding, null, null);
-    }
-
-    public McpBindingConfig(
         BindingConfig binding,
-        LongFunction<GuardHandler> supplyGuard,
-        LongFunction<StoreHandler> supplyStore)
+        EngineContext context)
     {
         this.id = binding.id;
         this.options = (McpOptionsConfig) binding.options;
         this.routes = binding.routes.stream()
             .map(McpRouteConfig::new)
             .collect(Collectors.toList());
-        this.guard = supplyGuard != null && options != null && options.authorization != null
-            ? supplyGuard.apply(binding.resolveId.applyAsLong(options.authorization.name))
+
+        final McpAuthorizationConfig authorization = options != null ? options.authorization : null;
+        this.guard = authorization != null
+            ? context.supplyGuard(binding.resolveId.applyAsLong(authorization.name))
             : null;
 
-        if (supplyGuard != null &&
-            options != null &&
-            options.cache != null &&
-            options.cache.authorization != null &&
-            !options.cache.authorization.isEmpty())
+        final McpCacheConfig cacheConfig = options != null ? options.cache : null;
+        final Map<String, String> cacheAuth = cacheConfig != null ? cacheConfig.authorization : null;
+        if (cacheAuth != null && !cacheAuth.isEmpty())
         {
-            final Map.Entry<String, String> entry = options.cache.authorization.entrySet().iterator().next();
-            this.cacheGuard = supplyGuard.apply(binding.resolveId.applyAsLong(entry.getKey()));
+            final Map.Entry<String, String> entry = cacheAuth.entrySet().iterator().next();
+            this.cacheGuard = context.supplyGuard(binding.resolveId.applyAsLong(entry.getKey()));
             this.cacheCredentials = entry.getValue();
         }
         else
@@ -83,15 +77,9 @@ public final class McpBindingConfig
             this.cacheCredentials = null;
         }
 
-        if (supplyStore != null && options != null && options.cache != null)
-        {
-            final long storeId = binding.resolveId.applyAsLong(options.cache.store);
-            this.cache = new McpListCache(supplyStore.apply(storeId));
-        }
-        else
-        {
-            this.cache = null;
-        }
+        this.cache = cacheConfig != null
+            ? new McpListCache(context.supplyStore(binding.resolveId.applyAsLong(cacheConfig.store)))
+            : null;
     }
 
     public McpRouteConfig resolve(
