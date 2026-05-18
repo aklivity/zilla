@@ -1275,7 +1275,7 @@ public final class McpClientFactory implements McpStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        McpBindingConfig newBinding = new McpBindingConfig(binding, supplyGuard);
+        McpBindingConfig newBinding = new McpBindingConfig(binding, supplyGuard, null);
         bindings.put(binding.id, newBinding);
     }
 

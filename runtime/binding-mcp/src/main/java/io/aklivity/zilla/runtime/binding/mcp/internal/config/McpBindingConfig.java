@@ -21,14 +21,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.LongFunction;
-import java.util.function.ToLongFunction;
 import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.binding.mcp.config.McpOptionsConfig;
+import io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyCacheHydrater;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
+import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 
 public final class McpBindingConfig
 {
@@ -40,26 +41,25 @@ public final class McpBindingConfig
     public final GuardHandler guard;
     public final GuardHandler cacheGuard;
     public final String cacheCredentials;
-    public McpListCache cache;
+    public final McpListCache cache;
     public Map<String, McpProxySession> sessions;
-    public McpProxyHydrate hydrate;
+    public McpProxyCacheHydrater hydrater;
 
     private final List<McpRouteConfig> routes;
-    private final ToLongFunction<String> resolveId;
 
     public McpBindingConfig(
         BindingConfig binding)
     {
-        this(binding, null);
+        this(binding, null, null);
     }
 
     public McpBindingConfig(
         BindingConfig binding,
-        LongFunction<GuardHandler> supplyGuard)
+        LongFunction<GuardHandler> supplyGuard,
+        LongFunction<StoreHandler> supplyStore)
     {
         this.id = binding.id;
         this.options = (McpOptionsConfig) binding.options;
-        this.resolveId = binding.resolveId;
         this.routes = binding.routes.stream()
             .map(McpRouteConfig::new)
             .collect(Collectors.toList());
@@ -82,12 +82,16 @@ public final class McpBindingConfig
             this.cacheGuard = null;
             this.cacheCredentials = null;
         }
-    }
 
-    public long resolveId(
-        String name)
-    {
-        return resolveId.applyAsLong(name);
+        if (supplyStore != null && options != null && options.cache != null)
+        {
+            final long storeId = binding.resolveId.applyAsLong(options.cache.store);
+            this.cache = new McpListCache(supplyStore.apply(storeId));
+        }
+        else
+        {
+            this.cache = null;
+        }
     }
 
     public McpRouteConfig resolve(

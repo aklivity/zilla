@@ -12,17 +12,20 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.mcp.internal.config;
+package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 
-public interface McpProxyHydrate
+import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
+
+record McpSignalHandle(
+    long originId,
+    long routedId,
+    long streamId,
+    long traceId,
+    int signalId)
 {
-    void cleanup(
-        long traceId);
-
-    void awaitComplete(
-        long originId,
-        long routedId,
-        long streamId,
-        long traceId,
-        int signalId);
+    void signalVia(
+        Signaler signaler)
+    {
+        signaler.signalNow(originId, routedId, streamId, traceId, signalId, 0);
+    }
 }

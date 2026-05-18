@@ -39,6 +39,7 @@ import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
+import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 
 public final class McpProxyFactory implements McpStreamFactory
 {
@@ -47,21 +48,25 @@ public final class McpProxyFactory implements McpStreamFactory
     private final BeginFW beginRO = new BeginFW();
     private final McpBeginExFW mcpBeginExRO = new McpBeginExFW();
 
+    private final McpConfiguration mcpConfig;
+    private final EngineContext engineContext;
     private final LongFunction<GuardHandler> supplyGuard;
+    private final LongFunction<StoreHandler> supplyStore;
     private final int mcpTypeId;
 
     private final Long2ObjectHashMap<McpBindingConfig> bindings;
     private final Int2ObjectHashMap<BindingHandler> factories;
-    private final McpCacheHydrater hydrater;
 
     public McpProxyFactory(
         McpConfiguration config,
         EngineContext context)
     {
+        this.mcpConfig = config;
+        this.engineContext = context;
         this.supplyGuard = context::supplyGuard;
+        this.supplyStore = context::supplyStore;
         this.bindings = new Long2ObjectHashMap<>();
         this.factories = new Int2ObjectHashMap<>();
-        this.hydrater = new McpCacheHydrater(config, context, bindings::get);
         this.factories.put(KIND_LIFECYCLE,
             new McpProxyLifecycleFactory(config, context, bindings::get));
         this.factories.put(KIND_TOOLS_CALL,
@@ -89,10 +94,14 @@ public final class McpProxyFactory implements McpStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        McpBindingConfig newBinding = new McpBindingConfig(binding, supplyGuard);
+        McpBindingConfig newBinding = new McpBindingConfig(binding, supplyGuard, supplyStore);
         newBinding.sessions = new Object2ObjectHashMap<>();
         bindings.put(binding.id, newBinding);
-        hydrater.attach(newBinding);
+        if (newBinding.cache != null)
+        {
+            newBinding.hydrater = new McpProxyCacheHydrater(newBinding, mcpConfig, engineContext);
+            newBinding.hydrater.start();
+        }
     }
 
     @Override
@@ -101,9 +110,9 @@ public final class McpProxyFactory implements McpStreamFactory
     {
         McpBindingConfig binding = bindings.remove(bindingId);
 
-        if (binding != null)
+        if (binding != null && binding.hydrater != null)
         {
-            hydrater.detach(binding);
+            binding.hydrater.cleanup();
         }
     }
 
