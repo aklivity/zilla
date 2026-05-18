@@ -1,0 +1,101 @@
+/*
+ * Copyright 2021-2024 Aklivity Inc
+ *
+ * Licensed under the Aklivity Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ *   https://www.aklivity.io/aklivity-community-license/
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+package io.aklivity.zilla.runtime.binding.mcp.internal.config;
+
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_PROMPTS_LIST;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_LIST;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
+
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+
+import io.aklivity.zilla.runtime.engine.store.StoreHandler;
+
+public final class McpListCache
+{
+    private static final String STORE_KEY_TOOLS = "tools";
+    private static final String STORE_KEY_RESOURCES = "resources";
+    private static final String STORE_KEY_PROMPTS = "prompts";
+    private static final String STORE_LOCK_SUFFIX = ".lock";
+    private static final String STORE_LOCK_VALUE = "1";
+    private static final String STORE_LOCK_KEY_TOOLS = STORE_KEY_TOOLS + STORE_LOCK_SUFFIX;
+    private static final String STORE_LOCK_KEY_RESOURCES = STORE_KEY_RESOURCES + STORE_LOCK_SUFFIX;
+    private static final String STORE_LOCK_KEY_PROMPTS = STORE_KEY_PROMPTS + STORE_LOCK_SUFFIX;
+    private static final long STORE_TTL_FOREVER = Long.MAX_VALUE;
+
+    private final StoreHandler store;
+    private final String storeKey;
+    private final String storeLockKey;
+
+    public McpListCache(
+        StoreHandler store,
+        int kind)
+    {
+        this.store = store;
+        this.storeKey = storeKey(kind);
+        this.storeLockKey = storeLockKey(kind);
+    }
+
+    public void get(
+        BiConsumer<String, String> completion)
+    {
+        store.get(storeKey, completion);
+    }
+
+    public void put(
+        String value,
+        Consumer<String> completion)
+    {
+        store.put(storeKey, value, STORE_TTL_FOREVER, completion);
+    }
+
+    public void acquire(
+        long ttl,
+        Consumer<Boolean> completion)
+    {
+        store.putIfAbsent(storeLockKey, STORE_LOCK_VALUE, ttl,
+            prior -> completion.accept(prior == null));
+    }
+
+    public void release(
+        Consumer<String> completion)
+    {
+        store.delete(storeLockKey, completion);
+    }
+
+    private static String storeKey(
+        int kind)
+    {
+        return switch (kind)
+        {
+        case KIND_TOOLS_LIST -> STORE_KEY_TOOLS;
+        case KIND_RESOURCES_LIST -> STORE_KEY_RESOURCES;
+        case KIND_PROMPTS_LIST -> STORE_KEY_PROMPTS;
+        default -> throw new IllegalStateException("unexpected list kind: " + kind);
+        };
+    }
+
+    private static String storeLockKey(
+        int kind)
+    {
+        return switch (kind)
+        {
+        case KIND_TOOLS_LIST -> STORE_LOCK_KEY_TOOLS;
+        case KIND_RESOURCES_LIST -> STORE_LOCK_KEY_RESOURCES;
+        case KIND_PROMPTS_LIST -> STORE_LOCK_KEY_PROMPTS;
+        default -> throw new IllegalStateException("unexpected list kind: " + kind);
+        };
+    }
+}

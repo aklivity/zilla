@@ -15,18 +15,31 @@
 package io.aklivity.zilla.runtime.binding.mcp.internal.config;
 
 import static io.aklivity.zilla.runtime.binding.mcp.config.McpElicitationConfig.DEFAULT_CALLBACK_PATH;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_PROMPTS_LIST;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_LIST;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
-import java.util.function.LongFunction;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import org.agrona.collections.Object2ObjectHashMap;
+
 import io.aklivity.zilla.runtime.binding.mcp.config.McpOptionsConfig;
+import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
+import io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyCacheHydrater;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
+import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 
 public final class McpBindingConfig
 {
@@ -36,27 +49,69 @@ public final class McpBindingConfig
     public final long id;
     public final McpOptionsConfig options;
     public final GuardHandler guard;
+    public final GuardHandler cacheGuard;
+    public final String cacheCredentials;
+    public final McpListCache toolsCache;
+    public final McpListCache resourcesCache;
+    public final McpListCache promptsCache;
+    public final McpLifecycleCache lifecycleCache;
+    public final Map<String, McpProxySession> sessions;
+    public McpProxyCacheHydrater hydrater;
 
     private final List<McpRouteConfig> routes;
 
     public McpBindingConfig(
-        BindingConfig binding)
-    {
-        this(binding, null);
-    }
-
-    public McpBindingConfig(
         BindingConfig binding,
-        LongFunction<GuardHandler> supplyGuard)
+        McpConfiguration config,
+        EngineContext context)
     {
         this.id = binding.id;
         this.options = (McpOptionsConfig) binding.options;
         this.routes = binding.routes.stream()
             .map(McpRouteConfig::new)
             .collect(Collectors.toList());
-        this.guard = supplyGuard != null && options != null && options.authorization != null
-            ? supplyGuard.apply(binding.resolveId.applyAsLong(options.authorization.name))
-            : null;
+
+        this.guard = Optional.ofNullable(options)
+            .map(o -> o.authorization)
+            .map(a -> a.name)
+            .map(binding.resolveId::applyAsLong)
+            .map(context::supplyGuard)
+            .orElse(null);
+
+        final Map.Entry<String, String> guarded = Optional.ofNullable(options)
+            .map(o -> o.cache)
+            .map(c -> c.authorization)
+            .filter(Objects::nonNull)
+            .filter(Predicate.not(Map::isEmpty))
+            .map(Map::entrySet)
+            .map(Collection::iterator)
+            .map(Iterator::next)
+            .orElse(null);
+
+        if (guarded != null)
+        {
+            this.cacheGuard = context.supplyGuard(binding.resolveId.applyAsLong(guarded.getKey()));
+            this.cacheCredentials = guarded.getValue();
+        }
+        else
+        {
+            this.cacheGuard = null;
+            this.cacheCredentials = null;
+        }
+
+        final StoreHandler store = Optional.ofNullable(options)
+            .map(o -> o.cache)
+            .map(c -> c.store)
+            .map(binding.resolveId::applyAsLong)
+            .map(context::supplyStore)
+            .orElse(null);
+
+        this.toolsCache = store != null ? new McpListCache(store, KIND_TOOLS_LIST) : null;
+        this.resourcesCache = store != null ? new McpListCache(store, KIND_RESOURCES_LIST) : null;
+        this.promptsCache = store != null ? new McpListCache(store, KIND_PROMPTS_LIST) : null;
+        this.lifecycleCache = store != null ? new McpLifecycleCache(store) : null;
+        this.sessions = new Object2ObjectHashMap<>();
+        this.hydrater = lifecycleCache != null ? new McpProxyCacheHydrater(this, config, context) : null;
     }
 
     public McpRouteConfig resolve(

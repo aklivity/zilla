@@ -30,7 +30,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
-import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
 
 import jakarta.json.stream.JsonParser;
@@ -159,6 +158,7 @@ public final class McpClientFactory implements McpStreamFactory
 
     private final DirectBufferInputStreamEx inputRO = new DirectBufferInputStreamEx();
 
+    private final EngineContext context;
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer extBuffer;
     private final MutableDirectBuffer codecBuffer;
@@ -167,7 +167,6 @@ public final class McpClientFactory implements McpStreamFactory
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
-    private final LongFunction<GuardHandler> supplyGuard;
     private final int httpTypeId;
     private final int mcpTypeId;
     private final int decodeMax;
@@ -198,6 +197,7 @@ public final class McpClientFactory implements McpStreamFactory
     private static final int SSE_IGNORE_VALUE = 4;
     private final JsonParserFactory parserFactory;
 
+    private final McpConfiguration config;
     private final Long2ObjectHashMap<McpBindingConfig> bindings;
     private final Map<String, McpStream> sessions = new Object2ObjectHashMap<>();
     private final Int2ObjectHashMap<McpSessionIdResolver> resolvers;
@@ -207,6 +207,8 @@ public final class McpClientFactory implements McpStreamFactory
         McpConfiguration config,
         EngineContext context)
     {
+        this.config = config;
+        this.context = context;
         this.writeBuffer = context.writeBuffer();
         this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.codecBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
@@ -215,7 +217,6 @@ public final class McpClientFactory implements McpStreamFactory
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
-        this.supplyGuard = context::supplyGuard;
         this.bindings = new Long2ObjectHashMap<>();
         this.httpTypeId = context.supplyTypeId(HTTP_TYPE_NAME);
         this.mcpTypeId = context.supplyTypeId(MCP_TYPE_NAME);
@@ -1275,7 +1276,7 @@ public final class McpClientFactory implements McpStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        McpBindingConfig newBinding = new McpBindingConfig(binding, supplyGuard);
+        McpBindingConfig newBinding = new McpBindingConfig(binding, config, context);
         bindings.put(binding.id, newBinding);
     }
 

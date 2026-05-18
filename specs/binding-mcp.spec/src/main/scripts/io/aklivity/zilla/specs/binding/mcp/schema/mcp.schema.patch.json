@@ -38,6 +38,51 @@
                     {
                         "properties":
                         {
+                            "cache":
+                            {
+                                "title": "Cache",
+                                "type": "object",
+                                "properties":
+                                {
+                                    "store":
+                                    {
+                                        "title": "Store",
+                                        "type": "string"
+                                    },
+                                    "ttl":
+                                    {
+                                        "title": "Refresh TTL",
+                                        "type": "string",
+                                        "format": "duration",
+                                        "default": "PT5M"
+                                    },
+                                    "authorization":
+                                    {
+                                        "title": "Authorization",
+                                        "type": "object",
+                                        "patternProperties":
+                                        {
+                                            "^[A-Za-z0-9_-]+$":
+                                            {
+                                                "type": "object",
+                                                "properties":
+                                                {
+                                                    "credentials":
+                                                    {
+                                                        "title": "Credentials",
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "additionalProperties": false
+                                            }
+                                        },
+                                        "additionalProperties": false,
+                                        "maxProperties": 1
+                                    }
+                                },
+                                "required": [ "store" ],
+                                "additionalProperties": false
+                            },
                             "prompts":
                             {
                                 "title": "Local Prompts",

@@ -14,13 +14,18 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal.config;
 
+import java.time.Duration;
+
 import jakarta.json.Json;
 import jakarta.json.JsonArray;
 import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
+import jakarta.json.JsonString;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.runtime.binding.mcp.config.McpCacheConfig;
+import io.aklivity.zilla.runtime.binding.mcp.config.McpCacheConfigBuilder;
 import io.aklivity.zilla.runtime.binding.mcp.config.McpElicitationConfig;
 import io.aklivity.zilla.runtime.binding.mcp.config.McpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mcp.config.McpOptionsConfigBuilder;
@@ -39,6 +44,13 @@ public final class McpOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
     private static final String ELICITATION_CALLBACK_NAME = "callback";
 
     private static final String AUTHORIZATION_NAME = "authorization";
+
+    private static final String CACHE_NAME = "cache";
+    private static final String CACHE_STORE_NAME = "store";
+    private static final String CACHE_TTL_NAME = "ttl";
+    private static final String CACHE_TTL_DEFAULT = "PT5M";
+    private static final String CACHE_AUTHORIZATION_NAME = "authorization";
+    private static final String CACHE_AUTHORIZATION_CREDENTIALS_NAME = "credentials";
 
     @Override
     public Kind kind()
@@ -90,6 +102,32 @@ public final class McpOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
             object.add(AUTHORIZATION_NAME, authorization);
         }
 
+        if (mcpOptions.cache != null)
+        {
+            JsonObjectBuilder cache = Json.createObjectBuilder();
+            McpCacheConfig cacheConfig = mcpOptions.cache;
+            cache.add(CACHE_STORE_NAME, cacheConfig.store);
+
+            if (cacheConfig.ttl != null)
+            {
+                cache.add(CACHE_TTL_NAME, cacheConfig.ttl.toString());
+            }
+
+            if (cacheConfig.authorization != null && !cacheConfig.authorization.isEmpty())
+            {
+                JsonObjectBuilder authorization = Json.createObjectBuilder();
+                cacheConfig.authorization.forEach((guard, credentials) ->
+                {
+                    JsonObjectBuilder guardObject = Json.createObjectBuilder();
+                    guardObject.add(CACHE_AUTHORIZATION_CREDENTIALS_NAME, credentials);
+                    authorization.add(guard, guardObject);
+                });
+                cache.add(CACHE_AUTHORIZATION_NAME, authorization);
+            }
+
+            object.add(CACHE_NAME, cache);
+        }
+
         return object.build();
     }
 
@@ -130,6 +168,32 @@ public final class McpOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
             builder.authorization()
                 .name(authorization.getString("name"))
                 .build();
+        }
+
+        if (object.containsKey(CACHE_NAME))
+        {
+            JsonObject cache = object.getJsonObject(CACHE_NAME);
+            McpCacheConfigBuilder<McpOptionsConfigBuilder<McpOptionsConfig>> cacheBuilder = builder.cache()
+                .store(cache.getString(CACHE_STORE_NAME));
+
+            cacheBuilder.ttl(Duration.parse(cache.containsKey(CACHE_TTL_NAME)
+                ? cache.getString(CACHE_TTL_NAME)
+                : CACHE_TTL_DEFAULT));
+
+            if (cache.containsKey(CACHE_AUTHORIZATION_NAME))
+            {
+                JsonObject authorization = cache.getJsonObject(CACHE_AUTHORIZATION_NAME);
+                authorization.forEach((guard, value) ->
+                {
+                    JsonObject guardObject = (JsonObject) value;
+                    String credentials = guardObject.containsKey(CACHE_AUTHORIZATION_CREDENTIALS_NAME)
+                        ? ((JsonString) guardObject.get(CACHE_AUTHORIZATION_CREDENTIALS_NAME)).getString()
+                        : null;
+                    cacheBuilder.authorization(guard, credentials);
+                });
+            }
+
+            cacheBuilder.build();
         }
 
         return builder.build();

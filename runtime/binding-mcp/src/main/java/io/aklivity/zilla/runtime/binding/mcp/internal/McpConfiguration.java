@@ -23,6 +23,7 @@ import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.HexFormat;
 import java.util.UUID;
+import java.util.function.IntPredicate;
 import java.util.function.Supplier;
 
 import org.agrona.LangUtil;
@@ -46,6 +47,9 @@ public class McpConfiguration extends Configuration
     public static final PropertyDef<Duration> MCP_SSE_KEEPALIVE_INTERVAL;
     public static final BooleanPropertyDef MCP_ALT_SVC_ENABLED;
     public static final PropertyDef<Duration> MCP_ALT_SVC_MAX_AGE;
+    public static final PropertyDef<IntPredicate> MCP_HYDRATE_FILTER;
+    public static final PropertyDef<Duration> MCP_LEASE_TTL;
+    public static final PropertyDef<Duration> MCP_LEASE_RETRY;
 
     static
     {
@@ -72,6 +76,12 @@ public class McpConfiguration extends Configuration
         MCP_ALT_SVC_ENABLED = config.property("alt.svc.enabled", McpConfiguration::defaultAltSvcEnabled);
         MCP_ALT_SVC_MAX_AGE = config.property(Duration.class, "alt.svc.max.age",
             (c, v) -> Duration.parse(v), "PT24H");
+        MCP_HYDRATE_FILTER = config.property(IntPredicate.class, "hydrate.filter",
+            McpConfiguration::decodeHydrateFilter, McpConfiguration::defaultHydrateFilter);
+        MCP_LEASE_TTL = config.property(Duration.class, "lease.ttl",
+            (c, v) -> Duration.parse(v), "PT30S");
+        MCP_LEASE_RETRY = config.property(Duration.class, "lease.retry",
+            (c, v) -> Duration.parse(v), "PT0.1S");
         MCP_CONFIG = config;
     }
 
@@ -144,6 +154,21 @@ public class McpConfiguration extends Configuration
     public Duration altSvcMaxAge()
     {
         return MCP_ALT_SVC_MAX_AGE.get(this);
+    }
+
+    public IntPredicate hydrateFilter()
+    {
+        return MCP_HYDRATE_FILTER.get(this);
+    }
+
+    public Duration leaseTtl()
+    {
+        return MCP_LEASE_TTL.get(this);
+    }
+
+    public Duration leaseRetry()
+    {
+        return MCP_LEASE_RETRY.get(this);
     }
 
     @FunctionalInterface
@@ -256,6 +281,34 @@ public class McpConfiguration extends Configuration
         }
 
         return supplier;
+    }
+
+    private static IntPredicate decodeHydrateFilter(
+        String value)
+    {
+        IntPredicate filter = null;
+
+        try
+        {
+            MethodType signature = MethodType.methodType(IntPredicate.class);
+            String[] parts = value.split("::");
+            Class<?> ownerClass = Class.forName(parts[0]);
+            String methodName = parts[1];
+            MethodHandle method = MethodHandles.publicLookup().findStatic(ownerClass, methodName, signature);
+            filter = (IntPredicate) method.invoke();
+        }
+        catch (Throwable ex)
+        {
+            LangUtil.rethrowUnchecked(ex);
+        }
+
+        return filter;
+    }
+
+    private static boolean defaultHydrateFilter(
+        int kind)
+    {
+        return true;
     }
 
     private static String defaultElicitationIdSupplier()

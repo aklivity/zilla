@@ -192,6 +192,7 @@ public final class McpServerFactory implements McpStreamFactory
     private final long altSvcMaxAgeSeconds;
     private final long inactivityTimeoutMillis;
     private final long sseKeepaliveIntervalMillis;
+    private final EngineContext context;
     private final Signaler signaler;
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer codecBuffer;
@@ -236,6 +237,7 @@ public final class McpServerFactory implements McpStreamFactory
     private final McpServerDecoder decodeJsonRpcProgressToken = this::decodeJsonRpcProgressToken;
     private final McpServerDecoder decodeIgnore = this::decodeIgnore;
 
+    private final McpConfiguration config;
     private final Long2ObjectHashMap<McpBindingConfig> bindings;
     private final Map<String, McpServerFactory.McpLifecycleStream> sessions;
     private final int localIndex;
@@ -244,6 +246,7 @@ public final class McpServerFactory implements McpStreamFactory
         McpConfiguration config,
         EngineContext context)
     {
+        this.config = config;
         this.supplySessionId = config.sessionIdSupplier();
         this.supplyElicitationId = config.elicitationIdSupplier();
         this.serverName = config.serverName();
@@ -252,6 +255,7 @@ public final class McpServerFactory implements McpStreamFactory
         this.altSvcMaxAgeSeconds = config.altSvcMaxAge().toSeconds();
         this.inactivityTimeoutMillis = config.inactivityTimeout().toMillis();
         this.sseKeepaliveIntervalMillis = config.sseKeepaliveInterval().toMillis();
+        this.context = context;
         this.signaler = context.signaler();
         this.writeBuffer = context.writeBuffer();
         this.codecBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
@@ -290,7 +294,7 @@ public final class McpServerFactory implements McpStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        McpBindingConfig newBinding = new McpBindingConfig(binding);
+        McpBindingConfig newBinding = new McpBindingConfig(binding, config, context);
         bindings.put(binding.id, newBinding);
     }
 
