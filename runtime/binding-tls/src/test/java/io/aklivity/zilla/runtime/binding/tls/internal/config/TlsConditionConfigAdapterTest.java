@@ -28,6 +28,7 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.binding.tls.config.TlsCertConditionConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsConditionConfig;
 
 public class TlsConditionConfigAdapterTest
@@ -140,5 +141,106 @@ public class TlsConditionConfigAdapterTest
 
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo("{\"authority\":\"example.net\",\"alpn\":\"echo\",\"port\":8080}"));
+    }
+
+    @Test
+    public void shouldReadConditionWithCertSignerCn()
+    {
+        String text =
+                "{" +
+                    "\"cert\":" +
+                    "{" +
+                        "\"signer\":" +
+                        "{" +
+                            "\"cn\": \"clientca\"" +
+                        "}" +
+                    "}" +
+                "}";
+
+        TlsConditionConfig condition = jsonb.fromJson(text, TlsConditionConfig.class);
+
+        assertThat(condition, not(nullValue()));
+        assertThat(condition.cert, not(nullValue()));
+        assertThat(condition.cert.present, equalTo(Boolean.TRUE));
+        assertThat(condition.cert.signer, not(nullValue()));
+        assertThat(condition.cert.signer.cn, equalTo("clientca"));
+    }
+
+    @Test
+    public void shouldWriteConditionWithCertSignerCn()
+    {
+        TlsConditionConfig condition = TlsConditionConfig.builder()
+            .inject(identity())
+            .cert()
+                .signer()
+                    .cn("clientca")
+                    .build()
+                .build()
+            .build();
+
+        String text = jsonb.toJson(condition);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo("{\"cert\":{\"signer\":{\"cn\":\"clientca\"}}}"));
+    }
+
+    @Test
+    public void shouldReadConditionWithCertPresent()
+    {
+        String text =
+                "{" +
+                    "\"cert\": true" +
+                "}";
+
+        TlsConditionConfig condition = jsonb.fromJson(text, TlsConditionConfig.class);
+
+        assertThat(condition, not(nullValue()));
+        assertThat(condition.cert, not(nullValue()));
+        assertThat(condition.cert.present, equalTo(Boolean.TRUE));
+        assertThat(condition.cert.signer, nullValue());
+    }
+
+    @Test
+    public void shouldWriteConditionWithCertPresent()
+    {
+        TlsConditionConfig condition = TlsConditionConfig.builder()
+            .inject(identity())
+            .cert(TlsCertConditionConfig.builder().present(true).build())
+            .build();
+
+        String text = jsonb.toJson(condition);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo("{\"cert\":true}"));
+    }
+
+    @Test
+    public void shouldReadConditionWithCertAbsent()
+    {
+        String text =
+                "{" +
+                    "\"cert\": false" +
+                "}";
+
+        TlsConditionConfig condition = jsonb.fromJson(text, TlsConditionConfig.class);
+
+        assertThat(condition, not(nullValue()));
+        assertThat(condition.cert, not(nullValue()));
+        assertThat(condition.cert.present, equalTo(Boolean.FALSE));
+        assertThat(condition.cert.signer, nullValue());
+    }
+
+    @Test
+    public void shouldWriteConditionWithCertAbsent()
+    {
+        TlsConditionConfig condition = TlsConditionConfig.builder()
+            .inject(identity())
+            .cert(TlsCertConditionConfig.builder().present(false).build())
+            .build();
+
+        String text = jsonb.toJson(condition);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo("{\"cert\":false}"));
     }
 }

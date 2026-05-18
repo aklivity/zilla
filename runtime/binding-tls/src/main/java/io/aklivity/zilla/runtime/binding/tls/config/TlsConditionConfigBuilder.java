@@ -29,6 +29,7 @@ public final class TlsConditionConfigBuilder<T> extends ConfigBuilder<T, TlsCond
     private String authority;
     private String alpn;
     private IntArrayList ports;
+    private TlsCertConditionConfig cert;
 
     TlsConditionConfigBuilder(
         Function<ConditionConfig, T> mapper)
@@ -75,10 +76,22 @@ public final class TlsConditionConfigBuilder<T> extends ConfigBuilder<T, TlsCond
         return this;
     }
 
+    public TlsConditionConfigBuilder<T> cert(
+        TlsCertConditionConfig cert)
+    {
+        this.cert = cert;
+        return this;
+    }
+
+    public TlsCertConditionConfigBuilder<TlsConditionConfigBuilder<T>> cert()
+    {
+        return TlsCertConditionConfig.builder(this::cert);
+    }
+
     @Override
     public T build()
     {
         final int[] portsArray = ports != null ? ports.toIntArray() : null;
-        return mapper.apply(new TlsConditionConfig(authority, alpn, portsArray));
+        return mapper.apply(new TlsConditionConfig(authority, alpn, portsArray, cert));
     }
 }

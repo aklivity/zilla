@@ -52,9 +52,20 @@ public final class TlsRouteConfig
     boolean matches(
         String hostname,
         String alpn,
+        int port,
+        boolean clientCertPresent,
+        String clientCertCn)
+    {
+        return when.isEmpty() ||
+                when.stream().anyMatch(m -> m.matches(hostname, alpn, port, clientCertPresent, clientCertCn));
+    }
+
+    boolean matchesIgnoringCert(
+        String hostname,
+        String alpn,
         int port)
     {
-        return when.isEmpty() || when.stream().anyMatch(m -> m.matches(hostname, alpn, port));
+        return when.isEmpty() || when.stream().anyMatch(m -> m.matchesIgnoringCert(hostname, alpn, port));
     }
 
     boolean matchesPortOnly(

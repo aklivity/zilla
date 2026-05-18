@@ -103,6 +103,15 @@ public class NetworkIT
         k3po.finish();
     }
 
+    @Test
+    @Specification({
+        "${net}/server.mutual.cert.absent/client",
+        "${net}/server.mutual.cert.absent/server"})
+    public void shouldEstablishConnectionWithoutClientCert() throws Exception
+    {
+        k3po.finish();
+    }
+
     @Ignore("requires accepted only streams")
     @Test
     @Specification({
