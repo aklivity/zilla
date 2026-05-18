@@ -122,6 +122,10 @@ abstract class McpProxyCacheListHydrater
         {
             startListStream();
         }
+        else
+        {
+            scheduleRefresh();
+        }
     }
 
     private void scheduleRefresh()
