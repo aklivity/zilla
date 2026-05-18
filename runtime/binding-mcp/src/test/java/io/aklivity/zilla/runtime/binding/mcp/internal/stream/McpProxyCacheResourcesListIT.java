@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 
-import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_HYDRATE_KIND_FILTER_NAME;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_HYDRATE_FILTER_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_SESSION_ID_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_LIST;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -47,9 +47,9 @@ public class McpProxyCacheResourcesListIT
         .countersBufferCapacity(8192)
         .configurationRoot("io/aklivity/zilla/specs/binding/mcp/config")
         .external("app1")
-        .configure(MCP_SESSION_ID_NAME, "%s::hydrateSessionId".formatted(McpProxyCacheResourcesListIT.class.getName()))
-        .configure(MCP_HYDRATE_KIND_FILTER_NAME,
-            "%s::hydrateKindFilter".formatted(McpProxyCacheResourcesListIT.class.getName()))
+        .configure(MCP_SESSION_ID_NAME, "%s::sessionId".formatted(McpProxyCacheResourcesListIT.class.getName()))
+        .configure(MCP_HYDRATE_FILTER_NAME,
+            "%s::hydrateResourcesOnly".formatted(McpProxyCacheResourcesListIT.class.getName()))
         .clean();
 
     @Rule
@@ -86,12 +86,12 @@ public class McpProxyCacheResourcesListIT
         k3po.finish();
     }
 
-    public static String hydrateSessionId()
+    public static String sessionId()
     {
         return "hydrate-1";
     }
 
-    public static IntPredicate hydrateKindFilter()
+    public static IntPredicate hydrateResourcesOnly()
     {
         return kind -> kind == KIND_RESOURCES_LIST;
     }

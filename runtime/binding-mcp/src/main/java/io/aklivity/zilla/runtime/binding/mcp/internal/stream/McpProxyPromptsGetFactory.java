@@ -39,19 +39,19 @@ final class McpProxyPromptsGetFactory extends McpProxyItemFactory
 
     @Override
     protected void injectInitialBeginEx(
-        McpBeginExFW.Builder b,
+        McpBeginExFW.Builder builder,
         String sessionId,
         String identifier)
     {
-        b.promptsGet(p -> p.sessionId(sessionId).name(identifier));
+        builder.promptsGet(p -> p.sessionId(sessionId).name(identifier));
     }
 
     @Override
     protected void injectReplyBeginEx(
-        McpBeginExFW.Builder b,
+        McpBeginExFW.Builder builder,
         String sessionId,
         McpBeginExFW upstream)
     {
-        b.promptsGet(p -> p.sessionId(sessionId).name(upstream.promptsGet().name().asString()));
+        builder.promptsGet(p -> p.sessionId(sessionId).name(upstream.promptsGet().name().asString()));
     }
 }

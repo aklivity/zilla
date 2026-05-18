@@ -43,7 +43,7 @@ public class McpProxyCacheLifecycleIT
         .countersBufferCapacity(8192)
         .configurationRoot("io/aklivity/zilla/specs/binding/mcp/config")
         .external("app1")
-        .configure(MCP_SESSION_ID_NAME, "%s::hydrateSessionId".formatted(McpProxyCacheLifecycleIT.class.getName()))
+        .configure(MCP_SESSION_ID_NAME, "%s::sessionId".formatted(McpProxyCacheLifecycleIT.class.getName()))
         .clean();
 
     @Rule
@@ -100,7 +100,7 @@ public class McpProxyCacheLifecycleIT
         k3po.finish();
     }
 
-    public static String hydrateSessionId()
+    public static String sessionId()
     {
         return "hydrate-1";
     }

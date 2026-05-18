@@ -22,9 +22,11 @@ import static java.lang.System.currentTimeMillis;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.IntPredicate;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
+import java.util.function.Supplier;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
@@ -49,56 +51,46 @@ import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 
 public final class McpProxyCacheHydrater
 {
-    static final long LEASE_TTL_MS = Duration.ofSeconds(30).toMillis();
-    static final long LEASE_RETRY_MS = 100L;
     static final int SIGNAL_INITIATE_LIFECYCLE = 1;
 
-    final McpBindingConfig binding;
+    private final McpBindingConfig binding;
+    private final MutableDirectBuffer writeBuffer;
+    private final MutableDirectBuffer codecBuffer;
+    private final BindingHandler streamFactory;
+    private final BufferPool bufferPool;
+    private final LongUnaryOperator supplyInitialId;
+    private final LongUnaryOperator supplyReplyId;
+    private final LongSupplier supplyTraceId;
+    private final Signaler signaler;
+    private final int mcpTypeId;
+    private final Supplier<String> supplySessionId;
+    private final IntPredicate hydrateFilter;
+    private final long leaseTtlMs;
+    private final long leaseRetryMs;
 
-    final MutableDirectBuffer writeBuffer;
-    final MutableDirectBuffer codecBuffer;
-    final BindingHandler streamFactory;
-    final BufferPool bufferPool;
-    final LongUnaryOperator supplyInitialId;
-    final LongUnaryOperator supplyReplyId;
-    final LongSupplier supplyTraceId;
-    final Signaler signaler;
-    final int mcpTypeId;
-    final IntPredicate hydrateKindFilter;
-
-    final BeginFW beginRO = new BeginFW();
-    final EndFW endRO = new EndFW();
-    final DataFW dataRO = new DataFW();
-    final AbortFW abortRO = new AbortFW();
-    final ResetFW resetRO = new ResetFW();
-    final BeginFW.Builder beginRW = new BeginFW.Builder();
-    final EndFW.Builder endRW = new EndFW.Builder();
-    final WindowFW.Builder windowRW = new WindowFW.Builder();
-    final McpBeginExFW.Builder mcpBeginExRW = new McpBeginExFW.Builder();
-
-    final String sessionId;
-    final long authorization;
-    final long originId;
-    final long routedId;
-    final long initialId;
-    final long replyId;
+    private final BeginFW beginRO = new BeginFW();
+    private final EndFW endRO = new EndFW();
+    private final DataFW dataRO = new DataFW();
+    private final AbortFW abortRO = new AbortFW();
+    private final ResetFW resetRO = new ResetFW();
+    private final BeginFW.Builder beginRW = new BeginFW.Builder();
+    private final EndFW.Builder endRW = new EndFW.Builder();
+    private final AbortFW.Builder abortRW = new AbortFW.Builder();
+    private final WindowFW.Builder windowRW = new WindowFW.Builder();
+    private final McpBeginExFW.Builder mcpBeginExRW = new McpBeginExFW.Builder();
 
     private final boolean enabled;
+    private final long originId;
+    private final long routedId;
+
     private final List<McpProxyCacheListHydrater> hydraters;
-    private final List<McpSignalHandle> awaiters = new ArrayList<>();
+    private final List<McpSignalHandle> awaiters;
     private final int expected;
 
     private int populated;
     private boolean complete;
 
-    private int state;
-    private long initialSeq;
-    private long initialAck;
-    private int initialMax;
-    private long replySeq;
-    private long replyAck;
-    private int replyMax;
-    private MessageConsumer receiver;
+    private McpHydrateLifecycleStream stream;
 
     public McpProxyCacheHydrater(
         McpBindingConfig binding,
@@ -115,36 +107,46 @@ public final class McpProxyCacheHydrater
         this.supplyTraceId = context::supplyTraceId;
         this.signaler = context.signaler();
         this.mcpTypeId = context.supplyTypeId("mcp");
-        this.hydrateKindFilter = config.hydrateKindFilter();
+        this.supplySessionId = config.sessionIdSupplier();
+        this.hydrateFilter = config.hydrateFilter();
+        this.leaseTtlMs = config.leaseTtlMs();
+        this.leaseRetryMs = config.leaseRetryMs();
 
-        this.sessionId = config.sessionIdSupplier().get();
+        this.originId = binding.id;
 
         final McpRouteConfig route = binding.resolve(0L);
         this.enabled = route != null;
-        this.originId = binding.id;
         this.routedId = route != null ? route.id : 0L;
 
-        if (route != null)
-        {
-            this.initialId = supplyInitialId.applyAsLong(routedId);
-            this.replyId = supplyReplyId.applyAsLong(initialId);
-            this.replyMax = bufferPool.slotCapacity();
-            this.authorization = binding.cacheGuard != null
-                ? binding.cacheGuard.reauthorize(supplyTraceId.getAsLong(), binding.id, 0L, binding.cacheCredentials)
-                : 0L;
-        }
-        else
-        {
-            this.initialId = 0L;
-            this.replyId = 0L;
-            this.authorization = 0L;
-        }
+        final Duration cacheTtl = Optional.ofNullable(binding.options)
+            .map(o -> o.cache)
+            .map(c -> c.ttl)
+            .orElse(null);
 
-        this.hydraters = new ArrayList<>();
+        final List<McpProxyCacheListHydrater> hydraters = new ArrayList<>();
         if (enabled)
         {
-            buildListHydraters();
+            if (hydrateFilter.test(KIND_TOOLS_LIST))
+            {
+                hydraters.add(new McpProxyCacheToolsListHydrater(context, originId, routedId,
+                    this::currentAuthorization, this::currentSessionId, this::markReady,
+                    leaseTtlMs, cacheTtl, binding.toolsCache));
+            }
+            if (hydrateFilter.test(KIND_RESOURCES_LIST))
+            {
+                hydraters.add(new McpProxyCacheResourcesListHydrater(context, originId, routedId,
+                    this::currentAuthorization, this::currentSessionId, this::markReady,
+                    leaseTtlMs, cacheTtl, binding.resourcesCache));
+            }
+            if (hydrateFilter.test(KIND_PROMPTS_LIST))
+            {
+                hydraters.add(new McpProxyCachePromptsListHydrater(context, originId, routedId,
+                    this::currentAuthorization, this::currentSessionId, this::markReady,
+                    leaseTtlMs, cacheTtl, binding.promptsCache));
+            }
         }
+        this.hydraters = hydraters;
+        this.awaiters = new ArrayList<>();
         this.expected = hydraters.size();
     }
 
@@ -152,7 +154,7 @@ public final class McpProxyCacheHydrater
     {
         if (enabled)
         {
-            signaler.signalAt(currentTimeMillis(), SIGNAL_INITIATE_LIFECYCLE, this::onInitiateLifecycleSignal);
+            signaler.signalAt(currentTimeMillis(), SIGNAL_INITIATE_LIFECYCLE, this::onInitiateLifecycle);
         }
     }
 
@@ -165,11 +167,11 @@ public final class McpProxyCacheHydrater
         long traceId)
     {
         awaiters.clear();
-        if (receiver != null)
+        if (stream != null)
         {
-            doInitialEnd(traceId);
+            stream.doLifecycleEnd(traceId);
         }
-        binding.cache.releaseLifecycleLease(k -> {});
+        binding.lifecycleCache.releaseLifecycle(k -> {});
     }
 
     public void register(
@@ -185,8 +187,7 @@ public final class McpProxyCacheHydrater
         }
     }
 
-    void markReady(
-        int kind)
+    void markReady()
     {
         if (!complete)
         {
@@ -198,6 +199,16 @@ public final class McpProxyCacheHydrater
         }
     }
 
+    private long currentAuthorization()
+    {
+        return stream != null ? stream.authorization : 0L;
+    }
+
+    private String currentSessionId()
+    {
+        return stream != null ? stream.sessionId : null;
+    }
+
     private void markComplete()
     {
         complete = true;
@@ -206,52 +217,147 @@ public final class McpProxyCacheHydrater
             h.signalVia(signaler);
         }
         awaiters.clear();
-        binding.cache.releaseLifecycleLease(k -> {});
+        binding.lifecycleCache.releaseLifecycle(k -> {});
     }
 
-    private void buildListHydraters()
+    private void onInitiateLifecycle(
+        int signalId)
     {
-        for (int kind : new int[] { KIND_TOOLS_LIST, KIND_RESOURCES_LIST, KIND_PROMPTS_LIST })
+        final long traceId = supplyTraceId.getAsLong();
+        final long authorization = binding.cacheGuard != null
+            ? binding.cacheGuard.reauthorize(traceId, originId, 0L, binding.cacheCredentials)
+            : 0L;
+        final McpRouteConfig route = binding.resolve(authorization);
+        if (route != null)
         {
-            if (hydrateKindFilter.test(kind))
-            {
-                final McpProxyCacheListHydrater hydrater = switch (kind)
-                {
-                case KIND_TOOLS_LIST -> new McpProxyCacheToolsListHydrater(this);
-                case KIND_RESOURCES_LIST -> new McpProxyCacheResourcesListHydrater(this);
-                case KIND_PROMPTS_LIST -> new McpProxyCachePromptsListHydrater(this);
-                default -> throw new IllegalStateException("unexpected hydrate list kind: " + kind);
-                };
-                hydraters.add(hydrater);
-            }
+            binding.lifecycleCache.acquireLifecycle(leaseTtlMs,
+                acquired -> onAcquireLifecycleComplete(traceId, authorization, acquired));
         }
     }
 
-    private void onInitiateLifecycleSignal(
-        int signalId)
-    {
-        binding.cache.acquireLifecycleLease(LEASE_TTL_MS, this::onAcquireLifecycleLeaseComplete);
-    }
-
-    private void onAcquireLifecycleLeaseComplete(
+    private void onAcquireLifecycleComplete(
+        long traceId,
+        long authorization,
         boolean acquired)
     {
-        final long traceId = supplyTraceId.getAsLong();
         if (acquired)
         {
-            doLifecycleBegin(traceId);
+            stream = new McpHydrateLifecycleStream(traceId, authorization);
         }
         else
         {
-            signaler.signalAt(currentTimeMillis() + LEASE_RETRY_MS, SIGNAL_INITIATE_LIFECYCLE,
-                this::onInitiateLifecycleSignal);
+            signaler.signalAt(currentTimeMillis() + leaseRetryMs, SIGNAL_INITIATE_LIFECYCLE,
+                this::onInitiateLifecycle);
         }
     }
 
-    private void doLifecycleBegin(
-        long traceId)
+    private final class McpHydrateLifecycleStream
     {
-        if (!McpState.initialOpening(state))
+        final String sessionId;
+        final long authorization;
+        private final long initialId;
+        private final long replyId;
+
+        private int state;
+        private long initialSeq;
+        private long initialAck;
+        private int initialMax;
+        private long replySeq;
+        private long replyAck;
+        private int replyMax;
+        private MessageConsumer receiver;
+
+        McpHydrateLifecycleStream(
+            long traceId,
+            long authorization)
+        {
+            this.sessionId = supplySessionId.get();
+            this.authorization = authorization;
+            this.initialId = supplyInitialId.applyAsLong(routedId);
+            this.replyId = supplyReplyId.applyAsLong(initialId);
+            this.replyMax = bufferPool.slotCapacity();
+            doLifecycleBegin(traceId);
+        }
+
+        private void onLifecycleMessage(
+            int msgTypeId,
+            DirectBuffer buffer,
+            int index,
+            int length)
+        {
+            switch (msgTypeId)
+            {
+            case BeginFW.TYPE_ID:
+                onLifecycleBegin(beginRO.wrap(buffer, index, index + length));
+                break;
+            case EndFW.TYPE_ID:
+                onLifecycleEnd(endRO.wrap(buffer, index, index + length));
+                break;
+            case AbortFW.TYPE_ID:
+                onLifecycleAbort(abortRO.wrap(buffer, index, index + length));
+                break;
+            case ResetFW.TYPE_ID:
+                onLifecycleReset(resetRO.wrap(buffer, index, index + length));
+                break;
+            default:
+                break;
+            }
+        }
+
+        private void onLifecycleBegin(
+            BeginFW begin)
+        {
+            final long traceId = begin.traceId();
+            state = McpState.openingReply(state);
+            doLifecycleWindow(traceId);
+
+            if (hydraters.isEmpty())
+            {
+                markComplete();
+            }
+            else
+            {
+                for (McpProxyCacheListHydrater hydrater : hydraters)
+                {
+                    hydrater.initiate(traceId);
+                }
+            }
+        }
+
+        private void onLifecycleEnd(
+            EndFW end)
+        {
+            if (!McpState.replyClosed(state))
+            {
+                state = McpState.closedReply(state);
+                doLifecycleEnd(end.traceId());
+                binding.lifecycleCache.releaseLifecycle(k -> {});
+            }
+        }
+
+        private void onLifecycleAbort(
+            AbortFW abort)
+        {
+            if (!McpState.replyClosed(state))
+            {
+                state = McpState.closedReply(state);
+                doLifecycleAbort(abort.traceId());
+                binding.lifecycleCache.releaseLifecycle(k -> {});
+            }
+        }
+
+        private void onLifecycleReset(
+            ResetFW reset)
+        {
+            if (!McpState.initialClosed(state))
+            {
+                state = McpState.closedInitial(state);
+                binding.lifecycleCache.releaseLifecycle(k -> {});
+            }
+        }
+
+        private void doLifecycleBegin(
+            long traceId)
         {
             final McpBeginExFW beginEx = mcpBeginExRW
                 .wrap(codecBuffer, 0, codecBuffer.capacity())
@@ -263,70 +369,38 @@ public final class McpProxyCacheHydrater
                 initialSeq, initialAck, initialMax, traceId, authorization, 0L, beginEx);
             state = McpState.openingInitial(state);
         }
-    }
 
-    private void onLifecycleMessage(
-        int msgTypeId,
-        DirectBuffer buffer,
-        int index,
-        int length)
-    {
-        switch (msgTypeId)
+        private void doLifecycleWindow(
+            long traceId)
         {
-        case BeginFW.TYPE_ID:
-            onLifecycleBegin(beginRO.wrap(buffer, index, index + length));
-            break;
-        case EndFW.TYPE_ID:
-        case AbortFW.TYPE_ID:
-        case ResetFW.TYPE_ID:
-            state = McpState.closedInitial(state);
-            state = McpState.closedReply(state);
-            binding.cache.releaseLifecycleLease(k -> {});
-            break;
-        default:
-            break;
+            doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                traceId, authorization, 0L, 0);
         }
-    }
 
-    private void onLifecycleBegin(
-        BeginFW begin)
-    {
-        final long traceId = begin.traceId();
-        state = McpState.openingReply(state);
-        doReplyWindow(traceId);
-
-        if (hydraters.isEmpty())
+        void doLifecycleEnd(
+            long traceId)
         {
-            markComplete();
-        }
-        else
-        {
-            for (McpProxyCacheListHydrater hydrater : hydraters)
+            if (!McpState.initialClosed(state))
             {
-                hydrater.initiate(traceId);
+                doEnd(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                    traceId, authorization);
+                state = McpState.closedInitial(state);
+            }
+        }
+
+        private void doLifecycleAbort(
+            long traceId)
+        {
+            if (!McpState.initialClosed(state))
+            {
+                doAbort(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                    traceId, authorization);
+                state = McpState.closedInitial(state);
             }
         }
     }
 
-    private void doReplyWindow(
-        long traceId)
-    {
-        doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
-            traceId, authorization, 0L, 0);
-    }
-
-    private void doInitialEnd(
-        long traceId)
-    {
-        if (!McpState.initialClosed(state))
-        {
-            doEnd(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                traceId, authorization);
-            state = McpState.closedInitial(state);
-        }
-    }
-
-    MessageConsumer newStream(
+    private MessageConsumer newStream(
         MessageConsumer sender,
         long originId,
         long routedId,
@@ -361,7 +435,7 @@ public final class McpProxyCacheHydrater
         return receiver;
     }
 
-    void doEnd(
+    private void doEnd(
         MessageConsumer receiver,
         long originId,
         long routedId,
@@ -386,7 +460,32 @@ public final class McpProxyCacheHydrater
         receiver.accept(end.typeId(), end.buffer(), end.offset(), end.sizeof());
     }
 
-    void doWindow(
+    private void doAbort(
+        MessageConsumer receiver,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization)
+    {
+        final AbortFW abort = abortRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+            .originId(originId)
+            .routedId(routedId)
+            .streamId(streamId)
+            .sequence(sequence)
+            .acknowledge(acknowledge)
+            .maximum(maximum)
+            .traceId(traceId)
+            .authorization(authorization)
+            .build();
+
+        receiver.accept(abort.typeId(), abort.buffer(), abort.offset(), abort.sizeof());
+    }
+
+    private void doWindow(
         MessageConsumer receiver,
         long originId,
         long routedId,

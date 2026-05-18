@@ -14,23 +14,36 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 
-import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_LIST;
+import java.time.Duration;
+import java.util.function.LongSupplier;
+import java.util.function.Supplier;
 
+import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpListCache;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 
 final class McpProxyCacheResourcesListHydrater extends McpProxyCacheListHydrater
 {
     McpProxyCacheResourcesListHydrater(
-        McpProxyCacheHydrater parent)
+        EngineContext context,
+        long originId,
+        long routedId,
+        LongSupplier supplyAuthorization,
+        Supplier<String> supplySessionId,
+        Runnable onReady,
+        long leaseTtlMs,
+        Duration cacheTtl,
+        McpListCache cache)
     {
-        super(parent, KIND_RESOURCES_LIST, SIGNAL_REFRESH_RESOURCES);
+        super(context, originId, routedId, supplyAuthorization, supplySessionId, onReady,
+            leaseTtlMs, cacheTtl, cache, SIGNAL_REFRESH_RESOURCES);
     }
 
     @Override
     protected void injectInitialBeginEx(
-        McpBeginExFW.Builder b,
+        McpBeginExFW.Builder builder,
         String sessionId)
     {
-        b.resourcesList(r -> r.sessionId(sessionId));
+        builder.resourcesList(r -> r.sessionId(sessionId));
     }
 }

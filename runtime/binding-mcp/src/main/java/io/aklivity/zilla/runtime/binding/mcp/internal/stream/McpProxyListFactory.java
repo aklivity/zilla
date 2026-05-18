@@ -14,15 +14,13 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 
-import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_PROMPTS_LIST;
-import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_LIST;
-import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
+import java.util.Map;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
@@ -50,6 +48,7 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.common.json.DirectBufferInputStreamEx;
+import io.aklivity.zilla.runtime.common.json.StreamingJson;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -90,6 +89,8 @@ abstract class McpProxyListFactory implements BindingHandler
     private final LongSupplier supplyTraceId;
     private final int mcpTypeId;
     private final LongFunction<McpBindingConfig> supplyBinding;
+    private final int kind;
+    private final JsonParserFactory listItemParserFactory;
 
     private final McpListClientDecoder decodeInit = this::decodeInit;
     private final McpListClientDecoder decodeReply = this::decodeReply;
@@ -105,7 +106,9 @@ abstract class McpProxyListFactory implements BindingHandler
     McpProxyListFactory(
         McpConfiguration config,
         EngineContext context,
-        LongFunction<McpBindingConfig> supplyBinding)
+        LongFunction<McpBindingConfig> supplyBinding,
+        int kind,
+        List<String> pathIncludes)
     {
         this.writeBuffer = context.writeBuffer();
         this.codecBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
@@ -116,6 +119,9 @@ abstract class McpProxyListFactory implements BindingHandler
         this.supplyTraceId = context::supplyTraceId;
         this.mcpTypeId = context.supplyTypeId(MCP_TYPE_NAME);
         this.supplyBinding = supplyBinding;
+        this.kind = kind;
+        this.listItemParserFactory = StreamingJson.createParserFactory(
+            Map.of(StreamingJson.PATH_INCLUDES, pathIncludes));
     }
 
     @Override
@@ -138,12 +144,12 @@ abstract class McpProxyListFactory implements BindingHandler
         final McpBindingConfig binding = supplyBinding.apply(routedId);
         final McpBeginExFW beginEx = extension.get(mcpBeginExRO::tryWrap);
 
-        if (binding != null && beginEx != null && beginEx.kind() == kind())
+        if (binding != null && beginEx != null && beginEx.kind() == kind)
         {
             final String sessionId = sessionId(beginEx);
             if (binding.sessions.get(sessionId) instanceof McpLifecycleServer lifecycle)
             {
-                final McpListCache cache = binding.cache;
+                final McpListCache cache = cacheOf(binding);
                 if (cache != null)
                 {
                     newStream = new McpCacheListServer(
@@ -157,7 +163,7 @@ abstract class McpProxyListFactory implements BindingHandler
                 {
                     final List<McpRoutePrefix> prefixes = binding.resolveAll(beginEx, authorization)
                         .stream()
-                        .map(r -> new McpRoutePrefix(r.id, r.prefix(kind())))
+                        .map(r -> new McpRoutePrefix(r.id, r.prefix(kind)))
                         .toList();
                     newStream = new McpListServer(
                         lifecycle,
@@ -172,35 +178,25 @@ abstract class McpProxyListFactory implements BindingHandler
         return newStream;
     }
 
-    protected abstract int kind();
+    protected abstract McpListCache cacheOf(
+        McpBindingConfig binding);
 
     protected abstract void injectInitialBeginEx(
-        McpBeginExFW.Builder b,
+        McpBeginExFW.Builder builder,
         String sessionId);
 
     protected abstract void injectReplyBeginEx(
-        McpBeginExFW.Builder b,
+        McpBeginExFW.Builder builder,
         String sessionId);
 
     protected abstract DirectBuffer listReplyOpenPrelude();
-
-    protected abstract JsonParserFactory listItemParserFactory();
 
     protected abstract String arrayKey();
 
     protected abstract String idKey();
 
-    private String sessionId(
-        McpBeginExFW beginEx)
-    {
-        return switch (beginEx.kind())
-        {
-        case KIND_TOOLS_LIST -> beginEx.toolsList().sessionId().asString();
-        case KIND_PROMPTS_LIST -> beginEx.promptsList().sessionId().asString();
-        case KIND_RESOURCES_LIST -> beginEx.resourcesList().sessionId().asString();
-        default -> null;
-        };
-    }
+    protected abstract String sessionId(
+        McpBeginExFW beginEx);
 
     private final class McpListClient
     {
@@ -632,16 +628,14 @@ abstract class McpProxyListFactory implements BindingHandler
         int progress,
         int limit)
     {
-        final JsonParserFactory parserFactory = listItemParserFactory();
-
-        if (parserFactory == null)
+        if (listItemParserFactory == null)
         {
             client.decoder = decodeIgnore;
             return limit;
         }
 
         inputRO.wrap(buffer, progress, limit - progress);
-        client.decodableJson = parserFactory.createParser(inputRO);
+        client.decodableJson = listItemParserFactory.createParser(inputRO);
         client.arrayKey = arrayKey();
         client.idKey = idKey();
         client.decoder = decodeReply;
@@ -1454,7 +1448,7 @@ abstract class McpProxyListFactory implements BindingHandler
 
             doServerBegin(traceId);
             doServerWindow(traceId, 0L, 0);
-            cache.get(kind(), this::onStoreResult);
+            cache.get(this::onStoreResult);
         }
 
         private void onStoreResult(

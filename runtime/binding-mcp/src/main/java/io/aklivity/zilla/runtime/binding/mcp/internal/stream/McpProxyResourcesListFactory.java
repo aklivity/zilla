@@ -16,25 +16,21 @@ package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.Map;
 import java.util.function.LongFunction;
-
-import jakarta.json.stream.JsonParserFactory;
 
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpBindingConfig;
+import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpListCache;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
-import io.aklivity.zilla.runtime.common.json.StreamingJson;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 
 final class McpProxyResourcesListFactory extends McpProxyListFactory
 {
     private static final List<String> RESOURCES_LIST_ITEM_JSON_PATH_INCLUDES = List.of("/resources/-/uri");
 
-    private final JsonParserFactory parserFactory;
     private final DirectBuffer prelude =
         new UnsafeBuffer("{\"resources\":[".getBytes(StandardCharsets.UTF_8));
 
@@ -43,43 +39,36 @@ final class McpProxyResourcesListFactory extends McpProxyListFactory
         EngineContext context,
         LongFunction<McpBindingConfig> supplyBinding)
     {
-        super(config, context, supplyBinding);
-        this.parserFactory = StreamingJson.createParserFactory(
-            Map.of(StreamingJson.PATH_INCLUDES, RESOURCES_LIST_ITEM_JSON_PATH_INCLUDES));
+        super(config, context, supplyBinding, McpBeginExFW.KIND_RESOURCES_LIST, RESOURCES_LIST_ITEM_JSON_PATH_INCLUDES);
     }
 
     @Override
-    protected int kind()
+    protected McpListCache cacheOf(
+        McpBindingConfig binding)
     {
-        return McpBeginExFW.KIND_RESOURCES_LIST;
+        return binding.resourcesCache;
     }
 
     @Override
     protected void injectInitialBeginEx(
-        McpBeginExFW.Builder b,
+        McpBeginExFW.Builder builder,
         String sessionId)
     {
-        b.resourcesList(r -> r.sessionId(sessionId));
+        builder.resourcesList(r -> r.sessionId(sessionId));
     }
 
     @Override
     protected void injectReplyBeginEx(
-        McpBeginExFW.Builder b,
+        McpBeginExFW.Builder builder,
         String sessionId)
     {
-        b.resourcesList(r -> r.sessionId(sessionId));
+        builder.resourcesList(r -> r.sessionId(sessionId));
     }
 
     @Override
     protected DirectBuffer listReplyOpenPrelude()
     {
         return prelude;
-    }
-
-    @Override
-    protected JsonParserFactory listItemParserFactory()
-    {
-        return parserFactory;
     }
 
     @Override
@@ -92,5 +81,12 @@ final class McpProxyResourcesListFactory extends McpProxyListFactory
     protected String idKey()
     {
         return "uri";
+    }
+
+    @Override
+    protected String sessionId(
+        McpBeginExFW beginEx)
+    {
+        return beginEx.resourcesList().sessionId().asString();
     }
 }

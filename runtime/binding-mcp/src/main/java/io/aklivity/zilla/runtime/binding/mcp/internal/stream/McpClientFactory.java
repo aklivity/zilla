@@ -197,6 +197,7 @@ public final class McpClientFactory implements McpStreamFactory
     private static final int SSE_IGNORE_VALUE = 4;
     private final JsonParserFactory parserFactory;
 
+    private final McpConfiguration config;
     private final Long2ObjectHashMap<McpBindingConfig> bindings;
     private final Map<String, McpStream> sessions = new Object2ObjectHashMap<>();
     private final Int2ObjectHashMap<McpSessionIdResolver> resolvers;
@@ -206,6 +207,7 @@ public final class McpClientFactory implements McpStreamFactory
         McpConfiguration config,
         EngineContext context)
     {
+        this.config = config;
         this.context = context;
         this.writeBuffer = context.writeBuffer();
         this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
@@ -1274,7 +1276,7 @@ public final class McpClientFactory implements McpStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        McpBindingConfig newBinding = new McpBindingConfig(binding, context);
+        McpBindingConfig newBinding = new McpBindingConfig(binding, config, context);
         bindings.put(binding.id, newBinding);
     }
 

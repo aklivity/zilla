@@ -44,7 +44,7 @@ public final class McpProxyFactory implements McpStreamFactory
     private final BeginFW beginRO = new BeginFW();
     private final McpBeginExFW mcpBeginExRO = new McpBeginExFW();
 
-    private final McpConfiguration mcpConfig;
+    private final McpConfiguration config;
     private final EngineContext context;
     private final int mcpTypeId;
 
@@ -55,7 +55,7 @@ public final class McpProxyFactory implements McpStreamFactory
         McpConfiguration config,
         EngineContext context)
     {
-        this.mcpConfig = config;
+        this.config = config;
         this.context = context;
         this.bindings = new Long2ObjectHashMap<>();
         this.factories = new Int2ObjectHashMap<>();
@@ -86,12 +86,11 @@ public final class McpProxyFactory implements McpStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        McpBindingConfig newBinding = new McpBindingConfig(binding, context);
+        McpBindingConfig newBinding = new McpBindingConfig(binding, config, context);
         newBinding.sessions = new Object2ObjectHashMap<>();
         bindings.put(binding.id, newBinding);
-        if (newBinding.cache != null)
+        if (newBinding.hydrater != null)
         {
-            newBinding.hydrater = new McpProxyCacheHydrater(newBinding, mcpConfig, context);
             newBinding.hydrater.start();
         }
     }

@@ -30,63 +30,52 @@ public final class McpListCache
     private static final String STORE_KEY_PROMPTS = "prompts";
     private static final String STORE_LOCK_SUFFIX = ".lock";
     private static final String STORE_LOCK_VALUE = "1";
-    private static final String STORE_LOCK_KEY_LIFECYCLE = "lifecycle.lock";
+    private static final String STORE_LOCK_KEY_TOOLS = STORE_KEY_TOOLS + STORE_LOCK_SUFFIX;
+    private static final String STORE_LOCK_KEY_RESOURCES = STORE_KEY_RESOURCES + STORE_LOCK_SUFFIX;
+    private static final String STORE_LOCK_KEY_PROMPTS = STORE_KEY_PROMPTS + STORE_LOCK_SUFFIX;
     private static final long STORE_TTL_FOREVER = Long.MAX_VALUE;
 
     private final StoreHandler store;
+    private final String storeKey;
+    private final String storeLockKey;
 
     public McpListCache(
-        StoreHandler store)
+        StoreHandler store,
+        int kind)
     {
         this.store = store;
+        this.storeKey = storeKey(kind);
+        this.storeLockKey = storeLockKey(kind);
     }
 
     public void get(
-        int kind,
         BiConsumer<String, String> completion)
     {
-        store.get(storeKeyForListKind(kind), completion);
+        store.get(storeKey, completion);
     }
 
     public void put(
-        int kind,
         String value,
         Consumer<String> completion)
     {
-        store.put(storeKeyForListKind(kind), value, STORE_TTL_FOREVER, completion);
+        store.put(storeKey, value, STORE_TTL_FOREVER, completion);
     }
 
-    public void acquireLease(
-        int kind,
+    public void acquire(
         long ttl,
         Consumer<Boolean> completion)
     {
-        store.putIfAbsent(storeLockKeyForListKind(kind), STORE_LOCK_VALUE, ttl,
+        store.putIfAbsent(storeLockKey, STORE_LOCK_VALUE, ttl,
             prior -> completion.accept(prior == null));
     }
 
-    public void releaseLease(
-        int kind,
+    public void release(
         Consumer<String> completion)
     {
-        store.delete(storeLockKeyForListKind(kind), completion);
+        store.delete(storeLockKey, completion);
     }
 
-    public void acquireLifecycleLease(
-        long ttl,
-        Consumer<Boolean> completion)
-    {
-        store.putIfAbsent(STORE_LOCK_KEY_LIFECYCLE, STORE_LOCK_VALUE, ttl,
-            prior -> completion.accept(prior == null));
-    }
-
-    public void releaseLifecycleLease(
-        Consumer<String> completion)
-    {
-        store.delete(STORE_LOCK_KEY_LIFECYCLE, completion);
-    }
-
-    private static String storeKeyForListKind(
+    private static String storeKey(
         int kind)
     {
         return switch (kind)
@@ -98,9 +87,15 @@ public final class McpListCache
         };
     }
 
-    private static String storeLockKeyForListKind(
+    private static String storeLockKey(
         int kind)
     {
-        return storeKeyForListKind(kind) + STORE_LOCK_SUFFIX;
+        return switch (kind)
+        {
+        case KIND_TOOLS_LIST -> STORE_LOCK_KEY_TOOLS;
+        case KIND_RESOURCES_LIST -> STORE_LOCK_KEY_RESOURCES;
+        case KIND_PROMPTS_LIST -> STORE_LOCK_KEY_PROMPTS;
+        default -> throw new IllegalStateException("unexpected list kind: " + kind);
+        };
     }
 }

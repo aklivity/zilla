@@ -269,7 +269,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
             }
             else
             {
-                doDeferredServerBegin(traceId);
+                doServerBeginDeferred(traceId);
             }
         }
 
@@ -278,27 +278,25 @@ final class McpProxyLifecycleFactory implements BindingHandler
         {
             if (signal.signalId() == SIGNAL_HYDRATE_COMPLETE)
             {
-                doDeferredServerBegin(signal.traceId());
+                doServerBeginDeferred(signal.traceId());
             }
         }
 
-        private void doDeferredServerBegin(
+        private void doServerBeginDeferred(
             long traceId)
         {
-            if (McpState.replyOpened(state) || McpState.replyClosed(state))
+            if (!McpState.replyOpened(state) && !McpState.replyClosed(state))
             {
-                return;
+                final int serverCapabilities = binding.serverCapabilities(authorization);
+                final String sid = sessionId;
+                final McpBeginExFW beginEx = mcpBeginExRW
+                    .wrap(codecBuffer, 0, codecBuffer.capacity())
+                    .typeId(mcpTypeId)
+                    .lifecycle(l -> l.sessionId(sid).capabilities(serverCapabilities))
+                    .build();
+
+                doServerBegin(traceId, beginEx);
             }
-
-            final int serverCapabilities = binding.serverCapabilities(authorization);
-            final String sid = sessionId;
-            final McpBeginExFW beginEx = mcpBeginExRW
-                .wrap(codecBuffer, 0, codecBuffer.capacity())
-                .typeId(mcpTypeId)
-                .lifecycle(l -> l.sessionId(sid).capabilities(serverCapabilities))
-                .build();
-
-            doServerBegin(traceId, beginEx);
         }
 
         private void onServerEnd(

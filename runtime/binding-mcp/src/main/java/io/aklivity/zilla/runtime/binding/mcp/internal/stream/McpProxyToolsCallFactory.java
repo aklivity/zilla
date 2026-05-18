@@ -39,19 +39,19 @@ final class McpProxyToolsCallFactory extends McpProxyItemFactory
 
     @Override
     protected void injectInitialBeginEx(
-        McpBeginExFW.Builder b,
+        McpBeginExFW.Builder builder,
         String sessionId,
         String identifier)
     {
-        b.toolsCall(t -> t.sessionId(sessionId).name(identifier));
+        builder.toolsCall(t -> t.sessionId(sessionId).name(identifier));
     }
 
     @Override
     protected void injectReplyBeginEx(
-        McpBeginExFW.Builder b,
+        McpBeginExFW.Builder builder,
         String sessionId,
         McpBeginExFW upstream)
     {
-        b.toolsCall(t -> t.sessionId(sessionId).name(upstream.toolsCall().name().asString()));
+        builder.toolsCall(t -> t.sessionId(sessionId).name(upstream.toolsCall().name().asString()));
     }
 }

@@ -14,23 +14,36 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 
-import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_PROMPTS_LIST;
+import java.time.Duration;
+import java.util.function.LongSupplier;
+import java.util.function.Supplier;
 
+import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpListCache;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 
 final class McpProxyCachePromptsListHydrater extends McpProxyCacheListHydrater
 {
     McpProxyCachePromptsListHydrater(
-        McpProxyCacheHydrater parent)
+        EngineContext context,
+        long originId,
+        long routedId,
+        LongSupplier supplyAuthorization,
+        Supplier<String> supplySessionId,
+        Runnable onReady,
+        long leaseTtlMs,
+        Duration cacheTtl,
+        McpListCache cache)
     {
-        super(parent, KIND_PROMPTS_LIST, SIGNAL_REFRESH_PROMPTS);
+        super(context, originId, routedId, supplyAuthorization, supplySessionId, onReady,
+            leaseTtlMs, cacheTtl, cache, SIGNAL_REFRESH_PROMPTS);
     }
 
     @Override
     protected void injectInitialBeginEx(
-        McpBeginExFW.Builder b,
+        McpBeginExFW.Builder builder,
         String sessionId)
     {
-        b.promptsList(p -> p.sessionId(sessionId));
+        builder.promptsList(p -> p.sessionId(sessionId));
     }
 }

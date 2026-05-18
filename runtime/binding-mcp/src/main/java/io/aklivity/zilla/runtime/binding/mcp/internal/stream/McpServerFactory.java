@@ -237,6 +237,7 @@ public final class McpServerFactory implements McpStreamFactory
     private final McpServerDecoder decodeJsonRpcProgressToken = this::decodeJsonRpcProgressToken;
     private final McpServerDecoder decodeIgnore = this::decodeIgnore;
 
+    private final McpConfiguration config;
     private final Long2ObjectHashMap<McpBindingConfig> bindings;
     private final Map<String, McpServerFactory.McpLifecycleStream> sessions;
     private final int localIndex;
@@ -245,6 +246,7 @@ public final class McpServerFactory implements McpStreamFactory
         McpConfiguration config,
         EngineContext context)
     {
+        this.config = config;
         this.supplySessionId = config.sessionIdSupplier();
         this.supplyElicitationId = config.elicitationIdSupplier();
         this.serverName = config.serverName();
@@ -292,7 +294,7 @@ public final class McpServerFactory implements McpStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        McpBindingConfig newBinding = new McpBindingConfig(binding, context);
+        McpBindingConfig newBinding = new McpBindingConfig(binding, config, context);
         bindings.put(binding.id, newBinding);
     }
 

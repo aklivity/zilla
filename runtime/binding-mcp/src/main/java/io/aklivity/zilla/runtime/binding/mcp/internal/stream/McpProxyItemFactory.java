@@ -145,12 +145,12 @@ abstract class McpProxyItemFactory implements BindingHandler
     protected abstract int kind();
 
     protected abstract void injectInitialBeginEx(
-        McpBeginExFW.Builder b,
+        McpBeginExFW.Builder builder,
         String sessionId,
         String identifier);
 
     protected abstract void injectReplyBeginEx(
-        McpBeginExFW.Builder b,
+        McpBeginExFW.Builder builder,
         String sessionId,
         McpBeginExFW upstream);
 

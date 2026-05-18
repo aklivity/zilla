@@ -47,7 +47,9 @@ public class McpConfiguration extends Configuration
     public static final PropertyDef<Duration> MCP_SSE_KEEPALIVE_INTERVAL;
     public static final BooleanPropertyDef MCP_ALT_SVC_ENABLED;
     public static final PropertyDef<Duration> MCP_ALT_SVC_MAX_AGE;
-    public static final PropertyDef<IntPredicate> MCP_HYDRATE_KIND_FILTER;
+    public static final PropertyDef<IntPredicate> MCP_HYDRATE_FILTER;
+    public static final LongPropertyDef MCP_LEASE_TTL_MS;
+    public static final LongPropertyDef MCP_LEASE_RETRY_MS;
 
     static
     {
@@ -74,8 +76,10 @@ public class McpConfiguration extends Configuration
         MCP_ALT_SVC_ENABLED = config.property("alt.svc.enabled", McpConfiguration::defaultAltSvcEnabled);
         MCP_ALT_SVC_MAX_AGE = config.property(Duration.class, "alt.svc.max.age",
             (c, v) -> Duration.parse(v), "PT24H");
-        MCP_HYDRATE_KIND_FILTER = config.property(IntPredicate.class, "hydrate.kind.filter",
-            McpConfiguration::decodeHydrateKindFilter, McpConfiguration::defaultHydrateKindFilter);
+        MCP_HYDRATE_FILTER = config.property(IntPredicate.class, "hydrate.filter",
+            McpConfiguration::decodeHydrateFilter, McpConfiguration::defaultHydrateFilter);
+        MCP_LEASE_TTL_MS = config.property("lease.ttl.ms", Duration.ofSeconds(30).toMillis());
+        MCP_LEASE_RETRY_MS = config.property("lease.retry.ms", 100L);
         MCP_CONFIG = config;
     }
 
@@ -150,9 +154,19 @@ public class McpConfiguration extends Configuration
         return MCP_ALT_SVC_MAX_AGE.get(this);
     }
 
-    public IntPredicate hydrateKindFilter()
+    public IntPredicate hydrateFilter()
     {
-        return MCP_HYDRATE_KIND_FILTER.get(this);
+        return MCP_HYDRATE_FILTER.get(this);
+    }
+
+    public long leaseTtlMs()
+    {
+        return MCP_LEASE_TTL_MS.getAsLong(this);
+    }
+
+    public long leaseRetryMs()
+    {
+        return MCP_LEASE_RETRY_MS.getAsLong(this);
     }
 
     @FunctionalInterface
@@ -267,7 +281,7 @@ public class McpConfiguration extends Configuration
         return supplier;
     }
 
-    private static IntPredicate decodeHydrateKindFilter(
+    private static IntPredicate decodeHydrateFilter(
         String value)
     {
         IntPredicate filter = null;
@@ -289,7 +303,7 @@ public class McpConfiguration extends Configuration
         return filter;
     }
 
-    private static boolean defaultHydrateKindFilter(
+    private static boolean defaultHydrateFilter(
         int kind)
     {
         return true;
