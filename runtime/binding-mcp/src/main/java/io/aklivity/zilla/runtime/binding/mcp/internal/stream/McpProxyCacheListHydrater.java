@@ -14,9 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 
-import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_PROMPTS_LIST;
-import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_LIST;
-import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
 import static java.lang.System.currentTimeMillis;
 
 import java.nio.charset.StandardCharsets;
@@ -256,74 +253,5 @@ abstract class McpProxyCacheListHydrater
             parent.markReady(kind);
             scheduleRefresh();
         }
-    }
-}
-
-final class McpProxyCacheToolsListHydrater extends McpProxyCacheListHydrater
-{
-    McpProxyCacheToolsListHydrater(
-        McpProxyCacheHydrater parent)
-    {
-        super(parent, KIND_TOOLS_LIST, SIGNAL_REFRESH_TOOLS);
-    }
-
-    @Override
-    protected void injectInitialBeginEx(
-        McpBeginExFW.Builder b,
-        String sessionId)
-    {
-        b.toolsList(t -> t.sessionId(sessionId));
-    }
-
-    @Override
-    protected Duration ttl()
-    {
-        return parent.binding.options.cache.ttl != null ? parent.binding.options.cache.ttl.tools : null;
-    }
-}
-
-final class McpProxyCacheResourcesListHydrater extends McpProxyCacheListHydrater
-{
-    McpProxyCacheResourcesListHydrater(
-        McpProxyCacheHydrater parent)
-    {
-        super(parent, KIND_RESOURCES_LIST, SIGNAL_REFRESH_RESOURCES);
-    }
-
-    @Override
-    protected void injectInitialBeginEx(
-        McpBeginExFW.Builder b,
-        String sessionId)
-    {
-        b.resourcesList(r -> r.sessionId(sessionId));
-    }
-
-    @Override
-    protected Duration ttl()
-    {
-        return parent.binding.options.cache.ttl != null ? parent.binding.options.cache.ttl.resources : null;
-    }
-}
-
-final class McpProxyCachePromptsListHydrater extends McpProxyCacheListHydrater
-{
-    McpProxyCachePromptsListHydrater(
-        McpProxyCacheHydrater parent)
-    {
-        super(parent, KIND_PROMPTS_LIST, SIGNAL_REFRESH_PROMPTS);
-    }
-
-    @Override
-    protected void injectInitialBeginEx(
-        McpBeginExFW.Builder b,
-        String sessionId)
-    {
-        b.promptsList(p -> p.sessionId(sessionId));
-    }
-
-    @Override
-    protected Duration ttl()
-    {
-        return parent.binding.options.cache.ttl != null ? parent.binding.options.cache.ttl.prompts : null;
     }
 }
