@@ -16,8 +16,6 @@ package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
 
-import java.time.Duration;
-
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
 
 final class McpProxyCacheToolsListHydrater extends McpProxyCacheListHydrater
@@ -34,11 +32,5 @@ final class McpProxyCacheToolsListHydrater extends McpProxyCacheListHydrater
         String sessionId)
     {
         b.toolsList(t -> t.sessionId(sessionId));
-    }
-
-    @Override
-    protected Duration ttl()
-    {
-        return parent.binding.options.cache.ttl != null ? parent.binding.options.cache.ttl.tools : null;
     }
 }

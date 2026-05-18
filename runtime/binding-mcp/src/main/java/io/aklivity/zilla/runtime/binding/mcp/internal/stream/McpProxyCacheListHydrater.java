@@ -75,7 +75,10 @@ abstract class McpProxyCacheListHydrater
         McpBeginExFW.Builder b,
         String sessionId);
 
-    protected abstract Duration ttl();
+    private Duration ttl()
+    {
+        return parent.binding.options.cache.ttl;
+    }
 
     private void onInitialGetComplete(
         String key,

@@ -26,7 +26,6 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.binding.mcp.config.McpCacheConfig;
 import io.aklivity.zilla.runtime.binding.mcp.config.McpCacheConfigBuilder;
-import io.aklivity.zilla.runtime.binding.mcp.config.McpCacheTtlConfigBuilder;
 import io.aklivity.zilla.runtime.binding.mcp.config.McpElicitationConfig;
 import io.aklivity.zilla.runtime.binding.mcp.config.McpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mcp.config.McpOptionsConfigBuilder;
@@ -49,9 +48,7 @@ public final class McpOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
     private static final String CACHE_NAME = "cache";
     private static final String CACHE_STORE_NAME = "store";
     private static final String CACHE_TTL_NAME = "ttl";
-    private static final String CACHE_TTL_TOOLS_NAME = "tools";
-    private static final String CACHE_TTL_RESOURCES_NAME = "resources";
-    private static final String CACHE_TTL_PROMPTS_NAME = "prompts";
+    private static final String CACHE_TTL_DEFAULT = "PT5M";
     private static final String CACHE_AUTHORIZATION_NAME = "authorization";
     private static final String CACHE_AUTHORIZATION_CREDENTIALS_NAME = "credentials";
 
@@ -113,20 +110,7 @@ public final class McpOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
 
             if (cacheConfig.ttl != null)
             {
-                JsonObjectBuilder ttl = Json.createObjectBuilder();
-                if (cacheConfig.ttl.tools != null)
-                {
-                    ttl.add(CACHE_TTL_TOOLS_NAME, cacheConfig.ttl.tools.toString());
-                }
-                if (cacheConfig.ttl.resources != null)
-                {
-                    ttl.add(CACHE_TTL_RESOURCES_NAME, cacheConfig.ttl.resources.toString());
-                }
-                if (cacheConfig.ttl.prompts != null)
-                {
-                    ttl.add(CACHE_TTL_PROMPTS_NAME, cacheConfig.ttl.prompts.toString());
-                }
-                cache.add(CACHE_TTL_NAME, ttl);
+                cache.add(CACHE_TTL_NAME, cacheConfig.ttl.toString());
             }
 
             if (cacheConfig.authorization != null && !cacheConfig.authorization.isEmpty())
@@ -192,25 +176,9 @@ public final class McpOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
             McpCacheConfigBuilder<McpOptionsConfigBuilder<McpOptionsConfig>> cacheBuilder = builder.cache()
                 .store(cache.getString(CACHE_STORE_NAME));
 
-            if (cache.containsKey(CACHE_TTL_NAME))
-            {
-                JsonObject ttl = cache.getJsonObject(CACHE_TTL_NAME);
-                McpCacheTtlConfigBuilder<McpCacheConfigBuilder<McpOptionsConfigBuilder<McpOptionsConfig>>> ttlBuilder =
-                    cacheBuilder.ttl();
-                if (ttl.containsKey(CACHE_TTL_TOOLS_NAME))
-                {
-                    ttlBuilder.tools(Duration.parse(ttl.getString(CACHE_TTL_TOOLS_NAME)));
-                }
-                if (ttl.containsKey(CACHE_TTL_RESOURCES_NAME))
-                {
-                    ttlBuilder.resources(Duration.parse(ttl.getString(CACHE_TTL_RESOURCES_NAME)));
-                }
-                if (ttl.containsKey(CACHE_TTL_PROMPTS_NAME))
-                {
-                    ttlBuilder.prompts(Duration.parse(ttl.getString(CACHE_TTL_PROMPTS_NAME)));
-                }
-                ttlBuilder.build();
-            }
+            cacheBuilder.ttl(Duration.parse(cache.containsKey(CACHE_TTL_NAME)
+                ? cache.getString(CACHE_TTL_NAME)
+                : CACHE_TTL_DEFAULT));
 
             if (cache.containsKey(CACHE_AUTHORIZATION_NAME))
             {

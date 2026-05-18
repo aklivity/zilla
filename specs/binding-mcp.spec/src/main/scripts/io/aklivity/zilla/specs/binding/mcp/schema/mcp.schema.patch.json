@@ -51,30 +51,10 @@
                                     },
                                     "ttl":
                                     {
-                                        "title": "Refresh TTL by method type",
-                                        "type": "object",
-                                        "properties":
-                                        {
-                                            "tools":
-                                            {
-                                                "title": "Tools refresh TTL",
-                                                "type": "string",
-                                                "format": "duration"
-                                            },
-                                            "resources":
-                                            {
-                                                "title": "Resources refresh TTL",
-                                                "type": "string",
-                                                "format": "duration"
-                                            },
-                                            "prompts":
-                                            {
-                                                "title": "Prompts refresh TTL",
-                                                "type": "string",
-                                                "format": "duration"
-                                            }
-                                        },
-                                        "additionalProperties": false
+                                        "title": "Refresh TTL",
+                                        "type": "string",
+                                        "format": "duration",
+                                        "default": "PT5M"
                                     },
                                     "authorization":
                                     {
