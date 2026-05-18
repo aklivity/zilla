@@ -47,6 +47,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/lifecycle.initialize.alt.svc/client",
+        "${net}/lifecycle.initialize.alt.svc/server"})
+    public void shouldInitializeLifecycleAltSvc() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/lifecycle.shutdown/client",
         "${net}/lifecycle.shutdown/server"})
     public void shouldShutdownLifecycle() throws Exception

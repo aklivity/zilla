@@ -45,6 +45,8 @@ public class McpConfiguration extends Configuration
     public static final IntPropertyDef MCP_SESSION_ID_ATTEMPTS;
     public static final IntPropertyDef MCP_KEEPALIVE_TOLERANCE;
     public static final PropertyDef<Duration> MCP_SSE_KEEPALIVE_INTERVAL;
+    public static final BooleanPropertyDef MCP_ALT_SVC_ENABLED;
+    public static final PropertyDef<Duration> MCP_ALT_SVC_MAX_AGE;
     public static final PropertyDef<IntPredicate> MCP_HYDRATE_KIND_FILTER;
 
     static
@@ -69,6 +71,9 @@ public class McpConfiguration extends Configuration
         MCP_KEEPALIVE_TOLERANCE = config.property("keepalive.tolerance", 2);
         MCP_SSE_KEEPALIVE_INTERVAL = config.property(Duration.class, "sse.keepalive.interval",
             (c, v) -> Duration.parse(v), "PT15S");
+        MCP_ALT_SVC_ENABLED = config.property("alt.svc.enabled", McpConfiguration::defaultAltSvcEnabled);
+        MCP_ALT_SVC_MAX_AGE = config.property(Duration.class, "alt.svc.max.age",
+            (c, v) -> Duration.parse(v), "PT24H");
         MCP_HYDRATE_KIND_FILTER = config.property(IntPredicate.class, "hydrate.kind.filter",
             McpConfiguration::decodeHydrateKindFilter, McpConfiguration::defaultHydrateKindFilter);
         MCP_CONFIG = config;
@@ -133,6 +138,16 @@ public class McpConfiguration extends Configuration
     public Duration sseKeepaliveInterval()
     {
         return MCP_SSE_KEEPALIVE_INTERVAL.get(this);
+    }
+
+    public boolean altSvcEnabled()
+    {
+        return MCP_ALT_SVC_ENABLED.getAsBoolean(this);
+    }
+
+    public Duration altSvcMaxAge()
+    {
+        return MCP_ALT_SVC_MAX_AGE.get(this);
     }
 
     public IntPredicate hydrateKindFilter()
@@ -208,6 +223,13 @@ public class McpConfiguration extends Configuration
         Configuration config)
     {
         return Math.max(1, ENGINE_WORKERS.getAsInt(config) * 2);
+    }
+
+    private static boolean defaultAltSvcEnabled(
+        Configuration config)
+    {
+        final String hostname = EngineConfiguration.ENGINE_SERVICE_HOSTNAME.get(config);
+        return hostname != null && !hostname.isEmpty();
     }
 
     private static ElicitationIdSupplier decodeElicitationIdSupplier(

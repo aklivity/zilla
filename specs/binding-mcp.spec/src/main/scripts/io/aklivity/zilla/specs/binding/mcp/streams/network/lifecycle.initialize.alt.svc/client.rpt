@@ -38,7 +38,7 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .header(":status", "200")
                            .header("content-type", "application/json")
                            .header("mcp-session-id", "session-1")
-                           .headerMissing("alt-svc")
+                           .header("alt-svc", "http=\":8080\"; ma=86400")
                            .build()}
 
 read '{"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-11-25","capabilities":{"prompts":{},"resources":{},"tools":{}},"serverInfo":{"name":"zilla","version":"1.0"}}}'
