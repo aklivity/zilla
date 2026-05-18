@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.LongFunction;
+import java.util.function.ToLongFunction;
 import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.binding.mcp.config.McpOptionsConfig;
@@ -44,6 +45,7 @@ public final class McpBindingConfig
     public McpProxyHydrate hydrate;
 
     private final List<McpRouteConfig> routes;
+    private final ToLongFunction<String> resolveId;
 
     public McpBindingConfig(
         BindingConfig binding)
@@ -57,6 +59,7 @@ public final class McpBindingConfig
     {
         this.id = binding.id;
         this.options = (McpOptionsConfig) binding.options;
+        this.resolveId = binding.resolveId;
         this.routes = binding.routes.stream()
             .map(McpRouteConfig::new)
             .collect(Collectors.toList());
@@ -79,6 +82,12 @@ public final class McpBindingConfig
             this.cacheGuard = null;
             this.cacheCredentials = null;
         }
+    }
+
+    public long resolveId(
+        String name)
+    {
+        return resolveId.applyAsLong(name);
     }
 
     public McpRouteConfig resolve(
