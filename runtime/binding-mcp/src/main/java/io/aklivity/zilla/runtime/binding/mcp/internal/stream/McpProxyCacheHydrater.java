@@ -65,8 +65,8 @@ public final class McpProxyCacheHydrater
     private final int mcpTypeId;
     private final Supplier<String> supplySessionId;
     private final IntPredicate hydrateFilter;
-    private final long leaseTtlMs;
-    private final long leaseRetryMs;
+    private final Duration leaseTtl;
+    private final Duration leaseRetry;
 
     private final BeginFW beginRO = new BeginFW();
     private final EndFW endRO = new EndFW();
@@ -109,8 +109,8 @@ public final class McpProxyCacheHydrater
         this.mcpTypeId = context.supplyTypeId("mcp");
         this.supplySessionId = config.sessionIdSupplier();
         this.hydrateFilter = config.hydrateFilter();
-        this.leaseTtlMs = config.leaseTtlMs();
-        this.leaseRetryMs = config.leaseRetryMs();
+        this.leaseTtl = config.leaseTtl();
+        this.leaseRetry = config.leaseRetry();
 
         this.originId = binding.id;
 
@@ -130,19 +130,19 @@ public final class McpProxyCacheHydrater
             {
                 hydraters.add(new McpProxyCacheToolsListHydrater(context, originId, routedId,
                     this::currentAuthorization, this::currentSessionId, this::markReady,
-                    leaseTtlMs, cacheTtl, binding.toolsCache));
+                    leaseTtl, cacheTtl, binding.toolsCache));
             }
             if (hydrateFilter.test(KIND_RESOURCES_LIST))
             {
                 hydraters.add(new McpProxyCacheResourcesListHydrater(context, originId, routedId,
                     this::currentAuthorization, this::currentSessionId, this::markReady,
-                    leaseTtlMs, cacheTtl, binding.resourcesCache));
+                    leaseTtl, cacheTtl, binding.resourcesCache));
             }
             if (hydrateFilter.test(KIND_PROMPTS_LIST))
             {
                 hydraters.add(new McpProxyCachePromptsListHydrater(context, originId, routedId,
                     this::currentAuthorization, this::currentSessionId, this::markReady,
-                    leaseTtlMs, cacheTtl, binding.promptsCache));
+                    leaseTtl, cacheTtl, binding.promptsCache));
             }
         }
         this.hydraters = hydraters;
@@ -230,7 +230,7 @@ public final class McpProxyCacheHydrater
         final McpRouteConfig route = binding.resolve(authorization);
         if (route != null)
         {
-            binding.lifecycleCache.acquireLifecycle(leaseTtlMs,
+            binding.lifecycleCache.acquireLifecycle(leaseTtl.toMillis(),
                 acquired -> onAcquireLifecycleComplete(traceId, authorization, acquired));
         }
     }
@@ -246,7 +246,7 @@ public final class McpProxyCacheHydrater
         }
         else
         {
-            signaler.signalAt(currentTimeMillis() + leaseRetryMs, SIGNAL_INITIATE_LIFECYCLE,
+            signaler.signalAt(currentTimeMillis() + leaseRetry.toMillis(), SIGNAL_INITIATE_LIFECYCLE,
                 this::onInitiateLifecycle);
         }
     }

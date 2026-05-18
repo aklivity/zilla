@@ -22,8 +22,8 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MC
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_HYDRATE_FILTER;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_INACTIVITY_TIMEOUT;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_KEEPALIVE_TOLERANCE;
-import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_LEASE_RETRY_MS;
-import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_LEASE_TTL_MS;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_LEASE_RETRY;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_LEASE_TTL;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_SERVER_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_SERVER_VERSION;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_SESSION_ID;
@@ -52,8 +52,8 @@ public class McpConfigurationTest
     public static final String MCP_ALT_SVC_ENABLED_NAME = "zilla.binding.mcp.alt.svc.enabled";
     public static final String MCP_ALT_SVC_MAX_AGE_NAME = "zilla.binding.mcp.alt.svc.max.age";
     public static final String MCP_HYDRATE_FILTER_NAME = "zilla.binding.mcp.hydrate.filter";
-    public static final String MCP_LEASE_TTL_MS_NAME = "zilla.binding.mcp.lease.ttl.ms";
-    public static final String MCP_LEASE_RETRY_MS_NAME = "zilla.binding.mcp.lease.retry.ms";
+    public static final String MCP_LEASE_TTL_NAME = "zilla.binding.mcp.lease.ttl";
+    public static final String MCP_LEASE_RETRY_NAME = "zilla.binding.mcp.lease.retry";
 
     @Test
     public void shouldVerifyConstants() throws Exception
@@ -73,7 +73,7 @@ public class McpConfigurationTest
         assertEquals(MCP_ALT_SVC_ENABLED.name(), MCP_ALT_SVC_ENABLED_NAME);
         assertEquals(MCP_ALT_SVC_MAX_AGE.name(), MCP_ALT_SVC_MAX_AGE_NAME);
         assertEquals(MCP_HYDRATE_FILTER.name(), MCP_HYDRATE_FILTER_NAME);
-        assertEquals(MCP_LEASE_TTL_MS.name(), MCP_LEASE_TTL_MS_NAME);
-        assertEquals(MCP_LEASE_RETRY_MS.name(), MCP_LEASE_RETRY_MS_NAME);
+        assertEquals(MCP_LEASE_TTL.name(), MCP_LEASE_TTL_NAME);
+        assertEquals(MCP_LEASE_RETRY.name(), MCP_LEASE_RETRY_NAME);
     }
 }

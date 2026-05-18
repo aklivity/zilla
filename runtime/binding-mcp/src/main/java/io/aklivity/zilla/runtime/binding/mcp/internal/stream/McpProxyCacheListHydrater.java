@@ -23,6 +23,7 @@ import java.util.function.LongUnaryOperator;
 import java.util.function.Supplier;
 
 import org.agrona.DirectBuffer;
+import org.agrona.ExpandableArrayBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
@@ -64,9 +65,8 @@ abstract class McpProxyCacheListHydrater
     private final LongSupplier supplyAuthorization;
     private final Supplier<String> supplySessionId;
     private final Runnable onReady;
-    private final long leaseTtlMs;
+    private final Duration leaseTtl;
     private final Duration cacheTtl;
-    private final int signalId;
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -78,19 +78,7 @@ abstract class McpProxyCacheListHydrater
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
     private final McpBeginExFW.Builder mcpBeginExRW = new McpBeginExFW.Builder();
 
-    private long initialId;
-    private long replyId;
-    private long initialSeq;
-    private long initialAck;
-    private int initialMax;
-    private long replySeq;
-    private long replyAck;
-    private int replyMax;
-    private int state;
-    private MessageConsumer receiver;
-    private byte[] body;
-    private int bodyLen;
-    private boolean settled;
+    private McpListHydrateStream stream;
 
     McpProxyCacheListHydrater(
         EngineContext context,
@@ -99,10 +87,9 @@ abstract class McpProxyCacheListHydrater
         LongSupplier supplyAuthorization,
         Supplier<String> supplySessionId,
         Runnable onReady,
-        long leaseTtlMs,
+        Duration leaseTtl,
         Duration cacheTtl,
-        McpListCache cache,
-        int signalId)
+        McpListCache cache)
     {
         this.writeBuffer = context.writeBuffer();
         this.codecBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
@@ -118,11 +105,9 @@ abstract class McpProxyCacheListHydrater
         this.supplyAuthorization = supplyAuthorization;
         this.supplySessionId = supplySessionId;
         this.onReady = onReady;
-        this.leaseTtlMs = leaseTtlMs;
+        this.leaseTtl = leaseTtl;
         this.cacheTtl = cacheTtl;
         this.cache = cache;
-        this.signalId = signalId;
-        this.body = new byte[1024];
     }
 
     final void initiate(
@@ -130,6 +115,8 @@ abstract class McpProxyCacheListHydrater
     {
         cache.get(this::onInitialGetComplete);
     }
+
+    protected abstract int signalId();
 
     protected abstract void injectInitialBeginEx(
         McpBeginExFW.Builder builder,
@@ -146,7 +133,7 @@ abstract class McpProxyCacheListHydrater
         }
         else
         {
-            cache.acquire(leaseTtlMs, this::onInitialAcquireLeaseComplete);
+            cache.acquire(leaseTtl.toMillis(), this::onInitialAcquireLeaseComplete);
         }
     }
 
@@ -167,7 +154,7 @@ abstract class McpProxyCacheListHydrater
     private void onRefreshSignal(
         int signalId)
     {
-        cache.acquire(leaseTtlMs, this::onRefreshAcquireLeaseComplete);
+        cache.acquire(leaseTtl.toMillis(), this::onRefreshAcquireLeaseComplete);
     }
 
     private void onRefreshAcquireLeaseComplete(
@@ -187,7 +174,7 @@ abstract class McpProxyCacheListHydrater
     {
         if (cacheTtl != null)
         {
-            signaler.signalAt(currentTimeMillis() + cacheTtl.toMillis(), signalId, this::onRefreshSignal);
+            signaler.signalAt(currentTimeMillis() + cacheTtl.toMillis(), signalId(), this::onRefreshSignal);
         }
     }
 
@@ -196,127 +183,132 @@ abstract class McpProxyCacheListHydrater
         final long traceId = supplyTraceId.getAsLong();
         final long authorization = supplyAuthorization.getAsLong();
         final String sessionId = supplySessionId.get();
-
-        initialSeq = 0L;
-        initialAck = 0L;
-        initialMax = 0;
-        replySeq = 0L;
-        replyAck = 0L;
-        replyMax = bufferPool.slotCapacity();
-        state = 0;
-        bodyLen = 0;
-        settled = false;
-        receiver = null;
-
-        initialId = supplyInitialId.applyAsLong(routedId);
-        replyId = supplyReplyId.applyAsLong(initialId);
-
-        final McpBeginExFW beginEx = mcpBeginExRW
-            .wrap(codecBuffer, 0, codecBuffer.capacity())
-            .typeId(mcpTypeId)
-            .inject(builder -> injectInitialBeginEx(builder, sessionId))
-            .build();
-
-        receiver = newStream(this::onListHydrateMessage, originId, routedId, initialId,
-            initialSeq, initialAck, initialMax, traceId, authorization, 0L, beginEx);
-        state = McpState.openingInitial(state);
-
-        doEnd(receiver, originId, routedId, initialId,
-            initialSeq, initialAck, initialMax, traceId, authorization);
-        state = McpState.closedInitial(state);
+        stream = new McpListHydrateStream(traceId, authorization, sessionId);
     }
 
-    private void onListHydrateMessage(
-        int msgTypeId,
-        DirectBuffer buffer,
-        int index,
-        int length)
+    private final class McpListHydrateStream
     {
-        switch (msgTypeId)
+        private final long initialId;
+        private final long replyId;
+        private final ExpandableArrayBuffer bodyBuffer;
+
+        private int state;
+        private long initialSeq;
+        private long initialAck;
+        private int initialMax;
+        private long replySeq;
+        private long replyAck;
+        private int replyMax;
+        private MessageConsumer receiver;
+        private int bodyLen;
+        private boolean settled;
+
+        McpListHydrateStream(
+            long traceId,
+            long authorization,
+            String sessionId)
         {
-        case BeginFW.TYPE_ID:
-            onListHydrateBegin(beginRO.wrap(buffer, index, index + length));
-            break;
-        case DataFW.TYPE_ID:
-            onListHydrateData(dataRO.wrap(buffer, index, index + length));
-            break;
-        case EndFW.TYPE_ID:
-            onListHydrateEnd(endRO.wrap(buffer, index, index + length));
-            break;
-        case AbortFW.TYPE_ID:
-        case ResetFW.TYPE_ID:
-            state = McpState.closedReply(state);
-            terminal(supplyTraceId.getAsLong());
-            break;
-        default:
-            break;
+            this.bodyBuffer = new ExpandableArrayBuffer();
+            this.initialId = supplyInitialId.applyAsLong(routedId);
+            this.replyId = supplyReplyId.applyAsLong(initialId);
+            this.replyMax = bufferPool.slotCapacity();
+
+            final McpBeginExFW beginEx = mcpBeginExRW
+                .wrap(codecBuffer, 0, codecBuffer.capacity())
+                .typeId(mcpTypeId)
+                .inject(builder -> injectInitialBeginEx(builder, sessionId))
+                .build();
+
+            receiver = newStream(this::onListHydrateMessage, originId, routedId, initialId,
+                initialSeq, initialAck, initialMax, traceId, authorization, 0L, beginEx);
+            state = McpState.openingInitial(state);
+
+            doEnd(receiver, originId, routedId, initialId,
+                initialSeq, initialAck, initialMax, traceId, authorization);
+            state = McpState.closedInitial(state);
         }
-    }
 
-    private void onListHydrateBegin(
-        BeginFW begin)
-    {
-        state = McpState.openingReply(state);
-        doListHydrateWindow(begin.traceId());
-    }
-
-    private void onListHydrateData(
-        DataFW data)
-    {
-        final OctetsFW payload = data.payload();
-        if (payload != null)
+        private void onListHydrateMessage(
+            int msgTypeId,
+            DirectBuffer buffer,
+            int index,
+            int length)
         {
-            final int payloadLen = payload.sizeof();
-            if (bodyLen + payloadLen > body.length)
+            switch (msgTypeId)
             {
-                int newCap = body.length;
-                while (newCap < bodyLen + payloadLen)
-                {
-                    newCap <<= 1;
-                }
-                final byte[] grown = new byte[newCap];
-                System.arraycopy(body, 0, grown, 0, bodyLen);
-                body = grown;
+            case BeginFW.TYPE_ID:
+                onListHydrateBegin(beginRO.wrap(buffer, index, index + length));
+                break;
+            case DataFW.TYPE_ID:
+                onListHydrateData(dataRO.wrap(buffer, index, index + length));
+                break;
+            case EndFW.TYPE_ID:
+                onListHydrateEnd(endRO.wrap(buffer, index, index + length));
+                break;
+            case AbortFW.TYPE_ID:
+            case ResetFW.TYPE_ID:
+                state = McpState.closedReply(state);
+                terminal(supplyTraceId.getAsLong());
+                break;
+            default:
+                break;
             }
-            payload.buffer().getBytes(payload.offset(), body, bodyLen, payloadLen);
-            bodyLen += payloadLen;
         }
-        doListHydrateWindow(data.traceId());
-    }
 
-    private void onListHydrateEnd(
-        EndFW end)
-    {
-        final long traceId = end.traceId();
-        state = McpState.closedReply(state);
-        if (bodyLen > 0)
+        private void onListHydrateBegin(
+            BeginFW begin)
         {
-            final String value = new String(body, 0, bodyLen, StandardCharsets.UTF_8);
-            cache.put(value, k -> terminal(traceId));
+            state = McpState.openingReply(state);
+            doListHydrateWindow(begin.traceId());
         }
-        else
+
+        private void onListHydrateData(
+            DataFW data)
         {
-            terminal(traceId);
+            final OctetsFW payload = data.payload();
+            if (payload != null)
+            {
+                final int payloadLen = payload.sizeof();
+                bodyBuffer.putBytes(bodyLen, payload.buffer(), payload.offset(), payloadLen);
+                bodyLen += payloadLen;
+            }
+            doListHydrateWindow(data.traceId());
         }
-    }
 
-    private void doListHydrateWindow(
-        long traceId)
-    {
-        final long authorization = supplyAuthorization.getAsLong();
-        doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
-            traceId, authorization, 0L, 0);
-    }
-
-    private void terminal(
-        long traceId)
-    {
-        if (!settled)
+        private void onListHydrateEnd(
+            EndFW end)
         {
-            settled = true;
-            cache.release(k -> {});
-            onReady.run();
-            scheduleRefresh();
+            final long traceId = end.traceId();
+            state = McpState.closedReply(state);
+            if (bodyLen > 0)
+            {
+                final String value = new String(bodyBuffer.byteArray(), 0, bodyLen, StandardCharsets.UTF_8);
+                cache.put(value, k -> terminal(traceId));
+            }
+            else
+            {
+                terminal(traceId);
+            }
+        }
+
+        private void doListHydrateWindow(
+            long traceId)
+        {
+            final long authorization = supplyAuthorization.getAsLong();
+            doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                traceId, authorization, 0L, 0);
+        }
+
+        private void terminal(
+            long traceId)
+        {
+            if (!settled)
+            {
+                settled = true;
+                cache.release(k -> {});
+                onReady.run();
+                scheduleRefresh();
+            }
         }
     }
 

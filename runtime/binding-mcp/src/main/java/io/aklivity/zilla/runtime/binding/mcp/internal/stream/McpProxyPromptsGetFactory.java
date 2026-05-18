@@ -28,13 +28,7 @@ final class McpProxyPromptsGetFactory extends McpProxyItemFactory
         EngineContext context,
         LongFunction<McpBindingConfig> supplyBinding)
     {
-        super(config, context, supplyBinding);
-    }
-
-    @Override
-    protected int kind()
-    {
-        return McpBeginExFW.KIND_PROMPTS_GET;
+        super(config, context, supplyBinding, McpBeginExFW.KIND_PROMPTS_GET);
     }
 
     @Override

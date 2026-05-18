@@ -31,12 +31,18 @@ final class McpProxyCacheResourcesListHydrater extends McpProxyCacheListHydrater
         LongSupplier supplyAuthorization,
         Supplier<String> supplySessionId,
         Runnable onReady,
-        long leaseTtlMs,
+        Duration leaseTtl,
         Duration cacheTtl,
         McpListCache cache)
     {
         super(context, originId, routedId, supplyAuthorization, supplySessionId, onReady,
-            leaseTtlMs, cacheTtl, cache, SIGNAL_REFRESH_RESOURCES);
+            leaseTtl, cacheTtl, cache);
+    }
+
+    @Override
+    protected int signalId()
+    {
+        return SIGNAL_REFRESH_RESOURCES;
     }
 
     @Override

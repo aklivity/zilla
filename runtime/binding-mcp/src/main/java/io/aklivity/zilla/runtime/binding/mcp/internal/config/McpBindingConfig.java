@@ -29,6 +29,8 @@ import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import org.agrona.collections.Object2ObjectHashMap;
+
 import io.aklivity.zilla.runtime.binding.mcp.config.McpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyCacheHydrater;
@@ -53,7 +55,7 @@ public final class McpBindingConfig
     public final McpListCache resourcesCache;
     public final McpListCache promptsCache;
     public final McpLifecycleCache lifecycleCache;
-    public Map<String, McpProxySession> sessions;
+    public final Map<String, McpProxySession> sessions;
     public McpProxyCacheHydrater hydrater;
 
     private final List<McpRouteConfig> routes;
@@ -108,6 +110,7 @@ public final class McpBindingConfig
         this.resourcesCache = store != null ? new McpListCache(store, KIND_RESOURCES_LIST) : null;
         this.promptsCache = store != null ? new McpListCache(store, KIND_PROMPTS_LIST) : null;
         this.lifecycleCache = store != null ? new McpLifecycleCache(store) : null;
+        this.sessions = new Object2ObjectHashMap<>();
         this.hydrater = lifecycleCache != null ? new McpProxyCacheHydrater(this, config, context) : null;
     }
 

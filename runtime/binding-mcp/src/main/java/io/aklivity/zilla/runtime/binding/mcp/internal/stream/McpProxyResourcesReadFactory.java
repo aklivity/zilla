@@ -28,13 +28,7 @@ final class McpProxyResourcesReadFactory extends McpProxyItemFactory
         EngineContext context,
         LongFunction<McpBindingConfig> supplyBinding)
     {
-        super(config, context, supplyBinding);
-    }
-
-    @Override
-    protected int kind()
-    {
-        return McpBeginExFW.KIND_RESOURCES_READ;
+        super(config, context, supplyBinding, McpBeginExFW.KIND_RESOURCES_READ);
     }
 
     @Override

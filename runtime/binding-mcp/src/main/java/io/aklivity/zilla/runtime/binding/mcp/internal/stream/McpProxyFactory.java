@@ -25,7 +25,6 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeg
 import org.agrona.DirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
-import org.agrona.collections.Object2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpBindingConfig;
@@ -87,7 +86,6 @@ public final class McpProxyFactory implements McpStreamFactory
         BindingConfig binding)
     {
         McpBindingConfig newBinding = new McpBindingConfig(binding, config, context);
-        newBinding.sessions = new Object2ObjectHashMap<>();
         bindings.put(binding.id, newBinding);
         if (newBinding.hydrater != null)
         {

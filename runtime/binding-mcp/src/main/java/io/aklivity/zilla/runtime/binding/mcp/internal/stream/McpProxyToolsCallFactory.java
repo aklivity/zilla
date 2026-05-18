@@ -28,13 +28,7 @@ final class McpProxyToolsCallFactory extends McpProxyItemFactory
         EngineContext context,
         LongFunction<McpBindingConfig> supplyBinding)
     {
-        super(config, context, supplyBinding);
-    }
-
-    @Override
-    protected int kind()
-    {
-        return McpBeginExFW.KIND_TOOLS_CALL;
+        super(config, context, supplyBinding, McpBeginExFW.KIND_TOOLS_CALL);
     }
 
     @Override

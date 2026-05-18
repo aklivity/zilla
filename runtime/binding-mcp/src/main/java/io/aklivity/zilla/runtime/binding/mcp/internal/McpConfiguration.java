@@ -48,8 +48,8 @@ public class McpConfiguration extends Configuration
     public static final BooleanPropertyDef MCP_ALT_SVC_ENABLED;
     public static final PropertyDef<Duration> MCP_ALT_SVC_MAX_AGE;
     public static final PropertyDef<IntPredicate> MCP_HYDRATE_FILTER;
-    public static final LongPropertyDef MCP_LEASE_TTL_MS;
-    public static final LongPropertyDef MCP_LEASE_RETRY_MS;
+    public static final PropertyDef<Duration> MCP_LEASE_TTL;
+    public static final PropertyDef<Duration> MCP_LEASE_RETRY;
 
     static
     {
@@ -78,8 +78,10 @@ public class McpConfiguration extends Configuration
             (c, v) -> Duration.parse(v), "PT24H");
         MCP_HYDRATE_FILTER = config.property(IntPredicate.class, "hydrate.filter",
             McpConfiguration::decodeHydrateFilter, McpConfiguration::defaultHydrateFilter);
-        MCP_LEASE_TTL_MS = config.property("lease.ttl.ms", Duration.ofSeconds(30).toMillis());
-        MCP_LEASE_RETRY_MS = config.property("lease.retry.ms", 100L);
+        MCP_LEASE_TTL = config.property(Duration.class, "lease.ttl",
+            (c, v) -> Duration.parse(v), "PT30S");
+        MCP_LEASE_RETRY = config.property(Duration.class, "lease.retry",
+            (c, v) -> Duration.parse(v), "PT0.1S");
         MCP_CONFIG = config;
     }
 
@@ -159,14 +161,14 @@ public class McpConfiguration extends Configuration
         return MCP_HYDRATE_FILTER.get(this);
     }
 
-    public long leaseTtlMs()
+    public Duration leaseTtl()
     {
-        return MCP_LEASE_TTL_MS.getAsLong(this);
+        return MCP_LEASE_TTL.get(this);
     }
 
-    public long leaseRetryMs()
+    public Duration leaseRetry()
     {
-        return MCP_LEASE_RETRY_MS.getAsLong(this);
+        return MCP_LEASE_RETRY.get(this);
     }
 
     @FunctionalInterface

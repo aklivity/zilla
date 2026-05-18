@@ -77,11 +77,13 @@ abstract class McpProxyItemFactory implements BindingHandler
     private final LongUnaryOperator supplyReplyId;
     private final int mcpTypeId;
     private final LongFunction<McpBindingConfig> supplyBinding;
+    private final int kind;
 
     McpProxyItemFactory(
         McpConfiguration config,
         EngineContext context,
-        LongFunction<McpBindingConfig> supplyBinding)
+        LongFunction<McpBindingConfig> supplyBinding,
+        int kind)
     {
         this.writeBuffer = context.writeBuffer();
         this.codecBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
@@ -90,6 +92,7 @@ abstract class McpProxyItemFactory implements BindingHandler
         this.supplyReplyId = context::supplyReplyId;
         this.mcpTypeId = context.supplyTypeId(MCP_TYPE_NAME);
         this.supplyBinding = supplyBinding;
+        this.kind = kind;
     }
 
     @Override
@@ -113,7 +116,7 @@ abstract class McpProxyItemFactory implements BindingHandler
         final McpBindingConfig binding = supplyBinding.apply(routedId);
         final McpBeginExFW beginEx = extension.get(mcpBeginExRO::tryWrap);
 
-        if (binding != null && beginEx != null && beginEx.kind() == kind())
+        if (binding != null && beginEx != null && beginEx.kind() == kind)
         {
             final String sessionId = sessionId(beginEx);
             if (binding.sessions.get(sessionId) instanceof McpLifecycleServer lifecycle)
@@ -141,8 +144,6 @@ abstract class McpProxyItemFactory implements BindingHandler
 
         return newStream;
     }
-
-    protected abstract int kind();
 
     protected abstract void injectInitialBeginEx(
         McpBeginExFW.Builder builder,

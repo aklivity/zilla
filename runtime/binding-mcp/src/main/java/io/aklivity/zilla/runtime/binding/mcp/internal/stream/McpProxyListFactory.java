@@ -40,6 +40,7 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyLifecycleFa
 import io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyLifecycleFactory.McpLifecycleServer;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.OctetsFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.DataFW;
@@ -163,7 +164,7 @@ abstract class McpProxyListFactory implements BindingHandler
                 {
                     final List<McpRoutePrefix> prefixes = binding.resolveAll(beginEx, authorization)
                         .stream()
-                        .map(r -> new McpRoutePrefix(r.id, r.prefix(kind)))
+                        .map(r -> new McpRoutePrefix(r.id, new String8FW(r.prefix(kind))))
                         .toList();
                     newStream = new McpListServer(
                         lifecycle,
@@ -202,9 +203,7 @@ abstract class McpProxyListFactory implements BindingHandler
     {
         private final McpListServer server;
         private final long resolvedId;
-        private final String prefix;
-        private final byte[] prefixBytes;
-        private final DirectBuffer prefixBufferRO;
+        private final String8FW prefix;
         private final McpLifecycleClient lifecycle;
         private final long initialId;
         private final long replyId;
@@ -237,13 +236,11 @@ abstract class McpProxyListFactory implements BindingHandler
         private McpListClient(
             McpListServer server,
             long resolvedId,
-            String prefix)
+            String8FW prefix)
         {
             this.server = server;
             this.resolvedId = resolvedId;
             this.prefix = prefix;
-            this.prefixBytes = prefix.getBytes(StandardCharsets.UTF_8);
-            this.prefixBufferRO = new UnsafeBuffer(prefixBytes);
             this.lifecycle = server.lifecycle.supplyClient(resolvedId);
             this.initialId = supplyInitialId.applyAsLong(resolvedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
@@ -908,7 +905,7 @@ abstract class McpProxyListFactory implements BindingHandler
                 break;
             case KEY_NAME:
                 if (client.decodeItemDepth == 1 &&
-                    client.prefixBytes.length > 0 &&
+                    client.prefix.length() > 0 &&
                     client.idKey.equals(parser.getString()))
                 {
                     client.decoder = decodeItemId;
@@ -964,7 +961,7 @@ abstract class McpProxyListFactory implements BindingHandler
                 final int decodedOffset =
                     offset + (int) (client.decodedItemProgress - client.decodedParserProgress);
                 client.server.streamItemChunk(buffer, decodedOffset, decodedContent - decodedOffset, traceId);
-                client.server.streamItemChunk(client.prefixBufferRO, 0, client.prefixBytes.length, traceId);
+                client.server.streamItemChunk(client.prefix.value(), 0, client.prefix.length(), traceId);
                 client.decodedItemProgress =
                     client.decodedParserProgress + (long) (decodedContent - offset);
             }
