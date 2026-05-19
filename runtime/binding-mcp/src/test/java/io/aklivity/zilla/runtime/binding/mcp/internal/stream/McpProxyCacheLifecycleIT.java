@@ -50,17 +50,6 @@ public class McpProxyCacheLifecycleIT
     @Rule
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
-    @Ignore("hydrate self-targets binding; lifecycle BEGIN arrives lazily via supplyClient (specs pending)")
-    @Test
-    @Configuration("proxy.cache.yaml")
-    @Specification({
-        "${app}/cache.hydrate/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
-    public void shouldHydrate() throws Exception
-    {
-        k3po.finish();
-    }
-
     @Test
     @Configuration("proxy.cache.yaml")
     @Specification({
