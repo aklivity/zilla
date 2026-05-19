@@ -16,21 +16,24 @@
 package io.aklivity.zilla.runtime.binding.tls.internal.config;
 
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.agrona.collections.IntHashSet;
 
-import io.aklivity.zilla.runtime.binding.tls.config.TlsCertConditionConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsConditionConfig;
+import io.aklivity.zilla.runtime.binding.tls.config.TlsMutualConfig;
 
 public final class TlsConditionMatcher
 {
     public final Matcher authorityMatch;
     public final Matcher alpnMatch;
     public final IntHashSet ports;
-    public final Boolean clientCertPresent;
-    public final Matcher clientCertCnMatch;
+    public final Set<String> trust;
+    public final TlsMutualConfig mutual;
 
     public TlsConditionMatcher(
         TlsConditionConfig condition)
@@ -38,12 +41,11 @@ public final class TlsConditionMatcher
         this.authorityMatch = condition.authority != null ? asMatcher(condition.authority) : null;
         this.alpnMatch = condition.alpn != null ? asMatcher(condition.alpn) : null;
         this.ports = condition.ports != null ? asIntHashSet(condition.ports) : null;
-
-        TlsCertConditionConfig cert = condition.cert;
-        this.clientCertPresent = cert != null ? cert.present : null;
-        this.clientCertCnMatch = cert != null && cert.signer != null && cert.signer.cn != null
-            ? asMatcher(cert.signer.cn)
-            : null;
+        this.trust = condition.trust != null ? new HashSet<>(condition.trust) : null;
+        // `trust` implies `mutual: required`
+        this.mutual = condition.mutual != null
+            ? condition.mutual
+            : condition.trust != null ? TlsMutualConfig.REQUIRED : null;
     }
 
     public boolean matches(
@@ -51,12 +53,13 @@ public final class TlsConditionMatcher
         String alpn,
         int port,
         boolean clientCertPresent,
-        String clientCertCn)
+        List<String> clientCertTrustAliases)
     {
         return matchesAuthority(authority) &&
                 matchesAlpn(alpn) &&
                 matchesPort(port) &&
-                matchesClientCert(clientCertPresent, clientCertCn);
+                matchesMutual(clientCertPresent) &&
+                matchesTrust(clientCertPresent, clientCertTrustAliases);
     }
 
     public boolean matchesIgnoringCert(
@@ -93,18 +96,31 @@ public final class TlsConditionMatcher
         return ports == null || ports.contains(port);
     }
 
-    private boolean matchesClientCert(
-        boolean present,
-        String cn)
+    private boolean matchesMutual(
+        boolean clientCertPresent)
     {
         boolean matches = true;
-        if (clientCertPresent != null && clientCertPresent.booleanValue() != present)
+        if (mutual == TlsMutualConfig.REQUIRED)
         {
-            matches = false;
+            matches = clientCertPresent;
         }
-        else if (clientCertCnMatch != null)
+        else if (mutual == TlsMutualConfig.NONE)
         {
-            matches = present && cn != null && clientCertCnMatch.reset(cn).matches();
+            matches = !clientCertPresent;
+        }
+        return matches;
+    }
+
+    private boolean matchesTrust(
+        boolean clientCertPresent,
+        List<String> clientCertTrustAliases)
+    {
+        boolean matches = true;
+        if (trust != null)
+        {
+            matches = clientCertPresent &&
+                clientCertTrustAliases != null &&
+                clientCertTrustAliases.stream().anyMatch(trust::contains);
         }
         return matches;
     }

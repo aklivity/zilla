@@ -17,9 +17,12 @@ package io.aklivity.zilla.runtime.binding.tls.internal.config;
 
 import static java.util.function.Function.identity;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
+
+import java.util.List;
 
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
@@ -28,8 +31,8 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.binding.tls.config.TlsCertConditionConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsConditionConfig;
+import io.aklivity.zilla.runtime.binding.tls.config.TlsMutualConfig;
 
 public class TlsConditionConfigAdapterTest
 {
@@ -144,103 +147,89 @@ public class TlsConditionConfigAdapterTest
     }
 
     @Test
-    public void shouldReadConditionWithCertSignerCn()
+    public void shouldReadConditionWithTrust()
     {
         String text =
                 "{" +
-                    "\"cert\":" +
-                    "{" +
-                        "\"signer\":" +
-                        "{" +
-                            "\"cn\": \"clientca\"" +
-                        "}" +
-                    "}" +
+                    "\"trust\": [\"clientca\"]" +
                 "}";
 
         TlsConditionConfig condition = jsonb.fromJson(text, TlsConditionConfig.class);
 
         assertThat(condition, not(nullValue()));
-        assertThat(condition.cert, not(nullValue()));
-        assertThat(condition.cert.present, equalTo(Boolean.TRUE));
-        assertThat(condition.cert.signer, not(nullValue()));
-        assertThat(condition.cert.signer.cn, equalTo("clientca"));
+        assertThat(condition.trust, not(nullValue()));
+        assertThat(condition.trust, contains("clientca"));
+        assertThat(condition.mutual, nullValue());
     }
 
     @Test
-    public void shouldWriteConditionWithCertSignerCn()
+    public void shouldWriteConditionWithTrust()
     {
         TlsConditionConfig condition = TlsConditionConfig.builder()
             .inject(identity())
-            .cert()
-                .signer()
-                    .cn("clientca")
-                    .build()
-                .build()
+            .trust(List.of("clientca"))
             .build();
 
         String text = jsonb.toJson(condition);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"cert\":{\"signer\":{\"cn\":\"clientca\"}}}"));
+        assertThat(text, equalTo("{\"trust\":[\"clientca\"]}"));
     }
 
     @Test
-    public void shouldReadConditionWithCertPresent()
+    public void shouldReadConditionWithMutualNone()
     {
         String text =
                 "{" +
-                    "\"cert\": true" +
+                    "\"mutual\": \"none\"" +
                 "}";
 
         TlsConditionConfig condition = jsonb.fromJson(text, TlsConditionConfig.class);
 
         assertThat(condition, not(nullValue()));
-        assertThat(condition.cert, not(nullValue()));
-        assertThat(condition.cert.present, equalTo(Boolean.TRUE));
-        assertThat(condition.cert.signer, nullValue());
+        assertThat(condition.mutual, equalTo(TlsMutualConfig.NONE));
+        assertThat(condition.trust, nullValue());
     }
 
     @Test
-    public void shouldWriteConditionWithCertPresent()
+    public void shouldWriteConditionWithMutualNone()
     {
         TlsConditionConfig condition = TlsConditionConfig.builder()
             .inject(identity())
-            .cert(TlsCertConditionConfig.builder().present(true).build())
+            .mutual(TlsMutualConfig.NONE)
             .build();
 
         String text = jsonb.toJson(condition);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"cert\":true}"));
+        assertThat(text, equalTo("{\"mutual\":\"none\"}"));
     }
 
     @Test
-    public void shouldReadConditionWithCertAbsent()
+    public void shouldReadConditionWithMutualRequired()
     {
         String text =
                 "{" +
-                    "\"cert\": false" +
+                    "\"mutual\": \"required\"" +
                 "}";
 
         TlsConditionConfig condition = jsonb.fromJson(text, TlsConditionConfig.class);
 
         assertThat(condition, not(nullValue()));
-        assertThat(condition.cert, not(nullValue()));
-        assertThat(condition.cert.present, equalTo(Boolean.FALSE));
-        assertThat(condition.cert.signer, nullValue());
+        assertThat(condition.mutual, equalTo(TlsMutualConfig.REQUIRED));
     }
 
     @Test
-    public void shouldWriteConditionWithCertAbsent()
+    public void shouldWriteConditionWithMutualRequired()
     {
         TlsConditionConfig condition = TlsConditionConfig.builder()
             .inject(identity())
-            .cert(TlsCertConditionConfig.builder().present(false).build())
+            .mutual(TlsMutualConfig.REQUIRED)
             .build();
 
         String text = jsonb.toJson(condition);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"cert\":false}"));
+        assertThat(text, equalTo("{\"mutual\":\"required\"}"));
     }
 }

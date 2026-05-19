@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.tls.config;
 
+import java.util.List;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
@@ -24,7 +25,8 @@ public final class TlsConditionConfig extends ConditionConfig
     public final String authority;
     public final String alpn;
     public final int[] ports;
-    public final TlsCertConditionConfig cert;
+    public final List<String> trust;
+    public final TlsMutualConfig mutual;
 
     public static TlsConditionConfigBuilder<TlsConditionConfig> builder()
     {
@@ -41,11 +43,13 @@ public final class TlsConditionConfig extends ConditionConfig
         String authority,
         String alpn,
         int[] ports,
-        TlsCertConditionConfig cert)
+        List<String> trust,
+        TlsMutualConfig mutual)
     {
         this.authority = authority;
         this.alpn = alpn;
         this.ports = ports;
-        this.cert = cert;
+        this.trust = trust;
+        this.mutual = mutual;
     }
 }

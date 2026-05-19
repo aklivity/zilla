@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.binding.tls.internal.config;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.IntStream;
 
 import jakarta.json.Json;
@@ -30,11 +32,9 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 import org.agrona.collections.IntHashSet;
 import org.agrona.collections.MutableInteger;
 
-import io.aklivity.zilla.runtime.binding.tls.config.TlsCertConditionConfig;
-import io.aklivity.zilla.runtime.binding.tls.config.TlsCertConditionConfigBuilder;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsConditionConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsConditionConfigBuilder;
-import io.aklivity.zilla.runtime.binding.tls.config.TlsSignerConditionConfig;
+import io.aklivity.zilla.runtime.binding.tls.config.TlsMutualConfig;
 import io.aklivity.zilla.runtime.binding.tls.internal.TlsBinding;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
@@ -44,9 +44,8 @@ public final class TlsConditionConfigAdapter implements ConditionConfigAdapterSp
     private static final String AUTHORITY_NAME = "authority";
     private static final String ALPN_NAME = "alpn";
     private static final String PORT_NAME = "port";
-    private static final String CERT_NAME = "cert";
-    private static final String SIGNER_NAME = "signer";
-    private static final String CN_NAME = "cn";
+    private static final String TRUST_NAME = "trust";
+    private static final String MUTUAL_NAME = "mutual";
 
     @Override
     public String type()
@@ -90,29 +89,19 @@ public final class TlsConditionConfigAdapter implements ConditionConfigAdapterSp
             }
         }
 
-        if (tlsCondition.cert != null)
+        if (tlsCondition.trust != null)
         {
-            TlsCertConditionConfig cert = tlsCondition.cert;
+            JsonArrayBuilder trustArray = Json.createArrayBuilder();
+            for (String alias : tlsCondition.trust)
+            {
+                trustArray.add(alias);
+            }
+            object.add(TRUST_NAME, trustArray);
+        }
 
-            if (cert.signer != null)
-            {
-                JsonObjectBuilder signerObject = Json.createObjectBuilder();
-                if (cert.signer.cn != null)
-                {
-                    signerObject.add(CN_NAME, cert.signer.cn);
-                }
-                JsonObjectBuilder certObject = Json.createObjectBuilder();
-                certObject.add(SIGNER_NAME, signerObject);
-                object.add(CERT_NAME, certObject);
-            }
-            else if (Boolean.FALSE.equals(cert.present))
-            {
-                object.add(CERT_NAME, JsonValue.FALSE);
-            }
-            else
-            {
-                object.add(CERT_NAME, JsonValue.TRUE);
-            }
+        if (tlsCondition.mutual != null)
+        {
+            object.add(MUTUAL_NAME, tlsCondition.mutual.name().toLowerCase());
         }
 
         return object.build();
@@ -157,42 +146,20 @@ public final class TlsConditionConfigAdapter implements ConditionConfigAdapterSp
             tlsCondition.ports(ports);
         }
 
-        if (object.containsKey(CERT_NAME))
+        if (object.containsKey(TRUST_NAME))
         {
-            JsonValue certValue = object.get(CERT_NAME);
-            tlsCondition.cert(adaptCertValueFromJson(certValue));
+            JsonArray trustArray = object.getJsonArray(TRUST_NAME);
+            List<String> trust = new ArrayList<>(trustArray.size());
+            trustArray.forEach(value -> trust.add(((JsonString) value).getString()));
+            tlsCondition.trust(trust);
+        }
+
+        if (object.containsKey(MUTUAL_NAME))
+        {
+            tlsCondition.mutual(TlsMutualConfig.valueOf(object.getString(MUTUAL_NAME).toUpperCase()));
         }
 
         return tlsCondition.build();
-    }
-
-    private static TlsCertConditionConfig adaptCertValueFromJson(
-        JsonValue value)
-    {
-        TlsCertConditionConfig cert;
-        switch (value.getValueType())
-        {
-        case TRUE:
-            cert = TlsCertConditionConfig.builder().present(true).build();
-            break;
-        case FALSE:
-            cert = TlsCertConditionConfig.builder().present(false).build();
-            break;
-        case OBJECT:
-        default:
-            JsonObject certObject = value.asJsonObject();
-            TlsCertConditionConfigBuilder<TlsCertConditionConfig> certBuilder = TlsCertConditionConfig.builder()
-                .present(true);
-            if (certObject.containsKey(SIGNER_NAME))
-            {
-                JsonObject signerObject = certObject.getJsonObject(SIGNER_NAME);
-                String cn = signerObject.containsKey(CN_NAME) ? signerObject.getString(CN_NAME) : null;
-                certBuilder.signer(TlsSignerConditionConfig.builder().cn(cn).build());
-            }
-            cert = certBuilder.build();
-            break;
-        }
-        return cert;
     }
 
     private static void adaptPortsValueFromJson(

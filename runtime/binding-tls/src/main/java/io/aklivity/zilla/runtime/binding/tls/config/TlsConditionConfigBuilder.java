@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.binding.tls.config;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Function;
 
 import org.agrona.collections.IntArrayList;
@@ -29,7 +31,8 @@ public final class TlsConditionConfigBuilder<T> extends ConfigBuilder<T, TlsCond
     private String authority;
     private String alpn;
     private IntArrayList ports;
-    private TlsCertConditionConfig cert;
+    private List<String> trust;
+    private TlsMutualConfig mutual;
 
     TlsConditionConfigBuilder(
         Function<ConditionConfig, T> mapper)
@@ -76,22 +79,35 @@ public final class TlsConditionConfigBuilder<T> extends ConfigBuilder<T, TlsCond
         return this;
     }
 
-    public TlsConditionConfigBuilder<T> cert(
-        TlsCertConditionConfig cert)
+    public TlsConditionConfigBuilder<T> trust(
+        String alias)
     {
-        this.cert = cert;
+        if (trust == null)
+        {
+            trust = new ArrayList<>();
+        }
+        trust.add(alias);
         return this;
     }
 
-    public TlsCertConditionConfigBuilder<TlsConditionConfigBuilder<T>> cert()
+    public TlsConditionConfigBuilder<T> trust(
+        List<String> aliases)
     {
-        return TlsCertConditionConfig.builder(this::cert);
+        this.trust = aliases != null ? new ArrayList<>(aliases) : null;
+        return this;
+    }
+
+    public TlsConditionConfigBuilder<T> mutual(
+        TlsMutualConfig mutual)
+    {
+        this.mutual = mutual;
+        return this;
     }
 
     @Override
     public T build()
     {
         final int[] portsArray = ports != null ? ports.toIntArray() : null;
-        return mapper.apply(new TlsConditionConfig(authority, alpn, portsArray, cert));
+        return mapper.apply(new TlsConditionConfig(authority, alpn, portsArray, trust, mutual));
     }
 }

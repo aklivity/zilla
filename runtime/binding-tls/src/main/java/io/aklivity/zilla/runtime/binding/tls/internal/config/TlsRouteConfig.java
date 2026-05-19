@@ -21,6 +21,7 @@ import static java.util.stream.Collectors.toList;
 import java.util.List;
 import java.util.function.UnaryOperator;
 
+
 import io.aklivity.zilla.runtime.binding.tls.config.TlsConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 import io.aklivity.zilla.runtime.engine.util.function.LongObjectPredicate;
@@ -54,10 +55,10 @@ public final class TlsRouteConfig
         String alpn,
         int port,
         boolean clientCertPresent,
-        String clientCertCn)
+        List<String> clientCertTrustAliases)
     {
         return when.isEmpty() ||
-                when.stream().anyMatch(m -> m.matches(hostname, alpn, port, clientCertPresent, clientCertCn));
+                when.stream().anyMatch(m -> m.matches(hostname, alpn, port, clientCertPresent, clientCertTrustAliases));
     }
 
     boolean matchesIgnoringCert(

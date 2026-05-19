@@ -31,7 +31,9 @@ import java.security.cert.X509CertSelector;
 import java.security.cert.X509Certificate;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BiFunction;
@@ -57,6 +59,7 @@ public class FileSystemVaultHandler implements VaultHandler
     private final Function<List<String>, KeyManagerFactory> supplyKeys;
     private final Function<List<String>, KeyManagerFactory> supplySigners;
     private final BiFunction<List<String>, KeyStore, TrustManagerFactory> supplyTrust;
+    private final Function<List<String>, Map<String, X509Certificate>> resolveTrust;
     private final RevocationStrategy revocation;
 
     public FileSystemVaultHandler(
@@ -84,6 +87,9 @@ public class FileSystemVaultHandler implements VaultHandler
         this.revocation = options.revocation != null ? options.revocation : revocation;
         FileSystemStoreInfo trust = supplyStoreInfo(resolvePath, options.trust);
         supplyTrust = (aliases, cacerts) -> newTrustFactory(trust, aliases, cacerts);
+        resolveTrust = trust != null
+            ? aliases -> trust.resolveCertificates(aliases)
+            : aliases -> null;
     }
 
     @Override
@@ -106,6 +112,13 @@ public class FileSystemVaultHandler implements VaultHandler
         List<String> aliases)
     {
         return supplySigners.apply(aliases);
+    }
+
+    @Override
+    public Map<String, X509Certificate> resolveTrust(
+        List<String> aliases)
+    {
+        return resolveTrust.apply(aliases);
     }
 
     private static FileSystemStoreInfo supplyStoreInfo(
@@ -290,6 +303,30 @@ public class FileSystemVaultHandler implements VaultHandler
             String alias)
         {
             return entry(store, null, alias, TrustedCertificateEntry.class);
+        }
+
+        private Map<String, X509Certificate> resolveCertificates(
+            List<String> aliases)
+        {
+            Map<String, X509Certificate> resolved = null;
+
+            if (aliases != null)
+            {
+                for (String alias : aliases)
+                {
+                    TrustedCertificateEntry entry = certificate(alias);
+                    if (entry != null && entry.getTrustedCertificate() instanceof X509Certificate x509)
+                    {
+                        if (resolved == null)
+                        {
+                            resolved = new LinkedHashMap<>();
+                        }
+                        resolved.put(alias, x509);
+                    }
+                }
+            }
+
+            return resolved;
         }
 
         private List<String> issuedKeys(

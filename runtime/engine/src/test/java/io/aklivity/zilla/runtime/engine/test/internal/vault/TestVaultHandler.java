@@ -25,11 +25,14 @@ import java.security.KeyStore.TrustedCertificateEntry;
 import java.security.PrivateKey;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
 import java.security.spec.KeySpec;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -131,6 +134,34 @@ public final class TestVaultHandler implements VaultHandler
         }
 
         return factory;
+    }
+
+    @Override
+    public Map<String, X509Certificate> resolveTrust(
+        List<String> certAliases)
+    {
+        Map<String, X509Certificate> resolved = null;
+
+        if (certAliases != null && trust != null && certAliases.contains(trust.alias))
+        {
+            try
+            {
+                CertificateFactory x509 = CertificateFactory.getInstance("X509");
+                InputStream certificateBytes = new ByteArrayInputStream(trust.entry.getBytes(US_ASCII));
+                Certificate certificate = x509.generateCertificate(certificateBytes);
+                if (certificate instanceof X509Certificate x509Cert)
+                {
+                    resolved = new LinkedHashMap<>();
+                    resolved.put(trust.alias, x509Cert);
+                }
+            }
+            catch (Exception ex)
+            {
+                LangUtil.rethrowUnchecked(ex);
+            }
+        }
+
+        return resolved;
     }
 
     @Override
