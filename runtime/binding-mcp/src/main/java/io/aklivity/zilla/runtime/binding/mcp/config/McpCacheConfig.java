@@ -17,19 +17,18 @@ package io.aklivity.zilla.runtime.binding.mcp.config;
 import static java.util.function.Function.identity;
 
 import java.time.Duration;
-import java.util.Map;
 import java.util.function.Function;
 
 public final class McpCacheConfig
 {
     public final String store;
     public final Duration ttl;
-    public final Map<String, String> authorization;
+    public final McpAuthorizationConfig authorization;
 
     McpCacheConfig(
         String store,
         Duration ttl,
-        Map<String, String> authorization)
+        McpAuthorizationConfig authorization)
     {
         this.store = store;
         this.ttl = ttl;

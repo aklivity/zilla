@@ -21,6 +21,7 @@ import java.util.function.Function;
 public final class McpAuthorizationConfig
 {
     public final String name;
+    public final String credentials;
 
     public transient String qname;
 
@@ -36,8 +37,10 @@ public final class McpAuthorizationConfig
     }
 
     McpAuthorizationConfig(
-        String name)
+        String name,
+        String credentials)
     {
         this.name = name;
+        this.credentials = credentials;
     }
 }

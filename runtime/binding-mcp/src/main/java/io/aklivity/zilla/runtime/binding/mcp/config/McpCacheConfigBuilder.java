@@ -15,8 +15,6 @@
 package io.aklivity.zilla.runtime.binding.mcp.config;
 
 import java.time.Duration;
-import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
@@ -27,7 +25,7 @@ public final class McpCacheConfigBuilder<T> extends ConfigBuilder<T, McpCacheCon
 
     private String store;
     private Duration ttl;
-    private Map<String, String> authorization;
+    private McpAuthorizationConfig authorization;
 
     McpCacheConfigBuilder(
         Function<McpCacheConfig, T> mapper)
@@ -57,15 +55,15 @@ public final class McpCacheConfigBuilder<T> extends ConfigBuilder<T, McpCacheCon
     }
 
     public McpCacheConfigBuilder<T> authorization(
-        String guard,
-        String credentials)
+        McpAuthorizationConfig authorization)
     {
-        if (authorization == null)
-        {
-            authorization = new LinkedHashMap<>();
-        }
-        authorization.put(guard, credentials);
+        this.authorization = authorization;
         return this;
+    }
+
+    public McpAuthorizationConfigBuilder<McpCacheConfigBuilder<T>> authorization()
+    {
+        return McpAuthorizationConfig.builder(this::authorization);
     }
 
     @Override

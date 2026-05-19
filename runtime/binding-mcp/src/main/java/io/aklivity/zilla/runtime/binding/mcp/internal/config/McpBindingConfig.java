@@ -20,17 +20,14 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeg
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
 
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.agrona.collections.Object2ObjectHashMap;
 
+import io.aklivity.zilla.runtime.binding.mcp.config.McpAuthorizationConfig;
 import io.aklivity.zilla.runtime.binding.mcp.config.McpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyCacheHydrater;
@@ -76,20 +73,15 @@ public final class McpBindingConfig
             .map(context::supplyGuard)
             .orElse(null);
 
-        final Map.Entry<String, String> guarded = Optional.ofNullable(options)
+        final McpAuthorizationConfig cacheAuth = Optional.ofNullable(options)
             .map(o -> o.cache)
             .map(c -> c.authorization)
-            .filter(Objects::nonNull)
-            .filter(Predicate.not(Map::isEmpty))
-            .map(Map::entrySet)
-            .map(Collection::iterator)
-            .map(Iterator::next)
             .orElse(null);
 
-        final GuardHandler cacheGuard = guarded != null
-            ? context.supplyGuard(binding.resolveId.applyAsLong(guarded.getKey()))
+        final GuardHandler cacheGuard = cacheAuth != null
+            ? context.supplyGuard(binding.resolveId.applyAsLong(cacheAuth.name))
             : null;
-        final String cacheCredentials = guarded != null ? guarded.getValue() : null;
+        final String cacheCredentials = cacheAuth != null ? cacheAuth.credentials : null;
 
         final StoreHandler store = Optional.ofNullable(options)
             .map(o -> o.cache)

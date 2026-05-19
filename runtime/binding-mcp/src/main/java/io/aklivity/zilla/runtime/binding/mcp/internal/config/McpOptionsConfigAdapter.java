@@ -113,15 +113,15 @@ public final class McpOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
                 cache.add(CACHE_TTL_NAME, cacheConfig.ttl.toString());
             }
 
-            if (cacheConfig.authorization != null && !cacheConfig.authorization.isEmpty())
+            if (cacheConfig.authorization != null)
             {
                 JsonObjectBuilder authorization = Json.createObjectBuilder();
-                cacheConfig.authorization.forEach((guard, credentials) ->
+                JsonObjectBuilder guardObject = Json.createObjectBuilder();
+                if (cacheConfig.authorization.credentials != null)
                 {
-                    JsonObjectBuilder guardObject = Json.createObjectBuilder();
-                    guardObject.add(CACHE_AUTHORIZATION_CREDENTIALS_NAME, credentials);
-                    authorization.add(guard, guardObject);
-                });
+                    guardObject.add(CACHE_AUTHORIZATION_CREDENTIALS_NAME, cacheConfig.authorization.credentials);
+                }
+                authorization.add(cacheConfig.authorization.name, guardObject);
                 cache.add(CACHE_AUTHORIZATION_NAME, authorization);
             }
 
@@ -189,7 +189,10 @@ public final class McpOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
                     String credentials = guardObject.containsKey(CACHE_AUTHORIZATION_CREDENTIALS_NAME)
                         ? ((JsonString) guardObject.get(CACHE_AUTHORIZATION_CREDENTIALS_NAME)).getString()
                         : null;
-                    cacheBuilder.authorization(guard, credentials);
+                    cacheBuilder.authorization()
+                        .name(guard)
+                        .credentials(credentials)
+                        .build();
                 });
             }
 
