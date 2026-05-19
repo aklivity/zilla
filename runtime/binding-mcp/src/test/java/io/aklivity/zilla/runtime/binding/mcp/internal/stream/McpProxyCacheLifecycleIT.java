@@ -93,13 +93,10 @@ public class McpProxyCacheLifecycleIT
         k3po.finish();
     }
 
-    @Ignore("seeded-cache mode no longer fans out to app1; spec script pending rewrite")
     @Test
     @Configuration("proxy.cache.seeded.yaml")
     @Specification({
-        "${app}/cache.serve.initialize/client",
-        "${app}/cache.hydrate/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+        "${app}/cache.serve.initialize/client" })
     public void shouldServeInitialize() throws Exception
     {
         k3po.finish();
