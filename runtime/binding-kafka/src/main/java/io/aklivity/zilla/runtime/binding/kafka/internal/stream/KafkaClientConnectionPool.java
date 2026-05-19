@@ -20,6 +20,7 @@ import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static java.lang.System.currentTimeMillis;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
@@ -592,6 +593,15 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         }
 
         @Override
+        public long signalAt(
+            Instant time,
+            int signalId,
+            IntConsumer handler)
+        {
+            return delegate.signalAt(time, signalId, handler);
+        }
+
+        @Override
         public void signalNow(
             long originId,
             long routedId,
@@ -637,6 +647,19 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
 
             KafkaClientStream stream = streamsByInitialId.get(streamId);
             return stream.doStreamSignalAt(traceId, timeMillis, signalId);
+        }
+
+        @Override
+        public long signalAt(
+            Instant time,
+            long originId,
+            long routedId,
+            long streamId,
+            long traceId,
+            int signalId,
+            int contextId)
+        {
+            return signalAt(time.toEpochMilli(), originId, routedId, streamId, traceId, signalId, contextId);
         }
 
         @Override

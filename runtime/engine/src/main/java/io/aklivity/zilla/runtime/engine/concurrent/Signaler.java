@@ -66,13 +66,7 @@ public interface Signaler
      * @param handler   the callback to invoke with {@code signalId} when the timer fires
      * @return a cancel id that can be passed to {@link #cancel}, or {@link #NO_CANCEL_ID}
      */
-    default long signalAt(
-        Instant time,
-        int signalId,
-        IntConsumer handler)
-    {
-        return signalAt(time.toEpochMilli(), signalId, handler);
-    }
+    long signalAt(Instant time, int signalId, IntConsumer handler);
 
     /**
      * Immediately delivers a signal to the stream identified by
@@ -129,17 +123,7 @@ public interface Signaler
      * @param contextId  an application-defined context value
      * @return a cancel id that can be passed to {@link #cancel}, or {@link #NO_CANCEL_ID}
      */
-    default long signalAt(
-        Instant time,
-        long originId,
-        long routedId,
-        long streamId,
-        long traceId,
-        int signalId,
-        int contextId)
-    {
-        return signalAt(time.toEpochMilli(), originId, routedId, streamId, traceId, signalId, contextId);
-    }
+    long signalAt(Instant time, long originId, long routedId, long streamId, long traceId, int signalId, int contextId);
 
     /**
      * Schedules a {@link Runnable} task to run on the owning I/O thread, delivered as a
