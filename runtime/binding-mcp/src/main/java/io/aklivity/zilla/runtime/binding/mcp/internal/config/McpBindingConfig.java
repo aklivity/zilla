@@ -49,8 +49,6 @@ public final class McpBindingConfig
     public final long id;
     public final McpOptionsConfig options;
     public final GuardHandler guard;
-    public final GuardHandler cacheGuard;
-    public final String cacheCredentials;
     public final McpListCache toolsCache;
     public final McpListCache resourcesCache;
     public final McpListCache promptsCache;
@@ -88,16 +86,10 @@ public final class McpBindingConfig
             .map(Iterator::next)
             .orElse(null);
 
-        if (guarded != null)
-        {
-            this.cacheGuard = context.supplyGuard(binding.resolveId.applyAsLong(guarded.getKey()));
-            this.cacheCredentials = guarded.getValue();
-        }
-        else
-        {
-            this.cacheGuard = null;
-            this.cacheCredentials = null;
-        }
+        final GuardHandler cacheGuard = guarded != null
+            ? context.supplyGuard(binding.resolveId.applyAsLong(guarded.getKey()))
+            : null;
+        final String cacheCredentials = guarded != null ? guarded.getValue() : null;
 
         final StoreHandler store = Optional.ofNullable(options)
             .map(o -> o.cache)
@@ -109,7 +101,7 @@ public final class McpBindingConfig
         this.toolsCache = store != null ? new McpListCache(store, KIND_TOOLS_LIST) : null;
         this.resourcesCache = store != null ? new McpListCache(store, KIND_RESOURCES_LIST) : null;
         this.promptsCache = store != null ? new McpListCache(store, KIND_PROMPTS_LIST) : null;
-        this.lifecycleCache = store != null ? new McpLifecycleCache(store) : null;
+        this.lifecycleCache = store != null ? new McpLifecycleCache(store, cacheGuard, cacheCredentials) : null;
         this.sessions = new Object2ObjectHashMap<>();
         this.hydrater = lifecycleCache != null ? new McpProxyCacheHydrater(this, config, context) : null;
     }

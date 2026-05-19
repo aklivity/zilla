@@ -14,8 +14,10 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal.config;
 
+import java.time.Duration;
 import java.util.function.Consumer;
 
+import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 
 public final class McpLifecycleCache
@@ -23,19 +25,26 @@ public final class McpLifecycleCache
     private static final String STORE_LOCK_KEY = "lifecycle.lock";
     private static final String STORE_LOCK_VALUE = "1";
 
+    public final GuardHandler guard;
+    public final String credentials;
+
     private final StoreHandler store;
 
     public McpLifecycleCache(
-        StoreHandler store)
+        StoreHandler store,
+        GuardHandler guard,
+        String credentials)
     {
         this.store = store;
+        this.guard = guard;
+        this.credentials = credentials;
     }
 
     public void acquireLifecycle(
-        long ttl,
+        Duration ttl,
         Consumer<Boolean> completion)
     {
-        store.putIfAbsent(STORE_LOCK_KEY, STORE_LOCK_VALUE, ttl,
+        store.putIfAbsent(STORE_LOCK_KEY, STORE_LOCK_VALUE, ttl.toMillis(),
             prior -> completion.accept(prior == null));
     }
 

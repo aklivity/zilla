@@ -17,9 +17,9 @@ package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_PROMPTS_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
-import static java.lang.System.currentTimeMillis;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -154,7 +154,7 @@ public final class McpProxyCacheHydrater
     {
         if (enabled)
         {
-            signaler.signalAt(currentTimeMillis(), SIGNAL_INITIATE_LIFECYCLE, this::onInitiateLifecycle);
+            signaler.signalAt(Instant.now(), SIGNAL_INITIATE_LIFECYCLE, this::onInitiateLifecycle);
         }
     }
 
@@ -224,13 +224,13 @@ public final class McpProxyCacheHydrater
         int signalId)
     {
         final long traceId = supplyTraceId.getAsLong();
-        final long authorization = binding.cacheGuard != null
-            ? binding.cacheGuard.reauthorize(traceId, originId, 0L, binding.cacheCredentials)
+        final long authorization = binding.lifecycleCache.guard != null
+            ? binding.lifecycleCache.guard.reauthorize(traceId, originId, 0L, binding.lifecycleCache.credentials)
             : 0L;
         final McpRouteConfig route = binding.resolve(authorization);
         if (route != null)
         {
-            binding.lifecycleCache.acquireLifecycle(leaseTtl.toMillis(),
+            binding.lifecycleCache.acquireLifecycle(leaseTtl,
                 acquired -> onAcquireLifecycleComplete(traceId, authorization, acquired));
         }
     }
@@ -243,10 +243,11 @@ public final class McpProxyCacheHydrater
         if (acquired)
         {
             stream = new McpHydrateLifecycleStream(traceId, authorization);
+            stream.doLifecycleBegin(traceId);
         }
         else
         {
-            signaler.signalAt(currentTimeMillis() + leaseRetry.toMillis(), SIGNAL_INITIATE_LIFECYCLE,
+            signaler.signalAt(Instant.now().plus(leaseRetry), SIGNAL_INITIATE_LIFECYCLE,
                 this::onInitiateLifecycle);
         }
     }
@@ -276,7 +277,6 @@ public final class McpProxyCacheHydrater
             this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.replyMax = bufferPool.slotCapacity();
-            doLifecycleBegin(traceId);
         }
 
         private void onLifecycleMessage(
@@ -356,7 +356,7 @@ public final class McpProxyCacheHydrater
             }
         }
 
-        private void doLifecycleBegin(
+        void doLifecycleBegin(
             long traceId)
         {
             final McpBeginExFW beginEx = mcpBeginExRW

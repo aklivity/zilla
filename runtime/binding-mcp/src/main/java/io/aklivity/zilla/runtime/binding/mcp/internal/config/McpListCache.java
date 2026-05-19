@@ -18,6 +18,7 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeg
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
 
+import java.time.Duration;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -62,10 +63,10 @@ public final class McpListCache
     }
 
     public void acquire(
-        long ttl,
+        Duration ttl,
         Consumer<Boolean> completion)
     {
-        store.putIfAbsent(storeLockKey, STORE_LOCK_VALUE, ttl,
+        store.putIfAbsent(storeLockKey, STORE_LOCK_VALUE, ttl.toMillis(),
             prior -> completion.accept(prior == null));
     }
 
