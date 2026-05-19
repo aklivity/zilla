@@ -1247,7 +1247,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
         {
             final TlsBindingConfig binding = bindings.get(routedId);
             final TlsRouteConfig route = binding != null
-                ? binding.resolve(authorization, tlsHostname, tlsProtocol, port, false, null)
+                ? binding.resolve(authorization, tlsHostname, tlsProtocol, port, null)
                 : null;
 
             if (route != null)

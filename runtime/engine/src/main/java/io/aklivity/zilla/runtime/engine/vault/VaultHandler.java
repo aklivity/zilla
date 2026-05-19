@@ -16,9 +16,7 @@
 package io.aklivity.zilla.runtime.engine.vault;
 
 import java.security.KeyStore;
-import java.security.cert.X509Certificate;
 import java.util.List;
-import java.util.Map;
 
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.TrustManagerFactory;
@@ -80,24 +78,4 @@ public interface VaultHandler
     TrustManagerFactory initTrust(
         List<String> certRefs,
         KeyStore cacerts);
-
-    /**
-     * Resolves the named trusted certificate entries from the vault by alias.
-     * <p>
-     * Used by callers that need to identify which configured trust alias signed a peer
-     * certificate (e.g. for routing decisions), without exposing the underlying certificate
-     * contents through configuration. Implementations should return only the aliases that
-     * resolve to a trusted certificate entry in the vault; aliases that do not resolve are
-     * omitted from the returned map.
-     * </p>
-     *
-     * @param certRefs  list of vault entry names identifying the trusted certificates to resolve
-     * @return a map from resolved alias to the corresponding X.509 certificate, or {@code null}
-     *         if no aliases could be resolved
-     */
-    default Map<String, X509Certificate> resolveTrust(
-        List<String> certRefs)
-    {
-        return null;
-    }
 }

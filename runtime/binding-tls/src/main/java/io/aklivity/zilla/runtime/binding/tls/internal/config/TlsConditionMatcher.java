@@ -15,12 +15,16 @@
  */
 package io.aklivity.zilla.runtime.binding.tls.internal.config;
 
+import java.security.cert.Certificate;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.X509TrustManager;
 
 import org.agrona.collections.IntHashSet;
 
@@ -32,34 +36,34 @@ public final class TlsConditionMatcher
     public final Matcher authorityMatch;
     public final Matcher alpnMatch;
     public final IntHashSet ports;
-    public final Set<String> trust;
     public final TlsMutualConfig mutual;
+    public final TrustManagerFactory trustFactory;
 
     public TlsConditionMatcher(
-        TlsConditionConfig condition)
+        TlsConditionConfig condition,
+        TrustManagerFactory trustFactory)
     {
         this.authorityMatch = condition.authority != null ? asMatcher(condition.authority) : null;
         this.alpnMatch = condition.alpn != null ? asMatcher(condition.alpn) : null;
         this.ports = condition.ports != null ? asIntHashSet(condition.ports) : null;
-        this.trust = condition.trust != null ? new HashSet<>(condition.trust) : null;
         // `trust` implies `mutual: required`
         this.mutual = condition.mutual != null
             ? condition.mutual
             : condition.trust != null ? TlsMutualConfig.REQUIRED : null;
+        this.trustFactory = trustFactory;
     }
 
     public boolean matches(
         String authority,
         String alpn,
         int port,
-        boolean clientCertPresent,
-        List<String> clientCertTrustAliases)
+        Certificate[] clientCerts)
     {
         return matchesAuthority(authority) &&
                 matchesAlpn(alpn) &&
                 matchesPort(port) &&
-                matchesMutual(clientCertPresent) &&
-                matchesTrust(clientCertPresent, clientCertTrustAliases);
+                matchesMutual(clientCerts) &&
+                matchesTrust(clientCerts);
     }
 
     public boolean matchesIgnoringCert(
@@ -97,32 +101,69 @@ public final class TlsConditionMatcher
     }
 
     private boolean matchesMutual(
-        boolean clientCertPresent)
+        Certificate[] clientCerts)
     {
         boolean matches = true;
+        boolean present = clientCerts != null && clientCerts.length > 0;
         if (mutual == TlsMutualConfig.REQUIRED)
         {
-            matches = clientCertPresent;
+            matches = present;
         }
         else if (mutual == TlsMutualConfig.NONE)
         {
-            matches = !clientCertPresent;
+            matches = !present;
         }
         return matches;
     }
 
     private boolean matchesTrust(
-        boolean clientCertPresent,
-        List<String> clientCertTrustAliases)
+        Certificate[] clientCerts)
     {
         boolean matches = true;
-        if (trust != null)
+        if (trustFactory != null)
         {
-            matches = clientCertPresent &&
-                clientCertTrustAliases != null &&
-                clientCertTrustAliases.stream().anyMatch(trust::contains);
+            matches = false;
+            if (clientCerts != null && clientCerts.length > 0)
+            {
+                X509Certificate[] chain = asX509Chain(clientCerts);
+                if (chain != null)
+                {
+                    String authType = chain[0].getPublicKey().getAlgorithm();
+                    for (TrustManager tm : trustFactory.getTrustManagers())
+                    {
+                        if (tm instanceof X509TrustManager x509tm)
+                        {
+                            try
+                            {
+                                x509tm.checkClientTrusted(chain, authType);
+                                matches = true;
+                                break;
+                            }
+                            catch (CertificateException ex)
+                            {
+                                // not trusted by this trust manager
+                            }
+                        }
+                    }
+                }
+            }
         }
         return matches;
+    }
+
+    private static X509Certificate[] asX509Chain(
+        Certificate[] certs)
+    {
+        X509Certificate[] chain = new X509Certificate[certs.length];
+        for (int i = 0; i < certs.length; i++)
+        {
+            if (!(certs[i] instanceof X509Certificate x509))
+            {
+                return null;
+            }
+            chain[i] = x509;
+        }
+        return chain;
     }
 
     private static Matcher asMatcher(

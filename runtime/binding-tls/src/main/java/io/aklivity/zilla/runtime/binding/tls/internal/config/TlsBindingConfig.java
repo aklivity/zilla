@@ -26,10 +26,8 @@ import static javax.net.ssl.StandardConstants.SNI_HOST_NAME;
 
 import java.security.KeyStore;
 import java.security.SecureRandom;
-import java.security.cert.X509Certificate;
-import java.util.LinkedHashMap;
+import java.security.cert.Certificate;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -45,7 +43,6 @@ import javax.net.ssl.SSLSession;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509ExtendedKeyManager;
-import javax.security.auth.x500.X500Principal;
 
 import org.agrona.LangUtil;
 
@@ -78,8 +75,6 @@ public final class TlsBindingConfig
 
     private boolean clientHttpsIdentification;
     private boolean clientServerNameIndication;
-
-    private Map<X500Principal, String> trustAliasByIssuerDn;
 
     public TlsBindingConfig(
         BindingConfig binding)
@@ -134,29 +129,16 @@ public final class TlsBindingConfig
             this.context = context;
             this.clientHttpsIdentification = config.clientHttpsIdentification();
             this.clientServerNameIndication = config.clientServerNameIndication();
-            this.trustAliasByIssuerDn = newTrustAliasByIssuerDn(vault, options.trust);
+
+            for (TlsRouteConfig route : routes)
+            {
+                route.init(vault);
+            }
         }
         catch (Exception ex)
         {
             LangUtil.rethrowUnchecked(ex);
         }
-    }
-
-    public List<String> resolveTrustAliases(
-        X500Principal issuer)
-    {
-        List<String> aliases = null;
-
-        if (trustAliasByIssuerDn != null && issuer != null)
-        {
-            String alias = trustAliasByIssuerDn.get(issuer);
-            if (alias != null)
-            {
-                aliases = List.of(alias);
-            }
-        }
-
-        return aliases;
     }
 
     public TlsRouteConfig resolve(
@@ -172,29 +154,7 @@ public final class TlsBindingConfig
 
         int port = resolveDestinationPort(beginEx);
 
-        return resolve(authorization, authority, alpn, port, false, null);
-    }
-
-    private static Map<X500Principal, String> newTrustAliasByIssuerDn(
-        VaultHandler vault,
-        List<String> trustRefs)
-    {
-        Map<X500Principal, String> map = null;
-
-        if (vault != null && trustRefs != null && !trustRefs.isEmpty())
-        {
-            Map<String, X509Certificate> resolved = vault.resolveTrust(trustRefs);
-            if (resolved != null)
-            {
-                map = new LinkedHashMap<>();
-                for (Map.Entry<String, X509Certificate> entry : resolved.entrySet())
-                {
-                    map.put(entry.getValue().getSubjectX500Principal(), entry.getKey());
-                }
-            }
-        }
-
-        return map;
+        return resolve(authorization, authority, alpn, port, null);
     }
 
     public TlsRouteConfig resolvePortOnly(
@@ -240,12 +200,11 @@ public final class TlsBindingConfig
         String hostname,
         String alpn,
         int port,
-        boolean clientCertPresent,
-        List<String> clientCertTrustAliases)
+        Certificate[] clientCerts)
     {
         return routes.stream()
                 .filter(r -> r.authorized(authorization) &&
-                    r.matches(hostname, alpn, port, clientCertPresent, clientCertTrustAliases))
+                    r.matches(hostname, alpn, port, clientCerts))
                 .findFirst()
                 .orElse(null);
     }
