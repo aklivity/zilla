@@ -77,4 +77,14 @@ public class ClientOffsetCommitIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.event.offset.commit.failed.yaml")
+    @Specification({
+        "${app}/offset.commit.failed/client",
+        "${net}/offset.commit.failed/server"})
+    public void shouldHandleOffsetCommitFailed() throws Exception
+    {
+        k3po.finish();
+    }
 }

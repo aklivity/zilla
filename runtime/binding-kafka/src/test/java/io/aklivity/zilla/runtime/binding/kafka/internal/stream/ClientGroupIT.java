@@ -267,6 +267,26 @@ public class ClientGroupIT
         k3po.finish();
     }
 
+    @Test
+    @Configuration("client.event.broker.connection.failed.yaml")
+    @Specification({
+        "${app}/broker.connection.failed/client",
+        "${net}/broker.connection.failed/server"})
+    public void shouldHandleBrokerConnectionFailed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.event.group.authorization.failed.yaml")
+    @Specification({
+        "${app}/group.authorization.failed/client",
+        "${net}/group.authorization.failed/server"})
+    public void shouldHandleGroupAuthorizationFailed() throws Exception
+    {
+        k3po.finish();
+    }
+
     public static String supplyInstanceId()
     {
         return "zilla";

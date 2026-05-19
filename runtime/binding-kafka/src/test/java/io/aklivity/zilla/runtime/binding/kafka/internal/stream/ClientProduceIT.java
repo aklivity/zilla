@@ -377,4 +377,24 @@ public class ClientProduceIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.event.produce.error.yaml")
+    @Specification({
+        "${app}/message.too.large/client",
+        "${net}/message.too.large/server"})
+    public void shouldHandleProduceError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.event.transactional.id.authorization.failed.yaml")
+    @Specification({
+        "${app}/transaction.id.authorization.failed/client",
+        "${net}/transaction.id.authorization.failed/server"})
+    public void shouldHandleTransactionalIdAuthorizationFailed() throws Exception
+    {
+        k3po.finish();
+    }
 }
