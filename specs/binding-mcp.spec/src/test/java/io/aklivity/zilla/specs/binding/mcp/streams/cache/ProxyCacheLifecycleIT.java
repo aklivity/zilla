@@ -47,15 +47,6 @@ public class ProxyCacheLifecycleIT
 
     @Test
     @Specification({
-        "${app}/cache.hydrate.persist/client",
-        "${app}/cache.hydrate.persist/server" })
-    public void shouldHydratePersist() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/cache.hydrate.error/client",
         "${app}/cache.hydrate.error/server" })
     public void shouldHydrateError() throws Exception
