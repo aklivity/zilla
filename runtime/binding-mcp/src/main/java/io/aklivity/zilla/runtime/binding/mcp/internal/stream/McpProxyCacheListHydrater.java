@@ -71,6 +71,7 @@ abstract class McpProxyCacheListHydrater
     private final EndFW endRO = new EndFW();
     private final AbortFW abortRO = new AbortFW();
     private final ResetFW resetRO = new ResetFW();
+    private final WindowFW windowRO = new WindowFW();
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
     private final EndFW.Builder endRW = new EndFW.Builder();
     private final AbortFW.Builder abortRW = new AbortFW.Builder();
@@ -185,7 +186,6 @@ abstract class McpProxyCacheListHydrater
         final String sessionId = supplySessionId.get();
         stream = new McpListHydrateStream(authorization, sessionId);
         stream.doListHydrateBegin(traceId);
-        stream.doListHydrateEnd(traceId);
     }
 
     private final class McpListHydrateStream
@@ -241,6 +241,9 @@ abstract class McpProxyCacheListHydrater
                 break;
             case ResetFW.TYPE_ID:
                 onListHydrateReset(resetRO.wrap(buffer, index, index + length));
+                break;
+            case WindowFW.TYPE_ID:
+                onListHydrateWindow(windowRO.wrap(buffer, index, index + length));
                 break;
             default:
                 break;
@@ -301,6 +304,15 @@ abstract class McpProxyCacheListHydrater
             terminal(traceId);
         }
 
+        private void onListHydrateWindow(
+            WindowFW window)
+        {
+            if (McpState.initialClosing(state) && !McpState.initialClosed(state))
+            {
+                doListHydrateEnd(window.traceId());
+            }
+        }
+
         void doListHydrateBegin(
             long traceId)
         {
@@ -313,6 +325,7 @@ abstract class McpProxyCacheListHydrater
             receiver = newStream(this::onListHydrateMessage, originId, routedId, initialId,
                 initialSeq, initialAck, initialMax, traceId, authorization, 0L, beginEx);
             state = McpState.openingInitial(state);
+            state = McpState.closingInitial(state);
         }
 
         void doListHydrateEnd(
