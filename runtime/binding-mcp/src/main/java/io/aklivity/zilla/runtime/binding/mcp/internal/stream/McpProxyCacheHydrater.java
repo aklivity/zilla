@@ -34,7 +34,6 @@ import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpBindingConfig;
-import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpRouteConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.BeginFW;
@@ -79,10 +78,8 @@ public final class McpProxyCacheHydrater
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
     private final McpBeginExFW.Builder mcpBeginExRW = new McpBeginExFW.Builder();
 
-    private final boolean enabled;
     private final long originId;
     private final long routedId;
-
     private final List<McpProxyCacheListHydrater> hydraters;
     private final List<McpSignalHandle> awaiters;
     private final int expected;
@@ -113,10 +110,7 @@ public final class McpProxyCacheHydrater
         this.leaseRetry = config.leaseRetry();
 
         this.originId = binding.id;
-
-        final McpRouteConfig route = binding.resolve(0L);
-        this.enabled = route != null;
-        this.routedId = route != null ? route.id : 0L;
+        this.routedId = binding.id;
 
         final Duration cacheTtl = Optional.ofNullable(binding.options)
             .map(o -> o.cache)
@@ -124,26 +118,23 @@ public final class McpProxyCacheHydrater
             .orElse(null);
 
         final List<McpProxyCacheListHydrater> hydraters = new ArrayList<>();
-        if (enabled)
+        if (hydrateFilter.test(KIND_TOOLS_LIST))
         {
-            if (hydrateFilter.test(KIND_TOOLS_LIST))
-            {
-                hydraters.add(new McpProxyCacheToolsListHydrater(context, originId, routedId,
-                    this::currentAuthorization, this::currentSessionId, this::markReady,
-                    leaseTtl, cacheTtl, binding.toolsCache));
-            }
-            if (hydrateFilter.test(KIND_RESOURCES_LIST))
-            {
-                hydraters.add(new McpProxyCacheResourcesListHydrater(context, originId, routedId,
-                    this::currentAuthorization, this::currentSessionId, this::markReady,
-                    leaseTtl, cacheTtl, binding.resourcesCache));
-            }
-            if (hydrateFilter.test(KIND_PROMPTS_LIST))
-            {
-                hydraters.add(new McpProxyCachePromptsListHydrater(context, originId, routedId,
-                    this::currentAuthorization, this::currentSessionId, this::markReady,
-                    leaseTtl, cacheTtl, binding.promptsCache));
-            }
+            hydraters.add(new McpProxyCacheToolsListHydrater(context, originId, routedId,
+                this::currentAuthorization, this::currentSessionId, this::markReady,
+                leaseTtl, cacheTtl, binding.toolsCache));
+        }
+        if (hydrateFilter.test(KIND_RESOURCES_LIST))
+        {
+            hydraters.add(new McpProxyCacheResourcesListHydrater(context, originId, routedId,
+                this::currentAuthorization, this::currentSessionId, this::markReady,
+                leaseTtl, cacheTtl, binding.resourcesCache));
+        }
+        if (hydrateFilter.test(KIND_PROMPTS_LIST))
+        {
+            hydraters.add(new McpProxyCachePromptsListHydrater(context, originId, routedId,
+                this::currentAuthorization, this::currentSessionId, this::markReady,
+                leaseTtl, cacheTtl, binding.promptsCache));
         }
         this.hydraters = hydraters;
         this.awaiters = new ArrayList<>();
@@ -152,10 +143,7 @@ public final class McpProxyCacheHydrater
 
     public void start()
     {
-        if (enabled)
-        {
-            signaler.signalAt(Instant.now(), SIGNAL_INITIATE_LIFECYCLE, this::onInitiateLifecycle);
-        }
+        signaler.signalAt(Instant.now(), SIGNAL_INITIATE_LIFECYCLE, this::onInitiateLifecycle);
     }
 
     public void cleanup()
@@ -227,12 +215,8 @@ public final class McpProxyCacheHydrater
         final long authorization = binding.lifecycleCache.guard != null
             ? binding.lifecycleCache.guard.reauthorize(traceId, originId, 0L, binding.lifecycleCache.credentials)
             : 0L;
-        final McpRouteConfig route = binding.resolve(authorization);
-        if (route != null)
-        {
-            binding.lifecycleCache.acquireLifecycle(leaseTtl,
-                acquired -> onAcquireLifecycleComplete(traceId, authorization, acquired));
-        }
+        binding.lifecycleCache.acquireLifecycle(leaseTtl,
+            acquired -> onAcquireLifecycleComplete(traceId, authorization, acquired));
     }
 
     private void onAcquireLifecycleComplete(

@@ -134,6 +134,7 @@ abstract class McpProxyListFactory implements BindingHandler
         MessageConsumer sender)
     {
         final BeginFW begin = beginRO.wrap(buffer, index, index + length);
+        final long originId = begin.originId();
         final long routedId = begin.routedId();
         final long initialId = begin.streamId();
         final long affinity = begin.affinity();
@@ -151,7 +152,7 @@ abstract class McpProxyListFactory implements BindingHandler
             if (binding.sessions.get(sessionId) instanceof McpLifecycleServer lifecycle)
             {
                 final McpListCache cache = cacheOf(binding);
-                if (cache != null)
+                if (cache != null && originId != routedId)
                 {
                     newStream = new McpCacheListServer(
                         lifecycle,
