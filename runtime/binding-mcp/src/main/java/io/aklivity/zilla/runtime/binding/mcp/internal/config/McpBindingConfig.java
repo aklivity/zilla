@@ -73,15 +73,19 @@ public final class McpBindingConfig
             .map(context::supplyGuard)
             .orElse(null);
 
-        final McpAuthorizationConfig cacheAuth = Optional.ofNullable(options)
+        final Optional<McpAuthorizationConfig> cacheAuth = Optional.ofNullable(options)
             .map(o -> o.cache)
-            .map(c -> c.authorization)
+            .map(c -> c.authorization);
+
+        final GuardHandler cacheGuard = cacheAuth
+            .map(a -> a.name)
+            .map(binding.resolveId::applyAsLong)
+            .map(context::supplyGuard)
             .orElse(null);
 
-        final GuardHandler cacheGuard = cacheAuth != null
-            ? context.supplyGuard(binding.resolveId.applyAsLong(cacheAuth.name))
-            : null;
-        final String cacheCredentials = cacheAuth != null ? cacheAuth.credentials : null;
+        final String cacheCredentials = cacheAuth
+            .map(a -> a.credentials)
+            .orElse(null);
 
         final StoreHandler store = Optional.ofNullable(options)
             .map(o -> o.cache)

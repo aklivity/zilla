@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.function.LongSupplier;
@@ -275,7 +274,7 @@ abstract class McpProxyCacheListHydrater
             state = McpState.closedReply(state);
             if (bodyLen > 0)
             {
-                final String value = new String(bodyBuffer.byteArray(), 0, bodyLen, StandardCharsets.UTF_8);
+                final String value = bodyBuffer.getStringWithoutLengthUtf8(0, bodyLen);
                 cache.put(value, k -> terminal(traceId));
             }
             else
@@ -288,11 +287,8 @@ abstract class McpProxyCacheListHydrater
             AbortFW abort)
         {
             final long traceId = abort.traceId();
-            if (!McpState.replyClosed(state))
-            {
-                state = McpState.closedReply(state);
-                doListHydrateAbort(traceId);
-            }
+            state = McpState.closedReply(state);
+            doListHydrateAbort(traceId);
             terminal(traceId);
         }
 
@@ -300,10 +296,7 @@ abstract class McpProxyCacheListHydrater
             ResetFW reset)
         {
             final long traceId = reset.traceId();
-            if (!McpState.initialClosed(state))
-            {
-                state = McpState.closedInitial(state);
-            }
+            state = McpState.closedInitial(state);
             doListHydrateReset(traceId);
             terminal(traceId);
         }
