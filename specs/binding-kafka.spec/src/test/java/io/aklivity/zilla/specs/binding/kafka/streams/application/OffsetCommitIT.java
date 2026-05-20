@@ -63,4 +63,13 @@ public class OffsetCommitIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/offset.commit.failed/client",
+        "${app}/offset.commit.failed/server"})
+    public void shouldHandleOffsetCommitFailed() throws Exception
+    {
+        k3po.finish();
+    }
 }

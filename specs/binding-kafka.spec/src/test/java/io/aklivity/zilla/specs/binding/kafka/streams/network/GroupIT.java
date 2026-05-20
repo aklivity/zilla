@@ -216,4 +216,13 @@ public class GroupIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/broker.connection.failed/client",
+        "${net}/broker.connection.failed/server"})
+    public void shouldHandleBrokerConnectionFailed() throws Exception
+    {
+        k3po.finish();
+    }
 }
