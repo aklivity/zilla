@@ -49,6 +49,7 @@ public final class McpProxyFactory implements McpStreamFactory
 
     private final Long2ObjectHashMap<McpBindingConfig> bindings;
     private final Int2ObjectHashMap<BindingHandler> factories;
+    private final McpProxyCacheHydrater hydrater;
 
     public McpProxyFactory(
         McpConfiguration config,
@@ -58,6 +59,7 @@ public final class McpProxyFactory implements McpStreamFactory
         this.context = context;
         this.bindings = new Long2ObjectHashMap<>();
         this.factories = new Int2ObjectHashMap<>();
+        this.hydrater = new McpProxyCacheHydrater(config, context);
         this.factories.put(KIND_LIFECYCLE,
             new McpProxyLifecycleFactory(config, context, bindings::get));
         this.factories.put(KIND_TOOLS_CALL,
@@ -87,9 +89,9 @@ public final class McpProxyFactory implements McpStreamFactory
     {
         McpBindingConfig newBinding = new McpBindingConfig(binding, config, context);
         bindings.put(binding.id, newBinding);
-        if (newBinding.hydrater != null)
+        if (newBinding.cacheContext != null)
         {
-            newBinding.hydrater.start();
+            hydrater.attach(newBinding.cacheContext);
         }
     }
 
@@ -99,9 +101,9 @@ public final class McpProxyFactory implements McpStreamFactory
     {
         McpBindingConfig binding = bindings.remove(bindingId);
 
-        if (binding != null && binding.hydrater != null)
+        if (binding != null && binding.cacheContext != null)
         {
-            binding.hydrater.cleanup();
+            hydrater.detach(binding.cacheContext);
         }
     }
 

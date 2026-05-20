@@ -28,7 +28,7 @@ import org.agrona.collections.Object2ObjectHashMap;
 import io.aklivity.zilla.runtime.binding.mcp.config.McpAuthorizationConfig;
 import io.aklivity.zilla.runtime.binding.mcp.config.McpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
-import io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyCacheHydrater;
+import io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpCacheContext;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -46,7 +46,6 @@ public final class McpBindingConfig
     public final GuardHandler guard;
     public final McpCacheContext cacheContext;
     public final Map<String, McpProxySession> sessions;
-    public McpProxyCacheHydrater hydrater;
 
     private final List<McpRouteConfig> routes;
 
@@ -99,7 +98,6 @@ public final class McpBindingConfig
                 config.leaseTtl(), config.leaseRetry(), cacheTtl)
             : null;
         this.sessions = new Object2ObjectHashMap<>();
-        this.hydrater = cacheContext != null ? new McpProxyCacheHydrater(cacheContext, config, context) : null;
     }
 
     public McpRouteConfig resolve(

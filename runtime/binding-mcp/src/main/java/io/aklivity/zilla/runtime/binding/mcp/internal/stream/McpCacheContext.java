@@ -12,13 +12,15 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.mcp.internal.config;
+package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_PROMPTS_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -48,10 +50,22 @@ public final class McpCacheContext
     public String sessionId;
     public long authorization;
 
+    Runnable lifecycleCleanup;
+    Runnable toolsCleanup;
+    Runnable resourcesCleanup;
+    Runnable promptsCleanup;
+
     private final StoreHandler store;
     private final McpListCache tools;
     private final McpListCache resources;
     private final McpListCache prompts;
+    private final List<McpSignalHandle> awaiters;
+
+    private McpProxyCacheHydrater hydrater;
+    private boolean detached;
+    private boolean complete;
+    private int populated;
+    private int expected;
 
     public McpCacheContext(
         long bindingId,
@@ -72,6 +86,7 @@ public final class McpCacheContext
         this.tools = new McpListCache(STORE_KEY_TOOLS, STORE_LOCK_KEY_TOOLS);
         this.resources = new McpListCache(STORE_KEY_RESOURCES, STORE_LOCK_KEY_RESOURCES);
         this.prompts = new McpListCache(STORE_KEY_PROMPTS, STORE_LOCK_KEY_PROMPTS);
+        this.awaiters = new ArrayList<>();
     }
 
     public McpListCache tools()
@@ -112,6 +127,104 @@ public final class McpCacheContext
         Consumer<String> completion)
     {
         store.delete(STORE_LIFECYCLE_LOCK_KEY, completion);
+    }
+
+    void bind(
+        McpProxyCacheHydrater hydrater,
+        int expected)
+    {
+        this.hydrater = hydrater;
+        this.detached = false;
+        this.complete = false;
+        this.populated = 0;
+        this.expected = expected;
+        this.awaiters.clear();
+    }
+
+    void detach()
+    {
+        detached = true;
+        if (lifecycleCleanup != null)
+        {
+            lifecycleCleanup.run();
+            lifecycleCleanup = null;
+        }
+        if (toolsCleanup != null)
+        {
+            toolsCleanup.run();
+            toolsCleanup = null;
+        }
+        if (resourcesCleanup != null)
+        {
+            resourcesCleanup.run();
+            resourcesCleanup = null;
+        }
+        if (promptsCleanup != null)
+        {
+            promptsCleanup.run();
+            promptsCleanup = null;
+        }
+        releaseLifecycle(k -> {});
+        awaiters.clear();
+    }
+
+    boolean detached()
+    {
+        return detached;
+    }
+
+    void onInitiateLifecycle(
+        int signalId)
+    {
+        if (!detached)
+        {
+            hydrater.beginLifecycle(this);
+        }
+    }
+
+    void onRefresh(
+        int signalId)
+    {
+        if (!detached)
+        {
+            hydrater.refresh(this, signalId);
+        }
+    }
+
+    void register(
+        McpSignalHandle handle)
+    {
+        if (complete)
+        {
+            handle.signalVia(hydrater.signaler());
+        }
+        else
+        {
+            awaiters.add(handle);
+        }
+    }
+
+    void markReady()
+    {
+        if (!complete)
+        {
+            populated++;
+            if (populated >= expected)
+            {
+                markComplete();
+            }
+        }
+    }
+
+    void markComplete()
+    {
+        complete = true;
+        for (McpSignalHandle h : awaiters)
+        {
+            h.signalVia(hydrater.signaler());
+        }
+        awaiters.clear();
+        releaseLifecycle(k -> {});
     }
 
     public final class McpListCache
