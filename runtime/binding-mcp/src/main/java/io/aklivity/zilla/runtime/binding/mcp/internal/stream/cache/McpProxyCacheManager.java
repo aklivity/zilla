@@ -145,10 +145,10 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
         }
         cancelRefresh();
         refreshCancelId = signaler.signalAt(
-            Instant.now().plus(cache.cacheTtl), 0, this::onRefreshFire);
+            Instant.now().plus(cache.cacheTtl), 0, this::onRefreshed);
     }
 
-    private void onRefreshFire(
+    private void onRefreshed(
         int signalId)
     {
         refreshCancelId = NO_CANCEL_ID;
@@ -191,10 +191,10 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
         delay = delay == 0L ? cache.leaseRetry.toMillis() : Math.min(delay * 2L, cache.leaseTtl.toMillis());
         sessionBackoffMs = delay;
         reconnectCancelId = signaler.signalAt(
-            Instant.now().plusMillis(delay), 0, this::onReconnectFire);
+            Instant.now().plusMillis(delay), 0, this::onReconnected);
     }
 
-    private void onReconnectFire(
+    private void onReconnected(
         int signalId)
     {
         reconnectCancelId = NO_CANCEL_ID;
