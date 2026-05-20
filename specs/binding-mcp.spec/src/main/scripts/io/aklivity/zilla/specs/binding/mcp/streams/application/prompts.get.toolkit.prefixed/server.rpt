@@ -13,18 +13,13 @@
 # specific language governing permissions and limitations under the License.
 #
 
-connect "zilla://streams/app0"
-        option zilla:window 8192
-        option zilla:transmission "half-duplex"
+property serverAddress "zilla://streams/app0"
 
-write zilla:begin.ext ${mcp:beginEx()
-                           .typeId(zilla:id("mcp"))
-                           .lifecycle()
-                               .sessionId("session-1")
-                               .build()
-                           .build()}
+accept ${serverAddress}
+       option zilla:window 8192
+       option zilla:transmission "half-duplex"
 
-connected
+accepted
 
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
@@ -33,30 +28,47 @@ read zilla:begin.ext ${mcp:matchBeginEx()
                               .build()
                           .build()}
 
-read notify LIFECYCLE_INITIALIZED
-
-connect await LIFECYCLE_INITIALIZED
-        "zilla://streams/app0"
-        option zilla:window 8192
-        option zilla:transmission "half-duplex"
+connected
 
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
-                           .toolsList()
+                           .lifecycle()
                                .sessionId("session-1")
                                .build()
                            .build()}
+write flush
+
+accepted
+
+read zilla:begin.ext ${mcp:matchBeginEx()
+                          .typeId(zilla:id("mcp"))
+                          .promptsGet()
+                              .sessionId("session-1")
+                              .name("bluesky__weather_prompt")
+                              .build()
+                          .build()}
 
 connected
 
-write close
+read  '{'
+        '"name":"bluesky__weather_prompt"'
+      '}'
+read closed
 
-read  '{"tools":'
+write flush
+
+write '{"messages":'
         '['
           '{'
-            '"name":"get_weather",'
-            '"title":"Weather Information Provider"'
+            '"role":"user",'
+            '"content":'
+            '{'
+              '"type":"text",'
+              '"text":"What is the weather like today?"'
+            '}'
           '}'
         ']'
       '}'
-read closed
+write flush
+
+write close

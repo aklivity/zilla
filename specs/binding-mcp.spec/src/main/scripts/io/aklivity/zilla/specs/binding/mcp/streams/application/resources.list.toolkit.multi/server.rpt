@@ -51,7 +51,11 @@ write flush
 
 read closed
 
-write '{"resources":[{"uri":"file:///data/readme.txt"}]}'
+write '{"resources":'
+        '['
+          '{"uri":"file:///data/readme.txt"}'
+        ']'
+      '}'
 write flush
 
 write close
@@ -95,7 +99,11 @@ write flush
 
 read closed
 
-write '{"resources":[{"uri":"file:///data/timezones.txt"}]}'
+write '{"resources":'
+        '['
+          '{"uri":"file:///data/timezones.txt"}'
+        ']'
+      '}'
 write flush
 
 write close
