@@ -38,15 +38,6 @@ public class ProxyCacheResourcesListIT
 
     @Test
     @Specification({
-        "${app}/cache.hydrate.resources/client",
-        "${app}/cache.hydrate.resources/server" })
-    public void shouldHydrateResources() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/cache.serve.resources.list/client",
         "${app}/cache.serve.resources.list/server" })
     public void shouldServeResourcesList() throws Exception

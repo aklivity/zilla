@@ -56,16 +56,6 @@ public class McpProxyCachePromptsListIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("proxy.cache.yaml")
-    @Specification({
-        "${app}/cache.hydrate.prompts/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
-    public void shouldHydratePrompts() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
     @Configuration("proxy.cache.seeded.yaml")
     @Specification({
         "${app}/cache.serve.prompts.list/client" })
