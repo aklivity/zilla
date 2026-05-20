@@ -353,13 +353,6 @@ public final class McpProxyCacheHydrater
             McpBeginExFW.Builder builder,
             String sessionId);
 
-        protected abstract void setCleanup(
-            McpCacheContext context,
-            Runnable cleanup);
-
-        protected abstract void clearCleanup(
-            McpCacheContext context);
-
         final void initiate(
             McpCacheContext context,
             long traceId)
@@ -585,13 +578,6 @@ public final class McpProxyCacheHydrater
                     initialSeq, initialAck, initialMax, traceId, context.authorization, 0L, beginEx);
                 state = McpState.openingInitial(state);
                 state = McpState.closingInitial(state);
-                setCleanup(context, this::doListHydrateCleanup);
-            }
-
-            private void doListHydrateCleanup()
-            {
-                doListHydrateAbort(supplyTraceId.getAsLong());
-                terminal(supplyTraceId.getAsLong());
             }
 
             void doListHydrateEnd(
@@ -640,7 +626,6 @@ public final class McpProxyCacheHydrater
                 if (!settled)
                 {
                     settled = true;
-                    clearCleanup(context);
                     cacheOf(context).release(k -> {});
                     context.markReady();
                     scheduleRefresh(context);
@@ -671,21 +656,6 @@ public final class McpProxyCacheHydrater
         {
             builder.toolsList(t -> t.sessionId(sessionId));
         }
-
-        @Override
-        protected void setCleanup(
-            McpCacheContext context,
-            Runnable cleanup)
-        {
-            context.toolsCleanup = cleanup;
-        }
-
-        @Override
-        protected void clearCleanup(
-            McpCacheContext context)
-        {
-            context.toolsCleanup = null;
-        }
     }
 
     private final class McpResourcesListHydrater extends McpListHydrater
@@ -710,21 +680,6 @@ public final class McpProxyCacheHydrater
         {
             builder.resourcesList(r -> r.sessionId(sessionId));
         }
-
-        @Override
-        protected void setCleanup(
-            McpCacheContext context,
-            Runnable cleanup)
-        {
-            context.resourcesCleanup = cleanup;
-        }
-
-        @Override
-        protected void clearCleanup(
-            McpCacheContext context)
-        {
-            context.resourcesCleanup = null;
-        }
     }
 
     private final class McpPromptsListHydrater extends McpListHydrater
@@ -748,21 +703,6 @@ public final class McpProxyCacheHydrater
             String sessionId)
         {
             builder.promptsList(p -> p.sessionId(sessionId));
-        }
-
-        @Override
-        protected void setCleanup(
-            McpCacheContext context,
-            Runnable cleanup)
-        {
-            context.promptsCleanup = cleanup;
-        }
-
-        @Override
-        protected void clearCleanup(
-            McpCacheContext context)
-        {
-            context.promptsCleanup = null;
         }
     }
 

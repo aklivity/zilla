@@ -47,9 +47,6 @@ public final class McpCacheContext
     public long authorization;
 
     Runnable lifecycleCleanup;
-    Runnable toolsCleanup;
-    Runnable resourcesCleanup;
-    Runnable promptsCleanup;
 
     private final StoreHandler store;
     private final McpListCache tools;
@@ -132,21 +129,6 @@ public final class McpCacheContext
         {
             lifecycleCleanup.run();
             lifecycleCleanup = null;
-        }
-        if (toolsCleanup != null)
-        {
-            toolsCleanup.run();
-            toolsCleanup = null;
-        }
-        if (resourcesCleanup != null)
-        {
-            resourcesCleanup.run();
-            resourcesCleanup = null;
-        }
-        if (promptsCleanup != null)
-        {
-            promptsCleanup.run();
-            promptsCleanup = null;
         }
         releaseLifecycle(k -> {});
         awaiters.clear();
