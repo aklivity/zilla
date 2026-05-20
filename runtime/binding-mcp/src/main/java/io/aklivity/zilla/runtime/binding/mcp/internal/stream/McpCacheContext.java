@@ -14,10 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 
-import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_PROMPTS_LIST;
-import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_LIST;
-import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
-
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -102,18 +98,6 @@ public final class McpCacheContext
     public McpListCache prompts()
     {
         return prompts;
-    }
-
-    public McpListCache listCache(
-        int kind)
-    {
-        return switch (kind)
-        {
-        case KIND_TOOLS_LIST -> tools;
-        case KIND_RESOURCES_LIST -> resources;
-        case KIND_PROMPTS_LIST -> prompts;
-        default -> throw new IllegalStateException("unexpected list kind: " + kind);
-        };
     }
 
     public void acquireLifecycle(
