@@ -34,7 +34,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpBindingConfig;
-import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpListCache;
+import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpCacheContext;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpRoutePrefix;
 import io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyLifecycleFactory.McpLifecycleClient;
 import io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyLifecycleFactory.McpLifecycleServer;
@@ -151,7 +151,7 @@ abstract class McpProxyListFactory implements BindingHandler
             final String sessionId = sessionId(beginEx);
             if (binding.sessions.get(sessionId) instanceof McpLifecycleServer lifecycle)
             {
-                final McpListCache cache = cacheOf(binding);
+                final McpCacheContext.McpListCache cache = cacheOf(binding);
                 if (cache != null && originId != routedId)
                 {
                     newStream = new McpCacheListServer(
@@ -180,7 +180,7 @@ abstract class McpProxyListFactory implements BindingHandler
         return newStream;
     }
 
-    protected abstract McpListCache cacheOf(
+    protected abstract McpCacheContext.McpListCache cacheOf(
         McpBindingConfig binding);
 
     protected abstract void injectInitialBeginEx(
@@ -1375,7 +1375,7 @@ abstract class McpProxyListFactory implements BindingHandler
         private final long replyId;
         private final long affinity;
         private final long authorization;
-        private final McpListCache cache;
+        private final McpCacheContext.McpListCache cache;
 
         private int state;
         private boolean fetched;
@@ -1397,7 +1397,7 @@ abstract class McpProxyListFactory implements BindingHandler
             long initialId,
             long affinity,
             long authorization,
-            McpListCache cache)
+            McpCacheContext.McpListCache cache)
         {
             this.lifecycle = lifecycle;
             this.initialId = initialId;

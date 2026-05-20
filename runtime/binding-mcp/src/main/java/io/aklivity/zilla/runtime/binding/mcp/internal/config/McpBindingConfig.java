@@ -15,10 +15,8 @@
 package io.aklivity.zilla.runtime.binding.mcp.internal.config;
 
 import static io.aklivity.zilla.runtime.binding.mcp.config.McpElicitationConfig.DEFAULT_CALLBACK_PATH;
-import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_PROMPTS_LIST;
-import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_LIST;
-import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -46,10 +44,7 @@ public final class McpBindingConfig
     public final long id;
     public final McpOptionsConfig options;
     public final GuardHandler guard;
-    public final McpListCache toolsCache;
-    public final McpListCache resourcesCache;
-    public final McpListCache promptsCache;
-    public final McpLifecycleCache lifecycleCache;
+    public final McpCacheContext cacheContext;
     public final Map<String, McpProxySession> sessions;
     public McpProxyCacheHydrater hydrater;
 
@@ -94,12 +89,17 @@ public final class McpBindingConfig
             .map(context::supplyStore)
             .orElse(null);
 
-        this.toolsCache = store != null ? new McpListCache(store, KIND_TOOLS_LIST) : null;
-        this.resourcesCache = store != null ? new McpListCache(store, KIND_RESOURCES_LIST) : null;
-        this.promptsCache = store != null ? new McpListCache(store, KIND_PROMPTS_LIST) : null;
-        this.lifecycleCache = store != null ? new McpLifecycleCache(store, cacheGuard, cacheCredentials) : null;
+        final Duration cacheTtl = Optional.ofNullable(options)
+            .map(o -> o.cache)
+            .map(c -> c.ttl)
+            .orElse(null);
+
+        this.cacheContext = store != null
+            ? new McpCacheContext(id, store, cacheGuard, cacheCredentials,
+                config.leaseTtl(), config.leaseRetry(), cacheTtl)
+            : null;
         this.sessions = new Object2ObjectHashMap<>();
-        this.hydrater = lifecycleCache != null ? new McpProxyCacheHydrater(this, config, context) : null;
+        this.hydrater = cacheContext != null ? new McpProxyCacheHydrater(cacheContext, config, context) : null;
     }
 
     public McpRouteConfig resolve(

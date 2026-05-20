@@ -23,7 +23,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpBindingConfig;
-import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpListCache;
+import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpCacheContext;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 
@@ -43,10 +43,10 @@ final class McpProxyToolsListFactory extends McpProxyListFactory
     }
 
     @Override
-    protected McpListCache cacheOf(
+    protected McpCacheContext.McpListCache cacheOf(
         McpBindingConfig binding)
     {
-        return binding.toolsCache;
+        return binding.cacheContext != null ? binding.cacheContext.tools() : null;
     }
 
     @Override
