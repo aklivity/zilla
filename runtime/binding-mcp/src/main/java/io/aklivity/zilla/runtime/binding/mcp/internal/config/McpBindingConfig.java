@@ -35,7 +35,6 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
-import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 
 public final class McpBindingConfig
 {
@@ -49,6 +48,14 @@ public final class McpBindingConfig
     public final Map<String, McpProxySession> sessions;
 
     private final List<McpRouteConfig> routes;
+
+    public McpBindingConfig(
+        BindingConfig binding,
+        McpConfiguration config,
+        EngineContext context)
+    {
+        this(binding, config, context, null);
+    }
 
     public McpBindingConfig(
         BindingConfig binding,
@@ -83,22 +90,21 @@ public final class McpBindingConfig
             .map(a -> a.credentials)
             .orElse(null);
 
-        final StoreHandler store = Optional.ofNullable(options)
-            .map(o -> o.cache)
-            .map(c -> c.store)
-            .map(binding.resolveId::applyAsLong)
-            .map(context::supplyStore)
-            .orElse(null);
-
         final Duration cacheTtl = Optional.ofNullable(options)
             .map(o -> o.cache)
             .map(c -> c.ttl)
             .orElse(null);
 
-        this.cacheContext = store != null
-            ? new McpCacheContext(id, store, context.signaler(), hydrater, cacheGuard, cacheCredentials,
-                config.leaseTtl(), config.leaseRetry(), cacheTtl)
-            : null;
+        this.cacheContext = Optional.ofNullable(options)
+            .map(o -> o.cache)
+            .map(c -> c.store)
+            .map(binding.resolveId::applyAsLong)
+            .map(context::supplyStore)
+            .map(store -> new McpCacheContext(
+                id, store, context.signaler(), hydrater,
+                cacheGuard, cacheCredentials,
+                config.leaseTtl(), config.leaseRetry(), cacheTtl))
+            .orElse(null);
         this.sessions = new Object2ObjectHashMap<>();
     }
 

@@ -273,39 +273,30 @@ public final class McpProxyCacheHydrater
         private void onLifecycleEnd(
             EndFW end)
         {
-            if (!McpState.replyClosed(state))
-            {
-                final long traceId = end.traceId();
-                state = McpState.closedReply(state);
-                cleanupListStreams(traceId);
-                doLifecycleEnd(traceId);
-                context.onLifecycleClosed();
-            }
+            final long traceId = end.traceId();
+            state = McpState.closedReply(state);
+            cleanupListStreams(traceId);
+            doLifecycleEnd(traceId);
+            context.onLifecycleClosed();
         }
 
         private void onLifecycleAbort(
             AbortFW abort)
         {
-            if (!McpState.replyClosed(state))
-            {
-                final long traceId = abort.traceId();
-                state = McpState.closedReply(state);
-                cleanupListStreams(traceId);
-                doLifecycleAbort(traceId);
-                context.onLifecycleClosed();
-            }
+            final long traceId = abort.traceId();
+            state = McpState.closedReply(state);
+            cleanupListStreams(traceId);
+            doLifecycleAbort(traceId);
+            context.onLifecycleClosed();
         }
 
         private void onLifecycleReset(
             ResetFW reset)
         {
-            if (!McpState.initialClosed(state))
-            {
-                final long traceId = reset.traceId();
-                state = McpState.closedInitial(state);
-                cleanupListStreams(traceId);
-                context.onLifecycleClosed();
-            }
+            final long traceId = reset.traceId();
+            state = McpState.closedInitial(state);
+            cleanupListStreams(traceId);
+            context.onLifecycleClosed();
         }
 
         void doLifecycleBegin(

@@ -332,27 +332,14 @@ public final class McpCacheContext
         public void get(
             BiConsumer<String, String> completion)
         {
-            store.get(storeKey, (k, v) ->
-            {
-                populated = v != null;
-                completion.accept(k, v);
-                if (populated)
-                {
-                    checkReady();
-                }
-            });
+            store.get(storeKey, completion.andThen(this::checkGet));
         }
 
         public void put(
             String value,
             Consumer<String> completion)
         {
-            store.put(storeKey, value, STORE_TTL_FOREVER, k ->
-            {
-                populated = true;
-                completion.accept(k);
-                checkReady();
-            });
+            store.put(storeKey, value, STORE_TTL_FOREVER, completion.andThen(this::checkPut));
         }
 
         public void acquire(
@@ -366,6 +353,21 @@ public final class McpCacheContext
             Consumer<String> completion)
         {
             store.delete(storeLockKey, completion);
+        }
+
+        private void checkGet(
+            String key,
+            String value)
+        {
+            populated = value != null;
+            checkReady();
+        }
+
+        private void checkPut(
+            String key)
+        {
+            populated = true;
+            checkReady();
         }
     }
 }
