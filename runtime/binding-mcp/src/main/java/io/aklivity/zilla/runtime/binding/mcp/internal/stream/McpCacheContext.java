@@ -64,12 +64,12 @@ public final class McpCacheContext
     private final McpListCache prompts;
     private final List<McpSignalHandle> awaiters;
     private final long[] signalCancelIds;
+    private final long[] backoffMs;
 
+    private List<McpListCache> activeCaches;
     private McpHydrateLifecycleStream lifecycleStream;
     private boolean detached;
     private boolean complete;
-    private int populated;
-    private int expected;
 
     public McpCacheContext(
         long bindingId,
@@ -96,6 +96,7 @@ public final class McpCacheContext
         this.prompts = new McpListCache(STORE_KEY_PROMPTS, STORE_LOCK_KEY_PROMPTS);
         this.awaiters = new ArrayList<>();
         this.signalCancelIds = new long[SIGNAL_SLOTS];
+        this.backoffMs = new long[SIGNAL_SLOTS];
         Arrays.fill(signalCancelIds, NO_CANCEL_ID);
     }
 
@@ -131,10 +132,13 @@ public final class McpCacheContext
     {
         detached = false;
         complete = false;
-        populated = 0;
-        expected = hydrater.activeHydraterCount();
+        tools.populated = false;
+        resources.populated = false;
+        prompts.populated = false;
+        activeCaches = hydrater.activeCaches(this);
         awaiters.clear();
         Arrays.fill(signalCancelIds, NO_CANCEL_ID);
+        Arrays.fill(backoffMs, 0L);
         scheduleSignal(Instant.now(), SIGNAL_INITIATE_LIFECYCLE, this::beginLifecycle);
     }
 
@@ -177,36 +181,33 @@ public final class McpCacheContext
         }
     }
 
-    void markReady()
-    {
-        if (!complete)
-        {
-            populated++;
-            if (populated >= expected)
-            {
-                markComplete();
-            }
-        }
-    }
-
-    void markComplete()
-    {
-        complete = true;
-        for (McpSignalHandle h : awaiters)
-        {
-            h.signalVia(signaler);
-        }
-        awaiters.clear();
-        releaseLifecycle(k -> {});
-    }
-
     void scheduleRefresh(
         int signalId)
     {
         if (cacheTtl != null && !detached)
         {
+            backoffMs[signalId] = 0L;
             scheduleSignal(Instant.now().plus(cacheTtl), signalId, this::onRefresh);
         }
+    }
+
+    void scheduleBackoffRetry(
+        int signalId)
+    {
+        if (detached)
+        {
+            return;
+        }
+        long delay = backoffMs[signalId];
+        delay = delay == 0L ? leaseRetry.toMillis() : Math.min(delay * 2L, leaseTtl.toMillis());
+        backoffMs[signalId] = delay;
+        scheduleSignal(Instant.now().plusMillis(delay), signalId, this::onRefresh);
+    }
+
+    void resetBackoff(
+        int signalId)
+    {
+        backoffMs[signalId] = 0L;
     }
 
     void onLifecycleOpened(
@@ -225,6 +226,33 @@ public final class McpCacheContext
     void onLifecycleClosed()
     {
         lifecycleStream = null;
+        releaseLifecycle(k -> {});
+    }
+
+    private void checkReady()
+    {
+        if (complete || activeCaches == null)
+        {
+            return;
+        }
+        for (McpListCache cache : activeCaches)
+        {
+            if (!cache.populated)
+            {
+                return;
+            }
+        }
+        markComplete();
+    }
+
+    private void markComplete()
+    {
+        complete = true;
+        for (McpSignalHandle h : awaiters)
+        {
+            h.signalVia(signaler);
+        }
+        awaiters.clear();
         releaseLifecycle(k -> {});
     }
 
@@ -263,7 +291,8 @@ public final class McpCacheContext
         int signalId)
     {
         signalCancelIds[signalId] = NO_CANCEL_ID;
-        hydrater.refresh(this, signalId);
+        final boolean polling = backoffMs[signalId] > 0L;
+        hydrater.refresh(this, signalId, polling);
     }
 
     private void scheduleSignal(
@@ -290,6 +319,8 @@ public final class McpCacheContext
         private final String storeKey;
         private final String storeLockKey;
 
+        boolean populated;
+
         private McpListCache(
             String storeKey,
             String storeLockKey)
@@ -301,14 +332,27 @@ public final class McpCacheContext
         public void get(
             BiConsumer<String, String> completion)
         {
-            store.get(storeKey, completion);
+            store.get(storeKey, (k, v) ->
+            {
+                populated = v != null;
+                completion.accept(k, v);
+                if (populated)
+                {
+                    checkReady();
+                }
+            });
         }
 
         public void put(
             String value,
             Consumer<String> completion)
         {
-            store.put(storeKey, value, STORE_TTL_FOREVER, completion);
+            store.put(storeKey, value, STORE_TTL_FOREVER, k ->
+            {
+                populated = true;
+                completion.accept(k);
+                checkReady();
+            });
         }
 
         public void acquire(

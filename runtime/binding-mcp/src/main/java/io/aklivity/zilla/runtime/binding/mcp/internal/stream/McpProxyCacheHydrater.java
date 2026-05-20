@@ -143,13 +143,25 @@ public final class McpProxyCacheHydrater
     {
         for (McpListHydrater hydrater : activeHydraters)
         {
-            hydrater.initiate(context, traceId);
+            hydrater.initiate(context);
         }
+    }
+
+    List<McpCacheContext.McpListCache> activeCaches(
+        McpCacheContext context)
+    {
+        final List<McpCacheContext.McpListCache> active = new ArrayList<>(activeHydraters.size());
+        for (McpListHydrater hydrater : activeHydraters)
+        {
+            active.add(hydrater.cacheOf(context));
+        }
+        return active;
     }
 
     void refresh(
         McpCacheContext context,
-        int signalId)
+        int signalId,
+        boolean polling)
     {
         final McpListHydrater hydrater = switch (signalId)
         {
@@ -160,7 +172,14 @@ public final class McpProxyCacheHydrater
         };
         if (hydrater != null)
         {
-            hydrater.refresh(context);
+            if (polling)
+            {
+                hydrater.initiate(context);
+            }
+            else
+            {
+                hydrater.refresh(context);
+            }
         }
     }
 
@@ -346,21 +365,19 @@ public final class McpProxyCacheHydrater
             String sessionId);
 
         final void initiate(
-            McpCacheContext context,
-            long traceId)
+            McpCacheContext context)
         {
-            cacheOf(context).get((k, v) -> onInitialGetComplete(context, k, v));
+            cacheOf(context).get((k, v) -> onGetComplete(context, v));
         }
 
         final void refresh(
             McpCacheContext context)
         {
-            cacheOf(context).acquire(acquired -> onRefreshAcquireComplete(context, acquired));
+            cacheOf(context).acquire(acquired -> onAcquireComplete(context, acquired));
         }
 
-        private void onInitialGetComplete(
+        private void onGetComplete(
             McpCacheContext context,
-            String key,
             String value)
         {
             if (context.detached())
@@ -370,16 +387,16 @@ public final class McpProxyCacheHydrater
 
             if (value != null)
             {
-                context.markReady();
+                context.resetBackoff(signalId());
                 context.scheduleRefresh(signalId());
             }
             else
             {
-                cacheOf(context).acquire(acquired -> onInitialAcquireComplete(context, acquired));
+                cacheOf(context).acquire(acquired -> onAcquireComplete(context, acquired));
             }
         }
 
-        private void onInitialAcquireComplete(
+        private void onAcquireComplete(
             McpCacheContext context,
             boolean acquired)
         {
@@ -390,31 +407,12 @@ public final class McpProxyCacheHydrater
 
             if (acquired)
             {
+                context.resetBackoff(signalId());
                 startListStream(context);
             }
             else
             {
-                context.markReady();
-                context.scheduleRefresh(signalId());
-            }
-        }
-
-        private void onRefreshAcquireComplete(
-            McpCacheContext context,
-            boolean acquired)
-        {
-            if (context.detached())
-            {
-                return;
-            }
-
-            if (acquired)
-            {
-                startListStream(context);
-            }
-            else
-            {
-                context.scheduleRefresh(signalId());
+                context.scheduleBackoffRetry(signalId());
             }
         }
 
@@ -616,7 +614,6 @@ public final class McpProxyCacheHydrater
                         lifecycle.unregisterListStream(this);
                     }
                     cacheOf(context).release(k -> {});
-                    context.markReady();
                     context.scheduleRefresh(signalId());
                 }
             }
