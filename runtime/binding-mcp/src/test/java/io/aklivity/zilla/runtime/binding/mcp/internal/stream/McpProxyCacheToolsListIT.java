@@ -83,6 +83,27 @@ public class McpProxyCacheToolsListIT
         k3po.finish();
     }
 
+    @Test
+    @Configuration("proxy.cache.refresh.yaml")
+    @Specification({
+        "${app}/cache.refresh.tools.error.retry/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldRetryAfterToolsRefreshError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.cache.yaml")
+    @Specification({
+        "${app}/cache.serve.tools.list.during.hydrate/server",
+        "${app}/cache.serve.tools.list.during.hydrate/client" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldServeLifecycleAfterAwaiterQueued() throws Exception
+    {
+        k3po.finish();
+    }
+
     public static String sessionId()
     {
         return "hydrate-1";

@@ -131,6 +131,7 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
         {
             return;
         }
+        cache.releaseLifecycle(k -> {});
         Arrays.fill(kindBackoffMs, 0L);
         sessionBackoffMs = 0L;
         scheduleRefresh();
