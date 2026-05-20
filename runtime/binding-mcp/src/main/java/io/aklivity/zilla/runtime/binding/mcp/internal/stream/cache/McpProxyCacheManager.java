@@ -36,8 +36,8 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
     private final McpProxyCache cache;
     private final Signaler signaler;
     private final int[] activeKinds;
-    private final long[] kindBackoffMs;
-    private final long[] kindRetryCancelIds;
+    private final long[] hydrateBackoffMs;
+    private final long[] hydrateCancelIds;
 
     private McpProxyCacheHandler handler;
     private long refreshCancelId;
@@ -52,9 +52,9 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
         this.hydrater = hydrater;
         this.cache = cache;
         this.signaler = cache.signaler;
-        this.kindBackoffMs = new long[KIND_SLOTS];
-        this.kindRetryCancelIds = new long[KIND_SLOTS];
-        Arrays.fill(this.kindRetryCancelIds, NO_CANCEL_ID);
+        this.hydrateBackoffMs = new long[KIND_SLOTS];
+        this.hydrateCancelIds = new long[KIND_SLOTS];
+        Arrays.fill(this.hydrateCancelIds, NO_CANCEL_ID);
         this.refreshCancelId = NO_CANCEL_ID;
         this.reconnectCancelId = NO_CANCEL_ID;
 
@@ -88,7 +88,7 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
         cancelReconnect();
         for (int kind : activeKinds)
         {
-            cancelKindRetry(kind);
+            cancelHydrate(kind);
         }
         if (handler != null)
         {
@@ -104,7 +104,7 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
     {
         if (!stopped)
         {
-            scheduleKindRetry(kind);
+            scheduleHydrate(kind);
         }
     }
 
@@ -118,7 +118,7 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
         cancelRefresh();
         for (int kind : activeKinds)
         {
-            cancelKindRetry(kind);
+            cancelHydrate(kind);
             cache.onPurged(kind);
         }
         handler = null;
@@ -132,7 +132,7 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
             return;
         }
         cache.releaseLifecycle(k -> {});
-        Arrays.fill(kindBackoffMs, 0L);
+        Arrays.fill(hydrateBackoffMs, 0L);
         sessionBackoffMs = 0L;
         scheduleRefresh();
     }
@@ -162,21 +162,21 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
         }
     }
 
-    private void scheduleKindRetry(
+    private void scheduleHydrate(
         int kind)
     {
-        cancelKindRetry(kind);
-        long delay = kindBackoffMs[kind];
+        cancelHydrate(kind);
+        long delay = hydrateBackoffMs[kind];
         delay = delay == 0L ? cache.leaseRetry.toMillis() : Math.min(delay * 2L, cache.leaseTtl.toMillis());
-        kindBackoffMs[kind] = delay;
-        kindRetryCancelIds[kind] = signaler.signalAt(
-            Instant.now().plusMillis(delay), kind, this::onKindRetryFire);
+        hydrateBackoffMs[kind] = delay;
+        hydrateCancelIds[kind] = signaler.signalAt(
+            Instant.now().plusMillis(delay), kind, this::onHydrateFire);
     }
 
-    private void onKindRetryFire(
+    private void onHydrateFire(
         int signalId)
     {
-        kindRetryCancelIds[signalId] = NO_CANCEL_ID;
+        hydrateCancelIds[signalId] = NO_CANCEL_ID;
         if (stopped || handler == null)
         {
             return;
@@ -224,13 +224,13 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
         }
     }
 
-    private void cancelKindRetry(
+    private void cancelHydrate(
         int kind)
     {
-        if (kindRetryCancelIds[kind] != NO_CANCEL_ID)
+        if (hydrateCancelIds[kind] != NO_CANCEL_ID)
         {
-            signaler.cancel(kindRetryCancelIds[kind]);
-            kindRetryCancelIds[kind] = NO_CANCEL_ID;
+            signaler.cancel(hydrateCancelIds[kind]);
+            hydrateCancelIds[kind] = NO_CANCEL_ID;
         }
     }
 

@@ -99,7 +99,7 @@ public class McpProxyCacheToolsListIT
         "${app}/cache.serve.tools.list.during.hydrate/server",
         "${app}/cache.serve.tools.list.during.hydrate/client" })
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
-    public void shouldServeLifecycleAfterAwaiterQueued() throws Exception
+    public void shouldServeToolsListDuringHydrate() throws Exception
     {
         k3po.finish();
     }
