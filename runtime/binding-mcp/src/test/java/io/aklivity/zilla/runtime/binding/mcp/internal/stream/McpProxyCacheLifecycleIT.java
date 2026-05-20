@@ -43,6 +43,7 @@ public class McpProxyCacheLifecycleIT
         .countersBufferCapacity(8192)
         .configurationRoot("io/aklivity/zilla/specs/binding/mcp/config")
         .external("app1")
+        .external("app2")
         .configure(MCP_SESSION_ID_NAME, "%s::sessionId".formatted(McpProxyCacheLifecycleIT.class.getName()))
         .clean();
 
@@ -75,6 +76,15 @@ public class McpProxyCacheLifecycleIT
         "${app}/cache.hydrate.credentials/server" })
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldHydrateWithCredentials() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.cache.toolkit.yaml")
+    @Specification({
+        "${app}/cache.hydrate.toolkit/server" })
+    public void shouldHydrateToolkit() throws Exception
     {
         k3po.finish();
     }
