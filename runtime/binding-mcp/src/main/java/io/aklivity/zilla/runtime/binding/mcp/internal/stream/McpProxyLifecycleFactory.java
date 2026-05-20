@@ -263,9 +263,9 @@ final class McpProxyLifecycleFactory implements BindingHandler
 
             doServerWindow(traceId, 0L, 0);
 
-            if (binding.cacheContext != null && originId != routedId)
+            if (binding.cache != null && originId != routedId)
             {
-                binding.cacheContext.register(
+                binding.cache.register(
                     new McpSignalHandle(originId, routedId, replyId, traceId, SIGNAL_HYDRATE_COMPLETE));
             }
             else

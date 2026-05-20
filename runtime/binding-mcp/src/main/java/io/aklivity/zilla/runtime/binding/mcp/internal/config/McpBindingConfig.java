@@ -16,7 +16,6 @@ package io.aklivity.zilla.runtime.binding.mcp.internal.config;
 
 import static io.aklivity.zilla.runtime.binding.mcp.config.McpElicitationConfig.DEFAULT_CALLBACK_PATH;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -25,7 +24,6 @@ import java.util.stream.Collectors;
 
 import org.agrona.collections.Object2ObjectHashMap;
 
-import io.aklivity.zilla.runtime.binding.mcp.config.McpAuthorizationConfig;
 import io.aklivity.zilla.runtime.binding.mcp.config.McpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpCacheContext;
@@ -44,7 +42,7 @@ public final class McpBindingConfig
     public final long id;
     public final McpOptionsConfig options;
     public final GuardHandler guard;
-    public final McpCacheContext cacheContext;
+    public final McpCacheContext cache;
     public final Map<String, McpProxySession> sessions;
 
     private final List<McpRouteConfig> routes;
@@ -76,34 +74,10 @@ public final class McpBindingConfig
             .map(context::supplyGuard)
             .orElse(null);
 
-        final Optional<McpAuthorizationConfig> cacheAuth = Optional.ofNullable(options)
+        this.cache = Optional.ofNullable(options)
             .map(o -> o.cache)
-            .map(c -> c.authorization);
-
-        final GuardHandler cacheGuard = cacheAuth
-            .map(a -> a.name)
-            .map(binding.resolveId::applyAsLong)
-            .map(context::supplyGuard)
-            .orElse(null);
-
-        final String cacheCredentials = cacheAuth
-            .map(a -> a.credentials)
-            .orElse(null);
-
-        final Duration cacheTtl = Optional.ofNullable(options)
-            .map(o -> o.cache)
-            .map(c -> c.ttl)
-            .orElse(null);
-
-        this.cacheContext = Optional.ofNullable(options)
-            .map(o -> o.cache)
-            .map(c -> c.store)
-            .map(binding.resolveId::applyAsLong)
-            .map(context::supplyStore)
-            .map(store -> new McpCacheContext(
-                id, store, context.signaler(), hydrater,
-                cacheGuard, cacheCredentials,
-                config.leaseTtl(), config.leaseRetry(), cacheTtl))
+            .map(cache -> new McpCacheContext(
+                binding, config, context, cache, hydrater))
             .orElse(null);
         this.sessions = new Object2ObjectHashMap<>();
     }

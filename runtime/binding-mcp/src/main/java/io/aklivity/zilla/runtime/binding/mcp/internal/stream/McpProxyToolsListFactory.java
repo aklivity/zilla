@@ -45,7 +45,7 @@ final class McpProxyToolsListFactory extends McpProxyListFactory
     protected McpCacheContext.McpListCache cacheOf(
         McpBindingConfig binding)
     {
-        return binding.cacheContext != null ? binding.cacheContext.tools() : null;
+        return binding.cache != null ? binding.cache.tools() : null;
     }
 
     @Override

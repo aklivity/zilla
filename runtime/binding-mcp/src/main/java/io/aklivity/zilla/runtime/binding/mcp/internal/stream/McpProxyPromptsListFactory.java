@@ -45,7 +45,7 @@ final class McpProxyPromptsListFactory extends McpProxyListFactory
     protected McpCacheContext.McpListCache cacheOf(
         McpBindingConfig binding)
     {
-        return binding.cacheContext != null ? binding.cacheContext.prompts() : null;
+        return binding.cache != null ? binding.cache.prompts() : null;
     }
 
     @Override

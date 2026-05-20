@@ -23,12 +23,17 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 
+import io.aklivity.zilla.runtime.binding.mcp.config.McpCacheConfig;
+import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyCacheHydrater.McpHydrateLifecycleStream;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 
@@ -72,25 +77,27 @@ public final class McpCacheContext
     private boolean complete;
 
     public McpCacheContext(
-        long bindingId,
-        StoreHandler store,
-        Signaler signaler,
-        McpProxyCacheHydrater hydrater,
-        GuardHandler guard,
-        String credentials,
-        Duration leaseTtl,
-        Duration leaseRetry,
-        Duration cacheTtl)
+        BindingConfig binding,
+        McpConfiguration config,
+        EngineContext context,
+        McpCacheConfig cache,
+        McpProxyCacheHydrater hydrater)
     {
-        this.bindingId = bindingId;
-        this.store = store;
-        this.signaler = signaler;
+        this.bindingId = binding.id;
+        this.store = context.supplyStore(binding.resolveId.applyAsLong(cache.store));
+        this.signaler = context.signaler();
         this.hydrater = hydrater;
-        this.guard = guard;
-        this.credentials = credentials;
-        this.leaseTtl = leaseTtl;
-        this.leaseRetry = leaseRetry;
-        this.cacheTtl = cacheTtl;
+        this.guard = Optional.ofNullable(cache.authorization)
+            .map(a -> a.name)
+            .map(binding.resolveId::applyAsLong)
+            .map(context::supplyGuard)
+            .orElse(null);
+        this.credentials = Optional.ofNullable(cache.authorization)
+            .map(a -> a.credentials)
+            .orElse(null);
+        this.leaseTtl = config.leaseTtl();
+        this.leaseRetry = config.leaseRetry();
+        this.cacheTtl = cache.ttl;
         this.tools = new McpListCache(STORE_KEY_TOOLS, STORE_LOCK_KEY_TOOLS);
         this.resources = new McpListCache(STORE_KEY_RESOURCES, STORE_LOCK_KEY_RESOURCES);
         this.prompts = new McpListCache(STORE_KEY_PROMPTS, STORE_LOCK_KEY_PROMPTS);

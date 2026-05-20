@@ -45,7 +45,7 @@ final class McpProxyResourcesListFactory extends McpProxyListFactory
     protected McpCacheContext.McpListCache cacheOf(
         McpBindingConfig binding)
     {
-        return binding.cacheContext != null ? binding.cacheContext.resources() : null;
+        return binding.cache != null ? binding.cache.resources() : null;
     }
 
     @Override
