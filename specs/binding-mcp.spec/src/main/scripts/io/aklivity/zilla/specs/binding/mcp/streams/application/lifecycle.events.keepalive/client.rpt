@@ -13,14 +13,18 @@
 # specific language governing permissions and limitations under the License.
 #
 
-property serverAddress "zilla://streams/app0"
-property toolName "bluesky__get_weather"
+connect "zilla://streams/app0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
 
-accept ${serverAddress}
-       option zilla:window 8192
-       option zilla:transmission "half-duplex"
+write zilla:begin.ext ${mcp:beginEx()
+                           .typeId(zilla:id("mcp"))
+                           .lifecycle()
+                               .sessionId("session-1")
+                               .build()
+                           .build()}
 
-accepted
+connected
 
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
@@ -29,49 +33,14 @@ read zilla:begin.ext ${mcp:matchBeginEx()
                               .build()
                           .build()}
 
-connected
+read advise zilla:challenge ${mcp:challengeEx()
+                                  .typeId(zilla:id("mcp"))
+                                  .resume()
+                                      .build()
+                                  .build()}
 
-write zilla:begin.ext ${mcp:beginEx()
-                           .typeId(zilla:id("mcp"))
-                           .lifecycle()
-                               .sessionId("session-1")
-                               .build()
-                           .build()}
-write flush
-
-accepted
-
-read zilla:begin.ext ${mcp:matchBeginEx()
-                          .typeId(zilla:id("mcp"))
-                          .toolsCall()
-                              .sessionId("session-1")
-                              .name(toolName)
-                              .build()
-                          .build()}
-
-connected
-
-read  '{'
-        '"name":"bluesky__get_weather",'
-        '"arguments":'
-        '{'
-          '"location": "New York"'
-        '}'
-      '}'
-read closed
-
-write flush
-
-write '{'
-        '"content":'
-        '['
-          '{'
-            '"type": "text",'
-            '"text": "Current weather in New York:\\nTemperature: 72°F\\nConditions: Partly cloudy"'
-          '}'
-        '],'
-        '"isError": false'
-      '}'
-write flush
-
-write close
+read advised zilla:flush ${mcp:matchFlushEx()
+                               .typeId(zilla:id("mcp"))
+                               .resumable()
+                                   .build()
+                               .build()}

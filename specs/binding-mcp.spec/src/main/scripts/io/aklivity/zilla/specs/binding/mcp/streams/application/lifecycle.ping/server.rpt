@@ -14,7 +14,6 @@
 #
 
 property serverAddress "zilla://streams/app0"
-property toolName "bluesky__get_weather"
 
 accept ${serverAddress}
        option zilla:window 8192
@@ -39,39 +38,4 @@ write zilla:begin.ext ${mcp:beginEx()
                            .build()}
 write flush
 
-accepted
-
-read zilla:begin.ext ${mcp:matchBeginEx()
-                          .typeId(zilla:id("mcp"))
-                          .toolsCall()
-                              .sessionId("session-1")
-                              .name(toolName)
-                              .build()
-                          .build()}
-
-connected
-
-read  '{'
-        '"name":"bluesky__get_weather",'
-        '"arguments":'
-        '{'
-          '"location": "New York"'
-        '}'
-      '}'
-read closed
-
-write flush
-
-write '{'
-        '"content":'
-        '['
-          '{'
-            '"type": "text",'
-            '"text": "Current weather in New York:\\nTemperature: 72°F\\nConditions: Partly cloudy"'
-          '}'
-        '],'
-        '"isError": false'
-      '}'
-write flush
-
-write close
+write notify KEEPALIVE_COMPLETE

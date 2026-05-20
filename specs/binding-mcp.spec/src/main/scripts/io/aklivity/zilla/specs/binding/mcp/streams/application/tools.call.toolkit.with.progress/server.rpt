@@ -13,7 +13,10 @@
 # specific language governing permissions and limitations under the License.
 #
 
-accept "zilla://streams/app1"
+property serverAddress "zilla://streams/app0"
+property toolName "bluesky__get_weather"
+
+accept ${serverAddress}
        option zilla:window 8192
        option zilla:transmission "half-duplex"
 
@@ -42,7 +45,7 @@ read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .toolsCall()
                               .sessionId("session-1")
-                              .name("get_weather")
+                              .name(toolName)
                               .build()
                           .build()}
 

@@ -13,7 +13,10 @@
 # specific language governing permissions and limitations under the License.
 #
 
-accept "zilla://streams/app1"
+property serverAddress "zilla://streams/app0"
+property resourceUri "bluesky+file:///data/readme.txt"
+
+accept ${serverAddress}
        option zilla:window 8192
        option zilla:transmission "half-duplex"
 
@@ -42,7 +45,7 @@ read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .resourcesRead()
                               .sessionId("session-1")
-                              .uri("file:///data/readme.txt")
+                              .uri(resourceUri)
                               .build()
                           .build()}
 

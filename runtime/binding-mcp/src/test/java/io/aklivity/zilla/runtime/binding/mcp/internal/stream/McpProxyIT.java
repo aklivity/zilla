@@ -103,6 +103,9 @@ public class McpProxyIT
     @Specification({
         "${app}/tools.call.toolkit/client",
         "${app}/tools.call.toolkit/server" })
+    @ScriptProperty({
+        "serverAddress \"zilla://streams/app1\"",
+        "toolName \"get_weather\""})
     public void shouldCallToolWithToolkit() throws Exception
     {
         k3po.finish();
@@ -124,6 +127,9 @@ public class McpProxyIT
     @Specification({
         "${app}/tools.list.toolkit/client",
         "${app}/tools.list.toolkit/server" })
+    @ScriptProperty({
+        "serverAddress \"zilla://streams/app1\"",
+        "toolName \"get_weather\""})
     public void shouldListToolsWithToolkit() throws Exception
     {
         k3po.finish();
@@ -155,6 +161,9 @@ public class McpProxyIT
     @Specification({
         "${app}/prompts.get.toolkit/client",
         "${app}/prompts.get.toolkit/server" })
+    @ScriptProperty({
+        "serverAddress \"zilla://streams/app1\"",
+        "promptName \"weather_prompt\""})
     public void shouldGetPromptWithToolkit() throws Exception
     {
         k3po.finish();
@@ -176,6 +185,9 @@ public class McpProxyIT
     @Specification({
         "${app}/prompts.list.toolkit/client",
         "${app}/prompts.list.toolkit/server" })
+    @ScriptProperty({
+        "serverAddress \"zilla://streams/app1\"",
+        "promptName \"weather_prompt\""})
     public void shouldListPromptsWithToolkit() throws Exception
     {
         k3po.finish();
@@ -207,6 +219,9 @@ public class McpProxyIT
     @Specification({
         "${app}/resources.read.toolkit/client",
         "${app}/resources.read.toolkit/server" })
+    @ScriptProperty({
+        "serverAddress \"zilla://streams/app1\"",
+        "resourceUri \"file:///data/readme.txt\""})
     public void shouldReadResourceWithToolkit() throws Exception
     {
         k3po.finish();
@@ -228,6 +243,9 @@ public class McpProxyIT
     @Specification({
         "${app}/resources.list.toolkit/client",
         "${app}/resources.list.toolkit/server" })
+    @ScriptProperty({
+        "serverAddress \"zilla://streams/app1\"",
+        "resourceUri \"file:///data/readme.txt\""})
     public void shouldListResourcesWithToolkit() throws Exception
     {
         k3po.finish();
@@ -369,6 +387,9 @@ public class McpProxyIT
     @Specification({
         "${app}/tools.call.toolkit.with.progress/client",
         "${app}/tools.call.toolkit.with.progress/server" })
+    @ScriptProperty({
+        "serverAddress \"zilla://streams/app1\"",
+        "toolName \"get_weather\""})
     public void shouldCallToolWithToolkitWithProgress() throws Exception
     {
         k3po.finish();
