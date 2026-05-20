@@ -51,7 +51,11 @@ connected
 
 write close
 
-read '{"resources":[{"uri":"file:///data/readme.txt"}]}'
+read  '{"resources":'
+        '['
+          '{"uri":"file:///data/readme.txt"}'
+        ']'
+      '}'
 read closed
 
 read notify SERVER_1_DONE
@@ -96,5 +100,9 @@ connected
 
 write close
 
-read '{"resources":[{"uri":"file:///data/timezones.txt"}]}'
+read  '{"resources":'
+        '['
+          '{"uri":"file:///data/timezones.txt"}'
+        ']'
+      '}'
 read closed

@@ -53,7 +53,14 @@ write flush
 
 read closed
 
-write '{"tools":[{"name":"get_weather","title":"Weather Information Provider"}]}'
+write '{"tools":'
+        '['
+          '{'
+            '"name":"get_weather",'
+            '"title":"Weather Information Provider"'
+          '}'
+        ']'
+      '}'
 write flush
 
 write close

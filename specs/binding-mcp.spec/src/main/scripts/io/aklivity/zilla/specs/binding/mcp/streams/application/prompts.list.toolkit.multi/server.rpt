@@ -51,7 +51,11 @@ write flush
 
 read closed
 
-write '{"prompts":[{"name":"weather_prompt"}]}'
+write '{"prompts":'
+        '['
+          '{"name":"weather_prompt"}'
+        ']'
+      '}'
 write flush
 
 write close
@@ -95,7 +99,11 @@ write flush
 
 read closed
 
-write '{"prompts":[{"name":"current_time_prompt"}]}'
+write '{"prompts":'
+        '['
+          '{"name":"current_time_prompt"}'
+        ']'
+      '}'
 write flush
 
 write close

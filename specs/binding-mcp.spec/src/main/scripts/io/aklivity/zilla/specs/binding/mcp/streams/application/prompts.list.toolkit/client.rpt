@@ -51,5 +51,12 @@ connected
 
 write close
 
-read  '{"prompts":[{"name":"weather_prompt","description":"Ask about weather"}]}'
+read  '{"prompts":'
+        '['
+          '{'
+            '"name":"weather_prompt",'
+            '"description":"Ask about weather"'
+          '}'
+        ']'
+      '}'
 read closed

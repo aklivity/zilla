@@ -53,7 +53,12 @@ write flush
 
 read closed
 
-write '{"prompts":[{"name":"bluesky__weather_prompt"},{"name":"quartz__current_time_prompt"}]}'
+write '{"prompts":'
+        '['
+          '{"name":"bluesky__weather_prompt"},'
+          '{"name":"quartz__current_time_prompt"}'
+        ']'
+      '}'
 write flush
 
 write close

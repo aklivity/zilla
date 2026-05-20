@@ -51,7 +51,11 @@ connected
 
 write close
 
-read '{"prompts":[{"name":"weather_prompt"}]}'
+read  '{"prompts":'
+        '['
+          '{"name":"weather_prompt"}'
+        ']'
+      '}'
 read closed
 
 read notify SERVER_1_DONE
@@ -96,5 +100,9 @@ connected
 
 write close
 
-read '{"prompts":[{"name":"current_time_prompt"}]}'
+read  '{"prompts":'
+        '['
+          '{"name":"current_time_prompt"}'
+        ']'
+      '}'
 read closed

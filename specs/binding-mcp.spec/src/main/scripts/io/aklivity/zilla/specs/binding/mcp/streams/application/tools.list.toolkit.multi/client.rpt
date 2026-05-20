@@ -51,7 +51,11 @@ connected
 
 write close
 
-read '{"tools":[{"name":"get_weather"}]}'
+read  '{"tools":'
+        '['
+          '{"name":"get_weather"}'
+        ']'
+      '}'
 read closed
 
 read notify SERVER_1_DONE
@@ -96,5 +100,9 @@ connected
 
 write close
 
-read '{"tools":[{"name":"get_current_time"}]}'
+read  '{"tools":'
+        '['
+          '{"name":"get_current_time"}'
+        ']'
+      '}'
 read closed
