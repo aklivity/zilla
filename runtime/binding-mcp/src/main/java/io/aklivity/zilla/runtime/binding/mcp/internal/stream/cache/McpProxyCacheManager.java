@@ -170,10 +170,10 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
         delay = delay == 0L ? cache.leaseRetry.toMillis() : Math.min(delay * 2L, cache.leaseTtl.toMillis());
         hydrateBackoffMs[kind] = delay;
         hydrateCancelIds[kind] = signaler.signalAt(
-            Instant.now().plusMillis(delay), kind, this::onHydrateFire);
+            Instant.now().plusMillis(delay), kind, this::onHydrated);
     }
 
-    private void onHydrateFire(
+    private void onHydrated(
         int signalId)
     {
         hydrateCancelIds[signalId] = NO_CANCEL_ID;
