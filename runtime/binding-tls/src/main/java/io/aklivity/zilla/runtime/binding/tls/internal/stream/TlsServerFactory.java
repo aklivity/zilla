@@ -54,6 +54,7 @@ import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
+import io.aklivity.zilla.runtime.binding.tls.config.TlsMutualConfig;
 import io.aklivity.zilla.runtime.binding.tls.internal.TlsConfiguration;
 import io.aklivity.zilla.runtime.binding.tls.internal.TlsEventContext;
 import io.aklivity.zilla.runtime.binding.tls.internal.config.TlsBindingConfig;
@@ -1682,17 +1683,10 @@ public final class TlsServerFactory implements TlsStreamFactory
 
             String tlsProtocol = "".equals(alpn) ? null : alpn;
 
-            Certificate[] clientCerts = null;
-            try
-            {
-                clientCerts = tlsSession.getPeerCertificates();
-            }
-            catch (SSLPeerUnverifiedException ex)
-            {
-                // no client cert presented under mutual: requested
-            }
-
             final TlsBindingConfig binding = bindings.get(routedId);
+            final TlsMutualConfig mutual = binding != null && binding.options != null ? binding.options.mutual : null;
+            final Certificate[] clientCerts = peerCertificates(tlsSession, mutual);
+
             final TlsRouteConfig route = binding != null
                 ? binding.resolve(authorization, tlsHostname, tlsProtocol, port, clientCerts)
                 : null;
@@ -2406,6 +2400,25 @@ public final class TlsServerFactory implements TlsStreamFactory
         Optional<TlsServer.TlsStream> stream)
     {
         return TlsState.closed(state) ? NULL_STREAM : stream;
+    }
+
+    private static Certificate[] peerCertificates(
+        SSLSession session,
+        TlsMutualConfig mutual)
+    {
+        Certificate[] certs = null;
+        if (mutual == TlsMutualConfig.REQUIRED || mutual == TlsMutualConfig.REQUESTED)
+        {
+            try
+            {
+                certs = session.getPeerCertificates();
+            }
+            catch (SSLPeerUnverifiedException ex)
+            {
+                // no client cert presented under mutual: requested
+            }
+        }
+        return certs;
     }
 
     private String getCommonName(

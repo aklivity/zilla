@@ -321,6 +321,15 @@ public class ServerIT
     }
 
     @Test
+    @Configuration("server.mutual.signer.routed.yaml")
+    @Specification({
+        "${net}/server.mutual.signer.untrusted/client"})
+    public void shouldRejectWhenClientCertSignerNotTrustedByRoute() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.yaml")
     @Specification({
         "${net}/server.handshake.timeout/client"})

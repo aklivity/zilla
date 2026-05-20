@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.vault.config;
 
+import java.util.List;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
@@ -23,7 +24,7 @@ public final class TestVaultOptionsConfig extends OptionsConfig
 {
     public final TestVaultEntryConfig key;
     public final TestVaultEntryConfig signer;
-    public final TestVaultEntryConfig trust;
+    public final List<TestVaultEntryConfig> trust;
 
     public static TestVaultOptionsConfigBuilder<TestVaultOptionsConfig> builder()
     {
@@ -39,7 +40,7 @@ public final class TestVaultOptionsConfig extends OptionsConfig
     TestVaultOptionsConfig(
         TestVaultEntryConfig key,
         TestVaultEntryConfig signer,
-        TestVaultEntryConfig trust)
+        List<TestVaultEntryConfig> trust)
     {
         this.key = key;
         this.signer = signer;

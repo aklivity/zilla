@@ -95,8 +95,8 @@ vaults:
                 5OQUWOWJqvzyJ8VIbBRDsQ==
                 -----END CERTIFICATE-----
           trust:
-            alias: clientca
-            entry: |
+            - alias: clientca
+              entry: |
                 -----BEGIN CERTIFICATE-----
                 MIIDbDCCAlSgAwIBAgIECLJx+DANBgkqhkiG9w0BAQsFADBeMREwDwYDVQQDEwhz
                 ZXJ2ZXJjYTEUMBIGA1UECxMLRGV2ZWxvcG1lbnQxETAPBgNVBAoTCEFrbGl2aXR5
@@ -118,6 +118,34 @@ vaults:
                 epvLX8PSLdbal8ZBcosduxy1dSiQzy7Hj5wsOuj8neoVRaCHmAXouiJDDpQcnasC
                 p0XXN2RYSD7FW7RNb4xcNQ==
                 -----END CERTIFICATE-----
+            - alias: clientca2
+              entry: |
+                -----BEGIN CERTIFICATE-----
+                MIIEczCCAtugAwIBAgIJAIfR8v+N6Mx5MA0GCSqGSIb3DQEBDAUAMF8xEjAQBgNV
+                BAMTCWNsaWVudGNhMjEUMBIGA1UECxMLRGV2ZWxvcG1lbnQxETAPBgNVBAoTCEFr
+                bGl2aXR5MRMwEQYDVQQIEwpDYWxpZm9ybmlhMQswCQYDVQQGEwJVUzAeFw0yNjA1
+                MTMwNjU3MDFaFw0zNjA1MTAwNjU3MDFaMF8xEjAQBgNVBAMTCWNsaWVudGNhMjEU
+                MBIGA1UECxMLRGV2ZWxvcG1lbnQxETAPBgNVBAoTCEFrbGl2aXR5MRMwEQYDVQQI
+                EwpDYWxpZm9ybmlhMQswCQYDVQQGEwJVUzCCAaIwDQYJKoZIhvcNAQEBBQADggGP
+                ADCCAYoCggGBAKjqZRp4Emp79Dg6v45gk8AFEXFC7HIJgVXZM1x581Kaab6+hc9i
+                JEOOuTA5jpJgq9LKQ7EHHDyUkvwLKyq9UUAguSMw/h2ey10ch7amVSzYwIXGSHGB
+                gpQZEURDOalRjArO9rebEXRVsTcPlahyZTrmlO719bBOsttmF6KThHUolc4szccm
+                SsJ1CEi959Qg8RYpBdiUdpWBTWLMO+sLQu9GCBqlAzjBBsm252Bf4oVDUWl5WVSf
+                ltII/EvdEbTA7qKkMA0gC+MtnjvlADQ+C2wN3YM6xFs7c/oORjfQiTeYGuRg7V6k
+                ko2UvGj6dW+xar+ZG1TNT4/PSahq/uZvDHw9xGVWasP73ELFJZEyG0X7WvPCdbZn
+                US5yxTUu64HYR7eGK+QAQJYyVXwUmtBJU4+Yd0yj749ua+mO5chq291yxSAM70VZ
+                dzZzu5CzIqCL81w8F6y3C58SHlEco3RGo9iG4UQsy5TnO3o7akiOXxIfb0iPmUEi
+                XxKKaertLkArmwIDAQABozIwMDAdBgNVHQ4EFgQUfsmDjAQZ70Ili2qtt6zPeRNO
+                4VEwDwYDVR0TAQH/BAUwAwEB/zANBgkqhkiG9w0BAQwFAAOCAYEAAlU07sICSqMI
+                FFyzUJqsK6t9KywSD3MAxqQh7ROrmOJU8AnLucgUd238h5CAmiUUdF31fBaXBPOa
+                LGW8nHOB5DmhwxH+7B5sdJK1EQOR6sFXUt3342pFqo7zhY5tlqamO5g0GA8Rcmil
+                NHKOSM6uvxccER8164bEQY+OwxiscbEgszEZeIqArcxyqVapnriRVVKesp76nGVZ
+                i1tqbRAPM5pwTUI2jFRxFEG/6nqs9U4SnX7IMIbVD2YnGeIuryW/QPSCY0IzUDrG
+                1yoVeIi7LtEi8m9OxUZMNjJxfWgDCPTBONZloeAq+ApWSdjnmFVkLxVPuLXyZEN+
+                n6+ZUW3yf7zk9HzL5WMfLCiKXFcFxZfGawsJjEwZzfR7OG8XpYdlFILqil6vjdqz
+                HGL32MqyhvTjUTmFhCnbiGbssJVaLn31iHgA87XzgRTmHEP0ke6NW2FZvcPj8tEE
+                Mk7zyPj5+3CDnFwIFRfi2rdGnpLJZGiYZ5PI37tty4RsmOwF4jWq
+                -----END CERTIFICATE-----
 bindings:
     net0:
         type: tls
@@ -128,6 +156,7 @@ bindings:
                 - localhost
             trust:
                 - clientca
+                - clientca2
             mutual: requested
         routes:
             - when:
