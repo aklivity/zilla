@@ -28,6 +28,7 @@ import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpBindingConfig;
+import io.aklivity.zilla.runtime.binding.mcp.internal.stream.cache.McpProxyCacheManager;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
@@ -48,8 +49,9 @@ public final class McpProxyFactory implements McpStreamFactory
     private final int mcpTypeId;
 
     private final Long2ObjectHashMap<McpBindingConfig> bindings;
+    private final Long2ObjectHashMap<McpProxyCacheManager> managers;
     private final Int2ObjectHashMap<BindingHandler> factories;
-    private final McpProxyCacheHydrater hydrater;
+    private final McpProxyCacheManager.Factory cacheManagers;
 
     public McpProxyFactory(
         McpConfiguration config,
@@ -58,8 +60,9 @@ public final class McpProxyFactory implements McpStreamFactory
         this.config = config;
         this.context = context;
         this.bindings = new Long2ObjectHashMap<>();
+        this.managers = new Long2ObjectHashMap<>();
         this.factories = new Int2ObjectHashMap<>();
-        this.hydrater = new McpProxyCacheHydrater(config, context);
+        this.cacheManagers = new McpProxyCacheManager.Factory(config, context);
         this.factories.put(KIND_LIFECYCLE,
             new McpProxyLifecycleFactory(config, context, bindings::get));
         this.factories.put(KIND_TOOLS_CALL,
@@ -87,11 +90,13 @@ public final class McpProxyFactory implements McpStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        McpBindingConfig newBinding = new McpBindingConfig(binding, config, context, hydrater);
+        McpBindingConfig newBinding = new McpBindingConfig(binding, config, context);
         bindings.put(binding.id, newBinding);
         if (newBinding.cache != null)
         {
-            newBinding.cache.start();
+            McpProxyCacheManager manager = cacheManagers.create(newBinding.cache);
+            managers.put(binding.id, manager);
+            manager.start();
         }
     }
 
@@ -99,11 +104,12 @@ public final class McpProxyFactory implements McpStreamFactory
     public void detach(
         long bindingId)
     {
-        McpBindingConfig binding = bindings.remove(bindingId);
+        bindings.remove(bindingId);
+        McpProxyCacheManager manager = managers.remove(bindingId);
 
-        if (binding != null && binding.cache != null)
+        if (manager != null)
         {
-            binding.cache.detach();
+            manager.stop();
         }
     }
 

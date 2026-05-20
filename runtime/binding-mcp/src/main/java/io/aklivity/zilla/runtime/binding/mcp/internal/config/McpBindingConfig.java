@@ -26,8 +26,7 @@ import org.agrona.collections.Object2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.mcp.config.McpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
-import io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpCacheContext;
-import io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyCacheHydrater;
+import io.aklivity.zilla.runtime.binding.mcp.internal.stream.cache.McpProxyCache;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -42,7 +41,7 @@ public final class McpBindingConfig
     public final long id;
     public final McpOptionsConfig options;
     public final GuardHandler guard;
-    public final McpCacheContext cache;
+    public final McpProxyCache cache;
     public final Map<String, McpProxySession> sessions;
 
     private final List<McpRouteConfig> routes;
@@ -51,15 +50,6 @@ public final class McpBindingConfig
         BindingConfig binding,
         McpConfiguration config,
         EngineContext context)
-    {
-        this(binding, config, context, null);
-    }
-
-    public McpBindingConfig(
-        BindingConfig binding,
-        McpConfiguration config,
-        EngineContext context,
-        McpProxyCacheHydrater hydrater)
     {
         this.id = binding.id;
         this.options = (McpOptionsConfig) binding.options;
@@ -76,8 +66,7 @@ public final class McpBindingConfig
 
         this.cache = Optional.ofNullable(options)
             .map(o -> o.cache)
-            .map(cache -> new McpCacheContext(
-                binding, config, context, cache, hydrater))
+            .map(cache -> new McpProxyCache(binding, config, context, cache))
             .orElse(null);
         this.sessions = new Object2ObjectHashMap<>();
     }

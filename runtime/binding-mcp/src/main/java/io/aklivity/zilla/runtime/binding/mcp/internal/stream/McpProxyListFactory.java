@@ -37,6 +37,7 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpBindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpRoutePrefix;
 import io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyLifecycleFactory.McpLifecycleClient;
 import io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyLifecycleFactory.McpLifecycleServer;
+import io.aklivity.zilla.runtime.binding.mcp.internal.stream.cache.McpProxyCache;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.String8FW;
@@ -150,7 +151,7 @@ abstract class McpProxyListFactory implements BindingHandler
             final String sessionId = sessionId(beginEx);
             if (binding.sessions.get(sessionId) instanceof McpLifecycleServer lifecycle)
             {
-                final McpCacheContext.McpListCache cache = cacheOf(binding);
+                final McpProxyCache.McpListCache cache = cacheOf(binding);
                 if (cache != null && originId != routedId)
                 {
                     newStream = new McpCacheListServer(
@@ -179,7 +180,7 @@ abstract class McpProxyListFactory implements BindingHandler
         return newStream;
     }
 
-    protected abstract McpCacheContext.McpListCache cacheOf(
+    protected abstract McpProxyCache.McpListCache cacheOf(
         McpBindingConfig binding);
 
     protected abstract void injectInitialBeginEx(
@@ -1374,7 +1375,7 @@ abstract class McpProxyListFactory implements BindingHandler
         private final long replyId;
         private final long affinity;
         private final long authorization;
-        private final McpCacheContext.McpListCache cache;
+        private final McpProxyCache.McpListCache cache;
 
         private int state;
         private boolean fetched;
@@ -1396,7 +1397,7 @@ abstract class McpProxyListFactory implements BindingHandler
             long initialId,
             long affinity,
             long authorization,
-            McpCacheContext.McpListCache cache)
+            McpProxyCache.McpListCache cache)
         {
             this.lifecycle = lifecycle;
             this.initialId = initialId;
