@@ -63,25 +63,6 @@ accepted
 
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
-                          .lifecycle()
-                              .sessionId("hydrate-B")
-                              .build()
-                          .build()}
-
-connected
-
-write zilla:begin.ext ${mcp:beginEx()
-                           .typeId(zilla:id("mcp"))
-                           .lifecycle()
-                               .sessionId("hydrate-B")
-                               .build()
-                           .build()}
-write flush
-
-accepted
-
-read zilla:begin.ext ${mcp:matchBeginEx()
-                          .typeId(zilla:id("mcp"))
                           .toolsList()
                               .sessionId("hydrate-A")
                               .build()

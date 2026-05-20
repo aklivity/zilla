@@ -53,3 +53,45 @@ connected
 write close
 
 read aborted
+
+read notify TOOLS_LIST_COMPLETE
+
+connect await TOOLS_LIST_COMPLETE
+        "zilla://streams/app0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${mcp:beginEx()
+                           .typeId(zilla:id("mcp"))
+                           .resourcesList()
+                               .sessionId("hydrate-1")
+                               .build()
+                           .build()}
+
+connected
+
+write close
+
+read '{"resources":[]}'
+read closed
+
+read notify RESOURCES_LIST_COMPLETE
+
+connect await RESOURCES_LIST_COMPLETE
+        "zilla://streams/app0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${mcp:beginEx()
+                           .typeId(zilla:id("mcp"))
+                           .promptsList()
+                               .sessionId("hydrate-1")
+                               .build()
+                           .build()}
+
+connected
+
+write close
+
+read '{"prompts":[]}'
+read closed

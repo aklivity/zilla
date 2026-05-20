@@ -13,7 +13,6 @@
 # specific language governing permissions and limitations under the License.
 #
 
-
 property serverAddress "zilla://streams/app0"
 
 accept ${serverAddress}
@@ -51,3 +50,43 @@ read zilla:begin.ext ${mcp:matchBeginEx()
 connected
 
 write abort
+
+accepted
+
+read zilla:begin.ext ${mcp:matchBeginEx()
+                          .typeId(zilla:id("mcp"))
+                          .resourcesList()
+                              .sessionId("hydrate-1")
+                              .build()
+                          .build()}
+
+connected
+
+write flush
+
+read closed
+
+write '{"resources":[]}'
+write flush
+
+write close
+
+accepted
+
+read zilla:begin.ext ${mcp:matchBeginEx()
+                          .typeId(zilla:id("mcp"))
+                          .promptsList()
+                              .sessionId("hydrate-1")
+                              .build()
+                          .build()}
+
+connected
+
+write flush
+
+read closed
+
+write '{"prompts":[]}'
+write flush
+
+write close

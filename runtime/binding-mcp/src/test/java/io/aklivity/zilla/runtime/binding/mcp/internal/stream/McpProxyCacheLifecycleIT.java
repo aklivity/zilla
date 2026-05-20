@@ -18,7 +18,6 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTes
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -60,7 +59,6 @@ public class McpProxyCacheLifecycleIT
         k3po.finish();
     }
 
-    @Ignore("hydrate self-targets binding; lifecycle BEGIN arrives lazily via supplyClient (specs pending)")
     @Test
     @Configuration("proxy.cache.yaml")
     @Specification({
@@ -71,13 +69,12 @@ public class McpProxyCacheLifecycleIT
         k3po.finish();
     }
 
-    @Ignore("hydrate self-targets binding; lifecycle BEGIN arrives lazily via supplyClient (specs pending)")
     @Test
-    @Configuration("proxy.cache.auth.yaml")
+    @Configuration("proxy.cache.credentials.yaml")
     @Specification({
-        "${app}/cache.hydrate.auth/server" })
+        "${app}/cache.hydrate.credentials/server" })
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
-    public void shouldHydrateAuth() throws Exception
+    public void shouldHydrateWithCredentials() throws Exception
     {
         k3po.finish();
     }

@@ -13,15 +13,17 @@
 # specific language governing permissions and limitations under the License.
 #
 
+property authorization 1L
 
 connect "zilla://streams/app0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
+        option zilla:authorization ${authorization}
 
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .lifecycle()
-                               .sessionId("hydrate-A")
+                               .sessionId("hydrate-1")
                                .build()
                            .build()}
 
@@ -30,7 +32,7 @@ connected
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .lifecycle()
-                              .sessionId("hydrate-A")
+                              .sessionId("hydrate-1")
                               .build()
                           .build()}
 
@@ -40,11 +42,12 @@ connect await LIFECYCLE_INITIALIZED
         "zilla://streams/app0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
+        option zilla:authorization ${authorization}
 
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .toolsList()
-                               .sessionId("hydrate-A")
+                               .sessionId("hydrate-1")
                                .build()
                            .build()}
 
@@ -52,7 +55,7 @@ connected
 
 write close
 
-read '{"tools":[{"name":"get_weather"}]}'
+read '{"tools":[]}'
 read closed
 
 read notify TOOLS_LIST_COMPLETE
@@ -61,11 +64,12 @@ connect await TOOLS_LIST_COMPLETE
         "zilla://streams/app0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
+        option zilla:authorization ${authorization}
 
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
-                           .toolsList()
-                               .sessionId("hydrate-A")
+                           .resourcesList()
+                               .sessionId("hydrate-1")
                                .build()
                            .build()}
 
@@ -73,5 +77,27 @@ connected
 
 write close
 
-read '{"tools":[{"name":"get_weather"},{"name":"get_time"}]}'
+read '{"resources":[]}'
+read closed
+
+read notify RESOURCES_LIST_COMPLETE
+
+connect await RESOURCES_LIST_COMPLETE
+        "zilla://streams/app0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+        option zilla:authorization ${authorization}
+
+write zilla:begin.ext ${mcp:beginEx()
+                           .typeId(zilla:id("mcp"))
+                           .promptsList()
+                               .sessionId("hydrate-1")
+                               .build()
+                           .build()}
+
+connected
+
+write close
+
+read '{"prompts":[]}'
 read closed
