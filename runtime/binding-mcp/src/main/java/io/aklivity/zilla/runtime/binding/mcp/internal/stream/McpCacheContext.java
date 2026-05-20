@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
+import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 
@@ -49,12 +50,12 @@ public final class McpCacheContext
     Runnable lifecycleCleanup;
 
     private final StoreHandler store;
+    private final Signaler signaler;
     private final McpListCache tools;
     private final McpListCache resources;
     private final McpListCache prompts;
     private final List<McpSignalHandle> awaiters;
 
-    private McpProxyCacheHydrater hydrater;
     private boolean detached;
     private boolean complete;
     private int populated;
@@ -63,6 +64,7 @@ public final class McpCacheContext
     public McpCacheContext(
         long bindingId,
         StoreHandler store,
+        Signaler signaler,
         GuardHandler guard,
         String credentials,
         Duration leaseTtl,
@@ -71,6 +73,7 @@ public final class McpCacheContext
     {
         this.bindingId = bindingId;
         this.store = store;
+        this.signaler = signaler;
         this.guard = guard;
         this.credentials = credentials;
         this.leaseTtl = leaseTtl;
@@ -110,11 +113,9 @@ public final class McpCacheContext
         store.delete(STORE_LIFECYCLE_LOCK_KEY, completion);
     }
 
-    void bind(
-        McpProxyCacheHydrater hydrater,
+    void prepare(
         int expected)
     {
-        this.hydrater = hydrater;
         this.detached = false;
         this.complete = false;
         this.populated = 0;
@@ -139,30 +140,12 @@ public final class McpCacheContext
         return detached;
     }
 
-    void onInitiateLifecycle(
-        int signalId)
-    {
-        if (!detached)
-        {
-            hydrater.beginLifecycle(this);
-        }
-    }
-
-    void onRefresh(
-        int signalId)
-    {
-        if (!detached)
-        {
-            hydrater.refresh(this, signalId);
-        }
-    }
-
     void register(
         McpSignalHandle handle)
     {
         if (complete)
         {
-            handle.signalVia(hydrater.signaler());
+            handle.signalVia(signaler);
         }
         else
         {
@@ -187,7 +170,7 @@ public final class McpCacheContext
         complete = true;
         for (McpSignalHandle h : awaiters)
         {
-            h.signalVia(hydrater.signaler());
+            h.signalVia(signaler);
         }
         awaiters.clear();
         releaseLifecycle(k -> {});

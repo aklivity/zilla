@@ -94,7 +94,7 @@ public final class McpBindingConfig
             .orElse(null);
 
         this.cacheContext = store != null
-            ? new McpCacheContext(id, store, cacheGuard, cacheCredentials,
+            ? new McpCacheContext(id, store, context.signaler(), cacheGuard, cacheCredentials,
                 config.leaseTtl(), config.leaseRetry(), cacheTtl)
             : null;
         this.sessions = new Object2ObjectHashMap<>();

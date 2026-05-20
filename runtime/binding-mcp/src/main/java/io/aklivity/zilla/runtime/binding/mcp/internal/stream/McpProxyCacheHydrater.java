@@ -123,8 +123,8 @@ public final class McpProxyCacheHydrater
     public void attach(
         McpCacheContext context)
     {
-        context.bind(this, activeHydraters.size());
-        signaler.signalAt(Instant.now(), SIGNAL_INITIATE_LIFECYCLE, context::onInitiateLifecycle);
+        context.prepare(activeHydraters.size());
+        signaler.signalAt(Instant.now(), SIGNAL_INITIATE_LIFECYCLE, sigId -> beginLifecycle(context));
     }
 
     public void detach(
@@ -133,37 +133,20 @@ public final class McpProxyCacheHydrater
         context.detach();
     }
 
-    Signaler signaler()
-    {
-        return signaler;
-    }
-
-    void beginLifecycle(
+    private void beginLifecycle(
         McpCacheContext context)
     {
+        if (context.detached())
+        {
+            return;
+        }
+
         final long traceId = supplyTraceId.getAsLong();
         context.sessionId = supplySessionId.get();
         context.authorization = context.guard != null
             ? context.guard.reauthorize(traceId, context.bindingId, 0L, context.credentials)
             : 0L;
         context.acquireLifecycle(acquired -> onAcquireLifecycleComplete(context, traceId, acquired));
-    }
-
-    void refresh(
-        McpCacheContext context,
-        int signalId)
-    {
-        final McpListHydrater hydrater = switch (signalId)
-        {
-        case SIGNAL_REFRESH_TOOLS -> toolsHydrater;
-        case SIGNAL_REFRESH_RESOURCES -> resourcesHydrater;
-        case SIGNAL_REFRESH_PROMPTS -> promptsHydrater;
-        default -> null;
-        };
-        if (hydrater != null)
-        {
-            hydrater.refresh(context);
-        }
     }
 
     private void onAcquireLifecycleComplete(
@@ -184,7 +167,7 @@ public final class McpProxyCacheHydrater
         else
         {
             signaler.signalAt(Instant.now().plus(context.leaseRetry), SIGNAL_INITIATE_LIFECYCLE,
-                context::onInitiateLifecycle);
+                sigId -> beginLifecycle(context));
         }
     }
 
@@ -363,6 +346,10 @@ public final class McpProxyCacheHydrater
         final void refresh(
             McpCacheContext context)
         {
+            if (context.detached())
+            {
+                return;
+            }
             cacheOf(context).acquire(acquired -> onRefreshAcquireComplete(context, acquired));
         }
 
@@ -431,7 +418,7 @@ public final class McpProxyCacheHydrater
         {
             if (context.cacheTtl != null)
             {
-                signaler.signalAt(Instant.now().plus(context.cacheTtl), signalId(), context::onRefresh);
+                signaler.signalAt(Instant.now().plus(context.cacheTtl), signalId(), sigId -> refresh(context));
             }
         }
 
