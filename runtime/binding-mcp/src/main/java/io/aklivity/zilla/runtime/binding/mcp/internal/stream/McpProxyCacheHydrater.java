@@ -169,6 +169,7 @@ public final class McpProxyCacheHydrater
         private final McpCacheContext context;
         private final long initialId;
         private final long replyId;
+        private final List<McpListHydrater.McpListHydrateStream> activeListStreams;
 
         private int state;
         private long initialSeq;
@@ -186,6 +187,34 @@ public final class McpProxyCacheHydrater
             this.initialId = supplyInitialId.applyAsLong(context.bindingId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.replyMax = bufferPool.slotCapacity();
+            this.activeListStreams = new ArrayList<>();
+        }
+
+        void registerListStream(
+            McpListHydrater.McpListHydrateStream stream)
+        {
+            activeListStreams.add(stream);
+        }
+
+        void unregisterListStream(
+            McpListHydrater.McpListHydrateStream stream)
+        {
+            activeListStreams.remove(stream);
+        }
+
+        private void cleanupListStreams(
+            long traceId)
+        {
+            if (activeListStreams.isEmpty())
+            {
+                return;
+            }
+            final List<McpListHydrater.McpListHydrateStream> copy = new ArrayList<>(activeListStreams);
+            activeListStreams.clear();
+            for (McpListHydrater.McpListHydrateStream stream : copy)
+            {
+                stream.doListHydrateEnd(traceId);
+            }
         }
 
         private void onLifecycleMessage(
@@ -227,8 +256,10 @@ public final class McpProxyCacheHydrater
         {
             if (!McpState.replyClosed(state))
             {
+                final long traceId = end.traceId();
                 state = McpState.closedReply(state);
-                doLifecycleEnd(end.traceId());
+                cleanupListStreams(traceId);
+                doLifecycleEnd(traceId);
                 context.onLifecycleClosed();
             }
         }
@@ -238,8 +269,10 @@ public final class McpProxyCacheHydrater
         {
             if (!McpState.replyClosed(state))
             {
+                final long traceId = abort.traceId();
                 state = McpState.closedReply(state);
-                doLifecycleAbort(abort.traceId());
+                cleanupListStreams(traceId);
+                doLifecycleAbort(traceId);
                 context.onLifecycleClosed();
             }
         }
@@ -249,7 +282,9 @@ public final class McpProxyCacheHydrater
         {
             if (!McpState.initialClosed(state))
             {
+                final long traceId = reset.traceId();
                 state = McpState.closedInitial(state);
+                cleanupListStreams(traceId);
                 context.onLifecycleClosed();
             }
         }
@@ -280,6 +315,7 @@ public final class McpProxyCacheHydrater
         {
             if (!McpState.initialClosed(state))
             {
+                cleanupListStreams(traceId);
                 doEnd(receiver, context.bindingId, context.bindingId, initialId, initialSeq, initialAck, initialMax,
                     traceId, context.authorization);
                 state = McpState.closedInitial(state);
@@ -298,7 +334,7 @@ public final class McpProxyCacheHydrater
         }
     }
 
-    private abstract class McpListHydrater
+    abstract class McpListHydrater
     {
         protected abstract int signalId();
 
@@ -319,10 +355,6 @@ public final class McpProxyCacheHydrater
         final void refresh(
             McpCacheContext context)
         {
-            if (context.detached())
-            {
-                return;
-            }
             cacheOf(context).acquire(acquired -> onRefreshAcquireComplete(context, acquired));
         }
 
@@ -391,10 +423,11 @@ public final class McpProxyCacheHydrater
         {
             final long traceId = supplyTraceId.getAsLong();
             final McpListHydrateStream stream = new McpListHydrateStream(context);
+            context.lifecycleStream().registerListStream(stream);
             stream.doListHydrateBegin(traceId);
         }
 
-        private final class McpListHydrateStream
+        final class McpListHydrateStream
         {
             private final McpCacheContext context;
             private final long initialId;
@@ -577,6 +610,11 @@ public final class McpProxyCacheHydrater
                 if (!settled)
                 {
                     settled = true;
+                    final McpHydrateLifecycleStream lifecycle = context.lifecycleStream();
+                    if (lifecycle != null)
+                    {
+                        lifecycle.unregisterListStream(this);
+                    }
                     cacheOf(context).release(k -> {});
                     context.markReady();
                     context.scheduleRefresh(signalId());

@@ -15,13 +15,17 @@
 package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyCacheHydrater.SIGNAL_INITIATE_LIFECYCLE;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyCacheHydrater.SIGNAL_REFRESH_PROMPTS;
+import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.IntConsumer;
 
 import io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyCacheHydrater.McpHydrateLifecycleStream;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
@@ -40,6 +44,7 @@ public final class McpCacheContext
     private static final String STORE_LOCK_KEY_PROMPTS = STORE_KEY_PROMPTS + STORE_LOCK_SUFFIX;
     private static final String STORE_LIFECYCLE_LOCK_KEY = "lifecycle.lock";
     private static final long STORE_TTL_FOREVER = Long.MAX_VALUE;
+    private static final int SIGNAL_SLOTS = SIGNAL_REFRESH_PROMPTS + 1;
 
     public final long bindingId;
     public final GuardHandler guard;
@@ -58,6 +63,7 @@ public final class McpCacheContext
     private final McpListCache resources;
     private final McpListCache prompts;
     private final List<McpSignalHandle> awaiters;
+    private final long[] signalCancelIds;
 
     private McpHydrateLifecycleStream lifecycleStream;
     private boolean detached;
@@ -89,6 +95,8 @@ public final class McpCacheContext
         this.resources = new McpListCache(STORE_KEY_RESOURCES, STORE_LOCK_KEY_RESOURCES);
         this.prompts = new McpListCache(STORE_KEY_PROMPTS, STORE_LOCK_KEY_PROMPTS);
         this.awaiters = new ArrayList<>();
+        this.signalCancelIds = new long[SIGNAL_SLOTS];
+        Arrays.fill(signalCancelIds, NO_CANCEL_ID);
     }
 
     public McpListCache tools()
@@ -126,12 +134,17 @@ public final class McpCacheContext
         populated = 0;
         expected = hydrater.activeHydraterCount();
         awaiters.clear();
-        signaler.signalAt(Instant.now(), SIGNAL_INITIATE_LIFECYCLE, this::beginLifecycle);
+        Arrays.fill(signalCancelIds, NO_CANCEL_ID);
+        scheduleSignal(Instant.now(), SIGNAL_INITIATE_LIFECYCLE, this::beginLifecycle);
     }
 
     void detach()
     {
         detached = true;
+        for (int i = 0; i < signalCancelIds.length; i++)
+        {
+            cancelSignal(i);
+        }
         if (lifecycleStream != null)
         {
             lifecycleStream.doLifecycleEnd(hydrater.supplyTraceId());
@@ -144,6 +157,11 @@ public final class McpCacheContext
     boolean detached()
     {
         return detached;
+    }
+
+    McpHydrateLifecycleStream lifecycleStream()
+    {
+        return lifecycleStream;
     }
 
     void register(
@@ -185,9 +203,9 @@ public final class McpCacheContext
     void scheduleRefresh(
         int signalId)
     {
-        if (cacheTtl != null)
+        if (cacheTtl != null && !detached)
         {
-            signaler.signalAt(Instant.now().plus(cacheTtl), signalId, this::onRefresh);
+            scheduleSignal(Instant.now().plus(cacheTtl), signalId, this::onRefresh);
         }
     }
 
@@ -213,21 +231,11 @@ public final class McpCacheContext
     private void beginLifecycle(
         int signalId)
     {
-        if (detached)
-        {
-            return;
-        }
-
-        final long traceId = hydrater.supplyTraceId();
-        sessionId = hydrater.supplySessionId();
-        authorization = guard != null
-            ? guard.reauthorize(traceId, bindingId, 0L, credentials)
-            : 0L;
-        acquireLifecycle(acquired -> onAcquireLifecycleComplete(traceId, acquired));
+        signalCancelIds[signalId] = NO_CANCEL_ID;
+        acquireLifecycle(this::onAcquireLifecycleComplete);
     }
 
     private void onAcquireLifecycleComplete(
-        long traceId,
         boolean acquired)
     {
         if (detached)
@@ -237,21 +245,43 @@ public final class McpCacheContext
 
         if (acquired)
         {
+            final long traceId = hydrater.supplyTraceId();
+            sessionId = hydrater.supplySessionId();
+            authorization = guard != null
+                ? guard.reauthorize(traceId, bindingId, 0L, credentials)
+                : 0L;
             lifecycleStream = hydrater.newLifecycleStream(this);
             lifecycleStream.doLifecycleBegin(traceId);
         }
         else
         {
-            signaler.signalAt(Instant.now().plus(leaseRetry), SIGNAL_INITIATE_LIFECYCLE, this::beginLifecycle);
+            scheduleSignal(Instant.now().plus(leaseRetry), SIGNAL_INITIATE_LIFECYCLE, this::beginLifecycle);
         }
     }
 
     private void onRefresh(
         int signalId)
     {
-        if (!detached)
+        signalCancelIds[signalId] = NO_CANCEL_ID;
+        hydrater.refresh(this, signalId);
+    }
+
+    private void scheduleSignal(
+        Instant time,
+        int signalId,
+        IntConsumer handler)
+    {
+        cancelSignal(signalId);
+        signalCancelIds[signalId] = signaler.signalAt(time, signalId, handler);
+    }
+
+    private void cancelSignal(
+        int signalId)
+    {
+        if (signalCancelIds[signalId] != NO_CANCEL_ID)
         {
-            hydrater.refresh(this, signalId);
+            signaler.cancel(signalCancelIds[signalId]);
+            signalCancelIds[signalId] = NO_CANCEL_ID;
         }
     }
 
