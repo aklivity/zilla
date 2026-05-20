@@ -44,7 +44,7 @@ write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .promptsGet()
                                .sessionId("session-1")
-                               .name("bluesky__weather_prompt")
+                               .name("weather_prompt")
                                .build()
                            .build()}
 

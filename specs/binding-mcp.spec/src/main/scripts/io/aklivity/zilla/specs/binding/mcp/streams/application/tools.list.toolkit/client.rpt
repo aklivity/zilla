@@ -51,12 +51,5 @@ connected
 
 write close
 
-read  '{"tools":'
-        '['
-          '{'
-            '"name":"bluesky__get_weather",'
-            '"title":"Weather Information Provider"'
-          '}'
-        ']'
-      '}'
+read  '{"tools":[{"name":"get_weather","title":"Weather Information Provider"}]}'
 read closed

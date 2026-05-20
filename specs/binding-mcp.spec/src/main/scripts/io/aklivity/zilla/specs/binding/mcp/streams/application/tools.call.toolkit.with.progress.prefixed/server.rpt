@@ -42,18 +42,57 @@ accepted
 
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
-                          .promptsList()
+                          .toolsCall()
                               .sessionId("session-1")
+                              .name("bluesky__get_weather")
                               .build()
                           .build()}
 
 connected
 
-write flush
-
+read  '{'
+        '"name":"bluesky__get_weather",'
+        '"arguments":'
+        '{'
+          '"location": "New York"'
+        '},'
+        '"_meta":'
+        '{'
+          '"progressToken":"abc123"'
+        '}'
+      '}'
 read closed
 
-write '{"prompts":[{"name":"weather_prompt","description":"Ask about weather"}]}'
+write flush
+
+write advise zilla:flush ${mcp:flushEx()
+                              .typeId(zilla:id("mcp"))
+                              .resumable()
+                                  .id("0")
+                                  .build()
+                              .build()}
+
+write advise zilla:flush ${mcp:flushEx()
+                              .typeId(zilla:id("mcp"))
+                              .progress()
+                                  .id("1")
+                                  .token("abc123")
+                                  .progress(50)
+                                  .total(100)
+                                  .message("Checking if Lady Liberty needs an umbrella...")
+                                  .build()
+                              .build()}
+
+write '{'
+        '"content":'
+        '['
+          '{'
+            '"type": "text",'
+            '"text": "Current weather in New York:\\nTemperature: 72°F\\nConditions: Partly cloudy"'
+          '}'
+        '],'
+        '"isError": false'
+      '}'
 write flush
 
 write close

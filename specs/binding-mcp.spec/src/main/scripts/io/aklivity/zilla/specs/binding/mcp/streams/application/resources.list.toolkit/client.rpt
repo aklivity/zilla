@@ -51,12 +51,5 @@ connected
 
 write close
 
-read  '{"resources":'
-        '['
-          '{'
-            '"uri":"bluesky+file:///data/readme.txt",'
-            '"mimeType":"text/plain"'
-          '}'
-        ']'
-      '}'
+read  '{"resources":[{"uri":"file:///data/readme.txt","mimeType":"text/plain"}]}'
 read closed

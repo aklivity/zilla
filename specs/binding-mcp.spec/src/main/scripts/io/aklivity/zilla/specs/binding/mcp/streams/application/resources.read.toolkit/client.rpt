@@ -44,7 +44,7 @@ write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .resourcesRead()
                                .sessionId("session-1")
-                               .uri("bluesky+file:///data/readme.txt")
+                               .uri("file:///data/readme.txt")
                                .build()
                            .build()}
 

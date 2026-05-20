@@ -44,9 +44,17 @@ write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .toolsCall()
                                .sessionId("session-1")
-                               .name("get_weather")
+                               .name("bluesky__get_weather")
                                .build()
                            .build()}
+
+write advised zilla:challenge ${mcp:matchChallengeEx()
+                                    .typeId(zilla:id("mcp"))
+                                    .elicitCreate()
+                                        .id("1")
+                                        .url("https://server.example.com/authorize?state=bluesky__7f3a9b1c&redirect_uri=%s".formatted(http:encodeQuery("https://replace.me/callback")))
+                                        .build()
+                                    .build()}
 
 connected
 
@@ -55,41 +63,34 @@ write '{'
         '"arguments":'
         '{'
           '"location": "New York"'
-        '},'
-        '"_meta":'
-        '{'
-          '"progressToken":"abc123"'
         '}'
       '}'
+
+write advise zilla:flush ${mcp:flushEx()
+                              .typeId(zilla:id("mcp"))
+                              .elicitCallback()
+                                  .url("http://localhost:8080/mcp/auth/callback?code=xyz&state=session-1.elicit-1.bluesky__7f3a9b1c")
+                                  .build()
+                              .build()}
+
 write close
 
 read advised zilla:flush ${mcp:matchFlushEx()
                                .typeId(zilla:id("mcp"))
-                               .resumable()
-                                   .id("0")
-                                   .build()
-                               .build()}
-
-read advised zilla:flush ${mcp:matchFlushEx()
-                               .typeId(zilla:id("mcp"))
-                               .progress()
+                               .elicitComplete()
                                    .id("1")
-                                   .token("abc123")
-                                   .progress(50)
-                                   .total(100)
-                                   .message("Checking if Lady Liberty needs an umbrella...")
+                                   .status("COMPLETED")
                                    .build()
                                .build()}
 
 read '{'
-      '"content":'
-      '['
-        '{'
-          '"type": "text",'
-          '"text": "Current weather in New York:\\nTemperature: 72°F\\nConditions: Partly cloudy"'
-        '}'
-      '],'
-      '"isError": false'
-    '}'
-
+       '"content":'
+       '['
+         '{'
+           '"type": "text",'
+           '"text": "Current weather in New York:\\nTemperature: 72°F\\nConditions: Partly cloudy"'
+         '}'
+       '],'
+       '"isError": false'
+     '}'
 read closed

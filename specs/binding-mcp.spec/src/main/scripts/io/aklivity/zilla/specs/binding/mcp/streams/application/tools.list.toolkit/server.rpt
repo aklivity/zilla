@@ -14,7 +14,6 @@
 #
 
 property serverAddress "zilla://streams/app0"
-property toolName "bluesky__get_weather"
 
 accept ${serverAddress}
        option zilla:window 8192
@@ -54,7 +53,7 @@ write flush
 
 read closed
 
-write '{"tools":[{"name":"' ${toolName} '","title":"Weather Information Provider"}]}'
+write '{"tools":[{"name":"get_weather","title":"Weather Information Provider"}]}'
 write flush
 
 write close

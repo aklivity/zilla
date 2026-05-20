@@ -44,7 +44,7 @@ write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .toolsCall()
                                .sessionId("session-1")
-                               .name("get_weather")
+                               .name("bluesky__get_weather")
                                .build()
                            .build()}
 

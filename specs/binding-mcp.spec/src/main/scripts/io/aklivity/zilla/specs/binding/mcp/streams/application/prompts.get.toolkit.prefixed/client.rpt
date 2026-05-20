@@ -42,54 +42,16 @@ connect await LIFECYCLE_INITIALIZED
 
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
-                           .toolsCall()
+                           .promptsGet()
                                .sessionId("session-1")
-                               .name("get_weather")
+                               .name("bluesky__weather_prompt")
                                .build()
                            .build()}
 
 connected
 
-write '{'
-        '"name":"bluesky__get_weather",'
-        '"arguments":'
-        '{'
-          '"location": "New York"'
-        '},'
-        '"_meta":'
-        '{'
-          '"progressToken":"abc123"'
-        '}'
-      '}'
+write '{"name":"bluesky__weather_prompt"}'
 write close
 
-read advised zilla:flush ${mcp:matchFlushEx()
-                               .typeId(zilla:id("mcp"))
-                               .resumable()
-                                   .id("0")
-                                   .build()
-                               .build()}
-
-read advised zilla:flush ${mcp:matchFlushEx()
-                               .typeId(zilla:id("mcp"))
-                               .progress()
-                                   .id("1")
-                                   .token("abc123")
-                                   .progress(50)
-                                   .total(100)
-                                   .message("Checking if Lady Liberty needs an umbrella...")
-                                   .build()
-                               .build()}
-
-read '{'
-      '"content":'
-      '['
-        '{'
-          '"type": "text",'
-          '"text": "Current weather in New York:\\nTemperature: 72°F\\nConditions: Partly cloudy"'
-        '}'
-      '],'
-      '"isError": false'
-    '}'
-
+read  '{"messages":[{"role":"user","content":{"type":"text","text":"What is the weather like today?"}}]}'
 read closed

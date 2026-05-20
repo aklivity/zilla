@@ -13,18 +13,13 @@
 # specific language governing permissions and limitations under the License.
 #
 
-connect "zilla://streams/app0"
-        option zilla:window 8192
-        option zilla:transmission "half-duplex"
+property serverAddress "zilla://streams/app0"
 
-write zilla:begin.ext ${mcp:beginEx()
-                           .typeId(zilla:id("mcp"))
-                           .lifecycle()
-                               .sessionId("session-1")
-                               .build()
-                           .build()}
+accept ${serverAddress}
+       option zilla:window 8192
+       option zilla:transmission "half-duplex"
 
-connected
+accepted
 
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
@@ -33,23 +28,32 @@ read zilla:begin.ext ${mcp:matchBeginEx()
                               .build()
                           .build()}
 
-read notify LIFECYCLE_INITIALIZED
-
-connect await LIFECYCLE_INITIALIZED
-        "zilla://streams/app0"
-        option zilla:window 8192
-        option zilla:transmission "half-duplex"
+connected
 
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
-                           .promptsList()
+                           .lifecycle()
                                .sessionId("session-1")
                                .build()
                            .build()}
+write flush
+
+accepted
+
+read zilla:begin.ext ${mcp:matchBeginEx()
+                          .typeId(zilla:id("mcp"))
+                          .promptsList()
+                              .sessionId("session-1")
+                              .build()
+                          .build()}
 
 connected
 
-write close
+write flush
 
-read  '{"prompts":[{"name":"weather_prompt","description":"Ask about weather"}]}'
 read closed
+
+write '{"prompts":[{"name":"bluesky__weather_prompt"},{"name":"quartz__current_time_prompt"}]}'
+write flush
+
+write close

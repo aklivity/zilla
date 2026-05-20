@@ -587,9 +587,27 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/prompts.get.toolkit.prefixed/client",
+        "${app}/prompts.get.toolkit.prefixed/server"})
+    public void shouldGetPromptWithToolkitPrefixed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/prompts.list.toolkit/client",
         "${app}/prompts.list.toolkit/server"})
     public void shouldListPromptsWithToolkit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/prompts.list.toolkit.prefixed/client",
+        "${app}/prompts.list.toolkit.prefixed/server"})
+    public void shouldListPromptsWithToolkitPrefixed() throws Exception
     {
         k3po.finish();
     }
@@ -605,9 +623,27 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/resources.list.toolkit.prefixed/client",
+        "${app}/resources.list.toolkit.prefixed/server"})
+    public void shouldListResourcesWithToolkitPrefixed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/resources.read.toolkit/client",
         "${app}/resources.read.toolkit/server"})
     public void shouldReadResourceWithToolkit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/resources.read.toolkit.prefixed/client",
+        "${app}/resources.read.toolkit.prefixed/server"})
+    public void shouldReadResourceWithToolkitPrefixed() throws Exception
     {
         k3po.finish();
     }
@@ -623,9 +659,27 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/tools.call.toolkit.prefixed/client",
+        "${app}/tools.call.toolkit.prefixed/server"})
+    public void shouldCallToolWithToolkitPrefixed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/tools.call.toolkit.elicit/client",
         "${app}/tools.call.toolkit.elicit/server"})
     public void shouldCallToolWithToolkitElicit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/tools.call.toolkit.elicit.prefixed/client",
+        "${app}/tools.call.toolkit.elicit.prefixed/server"})
+    public void shouldCallToolWithToolkitElicitPrefixed() throws Exception
     {
         k3po.finish();
     }
@@ -641,6 +695,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/tools.call.toolkit.with.progress.prefixed/client",
+        "${app}/tools.call.toolkit.with.progress.prefixed/server"})
+    public void shouldCallToolWithToolkitWithProgressPrefixed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/tools.list.toolkit/client",
         "${app}/tools.list.toolkit/server"})
     public void shouldListToolsWithToolkit() throws Exception
@@ -650,7 +713,16 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/prompts.list.toolkit.multi/client.peer",
+        "${app}/tools.list.toolkit.prefixed/client",
+        "${app}/tools.list.toolkit.prefixed/server"})
+    public void shouldListToolsWithToolkitPrefixed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/prompts.list.toolkit.multi/client",
         "${app}/prompts.list.toolkit.multi/server"})
     public void shouldListPromptsWithToolkitMulti() throws Exception
     {
@@ -659,7 +731,16 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/resources.list.toolkit.multi/client.peer",
+        "${app}/prompts.list.toolkit.multi.prefixed/client",
+        "${app}/prompts.list.toolkit.multi.prefixed/server"})
+    public void shouldListPromptsWithToolkitMultiPrefixed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/resources.list.toolkit.multi/client",
         "${app}/resources.list.toolkit.multi/server"})
     public void shouldListResourcesWithToolkitMulti() throws Exception
     {
@@ -668,9 +749,27 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/tools.list.toolkit.multi/client.peer",
+        "${app}/resources.list.toolkit.multi.prefixed/client",
+        "${app}/resources.list.toolkit.multi.prefixed/server"})
+    public void shouldListResourcesWithToolkitMultiPrefixed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/tools.list.toolkit.multi/client",
         "${app}/tools.list.toolkit.multi/server"})
     public void shouldListToolsWithToolkitMulti() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/tools.list.toolkit.multi.prefixed/client",
+        "${app}/tools.list.toolkit.multi.prefixed/server"})
+    public void shouldListToolsWithToolkitMultiPrefixed() throws Exception
     {
         k3po.finish();
     }
