@@ -29,6 +29,7 @@ import io.aklivity.zilla.runtime.binding.mcp.config.McpAuthorizationConfig;
 import io.aklivity.zilla.runtime.binding.mcp.config.McpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpCacheContext;
+import io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyCacheHydrater;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -52,7 +53,8 @@ public final class McpBindingConfig
     public McpBindingConfig(
         BindingConfig binding,
         McpConfiguration config,
-        EngineContext context)
+        EngineContext context,
+        McpProxyCacheHydrater hydrater)
     {
         this.id = binding.id;
         this.options = (McpOptionsConfig) binding.options;
@@ -94,7 +96,7 @@ public final class McpBindingConfig
             .orElse(null);
 
         this.cacheContext = store != null
-            ? new McpCacheContext(id, store, context.signaler(), cacheGuard, cacheCredentials,
+            ? new McpCacheContext(id, store, context.signaler(), hydrater, cacheGuard, cacheCredentials,
                 config.leaseTtl(), config.leaseRetry(), cacheTtl)
             : null;
         this.sessions = new Object2ObjectHashMap<>();

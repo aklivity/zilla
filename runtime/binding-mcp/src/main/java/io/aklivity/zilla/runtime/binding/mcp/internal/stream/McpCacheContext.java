@@ -14,12 +14,16 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyCacheHydrater.SIGNAL_INITIATE_LIFECYCLE;
+
 import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
+import io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyCacheHydrater.McpHydrateLifecycleStream;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.store.StoreHandler;
@@ -47,15 +51,15 @@ public final class McpCacheContext
     public String sessionId;
     public long authorization;
 
-    Runnable lifecycleCleanup;
-
     private final StoreHandler store;
     private final Signaler signaler;
+    private final McpProxyCacheHydrater hydrater;
     private final McpListCache tools;
     private final McpListCache resources;
     private final McpListCache prompts;
     private final List<McpSignalHandle> awaiters;
 
+    private McpHydrateLifecycleStream lifecycleStream;
     private boolean detached;
     private boolean complete;
     private int populated;
@@ -65,6 +69,7 @@ public final class McpCacheContext
         long bindingId,
         StoreHandler store,
         Signaler signaler,
+        McpProxyCacheHydrater hydrater,
         GuardHandler guard,
         String credentials,
         Duration leaseTtl,
@@ -74,6 +79,7 @@ public final class McpCacheContext
         this.bindingId = bindingId;
         this.store = store;
         this.signaler = signaler;
+        this.hydrater = hydrater;
         this.guard = guard;
         this.credentials = credentials;
         this.leaseTtl = leaseTtl;
@@ -113,23 +119,23 @@ public final class McpCacheContext
         store.delete(STORE_LIFECYCLE_LOCK_KEY, completion);
     }
 
-    void prepare(
-        int expected)
+    void start()
     {
-        this.detached = false;
-        this.complete = false;
-        this.populated = 0;
-        this.expected = expected;
-        this.awaiters.clear();
+        detached = false;
+        complete = false;
+        populated = 0;
+        expected = hydrater.activeHydraterCount();
+        awaiters.clear();
+        signaler.signalAt(Instant.now(), SIGNAL_INITIATE_LIFECYCLE, this::beginLifecycle);
     }
 
     void detach()
     {
         detached = true;
-        if (lifecycleCleanup != null)
+        if (lifecycleStream != null)
         {
-            lifecycleCleanup.run();
-            lifecycleCleanup = null;
+            lifecycleStream.doLifecycleEnd(hydrater.supplyTraceId());
+            lifecycleStream = null;
         }
         releaseLifecycle(k -> {});
         awaiters.clear();
@@ -174,6 +180,79 @@ public final class McpCacheContext
         }
         awaiters.clear();
         releaseLifecycle(k -> {});
+    }
+
+    void scheduleRefresh(
+        int signalId)
+    {
+        if (cacheTtl != null)
+        {
+            signaler.signalAt(Instant.now().plus(cacheTtl), signalId, this::onRefresh);
+        }
+    }
+
+    void onLifecycleOpened(
+        long traceId)
+    {
+        if (hydrater.activeHydraterCount() == 0)
+        {
+            markComplete();
+        }
+        else
+        {
+            hydrater.initiateListHydraters(this, traceId);
+        }
+    }
+
+    void onLifecycleClosed()
+    {
+        lifecycleStream = null;
+        releaseLifecycle(k -> {});
+    }
+
+    private void beginLifecycle(
+        int signalId)
+    {
+        if (detached)
+        {
+            return;
+        }
+
+        final long traceId = hydrater.supplyTraceId();
+        sessionId = hydrater.supplySessionId();
+        authorization = guard != null
+            ? guard.reauthorize(traceId, bindingId, 0L, credentials)
+            : 0L;
+        acquireLifecycle(acquired -> onAcquireLifecycleComplete(traceId, acquired));
+    }
+
+    private void onAcquireLifecycleComplete(
+        long traceId,
+        boolean acquired)
+    {
+        if (detached)
+        {
+            return;
+        }
+
+        if (acquired)
+        {
+            lifecycleStream = hydrater.newLifecycleStream(this);
+            lifecycleStream.doLifecycleBegin(traceId);
+        }
+        else
+        {
+            signaler.signalAt(Instant.now().plus(leaseRetry), SIGNAL_INITIATE_LIFECYCLE, this::beginLifecycle);
+        }
+    }
+
+    private void onRefresh(
+        int signalId)
+    {
+        if (!detached)
+        {
+            hydrater.refresh(this, signalId);
+        }
     }
 
     public final class McpListCache

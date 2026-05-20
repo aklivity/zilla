@@ -18,7 +18,6 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeg
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.IntPredicate;
@@ -45,7 +44,6 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
-import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 
 public final class McpProxyCacheHydrater
 {
@@ -61,7 +59,6 @@ public final class McpProxyCacheHydrater
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final LongSupplier supplyTraceId;
-    private final Signaler signaler;
     private final int mcpTypeId;
     private final Supplier<String> supplySessionId;
     private final IntPredicate hydrateFilter;
@@ -95,7 +92,6 @@ public final class McpProxyCacheHydrater
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.supplyTraceId = context::supplyTraceId;
-        this.signaler = context.signaler();
         this.mcpTypeId = context.supplyTypeId("mcp");
         this.supplySessionId = config.sessionIdSupplier();
         this.hydrateFilter = config.hydrateFilter();
@@ -120,58 +116,55 @@ public final class McpProxyCacheHydrater
         this.activeHydraters = active;
     }
 
-    public void attach(
-        McpCacheContext context)
+    int activeHydraterCount()
     {
-        context.prepare(activeHydraters.size());
-        signaler.signalAt(Instant.now(), SIGNAL_INITIATE_LIFECYCLE, sigId -> beginLifecycle(context));
+        return activeHydraters.size();
     }
 
-    public void detach(
-        McpCacheContext context)
+    long supplyTraceId()
     {
-        context.detach();
+        return supplyTraceId.getAsLong();
     }
 
-    private void beginLifecycle(
-        McpCacheContext context)
+    String supplySessionId()
     {
-        if (context.detached())
-        {
-            return;
-        }
-
-        final long traceId = supplyTraceId.getAsLong();
-        context.sessionId = supplySessionId.get();
-        context.authorization = context.guard != null
-            ? context.guard.reauthorize(traceId, context.bindingId, 0L, context.credentials)
-            : 0L;
-        context.acquireLifecycle(acquired -> onAcquireLifecycleComplete(context, traceId, acquired));
+        return supplySessionId.get();
     }
 
-    private void onAcquireLifecycleComplete(
+    McpHydrateLifecycleStream newLifecycleStream(
+        McpCacheContext context)
+    {
+        return new McpHydrateLifecycleStream(context);
+    }
+
+    void initiateListHydraters(
         McpCacheContext context,
-        long traceId,
-        boolean acquired)
+        long traceId)
     {
-        if (context.detached())
+        for (McpListHydrater hydrater : activeHydraters)
         {
-            return;
-        }
-
-        if (acquired)
-        {
-            final McpHydrateLifecycleStream stream = new McpHydrateLifecycleStream(context);
-            stream.doLifecycleBegin(traceId);
-        }
-        else
-        {
-            signaler.signalAt(Instant.now().plus(context.leaseRetry), SIGNAL_INITIATE_LIFECYCLE,
-                sigId -> beginLifecycle(context));
+            hydrater.initiate(context, traceId);
         }
     }
 
-    private final class McpHydrateLifecycleStream
+    void refresh(
+        McpCacheContext context,
+        int signalId)
+    {
+        final McpListHydrater hydrater = switch (signalId)
+        {
+        case SIGNAL_REFRESH_TOOLS -> toolsHydrater;
+        case SIGNAL_REFRESH_RESOURCES -> resourcesHydrater;
+        case SIGNAL_REFRESH_PROMPTS -> promptsHydrater;
+        default -> null;
+        };
+        if (hydrater != null)
+        {
+            hydrater.refresh(context);
+        }
+    }
+
+    final class McpHydrateLifecycleStream
     {
         private final McpCacheContext context;
         private final long initialId;
@@ -226,18 +219,7 @@ public final class McpProxyCacheHydrater
             final long traceId = begin.traceId();
             state = McpState.openingReply(state);
             doLifecycleWindow(traceId);
-
-            if (activeHydraters.isEmpty())
-            {
-                context.markComplete();
-            }
-            else
-            {
-                for (McpListHydrater hydrater : activeHydraters)
-                {
-                    hydrater.initiate(context, traceId);
-                }
-            }
+            context.onLifecycleOpened(traceId);
         }
 
         private void onLifecycleEnd(
@@ -247,8 +229,7 @@ public final class McpProxyCacheHydrater
             {
                 state = McpState.closedReply(state);
                 doLifecycleEnd(end.traceId());
-                context.lifecycleCleanup = null;
-                context.releaseLifecycle(k -> {});
+                context.onLifecycleClosed();
             }
         }
 
@@ -259,8 +240,7 @@ public final class McpProxyCacheHydrater
             {
                 state = McpState.closedReply(state);
                 doLifecycleAbort(abort.traceId());
-                context.lifecycleCleanup = null;
-                context.releaseLifecycle(k -> {});
+                context.onLifecycleClosed();
             }
         }
 
@@ -270,8 +250,7 @@ public final class McpProxyCacheHydrater
             if (!McpState.initialClosed(state))
             {
                 state = McpState.closedInitial(state);
-                context.lifecycleCleanup = null;
-                context.releaseLifecycle(k -> {});
+                context.onLifecycleClosed();
             }
         }
 
@@ -287,12 +266,6 @@ public final class McpProxyCacheHydrater
             receiver = newStream(this::onLifecycleMessage, context.bindingId, context.bindingId, initialId,
                 initialSeq, initialAck, initialMax, traceId, context.authorization, 0L, beginEx);
             state = McpState.openingInitial(state);
-            context.lifecycleCleanup = this::doLifecycleCleanup;
-        }
-
-        private void doLifecycleCleanup()
-        {
-            doLifecycleEnd(supplyTraceId.getAsLong());
         }
 
         private void doLifecycleWindow(
@@ -366,7 +339,7 @@ public final class McpProxyCacheHydrater
             if (value != null)
             {
                 context.markReady();
-                scheduleRefresh(context);
+                context.scheduleRefresh(signalId());
             }
             else
             {
@@ -390,7 +363,7 @@ public final class McpProxyCacheHydrater
             else
             {
                 context.markReady();
-                scheduleRefresh(context);
+                context.scheduleRefresh(signalId());
             }
         }
 
@@ -409,16 +382,7 @@ public final class McpProxyCacheHydrater
             }
             else
             {
-                scheduleRefresh(context);
-            }
-        }
-
-        private void scheduleRefresh(
-            McpCacheContext context)
-        {
-            if (context.cacheTtl != null)
-            {
-                signaler.signalAt(Instant.now().plus(context.cacheTtl), signalId(), sigId -> refresh(context));
+                context.scheduleRefresh(signalId());
             }
         }
 
@@ -615,7 +579,7 @@ public final class McpProxyCacheHydrater
                     settled = true;
                     cacheOf(context).release(k -> {});
                     context.markReady();
-                    scheduleRefresh(context);
+                    context.scheduleRefresh(signalId());
                 }
             }
         }

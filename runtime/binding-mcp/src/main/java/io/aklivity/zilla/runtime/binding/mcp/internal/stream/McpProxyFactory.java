@@ -87,11 +87,11 @@ public final class McpProxyFactory implements McpStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        McpBindingConfig newBinding = new McpBindingConfig(binding, config, context);
+        McpBindingConfig newBinding = new McpBindingConfig(binding, config, context, hydrater);
         bindings.put(binding.id, newBinding);
         if (newBinding.cacheContext != null)
         {
-            hydrater.attach(newBinding.cacheContext);
+            newBinding.cacheContext.start();
         }
     }
 
@@ -103,7 +103,7 @@ public final class McpProxyFactory implements McpStreamFactory
 
         if (binding != null && binding.cacheContext != null)
         {
-            hydrater.detach(binding.cacheContext);
+            binding.cacheContext.detach();
         }
     }
 
