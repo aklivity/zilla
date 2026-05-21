@@ -43,6 +43,27 @@ connect await APP1_LIFECYCLE
 
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
+                           .promptsList()
+                               .sessionId("hydrate-1")
+                               .build()
+                           .build()}
+
+connected
+
+write close
+
+read '{"prompts":[{"name":"summarize"}]}'
+read closed
+
+read notify APP1_PROMPTS
+
+connect await APP1_PROMPTS
+        "zilla://streams/app1"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${mcp:beginEx()
+                           .typeId(zilla:id("mcp"))
                            .toolsList()
                                .sessionId("hydrate-1")
                                .build()
@@ -79,27 +100,6 @@ read closed
 read notify APP1_RESOURCES
 
 connect await APP1_RESOURCES
-        "zilla://streams/app1"
-        option zilla:window 8192
-        option zilla:transmission "half-duplex"
-
-write zilla:begin.ext ${mcp:beginEx()
-                           .typeId(zilla:id("mcp"))
-                           .promptsList()
-                               .sessionId("hydrate-1")
-                               .build()
-                           .build()}
-
-connected
-
-write close
-
-read '{"prompts":[{"name":"summarize"}]}'
-read closed
-
-read notify APP1_PROMPTS
-
-connect await APP1_PROMPTS
         "zilla://streams/app2"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
@@ -123,6 +123,27 @@ read zilla:begin.ext ${mcp:matchBeginEx()
 read notify APP2_LIFECYCLE
 
 connect await APP2_LIFECYCLE
+        "zilla://streams/app2"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${mcp:beginEx()
+                           .typeId(zilla:id("mcp"))
+                           .promptsList()
+                               .sessionId("hydrate-1")
+                               .build()
+                           .build()}
+
+connected
+
+write close
+
+read '{"prompts":[{"name":"translate"}]}'
+read closed
+
+read notify APP2_PROMPTS
+
+connect await APP2_PROMPTS
         "zilla://streams/app2"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
@@ -160,25 +181,4 @@ connected
 write close
 
 read '{"resources":[{"uri":"file:///quartz.txt"}]}'
-read closed
-
-read notify APP2_RESOURCES
-
-connect await APP2_RESOURCES
-        "zilla://streams/app2"
-        option zilla:window 8192
-        option zilla:transmission "half-duplex"
-
-write zilla:begin.ext ${mcp:beginEx()
-                           .typeId(zilla:id("mcp"))
-                           .promptsList()
-                               .sessionId("hydrate-1")
-                               .build()
-                           .build()}
-
-connected
-
-write close
-
-read '{"prompts":[{"name":"translate"}]}'
 read closed

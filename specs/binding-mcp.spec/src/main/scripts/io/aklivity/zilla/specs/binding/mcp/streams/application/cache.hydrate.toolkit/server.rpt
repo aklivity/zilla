@@ -40,6 +40,26 @@ accepted
 
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
+                          .promptsList()
+                              .sessionId("hydrate-1")
+                              .build()
+                          .build()}
+
+connected
+
+write flush
+
+read closed
+
+write '{"prompts":[{"name":"summarize"}]}'
+write flush
+
+write close
+
+accepted
+
+read zilla:begin.ext ${mcp:matchBeginEx()
+                          .typeId(zilla:id("mcp"))
                           .toolsList()
                               .sessionId("hydrate-1")
                               .build()
@@ -76,26 +96,6 @@ write flush
 
 write close
 
-accepted
-
-read zilla:begin.ext ${mcp:matchBeginEx()
-                          .typeId(zilla:id("mcp"))
-                          .promptsList()
-                              .sessionId("hydrate-1")
-                              .build()
-                          .build()}
-
-connected
-
-write flush
-
-read closed
-
-write '{"prompts":[{"name":"summarize"}]}'
-write flush
-
-write close
-
 
 accept "zilla://streams/app2"
        option zilla:window 8192
@@ -119,6 +119,26 @@ write zilla:begin.ext ${mcp:beginEx()
                                .build()
                            .build()}
 write flush
+
+accepted
+
+read zilla:begin.ext ${mcp:matchBeginEx()
+                          .typeId(zilla:id("mcp"))
+                          .promptsList()
+                              .sessionId("hydrate-1")
+                              .build()
+                          .build()}
+
+connected
+
+write flush
+
+read closed
+
+write '{"prompts":[{"name":"translate"}]}'
+write flush
+
+write close
 
 accepted
 
@@ -156,26 +176,6 @@ write flush
 read closed
 
 write '{"resources":[{"uri":"file:///quartz.txt"}]}'
-write flush
-
-write close
-
-accepted
-
-read zilla:begin.ext ${mcp:matchBeginEx()
-                          .typeId(zilla:id("mcp"))
-                          .promptsList()
-                              .sessionId("hydrate-1")
-                              .build()
-                          .build()}
-
-connected
-
-write flush
-
-read closed
-
-write '{"prompts":[{"name":"translate"}]}'
 write flush
 
 write close

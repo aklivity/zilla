@@ -46,6 +46,28 @@ connect await LIFECYCLE_INITIALIZED
 
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
+                           .promptsList()
+                               .sessionId("hydrate-1")
+                               .build()
+                           .build()}
+
+connected
+
+write close
+
+read '{"prompts":[]}'
+read closed
+
+read notify PROMPTS_LIST_COMPLETE
+
+connect await PROMPTS_LIST_COMPLETE
+        "zilla://streams/app0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+        option zilla:authorization ${authorization}
+
+write zilla:begin.ext ${mcp:beginEx()
+                           .typeId(zilla:id("mcp"))
                            .toolsList()
                                .sessionId("hydrate-1")
                                .build()
@@ -78,26 +100,4 @@ connected
 write close
 
 read '{"resources":[]}'
-read closed
-
-read notify RESOURCES_LIST_COMPLETE
-
-connect await RESOURCES_LIST_COMPLETE
-        "zilla://streams/app0"
-        option zilla:window 8192
-        option zilla:transmission "half-duplex"
-        option zilla:authorization ${authorization}
-
-write zilla:begin.ext ${mcp:beginEx()
-                           .typeId(zilla:id("mcp"))
-                           .promptsList()
-                               .sessionId("hydrate-1")
-                               .build()
-                           .build()}
-
-connected
-
-write close
-
-read '{"prompts":[]}'
 read closed

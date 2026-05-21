@@ -49,6 +49,27 @@ connect await LIFECYCLE_OPEN
 
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
+                           .promptsList()
+                               .sessionId("hydrate-1")
+                               .build()
+                           .build()}
+
+connected
+
+write close
+
+read '{"prompts":[]}'
+read closed
+
+read notify PROMPTS_HYDRATED
+
+connect await PROMPTS_HYDRATED
+        "zilla://streams/app0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${mcp:beginEx()
+                           .typeId(zilla:id("mcp"))
                            .toolsList()
                                .sessionId("hydrate-1")
                                .build()
@@ -82,27 +103,6 @@ write close
 read '{"resources":[]}'
 read closed
 
-read notify RESOURCES_HYDRATED
-
-connect await RESOURCES_HYDRATED
-        "zilla://streams/app0"
-        option zilla:window 8192
-        option zilla:transmission "half-duplex"
-
-write zilla:begin.ext ${mcp:beginEx()
-                           .typeId(zilla:id("mcp"))
-                           .promptsList()
-                               .sessionId("hydrate-1")
-                               .build()
-                           .build()}
-
-connected
-
-write close
-
-read '{"prompts":[]}'
-read closed
-
 read notify ALL_HYDRATED
 
 connect await LIFECYCLE_ABORTED
@@ -129,6 +129,27 @@ read zilla:begin.ext ${mcp:matchBeginEx()
 read notify LIFECYCLE2_OPEN
 
 connect await LIFECYCLE2_OPEN
+        "zilla://streams/app0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${mcp:beginEx()
+                           .typeId(zilla:id("mcp"))
+                           .promptsList()
+                               .sessionId("hydrate-1")
+                               .build()
+                           .build()}
+
+connected
+
+write close
+
+read '{"prompts":[]}'
+read closed
+
+read notify PROMPTS2_HYDRATED
+
+connect await PROMPTS2_HYDRATED
         "zilla://streams/app0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
@@ -166,25 +187,4 @@ connected
 write close
 
 read '{"resources":[]}'
-read closed
-
-read notify RESOURCES2_HYDRATED
-
-connect await RESOURCES2_HYDRATED
-        "zilla://streams/app0"
-        option zilla:window 8192
-        option zilla:transmission "half-duplex"
-
-write zilla:begin.ext ${mcp:beginEx()
-                           .typeId(zilla:id("mcp"))
-                           .promptsList()
-                               .sessionId("hydrate-1")
-                               .build()
-                           .build()}
-
-connected
-
-write close
-
-read '{"prompts":[]}'
 read closed

@@ -20,13 +20,13 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeg
 
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.IntPredicate;
+
+import org.agrona.collections.Int2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.mcp.config.McpCacheConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
@@ -59,7 +59,7 @@ public final class McpProxyCache
     public long authorization;
 
     private final StoreHandler store;
-    private final Map<Integer, McpListCache> caches;
+    private final Int2ObjectHashMap<McpListCache> caches;
     private final List<Runnable> awaiters;
 
     boolean populated;
@@ -86,7 +86,7 @@ public final class McpProxyCache
         this.leaseRetry = config.leaseRetry();
         this.cacheTtl = cache.ttl;
         this.awaiters = new ArrayList<>();
-        this.caches = new LinkedHashMap<>();
+        this.caches = new Int2ObjectHashMap<>();
 
         final IntPredicate filter = config.hydrateFilter();
         if (filter.test(KIND_TOOLS_LIST))
@@ -110,7 +110,7 @@ public final class McpProxyCache
         return caches.get(kind);
     }
 
-    public Map<Integer, McpListCache> caches()
+    public Int2ObjectHashMap<McpListCache> caches()
     {
         return caches;
     }

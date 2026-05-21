@@ -46,6 +46,26 @@ accepted
 
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
+                          .promptsList()
+                              .sessionId("hydrate-1")
+                              .build()
+                          .build()}
+
+connected
+
+write flush
+
+read closed
+
+write '{"prompts":[]}'
+write flush
+
+write close
+
+accepted
+
+read zilla:begin.ext ${mcp:matchBeginEx()
+                          .typeId(zilla:id("mcp"))
                           .toolsList()
                               .sessionId("hydrate-1")
                               .build()
@@ -80,26 +100,6 @@ read closed
 write '{"resources":[]}'
 write flush
 
-write close
-
-accepted
-
-read zilla:begin.ext ${mcp:matchBeginEx()
-                          .typeId(zilla:id("mcp"))
-                          .promptsList()
-                              .sessionId("hydrate-1")
-                              .build()
-                          .build()}
-
-connected
-
-write flush
-
-read closed
-
-write '{"prompts":[]}'
-write flush
-
 write notify ALL_HYDRATED
 
 write close
@@ -122,6 +122,26 @@ write zilla:begin.ext ${mcp:beginEx()
                                .build()
                            .build()}
 write flush
+
+accepted
+
+read zilla:begin.ext ${mcp:matchBeginEx()
+                          .typeId(zilla:id("mcp"))
+                          .promptsList()
+                              .sessionId("hydrate-1")
+                              .build()
+                          .build()}
+
+connected
+
+write flush
+
+read closed
+
+write '{"prompts":[]}'
+write flush
+
+write close
 
 accepted
 
@@ -159,26 +179,6 @@ write flush
 read closed
 
 write '{"resources":[]}'
-write flush
-
-write close
-
-accepted
-
-read zilla:begin.ext ${mcp:matchBeginEx()
-                          .typeId(zilla:id("mcp"))
-                          .promptsList()
-                              .sessionId("hydrate-1")
-                              .build()
-                          .build()}
-
-connected
-
-write flush
-
-read closed
-
-write '{"prompts":[]}'
 write flush
 
 write close
