@@ -1397,10 +1397,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
                 {
                     nextRequestAt = NO_CANCEL_ID;
 
-                    if (nextRequestId == nextResponseId)
-                    {
-                        encoder.accept(traceId, initialBudgetId);
-                    }
+                    doEncodeRequestIfNecessary(traceId);
                 }
             }
 
