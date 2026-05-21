@@ -17,6 +17,9 @@ package io.aklivity.zilla.runtime.binding.mcp.internal.stream.cache;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_PROMPTS_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpFlushExFW.KIND_PROMPTS_LIST_CHANGED;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpFlushExFW.KIND_RESOURCES_LIST_CHANGED;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpFlushExFW.KIND_TOOLS_LIST_CHANGED;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,7 +41,9 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.EndFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpFlushExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -62,8 +67,10 @@ final class McpProxyCacheHydrater
     private final EndFW endRO = new EndFW();
     private final DataFW dataRO = new DataFW();
     private final AbortFW abortRO = new AbortFW();
+    private final FlushFW flushRO = new FlushFW();
     private final ResetFW resetRO = new ResetFW();
     private final WindowFW windowRO = new WindowFW();
+    private final McpFlushExFW mcpFlushExRO = new McpFlushExFW();
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
     private final EndFW.Builder endRW = new EndFW.Builder();
     private final AbortFW.Builder abortRW = new AbortFW.Builder();
@@ -151,6 +158,16 @@ final class McpProxyCacheHydrater
             if (hydrater != null)
             {
                 hydrater.hydrate(this);
+            }
+        }
+
+        @Override
+        public void onListChanged(
+            int kind)
+        {
+            if (!stopped)
+            {
+                listener.onListChanged(kind);
             }
         }
 
@@ -280,6 +297,10 @@ final class McpProxyCacheHydrater
                 final AbortFW abort = abortRO.wrap(buffer, index, index + length);
                 onLifecycleAbort(abort);
                 break;
+            case FlushFW.TYPE_ID:
+                final FlushFW flush = flushRO.wrap(buffer, index, index + length);
+                onLifecycleFlush(flush);
+                break;
             case ResetFW.TYPE_ID:
                 final ResetFW reset = resetRO.wrap(buffer, index, index + length);
                 onLifecycleReset(reset);
@@ -316,6 +337,41 @@ final class McpProxyCacheHydrater
             cleanupStreams(traceId);
             doLifecycleAbort(traceId);
             handler.onLifecycleClosed();
+        }
+
+        private void onLifecycleFlush(
+            FlushFW flush)
+        {
+            final OctetsFW extension = flush.extension();
+            if (extension == null || extension.sizeof() == 0)
+            {
+                return;
+            }
+            final McpFlushExFW flushEx = mcpFlushExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit());
+            if (flushEx == null)
+            {
+                return;
+            }
+            final int listKind;
+            switch (flushEx.kind())
+            {
+            case KIND_TOOLS_LIST_CHANGED:
+                listKind = KIND_TOOLS_LIST;
+                break;
+            case KIND_PROMPTS_LIST_CHANGED:
+                listKind = KIND_PROMPTS_LIST;
+                break;
+            case KIND_RESOURCES_LIST_CHANGED:
+                listKind = KIND_RESOURCES_LIST;
+                break;
+            default:
+                listKind = -1;
+                break;
+            }
+            if (listKind != -1)
+            {
+                handler.onListChanged(listKind);
+            }
         }
 
         private void onLifecycleReset(

@@ -105,6 +105,18 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
     }
 
     @Override
+    public void onListChanged(
+        int kind)
+    {
+        if (stopped || handler == null)
+        {
+            return;
+        }
+        cancelRefresh();
+        handler.hydrate(kind);
+    }
+
+    @Override
     public void onClosed()
     {
         if (stopped)
