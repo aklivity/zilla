@@ -157,6 +157,18 @@ public class McpProxyCacheIT
     }
 
     @Test
+    @Configuration("proxy.cache.yaml")
+    @Specification({
+        "${app}/cache.notify.tools.list.changed/client",
+        "${app}/cache.notify.tools.list.changed/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
+    public void shouldRefreshToolsOnListChangedNotification() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.cache.refresh.yaml")
     @Specification({
         "${app}/cache.refresh.tools.error/server" })
