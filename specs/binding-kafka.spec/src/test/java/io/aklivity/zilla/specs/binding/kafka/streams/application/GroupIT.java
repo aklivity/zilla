@@ -219,9 +219,9 @@ public class GroupIT
 
     @Test
     @Specification({
-        "${app}/broker.connection.failed/client",
-        "${app}/broker.connection.failed/server"})
-    public void shouldHandleBrokerConnectionFailed() throws Exception
+        "${app}/broker.connection.error/client",
+        "${app}/broker.connection.error/server"})
+    public void shouldHandleBrokerConnectionError() throws Exception
     {
         k3po.finish();
     }

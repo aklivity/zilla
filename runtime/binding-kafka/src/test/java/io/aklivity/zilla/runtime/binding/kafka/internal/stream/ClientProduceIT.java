@@ -389,11 +389,11 @@ public class ClientProduceIT
     }
 
     @Test
-    @Configuration("client.event.transactional.id.authorization.failed.yaml")
+    @Configuration("client.event.transactional.id.authorization.error.yaml")
     @Specification({
-        "${app}/transaction.id.authorization.failed/client",
-        "${net}/transaction.id.authorization.failed/server"})
-    public void shouldHandleTransactionalIdAuthorizationFailed() throws Exception
+        "${app}/transaction.id.authorization.error/client",
+        "${net}/transaction.id.authorization.error/server"})
+    public void shouldHandleTransactionalIdAuthorizationError() throws Exception
     {
         k3po.finish();
     }

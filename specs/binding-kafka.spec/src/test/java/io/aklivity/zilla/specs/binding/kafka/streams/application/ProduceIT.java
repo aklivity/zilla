@@ -394,9 +394,9 @@ public class ProduceIT
 
     @Test
     @Specification({
-        "${app}/transaction.id.authorization.failed/client",
-        "${app}/transaction.id.authorization.failed/server"})
-    public void shouldRejectTransactionalIdAuthorizationFailed() throws Exception
+        "${app}/transaction.id.authorization.error/client",
+        "${app}/transaction.id.authorization.error/server"})
+    public void shouldRejectTransactionalIdAuthorizationError() throws Exception
     {
         k3po.finish();
     }
