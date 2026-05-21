@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.store.memory.internal;
 
 import java.io.Closeable;
+import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -59,10 +60,10 @@ final class MemoryStoreHandler implements StoreHandler
     public void put(
         String key,
         String value,
-        long ttlMillis,
+        Duration ttl,
         Consumer<String> completion)
     {
-        final long expiresAt = ttlMillis == Long.MAX_VALUE ? Long.MAX_VALUE : System.currentTimeMillis() + ttlMillis;
+        final long expiresAt = expiresAt(ttl);
         entries.put(key, new MemoryEntry(value, expiresAt));
         notifyWatchers(key, value);
         defer(() -> completion.accept(null));
@@ -72,10 +73,10 @@ final class MemoryStoreHandler implements StoreHandler
     public void putIfAbsent(
         String key,
         String value,
-        long ttlMillis,
+        Duration ttl,
         Consumer<String> completion)
     {
-        final long expiresAt = ttlMillis == Long.MAX_VALUE ? Long.MAX_VALUE : System.currentTimeMillis() + ttlMillis;
+        final long expiresAt = expiresAt(ttl);
         final MemoryEntry newEntry = new MemoryEntry(value, expiresAt);
         final MemoryEntry existing = entries.putIfAbsent(key, newEntry);
         boolean stored = existing == null;
@@ -121,11 +122,11 @@ final class MemoryStoreHandler implements StoreHandler
     @Override
     public void lock(
         String key,
-        long ttlMillis,
+        Duration ttl,
         BiConsumer<String, String> completion)
     {
         final long now = System.currentTimeMillis();
-        final long expiresAt = ttlMillis == Long.MAX_VALUE ? Long.MAX_VALUE : now + ttlMillis;
+        final long expiresAt = ttl == null ? Long.MAX_VALUE : now + ttl.toMillis();
         final String token = UUID.randomUUID().toString();
         final LockEntry candidate = new LockEntry(token, expiresAt);
         LockEntry existing = locks.putIfAbsent(key, candidate);
@@ -146,23 +147,20 @@ final class MemoryStoreHandler implements StoreHandler
         final long now = System.currentTimeMillis();
         final LockEntry current = locks.get(key);
         final String result;
-        if (current == null || current.expiresAt() <= now)
+        if (current != null && current.expiresAt() > now && current.token().equals(token))
         {
-            // already gone — treat as success
-            if (current != null)
+            locks.remove(key, current);
+            result = token;
+        }
+        else
+        {
+            // expired holder still cluttering the map — clean up opportunistically;
+            // either way the caller did not prove ownership of an active lock
+            if (current != null && current.expiresAt() <= now)
             {
                 locks.remove(key, current);
             }
             result = null;
-        }
-        else if (current.token().equals(token))
-        {
-            locks.remove(key, current);
-            result = null;
-        }
-        else
-        {
-            result = current.token();
         }
         defer(() -> completion.accept(result));
     }
@@ -205,6 +203,12 @@ final class MemoryStoreHandler implements StoreHandler
     {
         // contract: callback fires strictly later than the call, on the caller's I/O thread
         signaler.signalAt(System.currentTimeMillis(), 0, ignored -> task.run());
+    }
+
+    private static long expiresAt(
+        Duration ttl)
+    {
+        return ttl == null ? Long.MAX_VALUE : System.currentTimeMillis() + ttl.toMillis();
     }
 
     record Watcher(

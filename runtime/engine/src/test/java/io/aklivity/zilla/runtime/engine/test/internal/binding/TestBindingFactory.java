@@ -191,7 +191,7 @@ final class TestBindingFactory implements BindingHandler
                 {
                     final Thread dispatchThread = Thread.currentThread();
                     final MutableBoolean callbackFired = new MutableBoolean();
-                    this.store.putIfAbsent("init", "", Long.MAX_VALUE, v ->
+                    this.store.putIfAbsent("init", "", null, v ->
                     {
                         if (Thread.currentThread() != dispatchThread || callbackFired.value)
                         {

@@ -29,11 +29,11 @@ bindings:
                     memory0:
                         - op: lock
                           key: lock.resource
-                          ttl: 60000
+                          ttl: PT1M
                           expect: acquired
                         - op: lock
                           key: lock.resource
-                          ttl: 60000
+                          ttl: PT1M
                           expect: ""
         routes:
             - exit: app0

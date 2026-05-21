@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.binding.config;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -179,9 +180,9 @@ public final class TestBindingOptionsConfigAdapter implements OptionsConfigAdapt
                         {
                             assertion.add(STORE_VALUE_NAME, a.value);
                         }
-                        if (a.ttl != Long.MAX_VALUE)
+                        if (a.ttl != null)
                         {
-                            assertion.add(STORE_TTL_NAME, a.ttl);
+                            assertion.add(STORE_TTL_NAME, a.ttl.toString());
                         }
                         if (a.hasExpect)
                         {
@@ -362,7 +363,7 @@ public final class TestBindingOptionsConfigAdapter implements OptionsConfigAdapt
                                 s.getString(STORE_OP_NAME),
                                 s.getString(STORE_KEY_NAME),
                                 s.getString(STORE_VALUE_NAME, null),
-                                s.containsKey(STORE_TTL_NAME) ? s.getJsonNumber(STORE_TTL_NAME).longValue() : Long.MAX_VALUE,
+                                s.containsKey(STORE_TTL_NAME) ? Duration.parse(s.getString(STORE_TTL_NAME)) : null,
                                 expect,
                                 hasExpect,
                                 s.containsKey(DELAY_NAME) ? s.getJsonNumber(DELAY_NAME).longValue() : 0L));

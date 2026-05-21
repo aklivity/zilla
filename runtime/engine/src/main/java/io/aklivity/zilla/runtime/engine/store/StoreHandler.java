@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.engine.store;
 
 import java.io.Closeable;
+import java.time.Duration;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -61,13 +62,13 @@ public interface StoreHandler
      *
      * @param key        the key to store
      * @param value      the value to associate
-     * @param ttl        the time-to-live in milliseconds, or {@code Long.MAX_VALUE} for no expiry
+     * @param ttl        the time-to-live, or {@code null} for no expiry
      * @param completion a callback invoked when the operation completes
      */
     void put(
         String key,
         String value,
-        long ttl,
+        Duration ttl,
         Consumer<String> completion);
 
     /**
@@ -75,14 +76,14 @@ public interface StoreHandler
      *
      * @param key        the key to store
      * @param value      the value to associate if absent
-     * @param ttl        the time-to-live in milliseconds, or {@code Long.MAX_VALUE} for no expiry
+     * @param ttl        the time-to-live, or {@code null} for no expiry
      * @param completion a callback that receives the existing value if present,
      *                   or {@code null} if the key was absent and the value was stored
      */
     void putIfAbsent(
         String key,
         String value,
-        long ttl,
+        Duration ttl,
         Consumer<String> completion);
 
     /**
@@ -121,24 +122,25 @@ public interface StoreHandler
      * </p>
      *
      * @param key         the key to lock
-     * @param ttlMillis   the lease duration in milliseconds, or {@code Long.MAX_VALUE} for no expiry
+     * @param ttl         the lease duration, or {@code null} for no expiry
      * @param completion  a callback that receives {@code (key, token)};
      *                    {@code token} is non-null when the lock was acquired,
      *                    {@code null} when another holder owns the key
      */
     void lock(
         String key,
-        long ttlMillis,
+        Duration ttl,
         BiConsumer<String, String> completion);
 
     /**
      * Releases a lock previously acquired via {@link #lock}, provided the supplied token matches
      * the current holder.
      * <p>
-     * The completion receives {@code null} when the lock has been released (including when it
-     * had already expired or been released — treated as a no-op success). When the supplied
-     * token does not match the current holder, the completion receives the current holder's
-     * token and the lock remains held.
+     * On a successful ownership-checked release, the completion receives the supplied token —
+     * mirroring the {@link #lock} completion shape (non-null = you own it). On failure — the
+     * supplied token does not match the current holder, or the lock has already expired or been
+     * released — the completion receives {@code null}. No information about another holder is
+     * surfaced to a caller that did not prove ownership.
      * </p>
      * <p>
      * The completion fires <em>strictly later</em> than the call returns, on the caller's I/O
@@ -147,8 +149,8 @@ public interface StoreHandler
      *
      * @param key         the key to unlock
      * @param token       the ownership token returned by a prior {@link #lock} call
-     * @param completion  a callback that receives {@code null} on success,
-     *                    or the current holder's token on ownership mismatch
+     * @param completion  a callback that receives the supplied {@code token} on a successful
+     *                    ownership-checked release, or {@code null} otherwise
      */
     void unlock(
         String key,

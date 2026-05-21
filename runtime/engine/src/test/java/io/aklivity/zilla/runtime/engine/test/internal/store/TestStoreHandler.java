@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.engine.test.internal.store;
 
 import java.io.Closeable;
+import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -60,7 +61,7 @@ public final class TestStoreHandler implements StoreHandler
     public void put(
         String key,
         String value,
-        long ttl,
+        Duration ttl,
         Consumer<String> completion)
     {
         entries.put(key, value);
@@ -72,7 +73,7 @@ public final class TestStoreHandler implements StoreHandler
     public void putIfAbsent(
         String key,
         String value,
-        long ttl,
+        Duration ttl,
         Consumer<String> completion)
     {
         final String existing = entries.putIfAbsent(key, value);
@@ -112,11 +113,11 @@ public final class TestStoreHandler implements StoreHandler
     @Override
     public void lock(
         String key,
-        long ttlMillis,
+        Duration ttl,
         BiConsumer<String, String> completion)
     {
         final long now = System.currentTimeMillis();
-        final long expiresAt = ttlMillis == Long.MAX_VALUE ? Long.MAX_VALUE : now + ttlMillis;
+        final long expiresAt = ttl == null ? Long.MAX_VALUE : now + ttl.toMillis();
         final String token = UUID.randomUUID().toString();
         final TestLockEntry candidate = new TestLockEntry(token, expiresAt);
         TestLockEntry existing = locks.putIfAbsent(key, candidate);
@@ -137,22 +138,18 @@ public final class TestStoreHandler implements StoreHandler
         final long now = System.currentTimeMillis();
         final TestLockEntry current = locks.get(key);
         final String result;
-        if (current == null || current.expiresAt <= now)
+        if (current != null && current.expiresAt > now && current.token.equals(token))
         {
-            if (current != null)
+            locks.remove(key, current);
+            result = token;
+        }
+        else
+        {
+            if (current != null && current.expiresAt <= now)
             {
                 locks.remove(key, current);
             }
             result = null;
-        }
-        else if (current.token.equals(token))
-        {
-            locks.remove(key, current);
-            result = null;
-        }
-        else
-        {
-            result = current.token;
         }
         defer(() -> completion.accept(result));
     }
