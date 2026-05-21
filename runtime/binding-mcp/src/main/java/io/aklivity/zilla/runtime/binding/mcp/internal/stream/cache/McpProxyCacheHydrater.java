@@ -510,6 +510,8 @@ final class McpProxyCacheHydrater
             private void onListHydrateBegin(
                 BeginFW begin)
             {
+                replySeq = begin.sequence();
+                replyAck = begin.acknowledge();
                 state = McpState.openingReply(state);
                 doListHydrateWindow(begin.traceId());
             }
@@ -517,6 +519,8 @@ final class McpProxyCacheHydrater
             private void onListHydrateData(
                 DataFW data)
             {
+                replySeq = data.sequence() + data.reserved();
+
                 final OctetsFW payload = data.payload();
                 if (payload != null)
                 {
@@ -524,6 +528,8 @@ final class McpProxyCacheHydrater
                     bodyBuffer.putBytes(bodyLen, payload.buffer(), payload.offset(), payloadLen);
                     bodyLen += payloadLen;
                 }
+
+                replyAck = replySeq;
                 doListHydrateWindow(data.traceId());
             }
 

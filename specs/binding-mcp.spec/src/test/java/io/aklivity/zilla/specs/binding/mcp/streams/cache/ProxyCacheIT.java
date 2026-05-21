@@ -170,4 +170,40 @@ public class ProxyCacheIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/cache.hydrate.10k/client",
+        "${app}/cache.hydrate.10k/server" })
+    public void shouldHydrate10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/cache.hydrate.100k/client",
+        "${app}/cache.hydrate.100k/server" })
+    public void shouldHydrate100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/cache.serve.tools.list.10k/client",
+        "${app}/cache.serve.tools.list.10k/server" })
+    public void shouldServeToolsList10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/cache.serve.tools.list.100k/client",
+        "${app}/cache.serve.tools.list.100k/server" })
+    public void shouldServeToolsList100k() throws Exception
+    {
+        k3po.finish();
+    }
 }

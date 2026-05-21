@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_HYDRATE_FILTER_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_SESSION_ID_NAME;
+import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLOT_CAPACITY_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -220,6 +221,50 @@ public class McpProxyCacheIT
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "prompts")
     public void shouldRefreshPrompts() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.cache.yaml")
+    @Specification({
+        "${app}/cache.hydrate.10k/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    public void shouldHydrate10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.cache.yaml")
+    @Specification({
+        "${app}/cache.hydrate.100k/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    public void shouldHydrate100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.cache.seeded.tools.10k.yaml")
+    @Specification({
+        "${app}/cache.serve.tools.list.10k/client" })
+    @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    public void shouldServeToolsList10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.cache.seeded.tools.100k.yaml")
+    @Specification({
+        "${app}/cache.serve.tools.list.100k/client" })
+    @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    public void shouldServeToolsList100k() throws Exception
     {
         k3po.finish();
     }
