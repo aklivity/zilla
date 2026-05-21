@@ -47,6 +47,7 @@ public class ServerIT
             .countersBufferCapacity(8192)
             .configurationRoot("io/aklivity/zilla/specs/binding/tls/config")
             .external("app0")
+            .external("app1")
             .configure(ENGINE_DRAIN_ON_CLOSE, false)
             .clean();
 
@@ -295,6 +296,35 @@ public class ServerIT
         "${net}/server.mutual.auth/client",
         "${app}/server.mutual.auth/server"})
     public void shouldRequestMutualAuthentication() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.mutual.signer.routed.yaml")
+    @Specification({
+        "${net}/server.mutual.auth/client",
+        "${app}/server.mutual.auth/server"})
+    public void shouldRouteByClientCertSigner() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.mutual.signer.routed.yaml")
+    @Specification({
+        "${net}/server.mutual.cert.absent/client",
+        "${app}/server.mutual.cert.absent/server"})
+    public void shouldRouteWhenClientCertAbsent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.mutual.signer.routed.yaml")
+    @Specification({
+        "${net}/server.mutual.signer.untrusted/client"})
+    public void shouldRejectWhenClientCertSignerNotTrustedByRoute() throws Exception
     {
         k3po.finish();
     }
