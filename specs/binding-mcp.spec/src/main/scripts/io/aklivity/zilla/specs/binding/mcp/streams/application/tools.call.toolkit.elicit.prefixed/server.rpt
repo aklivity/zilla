@@ -42,32 +42,58 @@ accepted
 
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
-                          .promptsGet()
+                          .toolsCall()
                               .sessionId("session-1")
-                              .name("weather_prompt")
+                              .name("bluesky__get_weather")
                               .build()
                           .build()}
+
+read advise zilla:challenge ${mcp:challengeEx()
+                                  .typeId(zilla:id("mcp"))
+                                  .elicitCreate()
+                                      .id("1")
+                                      .url("https://server.example.com/authorize?state=bluesky__7f3a9b1c&redirect_uri=%s".formatted(http:encodeQuery("https://replace.me/callback")))
+                                      .build()
+                                  .build()}
 
 connected
 
 read  '{'
-        '"name":"bluesky__weather_prompt"'
+        '"name":"bluesky__get_weather",'
+        '"arguments":'
+        '{'
+          '"location": "New York"'
+        '}'
       '}'
+
+read advised zilla:flush ${mcp:matchFlushEx()
+                               .typeId(zilla:id("mcp"))
+                               .elicitCallback()
+                                   .url("http://localhost:8080/mcp/auth/callback?code=xyz&state=session-1.elicit-1.bluesky__7f3a9b1c")
+                                   .build()
+                               .build()}
+
 read closed
 
 write flush
 
-write '{"messages":'
+write advise zilla:flush ${mcp:flushEx()
+                              .typeId(zilla:id("mcp"))
+                              .elicitComplete()
+                                  .id("1")
+                                  .status("COMPLETED")
+                                  .build()
+                              .build()}
+
+write '{'
+        '"content":'
         '['
           '{'
-            '"role":"user",'
-            '"content":'
-            '{'
-              '"type":"text",'
-              '"text":"What is the weather like today?"'
-            '}'
+            '"type": "text",'
+            '"text": "Current weather in New York:\\nTemperature: 72°F\\nConditions: Partly cloudy"'
           '}'
-        ']'
+        '],'
+        '"isError": false'
       '}'
 write flush
 

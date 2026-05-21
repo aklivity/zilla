@@ -33,30 +33,26 @@ read zilla:begin.ext ${mcp:matchBeginEx()
                               .build()
                           .build()}
 
-read notify LIFECYCLE_INITIALIZED
+read advise zilla:challenge ${mcp:challengeEx()
+                                  .typeId(zilla:id("mcp"))
+                                  .resume()
+                                      .build()
+                                  .build()}
 
-connect await LIFECYCLE_INITIALIZED
-        "zilla://streams/app0"
-        option zilla:window 8192
-        option zilla:transmission "half-duplex"
+read advised zilla:flush ${mcp:matchFlushEx()
+                               .typeId(zilla:id("mcp"))
+                               .resumable()
+                                   .build()
+                               .build()}
 
-write zilla:begin.ext ${mcp:beginEx()
-                           .typeId(zilla:id("mcp"))
-                           .toolsList()
-                               .sessionId("session-1")
-                               .build()
-                           .build()}
+read advise zilla:challenge ${mcp:challengeEx()
+                                  .typeId(zilla:id("mcp"))
+                                  .resume()
+                                      .build()
+                                  .build()}
 
-connected
-
-write close
-
-read  '{"tools":'
-        '['
-          '{'
-            '"name":"get_weather",'
-            '"title":"Weather Information Provider"'
-          '}'
-        ']'
-      '}'
-read closed
+read advised zilla:flush ${mcp:matchFlushEx()
+                               .typeId(zilla:id("mcp"))
+                               .resumable()
+                                   .build()
+                               .build()}

@@ -13,7 +13,7 @@
 # specific language governing permissions and limitations under the License.
 #
 
-connect "zilla://streams/app0"
+connect "zilla://streams/app1"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
 
@@ -33,10 +33,10 @@ read zilla:begin.ext ${mcp:matchBeginEx()
                               .build()
                           .build()}
 
-read notify LIFECYCLE_INITIALIZED
+read notify LIFECYCLE_INITIALIZED_1
 
-connect await LIFECYCLE_INITIALIZED
-        "zilla://streams/app0"
+connect await LIFECYCLE_INITIALIZED_1
+        "zilla://streams/app1"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
 
@@ -53,8 +53,56 @@ write close
 
 read  '{"resources":'
         '['
-          '{"uri":"bluesky+file:///data/readme.txt"},'
-          '{"uri":"quartz+file:///data/timezones.txt"}'
+          '{"uri":"file:///data/readme.txt"}'
+        ']'
+      '}'
+read closed
+
+read notify SERVER_1_DONE
+
+
+connect await SERVER_1_DONE
+        "zilla://streams/app2"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${mcp:beginEx()
+                           .typeId(zilla:id("mcp"))
+                           .lifecycle()
+                               .sessionId("session-1")
+                               .build()
+                           .build()}
+
+connected
+
+read zilla:begin.ext ${mcp:matchBeginEx()
+                          .typeId(zilla:id("mcp"))
+                          .lifecycle()
+                              .sessionId("session-1")
+                              .build()
+                          .build()}
+
+read notify LIFECYCLE_INITIALIZED_2
+
+connect await LIFECYCLE_INITIALIZED_2
+        "zilla://streams/app2"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${mcp:beginEx()
+                           .typeId(zilla:id("mcp"))
+                           .resourcesList()
+                               .sessionId("session-1")
+                               .build()
+                           .build()}
+
+connected
+
+write close
+
+read  '{"resources":'
+        '['
+          '{"uri":"file:///data/timezones.txt"}'
         ']'
       '}'
 read closed

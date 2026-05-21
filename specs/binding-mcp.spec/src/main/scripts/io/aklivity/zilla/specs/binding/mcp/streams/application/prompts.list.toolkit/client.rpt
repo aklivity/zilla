@@ -54,7 +54,7 @@ write close
 read  '{"prompts":'
         '['
           '{'
-            '"name":"bluesky__weather_prompt",'
+            '"name":"weather_prompt",'
             '"description":"Ask about weather"'
           '}'
         ']'

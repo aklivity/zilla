@@ -53,10 +53,8 @@ write close
 
 read  '{"tools":'
         '['
-          '{'
-            '"name":"get_weather",'
-            '"title":"Weather Information Provider"'
-          '}'
+          '{"name":"bluesky__get_weather"},'
+          '{"name":"quartz__get_current_time"}'
         ']'
       '}'
 read closed

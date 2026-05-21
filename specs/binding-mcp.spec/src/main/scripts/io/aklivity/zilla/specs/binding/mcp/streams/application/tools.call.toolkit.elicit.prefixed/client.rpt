@@ -42,29 +42,55 @@ connect await LIFECYCLE_INITIALIZED
 
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
-                           .promptsGet()
+                           .toolsCall()
                                .sessionId("session-1")
-                               .name("weather_prompt")
+                               .name("bluesky__get_weather")
                                .build()
                            .build()}
+
+write advised zilla:challenge ${mcp:matchChallengeEx()
+                                    .typeId(zilla:id("mcp"))
+                                    .elicitCreate()
+                                        .id("1")
+                                        .url("https://server.example.com/authorize?state=bluesky__7f3a9b1c&redirect_uri=%s".formatted(http:encodeQuery("https://replace.me/callback")))
+                                        .build()
+                                    .build()}
 
 connected
 
 write '{'
-        '"name":"bluesky__weather_prompt"'
+        '"name":"bluesky__get_weather",'
+        '"arguments":'
+        '{'
+          '"location": "New York"'
+        '}'
       '}'
+
+write advise zilla:flush ${mcp:flushEx()
+                              .typeId(zilla:id("mcp"))
+                              .elicitCallback()
+                                  .url("http://localhost:8080/mcp/auth/callback?code=xyz&state=session-1.elicit-1.bluesky__7f3a9b1c")
+                                  .build()
+                              .build()}
+
 write close
 
-read  '{"messages":'
-        '['
-          '{'
-            '"role":"user",'
-            '"content":'
-            '{'
-              '"type":"text",'
-              '"text":"What is the weather like today?"'
-            '}'
-          '}'
-        ']'
-      '}'
+read advised zilla:flush ${mcp:matchFlushEx()
+                               .typeId(zilla:id("mcp"))
+                               .elicitComplete()
+                                   .id("1")
+                                   .status("COMPLETED")
+                                   .build()
+                               .build()}
+
+read '{'
+       '"content":'
+       '['
+         '{'
+           '"type": "text",'
+           '"text": "Current weather in New York:\\nTemperature: 72°F\\nConditions: Partly cloudy"'
+         '}'
+       '],'
+       '"isError": false'
+     '}'
 read closed

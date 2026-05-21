@@ -42,20 +42,28 @@ connect await LIFECYCLE_INITIALIZED
 
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
-                           .toolsList()
+                           .promptsGet()
                                .sessionId("session-1")
+                               .name("bluesky__weather_prompt")
                                .build()
                            .build()}
 
 connected
 
+write '{'
+        '"name":"bluesky__weather_prompt"'
+      '}'
 write close
 
-read  '{"tools":'
+read  '{"messages":'
         '['
           '{'
-            '"name":"get_weather",'
-            '"title":"Weather Information Provider"'
+            '"role":"user",'
+            '"content":'
+            '{'
+              '"type":"text",'
+              '"text":"What is the weather like today?"'
+            '}'
           '}'
         ']'
       '}'

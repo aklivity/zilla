@@ -42,7 +42,7 @@ connect await LIFECYCLE_INITIALIZED
 
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
-                           .toolsList()
+                           .resourcesList()
                                .sessionId("session-1")
                                .build()
                            .build()}
@@ -51,12 +51,10 @@ connected
 
 write close
 
-read  '{"tools":'
+read  '{"resources":'
         '['
-          '{'
-            '"name":"get_weather",'
-            '"title":"Weather Information Provider"'
-          '}'
+          '{"uri":"bluesky+file:///data/readme.txt"},'
+          '{"uri":"quartz+file:///data/timezones.txt"}'
         ']'
       '}'
 read closed

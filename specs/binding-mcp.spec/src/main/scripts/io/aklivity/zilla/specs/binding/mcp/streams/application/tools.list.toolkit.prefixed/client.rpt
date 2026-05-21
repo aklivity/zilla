@@ -54,7 +54,7 @@ write close
 read  '{"tools":'
         '['
           '{'
-            '"name":"get_weather",'
+            '"name":"bluesky__get_weather",'
             '"title":"Weather Information Provider"'
           '}'
         ']'
