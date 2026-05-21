@@ -16,4 +16,7 @@ package io.aklivity.zilla.runtime.binding.mcp.internal.config;
 
 public interface McpProxySession
 {
+    void doNotifyListChanged(
+        int kind,
+        long traceId);
 }

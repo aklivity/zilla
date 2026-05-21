@@ -18,13 +18,16 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeg
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.IntConsumer;
 import java.util.function.IntPredicate;
+import java.util.zip.CRC32;
 
 import org.agrona.collections.Int2ObjectHashMap;
 
@@ -61,10 +64,12 @@ public final class McpProxyCache
     private final StoreHandler store;
     private final Int2ObjectHashMap<McpListCache> caches;
     private final List<Runnable> awaiters;
+    private final CRC32 crc32 = new CRC32();
 
     boolean populated;
 
     Runnable onReady;
+    public IntConsumer onChanged;
 
     public McpProxyCache(
         BindingConfig binding,
@@ -181,6 +186,7 @@ public final class McpProxyCache
         private final String storeLockKey;
 
         boolean populated;
+        private long lastChecksum = -1L;
 
         private McpListCache(
             int kind,
@@ -202,7 +208,18 @@ public final class McpProxyCache
             String value,
             Consumer<String> completion)
         {
-            store.put(storeKey, value, STORE_TTL_FOREVER, completion.andThen(this::checkPut));
+            crc32.reset();
+            crc32.update(value.getBytes(StandardCharsets.UTF_8));
+            final long newChecksum = crc32.getValue();
+            final boolean changed = lastChecksum != -1L && lastChecksum != newChecksum;
+            lastChecksum = newChecksum;
+            store.put(storeKey, value, STORE_TTL_FOREVER, completion.andThen(this::checkPut).andThen(k ->
+            {
+                if (changed && onChanged != null)
+                {
+                    onChanged.accept(kind);
+                }
+            }));
         }
 
         public void acquire(
@@ -223,6 +240,12 @@ public final class McpProxyCache
             String value)
         {
             populated = value != null;
+            if (value != null)
+            {
+                crc32.reset();
+                crc32.update(value.getBytes(StandardCharsets.UTF_8));
+                lastChecksum = crc32.getValue();
+            }
             checkReady();
         }
 

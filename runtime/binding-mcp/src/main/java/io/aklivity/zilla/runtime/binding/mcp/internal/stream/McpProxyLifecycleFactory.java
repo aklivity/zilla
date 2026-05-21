@@ -15,6 +15,9 @@
 package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_LIFECYCLE;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_PROMPTS_LIST;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_LIST;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
 
 import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
@@ -38,6 +41,7 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpChallengeExFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpFlushExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.WindowFW;
@@ -74,6 +78,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
     private final ChallengeFW.Builder challengeRW = new ChallengeFW.Builder();
     private final McpBeginExFW.Builder mcpBeginExRW = new McpBeginExFW.Builder();
     private final McpChallengeExFW.Builder mcpChallengeExRW = new McpChallengeExFW.Builder();
+    private final McpFlushExFW.Builder mcpFlushExRW = new McpFlushExFW.Builder();
 
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer codecBuffer;
@@ -154,6 +159,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
 
         private int state;
         private boolean resumePending;
+        private long nextNotificationId;
 
         private long initialSeq;
         private long initialAck;
@@ -451,6 +457,53 @@ final class McpProxyLifecycleFactory implements BindingHandler
         {
             doFlush(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
                 traceId, authorization, budgetId, reserved, extension);
+        }
+
+        @Override
+        public void doNotifyListChanged(
+            int kind,
+            long traceId)
+        {
+            if (!McpState.replyOpened(state) || McpState.replyClosed(state))
+            {
+                return;
+            }
+
+            final String id = Long.toString(nextNotificationId++);
+            final McpFlushExFW flushEx;
+            switch (kind)
+            {
+            case KIND_TOOLS_LIST:
+                flushEx = mcpFlushExRW
+                    .wrap(codecBuffer, 0, codecBuffer.capacity())
+                    .typeId(mcpTypeId)
+                    .toolsListChanged(b -> b.id(id))
+                    .build();
+                break;
+            case KIND_PROMPTS_LIST:
+                flushEx = mcpFlushExRW
+                    .wrap(codecBuffer, 0, codecBuffer.capacity())
+                    .typeId(mcpTypeId)
+                    .promptsListChanged(b -> b.id(id))
+                    .build();
+                break;
+            case KIND_RESOURCES_LIST:
+                flushEx = mcpFlushExRW
+                    .wrap(codecBuffer, 0, codecBuffer.capacity())
+                    .typeId(mcpTypeId)
+                    .resourcesListChanged(b -> b.id(id))
+                    .build();
+                break;
+            default:
+                flushEx = null;
+                break;
+            }
+
+            if (flushEx != null)
+            {
+                doFlush(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                    traceId, authorization, 0L, 0, flushEx);
+            }
         }
 
         private void doServerWindow(
@@ -906,6 +959,37 @@ final class McpProxyLifecycleFactory implements BindingHandler
         long budgetId,
         int reserved,
         OctetsFW extension)
+    {
+        final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+            .originId(originId)
+            .routedId(routedId)
+            .streamId(streamId)
+            .sequence(sequence)
+            .acknowledge(acknowledge)
+            .maximum(maximum)
+            .traceId(traceId)
+            .authorization(authorization)
+            .budgetId(budgetId)
+            .reserved(reserved)
+            .extension(extension.buffer(), extension.offset(), extension.sizeof())
+            .build();
+
+        receiver.accept(flush.typeId(), flush.buffer(), flush.offset(), flush.sizeof());
+    }
+
+    private void doFlush(
+        MessageConsumer receiver,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        Flyweight extension)
     {
         final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
             .originId(originId)
