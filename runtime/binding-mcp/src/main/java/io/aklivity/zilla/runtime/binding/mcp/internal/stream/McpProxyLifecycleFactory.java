@@ -317,7 +317,12 @@ final class McpProxyLifecycleFactory implements BindingHandler
 
             state = McpState.closedInitial(state);
 
-            cleanup(traceId);
+            binding.sessions.remove(sessionId);
+
+            for (McpLifecycleClient client : clients.values())
+            {
+                client.doClientEnd(traceId);
+            }
 
             doServerEnd(traceId);
         }
@@ -339,7 +344,12 @@ final class McpProxyLifecycleFactory implements BindingHandler
 
             state = McpState.closedInitial(state);
 
-            cleanup(traceId);
+            binding.sessions.remove(sessionId);
+
+            for (McpLifecycleClient client : clients.values())
+            {
+                client.doClientAbort(traceId);
+            }
 
             doServerAbort(traceId);
         }
@@ -381,7 +391,12 @@ final class McpProxyLifecycleFactory implements BindingHandler
 
             state = McpState.closedReply(state);
 
-            cleanup(traceId);
+            binding.sessions.remove(sessionId);
+
+            for (McpLifecycleClient client : clients.values())
+            {
+                client.doClientReset(traceId);
+            }
         }
 
         private void doServerBegin(
@@ -413,6 +428,17 @@ final class McpProxyLifecycleFactory implements BindingHandler
             }
         }
 
+        private void doServerReset(
+            long traceId)
+        {
+            if (!McpState.initialClosed(state))
+            {
+                doReset(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId,
+                    authorization, emptyRO);
+                state = McpState.closedInitial(state);
+            }
+        }
+
         private void doServerFlush(
             long traceId,
             long authorization,
@@ -433,16 +459,6 @@ final class McpProxyLifecycleFactory implements BindingHandler
                 budgetId, padding);
         }
 
-        private void cleanup(
-            long traceId)
-        {
-            binding.sessions.remove(sessionId);
-
-            for (McpLifecycleClient upstream : clients.values())
-            {
-                upstream.doClientEnd(traceId);
-            }
-        }
     }
 
     final class McpLifecycleClient
@@ -659,6 +675,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
             state = McpState.closedReply(state);
             doClientEnd(traceId);
             server.clients.remove(routedId, this);
+            server.doServerEnd(traceId);
         }
 
         private void onClientAbort(
@@ -679,6 +696,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
             state = McpState.closedReply(state);
             doClientAbort(traceId);
             server.clients.remove(routedId, this);
+            server.doServerAbort(traceId);
         }
 
         private void onClientWindow(
@@ -719,6 +737,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
             state = McpState.closedInitial(state);
             doClientReset(traceId);
             server.clients.remove(routedId, this);
+            server.doServerReset(traceId);
         }
     }
 

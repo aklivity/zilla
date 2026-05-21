@@ -98,16 +98,6 @@ public class McpProxyCacheLifecycleIT
         k3po.finish();
     }
 
-    @Test
-    @Configuration("proxy.cache.yaml")
-    @Specification({
-        "${app}/cache.hydrate.lifecycle.reconnect/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
-    public void shouldReconnectAfterLifecycleAbort() throws Exception
-    {
-        k3po.finish();
-    }
-
     public static String sessionId()
     {
         return "hydrate-1";
