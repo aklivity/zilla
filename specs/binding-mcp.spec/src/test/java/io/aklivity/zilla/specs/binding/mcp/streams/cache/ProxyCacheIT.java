@@ -26,7 +26,7 @@ import org.junit.rules.Timeout;
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 
-public class ProxyCacheLifecycleIT
+public class ProxyCacheIT
 {
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("app", "io/aklivity/zilla/specs/binding/mcp/streams/application");
@@ -86,6 +86,87 @@ public class ProxyCacheLifecycleIT
         "${app}/cache.hydrate.lifecycle.reconnect/client",
         "${app}/cache.hydrate.lifecycle.reconnect/server" })
     public void shouldReconnectAfterLifecycleAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/cache.serve.tools.list/client",
+        "${app}/cache.serve.tools.list/server" })
+    public void shouldServeToolsList() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/cache.refresh.tools/client",
+        "${app}/cache.refresh.tools/server" })
+    public void shouldRefreshTools() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/cache.refresh.tools.error/client",
+        "${app}/cache.refresh.tools.error/server" })
+    public void shouldRefreshToolsError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/cache.refresh.tools.error.retry/client",
+        "${app}/cache.refresh.tools.error.retry/server" })
+    public void shouldRetryAfterToolsRefreshError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/cache.refresh.tools.contended/client",
+        "${app}/cache.refresh.tools.contended/server" })
+    public void shouldRefreshToolsContended() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/cache.serve.resources.list/client",
+        "${app}/cache.serve.resources.list/server" })
+    public void shouldServeResourcesList() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/cache.refresh.resources/client",
+        "${app}/cache.refresh.resources/server" })
+    public void shouldRefreshResources() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/cache.serve.prompts.list/client",
+        "${app}/cache.serve.prompts.list/server" })
+    public void shouldServePromptsList() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/cache.refresh.prompts/client",
+        "${app}/cache.refresh.prompts/server" })
+    public void shouldRefreshPrompts() throws Exception
     {
         k3po.finish();
     }

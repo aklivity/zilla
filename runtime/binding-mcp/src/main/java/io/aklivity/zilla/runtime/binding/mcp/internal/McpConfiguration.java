@@ -14,6 +14,9 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal;
 
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_PROMPTS_LIST;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_LIST;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKERS;
 
 import java.lang.invoke.MethodHandle;
@@ -21,7 +24,9 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.security.SecureRandom;
 import java.time.Duration;
+import java.util.HashSet;
 import java.util.HexFormat;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.IntPredicate;
 import java.util.function.Supplier;
@@ -286,23 +291,25 @@ public class McpConfiguration extends Configuration
     private static IntPredicate decodeHydrateFilter(
         String value)
     {
-        IntPredicate filter = null;
-
-        try
+        final Set<Integer> kinds = new HashSet<>();
+        for (String name : value.split("\\s+"))
         {
-            MethodType signature = MethodType.methodType(IntPredicate.class);
-            String[] parts = value.split("::");
-            Class<?> ownerClass = Class.forName(parts[0]);
-            String methodName = parts[1];
-            MethodHandle method = MethodHandles.publicLookup().findStatic(ownerClass, methodName, signature);
-            filter = (IntPredicate) method.invoke();
+            switch (name)
+            {
+            case "tools":
+                kinds.add(KIND_TOOLS_LIST);
+                break;
+            case "resources":
+                kinds.add(KIND_RESOURCES_LIST);
+                break;
+            case "prompts":
+                kinds.add(KIND_PROMPTS_LIST);
+                break;
+            default:
+                break;
+            }
         }
-        catch (Throwable ex)
-        {
-            LangUtil.rethrowUnchecked(ex);
-        }
-
-        return filter;
+        return kinds::contains;
     }
 
     private static boolean defaultHydrateFilter(
