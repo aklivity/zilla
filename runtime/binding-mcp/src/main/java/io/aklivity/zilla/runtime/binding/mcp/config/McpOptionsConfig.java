@@ -24,15 +24,18 @@ public final class McpOptionsConfig extends OptionsConfig
     public final List<McpPromptConfig> prompts;
     public final McpElicitationConfig elicitation;
     public final McpAuthorizationConfig authorization;
+    public final McpCacheConfig cache;
 
-    public McpOptionsConfig(
+    McpOptionsConfig(
         List<McpPromptConfig> prompts,
         McpElicitationConfig elicitation,
-        McpAuthorizationConfig authorization)
+        McpAuthorizationConfig authorization,
+        McpCacheConfig cache)
     {
         this.prompts = prompts;
         this.elicitation = elicitation;
         this.authorization = authorization;
+        this.cache = cache;
     }
 
     public static McpOptionsConfigBuilder<McpOptionsConfig> builder()
