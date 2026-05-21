@@ -105,7 +105,7 @@ final class McpProxyCacheHydrater
         private final McpProxyCache cache;
         private final McpProxyCacheListener listener;
 
-        private McpHydrateLifecycleStream lifecycleStream;
+        private McpHydrateLifecycleStream lifecycle;
         private boolean stopped;
         private boolean closedNotified;
 
@@ -131,10 +131,10 @@ final class McpProxyCacheHydrater
         public void stop()
         {
             stopped = true;
-            if (lifecycleStream != null)
+            if (lifecycle != null)
             {
-                lifecycleStream.doLifecycleEnd(supplyTraceId.getAsLong());
-                lifecycleStream = null;
+                lifecycle.doLifecycleEnd(supplyTraceId.getAsLong());
+                lifecycle = null;
             }
             cache.releaseLifecycle(k -> {});
         }
@@ -143,7 +143,7 @@ final class McpProxyCacheHydrater
         public void hydrate(
             int kind)
         {
-            if (stopped || lifecycleStream == null)
+            if (stopped || lifecycle == null)
             {
                 return;
             }
@@ -168,8 +168,8 @@ final class McpProxyCacheHydrater
                 cache.authorization = cache.guard != null
                     ? cache.guard.reauthorize(traceId, cache.bindingId, 0L, cache.credentials)
                     : 0L;
-                lifecycleStream = new McpHydrateLifecycleStream(this);
-                lifecycleStream.doLifecycleBegin(traceId);
+                lifecycle = new McpHydrateLifecycleStream(this);
+                lifecycle.doLifecycleBegin(traceId);
             }
             else
             {
@@ -188,7 +188,7 @@ final class McpProxyCacheHydrater
 
         private void onLifecycleClosed()
         {
-            lifecycleStream = null;
+            lifecycle = null;
             cache.releaseLifecycle(k -> {});
             notifyClosed();
         }
@@ -233,19 +233,19 @@ final class McpProxyCacheHydrater
             this.streams = new ArrayList<>();
         }
 
-        void registerListStream(
+        void register(
             McpListHydrater.McpListHydrateStream stream)
         {
             streams.add(stream);
         }
 
-        void unregisterListStream(
+        void unregister(
             McpListHydrater.McpListHydrateStream stream)
         {
             streams.remove(stream);
         }
 
-        private void cleanupListStreams(
+        private void cleanupStreams(
             long traceId)
         {
             if (streams.isEmpty())
@@ -303,7 +303,7 @@ final class McpProxyCacheHydrater
         {
             final long traceId = end.traceId();
             state = McpState.closedReply(state);
-            cleanupListStreams(traceId);
+            cleanupStreams(traceId);
             doLifecycleEnd(traceId);
             handler.onLifecycleClosed();
         }
@@ -313,7 +313,7 @@ final class McpProxyCacheHydrater
         {
             final long traceId = abort.traceId();
             state = McpState.closedReply(state);
-            cleanupListStreams(traceId);
+            cleanupStreams(traceId);
             doLifecycleAbort(traceId);
             handler.onLifecycleClosed();
         }
@@ -323,7 +323,7 @@ final class McpProxyCacheHydrater
         {
             final long traceId = reset.traceId();
             state = McpState.closedInitial(state);
-            cleanupListStreams(traceId);
+            cleanupStreams(traceId);
             handler.onLifecycleClosed();
         }
 
@@ -353,7 +353,7 @@ final class McpProxyCacheHydrater
         {
             if (!McpState.initialClosed(state))
             {
-                cleanupListStreams(traceId);
+                cleanupStreams(traceId);
                 doEnd(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, handler.cache.authorization);
                 state = McpState.closedInitial(state);
@@ -398,7 +398,7 @@ final class McpProxyCacheHydrater
             HandlerImpl handler,
             String value)
         {
-            if (handler.stopped || handler.lifecycleStream == null)
+            if (handler.stopped || handler.lifecycle == null)
             {
                 return;
             }
@@ -413,7 +413,7 @@ final class McpProxyCacheHydrater
             HandlerImpl handler,
             boolean acquired)
         {
-            if (handler.stopped || handler.lifecycleStream == null)
+            if (handler.stopped || handler.lifecycle == null)
             {
                 return;
             }
@@ -433,7 +433,7 @@ final class McpProxyCacheHydrater
         {
             final long traceId = supplyTraceId.getAsLong();
             final McpListHydrateStream stream = new McpListHydrateStream(handler);
-            handler.lifecycleStream.registerListStream(stream);
+            handler.lifecycle.register(stream);
             stream.doListHydrateBegin(traceId);
         }
 
@@ -640,9 +640,9 @@ final class McpProxyCacheHydrater
                 if (!settled)
                 {
                     settled = true;
-                    if (handler.lifecycleStream != null)
+                    if (handler.lifecycle != null)
                     {
-                        handler.lifecycleStream.unregisterListStream(this);
+                        handler.lifecycle.unregister(this);
                     }
                     handler.cache.cacheOf(kind()).release(k -> {});
                     if (failed && !handler.stopped)
