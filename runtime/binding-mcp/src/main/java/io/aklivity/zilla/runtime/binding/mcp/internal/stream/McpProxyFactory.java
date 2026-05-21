@@ -22,12 +22,15 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeg
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_CALL;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
 
+import java.util.function.Function;
+
 import org.agrona.DirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpBindingConfig;
+import io.aklivity.zilla.runtime.binding.mcp.internal.stream.cache.McpProxyCache;
 import io.aklivity.zilla.runtime.binding.mcp.internal.stream.cache.McpProxyCacheManager;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.BeginFW;
@@ -51,7 +54,7 @@ public final class McpProxyFactory implements McpStreamFactory
     private final Long2ObjectHashMap<McpBindingConfig> bindings;
     private final Long2ObjectHashMap<McpProxyCacheManager> managers;
     private final Int2ObjectHashMap<BindingHandler> factories;
-    private final McpProxyCacheManager.Factory cacheManagers;
+    private final Function<McpProxyCache, McpProxyCacheManager> supplyManager;
 
     public McpProxyFactory(
         McpConfiguration config,
@@ -62,7 +65,7 @@ public final class McpProxyFactory implements McpStreamFactory
         this.bindings = new Long2ObjectHashMap<>();
         this.managers = new Long2ObjectHashMap<>();
         this.factories = new Int2ObjectHashMap<>();
-        this.cacheManagers = new McpProxyCacheManager.Factory(config, context);
+        this.supplyManager = new McpProxyCacheManager.Factory(config, context)::create;
         this.factories.put(KIND_LIFECYCLE,
             new McpProxyLifecycleFactory(config, context, bindings::get));
         this.factories.put(KIND_TOOLS_CALL,
@@ -94,7 +97,7 @@ public final class McpProxyFactory implements McpStreamFactory
         bindings.put(binding.id, newBinding);
         if (newBinding.cache != null)
         {
-            McpProxyCacheManager manager = cacheManagers.create(newBinding.cache);
+            McpProxyCacheManager manager = supplyManager.apply(newBinding.cache);
             managers.put(binding.id, manager);
             manager.start();
         }
