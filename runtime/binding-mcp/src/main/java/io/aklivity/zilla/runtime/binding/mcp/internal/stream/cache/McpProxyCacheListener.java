@@ -16,6 +16,8 @@ package io.aklivity.zilla.runtime.binding.mcp.internal.stream.cache;
 
 interface McpProxyCacheListener
 {
+    void onOpened();
+
     void onError(
         int kind);
 

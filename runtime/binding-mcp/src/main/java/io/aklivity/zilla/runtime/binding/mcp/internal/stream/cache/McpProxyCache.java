@@ -20,7 +20,9 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeg
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -28,9 +30,7 @@ import java.util.function.IntPredicate;
 
 import io.aklivity.zilla.runtime.binding.mcp.config.McpCacheConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
-import io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpSignalHandle;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.store.StoreHandler;
@@ -45,7 +45,7 @@ public final class McpProxyCache
     private static final String STORE_LOCK_KEY_TOOLS = STORE_KEY_TOOLS + STORE_LOCK_SUFFIX;
     private static final String STORE_LOCK_KEY_RESOURCES = STORE_KEY_RESOURCES + STORE_LOCK_SUFFIX;
     private static final String STORE_LOCK_KEY_PROMPTS = STORE_KEY_PROMPTS + STORE_LOCK_SUFFIX;
-    private static final String STORE_LIFECYCLE_LOCK_KEY = "lifecycle.lock";
+    private static final String STORE_LOCK_KEY_LIFECYCLE = "lifecycle.lock";
     private static final long STORE_TTL_FOREVER = Long.MAX_VALUE;
 
     public final long bindingId;
@@ -58,15 +58,9 @@ public final class McpProxyCache
     public String sessionId;
     public long authorization;
 
-    final Signaler signaler;
-    final IntPredicate hydrateFilter;
-
     private final StoreHandler store;
-    private final McpListCache tools;
-    private final McpListCache resources;
-    private final McpListCache prompts;
-    private final List<McpListCache> caches;
-    private final List<McpSignalHandle> awaiters;
+    private final Map<Integer, McpListCache> caches;
+    private final List<Runnable> awaiters;
 
     boolean populated;
 
@@ -80,8 +74,6 @@ public final class McpProxyCache
     {
         this.bindingId = binding.id;
         this.store = context.supplyStore(binding.resolveId.applyAsLong(cache.store));
-        this.signaler = context.signaler();
-        this.hydrateFilter = config.hydrateFilter();
         this.guard = Optional.ofNullable(cache.authorization)
             .map(a -> a.name)
             .map(binding.resolveId::applyAsLong)
@@ -93,96 +85,76 @@ public final class McpProxyCache
         this.leaseTtl = config.leaseTtl();
         this.leaseRetry = config.leaseRetry();
         this.cacheTtl = cache.ttl;
-        this.tools = new McpListCache(STORE_KEY_TOOLS, STORE_LOCK_KEY_TOOLS);
-        this.resources = new McpListCache(STORE_KEY_RESOURCES, STORE_LOCK_KEY_RESOURCES);
-        this.prompts = new McpListCache(STORE_KEY_PROMPTS, STORE_LOCK_KEY_PROMPTS);
         this.awaiters = new ArrayList<>();
+        this.caches = new LinkedHashMap<>();
 
-        final List<McpListCache> active = new ArrayList<>();
-        if (hydrateFilter.test(KIND_TOOLS_LIST))
+        final IntPredicate filter = config.hydrateFilter();
+        if (filter.test(KIND_TOOLS_LIST))
         {
-            active.add(tools);
+            caches.put(KIND_TOOLS_LIST, new McpListCache(KIND_TOOLS_LIST, STORE_KEY_TOOLS, STORE_LOCK_KEY_TOOLS));
         }
-        if (hydrateFilter.test(KIND_RESOURCES_LIST))
+        if (filter.test(KIND_RESOURCES_LIST))
         {
-            active.add(resources);
+            caches.put(KIND_RESOURCES_LIST,
+                new McpListCache(KIND_RESOURCES_LIST, STORE_KEY_RESOURCES, STORE_LOCK_KEY_RESOURCES));
         }
-        if (hydrateFilter.test(KIND_PROMPTS_LIST))
+        if (filter.test(KIND_PROMPTS_LIST))
         {
-            active.add(prompts);
+            caches.put(KIND_PROMPTS_LIST, new McpListCache(KIND_PROMPTS_LIST, STORE_KEY_PROMPTS, STORE_LOCK_KEY_PROMPTS));
         }
-        this.caches = active;
     }
 
-    public McpListCache tools()
+    public McpListCache cacheOf(
+        int kind)
     {
-        return tools;
+        return caches.get(kind);
     }
 
-    public McpListCache resources()
+    public Map<Integer, McpListCache> caches()
     {
-        return resources;
-    }
-
-    public McpListCache prompts()
-    {
-        return prompts;
+        return caches;
     }
 
     public void register(
-        McpSignalHandle handle)
+        Runnable awaiter)
     {
         if (populated)
         {
-            handle.signalVia(signaler);
+            awaiter.run();
         }
         else
         {
-            awaiters.add(handle);
+            awaiters.add(awaiter);
         }
-    }
-
-    List<McpListCache> caches()
-    {
-        return caches;
     }
 
     void acquireLifecycle(
         Consumer<Boolean> completion)
     {
-        store.putIfAbsent(STORE_LIFECYCLE_LOCK_KEY, STORE_LOCK_VALUE, leaseTtl.toMillis(),
+        store.putIfAbsent(STORE_LOCK_KEY_LIFECYCLE, STORE_LOCK_VALUE, leaseTtl.toMillis(),
             prior -> completion.accept(prior == null));
     }
 
     void releaseLifecycle(
         Consumer<String> completion)
     {
-        store.delete(STORE_LIFECYCLE_LOCK_KEY, completion);
+        store.delete(STORE_LOCK_KEY_LIFECYCLE, completion);
     }
 
     void onPurged(
         int kind)
     {
-        switch (kind)
+        final McpListCache cache = caches.get(kind);
+        if (cache != null)
         {
-        case KIND_TOOLS_LIST:
-            tools.populated = false;
-            break;
-        case KIND_RESOURCES_LIST:
-            resources.populated = false;
-            break;
-        case KIND_PROMPTS_LIST:
-            prompts.populated = false;
-            break;
-        default:
-            break;
+            cache.populated = false;
         }
         populated = false;
     }
 
     private void checkReady()
     {
-        for (McpListCache cache : caches)
+        for (McpListCache cache : caches.values())
         {
             if (!cache.populated)
             {
@@ -194,24 +166,28 @@ public final class McpProxyCache
         {
             onReady.run();
         }
-        for (McpSignalHandle h : awaiters)
+        for (Runnable awaiter : awaiters)
         {
-            h.signalVia(signaler);
+            awaiter.run();
         }
         awaiters.clear();
     }
 
     public final class McpListCache
     {
+        public final int kind;
+
         private final String storeKey;
         private final String storeLockKey;
 
         boolean populated;
 
         private McpListCache(
+            int kind,
             String storeKey,
             String storeLockKey)
         {
+            this.kind = kind;
             this.storeKey = storeKey;
             this.storeLockKey = storeLockKey;
         }

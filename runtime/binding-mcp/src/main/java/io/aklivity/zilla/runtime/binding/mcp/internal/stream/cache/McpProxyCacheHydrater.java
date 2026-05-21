@@ -17,13 +17,9 @@ package io.aklivity.zilla.runtime.binding.mcp.internal.stream.cache;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_PROMPTS_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
-import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 
-import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.function.IntPredicate;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
 import java.util.function.Supplier;
@@ -31,6 +27,7 @@ import java.util.function.Supplier;
 import org.agrona.DirectBuffer;
 import org.agrona.ExpandableArrayBuffer;
 import org.agrona.MutableDirectBuffer;
+import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
@@ -48,7 +45,6 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
-import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 
 final class McpProxyCacheHydrater
 {
@@ -56,13 +52,11 @@ final class McpProxyCacheHydrater
     private final MutableDirectBuffer codecBuffer;
     private final BindingHandler streamFactory;
     private final BufferPool bufferPool;
-    private final Signaler signaler;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final LongSupplier supplyTraceId;
     private final int mcpTypeId;
     private final Supplier<String> supplySessionId;
-    private final IntPredicate hydrateFilter;
 
     private final BeginFW beginRO = new BeginFW();
     private final EndFW endRO = new EndFW();
@@ -77,9 +71,7 @@ final class McpProxyCacheHydrater
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
     private final McpBeginExFW.Builder mcpBeginExRW = new McpBeginExFW.Builder();
 
-    private final McpToolsListHydrater toolsHydrater;
-    private final McpResourcesListHydrater resourcesHydrater;
-    private final McpPromptsListHydrater promptsHydrater;
+    private final Int2ObjectHashMap<McpListHydrater> hydraters;
 
     McpProxyCacheHydrater(
         McpConfiguration config,
@@ -89,17 +81,16 @@ final class McpProxyCacheHydrater
         this.codecBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.streamFactory = context.streamFactory();
         this.bufferPool = context.bufferPool();
-        this.signaler = context.signaler();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.supplyTraceId = context::supplyTraceId;
         this.mcpTypeId = context.supplyTypeId("mcp");
         this.supplySessionId = config.sessionIdSupplier();
-        this.hydrateFilter = config.hydrateFilter();
 
-        this.toolsHydrater = new McpToolsListHydrater();
-        this.resourcesHydrater = new McpResourcesListHydrater();
-        this.promptsHydrater = new McpPromptsListHydrater();
+        this.hydraters = new Int2ObjectHashMap<>();
+        hydraters.put(KIND_TOOLS_LIST, new McpToolsListHydrater());
+        hydraters.put(KIND_RESOURCES_LIST, new McpResourcesListHydrater());
+        hydraters.put(KIND_PROMPTS_LIST, new McpPromptsListHydrater());
     }
 
     McpProxyCacheHandler attach(
@@ -109,28 +100,12 @@ final class McpProxyCacheHydrater
         return new HandlerImpl(cache, listener);
     }
 
-    private McpListHydrater hydraterOf(
-        int kind)
-    {
-        return switch (kind)
-        {
-        case KIND_TOOLS_LIST -> toolsHydrater;
-        case KIND_RESOURCES_LIST -> resourcesHydrater;
-        case KIND_PROMPTS_LIST -> promptsHydrater;
-        default -> null;
-        };
-    }
-
     private final class HandlerImpl implements McpProxyCacheHandler
     {
         private final McpProxyCache cache;
         private final McpProxyCacheListener listener;
-        private final List<McpListHydrater> activeHydraters;
-        private final long[] kindRetryBackoffMs;
-        private final long[] kindRetryCancelIds;
 
         private McpHydrateLifecycleStream lifecycleStream;
-        private long lifecycleRetryCancelId;
         private boolean stopped;
         private boolean closedNotified;
 
@@ -140,42 +115,22 @@ final class McpProxyCacheHydrater
         {
             this.cache = cache;
             this.listener = listener;
-            this.kindRetryBackoffMs = new long[KIND_RESOURCES_LIST + 1];
-            this.kindRetryCancelIds = new long[KIND_RESOURCES_LIST + 1];
-            Arrays.fill(this.kindRetryCancelIds, NO_CANCEL_ID);
-            this.lifecycleRetryCancelId = NO_CANCEL_ID;
-
-            final List<McpListHydrater> active = new ArrayList<>();
-            if (hydrateFilter.test(KIND_TOOLS_LIST))
-            {
-                active.add(toolsHydrater);
-            }
-            if (hydrateFilter.test(KIND_RESOURCES_LIST))
-            {
-                active.add(resourcesHydrater);
-            }
-            if (hydrateFilter.test(KIND_PROMPTS_LIST))
-            {
-                active.add(promptsHydrater);
-            }
-            this.activeHydraters = active;
         }
 
         @Override
         public void start()
         {
-            acquireLifecycle();
+            if (stopped)
+            {
+                return;
+            }
+            cache.acquireLifecycle(this::onAcquireLifecycleComplete);
         }
 
         @Override
         public void stop()
         {
             stopped = true;
-            cancelLifecycleRetry();
-            for (int i = 0; i < kindRetryCancelIds.length; i++)
-            {
-                cancelKindRetry(i);
-            }
             if (lifecycleStream != null)
             {
                 lifecycleStream.doLifecycleEnd(supplyTraceId.getAsLong());
@@ -192,20 +147,11 @@ final class McpProxyCacheHydrater
             {
                 return;
             }
-            final McpListHydrater hydrater = hydraterOf(kind);
+            final McpListHydrater hydrater = hydraters.get(kind);
             if (hydrater != null)
             {
-                hydrater.refresh(this);
+                hydrater.hydrate(this);
             }
-        }
-
-        private void acquireLifecycle()
-        {
-            if (stopped)
-            {
-                return;
-            }
-            cache.acquireLifecycle(this::onAcquireLifecycleComplete);
         }
 
         private void onAcquireLifecycleComplete(
@@ -227,20 +173,16 @@ final class McpProxyCacheHydrater
             }
             else
             {
-                scheduleLifecycleRetry();
+                notifyClosed();
             }
         }
 
         private void onLifecycleOpened(
             long traceId)
         {
-            if (activeHydraters.isEmpty())
+            if (!stopped)
             {
-                return;
-            }
-            for (McpListHydrater hydrater : activeHydraters)
-            {
-                hydrater.initiate(this);
+                listener.onOpened();
             }
         }
 
@@ -248,78 +190,27 @@ final class McpProxyCacheHydrater
         {
             lifecycleStream = null;
             cache.releaseLifecycle(k -> {});
+            notifyClosed();
+        }
+
+        private void notifyClosed()
+        {
             if (!stopped && !closedNotified)
             {
                 closedNotified = true;
                 listener.onClosed();
             }
         }
-
-        private void scheduleLifecycleRetry()
-        {
-            cancelLifecycleRetry();
-            lifecycleRetryCancelId = signaler.signalAt(
-                Instant.now().plus(cache.leaseRetry), 0, sig -> acquireLifecycle());
-        }
-
-        private void cancelLifecycleRetry()
-        {
-            if (lifecycleRetryCancelId != NO_CANCEL_ID)
-            {
-                signaler.cancel(lifecycleRetryCancelId);
-                lifecycleRetryCancelId = NO_CANCEL_ID;
-            }
-        }
-
-        private void scheduleKindRetry(
-            int kind)
-        {
-            cancelKindRetry(kind);
-            long delay = kindRetryBackoffMs[kind];
-            delay = delay == 0L ? cache.leaseRetry.toMillis() : Math.min(delay * 2L, cache.leaseTtl.toMillis());
-            kindRetryBackoffMs[kind] = delay;
-            kindRetryCancelIds[kind] = signaler.signalAt(
-                Instant.now().plusMillis(delay), kind, this::onKindRetryFire);
-        }
-
-        private void onKindRetryFire(
-            int kind)
-        {
-            kindRetryCancelIds[kind] = NO_CANCEL_ID;
-            if (stopped || lifecycleStream == null)
-            {
-                return;
-            }
-            final McpListHydrater hydrater = hydraterOf(kind);
-            if (hydrater != null)
-            {
-                hydrater.initiate(this);
-            }
-        }
-
-        private void cancelKindRetry(
-            int kind)
-        {
-            if (kindRetryCancelIds[kind] != NO_CANCEL_ID)
-            {
-                signaler.cancel(kindRetryCancelIds[kind]);
-                kindRetryCancelIds[kind] = NO_CANCEL_ID;
-            }
-        }
-
-        private void resetKindBackoff(
-            int kind)
-        {
-            kindRetryBackoffMs[kind] = 0L;
-        }
     }
 
     final class McpHydrateLifecycleStream
     {
         private final HandlerImpl handler;
+        private final long originId;
+        private final long routedId;
         private final long initialId;
         private final long replyId;
-        private final List<McpListHydrater.McpListHydrateStream> activeListStreams;
+        private final List<McpListHydrater.McpListHydrateStream> streams;
 
         private int state;
         private long initialSeq;
@@ -334,33 +225,35 @@ final class McpProxyCacheHydrater
             HandlerImpl handler)
         {
             this.handler = handler;
-            this.initialId = supplyInitialId.applyAsLong(handler.cache.bindingId);
+            this.originId = handler.cache.bindingId;
+            this.routedId = handler.cache.bindingId;
+            this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.replyMax = bufferPool.slotCapacity();
-            this.activeListStreams = new ArrayList<>();
+            this.streams = new ArrayList<>();
         }
 
         void registerListStream(
             McpListHydrater.McpListHydrateStream stream)
         {
-            activeListStreams.add(stream);
+            streams.add(stream);
         }
 
         void unregisterListStream(
             McpListHydrater.McpListHydrateStream stream)
         {
-            activeListStreams.remove(stream);
+            streams.remove(stream);
         }
 
         private void cleanupListStreams(
             long traceId)
         {
-            if (activeListStreams.isEmpty())
+            if (streams.isEmpty())
             {
                 return;
             }
-            final List<McpListHydrater.McpListHydrateStream> copy = new ArrayList<>(activeListStreams);
-            activeListStreams.clear();
+            final List<McpListHydrater.McpListHydrateStream> copy = new ArrayList<>(streams);
+            streams.clear();
             for (McpListHydrater.McpListHydrateStream stream : copy)
             {
                 stream.doListHydrateEnd(traceId);
@@ -376,16 +269,20 @@ final class McpProxyCacheHydrater
             switch (msgTypeId)
             {
             case BeginFW.TYPE_ID:
-                onLifecycleBegin(beginRO.wrap(buffer, index, index + length));
+                final BeginFW begin = beginRO.wrap(buffer, index, index + length);
+                onLifecycleBegin(begin);
                 break;
             case EndFW.TYPE_ID:
-                onLifecycleEnd(endRO.wrap(buffer, index, index + length));
+                final EndFW end = endRO.wrap(buffer, index, index + length);
+                onLifecycleEnd(end);
                 break;
             case AbortFW.TYPE_ID:
-                onLifecycleAbort(abortRO.wrap(buffer, index, index + length));
+                final AbortFW abort = abortRO.wrap(buffer, index, index + length);
+                onLifecycleAbort(abort);
                 break;
             case ResetFW.TYPE_ID:
-                onLifecycleReset(resetRO.wrap(buffer, index, index + length));
+                final ResetFW reset = resetRO.wrap(buffer, index, index + length);
+                onLifecycleReset(reset);
                 break;
             default:
                 break;
@@ -439,7 +336,7 @@ final class McpProxyCacheHydrater
                 .lifecycle(l -> l.sessionId(handler.cache.sessionId))
                 .build();
 
-            receiver = newStream(this::onLifecycleMessage, handler.cache.bindingId, handler.cache.bindingId, initialId,
+            receiver = newStream(this::onLifecycleMessage, originId, routedId, initialId,
                 initialSeq, initialAck, initialMax, traceId, handler.cache.authorization, 0L, beginEx);
             state = McpState.openingInitial(state);
         }
@@ -447,7 +344,7 @@ final class McpProxyCacheHydrater
         private void doLifecycleWindow(
             long traceId)
         {
-            doWindow(receiver, handler.cache.bindingId, handler.cache.bindingId, replyId, replySeq, replyAck, replyMax,
+            doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
                 traceId, handler.cache.authorization, 0L, 0);
         }
 
@@ -457,7 +354,7 @@ final class McpProxyCacheHydrater
             if (!McpState.initialClosed(state))
             {
                 cleanupListStreams(traceId);
-                doEnd(receiver, handler.cache.bindingId, handler.cache.bindingId, initialId, initialSeq, initialAck, initialMax,
+                doEnd(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, handler.cache.authorization);
                 state = McpState.closedInitial(state);
             }
@@ -468,7 +365,7 @@ final class McpProxyCacheHydrater
         {
             if (!McpState.initialClosed(state))
             {
-                doAbort(receiver, handler.cache.bindingId, handler.cache.bindingId, initialId, initialSeq, initialAck, initialMax,
+                doAbort(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, handler.cache.authorization);
                 state = McpState.closedInitial(state);
             }
@@ -479,48 +376,36 @@ final class McpProxyCacheHydrater
     {
         protected abstract int kind();
 
-        protected abstract McpProxyCache.McpListCache cacheOf(
-            McpProxyCache cache);
-
         protected abstract void injectInitialBeginEx(
             McpBeginExFW.Builder builder,
             String sessionId);
 
-        final void initiate(
+        final void hydrate(
             HandlerImpl handler)
         {
+            final McpProxyCache.McpListCache listCache = handler.cache.cacheOf(kind());
             if (handler.cache.populated)
             {
-                cacheOf(handler.cache).acquire(acquired -> onAcquireComplete(handler, acquired));
+                listCache.acquire(acquired -> onAcquireComplete(handler, acquired));
             }
             else
             {
-                cacheOf(handler.cache).get((k, v) -> onGetComplete(handler, v));
+                listCache.get((k, v) -> onGetComplete(handler, v));
             }
-        }
-
-        final void refresh(
-            HandlerImpl handler)
-        {
-            cacheOf(handler.cache).acquire(acquired -> onAcquireComplete(handler, acquired));
         }
 
         private void onGetComplete(
             HandlerImpl handler,
             String value)
         {
-            if (handler.stopped)
+            if (handler.stopped || handler.lifecycleStream == null)
             {
                 return;
             }
 
-            if (value != null)
+            if (value == null)
             {
-                handler.resetKindBackoff(kind());
-            }
-            else
-            {
-                cacheOf(handler.cache).acquire(acquired -> onAcquireComplete(handler, acquired));
+                handler.cache.cacheOf(kind()).acquire(acquired -> onAcquireComplete(handler, acquired));
             }
         }
 
@@ -535,12 +420,11 @@ final class McpProxyCacheHydrater
 
             if (acquired)
             {
-                handler.resetKindBackoff(kind());
                 startListStream(handler);
             }
             else
             {
-                handler.scheduleKindRetry(kind());
+                handler.listener.onError(kind());
             }
         }
 
@@ -556,6 +440,8 @@ final class McpProxyCacheHydrater
         final class McpListHydrateStream
         {
             private final HandlerImpl handler;
+            private final long originId;
+            private final long routedId;
             private final long initialId;
             private final long replyId;
             private final ExpandableArrayBuffer bodyBuffer;
@@ -576,8 +462,10 @@ final class McpProxyCacheHydrater
                 HandlerImpl handler)
             {
                 this.handler = handler;
+                this.originId = handler.cache.bindingId;
+                this.routedId = handler.cache.bindingId;
                 this.bodyBuffer = new ExpandableArrayBuffer();
-                this.initialId = supplyInitialId.applyAsLong(handler.cache.bindingId);
+                this.initialId = supplyInitialId.applyAsLong(routedId);
                 this.replyId = supplyReplyId.applyAsLong(initialId);
                 this.replyMax = bufferPool.slotCapacity();
             }
@@ -591,22 +479,28 @@ final class McpProxyCacheHydrater
                 switch (msgTypeId)
                 {
                 case BeginFW.TYPE_ID:
-                    onListHydrateBegin(beginRO.wrap(buffer, index, index + length));
+                    final BeginFW begin = beginRO.wrap(buffer, index, index + length);
+                    onListHydrateBegin(begin);
                     break;
                 case DataFW.TYPE_ID:
-                    onListHydrateData(dataRO.wrap(buffer, index, index + length));
+                    final DataFW data = dataRO.wrap(buffer, index, index + length);
+                    onListHydrateData(data);
                     break;
                 case EndFW.TYPE_ID:
-                    onListHydrateEnd(endRO.wrap(buffer, index, index + length));
+                    final EndFW end = endRO.wrap(buffer, index, index + length);
+                    onListHydrateEnd(end);
                     break;
                 case AbortFW.TYPE_ID:
-                    onListHydrateAbort(abortRO.wrap(buffer, index, index + length));
+                    final AbortFW abort = abortRO.wrap(buffer, index, index + length);
+                    onListHydrateAbort(abort);
                     break;
                 case ResetFW.TYPE_ID:
-                    onListHydrateReset(resetRO.wrap(buffer, index, index + length));
+                    final ResetFW reset = resetRO.wrap(buffer, index, index + length);
+                    onListHydrateReset(reset);
                     break;
                 case WindowFW.TYPE_ID:
-                    onListHydrateWindow(windowRO.wrap(buffer, index, index + length));
+                    final WindowFW window = windowRO.wrap(buffer, index, index + length);
+                    onListHydrateWindow(window);
                     break;
                 default:
                     break;
@@ -641,7 +535,7 @@ final class McpProxyCacheHydrater
                 if (bodyLen > 0)
                 {
                     final String value = bodyBuffer.getStringWithoutLengthUtf8(0, bodyLen);
-                    cacheOf(handler.cache).put(value, k -> terminal(traceId));
+                    handler.cache.cacheOf(kind()).put(value, k -> terminal(traceId));
                 }
                 else
                 {
@@ -688,7 +582,7 @@ final class McpProxyCacheHydrater
                     .inject(builder -> injectInitialBeginEx(builder, handler.cache.sessionId))
                     .build();
 
-                receiver = newStream(this::onListHydrateMessage, handler.cache.bindingId, handler.cache.bindingId, initialId,
+                receiver = newStream(this::onListHydrateMessage, originId, routedId, initialId,
                     initialSeq, initialAck, initialMax, traceId, handler.cache.authorization, 0L, beginEx);
                 state = McpState.openingInitial(state);
                 state = McpState.closingInitial(state);
@@ -699,7 +593,7 @@ final class McpProxyCacheHydrater
             {
                 if (!McpState.initialClosed(state))
                 {
-                    doEnd(receiver, handler.cache.bindingId, handler.cache.bindingId, initialId,
+                    doEnd(receiver, originId, routedId, initialId,
                         initialSeq, initialAck, initialMax, traceId, handler.cache.authorization);
                     state = McpState.closedInitial(state);
                 }
@@ -710,7 +604,7 @@ final class McpProxyCacheHydrater
             {
                 if (!McpState.initialClosed(state))
                 {
-                    doAbort(receiver, handler.cache.bindingId, handler.cache.bindingId, initialId,
+                    doAbort(receiver, originId, routedId, initialId,
                         initialSeq, initialAck, initialMax, traceId, handler.cache.authorization);
                     state = McpState.closedInitial(state);
                 }
@@ -721,7 +615,7 @@ final class McpProxyCacheHydrater
             {
                 if (!McpState.replyClosed(state))
                 {
-                    doReset(receiver, handler.cache.bindingId, handler.cache.bindingId, replyId,
+                    doReset(receiver, originId, routedId, replyId,
                         replySeq, replyAck, replyMax, traceId, handler.cache.authorization);
                     state = McpState.closedReply(state);
                 }
@@ -730,7 +624,7 @@ final class McpProxyCacheHydrater
             private void doListHydrateWindow(
                 long traceId)
             {
-                doWindow(receiver, handler.cache.bindingId, handler.cache.bindingId, replyId, replySeq, replyAck, replyMax,
+                doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, handler.cache.authorization, 0L, 0);
             }
 
@@ -744,7 +638,7 @@ final class McpProxyCacheHydrater
                     {
                         handler.lifecycleStream.unregisterListStream(this);
                     }
-                    cacheOf(handler.cache).release(k -> {});
+                    handler.cache.cacheOf(kind()).release(k -> {});
                     if (failed && !handler.stopped)
                     {
                         handler.listener.onError(kind());
@@ -760,13 +654,6 @@ final class McpProxyCacheHydrater
         protected int kind()
         {
             return KIND_TOOLS_LIST;
-        }
-
-        @Override
-        protected McpProxyCache.McpListCache cacheOf(
-            McpProxyCache cache)
-        {
-            return cache.tools();
         }
 
         @Override
@@ -787,13 +674,6 @@ final class McpProxyCacheHydrater
         }
 
         @Override
-        protected McpProxyCache.McpListCache cacheOf(
-            McpProxyCache cache)
-        {
-            return cache.resources();
-        }
-
-        @Override
         protected void injectInitialBeginEx(
             McpBeginExFW.Builder builder,
             String sessionId)
@@ -808,13 +688,6 @@ final class McpProxyCacheHydrater
         protected int kind()
         {
             return KIND_PROMPTS_LIST;
-        }
-
-        @Override
-        protected McpProxyCache.McpListCache cacheOf(
-            McpProxyCache cache)
-        {
-            return cache.prompts();
         }
 
         @Override

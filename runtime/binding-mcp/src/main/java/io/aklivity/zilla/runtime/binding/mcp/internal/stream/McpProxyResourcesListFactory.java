@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_LIST;
+
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.function.LongFunction;
@@ -46,7 +48,7 @@ final class McpProxyResourcesListFactory extends McpProxyListFactory
     protected McpProxyCache.McpListCache cacheOf(
         McpBindingConfig binding)
     {
-        return binding.cache != null ? binding.cache.resources() : null;
+        return binding.cache != null ? binding.cache.cacheOf(KIND_RESOURCES_LIST) : null;
     }
 
     @Override

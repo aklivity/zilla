@@ -14,15 +14,11 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal.stream.cache;
 
-import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_PROMPTS_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_LIST;
-import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -35,9 +31,8 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
     private final McpProxyCacheHydrater hydrater;
     private final McpProxyCache cache;
     private final Signaler signaler;
-    private final int[] activeKinds;
     private final long[] hydrateBackoffMs;
-    private final long[] hydrateCancelIds;
+    private final long[] hydrateRetryIds;
 
     private McpProxyCacheHandler handler;
     private long refreshCancelId;
@@ -47,31 +42,17 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
 
     McpProxyCacheManager(
         McpProxyCacheHydrater hydrater,
-        McpProxyCache cache)
+        McpProxyCache cache,
+        Signaler signaler)
     {
         this.hydrater = hydrater;
         this.cache = cache;
-        this.signaler = cache.signaler;
+        this.signaler = signaler;
         this.hydrateBackoffMs = new long[KIND_SLOTS];
-        this.hydrateCancelIds = new long[KIND_SLOTS];
-        Arrays.fill(this.hydrateCancelIds, NO_CANCEL_ID);
+        this.hydrateRetryIds = new long[KIND_SLOTS];
+        Arrays.fill(this.hydrateRetryIds, NO_CANCEL_ID);
         this.refreshCancelId = NO_CANCEL_ID;
         this.reconnectCancelId = NO_CANCEL_ID;
-
-        final List<Integer> kinds = new ArrayList<>();
-        if (cache.hydrateFilter.test(KIND_TOOLS_LIST))
-        {
-            kinds.add(KIND_TOOLS_LIST);
-        }
-        if (cache.hydrateFilter.test(KIND_RESOURCES_LIST))
-        {
-            kinds.add(KIND_RESOURCES_LIST);
-        }
-        if (cache.hydrateFilter.test(KIND_PROMPTS_LIST))
-        {
-            kinds.add(KIND_PROMPTS_LIST);
-        }
-        this.activeKinds = kinds.stream().mapToInt(Integer::intValue).toArray();
     }
 
     public void start()
@@ -86,9 +67,9 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
         stopped = true;
         cancelRefresh();
         cancelReconnect();
-        for (int kind : activeKinds)
+        for (int kind : cache.caches().keySet())
         {
-            cancelHydrate(kind);
+            cancelHydrateRetry(kind);
         }
         if (handler != null)
         {
@@ -99,12 +80,27 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
     }
 
     @Override
+    public void onOpened()
+    {
+        if (stopped || handler == null)
+        {
+            return;
+        }
+        Arrays.fill(hydrateBackoffMs, 0L);
+        sessionBackoffMs = 0L;
+        for (int kind : cache.caches().keySet())
+        {
+            handler.hydrate(kind);
+        }
+    }
+
+    @Override
     public void onError(
         int kind)
     {
         if (!stopped)
         {
-            scheduleHydrate(kind);
+            scheduleHydrateRetry(kind);
         }
     }
 
@@ -116,9 +112,9 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
             return;
         }
         cancelRefresh();
-        for (int kind : activeKinds)
+        for (int kind : cache.caches().keySet())
         {
-            cancelHydrate(kind);
+            cancelHydrateRetry(kind);
         }
         handler = null;
         scheduleReconnect();
@@ -131,8 +127,6 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
             return;
         }
         cache.releaseLifecycle(k -> {});
-        Arrays.fill(hydrateBackoffMs, 0L);
-        sessionBackoffMs = 0L;
         scheduleRefresh();
     }
 
@@ -155,32 +149,32 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
         {
             return;
         }
-        for (int kind : activeKinds)
+        for (int kind : cache.caches().keySet())
         {
             handler.hydrate(kind);
         }
     }
 
-    private void scheduleHydrate(
+    private void scheduleHydrateRetry(
         int kind)
     {
-        cancelHydrate(kind);
+        cancelHydrateRetry(kind);
         long delay = hydrateBackoffMs[kind];
         delay = delay == 0L ? cache.leaseRetry.toMillis() : Math.min(delay * 2L, cache.leaseTtl.toMillis());
         hydrateBackoffMs[kind] = delay;
-        hydrateCancelIds[kind] = signaler.signalAt(
-            Instant.now().plusMillis(delay), kind, this::onHydrated);
+        hydrateRetryIds[kind] = signaler.signalAt(
+            Instant.now().plusMillis(delay), kind, this::onHydrateRetry);
     }
 
-    private void onHydrated(
-        int signalId)
+    private void onHydrateRetry(
+        int kind)
     {
-        hydrateCancelIds[signalId] = NO_CANCEL_ID;
+        hydrateRetryIds[kind] = NO_CANCEL_ID;
         if (stopped || handler == null)
         {
             return;
         }
-        handler.hydrate(signalId);
+        handler.hydrate(kind);
     }
 
     private void scheduleReconnect()
@@ -223,31 +217,33 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
         }
     }
 
-    private void cancelHydrate(
+    private void cancelHydrateRetry(
         int kind)
     {
-        if (hydrateCancelIds[kind] != NO_CANCEL_ID)
+        if (hydrateRetryIds[kind] != NO_CANCEL_ID)
         {
-            signaler.cancel(hydrateCancelIds[kind]);
-            hydrateCancelIds[kind] = NO_CANCEL_ID;
+            signaler.cancel(hydrateRetryIds[kind]);
+            hydrateRetryIds[kind] = NO_CANCEL_ID;
         }
     }
 
     public static final class Factory
     {
         private final McpProxyCacheHydrater hydrater;
+        private final Signaler signaler;
 
         public Factory(
             McpConfiguration config,
             EngineContext context)
         {
             this.hydrater = new McpProxyCacheHydrater(config, context);
+            this.signaler = context.signaler();
         }
 
         public McpProxyCacheManager create(
             McpProxyCache cache)
         {
-            return new McpProxyCacheManager(hydrater, cache);
+            return new McpProxyCacheManager(hydrater, cache, signaler);
         }
     }
 }

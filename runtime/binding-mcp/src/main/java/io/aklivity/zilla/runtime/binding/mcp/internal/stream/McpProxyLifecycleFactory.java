@@ -44,6 +44,7 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 
 final class McpProxyLifecycleFactory implements BindingHandler
 {
@@ -77,6 +78,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer codecBuffer;
     private final BindingHandler streamFactory;
+    private final Signaler signaler;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final int mcpTypeId;
@@ -90,6 +92,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
         this.writeBuffer = context.writeBuffer();
         this.codecBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.streamFactory = context.streamFactory();
+        this.signaler = context.signaler();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.mcpTypeId = context.supplyTypeId(MCP_TYPE_NAME);
@@ -265,8 +268,8 @@ final class McpProxyLifecycleFactory implements BindingHandler
 
             if (binding.cache != null && originId != routedId)
             {
-                binding.cache.register(
-                    new McpSignalHandle(originId, routedId, replyId, traceId, SIGNAL_HYDRATE_COMPLETE));
+                binding.cache.register(() -> signaler.signalNow(
+                    originId, routedId, replyId, traceId, SIGNAL_HYDRATE_COMPLETE, 0));
             }
             else
             {
