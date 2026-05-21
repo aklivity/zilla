@@ -119,7 +119,6 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
         for (int kind : activeKinds)
         {
             cancelHydrate(kind);
-            cache.onPurged(kind);
         }
         handler = null;
         scheduleReconnect();

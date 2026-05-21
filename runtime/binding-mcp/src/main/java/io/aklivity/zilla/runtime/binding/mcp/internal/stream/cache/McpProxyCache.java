@@ -68,7 +68,7 @@ public final class McpProxyCache
     private final List<McpListCache> caches;
     private final List<McpSignalHandle> awaiters;
 
-    private boolean populated;
+    boolean populated;
 
     Runnable onReady;
 
@@ -182,10 +182,6 @@ public final class McpProxyCache
 
     private void checkReady()
     {
-        if (populated)
-        {
-            return;
-        }
         for (McpListCache cache : caches)
         {
             if (!cache.populated)

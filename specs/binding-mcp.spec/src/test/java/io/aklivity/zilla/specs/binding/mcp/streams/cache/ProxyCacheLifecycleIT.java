@@ -80,4 +80,13 @@ public class ProxyCacheLifecycleIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/cache.hydrate.lifecycle.reconnect/client",
+        "${app}/cache.hydrate.lifecycle.reconnect/server" })
+    public void shouldReconnectAfterLifecycleAbort() throws Exception
+    {
+        k3po.finish();
+    }
 }

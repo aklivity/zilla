@@ -489,7 +489,14 @@ final class McpProxyCacheHydrater
         final void initiate(
             HandlerImpl handler)
         {
-            cacheOf(handler.cache).get((k, v) -> onGetComplete(handler, v));
+            if (handler.cache.populated)
+            {
+                cacheOf(handler.cache).acquire(acquired -> onAcquireComplete(handler, acquired));
+            }
+            else
+            {
+                cacheOf(handler.cache).get((k, v) -> onGetComplete(handler, v));
+            }
         }
 
         final void refresh(
