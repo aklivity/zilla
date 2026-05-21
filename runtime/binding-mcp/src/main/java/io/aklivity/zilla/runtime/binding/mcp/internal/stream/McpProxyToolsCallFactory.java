@@ -48,4 +48,11 @@ final class McpProxyToolsCallFactory extends McpProxyItemFactory
     {
         builder.toolsCall(t -> t.sessionId(sessionId).name(upstream.toolsCall().name().asString()));
     }
+
+    @Override
+    protected String sessionId(
+        McpBeginExFW beginEx)
+    {
+        return beginEx.toolsCall().sessionId().asString();
+    }
 }

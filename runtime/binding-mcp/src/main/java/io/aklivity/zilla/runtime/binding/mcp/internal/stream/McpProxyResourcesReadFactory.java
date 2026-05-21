@@ -48,4 +48,11 @@ final class McpProxyResourcesReadFactory extends McpProxyItemFactory
     {
         builder.resourcesRead(r -> r.sessionId(sessionId).uri(upstream.resourcesRead().uri().asString()));
     }
+
+    @Override
+    protected String sessionId(
+        McpBeginExFW beginEx)
+    {
+        return beginEx.resourcesRead().sessionId().asString();
+    }
 }

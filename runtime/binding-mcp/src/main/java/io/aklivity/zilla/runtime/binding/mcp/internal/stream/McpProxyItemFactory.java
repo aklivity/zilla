@@ -14,10 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 
-import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_PROMPTS_GET;
-import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_READ;
-import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_CALL;
-
 import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
 
@@ -155,17 +151,8 @@ abstract class McpProxyItemFactory implements BindingHandler
         String sessionId,
         McpBeginExFW upstream);
 
-    private String sessionId(
-        McpBeginExFW beginEx)
-    {
-        return switch (beginEx.kind())
-        {
-        case KIND_TOOLS_CALL -> beginEx.toolsCall().sessionId().asString();
-        case KIND_PROMPTS_GET -> beginEx.promptsGet().sessionId().asString();
-        case KIND_RESOURCES_READ -> beginEx.resourcesRead().sessionId().asString();
-        default -> null;
-        };
-    }
+    protected abstract String sessionId(
+        McpBeginExFW beginEx);
 
     private final class McpServer
     {

@@ -48,4 +48,11 @@ final class McpProxyPromptsGetFactory extends McpProxyItemFactory
     {
         builder.promptsGet(p -> p.sessionId(sessionId).name(upstream.promptsGet().name().asString()));
     }
+
+    @Override
+    protected String sessionId(
+        McpBeginExFW beginEx)
+    {
+        return beginEx.promptsGet().sessionId().asString();
+    }
 }
