@@ -711,6 +711,52 @@ final class TestBindingFactory implements BindingHandler
                         callbackFired.value = true;
                     });
                     break;
+                case "lock":
+                    store.lock(a.key, a.ttl, (k, token) ->
+                    {
+                        if (Thread.currentThread() != dispatchThread ||
+                            callbackFired.value)
+                        {
+                            doInitialReset(traceId);
+                        }
+                        // expect="" → token must be null (lock failed);
+                        // expect=non-empty → token must be non-null (lock succeeded)
+                        if (a.hasExpect)
+                        {
+                            boolean expectAcquired = a.expect != null && !a.expect.isEmpty();
+                            boolean acquired = token != null;
+                            if (expectAcquired != acquired)
+                            {
+                                doInitialReset(traceId);
+                            }
+                        }
+                        callbackFired.value = true;
+                    });
+                    break;
+                case "unlock":
+                    store.unlock(a.key, a.value, v ->
+                    {
+                        if (Thread.currentThread() != dispatchThread ||
+                            callbackFired.value ||
+                            a.hasExpect && !Objects.equals(v, a.expect))
+                        {
+                            doInitialReset(traceId);
+                        }
+                        callbackFired.value = true;
+                    });
+                    break;
+                case "watch":
+                    // registration is synchronous; listener fires async on mutations
+                    store.watch(a.key, (k, v) ->
+                    {
+                        if (Thread.currentThread() != dispatchThread ||
+                            a.hasExpect && !Objects.equals(v, a.expect))
+                        {
+                            doInitialReset(traceId);
+                        }
+                    });
+                    callbackFired.value = false;
+                    continue;
                 default:
                     doInitialReset(traceId);
                     break;
