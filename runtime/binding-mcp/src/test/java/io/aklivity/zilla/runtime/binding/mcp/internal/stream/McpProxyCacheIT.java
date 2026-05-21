@@ -105,6 +105,15 @@ public class McpProxyCacheIT
     }
 
     @Test
+    @Configuration("proxy.cache.seeded.yaml")
+    @Specification({
+        "${app}/cache.serve.initialize.list.changed/client" })
+    public void shouldServeInitializeWithListChanged() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.cache.yaml")
     @Specification({
         "${app}/cache.hydrate.lifecycle.reconnect/server" })
