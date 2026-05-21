@@ -29,6 +29,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.nio.ByteBuffer;
 import java.util.function.Consumer;
+import java.util.function.LongConsumer;
 import java.util.function.LongFunction;
 import java.util.zip.CRC32C;
 
@@ -192,7 +193,6 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
     private final BindingHandler streamFactory;
     private final LongFunction<KafkaBindingConfig> supplyBinding;
     private final LongFunction<KafkaClientRoute> supplyClientRoute;
-    private final LongFunction<MessageConsumer> supplyReceiver;
     private final int decodeMaxBytes;
     private final int encodeMaxBytes;
     private final CRC32C crc32c;
@@ -218,7 +218,6 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
         this.encodePool = context.bufferPool();
         this.supplyBinding = supplyBinding;
         this.supplyClientRoute = supplyClientRoute;
-        this.supplyReceiver = context::supplyReceiver;
         this.decodeMaxBytes = decodePool.slotCapacity();
         this.encodeMaxBytes = Math.min(config.clientProduceMaxBytes(),
                 encodePool.slotCapacity() - PRODUCE_REQUEST_RECORDS_OFFSET_MAX);
@@ -2301,12 +2300,10 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 case ERROR_LEADER_NOT_AVAILABLE:
                 case ERROR_NOT_LEADER_FOR_PARTITION:
                 {
-                    final long metaInitialId = clientRoute.metaInitialId;
-                    if (metaInitialId != 0L)
+                    final LongConsumer metaFlushSignal = clientRoute.metaFlushSignal;
+                    if (metaFlushSignal != null)
                     {
-                        final MessageConsumer metaInitial = supplyReceiver.apply(metaInitialId);
-                        doFlush(metaInitial, originId, routedId, metaInitialId, 0, 0, 0,
-                                traceId, authorization, 0, EMPTY_OCTETS);
+                        metaFlushSignal.accept(traceId);
                     }
                     final KafkaResetExFW resetEx = kafkaResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
                                                                  .typeId(kafkaTypeId)
@@ -2368,12 +2365,10 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 doNetworkResetIfNecessary(traceId);
                 doNetworkAbortIfNecessary(traceId);
 
-                final long metaInitialId = clientRoute.metaInitialId;
-                if (metaInitialId != 0L)
+                final LongConsumer metaFlushSignal = clientRoute.metaFlushSignal;
+                if (metaFlushSignal != null)
                 {
-                    final MessageConsumer metaInitial = supplyReceiver.apply(metaInitialId);
-                    doFlush(metaInitial, originId, routedId, metaInitialId, 0, 0, 0,
-                            traceId, authorization, 0, EMPTY_OCTETS);
+                    metaFlushSignal.accept(traceId);
                 }
 
                 stream.cleanupApplication(traceId, EMPTY_OCTETS);

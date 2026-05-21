@@ -22,6 +22,7 @@ import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static java.util.Objects.requireNonNull;
 
 import java.util.function.Consumer;
+import java.util.function.LongConsumer;
 import java.util.function.LongFunction;
 
 import org.agrona.DirectBuffer;
@@ -209,7 +210,6 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
     private final BufferPool encodePool;
     private final Signaler signaler;
     private final BindingHandler streamFactory;
-    private final LongFunction<MessageConsumer> supplyReceiver;
     private final LongFunction<KafkaBindingConfig> supplyBinding;
     private final LongFunction<BudgetDebitor> supplyDebitor;
     private final LongFunction<KafkaClientRoute> supplyClientRoute;
@@ -233,7 +233,6 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
         this.decodePool = context.bufferPool();
         this.encodePool = context.bufferPool();
         this.streamFactory = context.streamFactory();
-        this.supplyReceiver = context::supplyReceiver;
         this.supplyBinding = supplyBinding;
         this.supplyDebitor = supplyDebitor;
         this.supplyClientRoute = supplyClientRoute;
@@ -2993,13 +2992,10 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                     if (errorCode == ERROR_NOT_LEADER_FOR_PARTITION ||
                         errorCode == ERROR_LEADER_NOT_AVAILABLE)
                     {
-                        final long metaInitialId = clientRoute.metaInitialId;
-                        if (metaInitialId != 0L)
+                        final LongConsumer metaFlushSignal = clientRoute.metaFlushSignal;
+                        if (metaFlushSignal != null)
                         {
-                            final MessageConsumer metaInitial = supplyReceiver.apply(metaInitialId);
-                            // TODO: improve coordination with meta stream
-                            doFlush(metaInitial, originId, routedId, metaInitialId, 0, 0, 0,
-                                    traceId, authorization, 0, EMPTY_OCTETS);
+                            metaFlushSignal.accept(traceId);
                         }
                     }
                     else
@@ -3225,12 +3221,10 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                 doNetworkResetIfNecessary(traceId);
                 doNetworkAbortIfNecessary(traceId);
 
-                final long metaInitialId = clientRoute.metaInitialId;
-                if (metaInitialId != 0L)
+                final LongConsumer metaFlushSignal = clientRoute.metaFlushSignal;
+                if (metaFlushSignal != null)
                 {
-                    final MessageConsumer metaInitial = supplyReceiver.apply(metaInitialId);
-                    doFlush(metaInitial, originId, routedId, metaInitialId, 0, 0, 0,
-                            traceId, authorization, 0, EMPTY_OCTETS);
+                    metaFlushSignal.accept(traceId);
                 }
 
                 cleanupApplication(traceId, EMPTY_OCTETS);
