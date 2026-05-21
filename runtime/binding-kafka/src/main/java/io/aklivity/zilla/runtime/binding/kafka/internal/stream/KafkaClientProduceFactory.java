@@ -68,6 +68,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ExtensionFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaBeginExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaDataExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaProduceBeginExFW;
@@ -105,6 +106,8 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
     private static final int RECORD_LENGTH_MAX = 5; // varint32(max_value)
 
     private static final int ERROR_NONE = 0;
+    private static final int ERROR_LEADER_NOT_AVAILABLE = 5;
+    private static final int ERROR_NOT_LEADER_FOR_PARTITION = 6;
 
     private static final int SIGNAL_NEXT_REQUEST = 1;
 
@@ -133,6 +136,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
     private final DataFW.Builder dataRW = new DataFW.Builder();
     private final EndFW.Builder endRW = new EndFW.Builder();
     private final AbortFW.Builder abortRW = new AbortFW.Builder();
+    private final FlushFW.Builder flushRW = new FlushFW.Builder();
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
     private final KafkaBeginExFW.Builder kafkaBeginExRW = new KafkaBeginExFW.Builder();
@@ -188,6 +192,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
     private final BindingHandler streamFactory;
     private final LongFunction<KafkaBindingConfig> supplyBinding;
     private final LongFunction<KafkaClientRoute> supplyClientRoute;
+    private final LongFunction<MessageConsumer> supplyReceiver;
     private final int decodeMaxBytes;
     private final int encodeMaxBytes;
     private final CRC32C crc32c;
@@ -213,6 +218,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
         this.encodePool = context.bufferPool();
         this.supplyBinding = supplyBinding;
         this.supplyClientRoute = supplyClientRoute;
+        this.supplyReceiver = context::supplyReceiver;
         this.decodeMaxBytes = decodePool.slotCapacity();
         this.encodeMaxBytes = Math.min(config.clientProduceMaxBytes(),
                 encodePool.slotCapacity() - PRODUCE_REQUEST_RECORDS_OFFSET_MAX);
@@ -482,6 +488,36 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 .build();
 
         sender.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
+    }
+
+    private void doFlush(
+        MessageConsumer receiver,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        int reserved,
+        Flyweight extension)
+    {
+        final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .traceId(traceId)
+                .authorization(authorization)
+                .budgetId(0L)
+                .reserved(reserved)
+                .extension(extension.buffer(), extension.offset(), extension.sizeof())
+                .build();
+
+        receiver.accept(flush.typeId(), flush.buffer(), flush.offset(), flush.sizeof());
     }
 
     @FunctionalInterface
@@ -1204,6 +1240,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
             private MessageConsumer network;
             private final KafkaProduceStream stream;
+            private final KafkaClientRoute clientRoute;
             private final String topic;
             private final int partitionId;
 
@@ -1262,6 +1299,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
             {
                 super(server, sasl, stream.routedId, resolvedId);
                 this.stream = stream;
+                this.clientRoute = supplyClientRoute.apply(resolvedId);
                 this.topic = requireNonNull(topic);
                 this.partitionId = partitionId;
                 this.flusher = flushRecord;
@@ -2260,6 +2298,24 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 case ERROR_NONE:
                     assert partitionId == this.partitionId;
                     break;
+                case ERROR_LEADER_NOT_AVAILABLE:
+                case ERROR_NOT_LEADER_FOR_PARTITION:
+                {
+                    final long metaInitialId = clientRoute.metaInitialId;
+                    if (metaInitialId != 0L)
+                    {
+                        final MessageConsumer metaInitial = supplyReceiver.apply(metaInitialId);
+                        doFlush(metaInitial, originId, routedId, metaInitialId, 0, 0, 0,
+                                traceId, authorization, 0, EMPTY_OCTETS);
+                    }
+                    final KafkaResetExFW resetEx = kafkaResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                                                                 .typeId(kafkaTypeId)
+                                                                 .error(errorCode)
+                                                                 .build();
+                    stream.doApplicationResetIfNecessary(traceId, resetEx);
+                    doNetworkEnd(traceId, authorization);
+                    break;
+                }
                 default:
                     onDecodeResponseErrorCode(traceId, originId, errorCode, topic);
                     final KafkaResetExFW resetEx = kafkaResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
@@ -2311,6 +2367,14 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
             {
                 doNetworkResetIfNecessary(traceId);
                 doNetworkAbortIfNecessary(traceId);
+
+                final long metaInitialId = clientRoute.metaInitialId;
+                if (metaInitialId != 0L)
+                {
+                    final MessageConsumer metaInitial = supplyReceiver.apply(metaInitialId);
+                    doFlush(metaInitial, originId, routedId, metaInitialId, 0, 0, 0,
+                            traceId, authorization, 0, EMPTY_OCTETS);
+                }
 
                 stream.cleanupApplication(traceId, EMPTY_OCTETS);
             }

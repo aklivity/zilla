@@ -98,6 +98,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
 
     private static final int ERROR_NONE = 0;
     private static final int ERROR_OFFSET_OUT_OF_RANGE = 1;
+    private static final int ERROR_LEADER_NOT_AVAILABLE = 5;
     private static final int ERROR_NOT_LEADER_FOR_PARTITION = 6;
 
     private static final int FLAG_CONT = 0x00;
@@ -2989,7 +2990,8 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                     doEncodeRequestIfNecessary(traceId, initialBudgetId);
                     break;
                 default:
-                    if (errorCode == ERROR_NOT_LEADER_FOR_PARTITION)
+                    if (errorCode == ERROR_NOT_LEADER_FOR_PARTITION ||
+                        errorCode == ERROR_LEADER_NOT_AVAILABLE)
                     {
                         final long metaInitialId = clientRoute.metaInitialId;
                         if (metaInitialId != 0L)
@@ -3222,6 +3224,14 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
             {
                 doNetworkResetIfNecessary(traceId);
                 doNetworkAbortIfNecessary(traceId);
+
+                final long metaInitialId = clientRoute.metaInitialId;
+                if (metaInitialId != 0L)
+                {
+                    final MessageConsumer metaInitial = supplyReceiver.apply(metaInitialId);
+                    doFlush(metaInitial, originId, routedId, metaInitialId, 0, 0, 0,
+                            traceId, authorization, 0, EMPTY_OCTETS);
+                }
 
                 cleanupApplication(traceId, EMPTY_OCTETS);
             }

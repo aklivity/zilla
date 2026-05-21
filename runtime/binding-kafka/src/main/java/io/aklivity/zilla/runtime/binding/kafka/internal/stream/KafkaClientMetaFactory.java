@@ -79,6 +79,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
     private static final int ERROR_UNKNOWN_TOPIC = 3;
 
     private static final int SIGNAL_NEXT_REQUEST = 1;
+    private static final int SIGNAL_FLUSH_BACKOFF = 2;
 
     private static final DirectBuffer EMPTY_BUFFER = new UnsafeBuffer();
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
@@ -138,6 +139,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
     private final KafkaMetaClientDecoder decodeReject = this::decodeReject;
 
     private final long maxAgeMillis;
+    private final long flushBackoffMillisMin;
     private final int kafkaTypeId;
     private final int proxyTypeId;
     private final MutableDirectBuffer writeBuffer;
@@ -163,6 +165,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
     {
         super(config, context);
         this.maxAgeMillis = Math.min(config.clientMetaMaxAgeMillis(), config.clientMaxIdleMillis() >> 1);
+        this.flushBackoffMillisMin = config.clientMetaBackoffMillis();
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.proxyTypeId = context.supplyTypeId("proxy");
         this.signaler = signaler;
@@ -944,7 +947,23 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
         {
             final long traceId = flush.traceId();
 
-            client.doEncodeRequestIfNecessary(traceId);
+            if (client.nextRequestId == client.nextResponseId)
+            {
+                if (client.flushBackoffMillis == 0L)
+                {
+                    client.cancelNextRequestSignal();
+                    client.encoder.accept(traceId, client.initialBudgetId);
+                    client.flushBackoffMillis = flushBackoffMillisMin;
+                }
+                else if (client.nextFlushAt == NO_CANCEL_ID)
+                {
+                    client.nextFlushAt = signaler.signalAt(
+                            currentTimeMillis() + client.flushBackoffMillis,
+                            client.originId, client.routedId, client.initialId,
+                            traceId, SIGNAL_FLUSH_BACKOFF, 0);
+                    client.flushBackoffMillis = Math.min(client.flushBackoffMillis << 1, maxAgeMillis);
+                }
+            }
         }
 
         private void onApplicationWindow(
@@ -1159,6 +1178,8 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
 
             private int nextResponseId;
             private long nextRequestAt = NO_CANCEL_ID;
+            private long nextFlushAt = NO_CANCEL_ID;
+            private long flushBackoffMillis;
 
             private KafkaMetaClientDecoder decoder;
             private LongLongConsumer encoder;
@@ -1395,6 +1416,12 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
 
                     doEncodeRequestIfNecessary(traceId);
                 }
+                else if (signalId == SIGNAL_FLUSH_BACKOFF)
+                {
+                    nextFlushAt = NO_CANCEL_ID;
+
+                    doEncodeRequestIfNecessary(traceId);
+                }
             }
 
             private void doNetworkBegin(
@@ -1451,6 +1478,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
                 long traceId,
                 long authorization)
             {
+                cancelNextFlushSignal();
                 cancelNextRequestSignal();
                 state = KafkaState.closedInitial(state);
 
@@ -1569,6 +1597,15 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
                 doNetworkData(traceId, budgetId, encodeBuffer, encodeOffset, encodeProgress);
 
                 decoder = decodeMetaResponse;
+            }
+
+            private void cancelNextFlushSignal()
+            {
+                if (nextFlushAt != NO_CANCEL_ID)
+                {
+                    signaler.cancel(nextFlushAt);
+                    nextFlushAt = NO_CANCEL_ID;
+                }
             }
 
             private void cancelNextRequestSignal()
@@ -1895,6 +1932,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
                         .build();
 
                     doApplicationData(traceId, authorization, kafkaDataEx);
+                    flushBackoffMillis = 0L;
                 }
 
                 nextResponseId++;
@@ -1905,7 +1943,9 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
             private void cleanupNetwork(
                 long traceId)
             {
+                cancelNextFlushSignal();
                 cancelNextRequestSignal();
+                flushBackoffMillis = 0L;
 
                 doNetworkResetIfNecessary(traceId);
                 doNetworkAbortIfNecessary(traceId);
