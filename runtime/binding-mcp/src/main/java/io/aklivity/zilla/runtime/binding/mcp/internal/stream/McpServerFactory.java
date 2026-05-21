@@ -17,6 +17,10 @@ package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabilities.CLIENT_ELICITATION;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabilities.CLIENT_ROOTS;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabilities.CLIENT_SAMPLING;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabilities.SERVER_PROMPTS_LIST_CHANGED;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabilities.SERVER_RESOURCES_LIST_CHANGED;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabilities.SERVER_TOOLS_LIST_CHANGED;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_LIFECYCLE;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.streamIndex;
 
@@ -132,11 +136,21 @@ public final class McpServerFactory implements McpStreamFactory
     private static final String JSON_RPC_ERROR_MESSAGE = ",\"message\":\"";
     private static final String JSON_RPC_ERROR_SUFFIX = "\"}}";
     private static final String INITIALIZE_RESPONSE_PROTOCOL_PREFIX =
-        "{\"protocolVersion\":\"2025-11-25\"," +
-        "\"capabilities\":{\"prompts\":{},\"resources\":{},\"tools\":{}}," +
-        "\"serverInfo\":{\"name\":\"";
+        "{\"protocolVersion\":\"2025-11-25\",\"capabilities\":";
+    private static final String INITIALIZE_RESPONSE_SERVER_INFO_PREFIX = ",\"serverInfo\":{\"name\":\"";
     private static final String INITIALIZE_RESPONSE_VERSION_PREFIX = "\",\"version\":\"";
     private static final String INITIALIZE_RESPONSE_SUFFIX = "\"}}";
+    private static final String[] INITIALIZE_RESPONSE_CAPABILITIES =
+    {
+        "{\"prompts\":{},\"resources\":{},\"tools\":{}}",
+        "{\"prompts\":{},\"resources\":{},\"tools\":{\"listChanged\":true}}",
+        "{\"prompts\":{\"listChanged\":true},\"resources\":{},\"tools\":{}}",
+        "{\"prompts\":{\"listChanged\":true},\"resources\":{},\"tools\":{\"listChanged\":true}}",
+        "{\"prompts\":{},\"resources\":{\"listChanged\":true},\"tools\":{}}",
+        "{\"prompts\":{},\"resources\":{\"listChanged\":true},\"tools\":{\"listChanged\":true}}",
+        "{\"prompts\":{\"listChanged\":true},\"resources\":{\"listChanged\":true},\"tools\":{}}",
+        "{\"prompts\":{\"listChanged\":true},\"resources\":{\"listChanged\":true},\"tools\":{\"listChanged\":true}}"
+    };
     private static final String SSE_PROGRESS_BODY_PREFIX =
         "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/progress\",\"params\":{\"progressToken\":\"";
     private static final String SSE_PROGRESS_BODY_PROGRESS = "\",\"progress\":";
@@ -180,6 +194,7 @@ public final class McpServerFactory implements McpStreamFactory
     private final ChallengeFW.Builder challengeRW = new ChallengeFW.Builder();
     private final HttpBeginExFW.Builder httpBeginExRW = new HttpBeginExFW.Builder();
     private final HttpResetExFW.Builder httpResetExRW = new HttpResetExFW.Builder();
+    private final McpBeginExFW mcpBeginExRO = new McpBeginExFW();
     private final McpBeginExFW.Builder mcpBeginExRW = new McpBeginExFW.Builder();
     private final McpChallengeExFW.Builder mcpChallengeExRW = new McpChallengeExFW.Builder();
     private final McpFlushExFW.Builder mcpFlushExRW = new McpFlushExFW.Builder();
@@ -1764,6 +1779,17 @@ public final class McpServerFactory implements McpStreamFactory
 
                 assert this.session == null;
                 this.session = session;
+
+                session.pendingInitialize = this;
+
+                McpBeginExFW beginEx = mcpBeginExRW
+                    .wrap(codecBuffer, 0, codecBuffer.capacity())
+                    .typeId(mcpTypeId)
+                    .lifecycle(i -> i
+                        .sessionId(session.sessionId)
+                        .capabilities(CLIENT_CAPABILITIES))
+                    .build();
+                session.doAppBegin(traceId, authorization, beginEx);
             }
         }
 
@@ -1772,15 +1798,6 @@ public final class McpServerFactory implements McpStreamFactory
             long authorization)
         {
             assert session != null;
-
-            McpBeginExFW beginEx = mcpBeginExRW
-                .wrap(codecBuffer, 0, codecBuffer.capacity())
-                .typeId(mcpTypeId)
-                .lifecycle(i -> i
-                    .sessionId(session.sessionId)
-                    .capabilities(CLIENT_CAPABILITIES))
-                .build();
-            session.doAppBegin(traceId, authorization, beginEx);
         }
 
         private int onDecodeInitialize(
@@ -1790,11 +1807,7 @@ public final class McpServerFactory implements McpStreamFactory
             int offset,
             int limit)
         {
-            // DirectBufferInputStreamEx input = new DirectBufferInputStreamEx(buffer, offset, limit - offset);
-            // McpInitializeRequestParams params = JsonbBuilder.create().fromJson(input, McpInitializeRequestParams.class);
-
             onLifecycleInitialize(traceId, authorization);
-            doEncodeInitialize(traceId, authorization);
 
             return limit;
         }
@@ -1810,10 +1823,31 @@ public final class McpServerFactory implements McpStreamFactory
                 .headersItem(h -> h.name(HTTP_HEADER_SESSION).value(session.sessionId))
                 .inject(this::injectAltSvc)
                 .build());
-            String8FW payload = new String8FW(INITIALIZE_RESPONSE_PROTOCOL_PREFIX + serverName +
+            String8FW payload = new String8FW(INITIALIZE_RESPONSE_PROTOCOL_PREFIX +
+                listChangedCapabilities(session.serverCapabilities) +
+                INITIALIZE_RESPONSE_SERVER_INFO_PREFIX + serverName +
                 INITIALIZE_RESPONSE_VERSION_PREFIX + serverVersion + INITIALIZE_RESPONSE_SUFFIX);
             doEncodeResponseData(traceId, authorization, payload.value());
             doEncodeResponseEnd(traceId, authorization);
+        }
+
+        private String listChangedCapabilities(
+            int capabilities)
+        {
+            int index = 0;
+            if ((capabilities & SERVER_TOOLS_LIST_CHANGED.value()) != 0)
+            {
+                index |= 1;
+            }
+            if ((capabilities & SERVER_PROMPTS_LIST_CHANGED.value()) != 0)
+            {
+                index |= 2;
+            }
+            if ((capabilities & SERVER_RESOURCES_LIST_CHANGED.value()) != 0)
+            {
+                index |= 4;
+            }
+            return INITIALIZE_RESPONSE_CAPABILITIES[index];
         }
 
         private void onDecodeNotifyInitialized(
@@ -2925,6 +2959,8 @@ public final class McpServerFactory implements McpStreamFactory
         private long inactiveId = Signaler.NO_CANCEL_ID;
         private McpEventStream eventStream;
         private boolean eventsUnsupported;
+        private int serverCapabilities;
+        private McpServer pendingInitialize;
 
         private McpLifecycleStream(
             McpServer server,
@@ -3101,6 +3137,7 @@ public final class McpServerFactory implements McpStreamFactory
             final long acknowledge = begin.acknowledge();
             final long traceId = begin.traceId();
             final long authorization = begin.authorization();
+            final OctetsFW extension = begin.extension();
 
             assert acknowledge <= sequence;
             assert sequence >= replySeq;
@@ -3113,7 +3150,20 @@ public final class McpServerFactory implements McpStreamFactory
 
             touch();
 
+            final McpBeginExFW beginEx = extension.get(mcpBeginExRO::tryWrap);
+            if (beginEx != null && beginEx.kind() == KIND_LIFECYCLE)
+            {
+                serverCapabilities = beginEx.lifecycle().capabilities();
+            }
+
             doAppWindow(traceId, authorization, 0L, 0);
+
+            if (pendingInitialize != null)
+            {
+                final McpServer server = pendingInitialize;
+                pendingInitialize = null;
+                server.doEncodeInitialize(traceId, authorization);
+            }
         }
 
         private void onAppSignal(

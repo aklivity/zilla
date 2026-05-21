@@ -56,6 +56,42 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/lifecycle.initialize.tools.list.changed/client",
+        "${net}/lifecycle.initialize.tools.list.changed/server"})
+    public void shouldInitializeLifecycleToolsListChanged() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/lifecycle.initialize.prompts.list.changed/client",
+        "${net}/lifecycle.initialize.prompts.list.changed/server"})
+    public void shouldInitializeLifecyclePromptsListChanged() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/lifecycle.initialize.resources.list.changed/client",
+        "${net}/lifecycle.initialize.resources.list.changed/server"})
+    public void shouldInitializeLifecycleResourcesListChanged() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/lifecycle.initialize.all.list.changed/client",
+        "${net}/lifecycle.initialize.all.list.changed/server"})
+    public void shouldInitializeLifecycleAllListChanged() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/lifecycle.shutdown/client",
         "${net}/lifecycle.shutdown/server"})
     public void shouldShutdownLifecycle() throws Exception
