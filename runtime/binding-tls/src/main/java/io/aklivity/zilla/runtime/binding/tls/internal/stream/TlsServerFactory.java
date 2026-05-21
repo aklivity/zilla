@@ -1685,7 +1685,7 @@ public final class TlsServerFactory implements TlsStreamFactory
 
             final TlsBindingConfig binding = bindings.get(routedId);
             final TlsMutualConfig mutual = binding != null && binding.options != null ? binding.options.mutual : null;
-            final Certificate[] clientCerts = peerCertificates(tlsSession, mutual);
+            final Certificate[] clientCerts = clientCertificates(tlsSession, mutual);
 
             final TlsRouteConfig route = binding != null
                 ? binding.resolve(authorization, tlsHostname, tlsProtocol, port, clientCerts)
@@ -2402,25 +2402,6 @@ public final class TlsServerFactory implements TlsStreamFactory
         return TlsState.closed(state) ? NULL_STREAM : stream;
     }
 
-    private static Certificate[] peerCertificates(
-        SSLSession session,
-        TlsMutualConfig mutual)
-    {
-        Certificate[] certs = null;
-        if (mutual == TlsMutualConfig.REQUIRED || mutual == TlsMutualConfig.REQUESTED)
-        {
-            try
-            {
-                certs = session.getPeerCertificates();
-            }
-            catch (SSLPeerUnverifiedException ex)
-            {
-                // no client cert presented under mutual: requested
-            }
-        }
-        return certs;
-    }
-
     private String getCommonName(
         SSLEngine tlsEngine)
     {
@@ -2448,5 +2429,24 @@ public final class TlsServerFactory implements TlsStreamFactory
         }
 
         return commonName;
+    }
+
+    private static Certificate[] clientCertificates(
+        SSLSession session,
+        TlsMutualConfig mutual)
+    {
+        Certificate[] certs = null;
+        if (mutual == TlsMutualConfig.REQUIRED || mutual == TlsMutualConfig.REQUESTED)
+        {
+            try
+            {
+                certs = session.getPeerCertificates();
+            }
+            catch (SSLPeerUnverifiedException ex)
+            {
+                // no client cert presented under mutual: requested
+            }
+        }
+        return certs;
     }
 }
