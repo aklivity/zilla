@@ -344,18 +344,18 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/lifecycle.events.resume.aggregate.event.id/client",
-        "${app}/lifecycle.events.resume.aggregate.event.id/server"})
-    public void shouldResumeLifecycleEventsWithAggregateEventId() throws Exception
+        "${app}/lifecycle.events.resume.aggregate/client",
+        "${app}/lifecycle.events.resume.aggregate/server"})
+    public void shouldResumeLifecycleEventsAggregate() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${app}/lifecycle.events.resume.missing.prefix/client",
-        "${app}/lifecycle.events.resume.missing.prefix/server"})
-    public void shouldResumeLifecycleEventsWithMissingPrefix() throws Exception
+        "${app}/lifecycle.events.resume.partial/client",
+        "${app}/lifecycle.events.resume.partial/server"})
+    public void shouldResumeLifecycleEventsPartial() throws Exception
     {
         k3po.finish();
     }
