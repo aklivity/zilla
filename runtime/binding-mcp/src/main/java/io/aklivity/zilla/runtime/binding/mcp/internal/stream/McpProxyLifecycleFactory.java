@@ -248,6 +248,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
                 final McpRouteConfig route = binding.routeByPrefix.get(prefix);
                 if (route != null)
                 {
+                    recordRouteEventId(route.id, perRouteId);
                     final McpLifecycleClient client = supplyClient(route.id);
                     if (McpState.replyOpened(client.state))
                     {

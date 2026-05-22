@@ -152,6 +152,26 @@ public class McpProxyIT
     }
 
     @Test
+    @Configuration("proxy.toolkit.multi.yaml")
+    @Specification({
+        "${app}/lifecycle.events.resume.aggregate.event.id/client",
+        "${app}/lifecycle.events.resume.aggregate.event.id/server" })
+    public void shouldResumeLifecycleEventsWithAggregateEventId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.toolkit.multi.yaml")
+    @Specification({
+        "${app}/lifecycle.events.resume.missing.prefix/client",
+        "${app}/lifecycle.events.resume.missing.prefix/server" })
+    public void shouldResumeLifecycleEventsWithMissingPrefix() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.yaml")
     @Specification({
         "${app}/prompts.get/client",
