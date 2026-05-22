@@ -40,9 +40,15 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpChallengeExFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpElicitCompleteFlushExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpElicitStatus;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpFlushExFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpProgressFlushExFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpPromptsListChangedFlushExFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpResourcesListChangedFlushExFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpResumableFlushExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpResumeChallengeExFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpToolsListChangedFlushExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.WindowFW;
@@ -236,7 +242,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
             return length < 0 ? null : aggregateRO.wrap(aggregateBuffer, 0, length);
         }
 
-        private void resumeClient(
+        private void onDecodeAggregateEventId(
             long traceId,
             long authorization,
             String prefix,
@@ -319,7 +325,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
                 if (aggregate != null && aggregating())
                 {
                     McpAggregateEventId.decode(aggregate,
-                        (prefix, eventId) -> resumeClient(traceId, authorization, prefix, eventId));
+                        (prefix, eventId) -> onDecodeAggregateEventId(traceId, authorization, prefix, eventId));
                 }
                 else
                 {
@@ -539,7 +545,12 @@ final class McpProxyLifecycleFactory implements BindingHandler
                     final OctetsFW aggregateId = nextEventId();
                     if (aggregateId != null)
                     {
-                        newExtension = rewriteFlushEx(flushEx, aggregateId);
+                        final McpFlushExFW rewritten = mcpFlushExRW
+                            .wrap(flushExBuffer, 0, flushExBuffer.capacity())
+                            .typeId(flushEx.typeId())
+                            .inject(b -> injectFlushEx(b, flushEx, aggregateId))
+                            .build();
+                        newExtension = rewrittenExRO.wrap(rewritten.buffer(), rewritten.offset(), rewritten.limit());
                     }
                 }
             }
@@ -880,52 +891,88 @@ final class McpProxyLifecycleFactory implements BindingHandler
         return id != null && id.length() != -1 ? id.asString() : null;
     }
 
-    private OctetsFW rewriteFlushEx(
+    private void injectFlushEx(
+        McpFlushExFW.Builder builder,
         McpFlushExFW flushEx,
         OctetsFW aggregate)
     {
-        final DirectBuffer buffer = aggregate.buffer();
-        final int offset = aggregate.offset();
-        final int length = aggregate.sizeof();
-        final McpFlushExFW.Builder builder = mcpFlushExRW.wrap(flushExBuffer, 0, flushExBuffer.capacity())
-            .typeId(flushEx.typeId());
         switch (flushEx.kind())
         {
         case McpFlushExFW.KIND_RESUMABLE:
-            builder.resumable(b -> b.id(buffer, offset, length));
+            builder.resumable(b -> injectResumableFlushEx(b, aggregate));
             break;
         case McpFlushExFW.KIND_TOOLS_LIST_CHANGED:
-            builder.toolsListChanged(b -> b.id(buffer, offset, length));
+            builder.toolsListChanged(b -> injectToolsListChangedFlushEx(b, aggregate));
             break;
         case McpFlushExFW.KIND_PROMPTS_LIST_CHANGED:
-            builder.promptsListChanged(b -> b.id(buffer, offset, length));
+            builder.promptsListChanged(b -> injectPromptsListChangedFlushEx(b, aggregate));
             break;
         case McpFlushExFW.KIND_RESOURCES_LIST_CHANGED:
-            builder.resourcesListChanged(b -> b.id(buffer, offset, length));
+            builder.resourcesListChanged(b -> injectResourcesListChangedFlushEx(b, aggregate));
             break;
         case McpFlushExFW.KIND_PROGRESS:
-            final String token = flushEx.progress().token().asString();
-            final long progress = flushEx.progress().progress();
-            final long total = flushEx.progress().total();
-            final String message = flushEx.progress().message().asString();
-            builder.progress(b ->
-            {
-                b.id(buffer, offset, length).token(token).progress(progress).total(total);
-                if (message != null)
-                {
-                    b.message(message);
-                }
-            });
+            builder.progress(b -> injectProgressFlushEx(b, flushEx.progress(), aggregate));
             break;
         case McpFlushExFW.KIND_ELICIT_COMPLETE:
-            final McpElicitStatus status = flushEx.elicitComplete().status().get();
-            builder.elicitComplete(b -> b.id(buffer, offset, length).status(s -> s.set(status)));
+            builder.elicitComplete(b -> injectElicitCompleteFlushEx(b, flushEx.elicitComplete(), aggregate));
             break;
         default:
             break;
         }
-        final McpFlushExFW rewritten = builder.build();
-        return rewrittenExRO.wrap(rewritten.buffer(), rewritten.offset(), rewritten.limit());
+    }
+
+    private void injectResumableFlushEx(
+        McpResumableFlushExFW.Builder builder,
+        OctetsFW aggregate)
+    {
+        builder.id(aggregate.buffer(), aggregate.offset(), aggregate.sizeof());
+    }
+
+    private void injectToolsListChangedFlushEx(
+        McpToolsListChangedFlushExFW.Builder builder,
+        OctetsFW aggregate)
+    {
+        builder.id(aggregate.buffer(), aggregate.offset(), aggregate.sizeof());
+    }
+
+    private void injectPromptsListChangedFlushEx(
+        McpPromptsListChangedFlushExFW.Builder builder,
+        OctetsFW aggregate)
+    {
+        builder.id(aggregate.buffer(), aggregate.offset(), aggregate.sizeof());
+    }
+
+    private void injectResourcesListChangedFlushEx(
+        McpResourcesListChangedFlushExFW.Builder builder,
+        OctetsFW aggregate)
+    {
+        builder.id(aggregate.buffer(), aggregate.offset(), aggregate.sizeof());
+    }
+
+    private void injectProgressFlushEx(
+        McpProgressFlushExFW.Builder builder,
+        McpProgressFlushExFW progress,
+        OctetsFW aggregate)
+    {
+        final String token = progress.token().asString();
+        final String message = progress.message().asString();
+        builder.id(aggregate.buffer(), aggregate.offset(), aggregate.sizeof())
+            .token(token)
+            .progress(progress.progress())
+            .total(progress.total());
+        if (message != null)
+        {
+            builder.message(message);
+        }
+    }
+
+    private void injectElicitCompleteFlushEx(
+        McpElicitCompleteFlushExFW.Builder builder,
+        McpElicitCompleteFlushExFW elicitComplete,
+        OctetsFW aggregate)
+    {
+        final McpElicitStatus status = elicitComplete.status().get();
+        builder.id(aggregate.buffer(), aggregate.offset(), aggregate.sizeof()).status(s -> s.set(status));
     }
 
     private MessageConsumer newStream(

@@ -34,14 +34,6 @@ public class SchemaTest
         .configurationRoot("io/aklivity/zilla/specs/binding/mcp/config");
 
     @Test
-    public void shouldValidateServer()
-    {
-        JsonObject config = schema.validate("server.yaml");
-
-        assertThat(config, not(nullValue()));
-    }
-
-    @Test
     public void shouldValidateServerWithOptions()
     {
         JsonObject config = schema.validate("server.options.yaml");

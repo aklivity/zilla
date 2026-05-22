@@ -273,7 +273,7 @@ abstract class McpProxyItemFactory implements BindingHandler
 
             state = McpState.openingInitial(state);
 
-            client.doClientBegin(traceId, sessionId());
+            client.doClientBegin(traceId, sessionId(), identifier);
 
             flushServerWindow(traceId, 0L, 0, 0L, 0);
         }
@@ -530,11 +530,11 @@ abstract class McpProxyItemFactory implements BindingHandler
 
         private void doClientBegin(
             long traceId,
-            String sessionId)
+            String sessionId,
+            String identifier)
         {
             lifecycle.doClientBegin(traceId);
 
-            final String identifier = server.identifier;
             final McpBeginExFW beginEx = mcpBeginExRW
                 .wrap(codecBuffer, 0, codecBuffer.capacity())
                 .typeId(mcpTypeId)
