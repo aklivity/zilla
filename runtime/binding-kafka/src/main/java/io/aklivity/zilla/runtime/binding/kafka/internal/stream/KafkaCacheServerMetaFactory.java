@@ -16,7 +16,6 @@
 package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_SERVER_RECONNECT_DELAY;
-import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CLIENT_META_BACKOFF_MILLIS;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static java.lang.System.currentTimeMillis;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -107,8 +106,6 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
     private final LongFunction<KafkaCacheRoute> supplyCacheRoute;
     private final LongFunction<KafkaClientRoute> supplyClientRoute;
     private final int reconnectDelay;
-    private final long flushBackoffMillisMin;
-    private final long maxAgeMillis;
 
     public KafkaCacheServerMetaFactory(
         KafkaConfiguration config,
@@ -134,8 +131,6 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
         this.supplyCacheRoute = supplyCacheRoute;
         this.supplyClientRoute = supplyClientRoute;
         this.reconnectDelay = KAFKA_CACHE_SERVER_RECONNECT_DELAY.getAsInt(config);
-        this.flushBackoffMillisMin = KAFKA_CLIENT_META_BACKOFF_MILLIS.getAsLong(config);
-        this.maxAgeMillis = Math.min(config.clientMetaMaxAgeMillis(), config.clientMaxIdleMillis() >> 1);
     }
 
     @Override
@@ -439,8 +434,6 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
 
     final class KafkaCacheServerMetaFanout
     {
-        private static final int SIGNAL_FLUSH_BACKOFF = 2;
-
         private final long originId;
         private final long routedId;
         private final long authorization;
@@ -466,9 +459,6 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
 
         private long reconnectAt = NO_CANCEL_ID;
         private int reconnectAttempt;
-
-        private long nextFlushAt = NO_CANCEL_ID;
-        private long flushBackoffMillis;
 
         private KafkaCacheServerMetaFanout(
             long originId,
@@ -537,8 +527,6 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
                     this.reconnectAt = NO_CANCEL_ID;
                 }
 
-                cancelNextFlushSignal();
-                this.flushBackoffMillis = 0L;
                 clientRoute.metaFlushSignal = null;
 
                 doMetaFanoutInitialEndIfNecessary(traceId);
@@ -630,8 +618,6 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
 
             state = KafkaState.closedInitial(state);
 
-            cancelNextFlushSignal();
-            this.flushBackoffMillis = 0L;
             clientRoute.metaFlushSignal = null;
 
             doMetaFanoutReplyResetIfNecessary(traceId);
@@ -675,7 +661,7 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
 
                 state = KafkaState.openedInitial(state);
 
-                clientRoute.metaFlushSignal = this::doMetaFanoutFlushIfNecessary;
+                clientRoute.metaFlushSignal = this::doMetaFanoutFlush;
 
                 members.forEach(s -> s.doMetaInitialWindow(traceId, 0L, 0, 0, 0));
             }
@@ -759,8 +745,6 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
                 partitions.forEach(p -> leadersByPartitionId.put(p.partitionId(), p.leaderId()));
 
                 members.forEach(s -> s.doMetaReplyDataIfNecessary(traceId, kafkaDataEx));
-
-                this.flushBackoffMillis = 0L;
             }
 
             doMetaFanoutReplyWindow(traceId, 0, replyMax);
@@ -773,8 +757,6 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
 
             state = KafkaState.closedReply(state);
 
-            cancelNextFlushSignal();
-            this.flushBackoffMillis = 0L;
             clientRoute.metaFlushSignal = null;
 
             doMetaFanoutInitialEndIfNecessary(traceId);
@@ -814,8 +796,6 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
 
             state = KafkaState.closedReply(state);
 
-            cancelNextFlushSignal();
-            this.flushBackoffMillis = 0L;
             clientRoute.metaFlushSignal = null;
 
             doMetaFanoutInitialAbortIfNecessary(traceId);
@@ -859,46 +839,15 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
 
                 doMetaFanoutInitialBeginIfNecessary(traceId);
             }
-            else if (signalId == SIGNAL_FLUSH_BACKOFF)
-            {
-                nextFlushAt = NO_CANCEL_ID;
-
-                if (KafkaState.initialOpened(state))
-                {
-                    doFlush(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                            traceId, authorization, 0L, 0, EMPTY_EXTENSION);
-                }
-            }
         }
 
-        private void doMetaFanoutFlushIfNecessary(
+        private void doMetaFanoutFlush(
             long traceId)
         {
             if (KafkaState.initialOpened(state))
             {
-                if (flushBackoffMillis == 0L)
-                {
-                    doFlush(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                            traceId, authorization, 0L, 0, EMPTY_EXTENSION);
-                    flushBackoffMillis = flushBackoffMillisMin;
-                }
-                else if (nextFlushAt == NO_CANCEL_ID)
-                {
-                    nextFlushAt = signaler.signalAt(
-                            currentTimeMillis() + flushBackoffMillis,
-                            SIGNAL_FLUSH_BACKOFF,
-                            this::onMetaFanoutSignal);
-                    flushBackoffMillis = Math.min(flushBackoffMillis << 1, maxAgeMillis);
-                }
-            }
-        }
-
-        private void cancelNextFlushSignal()
-        {
-            if (nextFlushAt != NO_CANCEL_ID)
-            {
-                signaler.cancel(nextFlushAt);
-                nextFlushAt = NO_CANCEL_ID;
+                doFlush(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                        traceId, authorization, 0L, 0, EMPTY_EXTENSION);
             }
         }
 
