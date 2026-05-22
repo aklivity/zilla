@@ -46,7 +46,7 @@ public final class McpProxyCache
     private static final String STORE_LOCK_KEY_RESOURCES = STORE_KEY_RESOURCES + STORE_LOCK_SUFFIX;
     private static final String STORE_LOCK_KEY_PROMPTS = STORE_KEY_PROMPTS + STORE_LOCK_SUFFIX;
     private static final String STORE_LOCK_KEY_LIFECYCLE = "lifecycle.lock";
-    private static final long STORE_TTL_FOREVER = Long.MAX_VALUE;
+    private static final Duration STORE_TTL_FOREVER = null;
 
     public final long bindingId;
     public final GuardHandler guard;
@@ -131,7 +131,7 @@ public final class McpProxyCache
     void acquireLifecycle(
         Consumer<Boolean> completion)
     {
-        store.putIfAbsent(STORE_LOCK_KEY_LIFECYCLE, STORE_LOCK_VALUE, leaseTtl.toMillis(),
+        store.putIfAbsent(STORE_LOCK_KEY_LIFECYCLE, STORE_LOCK_VALUE, leaseTtl,
             prior -> completion.accept(prior == null));
     }
 
@@ -208,7 +208,7 @@ public final class McpProxyCache
         public void acquire(
             Consumer<Boolean> completion)
         {
-            store.putIfAbsent(storeLockKey, STORE_LOCK_VALUE, leaseTtl.toMillis(),
+            store.putIfAbsent(storeLockKey, STORE_LOCK_VALUE, leaseTtl,
                 prior -> completion.accept(prior == null));
         }
 

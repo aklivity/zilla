@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.binding.config;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.function.Function;
 
@@ -176,7 +177,7 @@ public final class TestBindingOptionsConfig extends OptionsConfig
         public final String op;
         public final String key;
         public final String value;
-        public final long ttl;
+        public final Duration ttl;
         public final String expect;
         public final boolean hasExpect;
         public final long delay;
@@ -185,7 +186,7 @@ public final class TestBindingOptionsConfig extends OptionsConfig
             String op,
             String key,
             String value,
-            long ttl,
+            Duration ttl,
             String expect,
             boolean hasExpect,
             long delay)
