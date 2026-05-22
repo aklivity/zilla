@@ -26,10 +26,12 @@ import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.zip.CRC32C;
 
+import org.agrona.MutableDirectBuffer;
+
 public final class McpAggregateEventId
 {
-    static final char PAIR_DELIMITER = ';';
-    static final char KEY_VALUE_DELIMITER = '=';
+    static final byte PAIR_DELIMITER = (byte) ';';
+    static final byte KEY_VALUE_DELIMITER = (byte) '=';
     static final int MAX_PREFIX_LENGTH = 6;
 
     private McpAggregateEventId()
@@ -89,13 +91,15 @@ public final class McpAggregateEventId
         return result;
     }
 
-    public static String encode(
+    public static int encode(
         String[] prefixesSortedAscending,
-        String[] idsAlignedWithPrefixes)
+        String[] idsAlignedWithPrefixes,
+        MutableDirectBuffer buffer,
+        int offset)
     {
         assert prefixesSortedAscending.length == idsAlignedWithPrefixes.length;
 
-        final StringBuilder builder = new StringBuilder();
+        int progress = offset;
         for (int i = 0; i < prefixesSortedAscending.length; i++)
         {
             final String id = idsAlignedWithPrefixes[i];
@@ -103,13 +107,15 @@ public final class McpAggregateEventId
             {
                 continue;
             }
-            if (builder.length() > 0)
+            if (progress > offset)
             {
-                builder.append(PAIR_DELIMITER);
+                buffer.putByte(progress++, PAIR_DELIMITER);
             }
-            builder.append(prefixesSortedAscending[i]).append(KEY_VALUE_DELIMITER).append(id);
+            progress += buffer.putStringWithoutLengthUtf8(progress, prefixesSortedAscending[i]);
+            buffer.putByte(progress++, KEY_VALUE_DELIMITER);
+            progress += buffer.putStringWithoutLengthUtf8(progress, id);
         }
-        return builder.length() == 0 ? null : builder.toString();
+        return progress == offset ? -1 : progress - offset;
     }
 
     public static void decode(
@@ -125,12 +131,12 @@ public final class McpAggregateEventId
         final int length = aggregate.length();
         while (start < length)
         {
-            int end = aggregate.indexOf(PAIR_DELIMITER, start);
+            int end = aggregate.indexOf((char) PAIR_DELIMITER, start);
             if (end < 0)
             {
                 end = length;
             }
-            final int sep = aggregate.indexOf(KEY_VALUE_DELIMITER, start);
+            final int sep = aggregate.indexOf((char) KEY_VALUE_DELIMITER, start);
             if (sep > start && sep < end)
             {
                 final String prefix = aggregate.substring(start, sep);

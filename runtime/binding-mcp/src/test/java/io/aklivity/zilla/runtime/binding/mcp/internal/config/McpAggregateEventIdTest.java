@@ -16,7 +16,6 @@ package io.aklivity.zilla.runtime.binding.mcp.internal.config;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
@@ -27,10 +26,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.agrona.MutableDirectBuffer;
+import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
 public class McpAggregateEventIdTest
 {
+    private final MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
+
     @Test
     public void shouldComputeSinglePrefixWhenSingleToolkit()
     {
@@ -84,33 +87,43 @@ public class McpAggregateEventIdTest
     @Test
     public void shouldEncodeSinglePair()
     {
-        String aggregate = McpAggregateEventId.encode(new String[] {"E"}, new String[] {"12"});
+        int length = McpAggregateEventId.encode(new String[] {"E"}, new String[] {"12"}, buffer, 0);
 
-        assertEquals("E=12", aggregate);
+        assertEquals("E=12", buffer.getStringWithoutLengthUtf8(0, length));
     }
 
     @Test
     public void shouldEncodeMultiplePairsInPrefixOrder()
     {
-        String aggregate = McpAggregateEventId.encode(new String[] {"E", "m"}, new String[] {"12", "ab9"});
+        int length = McpAggregateEventId.encode(new String[] {"E", "m"}, new String[] {"12", "ab9"}, buffer, 0);
 
-        assertEquals("E=12;m=ab9", aggregate);
+        assertEquals("E=12;m=ab9", buffer.getStringWithoutLengthUtf8(0, length));
     }
 
     @Test
     public void shouldEncodeSkipNullIds()
     {
-        String aggregate = McpAggregateEventId.encode(new String[] {"E", "m"}, new String[] {null, "ab9"});
+        int length = McpAggregateEventId.encode(new String[] {"E", "m"}, new String[] {null, "ab9"}, buffer, 0);
 
-        assertEquals("m=ab9", aggregate);
+        assertEquals("m=ab9", buffer.getStringWithoutLengthUtf8(0, length));
     }
 
     @Test
-    public void shouldEncodeNullWhenAllIdsNull()
+    public void shouldEncodeReturnsNegativeWhenAllIdsNull()
     {
-        String aggregate = McpAggregateEventId.encode(new String[] {"E", "m"}, new String[] {null, null});
+        int length = McpAggregateEventId.encode(new String[] {"E", "m"}, new String[] {null, null}, buffer, 0);
 
-        assertNull(aggregate);
+        assertEquals(-1, length);
+    }
+
+    @Test
+    public void shouldEncodeAtNonZeroOffset()
+    {
+        buffer.putStringWithoutLengthUtf8(0, "preamble:");
+        int offset = "preamble:".length();
+        int length = McpAggregateEventId.encode(new String[] {"E", "m"}, new String[] {"12", "ab9"}, buffer, offset);
+
+        assertEquals("E=12;m=ab9", buffer.getStringWithoutLengthUtf8(offset, length));
     }
 
     @Test
@@ -164,7 +177,8 @@ public class McpAggregateEventIdTest
 
         String[] prefixes = input.keySet().stream().sorted().toArray(String[]::new);
         String[] ids = Arrays.stream(prefixes).map(input::get).toArray(String[]::new);
-        String aggregate = McpAggregateEventId.encode(prefixes, ids);
+        int length = McpAggregateEventId.encode(prefixes, ids, buffer, 0);
+        String aggregate = buffer.getStringWithoutLengthUtf8(0, length);
 
         Map<String, String> decoded = new LinkedHashMap<>();
         McpAggregateEventId.decode(aggregate, decoded::put);
@@ -177,9 +191,9 @@ public class McpAggregateEventIdTest
     {
         String[] prefixes = {"E", "m", "z"};
         Arrays.sort(prefixes, Comparator.naturalOrder());
-        String aggregate = McpAggregateEventId.encode(prefixes, new String[] {"1", "2", "3"});
+        int length = McpAggregateEventId.encode(prefixes, new String[] {"1", "2", "3"}, buffer, 0);
 
-        assertEquals("E=1;m=2;z=3", aggregate);
+        assertEquals("E=1;m=2;z=3", buffer.getStringWithoutLengthUtf8(0, length));
     }
 
     @Test
@@ -198,5 +212,4 @@ public class McpAggregateEventIdTest
         assertEquals(1, resolved.size());
         assertEquals("12", resolved.get("E"));
     }
-
 }
