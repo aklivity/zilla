@@ -92,17 +92,17 @@ public final class McpAggregateEventId
     }
 
     public static int encode(
-        String[] prefixesSortedAscending,
-        String[] idsAlignedWithPrefixes,
+        String[] prefixes,
+        String[] ids,
         MutableDirectBuffer buffer,
         int offset)
     {
-        assert prefixesSortedAscending.length == idsAlignedWithPrefixes.length;
+        assert prefixes.length == ids.length;
 
         int progress = offset;
-        for (int i = 0; i < prefixesSortedAscending.length; i++)
+        for (int i = 0; i < prefixes.length; i++)
         {
-            final String id = idsAlignedWithPrefixes[i];
+            final String id = ids[i];
             if (id == null)
             {
                 continue;
@@ -111,7 +111,7 @@ public final class McpAggregateEventId
             {
                 buffer.putByte(progress++, PAIR_DELIMITER);
             }
-            progress += buffer.putStringWithoutLengthUtf8(progress, prefixesSortedAscending[i]);
+            progress += buffer.putStringWithoutLengthUtf8(progress, prefixes[i]);
             buffer.putByte(progress++, KEY_VALUE_DELIMITER);
             progress += buffer.putStringWithoutLengthUtf8(progress, id);
         }
