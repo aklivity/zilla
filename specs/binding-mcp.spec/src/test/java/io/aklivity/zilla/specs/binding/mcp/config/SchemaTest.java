@@ -34,7 +34,7 @@ public class SchemaTest
         .configurationRoot("io/aklivity/zilla/specs/binding/mcp/config");
 
     @Test
-    public void shouldValidateServerWithOptions()
+    public void shouldValidateServer()
     {
         JsonObject config = schema.validate("server.options.yaml");
 
@@ -42,7 +42,7 @@ public class SchemaTest
     }
 
     @Test
-    public void shouldValidateClientWithOptions()
+    public void shouldValidateClient()
     {
         JsonObject config = schema.validate("client.options.yaml");
 
@@ -50,7 +50,7 @@ public class SchemaTest
     }
 
     @Test
-    public void shouldValidateProxyWithOptions()
+    public void shouldValidateProxy()
     {
         JsonObject config = schema.validate("proxy.options.yaml");
 
