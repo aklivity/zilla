@@ -25,7 +25,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import java.util.function.IntConsumer;
 import java.util.function.IntPredicate;
 import java.util.zip.CRC32;
 
@@ -69,7 +68,13 @@ public final class McpProxyCache
     boolean populated;
 
     Runnable onReady;
-    public IntConsumer onChanged;
+    public OnSettled onSettled;
+
+    @FunctionalInterface
+    public interface OnSettled
+    {
+        void accept(int kind, boolean changed);
+    }
 
     public McpProxyCache(
         BindingConfig binding,
@@ -215,9 +220,9 @@ public final class McpProxyCache
             lastChecksum = newChecksum;
             store.put(storeKey, value, STORE_TTL_FOREVER, completion.andThen(this::checkPut).andThen(k ->
             {
-                if (changed && onChanged != null)
+                if (onSettled != null)
                 {
-                    onChanged.accept(kind);
+                    onSettled.accept(kind, changed);
                 }
             }));
         }

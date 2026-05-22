@@ -97,12 +97,15 @@ public final class McpProxyFactory implements McpStreamFactory
         bindings.put(binding.id, newBinding);
         if (newBinding.cache != null)
         {
-            newBinding.cache.onChanged = kind ->
+            newBinding.cache.onSettled = (kind, changed) ->
             {
-                final long traceId = context.supplyTraceId();
-                for (var session : newBinding.sessions.values())
+                if (changed)
                 {
-                    session.doNotifyListChanged(kind, traceId);
+                    final long traceId = context.supplyTraceId();
+                    for (var session : newBinding.sessions.values())
+                    {
+                        session.doNotifyListChanged(kind, traceId);
+                    }
                 }
             };
             McpProxyCacheManager manager = supplyManager.apply(newBinding.cache);
