@@ -121,7 +121,6 @@ abstract class McpProxyItemFactory implements BindingHandler
                 if (route != null)
                 {
                     final String identifier = route.strip(beginEx);
-                    final String prefix = route.prefix(beginEx);
 
                     newStream = new McpServer(
                         lifecycle,
@@ -132,8 +131,7 @@ abstract class McpProxyItemFactory implements BindingHandler
                         route.id,
                         affinity,
                         authorization,
-                        identifier,
-                        prefix)::onServerMessage;
+                        identifier)::onServerMessage;
                 }
             }
         }
@@ -165,7 +163,6 @@ abstract class McpProxyItemFactory implements BindingHandler
         private final long affinity;
         private final long authorization;
         private final String identifier;
-        private final String prefix;
         private final McpClient client;
 
         private int state;
@@ -189,8 +186,7 @@ abstract class McpProxyItemFactory implements BindingHandler
             long resolvedId,
             long affinity,
             long authorization,
-            String identifier,
-            String prefix)
+            String identifier)
         {
             this.lifecycle = lifecycle;
             this.sender = sender;
@@ -201,13 +197,7 @@ abstract class McpProxyItemFactory implements BindingHandler
             this.affinity = affinity;
             this.authorization = authorization;
             this.identifier = identifier;
-            this.prefix = prefix;
             this.client = new McpClient(this, resolvedId);
-        }
-
-        private String sessionId()
-        {
-            return lifecycle.sessionId;
         }
 
         private void onServerMessage(
@@ -273,7 +263,7 @@ abstract class McpProxyItemFactory implements BindingHandler
 
             state = McpState.openingInitial(state);
 
-            client.doClientBegin(traceId, sessionId(), identifier);
+            client.doClientBegin(traceId, lifecycle.sessionId, identifier);
 
             flushServerWindow(traceId, 0L, 0, 0L, 0);
         }
@@ -730,7 +720,7 @@ abstract class McpProxyItemFactory implements BindingHandler
         private Flyweight rewriteReplyBeginEx(
             McpBeginExFW beginEx)
         {
-            final String sid = server.sessionId();
+            final String sid = server.lifecycle.sessionId;
             return mcpBeginExRW
                 .wrap(codecBuffer, 0, codecBuffer.capacity())
                 .typeId(mcpTypeId)

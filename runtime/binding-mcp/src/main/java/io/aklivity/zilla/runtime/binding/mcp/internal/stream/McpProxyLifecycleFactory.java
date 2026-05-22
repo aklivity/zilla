@@ -578,13 +578,8 @@ final class McpProxyLifecycleFactory implements BindingHandler
 
         private MessageConsumer sender;
         private int state;
-        private String sessionId;
+        String sessionId;
         private String resumeId;
-
-        String sessionId()
-        {
-            return sessionId;
-        }
 
         private long initialSeq;
         private long initialAck;

@@ -252,7 +252,7 @@ abstract class McpProxyListFactory implements BindingHandler
         {
             lifecycle.doClientBegin(traceId);
 
-            final String sid = lifecycle.sessionId();
+            final String sid = lifecycle.sessionId;
             final McpBeginExFW beginEx = mcpBeginExRW
                 .wrap(codecBuffer, 0, codecBuffer.capacity())
                 .typeId(mcpTypeId)
