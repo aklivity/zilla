@@ -87,7 +87,8 @@ public class McpAggregateEventIdTest
     @Test
     public void shouldEncodeSinglePair()
     {
-        int length = McpAggregateEventId.encode(new String[] {"E"}, new String[] {"12"}, buffer, 0);
+        McpAggregateRoute[] routes = { new McpAggregateRoute("E", 1L) };
+        int length = McpAggregateEventId.encode(routes, new String[] {"12"}, buffer, 0);
 
         assertEquals("E=12", buffer.getStringWithoutLengthUtf8(0, length));
     }
@@ -95,7 +96,8 @@ public class McpAggregateEventIdTest
     @Test
     public void shouldEncodeMultiplePairsInPrefixOrder()
     {
-        int length = McpAggregateEventId.encode(new String[] {"E", "m"}, new String[] {"12", "ab9"}, buffer, 0);
+        McpAggregateRoute[] routes = { new McpAggregateRoute("E", 1L), new McpAggregateRoute("m", 2L) };
+        int length = McpAggregateEventId.encode(routes, new String[] {"12", "ab9"}, buffer, 0);
 
         assertEquals("E=12;m=ab9", buffer.getStringWithoutLengthUtf8(0, length));
     }
@@ -103,7 +105,8 @@ public class McpAggregateEventIdTest
     @Test
     public void shouldEncodeSkipNullIds()
     {
-        int length = McpAggregateEventId.encode(new String[] {"E", "m"}, new String[] {null, "ab9"}, buffer, 0);
+        McpAggregateRoute[] routes = { new McpAggregateRoute("E", 1L), new McpAggregateRoute("m", 2L) };
+        int length = McpAggregateEventId.encode(routes, new String[] {null, "ab9"}, buffer, 0);
 
         assertEquals("m=ab9", buffer.getStringWithoutLengthUtf8(0, length));
     }
@@ -111,7 +114,8 @@ public class McpAggregateEventIdTest
     @Test
     public void shouldEncodeReturnsNegativeWhenAllIdsNull()
     {
-        int length = McpAggregateEventId.encode(new String[] {"E", "m"}, new String[] {null, null}, buffer, 0);
+        McpAggregateRoute[] routes = { new McpAggregateRoute("E", 1L), new McpAggregateRoute("m", 2L) };
+        int length = McpAggregateEventId.encode(routes, new String[] {null, null}, buffer, 0);
 
         assertEquals(-1, length);
     }
@@ -121,7 +125,8 @@ public class McpAggregateEventIdTest
     {
         buffer.putStringWithoutLengthUtf8(0, "preamble:");
         int offset = "preamble:".length();
-        int length = McpAggregateEventId.encode(new String[] {"E", "m"}, new String[] {"12", "ab9"}, buffer, offset);
+        McpAggregateRoute[] routes = { new McpAggregateRoute("E", 1L), new McpAggregateRoute("m", 2L) };
+        int length = McpAggregateEventId.encode(routes, new String[] {"12", "ab9"}, buffer, offset);
 
         assertEquals("E=12;m=ab9", buffer.getStringWithoutLengthUtf8(offset, length));
     }
@@ -175,9 +180,12 @@ public class McpAggregateEventIdTest
         input.put("p2", "200");
         input.put("p3", "abc");
 
-        String[] prefixes = input.keySet().stream().sorted().toArray(String[]::new);
-        String[] ids = Arrays.stream(prefixes).map(input::get).toArray(String[]::new);
-        int length = McpAggregateEventId.encode(prefixes, ids, buffer, 0);
+        McpAggregateRoute[] routes = input.keySet().stream()
+            .sorted()
+            .map(p -> new McpAggregateRoute(p, 0L))
+            .toArray(McpAggregateRoute[]::new);
+        String[] ids = Arrays.stream(routes).map(r -> input.get(r.prefix())).toArray(String[]::new);
+        int length = McpAggregateEventId.encode(routes, ids, buffer, 0);
         String aggregate = buffer.getStringWithoutLengthUtf8(0, length);
 
         Map<String, String> decoded = new LinkedHashMap<>();
@@ -189,9 +197,14 @@ public class McpAggregateEventIdTest
     @Test
     public void shouldEncodeWithCanonicalSortOrder()
     {
-        String[] prefixes = {"E", "m", "z"};
-        Arrays.sort(prefixes, Comparator.naturalOrder());
-        int length = McpAggregateEventId.encode(prefixes, new String[] {"1", "2", "3"}, buffer, 0);
+        McpAggregateRoute[] routes =
+        {
+            new McpAggregateRoute("E", 1L),
+            new McpAggregateRoute("m", 2L),
+            new McpAggregateRoute("z", 3L)
+        };
+        Arrays.sort(routes, Comparator.comparing(McpAggregateRoute::prefix));
+        int length = McpAggregateEventId.encode(routes, new String[] {"1", "2", "3"}, buffer, 0);
 
         assertEquals("E=1;m=2;z=3", buffer.getStringWithoutLengthUtf8(0, length));
     }

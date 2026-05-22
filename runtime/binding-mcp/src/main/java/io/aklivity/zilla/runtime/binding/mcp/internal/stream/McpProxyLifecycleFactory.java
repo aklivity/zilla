@@ -26,6 +26,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpAggregateEventId;
+import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpAggregateRoute;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpBindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpProxySession;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpRouteConfig;
@@ -42,6 +43,7 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpChallengeExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpElicitStatus;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpFlushExFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpResumeChallengeExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.WindowFW;
@@ -201,8 +203,8 @@ final class McpProxyLifecycleFactory implements BindingHandler
             this.clientCapabilities = clientCapabilities;
             this.sessionId = sessionId;
             this.clients = new Long2ObjectHashMap<>();
-            this.eventIds = binding.prefixes.length > 0
-                ? new String[binding.prefixes.length]
+            this.eventIds = binding.aggregateRoutes.length > 0
+                ? new String[binding.aggregateRoutes.length]
                 : null;
         }
 
@@ -217,29 +219,29 @@ final class McpProxyLifecycleFactory implements BindingHandler
             return eventIds != null && originId != routedId;
         }
 
-        private void recordEventId(
+        private void onDecodeEventId(
             long routedId,
-            String id)
+            String eventId)
         {
-            if (id == null)
+            if (eventId == null)
             {
                 return;
             }
-            final long[] routedIds = binding.routedIds;
-            for (int i = 0; i < routedIds.length; i++)
+            final McpAggregateRoute[] aggregateRoutes = binding.aggregateRoutes;
+            for (int i = 0; i < aggregateRoutes.length; i++)
             {
-                if (routedIds[i] == routedId)
+                if (aggregateRoutes[i].routedId() == routedId)
                 {
-                    eventIds[i] = id;
+                    eventIds[i] = eventId;
                     break;
                 }
             }
         }
 
-        private OctetsFW mintAggregate()
+        private OctetsFW nextEventId()
         {
             final int length = McpAggregateEventId.encode(
-                binding.prefixes, eventIds, aggregateBuffer, 0);
+                binding.aggregateRoutes, eventIds, aggregateBuffer, 0);
             return length < 0 ? null : aggregateRO.wrap(aggregateBuffer, 0, length);
         }
 
@@ -248,20 +250,20 @@ final class McpProxyLifecycleFactory implements BindingHandler
             long authorization,
             String aggregate)
         {
-            McpAggregateEventId.decode(aggregate, (prefix, id) ->
+            McpAggregateEventId.decode(aggregate, (prefix, eventId) ->
             {
                 final McpRouteConfig route = binding.routeByPrefix.get(prefix);
                 if (route != null)
                 {
-                    recordEventId(route.id, id);
+                    onDecodeEventId(route.id, eventId);
                     final McpLifecycleClient client = supplyClient(route.id);
+                    client.resumeId = eventId;
                     if (McpState.replyOpened(client.state))
                     {
-                        client.doClientResume(traceId, authorization, id);
+                        client.doClientResume(traceId, authorization);
                     }
                     else
                     {
-                        client.resumeId = id;
                         client.doClientBegin(traceId);
                     }
                 }
@@ -342,7 +344,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
             {
                 for (McpLifecycleClient client : clients.values())
                 {
-                    client.doClientResume(traceId, authorization, null);
+                    client.doClientResume(traceId, authorization);
                 }
             }
         }
@@ -542,10 +544,27 @@ final class McpProxyLifecycleFactory implements BindingHandler
             long authorization,
             long budgetId,
             int reserved,
-            OctetsFW extension)
+            OctetsFW extension,
+            long fromRoutedId)
         {
+            OctetsFW newExtension = extension;
+            if (aggregating())
+            {
+                final McpFlushExFW flushEx =
+                    mcpFlushExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
+                final String eventId = extractEventId(flushEx);
+                if (eventId != null)
+                {
+                    onDecodeEventId(fromRoutedId, eventId);
+                    final OctetsFW aggregateId = nextEventId();
+                    if (aggregateId != null)
+                    {
+                        newExtension = rewriteFlushEx(flushEx, aggregateId);
+                    }
+                }
+            }
             doFlush(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                traceId, authorization, budgetId, reserved, extension);
+                traceId, authorization, budgetId, reserved, newExtension);
         }
 
         private void doServerWindow(
@@ -568,8 +587,13 @@ final class McpProxyLifecycleFactory implements BindingHandler
 
         private MessageConsumer sender;
         private int state;
-        String sessionId;        // upstream-provided session id, set on BEGIN reply
+        private String sessionId;
         private String resumeId;
+
+        String sessionId()
+        {
+            return sessionId;
+        }
 
         private long initialSeq;
         private long initialAck;
@@ -659,21 +683,23 @@ final class McpProxyLifecycleFactory implements BindingHandler
 
         private void doClientResume(
             long traceId,
-            long authorization,
-            String resumeId)
+            long authorization)
         {
             final McpChallengeExFW resumeEx = mcpChallengeExRW
                 .wrap(codecBuffer, 0, codecBuffer.capacity())
                 .typeId(mcpTypeId)
-                .resume(b ->
-                {
-                    if (resumeId != null)
-                    {
-                        b.id(resumeId);
-                    }
-                })
+                .resume(this::injectResumeId)
                 .build();
             doClientChallenge(traceId, authorization, resumeEx);
+        }
+
+        private void injectResumeId(
+            McpResumeChallengeExFW.Builder builder)
+        {
+            if (resumeId != null)
+            {
+                builder.id(resumeId);
+            }
         }
 
         private void doClientWindow(
@@ -729,34 +755,8 @@ final class McpProxyLifecycleFactory implements BindingHandler
         private void onClientFlush(
             FlushFW flush)
         {
-            final long traceId = flush.traceId();
-            final long authorization = flush.authorization();
-            final long budgetId = flush.budgetId();
-            final int reserved = flush.reserved();
-            final OctetsFW extension = flush.extension();
-
-            OctetsFW forwardExtension = extension;
-
-            if (server.aggregating() && extension.sizeof() > 0)
-            {
-                final McpFlushExFW flushEx =
-                    mcpFlushExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit());
-                if (flushEx != null)
-                {
-                    final String id = eventIdOf(flushEx);
-                    if (id != null)
-                    {
-                        server.recordEventId(routedId, id);
-                        final OctetsFW aggregateId = server.mintAggregate();
-                        if (aggregateId != null)
-                        {
-                            forwardExtension = rewriteFlushEx(flushEx, aggregateId);
-                        }
-                    }
-                }
-            }
-
-            server.doServerFlush(traceId, authorization, budgetId, reserved, forwardExtension);
+            server.doServerFlush(flush.traceId(), flush.authorization(),
+                flush.budgetId(), flush.reserved(), flush.extension(), routedId);
         }
 
         private void onClientBegin(
@@ -783,15 +783,10 @@ final class McpProxyLifecycleFactory implements BindingHandler
 
             state = McpState.openedReply(state);
 
-            if (resumeId != null)
+            if (resumeId != null || server.resumePending)
             {
-                final String pending = resumeId;
+                doClientResume(traceId, authorization);
                 resumeId = null;
-                doClientResume(traceId, authorization, pending);
-            }
-            else if (server.resumePending)
-            {
-                doClientResume(traceId, authorization, null);
             }
         }
 
@@ -879,7 +874,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
         }
     }
 
-    private String eventIdOf(
+    private String extractEventId(
         McpFlushExFW flushEx)
     {
         final String16FW id = switch (flushEx.kind())

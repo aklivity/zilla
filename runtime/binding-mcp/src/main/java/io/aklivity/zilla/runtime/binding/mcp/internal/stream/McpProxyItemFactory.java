@@ -534,7 +534,7 @@ abstract class McpProxyItemFactory implements BindingHandler
             lifecycle.doClientBegin(traceId);
 
             final String identifier = server.identifier;
-            final String upstreamSessionId = lifecycle.sessionId;
+            final String upstreamSessionId = lifecycle.sessionId();
             final String outboundSessionId = upstreamSessionId != null
                 ? upstreamSessionId
                 : server.sessionId();

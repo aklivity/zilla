@@ -42,6 +42,30 @@ public class SchemaTest
     }
 
     @Test
+    public void shouldValidateServerWithOptions()
+    {
+        JsonObject config = schema.validate("server.options.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateClientWithOptions()
+    {
+        JsonObject config = schema.validate("client.options.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateProxyWithOptions()
+    {
+        JsonObject config = schema.validate("proxy.options.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
     public void shouldValidateProxyToolkitMulti()
     {
         JsonObject config = schema.validate("proxy.toolkit.multi.yaml");

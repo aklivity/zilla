@@ -14,13 +14,13 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal.config;
 
+import static java.util.function.Function.identity;
+import static java.util.stream.Collectors.toMap;
+
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
@@ -46,17 +46,9 @@ public final class McpAggregateEventId
             return Map.of();
         }
 
-        final List<String> distinct = new ArrayList<>(new HashSet<>(toolkits));
-        if (distinct.size() == 1)
-        {
-            return Map.of(distinct.get(0), encodeCrc32c(distinct.get(0)).substring(0, 1));
-        }
-
-        final Map<String, String> encoded = new HashMap<>();
-        for (String toolkit : distinct)
-        {
-            encoded.put(toolkit, encodeCrc32c(toolkit));
-        }
+        final Set<String> distinct = new HashSet<>(toolkits);
+        final Map<String, String> encoded = distinct.stream()
+            .collect(toMap(identity(), McpAggregateEventId::encodeCrc32c));
 
         int length = 1;
         while (length <= MAX_PREFIX_LENGTH)
@@ -83,24 +75,21 @@ public final class McpAggregateEventId
             throw new IllegalStateException("unable to derive unique prefixes for toolkits: " + distinct);
         }
 
-        final Map<String, String> result = new HashMap<>();
-        for (Map.Entry<String, String> entry : encoded.entrySet())
-        {
-            result.put(entry.getKey(), entry.getValue().substring(0, length));
-        }
-        return result;
+        final int prefixLength = length;
+        return encoded.entrySet().stream()
+            .collect(toMap(Map.Entry::getKey, e -> e.getValue().substring(0, prefixLength)));
     }
 
     public static int encode(
-        String[] prefixes,
+        McpAggregateRoute[] routes,
         String[] ids,
         MutableDirectBuffer buffer,
         int offset)
     {
-        assert prefixes.length == ids.length;
+        assert routes.length == ids.length;
 
         int progress = offset;
-        for (int i = 0; i < prefixes.length; i++)
+        for (int i = 0; i < routes.length; i++)
         {
             final String id = ids[i];
             if (id == null)
@@ -111,7 +100,7 @@ public final class McpAggregateEventId
             {
                 buffer.putByte(progress++, PAIR_DELIMITER);
             }
-            progress += buffer.putStringWithoutLengthUtf8(progress, prefixes[i]);
+            progress += buffer.putStringWithoutLengthUtf8(progress, routes[i].prefix());
             buffer.putByte(progress++, KEY_VALUE_DELIMITER);
             progress += buffer.putStringWithoutLengthUtf8(progress, id);
         }

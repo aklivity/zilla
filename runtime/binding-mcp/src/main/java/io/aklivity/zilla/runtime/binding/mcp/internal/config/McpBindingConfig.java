@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.binding.mcp.internal.config;
 import static io.aklivity.zilla.runtime.binding.mcp.config.McpElicitationConfig.DEFAULT_CALLBACK_PATH;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -46,8 +45,7 @@ public final class McpBindingConfig
     public final McpProxyCache cache;
     public final Map<String, McpProxySession> sessions;
     public final Map<String, McpRouteConfig> routeByPrefix;
-    public final String[] prefixes;
-    public final long[] routedIds;
+    public final McpAggregateRoute[] aggregateRoutes;
 
     private final List<McpRouteConfig> routes;
 
@@ -77,16 +75,10 @@ public final class McpBindingConfig
         }
         this.routeByPrefix = routeByPrefix;
 
-        final String[] prefixes = routeByPrefix.keySet().stream()
-            .sorted(Comparator.naturalOrder())
-            .toArray(String[]::new);
-        final long[] routedIds = new long[prefixes.length];
-        for (int i = 0; i < prefixes.length; i++)
-        {
-            routedIds[i] = routeByPrefix.get(prefixes[i]).id;
-        }
-        this.prefixes = prefixes;
-        this.routedIds = routedIds;
+        this.aggregateRoutes = routeByPrefix.entrySet().stream()
+            .sorted(Map.Entry.comparingByKey())
+            .map(e -> new McpAggregateRoute(e.getKey(), e.getValue().id))
+            .toArray(McpAggregateRoute[]::new);
 
         this.guard = Optional.ofNullable(options)
             .map(o -> o.authorization)
