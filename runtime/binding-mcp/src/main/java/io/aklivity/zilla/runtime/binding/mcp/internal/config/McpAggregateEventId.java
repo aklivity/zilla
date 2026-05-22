@@ -27,6 +27,7 @@ import java.util.function.BiConsumer;
 import java.util.zip.CRC32C;
 
 import org.agrona.MutableDirectBuffer;
+import org.agrona.collections.Long2ObjectHashMap;
 
 public final class McpAggregateEventId
 {
@@ -82,16 +83,14 @@ public final class McpAggregateEventId
 
     public static int encode(
         McpAggregateRoute[] routes,
-        String[] ids,
+        Long2ObjectHashMap<String> ids,
         MutableDirectBuffer buffer,
         int offset)
     {
-        assert routes.length == ids.length;
-
         int progress = offset;
-        for (int i = 0; i < routes.length; i++)
+        for (McpAggregateRoute route : routes)
         {
-            final String id = ids[i];
+            final String id = ids.get(route.routedId());
             if (id == null)
             {
                 continue;
@@ -100,7 +99,7 @@ public final class McpAggregateEventId
             {
                 buffer.putByte(progress++, PAIR_DELIMITER);
             }
-            progress += buffer.putStringWithoutLengthUtf8(progress, routes[i].prefix());
+            progress += buffer.putStringWithoutLengthUtf8(progress, route.prefix());
             buffer.putByte(progress++, KEY_VALUE_DELIMITER);
             progress += buffer.putStringWithoutLengthUtf8(progress, id);
         }

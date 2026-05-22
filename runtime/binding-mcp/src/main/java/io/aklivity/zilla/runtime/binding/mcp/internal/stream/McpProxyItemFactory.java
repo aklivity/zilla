@@ -273,7 +273,7 @@ abstract class McpProxyItemFactory implements BindingHandler
 
             state = McpState.openingInitial(state);
 
-            client.doClientBegin(traceId);
+            client.doClientBegin(traceId, sessionId());
 
             flushServerWindow(traceId, 0L, 0, 0L, 0);
         }
@@ -529,19 +529,16 @@ abstract class McpProxyItemFactory implements BindingHandler
         }
 
         private void doClientBegin(
-            long traceId)
+            long traceId,
+            String sessionId)
         {
             lifecycle.doClientBegin(traceId);
 
             final String identifier = server.identifier;
-            final String upstreamSessionId = lifecycle.sessionId();
-            final String outboundSessionId = upstreamSessionId != null
-                ? upstreamSessionId
-                : server.sessionId();
             final McpBeginExFW beginEx = mcpBeginExRW
                 .wrap(codecBuffer, 0, codecBuffer.capacity())
                 .typeId(mcpTypeId)
-                .inject(b -> injectInitialBeginEx(b, outboundSessionId, identifier))
+                .inject(b -> injectInitialBeginEx(b, sessionId, identifier))
                 .build();
 
             sender = newStream(this::onClientMessage, server.lifecycle.originId, resolvedId, initialId,

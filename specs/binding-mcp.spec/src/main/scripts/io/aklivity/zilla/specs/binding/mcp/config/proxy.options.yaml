@@ -23,6 +23,9 @@ bindings:
       cache:
         store: memory0
         ttl: PT5M
+        authorization:
+          jwt0:
+            credentials: cookies.access_token
       prompts:
         - name: rule
           description: house rules

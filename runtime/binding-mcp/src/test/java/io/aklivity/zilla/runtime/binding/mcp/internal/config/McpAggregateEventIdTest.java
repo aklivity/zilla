@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.agrona.MutableDirectBuffer;
+import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
@@ -88,7 +89,9 @@ public class McpAggregateEventIdTest
     public void shouldEncodeSinglePair()
     {
         McpAggregateRoute[] routes = { new McpAggregateRoute("E", 1L) };
-        int length = McpAggregateEventId.encode(routes, new String[] {"12"}, buffer, 0);
+        Long2ObjectHashMap<String> ids = new Long2ObjectHashMap<>();
+        ids.put(1L, "12");
+        int length = McpAggregateEventId.encode(routes, ids, buffer, 0);
 
         assertEquals("E=12", buffer.getStringWithoutLengthUtf8(0, length));
     }
@@ -97,7 +100,10 @@ public class McpAggregateEventIdTest
     public void shouldEncodeMultiplePairsInPrefixOrder()
     {
         McpAggregateRoute[] routes = { new McpAggregateRoute("E", 1L), new McpAggregateRoute("m", 2L) };
-        int length = McpAggregateEventId.encode(routes, new String[] {"12", "ab9"}, buffer, 0);
+        Long2ObjectHashMap<String> ids = new Long2ObjectHashMap<>();
+        ids.put(1L, "12");
+        ids.put(2L, "ab9");
+        int length = McpAggregateEventId.encode(routes, ids, buffer, 0);
 
         assertEquals("E=12;m=ab9", buffer.getStringWithoutLengthUtf8(0, length));
     }
@@ -106,7 +112,9 @@ public class McpAggregateEventIdTest
     public void shouldEncodeSkipNullIds()
     {
         McpAggregateRoute[] routes = { new McpAggregateRoute("E", 1L), new McpAggregateRoute("m", 2L) };
-        int length = McpAggregateEventId.encode(routes, new String[] {null, "ab9"}, buffer, 0);
+        Long2ObjectHashMap<String> ids = new Long2ObjectHashMap<>();
+        ids.put(2L, "ab9");
+        int length = McpAggregateEventId.encode(routes, ids, buffer, 0);
 
         assertEquals("m=ab9", buffer.getStringWithoutLengthUtf8(0, length));
     }
@@ -115,7 +123,8 @@ public class McpAggregateEventIdTest
     public void shouldEncodeReturnsNegativeWhenAllIdsNull()
     {
         McpAggregateRoute[] routes = { new McpAggregateRoute("E", 1L), new McpAggregateRoute("m", 2L) };
-        int length = McpAggregateEventId.encode(routes, new String[] {null, null}, buffer, 0);
+        Long2ObjectHashMap<String> ids = new Long2ObjectHashMap<>();
+        int length = McpAggregateEventId.encode(routes, ids, buffer, 0);
 
         assertEquals(-1, length);
     }
@@ -126,7 +135,10 @@ public class McpAggregateEventIdTest
         buffer.putStringWithoutLengthUtf8(0, "preamble:");
         int offset = "preamble:".length();
         McpAggregateRoute[] routes = { new McpAggregateRoute("E", 1L), new McpAggregateRoute("m", 2L) };
-        int length = McpAggregateEventId.encode(routes, new String[] {"12", "ab9"}, buffer, offset);
+        Long2ObjectHashMap<String> ids = new Long2ObjectHashMap<>();
+        ids.put(1L, "12");
+        ids.put(2L, "ab9");
+        int length = McpAggregateEventId.encode(routes, ids, buffer, offset);
 
         assertEquals("E=12;m=ab9", buffer.getStringWithoutLengthUtf8(offset, length));
     }
@@ -180,11 +192,15 @@ public class McpAggregateEventIdTest
         input.put("p2", "200");
         input.put("p3", "abc");
 
-        McpAggregateRoute[] routes = input.keySet().stream()
-            .sorted()
-            .map(p -> new McpAggregateRoute(p, 0L))
-            .toArray(McpAggregateRoute[]::new);
-        String[] ids = Arrays.stream(routes).map(r -> input.get(r.prefix())).toArray(String[]::new);
+        McpAggregateRoute[] routes = new McpAggregateRoute[input.size()];
+        Long2ObjectHashMap<String> ids = new Long2ObjectHashMap<>();
+        int index = 0;
+        for (String prefix : input.keySet().stream().sorted().toList())
+        {
+            final long routedId = 100L + index;
+            routes[index++] = new McpAggregateRoute(prefix, routedId);
+            ids.put(routedId, input.get(prefix));
+        }
         int length = McpAggregateEventId.encode(routes, ids, buffer, 0);
         String aggregate = buffer.getStringWithoutLengthUtf8(0, length);
 
@@ -204,7 +220,11 @@ public class McpAggregateEventIdTest
             new McpAggregateRoute("z", 3L)
         };
         Arrays.sort(routes, Comparator.comparing(McpAggregateRoute::prefix));
-        int length = McpAggregateEventId.encode(routes, new String[] {"1", "2", "3"}, buffer, 0);
+        Long2ObjectHashMap<String> ids = new Long2ObjectHashMap<>();
+        ids.put(1L, "1");
+        ids.put(2L, "2");
+        ids.put(3L, "3");
+        int length = McpAggregateEventId.encode(routes, ids, buffer, 0);
 
         assertEquals("E=1;m=2;z=3", buffer.getStringWithoutLengthUtf8(0, length));
     }

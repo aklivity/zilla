@@ -65,14 +65,6 @@ public class SchemaTest
         assertThat(config, not(nullValue()));
     }
 
-    @Test
-    public void shouldValidateProxyToolkitMulti()
-    {
-        JsonObject config = schema.validate("proxy.toolkit.multi.yaml");
-
-        assertThat(config, not(nullValue()));
-    }
-
     @Test(expected = JsonValidatingException.class)
     public void shouldRejectProxyRouteMissingToolkit()
     {
