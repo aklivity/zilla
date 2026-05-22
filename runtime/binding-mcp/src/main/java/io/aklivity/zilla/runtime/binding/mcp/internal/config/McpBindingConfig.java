@@ -17,11 +17,14 @@ package io.aklivity.zilla.runtime.binding.mcp.internal.config;
 import static io.aklivity.zilla.runtime.binding.mcp.config.McpElicitationConfig.DEFAULT_CALLBACK_PATH;
 
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.mcp.config.McpOptionsConfig;
@@ -43,6 +46,10 @@ public final class McpBindingConfig
     public final GuardHandler guard;
     public final McpProxyCache cache;
     public final Map<String, McpProxySession> sessions;
+    public final Map<String, McpRouteConfig> routeByPrefix;
+    public final Long2ObjectHashMap<String> prefixByRoutedId;
+    public final String[] sortedPrefixes;
+    public final long[] sortedRoutedIdsByPrefix;
 
     private final List<McpRouteConfig> routes;
 
@@ -56,6 +63,47 @@ public final class McpBindingConfig
         this.routes = binding.routes.stream()
             .map(McpRouteConfig::new)
             .collect(Collectors.toList());
+
+        if (routes.size() > 1)
+        {
+            for (McpRouteConfig route : routes)
+            {
+                if (route.toolkit() == null)
+                {
+                    throw new IllegalArgumentException(
+                        "toolkit is required for routes when multiple routes are configured");
+                }
+            }
+        }
+
+        final Map<String, McpRouteConfig> routeByPrefix = new LinkedHashMap<>();
+        final Long2ObjectHashMap<String> prefixByRoutedId = new Long2ObjectHashMap<>();
+        if (routes.size() > 1)
+        {
+            final List<String> toolkits = routes.stream()
+                .map(McpRouteConfig::toolkit)
+                .collect(Collectors.toList());
+            final Map<String, String> prefixesByToolkit = McpAggregateEventId.computePrefixes(toolkits);
+            for (McpRouteConfig route : routes)
+            {
+                final String prefix = prefixesByToolkit.get(route.toolkit());
+                routeByPrefix.put(prefix, route);
+                prefixByRoutedId.put(route.id, prefix);
+            }
+        }
+        this.routeByPrefix = routeByPrefix;
+        this.prefixByRoutedId = prefixByRoutedId;
+
+        final String[] sortedPrefixes = routeByPrefix.keySet().stream()
+            .sorted(Comparator.naturalOrder())
+            .toArray(String[]::new);
+        final long[] sortedRoutedIds = new long[sortedPrefixes.length];
+        for (int i = 0; i < sortedPrefixes.length; i++)
+        {
+            sortedRoutedIds[i] = routeByPrefix.get(sortedPrefixes[i]).id;
+        }
+        this.sortedPrefixes = sortedPrefixes;
+        this.sortedRoutedIdsByPrefix = sortedRoutedIds;
 
         this.guard = Optional.ofNullable(options)
             .map(o -> o.authorization)
