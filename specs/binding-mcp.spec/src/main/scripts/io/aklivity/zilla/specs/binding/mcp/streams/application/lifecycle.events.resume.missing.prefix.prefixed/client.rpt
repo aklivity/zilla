@@ -13,7 +13,7 @@
 # specific language governing permissions and limitations under the License.
 #
 
-connect "zilla://streams/app1"
+connect "zilla://streams/app0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
 
@@ -36,13 +36,13 @@ read zilla:begin.ext ${mcp:matchBeginEx()
 read advise zilla:challenge ${mcp:challengeEx()
                                   .typeId(zilla:id("mcp"))
                                   .resume()
-                                      .id("100")
+                                      .id("X=999;S=100")
                                       .build()
                                   .build()}
 
 read advised zilla:flush ${mcp:matchFlushEx()
                                .typeId(zilla:id("mcp"))
                                .toolsListChanged()
-                                   .id("101")
+                                   .id("S=101")
                                    .build()
                                .build()}

@@ -22,6 +22,7 @@ import jakarta.json.JsonObject;
 
 import org.junit.Rule;
 import org.junit.Test;
+import org.leadpony.justify.api.JsonValidatingException;
 
 import io.aklivity.zilla.specs.engine.config.ConfigSchemaRule;
 
@@ -38,5 +39,31 @@ public class SchemaTest
         JsonObject config = schema.validate("server.yaml");
 
         assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateProxyToolkitMulti()
+    {
+        JsonObject config = schema.validate("proxy.toolkit.multi.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test(expected = JsonValidatingException.class)
+    public void shouldRejectProxyRouteMissingToolkit()
+    {
+        schema.validate("proxy.routes.missing.toolkit.invalid.yaml");
+    }
+
+    @Test(expected = JsonValidatingException.class)
+    public void shouldRejectServerWithCache()
+    {
+        schema.validate("server.cache.invalid.yaml");
+    }
+
+    @Test(expected = JsonValidatingException.class)
+    public void shouldRejectServerRouteWithToolkit()
+    {
+        schema.validate("server.toolkit.invalid.yaml");
     }
 }

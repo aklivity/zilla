@@ -64,18 +64,6 @@ public final class McpBindingConfig
             .map(McpRouteConfig::new)
             .collect(Collectors.toList());
 
-        if (routes.size() > 1)
-        {
-            for (McpRouteConfig route : routes)
-            {
-                if (route.toolkit() == null)
-                {
-                    throw new IllegalArgumentException(
-                        "toolkit is required for routes when multiple routes are configured");
-                }
-            }
-        }
-
         final Map<String, McpRouteConfig> routeByPrefix = new LinkedHashMap<>();
         final Long2ObjectHashMap<String> prefixByRoutedId = new Long2ObjectHashMap<>();
         if (routes.size() > 1)

@@ -205,7 +205,76 @@
                             }
                         }
                     }
-                }
+                },
+                "allOf":
+                [
+                    {
+                        "if":
+                        {
+                            "properties":
+                            {
+                                "kind":
+                                {
+                                    "const": "proxy"
+                                }
+                            }
+                        },
+                        "then":
+                        {
+                            "properties":
+                            {
+                                "routes":
+                                {
+                                    "items":
+                                    {
+                                        "properties":
+                                        {
+                                            "when":
+                                            {
+                                                "items":
+                                                {
+                                                    "required": [ "toolkit" ]
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "else":
+                        {
+                            "properties":
+                            {
+                                "options":
+                                {
+                                    "properties":
+                                    {
+                                        "cache": false
+                                    }
+                                },
+                                "routes":
+                                {
+                                    "items":
+                                    {
+                                        "properties":
+                                        {
+                                            "when":
+                                            {
+                                                "items":
+                                                {
+                                                    "properties":
+                                                    {
+                                                        "toolkit": false
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                ]
             }
         }
     }
