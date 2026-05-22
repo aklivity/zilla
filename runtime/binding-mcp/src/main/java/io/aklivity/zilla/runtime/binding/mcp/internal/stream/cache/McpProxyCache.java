@@ -18,6 +18,7 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeg
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
 
+import java.io.Closeable;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -240,18 +241,35 @@ public final class McpProxyCache
             store.delete(storeLockKey, completion);
         }
 
+        public Closeable watch(
+            BiConsumer<String, String> listener)
+        {
+            return store.watch(storeKey, listener);
+        }
+
         private void checkGet(
             String key,
             String value)
         {
-            populated = value != null;
+            final boolean changed;
             if (value != null)
             {
                 crc32.reset();
                 crc32.update(value.getBytes(StandardCharsets.UTF_8));
-                lastChecksum = crc32.getValue();
+                final long newChecksum = crc32.getValue();
+                changed = lastChecksum != -1L && lastChecksum != newChecksum;
+                lastChecksum = newChecksum;
             }
+            else
+            {
+                changed = false;
+            }
+            populated = value != null;
             checkReady();
+            if (onSettled != null)
+            {
+                onSettled.accept(kind, changed);
+            }
         }
 
         private void checkPut(

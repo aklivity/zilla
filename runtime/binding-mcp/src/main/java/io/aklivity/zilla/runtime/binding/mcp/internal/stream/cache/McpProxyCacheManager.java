@@ -17,6 +17,8 @@ package io.aklivity.zilla.runtime.binding.mcp.internal.stream.cache;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_LIST;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.time.Instant;
 import java.util.Arrays;
 
@@ -33,6 +35,7 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
     private final Signaler signaler;
     private final long[] hydrateBackoffMs;
     private final long[] hydrateRetryIds;
+    private final Closeable[] watchHandles;
 
     private McpProxyCacheHandler handler;
     private long refreshCancelId;
@@ -50,6 +53,7 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
         this.signaler = signaler;
         this.hydrateBackoffMs = new long[KIND_SLOTS];
         this.hydrateRetryIds = new long[KIND_SLOTS];
+        this.watchHandles = new Closeable[KIND_SLOTS];
         Arrays.fill(this.hydrateRetryIds, NO_CANCEL_ID);
         this.refreshCancelId = NO_CANCEL_ID;
         this.reconnectCancelId = NO_CANCEL_ID;
@@ -58,6 +62,10 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
     public void start()
     {
         cache.onReady = this::onCacheReady;
+        for (int kind : cache.caches().keySet())
+        {
+            watchHandles[kind] = cache.caches().get(kind).watch((k, v) -> onStoreChanged(kind));
+        }
         handler = hydrater.attach(cache, this);
         handler.start();
     }
@@ -70,6 +78,7 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
         for (int kind : cache.caches().keySet())
         {
             cancelHydrateRetry(kind);
+            closeWatch(kind);
         }
         if (handler != null)
         {
@@ -77,6 +86,36 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
             handler = null;
         }
         cache.onReady = null;
+    }
+
+    private void onStoreChanged(
+        int kind)
+    {
+        if (stopped)
+        {
+            return;
+        }
+        cache.caches().get(kind).get((k, v) ->
+        {
+        });
+    }
+
+    private void closeWatch(
+        int kind)
+    {
+        final Closeable handle = watchHandles[kind];
+        if (handle != null)
+        {
+            watchHandles[kind] = null;
+            try
+            {
+                handle.close();
+            }
+            catch (IOException ex)
+            {
+                // unsubscribe is best-effort
+            }
+        }
     }
 
     @Override
