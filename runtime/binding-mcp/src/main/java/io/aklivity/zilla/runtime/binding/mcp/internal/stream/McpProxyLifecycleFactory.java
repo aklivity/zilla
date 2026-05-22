@@ -28,11 +28,13 @@ import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
+import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpAggregateEventId;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpBindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpProxySession;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpRouteConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.OctetsFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.ChallengeFW;
@@ -41,7 +43,15 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpChallengeExFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpElicitCompleteFlushExFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpElicitStatus;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpFlushExFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpProgressFlushExFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpPromptsListChangedFlushExFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpResourcesListChangedFlushExFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpResumableFlushExFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpResumeChallengeExFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpToolsListChangedFlushExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.WindowFW;
@@ -55,6 +65,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
     static final int SIGNAL_HYDRATE_COMPLETE = 1;
 
     private static final String MCP_TYPE_NAME = "mcp";
+    private static final int AGGREGATE_BUFFER_CAPACITY = 1024;
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -66,7 +77,11 @@ final class McpProxyLifecycleFactory implements BindingHandler
     private final ChallengeFW challengeRO = new ChallengeFW();
     private final SignalFW signalRO = new SignalFW();
     private final McpBeginExFW mcpBeginExRO = new McpBeginExFW();
+    private final McpFlushExFW mcpFlushExRO = new McpFlushExFW();
+    private final McpChallengeExFW mcpChallengeExRO = new McpChallengeExFW();
     private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBuffer(), 0, 0);
+    private final OctetsFW rewrittenExRO = new OctetsFW();
+    private final OctetsFW aggregateRO = new OctetsFW();
 
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
     private final DataFW.Builder dataRW = new DataFW.Builder();
@@ -77,11 +92,13 @@ final class McpProxyLifecycleFactory implements BindingHandler
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
     private final ChallengeFW.Builder challengeRW = new ChallengeFW.Builder();
     private final McpBeginExFW.Builder mcpBeginExRW = new McpBeginExFW.Builder();
-    private final McpChallengeExFW.Builder mcpChallengeExRW = new McpChallengeExFW.Builder();
     private final McpFlushExFW.Builder mcpFlushExRW = new McpFlushExFW.Builder();
+    private final McpChallengeExFW.Builder mcpChallengeExRW = new McpChallengeExFW.Builder();
 
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer codecBuffer;
+    private final MutableDirectBuffer flushExBuffer;
+    private final MutableDirectBuffer aggregateBuffer;
     private final BindingHandler streamFactory;
     private final Signaler signaler;
     private final LongUnaryOperator supplyInitialId;
@@ -96,6 +113,8 @@ final class McpProxyLifecycleFactory implements BindingHandler
     {
         this.writeBuffer = context.writeBuffer();
         this.codecBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.flushExBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.aggregateBuffer = new UnsafeBuffer(new byte[AGGREGATE_BUFFER_CAPACITY]);
         this.streamFactory = context.streamFactory();
         this.signaler = context.signaler();
         this.supplyInitialId = context::supplyInitialId;
@@ -156,6 +175,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
         private final int clientCapabilities;
         final String sessionId;
         private final Long2ObjectHashMap<McpLifecycleClient> clients;
+        private final Long2ObjectHashMap<String> eventIds;
 
         private int state;
         private boolean resumePending;
@@ -193,12 +213,54 @@ final class McpProxyLifecycleFactory implements BindingHandler
             this.clientCapabilities = clientCapabilities;
             this.sessionId = sessionId;
             this.clients = new Long2ObjectHashMap<>();
+            this.eventIds = binding.aggregateRoutes.length > 0
+                ? new Long2ObjectHashMap<>()
+                : null;
         }
 
         McpLifecycleClient supplyClient(
             long routedId)
         {
             return clients.computeIfAbsent(routedId, id -> new McpLifecycleClient(this, id));
+        }
+
+        private boolean aggregating()
+        {
+            return eventIds != null && originId != routedId;
+        }
+
+        private void onDecodeEventId(
+            long routedId,
+            String eventId)
+        {
+            if (eventId != null)
+            {
+                eventIds.put(routedId, eventId);
+            }
+        }
+
+        private OctetsFW nextEventId()
+        {
+            final int length = McpAggregateEventId.encode(
+                binding.aggregateRoutes, eventIds, aggregateBuffer, 0);
+            return length < 0 ? null : aggregateRO.wrap(aggregateBuffer, 0, length);
+        }
+
+        private void onDecodeAggregateEventId(
+            long traceId,
+            long authorization,
+            String prefix,
+            String eventId)
+        {
+            final McpRouteConfig route = binding.routeByPrefix.get(prefix);
+            if (route != null)
+            {
+                onDecodeEventId(route.id, eventId);
+                final McpLifecycleClient client = supplyClient(route.id);
+                client.resumeId = eventId;
+                client.doClientBegin(traceId);
+                client.doClientResume(traceId, authorization);
+            }
         }
 
         private void onServerMessage(
@@ -252,9 +314,30 @@ final class McpProxyLifecycleFactory implements BindingHandler
 
             final long traceId = challenge.traceId();
             final long authorization = challenge.authorization();
-            for (McpLifecycleClient client : clients.values())
+            final OctetsFW extension = challenge.extension();
+            final McpChallengeExFW challengeEx = extension.sizeof() > 0
+                ? mcpChallengeExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit())
+                : null;
+
+            if (challengeEx != null && challengeEx.kind() == McpChallengeExFW.KIND_RESUME)
             {
-                client.doClientResume(traceId, authorization);
+                final String16FW resumeId = challengeEx.resume().id();
+                final String aggregate = resumeId != null && resumeId.length() != -1
+                    ? resumeId.asString()
+                    : null;
+
+                if (aggregate != null && aggregating())
+                {
+                    McpAggregateEventId.decode(aggregate,
+                        (prefix, eventId) -> onDecodeAggregateEventId(traceId, authorization, prefix, eventId));
+                }
+                else
+                {
+                    for (McpLifecycleClient client : clients.values())
+                    {
+                        client.doClientResume(traceId, authorization);
+                    }
+                }
             }
         }
 
@@ -455,8 +538,28 @@ final class McpProxyLifecycleFactory implements BindingHandler
             int reserved,
             OctetsFW extension)
         {
+            OctetsFW newExtension = extension;
+            if (aggregating())
+            {
+                final McpFlushExFW flushEx =
+                    mcpFlushExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
+                final String eventId = extractEventId(flushEx);
+                if (eventId != null)
+                {
+                    final OctetsFW aggregateId = nextEventId();
+                    if (aggregateId != null)
+                    {
+                        final McpFlushExFW rewritten = mcpFlushExRW
+                            .wrap(flushExBuffer, 0, flushExBuffer.capacity())
+                            .typeId(flushEx.typeId())
+                            .inject(b -> injectFlushEx(b, flushEx, aggregateId))
+                            .build();
+                        newExtension = rewrittenExRO.wrap(rewritten.buffer(), rewritten.offset(), rewritten.limit());
+                    }
+                }
+            }
             doFlush(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                traceId, authorization, budgetId, reserved, extension);
+                traceId, authorization, budgetId, reserved, newExtension);
         }
 
         @Override
@@ -520,13 +623,15 @@ final class McpProxyLifecycleFactory implements BindingHandler
     final class McpLifecycleClient
     {
         private final McpLifecycleServer server;
+        private final long originId;
         private final long routedId;
         private final long initialId;
         private final long replyId;
 
         private MessageConsumer sender;
         private int state;
-        String sessionId;        // upstream-provided session id, set on BEGIN reply
+        String sessionId;
+        private String resumeId;
 
         private long initialSeq;
         private long initialAck;
@@ -543,6 +648,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
             long routedId)
         {
             this.server = server;
+            this.originId = server.routedId;
             this.routedId = routedId;
             this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
@@ -553,7 +659,6 @@ final class McpProxyLifecycleFactory implements BindingHandler
         {
             if (!McpState.initialOpening(state))
             {
-                final long originId = server.routedId;
                 final String sid = server.sessionId;
                 final int clientCapabilities = server.clientCapabilities;
                 final McpBeginExFW beginEx = mcpBeginExRW
@@ -562,6 +667,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
                     .lifecycle(l -> l.sessionId(sid).capabilities(clientCapabilities))
                     .build();
 
+                sessionId = sid;
                 sender = newStream(this::onClientMessage, originId, routedId, initialId,
                     initialSeq, initialAck, initialMax, traceId, server.authorization, server.affinity, beginEx);
                 state = McpState.openingInitial(state);
@@ -573,7 +679,6 @@ final class McpProxyLifecycleFactory implements BindingHandler
         {
             if (!McpState.initialClosed(state))
             {
-                final long originId = server.routedId;
                 doEnd(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId,
                     server.authorization);
                 state = McpState.closedInitial(state);
@@ -585,7 +690,6 @@ final class McpProxyLifecycleFactory implements BindingHandler
         {
             if (!McpState.initialClosed(state))
             {
-                final long originId = server.routedId;
                 doAbort(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId,
                     server.authorization);
                 state = McpState.closedInitial(state);
@@ -597,7 +701,6 @@ final class McpProxyLifecycleFactory implements BindingHandler
         {
             if (!McpState.replyClosed(state))
             {
-                final long originId = server.routedId;
                 doReset(sender, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId,
                     server.authorization, emptyRO);
                 state = McpState.closedReply(state);
@@ -609,7 +712,6 @@ final class McpProxyLifecycleFactory implements BindingHandler
             long authorization,
             Flyweight extension)
         {
-            final long originId = server.routedId;
             doChallenge(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
                 traceId, authorization, extension);
         }
@@ -618,12 +720,25 @@ final class McpProxyLifecycleFactory implements BindingHandler
             long traceId,
             long authorization)
         {
-            final McpChallengeExFW resumeEx = mcpChallengeExRW
-                .wrap(codecBuffer, 0, codecBuffer.capacity())
-                .typeId(mcpTypeId)
-                .resume(b -> {})
-                .build();
-            doClientChallenge(traceId, authorization, resumeEx);
+            if (McpState.replyOpened(state))
+            {
+                final McpChallengeExFW resumeEx = mcpChallengeExRW
+                    .wrap(codecBuffer, 0, codecBuffer.capacity())
+                    .typeId(mcpTypeId)
+                    .resume(this::injectResumeId)
+                    .build();
+                doClientChallenge(traceId, authorization, resumeEx);
+                resumeId = null;
+            }
+        }
+
+        private void injectResumeId(
+            McpResumeChallengeExFW.Builder builder)
+        {
+            if (resumeId != null)
+            {
+                builder.id(resumeId);
+            }
         }
 
         private void doClientWindow(
@@ -631,7 +746,6 @@ final class McpProxyLifecycleFactory implements BindingHandler
             long budgetId,
             int padding)
         {
-            final long originId = server.routedId;
             doWindow(sender, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, server.authorization,
                 budgetId, padding);
         }
@@ -679,8 +793,14 @@ final class McpProxyLifecycleFactory implements BindingHandler
         private void onClientFlush(
             FlushFW flush)
         {
+            final OctetsFW extension = flush.extension();
+            if (server.aggregating())
+            {
+                final McpFlushExFW flushEx = mcpFlushExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
+                server.onDecodeEventId(routedId, extractEventId(flushEx));
+            }
             server.doServerFlush(flush.traceId(), flush.authorization(),
-                flush.budgetId(), flush.reserved(), flush.extension());
+                flush.budgetId(), flush.reserved(), extension);
         }
 
         private void onClientBegin(
@@ -707,7 +827,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
 
             state = McpState.openedReply(state);
 
-            if (server.resumePending)
+            if (resumeId != null || server.resumePending)
             {
                 doClientResume(traceId, authorization);
             }
@@ -795,6 +915,106 @@ final class McpProxyLifecycleFactory implements BindingHandler
             server.clients.remove(routedId, this);
             server.doServerReset(traceId);
         }
+    }
+
+    private String extractEventId(
+        McpFlushExFW flushEx)
+    {
+        final String16FW id = switch (flushEx.kind())
+        {
+        case McpFlushExFW.KIND_RESUMABLE -> flushEx.resumable().id();
+        case McpFlushExFW.KIND_TOOLS_LIST_CHANGED -> flushEx.toolsListChanged().id();
+        case McpFlushExFW.KIND_PROMPTS_LIST_CHANGED -> flushEx.promptsListChanged().id();
+        case McpFlushExFW.KIND_RESOURCES_LIST_CHANGED -> flushEx.resourcesListChanged().id();
+        case McpFlushExFW.KIND_PROGRESS -> flushEx.progress().id();
+        case McpFlushExFW.KIND_ELICIT_COMPLETE -> flushEx.elicitComplete().id();
+        default -> null;
+        };
+        return id != null && id.length() != -1 ? id.asString() : null;
+    }
+
+    private void injectFlushEx(
+        McpFlushExFW.Builder builder,
+        McpFlushExFW flushEx,
+        OctetsFW aggregate)
+    {
+        switch (flushEx.kind())
+        {
+        case McpFlushExFW.KIND_RESUMABLE:
+            builder.resumable(b -> injectResumableFlushEx(b, aggregate));
+            break;
+        case McpFlushExFW.KIND_TOOLS_LIST_CHANGED:
+            builder.toolsListChanged(b -> injectToolsListChangedFlushEx(b, aggregate));
+            break;
+        case McpFlushExFW.KIND_PROMPTS_LIST_CHANGED:
+            builder.promptsListChanged(b -> injectPromptsListChangedFlushEx(b, aggregate));
+            break;
+        case McpFlushExFW.KIND_RESOURCES_LIST_CHANGED:
+            builder.resourcesListChanged(b -> injectResourcesListChangedFlushEx(b, aggregate));
+            break;
+        case McpFlushExFW.KIND_PROGRESS:
+            builder.progress(b -> injectProgressFlushEx(b, flushEx.progress(), aggregate));
+            break;
+        case McpFlushExFW.KIND_ELICIT_COMPLETE:
+            builder.elicitComplete(b -> injectElicitCompleteFlushEx(b, flushEx.elicitComplete(), aggregate));
+            break;
+        default:
+            break;
+        }
+    }
+
+    private void injectResumableFlushEx(
+        McpResumableFlushExFW.Builder builder,
+        OctetsFW aggregate)
+    {
+        builder.id(aggregate.buffer(), aggregate.offset(), aggregate.sizeof());
+    }
+
+    private void injectToolsListChangedFlushEx(
+        McpToolsListChangedFlushExFW.Builder builder,
+        OctetsFW aggregate)
+    {
+        builder.id(aggregate.buffer(), aggregate.offset(), aggregate.sizeof());
+    }
+
+    private void injectPromptsListChangedFlushEx(
+        McpPromptsListChangedFlushExFW.Builder builder,
+        OctetsFW aggregate)
+    {
+        builder.id(aggregate.buffer(), aggregate.offset(), aggregate.sizeof());
+    }
+
+    private void injectResourcesListChangedFlushEx(
+        McpResourcesListChangedFlushExFW.Builder builder,
+        OctetsFW aggregate)
+    {
+        builder.id(aggregate.buffer(), aggregate.offset(), aggregate.sizeof());
+    }
+
+    private void injectProgressFlushEx(
+        McpProgressFlushExFW.Builder builder,
+        McpProgressFlushExFW progress,
+        OctetsFW aggregate)
+    {
+        final String token = progress.token().asString();
+        final String message = progress.message().asString();
+        builder.id(aggregate.buffer(), aggregate.offset(), aggregate.sizeof())
+            .token(token)
+            .progress(progress.progress())
+            .total(progress.total());
+        if (message != null)
+        {
+            builder.message(message);
+        }
+    }
+
+    private void injectElicitCompleteFlushEx(
+        McpElicitCompleteFlushExFW.Builder builder,
+        McpElicitCompleteFlushExFW elicitComplete,
+        OctetsFW aggregate)
+    {
+        final McpElicitStatus status = elicitComplete.status().get();
+        builder.id(aggregate.buffer(), aggregate.offset(), aggregate.sizeof()).status(s -> s.set(status));
     }
 
     private MessageConsumer newStream(

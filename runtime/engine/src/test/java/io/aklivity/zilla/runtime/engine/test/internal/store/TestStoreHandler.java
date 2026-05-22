@@ -15,8 +15,14 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.store;
 
+import java.io.Closeable;
+import java.time.Duration;
+import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -27,6 +33,8 @@ import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 public final class TestStoreHandler implements StoreHandler
 {
     private final ConcurrentMap<String, String> entries;
+    private final ConcurrentMap<String, List<BiConsumer<String, String>>> listeners;
+    private final ConcurrentMap<String, TestLockEntry> locks;
     private final Signaler signaler;
 
     public TestStoreHandler(
@@ -36,6 +44,8 @@ public final class TestStoreHandler implements StoreHandler
     {
         this.entries = Objects.requireNonNull(entries);
         this.signaler = Objects.requireNonNull(signaler);
+        this.listeners = new ConcurrentHashMap<>();
+        this.locks = new ConcurrentHashMap<>();
     }
 
     @Override
@@ -51,10 +61,11 @@ public final class TestStoreHandler implements StoreHandler
     public void put(
         String key,
         String value,
-        long ttl,
+        Duration ttl,
         Consumer<String> completion)
     {
         entries.put(key, value);
+        notifyListeners(key, value);
         defer(() -> completion.accept(null));
     }
 
@@ -62,10 +73,14 @@ public final class TestStoreHandler implements StoreHandler
     public void putIfAbsent(
         String key,
         String value,
-        long ttl,
+        Duration ttl,
         Consumer<String> completion)
     {
         final String existing = entries.putIfAbsent(key, value);
+        if (existing == null)
+        {
+            notifyListeners(key, value);
+        }
         defer(() -> completion.accept(existing));
     }
 
@@ -74,7 +89,11 @@ public final class TestStoreHandler implements StoreHandler
         String key,
         Consumer<String> completion)
     {
-        entries.remove(key);
+        final String removed = entries.remove(key);
+        if (removed != null)
+        {
+            notifyListeners(key, null);
+        }
         defer(() -> completion.accept(null));
     }
 
@@ -84,7 +103,87 @@ public final class TestStoreHandler implements StoreHandler
         Consumer<String> completion)
     {
         final String prior = entries.remove(key);
+        if (prior != null)
+        {
+            notifyListeners(key, null);
+        }
         defer(() -> completion.accept(prior));
+    }
+
+    @Override
+    public void lock(
+        String key,
+        Duration ttl,
+        BiConsumer<String, String> completion)
+    {
+        final long now = System.currentTimeMillis();
+        final long expiresAt = ttl == null ? Long.MAX_VALUE : now + ttl.toMillis();
+        final String token = UUID.randomUUID().toString();
+        final TestLockEntry candidate = new TestLockEntry(token, expiresAt);
+        TestLockEntry existing = locks.putIfAbsent(key, candidate);
+        if (existing != null && existing.expiresAt <= now)
+        {
+            existing = locks.replace(key, existing, candidate) ? null : locks.get(key);
+        }
+        final String result = existing == null ? token : null;
+        defer(() -> completion.accept(key, result));
+    }
+
+    @Override
+    public void unlock(
+        String key,
+        String token,
+        Consumer<String> completion)
+    {
+        final long now = System.currentTimeMillis();
+        final TestLockEntry current = locks.get(key);
+        final String result;
+        if (current != null && current.expiresAt > now && current.token.equals(token))
+        {
+            locks.remove(key, current);
+            result = token;
+        }
+        else
+        {
+            if (current != null && current.expiresAt <= now)
+            {
+                locks.remove(key, current);
+            }
+            result = null;
+        }
+        defer(() -> completion.accept(result));
+    }
+
+    @Override
+    public Closeable watch(
+        String key,
+        BiConsumer<String, String> listener)
+    {
+        final List<BiConsumer<String, String>> list = listeners.computeIfAbsent(key, k -> new CopyOnWriteArrayList<>());
+        list.add(listener);
+        return () ->
+        {
+            final List<BiConsumer<String, String>> current = listeners.get(key);
+            if (current != null)
+            {
+                current.remove(listener);
+            }
+        };
+    }
+
+    private void notifyListeners(
+        String key,
+        String value)
+    {
+        final List<BiConsumer<String, String>> list = listeners.get(key);
+        if (list != null && !list.isEmpty())
+        {
+            final long now = System.currentTimeMillis();
+            for (BiConsumer<String, String> listener : list)
+            {
+                signaler.signalAt(now, 0, ignored -> listener.accept(key, value));
+            }
+        }
     }
 
     private void defer(
@@ -92,5 +191,11 @@ public final class TestStoreHandler implements StoreHandler
     {
         // contract: callback fires strictly later than the call, on the caller's I/O thread
         signaler.signalAt(System.currentTimeMillis(), 0, ignored -> task.run());
+    }
+
+    private record TestLockEntry(
+        String token,
+        long expiresAt)
+    {
     }
 }

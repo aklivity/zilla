@@ -20,6 +20,7 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabiliti
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabilities.SERVER_TOOLS_LIST_CHANGED;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -46,6 +47,8 @@ public final class McpBindingConfig
     public final GuardHandler guard;
     public final McpProxyCache cache;
     public final Map<String, McpProxySession> sessions;
+    public final Map<String, McpRouteConfig> routeByPrefix;
+    public final McpAggregateRoute[] aggregateRoutes;
 
     private final List<McpRouteConfig> routes;
 
@@ -59,6 +62,26 @@ public final class McpBindingConfig
         this.routes = binding.routes.stream()
             .map(McpRouteConfig::new)
             .collect(Collectors.toList());
+
+        final Map<String, McpRouteConfig> routeByPrefix = new LinkedHashMap<>();
+        if (routes.size() > 1)
+        {
+            final List<String> toolkits = routes.stream()
+                .map(McpRouteConfig::toolkit)
+                .collect(Collectors.toList());
+            final Map<String, String> prefixesByToolkit = McpAggregateEventId.computePrefixes(toolkits);
+            for (McpRouteConfig route : routes)
+            {
+                final String prefix = prefixesByToolkit.get(route.toolkit());
+                routeByPrefix.put(prefix, route);
+            }
+        }
+        this.routeByPrefix = routeByPrefix;
+
+        this.aggregateRoutes = routeByPrefix.entrySet().stream()
+            .sorted(Map.Entry.comparingByKey())
+            .map(e -> new McpAggregateRoute(e.getKey(), e.getValue().id))
+            .toArray(McpAggregateRoute[]::new);
 
         this.guard = Optional.ofNullable(options)
             .map(o -> o.authorization)
