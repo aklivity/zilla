@@ -44,7 +44,6 @@ public final class McpProxyCache
     private static final String STORE_KEY_RESOURCES = "resources";
     private static final String STORE_KEY_PROMPTS = "prompts";
     private static final String STORE_LOCK_SUFFIX = ".lock";
-    private static final String STORE_LOCK_VALUE = "1";
     private static final String STORE_LOCK_KEY_TOOLS = STORE_KEY_TOOLS + STORE_LOCK_SUFFIX;
     private static final String STORE_LOCK_KEY_RESOURCES = STORE_KEY_RESOURCES + STORE_LOCK_SUFFIX;
     private static final String STORE_LOCK_KEY_PROMPTS = STORE_KEY_PROMPTS + STORE_LOCK_SUFFIX;
@@ -67,6 +66,7 @@ public final class McpProxyCache
     private final CRC32 crc32 = new CRC32();
 
     boolean populated;
+    private String lifecycleLockToken;
 
     Runnable onReady;
     public OnSettled onSettled;
@@ -142,14 +142,26 @@ public final class McpProxyCache
     void acquireLifecycle(
         Consumer<Boolean> completion)
     {
-        store.putIfAbsent(STORE_LOCK_KEY_LIFECYCLE, STORE_LOCK_VALUE, leaseTtl,
-            prior -> completion.accept(prior == null));
+        store.lock(STORE_LOCK_KEY_LIFECYCLE, leaseTtl, (k, t) ->
+        {
+            lifecycleLockToken = t;
+            completion.accept(t != null);
+        });
     }
 
     void releaseLifecycle(
         Consumer<String> completion)
     {
-        store.delete(STORE_LOCK_KEY_LIFECYCLE, completion);
+        final String token = lifecycleLockToken;
+        lifecycleLockToken = null;
+        if (token != null)
+        {
+            store.unlock(STORE_LOCK_KEY_LIFECYCLE, token, completion);
+        }
+        else
+        {
+            completion.accept(null);
+        }
     }
 
     void onPurged(
@@ -193,6 +205,7 @@ public final class McpProxyCache
 
         boolean populated;
         private long lastChecksum = -1L;
+        private String lockToken;
 
         private McpListCache(
             int kind,
@@ -231,14 +244,26 @@ public final class McpProxyCache
         public void acquire(
             Consumer<Boolean> completion)
         {
-            store.putIfAbsent(storeLockKey, STORE_LOCK_VALUE, leaseTtl,
-                prior -> completion.accept(prior == null));
+            store.lock(storeLockKey, leaseTtl, (k, t) ->
+            {
+                lockToken = t;
+                completion.accept(t != null);
+            });
         }
 
         public void release(
             Consumer<String> completion)
         {
-            store.delete(storeLockKey, completion);
+            final String token = lockToken;
+            lockToken = null;
+            if (token != null)
+            {
+                store.unlock(storeLockKey, token, completion);
+            }
+            else
+            {
+                completion.accept(null);
+            }
         }
 
         public Closeable watch(

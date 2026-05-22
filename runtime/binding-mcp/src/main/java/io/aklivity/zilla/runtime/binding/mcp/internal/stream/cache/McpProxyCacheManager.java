@@ -177,7 +177,6 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
         {
             return;
         }
-        cache.releaseLifecycle(k -> {});
         scheduleRefresh();
     }
 
