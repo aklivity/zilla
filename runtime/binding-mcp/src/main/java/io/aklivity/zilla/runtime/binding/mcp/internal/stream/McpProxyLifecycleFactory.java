@@ -794,13 +794,20 @@ final class McpProxyLifecycleFactory implements BindingHandler
             FlushFW flush)
         {
             final OctetsFW extension = flush.extension();
-            if (server.aggregating())
+            final boolean aggregating = server.aggregating();
+            final boolean deferring = server.binding.cache != null && server.originId != server.routedId;
+            final McpFlushExFW flushEx = aggregating || deferring
+                ? mcpFlushExRO.wrap(extension.buffer(), extension.offset(), extension.limit())
+                : null;
+            if (aggregating)
             {
-                final McpFlushExFW flushEx = mcpFlushExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
                 server.onDecodeEventId(routedId, extractEventId(flushEx));
             }
-            server.doServerFlush(flush.traceId(), flush.authorization(),
-                flush.budgetId(), flush.reserved(), extension);
+            if (!(deferring && isListChangedKind(flushEx.kind())))
+            {
+                server.doServerFlush(flush.traceId(), flush.authorization(),
+                    flush.budgetId(), flush.reserved(), extension);
+            }
         }
 
         private void onClientBegin(
@@ -931,6 +938,14 @@ final class McpProxyLifecycleFactory implements BindingHandler
         default -> null;
         };
         return id != null && id.length() != -1 ? id.asString() : null;
+    }
+
+    private static boolean isListChangedKind(
+        int kind)
+    {
+        return kind == McpFlushExFW.KIND_TOOLS_LIST_CHANGED ||
+            kind == McpFlushExFW.KIND_PROMPTS_LIST_CHANGED ||
+            kind == McpFlushExFW.KIND_RESOURCES_LIST_CHANGED;
     }
 
     private void injectFlushEx(
