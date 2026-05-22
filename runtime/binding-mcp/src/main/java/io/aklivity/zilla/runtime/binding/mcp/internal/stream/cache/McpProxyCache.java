@@ -164,6 +164,27 @@ public final class McpProxyCache
         }
     }
 
+    void renewLifecycle(
+        Consumer<Boolean> completion)
+    {
+        final String token = lifecycleLockToken;
+        if (token != null)
+        {
+            store.renew(STORE_LOCK_KEY_LIFECYCLE, token, leaseTtl, renewed ->
+            {
+                if (renewed == null)
+                {
+                    lifecycleLockToken = null;
+                }
+                completion.accept(renewed != null);
+            });
+        }
+        else
+        {
+            completion.accept(false);
+        }
+    }
+
     void onPurged(
         int kind)
     {

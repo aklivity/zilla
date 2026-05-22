@@ -40,6 +40,7 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
     private McpProxyCacheHandler handler;
     private long refreshCancelId;
     private long reconnectCancelId;
+    private long renewCancelId;
     private long sessionBackoffMs;
     private boolean stopped;
 
@@ -57,6 +58,7 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
         Arrays.fill(this.hydrateRetryIds, NO_CANCEL_ID);
         this.refreshCancelId = NO_CANCEL_ID;
         this.reconnectCancelId = NO_CANCEL_ID;
+        this.renewCancelId = NO_CANCEL_ID;
     }
 
     public void start()
@@ -75,6 +77,7 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
         stopped = true;
         cancelRefresh();
         cancelReconnect();
+        cancelLifecycleRenew();
         for (int kind : cache.caches().keySet())
         {
             cancelHydrateRetry(kind);
@@ -127,6 +130,7 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
         }
         Arrays.fill(hydrateBackoffMs, 0L);
         sessionBackoffMs = 0L;
+        scheduleLifecycleRenew();
         for (int kind : cache.caches().keySet())
         {
             handler.hydrate(kind);
@@ -163,6 +167,7 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
             return;
         }
         cancelRefresh();
+        cancelLifecycleRenew();
         for (int kind : cache.caches().keySet())
         {
             cancelHydrateRetry(kind);
@@ -189,6 +194,52 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
         cancelRefresh();
         refreshCancelId = signaler.signalAt(
             Instant.now().plus(cache.cacheTtl), 0, this::onRefreshed);
+    }
+
+    private void scheduleLifecycleRenew()
+    {
+        if (cache.leaseTtl == null)
+        {
+            return;
+        }
+        cancelLifecycleRenew();
+        // renew at one third of the lease TTL so two consecutive renew failures still leave
+        // headroom before the lock would expire and let another worker take over
+        renewCancelId = signaler.signalAt(
+            Instant.now().plusMillis(cache.leaseTtl.toMillis() / 3L), 0, this::onLifecycleRenew);
+    }
+
+    private void onLifecycleRenew(
+        int signalId)
+    {
+        renewCancelId = NO_CANCEL_ID;
+        if (stopped || handler == null)
+        {
+            return;
+        }
+        cache.renewLifecycle(renewed ->
+        {
+            if (stopped)
+            {
+                return;
+            }
+            if (renewed)
+            {
+                scheduleLifecycleRenew();
+            }
+            else
+            {
+                // lost ownership of the lifecycle lock — tear down this worker's lifecycle
+                // and fall through the existing reconnect path; the holder that took over (or
+                // the next race winner after the TTL expiry) will continue refresh work
+                if (handler != null)
+                {
+                    handler.stop();
+                    handler = null;
+                }
+                onClosed();
+            }
+        });
     }
 
     private void onRefreshed(
@@ -247,6 +298,15 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
         }
         handler = hydrater.attach(cache, this);
         handler.start();
+    }
+
+    private void cancelLifecycleRenew()
+    {
+        if (renewCancelId != NO_CANCEL_ID)
+        {
+            signaler.cancel(renewCancelId);
+            renewCancelId = NO_CANCEL_ID;
+        }
     }
 
     private void cancelRefresh()
