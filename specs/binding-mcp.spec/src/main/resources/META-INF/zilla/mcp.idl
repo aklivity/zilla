@@ -66,17 +66,17 @@ scope mcp
 
         struct McpToolsListChangedFlushEx
         {
-            string16 id;
+            string16 id = null;
         }
 
         struct McpPromptsListChangedFlushEx
         {
-            string16 id;
+            string16 id = null;
         }
 
         struct McpResourcesListChangedFlushEx
         {
-            string16 id;
+            string16 id = null;
         }
 
         struct McpProgressFlushEx
