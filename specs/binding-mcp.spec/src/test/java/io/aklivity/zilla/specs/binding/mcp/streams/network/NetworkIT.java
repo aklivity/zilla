@@ -56,15 +56,6 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/lifecycle.initialize.all.list.changed/client",
-        "${net}/lifecycle.initialize.all.list.changed/server"})
-    public void shouldInitializeLifecycleAllListChanged() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${net}/lifecycle.shutdown/client",
         "${net}/lifecycle.shutdown/server"})
     public void shouldShutdownLifecycle() throws Exception

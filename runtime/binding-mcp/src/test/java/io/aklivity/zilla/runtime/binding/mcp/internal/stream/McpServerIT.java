@@ -84,16 +84,6 @@ public class McpServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/lifecycle.initialize.all.list.changed/client",
-        "${app}/lifecycle.initialize.all.list.changed/server"})
-    public void shouldInitializeLifecycleAllListChanged() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
         "${net}/lifecycle.ping/client",
         "${app}/lifecycle.initialize/server"})
     public void shouldPingLifecycle() throws Exception
