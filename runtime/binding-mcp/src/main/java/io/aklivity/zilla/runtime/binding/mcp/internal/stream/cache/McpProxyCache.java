@@ -18,6 +18,8 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeg
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
 
+import java.io.Closeable;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,6 +27,7 @@ import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.IntPredicate;
+import java.util.zip.CRC32;
 
 import org.agrona.collections.Int2ObjectHashMap;
 
@@ -41,7 +44,6 @@ public final class McpProxyCache
     private static final String STORE_KEY_RESOURCES = "resources";
     private static final String STORE_KEY_PROMPTS = "prompts";
     private static final String STORE_LOCK_SUFFIX = ".lock";
-    private static final String STORE_LOCK_VALUE = "1";
     private static final String STORE_LOCK_KEY_TOOLS = STORE_KEY_TOOLS + STORE_LOCK_SUFFIX;
     private static final String STORE_LOCK_KEY_RESOURCES = STORE_KEY_RESOURCES + STORE_LOCK_SUFFIX;
     private static final String STORE_LOCK_KEY_PROMPTS = STORE_KEY_PROMPTS + STORE_LOCK_SUFFIX;
@@ -52,6 +54,7 @@ public final class McpProxyCache
     public final GuardHandler guard;
     public final String credentials;
     public final Duration leaseTtl;
+    public final Duration renewTtl;
     public final Duration leaseRetry;
     public final Duration cacheTtl;
 
@@ -61,10 +64,19 @@ public final class McpProxyCache
     private final StoreHandler store;
     private final Int2ObjectHashMap<McpListCache> caches;
     private final List<Runnable> awaiters;
+    private final CRC32 crc32 = new CRC32();
+    private String lockToken;
 
     boolean populated;
 
     Runnable onReady;
+    public ListChangedListener onSettled = (kind, changed) -> {};
+
+    @FunctionalInterface
+    public interface ListChangedListener
+    {
+        void accept(int kind, boolean changed);
+    }
 
     public McpProxyCache(
         BindingConfig binding,
@@ -83,6 +95,7 @@ public final class McpProxyCache
             .map(a -> a.credentials)
             .orElse(null);
         this.leaseTtl = config.leaseTtl();
+        this.renewTtl = this.leaseTtl.dividedBy(3);
         this.leaseRetry = config.leaseRetry();
         this.cacheTtl = cache.ttl;
         this.awaiters = new ArrayList<>();
@@ -128,17 +141,50 @@ public final class McpProxyCache
         }
     }
 
-    void acquireLifecycle(
+    void acquireLock(
         Consumer<Boolean> completion)
     {
-        store.putIfAbsent(STORE_LOCK_KEY_LIFECYCLE, STORE_LOCK_VALUE, leaseTtl,
-            prior -> completion.accept(prior == null));
+        store.lock(STORE_LOCK_KEY_LIFECYCLE, leaseTtl, (k, t) ->
+        {
+            lockToken = t;
+            completion.accept(t != null);
+        });
     }
 
-    void releaseLifecycle(
+    void releaseLock(
         Consumer<String> completion)
     {
-        store.delete(STORE_LOCK_KEY_LIFECYCLE, completion);
+        final String token = lockToken;
+        lockToken = null;
+        if (token != null)
+        {
+            store.unlock(STORE_LOCK_KEY_LIFECYCLE, token, completion);
+        }
+        else
+        {
+            completion.accept(null);
+        }
+    }
+
+    void renewLock(
+        Consumer<Boolean> completion)
+    {
+        final String token = lockToken;
+        if (token != null)
+        {
+            store.renew(STORE_LOCK_KEY_LIFECYCLE, token, leaseTtl, renewed ->
+            {
+                if (renewed == null)
+                {
+                    lockToken = null;
+                }
+                completion.accept(renewed != null);
+            });
+        }
+        else
+        {
+            completion.accept(false);
+        }
     }
 
     void onPurged(
@@ -179,6 +225,8 @@ public final class McpProxyCache
 
         private final String storeKey;
         private final String storeLockKey;
+        private long lastChecksum = -1L;
+        private String lockToken;
 
         boolean populated;
 
@@ -202,28 +250,66 @@ public final class McpProxyCache
             String value,
             Consumer<String> completion)
         {
-            store.put(storeKey, value, STORE_TTL_FOREVER, completion.andThen(this::checkPut));
+            crc32.reset();
+            crc32.update(value.getBytes(StandardCharsets.UTF_8));
+            final long newChecksum = crc32.getValue();
+            final boolean changed = lastChecksum != -1L && lastChecksum != newChecksum;
+            lastChecksum = newChecksum;
+            store.put(storeKey, value, STORE_TTL_FOREVER, completion.andThen(this::checkPut)
+                .andThen(k -> onSettled.accept(kind, changed)));
         }
 
         public void acquire(
             Consumer<Boolean> completion)
         {
-            store.putIfAbsent(storeLockKey, STORE_LOCK_VALUE, leaseTtl,
-                prior -> completion.accept(prior == null));
+            store.lock(storeLockKey, leaseTtl, (k, t) ->
+            {
+                lockToken = t;
+                completion.accept(t != null);
+            });
         }
 
         public void release(
             Consumer<String> completion)
         {
-            store.delete(storeLockKey, completion);
+            final String token = lockToken;
+            lockToken = null;
+            if (token != null)
+            {
+                store.unlock(storeLockKey, token, completion);
+            }
+            else
+            {
+                completion.accept(null);
+            }
+        }
+
+        public Closeable watch(
+            BiConsumer<String, String> listener)
+        {
+            return store.watch(storeKey, listener);
         }
 
         private void checkGet(
             String key,
             String value)
         {
+            final boolean changed;
+            if (value != null)
+            {
+                crc32.reset();
+                crc32.update(value.getBytes(StandardCharsets.UTF_8));
+                final long newChecksum = crc32.getValue();
+                changed = lastChecksum != -1L && lastChecksum != newChecksum;
+                lastChecksum = newChecksum;
+            }
+            else
+            {
+                changed = false;
+            }
             populated = value != null;
             checkReady();
+            onSettled.accept(kind, changed);
         }
 
         private void checkPut(

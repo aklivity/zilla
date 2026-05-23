@@ -84,7 +84,8 @@ public class McpServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/lifecycle.ping/client"})
+        "${net}/lifecycle.ping/client",
+        "${app}/lifecycle.initialize/server"})
     public void shouldPingLifecycle() throws Exception
     {
         k3po.finish();

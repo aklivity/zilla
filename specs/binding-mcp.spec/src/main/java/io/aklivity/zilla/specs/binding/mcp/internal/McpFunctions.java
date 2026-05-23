@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.specs.binding.mcp.internal;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.nio.ByteBuffer;
 import java.util.function.Predicate;
 
@@ -1102,7 +1104,7 @@ public final class McpFunctions
             public McpToolsListChangedFlushExMatcherBuilder id(
                 String id)
             {
-                this.id = new String16FW(id);
+                this.id = new String16FW(id, UTF_8);
                 return this;
             }
 
@@ -1131,7 +1133,7 @@ public final class McpFunctions
             public McpPromptsListChangedFlushExMatcherBuilder id(
                 String id)
             {
-                this.id = new String16FW(id);
+                this.id = new String16FW(id, UTF_8);
                 return this;
             }
 
@@ -1160,7 +1162,7 @@ public final class McpFunctions
             public McpResourcesListChangedFlushExMatcherBuilder id(
                 String id)
             {
-                this.id = new String16FW(id);
+                this.id = new String16FW(id, UTF_8);
                 return this;
             }
 

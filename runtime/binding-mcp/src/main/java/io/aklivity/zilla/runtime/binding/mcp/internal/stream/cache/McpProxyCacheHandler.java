@@ -22,4 +22,7 @@ interface McpProxyCacheHandler
 
     void hydrate(
         int kind);
+
+    void onChanged(
+        int kind);
 }

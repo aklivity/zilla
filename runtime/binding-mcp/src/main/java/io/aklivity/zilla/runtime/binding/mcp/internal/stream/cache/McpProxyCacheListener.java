@@ -21,5 +21,8 @@ interface McpProxyCacheListener
     void onError(
         int kind);
 
+    void onChanged(
+        int kind);
+
     void onClosed();
 }

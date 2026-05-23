@@ -17,8 +17,12 @@ package io.aklivity.zilla.runtime.binding.mcp.internal.stream.cache;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_LIST;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 
+import java.io.Closeable;
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.function.BiConsumer;
+
+import org.agrona.CloseHelper;
 
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -27,16 +31,19 @@ import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 public final class McpProxyCacheManager implements McpProxyCacheListener
 {
     private static final int KIND_SLOTS = KIND_RESOURCES_LIST + 1;
+    private static final BiConsumer<String, String> NO_OP = (k, v) -> {};
 
     private final McpProxyCacheHydrater hydrater;
     private final McpProxyCache cache;
     private final Signaler signaler;
     private final long[] hydrateBackoffMs;
     private final long[] hydrateRetryIds;
+    private final Closeable[] watchHandles;
 
     private McpProxyCacheHandler handler;
-    private long refreshCancelId;
-    private long reconnectCancelId;
+    private long refreshId;
+    private long reconnectId;
+    private long renewId;
     private long sessionBackoffMs;
     private boolean stopped;
 
@@ -50,14 +57,20 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
         this.signaler = signaler;
         this.hydrateBackoffMs = new long[KIND_SLOTS];
         this.hydrateRetryIds = new long[KIND_SLOTS];
+        this.watchHandles = new Closeable[KIND_SLOTS];
         Arrays.fill(this.hydrateRetryIds, NO_CANCEL_ID);
-        this.refreshCancelId = NO_CANCEL_ID;
-        this.reconnectCancelId = NO_CANCEL_ID;
+        this.refreshId = NO_CANCEL_ID;
+        this.reconnectId = NO_CANCEL_ID;
+        this.renewId = NO_CANCEL_ID;
     }
 
     public void start()
     {
         cache.onReady = this::onCacheReady;
+        for (int kind : cache.caches().keySet())
+        {
+            watchHandles[kind] = cache.caches().get(kind).watch((k, v) -> onStoreChanged(kind));
+        }
         handler = hydrater.attach(cache, this);
         handler.start();
     }
@@ -67,9 +80,11 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
         stopped = true;
         cancelRefresh();
         cancelReconnect();
+        cancelLifecycleRenew();
         for (int kind : cache.caches().keySet())
         {
             cancelHydrateRetry(kind);
+            closeWatch(kind);
         }
         if (handler != null)
         {
@@ -77,6 +92,27 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
             handler = null;
         }
         cache.onReady = null;
+    }
+
+    private void onStoreChanged(
+        int kind)
+    {
+        if (stopped)
+        {
+            return;
+        }
+        cache.caches().get(kind).get(NO_OP);
+    }
+
+    private void closeWatch(
+        int kind)
+    {
+        final Closeable handle = watchHandles[kind];
+        if (handle != null)
+        {
+            watchHandles[kind] = null;
+            CloseHelper.quietClose(handle);
+        }
     }
 
     @Override
@@ -88,6 +124,7 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
         }
         Arrays.fill(hydrateBackoffMs, 0L);
         sessionBackoffMs = 0L;
+        scheduleLifecycleRenew();
         for (int kind : cache.caches().keySet())
         {
             handler.hydrate(kind);
@@ -105,6 +142,18 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
     }
 
     @Override
+    public void onChanged(
+        int kind)
+    {
+        if (stopped || handler == null)
+        {
+            return;
+        }
+        cancelRefresh();
+        handler.hydrate(kind);
+    }
+
+    @Override
     public void onClosed()
     {
         if (stopped)
@@ -112,6 +161,7 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
             return;
         }
         cancelRefresh();
+        cancelLifecycleRenew();
         for (int kind : cache.caches().keySet())
         {
             cancelHydrateRetry(kind);
@@ -126,7 +176,6 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
         {
             return;
         }
-        cache.releaseLifecycle(k -> {});
         scheduleRefresh();
     }
 
@@ -137,14 +186,58 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
             return;
         }
         cancelRefresh();
-        refreshCancelId = signaler.signalAt(
+        refreshId = signaler.signalAt(
             Instant.now().plus(cache.cacheTtl), 0, this::onRefreshed);
+    }
+
+    private void scheduleLifecycleRenew()
+    {
+        if (cache.leaseTtl == null)
+        {
+            return;
+        }
+        cancelLifecycleRenew();
+        renewId = signaler.signalAt(
+            Instant.now().plusMillis(cache.renewTtl.toMillis()), 0, this::onLifecycleRenew);
+    }
+
+    private void onLifecycleRenew(
+        int signalId)
+    {
+        renewId = NO_CANCEL_ID;
+        if (stopped || handler == null)
+        {
+            return;
+        }
+        cache.renewLock(renewed ->
+        {
+            if (stopped)
+            {
+                return;
+            }
+            if (renewed)
+            {
+                scheduleLifecycleRenew();
+            }
+            else
+            {
+                // lost ownership of the lifecycle lock — tear down this worker's lifecycle
+                // and fall through the existing reconnect path; the holder that took over (or
+                // the next race winner after the TTL expiry) will continue refresh work
+                if (handler != null)
+                {
+                    handler.stop();
+                    handler = null;
+                }
+                onClosed();
+            }
+        });
     }
 
     private void onRefreshed(
         int signalId)
     {
-        refreshCancelId = NO_CANCEL_ID;
+        refreshId = NO_CANCEL_ID;
         if (stopped || handler == null)
         {
             return;
@@ -183,14 +276,14 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
         long delay = sessionBackoffMs;
         delay = delay == 0L ? cache.leaseRetry.toMillis() : Math.min(delay * 2L, cache.leaseTtl.toMillis());
         sessionBackoffMs = delay;
-        reconnectCancelId = signaler.signalAt(
+        reconnectId = signaler.signalAt(
             Instant.now().plusMillis(delay), 0, this::onReconnected);
     }
 
     private void onReconnected(
         int signalId)
     {
-        reconnectCancelId = NO_CANCEL_ID;
+        reconnectId = NO_CANCEL_ID;
         if (stopped)
         {
             return;
@@ -199,21 +292,30 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
         handler.start();
     }
 
+    private void cancelLifecycleRenew()
+    {
+        if (renewId != NO_CANCEL_ID)
+        {
+            signaler.cancel(renewId);
+            renewId = NO_CANCEL_ID;
+        }
+    }
+
     private void cancelRefresh()
     {
-        if (refreshCancelId != NO_CANCEL_ID)
+        if (refreshId != NO_CANCEL_ID)
         {
-            signaler.cancel(refreshCancelId);
-            refreshCancelId = NO_CANCEL_ID;
+            signaler.cancel(refreshId);
+            refreshId = NO_CANCEL_ID;
         }
     }
 
     private void cancelReconnect()
     {
-        if (reconnectCancelId != NO_CANCEL_ID)
+        if (reconnectId != NO_CANCEL_ID)
         {
-            signaler.cancel(reconnectCancelId);
-            reconnectCancelId = NO_CANCEL_ID;
+            signaler.cancel(reconnectId);
+            reconnectId = NO_CANCEL_ID;
         }
     }
 

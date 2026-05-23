@@ -14,14 +14,17 @@
  */
 scope mcp
 {
-    enum McpCapabilities (uint8)
+    enum McpCapabilities (uint16)
     {
         SERVER_TOOLS(1),
         SERVER_PROMPTS(2),
         SERVER_RESOURCES(4),
-        CLIENT_ROOTS(8),
-        CLIENT_SAMPLING(16),
-        CLIENT_ELICITATION(32)
+        SERVER_TOOLS_LIST_CHANGED(8),
+        SERVER_PROMPTS_LIST_CHANGED(16),
+        SERVER_RESOURCES_LIST_CHANGED(32),
+        CLIENT_ROOTS(64),
+        CLIENT_SAMPLING(128),
+        CLIENT_ELICITATION(256)
     }
 
     scope stream
@@ -63,17 +66,17 @@ scope mcp
 
         struct McpToolsListChangedFlushEx
         {
-            string16 id;
+            string16 id = null;
         }
 
         struct McpPromptsListChangedFlushEx
         {
-            string16 id;
+            string16 id = null;
         }
 
         struct McpResourcesListChangedFlushEx
         {
-            string16 id;
+            string16 id = null;
         }
 
         struct McpProgressFlushEx
@@ -102,7 +105,7 @@ scope mcp
         struct McpLifecycleBeginEx
         {
             string16 sessionId;
-            uint8 capabilities = 0;
+            uint16 capabilities = 0;
         }
 
         struct McpToolsListBeginEx
