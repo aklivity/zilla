@@ -23,6 +23,6 @@ interface McpProxyCacheHandler
     void hydrate(
         int kind);
 
-    void onListChanged(
+    void onChanged(
         int kind);
 }

@@ -64,15 +64,15 @@ public final class McpProxyCache
     private final Int2ObjectHashMap<McpListCache> caches;
     private final List<Runnable> awaiters;
     private final CRC32 crc32 = new CRC32();
+    private String lockToken;
 
     boolean populated;
-    private String lifecycleLockToken;
 
     Runnable onReady;
-    public OnSettled onSettled;
+    public ListChangedListener onSettled = (kind, changed) -> {};
 
     @FunctionalInterface
-    public interface OnSettled
+    public interface ListChangedListener
     {
         void accept(int kind, boolean changed);
     }
@@ -139,21 +139,21 @@ public final class McpProxyCache
         }
     }
 
-    void acquireLifecycle(
+    void acquireLock(
         Consumer<Boolean> completion)
     {
         store.lock(STORE_LOCK_KEY_LIFECYCLE, leaseTtl, (k, t) ->
         {
-            lifecycleLockToken = t;
+            lockToken = t;
             completion.accept(t != null);
         });
     }
 
-    void releaseLifecycle(
+    void releaseLock(
         Consumer<String> completion)
     {
-        final String token = lifecycleLockToken;
-        lifecycleLockToken = null;
+        final String token = lockToken;
+        lockToken = null;
         if (token != null)
         {
             store.unlock(STORE_LOCK_KEY_LIFECYCLE, token, completion);
@@ -164,17 +164,17 @@ public final class McpProxyCache
         }
     }
 
-    void renewLifecycle(
+    void renewLock(
         Consumer<Boolean> completion)
     {
-        final String token = lifecycleLockToken;
+        final String token = lockToken;
         if (token != null)
         {
             store.renew(STORE_LOCK_KEY_LIFECYCLE, token, leaseTtl, renewed ->
             {
                 if (renewed == null)
                 {
-                    lifecycleLockToken = null;
+                    lockToken = null;
                 }
                 completion.accept(renewed != null);
             });
@@ -223,10 +223,10 @@ public final class McpProxyCache
 
         private final String storeKey;
         private final String storeLockKey;
-
-        boolean populated;
         private long lastChecksum = -1L;
         private String lockToken;
+
+        boolean populated;
 
         private McpListCache(
             int kind,
@@ -253,13 +253,8 @@ public final class McpProxyCache
             final long newChecksum = crc32.getValue();
             final boolean changed = lastChecksum != -1L && lastChecksum != newChecksum;
             lastChecksum = newChecksum;
-            store.put(storeKey, value, STORE_TTL_FOREVER, completion.andThen(this::checkPut).andThen(k ->
-            {
-                if (onSettled != null)
-                {
-                    onSettled.accept(kind, changed);
-                }
-            }));
+            store.put(storeKey, value, STORE_TTL_FOREVER, completion.andThen(this::checkPut)
+                .andThen(k -> onSettled.accept(kind, changed)));
         }
 
         public void acquire(
@@ -312,10 +307,7 @@ public final class McpProxyCache
             }
             populated = value != null;
             checkReady();
-            if (onSettled != null)
-            {
-                onSettled.accept(kind, changed);
-            }
+            onSettled.accept(kind, changed);
         }
 
         private void checkPut(

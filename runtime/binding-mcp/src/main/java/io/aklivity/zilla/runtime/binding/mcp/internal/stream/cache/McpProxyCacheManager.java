@@ -18,9 +18,11 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeg
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 
 import java.io.Closeable;
-import java.io.IOException;
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.function.BiConsumer;
+
+import org.agrona.CloseHelper;
 
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -29,6 +31,7 @@ import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 public final class McpProxyCacheManager implements McpProxyCacheListener
 {
     private static final int KIND_SLOTS = KIND_RESOURCES_LIST + 1;
+    private static final BiConsumer<String, String> NO_OP = (k, v) -> {};
 
     private final McpProxyCacheHydrater hydrater;
     private final McpProxyCache cache;
@@ -98,9 +101,7 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
         {
             return;
         }
-        cache.caches().get(kind).get((k, v) ->
-        {
-        });
+        cache.caches().get(kind).get(NO_OP);
     }
 
     private void closeWatch(
@@ -110,14 +111,7 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
         if (handle != null)
         {
             watchHandles[kind] = null;
-            try
-            {
-                handle.close();
-            }
-            catch (IOException ex)
-            {
-                // unsubscribe is best-effort
-            }
+            CloseHelper.quietClose(handle);
         }
     }
 
@@ -148,7 +142,7 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
     }
 
     @Override
-    public void onListChanged(
+    public void onChanged(
         int kind)
     {
         if (stopped || handler == null)
@@ -217,7 +211,7 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
         {
             return;
         }
-        cache.renewLifecycle(renewed ->
+        cache.renewLock(renewed ->
         {
             if (stopped)
             {

@@ -131,7 +131,7 @@ final class McpProxyCacheHydrater
             {
                 return;
             }
-            cache.acquireLifecycle(this::onAcquireLifecycleComplete);
+            cache.acquireLock(this::onAcquireLifecycleComplete);
         }
 
         @Override
@@ -143,7 +143,7 @@ final class McpProxyCacheHydrater
                 lifecycle.doLifecycleEnd(supplyTraceId.getAsLong());
                 lifecycle = null;
             }
-            cache.releaseLifecycle(k -> {});
+            cache.releaseLock(k -> {});
         }
 
         @Override
@@ -162,12 +162,12 @@ final class McpProxyCacheHydrater
         }
 
         @Override
-        public void onListChanged(
+        public void onChanged(
             int kind)
         {
             if (!stopped)
             {
-                listener.onListChanged(kind);
+                listener.onChanged(kind);
             }
         }
 
@@ -206,7 +206,7 @@ final class McpProxyCacheHydrater
         private void onLifecycleClosed()
         {
             lifecycle = null;
-            cache.releaseLifecycle(k -> {});
+            cache.releaseLock(k -> {});
             notifyClosed();
         }
 
@@ -343,34 +343,21 @@ final class McpProxyCacheHydrater
             FlushFW flush)
         {
             final OctetsFW extension = flush.extension();
-            if (extension == null || extension.sizeof() == 0)
-            {
-                return;
-            }
-            final McpFlushExFW flushEx = mcpFlushExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit());
-            if (flushEx == null)
-            {
-                return;
-            }
-            final int listKind;
+            final McpFlushExFW flushEx = mcpFlushExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
+
             switch (flushEx.kind())
             {
             case KIND_TOOLS_LIST_CHANGED:
-                listKind = KIND_TOOLS_LIST;
+                handler.onChanged(KIND_TOOLS_LIST);
                 break;
             case KIND_PROMPTS_LIST_CHANGED:
-                listKind = KIND_PROMPTS_LIST;
+                handler.onChanged(KIND_PROMPTS_LIST);
                 break;
             case KIND_RESOURCES_LIST_CHANGED:
-                listKind = KIND_RESOURCES_LIST;
+                handler.onChanged(KIND_RESOURCES_LIST);
                 break;
             default:
-                listKind = -1;
                 break;
-            }
-            if (listKind != -1)
-            {
-                handler.onListChanged(listKind);
             }
         }
 

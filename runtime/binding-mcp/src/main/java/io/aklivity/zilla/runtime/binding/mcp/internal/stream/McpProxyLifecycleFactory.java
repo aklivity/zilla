@@ -571,34 +571,25 @@ final class McpProxyLifecycleFactory implements BindingHandler
                 return;
             }
 
-            final McpFlushExFW flushEx;
-            switch (kind)
+            final McpFlushExFW flushEx = switch (kind)
             {
-            case KIND_TOOLS_LIST:
-                flushEx = mcpFlushExRW
-                    .wrap(codecBuffer, 0, codecBuffer.capacity())
-                    .typeId(mcpTypeId)
-                    .toolsListChanged(b -> {})
-                    .build();
-                break;
-            case KIND_PROMPTS_LIST:
-                flushEx = mcpFlushExRW
-                    .wrap(codecBuffer, 0, codecBuffer.capacity())
-                    .typeId(mcpTypeId)
-                    .promptsListChanged(b -> {})
-                    .build();
-                break;
-            case KIND_RESOURCES_LIST:
-                flushEx = mcpFlushExRW
-                    .wrap(codecBuffer, 0, codecBuffer.capacity())
-                    .typeId(mcpTypeId)
-                    .resourcesListChanged(b -> {})
-                    .build();
-                break;
-            default:
-                flushEx = null;
-                break;
-            }
+            case KIND_TOOLS_LIST -> mcpFlushExRW
+                .wrap(codecBuffer, 0, codecBuffer.capacity())
+                .typeId(mcpTypeId)
+                .toolsListChanged(b -> {})
+                .build();
+            case KIND_PROMPTS_LIST -> mcpFlushExRW
+                .wrap(codecBuffer, 0, codecBuffer.capacity())
+                .typeId(mcpTypeId)
+                .promptsListChanged(b -> {})
+                .build();
+            case KIND_RESOURCES_LIST -> mcpFlushExRW
+                .wrap(codecBuffer, 0, codecBuffer.capacity())
+                .typeId(mcpTypeId)
+                .resourcesListChanged(b -> {})
+                .build();
+            default -> null;
+            };
 
             if (flushEx != null)
             {
