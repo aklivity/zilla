@@ -56,6 +56,7 @@
     <module>exporter-prometheus</module>
     <module>exporter-stdout</module>
     <module>filesystem-http</module>
+    <module>guard-identity</module>
     <module>guard-jwt</module>
     <module>metrics-grpc</module>
     <module>metrics-http</module>
@@ -264,6 +265,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>filesystem-http</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>guard-identity</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
