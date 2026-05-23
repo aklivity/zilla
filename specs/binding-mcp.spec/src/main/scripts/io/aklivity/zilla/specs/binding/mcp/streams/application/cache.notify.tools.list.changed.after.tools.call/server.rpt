@@ -43,7 +43,6 @@ write await TOOLS_CALL_RETURNED
 write advise zilla:flush ${mcp:flushEx()
                               .typeId(zilla:id("mcp"))
                               .toolsListChanged()
-                                  .id("100")
                                   .build()
                               .build()}
 
@@ -93,7 +92,6 @@ write await TOOLS_CALL_RETURNED
 write advise zilla:flush ${mcp:flushEx()
                               .typeId(zilla:id("mcp"))
                               .toolsListChanged()
-                                  .id("200")
                                   .build()
                               .build()}
 

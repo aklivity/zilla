@@ -43,7 +43,6 @@ write await INITIAL_HYDRATED
 write advise zilla:flush ${mcp:flushEx()
                               .typeId(zilla:id("mcp"))
                               .toolsListChanged()
-                                  .id("0")
                                   .build()
                               .build()}
 

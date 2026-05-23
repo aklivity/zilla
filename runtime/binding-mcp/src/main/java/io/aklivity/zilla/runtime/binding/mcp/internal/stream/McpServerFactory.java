@@ -17,9 +17,6 @@ package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabilities.CLIENT_ELICITATION;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabilities.CLIENT_ROOTS;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabilities.CLIENT_SAMPLING;
-import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabilities.SERVER_PROMPTS_LIST_CHANGED;
-import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabilities.SERVER_RESOURCES_LIST_CHANGED;
-import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabilities.SERVER_TOOLS_LIST_CHANGED;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_LIFECYCLE;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.streamIndex;
@@ -140,17 +137,8 @@ public final class McpServerFactory implements McpStreamFactory
     private static final String INITIALIZE_RESPONSE_SERVER_INFO_PREFIX = ",\"serverInfo\":{\"name\":\"";
     private static final String INITIALIZE_RESPONSE_VERSION_PREFIX = "\",\"version\":\"";
     private static final String INITIALIZE_RESPONSE_SUFFIX = "\"}}";
-    private static final String[] INITIALIZE_RESPONSE_CAPABILITIES =
-    {
-        "{\"prompts\":{},\"resources\":{},\"tools\":{}}",
-        "{\"prompts\":{},\"resources\":{},\"tools\":{\"listChanged\":true}}",
-        "{\"prompts\":{\"listChanged\":true},\"resources\":{},\"tools\":{}}",
-        "{\"prompts\":{\"listChanged\":true},\"resources\":{},\"tools\":{\"listChanged\":true}}",
-        "{\"prompts\":{},\"resources\":{\"listChanged\":true},\"tools\":{}}",
-        "{\"prompts\":{},\"resources\":{\"listChanged\":true},\"tools\":{\"listChanged\":true}}",
-        "{\"prompts\":{\"listChanged\":true},\"resources\":{\"listChanged\":true},\"tools\":{}}",
-        "{\"prompts\":{\"listChanged\":true},\"resources\":{\"listChanged\":true},\"tools\":{\"listChanged\":true}}"
-    };
+    private static final String INITIALIZE_RESPONSE_CAPABILITIES =
+        "{\"prompts\":{\"listChanged\":true},\"resources\":{\"listChanged\":true},\"tools\":{\"listChanged\":true}}";
     private static final String SSE_PROGRESS_BODY_PREFIX =
         "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/progress\",\"params\":{\"progressToken\":\"";
     private static final String SSE_PROGRESS_BODY_PROGRESS = "\",\"progress\":";
@@ -1780,8 +1768,6 @@ public final class McpServerFactory implements McpStreamFactory
                 assert this.session == null;
                 this.session = session;
 
-                session.pendingInitialize = this;
-
                 McpBeginExFW beginEx = mcpBeginExRW
                     .wrap(codecBuffer, 0, codecBuffer.capacity())
                     .typeId(mcpTypeId)
@@ -1790,6 +1776,7 @@ public final class McpServerFactory implements McpStreamFactory
                         .capabilities(CLIENT_CAPABILITIES))
                     .build();
                 session.doAppBegin(traceId, authorization, beginEx);
+                doEncodeInitialize(traceId, authorization);
             }
         }
 
@@ -1824,30 +1811,11 @@ public final class McpServerFactory implements McpStreamFactory
                 .inject(this::injectAltSvc)
                 .build());
             String8FW payload = new String8FW(INITIALIZE_RESPONSE_PROTOCOL_PREFIX +
-                listChangedCapabilities(session.serverCapabilities) +
+                INITIALIZE_RESPONSE_CAPABILITIES +
                 INITIALIZE_RESPONSE_SERVER_INFO_PREFIX + serverName +
                 INITIALIZE_RESPONSE_VERSION_PREFIX + serverVersion + INITIALIZE_RESPONSE_SUFFIX);
             doEncodeResponseData(traceId, authorization, payload.value());
             doEncodeResponseEnd(traceId, authorization);
-        }
-
-        private String listChangedCapabilities(
-            int capabilities)
-        {
-            int index = 0;
-            if ((capabilities & SERVER_TOOLS_LIST_CHANGED.value()) != 0)
-            {
-                index |= 1;
-            }
-            if ((capabilities & SERVER_PROMPTS_LIST_CHANGED.value()) != 0)
-            {
-                index |= 2;
-            }
-            if ((capabilities & SERVER_RESOURCES_LIST_CHANGED.value()) != 0)
-            {
-                index |= 4;
-            }
-            return INITIALIZE_RESPONSE_CAPABILITIES[index];
         }
 
         private void onDecodeNotifyInitialized(
@@ -2960,7 +2928,6 @@ public final class McpServerFactory implements McpStreamFactory
         private McpEventStream eventStream;
         private boolean eventsUnsupported;
         private int serverCapabilities;
-        private McpServer pendingInitialize;
 
         private McpLifecycleStream(
             McpServer server,
@@ -3157,13 +3124,6 @@ public final class McpServerFactory implements McpStreamFactory
             }
 
             doAppWindow(traceId, authorization, 0L, 0);
-
-            if (pendingInitialize != null)
-            {
-                final McpServer server = pendingInitialize;
-                pendingInitialize = null;
-                server.doEncodeInitialize(traceId, authorization);
-            }
         }
 
         private void onAppSignal(
@@ -5026,19 +4986,22 @@ public final class McpServerFactory implements McpStreamFactory
     {
         int progress = offset;
 
-        out.putBytes(progress, SSE_ID_PREFIX_BYTES);
-        progress += SSE_ID_PREFIX_BYTES.length;
-        progress += out.putStringWithoutLengthAscii(progress, streamIdPrefix);
-        out.putByte(progress, (byte) ':');
-        progress += 1;
-        final DirectBuffer idBuf = id.value();
-        if (idBuf != null && id.length() > 0)
+        if (id != null && id.length() >= 0)
         {
-            out.putBytes(progress, idBuf, 0, id.length());
-            progress += id.length();
+            out.putBytes(progress, SSE_ID_PREFIX_BYTES);
+            progress += SSE_ID_PREFIX_BYTES.length;
+            progress += out.putStringWithoutLengthAscii(progress, streamIdPrefix);
+            out.putByte(progress, (byte) ':');
+            progress += 1;
+            final DirectBuffer idBuf = id.value();
+            if (idBuf != null && id.length() > 0)
+            {
+                out.putBytes(progress, idBuf, 0, id.length());
+                progress += id.length();
+            }
+            out.putByte(progress, (byte) '\n');
+            progress += 1;
         }
-        out.putByte(progress, (byte) '\n');
-        progress += 1;
 
         if (body != null)
         {

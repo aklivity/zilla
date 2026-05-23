@@ -83,15 +83,6 @@ public class ProxyCacheIT
 
     @Test
     @Specification({
-        "${app}/cache.serve.initialize.list.changed/client",
-        "${app}/cache.serve.initialize.list.changed/server" })
-    public void shouldServeInitializeWithListChanged() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/cache.hydrate.lifecycle.reconnect/client",
         "${app}/cache.hydrate.lifecycle.reconnect/server" })
     public void shouldReconnectAfterLifecycleAbort() throws Exception

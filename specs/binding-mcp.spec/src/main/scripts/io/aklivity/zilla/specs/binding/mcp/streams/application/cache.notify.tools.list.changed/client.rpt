@@ -36,6 +36,6 @@ read zilla:begin.ext ${mcp:matchBeginEx()
 read advised zilla:flush ${mcp:matchFlushEx()
                                .typeId(zilla:id("mcp"))
                                .toolsListChanged()
-                                   .id("0")
+                                   .id(null)
                                    .build()
                                .build()}

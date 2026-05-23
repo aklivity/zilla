@@ -15,9 +15,6 @@
 package io.aklivity.zilla.runtime.binding.mcp.internal.config;
 
 import static io.aklivity.zilla.runtime.binding.mcp.config.McpElicitationConfig.DEFAULT_CALLBACK_PATH;
-import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabilities.SERVER_PROMPTS_LIST_CHANGED;
-import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabilities.SERVER_RESOURCES_LIST_CHANGED;
-import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabilities.SERVER_TOOLS_LIST_CHANGED;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -116,12 +113,6 @@ public final class McpBindingConfig
             {
                 bits |= route.serverCapabilities();
             }
-        }
-        if (cache != null)
-        {
-            bits |= SERVER_TOOLS_LIST_CHANGED.value()
-                  | SERVER_PROMPTS_LIST_CHANGED.value()
-                  | SERVER_RESOURCES_LIST_CHANGED.value();
         }
         return bits;
     }

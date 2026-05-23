@@ -179,7 +179,6 @@ final class McpProxyLifecycleFactory implements BindingHandler
 
         private int state;
         private boolean resumePending;
-        private long nextNotificationId;
 
         private long initialSeq;
         private long initialAck;
@@ -572,7 +571,6 @@ final class McpProxyLifecycleFactory implements BindingHandler
                 return;
             }
 
-            final String id = Long.toString(nextNotificationId++);
             final McpFlushExFW flushEx;
             switch (kind)
             {
@@ -580,21 +578,21 @@ final class McpProxyLifecycleFactory implements BindingHandler
                 flushEx = mcpFlushExRW
                     .wrap(codecBuffer, 0, codecBuffer.capacity())
                     .typeId(mcpTypeId)
-                    .toolsListChanged(b -> b.id(id))
+                    .toolsListChanged(b -> {})
                     .build();
                 break;
             case KIND_PROMPTS_LIST:
                 flushEx = mcpFlushExRW
                     .wrap(codecBuffer, 0, codecBuffer.capacity())
                     .typeId(mcpTypeId)
-                    .promptsListChanged(b -> b.id(id))
+                    .promptsListChanged(b -> {})
                     .build();
                 break;
             case KIND_RESOURCES_LIST:
                 flushEx = mcpFlushExRW
                     .wrap(codecBuffer, 0, codecBuffer.capacity())
                     .typeId(mcpTypeId)
-                    .resourcesListChanged(b -> b.id(id))
+                    .resourcesListChanged(b -> {})
                     .build();
                 break;
             default:

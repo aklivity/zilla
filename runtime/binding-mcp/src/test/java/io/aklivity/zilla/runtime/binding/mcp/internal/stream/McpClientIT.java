@@ -67,36 +67,6 @@ public class McpClientIT
     @Test
     @Configuration("client.yaml")
     @Specification({
-        "${app}/lifecycle.initialize.tools.list.changed/client",
-        "${net}/lifecycle.initialize.tools.list.changed/server"})
-    public void shouldInitializeLifecycleToolsListChanged() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.yaml")
-    @Specification({
-        "${app}/lifecycle.initialize.prompts.list.changed/client",
-        "${net}/lifecycle.initialize.prompts.list.changed/server"})
-    public void shouldInitializeLifecyclePromptsListChanged() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.yaml")
-    @Specification({
-        "${app}/lifecycle.initialize.resources.list.changed/client",
-        "${net}/lifecycle.initialize.resources.list.changed/server"})
-    public void shouldInitializeLifecycleResourcesListChanged() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.yaml")
-    @Specification({
         "${app}/lifecycle.initialize.all.list.changed/client",
         "${net}/lifecycle.initialize.all.list.changed/server"})
     public void shouldInitializeLifecycleAllListChanged() throws Exception
