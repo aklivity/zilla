@@ -156,6 +156,33 @@ public final class TestStoreHandler implements StoreHandler
     }
 
     @Override
+    public void renew(
+        String key,
+        String token,
+        Duration ttl,
+        Consumer<String> completion)
+    {
+        final long now = System.currentTimeMillis();
+        final TestLockEntry current = locks.get(key);
+        String result = null;
+        if (current != null && current.expiresAt() > now && current.token().equals(token))
+        {
+            final long expiresAt = ttl == null ? Long.MAX_VALUE : now + ttl.toMillis();
+            final TestLockEntry renewed = new TestLockEntry(token, expiresAt);
+            if (locks.replace(key, current, renewed))
+            {
+                result = token;
+            }
+        }
+        else if (current != null && current.expiresAt() <= now)
+        {
+            locks.remove(key, current);
+        }
+        final String outcome = result;
+        defer(() -> completion.accept(outcome));
+    }
+
+    @Override
     public Closeable watch(
         String key,
         BiConsumer<String, String> listener)

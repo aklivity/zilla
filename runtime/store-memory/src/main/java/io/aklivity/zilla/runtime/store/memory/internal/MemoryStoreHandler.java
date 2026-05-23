@@ -166,6 +166,34 @@ final class MemoryStoreHandler implements StoreHandler
     }
 
     @Override
+    public void renew(
+        String key,
+        String token,
+        Duration ttl,
+        Consumer<String> completion)
+    {
+        final long now = System.currentTimeMillis();
+        final LockEntry current = locks.get(key);
+        String result = null;
+        if (current != null && current.expiresAt() > now && current.token().equals(token))
+        {
+            final long expiresAt = expiresAt(ttl);
+            final LockEntry renewed = new LockEntry(token, expiresAt);
+            if (locks.replace(key, current, renewed))
+            {
+                result = token;
+            }
+        }
+        else if (current != null && current.expiresAt() <= now)
+        {
+            // expired holder still cluttering the map — clean up opportunistically
+            locks.remove(key, current);
+        }
+        final String outcome = result;
+        defer(() -> completion.accept(outcome));
+    }
+
+    @Override
     public Closeable watch(
         String key,
         BiConsumer<String, String> listener)

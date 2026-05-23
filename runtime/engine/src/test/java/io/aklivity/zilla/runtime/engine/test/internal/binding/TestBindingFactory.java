@@ -23,6 +23,7 @@ import static java.util.Collections.emptyList;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyStore;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -118,6 +119,7 @@ final class TestBindingFactory implements BindingHandler
     private VaultAssertion vaultAssertion;
     private StoreHandler store;
     private List<StoreAssertion> storeAssertions;
+    private final Map<String, String> heldLockTokens = new HashMap<>();
     private long authorization;
 
     TestBindingFactory(
@@ -730,17 +732,48 @@ final class TestBindingFactory implements BindingHandler
                                 doInitialReset(traceId);
                             }
                         }
+                        if (token != null)
+                        {
+                            heldLockTokens.put(k, token);
+                        }
                         callbackFired.value = true;
                     });
                     break;
                 case "unlock":
-                    store.unlock(a.key, a.value, v ->
+                    store.unlock(a.key, resolveToken(a), v ->
                     {
                         if (Thread.currentThread() != dispatchThread ||
                             callbackFired.value ||
                             a.hasExpect && !Objects.equals(v, a.expect))
                         {
                             doInitialReset(traceId);
+                        }
+                        if (v != null)
+                        {
+                            heldLockTokens.remove(a.key);
+                        }
+                        callbackFired.value = true;
+                    });
+                    break;
+                case "renew":
+                    store.renew(a.key, resolveToken(a), a.ttl, v ->
+                    {
+                        if (Thread.currentThread() != dispatchThread ||
+                            callbackFired.value)
+                        {
+                            doInitialReset(traceId);
+                        }
+                        // expect="" or "null" → v must be null (renew failed);
+                        // expect=non-empty → v must be non-null (renew succeeded)
+                        if (a.hasExpect)
+                        {
+                            boolean expectRenewed = a.expect != null && !a.expect.isEmpty() &&
+                                !"null".equals(a.expect);
+                            boolean renewed = v != null;
+                            if (expectRenewed != renewed)
+                            {
+                                doInitialReset(traceId);
+                            }
                         }
                         callbackFired.value = true;
                     });
@@ -767,6 +800,13 @@ final class TestBindingFactory implements BindingHandler
                     doInitialReset(traceId);
                 }
             }
+        }
+
+        private String resolveToken(
+            StoreAssertion a)
+        {
+            // explicit token via value, otherwise use the most recent token captured by a prior lock
+            return a.value != null && !a.value.isEmpty() ? a.value : heldLockTokens.get(a.key);
         }
 
         private void onInitialData(

@@ -77,6 +77,16 @@ public class MemoryStoreHandlerIT
     }
 
     @Test
+    @Configuration("store.renew.yaml")
+    @Specification({
+        "${net}/handshake/client",
+        "${app}/handshake/server"})
+    public void shouldRenewOwnedLock() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("store.watch.yaml")
     @Specification({
         "${net}/handshake/client",
