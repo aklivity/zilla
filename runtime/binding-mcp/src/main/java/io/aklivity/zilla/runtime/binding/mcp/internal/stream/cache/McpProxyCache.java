@@ -54,6 +54,7 @@ public final class McpProxyCache
     public final GuardHandler guard;
     public final String credentials;
     public final Duration leaseTtl;
+    public final Duration renewTtl;
     public final Duration leaseRetry;
     public final Duration cacheTtl;
 
@@ -94,6 +95,7 @@ public final class McpProxyCache
             .map(a -> a.credentials)
             .orElse(null);
         this.leaseTtl = config.leaseTtl();
+        this.renewTtl = this.leaseTtl.dividedBy(3);
         this.leaseRetry = config.leaseRetry();
         this.cacheTtl = cache.ttl;
         this.awaiters = new ArrayList<>();

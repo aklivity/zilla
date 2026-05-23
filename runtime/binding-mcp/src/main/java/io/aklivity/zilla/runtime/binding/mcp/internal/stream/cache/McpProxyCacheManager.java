@@ -41,9 +41,9 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
     private final Closeable[] watchHandles;
 
     private McpProxyCacheHandler handler;
-    private long refreshCancelId;
-    private long reconnectCancelId;
-    private long renewCancelId;
+    private long refreshId;
+    private long reconnectId;
+    private long renewId;
     private long sessionBackoffMs;
     private boolean stopped;
 
@@ -59,9 +59,9 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
         this.hydrateRetryIds = new long[KIND_SLOTS];
         this.watchHandles = new Closeable[KIND_SLOTS];
         Arrays.fill(this.hydrateRetryIds, NO_CANCEL_ID);
-        this.refreshCancelId = NO_CANCEL_ID;
-        this.reconnectCancelId = NO_CANCEL_ID;
-        this.renewCancelId = NO_CANCEL_ID;
+        this.refreshId = NO_CANCEL_ID;
+        this.reconnectId = NO_CANCEL_ID;
+        this.renewId = NO_CANCEL_ID;
     }
 
     public void start()
@@ -186,7 +186,7 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
             return;
         }
         cancelRefresh();
-        refreshCancelId = signaler.signalAt(
+        refreshId = signaler.signalAt(
             Instant.now().plus(cache.cacheTtl), 0, this::onRefreshed);
     }
 
@@ -197,16 +197,14 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
             return;
         }
         cancelLifecycleRenew();
-        // renew at one third of the lease TTL so two consecutive renew failures still leave
-        // headroom before the lock would expire and let another worker take over
-        renewCancelId = signaler.signalAt(
-            Instant.now().plusMillis(cache.leaseTtl.toMillis() / 3L), 0, this::onLifecycleRenew);
+        renewId = signaler.signalAt(
+            Instant.now().plusMillis(cache.renewTtl.toMillis()), 0, this::onLifecycleRenew);
     }
 
     private void onLifecycleRenew(
         int signalId)
     {
-        renewCancelId = NO_CANCEL_ID;
+        renewId = NO_CANCEL_ID;
         if (stopped || handler == null)
         {
             return;
@@ -239,7 +237,7 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
     private void onRefreshed(
         int signalId)
     {
-        refreshCancelId = NO_CANCEL_ID;
+        refreshId = NO_CANCEL_ID;
         if (stopped || handler == null)
         {
             return;
@@ -278,14 +276,14 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
         long delay = sessionBackoffMs;
         delay = delay == 0L ? cache.leaseRetry.toMillis() : Math.min(delay * 2L, cache.leaseTtl.toMillis());
         sessionBackoffMs = delay;
-        reconnectCancelId = signaler.signalAt(
+        reconnectId = signaler.signalAt(
             Instant.now().plusMillis(delay), 0, this::onReconnected);
     }
 
     private void onReconnected(
         int signalId)
     {
-        reconnectCancelId = NO_CANCEL_ID;
+        reconnectId = NO_CANCEL_ID;
         if (stopped)
         {
             return;
@@ -296,28 +294,28 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
 
     private void cancelLifecycleRenew()
     {
-        if (renewCancelId != NO_CANCEL_ID)
+        if (renewId != NO_CANCEL_ID)
         {
-            signaler.cancel(renewCancelId);
-            renewCancelId = NO_CANCEL_ID;
+            signaler.cancel(renewId);
+            renewId = NO_CANCEL_ID;
         }
     }
 
     private void cancelRefresh()
     {
-        if (refreshCancelId != NO_CANCEL_ID)
+        if (refreshId != NO_CANCEL_ID)
         {
-            signaler.cancel(refreshCancelId);
-            refreshCancelId = NO_CANCEL_ID;
+            signaler.cancel(refreshId);
+            refreshId = NO_CANCEL_ID;
         }
     }
 
     private void cancelReconnect()
     {
-        if (reconnectCancelId != NO_CANCEL_ID)
+        if (reconnectId != NO_CANCEL_ID)
         {
-            signaler.cancel(reconnectCancelId);
-            reconnectCancelId = NO_CANCEL_ID;
+            signaler.cancel(reconnectId);
+            reconnectId = NO_CANCEL_ID;
         }
     }
 
