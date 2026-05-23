@@ -20,7 +20,6 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.BiConsumer;
@@ -33,19 +32,21 @@ import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 public final class TestStoreHandler implements StoreHandler
 {
     private final ConcurrentMap<String, String> entries;
-    private final ConcurrentMap<String, List<BiConsumer<String, String>>> listeners;
+    private final ConcurrentMap<String, List<TestWatcher>> listeners;
     private final ConcurrentMap<String, TestLockEntry> locks;
     private final Signaler signaler;
 
     public TestStoreHandler(
         StoreConfig store,
         Signaler signaler,
-        ConcurrentMap<String, String> entries)
+        ConcurrentMap<String, String> entries,
+        ConcurrentMap<String, List<TestWatcher>> listeners,
+        ConcurrentMap<String, TestLockEntry> locks)
     {
         this.entries = Objects.requireNonNull(entries);
         this.signaler = Objects.requireNonNull(signaler);
-        this.listeners = new ConcurrentHashMap<>();
-        this.locks = new ConcurrentHashMap<>();
+        this.listeners = Objects.requireNonNull(listeners);
+        this.locks = Objects.requireNonNull(locks);
     }
 
     @Override
@@ -121,7 +122,7 @@ public final class TestStoreHandler implements StoreHandler
         final String token = UUID.randomUUID().toString();
         final TestLockEntry candidate = new TestLockEntry(token, expiresAt);
         TestLockEntry existing = locks.putIfAbsent(key, candidate);
-        if (existing != null && existing.expiresAt <= now)
+        if (existing != null && existing.expiresAt() <= now)
         {
             existing = locks.replace(key, existing, candidate) ? null : locks.get(key);
         }
@@ -138,14 +139,14 @@ public final class TestStoreHandler implements StoreHandler
         final long now = System.currentTimeMillis();
         final TestLockEntry current = locks.get(key);
         final String result;
-        if (current != null && current.expiresAt > now && current.token.equals(token))
+        if (current != null && current.expiresAt() > now && current.token().equals(token))
         {
             locks.remove(key, current);
             result = token;
         }
         else
         {
-            if (current != null && current.expiresAt <= now)
+            if (current != null && current.expiresAt() <= now)
             {
                 locks.remove(key, current);
             }
@@ -159,14 +160,15 @@ public final class TestStoreHandler implements StoreHandler
         String key,
         BiConsumer<String, String> listener)
     {
-        final List<BiConsumer<String, String>> list = listeners.computeIfAbsent(key, k -> new CopyOnWriteArrayList<>());
-        list.add(listener);
+        final TestWatcher watcher = new TestWatcher(listener, signaler);
+        final List<TestWatcher> list = listeners.computeIfAbsent(key, k -> new CopyOnWriteArrayList<>());
+        list.add(watcher);
         return () ->
         {
-            final List<BiConsumer<String, String>> current = listeners.get(key);
+            final List<TestWatcher> current = listeners.get(key);
             if (current != null)
             {
-                current.remove(listener);
+                current.remove(watcher);
             }
         };
     }
@@ -175,13 +177,13 @@ public final class TestStoreHandler implements StoreHandler
         String key,
         String value)
     {
-        final List<BiConsumer<String, String>> list = listeners.get(key);
+        final List<TestWatcher> list = listeners.get(key);
         if (list != null && !list.isEmpty())
         {
             final long now = System.currentTimeMillis();
-            for (BiConsumer<String, String> listener : list)
+            for (TestWatcher w : list)
             {
-                signaler.signalAt(now, 0, ignored -> listener.accept(key, value));
+                w.signaler().signalAt(now, 0, ignored -> w.listener().accept(key, value));
             }
         }
     }
@@ -191,11 +193,5 @@ public final class TestStoreHandler implements StoreHandler
     {
         // contract: callback fires strictly later than the call, on the caller's I/O thread
         signaler.signalAt(System.currentTimeMillis(), 0, ignored -> task.run());
-    }
-
-    private record TestLockEntry(
-        String token,
-        long expiresAt)
-    {
     }
 }

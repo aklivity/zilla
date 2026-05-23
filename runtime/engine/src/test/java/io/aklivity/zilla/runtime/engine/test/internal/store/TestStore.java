@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.engine.test.internal.store;
 
 import java.net.URL;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -28,11 +29,15 @@ public final class TestStore implements Store
     public static final String NAME = "test";
 
     private final ConcurrentMap<Long, ConcurrentMap<String, String>> storage;
+    private final ConcurrentMap<Long, ConcurrentMap<String, List<TestWatcher>>> storageListeners;
+    private final ConcurrentMap<Long, ConcurrentMap<String, TestLockEntry>> storageLocks;
 
     public TestStore(
         Configuration config)
     {
         this.storage = new ConcurrentHashMap<>();
+        this.storageListeners = new ConcurrentHashMap<>();
+        this.storageLocks = new ConcurrentHashMap<>();
     }
 
     @Override
@@ -51,12 +56,24 @@ public final class TestStore implements Store
     public TestStoreContext supply(
         EngineContext context)
     {
-        return new TestStoreContext(context, this::acquireEntries);
+        return new TestStoreContext(context, this::acquireEntries, this::acquireListeners, this::acquireLocks);
     }
 
     private ConcurrentMap<String, String> acquireEntries(
         long storeId)
     {
         return storage.computeIfAbsent(storeId, id -> new ConcurrentHashMap<>());
+    }
+
+    private ConcurrentMap<String, List<TestWatcher>> acquireListeners(
+        long storeId)
+    {
+        return storageListeners.computeIfAbsent(storeId, id -> new ConcurrentHashMap<>());
+    }
+
+    private ConcurrentMap<String, TestLockEntry> acquireLocks(
+        long storeId)
+    {
+        return storageLocks.computeIfAbsent(storeId, id -> new ConcurrentHashMap<>());
     }
 }
