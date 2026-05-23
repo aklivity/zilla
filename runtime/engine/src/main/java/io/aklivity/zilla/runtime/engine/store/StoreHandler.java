@@ -158,6 +158,40 @@ public interface StoreHandler
         Consumer<String> completion);
 
     /**
+     * Extends the TTL of a lock previously acquired via {@link #lock}, provided the supplied token
+     * matches the current holder.
+     * <p>
+     * Used by callers that hold a lock longer than its initial TTL — for example, a singleton
+     * worker that owns a coordination lease for the lifetime of its binding. The caller schedules
+     * renewals at an interval shorter than the lease TTL; if any renewal fails the caller has
+     * lost ownership and must surrender any externally-visible state predicated on holding the
+     * lock.
+     * </p>
+     * <p>
+     * On a successful ownership-checked renewal, the completion receives the supplied token and
+     * the lock's expiry is reset to {@code now + ttl}. On failure — the token does not match the
+     * current holder, or the lock has already expired and possibly been reacquired by another
+     * holder — the completion receives {@code null}. As with {@link #unlock}, the implementation
+     * does not surface information about another holder to a caller that did not prove ownership.
+     * </p>
+     * <p>
+     * The completion fires <em>strictly later</em> than the call returns, on the caller's I/O
+     * thread, following the same async contract as the other {@code StoreHandler} operations.
+     * </p>
+     *
+     * @param key         the key whose lock is being renewed
+     * @param token       the ownership token returned by a prior {@link #lock} call
+     * @param ttl         the new lease duration counted from now, or {@code null} for no expiry
+     * @param completion  a callback that receives the supplied {@code token} on a successful
+     *                    ownership-checked renewal, or {@code null} otherwise
+     */
+    void renew(
+        String key,
+        String token,
+        Duration ttl,
+        Consumer<String> completion);
+
+    /**
      * Registers a listener invoked when the value associated with the given key changes.
      * <p>
      * Registration returns synchronously. The listener fires <em>strictly later</em> than the

@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.store;
 
+import java.util.List;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.LongFunction;
 
@@ -28,13 +29,19 @@ public final class TestStoreContext implements StoreContext
 {
     private final Signaler signaler;
     private final LongFunction<ConcurrentMap<String, String>> supplyEntries;
+    private final LongFunction<ConcurrentMap<String, List<TestWatcher>>> supplyListeners;
+    private final LongFunction<ConcurrentMap<String, TestLockEntry>> supplyLocks;
 
     public TestStoreContext(
         EngineContext context,
-        LongFunction<ConcurrentMap<String, String>> supplyEntries)
+        LongFunction<ConcurrentMap<String, String>> supplyEntries,
+        LongFunction<ConcurrentMap<String, List<TestWatcher>>> supplyListeners,
+        LongFunction<ConcurrentMap<String, TestLockEntry>> supplyLocks)
     {
         this.signaler = context.signaler();
         this.supplyEntries = supplyEntries;
+        this.supplyListeners = supplyListeners;
+        this.supplyLocks = supplyLocks;
     }
 
     @Override
@@ -46,7 +53,9 @@ public final class TestStoreContext implements StoreContext
         {
             options.entries.forEach(entries::putIfAbsent);
         }
-        return new TestStoreHandler(store, signaler, entries);
+        final ConcurrentMap<String, List<TestWatcher>> listeners = supplyListeners.apply(store.id);
+        final ConcurrentMap<String, TestLockEntry> locks = supplyLocks.apply(store.id);
+        return new TestStoreHandler(store, signaler, entries, listeners, locks);
     }
 
     @Override
