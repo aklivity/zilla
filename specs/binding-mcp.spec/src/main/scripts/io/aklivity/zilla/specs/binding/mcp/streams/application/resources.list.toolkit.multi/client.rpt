@@ -49,8 +49,6 @@ write zilla:begin.ext ${mcp:beginEx()
 
 connected
 
-write close
-
 read  '{"resources":'
         '['
           '{"uri":"file:///data/readme.txt"}'
@@ -58,8 +56,9 @@ read  '{"resources":'
       '}'
 read closed
 
-read notify SERVER_1_DONE
+write close
 
+read notify SERVER_1_DONE
 
 connect await SERVER_1_DONE
         "zilla://streams/app2"
@@ -98,11 +97,11 @@ write zilla:begin.ext ${mcp:beginEx()
 
 connected
 
-write close
-
 read  '{"resources":'
         '['
           '{"uri":"file:///data/timezones.txt"}'
         ']'
       '}'
 read closed
+
+write close

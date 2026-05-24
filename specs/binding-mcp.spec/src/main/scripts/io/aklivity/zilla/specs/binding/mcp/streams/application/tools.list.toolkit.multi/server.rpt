@@ -49,8 +49,6 @@ connected
 
 write flush
 
-read closed
-
 write '{"tools":'
         '['
           '{"name":"get_weather"}'
@@ -60,6 +58,7 @@ write flush
 
 write close
 
+read closed
 
 accept "zilla://streams/app2"
        option zilla:window 8192
@@ -97,8 +96,6 @@ connected
 
 write flush
 
-read closed
-
 write '{"tools":'
         '['
           '{"name":"get_current_time"}'
@@ -107,3 +104,5 @@ write '{"tools":'
 write flush
 
 write close
+
+read closed

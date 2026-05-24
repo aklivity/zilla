@@ -58,6 +58,6 @@ read  '{"name":"weather_prompt"}'
 
 write flush
 
-read closed
-
 write aborted
+
+read closed

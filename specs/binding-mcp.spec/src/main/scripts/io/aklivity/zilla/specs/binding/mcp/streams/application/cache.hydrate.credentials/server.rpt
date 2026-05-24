@@ -53,12 +53,12 @@ connected
 
 write flush
 
-read closed
-
 write '{"prompts":[]}'
 write flush
 
 write close
+
+read closed
 
 accepted
 
@@ -73,12 +73,12 @@ connected
 
 write flush
 
-read closed
-
 write '{"tools":[]}'
 write flush
 
 write close
+
+read closed
 
 accepted
 
@@ -93,9 +93,9 @@ connected
 
 write flush
 
-read closed
-
 write '{"resources":[]}'
 write flush
 
 write close
+
+read closed

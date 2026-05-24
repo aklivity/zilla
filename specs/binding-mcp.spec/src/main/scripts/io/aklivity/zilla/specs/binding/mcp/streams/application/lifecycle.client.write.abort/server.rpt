@@ -55,11 +55,11 @@ connected
 
 write flush
 
-read closed
-
 write '{"tools":[]}'
 write flush
 
 write close
+
+read closed
 
 write notify TOOLS_LIST_COMPLETE

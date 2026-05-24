@@ -51,12 +51,12 @@ connected
 
 write flush
 
-read closed
-
 write '{"prompts":[{"name":"summarize"}]}'
 write flush
 
 write close
+
+read closed
 
 accepted
 
@@ -71,9 +71,9 @@ connected
 
 write flush
 
-read closed
-
 write '{"prompts":[{"name":"summarize"},{"name":"translate"}]}'
 write flush
 
 write close
+
+read closed

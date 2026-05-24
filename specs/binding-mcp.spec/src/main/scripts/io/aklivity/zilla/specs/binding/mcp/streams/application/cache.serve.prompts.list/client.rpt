@@ -49,8 +49,6 @@ write zilla:begin.ext ${mcp:beginEx()
 
 connected
 
-write close
-
 read  '{"prompts":'
         '['
           '{'
@@ -60,3 +58,5 @@ read  '{"prompts":'
         ']'
       '}'
 read closed
+
+write close

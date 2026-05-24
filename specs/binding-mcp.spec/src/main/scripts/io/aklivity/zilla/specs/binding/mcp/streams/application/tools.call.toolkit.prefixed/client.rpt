@@ -57,7 +57,6 @@ write '{'
           '"location": "New York"'
         '}'
       '}'
-write close
 
 read  '{'
         '"content":'
@@ -70,3 +69,5 @@ read  '{'
         '"isError": false'
       '}'
 read closed
+
+write close

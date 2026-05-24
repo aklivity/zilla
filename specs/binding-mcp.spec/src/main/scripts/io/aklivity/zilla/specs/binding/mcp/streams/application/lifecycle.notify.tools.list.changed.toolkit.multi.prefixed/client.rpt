@@ -71,8 +71,6 @@ write zilla:begin.ext ${mcp:beginEx()
 
 connected
 
-write close
-
 read  '{"tools":'
         '['
           '{"name":"bluesky__get_weather"},'
@@ -80,3 +78,5 @@ read  '{"tools":'
         ']'
       '}'
 read closed
+
+write close

@@ -51,8 +51,6 @@ connected
 
 write flush
 
-read closed
-
 write '{"tools":'
         '['
           '{"name":"bluesky__get_weather"},'
@@ -62,3 +60,5 @@ write '{"tools":'
 write flush
 
 write close
+
+read closed
