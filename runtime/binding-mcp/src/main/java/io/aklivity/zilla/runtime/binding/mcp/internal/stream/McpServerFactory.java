@@ -4469,7 +4469,7 @@ public final class McpServerFactory implements McpStreamFactory
 
             server.doNetAbort(traceId, authorization);
 
-            doAppEnd(traceId, authorization);
+            doAppAbort(traceId, authorization);
         }
 
         private void onAppWindow(

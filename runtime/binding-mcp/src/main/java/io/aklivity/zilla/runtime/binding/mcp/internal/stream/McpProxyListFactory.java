@@ -465,6 +465,7 @@ abstract class McpProxyListFactory implements BindingHandler
             {
                 state = McpState.closedReply(state);
                 cleanupClientSlot();
+                doClientAbort(traceId);
                 server.onClientError(traceId);
             }
         }
@@ -1208,7 +1209,6 @@ abstract class McpProxyListFactory implements BindingHandler
             if (client != null)
             {
                 client.doClientReset(traceId);
-                client.doClientEnd(traceId);
             }
             remaining.clear();
         }
