@@ -51,6 +51,6 @@ connected
 
 write flush
 
-write aborted
-
 read closed
+
+write aborted

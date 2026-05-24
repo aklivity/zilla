@@ -55,7 +55,9 @@ read zilla:begin.ext ${mcp:matchBeginEx()
 connected
 
 read  '{"name":"weather_prompt"}'
-read closed
 
 write flush
+
+read closed
+
 write aborted
