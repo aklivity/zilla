@@ -1209,6 +1209,7 @@ abstract class McpProxyListFactory implements BindingHandler
             if (client != null)
             {
                 client.doClientReset(traceId);
+                client.doClientAbort(traceId);
             }
             remaining.clear();
         }
