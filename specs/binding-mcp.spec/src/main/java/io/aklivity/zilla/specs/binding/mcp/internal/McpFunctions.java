@@ -28,6 +28,7 @@ import io.aklivity.k3po.runtime.lang.el.Function;
 import io.aklivity.k3po.runtime.lang.el.spi.FunctionMapperSpi;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.String16FW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpAbortExFW;
+import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpBearerResetExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpChallengeExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpElicitCallbackFlushExFW;
@@ -40,6 +41,7 @@ import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpProgressFlus
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpPromptsGetBeginExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpPromptsListBeginExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpPromptsListChangedFlushExFW;
+import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpResetExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpResourcesListBeginExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpResourcesListChangedFlushExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpResourcesReadBeginExFW;
@@ -1386,6 +1388,18 @@ public final class McpFunctions
         return new McpChallengeExMatcherBuilder();
     }
 
+    @Function
+    public static McpResetExBuilder resetEx()
+    {
+        return new McpResetExBuilder();
+    }
+
+    @Function
+    public static McpResetExMatcherBuilder matchResetEx()
+    {
+        return new McpResetExMatcherBuilder();
+    }
+
     public static final class McpChallengeExBuilder
     {
         private final MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024]);
@@ -1651,6 +1665,199 @@ public final class McpFunctions
                 McpElicitCreateChallengeExFW elicitCreate)
             {
                 return url == null || url.equals(elicitCreate.url());
+            }
+        }
+    }
+
+    public static final class McpResetExBuilder
+    {
+        private final MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024]);
+        private final McpResetExFW.Builder resetExRW = new McpResetExFW.Builder();
+
+        private McpResetExBuilder()
+        {
+            resetExRW.wrap(writeBuffer, 0, writeBuffer.capacity());
+        }
+
+        public McpResetExBuilder typeId(
+            int typeId)
+        {
+            resetExRW.typeId(typeId);
+            return this;
+        }
+
+        public McpBearerResetExBuilder bearer()
+        {
+            return new McpBearerResetExBuilder();
+        }
+
+        public byte[] build()
+        {
+            final byte[] array = new byte[resetExRW.limit()];
+            writeBuffer.getBytes(0, array);
+            return array;
+        }
+
+        public final class McpBearerResetExBuilder
+        {
+            private String realm;
+            private String scopes;
+            private String error;
+
+            public McpBearerResetExBuilder realm(
+                String realm)
+            {
+                this.realm = realm;
+                return this;
+            }
+
+            public McpBearerResetExBuilder scopes(
+                String scopes)
+            {
+                this.scopes = scopes;
+                return this;
+            }
+
+            public McpBearerResetExBuilder error(
+                String error)
+            {
+                this.error = error;
+                return this;
+            }
+
+            public McpResetExBuilder build()
+            {
+                resetExRW.bearer(b -> b.realm(realm).scopes(scopes).error(error));
+                return McpResetExBuilder.this;
+            }
+        }
+    }
+
+    public static final class McpResetExMatcherBuilder
+    {
+        private final DirectBuffer bufferRO = new UnsafeBuffer();
+        private final McpResetExFW resetExRO = new McpResetExFW();
+
+        private Integer typeId;
+        private Integer kind;
+        private Predicate<McpResetExFW> caseMatcher;
+
+        public McpResetExMatcherBuilder typeId(
+            int typeId)
+        {
+            this.typeId = typeId;
+            return this;
+        }
+
+        public McpBearerResetExMatcherBuilder bearer()
+        {
+            this.kind = McpResetExFW.KIND_BEARER;
+            final McpBearerResetExMatcherBuilder matcher = new McpBearerResetExMatcherBuilder();
+            this.caseMatcher = matcher::match;
+            return matcher;
+        }
+
+        public BytesMatcher build()
+        {
+            return typeId != null || kind != null ? this::match : buf -> null;
+        }
+
+        private McpResetExFW match(
+            ByteBuffer byteBuf) throws Exception
+        {
+            if (!byteBuf.hasRemaining())
+            {
+                return null;
+            }
+
+            bufferRO.wrap(byteBuf);
+            final McpResetExFW resetEx = resetExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.capacity());
+
+            if (resetEx != null &&
+                matchTypeId(resetEx) &&
+                matchKind(resetEx) &&
+                matchCase(resetEx))
+            {
+                byteBuf.position(byteBuf.position() + resetEx.sizeof());
+                return resetEx;
+            }
+
+            throw new Exception(resetEx != null ? resetEx.toString() : "null");
+        }
+
+        private boolean matchTypeId(
+            McpResetExFW resetEx)
+        {
+            return typeId == null || typeId == resetEx.typeId();
+        }
+
+        private boolean matchKind(
+            McpResetExFW resetEx)
+        {
+            return kind == null || kind == resetEx.kind();
+        }
+
+        private boolean matchCase(
+            McpResetExFW resetEx)
+        {
+            return caseMatcher == null || caseMatcher.test(resetEx);
+        }
+
+        public final class McpBearerResetExMatcherBuilder
+        {
+            private String16FW realm;
+            private String16FW scopes;
+            private String16FW error;
+
+            public McpBearerResetExMatcherBuilder realm(
+                String realm)
+            {
+                this.realm = new String16FW(realm);
+                return this;
+            }
+
+            public McpBearerResetExMatcherBuilder scopes(
+                String scopes)
+            {
+                this.scopes = new String16FW(scopes);
+                return this;
+            }
+
+            public McpBearerResetExMatcherBuilder error(
+                String error)
+            {
+                this.error = new String16FW(error);
+                return this;
+            }
+
+            public McpResetExMatcherBuilder build()
+            {
+                return McpResetExMatcherBuilder.this;
+            }
+
+            private boolean match(
+                McpResetExFW resetEx)
+            {
+                final McpBearerResetExFW bearer = resetEx.bearer();
+                return matchRealm(bearer) && matchScopes(bearer) && matchError(bearer);
+            }
+
+            private boolean matchRealm(
+                McpBearerResetExFW bearer)
+            {
+                return realm == null || realm.equals(bearer.realm());
+            }
+
+            private boolean matchScopes(
+                McpBearerResetExFW bearer)
+            {
+                return scopes == null || scopes.equals(bearer.scopes());
+            }
+
+            private boolean matchError(
+                McpBearerResetExFW bearer)
+            {
+                return error == null || error.equals(bearer.error());
             }
         }
     }

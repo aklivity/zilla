@@ -30,6 +30,7 @@ import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpChallengeExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpElicitStatus;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpFlushExFW;
+import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpResetExFW;
 
 public class McpFunctionsTest
 {
@@ -921,6 +922,127 @@ public class McpFunctionsTest
             .elicitComplete(b -> b
                 .id("elicit-1")
                 .status(s -> s.set(McpElicitStatus.DECLINED)))
+            .build();
+
+        matcher.match(byteBuf);
+    }
+
+    @Test
+    public void shouldGenerateBearerResetEx()
+    {
+        byte[] bytes = McpFunctions.resetEx()
+            .typeId(0)
+            .bearer()
+                .realm("github")
+                .scopes("repo")
+                .build()
+            .build();
+
+        assertNotNull(bytes);
+    }
+
+    @Test
+    public void shouldGenerateBearerResetExWithoutFields()
+    {
+        byte[] bytes = McpFunctions.resetEx()
+            .typeId(0)
+            .bearer()
+                .build()
+            .build();
+
+        assertNotNull(bytes);
+    }
+
+    @Test
+    public void shouldMatchBearerResetEx() throws Exception
+    {
+        BytesMatcher matcher = McpFunctions.matchResetEx()
+            .typeId(0)
+            .bearer()
+                .realm("github")
+                .scopes("repo")
+                .error("insufficient_scope")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new McpResetExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .bearer(b -> b.realm("github").scopes("repo").error("insufficient_scope"))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldReturnNullWhenResetExMatcherIsEmpty() throws Exception
+    {
+        BytesMatcher matcher = McpFunctions.matchResetEx()
+            .build();
+
+        assertNull(matcher.match(ByteBuffer.allocate(0)));
+    }
+
+    @Test(expected = Exception.class)
+    public void shouldFailWhenBearerResetExRealmMismatch() throws Exception
+    {
+        BytesMatcher matcher = McpFunctions.matchResetEx()
+            .typeId(0)
+            .bearer()
+                .realm("expected")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new McpResetExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .bearer(b -> b.realm("actual"))
+            .build();
+
+        matcher.match(byteBuf);
+    }
+
+    @Test(expected = Exception.class)
+    public void shouldFailWhenBearerResetExScopesMismatch() throws Exception
+    {
+        BytesMatcher matcher = McpFunctions.matchResetEx()
+            .typeId(0)
+            .bearer()
+                .scopes("expected")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new McpResetExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .bearer(b -> b.scopes("actual"))
+            .build();
+
+        matcher.match(byteBuf);
+    }
+
+    @Test(expected = Exception.class)
+    public void shouldFailWhenBearerResetExErrorMismatch() throws Exception
+    {
+        BytesMatcher matcher = McpFunctions.matchResetEx()
+            .typeId(0)
+            .bearer()
+                .error("invalid_token")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new McpResetExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .bearer(b -> b.error("insufficient_scope"))
             .build();
 
         matcher.match(byteBuf);

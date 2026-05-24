@@ -34,6 +34,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.function.LongUnaryOperator;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParserFactory;
@@ -65,6 +67,7 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpChallengeExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpElicitStatus;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpFlushExFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpResetExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.WindowFW;
@@ -106,10 +109,21 @@ public final class McpClientFactory implements McpStreamFactory
     private static final String HTTP_HEADER_STATUS = ":status";
     private static final String HTTP_HEADER_SESSION = "mcp-session-id";
     private static final String HTTP_HEADER_AUTHORIZATION = "authorization";
+    private static final String HTTP_HEADER_WWW_AUTHENTICATE = "www-authenticate";
     private static final String BEARER_PREFIX = "Bearer ";
     private static final String HTTP_HEADER_MCP_VERSION = "mcp-protocol-version";
     private static final String HTTP_HEADER_LAST_EVENT_ID = "last-event-id";
+    private static final String STATUS_401 = "401";
+    private static final String STATUS_403 = "403";
     private static final String STATUS_405 = "405";
+    private static final Pattern BEARER_REALM_PATTERN =
+        Pattern.compile("realm\\s*=\\s*\"([^\"]*)\"");
+    private static final Pattern BEARER_SCOPE_PATTERN =
+        Pattern.compile("scope\\s*=\\s*\"([^\"]*)\"");
+    private static final Pattern BEARER_ERROR_PATTERN =
+        Pattern.compile("error\\s*=\\s*\"([^\"]*)\"");
+    private static final String BEARER_ERROR_INVALID_TOKEN = "invalid_token";
+    private static final String BEARER_ERROR_INSUFFICIENT_SCOPE = "insufficient_scope";
     private static final long SUSPEND_RETRY_NEVER = -1L;
     private static final String CONTENT_TYPE_JSON = "application/json";
     private static final String CONTENT_TYPE_JSON_AND_EVENT_STREAM = "application/json, text/event-stream";
@@ -165,6 +179,7 @@ public final class McpClientFactory implements McpStreamFactory
     private final McpBeginExFW.Builder mcpBeginExRW = new McpBeginExFW.Builder();
     private final McpChallengeExFW.Builder mcpChallengeExRW = new McpChallengeExFW.Builder();
     private final McpFlushExFW.Builder mcpFlushExRW = new McpFlushExFW.Builder();
+    private final McpResetExFW.Builder mcpResetExRW = new McpResetExFW.Builder();
 
     private final DirectBufferInputStreamEx inputRO = new DirectBufferInputStreamEx();
 
@@ -1270,6 +1285,21 @@ public final class McpClientFactory implements McpStreamFactory
         return colon < 0 ? id : id.substring(colon + 1);
     }
 
+    private static boolean startsWithIgnoreCase(
+        String value,
+        String prefix)
+    {
+        return value.regionMatches(true, 0, prefix, 0, prefix.length());
+    }
+
+    private static String extractFirstGroup(
+        Pattern pattern,
+        String value)
+    {
+        final Matcher matcher = pattern.matcher(value);
+        return matcher.find() ? matcher.group(1) : null;
+    }
+
     @Override
     public int originTypeId()
     {
@@ -1887,6 +1917,22 @@ public final class McpClientFactory implements McpStreamFactory
                 doReset(sender, originId, routedId, initialId,
                     initialSeq, initialAck, initialMax,
                     traceId, authorization);
+
+                onAppErrored(traceId, authorization);
+            }
+        }
+
+        void doAppReset(
+            long traceId,
+            long authorization,
+            Flyweight extension)
+        {
+            if (!McpState.initialClosed(state))
+            {
+                state = McpState.closedInitial(state);
+                doReset(sender, originId, routedId, initialId,
+                    initialSeq, initialAck, initialMax,
+                    traceId, authorization, extension);
 
                 onAppErrored(traceId, authorization);
             }
@@ -3221,12 +3267,26 @@ public final class McpClientFactory implements McpStreamFactory
             assert replyAck <= replySeq;
 
             final OctetsFW ext = begin.extension();
+            String status = null;
+            String wwwAuthenticate = null;
             if (ext.sizeof() > 0)
             {
                 final HttpBeginExFW httpBeginEx = httpBeginExRO.tryWrap(
                     ext.buffer(), ext.offset(), ext.limit());
                 if (httpBeginEx != null)
                 {
+                    final HttpHeaderFW statusHeader = httpBeginEx.headers()
+                        .matchFirst(h -> HTTP_HEADER_STATUS.equals(h.name().asString()));
+                    if (statusHeader != null)
+                    {
+                        status = statusHeader.value().asString();
+                    }
+                    final HttpHeaderFW wwwAuthenticateHeader = httpBeginEx.headers()
+                        .matchFirst(h -> HTTP_HEADER_WWW_AUTHENTICATE.equals(h.name().asString()));
+                    if (wwwAuthenticateHeader != null)
+                    {
+                        wwwAuthenticate = wwwAuthenticateHeader.value().asString();
+                    }
                     final HttpHeaderFW contentType = httpBeginEx.headers()
                         .matchFirst(h -> HTTP_HEADER_CONTENT_TYPE.equals(h.name().asString()));
                     if (contentType != null &&
@@ -3238,9 +3298,31 @@ public final class McpClientFactory implements McpStreamFactory
                 }
             }
 
-            mcp.onNetBegin(begin);
+            if ((STATUS_401.equals(status) || STATUS_403.equals(status)) &&
+                wwwAuthenticate != null &&
+                startsWithIgnoreCase(wwwAuthenticate, BEARER_PREFIX))
+            {
+                final String realm = extractFirstGroup(BEARER_REALM_PATTERN, wwwAuthenticate);
+                final String scopes = extractFirstGroup(BEARER_SCOPE_PATTERN, wwwAuthenticate);
+                String error = extractFirstGroup(BEARER_ERROR_PATTERN, wwwAuthenticate);
+                if (error == null)
+                {
+                    error = STATUS_403.equals(status) ? BEARER_ERROR_INSUFFICIENT_SCOPE : BEARER_ERROR_INVALID_TOKEN;
+                }
+                final String bearerError = error;
+                final McpResetExFW mcpResetEx = mcpResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                    .typeId(mcpTypeId)
+                    .bearer(b -> b.realm(realm).scopes(scopes).error(bearerError))
+                    .build();
+                mcp.doAppReset(traceId, authorization, mcpResetEx);
+                doNetReset(traceId, authorization);
+            }
+            else
+            {
+                mcp.onNetBegin(begin);
 
-            flushNetWindow(traceId, authorization, 0L);
+                flushNetWindow(traceId, authorization, 0L);
+            }
         }
 
         void onNetData(
@@ -5147,6 +5229,33 @@ public final class McpClientFactory implements McpStreamFactory
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
+            .build();
+
+        receiver.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
+    }
+
+    private void doReset(
+        MessageConsumer receiver,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        Flyweight extension)
+    {
+        final ResetFW reset = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+            .originId(originId)
+            .routedId(routedId)
+            .streamId(streamId)
+            .sequence(sequence)
+            .acknowledge(acknowledge)
+            .maximum(maximum)
+            .traceId(traceId)
+            .authorization(authorization)
+            .extension(extension.buffer(), extension.offset(), extension.sizeof())
             .build();
 
         receiver.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());

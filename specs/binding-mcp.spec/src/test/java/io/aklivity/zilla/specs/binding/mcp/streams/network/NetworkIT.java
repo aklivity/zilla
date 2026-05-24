@@ -47,6 +47,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/lifecycle.initialize.reject.bearer/client",
+        "${net}/lifecycle.initialize.reject.bearer/server"})
+    public void shouldRejectLifecycleInitializeOnUpstreamBearerChallenge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/lifecycle.initialize.alt.svc/client",
         "${net}/lifecycle.initialize.alt.svc/server"})
     public void shouldInitializeLifecycleAltSvc() throws Exception
