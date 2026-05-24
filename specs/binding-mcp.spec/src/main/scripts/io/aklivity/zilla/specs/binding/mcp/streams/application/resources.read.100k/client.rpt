@@ -51,9 +51,10 @@ write zilla:begin.ext ${mcp:beginEx()
 connected
 
 write '{"uri":"file:///data/image.png"}'
-write close
 
 read '{"contents":[{"uri":"file:///data/image.png","mimeType":"image/png","text":"'
 read ${core:randomBase64(100000)}
 read '"}]}'
 read closed
+
+write close

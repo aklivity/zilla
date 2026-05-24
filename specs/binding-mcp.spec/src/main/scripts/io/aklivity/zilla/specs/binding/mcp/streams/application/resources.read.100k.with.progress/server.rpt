@@ -51,7 +51,6 @@ read zilla:begin.ext ${mcp:matchBeginEx()
 connected
 
 read  '{"uri":"file:///data/image.png","_meta":{"progressToken":"abc123"}}'
-read closed
 
 write flush
 
@@ -79,3 +78,5 @@ write '"}]}'
 write flush
 
 write close
+
+read closed

@@ -51,6 +51,6 @@ write zilla:begin.ext ${mcp:beginEx()
 connected
 
 write '{"uri":"file:///data/readme.txt"}'
-write close
 
 read abort
+

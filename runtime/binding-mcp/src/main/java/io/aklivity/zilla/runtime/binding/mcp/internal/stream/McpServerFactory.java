@@ -1424,7 +1424,6 @@ public final class McpServerFactory implements McpStreamFactory
                 stream.elicitationId == null)
             {
                 state = McpState.closedInitial(state);
-                stream.doAppEnd(traceId, authorization);
             }
         }
 
@@ -1747,7 +1746,6 @@ public final class McpServerFactory implements McpStreamFactory
                 stream.elicitationId == null)
             {
                 state = McpState.closedInitial(state);
-                stream.doAppEnd(traceId, authorization);
             }
         }
 
@@ -4458,6 +4456,8 @@ public final class McpServerFactory implements McpStreamFactory
             {
                 server.doEncodeResponseEnd(traceId, authorization);
             }
+
+            doAppEnd(traceId, authorization);
         }
 
         private void onAppAbort(
@@ -4467,6 +4467,8 @@ public final class McpServerFactory implements McpStreamFactory
             final long authorization = abort.authorization();
 
             server.doNetAbort(traceId, authorization);
+
+            doAppEnd(traceId, authorization);
         }
 
         private void onAppWindow(

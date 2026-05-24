@@ -1237,10 +1237,7 @@ abstract class McpProxyListFactory implements BindingHandler
             }
             client = new McpListClient(this, route.resolvedId(), route.prefix());
             client.doClientBegin(traceId);
-            if (McpState.initialClosed(state))
-            {
-                client.doClientEnd(traceId);
-            }
+            client.doClientEnd(traceId);
         }
 
         private void streamItemBegin(
