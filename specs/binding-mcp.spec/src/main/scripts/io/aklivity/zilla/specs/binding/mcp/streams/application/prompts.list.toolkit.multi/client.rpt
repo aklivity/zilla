@@ -49,8 +49,6 @@ write zilla:begin.ext ${mcp:beginEx()
 
 connected
 
-write close
-
 read  '{"prompts":'
         '['
           '{"name":"weather_prompt"}'
@@ -58,8 +56,9 @@ read  '{"prompts":'
       '}'
 read closed
 
-read notify SERVER_1_DONE
+write close
 
+read notify SERVER_1_DONE
 
 connect await SERVER_1_DONE
         "zilla://streams/app2"
@@ -98,11 +97,11 @@ write zilla:begin.ext ${mcp:beginEx()
 
 connected
 
-write close
-
 read  '{"prompts":'
         '['
           '{"name":"current_time_prompt"}'
         ']'
       '}'
 read closed
+
+write close

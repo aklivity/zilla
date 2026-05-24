@@ -51,11 +51,11 @@ connected
 
 write flush
 
-read closed
-
 read await CLIENT_AWAITER_REGISTERED
 
 write '{"tools":[{"name":"get_weather"}]}'
 write flush
 
 write close
+
+read closed

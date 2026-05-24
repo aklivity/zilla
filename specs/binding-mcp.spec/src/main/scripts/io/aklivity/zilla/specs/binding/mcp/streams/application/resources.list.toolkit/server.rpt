@@ -51,8 +51,6 @@ connected
 
 write flush
 
-read closed
-
 write '{"resources":'
         '['
           '{'
@@ -64,3 +62,5 @@ write '{"resources":'
 write flush
 
 write close
+
+read closed

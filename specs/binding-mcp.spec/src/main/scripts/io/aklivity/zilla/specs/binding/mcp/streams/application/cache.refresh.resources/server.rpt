@@ -51,12 +51,12 @@ connected
 
 write flush
 
-read closed
-
 write '{"resources":[{"uri":"file:///docs/welcome.md","name":"welcome"}]}'
 write flush
 
 write close
+
+read closed
 
 accepted
 
@@ -71,9 +71,9 @@ connected
 
 write flush
 
-read closed
-
 write '{"resources":[{"uri":"file:///docs/welcome.md","name":"welcome"},{"uri":"file:///docs/changelog.md","name":"changelog"}]}'
 write flush
 
 write close
+
+read closed

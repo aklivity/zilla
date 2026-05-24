@@ -581,6 +581,7 @@ final class McpProxyCacheHydrater
             {
                 final long traceId = end.traceId();
                 state = McpState.closedReply(state);
+                doListHydrateEnd(traceId);
                 if (bodyLen > 0)
                 {
                     final String value = bodyBuffer.getStringWithoutLengthUtf8(0, bodyLen);
@@ -634,7 +635,6 @@ final class McpProxyCacheHydrater
                 receiver = newStream(this::onListHydrateMessage, originId, routedId, initialId,
                     initialSeq, initialAck, initialMax, traceId, handler.cache.authorization, 0L, beginEx);
                 state = McpState.openingInitial(state);
-                state = McpState.closingInitial(state);
             }
 
             void doListHydrateEnd(

@@ -49,9 +49,9 @@ write zilla:begin.ext ${mcp:beginEx()
 
 connected
 
-write close
-
 read '{"tools":[{"name":"big_tool","description":"'
 read ${core:randomBase64(10000)}
 read '"}]}'
 read closed
+
+write close

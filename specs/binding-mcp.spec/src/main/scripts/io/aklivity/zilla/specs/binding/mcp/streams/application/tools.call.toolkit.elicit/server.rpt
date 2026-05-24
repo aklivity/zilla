@@ -73,8 +73,6 @@ read advised zilla:flush ${mcp:matchFlushEx()
                                    .build()
                                .build()}
 
-read closed
-
 write flush
 
 write advise zilla:flush ${mcp:flushEx()
@@ -98,3 +96,5 @@ write '{'
 write flush
 
 write close
+
+read closed
