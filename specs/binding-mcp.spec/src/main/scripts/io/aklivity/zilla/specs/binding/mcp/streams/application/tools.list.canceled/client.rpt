@@ -51,4 +51,4 @@ connected
 
 read abort
 
-write close
+write abort

@@ -4102,7 +4102,7 @@ public final class McpServerFactory implements McpStreamFactory
             server.doNetBegin(traceId, authorization, emptyRO);
             server.doNetAbort(traceId, authorization);
             doAppReset(traceId, authorization);
-            doAppEnd(traceId, authorization);
+            doAppAbort(traceId, authorization);
         }
 
         void doAppChallenge(
