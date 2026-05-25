@@ -221,6 +221,7 @@ public final class McpClientFactory implements McpStreamFactory
     private static final int SSE_AFTER_COLON = 2;
     private static final int SSE_SMALL_VALUE = 3;
     private static final int SSE_IGNORE_VALUE = 4;
+
     private final JsonParserFactory responseParserFactory;
     private final JsonParserFactory requestParserFactory;
     private final DirectBufferInputStreamEx requestInputRO = new DirectBufferInputStreamEx();
@@ -260,7 +261,7 @@ public final class McpClientFactory implements McpStreamFactory
             StreamingJson.PATH_INCLUDES, CLIENT_JSON_PATH_INCLUDES,
             StreamingJson.TOKEN_MAX_BYTES, decodeMax));
         this.requestParserFactory = StreamingJson.createParserFactory(Map.of(
-            StreamingJson.PATH_INCLUDES, List.of("$.NEVER_MATCH"),
+            StreamingJson.PATH_INCLUDES, List.of(),
             StreamingJson.TOKEN_MAX_BYTES, encodeMax));
 
         final Int2ObjectHashMap<McpSessionIdResolver> resolvers = new Int2ObjectHashMap<>();

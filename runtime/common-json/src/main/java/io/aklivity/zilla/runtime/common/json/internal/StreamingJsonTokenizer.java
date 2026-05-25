@@ -82,7 +82,7 @@ public final class StreamingJsonTokenizer
 
     public StreamingJsonTokenizer()
     {
-        this(List.of(), List.of(), Integer.MAX_VALUE);
+        this(null, null, Integer.MAX_VALUE);
     }
 
     public StreamingJsonTokenizer(
@@ -98,6 +98,10 @@ public final class StreamingJsonTokenizer
     private static List<String[]> compilePaths(
         List<String> paths)
     {
+        if (paths == null)
+        {
+            return null;
+        }
         if (paths.isEmpty())
         {
             return List.of();
@@ -227,10 +231,11 @@ public final class StreamingJsonTokenizer
 
     private boolean currentPathReadable()
     {
-        // include is everything by default; if pathIncludes is specified, restrict to those
-        final boolean included = pathIncludes.isEmpty() || pathMatchesAny(pathIncludes);
+        // null pathIncludes means include all; empty list means include none;
+        // non-empty list restricts to matching paths
+        final boolean included = pathIncludes == null || pathMatchesAny(pathIncludes);
         // excludes have final veto
-        return included && !pathMatchesAny(pathExcludes);
+        return included && (pathExcludes == null || !pathMatchesAny(pathExcludes));
     }
 
     private boolean pathMatchesAny(
