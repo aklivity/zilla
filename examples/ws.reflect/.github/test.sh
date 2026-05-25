@@ -15,21 +15,10 @@ echo INPUT2="$INPUT2"
 
 # WHEN
 
-for i in $(seq 1 5); do
-  echo "$INPUT1" | timeout 3 docker compose -p zilla-ws-reflect exec -T websocat websocat --protocol echo ws://zilla.examples.dev:7114/
-
-  if [ $? -eq 0 ]; then
-    echo "✅ Zilla is reachable."
-    break
-  fi
-
-  sleep 2
-done
-
 {
-  (echo "$INPUT1"; sleep 2) | timeout 3 docker compose -p zilla-ws-reflect exec -T websocat websocat --protocol echo ws://zilla.examples.dev:$PORT/ &
+  (echo "$INPUT1"; sleep 4) | timeout 5 docker compose -p zilla-ws-reflect exec -T websocat websocat --protocol echo ws://zilla.examples.dev:$PORT/ &
   PID1=$!
-  (echo "$INPUT2"; sleep 2) | timeout 3 docker compose -p zilla-ws-reflect exec -T websocat websocat --protocol echo ws://zilla.examples.dev:$PORT/ &
+  (echo "$INPUT2"; sleep 4) | timeout 5 docker compose -p zilla-ws-reflect exec -T websocat websocat --protocol echo ws://zilla.examples.dev:$PORT/ &
   PID2=$!
 
   wait $PID1 $PID2
