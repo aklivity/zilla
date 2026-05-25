@@ -269,7 +269,7 @@ abstract class McpProxyListFactory implements BindingHandler
         private void doClientEnd(
             long traceId)
         {
-            if (McpState.replyClosed(state) && !McpState.initialClosed(state))
+            if (!McpState.initialClosed(state) && McpState.replyClosed(state))
             {
                 doEnd(sender, originId, routedId, initialId,
                     initialSeq, initialAck, initialMax, traceId, server.authorization);
@@ -437,13 +437,10 @@ abstract class McpProxyListFactory implements BindingHandler
 
             assert replyAck <= replySeq;
 
-            if (!McpState.replyClosed(state))
-            {
-                state = McpState.closedReply(state);
-                cleanupClientSlot();
-                doClientEnd(traceId);
-                server.onClientClosed(traceId);
-            }
+            state = McpState.closedReply(state);
+            cleanupClientSlot();
+            doClientEnd(traceId);
+            server.onClientClosed(traceId);
         }
 
         private void onClientAbort(
@@ -461,13 +458,10 @@ abstract class McpProxyListFactory implements BindingHandler
 
             assert replyAck <= replySeq;
 
-            if (!McpState.replyClosed(state))
-            {
-                state = McpState.closedReply(state);
-                cleanupClientSlot();
-                doClientAbort(traceId);
-                server.onClientError(traceId);
-            }
+            state = McpState.closedReply(state);
+            cleanupClientSlot();
+            doClientAbort(traceId);
+            server.onClientError(traceId);
         }
 
         private void onClientWindow(
@@ -510,11 +504,8 @@ abstract class McpProxyListFactory implements BindingHandler
             assert initialAck <= initialSeq;
 
             state = McpState.closedInitial(state);
-            if (!McpState.replyClosed(state))
-            {
-                state = McpState.closedReply(state);
-                server.onClientError(traceId);
-            }
+            state = McpState.closedReply(state);
+            server.onClientError(traceId);
         }
 
         private void decode(
