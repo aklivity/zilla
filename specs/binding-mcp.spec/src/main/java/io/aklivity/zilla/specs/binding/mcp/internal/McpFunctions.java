@@ -28,6 +28,7 @@ import io.aklivity.k3po.runtime.lang.el.Function;
 import io.aklivity.k3po.runtime.lang.el.spi.FunctionMapperSpi;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.String16FW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpAbortExFW;
+import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpBearerError;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpBearerResetExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpChallengeExFW;
@@ -1702,7 +1703,7 @@ public final class McpFunctions
         {
             private String realm;
             private String scopes;
-            private String error;
+            private McpBearerError error;
 
             public McpBearerResetExBuilder realm(
                 String realm)
@@ -1721,13 +1722,13 @@ public final class McpFunctions
             public McpBearerResetExBuilder error(
                 String error)
             {
-                this.error = error;
+                this.error = McpBearerError.valueOf(error);
                 return this;
             }
 
             public McpResetExBuilder build()
             {
-                resetExRW.bearer(b -> b.realm(realm).scopes(scopes).error(error));
+                resetExRW.bearer(b -> b.realm(realm).scopes(scopes).error(s -> s.set(error)));
                 return McpResetExBuilder.this;
             }
         }
@@ -1807,7 +1808,7 @@ public final class McpFunctions
         {
             private String16FW realm;
             private String16FW scopes;
-            private String16FW error;
+            private McpBearerError error;
 
             public McpBearerResetExMatcherBuilder realm(
                 String realm)
@@ -1826,7 +1827,7 @@ public final class McpFunctions
             public McpBearerResetExMatcherBuilder error(
                 String error)
             {
-                this.error = new String16FW(error);
+                this.error = McpBearerError.valueOf(error);
                 return this;
             }
 
@@ -1857,7 +1858,7 @@ public final class McpFunctions
             private boolean matchError(
                 McpBearerResetExFW bearer)
             {
-                return error == null || error.equals(bearer.error());
+                return error == null || error == bearer.error().get();
             }
         }
     }

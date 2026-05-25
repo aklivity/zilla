@@ -32,6 +32,7 @@ import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.LongUnaryOperator;
 import java.util.regex.Matcher;
@@ -63,6 +64,7 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.HttpBeginExFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBearerError;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpChallengeExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpElicitStatus;
@@ -116,14 +118,13 @@ public final class McpClientFactory implements McpStreamFactory
     private static final String STATUS_401 = "401";
     private static final String STATUS_403 = "403";
     private static final String STATUS_405 = "405";
-    private static final Pattern BEARER_REALM_PATTERN =
-        Pattern.compile("realm\\s*=\\s*\"([^\"]*)\"");
-    private static final Pattern BEARER_SCOPE_PATTERN =
-        Pattern.compile("scope\\s*=\\s*\"([^\"]*)\"");
-    private static final Pattern BEARER_ERROR_PATTERN =
-        Pattern.compile("error\\s*=\\s*\"([^\"]*)\"");
-    private static final String BEARER_ERROR_INVALID_TOKEN = "invalid_token";
-    private static final String BEARER_ERROR_INSUFFICIENT_SCOPE = "insufficient_scope";
+    private static final Pattern BEARER_CHALLENGE_PATTERN = Pattern.compile(
+        "^\\s*Bearer\\b" +
+        "(?=.*?\\brealm\\s*=\\s*\"(?<realm>[^\"]*)\")?" +
+        "(?=.*?\\bscope\\s*=\\s*\"(?<scope>[^\"]*)\")?" +
+        "(?=.*?\\berror\\s*=\\s*\"(?<error>invalid_request|invalid_token|insufficient_scope)\")?" +
+        ".*$",
+        Pattern.CASE_INSENSITIVE);
     private static final long SUSPEND_RETRY_NEVER = -1L;
     private static final String CONTENT_TYPE_JSON = "application/json";
     private static final String CONTENT_TYPE_JSON_AND_EVENT_STREAM = "application/json, text/event-stream";
@@ -221,6 +222,7 @@ public final class McpClientFactory implements McpStreamFactory
     private static final int SSE_SMALL_VALUE = 3;
     private static final int SSE_IGNORE_VALUE = 4;
     private final JsonParserFactory parserFactory;
+    private final Matcher bearerChallengeMatcher = BEARER_CHALLENGE_PATTERN.matcher("");
 
     private final McpConfiguration config;
     private final Long2ObjectHashMap<McpBindingConfig> bindings;
@@ -1283,21 +1285,6 @@ public final class McpClientFactory implements McpStreamFactory
         }
         final int colon = id.lastIndexOf(':');
         return colon < 0 ? id : id.substring(colon + 1);
-    }
-
-    private static boolean startsWithIgnoreCase(
-        String value,
-        String prefix)
-    {
-        return value.regionMatches(true, 0, prefix, 0, prefix.length());
-    }
-
-    private static String extractFirstGroup(
-        Pattern pattern,
-        String value)
-    {
-        final Matcher matcher = pattern.matcher(value);
-        return matcher.find() ? matcher.group(1) : null;
     }
 
     @Override
@@ -3333,52 +3320,46 @@ public final class McpClientFactory implements McpStreamFactory
             assert replyAck <= replySeq;
 
             final OctetsFW ext = begin.extension();
+            final HttpBeginExFW httpBeginEx = httpBeginExRO.tryWrap(ext.buffer(), ext.offset(), ext.limit());
             String status = null;
             String wwwAuthenticate = null;
-            if (ext.sizeof() > 0)
+            if (httpBeginEx != null)
             {
-                final HttpBeginExFW httpBeginEx = httpBeginExRO.tryWrap(
-                    ext.buffer(), ext.offset(), ext.limit());
-                if (httpBeginEx != null)
+                status = Optional.ofNullable(httpBeginEx.headers()
+                    .matchFirst(h -> HTTP_HEADER_STATUS.equals(h.name().asString())))
+                    .map(HttpHeaderFW::value)
+                    .map(String16FW::asString)
+                    .orElse(null);
+                wwwAuthenticate = Optional.ofNullable(httpBeginEx.headers()
+                    .matchFirst(h -> HTTP_HEADER_WWW_AUTHENTICATE.equals(h.name().asString())))
+                    .map(HttpHeaderFW::value)
+                    .map(String16FW::asString)
+                    .orElse(null);
+                final String contentType = Optional.ofNullable(httpBeginEx.headers()
+                    .matchFirst(h -> HTTP_HEADER_CONTENT_TYPE.equals(h.name().asString())))
+                    .map(HttpHeaderFW::value)
+                    .map(String16FW::asString)
+                    .orElse(null);
+                if (CONTENT_TYPE_EVENT_STREAM.equals(contentType))
                 {
-                    final HttpHeaderFW statusHeader = httpBeginEx.headers()
-                        .matchFirst(h -> HTTP_HEADER_STATUS.equals(h.name().asString()));
-                    if (statusHeader != null)
-                    {
-                        status = statusHeader.value().asString();
-                    }
-                    final HttpHeaderFW wwwAuthenticateHeader = httpBeginEx.headers()
-                        .matchFirst(h -> HTTP_HEADER_WWW_AUTHENTICATE.equals(h.name().asString()));
-                    if (wwwAuthenticateHeader != null)
-                    {
-                        wwwAuthenticate = wwwAuthenticateHeader.value().asString();
-                    }
-                    final HttpHeaderFW contentType = httpBeginEx.headers()
-                        .matchFirst(h -> HTTP_HEADER_CONTENT_TYPE.equals(h.name().asString()));
-                    if (contentType != null &&
-                        CONTENT_TYPE_EVENT_STREAM.equals(contentType.value().asString()))
-                    {
-                        decoder = decodeSse;
-                        sseMode = true;
-                    }
+                    decoder = decodeSse;
+                    sseMode = true;
                 }
             }
 
             if ((STATUS_401.equals(status) || STATUS_403.equals(status)) &&
                 wwwAuthenticate != null &&
-                startsWithIgnoreCase(wwwAuthenticate, BEARER_PREFIX))
+                bearerChallengeMatcher.reset(wwwAuthenticate).matches())
             {
-                final String realm = extractFirstGroup(BEARER_REALM_PATTERN, wwwAuthenticate);
-                final String scopes = extractFirstGroup(BEARER_SCOPE_PATTERN, wwwAuthenticate);
-                String error = extractFirstGroup(BEARER_ERROR_PATTERN, wwwAuthenticate);
-                if (error == null)
-                {
-                    error = STATUS_403.equals(status) ? BEARER_ERROR_INSUFFICIENT_SCOPE : BEARER_ERROR_INVALID_TOKEN;
-                }
-                final String bearerError = error;
+                final String realm = bearerChallengeMatcher.group("realm");
+                final String scopes = bearerChallengeMatcher.group("scope");
+                final String errorParam = bearerChallengeMatcher.group("error");
+                final McpBearerError error = errorParam != null
+                    ? McpBearerError.valueOf(errorParam.toUpperCase())
+                    : STATUS_403.equals(status) ? McpBearerError.INSUFFICIENT_SCOPE : McpBearerError.INVALID_TOKEN;
                 final McpResetExFW mcpResetEx = mcpResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
                     .typeId(mcpTypeId)
-                    .bearer(b -> b.realm(realm).scopes(scopes).error(bearerError))
+                    .bearer(b -> b.realm(realm).scopes(scopes).error(s -> s.set(error)))
                     .build();
                 mcp.doAppReset(traceId, authorization, mcpResetEx);
                 doNetReset(traceId, authorization);

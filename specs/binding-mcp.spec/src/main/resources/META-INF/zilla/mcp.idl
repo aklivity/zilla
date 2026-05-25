@@ -107,11 +107,18 @@ scope mcp
         {
         }
 
+        enum McpBearerError (uint8)
+        {
+            INVALID_REQUEST(0),
+            INVALID_TOKEN(1),
+            INSUFFICIENT_SCOPE(2)
+        }
+
         struct McpBearerResetEx
         {
             string16 realm = null;
             string16 scopes = null;
-            string16 error = null;
+            McpBearerError error;
         }
 
         struct McpLifecycleBeginEx

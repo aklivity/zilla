@@ -26,6 +26,7 @@ import org.junit.Test;
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.String16FW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpAbortExFW;
+import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpBearerError;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpChallengeExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpElicitStatus;
@@ -935,6 +936,7 @@ public class McpFunctionsTest
             .bearer()
                 .realm("github")
                 .scopes("repo")
+                .error("INSUFFICIENT_SCOPE")
                 .build()
             .build();
 
@@ -942,11 +944,12 @@ public class McpFunctionsTest
     }
 
     @Test
-    public void shouldGenerateBearerResetExWithoutFields()
+    public void shouldGenerateBearerResetExWithMinimalFields()
     {
         byte[] bytes = McpFunctions.resetEx()
             .typeId(0)
             .bearer()
+                .error("INVALID_TOKEN")
                 .build()
             .build();
 
@@ -961,7 +964,7 @@ public class McpFunctionsTest
             .bearer()
                 .realm("github")
                 .scopes("repo")
-                .error("insufficient_scope")
+                .error("INSUFFICIENT_SCOPE")
                 .build()
             .build();
 
@@ -970,7 +973,7 @@ public class McpFunctionsTest
         new McpResetExFW.Builder()
             .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
-            .bearer(b -> b.realm("github").scopes("repo").error("insufficient_scope"))
+            .bearer(b -> b.realm("github").scopes("repo").error(s -> s.set(McpBearerError.INSUFFICIENT_SCOPE)))
             .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -1000,7 +1003,7 @@ public class McpFunctionsTest
         new McpResetExFW.Builder()
             .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
-            .bearer(b -> b.realm("actual"))
+            .bearer(b -> b.realm("actual").error(s -> s.set(McpBearerError.INVALID_TOKEN)))
             .build();
 
         matcher.match(byteBuf);
@@ -1021,7 +1024,7 @@ public class McpFunctionsTest
         new McpResetExFW.Builder()
             .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
-            .bearer(b -> b.scopes("actual"))
+            .bearer(b -> b.scopes("actual").error(s -> s.set(McpBearerError.INVALID_TOKEN)))
             .build();
 
         matcher.match(byteBuf);
@@ -1033,7 +1036,7 @@ public class McpFunctionsTest
         BytesMatcher matcher = McpFunctions.matchResetEx()
             .typeId(0)
             .bearer()
-                .error("invalid_token")
+                .error("INVALID_TOKEN")
                 .build()
             .build();
 
@@ -1042,7 +1045,7 @@ public class McpFunctionsTest
         new McpResetExFW.Builder()
             .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
-            .bearer(b -> b.error("insufficient_scope"))
+            .bearer(b -> b.error(s -> s.set(McpBearerError.INSUFFICIENT_SCOPE)))
             .build();
 
         matcher.match(byteBuf);

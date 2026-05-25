@@ -35,7 +35,7 @@ write zilla:reset.ext ${mcp:resetEx()
                            .bearer()
                                .realm("github")
                                .scopes("repo")
-                               .error("insufficient_scope")
+                               .error("INSUFFICIENT_SCOPE")
                                .build()
                            .build()}
 

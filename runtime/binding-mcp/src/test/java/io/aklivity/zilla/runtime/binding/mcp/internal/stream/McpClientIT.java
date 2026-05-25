@@ -69,7 +69,7 @@ public class McpClientIT
     @Specification({
         "${app}/lifecycle.initialize.reject.bearer/client",
         "${net}/lifecycle.initialize.reject.bearer/server"})
-    public void shouldRejectLifecycleInitializeOnUpstreamBearerChallenge() throws Exception
+    public void shouldRejectLifecycleInitializeWithBearerChallenge() throws Exception
     {
         k3po.finish();
     }
@@ -106,7 +106,6 @@ public class McpClientIT
     {
         k3po.finish();
     }
-
 
     @Test
     @Configuration("client.yaml")
