@@ -18,9 +18,9 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
+import java.util.Optional;
 
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParsingException;
@@ -95,36 +95,38 @@ public final class StreamingJsonTokenizer
         this.tokenMaxBytes = tokenMaxBytes;
     }
 
+    public static final List<String> INCLUDE_ALL = null;
+
     private static List<String[]> compilePaths(
         List<String> paths)
     {
-        if (paths == null)
+        return Optional.ofNullable(paths)
+            .map(StreamingJsonTokenizer::compilePathList)
+            .orElse(null);
+    }
+
+    private static List<String[]> compilePathList(
+        List<String> paths)
+    {
+        return paths.isEmpty()
+            ? List.of()
+            : paths.stream().map(StreamingJsonTokenizer::compilePath).toList();
+    }
+
+    private static String[] compilePath(
+        String path)
+    {
+        if (path.isEmpty())
         {
-            return null;
+            return new String[0];
         }
-        if (paths.isEmpty())
+        // RFC 6901: leading '/', segments separated by '/', '~1' decodes to '/', '~0' to '~'
+        final String[] parts = path.substring(1).split("/", -1);
+        for (int i = 0; i < parts.length; i++)
         {
-            return List.of();
+            parts[i] = parts[i].replace("~1", "/").replace("~0", "~");
         }
-        final List<String[]> compiled = new ArrayList<>(paths.size());
-        for (String path : paths)
-        {
-            if (path.isEmpty())
-            {
-                compiled.add(new String[0]);
-            }
-            else
-            {
-                // RFC 6901: leading '/', segments separated by '/', '~1' decodes to '/', '~0' to '~'
-                final String[] parts = path.substring(1).split("/", -1);
-                for (int i = 0; i < parts.length; i++)
-                {
-                    parts[i] = parts[i].replace("~1", "/").replace("~0", "~");
-                }
-                compiled.add(parts);
-            }
-        }
-        return compiled;
+        return parts;
     }
 
     public boolean advance(

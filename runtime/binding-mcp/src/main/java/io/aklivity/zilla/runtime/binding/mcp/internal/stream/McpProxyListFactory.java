@@ -269,7 +269,8 @@ abstract class McpProxyListFactory implements BindingHandler
         private void doClientEnd(
             long traceId)
         {
-            if (!McpState.initialClosed(state) && McpState.replyClosed(state))
+            if (!McpState.initialClosed(state) &&
+                McpState.replyClosed(state))
             {
                 doEnd(sender, originId, routedId, initialId,
                     initialSeq, initialAck, initialMax, traceId, server.authorization);
