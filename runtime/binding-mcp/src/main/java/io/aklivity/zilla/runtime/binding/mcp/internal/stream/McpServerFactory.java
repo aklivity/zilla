@@ -1419,11 +1419,13 @@ public final class McpServerFactory implements McpStreamFactory
 
             state = McpState.closingInitial(state);
 
-            if (decodeSlot == BufferPool.NO_SLOT &&
+            if (McpState.initialClosing(state) &&
+                decodeSlot == BufferPool.NO_SLOT &&
                 stream != null &&
                 stream.elicitationId == null)
             {
                 state = McpState.closedInitial(state);
+                stream.doAppEnd(traceId, authorization);
             }
         }
 
@@ -1746,6 +1748,7 @@ public final class McpServerFactory implements McpStreamFactory
                 stream.elicitationId == null)
             {
                 state = McpState.closedInitial(state);
+                stream.doAppEnd(traceId, authorization);
             }
         }
 
@@ -4032,17 +4035,14 @@ public final class McpServerFactory implements McpStreamFactory
             long traceId,
             long authorization)
         {
-            if (!McpState.initialClosed(state))
+            if (McpState.replyClosed(state) && !McpState.initialClosed(state))
             {
                 state = McpState.closedInitial(state);
                 doEnd(app, originId, routedId, initialId,
                     initialSeq, initialAck, initialMax,
                     traceId, authorization);
 
-                if (McpState.replyClosed(state))
-                {
-                    session.requests.remove(requestId);
-                }
+                session.requests.remove(requestId);
             }
         }
 
@@ -4447,6 +4447,8 @@ public final class McpServerFactory implements McpStreamFactory
         {
             final long traceId = end.traceId();
             final long authorization = end.authorization();
+
+            state = McpState.closedReply(state);
 
             if (eventStream != null)
             {

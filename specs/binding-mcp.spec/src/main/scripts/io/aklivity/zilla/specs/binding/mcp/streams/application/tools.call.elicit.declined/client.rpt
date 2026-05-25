@@ -83,4 +83,4 @@ read advised zilla:flush ${mcp:matchFlushEx()
 
 read abort
 
-write close
+write abort

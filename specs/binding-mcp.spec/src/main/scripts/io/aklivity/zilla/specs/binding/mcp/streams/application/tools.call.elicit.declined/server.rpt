@@ -85,4 +85,4 @@ write advise zilla:flush ${mcp:flushEx()
 
 write abort
 
-read closed
+read aborted
