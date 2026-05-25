@@ -35,6 +35,8 @@ public abstract class AbstractSchemaRegistryOptionsConfigBuilder<T, B extends Ab
     private List<String> trust;
     private Boolean trustcacerts;
     private String authorization;
+    private String username;
+    private String password;
 
     public B url(
         String url)
@@ -85,12 +87,24 @@ public abstract class AbstractSchemaRegistryOptionsConfigBuilder<T, B extends Ab
         return thisType().cast(this);
     }
 
+    public B username(String username)
+    {
+        this.username = username;
+        return thisType().cast(this);
+    }
+
+    public B password(String password)
+    {
+        this.password = password;
+        return thisType().cast(this);
+    }
+
     @Override
     public T build()
     {
         Duration maxAge = (this.maxAge != null) ? this.maxAge : MAX_AGE_DEFAULT;
         final boolean trustcacerts = this.trustcacerts == null ? this.trust == null : this.trustcacerts;
-        return mapper.apply(newOptionsConfig(url, context, maxAge, keys, trust, trustcacerts, authorization));
+        return mapper.apply(newOptionsConfig(url, context, maxAge, keys, trust, trustcacerts, authorization, username, password));
     }
 
     protected AbstractSchemaRegistryOptionsConfigBuilder(
@@ -106,5 +120,7 @@ public abstract class AbstractSchemaRegistryOptionsConfigBuilder<T, B extends Ab
         List<String> keys,
         List<String> trust,
         boolean trustcacerts,
-        String authorization);
+        String authorization,
+        String username,
+        String password);
 }

@@ -1,6 +1,7 @@
 # http.kafka.avro.json
 
 This example illustrates how to configure the Karapace Schema Registry in Zilla to validate messages during produce and fetch to a Kafka topic.
+It also includes a demonstration of how to use basic authentication for the Schema Registry.
 
 ## Requirements
 
@@ -18,6 +19,8 @@ docker compose up -d
 
 ```bash
 curl 'http://localhost:8081/subjects/items-snapshots-value/versions' \
+--basic \
+--user 'user1:password1' \
 --header 'Content-Type: application/json' \
 --data '{
   "schema":
@@ -35,11 +38,15 @@ output:
 ## Validate created Schema
 
 ```bash
-curl 'http://localhost:8081/schemas/ids/1'
+curl 'http://localhost:8081/schemas/ids/1' \
+--basic \
+--user 'user1:password1'
 ```
 
 ```bash
-curl 'http://localhost:8081/subjects/items-snapshots-value/versions/latest'
+curl 'http://localhost:8081/subjects/items-snapshots-value/versions/latest' \
+--basic \
+--user 'user1:password1'
 ```
 
 ## Verify behavior for a valid event
