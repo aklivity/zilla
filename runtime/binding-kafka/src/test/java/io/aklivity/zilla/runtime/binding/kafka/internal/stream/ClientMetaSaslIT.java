@@ -83,6 +83,16 @@ public class ClientMetaSaslIT
         k3po.finish();
     }
 
+    @Test
+    @Configuration("client.event.unsupported.sasl.mechanism.yaml")
+    @Specification({
+        "${app}/unsupported.sasl.mechanism/client",
+        "${net}/unsupported.sasl.mechanism/server"})
+    public void shouldHandleUnsupportedSaslMechanism() throws Exception
+    {
+        k3po.finish();
+    }
+
     public static String supplyNonce()
     {
         return "fyko+d2lbbFgONRv9qkxdawL";

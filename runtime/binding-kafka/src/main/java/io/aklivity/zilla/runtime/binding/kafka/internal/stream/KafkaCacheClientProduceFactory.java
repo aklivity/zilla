@@ -49,6 +49,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheTopic;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaRouteConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaTopicType;
+import io.aklivity.zilla.runtime.binding.kafka.internal.events.KafkaEventContext;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaAckMode;
@@ -100,6 +101,9 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
     private static final long PRODUCE_FLUSH_PRODUCER_ID = -1;
     private static final short PRODUCE_FLUSH_PRODUCER_EPOCH = -1;
     private static final int PRODUCE_FLUSH_SEQUENCE = -1;
+    private static final int PRODUCE_API_KEY = 0;
+    private static final int PRODUCE_API_VERSION = 3;
+
     private static final int PRODUCE_API_KEY = 0;
     private static final int PRODUCE_API_VERSION = 3;
 
@@ -155,6 +159,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
     private final KafkaCacheEntryFW entryRO = new KafkaCacheEntryFW();
 
     private final int kafkaTypeId;
+    private final KafkaEventContext event;
     private final BufferPool bufferPool;
     private final BudgetCreditor creditor;
     private final Signaler signaler;
@@ -187,6 +192,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
     {
         this.context = context;
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
+        this.event = new KafkaEventContext(context);
         this.writeBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.bufferPool = context.bufferPool();
@@ -770,6 +776,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
             if (error != NO_ERROR)
             {
+                event.produceError(traceId, originId, PRODUCE_API_KEY, PRODUCE_API_VERSION, error, topicName);
                 stream.cleanupClient(traceId, error);
                 onClientFanMemberClosed(traceId, stream);
             }
@@ -814,6 +821,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
             if (error != NO_ERROR)
             {
+                event.produceError(traceId, originId, PRODUCE_API_KEY, PRODUCE_API_VERSION, error, topicName);
                 stream.cleanupClient(traceId, error);
                 onClientFanMemberClosed(traceId, stream);
             }

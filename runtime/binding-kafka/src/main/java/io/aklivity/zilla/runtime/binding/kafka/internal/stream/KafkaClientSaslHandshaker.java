@@ -63,11 +63,18 @@ public abstract class KafkaClientSaslHandshaker
 
     private static final short SASL_AUTHENTICATE_API_KEY = 36;
     private static final short SASL_AUTHENTICATE_API_VERSION = 1;
-    private static final int ERROR_SASL_AUTHENTICATION_FAILED = 58;
     private static final int ERROR_NONE = 0;
-    private static final int ERROR_CLUSTER_AUTHORIZATION_FAILED = 31;
-    private static final int ERROR_UNSUPPORTED_VERSION = 35;
+    private static final int ERROR_CORRUPT_MESSAGE = 2;
+    private static final int ERROR_OFFSET_METADATA_TOO_LARGE = 12;
+    private static final int ERROR_MESSAGE_TOO_LARGE = 10;
+    private static final int ERROR_RECORD_LIST_TOO_LARGE = 18;
     private static final int ERROR_TOPIC_AUTHORIZATION_FAILED = 29;
+    private static final int ERROR_CLUSTER_AUTHORIZATION_FAILED = 31;
+    private static final int ERROR_GROUP_AUTHORIZATION_FAILED = 30;
+    private static final int ERROR_UNSUPPORTED_VERSION = 35;
+    private static final int ERROR_SASL_AUTHENTICATION_FAILED = 58;
+    private static final int ERROR_TRANSACTIONAL_ID_AUTHORIZATION_FAILED = 53;
+    private static final int ERROR_INVALID_RECORD = 87;
 
     private static final String CLIENT_KEY = "Client Key";
     private static final String SERVER_KEY = "Server Key";
@@ -449,10 +456,19 @@ public abstract class KafkaClientSaslHandshaker
         {
             switch (errorCode)
             {
-            case ERROR_CLUSTER_AUTHORIZATION_FAILED -> event.clusterAuthorizationFailed(traceId, bindingId, apiKey, apiVersion);
+            case ERROR_CORRUPT_MESSAGE, ERROR_MESSAGE_TOO_LARGE, ERROR_RECORD_LIST_TOO_LARGE, ERROR_INVALID_RECORD ->
+                event.produceError(traceId, bindingId, apiKey, apiVersion, errorCode, topic);
+            case ERROR_OFFSET_METADATA_TOO_LARGE ->
+                event.offsetCommitFailed(traceId, bindingId, apiKey, apiVersion, errorCode);
+            case ERROR_TOPIC_AUTHORIZATION_FAILED ->
+                event.topicAuthorizationFailed(traceId, bindingId, apiKey, apiVersion, topic);
+            case ERROR_CLUSTER_AUTHORIZATION_FAILED ->
+                event.clusterAuthorizationFailed(traceId, bindingId, apiKey, apiVersion);
+            case ERROR_GROUP_AUTHORIZATION_FAILED ->
+                event.groupAuthorizationFailed(traceId, bindingId, apiKey, apiVersion);
             case ERROR_UNSUPPORTED_VERSION -> event.apiVersionRejected(traceId, bindingId, apiKey, apiVersion);
-            case ERROR_TOPIC_AUTHORIZATION_FAILED ->  event.topicAuthorizationFailed(traceId, bindingId, apiKey,
-                apiVersion, topic);
+            case ERROR_TRANSACTIONAL_ID_AUTHORIZATION_FAILED ->
+                event.transactionalIdAuthorizationFailed(traceId, bindingId, apiKey, apiVersion);
             }
         }
 

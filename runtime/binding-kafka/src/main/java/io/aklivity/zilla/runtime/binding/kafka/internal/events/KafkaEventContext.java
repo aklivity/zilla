@@ -17,9 +17,15 @@ package io.aklivity.zilla.runtime.binding.kafka.internal.events;
 
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaEventType.API_VERSION_REJECTED;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaEventType.AUTHORIZATION_FAILED;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaEventType.BROKER_CONNECTION_FAILED;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaEventType.CLUSTER_AUTHORIZATION_FAILED;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaEventType.GROUP_AUTHORIZATION_FAILED;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaEventType.OFFSET_COMMIT_FAILED;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaEventType.PRODUCE_ERROR;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaEventType.SASL_AUTHENTICATION_FAILED;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaEventType.TOPIC_AUTHORIZATION_FAILED;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaEventType.TRANSACTIONAL_ID_AUTHORIZATION_FAILED;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaEventType.UNSUPPORTED_SASL_MECHANISM;
 
 import java.nio.ByteBuffer;
 import java.time.Clock;
@@ -47,6 +53,12 @@ public class KafkaEventContext
     private final int clusterAuthorizationFailedEventId;
     private final int topicAuthorizationFailedEventId;
     private final int saslAuthenticationFailedEventId;
+    private final int brokerConnectionFailedEventId;
+    private final int produceErrorEventId;
+    private final int groupAuthorizationFailedEventId;
+    private final int transactionalIdAuthorizationFailedEventId;
+    private final int unsupportedSaslMechanismEventId;
+    private final int offsetCommitFailedEventId;
     private final MessageConsumer eventWriter;
     private final Clock clock;
 
@@ -59,6 +71,13 @@ public class KafkaEventContext
         this.clusterAuthorizationFailedEventId = context.supplyEventId("binding.kafka.cluster.authorization.failed");
         this.topicAuthorizationFailedEventId = context.supplyEventId("binding.kafka.topic.authorization.failed");
         this.saslAuthenticationFailedEventId = context.supplyEventId("binding.kafka.sasl.authentication.failed");
+        this.brokerConnectionFailedEventId = context.supplyEventId("binding.kafka.broker.connection.failed");
+        this.produceErrorEventId = context.supplyEventId("binding.kafka.produce.error");
+        this.groupAuthorizationFailedEventId = context.supplyEventId("binding.kafka.group.authorization.failed");
+        this.transactionalIdAuthorizationFailedEventId =
+            context.supplyEventId("binding.kafka.transactional.id.authorization.failed");
+        this.unsupportedSaslMechanismEventId = context.supplyEventId("binding.kafka.unsupported.sasl.mechanism");
+        this.offsetCommitFailedEventId = context.supplyEventId("binding.kafka.offset.commit.failed");
         this.eventWriter = context.supplyEventWriter();
         this.clock = context.clock();
     }
@@ -188,6 +207,160 @@ public class KafkaEventContext
         EventFW event = eventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .id(saslAuthenticationFailedEventId)
+            .timestamp(clock.millis())
+            .traceId(traceId)
+            .namespacedId(bindingId)
+            .extension(extension.buffer(), extension.offset(), extension.limit())
+            .build();
+        eventWriter.accept(kafkaTypeId, event.buffer(), event.offset(), event.limit());
+    }
+
+    public void brokerConnectionFailed(
+        long traceId,
+        long bindingId,
+        String host,
+        int port)
+    {
+        KafkaEventExFW extension = kafkaEventExRW
+            .wrap(extensionBuffer, 0, extensionBuffer.capacity())
+            .brokerConnectionFailed(e -> e
+                .typeId(BROKER_CONNECTION_FAILED.value())
+                .host(host)
+                .port(port)
+            )
+            .build();
+        EventFW event = eventRW
+            .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .id(brokerConnectionFailedEventId)
+            .timestamp(clock.millis())
+            .traceId(traceId)
+            .namespacedId(bindingId)
+            .extension(extension.buffer(), extension.offset(), extension.limit())
+            .build();
+        eventWriter.accept(kafkaTypeId, event.buffer(), event.offset(), event.limit());
+    }
+
+    public void produceError(
+        long traceId,
+        long bindingId,
+        int apiKey,
+        int apiVersion,
+        int errorCode,
+        String topic)
+    {
+        KafkaEventExFW extension = kafkaEventExRW
+            .wrap(extensionBuffer, 0, extensionBuffer.capacity())
+            .produceError(e -> e
+                .typeId(PRODUCE_ERROR.value())
+                .apiKey(apiKey)
+                .apiVersion(apiVersion)
+                .errorCode(errorCode)
+                .topic(topic)
+            )
+            .build();
+        EventFW event = eventRW
+            .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .id(produceErrorEventId)
+            .timestamp(clock.millis())
+            .traceId(traceId)
+            .namespacedId(bindingId)
+            .extension(extension.buffer(), extension.offset(), extension.limit())
+            .build();
+        eventWriter.accept(kafkaTypeId, event.buffer(), event.offset(), event.limit());
+    }
+
+    public void groupAuthorizationFailed(
+        long traceId,
+        long bindingId,
+        int apiKey,
+        int apiVersion)
+    {
+        KafkaEventExFW extension = kafkaEventExRW
+            .wrap(extensionBuffer, 0, extensionBuffer.capacity())
+            .groupAuthorizationFailed(e -> e
+                .typeId(GROUP_AUTHORIZATION_FAILED.value())
+                .apiKey(apiKey)
+                .apiVersion(apiVersion)
+            )
+            .build();
+        EventFW event = eventRW
+            .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .id(groupAuthorizationFailedEventId)
+            .timestamp(clock.millis())
+            .traceId(traceId)
+            .namespacedId(bindingId)
+            .extension(extension.buffer(), extension.offset(), extension.limit())
+            .build();
+        eventWriter.accept(kafkaTypeId, event.buffer(), event.offset(), event.limit());
+    }
+
+    public void transactionalIdAuthorizationFailed(
+        long traceId,
+        long bindingId,
+        int apiKey,
+        int apiVersion)
+    {
+        KafkaEventExFW extension = kafkaEventExRW
+            .wrap(extensionBuffer, 0, extensionBuffer.capacity())
+            .transactionalIdAuthorizationFailed(e -> e
+                .typeId(TRANSACTIONAL_ID_AUTHORIZATION_FAILED.value())
+                .apiKey(apiKey)
+                .apiVersion(apiVersion)
+            )
+            .build();
+        EventFW event = eventRW
+            .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .id(transactionalIdAuthorizationFailedEventId)
+            .timestamp(clock.millis())
+            .traceId(traceId)
+            .namespacedId(bindingId)
+            .extension(extension.buffer(), extension.offset(), extension.limit())
+            .build();
+        eventWriter.accept(kafkaTypeId, event.buffer(), event.offset(), event.limit());
+    }
+
+    public void unsupportedSaslMechanism(
+        long traceId,
+        long bindingId,
+        String mechanism)
+    {
+        KafkaEventExFW extension = kafkaEventExRW
+            .wrap(extensionBuffer, 0, extensionBuffer.capacity())
+            .unsupportedSaslMechanism(e -> e
+                .typeId(UNSUPPORTED_SASL_MECHANISM.value())
+                .mechanism(mechanism)
+            )
+            .build();
+        EventFW event = eventRW
+            .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .id(unsupportedSaslMechanismEventId)
+            .timestamp(clock.millis())
+            .traceId(traceId)
+            .namespacedId(bindingId)
+            .extension(extension.buffer(), extension.offset(), extension.limit())
+            .build();
+        eventWriter.accept(kafkaTypeId, event.buffer(), event.offset(), event.limit());
+    }
+
+    public void offsetCommitFailed(
+        long traceId,
+        long bindingId,
+        int apiKey,
+        int apiVersion,
+        int errorCode)
+    {
+        KafkaEventExFW extension = kafkaEventExRW
+            .wrap(extensionBuffer, 0, extensionBuffer.capacity())
+            .offsetCommitFailed(e -> e
+                .typeId(OFFSET_COMMIT_FAILED.value())
+                .apiKey(apiKey)
+                .apiVersion(apiVersion)
+                .errorCode(errorCode)
+            )
+            .build();
+        EventFW event = eventRW
+            .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .id(offsetCommitFailedEventId)
             .timestamp(clock.millis())
             .traceId(traceId)
             .namespacedId(bindingId)
