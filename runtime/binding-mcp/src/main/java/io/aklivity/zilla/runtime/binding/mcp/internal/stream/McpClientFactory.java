@@ -2147,42 +2147,39 @@ public final class McpClientFactory implements McpStreamFactory
             final long authorization = challenge.authorization();
             final OctetsFW extension = challenge.extension();
 
-            if (extension.sizeof() > 0)
+            final McpChallengeExFW challengeEx = mcpChallengeExRO.tryWrap(
+                extension.buffer(), extension.offset(), extension.limit());
+            if (challengeEx != null)
             {
-                final McpChallengeExFW challengeEx = mcpChallengeExRO.tryWrap(
-                    extension.buffer(), extension.offset(), extension.limit());
-                if (challengeEx != null)
+                switch (challengeEx.kind())
                 {
-                    switch (challengeEx.kind())
+                case McpChallengeExFW.KIND_RESUME:
+                    if (eventStream != null)
                     {
-                    case McpChallengeExFW.KIND_RESUME:
-                        if (eventStream != null)
-                        {
-                            doAppReset(traceId, authorization);
-                            doAppAbort(traceId, authorization);
-                        }
-                        else if (eventsUnsupported)
-                        {
-                            onDecodeSuspend(traceId, authorization, SUSPEND_RETRY_NEVER);
-                        }
-                        else
-                        {
-                            final String16FW resumeId = challengeEx.resume().id();
-                            final String lastEventId = resumeId != null ? resumeId.asString() : null;
-                            eventStream = new HttpEventStream(this, lastEventId);
-                            eventStream.doNetStart(traceId, authorization);
-                        }
-                        break;
-                    case McpChallengeExFW.KIND_SUSPENDED:
-                        if (eventStream != null)
-                        {
-                            eventStream.doNetAbort(traceId, authorization);
-                            eventStream.detach();
-                        }
-                        break;
-                    default:
-                        break;
+                        doAppReset(traceId, authorization);
+                        doAppAbort(traceId, authorization);
                     }
+                    else if (eventsUnsupported)
+                    {
+                        onDecodeSuspend(traceId, authorization, SUSPEND_RETRY_NEVER);
+                    }
+                    else
+                    {
+                        final String16FW resumeId = challengeEx.resume().id();
+                        final String lastEventId = resumeId != null ? resumeId.asString() : null;
+                        eventStream = new HttpEventStream(this, lastEventId);
+                        eventStream.doNetStart(traceId, authorization);
+                    }
+                    break;
+                case McpChallengeExFW.KIND_SUSPENDED:
+                    if (eventStream != null)
+                    {
+                        eventStream.doNetAbort(traceId, authorization);
+                        eventStream.detach();
+                    }
+                    break;
+                default:
+                    break;
                 }
             }
         }
@@ -2281,18 +2278,14 @@ public final class McpClientFactory implements McpStreamFactory
                 responseSessionId = sessionId;
 
                 final OctetsFW ext = begin.extension();
-                if (ext.sizeof() > 0)
+                final HttpBeginExFW httpBeginEx = httpBeginExRO.tryWrap(ext.buffer(), ext.offset(), ext.limit());
+                if (httpBeginEx != null)
                 {
-                    final HttpBeginExFW httpBeginEx = httpBeginExRO.tryWrap(
-                        ext.buffer(), ext.offset(), ext.limit());
-                    if (httpBeginEx != null)
+                    final HttpHeaderFW sessionHeader = httpBeginEx.headers()
+                        .matchFirst(h -> HTTP_HEADER_SESSION.equals(h.name().asString()));
+                    if (sessionHeader != null)
                     {
-                        final HttpHeaderFW sessionHeader = httpBeginEx.headers()
-                            .matchFirst(h -> HTTP_HEADER_SESSION.equals(h.name().asString()));
-                        if (sessionHeader != null)
-                        {
-                            responseSessionId = sessionHeader.value().asString();
-                        }
+                        responseSessionId = sessionHeader.value().asString();
                     }
                 }
             }
@@ -2533,40 +2526,37 @@ public final class McpClientFactory implements McpStreamFactory
             final long authorization = challenge.authorization();
             final OctetsFW extension = challenge.extension();
 
-            if (extension.sizeof() > 0)
+            final McpChallengeExFW challengeEx = mcpChallengeExRO.tryWrap(
+                extension.buffer(), extension.offset(), extension.limit());
+            if (challengeEx != null)
             {
-                final McpChallengeExFW challengeEx = mcpChallengeExRO.tryWrap(
-                    extension.buffer(), extension.offset(), extension.limit());
-                if (challengeEx != null)
+                switch (challengeEx.kind())
                 {
-                    switch (challengeEx.kind())
+                case McpChallengeExFW.KIND_RESUME:
+                    if (eventStream == null)
                     {
-                    case McpChallengeExFW.KIND_RESUME:
-                        if (eventStream == null)
-                        {
-                            final String16FW resumeId = challengeEx.resume().id();
-                            final String suffix = resumeId != null ? resumeId.asString() : null;
-                            final String prefixedId = suffix != null && !suffix.isEmpty()
-                                ? requestId + ":" + suffix
-                                : null;
-                            eventStream = new HttpEventStream(this, prefixedId);
-                            eventStream.doNetStart(traceId, authorization);
-                        }
-                        break;
-                    case McpChallengeExFW.KIND_SUSPENDED:
-                        if (http != null)
-                        {
-                            http.doNetReset(traceId, authorization);
-                        }
-                        if (eventStream != null)
-                        {
-                            eventStream.doNetAbort(traceId, authorization);
-                            eventStream.detach();
-                        }
-                        break;
-                    default:
-                        break;
+                        final String16FW resumeId = challengeEx.resume().id();
+                        final String suffix = resumeId != null ? resumeId.asString() : null;
+                        final String prefixedId = suffix != null && !suffix.isEmpty()
+                            ? requestId + ":" + suffix
+                            : null;
+                        eventStream = new HttpEventStream(this, prefixedId);
+                        eventStream.doNetStart(traceId, authorization);
                     }
+                    break;
+                case McpChallengeExFW.KIND_SUSPENDED:
+                    if (http != null)
+                    {
+                        http.doNetReset(traceId, authorization);
+                    }
+                    if (eventStream != null)
+                    {
+                        eventStream.doNetAbort(traceId, authorization);
+                        eventStream.detach();
+                    }
+                    break;
+                default:
+                    break;
                 }
             }
         }
@@ -4233,21 +4223,12 @@ public final class McpClientFactory implements McpStreamFactory
             state = McpState.openedReply(state);
 
             final OctetsFW ext = begin.extension();
-            String status = null;
-            if (ext.sizeof() > 0)
-            {
-                final HttpBeginExFW httpBeginEx = httpBeginExRO.tryWrap(
-                    ext.buffer(), ext.offset(), ext.limit());
-                if (httpBeginEx != null)
-                {
-                    final HttpHeaderFW statusHeader = httpBeginEx.headers()
-                        .matchFirst(h -> HTTP_HEADER_STATUS.equals(h.name().asString()));
-                    if (statusHeader != null)
-                    {
-                        status = statusHeader.value().asString();
-                    }
-                }
-            }
+            final HttpBeginExFW httpBeginEx = httpBeginExRO.tryWrap(ext.buffer(), ext.offset(), ext.limit());
+            final String status = httpBeginEx == null ? null : Optional.ofNullable(httpBeginEx.headers()
+                .matchFirst(h -> HTTP_HEADER_STATUS.equals(h.name().asString())))
+                .map(HttpHeaderFW::value)
+                .map(String16FW::asString)
+                .orElse(null);
 
             if (STATUS_405.equals(status))
             {
