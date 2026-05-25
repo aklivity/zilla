@@ -64,4 +64,4 @@ read notify REQUEST_PENDING
 read await LIFECYCLE_SHUTDOWN
 read abort
 
-write close
+write abort

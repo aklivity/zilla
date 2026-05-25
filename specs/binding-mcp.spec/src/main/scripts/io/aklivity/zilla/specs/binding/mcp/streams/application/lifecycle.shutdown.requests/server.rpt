@@ -60,4 +60,4 @@ write flush
 
 write aborted
 
-read closed
+read aborted
