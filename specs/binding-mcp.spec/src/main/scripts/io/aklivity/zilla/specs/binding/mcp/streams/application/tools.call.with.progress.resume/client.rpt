@@ -86,6 +86,12 @@ read advise zilla:challenge ${mcp:challengeEx()
                                       .build()
                                   .build()}
 
+write advised zilla:challenge ${mcp:matchChallengeEx()
+                                    .typeId(zilla:id("mcp"))
+                                    .suspended()
+                                        .build()
+                                    .build()}
+
 read advise zilla:challenge ${mcp:challengeEx()
                                   .typeId(zilla:id("mcp"))
                                   .resume()
