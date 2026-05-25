@@ -93,4 +93,13 @@ public class MetaIT
         k3po.notifyBarrier("SEND_SECOND_META");
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/unsupported.sasl.mechanism/client",
+        "${app}/unsupported.sasl.mechanism/server"})
+    public void shouldHandleUnsupportedSaslMechanism() throws Exception
+    {
+        k3po.finish();
+    }
 }
