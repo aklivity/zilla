@@ -354,6 +354,86 @@ public final class McpClientFactory implements McpStreamFactory
     private final HttpResponseDecoder decodeJsonRpcParamsStatus = this::decodeJsonRpcParamsStatus;
     private final HttpResponseDecoder decodeIgnore = this::decodeIgnore;
 
+    @FunctionalInterface
+    private interface HttpRequestDecoder
+    {
+        int decode(
+            McpRequestStream stream,
+            long traceId,
+            long authorization,
+            long budgetId,
+            int reserved,
+            DirectBuffer buffer,
+            int offset,
+            int progress,
+            int limit);
+    }
+
+    private final HttpRequestDecoder decodeJsonRpcParamsBody = this::decodeJsonRpcParamsBody;
+    private final HttpRequestDecoder decodeRequestEnd = this::decodeRequestEnd;
+
+    private int decodeJsonRpcParamsBody(
+        McpRequestStream stream,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBuffer buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        DirectBufferInputStreamEx input = requestInputRO;
+        input.wrap(buffer, progress, limit - progress);
+        if (stream.paramsParser == null)
+        {
+            stream.paramsParser = requestParserFactory.createParser(input);
+        }
+        final JsonParser parser = stream.paramsParser;
+        boolean done = false;
+        while (!done && parser.hasNext())
+        {
+            final JsonParser.Event event = parser.next();
+            switch (event)
+            {
+            case START_OBJECT:
+            case START_ARRAY:
+                stream.paramsDepth++;
+                break;
+            case END_OBJECT:
+            case END_ARRAY:
+                stream.paramsDepth--;
+                if (stream.paramsDepth == 0)
+                {
+                    done = true;
+                    parser.close();
+                    stream.paramsParser = null;
+                    stream.state = McpState.openedInitial(stream.state);
+                    stream.http.doEncodeRequestEnd(traceId, authorization);
+                    stream.requestDecoder = decodeRequestEnd;
+                }
+                break;
+            default:
+                break;
+            }
+        }
+        return limit - input.available();
+    }
+
+    private int decodeRequestEnd(
+        McpRequestStream stream,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBuffer buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        return limit;
+    }
+
     private int decodeJsonRpc(
         McpHttpStream http,
         long traceId,
@@ -2395,6 +2475,7 @@ public final class McpClientFactory implements McpStreamFactory
         final int requestId;
         HttpEventStream eventStream;
 
+        HttpRequestDecoder requestDecoder;
         JsonParser paramsParser;
         int paramsDepth;
 
@@ -2669,58 +2750,19 @@ public final class McpClientFactory implements McpStreamFactory
             return McpState.initialOpened(state);
         }
 
-        boolean tryCompleteRequestBody(
+        void decodeRequestBody(
             DataFW data)
         {
-            boolean completed = false;
-            if (!McpState.initialOpened(state))
+            if (requestDecoder != null)
             {
                 final OctetsFW payload = data.payload();
-                if (payload != null && payload.sizeof() > 0 && advanceParamsParser(payload))
+                if (payload != null && payload.sizeof() > 0)
                 {
-                    state = McpState.openedInitial(state);
-                    http.doEncodeRequestEnd(data.traceId(), data.authorization());
-                    completed = true;
+                    requestDecoder.decode(this, data.traceId(), data.authorization(),
+                        0L, 0, payload.buffer(), payload.offset(), payload.offset(), payload.limit());
                 }
             }
-            return completed;
         }
-
-        boolean advanceParamsParser(
-            OctetsFW payload)
-        {
-            requestInputRO.wrap(payload.buffer(), payload.offset(), payload.sizeof());
-            if (paramsParser == null)
-            {
-                paramsParser = requestParserFactory.createParser(requestInputRO);
-            }
-            boolean done = false;
-            while (!done && paramsParser.hasNext())
-            {
-                final JsonParser.Event event = paramsParser.next();
-                switch (event)
-                {
-                case START_OBJECT:
-                case START_ARRAY:
-                    paramsDepth++;
-                    break;
-                case END_OBJECT:
-                case END_ARRAY:
-                    paramsDepth--;
-                    if (paramsDepth == 0)
-                    {
-                        done = true;
-                        paramsParser.close();
-                        paramsParser = null;
-                    }
-                    break;
-                default:
-                    break;
-                }
-            }
-            return done;
-        }
-
     }
 
     private static McpElicitStatus resolveElicitStatus(
@@ -2810,6 +2852,7 @@ public final class McpClientFactory implements McpStreamFactory
         {
             super(session, sender, originId, routedId, initialId, resolvedId, affinity,
                 HttpToolsCallStream::new);
+            this.requestDecoder = decodeJsonRpcParamsBody;
         }
 
         @Override
@@ -2922,7 +2965,7 @@ public final class McpClientFactory implements McpStreamFactory
 
             if (!pendingAuth)
             {
-                tryCompleteRequestBody(data);
+                decodeRequestBody(data);
             }
         }
 
@@ -3082,6 +3125,7 @@ public final class McpClientFactory implements McpStreamFactory
         {
             super(session, sender, originId, routedId, initialId, resolvedId, affinity,
                 HttpPromptsGetStream::new);
+            this.requestDecoder = decodeJsonRpcParamsBody;
         }
 
         @Override
@@ -3089,7 +3133,7 @@ public final class McpClientFactory implements McpStreamFactory
             DataFW data)
         {
             super.onAppData(data);
-            tryCompleteRequestBody(data);
+            decodeRequestBody(data);
         }
     }
 
@@ -3134,6 +3178,7 @@ public final class McpClientFactory implements McpStreamFactory
         {
             super(session, sender, originId, routedId, initialId, resolvedId, affinity,
                 HttpResourcesReadStream::new);
+            this.requestDecoder = decodeJsonRpcParamsBody;
         }
 
         @Override
@@ -3141,7 +3186,7 @@ public final class McpClientFactory implements McpStreamFactory
             DataFW data)
         {
             super.onAppData(data);
-            tryCompleteRequestBody(data);
+            decodeRequestBody(data);
         }
     }
 
