@@ -1475,6 +1475,7 @@ public final class McpClientFactory implements McpStreamFactory
         protected HttpStream http;
         protected String credentials;
         protected int serverCapabilities = SERVER_CAPABILITIES;
+        protected HttpRequestDecoder requestDecoder;
 
         private long initialSeq;
         private long initialAck;
@@ -1755,6 +1756,7 @@ public final class McpClientFactory implements McpStreamFactory
             if (!deferAppEnd(traceId, authorization))
             {
                 http.doEncodeRequestEnd(traceId, authorization);
+                requestDecoder = decodeRequestEnd;
             }
 
             onAppClosed(traceId, authorization);
@@ -1764,7 +1766,7 @@ public final class McpClientFactory implements McpStreamFactory
             long traceId,
             long authorization)
         {
-            return false;
+            return requestDecoder == decodeRequestEnd;
         }
 
         private void onAppAbort(
@@ -2137,6 +2139,7 @@ public final class McpClientFactory implements McpStreamFactory
         {
             state = McpState.openedInitial(state);
             http.doEncodeRequestEnd(traceId, authorization);
+            requestDecoder = decodeRequestEnd;
         }
 
         @Override
@@ -2468,7 +2471,6 @@ public final class McpClientFactory implements McpStreamFactory
         final int requestId;
         HttpEventStream eventStream;
 
-        HttpRequestDecoder requestDecoder;
         JsonParser paramsParser;
         int paramsDepth;
 
@@ -2732,14 +2734,6 @@ public final class McpClientFactory implements McpStreamFactory
             doAppEnd(traceId, authorization);
         }
 
-        @Override
-        boolean deferAppEnd(
-            long traceId,
-            long authorization)
-        {
-            return McpState.initialOpened(state);
-        }
-
         void decodeRequestBody(
             DataFW data)
         {
@@ -2799,6 +2793,7 @@ public final class McpClientFactory implements McpStreamFactory
         {
             state = McpState.openedInitial(state);
             http.doEncodeRequestEnd(traceId, authorization);
+            requestDecoder = decodeRequestEnd;
         }
     }
 
@@ -2931,20 +2926,21 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         @Override
-        boolean deferAppEnd(
-            long traceId,
-            long authorization)
+        void onAppEnd(
+            EndFW end)
         {
             if (pendingAuth)
             {
+                final long traceId = end.traceId();
+                final long authorization = end.authorization();
                 cancelElicitTimeout();
                 pendingAuth = false;
                 state = McpState.openedInitial(state);
+                requestDecoder = decodeRequestEnd;
                 doAppReset(traceId, authorization);
                 doAppAbort(traceId, authorization);
-                return true;
             }
-            return McpState.initialOpened(state);
+            super.onAppEnd(end);
         }
 
         @Override
@@ -3008,6 +3004,7 @@ public final class McpClientFactory implements McpStreamFactory
                 final long authorization = signal.authorization();
                 pendingAuth = false;
                 state = McpState.openedInitial(state);
+                requestDecoder = decodeRequestEnd;
                 emitElicitComplete(traceId, authorization, McpElicitStatus.CANCELLED);
                 doAppAbort(traceId, authorization);
                 return;
@@ -3022,6 +3019,7 @@ public final class McpClientFactory implements McpStreamFactory
             cancelElicitTimeout();
             pendingAuth = false;
             state = McpState.openedInitial(state);
+            requestDecoder = decodeRequestEnd;
 
             if ((sessionId & GuardHandler.MASK_AUTHORIZED) != 0L)
             {
@@ -3048,6 +3046,7 @@ public final class McpClientFactory implements McpStreamFactory
             cancelElicitTimeout();
             pendingAuth = false;
             state = McpState.openedInitial(state);
+            requestDecoder = decodeRequestEnd;
             doAppAbort(elicitTraceId, elicitAuthorization);
         }
 
@@ -3098,6 +3097,7 @@ public final class McpClientFactory implements McpStreamFactory
         {
             state = McpState.openedInitial(state);
             http.doEncodeRequestEnd(traceId, authorization);
+            requestDecoder = decodeRequestEnd;
         }
     }
 
@@ -3151,6 +3151,7 @@ public final class McpClientFactory implements McpStreamFactory
         {
             state = McpState.openedInitial(state);
             http.doEncodeRequestEnd(traceId, authorization);
+            requestDecoder = decodeRequestEnd;
         }
     }
 
