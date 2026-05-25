@@ -222,6 +222,8 @@ public final class McpClientFactory implements McpStreamFactory
     private static final int SSE_SMALL_VALUE = 3;
     private static final int SSE_IGNORE_VALUE = 4;
     private final JsonParserFactory parserFactory;
+    private final JsonParserFactory paramsParserFactory;
+    private final DirectBufferInputStreamEx paramsInputRO = new DirectBufferInputStreamEx();
     private final Matcher bearerChallengeMatcher = BEARER_CHALLENGE_PATTERN.matcher("");
 
     private final McpConfiguration config;
@@ -257,6 +259,9 @@ public final class McpClientFactory implements McpStreamFactory
         this.parserFactory = StreamingJson.createParserFactory(Map.of(
             StreamingJson.PATH_INCLUDES, CLIENT_JSON_PATH_INCLUDES,
             StreamingJson.TOKEN_MAX_BYTES, decodeMax));
+        this.paramsParserFactory = StreamingJson.createParserFactory(Map.of(
+            StreamingJson.PATH_INCLUDES, List.of("$.NEVER_MATCH"),
+            StreamingJson.TOKEN_MAX_BYTES, encodeMax));
 
         final Int2ObjectHashMap<McpSessionIdResolver> resolvers = new Int2ObjectHashMap<>();
         resolvers.put(KIND_TOOLS_LIST, ex -> ex.toolsList().sessionId().asString());
@@ -2389,9 +2394,8 @@ public final class McpClientFactory implements McpStreamFactory
         final int requestId;
         HttpEventStream eventStream;
 
-        int paramsBraceDepth;
-        boolean paramsInString;
-        boolean paramsEscaped;
+        JsonParser paramsParser;
+        int paramsDepth;
 
         McpRequestStream(
             McpLifecycleStream session,
@@ -2671,7 +2675,7 @@ public final class McpClientFactory implements McpStreamFactory
             if (!McpState.initialOpened(state))
             {
                 final OctetsFW payload = data.payload();
-                if (payload != null && payload.sizeof() > 0 && advanceParamsBraceDepth(payload))
+                if (payload != null && payload.sizeof() > 0 && advanceParamsParser(payload))
                 {
                     state = McpState.openedInitial(state);
                     http.doEncodeRequestEnd(data.traceId(), data.authorization());
@@ -2681,53 +2685,38 @@ public final class McpClientFactory implements McpStreamFactory
             return completed;
         }
 
-        boolean advanceParamsBraceDepth(
+        boolean advanceParamsParser(
             OctetsFW payload)
         {
-            final DirectBuffer buf = payload.buffer();
-            final int end = payload.limit();
-            int depth = paramsBraceDepth;
-            boolean inStr = paramsInString;
-            boolean esc = paramsEscaped;
-            boolean done = false;
-            for (int i = payload.offset(); i < end && !done; i++)
+            paramsInputRO.wrap(payload.buffer(), payload.offset(), payload.sizeof());
+            if (paramsParser == null)
             {
-                final byte b = buf.getByte(i);
-                if (esc)
+                paramsParser = paramsParserFactory.createParser(paramsInputRO);
+            }
+            boolean done = false;
+            while (!done && paramsParser.hasNext())
+            {
+                final JsonParser.Event event = paramsParser.next();
+                switch (event)
                 {
-                    esc = false;
-                }
-                else if (inStr)
-                {
-                    if (b == '\\')
-                    {
-                        esc = true;
-                    }
-                    else if (b == '"')
-                    {
-                        inStr = false;
-                    }
-                }
-                else if (b == '"')
-                {
-                    inStr = true;
-                }
-                else if (b == '{')
-                {
-                    depth++;
-                }
-                else if (b == '}')
-                {
-                    depth--;
-                    if (depth == 0)
+                case START_OBJECT:
+                case START_ARRAY:
+                    paramsDepth++;
+                    break;
+                case END_OBJECT:
+                case END_ARRAY:
+                    paramsDepth--;
+                    if (paramsDepth == 0)
                     {
                         done = true;
+                        paramsParser.close();
+                        paramsParser = null;
                     }
+                    break;
+                default:
+                    break;
                 }
             }
-            paramsBraceDepth = depth;
-            paramsInString = inStr;
-            paramsEscaped = esc;
             return done;
         }
 
