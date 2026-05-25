@@ -99,8 +99,16 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
 
     private static final int ERROR_NONE = 0;
     private static final int ERROR_OFFSET_OUT_OF_RANGE = 1;
+    private static final int ERROR_UNKNOWN_TOPIC_OR_PART = 3;
     private static final int ERROR_LEADER_NOT_AVAILABLE = 5;
     private static final int ERROR_NOT_LEADER_FOR_PARTITION = 6;
+    private static final int ERROR_BROKER_NOT_AVAILABLE = 8;
+    private static final int ERROR_REPLICA_NOT_AVAILABLE = 9;
+    private static final int ERROR_KAFKA_STORAGE_ERROR = 56;
+    private static final int ERROR_FENCED_LEADER_EPOCH = 74;
+    private static final int ERROR_UNKNOWN_LEADER_EPOCH = 75;
+    private static final int ERROR_OFFSET_NOT_AVAILABLE = 78;
+    private static final int ERROR_UNKNOWN_TOPIC_ID = 100;
 
     private static final int FLAG_CONT = 0x00;
     private static final int FLAG_FIN = 0x01;
@@ -2989,8 +2997,16 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                     doEncodeRequestIfNecessary(traceId, initialBudgetId);
                     break;
                 default:
-                    if (errorCode == ERROR_NOT_LEADER_FOR_PARTITION ||
-                        errorCode == ERROR_LEADER_NOT_AVAILABLE)
+                    if (errorCode == ERROR_UNKNOWN_TOPIC_OR_PART ||
+                        errorCode == ERROR_LEADER_NOT_AVAILABLE ||
+                        errorCode == ERROR_NOT_LEADER_FOR_PARTITION ||
+                        errorCode == ERROR_BROKER_NOT_AVAILABLE ||
+                        errorCode == ERROR_REPLICA_NOT_AVAILABLE ||
+                        errorCode == ERROR_KAFKA_STORAGE_ERROR ||
+                        errorCode == ERROR_FENCED_LEADER_EPOCH ||
+                        errorCode == ERROR_UNKNOWN_LEADER_EPOCH ||
+                        errorCode == ERROR_OFFSET_NOT_AVAILABLE ||
+                        errorCode == ERROR_UNKNOWN_TOPIC_ID)
                     {
                         final LongConsumer metaFlushSignal = clientRoute.metaFlushSignal;
                         if (metaFlushSignal != null)

@@ -95,6 +95,26 @@ public class ClientProduceIT
     @Test
     @Configuration("client.when.topic.yaml")
     @Specification({
+        "${app}/leader.not.available/client",
+        "${net}/leader.not.available/server"})
+    public void shouldRejectLeaderNotAvailable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.when.topic.yaml")
+    @Specification({
+        "${app}/storage.error/client",
+        "${net}/storage.error/server"})
+    public void shouldRejectStorageError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.when.topic.yaml")
+    @Specification({
         "${app}/message.key/client",
         "${net}/message.key/server"})
     public void shouldSendMessageKey() throws Exception

@@ -661,7 +661,7 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
 
                 state = KafkaState.openedInitial(state);
 
-                clientRoute.metaFlushSignal = this::doMetaFanoutFlush;
+                clientRoute.metaFlushSignal = this::doMetaFanoutFlushIfNecessary;
 
                 members.forEach(s -> s.doMetaInitialWindow(traceId, 0L, 0, 0, 0));
             }
@@ -841,7 +841,7 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
             }
         }
 
-        private void doMetaFanoutFlush(
+        private void doMetaFanoutFlushIfNecessary(
             long traceId)
         {
             if (KafkaState.initialOpened(state))

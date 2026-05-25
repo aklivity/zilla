@@ -69,7 +69,6 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ExtensionFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaBeginExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaDataExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaProduceBeginExFW;
@@ -109,6 +108,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
     private static final int ERROR_NONE = 0;
     private static final int ERROR_LEADER_NOT_AVAILABLE = 5;
     private static final int ERROR_NOT_LEADER_FOR_PARTITION = 6;
+    private static final int ERROR_KAFKA_STORAGE_ERROR = 56;
 
     private static final int SIGNAL_NEXT_REQUEST = 1;
 
@@ -137,7 +137,6 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
     private final DataFW.Builder dataRW = new DataFW.Builder();
     private final EndFW.Builder endRW = new EndFW.Builder();
     private final AbortFW.Builder abortRW = new AbortFW.Builder();
-    private final FlushFW.Builder flushRW = new FlushFW.Builder();
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
     private final KafkaBeginExFW.Builder kafkaBeginExRW = new KafkaBeginExFW.Builder();
@@ -487,36 +486,6 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 .build();
 
         sender.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
-    }
-
-    private void doFlush(
-        MessageConsumer receiver,
-        long originId,
-        long routedId,
-        long streamId,
-        long sequence,
-        long acknowledge,
-        int maximum,
-        long traceId,
-        long authorization,
-        int reserved,
-        Flyweight extension)
-    {
-        final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .originId(originId)
-                .routedId(routedId)
-                .streamId(streamId)
-                .sequence(sequence)
-                .acknowledge(acknowledge)
-                .maximum(maximum)
-                .traceId(traceId)
-                .authorization(authorization)
-                .budgetId(0L)
-                .reserved(reserved)
-                .extension(extension.buffer(), extension.offset(), extension.sizeof())
-                .build();
-
-        receiver.accept(flush.typeId(), flush.buffer(), flush.offset(), flush.sizeof());
     }
 
     @FunctionalInterface
@@ -2299,6 +2268,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                     break;
                 case ERROR_LEADER_NOT_AVAILABLE:
                 case ERROR_NOT_LEADER_FOR_PARTITION:
+                case ERROR_KAFKA_STORAGE_ERROR:
                 {
                     final LongConsumer metaFlushSignal = clientRoute.metaFlushSignal;
                     if (metaFlushSignal != null)

@@ -928,6 +928,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
 
             state = KafkaState.closedInitial(state);
             clientRoute.metaInitialId = 0L;
+            clientRoute.metaFlushSignal = null;
 
             client.doNetworkEnd(traceId, authorization);
         }
@@ -939,6 +940,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
 
             state = KafkaState.closedInitial(state);
             clientRoute.metaInitialId = 0L;
+            clientRoute.metaFlushSignal = null;
 
             client.doNetworkAbortIfNecessary(traceId);
         }
@@ -1080,6 +1082,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
         {
             state = KafkaState.closedInitial(state);
             clientRoute.metaInitialId = 0L;
+            clientRoute.metaFlushSignal = null;
             //client.stream = nullIfClosed(state, client.stream);
 
             doReset(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
