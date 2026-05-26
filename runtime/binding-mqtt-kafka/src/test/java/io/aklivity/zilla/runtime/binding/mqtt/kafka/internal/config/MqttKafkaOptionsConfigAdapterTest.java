@@ -110,6 +110,53 @@ public class MqttKafkaOptionsConfigAdapterTest
     }
 
     @Test
+    public void shouldReadOptionsWithStore()
+    {
+        String text =
+            "{" +
+                "\"store\":\"memory0\"," +
+                "\"topics\":" +
+                "{" +
+                    "\"sessions\":\"sessions\"," +
+                    "\"messages\":\"messages\"," +
+                    "\"retained\":\"retained\"" +
+                "}" +
+            "}";
+
+        MqttKafkaOptionsConfig options = jsonb.fromJson(text, MqttKafkaOptionsConfig.class);
+
+        assertThat(options, not(nullValue()));
+        assertThat(options.store, equalTo("memory0"));
+    }
+
+    @Test
+    public void shouldWriteOptionsWithStore()
+    {
+        MqttKafkaOptionsConfig options = MqttKafkaOptionsConfig.builder()
+            .topics(MqttKafkaTopicsConfig.builder()
+                .sessions("sessions")
+                .messages("messages")
+                .retained("retained")
+                .build())
+            .store("memory0")
+            .build();
+
+        String text = jsonb.toJson(options);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo(
+            "{" +
+                "\"store\":\"memory0\"," +
+                "\"topics\":" +
+                "{" +
+                    "\"sessions\":\"sessions\"," +
+                    "\"messages\":\"messages\"," +
+                    "\"retained\":\"retained\"" +
+                "}" +
+            "}"));
+    }
+
+    @Test
     public void shouldReadOptionsWithoutClients()
     {
         String text =
