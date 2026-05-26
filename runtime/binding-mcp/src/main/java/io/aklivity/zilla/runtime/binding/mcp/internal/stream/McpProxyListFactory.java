@@ -377,7 +377,7 @@ abstract class McpProxyListFactory implements BindingHandler
 
             state = McpState.openedInitial(state);
 
-            flushClientWindow(traceId, 0L, 0, 0L, 0);
+            flushClientWindow(traceId, 0L, 0, 0L, bufferPool.slotCapacity());
         }
 
         private void onClientData(
@@ -1052,6 +1052,7 @@ abstract class McpProxyListFactory implements BindingHandler
             this.affinity = affinity;
             this.authorization = authorization;
             this.remaining = new ArrayDeque<>(prefixes);
+            this.replyMax = bufferPool.slotCapacity();
         }
 
         private void onServerMessage(
