@@ -1822,7 +1822,6 @@ public final class McpServerFactory implements McpStreamFactory
                         .sessionId(session.sessionId)
                         .capabilities(CLIENT_CAPABILITIES))
                     .build();
-                session.initializePending = true;
                 session.doAppBegin(traceId, authorization, beginEx);
             }
         }
@@ -2976,7 +2975,6 @@ public final class McpServerFactory implements McpStreamFactory
         private McpEventStream sse;
         private boolean eventsUnsupported;
         private int serverCapabilities;
-        private boolean initializePending;
 
         private McpLifecycleStream(
             McpServer server,
@@ -3173,11 +3171,7 @@ public final class McpServerFactory implements McpStreamFactory
                 serverCapabilities = beginEx.lifecycle().capabilities();
             }
 
-            if (initializePending)
-            {
-                initializePending = false;
-                server.doEncodeInitialize(traceId, authorization);
-            }
+            server.doEncodeInitialize(traceId, authorization);
 
             doAppWindow(traceId, authorization, 0L, 0);
         }
@@ -3371,9 +3365,8 @@ public final class McpServerFactory implements McpStreamFactory
 
             state = McpState.closedInitial(state);
 
-            if (initializePending)
+            if (!McpState.replyOpening(server.state))
             {
-                initializePending = false;
                 if (!server.doNetRejectBearer(traceId, authorization, extension))
                 {
                     server.doNetReset(traceId, authorization);
