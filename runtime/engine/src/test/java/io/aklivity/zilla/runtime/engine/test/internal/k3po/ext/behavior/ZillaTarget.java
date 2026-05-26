@@ -516,6 +516,8 @@ final class ZillaTarget implements AutoCloseable
         ZillaChannel channel,
         ChannelFuture abortFuture)
     {
+        io.aklivity.zilla.runtime.engine.ProbeLog.log(
+            "K3PO>BIND doAbortOutput (write abort) tid=%d", channel.targetId());
         doFlushBegin(channel);
 
         final long originId = channel.originId();
@@ -1134,6 +1136,8 @@ final class ZillaTarget implements AutoCloseable
         private void onReset(
             ResetFW reset)
         {
+            io.aklivity.zilla.runtime.engine.ProbeLog.log(
+                "K3PO<BIND on-throttle RESET tid=%d -> fireOutputAborted", channel.targetId());
             final long streamId = reset.streamId();
             final long acknowledge = reset.acknowledge();
             final OctetsFW resetExt = reset.extension();
