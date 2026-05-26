@@ -865,6 +865,16 @@ abstract class McpProxyListFactory implements BindingHandler
 
             if (!parser.hasNext())
             {
+                final long postHasNext = parser.getLocation().getStreamOffset();
+                if (client.decodedItemProgress < postHasNext)
+                {
+                    final int decodedOffset =
+                        offset + (int) (client.decodedItemProgress - client.decodedParserProgress);
+                    final int decodedLimit = offset + (int) (postHasNext - client.decodedParserProgress);
+                    final int chunkLen = decodedLimit - decodedOffset;
+                    final int decodedProgress = client.server.doEncodeItemChunk(buffer, decodedOffset, chunkLen, traceId);
+                    client.decodedItemProgress += decodedProgress;
+                }
                 break decode;
             }
             final long decodedEventProgress = parser.getLocation().getStreamOffset();
