@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_CLIENT_RECONNECT_DELAY;
+
 import java.util.function.Function;
 import java.util.function.LongFunction;
 
@@ -57,7 +59,8 @@ public final class KafkaCacheClientFactory implements KafkaStreamFactory
         final KafkaMergedBudgetAccountant accountant = new KafkaMergedBudgetAccountant(context);
 
         final KafkaCacheClientMetaFactory cacheMetaFactory = new KafkaCacheClientMetaFactory(
-                config, context, bindings::get, supplyCache, supplyCacheRoute);
+                config, context, bindings::get, supplyCache, supplyCacheRoute, (routedId, resolvedId) -> resolvedId,
+                KAFKA_CACHE_CLIENT_RECONNECT_DELAY);
 
         final KafkaCacheClientDescribeFactory cacheDescribeFactory = new KafkaCacheClientDescribeFactory(
                 config, context, bindings::get, supplyCacheRoute);
