@@ -104,6 +104,13 @@ abstract class McpProxyListFactory implements BindingHandler
     private final McpListClientDecoder decodeItemFinalize = this::decodeItemFinalize;
     private final McpListClientDecoder decodeIgnore = this::decodeIgnore;
 
+    private final McpListServerEncoder encodePrelude = this::encodePrelude;
+    private final McpListServerEncoder encodeItems = this::encodeItems;
+    private final McpListServerEncoder encodeSeparator = this::encodeSeparator;
+    private final McpListServerEncoder encodePostlude = this::encodePostlude;
+    private final McpListServerEncoder encodeEnd = this::encodeEnd;
+    private final McpListServerEncoder encodeIgnore = this::encodeIgnore;
+
     McpProxyListFactory(
         McpConfiguration config,
         EngineContext context,
@@ -261,7 +268,6 @@ abstract class McpProxyListFactory implements BindingHandler
                 .inject(b -> injectInitialBeginEx(b, sid))
                 .build();
 
-            io.aklivity.zilla.runtime.engine.ProbeLog.log("BIND>UP doBEGIN iId=%d state=%d", initialId, state);
             sender = newStream(this::onClientMessage, originId, routedId, initialId,
                 initialSeq, initialAck, initialMax, traceId, server.authorization, server.affinity, beginEx);
             state = McpState.openingInitial(state);
@@ -270,7 +276,6 @@ abstract class McpProxyListFactory implements BindingHandler
         private void doClientEnd(
             long traceId)
         {
-            io.aklivity.zilla.runtime.engine.ProbeLog.log("BIND>UP doEND iId=%d state=%d guard=(!initClose=%b && replyClose=%b)", initialId, state, !McpState.initialClosed(state), McpState.replyClosed(state));
             if (!McpState.initialClosed(state) &&
                 McpState.replyClosed(state))
             {
@@ -283,7 +288,6 @@ abstract class McpProxyListFactory implements BindingHandler
         private void doClientAbort(
             long traceId)
         {
-            io.aklivity.zilla.runtime.engine.ProbeLog.log("BIND>UP doABORT iId=%d state=%d guard=!initClose=%b", initialId, state, !McpState.initialClosed(state));
             if (!McpState.initialClosed(state))
             {
                 doAbort(sender, originId, routedId, initialId,
@@ -295,7 +299,6 @@ abstract class McpProxyListFactory implements BindingHandler
         private void doClientReset(
             long traceId)
         {
-            io.aklivity.zilla.runtime.engine.ProbeLog.log("BIND>UP doRESET rId=%d state=%d guard=!replyClose=%b", replyId, state, !McpState.replyClosed(state));
             if (!McpState.replyClosed(state))
             {
                 doReset(sender, originId, routedId, replyId,
@@ -309,7 +312,6 @@ abstract class McpProxyListFactory implements BindingHandler
             long budgetId,
             int padding)
         {
-            io.aklivity.zilla.runtime.engine.ProbeLog.log("BIND>UP doWINDOW rId=%d ack=%d max=%d state=%d", replyId, replyAck, replyMax, state);
             state = McpState.openedReply(state);
             doWindow(sender, originId, routedId, replyId,
                 replySeq, replyAck, replyMax, traceId, server.authorization, budgetId, padding);
@@ -382,7 +384,6 @@ abstract class McpProxyListFactory implements BindingHandler
 
             state = McpState.openedInitial(state);
 
-            io.aklivity.zilla.runtime.engine.ProbeLog.log("BIND<UP onBEGIN rId=%d state=%d", replyId, state);
             flushClientWindow(traceId, 0L, 0, 0L, bufferPool.slotCapacity());
         }
 
@@ -444,7 +445,6 @@ abstract class McpProxyListFactory implements BindingHandler
 
             assert replyAck <= replySeq;
 
-            io.aklivity.zilla.runtime.engine.ProbeLog.log("BIND<UP onEND rId=%d state=%d", replyId, state);
             state = McpState.closedReply(state);
             cleanupClientSlot();
             doClientEnd(traceId);
@@ -466,7 +466,6 @@ abstract class McpProxyListFactory implements BindingHandler
 
             assert replyAck <= replySeq;
 
-            io.aklivity.zilla.runtime.engine.ProbeLog.log("BIND<UP onABORT rId=%d state=%d", replyId, state);
             state = McpState.closedReply(state);
             cleanupClientSlot();
             doClientAbort(traceId);
@@ -494,14 +493,12 @@ abstract class McpProxyListFactory implements BindingHandler
 
             assert initialAck <= initialSeq;
 
-            io.aklivity.zilla.runtime.engine.ProbeLog.log("BIND<UP onWINDOW iId=%d ack=%d max=%d state=%d", initialId, initialAck, initialMax, state);
             server.flushServerWindow(traceId, budgetId, padding, initialSeq - initialAck, initialMax);
         }
 
         private void onClientReset(
             ResetFW reset)
         {
-            io.aklivity.zilla.runtime.engine.ProbeLog.log("BIND<UP onRESET iId=%d state=%d", initialId, state);
             final long sequence = reset.sequence();
             final long acknowledge = reset.acknowledge();
             final long traceId = reset.traceId();
@@ -1049,6 +1046,12 @@ abstract class McpProxyListFactory implements BindingHandler
         private int itemsEmitted;
         private McpListClient client;
 
+        private McpListServerEncoder encoder = encodePrelude;
+        private int preludeProgress;
+        private int separatorProgress;
+        private int postludeProgress;
+        private boolean endItemsPending;
+
         private long initialSeq;
         private long initialAck;
         private int initialMax;
@@ -1119,12 +1122,11 @@ abstract class McpProxyListFactory implements BindingHandler
 
             state = McpState.openingInitial(state);
 
-            io.aklivity.zilla.runtime.engine.ProbeLog.log("BIND<DN onBEGIN iId=%d state=%d", initialId, state);
             flushServerWindow(traceId, 0L, 0, 0L, 0);
 
             doServerBegin(traceId);
-            doEncodeBeginItems(traceId);
             onNextClient(traceId);
+            encode(traceId);
         }
 
         private void onServerEnd(
@@ -1142,7 +1144,6 @@ abstract class McpProxyListFactory implements BindingHandler
 
             assert initialAck <= initialSeq;
 
-            io.aklivity.zilla.runtime.engine.ProbeLog.log("BIND<DN onEND iId=%d state=%d cliNull=%b", initialId, state, client == null);
             state = McpState.closedInitial(state);
 
             if (client != null)
@@ -1166,7 +1167,6 @@ abstract class McpProxyListFactory implements BindingHandler
 
             assert initialAck <= initialSeq;
 
-            io.aklivity.zilla.runtime.engine.ProbeLog.log("BIND<DN onABORT iId=%d state=%d cliNull=%b", initialId, state, client == null);
             state = McpState.closedInitial(state);
 
             if (client != null)
@@ -1197,7 +1197,7 @@ abstract class McpProxyListFactory implements BindingHandler
 
             assert replyAck <= replySeq;
 
-            io.aklivity.zilla.runtime.engine.ProbeLog.log("BIND<DN onWINDOW rId=%d ack=%d max=%d state=%d cliNull=%b", replyId, replyAck, replyMax, state, client == null);
+            encode(traceId);
             if (client != null)
             {
                 client.decode(traceId);
@@ -1220,8 +1220,8 @@ abstract class McpProxyListFactory implements BindingHandler
 
             assert replyAck <= replySeq;
 
-            io.aklivity.zilla.runtime.engine.ProbeLog.log("BIND<DN onRESET rId=%d state=%d cliNull=%b", replyId, state, client == null);
             state = McpState.closedReply(state);
+            encoder = encodeIgnore;
 
             if (client != null)
             {
@@ -1259,13 +1259,29 @@ abstract class McpProxyListFactory implements BindingHandler
             client.doClientBegin(traceId);
         }
 
+        private void encode(
+            long traceId)
+        {
+            if (McpState.replyClosed(state))
+            {
+                return;
+            }
+            McpListServerEncoder previous = null;
+            while (previous != encoder)
+            {
+                previous = encoder;
+                encoder.encode(this, traceId);
+            }
+        }
+
         private void doEncodeBeginItem(
             long traceId)
         {
             if (itemsEmitted > 0)
             {
-                doServerData(traceId, 0L, 0x03, listReplySeparatorRO.capacity(),
-                    listReplySeparatorRO, 0, listReplySeparatorRO.capacity());
+                separatorProgress = 0;
+                encoder = encodeSeparator;
+                encode(traceId);
             }
             itemsEmitted++;
         }
@@ -1276,6 +1292,14 @@ abstract class McpProxyListFactory implements BindingHandler
             int length,
             long traceId)
         {
+            if (encoder != encodeItems)
+            {
+                encode(traceId);
+                if (encoder != encodeItems)
+                {
+                    return 0;
+                }
+            }
             final int replyWin = replyMax - (int) (replySeq - replyAck) - replyPad;
             final int emit = Math.min(Math.max(replyWin, 0), length);
             if (emit > 0)
@@ -1290,19 +1314,11 @@ abstract class McpProxyListFactory implements BindingHandler
         {
         }
 
-        private void doEncodeBeginItems(
-            long traceId)
-        {
-            final DirectBuffer prelude = listReplyOpenPrelude();
-            doServerData(traceId, 0L, 0x03, prelude.capacity(), prelude, 0, prelude.capacity());
-        }
-
         private void doEncodeEndItems(
             long traceId)
         {
-            doServerData(traceId, 0L, 0x03, listReplyCloseRO.capacity(),
-                listReplyCloseRO, 0, listReplyCloseRO.capacity());
-            doServerEnd(traceId);
+            endItemsPending = true;
+            encode(traceId);
         }
 
         private void doServerBegin(
@@ -1315,7 +1331,6 @@ abstract class McpProxyListFactory implements BindingHandler
                 .inject(b -> injectReplyBeginEx(b, sid))
                 .build();
 
-            io.aklivity.zilla.runtime.engine.ProbeLog.log("BIND>DN doBEGIN rId=%d state=%d", replyId, state);
             doBegin(lifecycle.sender, lifecycle.originId, lifecycle.routedId, replyId, replySeq, replyAck, replyMax,
                 traceId, authorization, affinity, beginEx);
             state = McpState.openedReply(state);
@@ -1338,7 +1353,6 @@ abstract class McpProxyListFactory implements BindingHandler
         private void doServerEnd(
             long traceId)
         {
-            io.aklivity.zilla.runtime.engine.ProbeLog.log("BIND>DN doEND rId=%d state=%d guard=!replyClosed=%b", replyId, state, !McpState.replyClosed(state));
             if (!McpState.replyClosed(state))
             {
                 doEnd(lifecycle.sender, lifecycle.originId, lifecycle.routedId, replyId, replySeq, replyAck, replyMax,
@@ -1350,12 +1364,12 @@ abstract class McpProxyListFactory implements BindingHandler
         private void doServerAbort(
             long traceId)
         {
-            io.aklivity.zilla.runtime.engine.ProbeLog.log("BIND>DN doABORT rId=%d state=%d guard=!replyClosed=%b", replyId, state, !McpState.replyClosed(state));
             if (!McpState.replyClosed(state))
             {
                 doAbort(lifecycle.sender, lifecycle.originId, lifecycle.routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization);
                 state = McpState.closedReply(state);
+                encoder = encodeIgnore;
             }
         }
 
@@ -1364,7 +1378,6 @@ abstract class McpProxyListFactory implements BindingHandler
             long budgetId,
             int padding)
         {
-            io.aklivity.zilla.runtime.engine.ProbeLog.log("BIND>DN doWINDOW iId=%d ack=%d max=%d state=%d", initialId, initialAck, initialMax, state);
             state = McpState.openedInitial(state);
             doWindow(lifecycle.sender, lifecycle.originId, lifecycle.routedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, authorization, budgetId, padding);
@@ -1387,6 +1400,94 @@ abstract class McpProxyListFactory implements BindingHandler
                 doServerWindow(traceId, budgetId, padding);
             }
         }
+    }
+
+    @FunctionalInterface
+    private interface McpListServerEncoder
+    {
+        void encode(
+            McpListServer server,
+            long traceId);
+    }
+
+    private void encodePrelude(
+        McpListServer server,
+        long traceId)
+    {
+        final DirectBuffer prelude = listReplyOpenPrelude();
+        final int replyWin = server.replyMax - (int) (server.replySeq - server.replyAck) - server.replyPad;
+        final int remaining = prelude.capacity() - server.preludeProgress;
+        final int emit = Math.min(Math.max(replyWin, 0), remaining);
+        if (emit > 0)
+        {
+            server.doServerData(traceId, 0L, 0x03, emit, prelude, server.preludeProgress, emit);
+            server.preludeProgress += emit;
+        }
+        if (server.preludeProgress == prelude.capacity())
+        {
+            server.encoder = encodeItems;
+        }
+    }
+
+    private void encodeItems(
+        McpListServer server,
+        long traceId)
+    {
+        if (server.endItemsPending)
+        {
+            server.encoder = encodePostlude;
+        }
+    }
+
+    private void encodeSeparator(
+        McpListServer server,
+        long traceId)
+    {
+        final int replyWin = server.replyMax - (int) (server.replySeq - server.replyAck) - server.replyPad;
+        final int remaining = listReplySeparatorRO.capacity() - server.separatorProgress;
+        final int emit = Math.min(Math.max(replyWin, 0), remaining);
+        if (emit > 0)
+        {
+            server.doServerData(traceId, 0L, 0x03, emit, listReplySeparatorRO, server.separatorProgress, emit);
+            server.separatorProgress += emit;
+        }
+        if (server.separatorProgress == listReplySeparatorRO.capacity())
+        {
+            server.separatorProgress = 0;
+            server.encoder = encodeItems;
+        }
+    }
+
+    private void encodePostlude(
+        McpListServer server,
+        long traceId)
+    {
+        final int replyWin = server.replyMax - (int) (server.replySeq - server.replyAck) - server.replyPad;
+        final int remaining = listReplyCloseRO.capacity() - server.postludeProgress;
+        final int emit = Math.min(Math.max(replyWin, 0), remaining);
+        if (emit > 0)
+        {
+            server.doServerData(traceId, 0L, 0x03, emit, listReplyCloseRO, server.postludeProgress, emit);
+            server.postludeProgress += emit;
+        }
+        if (server.postludeProgress == listReplyCloseRO.capacity())
+        {
+            server.encoder = encodeEnd;
+        }
+    }
+
+    private void encodeEnd(
+        McpListServer server,
+        long traceId)
+    {
+        server.doServerEnd(traceId);
+        server.encoder = encodeIgnore;
+    }
+
+    private void encodeIgnore(
+        McpListServer server,
+        long traceId)
+    {
     }
 
     private final class McpCacheListServer
