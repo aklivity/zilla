@@ -15,7 +15,6 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
-import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_SERVER_RECONNECT_DELAY;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static java.lang.System.currentTimeMillis;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -24,6 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.LongBinaryOperator;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
@@ -57,6 +57,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaMetaDa
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaResetExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.engine.Configuration.IntPropertyDef;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -104,6 +105,7 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
     private final LongFunction<KafkaBindingConfig> supplyBinding;
     private final Function<String, KafkaCache> supplyCache;
     private final LongFunction<KafkaCacheRoute> supplyCacheRoute;
+    private final LongBinaryOperator supplyCacheId;
     private final int reconnectDelay;
 
     public KafkaCacheServerMetaFactory(
@@ -111,7 +113,9 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
         EngineContext context,
         LongFunction<KafkaBindingConfig> supplyBinding,
         Function<String, KafkaCache> supplyCache,
-        LongFunction<KafkaCacheRoute> supplyCacheRoute)
+        LongFunction<KafkaCacheRoute> supplyCacheRoute,
+        LongBinaryOperator supplyCacheId,
+        IntPropertyDef reconnectDelay)
     {
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.writeBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
@@ -127,7 +131,8 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
         this.supplyBinding = supplyBinding;
         this.supplyCache = supplyCache;
         this.supplyCacheRoute = supplyCacheRoute;
-        this.reconnectDelay = KAFKA_CACHE_SERVER_RECONNECT_DELAY.getAsInt(config);
+        this.supplyCacheId = supplyCacheId;
+        this.reconnectDelay = reconnectDelay.getAsInt(config);
     }
 
     @Override
@@ -169,7 +174,7 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
             KafkaCacheServerMetaFanout fanout = cacheRoute.serverMetaFanoutsByTopic.get(topicKey);
             if (fanout == null)
             {
-                final long cacheId = routedId;
+                final long cacheId = supplyCacheId.applyAsLong(routedId, resolvedId);
                 final String cacheName = String.format("%s.%s", supplyNamespace.apply(cacheId), supplyLocalName.apply(cacheId));
                 final KafkaCache cache = supplyCache.apply(cacheName);
                 final KafkaCacheTopic topic = cache.supplyTopic(topicName);
