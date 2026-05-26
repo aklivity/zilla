@@ -27,6 +27,7 @@ import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
 import java.security.spec.KeySpec;
 import java.security.spec.PKCS8EncodedKeySpec;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
@@ -52,7 +53,7 @@ public final class TestVaultHandler implements VaultHandler
 
     private final TestVaultEntryConfig key;
     private final TestVaultEntryConfig signer;
-    private final TestVaultEntryConfig trust;
+    private final List<TestVaultEntryConfig> trust;
 
     public TestVaultHandler(
         VaultConfig vault)
@@ -140,24 +141,27 @@ public final class TestVaultHandler implements VaultHandler
     {
         TrustManagerFactory factory = null;
 
-        if (certAliases != null && trust != null && certAliases.contains(trust.alias) ||
-            cacerts != null)
+        List<TestVaultEntryConfig> matched = matchedTrust(certAliases);
+
+        if (!matched.isEmpty() || cacerts != null)
         {
             try
             {
                 KeyStore store = KeyStore.getInstance("PKCS12");
                 store.load(null, null);
 
-                if (certAliases != null && trust != null && certAliases.contains(trust.alias))
+                if (!matched.isEmpty())
                 {
                     CertificateFactory x509 = CertificateFactory.getInstance("X509");
+                    for (TestVaultEntryConfig entry : matched)
+                    {
+                        InputStream certificateBytes = new ByteArrayInputStream(entry.entry.getBytes(US_ASCII));
+                        Certificate certificate = x509.generateCertificate(certificateBytes);
 
-                    InputStream certificateBytes = new ByteArrayInputStream(trust.entry.getBytes(US_ASCII));
-                    Certificate certificate = x509.generateCertificate(certificateBytes);
+                        KeyStore.TrustedCertificateEntry trusted = new KeyStore.TrustedCertificateEntry(certificate);
 
-                    KeyStore.TrustedCertificateEntry entry = new KeyStore.TrustedCertificateEntry(certificate);
-
-                    store.setEntry(trust.alias, entry, null);
+                        store.setEntry(entry.alias, trusted, null);
+                    }
                 }
 
                 if (cacerts != null)
@@ -183,5 +187,22 @@ public final class TestVaultHandler implements VaultHandler
         }
 
         return factory;
+    }
+
+    private List<TestVaultEntryConfig> matchedTrust(
+        List<String> certAliases)
+    {
+        List<TestVaultEntryConfig> matched = new ArrayList<>();
+        if (certAliases != null && trust != null)
+        {
+            for (TestVaultEntryConfig entry : trust)
+            {
+                if (certAliases.contains(entry.alias))
+                {
+                    matched.add(entry);
+                }
+            }
+        }
+        return matched;
     }
 }

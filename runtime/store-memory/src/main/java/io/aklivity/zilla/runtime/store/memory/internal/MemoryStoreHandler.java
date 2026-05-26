@@ -14,8 +14,13 @@
  */
 package io.aklivity.zilla.runtime.store.memory.internal;
 
+import java.io.Closeable;
+import java.time.Duration;
+import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -25,13 +30,19 @@ import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 final class MemoryStoreHandler implements StoreHandler
 {
     private final ConcurrentMap<String, MemoryEntry> entries;
+    private final ConcurrentMap<String, List<Watcher>> watchers;
+    private final ConcurrentMap<String, LockEntry> locks;
     private final Signaler signaler;
 
     MemoryStoreHandler(
         ConcurrentMap<String, MemoryEntry> entries,
+        ConcurrentMap<String, List<Watcher>> watchers,
+        ConcurrentMap<String, LockEntry> locks,
         Signaler signaler)
     {
         this.entries = entries;
+        this.watchers = watchers;
+        this.locks = locks;
         this.signaler = Objects.requireNonNull(signaler);
     }
 
@@ -49,11 +60,12 @@ final class MemoryStoreHandler implements StoreHandler
     public void put(
         String key,
         String value,
-        long ttlMillis,
+        Duration ttl,
         Consumer<String> completion)
     {
-        final long expiresAt = ttlMillis == Long.MAX_VALUE ? Long.MAX_VALUE : System.currentTimeMillis() + ttlMillis;
+        final long expiresAt = expiresAt(ttl);
         entries.put(key, new MemoryEntry(value, expiresAt));
+        notifyWatchers(key, value);
         defer(() -> completion.accept(null));
     }
 
@@ -61,15 +73,20 @@ final class MemoryStoreHandler implements StoreHandler
     public void putIfAbsent(
         String key,
         String value,
-        long ttlMillis,
+        Duration ttl,
         Consumer<String> completion)
     {
-        final long expiresAt = ttlMillis == Long.MAX_VALUE ? Long.MAX_VALUE : System.currentTimeMillis() + ttlMillis;
+        final long expiresAt = expiresAt(ttl);
         final MemoryEntry newEntry = new MemoryEntry(value, expiresAt);
         final MemoryEntry existing = entries.putIfAbsent(key, newEntry);
+        boolean stored = existing == null;
         if (existing != null && existing.expired())
         {
-            entries.replace(key, existing, newEntry);
+            stored = entries.replace(key, existing, newEntry);
+        }
+        if (stored)
+        {
+            notifyWatchers(key, value);
         }
         final String result = existing != null && !existing.expired() ? existing.value() : null;
         defer(() -> completion.accept(result));
@@ -80,7 +97,11 @@ final class MemoryStoreHandler implements StoreHandler
         String key,
         Consumer<String> completion)
     {
-        entries.remove(key);
+        final MemoryEntry removed = entries.remove(key);
+        if (removed != null)
+        {
+            notifyWatchers(key, null);
+        }
         defer(() -> completion.accept(null));
     }
 
@@ -91,7 +112,118 @@ final class MemoryStoreHandler implements StoreHandler
     {
         final MemoryEntry entry = entries.remove(key);
         final String value = entry != null && !entry.expired() ? entry.value() : null;
+        if (entry != null)
+        {
+            notifyWatchers(key, null);
+        }
         defer(() -> completion.accept(value));
+    }
+
+    @Override
+    public void lock(
+        String key,
+        Duration ttl,
+        BiConsumer<String, String> completion)
+    {
+        final long now = System.currentTimeMillis();
+        final long expiresAt = ttl == null ? Long.MAX_VALUE : now + ttl.toMillis();
+        final String token = UUID.randomUUID().toString();
+        final LockEntry candidate = new LockEntry(token, expiresAt);
+        LockEntry existing = locks.putIfAbsent(key, candidate);
+        if (existing != null && existing.expiresAt() <= now)
+        {
+            existing = locks.replace(key, existing, candidate) ? null : locks.get(key);
+        }
+        final String result = existing == null ? token : null;
+        defer(() -> completion.accept(key, result));
+    }
+
+    @Override
+    public void unlock(
+        String key,
+        String token,
+        Consumer<String> completion)
+    {
+        final long now = System.currentTimeMillis();
+        final LockEntry current = locks.get(key);
+        final String result;
+        if (current != null && current.expiresAt() > now && current.token().equals(token))
+        {
+            locks.remove(key, current);
+            result = token;
+        }
+        else
+        {
+            // expired holder still cluttering the map — clean up opportunistically;
+            // either way the caller did not prove ownership of an active lock
+            if (current != null && current.expiresAt() <= now)
+            {
+                locks.remove(key, current);
+            }
+            result = null;
+        }
+        defer(() -> completion.accept(result));
+    }
+
+    @Override
+    public void renew(
+        String key,
+        String token,
+        Duration ttl,
+        Consumer<String> completion)
+    {
+        final long now = System.currentTimeMillis();
+        final LockEntry current = locks.get(key);
+        String result = null;
+        if (current != null && current.expiresAt() > now && current.token().equals(token))
+        {
+            final long expiresAt = expiresAt(ttl);
+            final LockEntry renewed = new LockEntry(token, expiresAt);
+            if (locks.replace(key, current, renewed))
+            {
+                result = token;
+            }
+        }
+        else if (current != null && current.expiresAt() <= now)
+        {
+            // expired holder still cluttering the map — clean up opportunistically
+            locks.remove(key, current);
+        }
+        final String outcome = result;
+        defer(() -> completion.accept(outcome));
+    }
+
+    @Override
+    public Closeable watch(
+        String key,
+        BiConsumer<String, String> listener)
+    {
+        final Watcher watcher = new Watcher(listener, signaler);
+        final List<Watcher> list = watchers.computeIfAbsent(key, k -> new CopyOnWriteArrayList<>());
+        list.add(watcher);
+        return () ->
+        {
+            final List<Watcher> current = watchers.get(key);
+            if (current != null)
+            {
+                current.remove(watcher);
+            }
+        };
+    }
+
+    private void notifyWatchers(
+        String key,
+        String value)
+    {
+        final List<Watcher> list = watchers.get(key);
+        if (list != null && !list.isEmpty())
+        {
+            final long now = System.currentTimeMillis();
+            for (Watcher w : list)
+            {
+                w.signaler.signalAt(now, 0, ignored -> w.listener.accept(key, value));
+            }
+        }
     }
 
     private void defer(
@@ -99,5 +231,23 @@ final class MemoryStoreHandler implements StoreHandler
     {
         // contract: callback fires strictly later than the call, on the caller's I/O thread
         signaler.signalAt(System.currentTimeMillis(), 0, ignored -> task.run());
+    }
+
+    private static long expiresAt(
+        Duration ttl)
+    {
+        return ttl == null ? Long.MAX_VALUE : System.currentTimeMillis() + ttl.toMillis();
+    }
+
+    record Watcher(
+        BiConsumer<String, String> listener,
+        Signaler signaler)
+    {
+    }
+
+    record LockEntry(
+        String token,
+        long expiresAt)
+    {
     }
 }

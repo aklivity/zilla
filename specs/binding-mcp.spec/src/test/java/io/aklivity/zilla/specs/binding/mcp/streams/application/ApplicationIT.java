@@ -344,6 +344,24 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/lifecycle.events.resume.aggregate/client",
+        "${app}/lifecycle.events.resume.aggregate/server"})
+    public void shouldResumeLifecycleEventsAggregate() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/lifecycle.events.resume.partial/client",
+        "${app}/lifecycle.events.resume.partial/server"})
+    public void shouldResumeLifecycleEventsPartial() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/lifecycle.notify.prompts.list.changed/client",
         "${app}/lifecycle.notify.prompts.list.changed/server"})
     public void shouldNotifyPromptsListChanged() throws Exception
@@ -545,6 +563,60 @@ public class ApplicationIT
         "${app}/prompts.get.100k.with.progress/client",
         "${app}/prompts.get.100k.with.progress/server"})
     public void shouldGetPromptWith100kMessageWithProgress() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/lifecycle.server.write.abort/client",
+        "${app}/lifecycle.server.write.abort/server"})
+    public void shouldLifecycleServerWriteAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/lifecycle.server.write.close/client",
+        "${app}/lifecycle.server.write.close/server"})
+    public void shouldLifecycleServerWriteClose() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/lifecycle.server.read.abort/client",
+        "${app}/lifecycle.server.read.abort/server"})
+    public void shouldLifecycleServerReadAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/lifecycle.client.write.abort/client",
+        "${app}/lifecycle.client.write.abort/server"})
+    public void shouldLifecycleClientWriteAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/lifecycle.client.write.close/client",
+        "${app}/lifecycle.client.write.close/server"})
+    public void shouldLifecycleClientWriteClose() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/lifecycle.client.read.abort/client",
+        "${app}/lifecycle.client.read.abort/server"})
+    public void shouldLifecycleClientReadAbort() throws Exception
     {
         k3po.finish();
     }

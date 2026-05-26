@@ -31,6 +31,12 @@ CLIENT_CA_PASS=generated
 CLIENT_CERT_ALIAS=client1
 CLIENT_CERT_PASS=generated
 
+CLIENT_CA2_ALIAS=clientca2
+CLIENT_CA2_PASS=generated
+
+CLIENT_CERT2_ALIAS=client2
+CLIENT_CERT2_PASS=generated
+
 CLIENT_TRUST_PASS=generated
 
 clean()
@@ -42,6 +48,8 @@ clean()
   rm -rf ${SERVER_CERT_ALIAS}.jks ${SERVER_CERT_ALIAS}.crt ${SERVER_CERT_ALIAS}.p12 ${SERVER_CERT_ALIAS}.key ${SERVER_CERT_ALIAS}.csr
   rm -rf ${CLIENT_CA_ALIAS}.jks ${CLIENT_CA_ALIAS}.crt ${CLIENT_CA_ALIAS}.p12 ${CLIENT_CA_ALIAS}.key
   rm -rf ${CLIENT_CERT_ALIAS}.jks ${CLIENT_CERT_ALIAS}.crt ${CLIENT_CERT_ALIAS}.p12 ${CLIENT_CERT_ALIAS}.key ${CLIENT_CERT_ALIAS}.csr
+  rm -rf ${CLIENT_CA2_ALIAS}.jks ${CLIENT_CA2_ALIAS}.crt ${CLIENT_CA2_ALIAS}.p12 ${CLIENT_CA2_ALIAS}.key
+  rm -rf ${CLIENT_CERT2_ALIAS}.jks ${CLIENT_CERT2_ALIAS}.crt ${CLIENT_CERT2_ALIAS}.p12 ${CLIENT_CERT2_ALIAS}.key ${CLIENT_CERT2_ALIAS}.csr
   rm -rf cacerts.jks
 }
 
@@ -96,6 +104,25 @@ create_client_signers()
   keytool -keystore client/signers -storepass ${CLIENT_CA_PASS} -alias ${CLIENT_CA_ALIAS} -exportcert -rfc > client/${CLIENT_CA_ALIAS}.crt
 
   print_cert client/${CLIENT_CA_ALIAS}.crt
+}
+
+create_client_signers_2()
+{
+  mkdir -p client
+
+  echo ""
+  echo "------------------------------------------------------------------------------"
+  echo "Generate ca keypair: client/signers2"
+  echo "------------------------------------------------------------------------------"
+  keytool -genkeypair -keystore client/signers2 -storepass ${CLIENT_CA2_PASS} -keypass ${CLIENT_CA2_PASS} -alias ${CLIENT_CA2_ALIAS} -dname "C=US, ST=California, O=Aklivity, OU=Development, CN=${CLIENT_CA2_ALIAS}" -validity 3650 -keyalg RSA -ext bc:c
+
+  echo ""
+  echo "------------------------------------------------------------------------------"
+  echo "Export ca certificate in pem format: client/${CLIENT_CA2_ALIAS}.crt"
+  echo "------------------------------------------------------------------------------"
+  keytool -keystore client/signers2 -storepass ${CLIENT_CA2_PASS} -alias ${CLIENT_CA2_ALIAS} -exportcert -rfc > client/${CLIENT_CA2_ALIAS}.crt
+
+  print_cert client/${CLIENT_CA2_ALIAS}.crt
 }
 
 create_server_keys()
@@ -164,6 +191,39 @@ create_client_keys()
   keytool -keystore client/keys -storepass ${CLIENT_CERT_PASS} -keypass ${CLIENT_CERT_PASS} -delete -alias ${CLIENT_CA_ALIAS} -noprompt
 }
 
+create_client_keys_2()
+{
+  echo ""
+  echo "------------------------------------------------------------------------------"
+  echo "Generate certificate keypair: client/keys2"
+  echo "------------------------------------------------------------------------------"
+  keytool -genkeypair -keystore client/keys2 -storepass ${CLIENT_CERT2_PASS} -keypass ${CLIENT_CERT2_PASS} -alias ${CLIENT_CERT2_ALIAS} -dname "C=US, ST=California, O=Aklivty, OU=Development, CN=${CLIENT_CERT2_ALIAS}" -validity 3650 -keyalg RSA
+
+  echo ""
+  echo "------------------------------------------------------------------------------"
+  echo "Create certificate signing request: client/${CLIENT_CERT2_ALIAS}.csr"
+  echo "------------------------------------------------------------------------------"
+  keytool -keystore client/keys2 -storepass ${CLIENT_CERT2_PASS} -alias ${CLIENT_CERT2_ALIAS} -certreq -rfc > client/${CLIENT_CERT2_ALIAS}.csr
+
+  print_req client/${CLIENT_CERT2_ALIAS}.csr
+
+  echo ""
+  echo "------------------------------------------------------------------------------"
+  echo "Create signed certificate: client/${CLIENT_CERT2_ALIAS}.crt"
+  echo "------------------------------------------------------------------------------"
+  keytool -keystore client/signers2 -storepass ${CLIENT_CA2_PASS} -keypass ${CLIENT_CA2_PASS} -gencert -alias ${CLIENT_CA2_ALIAS} -ext ku:c=dig,keyenc -dname "CN=${CLIENT_CERT2_ALIAS}" -rfc -validity 1800 < client/${CLIENT_CERT2_ALIAS}.csr > client/${CLIENT_CERT2_ALIAS}.crt
+
+  print_cert client/${CLIENT_CERT2_ALIAS}.crt
+
+  echo ""
+  echo "------------------------------------------------------------------------------"
+  echo "Import signed certificate: client/${CLIENT_CERT2_ALIAS}.crt"
+  echo "------------------------------------------------------------------------------"
+  keytool -keystore client/keys2 -storepass ${CLIENT_CERT2_PASS} -keypass ${CLIENT_CERT2_PASS} -importcert -alias ${CLIENT_CA2_ALIAS} -rfc -noprompt < client/${CLIENT_CA2_ALIAS}.crt
+  keytool -keystore client/keys2 -storepass ${CLIENT_CERT2_PASS} -keypass ${CLIENT_CERT2_PASS} -importcert -alias ${CLIENT_CERT2_ALIAS} -rfc < client/${CLIENT_CERT2_ALIAS}.crt
+  keytool -keystore client/keys2 -storepass ${CLIENT_CERT2_PASS} -keypass ${CLIENT_CERT2_PASS} -delete -alias ${CLIENT_CA2_ALIAS} -noprompt
+}
+
 create_server_trust()
 {
   echo ""
@@ -171,8 +231,10 @@ create_server_trust()
   echo "Import the client ca certificate: server/trust"
   echo "------------------------------------------------------------------------------"
   keytool -keystore server/trust -storepass ${SERVER_TRUST_PASS} -keypass ${SERVER_TRUST_PASS} -importcert -alias ${CLIENT_CA_ALIAS} -rfc -noprompt < client/${CLIENT_CA_ALIAS}.crt
+  keytool -keystore server/trust -storepass ${SERVER_TRUST_PASS} -keypass ${SERVER_TRUST_PASS} -importcert -alias ${CLIENT_CA2_ALIAS} -rfc -noprompt < client/${CLIENT_CA2_ALIAS}.crt
 
   print_cert client/${CLIENT_CA_ALIAS}.crt
+  print_cert client/${CLIENT_CA2_ALIAS}.crt
 }
 
 create_client_trust()
@@ -189,7 +251,9 @@ create_client_trust()
 clean
 create_server_signers
 create_client_signers
+create_client_signers_2
 create_server_keys
 create_client_keys
+create_client_keys_2
 create_server_trust
 create_client_trust

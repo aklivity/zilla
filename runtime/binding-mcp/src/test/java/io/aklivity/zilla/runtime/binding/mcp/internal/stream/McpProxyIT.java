@@ -142,6 +142,36 @@ public class McpProxyIT
     }
 
     @Test
+    @Configuration("proxy.toolkit.multi.yaml")
+    @Specification({
+        "${app}/lifecycle.notify.tools.list.changed.toolkit.multi.prefixed/client",
+        "${app}/lifecycle.notify.tools.list.changed.toolkit.multi/server" })
+    public void shouldNotifyToolsListChangedWithAggregateEventId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.toolkit.multi.yaml")
+    @Specification({
+        "${app}/lifecycle.events.resume.aggregate.prefixed/client",
+        "${app}/lifecycle.events.resume.aggregate/server" })
+    public void shouldResumeLifecycleEventsAggregate() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.toolkit.multi.yaml")
+    @Specification({
+        "${app}/lifecycle.events.resume.partial.prefixed/client",
+        "${app}/lifecycle.events.resume.partial/server" })
+    public void shouldResumeLifecycleEventsPartial() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.yaml")
     @Specification({
         "${app}/prompts.get/client",

@@ -51,6 +51,7 @@ import java.nio.channels.SelectableChannel;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.BitSet;
 import java.util.Collection;
 import java.util.Deque;
@@ -2223,6 +2224,15 @@ public class EngineWorker implements EngineContext, Agent
 
         @Override
         public long signalAt(
+            Instant time,
+            int signalId,
+            IntConsumer handler)
+        {
+            return signalAt(time.toEpochMilli(), signalId, handler);
+        }
+
+        @Override
+        public long signalAt(
             long timeMillis,
             long originId,
             long routedId,
@@ -2238,6 +2248,19 @@ public class EngineWorker implements EngineContext, Agent
             assert oldTask == null;
             assert timerId >= 0L;
             return timerId;
+        }
+
+        @Override
+        public long signalAt(
+            Instant time,
+            long originId,
+            long routedId,
+            long streamId,
+            long traceId,
+            int signalId,
+            int contextId)
+        {
+            return signalAt(time.toEpochMilli(), originId, routedId, streamId, traceId, signalId, contextId);
         }
 
         @Override

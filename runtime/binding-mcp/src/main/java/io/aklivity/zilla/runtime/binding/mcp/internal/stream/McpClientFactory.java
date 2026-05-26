@@ -15,8 +15,11 @@
 package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabilities.SERVER_PROMPTS;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabilities.SERVER_PROMPTS_LIST_CHANGED;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabilities.SERVER_RESOURCES;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabilities.SERVER_RESOURCES_LIST_CHANGED;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabilities.SERVER_TOOLS;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabilities.SERVER_TOOLS_LIST_CHANGED;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_LIFECYCLE;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_PROMPTS_GET;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_PROMPTS_LIST;
@@ -30,13 +33,13 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
-import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
 
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParserFactory;
 
 import org.agrona.DirectBuffer;
+import org.agrona.ExpandableArrayBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
@@ -82,6 +85,12 @@ public final class McpClientFactory implements McpStreamFactory
         SERVER_TOOLS.value() |
         SERVER_PROMPTS.value() |
         SERVER_RESOURCES.value();
+
+    private static final String JSON_KEY_CAPABILITIES = "capabilities";
+    private static final String JSON_KEY_TOOLS = "tools";
+    private static final String JSON_KEY_PROMPTS = "prompts";
+    private static final String JSON_KEY_RESOURCES = "resources";
+    private static final String JSON_KEY_LIST_CHANGED = "listChanged";
 
     private static final String HTTP_TYPE_NAME = "http";
     private static final String MCP_TYPE_NAME = "mcp";
@@ -159,6 +168,7 @@ public final class McpClientFactory implements McpStreamFactory
 
     private final DirectBufferInputStreamEx inputRO = new DirectBufferInputStreamEx();
 
+    private final EngineContext context;
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer extBuffer;
     private final MutableDirectBuffer codecBuffer;
@@ -167,7 +177,6 @@ public final class McpClientFactory implements McpStreamFactory
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
-    private final LongFunction<GuardHandler> supplyGuard;
     private final int httpTypeId;
     private final int mcpTypeId;
     private final int decodeMax;
@@ -198,6 +207,7 @@ public final class McpClientFactory implements McpStreamFactory
     private static final int SSE_IGNORE_VALUE = 4;
     private final JsonParserFactory parserFactory;
 
+    private final McpConfiguration config;
     private final Long2ObjectHashMap<McpBindingConfig> bindings;
     private final Map<String, McpStream> sessions = new Object2ObjectHashMap<>();
     private final Int2ObjectHashMap<McpSessionIdResolver> resolvers;
@@ -207,6 +217,8 @@ public final class McpClientFactory implements McpStreamFactory
         McpConfiguration config,
         EngineContext context)
     {
+        this.config = config;
+        this.context = context;
         this.writeBuffer = context.writeBuffer();
         this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.codecBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
@@ -215,7 +227,6 @@ public final class McpClientFactory implements McpStreamFactory
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
-        this.supplyGuard = context::supplyGuard;
         this.bindings = new Long2ObjectHashMap<>();
         this.httpTypeId = context.supplyTypeId(HTTP_TYPE_NAME);
         this.mcpTypeId = context.supplyTypeId(MCP_TYPE_NAME);
@@ -1275,7 +1286,7 @@ public final class McpClientFactory implements McpStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        McpBindingConfig newBinding = new McpBindingConfig(binding, supplyGuard);
+        McpBindingConfig newBinding = new McpBindingConfig(binding, config, context);
         bindings.put(binding.id, newBinding);
     }
 
@@ -1360,6 +1371,7 @@ public final class McpClientFactory implements McpStreamFactory
 
         protected HttpStream http;
         protected String credentials;
+        protected int serverCapabilities = SERVER_CAPABILITIES;
 
         private long initialSeq;
         private long initialAck;
@@ -2187,12 +2199,13 @@ public final class McpClientFactory implements McpStreamFactory
             else
             {
                 final String sid = responseSessionId;
+                final int caps = serverCapabilities;
                 doAppBegin(traceId, authorization, mcpBeginExRW
                     .wrap(codecBuffer, 0, codecBuffer.capacity())
                     .typeId(mcpTypeId)
                     .lifecycle(b -> b
                         .sessionId(sid)
-                        .capabilities(SERVER_CAPABILITIES))
+                        .capabilities(caps))
                     .build());
                 touch();
                 scheduleKeepalive(traceId);
@@ -3349,6 +3362,7 @@ public final class McpClientFactory implements McpStreamFactory
                 mcp != null)
             {
                 state = McpState.closedReply(state);
+                onResponseComplete(traceId, authorization);
                 mcp.onNetEnd(traceId, authorization);
             }
         }
@@ -3373,8 +3387,15 @@ public final class McpClientFactory implements McpStreamFactory
             if (decodeSlot == BufferPool.NO_SLOT)
             {
                 state = McpState.closedReply(state);
+                onResponseComplete(traceId, authorization);
                 mcp.onNetEnd(traceId, authorization);
             }
+        }
+
+        void onResponseComplete(
+            long traceId,
+            long authorization)
+        {
         }
 
         private void onNetFlush(
@@ -3714,10 +3735,14 @@ public final class McpClientFactory implements McpStreamFactory
 
     private final class HttpInitializeRequest extends HttpStream
     {
+        private final ExpandableArrayBuffer resultBuffer = new ExpandableArrayBuffer();
+        private int resultLimit;
+
         HttpInitializeRequest(
             McpStream mcp)
         {
             super(mcp);
+            this.decoder = decodeJsonRpc;
         }
 
         @Override
@@ -3751,6 +3776,98 @@ public final class McpClientFactory implements McpStreamFactory
 
             doNetBegin(traceId, authorization, httpBeginEx);
             doNetData(traceId, authorization, codecBuffer, 0, codecLength);
+        }
+
+        @Override
+        int onDecodeResponseResult(
+            long traceId,
+            long authorization,
+            DirectBuffer buffer,
+            int offset,
+            int limit)
+        {
+            final int length = limit - offset;
+            resultBuffer.putBytes(resultLimit, buffer, offset, length);
+            resultLimit += length;
+            return limit;
+        }
+
+        @Override
+        void onResponseComplete(
+            long traceId,
+            long authorization)
+        {
+            if (resultLimit == 0)
+            {
+                return;
+            }
+
+            inputRO.wrap(resultBuffer, 0, resultLimit);
+
+            int bits = 0;
+            try (JsonParser parser = parserFactory.createParser(inputRO))
+            {
+                int depth = 0;
+                boolean inCapabilities = false;
+                String primitive = null;
+
+                while (parser.hasNext())
+                {
+                    final JsonParser.Event event = parser.next();
+                    switch (event)
+                    {
+                    case START_OBJECT:
+                        depth++;
+                        break;
+                    case END_OBJECT:
+                        depth--;
+                        if (depth == 2 && primitive != null)
+                        {
+                            primitive = null;
+                        }
+                        if (depth == 1 && inCapabilities)
+                        {
+                            inCapabilities = false;
+                        }
+                        break;
+                    case KEY_NAME:
+                        final String key = parser.getString();
+                        if (depth == 1 && JSON_KEY_CAPABILITIES.equals(key))
+                        {
+                            inCapabilities = true;
+                        }
+                        else if (depth == 2 && inCapabilities)
+                        {
+                            primitive = key;
+                        }
+                        else if (depth == 3 && primitive != null && JSON_KEY_LIST_CHANGED.equals(key))
+                        {
+                            if (parser.hasNext() && parser.next() == JsonParser.Event.VALUE_TRUE)
+                            {
+                                switch (primitive)
+                                {
+                                case JSON_KEY_TOOLS:
+                                    bits |= SERVER_TOOLS_LIST_CHANGED.value();
+                                    break;
+                                case JSON_KEY_PROMPTS:
+                                    bits |= SERVER_PROMPTS_LIST_CHANGED.value();
+                                    break;
+                                case JSON_KEY_RESOURCES:
+                                    bits |= SERVER_RESOURCES_LIST_CHANGED.value();
+                                    break;
+                                default:
+                                    break;
+                                }
+                            }
+                        }
+                        break;
+                    default:
+                        break;
+                    }
+                }
+            }
+
+            mcp.serverCapabilities |= bits;
         }
     }
 

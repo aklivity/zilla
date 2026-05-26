@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.concurrent;
 
+import java.time.Instant;
 import java.util.function.IntConsumer;
 
 import org.agrona.DirectBuffer;
@@ -58,6 +59,16 @@ public interface Signaler
     long signalAt(long timeMillis, int signalId, IntConsumer handler);
 
     /**
+     * Schedules a lightweight timer signal to fire at the given {@link Instant}.
+     *
+     * @param time      the instant at which to fire the signal
+     * @param signalId  an application-defined signal identifier passed to {@code handler}
+     * @param handler   the callback to invoke with {@code signalId} when the timer fires
+     * @return a cancel id that can be passed to {@link #cancel}, or {@link #NO_CANCEL_ID}
+     */
+    long signalAt(Instant time, int signalId, IntConsumer handler);
+
+    /**
      * Immediately delivers a signal to the stream identified by
      * {@code (originId, routedId, streamId)} as if a synthetic frame had arrived.
      *
@@ -99,6 +110,20 @@ public interface Signaler
      * @return a cancel id that can be passed to {@link #cancel}, or {@link #NO_CANCEL_ID}
      */
     long signalAt(long timeMillis, long originId, long routedId, long streamId, long traceId, int signalId, int contextId);
+
+    /**
+     * Schedules a signal to be delivered to the target stream at the given {@link Instant}.
+     *
+     * @param time       the instant at which to deliver the signal
+     * @param originId   the origin binding id
+     * @param routedId   the routed binding id
+     * @param streamId   the stream id
+     * @param traceId    the trace identifier
+     * @param signalId   an application-defined signal identifier
+     * @param contextId  an application-defined context value
+     * @return a cancel id that can be passed to {@link #cancel}, or {@link #NO_CANCEL_ID}
+     */
+    long signalAt(Instant time, long originId, long routedId, long streamId, long traceId, int signalId, int contextId);
 
     /**
      * Schedules a {@link Runnable} task to run on the owning I/O thread, delivered as a

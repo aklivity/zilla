@@ -26,6 +26,7 @@ import static javax.net.ssl.StandardConstants.SNI_HOST_NAME;
 
 import java.security.KeyStore;
 import java.security.SecureRandom;
+import java.security.cert.Certificate;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -128,6 +129,11 @@ public final class TlsBindingConfig
             this.context = context;
             this.clientHttpsIdentification = config.clientHttpsIdentification();
             this.clientServerNameIndication = config.clientServerNameIndication();
+
+            for (TlsRouteConfig route : routes)
+            {
+                route.init(vault);
+            }
         }
         catch (Exception ex)
         {
@@ -148,7 +154,7 @@ public final class TlsBindingConfig
 
         int port = resolveDestinationPort(beginEx);
 
-        return resolve(authorization, authority, alpn, port);
+        return resolve(authorization, authority, alpn, port, null);
     }
 
     public TlsRouteConfig resolvePortOnly(
@@ -193,10 +199,12 @@ public final class TlsBindingConfig
         long authorization,
         String hostname,
         String alpn,
-        int port)
+        int port,
+        Certificate[] clientCerts)
     {
         return routes.stream()
-                .filter(r -> r.authorized(authorization) && r.matches(hostname, alpn, port))
+                .filter(r -> r.authorized(authorization) &&
+                    r.matches(hostname, alpn, port, clientCerts))
                 .findFirst()
                 .orElse(null);
     }
@@ -364,7 +372,7 @@ public final class TlsBindingConfig
                             }
 
                             if (route.authorized(authorization) &&
-                                route.matches(authority, protocol, port))
+                                route.matchesIgnoringCert(authority, protocol, port))
                             {
                                 selected = protocol;
                                 break;
@@ -386,7 +394,7 @@ public final class TlsBindingConfig
                     }
 
                     if (route.authorized(authorization) &&
-                        route.matches(null, protocol, port))
+                        route.matchesIgnoringCert(null, protocol, port))
                     {
                         selected = protocol;
                         break;

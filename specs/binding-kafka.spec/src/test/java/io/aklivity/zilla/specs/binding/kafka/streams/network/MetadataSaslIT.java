@@ -54,4 +54,13 @@ public class MetadataSaslIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/unsupported.sasl.mechanism/client",
+        "${net}/unsupported.sasl.mechanism/server"})
+    public void shouldHandleUnsupportedSaslMechanism() throws Exception
+    {
+        k3po.finish();
+    }
 }

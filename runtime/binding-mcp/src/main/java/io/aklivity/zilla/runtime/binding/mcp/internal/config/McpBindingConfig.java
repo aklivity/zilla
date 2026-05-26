@@ -17,14 +17,20 @@ package io.aklivity.zilla.runtime.binding.mcp.internal.config;
 import static io.aklivity.zilla.runtime.binding.mcp.config.McpElicitationConfig.DEFAULT_CALLBACK_PATH;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
-import java.util.function.LongFunction;
 import java.util.stream.Collectors;
 
+import org.agrona.collections.Object2ObjectHashMap;
+
 import io.aklivity.zilla.runtime.binding.mcp.config.McpOptionsConfig;
+import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
+import io.aklivity.zilla.runtime.binding.mcp.internal.stream.cache.McpProxyCache;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
@@ -36,27 +42,56 @@ public final class McpBindingConfig
     public final long id;
     public final McpOptionsConfig options;
     public final GuardHandler guard;
+    public final McpProxyCache cache;
+    public final Map<String, McpProxySession> sessions;
+    public final Map<String, McpRouteConfig> routeByPrefix;
+    public final McpAggregateRoute[] aggregateRoutes;
 
     private final List<McpRouteConfig> routes;
 
     public McpBindingConfig(
-        BindingConfig binding)
-    {
-        this(binding, null);
-    }
-
-    public McpBindingConfig(
         BindingConfig binding,
-        LongFunction<GuardHandler> supplyGuard)
+        McpConfiguration config,
+        EngineContext context)
     {
         this.id = binding.id;
         this.options = (McpOptionsConfig) binding.options;
         this.routes = binding.routes.stream()
             .map(McpRouteConfig::new)
             .collect(Collectors.toList());
-        this.guard = supplyGuard != null && options != null && options.authorization != null
-            ? supplyGuard.apply(binding.resolveId.applyAsLong(options.authorization.name))
-            : null;
+
+        final Map<String, McpRouteConfig> routeByPrefix = new LinkedHashMap<>();
+        if (routes.size() > 1)
+        {
+            final List<String> toolkits = routes.stream()
+                .map(McpRouteConfig::toolkit)
+                .collect(Collectors.toList());
+            final Map<String, String> prefixesByToolkit = McpAggregateEventId.computePrefixes(toolkits);
+            for (McpRouteConfig route : routes)
+            {
+                final String prefix = prefixesByToolkit.get(route.toolkit());
+                routeByPrefix.put(prefix, route);
+            }
+        }
+        this.routeByPrefix = routeByPrefix;
+
+        this.aggregateRoutes = routeByPrefix.entrySet().stream()
+            .sorted(Map.Entry.comparingByKey())
+            .map(e -> new McpAggregateRoute(e.getKey(), e.getValue().id))
+            .toArray(McpAggregateRoute[]::new);
+
+        this.guard = Optional.ofNullable(options)
+            .map(o -> o.authorization)
+            .map(a -> a.name)
+            .map(binding.resolveId::applyAsLong)
+            .map(context::supplyGuard)
+            .orElse(null);
+
+        this.cache = Optional.ofNullable(options)
+            .map(o -> o.cache)
+            .map(cache -> new McpProxyCache(binding, config, context, cache))
+            .orElse(null);
+        this.sessions = new Object2ObjectHashMap<>();
     }
 
     public McpRouteConfig resolve(

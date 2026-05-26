@@ -90,9 +90,47 @@
                                                         }
                                                     }
                                                 ]
+                                            },
+                                            "trust":
+                                            {
+                                                "title": "Vault Trust Aliases",
+                                                "type": "array",
+                                                "items":
+                                                {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "mutual":
+                                            {
+                                                "title": "Mutual Authentication",
+                                                "type": "string",
+                                                "enum": [ "required", "none" ]
                                             }
                                         },
-                                        "additionalProperties": false
+                                        "additionalProperties": false,
+                                        "allOf":
+                                        [
+                                            {
+                                                "if":
+                                                {
+                                                    "properties":
+                                                    {
+                                                        "mutual":
+                                                        {
+                                                            "const": "none"
+                                                        }
+                                                    },
+                                                    "required": ["mutual"]
+                                                },
+                                                "then":
+                                                {
+                                                    "not":
+                                                    {
+                                                        "required": ["trust"]
+                                                    }
+                                                }
+                                            }
+                                        ]
                                     }
                                 },
                                 "with": false

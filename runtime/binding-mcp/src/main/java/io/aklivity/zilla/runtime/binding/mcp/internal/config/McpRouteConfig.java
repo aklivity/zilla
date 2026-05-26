@@ -49,6 +49,7 @@ public final class McpRouteConfig
 
     private final List<ConditionMatcher> matchers;
     private final LongObjectPredicate<UnaryOperator<String>> authorized;
+    private final String toolkit;
 
     public McpRouteConfig(
         RouteConfig route)
@@ -60,6 +61,16 @@ public final class McpRouteConfig
             .map(ConditionMatcher::new)
             .collect(toList());
         this.authorized = route.authorized;
+        this.toolkit = matchers.stream()
+            .map(m -> m.toolkit)
+            .filter(t -> t != null)
+            .findFirst()
+            .orElse(null);
+    }
+
+    public String toolkit()
+    {
+        return toolkit;
     }
 
     public boolean authorized(
@@ -216,6 +227,7 @@ public final class McpRouteConfig
 
     private static final class ConditionMatcher
     {
+        private final String toolkit;
         private final String toolsPrefix;
         private final String promptsPrefix;
         private final String resourcesPrefix;
@@ -225,6 +237,7 @@ public final class McpRouteConfig
         {
             final List<String> capabilities = condition.capability;
             final String toolkit = condition.toolkit;
+            this.toolkit = toolkit;
 
             final boolean anyCapability = capabilities == null;
             final boolean tools = anyCapability || capabilities.contains(CAPABILITY_TOOLS);
