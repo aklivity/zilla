@@ -261,6 +261,7 @@ abstract class McpProxyListFactory implements BindingHandler
                 .inject(b -> injectInitialBeginEx(b, sid))
                 .build();
 
+            io.aklivity.zilla.runtime.engine.ProbeLog.log("BIND>UP doBEGIN iId=%d state=%d", initialId, state);
             sender = newStream(this::onClientMessage, originId, routedId, initialId,
                 initialSeq, initialAck, initialMax, traceId, server.authorization, server.affinity, beginEx);
             state = McpState.openingInitial(state);
@@ -269,6 +270,7 @@ abstract class McpProxyListFactory implements BindingHandler
         private void doClientEnd(
             long traceId)
         {
+            io.aklivity.zilla.runtime.engine.ProbeLog.log("BIND>UP doEND iId=%d state=%d guard=(!initClose=%b && replyClose=%b)", initialId, state, !McpState.initialClosed(state), McpState.replyClosed(state));
             if (!McpState.initialClosed(state) &&
                 McpState.replyClosed(state))
             {
@@ -281,6 +283,7 @@ abstract class McpProxyListFactory implements BindingHandler
         private void doClientAbort(
             long traceId)
         {
+            io.aklivity.zilla.runtime.engine.ProbeLog.log("BIND>UP doABORT iId=%d state=%d guard=!initClose=%b", initialId, state, !McpState.initialClosed(state));
             if (!McpState.initialClosed(state))
             {
                 doAbort(sender, originId, routedId, initialId,
@@ -292,6 +295,7 @@ abstract class McpProxyListFactory implements BindingHandler
         private void doClientReset(
             long traceId)
         {
+            io.aklivity.zilla.runtime.engine.ProbeLog.log("BIND>UP doRESET rId=%d state=%d guard=!replyClose=%b", replyId, state, !McpState.replyClosed(state));
             if (!McpState.replyClosed(state))
             {
                 doReset(sender, originId, routedId, replyId,
@@ -305,6 +309,7 @@ abstract class McpProxyListFactory implements BindingHandler
             long budgetId,
             int padding)
         {
+            io.aklivity.zilla.runtime.engine.ProbeLog.log("BIND>UP doWINDOW rId=%d ack=%d max=%d state=%d", replyId, replyAck, replyMax, state);
             state = McpState.openedReply(state);
             doWindow(sender, originId, routedId, replyId,
                 replySeq, replyAck, replyMax, traceId, server.authorization, budgetId, padding);
@@ -377,6 +382,7 @@ abstract class McpProxyListFactory implements BindingHandler
 
             state = McpState.openedInitial(state);
 
+            io.aklivity.zilla.runtime.engine.ProbeLog.log("BIND<UP onBEGIN rId=%d state=%d", replyId, state);
             flushClientWindow(traceId, 0L, 0, 0L, bufferPool.slotCapacity());
         }
 
@@ -438,6 +444,7 @@ abstract class McpProxyListFactory implements BindingHandler
 
             assert replyAck <= replySeq;
 
+            io.aklivity.zilla.runtime.engine.ProbeLog.log("BIND<UP onEND rId=%d state=%d", replyId, state);
             state = McpState.closedReply(state);
             cleanupClientSlot();
             doClientEnd(traceId);
@@ -459,6 +466,7 @@ abstract class McpProxyListFactory implements BindingHandler
 
             assert replyAck <= replySeq;
 
+            io.aklivity.zilla.runtime.engine.ProbeLog.log("BIND<UP onABORT rId=%d state=%d", replyId, state);
             state = McpState.closedReply(state);
             cleanupClientSlot();
             doClientAbort(traceId);
@@ -486,12 +494,14 @@ abstract class McpProxyListFactory implements BindingHandler
 
             assert initialAck <= initialSeq;
 
+            io.aklivity.zilla.runtime.engine.ProbeLog.log("BIND<UP onWINDOW iId=%d ack=%d max=%d state=%d", initialId, initialAck, initialMax, state);
             server.flushServerWindow(traceId, budgetId, padding, initialSeq - initialAck, initialMax);
         }
 
         private void onClientReset(
             ResetFW reset)
         {
+            io.aklivity.zilla.runtime.engine.ProbeLog.log("BIND<UP onRESET iId=%d state=%d", initialId, state);
             final long sequence = reset.sequence();
             final long acknowledge = reset.acknowledge();
             final long traceId = reset.traceId();
@@ -1109,6 +1119,7 @@ abstract class McpProxyListFactory implements BindingHandler
 
             state = McpState.openingInitial(state);
 
+            io.aklivity.zilla.runtime.engine.ProbeLog.log("BIND<DN onBEGIN iId=%d state=%d", initialId, state);
             flushServerWindow(traceId, 0L, 0, 0L, 0);
 
             doServerBegin(traceId);
@@ -1131,6 +1142,7 @@ abstract class McpProxyListFactory implements BindingHandler
 
             assert initialAck <= initialSeq;
 
+            io.aklivity.zilla.runtime.engine.ProbeLog.log("BIND<DN onEND iId=%d state=%d cliNull=%b", initialId, state, client == null);
             state = McpState.closedInitial(state);
 
             if (client != null)
@@ -1154,6 +1166,7 @@ abstract class McpProxyListFactory implements BindingHandler
 
             assert initialAck <= initialSeq;
 
+            io.aklivity.zilla.runtime.engine.ProbeLog.log("BIND<DN onABORT iId=%d state=%d cliNull=%b", initialId, state, client == null);
             state = McpState.closedInitial(state);
 
             if (client != null)
@@ -1184,6 +1197,7 @@ abstract class McpProxyListFactory implements BindingHandler
 
             assert replyAck <= replySeq;
 
+            io.aklivity.zilla.runtime.engine.ProbeLog.log("BIND<DN onWINDOW rId=%d ack=%d max=%d state=%d cliNull=%b", replyId, replyAck, replyMax, state, client == null);
             if (client != null)
             {
                 client.decode(traceId);
@@ -1206,6 +1220,7 @@ abstract class McpProxyListFactory implements BindingHandler
 
             assert replyAck <= replySeq;
 
+            io.aklivity.zilla.runtime.engine.ProbeLog.log("BIND<DN onRESET rId=%d state=%d cliNull=%b", replyId, state, client == null);
             state = McpState.closedReply(state);
 
             if (client != null)
@@ -1300,6 +1315,7 @@ abstract class McpProxyListFactory implements BindingHandler
                 .inject(b -> injectReplyBeginEx(b, sid))
                 .build();
 
+            io.aklivity.zilla.runtime.engine.ProbeLog.log("BIND>DN doBEGIN rId=%d state=%d", replyId, state);
             doBegin(lifecycle.sender, lifecycle.originId, lifecycle.routedId, replyId, replySeq, replyAck, replyMax,
                 traceId, authorization, affinity, beginEx);
             state = McpState.openedReply(state);
@@ -1322,6 +1338,7 @@ abstract class McpProxyListFactory implements BindingHandler
         private void doServerEnd(
             long traceId)
         {
+            io.aklivity.zilla.runtime.engine.ProbeLog.log("BIND>DN doEND rId=%d state=%d guard=!replyClosed=%b", replyId, state, !McpState.replyClosed(state));
             if (!McpState.replyClosed(state))
             {
                 doEnd(lifecycle.sender, lifecycle.originId, lifecycle.routedId, replyId, replySeq, replyAck, replyMax,
@@ -1333,6 +1350,7 @@ abstract class McpProxyListFactory implements BindingHandler
         private void doServerAbort(
             long traceId)
         {
+            io.aklivity.zilla.runtime.engine.ProbeLog.log("BIND>DN doABORT rId=%d state=%d guard=!replyClosed=%b", replyId, state, !McpState.replyClosed(state));
             if (!McpState.replyClosed(state))
             {
                 doAbort(lifecycle.sender, lifecycle.originId, lifecycle.routedId, replyId, replySeq, replyAck, replyMax,
@@ -1346,6 +1364,7 @@ abstract class McpProxyListFactory implements BindingHandler
             long budgetId,
             int padding)
         {
+            io.aklivity.zilla.runtime.engine.ProbeLog.log("BIND>DN doWINDOW iId=%d ack=%d max=%d state=%d", initialId, initialAck, initialMax, state);
             state = McpState.openedInitial(state);
             doWindow(lifecycle.sender, lifecycle.originId, lifecycle.routedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, authorization, budgetId, padding);
