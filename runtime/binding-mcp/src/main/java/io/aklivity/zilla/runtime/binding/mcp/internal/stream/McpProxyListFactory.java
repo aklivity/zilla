@@ -1272,10 +1272,6 @@ abstract class McpProxyListFactory implements BindingHandler
         private void encode(
             long traceId)
         {
-            if (McpState.replyClosed(state))
-            {
-                return;
-            }
             McpListServerEncoder previous = null;
             while (previous != encoder)
             {
@@ -1377,6 +1373,7 @@ abstract class McpProxyListFactory implements BindingHandler
                 doEnd(lifecycle.sender, lifecycle.originId, lifecycle.routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization);
                 state = McpState.closedReply(state);
+                encoder = encodeIgnore;
             }
         }
 
