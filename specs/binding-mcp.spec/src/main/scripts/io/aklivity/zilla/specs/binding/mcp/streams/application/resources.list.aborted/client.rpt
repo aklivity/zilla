@@ -49,6 +49,6 @@ write zilla:begin.ext ${mcp:beginEx()
 
 connected
 
-read abort
+read aborted
 
 write abort

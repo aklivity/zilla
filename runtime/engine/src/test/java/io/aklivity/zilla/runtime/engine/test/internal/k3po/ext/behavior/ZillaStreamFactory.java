@@ -387,8 +387,6 @@ public final class ZillaStreamFactory
         private void onAbort(
             AbortFW abort)
         {
-            io.aklivity.zilla.runtime.engine.ProbeLog.log(
-                "K3PO<BIND on-source ABORT sId=%d -> fireInputAborted", channel.sourceId());
             final long streamId = abort.streamId();
             final long sequence = abort.sequence();
             final long traceId = abort.traceId();

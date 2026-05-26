@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -280,8 +279,6 @@ public class McpProxyIT
         k3po.finish();
     }
 
-    @Ignore("flaky: proxy abort propagation through held-open per-request streams races with " +
-        "script's bidirectional abort sequence; tracked separately")
     @Test
     @Configuration("proxy.yaml")
     @Specification({
@@ -304,8 +301,6 @@ public class McpProxyIT
         k3po.finish();
     }
 
-    @Ignore("flaky: proxy abort propagation through held-open per-request streams races with " +
-        "script's bidirectional abort sequence; tracked separately")
     @Test
     @Configuration("proxy.yaml")
     @Specification({
@@ -328,8 +323,6 @@ public class McpProxyIT
         k3po.finish();
     }
 
-    @Ignore("flaky: proxy abort propagation through held-open per-request streams races with " +
-        "script's bidirectional abort sequence; tracked separately")
     @Test
     @Configuration("proxy.yaml")
     @Specification({
