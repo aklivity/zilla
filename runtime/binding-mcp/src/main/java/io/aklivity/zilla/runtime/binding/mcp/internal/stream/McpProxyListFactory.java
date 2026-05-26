@@ -1062,7 +1062,6 @@ abstract class McpProxyListFactory implements BindingHandler
             this.affinity = affinity;
             this.authorization = authorization;
             this.remaining = new ArrayDeque<>(prefixes);
-            this.replyMax = bufferPool.slotCapacity();
         }
 
         private void onServerMessage(
