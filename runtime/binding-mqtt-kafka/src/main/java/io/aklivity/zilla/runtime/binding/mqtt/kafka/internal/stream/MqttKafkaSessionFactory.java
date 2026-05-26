@@ -377,6 +377,11 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         this.groupIdPrefix =
             String.format(groupIdPrefixFormat, supplyNamespace.apply(bindingId), supplyLocalName.apply(bindingId));
 
+        if (binding.options.store == null && coreIndex == 0)
+        {
+            warnSessionOwnershipDeprecated(supplyLocalName.apply(bindingId));
+        }
+
         if (willAvailable && coreIndex == 0)
         {
             Optional<MqttKafkaRouteConfig> route = binding.routes.stream().findFirst();
@@ -387,6 +392,25 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             binding.willProxy.doKafkaBegin(currentTimeMillis());
         }
         sessionIds.put(bindingId, supplySessionId.get());
+    }
+
+    private void warnSessionOwnershipDeprecated(
+        String bindingName)
+    {
+        System.out.printf(
+            "WARN [%s] Session ownership coordination via Kafka consumer group is deprecated. " +
+            "The 'store' option will be required in an upcoming release. " +
+            "To prepare, configure a store reference on this binding:%n" +
+            "%n" +
+            "  stores:%n" +
+            "    memory0:%n" +
+            "      type: memory%n" +
+            "%n" +
+            "  bindings:%n" +
+            "    %s:%n" +
+            "      options:%n" +
+            "        store: memory0%n",
+            bindingName, bindingName);
     }
 
     @Override

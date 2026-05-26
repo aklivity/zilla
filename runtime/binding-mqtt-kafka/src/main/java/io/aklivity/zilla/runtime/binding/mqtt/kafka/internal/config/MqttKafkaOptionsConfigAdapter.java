@@ -38,6 +38,7 @@ public class MqttKafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
 {
     private static final String TOPICS_NAME = "topics";
     private static final String SERVER_NAME = "server";
+    private static final String STORE_NAME = "store";
     private static final String CLIENTS_NAME = "clients";
     private static final String SESSIONS_NAME = "sessions";
     private static final String MESSAGES_NAME = "messages";
@@ -66,12 +67,17 @@ public class MqttKafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
         JsonObjectBuilder object = Json.createObjectBuilder();
 
         String serverRef = mqttKafkaOptions.serverRef;
+        String store = mqttKafkaOptions.store;
         MqttKafkaTopicsConfig topics = mqttKafkaOptions.topics;
         List<String> clients = mqttKafkaOptions.clients;
 
         if (serverRef != null)
         {
             object.add(SERVER_NAME, serverRef);
+        }
+        if (store != null)
+        {
+            object.add(STORE_NAME, store);
         }
         if (topics != null)
         {
@@ -113,6 +119,7 @@ public class MqttKafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
         MqttKafkaOptionsConfigBuilder<MqttKafkaOptionsConfig> options = MqttKafkaOptionsConfig.builder();
         JsonObject topics = object.getJsonObject(TOPICS_NAME);
         options.serverRef(object.getString(SERVER_NAME, null));
+        options.store(object.getString(STORE_NAME, null));
         JsonArray clientsJson = object.getJsonArray(CLIENTS_NAME);
         JsonObject publish = object.getJsonObject(PUBLISH_NAME);
 
