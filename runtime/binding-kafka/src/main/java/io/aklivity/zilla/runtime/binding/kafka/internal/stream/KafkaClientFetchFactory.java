@@ -98,7 +98,6 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
 
     private static final int ERROR_NONE = 0;
     private static final int ERROR_OFFSET_OUT_OF_RANGE = 1;
-    private static final int ERROR_UNKNOWN_TOPIC_OR_PART = 3;
     private static final int ERROR_LEADER_NOT_AVAILABLE = 5;
     private static final int ERROR_NOT_LEADER_FOR_PARTITION = 6;
     private static final int ERROR_BROKER_NOT_AVAILABLE = 8;
@@ -2996,8 +2995,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                     doEncodeRequestIfNecessary(traceId, initialBudgetId);
                     break;
                 default:
-                    if (errorCode == ERROR_UNKNOWN_TOPIC_OR_PART ||
-                        errorCode == ERROR_LEADER_NOT_AVAILABLE ||
+                    if (errorCode == ERROR_LEADER_NOT_AVAILABLE ||
                         errorCode == ERROR_NOT_LEADER_FOR_PARTITION ||
                         errorCode == ERROR_BROKER_NOT_AVAILABLE ||
                         errorCode == ERROR_REPLICA_NOT_AVAILABLE ||
