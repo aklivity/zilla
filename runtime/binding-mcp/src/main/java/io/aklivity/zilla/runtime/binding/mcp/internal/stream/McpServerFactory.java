@@ -2926,7 +2926,7 @@ public final class McpServerFactory implements McpStreamFactory
 
         private long lastActiveAt;
         private long inactiveId = Signaler.NO_CANCEL_ID;
-        private McpEventStream eventStream;
+        private McpEventStream sse;
         private boolean eventsUnsupported;
         private int serverCapabilities;
 
@@ -3146,10 +3146,10 @@ public final class McpServerFactory implements McpStreamFactory
                 requests.values().stream()
                     .forEach(r -> r.doAppCancel(traceId, authorization));
                 requests.clear();
-                if (eventStream != null)
+                if (sse != null)
                 {
-                    eventStream.doNetEnd(traceId, authorization);
-                    eventStream = null;
+                    sse.doNetEnd(traceId, authorization);
+                    sse = null;
                 }
                 doAppEnd(traceId, authorization);
                 sessions.remove(sessionId);
@@ -3183,7 +3183,7 @@ public final class McpServerFactory implements McpStreamFactory
             {
                 cleanupApp(traceId, authorization);
             }
-            else if (eventStream != null && extension.sizeof() > 0)
+            else if (sse != null && extension.sizeof() > 0)
             {
                 final McpFlushExFW flushEx =
                     mcpFlushExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit());
@@ -3202,30 +3202,30 @@ public final class McpServerFactory implements McpStreamFactory
             switch (flushEx.kind())
             {
             case McpFlushExFW.KIND_RESUMABLE:
-                if (eventStream != null)
+                if (sse != null)
                 {
-                    if (!McpState.replyOpening(eventStream.state))
+                    if (!McpState.replyOpening(sse.state))
                     {
-                        eventStream.doNetBeginAccepted(traceId, authorization);
+                        sse.doNetBeginAccepted(traceId, authorization);
                     }
                     final String16FW resumableId = flushEx.resumable().id();
                     if (resumableId != null && resumableId.length() != -1)
                     {
-                        eventStream.doEncodeNotifyEvent(traceId, authorization, LIFECYCLE_STREAM_ID_PREFIX,
+                        sse.doEncodeNotifyEvent(traceId, authorization, LIFECYCLE_STREAM_ID_PREFIX,
                             resumableId, null);
                     }
                 }
                 break;
             case McpFlushExFW.KIND_TOOLS_LIST_CHANGED:
-                eventStream.doEncodeNotifyEvent(traceId, authorization, LIFECYCLE_STREAM_ID_PREFIX,
+                sse.doEncodeNotifyEvent(traceId, authorization, LIFECYCLE_STREAM_ID_PREFIX,
                     flushEx.toolsListChanged().id(), NOTIFICATIONS_TOOLS_LIST_CHANGED_BYTES);
                 break;
             case McpFlushExFW.KIND_PROMPTS_LIST_CHANGED:
-                eventStream.doEncodeNotifyEvent(traceId, authorization, LIFECYCLE_STREAM_ID_PREFIX,
+                sse.doEncodeNotifyEvent(traceId, authorization, LIFECYCLE_STREAM_ID_PREFIX,
                     flushEx.promptsListChanged().id(), NOTIFICATIONS_PROMPTS_LIST_CHANGED_BYTES);
                 break;
             case McpFlushExFW.KIND_RESOURCES_LIST_CHANGED:
-                eventStream.doEncodeNotifyEvent(traceId, authorization, LIFECYCLE_STREAM_ID_PREFIX,
+                sse.doEncodeNotifyEvent(traceId, authorization, LIFECYCLE_STREAM_ID_PREFIX,
                     flushEx.resourcesListChanged().id(), NOTIFICATIONS_RESOURCES_LIST_CHANGED_BYTES);
                 break;
             case McpFlushExFW.KIND_SUSPEND:
@@ -3234,31 +3234,31 @@ public final class McpServerFactory implements McpStreamFactory
                 {
                     eventsUnsupported = true;
                 }
-                if (eventStream != null)
+                if (sse != null)
                 {
-                    if (!McpState.replyOpening(eventStream.state))
+                    if (!McpState.replyOpening(sse.state))
                     {
                         if (suspendRetry == SUSPEND_RETRY_NEVER)
                         {
-                            eventStream.doNetBeginRejected(traceId, authorization, STATUS_405);
+                            sse.doNetBeginRejected(traceId, authorization, STATUS_405);
                         }
                         else
                         {
-                            eventStream.doNetBeginAccepted(traceId, authorization);
+                            sse.doNetBeginAccepted(traceId, authorization);
                             if (suspendRetry > 0)
                             {
-                                eventStream.doEncodeRetryEvent(traceId, authorization, suspendRetry);
+                                sse.doEncodeRetryEvent(traceId, authorization, suspendRetry);
                             }
-                            eventStream.doNetEnd(traceId, authorization);
+                            sse.doNetEnd(traceId, authorization);
                         }
                     }
                     else
                     {
                         if (suspendRetry > 0)
                         {
-                            eventStream.doEncodeRetryEvent(traceId, authorization, suspendRetry);
+                            sse.doEncodeRetryEvent(traceId, authorization, suspendRetry);
                         }
-                        eventStream.doNetEnd(traceId, authorization);
+                        sse.doNetEnd(traceId, authorization);
                     }
                 }
                 break;
@@ -3337,10 +3337,10 @@ public final class McpServerFactory implements McpStreamFactory
                 requests.values().stream()
                     .forEach(r -> r.doAppCancel(traceId, authorization));
                 requests.clear();
-                if (eventStream != null)
+                if (sse != null)
                 {
-                    eventStream.doNetEnd(traceId, authorization);
-                    eventStream = null;
+                    sse.doNetEnd(traceId, authorization);
+                    sse = null;
                 }
                 cancelInactivity();
                 sessions.remove(sessionId);
@@ -3459,20 +3459,20 @@ public final class McpServerFactory implements McpStreamFactory
 
             if (request != null)
             {
-                if (request.eventStream != null)
+                if (request.sse != null)
                 {
-                    request.eventStream.doNetEnd(traceId, authorization);
+                    request.sse.doNetEnd(traceId, authorization);
                 }
-                request.eventStream = this;
+                request.sse = this;
                 request.doAppResume(traceId, authorization, lastEventId);
             }
             else
             {
-                if (session.eventStream != null)
+                if (session.sse != null)
                 {
-                    session.eventStream.doNetEnd(traceId, authorization);
+                    session.sse.doNetEnd(traceId, authorization);
                 }
-                session.eventStream = this;
+                session.sse = this;
                 session.doAppResume(traceId, authorization);
             }
         }
@@ -3588,15 +3588,15 @@ public final class McpServerFactory implements McpStreamFactory
         {
             if (request != null)
             {
-                if (request.eventStream == this)
+                if (request.sse == this)
                 {
-                    request.eventStream = null;
+                    request.sse = null;
                     request.doAppChallenge(traceId, authorization, suspendedChallengeEx());
                 }
             }
-            else if (session.eventStream == this)
+            else if (session.sse == this)
             {
-                session.eventStream = null;
+                session.sse = null;
                 session.doAppChallenge(traceId, authorization, suspendedChallengeEx());
             }
         }
@@ -3785,9 +3785,9 @@ public final class McpServerFactory implements McpStreamFactory
             }
 
             cancelKeepalive();
-            if (session.eventStream == this)
+            if (session.sse == this)
             {
-                session.eventStream = null;
+                session.sse = null;
             }
 
             if (!McpState.replyClosed(state))
@@ -3805,9 +3805,9 @@ public final class McpServerFactory implements McpStreamFactory
             long authorization)
         {
             cancelKeepalive();
-            if (session.eventStream == this)
+            if (session.sse == this)
             {
-                session.eventStream = null;
+                session.sse = null;
             }
 
             if (!McpState.replyClosed(state))
@@ -3930,7 +3930,7 @@ public final class McpServerFactory implements McpStreamFactory
         private final long replyId;
         private MessageConsumer app;
 
-        McpEventStream eventStream;
+        McpEventStream sse;
 
         private String elicitationId;
 
@@ -4035,7 +4035,8 @@ public final class McpServerFactory implements McpStreamFactory
             long traceId,
             long authorization)
         {
-            if (McpState.replyClosed(state) && !McpState.initialClosed(state))
+            if (!McpState.initialClosed(state) &&
+                McpState.replyClosed(state))
             {
                 state = McpState.closedInitial(state);
                 doEnd(app, originId, routedId, initialId,
@@ -4312,9 +4313,9 @@ public final class McpServerFactory implements McpStreamFactory
             }
             else if (payload != null)
             {
-                if (eventStream != null)
+                if (sse != null)
                 {
-                    eventStream.doEncodeResponseSseData(traceId, authorization, requestId, payload.value());
+                    sse.doEncodeResponseSseData(traceId, authorization, requestId, payload.value());
                 }
                 else
                 {
@@ -4359,7 +4360,7 @@ public final class McpServerFactory implements McpStreamFactory
                     {
                         onAppFlushElicitComplete(traceId, authorization, flushEx.elicitComplete());
                     }
-                    else if (eventStream != null)
+                    else if (sse != null)
                     {
                         encodeRequestEventViaEventStream(traceId, authorization, flushEx);
                     }
@@ -4411,31 +4412,31 @@ public final class McpServerFactory implements McpStreamFactory
             switch (flushEx.kind())
             {
             case McpFlushExFW.KIND_RESUMABLE:
-                if (!McpState.replyOpening(eventStream.state))
+                if (!McpState.replyOpening(sse.state))
                 {
-                    eventStream.doNetBeginAccepted(traceId, authorization);
+                    sse.doNetBeginAccepted(traceId, authorization);
                 }
                 final String16FW resumableId = flushEx.resumable().id();
                 if (resumableId != null && resumableId.length() != -1)
                 {
-                    eventStream.doEncodeNotifyEvent(traceId, authorization, requestId,
+                    sse.doEncodeNotifyEvent(traceId, authorization, requestId,
                         resumableId, null);
                 }
                 break;
             case McpFlushExFW.KIND_PROGRESS:
-                eventStream.doEncodeProgressEvent(traceId, authorization, requestId, flushEx.progress());
+                sse.doEncodeProgressEvent(traceId, authorization, requestId, flushEx.progress());
                 break;
             case McpFlushExFW.KIND_SUSPEND:
                 final long requestRetry = flushEx.suspend().retry();
-                if (!McpState.replyOpening(eventStream.state))
+                if (!McpState.replyOpening(sse.state))
                 {
-                    eventStream.doNetBeginAccepted(traceId, authorization);
+                    sse.doNetBeginAccepted(traceId, authorization);
                 }
                 if (requestRetry > 0)
                 {
-                    eventStream.doEncodeRetryEvent(traceId, authorization, requestRetry);
+                    sse.doEncodeRetryEvent(traceId, authorization, requestRetry);
                 }
-                eventStream.doNetEnd(traceId, authorization);
+                sse.doNetEnd(traceId, authorization);
                 break;
             default:
                 break;
@@ -4450,10 +4451,10 @@ public final class McpServerFactory implements McpStreamFactory
 
             state = McpState.closedReply(state);
 
-            if (eventStream != null)
+            if (sse != null)
             {
-                eventStream.doEncodeResponseSsePostamble(traceId, authorization);
-                eventStream.doNetEnd(traceId, authorization);
+                sse.doEncodeResponseSsePostamble(traceId, authorization);
+                sse.doNetEnd(traceId, authorization);
             }
             else
             {

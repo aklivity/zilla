@@ -390,8 +390,7 @@ public final class McpClientFactory implements McpStreamFactory
             stream.paramsParser = requestParserFactory.createParser(input);
         }
         final JsonParser parser = stream.paramsParser;
-        boolean done = false;
-        while (!done && parser.hasNext())
+        while (stream.decoder != decodeRequestEnd && parser.hasNext())
         {
             final JsonParser.Event event = parser.next();
             switch (event)
@@ -405,7 +404,6 @@ public final class McpClientFactory implements McpStreamFactory
                 stream.paramsDepth--;
                 if (stream.paramsDepth == 0)
                 {
-                    done = true;
                     parser.close();
                     stream.paramsParser = null;
                     stream.state = McpState.openedInitial(stream.state);

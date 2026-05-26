@@ -816,7 +816,7 @@ abstract class McpProxyListFactory implements BindingHandler
             {
             case START_OBJECT:
                 client.decodedItemProgress = decodedItemProgress - 1;
-                client.server.streamItemBegin(traceId);
+                client.server.doEncodeBeginItem(traceId);
                 client.decodeItemDepth = 1;
                 client.decoder = decodeItemBody;
                 break decode;
@@ -855,7 +855,7 @@ abstract class McpProxyListFactory implements BindingHandler
                     offset + (int) (client.decodedItemProgress - client.decodedParserProgress);
                 final int decodedLimit = offset + (int) (decodedItemProgress - client.decodedParserProgress);
                 final int chunkLen = decodedLimit - decodedOffset;
-                final int decodedProgress = client.server.streamItemChunk(buffer, decodedOffset, chunkLen, traceId);
+                final int decodedProgress = client.server.doEncodeItemChunk(buffer, decodedOffset, chunkLen, traceId);
                 client.decodedItemProgress += decodedProgress;
                 if (decodedProgress < chunkLen)
                 {
@@ -883,14 +883,14 @@ abstract class McpProxyListFactory implements BindingHandler
                     final int decodedOffset =
                         offset + (int) (client.decodedItemProgress - client.decodedParserProgress);
                     final int chunkLen = decodedLimit - decodedOffset;
-                    final int decodedProgress = client.server.streamItemChunk(buffer, decodedOffset, chunkLen, traceId);
+                    final int decodedProgress = client.server.doEncodeItemChunk(buffer, decodedOffset, chunkLen, traceId);
                     client.decodedItemProgress += decodedProgress;
                     if (decodedProgress < chunkLen)
                     {
                         client.decoder = decodeItemFinalize;
                         break decode;
                     }
-                    client.server.streamItemEnd(traceId);
+                    client.server.doEncodeEndItem(traceId);
                     client.decodedItemProgress = -1;
                     client.decoder = decodeItemStart;
                     break decode;
@@ -936,7 +936,7 @@ abstract class McpProxyListFactory implements BindingHandler
                 offset + (int) (client.decodedItemProgress - client.decodedParserProgress);
             final int decodedLimit = offset + (int) (decodedKeyProgress - client.decodedParserProgress);
             final int chunkLen = decodedLimit - decodedOffset;
-            final int decodedProgress = client.server.streamItemChunk(buffer, decodedOffset, chunkLen, traceId);
+            final int decodedProgress = client.server.doEncodeItemChunk(buffer, decodedOffset, chunkLen, traceId);
             client.decodedItemProgress += decodedProgress;
             if (decodedProgress < chunkLen)
             {
@@ -956,8 +956,8 @@ abstract class McpProxyListFactory implements BindingHandler
                 final int decodedContent = (decodedOpenQuote != -1 ? decodedOpenQuote : decodedValueOffset) + 1;
                 final int decodedOffset =
                     offset + (int) (client.decodedItemProgress - client.decodedParserProgress);
-                client.server.streamItemChunk(buffer, decodedOffset, decodedContent - decodedOffset, traceId);
-                client.server.streamItemChunk(client.prefix.value(), 0, client.prefix.length(), traceId);
+                client.server.doEncodeItemChunk(buffer, decodedOffset, decodedContent - decodedOffset, traceId);
+                client.server.doEncodeItemChunk(client.prefix.value(), 0, client.prefix.length(), traceId);
                 client.decodedItemProgress =
                     client.decodedParserProgress + (long) (decodedContent - offset);
             }
@@ -987,7 +987,7 @@ abstract class McpProxyListFactory implements BindingHandler
                 offset + (int) (client.decodedItemProgress - client.decodedParserProgress);
             final int decodedLimit = offset + (int) (decodedItemProgress - client.decodedParserProgress);
             final int chunkLen = decodedLimit - decodedOffset;
-            final int decodedProgress = client.server.streamItemChunk(buffer, decodedOffset, chunkLen, traceId);
+            final int decodedProgress = client.server.doEncodeItemChunk(buffer, decodedOffset, chunkLen, traceId);
             client.decodedItemProgress += decodedProgress;
             if (decodedProgress < chunkLen)
             {
@@ -995,7 +995,7 @@ abstract class McpProxyListFactory implements BindingHandler
             }
         }
 
-        client.server.streamItemEnd(traceId);
+        client.server.doEncodeEndItem(traceId);
         client.decodedItemProgress = -1;
         client.decoder = decodeItemStart;
 
@@ -1234,7 +1234,7 @@ abstract class McpProxyListFactory implements BindingHandler
             client.doClientBegin(traceId);
         }
 
-        private void streamItemBegin(
+        private void doEncodeBeginItem(
             long traceId)
         {
             if (itemsEmitted > 0)
@@ -1245,7 +1245,7 @@ abstract class McpProxyListFactory implements BindingHandler
             itemsEmitted++;
         }
 
-        private int streamItemChunk(
+        private int doEncodeItemChunk(
             DirectBuffer buffer,
             int offset,
             int length,
@@ -1260,7 +1260,7 @@ abstract class McpProxyListFactory implements BindingHandler
             return emit;
         }
 
-        private void streamItemEnd(
+        private void doEncodeEndItem(
             long traceId)
         {
         }
