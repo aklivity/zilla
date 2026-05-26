@@ -58,6 +58,12 @@ public class SchemaTest
         assertThat(config, not(nullValue()));
     }
 
+    @Test(expected = JsonException.class)
+    public void shouldRejectProxyWithoutStore()
+    {
+        schema.validate("proxy.missing.store.yaml");
+    }
+
     @Test
     public void shouldValidateProxyWithPublishQosMax()
     {
