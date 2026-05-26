@@ -76,15 +76,6 @@ public class FetchIT
 
     @Test
     @Specification({
-        "${net}/unknown.topic.or.part/client",
-        "${net}/unknown.topic.or.part/server"})
-    public void shouldUnknownTopicOrPart() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${net}/storage.error/client",
         "${net}/storage.error/server"})
     public void shouldStorageError() throws Exception

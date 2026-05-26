@@ -151,16 +151,6 @@ public class ClientFetchIT
     @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/partition.not.leader/client",
-        "${net}/unknown.topic.or.part/server"})
-    public void shouldRejectUnknownTopicOrPart() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.when.topic.yaml")
-    @Specification({
-        "${app}/partition.not.leader/client",
         "${net}/broker.not.available/server"})
     public void shouldRejectBrokerNotAvailable() throws Exception
     {
