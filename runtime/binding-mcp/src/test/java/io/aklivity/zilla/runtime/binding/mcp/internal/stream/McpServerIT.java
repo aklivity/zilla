@@ -73,6 +73,26 @@ public class McpServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/lifecycle.initialize.reject.bearer/client",
+        "${app}/lifecycle.initialize.reject.bearer/server"})
+    public void shouldRejectLifecycleInitializeWithBearerChallenge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/tools.call.reject.bearer/client",
+        "${app}/tools.call.reject.bearer/server"})
+    public void shouldRejectToolsCallWithBearerChallenge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/lifecycle.initialize.alt.svc/client",
         "${app}/lifecycle.initialize.alt.svc/server"})
     @Configure(name = MCP_ALT_SVC_ENABLED_NAME, value = "true")

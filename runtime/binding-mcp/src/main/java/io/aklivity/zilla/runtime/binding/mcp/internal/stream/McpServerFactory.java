@@ -60,6 +60,8 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.HttpResetExFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBearerError;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBearerResetExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpChallengeExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpElicitCompleteFlushExFW;
@@ -67,6 +69,7 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpElicitCrea
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpElicitStatus;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpFlushExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpProgressFlushExFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpResetExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.RedirectFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.SignalFW;
@@ -98,6 +101,7 @@ public final class McpServerFactory implements McpStreamFactory
     private static final String HTTP_HEADER_AUTHORITY = ":authority";
     private static final String HTTP_HEADER_SESSION = "mcp-session-id";
     private static final String HTTP_HEADER_STATUS = ":status";
+    private static final String HTTP_HEADER_WWW_AUTHENTICATE = "www-authenticate";
     private static final String HTTP_HEADER_CONTENT_TYPE = "content-type";
     private static final String HTTP_HEADER_ALT_SVC = "alt-svc";
     private static final String HTTP_HEADER_ACCEPT = "accept";
@@ -108,6 +112,8 @@ public final class McpServerFactory implements McpStreamFactory
     private static final String STATUS_200 = "200";
     private static final String STATUS_202 = "202";
     private static final String STATUS_400 = "400";
+    private static final String STATUS_401 = "401";
+    private static final String STATUS_403 = "403";
     private static final String STATUS_405 = "405";
     private static final String STATUS_406 = "406";
     private static final String STATUS_410 = "410";
@@ -169,6 +175,7 @@ public final class McpServerFactory implements McpStreamFactory
     private final HttpBeginExFW httpBeginExRO = new HttpBeginExFW();
     private final McpChallengeExFW mcpChallengeExRO = new McpChallengeExFW();
     private final McpFlushExFW mcpFlushExRO = new McpFlushExFW();
+    private final McpResetExFW mcpResetExRO = new McpResetExFW();
     private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBuffer(), 0, 0);
 
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
@@ -1560,6 +1567,45 @@ public final class McpServerFactory implements McpStreamFactory
             }
         }
 
+        private void doNetBeginRejectedBearer(
+            long traceId,
+            long authorization,
+            String status,
+            String wwwAuthenticate)
+        {
+            doNetBegin(traceId, authorization, httpBeginExRW
+                .wrap(codecBuffer, 0, codecBuffer.capacity())
+                .typeId(httpTypeId)
+                .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(status))
+                .headersItem(h -> h.name(HTTP_HEADER_WWW_AUTHENTICATE).value(wwwAuthenticate))
+                .build());
+
+            doNetEnd(traceId, authorization);
+        }
+
+        private boolean doNetRejectBearer(
+            long traceId,
+            long authorization,
+            OctetsFW extension)
+        {
+            boolean rejected = false;
+            final McpResetExFW resetEx = extension == null
+                ? null
+                : extension.get(mcpResetExRO::tryWrap);
+            if (resetEx != null && resetEx.kind() == McpResetExFW.KIND_BEARER)
+            {
+                final McpBearerResetExFW bearer = resetEx.bearer();
+                final String realm = bearer.realm().asString();
+                final String scopes = bearer.scopes().asString();
+                final McpBearerError error = bearer.error().get();
+                final String status = bearerChallengeStatus(error);
+                final String wwwAuthenticate = bearerChallengeHeader(realm, scopes, error);
+                doNetBeginRejectedBearer(traceId, authorization, status, wwwAuthenticate);
+                rejected = true;
+            }
+            return rejected;
+        }
+
         private void doNetData(
             long traceId,
             long authorization,
@@ -1776,8 +1822,8 @@ public final class McpServerFactory implements McpStreamFactory
                         .sessionId(session.sessionId)
                         .capabilities(CLIENT_CAPABILITIES))
                     .build();
+                session.initializePending = true;
                 session.doAppBegin(traceId, authorization, beginEx);
-                doEncodeInitialize(traceId, authorization);
             }
         }
 
@@ -2909,6 +2955,7 @@ public final class McpServerFactory implements McpStreamFactory
         private final Object2ObjectHashMap<String, McpRequestStream> requests;
         private final Object2ObjectHashMap<String, McpRequestStream> elicitations;
 
+        private final McpServer server;
         private final long originId;
         private final long routedId;
         private final long initialId;
@@ -2929,11 +2976,13 @@ public final class McpServerFactory implements McpStreamFactory
         private McpEventStream sse;
         private boolean eventsUnsupported;
         private int serverCapabilities;
+        private boolean initializePending;
 
         private McpLifecycleStream(
             McpServer server,
             String sessionId)
         {
+            this.server = server;
             this.sessionId = sessionId;
             this.requests = new Object2ObjectHashMap<>();
             this.elicitations = new Object2ObjectHashMap<>();
@@ -3124,6 +3173,12 @@ public final class McpServerFactory implements McpStreamFactory
                 serverCapabilities = beginEx.lifecycle().capabilities();
             }
 
+            if (initializePending)
+            {
+                initializePending = false;
+                server.doEncodeInitialize(traceId, authorization);
+            }
+
             doAppWindow(traceId, authorization, 0L, 0);
         }
 
@@ -3312,8 +3367,18 @@ public final class McpServerFactory implements McpStreamFactory
         {
             final long traceId = reset.traceId();
             final long authorization = reset.authorization();
+            final OctetsFW extension = reset.extension();
 
             state = McpState.closedInitial(state);
+
+            if (initializePending)
+            {
+                initializePending = false;
+                if (!server.doNetRejectBearer(traceId, authorization, extension))
+                {
+                    server.doNetReset(traceId, authorization);
+                }
+            }
 
             doAppReset(traceId, authorization);
 
@@ -4507,8 +4572,12 @@ public final class McpServerFactory implements McpStreamFactory
         {
             final long traceId = reset.traceId();
             final long authorization = reset.authorization();
+            final OctetsFW extension = reset.extension();
 
-            server.doNetReset(traceId, authorization);
+            if (!server.doNetRejectBearer(traceId, authorization, extension))
+            {
+                server.doNetReset(traceId, authorization);
+            }
         }
 
         private void cleanupApp(
@@ -4849,6 +4918,33 @@ public final class McpServerFactory implements McpStreamFactory
             accept.contains("text/*") ||
             accept.contains("*/*");
         return jsonOk && sseOk;
+    }
+
+    private static String bearerChallengeStatus(
+        McpBearerError error)
+    {
+        return error == McpBearerError.INSUFFICIENT_SCOPE ? STATUS_403 : STATUS_401;
+    }
+
+    private static String bearerChallengeHeader(
+        String realm,
+        String scopes,
+        McpBearerError error)
+    {
+        final StringBuilder challenge = new StringBuilder("Bearer");
+        String separator = " ";
+        if (realm != null)
+        {
+            challenge.append(separator).append("realm=\"").append(realm).append('"');
+            separator = ", ";
+        }
+        if (scopes != null)
+        {
+            challenge.append(separator).append("scope=\"").append(scopes).append('"');
+            separator = ", ";
+        }
+        challenge.append(separator).append("error=\"").append(error.name().toLowerCase()).append('"');
+        return challenge.toString();
     }
 
     private static boolean acceptIncludesEventStream(

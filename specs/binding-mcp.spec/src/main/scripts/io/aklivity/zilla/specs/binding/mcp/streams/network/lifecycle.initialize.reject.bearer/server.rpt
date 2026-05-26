@@ -36,7 +36,7 @@ read closed
 write zilla:begin.ext ${http:beginEx()
                             .typeId(zilla:id("http"))
                             .header(":status", "403")
-                            .header("www-authenticate", "Bearer realm=\"github\", scope=\"repo\"")
+                            .header("www-authenticate", "Bearer realm=\"github\", scope=\"repo\", error=\"insufficient_scope\"")
                             .build()}
 write flush
 
