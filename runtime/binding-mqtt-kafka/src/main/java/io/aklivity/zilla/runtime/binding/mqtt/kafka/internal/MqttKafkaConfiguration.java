@@ -19,6 +19,7 @@ import static java.time.Instant.now;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
+import java.time.Duration;
 import java.util.UUID;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
@@ -42,6 +43,8 @@ public class MqttKafkaConfiguration extends Configuration
     public static final IntPropertyDef BOOTSTRAP_STREAM_RECONNECT_DELAY;
     public static final IntPropertyDef PUBLISH_QOS_MAX;
     public static final PropertyDef<String> KAFKA_GROUP_ID_PREFIX;
+    public static final PropertyDef<Duration> SESSION_LEASE;
+    public static final PropertyDef<Duration> SESSION_RENEW;
 
     static
     {
@@ -62,6 +65,10 @@ public class MqttKafkaConfiguration extends Configuration
         BOOTSTRAP_STREAM_RECONNECT_DELAY = config.property("bootstrap.stream.reconnect", 2);
         PUBLISH_QOS_MAX = config.property("publish.qos.max", 2);
         KAFKA_GROUP_ID_PREFIX = config.property("group.id.prefix.format", "zilla:%s-%s");
+        SESSION_LEASE = config.property(Duration.class, "session.lease",
+            (c, v) -> Duration.parse(v), "PT30S");
+        SESSION_RENEW = config.property(Duration.class, "session.renew",
+            (c, v) -> Duration.parse(v), "PT10S");
         MQTT_KAFKA_CONFIG = config;
     }
 
@@ -129,6 +136,16 @@ public class MqttKafkaConfiguration extends Configuration
     public String groupIdPrefixFormat()
     {
         return KAFKA_GROUP_ID_PREFIX.get(this);
+    }
+
+    public Duration sessionLease()
+    {
+        return SESSION_LEASE.get(this);
+    }
+
+    public Duration sessionRenew()
+    {
+        return SESSION_RENEW.get(this);
     }
 
 
