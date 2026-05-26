@@ -29,7 +29,6 @@ import static java.util.Objects.requireNonNull;
 
 import java.nio.ByteBuffer;
 import java.util.function.Consumer;
-import java.util.function.LongConsumer;
 import java.util.function.LongFunction;
 import java.util.zip.CRC32C;
 
@@ -2270,11 +2269,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 case ERROR_NOT_LEADER_FOR_PARTITION:
                 case ERROR_KAFKA_STORAGE_ERROR:
                 {
-                    final LongConsumer metaFlushSignal = clientRoute.metaFlushSignal;
-                    if (metaFlushSignal != null)
-                    {
-                        metaFlushSignal.accept(traceId);
-                    }
+                    clientRoute.metaFlush.accept(traceId);
                     final KafkaResetExFW resetEx = kafkaResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
                                                                  .typeId(kafkaTypeId)
                                                                  .error(errorCode)
@@ -2335,11 +2330,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 doNetworkResetIfNecessary(traceId);
                 doNetworkAbortIfNecessary(traceId);
 
-                final LongConsumer metaFlushSignal = clientRoute.metaFlushSignal;
-                if (metaFlushSignal != null)
-                {
-                    metaFlushSignal.accept(traceId);
-                }
+                clientRoute.metaFlush.accept(traceId);
 
                 stream.cleanupApplication(traceId, EMPTY_OCTETS);
             }

@@ -55,7 +55,7 @@ final class KafkaBindingContext implements BindingContext
         Map<KindConfig, KafkaStreamFactory> factories = new EnumMap<>(KindConfig.class);
         factories.put(CLIENT, new KafkaClientFactory(config, context, this::supplyClientRoute));
         factories.put(CACHE_SERVER, new KafkaCacheServerFactory(config, context, supplyCache,
-            this::supplyCacheRoute, this::supplyClientRoute));
+            this::supplyCacheRoute));
         factories.put(CACHE_CLIENT, new KafkaCacheClientFactory(config, context, supplyCache,
             this::supplyCacheRoute));
         this.factories = factories;

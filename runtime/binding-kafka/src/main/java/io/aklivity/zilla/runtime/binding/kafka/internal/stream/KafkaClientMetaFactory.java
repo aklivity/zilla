@@ -904,9 +904,9 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
 
             state = KafkaState.openingInitial(state);
             clientRoute.metaInitialId = initialId;
-            if (clientRoute.metaFlushSignal == null)
+            if (clientRoute.metaFlush == KafkaClientRoute.NOOP)
             {
-                clientRoute.metaFlushSignal = client::doEncodeRequestIfNecessary;
+                clientRoute.metaFlush = client::doEncodeRequestIfNecessary;
             }
 
             client.doNetworkBegin(traceId, authorization, affinity);
@@ -928,7 +928,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
 
             state = KafkaState.closedInitial(state);
             clientRoute.metaInitialId = 0L;
-            clientRoute.metaFlushSignal = null;
+            clientRoute.metaFlush = KafkaClientRoute.NOOP;
 
             client.doNetworkEnd(traceId, authorization);
         }
@@ -940,7 +940,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
 
             state = KafkaState.closedInitial(state);
             clientRoute.metaInitialId = 0L;
-            clientRoute.metaFlushSignal = null;
+            clientRoute.metaFlush = KafkaClientRoute.NOOP;
 
             client.doNetworkAbortIfNecessary(traceId);
         }
@@ -1082,7 +1082,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
         {
             state = KafkaState.closedInitial(state);
             clientRoute.metaInitialId = 0L;
-            clientRoute.metaFlushSignal = null;
+            clientRoute.metaFlush = KafkaClientRoute.NOOP;
             //client.stream = nullIfClosed(state, client.stream);
 
             doReset(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,

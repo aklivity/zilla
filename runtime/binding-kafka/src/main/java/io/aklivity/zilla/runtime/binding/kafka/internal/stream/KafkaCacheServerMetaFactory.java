@@ -104,7 +104,6 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
     private final LongFunction<KafkaBindingConfig> supplyBinding;
     private final Function<String, KafkaCache> supplyCache;
     private final LongFunction<KafkaCacheRoute> supplyCacheRoute;
-    private final LongFunction<KafkaClientRoute> supplyClientRoute;
     private final int reconnectDelay;
 
     public KafkaCacheServerMetaFactory(
@@ -112,8 +111,7 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
         EngineContext context,
         LongFunction<KafkaBindingConfig> supplyBinding,
         Function<String, KafkaCache> supplyCache,
-        LongFunction<KafkaCacheRoute> supplyCacheRoute,
-        LongFunction<KafkaClientRoute> supplyClientRoute)
+        LongFunction<KafkaCacheRoute> supplyCacheRoute)
     {
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.writeBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
@@ -129,7 +127,6 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
         this.supplyBinding = supplyBinding;
         this.supplyCache = supplyCache;
         this.supplyCacheRoute = supplyCacheRoute;
-        this.supplyClientRoute = supplyClientRoute;
         this.reconnectDelay = KAFKA_CACHE_SERVER_RECONNECT_DELAY.getAsInt(config);
     }
 
@@ -440,7 +437,6 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
         private final KafkaCacheTopic topic;
         private final List<KafkaCacheServerMetaStream> members;
         private final KafkaCacheRoute cacheRoute;
-        private final KafkaClientRoute clientRoute;
         private final Int2IntHashMap leadersByPartitionId;
 
         private long initialId;
@@ -472,7 +468,6 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
             this.topic = topic;
             this.members = new ArrayList<>();
             this.cacheRoute = supplyCacheRoute.apply(routedId);
-            this.clientRoute = supplyClientRoute.apply(routedId);
             this.leadersByPartitionId = cacheRoute.supplyLeadersByPartitionId(topic.name());
         }
 
@@ -526,8 +521,6 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
                     signaler.cancel(reconnectAt);
                     this.reconnectAt = NO_CANCEL_ID;
                 }
-
-                clientRoute.metaFlushSignal = null;
 
                 doMetaFanoutInitialEndIfNecessary(traceId);
                 doMetaFanoutReplyResetIfNecessary(traceId);
@@ -618,8 +611,6 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
 
             state = KafkaState.closedInitial(state);
 
-            clientRoute.metaFlushSignal = null;
-
             doMetaFanoutReplyResetIfNecessary(traceId);
 
             if (reconnectDelay != 0 && !members.isEmpty())
@@ -660,8 +651,6 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
                 final long traceId = window.traceId();
 
                 state = KafkaState.openedInitial(state);
-
-                clientRoute.metaFlushSignal = this::doMetaFanoutFlushIfNecessary;
 
                 members.forEach(s -> s.doMetaInitialWindow(traceId, 0L, 0, 0, 0));
             }
@@ -757,8 +746,6 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
 
             state = KafkaState.closedReply(state);
 
-            clientRoute.metaFlushSignal = null;
-
             doMetaFanoutInitialEndIfNecessary(traceId);
 
             if (reconnectDelay != 0 && !members.isEmpty())
@@ -795,8 +782,6 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
             final long traceId = abort.traceId();
 
             state = KafkaState.closedReply(state);
-
-            clientRoute.metaFlushSignal = null;
 
             doMetaFanoutInitialAbortIfNecessary(traceId);
 

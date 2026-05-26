@@ -22,7 +22,6 @@ import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static java.util.Objects.requireNonNull;
 
 import java.util.function.Consumer;
-import java.util.function.LongConsumer;
 import java.util.function.LongFunction;
 
 import org.agrona.DirectBuffer;
@@ -3008,11 +3007,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                         errorCode == ERROR_OFFSET_NOT_AVAILABLE ||
                         errorCode == ERROR_UNKNOWN_TOPIC_ID)
                     {
-                        final LongConsumer metaFlushSignal = clientRoute.metaFlushSignal;
-                        if (metaFlushSignal != null)
-                        {
-                            metaFlushSignal.accept(traceId);
-                        }
+                        clientRoute.metaFlush.accept(traceId);
                     }
                     else
                     {
@@ -3237,11 +3232,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                 doNetworkResetIfNecessary(traceId);
                 doNetworkAbortIfNecessary(traceId);
 
-                final LongConsumer metaFlushSignal = clientRoute.metaFlushSignal;
-                if (metaFlushSignal != null)
-                {
-                    metaFlushSignal.accept(traceId);
-                }
+                clientRoute.metaFlush.accept(traceId);
 
                 cleanupApplication(traceId, EMPTY_OCTETS);
             }

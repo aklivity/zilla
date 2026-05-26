@@ -29,8 +29,10 @@ public final class KafkaClientRoute
     public final Long2ObjectHashMap<KafkaServerConfig> servers;
     public final Int2ObjectHashMap<Int2IntHashMap> partitions;
 
+    public static final LongConsumer NOOP = t -> {};
+
     public volatile long metaInitialId;
-    public volatile LongConsumer metaFlushSignal;
+    public LongConsumer metaFlush = NOOP;
 
     public KafkaClientRoute(
         long resolvedId)

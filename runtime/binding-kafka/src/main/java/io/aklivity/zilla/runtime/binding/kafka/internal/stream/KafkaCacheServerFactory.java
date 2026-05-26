@@ -51,8 +51,7 @@ public final class KafkaCacheServerFactory implements KafkaStreamFactory
         KafkaConfiguration config,
         EngineContext context,
         Function<String, KafkaCache> supplyCache,
-        LongFunction<KafkaCacheRoute> supplyCacheRoute,
-        LongFunction<KafkaClientRoute> supplyClientRoute)
+        LongFunction<KafkaCacheRoute> supplyCacheRoute)
     {
         final Long2ObjectHashMap<KafkaBindingConfig> bindings = new Long2ObjectHashMap<>();
         final Int2ObjectHashMap<BindingHandler> factories = new Int2ObjectHashMap<>();
@@ -61,7 +60,7 @@ public final class KafkaCacheServerFactory implements KafkaStreamFactory
                 config, context, bindings::get);
 
         final KafkaCacheServerMetaFactory cacheMetaFactory = new KafkaCacheServerMetaFactory(
-                config, context, bindings::get, supplyCache, supplyCacheRoute, supplyClientRoute);
+                config, context, bindings::get, supplyCache, supplyCacheRoute);
 
         final KafkaCacheServerDescribeFactory cacheDescribeFactory = new KafkaCacheServerDescribeFactory(
                 config, context, bindings::get, supplyCache, supplyCacheRoute);
