@@ -102,8 +102,10 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
     private static final int PRODUCE_FLUSH_SEQUENCE = -1;
 
     private static final int ERROR_CORRUPT_MESSAGE = 2;
+    private static final int ERROR_LEADER_NOT_AVAILABLE = 5;
     private static final int ERROR_NOT_LEADER_FOR_PARTITION = 6;
     private static final int ERROR_RECORD_LIST_TOO_LARGE = 18;
+    private static final int ERROR_KAFKA_STORAGE_ERROR = 56;
     private static final int NO_ERROR = -1;
     private static final int UNKNOWN_ERROR = -2;
     private static final int ERROR_INVALID_RECORD = 87;
@@ -890,7 +892,10 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             final int error = kafkaResetEx != null ? kafkaResetEx.error() : UNKNOWN_ERROR;
             doClientFanReplyResetIfNecessary(traceId);
 
-            if (reconnectDelay != 0 && !members.isEmpty() && error == ERROR_NOT_LEADER_FOR_PARTITION)
+            if (reconnectDelay != 0 && !members.isEmpty() &&
+                (error == ERROR_LEADER_NOT_AVAILABLE ||
+                 error == ERROR_NOT_LEADER_FOR_PARTITION ||
+                 error == ERROR_KAFKA_STORAGE_ERROR))
             {
                 if (reconnectAt != NO_CANCEL_ID)
                 {
