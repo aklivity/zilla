@@ -144,55 +144,31 @@ connect await RECEIVED_PARTITION_METADATA
          option zilla:transmission "duplex"
 
 write zilla:begin.ext ${kafka:beginEx()
-                               .typeId(zilla:id("kafka"))
-                               .offsetFetch()
-                                   .groupId("zilla:test-mqtt0-client-session")
-                                   .host("broker1.example.com")
-                                   .port(9092)
-                                   .topic("mqtt-messages")
-                                   .partition(0)
-                                   .partition(1)
-                                   .build()
-                               .build()}
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("FETCH_ONLY")
+                                .topic("mqtt-sessions")
+                                .groupId("mqtt-clients")
+                                .filter()
+                                    .key("client#offsets")
+                                    .build()
+                                .build()
+                            .build()}
 connected
 
-read zilla:data.ext ${kafka:dataEx()
-                                   .typeId(zilla:id("kafka"))
-                                   .offsetFetch()
-                                       .partition(0, 1, 0)
-                                       .partition(1, 1, 0)
-                                     .build()
-                                   .build()}
-read zilla:data.empty
-
-write close
-read closed
-
-
-connect await RECEIVED_PARTITION_METADATA
-        "zilla://streams/kafka0"
-         option zilla:window 8192
-         option zilla:transmission "duplex"
-
-write zilla:begin.ext ${kafka:beginEx()
-                               .typeId(zilla:id("kafka"))
-                               .offsetFetch()
-                                   .groupId("zilla:test-mqtt0-client-session")
-                                   .host("broker1.example.com")
-                                   .port(9092)
-                                   .topic("mqtt-retained")
-                                   .partition(0)
-                                   .build()
-                               .build()}
-connected
-
-read zilla:data.ext ${kafka:dataEx()
-                                   .typeId(zilla:id("kafka"))
-                                   .offsetFetch()
-                                       .partition(0, 1, 0)
-                                     .build()
-                                   .build()}
-read zilla:data.empty
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                             .fetch()
+                               .partition(-1, -1)
+                               .key("client#offsets")
+                               .build()
+                           .build()}
+read ${mqtt_kafka:sessionOffsets()
+           .entry("mqtt-messages", 0, 1, 0, 0, 0)
+           .entry("mqtt-messages", 1, 1, 0, 0, 0)
+           .entry("mqtt-retained", 0, 1, 0, 0, 0)
+           .build()}
 read notify RECEIVED_INITIAL_OFFSETS
 
 write close
@@ -233,15 +209,13 @@ connect await RECEIVED_PRODUCER
          option zilla:transmission "duplex"
 
 write zilla:begin.ext ${kafka:beginEx()
-                               .typeId(zilla:id("kafka"))
-                               .offsetCommit()
-                                   .groupId("zilla:test-mqtt0-client-session")
-                                   .memberId("consumer-1")
-                                   .instanceId("zilla")
-                                   .host("broker1.example.com")
-                                   .port(9092)
-                                   .build()
-                               .build()}
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("PRODUCE_ONLY")
+                                .topic("mqtt-sessions")
+                                .groupId("mqtt-clients")
+                                .build()
+                            .build()}
 
 connected
 
