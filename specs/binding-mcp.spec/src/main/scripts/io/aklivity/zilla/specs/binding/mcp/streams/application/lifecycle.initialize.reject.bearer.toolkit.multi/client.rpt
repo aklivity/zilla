@@ -13,22 +13,9 @@
 # specific language governing permissions and limitations under the License.
 #
 
-property serverAddress "zilla://streams/app0"
-
-accept ${serverAddress}
-       option zilla:window 8192
-       option zilla:transmission "half-duplex"
-
-accepted
-
-read zilla:begin.ext ${mcp:matchBeginEx()
-                          .typeId(zilla:id("mcp"))
-                          .lifecycle()
-                              .sessionId("session-1")
-                              .build()
-                          .build()}
-
-connected
+connect "zilla://streams/app0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
 
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
@@ -36,4 +23,16 @@ write zilla:begin.ext ${mcp:beginEx()
                                .sessionId("session-1")
                                .build()
                            .build()}
-write flush
+
+connected
+
+read zilla:reset.ext ${mcp:matchResetEx()
+                          .typeId(zilla:id("mcp"))
+                          .bearer()
+                              .realm("github")
+                              .scopes("repo")
+                              .error("INSUFFICIENT_SCOPE")
+                              .build()
+                          .build()}
+
+write aborted

@@ -105,6 +105,17 @@ public class McpProxyCacheIT
     }
 
     @Test
+    @Configuration("proxy.cache.seeded.yaml")
+    @Specification({
+        "${app}/cache.tools.call.reject.bearer/client",
+        "${app}/cache.tools.call.reject.bearer/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldRejectToolsCallWithBearerChallenge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.cache.yaml")
     @Specification({
         "${app}/cache.hydrate.lifecycle.reconnect/server" })

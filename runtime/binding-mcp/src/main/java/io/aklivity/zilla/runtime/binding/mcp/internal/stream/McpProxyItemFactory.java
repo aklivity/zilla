@@ -476,10 +476,17 @@ abstract class McpProxyItemFactory implements BindingHandler
         private void doServerReset(
             long traceId)
         {
+            doServerReset(traceId, emptyRO);
+        }
+
+        private void doServerReset(
+            long traceId,
+            OctetsFW extension)
+        {
             if (!McpState.initialClosed(state))
             {
                 doReset(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization,
-                    emptyRO);
+                    extension);
                 state = McpState.closedInitial(state);
             }
         }
@@ -821,6 +828,7 @@ abstract class McpProxyItemFactory implements BindingHandler
             final long sequence = reset.sequence();
             final long acknowledge = reset.acknowledge();
             final long traceId = reset.traceId();
+            final OctetsFW extension = reset.extension();
 
             assert acknowledge <= sequence;
             assert sequence <= initialSeq;
@@ -832,7 +840,7 @@ abstract class McpProxyItemFactory implements BindingHandler
 
             state = McpState.closedInitial(state);
 
-            server.doServerReset(traceId);
+            server.doServerReset(traceId, extension);
         }
     }
 

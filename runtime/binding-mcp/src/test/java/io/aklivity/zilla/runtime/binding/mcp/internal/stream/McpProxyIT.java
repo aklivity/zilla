@@ -50,7 +50,9 @@ public class McpProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Specification({
-        "${app}/lifecycle.initialize/client" })
+        "${app}/lifecycle.initialize/client",
+        "${app}/lifecycle.initialize/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldInitializeLifecycle() throws Exception
     {
         k3po.finish();
@@ -59,7 +61,9 @@ public class McpProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Specification({
-        "${app}/lifecycle.shutdown/client" })
+        "${app}/lifecycle.shutdown/client",
+        "${app}/lifecycle.shutdown/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldShutdownLifecycle() throws Exception
     {
         k3po.finish();
@@ -137,6 +141,16 @@ public class McpProxyIT
         "${app}/tools.list.toolkit.multi.prefixed/client",
         "${app}/tools.list.toolkit.multi/server" })
     public void shouldListToolsWithToolkitMulti() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.toolkit.multi.yaml")
+    @Specification({
+        "${app}/lifecycle.initialize.reject.bearer.toolkit.multi/client",
+        "${app}/lifecycle.initialize.reject.bearer.toolkit.multi/server" })
+    public void shouldRejectLifecycleInitializeWithBearerChallengeToolkitMulti() throws Exception
     {
         k3po.finish();
     }

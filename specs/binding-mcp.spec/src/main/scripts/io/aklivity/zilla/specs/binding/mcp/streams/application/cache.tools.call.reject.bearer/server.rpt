@@ -24,7 +24,7 @@ accepted
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .lifecycle()
-                              .sessionId("session-1")
+                              .sessionId("agent-1")
                               .build()
                           .build()}
 
@@ -33,7 +33,38 @@ connected
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .lifecycle()
-                               .sessionId("session-1")
+                               .sessionId("agent-1")
                                .build()
                            .build()}
 write flush
+
+accepted
+
+read zilla:begin.ext ${mcp:matchBeginEx()
+                          .typeId(zilla:id("mcp"))
+                          .toolsCall()
+                              .sessionId("agent-1")
+                              .name("get_weather")
+                              .build()
+                          .build()}
+
+connected
+
+read  '{'
+        '"name":"get_weather",'
+        '"arguments":'
+        '{'
+          '"location": "New York"'
+        '}'
+      '}'
+
+write zilla:reset.ext ${mcp:resetEx()
+                           .typeId(zilla:id("mcp"))
+                           .bearer()
+                               .realm("github")
+                               .scopes("repo")
+                               .error("INSUFFICIENT_SCOPE")
+                               .build()
+                           .build()}
+
+read abort
