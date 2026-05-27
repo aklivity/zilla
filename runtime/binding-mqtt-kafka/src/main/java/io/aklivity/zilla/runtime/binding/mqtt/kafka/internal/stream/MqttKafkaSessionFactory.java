@@ -25,6 +25,7 @@ import static org.agrona.BitUtil.SIZE_OF_INT;
 import static org.agrona.BitUtil.SIZE_OF_LONG;
 
 import java.nio.ByteOrder;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -120,6 +121,7 @@ import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
+import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 
 
 public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
@@ -130,6 +132,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private static final String MQTT_TYPE_NAME = "mqtt";
     private static final String MIGRATE_KEY_POSTFIX = "#migrate";
     private static final String OFFSETS_KEY_POSTFIX = "#offsets";
+    private static final String OWNER_KEY_POSTFIX = "#owner";
     private static final String WILL_SIGNAL_KEY_POSTFIX = "#will";
     private static final String EXPIRY_SIGNAL_KEY_POSTFIX = "#expiry";
     private static final String WILL_KEY_POSTFIX = "#will-";
@@ -153,6 +156,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private static final int SIGNAL_DELIVER_WILL_MESSAGE = 1;
     private static final int SIGNAL_CONNECT_WILL_STREAM = 2;
     private static final int SIGNAL_EXPIRE_SESSION = 3;
+    private static final int SIGNAL_RENEW_SESSION_OWNERSHIP = 4;
     private static final int SIZE_OF_UUID = 36;
     private static final int RETAIN_AVAILABLE_MASK = 1 << MqttServerCapabilities.RETAIN.value();
     private static final int WILDCARD_AVAILABLE_MASK = 1 << MqttServerCapabilities.WILDCARD.value();
@@ -277,6 +281,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private final KafkaSessionOffsetsHelper sessionOffsetsHelper;
     private final MqttKafkaSessionOffsetsFW sessionOffsetsRO = new MqttKafkaSessionOffsetsFW();
     private final MqttQoS publishQosMax;
+    private final Duration sessionLease;
+    private final Duration sessionRenew;
     private final String groupIdPrefixFormat;
     private final Function<Long, String> supplyNamespace;
     private final Function<Long, String> supplyLocalName;
@@ -324,6 +330,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         this.instanceId = instanceId;
         this.reconnectDelay = config.willStreamReconnectDelay();
         this.publishQosMax = config.publishQosMax();
+        this.sessionLease = config.sessionLease();
+        this.sessionRenew = config.sessionRenew();
         this.qosLevels = new Int2ObjectHashMap<>();
         this.qosLevels.put(0, new String16FW("0"));
         this.qosLevels.put(1, new String16FW("1"));
@@ -364,7 +372,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             final String16FW sessionTopic = binding.sessionsTopic();
 
             final MqttQoS publishQosMax = MqttQoS.valueOf(Math.min(binding.publishQosMax().value(), this.publishQosMax.value()));
-            final MqttSessionProxy proxy = new MqttSessionProxy(mqtt, originId, routedId, initialId, resolvedId,
+            final MqttSessionProxy proxy = new MqttSessionProxy(mqtt, binding.store, originId, routedId, initialId, resolvedId,
                 binding.id, sessionTopic, publishQosMax);
             newStream = proxy::onMqttMessage;
         }
@@ -434,6 +442,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private final class MqttSessionProxy
     {
         private final MessageConsumer mqtt;
+        private final StoreHandler store;
         private final long resolvedId;
         private final long originId;
         private final long routedId;
@@ -490,8 +499,14 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         private long producerId;
         private short producerEpoch;
 
+        private String ownerKey;
+        private String ownerToken;
+        private long renewAt = NO_CANCEL_ID;
+        private boolean owns;
+
         private MqttSessionProxy(
             MessageConsumer mqtt,
+            StoreHandler store,
             long originId,
             long routedId,
             long initialId,
@@ -501,6 +516,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             MqttQoS publishQosMax)
         {
             this.mqtt = mqtt;
+            this.store = store;
             this.originId = originId;
             this.routedId = routedId;
             this.resolvedId = resolvedId;
@@ -562,6 +578,10 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 final WindowFW window = windowRO.wrap(buffer, index, index + length);
                 onMqttWindow(window);
                 break;
+            case SignalFW.TYPE_ID:
+                final SignalFW signal = signalRO.wrap(buffer, index, index + length);
+                onMqttSignal(signal);
+                break;
             }
         }
 
@@ -594,6 +614,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             this.clientId = new String16FW(clientId0);
             this.clientIdMigrate = new String16FW(clientId0 + MIGRATE_KEY_POSTFIX);
             this.clientIdOffsets = new String16FW(clientId0 + OFFSETS_KEY_POSTFIX);
+            this.ownerKey = clientId0 + OWNER_KEY_POSTFIX;
 
             sessionExpiryMillis = (int) SECONDS.toMillis(mqttSessionBeginEx.expiry());
             sessionFlags = mqttSessionBeginEx.flags();
@@ -622,6 +643,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 this.metadata.clientId = clientId;
                 clientMetadata.put(affinity, metadata);
             }
+
+            doAcquireOwnership(traceId);
         }
 
         private void onMqttData(
@@ -850,6 +873,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             assert initialAck <= initialSeq;
 
+            doReleaseOwnership(traceId);
+
             if (isSetWillFlag(sessionFlags))
             {
                 // Cleanup will message + will signal
@@ -945,6 +970,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             assert initialAck <= initialSeq;
 
+            doReleaseOwnership(traceId);
+
             if (isSetWillFlag(sessionFlags))
             {
                 session.sendWillSignal(traceId, authorization);
@@ -999,6 +1026,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             assert replyAck <= replySeq;
 
+            doReleaseOwnership(traceId);
+
             session.doKafkaReset(traceId);
             if (group != null)
             {
@@ -1017,6 +1046,79 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             if (offsetCommit != null)
             {
                 offsetCommit.doKafkaReset(traceId);
+            }
+        }
+
+        private void onMqttSignal(
+            SignalFW signal)
+        {
+            switch (signal.signalId())
+            {
+            case SIGNAL_RENEW_SESSION_OWNERSHIP:
+                onRenewOwnership(signal.traceId());
+                break;
+            }
+        }
+
+        private void doAcquireOwnership(
+            long traceId)
+        {
+            store.lock(ownerKey, sessionLease, (key, token) -> onOwnershipLocked(traceId, token));
+        }
+
+        private void onOwnershipLocked(
+            long traceId,
+            String token)
+        {
+            if (token != null)
+            {
+                owns = true;
+                ownerToken = token;
+                renewAt = signaler.signalAt(currentTimeMillis() + sessionRenew.toMillis(),
+                    originId, routedId, initialId, traceId, SIGNAL_RENEW_SESSION_OWNERSHIP, 0);
+            }
+        }
+
+        private void onRenewOwnership(
+            long traceId)
+        {
+            renewAt = NO_CANCEL_ID;
+            if (owns && ownerToken != null)
+            {
+                store.renew(ownerKey, ownerToken, sessionLease, token -> onOwnershipRenewed(traceId, token));
+            }
+        }
+
+        private void onOwnershipRenewed(
+            long traceId,
+            String token)
+        {
+            if (token != null)
+            {
+                renewAt = signaler.signalAt(currentTimeMillis() + sessionRenew.toMillis(),
+                    originId, routedId, initialId, traceId, SIGNAL_RENEW_SESSION_OWNERSHIP, 0);
+            }
+            else
+            {
+                owns = false;
+                ownerToken = null;
+            }
+        }
+
+        private void doReleaseOwnership(
+            long traceId)
+        {
+            if (renewAt != NO_CANCEL_ID)
+            {
+                signaler.cancel(renewAt);
+                renewAt = NO_CANCEL_ID;
+            }
+
+            if (owns && ownerToken != null)
+            {
+                store.unlock(ownerKey, ownerToken, token -> {});
+                owns = false;
+                ownerToken = null;
             }
         }
 
