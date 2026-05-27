@@ -36,10 +36,13 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
 public class MqttKafkaPublishMetadata
 {
     final Long2ObjectHashMap<KafkaOffsetMetadata> offsets;
+    final List<KafkaOffsetMetadata> orderedOffsets;
     final Int2ObjectHashMap<List<KafkaTopicPartition>> partitions;
     final Long2LongHashMap leaderEpochs;
 
     KafkaGroup group;
+    String16FW sessionsTopic;
+    String16FW clientId;
 
     public MqttKafkaPublishMetadata(
         Long2ObjectHashMap<KafkaOffsetMetadata> offsets,
@@ -47,6 +50,7 @@ public class MqttKafkaPublishMetadata
         Long2LongHashMap leaderEpochs)
     {
         this.offsets = offsets;
+        this.orderedOffsets = new ArrayList<>();
         this.partitions = partitions;
         this.leaderEpochs = leaderEpochs;
     }
