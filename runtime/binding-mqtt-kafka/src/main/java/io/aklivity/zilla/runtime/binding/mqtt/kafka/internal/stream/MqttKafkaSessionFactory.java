@@ -1224,6 +1224,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 : EMPTY_OCTETS;
 
             doMqttReset(traceId, mqttResetEx);
+            doMqttAbort(traceId, authorization);
         }
 
         private String ownerIdentity()
