@@ -1146,7 +1146,9 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         {
             final OwnershipRecord challenger = OwnershipRecord.decode(value);
 
-            if (owns && challenger != null && !ownerIdentity().equals(challenger.identity))
+            // Surrender to any other connection that has claimed the clientId — a different
+            // nonce means a newer connection (same replica or another) now owns the session.
+            if (owns && challenger != null && !ownerNonce().equals(challenger.nonce))
             {
                 owns = false;
 
@@ -1232,9 +1234,16 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             return serverRef != null ? serverRef : replicaId;
         }
 
+        // Globally-unique per-connection discriminator: replicaId is unique per engine
+        // instance (node), initialId is unique per stream within a node.
+        private String ownerNonce()
+        {
+            return replicaId + '-' + initialId;
+        }
+
         private String ownershipRecord()
         {
-            return OwnershipRecord.encode(serverRef != null, ownerIdentity());
+            return OwnershipRecord.encode(serverRef != null, ownerIdentity(), ownerNonce());
         }
 
         private void onMqttWindow(
@@ -5447,23 +5456,28 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private static final class OwnershipRecord
     {
         private static final String WEAK_PREFIX = "W/";
+        private static final String FIELD_SEPARATOR = "\u001f";
 
         private final boolean strong;
         private final String identity;
+        private final String nonce;
 
         private OwnershipRecord(
             boolean strong,
-            String identity)
+            String identity,
+            String nonce)
         {
             this.strong = strong;
             this.identity = identity;
+            this.nonce = nonce;
         }
 
         private static String encode(
             boolean strong,
-            String identity)
+            String identity,
+            String nonce)
         {
-            return strong ? identity : WEAK_PREFIX + identity;
+            return (strong ? identity : WEAK_PREFIX + identity) + FIELD_SEPARATOR + nonce;
         }
 
         private static OwnershipRecord decode(
@@ -5474,8 +5488,11 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             if (value != null && !value.isEmpty())
             {
                 final boolean weak = value.startsWith(WEAK_PREFIX);
-                final String identity = weak ? value.substring(WEAK_PREFIX.length()) : value;
-                record = new OwnershipRecord(!weak, identity);
+                final String body = weak ? value.substring(WEAK_PREFIX.length()) : value;
+                final int separator = body.indexOf(FIELD_SEPARATOR);
+                final String identity = separator >= 0 ? body.substring(0, separator) : body;
+                final String nonce = separator >= 0 ? body.substring(separator + FIELD_SEPARATOR.length()) : null;
+                record = new OwnershipRecord(!weak, identity, nonce);
             }
 
             return record;
