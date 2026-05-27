@@ -192,4 +192,169 @@ public class MqttKafkaFunctionsTest
 
         assertThrows(Exception.class, () -> matcher.match(ByteBuffer.wrap(bytes)));
     }
+
+    @Test
+    public void shouldIgnoreSessionOffsetsWhenNoConstraints() throws Exception
+    {
+        final byte[] bytes = MqttKafkaFunctions.sessionOffsets()
+            .version(1)
+            .entry("sensor/one", 0, 100L, 42L, 7, 3)
+            .build();
+
+        BytesMatcher matcher = MqttKafkaFunctions.matchSessionOffsets()
+            .build();
+
+        assertNull(matcher.match(ByteBuffer.wrap(bytes)));
+    }
+
+    @Test
+    public void shouldMatchSessionOffsetsByVersionOnly() throws Exception
+    {
+        final byte[] bytes = MqttKafkaFunctions.sessionOffsets()
+            .version(1)
+            .entry("sensor/one", 0, 100L, 42L, 7, 3)
+            .build();
+
+        BytesMatcher matcher = MqttKafkaFunctions.matchSessionOffsets()
+            .version(1)
+            .build();
+
+        ByteBuffer matched = (ByteBuffer) matcher.match(ByteBuffer.wrap(bytes));
+
+        assertEquals(bytes.length, matched.position());
+    }
+
+    @Test
+    public void shouldNotMatchSessionOffsetsOnVersion()
+    {
+        final byte[] bytes = MqttKafkaFunctions.sessionOffsets()
+            .version(1)
+            .entry("sensor/one", 0, 100L, 42L, 7, 3)
+            .build();
+
+        BytesMatcher matcher = MqttKafkaFunctions.matchSessionOffsets()
+            .version(2)
+            .build();
+
+        assertThrows(Exception.class, () -> matcher.match(ByteBuffer.wrap(bytes)));
+    }
+
+    @Test
+    public void shouldNotMatchSessionOffsetsOnEntryCount()
+    {
+        final byte[] bytes = MqttKafkaFunctions.sessionOffsets()
+            .version(1)
+            .entry("sensor/one", 0, 100L, 42L, 7, 3)
+            .build();
+
+        BytesMatcher matcher = MqttKafkaFunctions.matchSessionOffsets()
+            .version(1)
+            .entry("sensor/one", 0, 100L, 42L, 7, 3)
+            .entry("sensor/two", 1, 200L, 43L, 8, 4)
+            .build();
+
+        assertThrows(Exception.class, () -> matcher.match(ByteBuffer.wrap(bytes)));
+    }
+
+    @Test
+    public void shouldNotMatchSessionOffsetsOnPartitionId()
+    {
+        final byte[] bytes = MqttKafkaFunctions.sessionOffsets()
+            .version(1)
+            .entry("sensor/one", 0, 100L, 42L, 7, 3)
+            .build();
+
+        BytesMatcher matcher = MqttKafkaFunctions.matchSessionOffsets()
+            .entry("sensor/one", 9, 100L, 42L, 7, 3)
+            .build();
+
+        assertThrows(Exception.class, () -> matcher.match(ByteBuffer.wrap(bytes)));
+    }
+
+    @Test
+    public void shouldNotMatchSessionOffsetsOnConsumedOffset()
+    {
+        final byte[] bytes = MqttKafkaFunctions.sessionOffsets()
+            .version(1)
+            .entry("sensor/one", 0, 100L, 42L, 7, 3)
+            .build();
+
+        BytesMatcher matcher = MqttKafkaFunctions.matchSessionOffsets()
+            .entry("sensor/one", 0, 999L, 42L, 7, 3)
+            .build();
+
+        assertThrows(Exception.class, () -> matcher.match(ByteBuffer.wrap(bytes)));
+    }
+
+    @Test
+    public void shouldNotMatchSessionOffsetsOnProducerId()
+    {
+        final byte[] bytes = MqttKafkaFunctions.sessionOffsets()
+            .version(1)
+            .entry("sensor/one", 0, 100L, 42L, 7, 3)
+            .build();
+
+        BytesMatcher matcher = MqttKafkaFunctions.matchSessionOffsets()
+            .entry("sensor/one", 0, 100L, 99L, 7, 3)
+            .build();
+
+        assertThrows(Exception.class, () -> matcher.match(ByteBuffer.wrap(bytes)));
+    }
+
+    @Test
+    public void shouldNotMatchSessionOffsetsOnProducerEpoch()
+    {
+        final byte[] bytes = MqttKafkaFunctions.sessionOffsets()
+            .version(1)
+            .entry("sensor/one", 0, 100L, 42L, 7, 3)
+            .build();
+
+        BytesMatcher matcher = MqttKafkaFunctions.matchSessionOffsets()
+            .entry("sensor/one", 0, 100L, 42L, 9, 3)
+            .build();
+
+        assertThrows(Exception.class, () -> matcher.match(ByteBuffer.wrap(bytes)));
+    }
+
+    @Test
+    public void shouldNotMatchSessionOffsetsOnProducerSequence()
+    {
+        final byte[] bytes = MqttKafkaFunctions.sessionOffsets()
+            .version(1)
+            .entry("sensor/one", 0, 100L, 42L, 7, 3)
+            .build();
+
+        BytesMatcher matcher = MqttKafkaFunctions.matchSessionOffsets()
+            .entry("sensor/one", 0, 100L, 42L, 7, 9)
+            .build();
+
+        assertThrows(Exception.class, () -> matcher.match(ByteBuffer.wrap(bytes)));
+    }
+
+    @Test
+    public void shouldNotMatchSessionOffsetsOnPacketIds()
+    {
+        final byte[] bytes = MqttKafkaFunctions.sessionOffsets()
+            .version(1)
+            .entry("sensor/one", 0, 100L, 42L, 7, 3)
+                .packetId(10)
+            .build();
+
+        BytesMatcher matcher = MqttKafkaFunctions.matchSessionOffsets()
+            .entry("sensor/one", 0, 100L, 42L, 7, 3)
+                .packetId(20)
+            .build();
+
+        assertThrows(Exception.class, () -> matcher.match(ByteBuffer.wrap(bytes)));
+    }
+
+    @Test
+    public void shouldNotMatchSessionOffsetsWhenBufferEmpty()
+    {
+        BytesMatcher matcher = MqttKafkaFunctions.matchSessionOffsets()
+            .version(1)
+            .build();
+
+        assertThrows(Exception.class, () -> matcher.match(ByteBuffer.allocate(0)));
+    }
 }
