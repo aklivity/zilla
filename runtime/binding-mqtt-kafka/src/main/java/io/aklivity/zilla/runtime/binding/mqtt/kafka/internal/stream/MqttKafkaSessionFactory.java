@@ -4493,6 +4493,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             assert replyAck <= replySeq;
 
+            delegate.doMqttReset(traceId, EMPTY_OCTETS);
             delegate.doMqttAbort(traceId, authorization);
         }
 

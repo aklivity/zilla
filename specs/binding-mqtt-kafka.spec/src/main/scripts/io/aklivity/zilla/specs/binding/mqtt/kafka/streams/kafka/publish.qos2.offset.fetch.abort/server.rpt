@@ -136,17 +136,17 @@ write close
 
 accepted
 
-read zilla:begin.ext ${kafka:beginEx()
-                               .typeId(zilla:id("kafka"))
-                               .offsetFetch()
-                                   .groupId("zilla:test-mqtt0-client-session")
-                                   .host("broker1.example.com")
-                                   .port(9092)
-                                   .topic("mqtt-messages")
-                                   .partition(0)
-                                   .partition(1)
-                                   .build()
-                               .build()}
+read zilla:begin.ext ${kafka:matchBeginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("FETCH_ONLY")
+                                .topic("mqtt-sessions")
+                                .groupId("mqtt-clients")
+                                .filter()
+                                    .key("client#offsets")
+                                    .build()
+                                .build()
+                            .build()}
 
 connected
 
