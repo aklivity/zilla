@@ -288,6 +288,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private final MqttQoS publishQosMax;
     private final Duration sessionLease;
     private final Duration sessionRenew;
+    private final String serviceHostname;
     private final String groupIdPrefixFormat;
     private final Function<Long, String> supplyNamespace;
     private final Function<Long, String> supplyLocalName;
@@ -340,6 +341,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         this.publishQosMax = config.publishQosMax();
         this.sessionLease = config.sessionLease();
         this.sessionRenew = config.sessionRenew();
+        this.serviceHostname = config.serviceHostname();
         this.qosLevels = new Int2ObjectHashMap<>();
         this.qosLevels.put(0, new String16FW("0"));
         this.qosLevels.put(1, new String16FW("1"));
@@ -393,13 +395,14 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         long bindingId)
     {
         MqttKafkaBindingConfig binding = supplyBinding.apply(bindingId);
-        this.serverRef = binding.options.serverRef;
+        final String bindingServerRef = binding.options.serverRef;
+        this.serverRef = bindingServerRef != null ? bindingServerRef : serviceHostname;
         this.groupIdPrefix =
             String.format(groupIdPrefixFormat, supplyNamespace.apply(bindingId), supplyLocalName.apply(bindingId));
 
-        if (binding.options.store == null && coreIndex == 0)
+        if (bindingServerRef != null && coreIndex == 0)
         {
-            warnSessionOwnershipDeprecated(supplyLocalName.apply(bindingId));
+            warnServerRefDeprecated(supplyLocalName.apply(bindingId));
         }
 
         if (willAvailable && coreIndex == 0)
@@ -414,23 +417,13 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         sessionIds.put(bindingId, supplySessionId.get());
     }
 
-    private void warnSessionOwnershipDeprecated(
+    private void warnServerRefDeprecated(
         String bindingName)
     {
         System.out.printf(
-            "WARN [%s] Session ownership coordination via Kafka consumer group is deprecated. " +
-            "The 'store' option will be required in an upcoming release. " +
-            "To prepare, configure a store reference on this binding:%n" +
-            "%n" +
-            "  stores:%n" +
-            "    memory0:%n" +
-            "      type: memory%n" +
-            "%n" +
-            "  bindings:%n" +
-            "    %s:%n" +
-            "      options:%n" +
-            "        store: memory0%n",
-            bindingName, bindingName);
+            "WARN [%s] The 'serverRef' option on mqtt-kafka is deprecated. " +
+            "Configure the engine 'service.hostname' property (zilla.engine.service.hostname) instead.%n",
+            bindingName);
     }
 
     @Override

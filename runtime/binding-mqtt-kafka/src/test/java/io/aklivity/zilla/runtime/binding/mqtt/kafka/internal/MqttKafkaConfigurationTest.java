@@ -28,8 +28,13 @@ import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaCon
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration.WILL_ID;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration.WILL_STREAM_RECONNECT_DELAY;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+
+import java.util.Properties;
 
 import org.junit.Test;
+
+import io.aklivity.zilla.runtime.engine.Configuration;
 
 public class MqttKafkaConfigurationTest
 {
@@ -61,5 +66,23 @@ public class MqttKafkaConfigurationTest
         assertEquals(PUBLISH_QOS_MAX.name(), PUBLISH_MAX_QOS_NAME);
         assertEquals(SESSION_LEASE.name(), SESSION_LEASE_NAME);
         assertEquals(SESSION_RENEW.name(), SESSION_RENEW_NAME);
+    }
+
+    @Test
+    public void shouldResolveServiceHostnameFromEngineConfiguration()
+    {
+        Properties properties = new Properties();
+        properties.setProperty("zilla.engine.service.hostname", "mqtt-node-1.example.com:1883");
+        MqttKafkaConfiguration config = new MqttKafkaConfiguration(new Configuration(properties));
+
+        assertEquals("mqtt-node-1.example.com:1883", config.serviceHostname());
+    }
+
+    @Test
+    public void shouldDefaultServiceHostnameWhenUnset()
+    {
+        MqttKafkaConfiguration config = new MqttKafkaConfiguration(new Configuration(new Properties()));
+
+        assertNull(config.serviceHostname());
     }
 }

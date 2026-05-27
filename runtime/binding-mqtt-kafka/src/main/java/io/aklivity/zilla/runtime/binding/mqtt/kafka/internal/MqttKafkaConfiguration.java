@@ -28,6 +28,7 @@ import org.agrona.LangUtil;
 
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttQoS;
 import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 
 public class MqttKafkaConfiguration extends Configuration
 {
@@ -146,6 +147,11 @@ public class MqttKafkaConfiguration extends Configuration
     public Duration sessionRenew()
     {
         return SESSION_RENEW.get(this);
+    }
+
+    public String serviceHostname()
+    {
+        return EngineConfiguration.ENGINE_SERVICE_HOSTNAME.get(this);
     }
 
 
