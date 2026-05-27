@@ -1301,7 +1301,6 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                         .add(new KafkaTopicPartition(entry.topic, entry.partitionId)));
                 });
                 onProducerInit(traceId, authorization);
-                doCreateSessionStream(traceId, authorization);
             }
             else
             {
