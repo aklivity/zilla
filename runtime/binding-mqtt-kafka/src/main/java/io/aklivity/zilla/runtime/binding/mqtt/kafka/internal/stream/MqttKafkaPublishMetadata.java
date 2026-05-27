@@ -14,7 +14,10 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.PrimitiveIterator;
 import java.util.function.IntConsumer;
 
 import org.agrona.BitUtil;
@@ -25,6 +28,8 @@ import org.agrona.collections.Long2LongHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttKafkaSessionOffsetMetadataFW;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttKafkaSessionOffsetsFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttPublishOffsetMetadataFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
 
@@ -94,6 +99,8 @@ public class MqttKafkaPublishMetadata
 
         public long sequence;
         public String topic;
+        public int partitionId;
+        public int producerSequence;
 
         KafkaOffsetMetadata(
             String topic,
@@ -170,6 +177,68 @@ public class MqttKafkaPublishMetadata
             final MqttPublishOffsetMetadataFW offsetMetadata = mqttOffsetMetadataRW.build();
             return new String16FW(BitUtil.toHex(offsetMetadata.buffer().byteArray(),
                 offsetMetadata.offset(), offsetMetadata.limit()));
+        }
+    }
+
+    public static final class KafkaSessionOffsetsHelper
+    {
+        private static final int SESSION_OFFSETS_VERSION = 1;
+
+        private final MqttKafkaSessionOffsetsFW.Builder sessionOffsetsRW = new MqttKafkaSessionOffsetsFW.Builder();
+        private final MutableDirectBuffer offsetBuffer;
+
+        KafkaSessionOffsetsHelper(
+            MutableDirectBuffer offsetBuffer)
+        {
+            this.offsetBuffer = offsetBuffer;
+        }
+
+        public MqttKafkaSessionOffsetsFW encode(
+            Collection<KafkaOffsetMetadata> entries)
+        {
+            sessionOffsetsRW.wrap(offsetBuffer, 0, offsetBuffer.capacity());
+            sessionOffsetsRW.version(SESSION_OFFSETS_VERSION);
+            entries.forEach(metadata -> sessionOffsetsRW.entriesItem(item -> encodeEntry(item, metadata)));
+            return sessionOffsetsRW.build();
+        }
+
+        public List<KafkaOffsetMetadata> decode(
+            MqttKafkaSessionOffsetsFW offsets)
+        {
+            final List<KafkaOffsetMetadata> entries = new ArrayList<>();
+            offsets.entries().forEach(entry ->
+            {
+                final IntArrayList packetIds = new IntArrayList();
+                final PrimitiveIterator.OfInt packetIdsIterator = entry.packetIds();
+                if (packetIdsIterator != null)
+                {
+                    packetIdsIterator.forEachRemaining((IntConsumer) packetIds::add);
+                }
+
+                final KafkaOffsetMetadata metadata = new KafkaOffsetMetadata(entry.topic().asString(),
+                    entry.producerId(), entry.producerEpoch(), packetIds);
+                metadata.sequence = entry.consumedOffset();
+                metadata.partitionId = entry.partitionId();
+                metadata.producerSequence = entry.producerSequence();
+                entries.add(metadata);
+            });
+            return entries;
+        }
+
+        private void encodeEntry(
+            MqttKafkaSessionOffsetMetadataFW.Builder item,
+            KafkaOffsetMetadata metadata)
+        {
+            item.topic(metadata.topic);
+            item.partitionId(metadata.partitionId);
+            item.consumedOffset(metadata.sequence);
+            item.producerId(metadata.producerId);
+            item.producerEpoch(metadata.producerEpoch);
+            item.producerSequence(metadata.producerSequence);
+            if (metadata.packetIds != null)
+            {
+                metadata.packetIds.forEach(p -> item.appendPacketIds(p.shortValue()));
+            }
         }
     }
 }
