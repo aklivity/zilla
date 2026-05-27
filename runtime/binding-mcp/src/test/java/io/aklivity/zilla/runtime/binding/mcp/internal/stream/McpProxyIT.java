@@ -165,7 +165,7 @@ public class McpProxyIT
     @Configuration("proxy.toolkit.multi.yaml")
     @Specification({
         "${app}/lifecycle.events.resume.partial.prefixed/client",
-        "${app}/lifecycle.events.resume.partial/server" })
+        "${app}/lifecycle.events.resume.partial.prefixed/server" })
     public void shouldResumeLifecycleEventsPartial() throws Exception
     {
         k3po.finish();

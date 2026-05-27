@@ -29,6 +29,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpAggregateEventId;
+import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpAggregateRoute;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpBindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpProxySession;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpRouteConfig;
@@ -262,6 +263,18 @@ final class McpProxyLifecycleFactory implements BindingHandler
             }
         }
 
+        private void onResumeConfiguredRoutes(
+            long traceId)
+        {
+            for (McpAggregateRoute route : binding.aggregateRoutes)
+            {
+                if (!clients.containsKey(route.routedId()))
+                {
+                    supplyClient(route.routedId()).doClientBegin(traceId);
+                }
+            }
+        }
+
         private void onServerMessage(
             int msgTypeId,
             DirectBuffer buffer,
@@ -329,6 +342,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
                 {
                     McpAggregateEventId.decode(aggregate,
                         (prefix, eventId) -> onDecodeAggregateEventId(traceId, authorization, prefix, eventId));
+                    onResumeConfiguredRoutes(traceId);
                 }
                 else
                 {
