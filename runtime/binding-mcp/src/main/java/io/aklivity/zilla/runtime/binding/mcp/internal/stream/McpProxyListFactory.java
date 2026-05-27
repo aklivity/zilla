@@ -104,14 +104,6 @@ abstract class McpProxyListFactory implements BindingHandler
     private final McpListClientDecoder decodeItemFinalize = this::decodeItemFinalize;
     private final McpListClientDecoder decodeIgnore = this::decodeIgnore;
 
-    private final McpListServerEncoder encodeWait = this::encodeWait;
-    private final McpListServerEncoder encodePrelude = this::encodePrelude;
-    private final McpListServerEncoder encodeItems = this::encodeItems;
-    private final McpListServerEncoder encodeSeparator = this::encodeSeparator;
-    private final McpListServerEncoder encodePostlude = this::encodePostlude;
-    private final McpListServerEncoder encodeEnd = this::encodeEnd;
-    private final McpListServerEncoder encodeIgnore = this::encodeIgnore;
-
     McpProxyListFactory(
         McpConfiguration config,
         EngineContext context,
@@ -1046,10 +1038,10 @@ abstract class McpProxyListFactory implements BindingHandler
         private int itemsEmitted;
         private McpListClient client;
 
-        private McpListServerEncoder encoder = encodeWait;
         private int preludeProgress;
         private int separatorProgress;
         private int postludeProgress;
+        private boolean separatorPending;
         private boolean endItemsPending;
 
         private int encodeSlot = NO_SLOT;
@@ -1129,7 +1121,6 @@ abstract class McpProxyListFactory implements BindingHandler
 
             doServerBegin(traceId);
             onNextClient(traceId);
-            encode(traceId);
         }
 
         private void onServerEnd(
@@ -1202,7 +1193,11 @@ abstract class McpProxyListFactory implements BindingHandler
 
             assert replyAck <= replySeq;
 
-            encode(traceId);
+            flushEncodeSlot(traceId);
+            if (endItemsPending)
+            {
+                encodeEnd(traceId);
+            }
             if (client != null)
             {
                 client.decode(traceId);
@@ -1226,7 +1221,6 @@ abstract class McpProxyListFactory implements BindingHandler
             assert replyAck <= replySeq;
 
             state = McpState.closedReply(state);
-            encoder = encodeIgnore;
             cleanupEncodeSlot();
 
             if (client != null)
@@ -1273,16 +1267,38 @@ abstract class McpProxyListFactory implements BindingHandler
             client.doClientBegin(traceId);
         }
 
-        private void encode(
+        private boolean encodeFraming(
             long traceId)
         {
-            McpListServerEncoder previous = null;
-            while (previous != encoder)
+            boolean ready = !McpState.replyClosed(state);
+            if (ready && (itemsEmitted > 0 || endItemsPending))
             {
-                previous = encoder;
-                encoder.encode(this, traceId);
+                final DirectBuffer prelude = listReplyOpenPrelude();
+                if (preludeProgress < prelude.capacity())
+                {
+                    preludeProgress += doServerData(prelude, preludeProgress,
+                        prelude.capacity() - preludeProgress, traceId);
+                    ready = preludeProgress == prelude.capacity();
+                }
+                if (ready && separatorPending)
+                {
+                    if (separatorProgress < listReplySeparatorRO.capacity())
+                    {
+                        separatorProgress += doServerData(listReplySeparatorRO, separatorProgress,
+                            listReplySeparatorRO.capacity() - separatorProgress, traceId);
+                    }
+                    if (separatorProgress == listReplySeparatorRO.capacity())
+                    {
+                        separatorPending = false;
+                        separatorProgress = 0;
+                    }
+                    else
+                    {
+                        ready = false;
+                    }
+                }
             }
-            flushEncodeSlot(traceId);
+            return ready;
         }
 
         private int doServerData(
@@ -1372,18 +1388,13 @@ abstract class McpProxyListFactory implements BindingHandler
         private void doEncodeBeginItem(
             long traceId)
         {
-            if (itemsEmitted == 0)
+            if (itemsEmitted > 0)
             {
-                encoder = encodePrelude;
-                encode(traceId);
-            }
-            else
-            {
+                separatorPending = true;
                 separatorProgress = 0;
-                encoder = encodeSeparator;
-                encode(traceId);
             }
             itemsEmitted++;
+            encodeFraming(traceId);
         }
 
         private int doEncodeItemChunk(
@@ -1392,15 +1403,12 @@ abstract class McpProxyListFactory implements BindingHandler
             int length,
             long traceId)
         {
-            if (encoder != encodeItems)
+            int accepted = 0;
+            if (encodeFraming(traceId))
             {
-                encode(traceId);
-                if (encoder != encodeItems)
-                {
-                    return 0;
-                }
+                accepted = doServerData(buffer, offset, length, traceId);
             }
-            return doServerData(buffer, offset, length, traceId);
+            return accepted;
         }
 
         private void doEncodeEndItem(
@@ -1412,11 +1420,25 @@ abstract class McpProxyListFactory implements BindingHandler
             long traceId)
         {
             endItemsPending = true;
-            if (encoder == encodeWait)
+            encodeEnd(traceId);
+        }
+
+        private void encodeEnd(
+            long traceId)
+        {
+            if (encodeFraming(traceId))
             {
-                encoder = encodePrelude;
+                final DirectBuffer postlude = listReplyCloseRO;
+                if (postludeProgress < postlude.capacity())
+                {
+                    postludeProgress += doServerData(postlude, postludeProgress,
+                        postlude.capacity() - postludeProgress, traceId);
+                }
+                if (postludeProgress == postlude.capacity() && encodeSlot == NO_SLOT)
+                {
+                    doServerEnd(traceId);
+                }
             }
-            encode(traceId);
         }
 
         private void doServerBegin(
@@ -1442,7 +1464,6 @@ abstract class McpProxyListFactory implements BindingHandler
                 doEnd(lifecycle.sender, lifecycle.originId, lifecycle.routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization);
                 state = McpState.closedReply(state);
-                encoder = encodeIgnore;
             }
         }
 
@@ -1454,7 +1475,6 @@ abstract class McpProxyListFactory implements BindingHandler
                 doAbort(lifecycle.sender, lifecycle.originId, lifecycle.routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization);
                 state = McpState.closedReply(state);
-                encoder = encodeIgnore;
                 cleanupEncodeSlot();
             }
         }
@@ -1486,89 +1506,6 @@ abstract class McpProxyListFactory implements BindingHandler
                 doServerWindow(traceId, budgetId, padding);
             }
         }
-    }
-
-    @FunctionalInterface
-    private interface McpListServerEncoder
-    {
-        void encode(
-            McpListServer server,
-            long traceId);
-    }
-
-    private void encodeWait(
-        McpListServer server,
-        long traceId)
-    {
-    }
-
-    private void encodePrelude(
-        McpListServer server,
-        long traceId)
-    {
-        final DirectBuffer prelude = listReplyOpenPrelude();
-        final int remaining = prelude.capacity() - server.preludeProgress;
-        final int accepted = server.doServerData(prelude, server.preludeProgress, remaining, traceId);
-        server.preludeProgress += accepted;
-        if (server.preludeProgress == prelude.capacity())
-        {
-            server.encoder = encodeItems;
-        }
-    }
-
-    private void encodeItems(
-        McpListServer server,
-        long traceId)
-    {
-        if (server.endItemsPending)
-        {
-            server.encoder = encodePostlude;
-        }
-    }
-
-    private void encodeSeparator(
-        McpListServer server,
-        long traceId)
-    {
-        final int remaining = listReplySeparatorRO.capacity() - server.separatorProgress;
-        final int accepted = server.doServerData(listReplySeparatorRO, server.separatorProgress, remaining, traceId);
-        server.separatorProgress += accepted;
-        if (server.separatorProgress == listReplySeparatorRO.capacity())
-        {
-            server.separatorProgress = 0;
-            server.encoder = encodeItems;
-        }
-    }
-
-    private void encodePostlude(
-        McpListServer server,
-        long traceId)
-    {
-        final int remaining = listReplyCloseRO.capacity() - server.postludeProgress;
-        final int accepted = server.doServerData(listReplyCloseRO, server.postludeProgress, remaining, traceId);
-        server.postludeProgress += accepted;
-        if (server.postludeProgress == listReplyCloseRO.capacity())
-        {
-            server.encoder = encodeEnd;
-        }
-    }
-
-    private void encodeEnd(
-        McpListServer server,
-        long traceId)
-    {
-        server.flushEncodeSlot(traceId);
-        if (server.encodeSlot == NO_SLOT)
-        {
-            server.doServerEnd(traceId);
-            server.encoder = encodeIgnore;
-        }
-    }
-
-    private void encodeIgnore(
-        McpListServer server,
-        long traceId)
-    {
     }
 
     private final class McpCacheListServer
