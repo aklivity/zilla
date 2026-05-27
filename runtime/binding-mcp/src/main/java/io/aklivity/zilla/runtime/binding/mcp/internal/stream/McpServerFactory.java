@@ -3372,6 +3372,10 @@ public final class McpServerFactory implements McpStreamFactory
                     server.doNetReset(traceId, authorization);
                 }
             }
+            else if (sse != null && !McpState.replyOpening(sse.state))
+            {
+                sse.doNetRejectBearer(traceId, authorization, extension);
+            }
 
             doAppReset(traceId, authorization);
 
@@ -3566,6 +3570,37 @@ public final class McpServerFactory implements McpStreamFactory
                 .build());
 
             doNetEnd(traceId, authorization);
+        }
+
+        private boolean doNetRejectBearer(
+            long traceId,
+            long authorization,
+            OctetsFW extension)
+        {
+            boolean rejected = false;
+            final McpResetExFW resetEx = extension == null
+                ? null
+                : extension.get(mcpResetExRO::tryWrap);
+            if (resetEx != null && resetEx.kind() == McpResetExFW.KIND_BEARER)
+            {
+                final McpBearerResetExFW bearer = resetEx.bearer();
+                final String realm = bearer.realm().asString();
+                final String scopes = bearer.scopes().asString();
+                final McpBearerError error = bearer.error().get();
+                final String status = bearerChallengeStatus(error);
+                final String wwwAuthenticate = bearerChallengeHeader(realm, scopes, error);
+                doNetWindow(traceId, authorization, 0, 0);
+                doNetBegin(traceId, authorization, httpBeginExRW
+                    .wrap(codecBuffer, 0, codecBuffer.capacity())
+                    .typeId(httpTypeId)
+                    .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(status))
+                    .headersItem(h -> h.name(HTTP_HEADER_WWW_AUTHENTICATE).value(wwwAuthenticate))
+                    .inject(this::injectAltSvc)
+                    .build());
+                doNetEnd(traceId, authorization);
+                rejected = true;
+            }
+            return rejected;
         }
 
         private void onNetData(
