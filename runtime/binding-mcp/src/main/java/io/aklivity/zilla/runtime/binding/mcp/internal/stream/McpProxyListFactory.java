@@ -1267,7 +1267,7 @@ abstract class McpProxyListFactory implements BindingHandler
             client.doClientBegin(traceId);
         }
 
-        private boolean encodeFraming(
+        private boolean doEncodeFraming(
             long traceId)
         {
             boolean ready = !McpState.replyClosed(state);
@@ -1394,7 +1394,7 @@ abstract class McpProxyListFactory implements BindingHandler
                 separatorProgress = 0;
             }
             itemsEmitted++;
-            encodeFraming(traceId);
+            doEncodeFraming(traceId);
         }
 
         private int doEncodeItemChunk(
@@ -1404,7 +1404,7 @@ abstract class McpProxyListFactory implements BindingHandler
             long traceId)
         {
             int accepted = 0;
-            if (encodeFraming(traceId))
+            if (doEncodeFraming(traceId))
             {
                 accepted = doServerData(buffer, offset, length, traceId);
             }
@@ -1426,7 +1426,7 @@ abstract class McpProxyListFactory implements BindingHandler
         private void encodeEnd(
             long traceId)
         {
-            if (encodeFraming(traceId))
+            if (doEncodeFraming(traceId))
             {
                 final DirectBuffer postlude = listReplyCloseRO;
                 if (postludeProgress < postlude.capacity())
