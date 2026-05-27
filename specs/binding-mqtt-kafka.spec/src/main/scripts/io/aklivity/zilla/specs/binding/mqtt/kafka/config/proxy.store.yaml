@@ -15,6 +15,9 @@
 
 ---
 name: test
+stores:
+  memory0:
+    type: test
 bindings:
   mqtt0:
     type: mqtt-kafka

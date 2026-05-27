@@ -112,7 +112,8 @@
                         },
                         "required":
                         [
-                            "topics"
+                            "topics",
+                            "store"
                         ],
                         "additionalProperties": false
                     },

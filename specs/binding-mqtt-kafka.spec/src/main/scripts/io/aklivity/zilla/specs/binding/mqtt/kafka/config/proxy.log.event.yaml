@@ -15,6 +15,9 @@
 
 ---
 name: test
+stores:
+  test0:
+    type: test
 telemetry:
   exporters:
     exporter0:
@@ -34,6 +37,7 @@ bindings:
     type: mqtt-kafka
     kind: proxy
     options:
+      store: test0
       server: mqtt-1.example.com:1883
       topics:
         sessions: mqtt-sessions
