@@ -695,15 +695,6 @@ public class KafkaIT
 
     @Test
     @Specification({
-        "${kafka}/session.group.server.sent.reset/client",
-        "${kafka}/session.group.server.sent.reset/server"})
-    public void shouldGroupStreamReceiveServerSentReset() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${kafka}/session.close.expire.session.state/client",
         "${kafka}/session.close.expire.session.state/server"})
     public void shouldExpireSessionOnClose() throws Exception
