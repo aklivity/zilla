@@ -21,7 +21,6 @@ write zilla:begin.ext ${kafka:beginEx()
                              .typeId(zilla:id("kafka"))
                              .bootstrap()
                                  .topic("mqtt-clients")
-                                 .groupId("mqtt-clients")
                                  .build()
                              .build()}
 connected

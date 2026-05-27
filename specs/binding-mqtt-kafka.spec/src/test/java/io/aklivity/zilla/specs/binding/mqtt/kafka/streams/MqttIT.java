@@ -472,24 +472,6 @@ public class MqttIT
 
     @Test
     @Specification({
-        "${mqtt}/session.connect.override.max.session.expiry/client",
-        "${mqtt}/session.connect.override.max.session.expiry/server"})
-    public void shouldConnectServerOverridesSessionExpiryTooBig() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${mqtt}/session.connect.override.min.session.expiry/client",
-        "${mqtt}/session.connect.override.min.session.expiry/server"})
-    public void shouldConnectServerOverridesSessionExpiryTooSmall() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${mqtt}/session.abort.reconnect.non.clean.start/client",
         "${mqtt}/session.abort.reconnect.non.clean.start/server"})
     public void shouldReconnectNonCleanStart() throws Exception

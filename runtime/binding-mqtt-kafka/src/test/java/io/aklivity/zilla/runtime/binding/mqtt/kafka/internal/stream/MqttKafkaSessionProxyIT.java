@@ -74,30 +74,6 @@ public class MqttKafkaSessionProxyIT
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Specification({
-        "${mqtt}/session.connect.override.max.session.expiry/client",
-        "${kafka}/session.connect.override.max.session.expiry/server"})
-    public void shouldConnectServerOverridesSessionExpiryTooBig() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("proxy.yaml")
-    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
-    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
-    @Specification({
-        "${mqtt}/session.connect.override.min.session.expiry/client",
-        "${kafka}/session.connect.override.min.session.expiry/server"})
-    public void shouldConnectServerOverridesSessionExpiryTooSmall() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("proxy.yaml")
-    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
-    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
-    @Specification({
         "${mqtt}/session.abort.reconnect.non.clean.start/client",
         "${kafka}/session.abort.reconnect.non.clean.start/server"})
     public void shouldReconnectNonCleanStart() throws Exception

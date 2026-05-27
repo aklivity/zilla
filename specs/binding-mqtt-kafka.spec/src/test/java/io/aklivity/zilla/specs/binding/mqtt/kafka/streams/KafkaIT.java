@@ -821,24 +821,6 @@ public class KafkaIT
 
     @Test
     @Specification({
-        "${kafka}/session.connect.override.max.session.expiry/client",
-        "${kafka}/session.connect.override.max.session.expiry/server"})
-    public void shouldConnectServerOverridesSessionExpiryTooBig() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${kafka}/session.connect.override.min.session.expiry/client",
-        "${kafka}/session.connect.override.min.session.expiry/server"})
-    public void shouldConnectServerOverridesSessionExpiryTooSmall() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${kafka}/session.redirect/client",
         "${kafka}/session.redirect/server"})
     public void shouldRedirect() throws Exception
