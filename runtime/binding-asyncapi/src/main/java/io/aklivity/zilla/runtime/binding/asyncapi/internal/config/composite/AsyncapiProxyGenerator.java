@@ -250,7 +250,12 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
                 {
                     if (!mqttKafkaRoutes.isEmpty())
                     {
-                        namespace.inject(this::injectMqttKafka);
+                        namespace
+                            .store()
+                                .name("mqtt_kafka_store0")
+                                .type("memory")
+                                .build()
+                            .inject(this::injectMqttKafka);
                     }
 
                     return namespace;
@@ -288,6 +293,7 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
                         .publish()
                             .qosMax(MqttQoS.EXACTLY_ONCE.name().toLowerCase())
                             .build()
+                        .store("mqtt_kafka_store0")
                         .build();
                 }
 
