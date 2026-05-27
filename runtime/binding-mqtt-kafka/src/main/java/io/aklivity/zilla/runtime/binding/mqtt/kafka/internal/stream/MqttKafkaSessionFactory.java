@@ -1224,8 +1224,6 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 : EMPTY_OCTETS;
 
             doMqttReset(traceId, mqttResetEx);
-
-            session.doKafkaAbort(traceId, authorization);
         }
 
         private String ownerIdentity()
@@ -3330,7 +3328,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            if (!MqttKafkaState.initialClosed(state))
+            if (kafka != null && !MqttKafkaState.initialClosed(state))
             {
                 initialSeq = delegate.initialSeq;
                 initialAck = delegate.initialAck;
@@ -3345,7 +3343,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            if (!MqttKafkaState.initialClosed(state))
+            if (kafka != null && !MqttKafkaState.initialClosed(state))
             {
                 initialSeq = delegate.initialSeq;
                 initialAck = delegate.initialAck;
@@ -3359,7 +3357,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         private void doKafkaReset(
             long traceId)
         {
-            if (!MqttKafkaState.replyClosed(state))
+            if (kafka != null && !MqttKafkaState.replyClosed(state))
             {
                 state = MqttKafkaState.closeReply(state);
 
@@ -3373,12 +3371,15 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             long budgetId,
             int capabilities)
         {
-            replyAck = delegate.replyAck;
-            replyMax = delegate.replyMax;
-            replyPad = delegate.replyPad;
+            if (kafka != null)
+            {
+                replyAck = delegate.replyAck;
+                replyMax = delegate.replyMax;
+                replyPad = delegate.replyPad;
 
-            doWindow(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                traceId, authorization, budgetId, replyPad, 0, capabilities);
+                doWindow(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                    traceId, authorization, budgetId, replyPad, 0, capabilities);
+            }
         }
 
         protected final void cancelExpirySignal(
