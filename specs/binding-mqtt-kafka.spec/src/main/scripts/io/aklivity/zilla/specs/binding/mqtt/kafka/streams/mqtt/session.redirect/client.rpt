@@ -30,7 +30,7 @@ connected
 
 read zilla:reset.ext ${mqtt:resetEx()
                              .typeId(zilla:id("mqtt"))
-                             .serverRef("mqtt-2.example.com:1883")
+                             .serverRef("mqtt-2.example.com")
                              .build()}
 
 write aborted
