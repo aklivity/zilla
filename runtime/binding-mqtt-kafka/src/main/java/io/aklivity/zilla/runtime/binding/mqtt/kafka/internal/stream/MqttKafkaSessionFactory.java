@@ -161,7 +161,6 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private static final int SIGNAL_EXPIRE_SESSION = 3;
     private static final int SIGNAL_RENEW_SESSION_OWNERSHIP = 4;
     private static final int SIGNAL_STEAL_SESSION_OWNERSHIP = 5;
-    private static final char OWNERSHIP_FIELD_SEPARATOR = '\u0000';
     private static final int SIZE_OF_UUID = 36;
     private static final int RETAIN_AVAILABLE_MASK = 1 << MqttServerCapabilities.RETAIN.value();
     private static final int WILDCARD_AVAILABLE_MASK = 1 << MqttServerCapabilities.WILDCARD.value();
@@ -1084,9 +1083,9 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         {
             final OwnershipRecord owner = OwnershipRecord.decode(value);
 
-            if (owner != null && owner.strong && !replicaId.equals(owner.replicaId))
+            if (owner != null && owner.strong && !ownerIdentity().equals(owner.identity))
             {
-                doRedirect(traceId, authorization, owner.serverRef);
+                doRedirect(traceId, authorization, owner.identity);
             }
             else
             {
@@ -1161,7 +1160,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         {
             final OwnershipRecord challenger = OwnershipRecord.decode(value);
 
-            if (owns && challenger != null && !replicaId.equals(challenger.replicaId))
+            if (owns && challenger != null && !ownerIdentity().equals(challenger.identity))
             {
                 owns = false;
 
@@ -1247,10 +1246,14 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             }
         }
 
+        private String ownerIdentity()
+        {
+            return serverRef != null ? serverRef : replicaId;
+        }
+
         private String ownershipRecord()
         {
-            final boolean strong = serverRef != null;
-            return OwnershipRecord.encode(strong, replicaId, supplyTime.getAsLong(), strong ? serverRef : null);
+            return OwnershipRecord.encode(serverRef != null, ownerIdentity());
         }
 
         private void onMqttWindow(
@@ -6040,44 +6043,31 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         sender.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
     }
 
-    // Serialized session-ownership record stored on the clientId#owner key. Carries the owning
-    // replica identity, its acquisition time, and — for a strong (externally-addressable)
-    // identity — the server reference a displaced client should be redirected to.
+    // Session-ownership record stored on the clientId#owner key. It carries a single identity
+    // token for the owning replica: a strong (externally-addressable) owner stores its server
+    // reference verbatim, while a weak owner stores its opaque replica identity behind an
+    // ETag-style "W/" prefix. The token both identifies the owner and, when strong, is the
+    // server reference a displaced client is redirected to.
     private static final class OwnershipRecord
     {
+        private static final String WEAK_PREFIX = "W/";
+
         private final boolean strong;
-        private final String replicaId;
-        private final String serverRef;
+        private final String identity;
 
         private OwnershipRecord(
             boolean strong,
-            String replicaId,
-            String serverRef)
+            String identity)
         {
             this.strong = strong;
-            this.replicaId = replicaId;
-            this.serverRef = serverRef;
+            this.identity = identity;
         }
 
         private static String encode(
             boolean strong,
-            String replicaId,
-            long acquiredAt,
-            String serverRef)
+            String identity)
         {
-            final StringBuilder record = new StringBuilder()
-                .append(strong ? 'S' : 'W')
-                .append(OWNERSHIP_FIELD_SEPARATOR)
-                .append(replicaId)
-                .append(OWNERSHIP_FIELD_SEPARATOR)
-                .append(acquiredAt);
-
-            if (strong && serverRef != null)
-            {
-                record.append(OWNERSHIP_FIELD_SEPARATOR).append(serverRef);
-            }
-
-            return record.toString();
+            return strong ? identity : WEAK_PREFIX + identity;
         }
 
         private static OwnershipRecord decode(
@@ -6087,14 +6077,9 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             if (value != null && !value.isEmpty())
             {
-                final String[] fields = value.split(String.valueOf(OWNERSHIP_FIELD_SEPARATOR));
-                if (fields.length >= 3)
-                {
-                    final boolean strong = "S".equals(fields[0]);
-                    final String replicaId = fields[1];
-                    final String serverRef = strong && fields.length >= 4 ? fields[3] : null;
-                    record = new OwnershipRecord(strong, replicaId, serverRef);
-                }
+                final boolean weak = value.startsWith(WEAK_PREFIX);
+                final String identity = weak ? value.substring(WEAK_PREFIX.length()) : value;
+                record = new OwnershipRecord(!weak, identity);
             }
 
             return record;
