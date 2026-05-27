@@ -24,6 +24,8 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.agrona.BitUtil.SIZE_OF_INT;
 import static org.agrona.BitUtil.SIZE_OF_LONG;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.nio.ByteOrder;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -39,6 +41,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.agrona.DirectBuffer;
+import org.agrona.LangUtil;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.Int2ObjectHashMap;
@@ -157,6 +160,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private static final int SIGNAL_CONNECT_WILL_STREAM = 2;
     private static final int SIGNAL_EXPIRE_SESSION = 3;
     private static final int SIGNAL_RENEW_SESSION_OWNERSHIP = 4;
+    private static final int SIGNAL_STEAL_SESSION_OWNERSHIP = 5;
+    private static final char OWNERSHIP_FIELD_SEPARATOR = ' ';
     private static final int SIZE_OF_UUID = 36;
     private static final int RETAIN_AVAILABLE_MASK = 1 << MqttServerCapabilities.RETAIN.value();
     private static final int WILDCARD_AVAILABLE_MASK = 1 << MqttServerCapabilities.WILDCARD.value();
@@ -288,6 +293,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private final Function<Long, String> supplyLocalName;
     private final MqttKafkaEventContext events;
 
+    private final String replicaId;
+
     private String serverRef;
     private int reconnectAttempt;
     private int nextContextId;
@@ -328,6 +335,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         this.willDeliverIds = new Object2ObjectHashMap<>();
         this.sessionExpiryIds = new Object2LongHashMap<>(-1);
         this.instanceId = instanceId;
+        this.replicaId = instanceId.instanceId().asString();
         this.reconnectDelay = config.willStreamReconnectDelay();
         this.publishQosMax = config.publishQosMax();
         this.sessionLease = config.sessionLease();
@@ -502,7 +510,10 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         private String ownerKey;
         private String ownerToken;
         private long renewAt = NO_CANCEL_ID;
+        private long stealAt = NO_CANCEL_ID;
         private boolean owns;
+        private boolean claimed;
+        private Closeable ownerWatch;
 
         private MqttSessionProxy(
             MessageConsumer mqtt,
@@ -644,7 +655,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 clientMetadata.put(affinity, metadata);
             }
 
-            doAcquireOwnership(traceId);
+            doAcquireOwnership(traceId, authorization);
         }
 
         private void onMqttData(
@@ -1057,13 +1068,39 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             case SIGNAL_RENEW_SESSION_OWNERSHIP:
                 onRenewOwnership(signal.traceId());
                 break;
+            case SIGNAL_STEAL_SESSION_OWNERSHIP:
+                onStealOwnership(signal.traceId());
+                break;
             }
         }
 
+        // Consult the store for the current owner of this clientId. When the owner is a
+        // different replica advertising a strong (externally-addressable) identity, redirect
+        // the client to it; otherwise claim ownership cooperatively.
         private void doAcquireOwnership(
-            long traceId)
+            long traceId,
+            long authorization)
         {
-            store.lock(ownerKey, sessionLease, (key, token) -> onOwnershipLocked(traceId, token));
+            store.get(ownerKey, (key, value) -> onOwnershipResolved(traceId, authorization, value));
+        }
+
+        private void onOwnershipResolved(
+            long traceId,
+            long authorization,
+            String value)
+        {
+            final OwnershipRecord owner = OwnershipRecord.decode(value);
+
+            if (owner != null && owner.strong && !replicaId.equals(owner.replicaId))
+            {
+                doRedirect(traceId, authorization, owner.serverRef);
+            }
+            else
+            {
+                claimed = true;
+                store.put(ownerKey, ownershipRecord(), sessionLease, ignored -> {});
+                store.lock(ownerKey, sessionLease, (key, token) -> onOwnershipLocked(traceId, token));
+            }
         }
 
         private void onOwnershipLocked(
@@ -1074,8 +1111,26 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             {
                 owns = true;
                 ownerToken = token;
+                ownerWatch = store.watch(ownerKey, (key, value) -> onOwnershipChallenged(traceId, value));
                 renewAt = signaler.signalAt(currentTimeMillis() + sessionRenew.toMillis(),
                     originId, routedId, initialId, traceId, SIGNAL_RENEW_SESSION_OWNERSHIP, 0);
+            }
+            else if (claimed)
+            {
+                // Lock contended: the current owner either yields cooperatively (its watch fired
+                // on our record) or, if unresponsive, its lease eventually expires and we steal it.
+                stealAt = signaler.signalAt(currentTimeMillis() + sessionRenew.toMillis(),
+                    originId, routedId, initialId, traceId, SIGNAL_STEAL_SESSION_OWNERSHIP, 0);
+            }
+        }
+
+        private void onStealOwnership(
+            long traceId)
+        {
+            stealAt = NO_CANCEL_ID;
+            if (!owns && claimed)
+            {
+                store.lock(ownerKey, sessionLease, (key, token) -> onOwnershipLocked(traceId, token));
             }
         }
 
@@ -1105,6 +1160,34 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             }
         }
 
+        // The ownership record changed under us: another replica is claiming this clientId.
+        // Surrender ownership so the new owner can lock and begin serving.
+        private void onOwnershipChallenged(
+            long traceId,
+            String value)
+        {
+            final OwnershipRecord challenger = OwnershipRecord.decode(value);
+
+            if (owns && challenger != null && !replicaId.equals(challenger.replicaId))
+            {
+                owns = false;
+
+                if (renewAt != NO_CANCEL_ID)
+                {
+                    signaler.cancel(renewAt);
+                    renewAt = NO_CANCEL_ID;
+                }
+
+                if (ownerToken != null)
+                {
+                    store.unlock(ownerKey, ownerToken, ignored -> {});
+                    ownerToken = null;
+                }
+
+                doMqttReset(traceId, EMPTY_OCTETS);
+            }
+        }
+
         private void doReleaseOwnership(
             long traceId)
         {
@@ -1114,12 +1197,67 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 renewAt = NO_CANCEL_ID;
             }
 
+            if (stealAt != NO_CANCEL_ID)
+            {
+                signaler.cancel(stealAt);
+                stealAt = NO_CANCEL_ID;
+            }
+
+            if (ownerWatch != null)
+            {
+                try
+                {
+                    ownerWatch.close();
+                }
+                catch (IOException ex)
+                {
+                    LangUtil.rethrowUnchecked(ex);
+                }
+                ownerWatch = null;
+            }
+
             if (owns && ownerToken != null)
             {
-                store.unlock(ownerKey, ownerToken, token -> {});
-                owns = false;
-                ownerToken = null;
+                store.unlock(ownerKey, ownerToken, ignored -> {});
             }
+
+            // Only retract the record while we still own it; a record written by a replica that
+            // displaced us must be left intact.
+            if (claimed && owns)
+            {
+                store.delete(ownerKey, ignored -> {});
+            }
+
+            owns = false;
+            claimed = false;
+            ownerToken = null;
+        }
+
+        private void doRedirect(
+            long traceId,
+            long authorization,
+            String serverRef)
+        {
+            Flyweight mqttResetEx = serverRef != null
+                ? mqttResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                    .typeId(mqttTypeId)
+                    .serverRef(new String16FW(serverRef))
+                    .build()
+                : EMPTY_OCTETS;
+
+            doMqttReset(traceId, mqttResetEx);
+
+            session.doKafkaAbort(traceId, authorization);
+            if (group != null)
+            {
+                group.doKafkaAbort(traceId, authorization);
+            }
+        }
+
+        private String ownershipRecord()
+        {
+            final boolean strong = serverRef != null;
+            return OwnershipRecord.encode(strong, replicaId, supplyTime.getAsLong(), strong ? serverRef : null);
         }
 
         private void onMqttWindow(
@@ -5907,5 +6045,66 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             .build();
 
         sender.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
+    }
+
+    // Serialized session-ownership record stored on the clientId#owner key. Carries the owning
+    // replica identity, its acquisition time, and — for a strong (externally-addressable)
+    // identity — the server reference a displaced client should be redirected to.
+    private static final class OwnershipRecord
+    {
+        private final boolean strong;
+        private final String replicaId;
+        private final String serverRef;
+
+        private OwnershipRecord(
+            boolean strong,
+            String replicaId,
+            String serverRef)
+        {
+            this.strong = strong;
+            this.replicaId = replicaId;
+            this.serverRef = serverRef;
+        }
+
+        private static String encode(
+            boolean strong,
+            String replicaId,
+            long acquiredAt,
+            String serverRef)
+        {
+            final StringBuilder record = new StringBuilder()
+                .append(strong ? 'S' : 'W')
+                .append(OWNERSHIP_FIELD_SEPARATOR)
+                .append(replicaId)
+                .append(OWNERSHIP_FIELD_SEPARATOR)
+                .append(acquiredAt);
+
+            if (strong && serverRef != null)
+            {
+                record.append(OWNERSHIP_FIELD_SEPARATOR).append(serverRef);
+            }
+
+            return record.toString();
+        }
+
+        private static OwnershipRecord decode(
+            String value)
+        {
+            OwnershipRecord record = null;
+
+            if (value != null && !value.isEmpty())
+            {
+                final String[] fields = value.split(String.valueOf(OWNERSHIP_FIELD_SEPARATOR));
+                if (fields.length >= 3)
+                {
+                    final boolean strong = "S".equals(fields[0]);
+                    final String replicaId = fields[1];
+                    final String serverRef = strong && fields.length >= 4 ? fields[3] : null;
+                    record = new OwnershipRecord(strong, replicaId, serverRef);
+                }
+            }
+
+            return record;
+        }
     }
 }
