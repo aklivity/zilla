@@ -72,10 +72,10 @@ public class MqttKafkaConfigurationTest
     public void shouldResolveServiceHostnameFromEngineConfiguration()
     {
         Properties properties = new Properties();
-        properties.setProperty("zilla.engine.service.hostname", "mqtt-node-1.example.com:1883");
+        properties.setProperty("zilla.engine.service.hostname", "mqtt-node-1.example.com");
         MqttKafkaConfiguration config = new MqttKafkaConfiguration(new Configuration(properties));
 
-        assertEquals("mqtt-node-1.example.com:1883", config.serviceHostname());
+        assertEquals("mqtt-node-1.example.com", config.serviceHostname());
     }
 
     @Test
