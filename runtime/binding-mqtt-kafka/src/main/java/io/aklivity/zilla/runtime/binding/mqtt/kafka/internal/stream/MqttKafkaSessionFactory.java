@@ -161,7 +161,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private static final int SIGNAL_EXPIRE_SESSION = 3;
     private static final int SIGNAL_RENEW_SESSION_OWNERSHIP = 4;
     private static final int SIGNAL_STEAL_SESSION_OWNERSHIP = 5;
-    private static final char OWNERSHIP_FIELD_SEPARATOR = ' ';
+    private static final char OWNERSHIP_FIELD_SEPARATOR = '\u0000';
     private static final int SIZE_OF_UUID = 36;
     private static final int RETAIN_AVAILABLE_MASK = 1 << MqttServerCapabilities.RETAIN.value();
     private static final int WILDCARD_AVAILABLE_MASK = 1 << MqttServerCapabilities.WILDCARD.value();
