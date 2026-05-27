@@ -97,7 +97,6 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
     private static final int KAFKA_ERROR_MESSAGE_TOO_LARGE = 10;
     private static final Int2IntHashMap MQTT_REASON_CODES;
     private static final int OFFSET_METADATA_VERSION = 1;
-    private static final String MQTT_CLIENTS_GROUP_ID = "mqtt-clients";
     private static final String OFFSETS_KEY_POSTFIX = "#offsets";
     private static final KafkaAckMode KAFKA_DEFAULT_ACK_MODE = KafkaAckMode.LEADER_ONLY;
 
@@ -2258,7 +2257,6 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                 .typeId(kafkaTypeId)
                 .merged(m -> m.capabilities(c -> c.set(KafkaCapabilities.PRODUCE_ONLY))
                     .topic(topic)
-                    .groupId(MQTT_CLIENTS_GROUP_ID)
                     .ackMode(b -> b.set(KAFKA_DEFAULT_ACK_MODE)))
                 .build();
 

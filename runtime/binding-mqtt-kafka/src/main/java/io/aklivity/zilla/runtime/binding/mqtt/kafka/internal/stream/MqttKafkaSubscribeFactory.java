@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream;
 
-import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionFactory.MQTT_CLIENTS_GROUP_ID;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttPublishFlags.RETAIN;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSubscribeFlags.NO_LOCAL;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSubscribeFlags.RETAIN_AS_PUBLISHED;
@@ -228,10 +227,9 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         {
             MqttKafkaBindingConfig binding = supplyBinding.apply(bindingId);
             List<MqttKafkaRouteConfig> bootstrap = binding.bootstrapRoutes();
-            String serverRef = binding.options.serverRef;
             bootstrap.forEach(r ->
             {
-                final KafkaMessagesBootstrap stream = new KafkaMessagesBootstrap(binding.id, r, serverRef);
+                final KafkaMessagesBootstrap stream = new KafkaMessagesBootstrap(binding.id, r);
                 bootstrapStreams.add(stream);
                 stream.doKafkaBeginAt(currentTimeMillis());
             });
@@ -870,7 +868,6 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         private final long routedId;
         private final long initialId;
         private final long replyId;
-        private final String serverRef;
 
         private int state;
 
@@ -886,13 +883,11 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
 
         private KafkaMessagesBootstrap(
             long originId,
-            MqttKafkaRouteConfig route,
-            String serverRef)
+            MqttKafkaRouteConfig route)
         {
             this.originId = originId;
             this.routedId = route.id;
             this.topic = route.with.resolveMessages();
-            this.serverRef = serverRef;
             this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
         }
@@ -1052,7 +1047,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             state = MqttKafkaState.openingInitial(state);
 
             kafka = newKafkaBootstrapStream(this::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck,
-                initialMax, traceId, authorization, affinity, topic, serverRef);
+                initialMax, traceId, authorization, affinity, topic);
         }
 
         private void doKafkaEnd(
@@ -2784,16 +2779,13 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         long traceId,
         long authorization,
         long affinity,
-        String16FW topic,
-        String serverRef)
+        String16FW topic)
     {
         final KafkaBeginExFW kafkaBeginEx =
             kafkaBeginExRW.wrap(writeBuffer, BeginFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
                 .typeId(kafkaTypeId)
                 .bootstrap(b -> b
-                    .topic(topic)
-                    .groupId(serverRef != null ? MQTT_CLIENTS_GROUP_ID : null)
-                    .consumerId(serverRef))
+                    .topic(topic))
                 .build();
 
 
