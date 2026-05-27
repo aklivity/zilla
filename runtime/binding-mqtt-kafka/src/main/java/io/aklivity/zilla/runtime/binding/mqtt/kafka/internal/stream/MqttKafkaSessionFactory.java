@@ -130,8 +130,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private static final String MQTT_TYPE_NAME = "mqtt";
     private static final String MIGRATE_KEY_POSTFIX = "#migrate";
     private static final String OFFSETS_KEY_POSTFIX = "#offsets";
-    private static final String WILL_SIGNAL_KEY_POSTFIX = "#will-signal";
-    private static final String EXPIRY_SIGNAL_KEY_POSTFIX = "#expiry-signal";
+    private static final String WILL_SIGNAL_KEY_POSTFIX = "#will";
+    private static final String EXPIRY_SIGNAL_KEY_POSTFIX = "#expiry";
     private static final String WILL_KEY_POSTFIX = "#will-";
     private static final String GROUP_PROTOCOL = "highlander";
     private static final String16FW SENDER_ID_NAME = new String16FW("sender-id");
