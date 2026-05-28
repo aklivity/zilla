@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        java: [ 25.0.3 ]
+        java: [ 25 ]
 
     steps:
     - name: Checkout GitHub sources
@@ -21,7 +21,7 @@ jobs:
     - name: Setup JDK ${{ matrix.java }}
       uses: actions/setup-java@v5
       with:
-        distribution: zulu
+        distribution: temurin
         java-version: ${{ matrix.java }}
     - name: Cache Maven packages
       uses: actions/cache@v5
