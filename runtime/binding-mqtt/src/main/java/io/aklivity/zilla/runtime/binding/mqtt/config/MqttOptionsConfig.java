@@ -34,7 +34,6 @@ public class MqttOptionsConfig extends OptionsConfig
     public final MqttAuthorizationConfig authorization;
     public final List<MqttTopicConfig> topics;
     public final List<MqttVersion> versions;
-    public final String store;
 
     public static MqttOptionsConfigBuilder<MqttOptionsConfig> builder()
     {
@@ -50,14 +49,12 @@ public class MqttOptionsConfig extends OptionsConfig
     public MqttOptionsConfig(
         MqttAuthorizationConfig authorization,
         List<MqttTopicConfig> topics,
-        List<MqttVersion> versions,
-        String store)
+        List<MqttVersion> versions)
     {
         super(resolveModels(topics), List.of());
         this.authorization = authorization;
         this.topics = topics;
         this.versions = versions;
-        this.store = store;
     }
 
     private static List<ModelConfig> resolveModels(

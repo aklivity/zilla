@@ -183,11 +183,6 @@
                                             "enum": [ "v3.1.1", "v5" ]
                                         }
                                     },
-                                    "store":
-                                    {
-                                        "title": "Store Reference",
-                                        "type": "string"
-                                    },
                                     "authorization":
                                     {
                                         "$ref": "#/$defs/options/binding/mqtt/authorization"

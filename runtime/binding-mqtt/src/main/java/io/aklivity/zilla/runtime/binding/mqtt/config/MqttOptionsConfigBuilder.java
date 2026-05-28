@@ -30,7 +30,6 @@ public class MqttOptionsConfigBuilder<T> extends ConfigBuilder<T, MqttOptionsCon
     private MqttAuthorizationConfig authorization;
     private List<MqttTopicConfig> topics;
     private List<MqttVersion> versions;
-    private String store;
 
     MqttOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
@@ -107,16 +106,9 @@ public class MqttOptionsConfigBuilder<T> extends ConfigBuilder<T, MqttOptionsCon
         return new MqttAuthorizationConfigBuilder<>(this::authorization);
     }
 
-    public MqttOptionsConfigBuilder<T> store(
-        String store)
-    {
-        this.store = store;
-        return this;
-    }
-
     @Override
     public T build()
     {
-        return mapper.apply(new MqttOptionsConfig(authorization, topics, versions, store));
+        return mapper.apply(new MqttOptionsConfig(authorization, topics, versions));
     }
 }
