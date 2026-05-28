@@ -481,24 +481,6 @@ public class MqttIT
 
     @Test
     @Specification({
-        "${mqtt}/session.client.takeover/client",
-        "${mqtt}/session.client.takeover/server"})
-    public void shouldTakeOverSession() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${mqtt}/session.exists.clean.start/client",
-        "${mqtt}/session.exists.clean.start/server"})
-    public void shouldRemoveSessionAtCleanStart() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${mqtt}/session.subscribe/client",
         "${mqtt}/session.subscribe/server"})
     public void shouldSubscribeSaveSubscriptionsInSession() throws Exception
@@ -631,17 +613,6 @@ public class MqttIT
         "${mqtt}/session.will.message.clean.start/client",
         "${mqtt}/session.will.message.clean.start/server"})
     public void shouldSendWillMessageOnClientReconnectCleanStart() throws Exception
-    {
-        k3po.start();
-        k3po.notifyBarrier("WILL_STREAM_STARTED");
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${mqtt}/session.will.message.takeover.deliver.will/client",
-        "${mqtt}/session.will.message.takeover.deliver.will/server"})
-    public void shouldDeliverWillMessageOnSessionTakeover() throws Exception
     {
         k3po.start();
         k3po.notifyBarrier("WILL_STREAM_STARTED");

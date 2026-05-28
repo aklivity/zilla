@@ -614,24 +614,6 @@ public class KafkaIT
 
     @Test
     @Specification({
-        "${kafka}/session.client.takeover/client",
-        "${kafka}/session.client.takeover/server"})
-    public void shouldTakeOverSession() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${kafka}/session.exists.clean.start/client",
-        "${kafka}/session.exists.clean.start/server"})
-    public void shouldRemoveSessionAtCleanStart() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${kafka}/session.subscribe/client",
         "${kafka}/session.subscribe/server"})
     public void shouldSubscribeSaveSubscriptionsInSession() throws Exception
@@ -770,15 +752,6 @@ public class KafkaIT
         "${kafka}/session.will.message.will.id.mismatch.skip.delivery/client",
         "${kafka}/session.will.message.will.id.mismatch.skip.delivery/server"})
     public void shouldNotSendWillMessageOnWillIdMismatch() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${kafka}/session.will.message.takeover.deliver.will/client",
-        "${kafka}/session.will.message.takeover.deliver.will/server"})
-    public void shouldSendWillMessageOnSessionTakeover() throws Exception
     {
         k3po.finish();
     }

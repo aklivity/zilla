@@ -40,7 +40,6 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaRouteConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config.MqttKafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config.MqttKafkaHeaderHelper;
-import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaPublishMetadata.KafkaGroup;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaPublishMetadata.KafkaOffsetMetadata;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaPublishMetadata.KafkaSessionOffsetsHelper;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaPublishMetadata.KafkaTopicPartition;
@@ -274,7 +273,6 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
         private List<KafkaOffsetMetadata> orderedOffsets;
         private Int2ObjectHashMap<List<KafkaTopicPartition>> partitions;
         private Long2LongHashMap leaderEpochs;
-        private KafkaGroup group;
 
         private MqttPublishProxy(
             MessageConsumer mqtt,
@@ -421,7 +419,6 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                 this.orderedOffsets = clientMetadata.orderedOffsets;
                 this.partitions = clientMetadata.partitions;
                 this.leaderEpochs = clientMetadata.leaderEpochs;
-                this.group = clientMetadata.group;
                 this.clientId = clientMetadata.clientId;
                 this.sessionsTopic = clientMetadata.sessionsTopic;
                 this.clientIdOffsets = new String16FW(clientMetadata.clientId.asString() + OFFSETS_KEY_POSTFIX);

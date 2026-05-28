@@ -3258,12 +3258,17 @@ public final class MqttServerFactory implements MqttStreamFactory
                     ownerToken = null;
                 }
 
-                if (session != null)
+                // Mirror the protocol-correct path taken by mqtt-kafka's RESET(SESSION_TAKEN_OVER):
+                // send DISCONNECT 0x8E to the client (or CONNACK 0x8E if CONNECT was not yet
+                // acknowledged), then close the network. Per MQTT-3.1.4-3, takeover MUST publish
+                // the will, so abort (not END) the downstream session when a will is present;
+                // mqtt-kafka treats the orderly END path as a clean disconnect and suppresses
+                // will delivery.
+                if (isSetWillFlag(connectFlags) && session != null)
                 {
                     session.cleanupAbort(traceId);
                 }
-                doNetworkReset(traceId, 0L);
-                doNetworkAbort(traceId, 0L);
+                onDecodeError(traceId, sessionId, SESSION_TAKEN_OVER);
             }
         }
 
@@ -7550,7 +7555,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     private static final class OwnershipRecord
     {
         private static final String WEAK_PREFIX = "W/";
-        private static final String FIELD_SEPARATOR = "";
+        private static final String FIELD_SEPARATOR = "\u001f";
 
         private final boolean strong;
         private final String identity;

@@ -31,7 +31,7 @@ write [0x10 0x15]                                   # CONNECT
 
 read  [0x20 0x1d]                                   # CONNACK
       [0x00]                                        # flags = none
-      [0x87]                                        # reason code = Server Moved (SERVER_MOVED)
+      [0x9d]                                        # reason code = Server Moved (SERVER_MOVED)
       [0x1a]                                        # properties
       [0x1c 0x00 0x17] "mqtt-2.example.com:1883"    # server reference
 
