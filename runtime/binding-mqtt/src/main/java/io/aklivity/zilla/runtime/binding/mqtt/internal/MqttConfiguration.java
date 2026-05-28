@@ -18,14 +18,18 @@ package io.aklivity.zilla.runtime.binding.mqtt.internal;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
+import java.time.Duration;
 import java.util.Random;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.IntSupplier;
+import java.util.function.Supplier;
 
 import org.agrona.LangUtil;
 
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttQoS;
 import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 
 public class MqttConfiguration extends Configuration
 {
@@ -46,6 +50,9 @@ public class MqttConfiguration extends Configuration
     public static final PropertyDef<String> CLIENT_ID;
     public static final PropertyDef<IntSupplier> SUBSCRIPTION_ID;
     public static final PropertyDef<MqttQoS> PUBLISH_QOS_MAX;
+    public static final PropertyDef<StringSupplier> INSTANCE_ID;
+    public static final PropertyDef<Duration> SESSION_LEASE;
+    public static final PropertyDef<Duration> SESSION_RENEW;
     public static final int GENERATED_SUBSCRIPTION_ID_MASK = 0x70;
 
     static
@@ -70,7 +77,18 @@ public class MqttConfiguration extends Configuration
             MqttConfiguration::decodeIntSupplier, MqttConfiguration::defaultSubscriptionId);
         PUBLISH_QOS_MAX = config.property(MqttQoS.class, "publish.qos.max",
             MqttConfiguration::decodePublishQosMax, MqttQoS.EXACTLY_ONCE);
+        INSTANCE_ID = config.property(StringSupplier.class, "instance.id",
+            MqttConfiguration::decodeStringSupplier, MqttConfiguration::defaultInstanceId);
+        SESSION_LEASE = config.property(Duration.class, "session.lease",
+            (c, v) -> Duration.parse(v), "PT30S");
+        SESSION_RENEW = config.property(Duration.class, "session.renew",
+            (c, v) -> Duration.parse(v), "PT10S");
         MQTT_CONFIG = config;
+    }
+
+    @FunctionalInterface
+    public interface StringSupplier extends Supplier<String>
+    {
     }
 
     public MqttConfiguration(
@@ -144,10 +162,70 @@ public class MqttConfiguration extends Configuration
         return PUBLISH_QOS_MAX.get(this);
     }
 
+    public Supplier<String> instanceId()
+    {
+        return INSTANCE_ID.get(this);
+    }
+
+    public Duration sessionLease()
+    {
+        return SESSION_LEASE.get(this);
+    }
+
+    public Duration sessionRenew()
+    {
+        return SESSION_RENEW.get(this);
+    }
+
+    public String serviceHostname()
+    {
+        return EngineConfiguration.ENGINE_SERVICE_HOSTNAME.get(this);
+    }
+
     private static MqttQoS decodePublishQosMax(
         String value)
     {
         return MqttQoS.valueOf(value.toUpperCase());
+    }
+
+    private static StringSupplier decodeStringSupplier(
+        String fullyQualifiedMethodName)
+    {
+        StringSupplier supplier = null;
+
+        try
+        {
+            MethodType signature = MethodType.methodType(String.class);
+            String[] parts = fullyQualifiedMethodName.split("::");
+            Class<?> ownerClass = Class.forName(parts[0]);
+            String methodName = parts[1];
+            MethodHandle method = MethodHandles.publicLookup().findStatic(ownerClass, methodName, signature);
+            supplier = () ->
+            {
+                String value = null;
+                try
+                {
+                    value = (String) method.invoke();
+                }
+                catch (Throwable ex)
+                {
+                    LangUtil.rethrowUnchecked(ex);
+                }
+
+                return value;
+            };
+        }
+        catch (Throwable ex)
+        {
+            LangUtil.rethrowUnchecked(ex);
+        }
+
+        return supplier;
+    }
+
+    private static String defaultInstanceId()
+    {
+        return String.format("%s-%s", "zilla", UUID.randomUUID());
     }
 
     private static IntSupplier decodeIntSupplier(

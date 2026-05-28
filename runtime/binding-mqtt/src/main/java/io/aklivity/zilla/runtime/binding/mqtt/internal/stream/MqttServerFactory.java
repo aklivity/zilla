@@ -68,13 +68,17 @@ import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_CREDITOR
 import static io.aklivity.zilla.runtime.engine.budget.BudgetDebitor.NO_DEBITOR_INDEX;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
+import static java.lang.System.currentTimeMillis;
 import static java.nio.ByteOrder.BIG_ENDIAN;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.HashMap;
@@ -99,6 +103,7 @@ import java.util.stream.Collectors;
 
 import org.agrona.BitUtil;
 import org.agrona.DirectBuffer;
+import org.agrona.LangUtil;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.Int2ObjectHashMap;
@@ -110,6 +115,7 @@ import org.agrona.collections.Object2IntHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttPatternConfig.MqttConnectProperty;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.InstanceId;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttBinding;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttEventContext;
@@ -199,6 +205,7 @@ import io.aklivity.zilla.runtime.engine.config.WithConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
+import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 
 public final class MqttServerFactory implements MqttStreamFactory
 {
@@ -259,6 +266,10 @@ public final class MqttServerFactory implements MqttStreamFactory
     private static final int PUBLISH_EXPIRED_SIGNAL = 1;
     private static final int KEEP_ALIVE_TIMEOUT_SIGNAL = 2;
     private static final int CONNECT_TIMEOUT_SIGNAL = 3;
+    private static final int SIGNAL_RENEW_SESSION_OWNERSHIP = 4;
+    private static final int SIGNAL_STEAL_SESSION_OWNERSHIP = 5;
+
+    private static final String OWNER_KEY_POSTFIX = "#owner";
 
     private static final int PUBLISH_FRAMING = 255;
 
@@ -384,6 +395,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final MqttServerDecoder decodeConnectPayload = this::decodeConnectPayload;
     private final MqttServerDecoder decodeConnectWillMessage = this::decodeConnectWillMessage;
     private final MqttServerDecoder decodeConnectWillMessagePayload = this::decodeConnectWillMessagePayload;
+    private final MqttServerDecoder decodeAwaitOwnership = this::decodeAwaitOwnership;
     private final MqttServerDecoder decodePublishV4 = this::decodePublishV4;
     private final MqttServerDecoder decodePublishV5 = this::decodePublishV5;
     private final MqttServerDecoder decodePublishPayload = this::decodePublishPayload;
@@ -484,12 +496,18 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final CharsetDecoder utf8Decoder;
     private final Function<ModelConfig, ValidatorHandler> supplyValidator;
     private final MqttEventContext events;
+    private final InstanceId instanceId;
+    private final Duration sessionLease;
+    private final Duration sessionRenew;
+    private final String serviceHostname;
+    private final String replicaId;
 
     private MqttQoS publishQosMax;
 
     public MqttServerFactory(
         MqttConfiguration config,
-        EngineContext context)
+        EngineContext context,
+        InstanceId instanceId)
     {
         this.writeBuffer = context.writeBuffer();
         this.extBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
@@ -534,6 +552,11 @@ public final class MqttServerFactory implements MqttStreamFactory
         this.decodePacketTypeByVersion.put(MQTT_PROTOCOL_VERSION_5, this::decodePacketTypeV5);
         this.supplyValidator = context::supplyValidator;
         this.events = new MqttEventContext(context);
+        this.instanceId = instanceId;
+        this.sessionLease = config.sessionLease();
+        this.sessionRenew = config.sessionRenew();
+        this.serviceHostname = config.serviceHostname();
+        this.replicaId = instanceId.instanceId().asString();
     }
 
     @Override
@@ -606,7 +629,8 @@ public final class MqttServerFactory implements MqttStreamFactory
                 binding.versions,
                 binding.guard,
                 binding.resolveCredentials(),
-                binding.authField())::onNetwork;
+                binding.authField(),
+                binding.store)::onNetwork;
         }
         return newStream;
     }
@@ -1208,7 +1232,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
         progress = server.onDecodeConnectPayload(traceId, authorization, buffer, progress, limit);
         server.decodableRemainingBytes -= progress - offset;
-        if (server.decodableRemainingBytes == 0)
+        if (server.decodableRemainingBytes == 0 && server.decoder == decodeConnectPayload)
         {
             server.decoder = decodePacketTypeByVersion.get(server.version);
         }
@@ -2398,6 +2422,21 @@ public final class MqttServerFactory implements MqttStreamFactory
         return limit;
     }
 
+    // Holds the network decode loop while session ownership is being acquired from the store.
+    // The decoder transitions away from this state from the ownership-locked callback (or the
+    // redirect path tears the connection down) — so this method simply parks the loop.
+    private int decodeAwaitOwnership(
+        MqttServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        DirectBuffer buffer,
+        int offset,
+        int limit)
+    {
+        return offset;
+    }
+
     private int decodeUnknownType(
         MqttServer server,
         long traceId,
@@ -2443,6 +2482,20 @@ public final class MqttServerFactory implements MqttStreamFactory
         private final Function<String, String> credentials;
         private final MqttConnectProperty authField;
         private final List<MqttVersion> versions;
+        private final StoreHandler store;
+
+        private String ownerKey;
+        private String ownerToken;
+        private long renewAt = NO_CANCEL_ID;
+        private long stealAt = NO_CANCEL_ID;
+        private boolean owns;
+        private boolean claimed;
+        private boolean ownershipResolved;
+        private Closeable ownerWatch;
+        private long pendingSessionRoutedId;
+        private long pendingSessionCompositeId;
+        private int pendingConnectPayloadLimit;
+        private boolean pendingConnectWillFlagSet;
 
         private final OctetsFW.Builder correlationDataRW = new OctetsFW.Builder();
         private final Array32FW.Builder<MqttUserPropertyFW.Builder, MqttUserPropertyFW> userPropertiesRW =
@@ -2532,7 +2585,8 @@ public final class MqttServerFactory implements MqttStreamFactory
             List<MqttVersion> versions,
             GuardHandler guard,
             Function<String, String> credentials,
-            MqttConnectProperty authField)
+            MqttConnectProperty authField,
+            StoreHandler store)
         {
             this.network = network;
             this.originId = originId;
@@ -2543,6 +2597,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             this.guard = guard;
             this.credentials = credentials;
             this.authField = authField;
+            this.store = store;
             this.encodeBudgetId = supplyBudgetId.getAsLong();
             this.decoder = decodeInitialType;
             this.publishes = new Long2ObjectHashMap<>();
@@ -2763,6 +2818,12 @@ public final class MqttServerFactory implements MqttStreamFactory
             case CONNECT_TIMEOUT_SIGNAL:
                 onConnectTimeoutSignal(signal);
                 break;
+            case SIGNAL_RENEW_SESSION_OWNERSHIP:
+                onRenewOwnership(signal.traceId());
+                break;
+            case SIGNAL_STEAL_SESSION_OWNERSHIP:
+                onStealOwnership(signal.traceId(), signal.authorization());
+                break;
             default:
                 break;
             }
@@ -2927,6 +2988,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             int progress,
             int limit)
         {
+            final int offset = progress;
             byte reasonCode = SUCCESS;
             decode:
             {
@@ -2976,31 +3038,31 @@ public final class MqttServerFactory implements MqttStreamFactory
                 }
 
                 this.sessionId = sessionAuth;
+                this.pendingSessionRoutedId = resolved.id;
+                this.pendingSessionCompositeId = resolved.compositeId();
+                this.pendingConnectPayloadLimit = connectPayloadLimit;
+                this.pendingConnectWillFlagSet = willFlagSet;
 
-                this.session = new MqttSessionStream(routedId, resolved.id, 0);
-
-                final int capabilities = versions.contains(MqttVersion.V_5) && versions.size() == 1
-                    ? REDIRECT_MASK : 0;
-
-                final MqttBeginExFW.Builder builder = mqttSessionBeginExRW.wrap(sessionExtBuffer, 0, sessionExtBuffer.capacity())
-                    .compositeId(resolved.compositeId())
-                    .typeId(mqttTypeId)
-                    .session(s -> s
-                        .flags(connectFlags & (CLEAN_START_FLAG_MASK | WILL_FLAG_MASK))
-                        .expiry(sessionExpiry)
-                        .publishQosMax(publishQosMax.value())
-                        .capabilities(capabilities)
-                        .clientId(clientId));
-
-                session.doSessionBegin(traceId, affinity, builder.build());
-
-                if (willFlagSet)
+                if (store != null && !ownershipResolved)
                 {
-                    decoder = decodeConnectWillMessage;
+                    doAcquireOwnership(traceId, authorization);
+                    // park the decode loop here; the ownership-locked callback re-drives the
+                    // decoder once ownership is acquired, or doRedirect tears it down on a
+                    // strong-remote-owner mismatch.
+                    decoder = decodeAwaitOwnership;
                 }
                 else
                 {
-                    progress = connectPayloadLimit;
+                    doEstablishSession(traceId);
+
+                    if (willFlagSet)
+                    {
+                        decoder = decodeConnectWillMessage;
+                    }
+                    else
+                    {
+                        progress = connectPayloadLimit;
+                    }
                 }
             }
 
@@ -3025,6 +3087,259 @@ public final class MqttServerFactory implements MqttStreamFactory
             }
 
             return progress;
+        }
+
+        private void doEstablishSession(
+            long traceId)
+        {
+            if (session == null)
+            {
+                this.session = new MqttSessionStream(routedId, pendingSessionRoutedId, 0);
+            }
+
+            final int sessionCapabilities = versions.contains(MqttVersion.V_5) && versions.size() == 1
+                ? REDIRECT_MASK : 0;
+
+            final MqttBeginExFW.Builder builder = mqttSessionBeginExRW.wrap(sessionExtBuffer, 0, sessionExtBuffer.capacity())
+                .compositeId(pendingSessionCompositeId)
+                .typeId(mqttTypeId)
+                .session(s -> s
+                    .flags(connectFlags & (CLEAN_START_FLAG_MASK | WILL_FLAG_MASK))
+                    .expiry(sessionExpiry)
+                    .publishQosMax(publishQosMax.value())
+                    .capabilities(sessionCapabilities)
+                    .clientId(clientId));
+
+            session.doSessionBegin(traceId, affinity, builder.build());
+        }
+
+        // Consult the store for the current owner of this clientId. When the owner is a
+        // different replica advertising a strong (externally-addressable) identity, redirect
+        // the client to it; otherwise claim ownership cooperatively.
+        private void doAcquireOwnership(
+            long traceId,
+            long authorization)
+        {
+            this.ownerKey = clientId.asString() + OWNER_KEY_POSTFIX;
+            store.get(ownerKey, (key, value) -> onOwnershipResolved(traceId, authorization, value));
+        }
+
+        private void onOwnershipResolved(
+            long traceId,
+            long authorization,
+            String value)
+        {
+            if (MqttState.initialClosed(state) || MqttState.replyClosed(state))
+            {
+                return;
+            }
+
+            final OwnershipRecord owner = OwnershipRecord.decode(value);
+
+            if (owner != null && owner.strong && !ownerIdentity().equals(owner.identity))
+            {
+                doRedirect(traceId, authorization, owner.identity);
+            }
+            else
+            {
+                claimed = true;
+                store.put(ownerKey, ownershipRecord(), sessionLease, ignored -> {});
+                store.lock(ownerKey, sessionLease, (key, token) -> onOwnershipLocked(traceId, authorization, token));
+            }
+        }
+
+        private void onOwnershipLocked(
+            long traceId,
+            long authorization,
+            String token)
+        {
+            if (MqttState.initialClosed(state) || MqttState.replyClosed(state))
+            {
+                if (token != null)
+                {
+                    store.unlock(ownerKey, token, ignored -> {});
+                }
+                return;
+            }
+
+            if (token != null)
+            {
+                owns = true;
+                ownerToken = token;
+                ownershipResolved = true;
+                ownerWatch = store.watch(ownerKey, (key, value) -> onOwnershipChallenged(traceId, value));
+                renewAt = signaler.signalAt(currentTimeMillis() + sessionRenew.toMillis(),
+                    originId, routedId, initialId, traceId, SIGNAL_RENEW_SESSION_OWNERSHIP, 0);
+
+                doEstablishSession(traceId);
+
+                // unstick the decoder so further CONNECT bytes (will message + payload) can
+                // be consumed by their respective decode stages; for a no-will CONNECT the
+                // next decoder is the next-packet-type which simply parks until more bytes
+                // arrive on the network.
+                if (decoder == decodeAwaitOwnership)
+                {
+                    decoder = pendingConnectWillFlagSet
+                        ? decodeConnectWillMessage
+                        : decodePacketTypeByVersion.get(version);
+                }
+
+                decodeNetwork(traceId);
+            }
+            else if (claimed)
+            {
+                // Lock contended: the current owner either yields cooperatively (its watch fired
+                // on our record) or, if unresponsive, its lease eventually expires and we steal it.
+                stealAt = signaler.signalAt(currentTimeMillis() + sessionRenew.toMillis(),
+                    originId, routedId, initialId, traceId, SIGNAL_STEAL_SESSION_OWNERSHIP, 0);
+            }
+        }
+
+        private void onStealOwnership(
+            long traceId,
+            long authorization)
+        {
+            stealAt = NO_CANCEL_ID;
+            if (!owns && claimed)
+            {
+                store.lock(ownerKey, sessionLease, (key, token) -> onOwnershipLocked(traceId, authorization, token));
+            }
+        }
+
+        private void onRenewOwnership(
+            long traceId)
+        {
+            renewAt = NO_CANCEL_ID;
+            if (owns && ownerToken != null)
+            {
+                store.renew(ownerKey, ownerToken, sessionLease, token -> onOwnershipRenewed(traceId, token));
+            }
+        }
+
+        private void onOwnershipRenewed(
+            long traceId,
+            String token)
+        {
+            if (token != null)
+            {
+                renewAt = signaler.signalAt(currentTimeMillis() + sessionRenew.toMillis(),
+                    originId, routedId, initialId, traceId, SIGNAL_RENEW_SESSION_OWNERSHIP, 0);
+            }
+            else
+            {
+                owns = false;
+                ownerToken = null;
+            }
+        }
+
+        // The ownership record changed under us: another connection is claiming this clientId.
+        // Surrender ownership so the new owner can lock and begin serving.
+        private void onOwnershipChallenged(
+            long traceId,
+            String value)
+        {
+            final OwnershipRecord challenger = OwnershipRecord.decode(value);
+
+            // Surrender to any other connection that has claimed the clientId — a different
+            // nonce means a newer connection (same replica or another) now owns the session.
+            if (owns && challenger != null && !ownerNonce().equals(challenger.nonce))
+            {
+                owns = false;
+
+                if (renewAt != NO_CANCEL_ID)
+                {
+                    signaler.cancel(renewAt);
+                    renewAt = NO_CANCEL_ID;
+                }
+
+                if (ownerToken != null)
+                {
+                    store.unlock(ownerKey, ownerToken, ignored -> {});
+                    ownerToken = null;
+                }
+
+                if (session != null)
+                {
+                    session.cleanupAbort(traceId);
+                }
+                doNetworkReset(traceId, 0L);
+                doNetworkAbort(traceId, 0L);
+            }
+        }
+
+        private void doReleaseOwnership(
+            long traceId)
+        {
+            if (renewAt != NO_CANCEL_ID)
+            {
+                signaler.cancel(renewAt);
+                renewAt = NO_CANCEL_ID;
+            }
+
+            if (stealAt != NO_CANCEL_ID)
+            {
+                signaler.cancel(stealAt);
+                stealAt = NO_CANCEL_ID;
+            }
+
+            if (ownerWatch != null)
+            {
+                try
+                {
+                    ownerWatch.close();
+                }
+                catch (IOException ex)
+                {
+                    LangUtil.rethrowUnchecked(ex);
+                }
+                ownerWatch = null;
+            }
+
+            if (owns && ownerToken != null)
+            {
+                store.unlock(ownerKey, ownerToken, ignored -> {});
+            }
+
+            // Only retract the record while we still own it; a record written by another
+            // connection that displaced us must be left intact.
+            if (claimed && owns)
+            {
+                store.delete(ownerKey, ignored -> {});
+            }
+
+            owns = false;
+            claimed = false;
+            ownerToken = null;
+        }
+
+        private void doRedirect(
+            long traceId,
+            long authorization,
+            String serverRef)
+        {
+            doCancelConnectTimeout();
+            doEncodeConnack(traceId, authorization, SERVER_MOVED, assignedClientId, false,
+                new String16FW(serverRef), null, version);
+            doNetworkEnd(traceId, authorization);
+            decoder = decodeIgnoreAll;
+            cleanupDecodeSlot();
+        }
+
+        private String ownerIdentity()
+        {
+            return serviceHostname != null ? serviceHostname : replicaId;
+        }
+
+        // Globally-unique per-connection discriminator: replicaId is unique per engine
+        // instance (node), initialId is unique per stream within a node.
+        private String ownerNonce()
+        {
+            return replicaId + '-' + initialId;
+        }
+
+        private String ownershipRecord()
+        {
+            return OwnershipRecord.encode(serviceHostname != null, ownerIdentity(), ownerNonce());
         }
 
         private int onDecodeConnectWillMessage(
@@ -4900,6 +5215,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             cleanupStreamsUsingAbort(traceId);
 
+            doReleaseOwnership(traceId);
             doNetworkReset(traceId, authorization);
             doNetworkAbort(traceId, authorization);
         }
@@ -4925,6 +5241,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 session.cleanupEnd(traceId);
             }
+            doReleaseOwnership(traceId);
             decoder = decodeIgnoreAll;
         }
 
@@ -7222,6 +7539,57 @@ public final class MqttServerFactory implements MqttStreamFactory
                 retained = true;
             }
             return flags;
+        }
+    }
+
+    // Session-ownership record stored on the clientId#owner key. It carries a single identity
+    // token for the owning replica: a strong (externally-addressable) owner stores its server
+    // reference verbatim, while a weak owner stores its opaque replica identity behind an
+    // ETag-style "W/" prefix. The token both identifies the owner and, when strong, is the
+    // server reference a displaced client is redirected to.
+    private static final class OwnershipRecord
+    {
+        private static final String WEAK_PREFIX = "W/";
+        private static final String FIELD_SEPARATOR = "";
+
+        private final boolean strong;
+        private final String identity;
+        private final String nonce;
+
+        private OwnershipRecord(
+            boolean strong,
+            String identity,
+            String nonce)
+        {
+            this.strong = strong;
+            this.identity = identity;
+            this.nonce = nonce;
+        }
+
+        private static String encode(
+            boolean strong,
+            String identity,
+            String nonce)
+        {
+            return (strong ? identity : WEAK_PREFIX + identity) + FIELD_SEPARATOR + nonce;
+        }
+
+        private static OwnershipRecord decode(
+            String value)
+        {
+            OwnershipRecord record = null;
+
+            if (value != null && !value.isEmpty())
+            {
+                final boolean weak = value.startsWith(WEAK_PREFIX);
+                final String body = weak ? value.substring(WEAK_PREFIX.length()) : value;
+                final int separator = body.indexOf(FIELD_SEPARATOR);
+                final String identity = separator >= 0 ? body.substring(0, separator) : body;
+                final String nonce = separator >= 0 ? body.substring(separator + FIELD_SEPARATOR.length()) : null;
+                record = new OwnershipRecord(!weak, identity, nonce);
+            }
+
+            return record;
         }
     }
 }

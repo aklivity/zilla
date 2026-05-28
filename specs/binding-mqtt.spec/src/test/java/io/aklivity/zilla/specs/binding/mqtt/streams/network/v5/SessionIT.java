@@ -177,6 +177,15 @@ public class SessionIT
 
     @Test
     @Specification({
+        "${net}/session.redirect/client",
+        "${net}/session.redirect/server"})
+    public void shouldRedirect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/session.subscribe.multiple.isolated/client",
         "${net}/session.subscribe.multiple.isolated/server"})
     public void shouldSubscribeMultipleSaveSubscriptionsInSession() throws Exception

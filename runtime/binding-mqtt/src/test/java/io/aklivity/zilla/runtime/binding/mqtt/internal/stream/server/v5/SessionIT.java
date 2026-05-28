@@ -257,6 +257,15 @@ public class SessionIT
     }
 
     @Test
+    @Configuration("server.redirect.yaml")
+    @Specification({
+        "${net}/session.redirect/client"})
+    public void shouldRedirect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.protocol.version.yaml")
     @Specification({
         "${net}/connect.successful/client",
