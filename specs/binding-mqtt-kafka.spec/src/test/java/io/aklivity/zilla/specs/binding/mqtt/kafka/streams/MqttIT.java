@@ -472,15 +472,6 @@ public class MqttIT
 
     @Test
     @Specification({
-        "${mqtt}/session.redirect/client",
-        "${mqtt}/session.redirect/server"})
-    public void shouldRedirect() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${mqtt}/session.abort.reconnect.non.clean.start/client",
         "${mqtt}/session.abort.reconnect.non.clean.start/server"})
     public void shouldReconnectNonCleanStart() throws Exception

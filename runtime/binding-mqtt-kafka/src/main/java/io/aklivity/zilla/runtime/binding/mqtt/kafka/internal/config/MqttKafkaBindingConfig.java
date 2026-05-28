@@ -20,7 +20,6 @@ import static java.util.stream.Collectors.toList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
-import java.util.function.LongFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -35,7 +34,6 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttTopicFilt
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
-import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 
 public class MqttKafkaBindingConfig
 {
@@ -46,20 +44,15 @@ public class MqttKafkaBindingConfig
     public final MqttKafkaOptionsConfig options;
     public final List<MqttKafkaRouteConfig> routes;
     public final List<Function<String, String>> clients;
-    public final StoreHandler store;
 
     public MqttKafkaSessionFactory.KafkaSignalStream willProxy;
 
     public MqttKafkaBindingConfig(
-        BindingConfig binding,
-        LongFunction<StoreHandler> supplyStore)
+        BindingConfig binding)
     {
         this.id = binding.id;
         this.kind = binding.kind;
         this.options = (MqttKafkaOptionsConfig) binding.options;
-        this.store = options != null && options.store != null
-            ? supplyStore.apply(binding.resolveId.applyAsLong(options.store))
-            : null;
         this.routes = binding.routes.stream().map(r -> new MqttKafkaRouteConfig(options, r)).collect(toList());
         this.clients = options != null && options.clients != null ?
             asAccessor(options.clients) : null;

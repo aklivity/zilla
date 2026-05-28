@@ -43,11 +43,6 @@
                                 "title": "Server Reference",
                                 "type": "string"
                             },
-                            "store":
-                            {
-                                "title": "Store Reference",
-                                "type": "string"
-                            },
                             "topics":
                             {
                                 "title": "Topics",
@@ -112,8 +107,7 @@
                         },
                         "required":
                         [
-                            "topics",
-                            "store"
+                            "topics"
                         ],
                         "additionalProperties": false
                     },

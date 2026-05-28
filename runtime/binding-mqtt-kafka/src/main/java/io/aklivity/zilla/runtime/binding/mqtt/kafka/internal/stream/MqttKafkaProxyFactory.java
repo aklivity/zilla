@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream;
 
-import java.util.function.LongFunction;
-
 import org.agrona.DirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
@@ -31,7 +29,6 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 
 public class MqttKafkaProxyFactory implements MqttKafkaStreamFactory
 {
@@ -43,7 +40,6 @@ public class MqttKafkaProxyFactory implements MqttKafkaStreamFactory
     private final int mqttTypeId;
     private final Int2ObjectHashMap<MqttKafkaStreamFactory> factories;
     private final Long2ObjectHashMap<MqttKafkaBindingConfig> bindings;
-    private final LongFunction<StoreHandler> supplyStore;
 
     public MqttKafkaProxyFactory(
         MqttKafkaConfiguration config,
@@ -70,14 +66,13 @@ public class MqttKafkaProxyFactory implements MqttKafkaStreamFactory
         this.mqttTypeId = context.supplyTypeId(MQTT_TYPE_NAME);
         this.factories = factories;
         this.bindings = bindings;
-        this.supplyStore = context::supplyStore;
     }
 
     @Override
     public void attach(
         BindingConfig binding)
     {
-        MqttKafkaBindingConfig kafkaBinding = new MqttKafkaBindingConfig(binding, supplyStore);
+        MqttKafkaBindingConfig kafkaBinding = new MqttKafkaBindingConfig(binding);
         bindings.put(binding.id, kafkaBinding);
 
         factories.values().forEach(streamFactory -> streamFactory.onAttached(binding.id));

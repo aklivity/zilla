@@ -15,15 +15,11 @@
 
 ---
 name: test
-stores:
-  test0:
-    type: test
 bindings:
   mqtt0:
     type: mqtt-kafka
     kind: proxy
     options:
-      store: test0
       topics:
         sessions: sessions
         messages: messages

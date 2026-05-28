@@ -52,20 +52,6 @@ public class SchemaTest
     }
 
     @Test
-    public void shouldValidateProxyWithStore()
-    {
-        JsonObject config = schema.validate("proxy.store.yaml");
-
-        assertThat(config, not(nullValue()));
-    }
-
-    @Test(expected = JsonException.class)
-    public void shouldRejectProxyWithoutStore()
-    {
-        schema.validate("proxy.missing.store.yaml");
-    }
-
-    @Test
     public void shouldValidateProxyWithPublishQosMax()
     {
         JsonObject config = schema.validate("proxy.publish.qos.max.yaml");

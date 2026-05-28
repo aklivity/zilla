@@ -21,8 +21,6 @@ import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaCon
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration.LIFETIME_ID;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration.PUBLISH_QOS_MAX;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration.SESSION_ID;
-import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration.SESSION_LEASE;
-import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration.SESSION_RENEW;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration.TIME;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration.WILL_AVAILABLE;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration.WILL_ID;
@@ -48,8 +46,6 @@ public class MqttKafkaConfigurationTest
     public static final String WILL_ID_NAME = "zilla.binding.mqtt.kafka.will.id";
     public static final String LIFETIME_ID_NAME = "zilla.binding.mqtt.kafka.lifetime.id";
     public static final String INSTANCE_ID_NAME = "zilla.binding.mqtt.kafka.instance.id";
-    public static final String SESSION_LEASE_NAME = "zilla.binding.mqtt.kafka.session.lease";
-    public static final String SESSION_RENEW_NAME = "zilla.binding.mqtt.kafka.session.renew";
 
     @Test
     public void shouldVerifyConstants()
@@ -64,8 +60,6 @@ public class MqttKafkaConfigurationTest
         assertEquals(LIFETIME_ID.name(), LIFETIME_ID_NAME);
         assertEquals(INSTANCE_ID.name(), INSTANCE_ID_NAME);
         assertEquals(PUBLISH_QOS_MAX.name(), PUBLISH_MAX_QOS_NAME);
-        assertEquals(SESSION_LEASE.name(), SESSION_LEASE_NAME);
-        assertEquals(SESSION_RENEW.name(), SESSION_RENEW_NAME);
     }
 
     @Test
