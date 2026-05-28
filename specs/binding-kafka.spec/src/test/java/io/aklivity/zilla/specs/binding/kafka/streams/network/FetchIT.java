@@ -58,15 +58,6 @@ public class FetchIT
 
     @Test
     @Specification({
-        "${net}/broker.not.available/client",
-        "${net}/broker.not.available/server"})
-    public void shouldBrokerNotAvailable() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${net}/replica.not.available/client",
         "${net}/replica.not.available/server"})
     public void shouldReplicaNotAvailable() throws Exception

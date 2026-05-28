@@ -2330,8 +2330,6 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 doNetworkResetIfNecessary(traceId);
                 doNetworkAbortIfNecessary(traceId);
 
-                clientRoute.metaFlush.accept(traceId);
-
                 stream.cleanupApplication(traceId, EMPTY_OCTETS);
             }
 
