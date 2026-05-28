@@ -182,7 +182,6 @@ final class McpProxyLifecycleFactory implements BindingHandler
         private int state;
         private boolean resumePending;
         private int pendingClients;
-        private boolean bearerRelayed;
 
         private long initialSeq;
         private long initialAck;
@@ -413,7 +412,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
             if (pendingClients > 0)
             {
                 pendingClients--;
-                if (pendingClients == 0 && !bearerRelayed)
+                if (pendingClients == 0 && !McpState.initialClosed(state) && !McpState.replyClosed(state))
                 {
                     doServerBeginDeferred(traceId);
                 }
@@ -427,7 +426,6 @@ final class McpProxyLifecycleFactory implements BindingHandler
         {
             if (!McpState.replyOpened(state))
             {
-                bearerRelayed = true;
                 pendingClients = 0;
                 doServerReset(traceId, extension);
                 for (McpLifecycleClient client : clients.values())
