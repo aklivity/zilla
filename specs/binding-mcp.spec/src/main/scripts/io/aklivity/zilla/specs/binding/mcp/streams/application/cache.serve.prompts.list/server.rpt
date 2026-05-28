@@ -52,8 +52,6 @@ connected
 
 write flush
 
-read closed
-
 write '{"prompts":'
         '['
           '{'
@@ -65,3 +63,5 @@ write '{"prompts":'
 write flush
 
 write close
+
+read closed

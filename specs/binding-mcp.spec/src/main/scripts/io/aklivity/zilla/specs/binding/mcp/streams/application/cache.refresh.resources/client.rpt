@@ -49,10 +49,10 @@ write zilla:begin.ext ${mcp:beginEx()
 
 connected
 
-write close
-
 read '{"resources":[{"uri":"file:///docs/welcome.md","name":"welcome"}]}'
 read closed
+
+write close
 
 read notify HYDRATED
 
@@ -70,7 +70,7 @@ write zilla:begin.ext ${mcp:beginEx()
 
 connected
 
-write close
-
 read '{"resources":[{"uri":"file:///docs/welcome.md","name":"welcome"},{"uri":"file:///docs/changelog.md","name":"changelog"}]}'
 read closed
+
+write close

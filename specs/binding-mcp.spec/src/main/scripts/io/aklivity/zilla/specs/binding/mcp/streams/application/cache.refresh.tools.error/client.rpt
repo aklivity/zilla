@@ -50,10 +50,10 @@ write zilla:begin.ext ${mcp:beginEx()
 
 connected
 
-write close
-
 read '{"tools":[{"name":"get_weather"}]}'
 read closed
+
+write close
 
 read notify HYDRATED
 
@@ -71,6 +71,6 @@ write zilla:begin.ext ${mcp:beginEx()
 
 connected
 
-write close
-
 read aborted
+
+write close

@@ -51,9 +51,9 @@ connected
 
 write flush
 
-read closed
-
 write '{"resources":[]}'
 write flush
 
 write close
+
+read closed

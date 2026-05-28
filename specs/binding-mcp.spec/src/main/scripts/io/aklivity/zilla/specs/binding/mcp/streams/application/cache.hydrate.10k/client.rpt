@@ -49,10 +49,10 @@ write zilla:begin.ext ${mcp:beginEx()
 
 connected
 
-write close
-
 read '{"prompts":[]}'
 read closed
+
+write close
 
 read notify PROMPTS_LIST_COMPLETE
 
@@ -70,12 +70,12 @@ write zilla:begin.ext ${mcp:beginEx()
 
 connected
 
-write close
-
 read '{"tools":[{"name":"big_tool","description":"'
 read ${core:randomBase64(10000)}
 read '"}]}'
 read closed
+
+write close
 
 read notify TOOLS_LIST_COMPLETE
 
@@ -93,7 +93,7 @@ write zilla:begin.ext ${mcp:beginEx()
 
 connected
 
-write close
-
 read '{"resources":[]}'
 read closed
+
+write close

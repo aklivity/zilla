@@ -156,6 +156,20 @@ public final class McpBindingConfig
         return resolved;
     }
 
+    public List<Long> resolveAll(
+        long authorization)
+    {
+        final List<Long> result = new ArrayList<>();
+        for (McpRouteConfig route : routes)
+        {
+            if (route.authorized(authorization))
+            {
+                result.add(route.id);
+            }
+        }
+        return result;
+    }
+
     public List<McpRouteConfig> resolveAll(
         McpBeginExFW beginEx,
         long authorization)

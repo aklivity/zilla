@@ -51,8 +51,6 @@ connected
 
 write flush
 
-read closed
-
 write '{"tools":'
         '['
           '{'
@@ -85,3 +83,5 @@ write '{"tools":'
 write flush
 
 write close
+
+read closed

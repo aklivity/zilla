@@ -50,10 +50,10 @@ write zilla:begin.ext ${mcp:beginEx()
 
 connected
 
-write close
-
 read '{"tools":[{"name":"get_weather"}]}'
 read closed
+
+write close
 
 read notify TOOLS_LIST_COMPLETE
 
@@ -71,7 +71,7 @@ write zilla:begin.ext ${mcp:beginEx()
 
 connected
 
-write close
-
 read '{"tools":[{"name":"get_weather"},{"name":"get_time"}]}'
 read closed
+
+write close

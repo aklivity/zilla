@@ -51,7 +51,8 @@ write zilla:begin.ext ${mcp:beginEx()
 connected
 
 write '{"uri":"file:///data/readme.txt"}'
-write close
 
 read  '{"contents":[{"uri":"file:///data/readme.txt","mimeType":"text/plain","text":"Hello World"}]}'
 read closed
+
+write close

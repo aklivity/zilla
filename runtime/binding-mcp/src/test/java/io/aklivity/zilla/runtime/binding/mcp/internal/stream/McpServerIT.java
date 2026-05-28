@@ -73,6 +73,26 @@ public class McpServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/lifecycle.initialize.reject.bearer/client",
+        "${app}/lifecycle.initialize.reject.bearer/server"})
+    public void shouldRejectLifecycleInitializeWithBearerChallenge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/tools.call.reject.bearer/client",
+        "${app}/tools.call.reject.bearer/server"})
+    public void shouldRejectToolsCallWithBearerChallenge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/lifecycle.initialize.alt.svc/client",
         "${app}/lifecycle.initialize.alt.svc/server"})
     @Configure(name = MCP_ALT_SVC_ENABLED_NAME, value = "true")
@@ -361,6 +381,16 @@ public class McpServerIT
         "${app}/lifecycle.events.open/server"})
     @Configure(name = MCP_SSE_KEEPALIVE_INTERVAL_NAME, value = "PT30S")
     public void shouldOpenLifecycleEvents() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/lifecycle.events.resume.reject.bearer/client",
+        "${app}/lifecycle.events.resume.reject.bearer/server"})
+    public void shouldRejectLifecycleEventsResumeWithBearerChallenge() throws Exception
     {
         k3po.finish();
     }

@@ -49,10 +49,10 @@ write zilla:begin.ext ${mcp:beginEx()
 
 connected
 
-write close
-
 read '{"prompts":[{"name":"summarize"}]}'
 read closed
+
+write close
 
 read notify HYDRATED
 
@@ -70,7 +70,7 @@ write zilla:begin.ext ${mcp:beginEx()
 
 connected
 
-write close
-
 read '{"prompts":[{"name":"summarize"},{"name":"translate"}]}'
 read closed
+
+write close

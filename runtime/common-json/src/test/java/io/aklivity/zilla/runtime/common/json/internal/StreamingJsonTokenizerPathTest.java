@@ -235,7 +235,7 @@ public class StreamingJsonTokenizerPathTest
     {
         final List<String> excludes = List.of("/payload");
         final StreamingJsonTokenizer tokenizer =
-            new StreamingJsonTokenizer(List.of(), excludes, 8);
+            new StreamingJsonTokenizer(StreamingJsonTokenizer.INCLUDE_ALL, excludes, 8);
 
         final String json = "{\"payload\":\"abcdefghijklmnopqrst\",\"id\":1}";
         final InputStream in = new BufferedInputStream(

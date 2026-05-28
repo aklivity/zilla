@@ -19,6 +19,7 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeg
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
 
+import java.util.List;
 import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
 
@@ -29,6 +30,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpAggregateEventId;
+import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpAggregateRoute;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpBindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpProxySession;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpRouteConfig;
@@ -179,6 +181,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
 
         private int state;
         private boolean resumePending;
+        private int pendingClients;
 
         private long initialSeq;
         private long initialAck;
@@ -262,6 +265,20 @@ final class McpProxyLifecycleFactory implements BindingHandler
             }
         }
 
+        private void onServerResumeRoutes(
+            long traceId)
+        {
+            for (McpAggregateRoute route : binding.aggregateRoutes)
+            {
+                final long routedId = route.routedId();
+                if (!clients.containsKey(routedId))
+                {
+                    final McpLifecycleClient client = supplyClient(routedId);
+                    client.doClientBegin(traceId);
+                }
+            }
+        }
+
         private void onServerMessage(
             int msgTypeId,
             DirectBuffer buffer,
@@ -329,6 +346,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
                 {
                     McpAggregateEventId.decode(aggregate,
                         (prefix, eventId) -> onDecodeAggregateEventId(traceId, authorization, prefix, eventId));
+                    onServerResumeRoutes(traceId);
                 }
                 else
                 {
@@ -359,9 +377,65 @@ final class McpProxyLifecycleFactory implements BindingHandler
                 binding.cache.register(() -> signaler.signalNow(
                     originId, routedId, replyId, traceId, SIGNAL_HYDRATE_COMPLETE, 0));
             }
+            else if (binding.cache == null)
+            {
+                doEstablishToolkitClients(traceId);
+            }
             else
             {
                 doServerBeginDeferred(traceId);
+            }
+        }
+
+        private void doEstablishToolkitClients(
+            long traceId)
+        {
+            final List<Long> routeIds = binding.resolveAll(authorization);
+            if (routeIds.isEmpty())
+            {
+                doServerBeginDeferred(traceId);
+            }
+            else
+            {
+                pendingClients = routeIds.size();
+                for (long routeId : routeIds)
+                {
+                    final McpLifecycleClient client = supplyClient(routeId);
+                    client.doClientBegin(traceId);
+                }
+            }
+        }
+
+        private void onClientLifecycleOpened(
+            long traceId)
+        {
+            if (pendingClients > 0)
+            {
+                pendingClients--;
+                if (pendingClients == 0 && !McpState.initialClosed(state) && !McpState.replyClosed(state))
+                {
+                    doServerBeginDeferred(traceId);
+                }
+            }
+        }
+
+        private void onClientBearerReset(
+            long traceId,
+            OctetsFW extension,
+            McpLifecycleClient origin)
+        {
+            if (!McpState.replyOpened(state))
+            {
+                pendingClients = 0;
+                doServerReset(traceId, extension);
+                for (McpLifecycleClient client : clients.values())
+                {
+                    if (client != origin)
+                    {
+                        client.doClientAbort(traceId);
+                    }
+                }
+                clients.clear();
             }
         }
 
@@ -522,10 +596,17 @@ final class McpProxyLifecycleFactory implements BindingHandler
         private void doServerReset(
             long traceId)
         {
+            doServerReset(traceId, emptyRO);
+        }
+
+        private void doServerReset(
+            long traceId,
+            OctetsFW extension)
+        {
             if (!McpState.initialClosed(state))
             {
                 doReset(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId,
-                    authorization, emptyRO);
+                    authorization, extension);
                 state = McpState.closedInitial(state);
             }
         }
@@ -823,6 +904,8 @@ final class McpProxyLifecycleFactory implements BindingHandler
 
             state = McpState.openedReply(state);
 
+            server.onClientLifecycleOpened(traceId);
+
             if (resumeId != null || server.resumePending)
             {
                 doClientResume(traceId, authorization);
@@ -897,6 +980,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
             final long sequence = reset.sequence();
             final long acknowledge = reset.acknowledge();
             final long traceId = reset.traceId();
+            final OctetsFW extension = reset.extension();
 
             assert acknowledge <= sequence;
             assert sequence <= initialSeq;
@@ -909,7 +993,15 @@ final class McpProxyLifecycleFactory implements BindingHandler
             state = McpState.closedInitial(state);
             doClientReset(traceId);
             server.clients.remove(routedId, this);
-            server.doServerReset(traceId);
+
+            if (extension.sizeof() > 0 && !McpState.replyOpened(server.state))
+            {
+                server.onClientBearerReset(traceId, extension, this);
+            }
+            else
+            {
+                server.doServerReset(traceId, extension);
+            }
         }
     }
 

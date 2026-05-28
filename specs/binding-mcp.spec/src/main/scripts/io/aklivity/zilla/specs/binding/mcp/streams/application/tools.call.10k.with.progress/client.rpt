@@ -53,7 +53,6 @@ connected
 write '{"name":"get_weather","arguments":{"image":"'
 write ${core:randomBase64(10000)}
 write '","location":"New York"},"_meta":{"progressToken":"abc123"}}'
-write close
 
 read advised zilla:flush ${mcp:matchFlushEx()
                                .typeId(zilla:id("mcp"))
@@ -75,3 +74,5 @@ read advised zilla:flush ${mcp:matchFlushEx()
 
 read  '{"content":[{"type": "text","text": "ok"}],"isError": false}'
 read closed
+
+write close

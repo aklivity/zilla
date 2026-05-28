@@ -51,6 +51,6 @@ write zilla:begin.ext ${mcp:beginEx()
 connected
 
 write '{"name":"weather_prompt"}'
-write close
 
 read abort
+

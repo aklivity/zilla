@@ -55,12 +55,12 @@ connected
 
 write flush
 
-read closed
-
 write '{"prompts":[]}'
 write flush
 
 write close
+
+read closed
 
 accepted
 
@@ -75,12 +75,12 @@ connected
 
 write flush
 
-read closed
-
 write '{"tools":[{"name":"get_weather"}]}'
 write flush
 
 write close
+
+read closed
 
 accepted
 
@@ -95,14 +95,14 @@ connected
 
 write flush
 
-read closed
-
 write '{"resources":[]}'
 write flush
 
 write notify ALL_HYDRATED
 
 write close
+
+read closed
 
 accepted
 
@@ -136,12 +136,12 @@ connected
 
 write flush
 
-read closed
-
 write '{"prompts":[]}'
 write flush
 
 write close
+
+read closed
 
 accepted
 
@@ -156,12 +156,12 @@ connected
 
 write flush
 
-read closed
-
 write '{"tools":[{"name":"get_weather"},{"name":"get_time"}]}'
 write flush
 
 write close
+
+read closed
 
 accepted
 
@@ -176,9 +176,9 @@ connected
 
 write flush
 
-read closed
-
 write '{"resources":[]}'
 write flush
 
 write close
+
+read closed

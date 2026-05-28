@@ -56,10 +56,10 @@ write zilla:begin.ext ${mcp:beginEx()
 
 connected
 
-write close
-
 read '{"prompts":[]}'
 read closed
+
+write close
 
 read notify PROMPTS_HYDRATED
 
@@ -77,10 +77,10 @@ write zilla:begin.ext ${mcp:beginEx()
 
 connected
 
-write close
-
 read '{"tools":[{"name":"get_weather"}]}'
 read closed
+
+write close
 
 read notify TOOLS_HYDRATED
 
@@ -98,10 +98,10 @@ write zilla:begin.ext ${mcp:beginEx()
 
 connected
 
-write close
-
 read '{"resources":[]}'
 read closed
+
+write close
 
 read notify ALL_HYDRATED
 
@@ -142,10 +142,10 @@ write zilla:begin.ext ${mcp:beginEx()
 
 connected
 
-write close
-
 read '{"prompts":[]}'
 read closed
+
+write close
 
 read notify PROMPTS2_HYDRATED
 
@@ -163,10 +163,10 @@ write zilla:begin.ext ${mcp:beginEx()
 
 connected
 
-write close
-
 read '{"tools":[{"name":"get_weather"},{"name":"get_time"}]}'
 read closed
+
+write close
 
 read notify TOOLS2_HYDRATED
 
@@ -184,7 +184,7 @@ write zilla:begin.ext ${mcp:beginEx()
 
 connected
 
-write close
-
 read '{"resources":[]}'
 read closed
+
+write close

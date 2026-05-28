@@ -198,8 +198,7 @@ public final class StreamingJsonParser implements JsonParser
         Map<String, ?> config,
         String key)
     {
-        final Object raw = config.get(key);
-        return raw == null ? List.of() : (List<String>) raw;
+        return (List<String>) config.get(key);
     }
 
     private static int tokenMaxBytes(

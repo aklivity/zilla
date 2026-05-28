@@ -47,6 +47,33 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/lifecycle.initialize.reject.bearer/client",
+        "${app}/lifecycle.initialize.reject.bearer/server"})
+    public void shouldRejectLifecycleInitializeOnUpstreamBearerChallenge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/tools.call.reject.bearer/client",
+        "${app}/tools.call.reject.bearer/server"})
+    public void shouldRejectToolsCallOnUpstreamBearerChallenge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/cache.tools.call.reject.bearer/client",
+        "${app}/cache.tools.call.reject.bearer/server"})
+    public void shouldRejectToolsCallOnUpstreamBearerChallengeFromCache() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/lifecycle.initialize.alt.svc/client",
         "${app}/lifecycle.initialize.alt.svc/server"})
     public void shouldInitializeLifecycleAltSvc() throws Exception
@@ -302,6 +329,15 @@ public class ApplicationIT
         "${app}/lifecycle.events.resume.duplicate/client",
         "${app}/lifecycle.events.resume.duplicate/server"})
     public void shouldRejectLifecycleEventsResumeDuplicate() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/lifecycle.events.resume.reject.bearer/client",
+        "${app}/lifecycle.events.resume.reject.bearer/server"})
+    public void shouldRejectLifecycleEventsResumeOnUpstreamBearerChallenge() throws Exception
     {
         k3po.finish();
     }

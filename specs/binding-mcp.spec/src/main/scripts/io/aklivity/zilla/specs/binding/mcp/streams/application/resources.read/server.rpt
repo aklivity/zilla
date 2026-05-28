@@ -51,7 +51,6 @@ read zilla:begin.ext ${mcp:matchBeginEx()
 connected
 
 read  '{"uri":"file:///data/readme.txt"}'
-read closed
 
 write flush
 
@@ -59,3 +58,5 @@ write '{"contents":[{"uri":"file:///data/readme.txt","mimeType":"text/plain","te
 write flush
 
 write close
+
+read closed

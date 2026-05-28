@@ -53,7 +53,8 @@ connected
 write '{"name":"get_weather","arguments":{"image":"'
 write ${core:randomBase64(100000)}
 write '","location":"New York"}}'
-write close
 
 read  '{"content":[{"type": "text","text": "ok"}],"isError": false}'
 read closed
+
+write close
