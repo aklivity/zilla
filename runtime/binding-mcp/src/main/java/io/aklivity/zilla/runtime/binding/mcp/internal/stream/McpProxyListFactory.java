@@ -85,6 +85,7 @@ abstract class McpProxyListFactory implements BindingHandler
     private final MutableDirectBuffer codecBuffer;
     private final BindingHandler streamFactory;
     private final BufferPool bufferPool;
+    private final int decodeMax;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final LongSupplier supplyTraceId;
@@ -115,6 +116,7 @@ abstract class McpProxyListFactory implements BindingHandler
         this.codecBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.streamFactory = context.streamFactory();
         this.bufferPool = context.bufferPool();
+        this.decodeMax = bufferPool.slotCapacity();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.supplyTraceId = context::supplyTraceId;
@@ -377,7 +379,7 @@ abstract class McpProxyListFactory implements BindingHandler
 
             state = McpState.openedInitial(state);
 
-            flushClientWindow(traceId, 0L, 0, 0L, bufferPool.slotCapacity());
+            flushClientWindow(traceId, 0L, 0, 0L, decodeMax);
         }
 
         private void onClientData(
@@ -1193,7 +1195,7 @@ abstract class McpProxyListFactory implements BindingHandler
 
             assert replyAck <= replySeq;
 
-            flushEncodeSlot(traceId);
+            encode(traceId);
             if (endItemsPending)
             {
                 encodeEnd(traceId);
@@ -1304,22 +1306,22 @@ abstract class McpProxyListFactory implements BindingHandler
         private int doServerData(
             DirectBuffer buffer,
             int offset,
-            int length,
+            int maxLength,
             long traceId)
         {
             int accepted;
             if (encodeSlot == NO_SLOT)
             {
                 final int replyWin = replyMax - (int) (replySeq - replyAck) - replyPad;
-                final int emit = Math.min(Math.max(replyWin, 0), length);
-                if (emit > 0)
+                final int length = Math.min(Math.max(replyWin, 0), maxLength);
+                if (length > 0)
                 {
                     doData(lifecycle.sender, lifecycle.originId, lifecycle.routedId, replyId, replySeq, replyAck, replyMax,
-                        traceId, authorization, 0x03, 0L, emit, buffer, offset, emit);
-                    replySeq += emit;
+                        traceId, authorization, 0x03, 0L, length, buffer, offset, length);
+                    replySeq += length;
                 }
-                accepted = emit;
-                final int remaining = length - emit;
+                accepted = length;
+                final int remaining = maxLength - length;
                 if (remaining > 0)
                 {
                     encodeSlot = bufferPool.acquire(replyId);
@@ -1331,40 +1333,40 @@ abstract class McpProxyListFactory implements BindingHandler
                     {
                         final MutableDirectBuffer slot = bufferPool.buffer(encodeSlot);
                         final int stashable = Math.min(remaining, slot.capacity());
-                        slot.putBytes(0, buffer, offset + emit, stashable);
+                        slot.putBytes(0, buffer, offset + length, stashable);
                         encodeSlotOffset = stashable;
-                        accepted = emit + stashable;
+                        accepted = length + stashable;
                     }
                 }
             }
             else
             {
                 final MutableDirectBuffer slot = bufferPool.buffer(encodeSlot);
-                accepted = Math.min(length, slot.capacity() - encodeSlotOffset);
+                accepted = Math.min(maxLength, slot.capacity() - encodeSlotOffset);
                 slot.putBytes(encodeSlotOffset, buffer, offset, accepted);
                 encodeSlotOffset += accepted;
-                flushEncodeSlot(traceId);
+                encode(traceId);
             }
             return accepted;
         }
 
-        private void flushEncodeSlot(
+        private void encode(
             long traceId)
         {
             if (encodeSlot != NO_SLOT && encodeSlotOffset > 0)
             {
                 final MutableDirectBuffer slot = bufferPool.buffer(encodeSlot);
                 final int replyWin = replyMax - (int) (replySeq - replyAck) - replyPad;
-                final int emit = Math.min(Math.max(replyWin, 0), encodeSlotOffset);
-                if (emit > 0)
+                final int length = Math.min(Math.max(replyWin, 0), encodeSlotOffset);
+                if (length > 0)
                 {
                     doData(lifecycle.sender, lifecycle.originId, lifecycle.routedId, replyId, replySeq, replyAck, replyMax,
-                        traceId, authorization, 0x03, 0L, emit, slot, 0, emit);
-                    replySeq += emit;
-                    final int remaining = encodeSlotOffset - emit;
+                        traceId, authorization, 0x03, 0L, length, slot, 0, length);
+                    replySeq += length;
+                    final int remaining = encodeSlotOffset - length;
                     if (remaining > 0)
                     {
-                        slot.putBytes(0, slot, emit, remaining);
+                        slot.putBytes(0, slot, length, remaining);
                     }
                     encodeSlotOffset = remaining;
                 }

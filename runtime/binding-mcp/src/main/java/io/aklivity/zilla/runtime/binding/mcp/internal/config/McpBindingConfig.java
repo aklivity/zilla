@@ -156,7 +156,7 @@ public final class McpBindingConfig
         return resolved;
     }
 
-    public List<Long> resolveAllLifecycle(
+    public List<Long> resolveAll(
         long authorization)
     {
         final List<Long> result = new ArrayList<>();

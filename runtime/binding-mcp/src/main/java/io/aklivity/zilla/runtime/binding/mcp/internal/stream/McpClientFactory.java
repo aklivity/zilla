@@ -1651,7 +1651,7 @@ public final class McpClientFactory implements McpStreamFactory
             return null;
         }
 
-        void clearEventStream()
+        void clearSse()
         {
         }
 
@@ -2048,7 +2048,7 @@ public final class McpClientFactory implements McpStreamFactory
         private long keepaliveId = Signaler.NO_CANCEL_ID;
         private long lastActiveAt;
         private int failedKeepalives;
-        HttpEventStream sse;
+        private HttpEventStream sse;
         boolean eventsUnsupported;
 
         @Override
@@ -2076,7 +2076,7 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         @Override
-        void clearEventStream()
+        void clearSse()
         {
             sse = null;
         }
@@ -2454,7 +2454,7 @@ public final class McpClientFactory implements McpStreamFactory
     {
         final McpLifecycleStream session;
         final int requestId;
-        HttpEventStream sse;
+        private HttpEventStream sse;
 
         JsonParser paramsParser;
         int paramsDepth;
@@ -2500,7 +2500,7 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         @Override
-        void clearEventStream()
+        void clearSse()
         {
             sse = null;
         }
@@ -4421,7 +4421,7 @@ public final class McpClientFactory implements McpStreamFactory
         {
             if (mcp.sseRef() == this)
             {
-                mcp.clearEventStream();
+                mcp.clearSse();
             }
         }
     }

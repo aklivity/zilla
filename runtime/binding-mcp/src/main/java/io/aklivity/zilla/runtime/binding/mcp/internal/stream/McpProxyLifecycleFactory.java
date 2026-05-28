@@ -266,14 +266,16 @@ final class McpProxyLifecycleFactory implements BindingHandler
             }
         }
 
-        private void onResumeConfiguredRoutes(
+        private void onServerResumeRoutes(
             long traceId)
         {
             for (McpAggregateRoute route : binding.aggregateRoutes)
             {
-                if (!clients.containsKey(route.routedId()))
+                final long routedId = route.routedId();
+                if (!clients.containsKey(routedId))
                 {
-                    supplyClient(route.routedId()).doClientBegin(traceId);
+                    final McpLifecycleClient client = supplyClient(routedId);
+                    client.doClientBegin(traceId);
                 }
             }
         }
@@ -345,7 +347,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
                 {
                     McpAggregateEventId.decode(aggregate,
                         (prefix, eventId) -> onDecodeAggregateEventId(traceId, authorization, prefix, eventId));
-                    onResumeConfiguredRoutes(traceId);
+                    onServerResumeRoutes(traceId);
                 }
                 else
                 {
@@ -389,7 +391,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
         private void doEstablishToolkitClients(
             long traceId)
         {
-            final List<Long> routeIds = binding.resolveAllLifecycle(authorization);
+            final List<Long> routeIds = binding.resolveAll(authorization);
             if (routeIds.isEmpty())
             {
                 doServerBeginDeferred(traceId);
