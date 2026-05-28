@@ -425,7 +425,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
             OctetsFW extension,
             McpLifecycleClient origin)
         {
-            if (!bearerRelayed && !McpState.replyOpened(state))
+            if (!McpState.replyOpened(state))
             {
                 bearerRelayed = true;
                 pendingClients = 0;
