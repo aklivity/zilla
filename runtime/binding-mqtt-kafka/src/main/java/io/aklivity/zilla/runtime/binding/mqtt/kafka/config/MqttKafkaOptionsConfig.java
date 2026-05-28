@@ -23,7 +23,6 @@ public class MqttKafkaOptionsConfig extends OptionsConfig
 {
     public final MqttKafkaTopicsConfig topics;
     public final String serverRef;
-    public final String store;
     public final List<String> clients;
     public final MqttKafkaPublishConfig publish;
 
@@ -41,13 +40,11 @@ public class MqttKafkaOptionsConfig extends OptionsConfig
     MqttKafkaOptionsConfig(
         MqttKafkaTopicsConfig topics,
         String serverRef,
-        String store,
         List<String> clients,
         MqttKafkaPublishConfig publish)
     {
         this.topics = topics;
         this.serverRef = serverRef;
-        this.store = store;
         this.clients = clients;
         this.publish = publish;
     }

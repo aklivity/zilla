@@ -26,7 +26,6 @@ public class MqttKafkaOptionsConfigBuilder<T> extends ConfigBuilder<T, MqttKafka
 
     private MqttKafkaTopicsConfig topics;
     private String serverRef;
-    private String store;
     private List<String> clients;
     private MqttKafkaPublishConfig publish;
 
@@ -63,13 +62,6 @@ public class MqttKafkaOptionsConfigBuilder<T> extends ConfigBuilder<T, MqttKafka
         return this;
     }
 
-    public MqttKafkaOptionsConfigBuilder<T> store(
-        String store)
-    {
-        this.store = store;
-        return this;
-    }
-
     public MqttKafkaOptionsConfigBuilder<T> clients(
         List<String> clients)
     {
@@ -93,6 +85,6 @@ public class MqttKafkaOptionsConfigBuilder<T> extends ConfigBuilder<T, MqttKafka
     @Override
     public T build()
     {
-        return mapper.apply(new MqttKafkaOptionsConfig(topics, serverRef, store, clients, publish));
+        return mapper.apply(new MqttKafkaOptionsConfig(topics, serverRef, clients, publish));
     }
 }
