@@ -1167,7 +1167,10 @@ abstract class McpProxyListFactory implements BindingHandler
             {
                 client.doClientEnd(traceId);
             }
-            detachClientIfClosed();
+            if (McpState.closed(state))
+            {
+                onClientClosed(traceId);
+            }
         }
 
         private void onServerAbort(
@@ -1192,7 +1195,10 @@ abstract class McpProxyListFactory implements BindingHandler
                 client.doClientAbort(traceId);
             }
             remaining.clear();
-            detachClientIfClosed();
+            if (McpState.closed(state))
+            {
+                onClientClosed(traceId);
+            }
         }
 
         private void onServerWindow(
@@ -1251,7 +1257,10 @@ abstract class McpProxyListFactory implements BindingHandler
                 client.doClientReset(traceId);
             }
             remaining.clear();
-            detachClientIfClosed();
+            if (McpState.closed(state))
+            {
+                onClientClosed(traceId);
+            }
         }
 
         private void onClientClosed(
@@ -1266,15 +1275,6 @@ abstract class McpProxyListFactory implements BindingHandler
         {
             remaining.clear();
             doServerAbort(traceId);
-            detachClientIfClosed();
-        }
-
-        private void detachClientIfClosed()
-        {
-            if (client != null && McpState.closed(state))
-            {
-                client = null;
-            }
         }
 
         private void onNextClient(
@@ -1487,6 +1487,10 @@ abstract class McpProxyListFactory implements BindingHandler
                 doEnd(lifecycle.sender, lifecycle.originId, lifecycle.routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization);
                 state = McpState.closedReply(state);
+                if (McpState.closed(state))
+                {
+                    onClientClosed(traceId);
+                }
             }
         }
 
@@ -1499,6 +1503,10 @@ abstract class McpProxyListFactory implements BindingHandler
                     traceId, authorization);
                 state = McpState.closedReply(state);
                 cleanupEncodeSlot();
+                if (McpState.closed(state))
+                {
+                    onClientClosed(traceId);
+                }
             }
         }
 
