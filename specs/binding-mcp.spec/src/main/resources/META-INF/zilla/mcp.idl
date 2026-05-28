@@ -59,6 +59,11 @@ scope mcp
             case 2: mcp::stream::McpElicitCreateChallengeEx elicitCreate;
         }
 
+        union McpResetEx switch (uint8) extends core::stream::Extension
+        {
+            case 0: mcp::stream::McpBearerResetEx bearer;
+        }
+
         struct McpResumableFlushEx
         {
             string16 id = null;
@@ -100,6 +105,20 @@ scope mcp
 
         struct McpSuspendedChallengeEx
         {
+        }
+
+        enum McpBearerError (uint8)
+        {
+            INVALID_REQUEST(0),
+            INVALID_TOKEN(1),
+            INSUFFICIENT_SCOPE(2)
+        }
+
+        struct McpBearerResetEx
+        {
+            string16 realm = null;
+            string16 scopes = null;
+            McpBearerError error;
         }
 
         struct McpLifecycleBeginEx

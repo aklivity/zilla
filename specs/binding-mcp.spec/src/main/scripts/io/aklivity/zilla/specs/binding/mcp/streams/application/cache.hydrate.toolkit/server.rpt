@@ -49,12 +49,12 @@ connected
 
 write flush
 
-read closed
-
 write '{"prompts":[{"name":"summarize"}]}'
 write flush
 
 write close
+
+read closed
 
 accepted
 
@@ -69,12 +69,12 @@ connected
 
 write flush
 
-read closed
-
 write '{"tools":[{"name":"get_weather"}]}'
 write flush
 
 write close
+
+read closed
 
 accepted
 
@@ -89,13 +89,12 @@ connected
 
 write flush
 
-read closed
-
 write '{"resources":[{"uri":"file:///bluesky.txt"}]}'
 write flush
 
 write close
 
+read closed
 
 accept "zilla://streams/app2"
        option zilla:window 8192
@@ -133,12 +132,12 @@ connected
 
 write flush
 
-read closed
-
 write '{"prompts":[{"name":"translate"}]}'
 write flush
 
 write close
+
+read closed
 
 accepted
 
@@ -153,12 +152,12 @@ connected
 
 write flush
 
-read closed
-
 write '{"tools":[{"name":"get_current_time"}]}'
 write flush
 
 write close
+
+read closed
 
 accepted
 
@@ -173,9 +172,9 @@ connected
 
 write flush
 
-read closed
-
 write '{"resources":[{"uri":"file:///quartz.txt"}]}'
 write flush
 
 write close
+
+read closed

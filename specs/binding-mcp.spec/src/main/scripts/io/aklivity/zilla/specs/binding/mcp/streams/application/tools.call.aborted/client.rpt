@@ -57,6 +57,6 @@ write '{'
           '"location": "New York"'
         '}'
       '}'
-write close
 
 read abort
+

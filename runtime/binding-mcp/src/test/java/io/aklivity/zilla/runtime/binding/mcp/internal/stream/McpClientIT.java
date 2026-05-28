@@ -67,6 +67,26 @@ public class McpClientIT
     @Test
     @Configuration("client.yaml")
     @Specification({
+        "${app}/lifecycle.initialize.reject.bearer/client",
+        "${net}/lifecycle.initialize.reject.bearer/server"})
+    public void shouldRejectLifecycleInitializeWithBearerChallenge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/tools.call.reject.bearer/client",
+        "${net}/tools.call.reject.bearer/server"})
+    public void shouldRejectToolsCallWithBearerChallenge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
         "${app}/lifecycle.shutdown/client",
         "${net}/lifecycle.shutdown/server"})
     public void shouldShutdownLifecycle() throws Exception

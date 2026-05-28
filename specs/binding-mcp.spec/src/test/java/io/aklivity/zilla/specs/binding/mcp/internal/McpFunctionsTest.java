@@ -26,10 +26,12 @@ import org.junit.Test;
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.String16FW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpAbortExFW;
+import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpBearerError;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpChallengeExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpElicitStatus;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpFlushExFW;
+import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpResetExFW;
 
 public class McpFunctionsTest
 {
@@ -921,6 +923,129 @@ public class McpFunctionsTest
             .elicitComplete(b -> b
                 .id("elicit-1")
                 .status(s -> s.set(McpElicitStatus.DECLINED)))
+            .build();
+
+        matcher.match(byteBuf);
+    }
+
+    @Test
+    public void shouldGenerateBearerResetEx()
+    {
+        byte[] bytes = McpFunctions.resetEx()
+            .typeId(0)
+            .bearer()
+                .realm("github")
+                .scopes("repo")
+                .error("INSUFFICIENT_SCOPE")
+                .build()
+            .build();
+
+        assertNotNull(bytes);
+    }
+
+    @Test
+    public void shouldGenerateBearerResetExWithMinimalFields()
+    {
+        byte[] bytes = McpFunctions.resetEx()
+            .typeId(0)
+            .bearer()
+                .error("INVALID_TOKEN")
+                .build()
+            .build();
+
+        assertNotNull(bytes);
+    }
+
+    @Test
+    public void shouldMatchBearerResetEx() throws Exception
+    {
+        BytesMatcher matcher = McpFunctions.matchResetEx()
+            .typeId(0)
+            .bearer()
+                .realm("github")
+                .scopes("repo")
+                .error("INSUFFICIENT_SCOPE")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new McpResetExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .bearer(b -> b.realm("github").scopes("repo").error(s -> s.set(McpBearerError.INSUFFICIENT_SCOPE)))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldReturnNullWhenResetExMatcherIsEmpty() throws Exception
+    {
+        BytesMatcher matcher = McpFunctions.matchResetEx()
+            .build();
+
+        assertNull(matcher.match(ByteBuffer.allocate(0)));
+    }
+
+    @Test(expected = Exception.class)
+    public void shouldFailWhenBearerResetExRealmMismatch() throws Exception
+    {
+        BytesMatcher matcher = McpFunctions.matchResetEx()
+            .typeId(0)
+            .bearer()
+                .realm("expected")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new McpResetExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .bearer(b -> b.realm("actual").error(s -> s.set(McpBearerError.INVALID_TOKEN)))
+            .build();
+
+        matcher.match(byteBuf);
+    }
+
+    @Test(expected = Exception.class)
+    public void shouldFailWhenBearerResetExScopesMismatch() throws Exception
+    {
+        BytesMatcher matcher = McpFunctions.matchResetEx()
+            .typeId(0)
+            .bearer()
+                .scopes("expected")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new McpResetExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .bearer(b -> b.scopes("actual").error(s -> s.set(McpBearerError.INVALID_TOKEN)))
+            .build();
+
+        matcher.match(byteBuf);
+    }
+
+    @Test(expected = Exception.class)
+    public void shouldFailWhenBearerResetExErrorMismatch() throws Exception
+    {
+        BytesMatcher matcher = McpFunctions.matchResetEx()
+            .typeId(0)
+            .bearer()
+                .error("INVALID_TOKEN")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new McpResetExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .bearer(b -> b.error(s -> s.set(McpBearerError.INSUFFICIENT_SCOPE)))
             .build();
 
         matcher.match(byteBuf);

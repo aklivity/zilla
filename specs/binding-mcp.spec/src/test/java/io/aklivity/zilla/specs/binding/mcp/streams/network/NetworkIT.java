@@ -47,6 +47,24 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/lifecycle.initialize.reject.bearer/client",
+        "${net}/lifecycle.initialize.reject.bearer/server"})
+    public void shouldRejectLifecycleInitializeOnUpstreamBearerChallenge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/tools.call.reject.bearer/client",
+        "${net}/tools.call.reject.bearer/server"})
+    public void shouldRejectToolsCallOnUpstreamBearerChallenge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/lifecycle.initialize.alt.svc/client",
         "${net}/lifecycle.initialize.alt.svc/server"})
     public void shouldInitializeLifecycleAltSvc() throws Exception
@@ -311,6 +329,15 @@ public class NetworkIT
         "${net}/lifecycle.events.unsupported/client",
         "${net}/lifecycle.events.unsupported/server"})
     public void shouldRejectLifecycleEventsUnsupported() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/lifecycle.events.resume.reject.bearer/client",
+        "${net}/lifecycle.events.resume.reject.bearer/server"})
+    public void shouldRejectLifecycleEventsResumeOnUpstreamBearerChallenge() throws Exception
     {
         k3po.finish();
     }

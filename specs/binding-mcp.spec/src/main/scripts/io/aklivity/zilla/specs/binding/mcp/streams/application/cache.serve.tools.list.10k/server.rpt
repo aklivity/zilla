@@ -52,11 +52,11 @@ connected
 
 write flush
 
-read closed
-
 write '{"tools":[{"name":"big_tool","description":"'
 write ${core:randomBase64(10000)}
 write '"}]}'
 write flush
 
 write close
+
+read closed

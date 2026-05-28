@@ -61,7 +61,6 @@ write '{'
           '"progressToken":"abc123"'
         '}'
       '}'
-write close
 
 read advised zilla:flush ${mcp:matchFlushEx()
                                .typeId(zilla:id("mcp"))
@@ -87,3 +86,5 @@ read advised zilla:flush ${mcp:matchFlushEx()
                                    .retry(60000)
                                    .build()
                                .build()}
+
+write close

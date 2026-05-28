@@ -50,10 +50,10 @@ write zilla:begin.ext ${mcp:beginEx()
 
 connected
 
-write close
-
 read '{"prompts":[{"name":"summarize"}]}'
 read closed
+
+write close
 
 read notify APP1_PROMPTS
 
@@ -71,10 +71,10 @@ write zilla:begin.ext ${mcp:beginEx()
 
 connected
 
-write close
-
 read '{"tools":[{"name":"get_weather"}]}'
 read closed
+
+write close
 
 read notify APP1_TOOLS
 
@@ -92,10 +92,10 @@ write zilla:begin.ext ${mcp:beginEx()
 
 connected
 
-write close
-
 read '{"resources":[{"uri":"file:///bluesky.txt"}]}'
 read closed
+
+write close
 
 read notify APP1_RESOURCES
 
@@ -136,10 +136,10 @@ write zilla:begin.ext ${mcp:beginEx()
 
 connected
 
-write close
-
 read '{"prompts":[{"name":"translate"}]}'
 read closed
+
+write close
 
 read notify APP2_PROMPTS
 
@@ -157,10 +157,10 @@ write zilla:begin.ext ${mcp:beginEx()
 
 connected
 
-write close
-
 read '{"tools":[{"name":"get_current_time"}]}'
 read closed
+
+write close
 
 read notify APP2_TOOLS
 
@@ -178,7 +178,7 @@ write zilla:begin.ext ${mcp:beginEx()
 
 connected
 
-write close
-
 read '{"resources":[{"uri":"file:///quartz.txt"}]}'
 read closed
+
+write close

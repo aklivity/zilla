@@ -53,7 +53,6 @@ connected
 read  '{'
         '"name":"bluesky__weather_prompt"'
       '}'
-read closed
 
 write flush
 
@@ -72,3 +71,5 @@ write '{"messages":'
 write flush
 
 write close
+
+read closed

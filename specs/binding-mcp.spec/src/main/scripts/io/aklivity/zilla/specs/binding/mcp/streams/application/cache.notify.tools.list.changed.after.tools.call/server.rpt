@@ -59,14 +59,14 @@ connected
 
 write flush
 
-read closed
-
 write '{"tools":[{"name":"get_weather"}]}'
 write flush
 
 write notify INITIAL_HYDRATED
 
 write close
+
+read closed
 
 accepted
 
@@ -108,7 +108,6 @@ read zilla:begin.ext ${mcp:matchBeginEx()
 connected
 
 read '{"name":"get_weather","arguments":{"location":"New York"}}'
-read closed
 
 write '{"content":[{"type":"text","text":"sunny"}],"isError":false}'
 write flush
@@ -116,6 +115,8 @@ write flush
 write notify TOOLS_CALL_RETURNED
 
 write close
+
+read closed
 
 accepted
 
@@ -130,9 +131,9 @@ connected
 
 write flush
 
-read closed
-
 write '{"tools":[{"name":"get_weather"},{"name":"get_time"}]}'
 write flush
 
 write close
+
+read closed

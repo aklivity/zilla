@@ -49,8 +49,6 @@ write zilla:begin.ext ${mcp:beginEx()
 
 connected
 
-write close
-
 read  '{"tools":'
         '['
           '{'
@@ -81,3 +79,5 @@ read  '{"tools":'
         ']'
       '}'
 read closed
+
+write close
