@@ -93,6 +93,7 @@ public final class EngineRule implements TestRule
     private Predicate<String> exceptions;
     private boolean interruptible;
     private boolean clean;
+    private Runnable beforeStart;
 
     public EngineRule()
     {
@@ -177,6 +178,13 @@ public final class EngineRule implements TestRule
     public EngineRule clean()
     {
         this.clean = true;
+        return this;
+    }
+
+    public EngineRule beforeStart(
+        Runnable beforeStart)
+    {
+        this.beforeStart = requireNonNull(beforeStart);
         return this;
     }
 
@@ -391,9 +399,49 @@ public final class EngineRule implements TestRule
                                 .errorHandler(errorHandler)
                                 .build();
 
+                // when no beforeStart hook is set, preserve existing behavior exactly: start (and implicitly
+                // init) the engine synchronously on the test thread before the test body runs.
+                // when a hook is set, init the engine eagerly and run the hook followed by start() on a
+                // separate thread so the hook can block (e.g. waiting for an external runtime to be ready)
+                // without stalling the test body, while bindings attach once the hook returns.
+                final Thread starter;
+                if (beforeStart == null)
+                {
+                    starter = null;
+                }
+                else
+                {
+                    engine.init();
+                    starter = new Thread(() ->
+                    {
+                        try
+                        {
+                            beforeStart.run();
+                            engine.start();
+                        }
+                        catch (Throwable t)
+                        {
+                            errors.add(t);
+
+                            if (interruptible)
+                            {
+                                baseThread.interrupt();
+                            }
+                        }
+                    });
+                    starter.setName("engine-rule-before-start");
+                }
+
                 try
                 {
-                    engine.start();
+                    if (starter != null)
+                    {
+                        starter.start();
+                    }
+                    else
+                    {
+                        engine.start();
+                    }
 
                     base.evaluate();
                 }
@@ -405,6 +453,10 @@ public final class EngineRule implements TestRule
                 {
                     try
                     {
+                        if (starter != null)
+                        {
+                            starter.join();
+                        }
                         engine.close();
                     }
                     catch (Throwable t)
