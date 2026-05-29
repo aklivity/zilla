@@ -105,9 +105,6 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
     private static final int RECORD_LENGTH_MAX = 5; // varint32(max_value)
 
     private static final int ERROR_NONE = 0;
-    private static final int ERROR_LEADER_NOT_AVAILABLE = 5;
-    private static final int ERROR_NOT_LEADER_FOR_PARTITION = 6;
-    private static final int ERROR_KAFKA_STORAGE_ERROR = 56;
 
     private static final int SIGNAL_NEXT_REQUEST = 1;
 
