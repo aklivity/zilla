@@ -101,7 +101,6 @@ public final class EngineRule implements TestRule
         this.properties = new Properties();
         this.exceptions = m -> false;
         this.interruptible = true;
-        this.beforeStart = null;
 
         configure(ENGINE_DRAIN_ON_CLOSE, true);
         configure(ENGINE_SYNTHETIC_ABORT, true);
