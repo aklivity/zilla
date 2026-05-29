@@ -332,7 +332,9 @@ public final class Engine implements Collector, AutoCloseable
 
         if (config.drainOnClose())
         {
-            workers.forEach(EngineWorker::drain);
+            workers.stream()
+                   .filter(worker -> !worker.runner().isClosed())
+                   .forEach(EngineWorker::drain);
         }
 
         final List<Throwable> errors = new ArrayList<>();
