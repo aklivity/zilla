@@ -181,11 +181,12 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
 
     private void scheduleRefresh()
     {
-        if (cache.cacheTtl == null)
+        // refresh is re-armed both by the local hydrate put-completion and by the store watch that the
+        // same put self-triggers; coalesce to a single pending refresh so only one hydrate runs per cycle
+        if (cache.cacheTtl == null || refreshId != NO_CANCEL_ID)
         {
             return;
         }
-        cancelRefresh();
         refreshId = signaler.signalAt(
             Instant.now().plus(cache.cacheTtl), 0, this::onRefreshed);
     }
