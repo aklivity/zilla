@@ -738,6 +738,14 @@ public final class HttpClientFactory implements HttpStreamFactory
         int offset,
         int limit)
     {
+        // a response is only valid for an outstanding request; on a keep-alive connection the next
+        // response's buffered bytes can be seen here after the prior exchange closed but before the
+        // next exchange is established, so leave them buffered until there is a current exchange
+        if (client.exchange == null)
+        {
+            return offset;
+        }
+
         int progress = offset;
 
         final int endOfHeadersAt = limitOfBytes(buffer, offset, limit, CRLFCRLF_BYTES);
