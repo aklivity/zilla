@@ -93,6 +93,7 @@ public final class EngineRule implements TestRule
     private Predicate<String> exceptions;
     private boolean interruptible;
     private boolean clean;
+    private Runnable beforeStart;
 
     public EngineRule()
     {
@@ -100,6 +101,7 @@ public final class EngineRule implements TestRule
         this.properties = new Properties();
         this.exceptions = m -> false;
         this.interruptible = true;
+        this.beforeStart = () -> {};
 
         configure(ENGINE_DRAIN_ON_CLOSE, true);
         configure(ENGINE_SYNTHETIC_ABORT, true);
@@ -177,6 +179,13 @@ public final class EngineRule implements TestRule
     public EngineRule clean()
     {
         this.clean = true;
+        return this;
+    }
+
+    public EngineRule beforeStart(
+        Runnable beforeStart)
+    {
+        this.beforeStart = requireNonNull(beforeStart);
         return this;
     }
 
@@ -391,9 +400,33 @@ public final class EngineRule implements TestRule
                                 .errorHandler(errorHandler)
                                 .build();
 
+                // start workers and boss eagerly; bindings are attached by start() below
+                engine.init();
+
+                // attach bindings on a separate thread so an optional beforeStart hook can block
+                // (e.g. waiting for an external runtime to be ready) without stalling the test body
+                final Thread starter = new Thread(() ->
+                {
+                    try
+                    {
+                        beforeStart.run();
+                        engine.start();
+                    }
+                    catch (Throwable t)
+                    {
+                        errors.add(t);
+
+                        if (interruptible)
+                        {
+                            baseThread.interrupt();
+                        }
+                    }
+                });
+                starter.setName("engine-rule-before-start");
+
                 try
                 {
-                    engine.start();
+                    starter.start();
 
                     base.evaluate();
                 }
@@ -405,6 +438,7 @@ public final class EngineRule implements TestRule
                 {
                     try
                     {
+                        starter.join();
                         engine.close();
                     }
                     catch (Throwable t)
