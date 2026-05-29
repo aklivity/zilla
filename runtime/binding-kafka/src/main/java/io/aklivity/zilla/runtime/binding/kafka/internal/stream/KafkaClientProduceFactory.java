@@ -2265,20 +2265,11 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 case ERROR_NONE:
                     assert partitionId == this.partitionId;
                     break;
-                case ERROR_LEADER_NOT_AVAILABLE:
-                case ERROR_NOT_LEADER_FOR_PARTITION:
-                case ERROR_KAFKA_STORAGE_ERROR:
-                {
-                    clientRoute.metaFlush.accept(traceId);
-                    final KafkaResetExFW resetEx = kafkaResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
-                                                                 .typeId(kafkaTypeId)
-                                                                 .error(errorCode)
-                                                                 .build();
-                    stream.doApplicationResetIfNecessary(traceId, resetEx);
-                    doNetworkEnd(traceId, authorization);
-                    break;
-                }
                 default:
+                    if (KafkaError.of(errorCode).isRetriable())
+                    {
+                        clientRoute.metaFlush.accept(traceId);
+                    }
                     onDecodeResponseErrorCode(traceId, originId, errorCode, topic);
                     final KafkaResetExFW resetEx = kafkaResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
                                                                  .typeId(kafkaTypeId)

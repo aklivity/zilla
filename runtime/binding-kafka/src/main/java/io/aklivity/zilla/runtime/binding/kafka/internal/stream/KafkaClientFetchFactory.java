@@ -2994,22 +2994,11 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                     doEncodeRequestIfNecessary(traceId, initialBudgetId);
                     break;
                 default:
-                    if (errorCode == ERROR_LEADER_NOT_AVAILABLE ||
-                        errorCode == ERROR_NOT_LEADER_FOR_PARTITION ||
-                        errorCode == ERROR_REPLICA_NOT_AVAILABLE ||
-                        errorCode == ERROR_KAFKA_STORAGE_ERROR ||
-                        errorCode == ERROR_FENCED_LEADER_EPOCH ||
-                        errorCode == ERROR_UNKNOWN_LEADER_EPOCH ||
-                        errorCode == ERROR_OFFSET_NOT_AVAILABLE ||
-                        errorCode == ERROR_UNKNOWN_TOPIC_ID)
+                    if (KafkaError.of(errorCode).isRetriable())
                     {
                         clientRoute.metaFlush.accept(traceId);
                     }
-                    else
-                    {
-                        onDecodeResponseErrorCode(traceId, originId, errorCode, topic);
-                    }
-
+                    onDecodeResponseErrorCode(traceId, originId, errorCode, topic);
                     cleanupApplication(traceId, errorCode);
                     doNetworkEnd(traceId, authorization);
                     break;

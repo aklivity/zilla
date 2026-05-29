@@ -901,10 +901,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             final int error = kafkaResetEx != null ? kafkaResetEx.error() : UNKNOWN_ERROR;
             doClientFanReplyResetIfNecessary(traceId);
 
-            if (reconnectDelay != 0 && !members.isEmpty() &&
-                (error == ERROR_LEADER_NOT_AVAILABLE ||
-                 error == ERROR_NOT_LEADER_FOR_PARTITION ||
-                 error == ERROR_KAFKA_STORAGE_ERROR))
+            if (reconnectDelay != 0 && !members.isEmpty() && KafkaError.of(error).isRetriable())
             {
                 if (reconnectAt != NO_CANCEL_ID)
                 {
