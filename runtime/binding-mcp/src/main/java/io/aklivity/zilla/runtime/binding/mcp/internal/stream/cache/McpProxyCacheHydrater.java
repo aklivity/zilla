@@ -140,7 +140,9 @@ final class McpProxyCacheHydrater
             stopped = true;
             if (lifecycle != null)
             {
-                lifecycle.doLifecycleEnd(supplyTraceId.getAsLong());
+                final long traceId = supplyTraceId.getAsLong();
+                lifecycle.abortStreams(traceId);
+                lifecycle.doLifecycleEnd(traceId);
                 lifecycle = null;
             }
             cache.releaseLock(k -> {});
@@ -274,6 +276,22 @@ final class McpProxyCacheHydrater
             for (McpListHydrater.McpListHydrateStream stream : copy)
             {
                 stream.doListHydrateEnd(traceId);
+            }
+        }
+
+        void abortStreams(
+            long traceId)
+        {
+            if (streams.isEmpty())
+            {
+                return;
+            }
+            final List<McpListHydrater.McpListHydrateStream> copy = new ArrayList<>(streams);
+            streams.clear();
+            for (McpListHydrater.McpListHydrateStream stream : copy)
+            {
+                stream.doListHydrateAbort(traceId);
+                stream.doListHydrateReset(traceId);
             }
         }
 

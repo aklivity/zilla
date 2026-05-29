@@ -16,7 +16,6 @@ package io.aklivity.zilla.runtime.binding.mcp.internal;
 
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_ALT_SVC_ENABLED;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_ALT_SVC_MAX_AGE;
-import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_CACHE_START_DELAY;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_CLIENT_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_CLIENT_VERSION;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_ELICITATION_ID;
@@ -55,7 +54,6 @@ public class McpConfigurationTest
     public static final String MCP_HYDRATE_FILTER_NAME = "zilla.binding.mcp.hydrate.filter";
     public static final String MCP_LEASE_TTL_NAME = "zilla.binding.mcp.lease.ttl";
     public static final String MCP_LEASE_RETRY_NAME = "zilla.binding.mcp.lease.retry";
-    public static final String MCP_CACHE_START_DELAY_NAME = "zilla.binding.mcp.cache.start.delay";
 
     @Test
     public void shouldVerifyConstants() throws Exception
@@ -77,6 +75,5 @@ public class McpConfigurationTest
         assertEquals(MCP_HYDRATE_FILTER.name(), MCP_HYDRATE_FILTER_NAME);
         assertEquals(MCP_LEASE_TTL.name(), MCP_LEASE_TTL_NAME);
         assertEquals(MCP_LEASE_RETRY.name(), MCP_LEASE_RETRY_NAME);
-        assertEquals(MCP_CACHE_START_DELAY.name(), MCP_CACHE_START_DELAY_NAME);
     }
 }

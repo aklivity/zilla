@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 
-import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_CACHE_START_DELAY_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_HYDRATE_FILTER_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_SESSION_ID_NAME;
 import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLOT_CAPACITY_NAME;
@@ -52,7 +51,7 @@ public class McpProxyCacheIT
         .external("app1")
         .external("app2")
         .configure(MCP_SESSION_ID_NAME, "%s::sessionId".formatted(McpProxyCacheIT.class.getName()))
-        .configure(MCP_CACHE_START_DELAY_NAME, "PT0.2S")
+        .aroundStart(k3po::deferStartable)
         .clean();
 
     @Rule

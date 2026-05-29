@@ -55,7 +55,6 @@ public class McpConfiguration extends Configuration
     public static final PropertyDef<IntPredicate> MCP_HYDRATE_FILTER;
     public static final PropertyDef<Duration> MCP_LEASE_TTL;
     public static final PropertyDef<Duration> MCP_LEASE_RETRY;
-    public static final PropertyDef<Duration> MCP_CACHE_START_DELAY;
 
     static
     {
@@ -88,8 +87,6 @@ public class McpConfiguration extends Configuration
             (c, v) -> Duration.parse(v), "PT30S");
         MCP_LEASE_RETRY = config.property(Duration.class, "lease.retry",
             (c, v) -> Duration.parse(v), "PT0.1S");
-        MCP_CACHE_START_DELAY = config.property(Duration.class, "cache.start.delay",
-            (c, v) -> Duration.parse(v), "PT0S");
         MCP_CONFIG = config;
     }
 
@@ -177,11 +174,6 @@ public class McpConfiguration extends Configuration
     public Duration leaseRetry()
     {
         return MCP_LEASE_RETRY.get(this);
-    }
-
-    public Duration cacheStartDelay()
-    {
-        return MCP_CACHE_START_DELAY.get(this);
     }
 
     @FunctionalInterface

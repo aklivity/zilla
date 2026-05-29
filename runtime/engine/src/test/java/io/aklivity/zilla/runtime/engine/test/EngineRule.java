@@ -47,6 +47,7 @@ import java.util.Properties;
 import java.util.function.LongConsumer;
 import java.util.function.LongSupplier;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
 import org.agrona.ErrorHandler;
@@ -93,7 +94,7 @@ public final class EngineRule implements TestRule
     private Predicate<String> exceptions;
     private boolean interruptible;
     private boolean clean;
-    private Runnable beforeStart;
+    private Supplier<Runnable> aroundStart;
 
     public EngineRule()
     {
@@ -181,10 +182,10 @@ public final class EngineRule implements TestRule
         return this;
     }
 
-    public EngineRule beforeStart(
-        Runnable beforeStart)
+    public EngineRule aroundStart(
+        Supplier<Runnable> aroundStart)
     {
-        this.beforeStart = requireNonNull(beforeStart);
+        this.aroundStart = requireNonNull(aroundStart);
         return this;
     }
 
@@ -399,13 +400,15 @@ public final class EngineRule implements TestRule
                                 .errorHandler(errorHandler)
                                 .build();
 
-                // when no beforeStart hook is set, preserve existing behavior exactly: start (and implicitly
+                // when no aroundStart supplier is set, preserve existing behavior exactly: start (and implicitly
                 // init) the engine synchronously on the test thread before the test body runs.
-                // when a hook is set, init the engine eagerly and run the hook followed by start() on a
-                // separate thread so the hook can block (e.g. waiting for an external runtime to be ready)
-                // without stalling the test body, while bindings attach once the hook returns.
+                // when a supplier is set, init the engine eagerly, then on a separate thread invoke the supplier
+                // (which blocks until the external runtime is ready and returns a release action), start the
+                // engine so its bindings attach, and finally invoke the release so the external runtime proceeds
+                // only once the engine can receive it.  the release always runs, even if start() fails, so the
+                // external runtime is never left blocked.
                 final Thread starter;
-                if (beforeStart == null)
+                if (aroundStart == null)
                 {
                     starter = null;
                 }
@@ -414,9 +417,10 @@ public final class EngineRule implements TestRule
                     engine.init();
                     starter = new Thread(() ->
                     {
+                        Runnable release = null;
                         try
                         {
-                            beforeStart.run();
+                            release = aroundStart.get();
                             engine.start();
                         }
                         catch (Throwable t)
@@ -428,8 +432,15 @@ public final class EngineRule implements TestRule
                                 baseThread.interrupt();
                             }
                         }
+                        finally
+                        {
+                            if (release != null)
+                            {
+                                release.run();
+                            }
+                        }
                     });
-                    starter.setName("engine-rule-before-start");
+                    starter.setName("engine-rule-around-start");
                 }
 
                 try

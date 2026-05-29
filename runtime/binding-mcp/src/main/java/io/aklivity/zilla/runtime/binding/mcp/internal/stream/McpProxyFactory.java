@@ -22,8 +22,6 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeg
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_CALL;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
 
-import java.time.Duration;
-import java.time.Instant;
 import java.util.function.Function;
 
 import org.agrona.DirectBuffer;
@@ -112,16 +110,7 @@ public final class McpProxyFactory implements McpStreamFactory
             };
             McpProxyCacheManager manager = supplyManager.apply(newBinding.cache);
             managers.put(binding.id, manager);
-            final Duration startDelay = config.cacheStartDelay();
-            if (startDelay.isZero() || startDelay.isNegative())
-            {
-                manager.start();
-            }
-            else
-            {
-                context.signaler().signalAt(
-                    Instant.now().plus(startDelay), 0, ignored -> manager.start());
-            }
+            manager.start();
         }
     }
 
