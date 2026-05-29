@@ -733,7 +733,7 @@ public final class KafkaCacheClientMetaFactory implements BindingHandler
                 }
 
                 this.reconnectAt = signaler.signalAt(
-                        currentTimeMillis() + SECONDS.toMillis(reconnectDelay),
+                        currentTimeMillis() + Math.min(50 << reconnectAttempt++, SECONDS.toMillis(reconnectDelay)),
                         SIGNAL_RECONNECT,
                         this::onMetaFanoutSignal);
             }
@@ -770,7 +770,7 @@ public final class KafkaCacheClientMetaFactory implements BindingHandler
                 }
 
                 this.reconnectAt = signaler.signalAt(
-                        currentTimeMillis() + SECONDS.toMillis(reconnectDelay),
+                        currentTimeMillis() + Math.min(50 << reconnectAttempt++, SECONDS.toMillis(reconnectDelay)),
                         SIGNAL_RECONNECT,
                         this::onMetaFanoutSignal);
             }

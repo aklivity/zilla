@@ -538,6 +538,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         private long groupCleanupId = NO_CANCEL_ID;
         private long partitionIndex = NO_CREDITOR_INDEX;
         private long reconnectAt = NO_CANCEL_ID;
+        private int reconnectAttempt;
 
         private KafkaCacheClientProduceFan(
             long originId,
@@ -911,7 +912,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 }
 
                 this.reconnectAt = signaler.signalAt(
-                        currentTimeMillis() + SECONDS.toMillis(reconnectDelay),
+                        currentTimeMillis() + Math.min(50 << reconnectAttempt++, SECONDS.toMillis(reconnectDelay)),
                         SIGNAL_RECONNECT,
                         this::onClientFanInitialSignalReconnect);
             }
@@ -1003,6 +1004,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         {
             assert !KafkaState.initialOpened(state);
             state = KafkaState.openedInitial(state);
+            this.reconnectAttempt = 0;
         }
 
         private void onClientFanInitialClosed()
