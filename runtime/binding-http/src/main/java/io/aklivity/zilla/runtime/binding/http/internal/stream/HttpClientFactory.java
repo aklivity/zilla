@@ -2918,30 +2918,38 @@ public final class HttpClientFactory implements HttpStreamFactory
             long authorization,
             HttpBeginExFW beginEx)
         {
-            exchange.resolveResponse(beginEx);
-            boolean valid = exchange.validateResponseHeaders(beginEx);
-            if (valid)
+            if (exchange == null)
             {
-                exchange.doResponseBegin(traceId, authorization, beginEx);
-
-                final HttpHeaderFW connection = beginEx.headers().matchFirst(h -> HEADER_CONNECTION.equals(h.name()));
-                if (connection != null && connectionClose.reset(connection.value().asString()).matches())
-                {
-                    exchange.state = HttpState.closingReply(exchange.state);
-                }
-
-                final HttpHeaderFW status = beginEx.headers().matchFirst(h -> HEADER_STATUS.equals(h.name()));
-                if (status != null &&
-                    encoder == HttpEncoder.HTTP_1_1 &&
-                    STATUS_101.equals(status.value()))
-                {
-                    pool.onUpgradedOrClosed(this);
-                }
+                decoder = decodeHttp11Ignore;
+                cleanupNetwork(traceId, authorization);
             }
             else
             {
-                exchange.onResponseInvalid(traceId, authorization);
-                decoder = decodeHttp11Ignore;
+                exchange.resolveResponse(beginEx);
+                boolean valid = exchange.validateResponseHeaders(beginEx);
+                if (valid)
+                {
+                    exchange.doResponseBegin(traceId, authorization, beginEx);
+
+                    final HttpHeaderFW connection = beginEx.headers().matchFirst(h -> HEADER_CONNECTION.equals(h.name()));
+                    if (connection != null && connectionClose.reset(connection.value().asString()).matches())
+                    {
+                        exchange.state = HttpState.closingReply(exchange.state);
+                    }
+
+                    final HttpHeaderFW status = beginEx.headers().matchFirst(h -> HEADER_STATUS.equals(h.name()));
+                    if (status != null &&
+                        encoder == HttpEncoder.HTTP_1_1 &&
+                        STATUS_101.equals(status.value()))
+                    {
+                        pool.onUpgradedOrClosed(this);
+                    }
+                }
+                else
+                {
+                    exchange.onResponseInvalid(traceId, authorization);
+                    decoder = decodeHttp11Ignore;
+                }
             }
         }
 
