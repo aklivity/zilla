@@ -177,6 +177,16 @@ public class McpServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/reject.tools.call.without.content.length/client",
+        "${app}/reject.tools.call.without.content.length/server"})
+    public void shouldRejectToolsCallWithoutContentLength() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/tools.call.10k/client",
         "${app}/tools.call.10k/server"})
     public void shouldCallToolWith10kParams() throws Exception

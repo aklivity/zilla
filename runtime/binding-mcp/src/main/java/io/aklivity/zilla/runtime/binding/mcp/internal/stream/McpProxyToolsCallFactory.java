@@ -35,9 +35,10 @@ final class McpProxyToolsCallFactory extends McpProxyItemFactory
     protected void injectInitialBeginEx(
         McpBeginExFW.Builder builder,
         String sessionId,
-        String identifier)
+        String identifier,
+        int contentLength)
     {
-        builder.toolsCall(t -> t.sessionId(sessionId).name(identifier));
+        builder.toolsCall(t -> t.sessionId(sessionId).name(identifier).contentLength(contentLength));
     }
 
     @Override
@@ -54,5 +55,12 @@ final class McpProxyToolsCallFactory extends McpProxyItemFactory
         McpBeginExFW beginEx)
     {
         return beginEx.toolsCall().sessionId().asString();
+    }
+
+    @Override
+    protected int contentLength(
+        McpBeginExFW beginEx)
+    {
+        return beginEx.toolsCall().contentLength();
     }
 }

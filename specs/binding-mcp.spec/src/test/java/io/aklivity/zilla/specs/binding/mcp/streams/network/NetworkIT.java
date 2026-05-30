@@ -146,6 +146,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/reject.tools.call.without.content.length/client",
+        "${net}/reject.tools.call.without.content.length/server"})
+    public void shouldRejectToolsCallWithoutContentLength() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/tools.call.10k/client",
         "${net}/tools.call.10k/server"})
     public void shouldCallToolWith10kParams() throws Exception

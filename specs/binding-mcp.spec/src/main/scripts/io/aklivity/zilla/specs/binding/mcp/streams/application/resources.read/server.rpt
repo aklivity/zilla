@@ -44,6 +44,7 @@ read zilla:begin.ext ${mcp:matchBeginEx()
                           .resourcesRead()
                               .sessionId("session-1")
                               .uri("file:///data/readme.txt")
+                              .contentLength(33)
                               .build()
                           .build()}
 

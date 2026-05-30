@@ -44,6 +44,7 @@ read zilla:begin.ext ${mcp:matchBeginEx()
                           .toolsCall()
                               .sessionId("session-1")
                               .name("get_weather")
+                              .contentLength(13405)
                               .build()
                           .build()}
 

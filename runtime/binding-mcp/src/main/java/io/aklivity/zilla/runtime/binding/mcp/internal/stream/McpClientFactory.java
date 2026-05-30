@@ -1485,6 +1485,13 @@ public final class McpClientFactory implements McpStreamFactory
                             affinity, authorization);
                         if (request != null)
                         {
+                            request.contentLength = switch (mcpBeginEx.kind())
+                            {
+                            case KIND_TOOLS_CALL -> mcpBeginEx.toolsCall().contentLength();
+                            case KIND_PROMPTS_GET -> mcpBeginEx.promptsGet().contentLength();
+                            case KIND_RESOURCES_READ -> mcpBeginEx.resourcesRead().contentLength();
+                            default -> -1;
+                            };
                             newStream = request::onAppMessage;
                         }
                     }
@@ -2503,6 +2510,7 @@ public final class McpClientFactory implements McpStreamFactory
     {
         final McpLifecycleStream session;
         final int requestId;
+        int contentLength = -1;
         private HttpEventStream sse;
 
         JsonParser paramsParser;
@@ -4499,6 +4507,7 @@ public final class McpClientFactory implements McpStreamFactory
     private abstract class HttpRequestStream extends HttpStream
     {
         protected final McpRequestStream request;
+        protected int paramsForwarded;
 
         HttpRequestStream(
             McpStream mcp)
@@ -4506,6 +4515,36 @@ public final class McpClientFactory implements McpStreamFactory
             super(mcp);
             this.request = (McpRequestStream) mcp;
             this.decoder = decodeJsonRpc;
+        }
+
+        @Override
+        void doEncodeRequestData(
+            long traceId,
+            long authorization,
+            DirectBuffer buffer,
+            int offset,
+            int limit)
+        {
+            paramsForwarded += limit - offset;
+            doNetData(traceId, authorization, buffer, offset, limit);
+        }
+
+        int streamedContentLength(
+            int prefixLength)
+        {
+            return prefixLength + request.contentLength + JSON_RPC_PARAMS_CLOSE.length();
+        }
+
+        void doEncodeStreamedRequestEnd(
+            long traceId,
+            long authorization)
+        {
+            int codecLength = codecBuffer.putStringWithoutLengthAscii(0, JSON_RPC_PARAMS_CLOSE);
+            final int padding = request.contentLength - paramsForwarded;
+            codecBuffer.setMemory(codecLength, padding, (byte) ' ');
+            codecLength += padding;
+            doNetData(traceId, authorization, codecBuffer, 0, codecLength);
+            doNetEnd(traceId, authorization);
         }
     }
 
@@ -4588,12 +4627,15 @@ public final class McpClientFactory implements McpStreamFactory
                 extBuilder.headersItem(h -> h.name(HTTP_HEADER_AUTHORIZATION).value(BEARER_PREFIX + mcp.credentials));
             }
 
-            final HttpBeginExFW httpBeginEx = extBuilder.build();
-
+            paramsForwarded = 0;
             int codecLength = 0;
             codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, JSON_RPC_REQUEST_ID_PREFIX);
             codecLength += codecBuffer.putIntAscii(codecLength, request.requestId);
             codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, JSON_RPC_TOOLS_CALL_METHOD);
+
+            final int contentLength = streamedContentLength(codecLength);
+            extBuilder.headersItem(h -> h.name(HTTP_HEADER_CONTENT_LENGTH).value(Integer.toString(contentLength)));
+            final HttpBeginExFW httpBeginEx = extBuilder.build();
 
             doNetBegin(traceId, authorization, httpBeginEx);
             doNetData(traceId, authorization, codecBuffer, 0, codecLength);
@@ -4604,9 +4646,7 @@ public final class McpClientFactory implements McpStreamFactory
             long traceId,
             long authorization)
         {
-            final int codecLength = codecBuffer.putStringWithoutLengthAscii(0, JSON_RPC_PARAMS_CLOSE);
-            doNetData(traceId, authorization, codecBuffer, 0, codecLength);
-            doNetEnd(traceId, authorization);
+            doEncodeStreamedRequestEnd(traceId, authorization);
         }
     }
 
@@ -4685,12 +4725,15 @@ public final class McpClientFactory implements McpStreamFactory
             final String sid = mcp.transportSessionId();
             extBuilder.headersItem(h -> h.name(HTTP_HEADER_SESSION).value(sid));
 
-            final HttpBeginExFW httpBeginEx = extBuilder.build();
-
+            paramsForwarded = 0;
             int codecLength = 0;
             codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, JSON_RPC_REQUEST_ID_PREFIX);
             codecLength += codecBuffer.putIntAscii(codecLength, request.requestId);
             codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, JSON_RPC_PROMPTS_GET_METHOD);
+
+            final int contentLength = streamedContentLength(codecLength);
+            extBuilder.headersItem(h -> h.name(HTTP_HEADER_CONTENT_LENGTH).value(Integer.toString(contentLength)));
+            final HttpBeginExFW httpBeginEx = extBuilder.build();
 
             doNetBegin(traceId, authorization, httpBeginEx);
             doNetData(traceId, authorization, codecBuffer, 0, codecLength);
@@ -4701,9 +4744,7 @@ public final class McpClientFactory implements McpStreamFactory
             long traceId,
             long authorization)
         {
-            final int codecLength = codecBuffer.putStringWithoutLengthAscii(0, JSON_RPC_PARAMS_CLOSE);
-            doNetData(traceId, authorization, codecBuffer, 0, codecLength);
-            doNetEnd(traceId, authorization);
+            doEncodeStreamedRequestEnd(traceId, authorization);
         }
 
     }
@@ -4783,12 +4824,15 @@ public final class McpClientFactory implements McpStreamFactory
             final String sid = mcp.transportSessionId();
             extBuilder.headersItem(h -> h.name(HTTP_HEADER_SESSION).value(sid));
 
-            final HttpBeginExFW httpBeginEx = extBuilder.build();
-
+            paramsForwarded = 0;
             int codecLength = 0;
             codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, JSON_RPC_REQUEST_ID_PREFIX);
             codecLength += codecBuffer.putIntAscii(codecLength, request.requestId);
             codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, JSON_RPC_RESOURCES_READ_METHOD);
+
+            final int contentLength = streamedContentLength(codecLength);
+            extBuilder.headersItem(h -> h.name(HTTP_HEADER_CONTENT_LENGTH).value(Integer.toString(contentLength)));
+            final HttpBeginExFW httpBeginEx = extBuilder.build();
 
             doNetBegin(traceId, authorization, httpBeginEx);
             doNetData(traceId, authorization, codecBuffer, 0, codecLength);
@@ -4799,9 +4843,7 @@ public final class McpClientFactory implements McpStreamFactory
             long traceId,
             long authorization)
         {
-            final int codecLength = codecBuffer.putStringWithoutLengthAscii(0, JSON_RPC_PARAMS_CLOSE);
-            doNetData(traceId, authorization, codecBuffer, 0, codecLength);
-            doNetEnd(traceId, authorization);
+            doEncodeStreamedRequestEnd(traceId, authorization);
         }
 
     }

@@ -174,6 +174,7 @@ public final class McpFunctions
         {
             private String sessionId;
             private String name;
+            private int contentLength = -1;
 
             public McpToolsCallBeginExBuilder sessionId(
                 String sessionId)
@@ -189,9 +190,16 @@ public final class McpFunctions
                 return this;
             }
 
+            public McpToolsCallBeginExBuilder contentLength(
+                int contentLength)
+            {
+                this.contentLength = contentLength;
+                return this;
+            }
+
             public McpBeginExBuilder build()
             {
-                beginExRW.toolsCall(b -> b.sessionId(sessionId).name(name));
+                beginExRW.toolsCall(b -> b.sessionId(sessionId).name(name).contentLength(contentLength));
                 return McpBeginExBuilder.this;
             }
         }
@@ -218,6 +226,7 @@ public final class McpFunctions
         {
             private String sessionId;
             private String name;
+            private int contentLength = -1;
 
             public McpPromptsGetBeginExBuilder sessionId(
                 String sessionId)
@@ -233,9 +242,16 @@ public final class McpFunctions
                 return this;
             }
 
+            public McpPromptsGetBeginExBuilder contentLength(
+                int contentLength)
+            {
+                this.contentLength = contentLength;
+                return this;
+            }
+
             public McpBeginExBuilder build()
             {
-                beginExRW.promptsGet(b -> b.sessionId(sessionId).name(name));
+                beginExRW.promptsGet(b -> b.sessionId(sessionId).name(name).contentLength(contentLength));
                 return McpBeginExBuilder.this;
             }
         }
@@ -262,6 +278,7 @@ public final class McpFunctions
         {
             private String sessionId;
             private String uri;
+            private int contentLength = -1;
 
             public McpResourcesReadBeginExBuilder sessionId(
                 String sessionId)
@@ -277,9 +294,16 @@ public final class McpFunctions
                 return this;
             }
 
+            public McpResourcesReadBeginExBuilder contentLength(
+                int contentLength)
+            {
+                this.contentLength = contentLength;
+                return this;
+            }
+
             public McpBeginExBuilder build()
             {
-                beginExRW.resourcesRead(b -> b.sessionId(sessionId).uri(uri));
+                beginExRW.resourcesRead(b -> b.sessionId(sessionId).uri(uri).contentLength(contentLength));
                 return McpBeginExBuilder.this;
             }
         }
@@ -480,6 +504,7 @@ public final class McpFunctions
         {
             private String16FW sessionId;
             private String16FW name;
+            private Integer contentLength;
 
             public McpToolsCallBeginExMatcherBuilder sessionId(
                 String sessionId)
@@ -495,6 +520,13 @@ public final class McpFunctions
                 return this;
             }
 
+            public McpToolsCallBeginExMatcherBuilder contentLength(
+                int contentLength)
+            {
+                this.contentLength = contentLength;
+                return this;
+            }
+
             public McpBeginExMatcherBuilder build()
             {
                 return McpBeginExMatcherBuilder.this;
@@ -504,7 +536,7 @@ public final class McpFunctions
                 McpBeginExFW beginEx)
             {
                 final McpToolsCallBeginExFW toolsCall = beginEx.toolsCall();
-                return matchSessionId(toolsCall) && matchName(toolsCall);
+                return matchSessionId(toolsCall) && matchName(toolsCall) && matchContentLength(toolsCall);
             }
 
             private boolean matchSessionId(
@@ -517,6 +549,12 @@ public final class McpFunctions
                 McpToolsCallBeginExFW toolsCall)
             {
                 return name == null || name.equals(toolsCall.name());
+            }
+
+            private boolean matchContentLength(
+                McpToolsCallBeginExFW toolsCall)
+            {
+                return contentLength == null || contentLength == toolsCall.contentLength();
             }
         }
 
@@ -553,6 +591,7 @@ public final class McpFunctions
         {
             private String16FW sessionId;
             private String16FW name;
+            private Integer contentLength;
 
             public McpPromptsGetBeginExMatcherBuilder sessionId(
                 String sessionId)
@@ -568,6 +607,13 @@ public final class McpFunctions
                 return this;
             }
 
+            public McpPromptsGetBeginExMatcherBuilder contentLength(
+                int contentLength)
+            {
+                this.contentLength = contentLength;
+                return this;
+            }
+
             public McpBeginExMatcherBuilder build()
             {
                 return McpBeginExMatcherBuilder.this;
@@ -577,7 +623,7 @@ public final class McpFunctions
                 McpBeginExFW beginEx)
             {
                 final McpPromptsGetBeginExFW promptsGet = beginEx.promptsGet();
-                return matchSessionId(promptsGet) && matchName(promptsGet);
+                return matchSessionId(promptsGet) && matchName(promptsGet) && matchContentLength(promptsGet);
             }
 
             private boolean matchSessionId(
@@ -590,6 +636,12 @@ public final class McpFunctions
                 McpPromptsGetBeginExFW promptsGet)
             {
                 return name == null || name.equals(promptsGet.name());
+            }
+
+            private boolean matchContentLength(
+                McpPromptsGetBeginExFW promptsGet)
+            {
+                return contentLength == null || contentLength == promptsGet.contentLength();
             }
         }
 
@@ -626,6 +678,7 @@ public final class McpFunctions
         {
             private String16FW sessionId;
             private String16FW uri;
+            private Integer contentLength;
 
             public McpResourcesReadBeginExMatcherBuilder sessionId(
                 String sessionId)
@@ -641,6 +694,13 @@ public final class McpFunctions
                 return this;
             }
 
+            public McpResourcesReadBeginExMatcherBuilder contentLength(
+                int contentLength)
+            {
+                this.contentLength = contentLength;
+                return this;
+            }
+
             public McpBeginExMatcherBuilder build()
             {
                 return McpBeginExMatcherBuilder.this;
@@ -650,7 +710,7 @@ public final class McpFunctions
                 McpBeginExFW beginEx)
             {
                 final McpResourcesReadBeginExFW resourcesRead = beginEx.resourcesRead();
-                return matchSessionId(resourcesRead) && matchUri(resourcesRead);
+                return matchSessionId(resourcesRead) && matchUri(resourcesRead) && matchContentLength(resourcesRead);
             }
 
             private boolean matchSessionId(
@@ -663,6 +723,12 @@ public final class McpFunctions
                 McpResourcesReadBeginExFW resourcesRead)
             {
                 return uri == null || uri.equals(resourcesRead.uri());
+            }
+
+            private boolean matchContentLength(
+                McpResourcesReadBeginExFW resourcesRead)
+            {
+                return contentLength == null || contentLength == resourcesRead.contentLength();
             }
         }
     }

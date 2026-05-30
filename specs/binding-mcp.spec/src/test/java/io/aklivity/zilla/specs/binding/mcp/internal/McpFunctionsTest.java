@@ -117,6 +117,7 @@ public class McpFunctionsTest
             .toolsCall()
                 .sessionId("session-1")
                 .name("my-tool")
+                .contentLength(59)
                 .build()
             .build();
 
@@ -131,6 +132,7 @@ public class McpFunctionsTest
             .toolsCall()
                 .sessionId("session-1")
                 .name("my-tool")
+                .contentLength(59)
                 .build()
             .build();
 
@@ -141,7 +143,8 @@ public class McpFunctionsTest
             .typeId(0)
             .toolsCall(b -> b
                 .sessionId("session-1")
-                .name("my-tool"))
+                .name("my-tool")
+                .contentLength(59))
             .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -190,6 +193,7 @@ public class McpFunctionsTest
             .promptsGet()
                 .sessionId("session-1")
                 .name("my-prompt")
+                .contentLength(25)
                 .build()
             .build();
 
@@ -204,6 +208,7 @@ public class McpFunctionsTest
             .promptsGet()
                 .sessionId("session-1")
                 .name("my-prompt")
+                .contentLength(25)
                 .build()
             .build();
 
@@ -214,7 +219,8 @@ public class McpFunctionsTest
             .typeId(0)
             .promptsGet(b -> b
                 .sessionId("session-1")
-                .name("my-prompt"))
+                .name("my-prompt")
+                .contentLength(25))
             .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -263,6 +269,7 @@ public class McpFunctionsTest
             .resourcesRead()
                 .sessionId("session-1")
                 .uri("file:///data/resource.txt")
+                .contentLength(33)
                 .build()
             .build();
 
@@ -277,6 +284,7 @@ public class McpFunctionsTest
             .resourcesRead()
                 .sessionId("session-1")
                 .uri("file:///data/resource.txt")
+                .contentLength(33)
                 .build()
             .build();
 
@@ -287,7 +295,8 @@ public class McpFunctionsTest
             .typeId(0)
             .resourcesRead(b -> b
                 .sessionId("session-1")
-                .uri("file:///data/resource.txt"))
+                .uri("file:///data/resource.txt")
+                .contentLength(33))
             .build();
 
         assertNotNull(matcher.match(byteBuf));

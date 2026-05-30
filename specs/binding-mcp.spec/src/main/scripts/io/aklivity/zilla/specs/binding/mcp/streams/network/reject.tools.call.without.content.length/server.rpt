@@ -81,24 +81,17 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .header("accept", "application/json, text/event-stream")
                            .header("mcp-protocol-version", "2025-06-18")
                            .header("mcp-session-id", "session-1")
-                           .header("content-length", "13461")
                            .build()}
 
 connected
 
-read '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"get_weather","arguments":{"image":"'
-read ${core:randomBase64(10000)}
-read '","location":"New York"}}}'
+read '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"get_weather","arguments":{"location":"New York"}}}'
 read closed
 
 write zilla:begin.ext ${http:beginEx()
                             .typeId(zilla:id("http"))
-                            .header(":status", "200")
-                            .header("content-type", "application/json")
+                            .header(":status", "400")
                             .build()}
-write flush
-
-write '{"jsonrpc":"2.0","id":2,"result":{"content":[{"type": "text","text": "ok"}],"isError": false}}'
 write flush
 
 write close

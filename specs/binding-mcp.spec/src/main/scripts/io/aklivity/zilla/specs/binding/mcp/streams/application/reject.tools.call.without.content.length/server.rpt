@@ -13,46 +13,24 @@
 # specific language governing permissions and limitations under the License.
 #
 
-connect "zilla://streams/app0"
-        option zilla:window 8192
-        option zilla:transmission "half-duplex"
+accept "zilla://streams/app0"
+       option zilla:window 8192
+       option zilla:transmission "half-duplex"
 
-write zilla:begin.ext ${mcp:beginEx()
-                           .typeId(zilla:id("mcp"))
-                           .lifecycle()
-                               .build()
-                           .build()}
-
-connected
+accepted
 
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .lifecycle()
-                              .sessionId("session-1")
                               .build()
                           .build()}
 
-read notify LIFECYCLE_INITIALIZED
-
-connect await LIFECYCLE_INITIALIZED
-        "zilla://streams/app0"
-        option zilla:window 8192
-        option zilla:transmission "half-duplex"
+connected
 
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
-                           .resourcesRead()
+                           .lifecycle()
                                .sessionId("session-1")
-                               .uri("file:///data/readme.txt")
-                               .contentLength(33)
                                .build()
                            .build()}
-
-connected
-
-write '{"uri":"file:///data/readme.txt"}'
-
-read  '{"contents":[{"uri":"file:///data/readme.txt","mimeType":"text/plain","text":"Hello World"}]}'
-read closed
-
-write close
+write flush
