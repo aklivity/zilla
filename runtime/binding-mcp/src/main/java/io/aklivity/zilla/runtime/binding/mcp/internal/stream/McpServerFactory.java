@@ -82,6 +82,7 @@ import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.util.function.LongIntPredicate;
+import io.aklivity.zilla.runtime.engine.util.function.LongIntToLongFunction;
 
 public final class McpServerFactory implements McpStreamFactory
 {
@@ -138,7 +139,7 @@ public final class McpServerFactory implements McpStreamFactory
     private static final String JSON_RPC_ERROR_MESSAGE = ",\"message\":\"";
     private static final String JSON_RPC_ERROR_SUFFIX = "\"}}";
     private static final String INITIALIZE_RESPONSE_PROTOCOL_PREFIX =
-        "{\"protocolVersion\":\"2025-11-25\",\"capabilities\":";
+        "{\"protocolVersion\":\"2025-06-18\",\"capabilities\":";
     private static final String INITIALIZE_RESPONSE_SERVER_INFO_PREFIX = ",\"serverInfo\":{\"name\":\"";
     private static final String INITIALIZE_RESPONSE_VERSION_PREFIX = "\",\"version\":\"";
     private static final String INITIALIZE_RESPONSE_SUFFIX = "\"}}";
@@ -207,6 +208,7 @@ public final class McpServerFactory implements McpStreamFactory
     private final MutableDirectBuffer codecBuffer;
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
+    private final LongIntToLongFunction supplyInitialIdHash;
     private final LongUnaryOperator supplyReplyId;
     private final LongIntPredicate isLocalIndex;
     private final int httpTypeId;
@@ -269,6 +271,7 @@ public final class McpServerFactory implements McpStreamFactory
         this.codecBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
+        this.supplyInitialIdHash = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.isLocalIndex = context::isLocalIndex;
         this.bindings = new Long2ObjectHashMap<>();
@@ -1816,7 +1819,6 @@ public final class McpServerFactory implements McpStreamFactory
                     .wrap(codecBuffer, 0, codecBuffer.capacity())
                     .typeId(mcpTypeId)
                     .lifecycle(i -> i
-                        .sessionId(session.sessionId)
                         .capabilities(CLIENT_CAPABILITIES))
                     .build();
                 session.doAppBegin(traceId, authorization, beginEx);
@@ -1911,7 +1913,7 @@ public final class McpServerFactory implements McpStreamFactory
                 .wrap(codecBuffer, 0, codecBuffer.capacity())
                 .typeId(mcpTypeId)
                 .toolsList(t -> t
-                    .sessionId(session.sessionId))
+                    .sessionId(session.unifiedId))
                 .build();
 
             assert stream == null;
@@ -1928,7 +1930,7 @@ public final class McpServerFactory implements McpStreamFactory
                 .wrap(codecBuffer, 0, codecBuffer.capacity())
                 .typeId(mcpTypeId)
                 .toolsCall(t -> t
-                    .sessionId(session.sessionId)
+                    .sessionId(session.unifiedId)
                     .name(name))
                 .build();
 
@@ -1945,7 +1947,7 @@ public final class McpServerFactory implements McpStreamFactory
                 .wrap(codecBuffer, 0, codecBuffer.capacity())
                 .typeId(mcpTypeId)
                 .promptsList(p -> p
-                    .sessionId(session.sessionId))
+                    .sessionId(session.unifiedId))
                 .build();
 
             assert stream == null;
@@ -1962,7 +1964,7 @@ public final class McpServerFactory implements McpStreamFactory
                 .wrap(codecBuffer, 0, codecBuffer.capacity())
                 .typeId(mcpTypeId)
                 .promptsGet(p -> p
-                    .sessionId(session.sessionId)
+                    .sessionId(session.unifiedId)
                     .name(name))
                 .build();
 
@@ -1979,7 +1981,7 @@ public final class McpServerFactory implements McpStreamFactory
                 .wrap(codecBuffer, 0, codecBuffer.capacity())
                 .typeId(mcpTypeId)
                 .resourcesList(r -> r
-                    .sessionId(session.sessionId))
+                    .sessionId(session.unifiedId))
                 .build();
 
             assert stream == null;
@@ -1996,7 +1998,7 @@ public final class McpServerFactory implements McpStreamFactory
                 .wrap(codecBuffer, 0, codecBuffer.capacity())
                 .typeId(mcpTypeId)
                 .resourcesRead(r -> r
-                    .sessionId(session.sessionId)
+                    .sessionId(session.unifiedId)
                     .uri(uri))
                 .build();
 
@@ -2948,6 +2950,7 @@ public final class McpServerFactory implements McpStreamFactory
     private final class McpLifecycleStream
     {
         private final String sessionId;
+        private String unifiedId;
         private final Object2ObjectHashMap<String, McpRequestStream> requests;
         private final Object2ObjectHashMap<String, McpRequestStream> elicitations;
 
@@ -3166,7 +3169,9 @@ public final class McpServerFactory implements McpStreamFactory
             if (beginEx != null && beginEx.kind() == KIND_LIFECYCLE)
             {
                 serverCapabilities = beginEx.lifecycle().capabilities();
+                unifiedId = beginEx.lifecycle().sessionId().asString();
             }
+            assert unifiedId != null;
 
             server.doEncodeInitialize(traceId, authorization);
 
@@ -4045,7 +4050,8 @@ public final class McpServerFactory implements McpStreamFactory
             this.server = server;
             this.originId = server.routedId;
             this.routedId = server.resolvedId;
-            this.initialId = supplyInitialId.applyAsLong(server.resolvedId);
+            assert session.unifiedId != null;
+            this.initialId = supplyInitialIdHash.apply(server.resolvedId, session.unifiedId.hashCode());
             this.replyId = supplyReplyId.applyAsLong(initialId);
         }
 

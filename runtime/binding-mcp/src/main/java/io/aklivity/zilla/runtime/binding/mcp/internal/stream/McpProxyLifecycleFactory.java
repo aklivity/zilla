@@ -19,9 +19,11 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeg
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
+import java.util.function.Supplier;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
@@ -61,6 +63,7 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
+import io.aklivity.zilla.runtime.engine.util.function.LongIntPredicate;
 
 final class McpProxyLifecycleFactory implements BindingHandler
 {
@@ -107,6 +110,9 @@ final class McpProxyLifecycleFactory implements BindingHandler
     private final LongUnaryOperator supplyReplyId;
     private final int mcpTypeId;
     private final LongFunction<McpBindingConfig> supplyBinding;
+    private final Supplier<String> supplySessionId;
+    private final LongIntPredicate isLocalIndex;
+    private final int sessionIdAttempts;
 
     McpProxyLifecycleFactory(
         McpConfiguration config,
@@ -123,6 +129,16 @@ final class McpProxyLifecycleFactory implements BindingHandler
         this.supplyReplyId = context::supplyReplyId;
         this.mcpTypeId = context.supplyTypeId(MCP_TYPE_NAME);
         this.supplyBinding = supplyBinding;
+        this.supplySessionId = config.sessionIdSupplier();
+        this.isLocalIndex = context::isLocalIndex;
+        this.sessionIdAttempts = config.sessionIdAttempts();
+    }
+
+    @FunctionalInterface
+    interface McpRouteRequest
+    {
+        void onLifecycleSettled(
+            long traceId);
     }
 
     @Override
@@ -148,9 +164,12 @@ final class McpProxyLifecycleFactory implements BindingHandler
 
         if (binding != null && beginEx != null && beginEx.kind() == KIND_LIFECYCLE)
         {
-            final String sessionId = beginEx.lifecycle().sessionId().asString();
+            final String requestSessionId = beginEx.lifecycle().sessionId().asString();
+            assert requestSessionId == null;
+
             final McpRouteConfig route = binding.resolve(beginEx, authorization);
-            if (route != null)
+            final String sessionId = route != null ? newSessionId(routedId) : null;
+            if (sessionId != null)
             {
                 final int clientCapabilities = beginEx.lifecycle().capabilities();
                 final McpLifecycleServer lifecycle = new McpLifecycleServer(
@@ -162,6 +181,24 @@ final class McpProxyLifecycleFactory implements BindingHandler
         }
 
         return newStream;
+    }
+
+    private String newSessionId(
+        long bindingId)
+    {
+        String sessionId = null;
+
+        for (int i = 0; i < sessionIdAttempts; i++)
+        {
+            final String candidate = supplySessionId.get();
+            if (isLocalIndex.test(bindingId, candidate.hashCode()))
+            {
+                sessionId = candidate;
+                break;
+            }
+        }
+
+        return sessionId;
     }
 
     final class McpLifecycleServer implements McpProxySession
@@ -702,6 +739,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
         private int state;
         String sessionId;
         private String resumeId;
+        private final List<McpRouteRequest> requests = new ArrayList<>();
 
         private long initialSeq;
         private long initialAck;
@@ -729,18 +767,43 @@ final class McpProxyLifecycleFactory implements BindingHandler
         {
             if (!McpState.initialOpening(state))
             {
-                final String sid = server.sessionId;
                 final int clientCapabilities = server.clientCapabilities;
                 final McpBeginExFW beginEx = mcpBeginExRW
                     .wrap(codecBuffer, 0, codecBuffer.capacity())
                     .typeId(mcpTypeId)
-                    .lifecycle(l -> l.sessionId(sid).capabilities(clientCapabilities))
+                    .lifecycle(l -> l.capabilities(clientCapabilities))
                     .build();
 
-                sessionId = sid;
                 sender = newStream(this::onClientMessage, originId, routedId, initialId,
                     initialSeq, initialAck, initialMax, traceId, server.authorization, server.affinity, beginEx);
                 state = McpState.openingInitial(state);
+            }
+        }
+
+        void register(
+            long traceId,
+            McpRouteRequest request)
+        {
+            if (McpState.replyOpened(state) && sessionId != null ||
+                McpState.initialClosed(state) ||
+                McpState.replyClosed(state))
+            {
+                request.onLifecycleSettled(traceId);
+            }
+            else
+            {
+                requests.add(request);
+            }
+        }
+
+        private void settleRequests(
+            long traceId)
+        {
+            if (!requests.isEmpty())
+            {
+                final List<McpRouteRequest> copy = new ArrayList<>(requests);
+                requests.clear();
+                copy.forEach(request -> request.onLifecycleSettled(traceId));
             }
         }
 
@@ -906,6 +969,8 @@ final class McpProxyLifecycleFactory implements BindingHandler
 
             server.onClientLifecycleOpened(traceId);
 
+            settleRequests(traceId);
+
             if (resumeId != null || server.resumePending)
             {
                 doClientResume(traceId, authorization);
@@ -928,6 +993,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
             assert replyAck <= replySeq;
 
             state = McpState.closedReply(state);
+            settleRequests(traceId);
             doClientEnd(traceId);
             server.clients.remove(routedId, this);
             server.doServerEnd(traceId);
@@ -949,6 +1015,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
             assert replyAck <= replySeq;
 
             state = McpState.closedReply(state);
+            settleRequests(traceId);
             doClientAbort(traceId);
             server.clients.remove(routedId, this);
             server.doServerAbort(traceId);
@@ -991,6 +1058,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
             assert initialAck <= initialSeq;
 
             state = McpState.closedInitial(state);
+            settleRequests(traceId);
             doClientReset(traceId);
             server.clients.remove(routedId, this);
 

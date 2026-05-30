@@ -26,6 +26,7 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpBindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpRouteConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyLifecycleFactory.McpLifecycleClient;
 import io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyLifecycleFactory.McpLifecycleServer;
+import io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyLifecycleFactory.McpRouteRequest;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.AbortFW;
@@ -40,6 +41,7 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.util.function.LongIntToLongFunction;
 
 abstract class McpProxyItemFactory implements BindingHandler
 {
@@ -69,7 +71,7 @@ abstract class McpProxyItemFactory implements BindingHandler
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer codecBuffer;
     private final BindingHandler streamFactory;
-    private final LongUnaryOperator supplyInitialId;
+    private final LongIntToLongFunction supplyInitialIdHash;
     private final LongUnaryOperator supplyReplyId;
     private final int mcpTypeId;
     private final LongFunction<McpBindingConfig> supplyBinding;
@@ -84,7 +86,7 @@ abstract class McpProxyItemFactory implements BindingHandler
         this.writeBuffer = context.writeBuffer();
         this.codecBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.streamFactory = context.streamFactory();
-        this.supplyInitialId = context::supplyInitialId;
+        this.supplyInitialIdHash = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.mcpTypeId = context.supplyTypeId(MCP_TYPE_NAME);
         this.supplyBinding = supplyBinding;
@@ -263,7 +265,7 @@ abstract class McpProxyItemFactory implements BindingHandler
 
             state = McpState.openingInitial(state);
 
-            client.doClientBegin(traceId, lifecycle.sessionId, identifier);
+            client.doClientBegin(traceId);
 
             flushServerWindow(traceId, 0L, 0, 0L, 0);
         }
@@ -492,15 +494,15 @@ abstract class McpProxyItemFactory implements BindingHandler
         }
     }
 
-    private final class McpClient
+    private final class McpClient implements McpRouteRequest
     {
         private final McpServer server;
         private final long originId;
         private final long routedId;
         private final McpLifecycleClient lifecycle;
 
-        private final long initialId;
-        private final long replyId;
+        private long initialId;
+        private long replyId;
 
         private MessageConsumer sender;
         private int state;
@@ -523,26 +525,44 @@ abstract class McpProxyItemFactory implements BindingHandler
             this.originId = server.lifecycle.originId;
             this.routedId = routedId;
             this.lifecycle = server.lifecycle.supplyClient(routedId);
-            this.initialId = supplyInitialId.applyAsLong(routedId);
-            this.replyId = supplyReplyId.applyAsLong(initialId);
         }
 
         private void doClientBegin(
-            long traceId,
-            String sessionId,
-            String identifier)
+            long traceId)
         {
             lifecycle.doClientBegin(traceId);
+            lifecycle.register(traceId, this);
+        }
 
-            final McpBeginExFW beginEx = mcpBeginExRW
-                .wrap(codecBuffer, 0, codecBuffer.capacity())
-                .typeId(mcpTypeId)
-                .inject(b -> injectInitialBeginEx(b, sessionId, identifier))
-                .build();
+        @Override
+        public void onLifecycleSettled(
+            long traceId)
+        {
+            if (McpState.initialClosed(state) || McpState.replyClosed(state))
+            {
+                return;
+            }
 
-            sender = newStream(this::onClientMessage, originId, routedId, initialId,
-                initialSeq, initialAck, initialMax, traceId, server.authorization, server.affinity, beginEx);
-            state = McpState.openingInitial(state);
+            final String sid = lifecycle.sessionId;
+            if (sid != null)
+            {
+                initialId = supplyInitialIdHash.apply(routedId, sid.hashCode());
+                replyId = supplyReplyId.applyAsLong(initialId);
+
+                final McpBeginExFW beginEx = mcpBeginExRW
+                    .wrap(codecBuffer, 0, codecBuffer.capacity())
+                    .typeId(mcpTypeId)
+                    .inject(b -> injectInitialBeginEx(b, sid, server.identifier))
+                    .build();
+
+                sender = newStream(this::onClientMessage, originId, routedId, initialId,
+                    initialSeq, initialAck, initialMax, traceId, server.authorization, server.affinity, beginEx);
+                state = McpState.openingInitial(state);
+            }
+            else
+            {
+                server.doServerReset(traceId);
+            }
         }
 
         private void doClientData(
@@ -580,8 +600,11 @@ abstract class McpProxyItemFactory implements BindingHandler
         {
             if (!McpState.initialClosed(state))
             {
-                doEnd(sender, originId, routedId, initialId,
-                    initialSeq, initialAck, initialMax, traceId, server.authorization);
+                if (McpState.initialOpening(state))
+                {
+                    doEnd(sender, originId, routedId, initialId,
+                        initialSeq, initialAck, initialMax, traceId, server.authorization);
+                }
                 state = McpState.closedInitial(state);
             }
         }
@@ -591,8 +614,11 @@ abstract class McpProxyItemFactory implements BindingHandler
         {
             if (!McpState.initialClosed(state))
             {
-                doAbort(sender, originId, routedId, initialId,
-                    initialSeq, initialAck, initialMax, traceId, server.authorization);
+                if (McpState.initialOpening(state))
+                {
+                    doAbort(sender, originId, routedId, initialId,
+                        initialSeq, initialAck, initialMax, traceId, server.authorization);
+                }
                 state = McpState.closedInitial(state);
             }
         }
@@ -602,9 +628,12 @@ abstract class McpProxyItemFactory implements BindingHandler
             long budgetId,
             int padding)
         {
-            state = McpState.openedReply(state);
-            doWindow(sender, originId, routedId, replyId,
-                replySeq, replyAck, replyMax, traceId, server.authorization, budgetId, padding);
+            if (McpState.initialOpening(state))
+            {
+                state = McpState.openedReply(state);
+                doWindow(sender, originId, routedId, replyId,
+                    replySeq, replyAck, replyMax, traceId, server.authorization, budgetId, padding);
+            }
         }
 
         private void flushClientWindow(
@@ -630,8 +659,11 @@ abstract class McpProxyItemFactory implements BindingHandler
         {
             if (!McpState.replyClosed(state))
             {
-                doReset(sender, originId, routedId, replyId,
-                    replySeq, replyAck, replyMax, traceId, server.authorization, emptyRO);
+                if (McpState.initialOpening(state))
+                {
+                    doReset(sender, originId, routedId, replyId,
+                        replySeq, replyAck, replyMax, traceId, server.authorization, emptyRO);
+                }
                 state = McpState.closedReply(state);
             }
         }

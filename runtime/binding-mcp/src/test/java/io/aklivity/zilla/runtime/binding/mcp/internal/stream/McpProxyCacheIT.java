@@ -14,14 +14,18 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_HYDRATE_ATTEMPTS_MAX_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_HYDRATE_FILTER_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_SESSION_ID_NAME;
 import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLOT_CAPACITY_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
+import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -132,6 +136,19 @@ public class McpProxyCacheIT
         "${app}/cache.serve.tools.list/client" })
     @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
     public void shouldServeToolsList() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.cache.yaml")
+    @Specification({
+        "${app}/cache.serve.tools.list.degraded/server",
+        "${app}/cache.serve.tools.list.degraded/client" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
+    @Configure(name = MCP_HYDRATE_ATTEMPTS_MAX_NAME, value = "1")
+    public void shouldServeToolsListWhenDegraded() throws Exception
     {
         k3po.finish();
     }
@@ -329,9 +346,18 @@ public class McpProxyCacheIT
         k3po.finish();
     }
 
+    private static final List<String> SESSION_IDS = List.of("hydrate-1", "agent-1");
+    private static Iterator<String> sessionIds = SESSION_IDS.iterator();
+
     public static String sessionId()
     {
-        return "hydrate-1";
+        return sessionIds.next();
+    }
+
+    @After
+    public void resetSessionIds()
+    {
+        sessionIds = SESSION_IDS.iterator();
     }
 
     private static final String[] CONTENDED_SESSION_IDS = { "hydrate-A", "hydrate-B" };
