@@ -42,6 +42,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.SortedSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
@@ -2063,8 +2064,12 @@ public final class HttpClientFactory implements HttpStreamFactory
             MessageConsumer newStream;
 
             final HttpBeginExFW beginEx = begin.extension().get(beginExRO::tryWrap);
+            final HttpHeaderFW authorityHeader = beginEx != null
+                    ? beginEx.headers().matchFirst(h -> HEADER_AUTHORITY.equals(h.name()))
+                    : null;
+            final String authority = authorityHeader != null ? authorityHeader.value().asString() : null;
 
-            HttpClient client = supplyClient();
+            HttpClient client = supplyClient(authority);
             final int queuedRequestLength = HttpQueueEntryFW.FIELD_OFFSET_VALUE_LENGTH + begin.extension().sizeof();
 
             if (client == null || queuedRequestLength > maximumRequestQueueSize)
@@ -2156,7 +2161,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                     client = encoder == HttpEncoder.HTTP_2 ||
                             encoder == HttpEncoder.HTTP_1_1 && httpExchange.client.exchange == null ||
                             encoder == HttpEncoder.H2C ?
-                            httpExchange.client : supplyClient();
+                            httpExchange.client : supplyClient(httpExchange.client.authority);
 
                     if (client != null)
                     {
@@ -2197,19 +2202,22 @@ public final class HttpClientFactory implements HttpStreamFactory
             }
         }
 
-        private HttpClient supplyClient()
+        private HttpClient supplyClient(
+            String authority)
         {
             HttpClient client = clients.stream().filter(
-                c -> !HttpState.replyOpened(c.state) ||
+                c -> Objects.equals(c.authority, authority) &&
+                (!HttpState.replyOpened(c.state) ||
                 c.encoder == HttpEncoder.HTTP_2 ||
                 c.exchange == null && c.encoder == HttpEncoder.HTTP_1_1 ||
-                c.encoder == HttpEncoder.H2C)
+                c.encoder == HttpEncoder.H2C))
                 .findFirst()
                 .orElse(null);
 
             if (client == null && clients.size() < maximumConnectionsPerRoute)
             {
                 client = new HttpClient(this);
+                client.authority = authority;
                 onCreated(client);
             }
 
@@ -2304,6 +2312,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         private int initialSharedBudget;
         private long requestSharedBudgetIndex = NO_CREDITOR_INDEX;
         private String protocolUpgrade = null;
+        private String authority;
 
         private HttpClient(
             HttpClientPool pool)
