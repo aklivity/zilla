@@ -4404,6 +4404,8 @@ public final class McpServerFactory implements McpStreamFactory
                         .inject(server::injectAltSvc)
                         .build());
             }
+
+            flushAppWindow(traceId, authorization, 0L, 0, 0, encodeMax);
         }
 
         private void onAppData(
