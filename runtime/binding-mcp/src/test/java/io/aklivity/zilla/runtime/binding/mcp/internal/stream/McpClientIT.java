@@ -67,6 +67,16 @@ public class McpClientIT
     }
 
     @Test
+    @Configuration("client.credentials.yaml")
+    @Specification({
+        "${app}/lifecycle.initialize/client",
+        "${net}/lifecycle.initialize.credentials/server"})
+    public void shouldInitializeLifecycleWithBootstrapCredential() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("client.yaml")
     @Specification({
         "${app}/lifecycle.initialize/client",

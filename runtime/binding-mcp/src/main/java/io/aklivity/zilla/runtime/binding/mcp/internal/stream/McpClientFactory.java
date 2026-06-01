@@ -1731,11 +1731,27 @@ public final class McpClientFactory implements McpStreamFactory
             doAppWindow(traceId, authorization, 0L, 0);
         }
 
+        abstract McpBindingConfig binding();
+
         boolean proceedWithRequest(
             long traceId,
             long authorization,
             McpBeginExFW mcpBeginEx)
         {
+            final McpBindingConfig binding = binding();
+            final GuardHandler guard = binding.guard;
+            if (guard != null)
+            {
+                final long sessionId = guard.reauthorize(traceId, binding.id, initialId, null);
+                if ((sessionId & GuardHandler.MASK_AUTHORIZED) != 0L)
+                {
+                    credentials = guard.credentials(sessionId);
+                }
+            }
+            if (credentials == null)
+            {
+                credentials = binding.credentials;
+            }
             return true;
         }
 
@@ -2100,6 +2116,12 @@ public final class McpClientFactory implements McpStreamFactory
         private int failedKeepalives;
         private HttpEventStream sse;
         boolean eventsUnsupported;
+
+        @Override
+        McpBindingConfig binding()
+        {
+            return binding;
+        }
 
         @Override
         String transportSessionId()
@@ -2533,6 +2555,12 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         @Override
+        McpBindingConfig binding()
+        {
+            return session.binding;
+        }
+
+        @Override
         String transportSessionId()
         {
             return session.transportSessionId();
@@ -2899,6 +2927,7 @@ public final class McpClientFactory implements McpStreamFactory
             final GuardHandler guard = session.binding.guard;
             if (guard == null)
             {
+                credentials = session.binding.credentials;
                 return true;
             }
 
@@ -2910,7 +2939,7 @@ public final class McpClientFactory implements McpStreamFactory
                 return true;
             }
 
-            if (sessionId == GuardHandler.NEEDS_PREAUTHORIZE)
+            if (sessionId == GuardHandler.NEEDS_PREAUTHORIZE && session.binding.credentials == null)
             {
                 final String preauthorizeUrl = guard.preauthorize(traceId, session.binding.id, initialId, null);
                 if (preauthorizeUrl == null)
@@ -2937,6 +2966,12 @@ public final class McpClientFactory implements McpStreamFactory
                     traceId, ELICIT_TIMEOUT_SIGNAL_ID, 0);
 
                 return false;
+            }
+
+            if (session.binding.credentials != null)
+            {
+                credentials = session.binding.credentials;
+                return true;
             }
 
             doAppReset(traceId, authorization);
@@ -3289,6 +3324,15 @@ public final class McpClientFactory implements McpStreamFactory
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.affinity = mcp.affinity;
             this.replyMax = decodeMax;
+        }
+
+        final void injectAuthorization(
+            HttpBeginExFW.Builder builder)
+        {
+            if (mcp.credentials != null)
+            {
+                builder.headersItem(h -> h.name(HTTP_HEADER_AUTHORIZATION).value(BEARER_PREFIX + mcp.credentials));
+            }
         }
 
         abstract void onDecodeParseError(
@@ -3970,13 +4014,14 @@ public final class McpClientFactory implements McpStreamFactory
                 mcp.with.headers.forEach((name, value) ->
                     builder.headersItem(h -> h.name(name).value(value)));
             }
-            final HttpBeginExFW httpBeginEx = builder
+            builder
                 .headersItem(h -> h.name(HTTP_HEADER_METHOD).value(HTTP_METHOD_POST))
                 .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_JSON))
                 .headersItem(h -> h.name(HTTP_HEADER_ACCEPT).value(CONTENT_TYPE_JSON_AND_EVENT_STREAM))
                 .headersItem(h -> h.name(HTTP_HEADER_MCP_VERSION).value(mcp.protocolVersion()))
-                .headersItem(h -> h.name(HTTP_HEADER_CONTENT_LENGTH).value(Integer.toString(contentLength)))
-                .build();
+                .headersItem(h -> h.name(HTTP_HEADER_CONTENT_LENGTH).value(Integer.toString(contentLength)));
+            injectAuthorization(builder);
+            final HttpBeginExFW httpBeginEx = builder.build();
 
             doNetBegin(traceId, authorization, httpBeginEx);
             doNetData(traceId, authorization, codecBuffer, 0, codecLength);
@@ -4108,14 +4153,15 @@ public final class McpClientFactory implements McpStreamFactory
                 mcp.with.headers.forEach((name, value) ->
                     builder.headersItem(h -> h.name(name).value(value)));
             }
-            final HttpBeginExFW httpBeginEx = builder
+            builder
                 .headersItem(h -> h.name(HTTP_HEADER_METHOD).value(HTTP_METHOD_POST))
                 .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_JSON))
                 .headersItem(h -> h.name(HTTP_HEADER_ACCEPT).value(CONTENT_TYPE_JSON_AND_EVENT_STREAM))
                 .headersItem(h -> h.name(HTTP_HEADER_MCP_VERSION).value(mcp.protocolVersion()))
                 .headersItem(h -> h.name(HTTP_HEADER_SESSION).value(sid))
-                .headersItem(h -> h.name(HTTP_HEADER_CONTENT_LENGTH).value(Integer.toString(codecLength)))
-                .build();
+                .headersItem(h -> h.name(HTTP_HEADER_CONTENT_LENGTH).value(Integer.toString(codecLength)));
+            injectAuthorization(builder);
+            final HttpBeginExFW httpBeginEx = builder.build();
 
             doNetBegin(traceId, authorization, httpBeginEx);
             doNetData(traceId, authorization, codecBuffer, 0, codecLength);
@@ -4151,14 +4197,15 @@ public final class McpClientFactory implements McpStreamFactory
                 mcp.with.headers.forEach((name, value) ->
                     builder.headersItem(h -> h.name(name).value(value)));
             }
-            final HttpBeginExFW httpBeginEx = builder
+            builder
                 .headersItem(h -> h.name(HTTP_HEADER_METHOD).value(HTTP_METHOD_POST))
                 .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_JSON))
                 .headersItem(h -> h.name(HTTP_HEADER_ACCEPT).value(CONTENT_TYPE_JSON_AND_EVENT_STREAM))
                 .headersItem(h -> h.name(HTTP_HEADER_MCP_VERSION).value(mcp.protocolVersion()))
                 .headersItem(h -> h.name(HTTP_HEADER_SESSION).value(sid))
-                .headersItem(h -> h.name(HTTP_HEADER_CONTENT_LENGTH).value(Integer.toString(contentLength)))
-                .build();
+                .headersItem(h -> h.name(HTTP_HEADER_CONTENT_LENGTH).value(Integer.toString(contentLength)));
+            injectAuthorization(builder);
+            final HttpBeginExFW httpBeginEx = builder.build();
 
             doNetBegin(traceId, authorization, httpBeginEx);
             doNetData(traceId, authorization, codecBuffer, 0, codecLength);
@@ -4201,6 +4248,7 @@ public final class McpClientFactory implements McpStreamFactory
             {
                 builder.headersItem(h -> h.name(HTTP_HEADER_LAST_EVENT_ID).value(lastEventId));
             }
+            injectAuthorization(builder);
             final HttpBeginExFW httpBeginEx = builder.build();
 
             state = McpState.openingInitial(state);
@@ -4583,6 +4631,8 @@ public final class McpClientFactory implements McpStreamFactory
             codecLength += codecBuffer.putIntAscii(codecLength, request.requestId);
             codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, JSON_RPC_TOOLS_LIST_METHOD);
 
+            injectAuthorization(extBuilder);
+
             final int contentLength = codecLength;
             extBuilder.headersItem(h -> h.name(HTTP_HEADER_CONTENT_LENGTH).value(Integer.toString(contentLength)));
             final HttpBeginExFW httpBeginEx = extBuilder.build();
@@ -4622,10 +4672,7 @@ public final class McpClientFactory implements McpStreamFactory
             final String sid = mcp.transportSessionId();
             extBuilder.headersItem(h -> h.name(HTTP_HEADER_SESSION).value(sid));
 
-            if (mcp.credentials != null)
-            {
-                extBuilder.headersItem(h -> h.name(HTTP_HEADER_AUTHORIZATION).value(BEARER_PREFIX + mcp.credentials));
-            }
+            injectAuthorization(extBuilder);
 
             paramsForwarded = 0;
             int codecLength = 0;
@@ -4685,6 +4732,8 @@ public final class McpClientFactory implements McpStreamFactory
             codecLength += codecBuffer.putIntAscii(codecLength, request.requestId);
             codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, JSON_RPC_PROMPTS_LIST_METHOD);
 
+            injectAuthorization(extBuilder);
+
             final int contentLength = codecLength;
             extBuilder.headersItem(h -> h.name(HTTP_HEADER_CONTENT_LENGTH).value(Integer.toString(contentLength)));
             final HttpBeginExFW httpBeginEx = extBuilder.build();
@@ -4730,6 +4779,8 @@ public final class McpClientFactory implements McpStreamFactory
             codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, JSON_RPC_REQUEST_ID_PREFIX);
             codecLength += codecBuffer.putIntAscii(codecLength, request.requestId);
             codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, JSON_RPC_PROMPTS_GET_METHOD);
+
+            injectAuthorization(extBuilder);
 
             final int contentLength = streamedContentLength(codecLength);
             extBuilder.headersItem(h -> h.name(HTTP_HEADER_CONTENT_LENGTH).value(Integer.toString(contentLength)));
@@ -4784,6 +4835,8 @@ public final class McpClientFactory implements McpStreamFactory
             codecLength += codecBuffer.putIntAscii(codecLength, request.requestId);
             codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, JSON_RPC_RESOURCES_LIST_METHOD);
 
+            injectAuthorization(extBuilder);
+
             final int contentLength = codecLength;
             extBuilder.headersItem(h -> h.name(HTTP_HEADER_CONTENT_LENGTH).value(Integer.toString(contentLength)));
             final HttpBeginExFW httpBeginEx = extBuilder.build();
@@ -4829,6 +4882,8 @@ public final class McpClientFactory implements McpStreamFactory
             codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, JSON_RPC_REQUEST_ID_PREFIX);
             codecLength += codecBuffer.putIntAscii(codecLength, request.requestId);
             codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, JSON_RPC_RESOURCES_READ_METHOD);
+
+            injectAuthorization(extBuilder);
 
             final int contentLength = streamedContentLength(codecLength);
             extBuilder.headersItem(h -> h.name(HTTP_HEADER_CONTENT_LENGTH).value(Integer.toString(contentLength)));
