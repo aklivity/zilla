@@ -268,6 +268,11 @@ final class McpProxyLifecycleFactory implements BindingHandler
             return eventIds != null && originId != routedId;
         }
 
+        private boolean hydrating()
+        {
+            return originId == routedId;
+        }
+
         private void onDecodeEventId(
             long routedId,
             String eventId)
@@ -1018,7 +1023,10 @@ final class McpProxyLifecycleFactory implements BindingHandler
             settleRequests(traceId);
             doClientAbort(traceId);
             server.clients.remove(routedId, this);
-            server.doServerAbort(traceId);
+            if (!(server.hydrating() && sessionId == null))
+            {
+                server.doServerAbort(traceId);
+            }
         }
 
         private void onClientWindow(
@@ -1062,13 +1070,17 @@ final class McpProxyLifecycleFactory implements BindingHandler
             doClientReset(traceId);
             server.clients.remove(routedId, this);
 
-            if (extension.sizeof() > 0 && !McpState.replyOpened(server.state))
+            final boolean bearer = extension.sizeof() > 0;
+            if (!(server.hydrating() && sessionId == null))
             {
-                server.onClientBearerReset(traceId, extension, this);
-            }
-            else
-            {
-                server.doServerReset(traceId, extension);
+                if (bearer && !McpState.replyOpened(server.state))
+                {
+                    server.onClientBearerReset(traceId, extension, this);
+                }
+                else
+                {
+                    server.doServerReset(traceId, extension);
+                }
             }
         }
     }

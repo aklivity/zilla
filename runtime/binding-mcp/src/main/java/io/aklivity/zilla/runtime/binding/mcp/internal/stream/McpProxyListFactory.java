@@ -285,7 +285,7 @@ abstract class McpProxyListFactory implements BindingHandler
             }
             else
             {
-                server.onClientError(traceId);
+                server.onClientSkip(traceId);
             }
         }
 
@@ -1308,6 +1308,13 @@ abstract class McpProxyListFactory implements BindingHandler
         {
             remaining.clear();
             doServerAbort(traceId);
+        }
+
+        private void onClientSkip(
+            long traceId)
+        {
+            client = null;
+            onNextClient(traceId);
         }
 
         private void onNextClient(
