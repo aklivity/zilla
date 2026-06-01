@@ -41,7 +41,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfi
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaRouteConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.ArrayFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaPartitionFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaPartitionMetadataFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.AbortFW;
@@ -471,8 +471,10 @@ public final class KafkaCacheMetaFactory implements BindingHandler
                 final KafkaDataExFW kafkaDataEx =
                         kafkaDataExRW.wrap(extBuffer, 0, extBuffer.capacity())
                                      .typeId(kafkaTypeId)
-                                     .meta(m -> leadersByPartitionId.forEach((p, l) -> m.partitionsItem(i -> i.partitionId(p)
-                                                                                                              .leaderId(l))))
+                                     .meta(m -> m.replicationFactor((short) 0)
+                                                 .partitions(ps -> leadersByPartitionId.forEach(
+                                                     (p, l) -> ps.item(i -> i.partitionId(p).leaderId(l)
+                                                         .replicas(r -> {}).isr(r -> {})))))
                                      .build();
                 member.doMetaReplyDataIfNecessary(traceId, kafkaDataEx);
             }
@@ -699,7 +701,7 @@ public final class KafkaCacheMetaFactory implements BindingHandler
 
             if (kafkaMetaDataEx != null)
             {
-                final ArrayFW<KafkaPartitionFW> partitions = kafkaMetaDataEx.partitions();
+                final ArrayFW<KafkaPartitionMetadataFW> partitions = kafkaMetaDataEx.partitions();
                 leadersByPartitionId.clear();
                 partitions.forEach(p -> leadersByPartitionId.put(p.partitionId(), p.leaderId()));
 

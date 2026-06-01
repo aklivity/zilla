@@ -1891,7 +1891,9 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
 
                     final KafkaDataExFW kafkaDataEx = kafkaDataExRW.wrap(extBuffer, 0, extBuffer.capacity())
                         .typeId(kafkaTypeId)
-                        .meta(m -> partitions.forEach((k, v) -> m.partitionsItem(pi -> pi.partitionId(k).leaderId(v))))
+                        .meta(m -> m.replicationFactor((short) 0)
+                            .partitions(ps -> partitions.forEach((k, v) ->
+                                ps.item(pi -> pi.partitionId(k).leaderId(v).replicas(r -> {}).isr(r -> {})))))
                         .build();
 
                     doApplicationData(traceId, authorization, kafkaDataEx);
