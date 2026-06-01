@@ -114,6 +114,16 @@ public class ConnectionManagementIT
     }
 
     @Test
+    @Configuration("client.authority.yaml")
+    @Specification({
+        "${app}/concurrent.requests.different.authorities/client",
+        "${net}/concurrent.requests.different.authorities/server" })
+    public void shouldHandleConcurrentRequestsToDifferentAuthorities() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("client.yaml")
     @Specification({
         "${app}/multiple.requests.pipelined/client",
