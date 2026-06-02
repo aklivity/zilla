@@ -66,6 +66,17 @@ public class ConnectionManagementIT
     }
 
     @Test
+    @Configuration("client.authorities.yaml")
+    @Specification({
+        "${app}/concurrent.requests.different.authorities/client",
+        "${net}/concurrent.requests.different.authorities/server" })
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
+    public void shouldHandleConcurrentRequestsToDifferentAuthorities() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("client.override.yaml")
     @Specification({
         "${app}/http.get.exchange.with.header.override/client",
