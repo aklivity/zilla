@@ -19,6 +19,7 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabiliti
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabilities.CLIENT_SAMPLING;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_LIFECYCLE;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
+import static java.lang.Integer.toUnsignedLong;
 
 import java.net.URLDecoder;
 import java.net.URLEncoder;
@@ -5328,6 +5329,12 @@ public final class McpServerFactory implements McpStreamFactory
         return isLocalIndex.test(routedId, sessionId.hashCode());
     }
 
+    static long redirectHash(
+        String sessionId)
+    {
+        return toUnsignedLong(sessionId.hashCode());
+    }
+
     private String extractSessionIdFromState(
         String path)
     {
@@ -5414,7 +5421,7 @@ public final class McpServerFactory implements McpStreamFactory
         {
             final long authorization = begin.authorization();
             doRedirect(sender, originId, routedId, streamId, sequence, acknowledge, traceId, authorization,
-                sessionId.hashCode(), extension);
+                redirectHash(sessionId), extension);
         }
     }
 }
