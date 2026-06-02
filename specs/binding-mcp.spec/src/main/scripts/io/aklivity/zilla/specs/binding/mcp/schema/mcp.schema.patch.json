@@ -132,9 +132,13 @@
                                     {
                                         "title": "Guard Name",
                                         "type": "string"
+                                    },
+                                    "credentials":
+                                    {
+                                        "title": "Credentials",
+                                        "type": "string"
                                     }
                                 },
-                                "required": [ "name" ],
                                 "additionalProperties": false
                             }
                         },

@@ -19,6 +19,7 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabiliti
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabilities.CLIENT_SAMPLING;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_LIFECYCLE;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
+import static java.lang.Integer.toUnsignedLong;
 
 import java.net.URLDecoder;
 import java.net.URLEncoder;
@@ -103,6 +104,7 @@ public final class McpServerFactory implements McpStreamFactory
     private static final String HTTP_HEADER_STATUS = ":status";
     private static final String HTTP_HEADER_WWW_AUTHENTICATE = "www-authenticate";
     private static final String HTTP_HEADER_CONTENT_TYPE = "content-type";
+    private static final String HTTP_HEADER_CONTENT_LENGTH = "content-length";
     private static final String HTTP_HEADER_ALT_SVC = "alt-svc";
     private static final String HTTP_HEADER_ACCEPT = "accept";
     private static final String HTTP_HEADER_LAST_EVENT_ID = "last-event-id";
@@ -401,6 +403,11 @@ public final class McpServerFactory implements McpStreamFactory
                 else
                 {
                     final String redirectURI = binding.resolveRedirectURI(httpBeginEx);
+                    final int contentLength = Optional.ofNullable(httpBeginEx.headers()
+                            .matchFirst(h -> HTTP_HEADER_CONTENT_LENGTH.equals(h.name().asString())))
+                        .map(h -> h.value().asString())
+                        .map(Integer::parseInt)
+                        .orElse(-1);
                     newStream = new McpServer(
                         sender,
                         originId,
@@ -409,7 +416,8 @@ public final class McpServerFactory implements McpStreamFactory
                         resolvedId,
                         session,
                         redirectURI,
-                        altSvc)::onNetMessage;
+                        altSvc,
+                        contentLength)::onNetMessage;
                 }
                 break;
             case "GET":
@@ -1006,6 +1014,13 @@ public final class McpServerFactory implements McpStreamFactory
             }
 
             final String value = parser.getString();
+            if (server.contentLength < 0)
+            {
+                server.onDecodeInvalidRequest(traceId, authorization);
+                server.decoder = decodeIgnore;
+                break decode;
+            }
+
             switch (server.decodedMethod)
             {
             case "tools/call":
@@ -1284,6 +1299,7 @@ public final class McpServerFactory implements McpStreamFactory
 
         private final String redirectURI;
         private final String altSvc;
+        private final int contentLength;
 
         private McpServer(
             MessageConsumer sender,
@@ -1293,7 +1309,8 @@ public final class McpServerFactory implements McpStreamFactory
             long resolvedId,
             McpLifecycleStream session,
             String redirectURI,
-            String altSvc)
+            String altSvc,
+            int contentLength)
         {
             this.net = sender;
             this.originId = originId;
@@ -1306,6 +1323,7 @@ public final class McpServerFactory implements McpStreamFactory
             this.initialMax = decodeMax;
             this.redirectURI = redirectURI;
             this.altSvc = altSvc;
+            this.contentLength = contentLength;
         }
 
         private void onNetMessage(
@@ -1926,12 +1944,14 @@ public final class McpServerFactory implements McpStreamFactory
             long traceId,
             long authorization)
         {
+            final int paramsLength = contentLength - decodedParamsProgress - 1;
             McpBeginExFW beginEx = mcpBeginExRW
                 .wrap(codecBuffer, 0, codecBuffer.capacity())
                 .typeId(mcpTypeId)
                 .toolsCall(t -> t
                     .sessionId(session.unifiedId)
-                    .name(name))
+                    .name(name)
+                    .contentLength(paramsLength))
                 .build();
 
             assert stream == null;
@@ -1960,12 +1980,14 @@ public final class McpServerFactory implements McpStreamFactory
             long traceId,
             long authorization)
         {
+            final int paramsLength = contentLength - decodedParamsProgress - 1;
             McpBeginExFW beginEx = mcpBeginExRW
                 .wrap(codecBuffer, 0, codecBuffer.capacity())
                 .typeId(mcpTypeId)
                 .promptsGet(p -> p
                     .sessionId(session.unifiedId)
-                    .name(name))
+                    .name(name)
+                    .contentLength(paramsLength))
                 .build();
 
             assert stream == null;
@@ -1994,12 +2016,14 @@ public final class McpServerFactory implements McpStreamFactory
             long traceId,
             long authorization)
         {
+            final int paramsLength = contentLength - decodedParamsProgress - 1;
             McpBeginExFW beginEx = mcpBeginExRW
                 .wrap(codecBuffer, 0, codecBuffer.capacity())
                 .typeId(mcpTypeId)
                 .resourcesRead(r -> r
                     .sessionId(session.unifiedId)
-                    .uri(uri))
+                    .uri(uri)
+                    .contentLength(paramsLength))
                 .build();
 
             assert stream == null;
@@ -4381,6 +4405,8 @@ public final class McpServerFactory implements McpStreamFactory
                         .inject(server::injectAltSvc)
                         .build());
             }
+
+            flushAppWindow(traceId, authorization, 0L, 0, 0, encodeMax);
         }
 
         private void onAppData(
@@ -5303,6 +5329,12 @@ public final class McpServerFactory implements McpStreamFactory
         return isLocalIndex.test(routedId, sessionId.hashCode());
     }
 
+    static long redirectHash(
+        String sessionId)
+    {
+        return toUnsignedLong(sessionId.hashCode());
+    }
+
     private String extractSessionIdFromState(
         String path)
     {
@@ -5389,7 +5421,7 @@ public final class McpServerFactory implements McpStreamFactory
         {
             final long authorization = begin.authorization();
             doRedirect(sender, originId, routedId, streamId, sequence, acknowledge, traceId, authorization,
-                sessionId.hashCode(), extension);
+                redirectHash(sessionId), extension);
         }
     }
 }

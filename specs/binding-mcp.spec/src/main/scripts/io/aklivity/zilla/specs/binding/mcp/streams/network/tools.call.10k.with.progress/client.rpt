@@ -84,6 +84,7 @@ write zilla:begin.ext ${http:beginEx()
                             .header("accept", "application/json, text/event-stream")
                             .header("mcp-protocol-version", "2025-06-18")
                             .header("mcp-session-id", "session-1")
+                            .header("content-length", "13496")
                             .build()}
 
 connected

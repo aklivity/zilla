@@ -136,6 +136,7 @@ scope mcp
         {
             string16 sessionId;
             string16 name;
+            int32 contentLength = -1;
         }
 
         struct McpPromptsListBeginEx
@@ -147,6 +148,7 @@ scope mcp
         {
             string16 sessionId;
             string16 name;
+            int32 contentLength = -1;
         }
 
         struct McpResourcesListBeginEx
@@ -158,6 +160,7 @@ scope mcp
         {
             string16 sessionId;
             string16 uri;
+            int32 contentLength = -1;
         }
 
         struct McpAbortEx extends core::stream::Extension

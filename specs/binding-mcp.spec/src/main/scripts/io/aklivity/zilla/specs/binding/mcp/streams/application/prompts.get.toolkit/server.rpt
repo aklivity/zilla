@@ -44,13 +44,14 @@ read zilla:begin.ext ${mcp:matchBeginEx()
                           .promptsGet()
                               .sessionId("session-1")
                               .name("weather_prompt")
+                              .contentLength(25)
                               .build()
                           .build()}
 
 connected
 
 read  '{'
-        '"name":"bluesky__weather_prompt"'
+        '"name":"weather_prompt"'
       '}'
 
 write flush

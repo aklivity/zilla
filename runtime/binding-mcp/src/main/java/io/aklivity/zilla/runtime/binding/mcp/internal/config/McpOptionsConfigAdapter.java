@@ -24,6 +24,7 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonString;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.runtime.binding.mcp.config.McpAuthorizationConfigBuilder;
 import io.aklivity.zilla.runtime.binding.mcp.config.McpCacheConfig;
 import io.aklivity.zilla.runtime.binding.mcp.config.McpCacheConfigBuilder;
 import io.aklivity.zilla.runtime.binding.mcp.config.McpElicitationConfig;
@@ -44,6 +45,8 @@ public final class McpOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
     private static final String ELICITATION_CALLBACK_NAME = "callback";
 
     private static final String AUTHORIZATION_NAME = "authorization";
+    private static final String AUTHORIZATION_NAME_NAME = "name";
+    private static final String AUTHORIZATION_CREDENTIALS_NAME = "credentials";
 
     private static final String CACHE_NAME = "cache";
     private static final String CACHE_STORE_NAME = "store";
@@ -98,7 +101,14 @@ public final class McpOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
         if (mcpOptions.authorization != null)
         {
             JsonObjectBuilder authorization = Json.createObjectBuilder();
-            authorization.add("name", mcpOptions.authorization.name);
+            if (mcpOptions.authorization.name != null)
+            {
+                authorization.add(AUTHORIZATION_NAME_NAME, mcpOptions.authorization.name);
+            }
+            if (mcpOptions.authorization.credentials != null)
+            {
+                authorization.add(AUTHORIZATION_CREDENTIALS_NAME, mcpOptions.authorization.credentials);
+            }
             object.add(AUTHORIZATION_NAME, authorization);
         }
 
@@ -165,9 +175,17 @@ public final class McpOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
         if (object.containsKey(AUTHORIZATION_NAME))
         {
             JsonObject authorization = object.getJsonObject(AUTHORIZATION_NAME);
-            builder.authorization()
-                .name(authorization.getString("name"))
-                .build();
+            McpAuthorizationConfigBuilder<McpOptionsConfigBuilder<McpOptionsConfig>> authorizationBuilder =
+                builder.authorization();
+            if (authorization.containsKey(AUTHORIZATION_NAME_NAME))
+            {
+                authorizationBuilder.name(authorization.getString(AUTHORIZATION_NAME_NAME));
+            }
+            if (authorization.containsKey(AUTHORIZATION_CREDENTIALS_NAME))
+            {
+                authorizationBuilder.credentials(authorization.getString(AUTHORIZATION_CREDENTIALS_NAME));
+            }
+            authorizationBuilder.build();
         }
 
         if (object.containsKey(CACHE_NAME))

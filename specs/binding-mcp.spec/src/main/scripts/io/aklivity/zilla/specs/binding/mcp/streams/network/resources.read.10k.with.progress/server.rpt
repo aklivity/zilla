@@ -81,6 +81,7 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .header("accept", "application/json, text/event-stream")
                            .header("mcp-protocol-version", "2025-06-18")
                            .header("mcp-session-id", "session-1")
+                           .header("content-length", "127")
                            .build()}
 
 connected

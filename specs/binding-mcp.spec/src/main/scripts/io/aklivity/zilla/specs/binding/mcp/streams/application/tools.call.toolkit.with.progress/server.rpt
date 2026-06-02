@@ -44,13 +44,14 @@ read zilla:begin.ext ${mcp:matchBeginEx()
                           .toolsCall()
                               .sessionId("session-1")
                               .name("get_weather")
+                              .contentLength(94)
                               .build()
                           .build()}
 
 connected
 
 read  '{'
-        '"name":"bluesky__get_weather",'
+        '"name":"get_weather",'
         '"arguments":'
         '{'
           '"location": "New York"'

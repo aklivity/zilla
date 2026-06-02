@@ -35,9 +35,10 @@ final class McpProxyResourcesReadFactory extends McpProxyItemFactory
     protected void injectInitialBeginEx(
         McpBeginExFW.Builder builder,
         String sessionId,
-        String identifier)
+        String identifier,
+        int contentLength)
     {
-        builder.resourcesRead(r -> r.sessionId(sessionId).uri(identifier));
+        builder.resourcesRead(r -> r.sessionId(sessionId).uri(identifier).contentLength(contentLength));
     }
 
     @Override
@@ -54,5 +55,12 @@ final class McpProxyResourcesReadFactory extends McpProxyItemFactory
         McpBeginExFW beginEx)
     {
         return beginEx.resourcesRead().sessionId().asString();
+    }
+
+    @Override
+    protected int contentLength(
+        McpBeginExFW beginEx)
+    {
+        return beginEx.resourcesRead().contentLength();
     }
 }
