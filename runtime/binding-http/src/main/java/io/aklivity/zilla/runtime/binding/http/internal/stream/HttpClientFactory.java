@@ -37,12 +37,14 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.EnumMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.SortedSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
@@ -177,6 +179,7 @@ public final class HttpClientFactory implements HttpStreamFactory
     private static final String SCHEME = ":scheme";
     private static final String CACHE_CONTROL = "cache-control";
     private static final String8FW HEADER_AUTHORITY = new String8FW(":authority");
+    private static final String8FW HEADER_SCHEME = new String8FW(":scheme");
     private static final String8FW HEADER_USER_AGENT = new String8FW("user-agent");
     private static final String8FW HEADER_CONNECTION = new String8FW("connection");
     private static final String8FW HEADER_CONTENT_LENGTH = new String8FW("content-length");
@@ -2063,8 +2066,12 @@ public final class HttpClientFactory implements HttpStreamFactory
                     ? beginEx.headers().matchFirst(h -> HEADER_AUTHORITY.equals(h.name()))
                     : null;
             final String authority = authorityHeader != null ? authorityHeader.value().asString() : null;
+            final HttpHeaderFW schemeHeader = beginEx != null
+                    ? beginEx.headers().matchFirst(h -> HEADER_SCHEME.equals(h.name()))
+                    : null;
+            final String scheme = schemeHeader != null ? schemeHeader.value().asString() : null;
 
-            HttpClient client = supplyClient(authority);
+            HttpClient client = supplyClient(scheme, authority);
             final int queuedRequestLength = HttpQueueEntryFW.FIELD_OFFSET_VALUE_LENGTH + begin.extension().sizeof();
 
             if (client == null || queuedRequestLength > maximumRequestQueueSize)
@@ -2138,10 +2145,11 @@ public final class HttpClientFactory implements HttpStreamFactory
         }
 
         private HttpClient supplyClient(
+            String scheme,
             String authority)
         {
             HttpClient client = clients.stream().filter(
-                c -> Objects.equals(c.authority, authority) &&
+                c -> c.canServe(scheme, authority) &&
                 (!HttpState.replyOpened(c.state) ||
                 c.encoder == HttpEncoder.HTTP_2 ||
                 c.exchange == null && c.encoder == HttpEncoder.HTTP_1_1 ||
@@ -2152,6 +2160,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             if (client == null && clients.size() < maximumConnectionsPerRoute)
             {
                 client = new HttpClient(this);
+                client.scheme = scheme;
                 client.authority = authority;
                 onCreated(client);
             }
@@ -2243,7 +2252,9 @@ public final class HttpClientFactory implements HttpStreamFactory
         private int initialSharedBudget;
         private long requestSharedBudgetIndex = NO_CREDITOR_INDEX;
         private String protocolUpgrade = null;
+        private String scheme;
         private String authority;
+        private final Set<String> serviceableNames = new HashSet<>();
 
         private int httpQueueSlot = NO_SLOT;
         private int httpQueueSlotOffset;
@@ -4380,6 +4391,15 @@ public final class HttpClientFactory implements HttpStreamFactory
             return maxClientStreamId;
         }
 
+        private boolean canServe(
+            String scheme,
+            String authority)
+        {
+            return Objects.equals(this.scheme, scheme) &&
+                (Objects.equals(this.authority, authority) ||
+                 encoder == HttpEncoder.HTTP_2 && serviceableNames.contains(authority));
+        }
+
         private void flushNext()
         {
             dequeue:
@@ -4399,7 +4419,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                     client = encoder == HttpEncoder.HTTP_2 ||
                             encoder == HttpEncoder.HTTP_1_1 && httpExchange.client.exchange == null ||
                             encoder == HttpEncoder.H2C ?
-                            httpExchange.client : pool.supplyClient(httpExchange.client.authority);
+                            httpExchange.client : pool.supplyClient(httpExchange.client.scheme, httpExchange.client.authority);
 
                     if (client != null)
                     {
