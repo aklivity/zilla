@@ -2148,12 +2148,8 @@ public final class HttpClientFactory implements HttpStreamFactory
             String scheme,
             String authority)
         {
-            HttpClient client = clients.stream().filter(
-                c -> c.canServe(scheme, authority) &&
-                (!HttpState.replyOpened(c.state) ||
-                c.encoder == HttpEncoder.HTTP_2 ||
-                c.exchange == null && c.encoder == HttpEncoder.HTTP_1_1 ||
-                c.encoder == HttpEncoder.H2C))
+            HttpClient client = clients.stream()
+                .filter(c -> c.canServe(scheme, authority) && c.available(versions))
                 .findFirst()
                 .orElse(null);
 
@@ -2163,6 +2159,14 @@ public final class HttpClientFactory implements HttpStreamFactory
                 client.scheme = scheme;
                 client.authority = authority;
                 onCreated(client);
+            }
+
+            if (client == null)
+            {
+                client = clients.stream()
+                    .filter(c -> c.canServe(scheme, authority) && c.reusable())
+                    .findFirst()
+                    .orElse(null);
             }
 
             return client;
@@ -4398,6 +4402,23 @@ public final class HttpClientFactory implements HttpStreamFactory
             return Objects.equals(this.scheme, scheme) &&
                 (Objects.equals(this.authority, authority) ||
                  encoder == HttpEncoder.HTTP_2 && serviceableNames.contains(authority));
+        }
+
+        private boolean available(
+            SortedSet<HttpVersion> versions)
+        {
+            return encoder == HttpEncoder.HTTP_2 ||
+                encoder == HttpEncoder.H2C ||
+                !HttpState.replyOpened(state) && versions.contains(HTTP_2) ||
+                exchange == null && httpQueueSlotLimit == 0;
+        }
+
+        private boolean reusable()
+        {
+            return !HttpState.replyOpened(state) ||
+                encoder == HttpEncoder.HTTP_2 ||
+                exchange == null && encoder == HttpEncoder.HTTP_1_1 ||
+                encoder == HttpEncoder.H2C;
         }
 
         private void flushNext()

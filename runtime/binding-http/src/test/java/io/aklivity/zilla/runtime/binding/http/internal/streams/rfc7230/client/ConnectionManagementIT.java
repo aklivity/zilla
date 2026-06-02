@@ -126,6 +126,16 @@ public class ConnectionManagementIT
     @Test
     @Configuration("client.yaml")
     @Specification({
+        "${app}/concurrent.requests.same.authority/client",
+        "${net}/concurrent.requests.same.authority/server" })
+    public void shouldDistributeConcurrentRequestsToSameAuthorityAcrossConnections() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
         "${app}/multiple.requests.pipelined/client",
         "${net}/multiple.requests.pipelined/server" })
     @Ignore("Issuing pipelined requests is not yet implemented")
