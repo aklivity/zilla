@@ -24,7 +24,7 @@ write zilla:begin.ext ${http:beginEx()
                             .header(":authority", "localhost:8080")
                             .header(":path", "/mcp")
                             .header("accept", "text/event-stream")
-                            .header("mcp-protocol-version", "2025-06-18")
+                            .header("mcp-protocol-version", "2025-11-25")
                             .header("mcp-session-id", "session-unknown")
                             .build()}
 

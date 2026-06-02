@@ -141,7 +141,7 @@ public final class McpServerFactory implements McpStreamFactory
     private static final String JSON_RPC_ERROR_MESSAGE = ",\"message\":\"";
     private static final String JSON_RPC_ERROR_SUFFIX = "\"}}";
     private static final String INITIALIZE_RESPONSE_PROTOCOL_PREFIX =
-        "{\"protocolVersion\":\"2025-06-18\",\"capabilities\":";
+        "{\"protocolVersion\":\"2025-11-25\",\"capabilities\":";
     private static final String INITIALIZE_RESPONSE_SERVER_INFO_PREFIX = ",\"serverInfo\":{\"name\":\"";
     private static final String INITIALIZE_RESPONSE_VERSION_PREFIX = "\",\"version\":\"";
     private static final String INITIALIZE_RESPONSE_SUFFIX = "\"}}";

@@ -133,7 +133,7 @@ public final class McpClientFactory implements McpStreamFactory
     private static final String CONTENT_TYPE_JSON = "application/json";
     private static final String CONTENT_TYPE_JSON_AND_EVENT_STREAM = "application/json, text/event-stream";
     private static final String CONTENT_TYPE_EVENT_STREAM = "text/event-stream";
-    private static final String MCP_PROTOCOL_VERSION = "2025-06-18";
+    private static final String MCP_PROTOCOL_VERSION = "2025-11-25";
     private static final String HTTP_METHOD_GET = "GET";
     private static final String HTTP_METHOD_POST = "POST";
 

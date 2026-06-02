@@ -25,12 +25,12 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .header(":path", "/mcp")
                            .header("content-type", "application/json")
                            .header("accept", "application/json, text/event-stream")
-                           .header("mcp-protocol-version", "2025-06-18")
+                           .header("mcp-protocol-version", "2025-11-25")
                            .build()}
 
 connected
 
-read '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}}}'
+read '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}}}'
 read closed
 
 write zilla:begin.ext ${http:beginEx()
@@ -41,7 +41,7 @@ write zilla:begin.ext ${http:beginEx()
                             .build()}
 write flush
 
-write '{"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-06-18","capabilities":{"prompts":{"listChanged":true},"resources":{"listChanged":true},"tools":{"listChanged":true}},"serverInfo":{"name":"zilla","version":"1.0"}}}'
+write '{"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-11-25","capabilities":{"prompts":{"listChanged":true},"resources":{"listChanged":true},"tools":{"listChanged":true}},"serverInfo":{"name":"zilla","version":"1.0"}}}'
 write flush
 
 write close
@@ -54,7 +54,7 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .header(":path", "/mcp")
                            .header("content-type", "application/json")
                            .header("accept", "application/json, text/event-stream")
-                           .header("mcp-protocol-version", "2025-06-18")
+                           .header("mcp-protocol-version", "2025-11-25")
                            .header("mcp-session-id", "session-1")
                            .build()}
 
@@ -79,7 +79,7 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .header(":path", "/mcp")
                            .header("content-type", "application/json")
                            .header("accept", "application/json, text/event-stream")
-                           .header("mcp-protocol-version", "2025-06-18")
+                           .header("mcp-protocol-version", "2025-11-25")
                            .header("mcp-session-id", "session-1")
                            .build()}
 
@@ -98,7 +98,7 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .header(":path", "/mcp")
                            .header("content-type", "application/json")
                            .header("accept", "application/json, text/event-stream")
-                           .header("mcp-protocol-version", "2025-06-18")
+                           .header("mcp-protocol-version", "2025-11-25")
                            .header("mcp-session-id", "session-1")
                            .build()}
 
@@ -115,7 +115,7 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .typeId(zilla:id("http"))
                            .header(":method", "DELETE")
                            .header(":path", "/mcp")
-                           .header("mcp-protocol-version", "2025-06-18")
+                           .header("mcp-protocol-version", "2025-11-25")
                            .header("mcp-session-id", "session-1")
                            .build()}
 

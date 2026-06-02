@@ -25,12 +25,12 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .header(":path", "/mcp")
                            .header("content-type", "application/json")
                            .header("accept", "application/json, text/event-stream")
-                           .header("mcp-protocol-version", "2025-06-18")
+                           .header("mcp-protocol-version", "2025-11-25")
                            .build()}
 
 connected
 
-read '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}}}'
+read '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}}}'
 read closed
 
 write zilla:begin.ext ${http:beginEx()
