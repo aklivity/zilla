@@ -19,7 +19,6 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabiliti
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabilities.CLIENT_SAMPLING;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_LIFECYCLE;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
-import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.streamIndex;
 
 import java.net.URLDecoder;
 import java.net.URLEncoder;
@@ -82,7 +81,7 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.util.function.LongLongFunction;
+import io.aklivity.zilla.runtime.engine.util.function.LongIntPredicate;
 
 public final class McpServerFactory implements McpStreamFactory
 {
@@ -208,8 +207,8 @@ public final class McpServerFactory implements McpStreamFactory
     private final MutableDirectBuffer codecBuffer;
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
-    private final LongLongFunction<Long> supplyInitialIdByHash;
     private final LongUnaryOperator supplyReplyId;
+    private final LongIntPredicate isLocalIndex;
     private final int httpTypeId;
     private final int mcpTypeId;
     private final BufferPool decodePool;
@@ -250,7 +249,6 @@ public final class McpServerFactory implements McpStreamFactory
     private final McpConfiguration config;
     private final Long2ObjectHashMap<McpBindingConfig> bindings;
     private final Map<String, McpServerFactory.McpLifecycleStream> sessions;
-    private final int localIndex;
 
     public McpServerFactory(
         McpConfiguration config,
@@ -271,8 +269,8 @@ public final class McpServerFactory implements McpStreamFactory
         this.codecBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
-        this.supplyInitialIdByHash = (bindingId, hash) -> context.supplyInitialId(bindingId, (int) hash);
         this.supplyReplyId = context::supplyReplyId;
+        this.isLocalIndex = context::isLocalIndex;
         this.bindings = new Long2ObjectHashMap<>();
         this.httpTypeId = context.supplyTypeId(HTTP_TYPE_NAME);
         this.mcpTypeId = context.supplyTypeId(MCP_TYPE_NAME);
@@ -282,7 +280,6 @@ public final class McpServerFactory implements McpStreamFactory
         this.encodeMax = encodePool.slotCapacity();
         this.sessionIdAttempts = config.sessionIdAttempts();
         this.sessions = new Object2ObjectHashMap<>();
-        this.localIndex = context.index();
         this.parserFactory = StreamingJson.createParserFactory(Map.of(
             StreamingJson.PATH_INCLUDES, SERVER_JSON_PATH_INCLUDES,
             StreamingJson.TOKEN_MAX_BYTES, decodeMax));
@@ -376,7 +373,7 @@ public final class McpServerFactory implements McpStreamFactory
                 .orElse(null);
             final String altSvc = buildAltSvc(authority);
 
-            if (sessionId != null && !isSessionIdAligned(resolvedId, sessionId))
+            if (sessionId != null && !isSessionIdAligned(routedId, sessionId))
             {
                 newStream = new McpRedirectHandler(
                     sender,
@@ -1802,7 +1799,7 @@ public final class McpServerFactory implements McpStreamFactory
             long traceId,
             long authorization)
         {
-            final String sessionId = newSessionId(resolvedId);
+            final String sessionId = newSessionId(routedId);
             if (sessionId == null)
             {
                 doNetReset(traceId, authorization);
@@ -5276,14 +5273,14 @@ public final class McpServerFactory implements McpStreamFactory
     }
 
     private String newSessionId(
-        long resolvedId)
+        long routedId)
     {
         String sessionId = null;
 
         for (int i = 0; i < sessionIdAttempts; i++)
         {
             final String candidate = supplySessionId.get();
-            if (isSessionIdAligned(resolvedId, candidate))
+            if (isSessionIdAligned(routedId, candidate))
             {
                 sessionId = candidate;
                 break;
@@ -5294,12 +5291,10 @@ public final class McpServerFactory implements McpStreamFactory
     }
 
     private boolean isSessionIdAligned(
-        long resolvedId,
+        long routedId,
         String sessionId)
     {
-        final long initialId = supplyInitialIdByHash.apply(resolvedId, sessionId.hashCode());
-        final int alignedIndex = streamIndex(initialId);
-        return alignedIndex == localIndex;
+        return isLocalIndex.test(routedId, sessionId.hashCode());
     }
 
     private String extractSessionIdFromState(

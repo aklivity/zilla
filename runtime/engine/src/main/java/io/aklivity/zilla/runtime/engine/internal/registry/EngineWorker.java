@@ -544,6 +544,14 @@ public class EngineWorker implements EngineContext, Agent
     }
 
     @Override
+    public boolean isLocalIndex(
+        long bindingId,
+        int hash)
+    {
+        return localIndex == resolveRemoteIndex(bindingId, hash);
+    }
+
+    @Override
     public long supplyReplyId(
         long initialId)
     {
