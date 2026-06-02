@@ -23,7 +23,7 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .typeId(zilla:id("http"))
                            .header(":method", "PUT")
                            .header(":path", "/mcp")
-                           .header("mcp-protocol-version", "2025-06-18")
+                           .header("mcp-protocol-version", "2025-11-25")
                            .build()}
 
 # TODO: enable once k3po supports a `reject zilla:reset.ext ${...}` primitive

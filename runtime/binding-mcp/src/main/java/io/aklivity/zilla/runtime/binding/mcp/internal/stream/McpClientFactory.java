@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabilities.CLIENT_ELICITATION;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabilities.CLIENT_ELICITATION_URL;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabilities.SERVER_PROMPTS;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabilities.SERVER_PROMPTS_LIST_CHANGED;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabilities.SERVER_RESOURCES;
@@ -133,7 +135,7 @@ public final class McpClientFactory implements McpStreamFactory
     private static final String CONTENT_TYPE_JSON = "application/json";
     private static final String CONTENT_TYPE_JSON_AND_EVENT_STREAM = "application/json, text/event-stream";
     private static final String CONTENT_TYPE_EVENT_STREAM = "text/event-stream";
-    private static final String MCP_PROTOCOL_VERSION = "2025-06-18";
+    private static final String MCP_PROTOCOL_VERSION = "2025-11-25";
     private static final String HTTP_METHOD_GET = "GET";
     private static final String HTTP_METHOD_POST = "POST";
 
@@ -150,7 +152,11 @@ public final class McpClientFactory implements McpStreamFactory
     private static final String JSON_RPC_NOTIFY_CANCELLED_SUFFIX = ",\"reason\":\"User cancelled\"}}";
     private static final String JSON_RPC_INITIALIZE_PREFIX =
         "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"";
-    private static final String JSON_RPC_INITIALIZE_CLIENT_INFO = "\",\"capabilities\":{},\"clientInfo\":{\"name\":\"";
+    private static final String JSON_RPC_INITIALIZE_CAPABILITIES_PREFIX = "\",\"capabilities\":";
+    private static final String JSON_RPC_INITIALIZE_CLIENT_INFO = ",\"clientInfo\":{\"name\":\"";
+    private static final String JSON_RPC_CAPABILITIES_NONE = "{}";
+    private static final String JSON_RPC_CAPABILITIES_ELICITATION_FORM = "{\"elicitation\":{}}";
+    private static final String JSON_RPC_CAPABILITIES_ELICITATION_URL = "{\"elicitation\":{\"url\":{}}}";
     private static final String JSON_RPC_INITIALIZE_VERSION_PREFIX = "\",\"version\":\"";
     private static final String JSON_RPC_INITIALIZE_SUFFIX = "\"}}}";
     private static final String JSON_RPC_NOTIFY_INITIALIZED = "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}";
@@ -1516,6 +1522,7 @@ public final class McpClientFactory implements McpStreamFactory
 
         protected HttpStream http;
         protected String credentials;
+        protected int clientCapabilities;
         protected int serverCapabilities = SERVER_CAPABILITIES;
         protected McpRequestDecoder decoder;
 
@@ -1720,6 +1727,11 @@ public final class McpClientFactory implements McpStreamFactory
             final McpBeginExFW mcpBeginEx = extension.sizeof() > 0
                 ? mcpBeginExRO.wrap(extension.buffer(), extension.offset(), extension.limit())
                 : null;
+
+            if (mcpBeginEx != null && mcpBeginEx.kind() == KIND_LIFECYCLE)
+            {
+                clientCapabilities = mcpBeginEx.lifecycle().capabilities();
+            }
 
             if (proceedWithRequest(traceId, authorization, mcpBeginEx))
             {
@@ -3999,6 +4011,8 @@ public final class McpClientFactory implements McpStreamFactory
             int codecLength = 0;
             codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, JSON_RPC_INITIALIZE_PREFIX);
             codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, MCP_PROTOCOL_VERSION);
+            codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, JSON_RPC_INITIALIZE_CAPABILITIES_PREFIX);
+            codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, capabilitiesJson(mcp.clientCapabilities));
             codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, JSON_RPC_INITIALIZE_CLIENT_INFO);
             codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, clientName);
             codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, JSON_RPC_INITIALIZE_VERSION_PREFIX);
@@ -4025,6 +4039,25 @@ public final class McpClientFactory implements McpStreamFactory
 
             doNetBegin(traceId, authorization, httpBeginEx);
             doNetData(traceId, authorization, codecBuffer, 0, codecLength);
+        }
+
+        private String capabilitiesJson(
+            int capabilities)
+        {
+            final String json;
+            if ((capabilities & CLIENT_ELICITATION_URL.value()) != 0)
+            {
+                json = JSON_RPC_CAPABILITIES_ELICITATION_URL;
+            }
+            else if ((capabilities & CLIENT_ELICITATION.value()) != 0)
+            {
+                json = JSON_RPC_CAPABILITIES_ELICITATION_FORM;
+            }
+            else
+            {
+                json = JSON_RPC_CAPABILITIES_NONE;
+            }
+            return json;
         }
 
         @Override

@@ -26,6 +26,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
 import io.aklivity.k3po.runtime.lang.el.Function;
 import io.aklivity.k3po.runtime.lang.el.spi.FunctionMapperSpi;
+import io.aklivity.zilla.specs.binding.mcp.internal.types.McpCapabilities;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.String16FW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpAbortExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpBearerError;
@@ -65,6 +66,17 @@ public final class McpFunctions
     public static McpBeginExMatcherBuilder matchBeginEx()
     {
         return new McpBeginExMatcherBuilder();
+    }
+
+    private static int capabilities(
+        String[] names)
+    {
+        int capabilities = 0;
+        for (String name : names)
+        {
+            capabilities |= McpCapabilities.valueOf(name).value();
+        }
+        return capabilities;
     }
 
     public static final class McpBeginExBuilder
@@ -139,9 +151,9 @@ public final class McpFunctions
             }
 
             public McpLifecycleBeginExBuilder capabilities(
-                int capabilities)
+                String... names)
             {
-                this.capabilities = capabilities;
+                this.capabilities = McpFunctions.capabilities(names);
                 return this;
             }
 
@@ -440,9 +452,9 @@ public final class McpFunctions
             }
 
             public McpLifecycleBeginExMatcherBuilder capabilities(
-                int capabilities)
+                String... names)
             {
-                this.capabilities = capabilities;
+                this.capabilities = McpFunctions.capabilities(names);
                 return this;
             }
 

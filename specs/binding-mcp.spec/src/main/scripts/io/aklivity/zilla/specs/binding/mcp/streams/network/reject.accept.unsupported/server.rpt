@@ -25,7 +25,7 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .header(":path", "/mcp")
                            .header("content-type", "application/json")
                            .header("accept", "application/xml")
-                           .header("mcp-protocol-version", "2025-06-18")
+                           .header("mcp-protocol-version", "2025-11-25")
                            .build()}
 
 # TODO: enable once k3po supports a `reject zilla:reset.ext ${...}` primitive
