@@ -15,8 +15,8 @@
 package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabilities.CLIENT_ELICITATION;
-import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabilities.CLIENT_ROOTS;
-import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabilities.CLIENT_SAMPLING;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabilities.CLIENT_ELICITATION_FORM;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabilities.CLIENT_ELICITATION_URL;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_LIFECYCLE;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static java.lang.Integer.toUnsignedLong;
@@ -44,6 +44,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.mcp.config.McpElicitationConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
+import io.aklivity.zilla.runtime.binding.mcp.internal.codec.McpInitializeParams;
 import io.aklivity.zilla.runtime.binding.mcp.internal.codec.McpNotifyCanceledParams;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpBindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpRouteConfig;
@@ -87,8 +88,7 @@ import io.aklivity.zilla.runtime.engine.util.function.LongIntToLongFunction;
 
 public final class McpServerFactory implements McpStreamFactory
 {
-    private static final int CLIENT_CAPABILITIES =
-        CLIENT_ROOTS.value() | CLIENT_SAMPLING.value() | CLIENT_ELICITATION.value();
+    private static final String MCP_PROTOCOL_VERSION = "2025-11-25";
 
     private static final String HTTP_TYPE_NAME = "http";
     private static final String MCP_TYPE_NAME = "mcp";
@@ -140,8 +140,8 @@ public final class McpServerFactory implements McpStreamFactory
     private static final String JSON_RPC_ERROR_CODE = ",\"error\":{\"code\":";
     private static final String JSON_RPC_ERROR_MESSAGE = ",\"message\":\"";
     private static final String JSON_RPC_ERROR_SUFFIX = "\"}}";
-    private static final String INITIALIZE_RESPONSE_PROTOCOL_PREFIX =
-        "{\"protocolVersion\":\"2025-11-25\",\"capabilities\":";
+    private static final String INITIALIZE_RESPONSE_PROTOCOL_PREFIX = "{\"protocolVersion\":\"";
+    private static final String INITIALIZE_RESPONSE_CAPABILITIES_PREFIX = "\",\"capabilities\":";
     private static final String INITIALIZE_RESPONSE_SERVER_INFO_PREFIX = ",\"serverInfo\":{\"name\":\"";
     private static final String INITIALIZE_RESPONSE_VERSION_PREFIX = "\",\"version\":\"";
     private static final String INITIALIZE_RESPONSE_SUFFIX = "\"}}";
@@ -1294,6 +1294,8 @@ public final class McpServerFactory implements McpStreamFactory
         private McpServerRequestParamsConsumer decodedRequest;
         private McpServerDecoder decodedSkipObjectThen;
         private int decodedSkipObjectDepth;
+        private int decodedClientCapabilities;
+        private String decodedProtocolVersion;
 
         private McpRequestStream stream;
 
@@ -1833,11 +1835,12 @@ public final class McpServerFactory implements McpStreamFactory
                 assert this.session == null;
                 this.session = session;
 
+                final int clientCapabilities = decodedClientCapabilities;
                 McpBeginExFW beginEx = mcpBeginExRW
                     .wrap(codecBuffer, 0, codecBuffer.capacity())
                     .typeId(mcpTypeId)
                     .lifecycle(i -> i
-                        .capabilities(CLIENT_CAPABILITIES))
+                        .capabilities(clientCapabilities))
                     .build();
                 session.doAppBegin(traceId, authorization, beginEx);
             }
@@ -1857,6 +1860,25 @@ public final class McpServerFactory implements McpStreamFactory
             int offset,
             int limit)
         {
+            final DirectBufferInputStreamEx input = new DirectBufferInputStreamEx();
+            input.wrap(buffer, offset, limit - offset);
+            final McpInitializeParams params = JsonbBuilder.create().fromJson(input, McpInitializeParams.class);
+
+            decodedProtocolVersion = params.protocolVersion;
+
+            int capabilities = 0;
+            final McpInitializeParams.Elicitation elicitation =
+                params.capabilities != null ? params.capabilities.elicitation : null;
+            if (elicitation != null)
+            {
+                capabilities |= CLIENT_ELICITATION.value() | CLIENT_ELICITATION_FORM.value();
+                if (elicitation.url != null)
+                {
+                    capabilities |= CLIENT_ELICITATION_URL.value();
+                }
+            }
+            decodedClientCapabilities = capabilities;
+
             onLifecycleInitialize(traceId, authorization);
 
             return limit;
@@ -1873,7 +1895,12 @@ public final class McpServerFactory implements McpStreamFactory
                 .headersItem(h -> h.name(HTTP_HEADER_SESSION).value(session.sessionId))
                 .inject(this::injectAltSvc)
                 .build());
-            String8FW payload = new String8FW(INITIALIZE_RESPONSE_PROTOCOL_PREFIX +
+            final String negotiatedVersion = decodedProtocolVersion != null &&
+                decodedProtocolVersion.compareTo(MCP_PROTOCOL_VERSION) <= 0
+                    ? decodedProtocolVersion
+                    : MCP_PROTOCOL_VERSION;
+            String8FW payload = new String8FW(INITIALIZE_RESPONSE_PROTOCOL_PREFIX + negotiatedVersion +
+                INITIALIZE_RESPONSE_CAPABILITIES_PREFIX +
                 INITIALIZE_RESPONSE_CAPABILITIES +
                 INITIALIZE_RESPONSE_SERVER_INFO_PREFIX + serverName +
                 INITIALIZE_RESPONSE_VERSION_PREFIX + serverVersion + INITIALIZE_RESPONSE_SUFFIX);

@@ -47,6 +47,33 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/lifecycle.initialize.elicitation.url/client",
+        "${net}/lifecycle.initialize.elicitation.url/server"})
+    public void shouldInitializeLifecycleWithElicitationUrl() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/lifecycle.initialize.elicitation.form/client",
+        "${net}/lifecycle.initialize.elicitation.form/server"})
+    public void shouldInitializeLifecycleWithElicitationForm() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/lifecycle.initialize.negotiate/client",
+        "${net}/lifecycle.initialize.negotiate/server"})
+    public void shouldNegotiateLifecycleInitializeVersion() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/lifecycle.initialize.version/client",
         "${net}/lifecycle.initialize.version/server"})
     public void shouldInitializeLifecycleWithNegotiatedVersion() throws Exception

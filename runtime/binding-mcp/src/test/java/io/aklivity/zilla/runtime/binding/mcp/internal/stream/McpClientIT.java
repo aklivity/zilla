@@ -67,6 +67,26 @@ public class McpClientIT
     }
 
     @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/lifecycle.initialize.elicitation.url/client",
+        "${net}/lifecycle.initialize.elicitation.url/server"})
+    public void shouldInitializeLifecycleWithElicitationUrl() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/lifecycle.initialize.elicitation.form/client",
+        "${net}/lifecycle.initialize.elicitation.form/server"})
+    public void shouldInitializeLifecycleWithElicitationForm() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("client.credentials.yaml")
     @Specification({
         "${app}/lifecycle.initialize/client",
