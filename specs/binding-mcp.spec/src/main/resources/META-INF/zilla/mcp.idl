@@ -123,7 +123,7 @@ scope mcp
 
         struct McpLifecycleBeginEx
         {
-            string16 sessionId;
+            string16 sessionId = null;
             uint16 capabilities = 0;
         }
 

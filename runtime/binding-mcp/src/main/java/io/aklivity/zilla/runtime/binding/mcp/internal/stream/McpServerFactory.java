@@ -19,7 +19,6 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabiliti
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabilities.CLIENT_SAMPLING;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_LIFECYCLE;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
-import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.streamIndex;
 
 import java.net.URLDecoder;
 import java.net.URLEncoder;
@@ -82,7 +81,8 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.util.function.LongLongFunction;
+import io.aklivity.zilla.runtime.engine.util.function.LongIntPredicate;
+import io.aklivity.zilla.runtime.engine.util.function.LongIntToLongFunction;
 
 public final class McpServerFactory implements McpStreamFactory
 {
@@ -139,7 +139,7 @@ public final class McpServerFactory implements McpStreamFactory
     private static final String JSON_RPC_ERROR_MESSAGE = ",\"message\":\"";
     private static final String JSON_RPC_ERROR_SUFFIX = "\"}}";
     private static final String INITIALIZE_RESPONSE_PROTOCOL_PREFIX =
-        "{\"protocolVersion\":\"2025-11-25\",\"capabilities\":";
+        "{\"protocolVersion\":\"2025-06-18\",\"capabilities\":";
     private static final String INITIALIZE_RESPONSE_SERVER_INFO_PREFIX = ",\"serverInfo\":{\"name\":\"";
     private static final String INITIALIZE_RESPONSE_VERSION_PREFIX = "\",\"version\":\"";
     private static final String INITIALIZE_RESPONSE_SUFFIX = "\"}}";
@@ -208,8 +208,9 @@ public final class McpServerFactory implements McpStreamFactory
     private final MutableDirectBuffer codecBuffer;
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
-    private final LongLongFunction<Long> supplyInitialIdByHash;
+    private final LongIntToLongFunction supplyInitialIdHash;
     private final LongUnaryOperator supplyReplyId;
+    private final LongIntPredicate isLocalIndex;
     private final int httpTypeId;
     private final int mcpTypeId;
     private final BufferPool decodePool;
@@ -250,7 +251,6 @@ public final class McpServerFactory implements McpStreamFactory
     private final McpConfiguration config;
     private final Long2ObjectHashMap<McpBindingConfig> bindings;
     private final Map<String, McpServerFactory.McpLifecycleStream> sessions;
-    private final int localIndex;
 
     public McpServerFactory(
         McpConfiguration config,
@@ -271,8 +271,9 @@ public final class McpServerFactory implements McpStreamFactory
         this.codecBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
-        this.supplyInitialIdByHash = (bindingId, hash) -> context.supplyInitialId(bindingId, (int) hash);
+        this.supplyInitialIdHash = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
+        this.isLocalIndex = context::isLocalIndex;
         this.bindings = new Long2ObjectHashMap<>();
         this.httpTypeId = context.supplyTypeId(HTTP_TYPE_NAME);
         this.mcpTypeId = context.supplyTypeId(MCP_TYPE_NAME);
@@ -282,7 +283,6 @@ public final class McpServerFactory implements McpStreamFactory
         this.encodeMax = encodePool.slotCapacity();
         this.sessionIdAttempts = config.sessionIdAttempts();
         this.sessions = new Object2ObjectHashMap<>();
-        this.localIndex = context.index();
         this.parserFactory = StreamingJson.createParserFactory(Map.of(
             StreamingJson.PATH_INCLUDES, SERVER_JSON_PATH_INCLUDES,
             StreamingJson.TOKEN_MAX_BYTES, decodeMax));
@@ -376,7 +376,7 @@ public final class McpServerFactory implements McpStreamFactory
                 .orElse(null);
             final String altSvc = buildAltSvc(authority);
 
-            if (sessionId != null && !isSessionIdAligned(resolvedId, sessionId))
+            if (sessionId != null && !isSessionIdAligned(routedId, sessionId))
             {
                 newStream = new McpRedirectHandler(
                     sender,
@@ -1802,7 +1802,7 @@ public final class McpServerFactory implements McpStreamFactory
             long traceId,
             long authorization)
         {
-            final String sessionId = newSessionId(resolvedId);
+            final String sessionId = newSessionId(routedId);
             if (sessionId == null)
             {
                 doNetReset(traceId, authorization);
@@ -1819,7 +1819,6 @@ public final class McpServerFactory implements McpStreamFactory
                     .wrap(codecBuffer, 0, codecBuffer.capacity())
                     .typeId(mcpTypeId)
                     .lifecycle(i -> i
-                        .sessionId(session.sessionId)
                         .capabilities(CLIENT_CAPABILITIES))
                     .build();
                 session.doAppBegin(traceId, authorization, beginEx);
@@ -1914,7 +1913,7 @@ public final class McpServerFactory implements McpStreamFactory
                 .wrap(codecBuffer, 0, codecBuffer.capacity())
                 .typeId(mcpTypeId)
                 .toolsList(t -> t
-                    .sessionId(session.sessionId))
+                    .sessionId(session.unifiedId))
                 .build();
 
             assert stream == null;
@@ -1931,7 +1930,7 @@ public final class McpServerFactory implements McpStreamFactory
                 .wrap(codecBuffer, 0, codecBuffer.capacity())
                 .typeId(mcpTypeId)
                 .toolsCall(t -> t
-                    .sessionId(session.sessionId)
+                    .sessionId(session.unifiedId)
                     .name(name))
                 .build();
 
@@ -1948,7 +1947,7 @@ public final class McpServerFactory implements McpStreamFactory
                 .wrap(codecBuffer, 0, codecBuffer.capacity())
                 .typeId(mcpTypeId)
                 .promptsList(p -> p
-                    .sessionId(session.sessionId))
+                    .sessionId(session.unifiedId))
                 .build();
 
             assert stream == null;
@@ -1965,7 +1964,7 @@ public final class McpServerFactory implements McpStreamFactory
                 .wrap(codecBuffer, 0, codecBuffer.capacity())
                 .typeId(mcpTypeId)
                 .promptsGet(p -> p
-                    .sessionId(session.sessionId)
+                    .sessionId(session.unifiedId)
                     .name(name))
                 .build();
 
@@ -1982,7 +1981,7 @@ public final class McpServerFactory implements McpStreamFactory
                 .wrap(codecBuffer, 0, codecBuffer.capacity())
                 .typeId(mcpTypeId)
                 .resourcesList(r -> r
-                    .sessionId(session.sessionId))
+                    .sessionId(session.unifiedId))
                 .build();
 
             assert stream == null;
@@ -1999,7 +1998,7 @@ public final class McpServerFactory implements McpStreamFactory
                 .wrap(codecBuffer, 0, codecBuffer.capacity())
                 .typeId(mcpTypeId)
                 .resourcesRead(r -> r
-                    .sessionId(session.sessionId)
+                    .sessionId(session.unifiedId)
                     .uri(uri))
                 .build();
 
@@ -2951,6 +2950,7 @@ public final class McpServerFactory implements McpStreamFactory
     private final class McpLifecycleStream
     {
         private final String sessionId;
+        private String unifiedId;
         private final Object2ObjectHashMap<String, McpRequestStream> requests;
         private final Object2ObjectHashMap<String, McpRequestStream> elicitations;
 
@@ -3169,7 +3169,9 @@ public final class McpServerFactory implements McpStreamFactory
             if (beginEx != null && beginEx.kind() == KIND_LIFECYCLE)
             {
                 serverCapabilities = beginEx.lifecycle().capabilities();
+                unifiedId = beginEx.lifecycle().sessionId().asString();
             }
+            assert unifiedId != null;
 
             server.doEncodeInitialize(traceId, authorization);
 
@@ -4048,7 +4050,8 @@ public final class McpServerFactory implements McpStreamFactory
             this.server = server;
             this.originId = server.routedId;
             this.routedId = server.resolvedId;
-            this.initialId = supplyInitialId.applyAsLong(server.resolvedId);
+            assert session.unifiedId != null;
+            this.initialId = supplyInitialIdHash.apply(server.resolvedId, session.unifiedId.hashCode());
             this.replyId = supplyReplyId.applyAsLong(initialId);
         }
 
@@ -5276,14 +5279,14 @@ public final class McpServerFactory implements McpStreamFactory
     }
 
     private String newSessionId(
-        long resolvedId)
+        long routedId)
     {
         String sessionId = null;
 
         for (int i = 0; i < sessionIdAttempts; i++)
         {
             final String candidate = supplySessionId.get();
-            if (isSessionIdAligned(resolvedId, candidate))
+            if (isSessionIdAligned(routedId, candidate))
             {
                 sessionId = candidate;
                 break;
@@ -5294,12 +5297,10 @@ public final class McpServerFactory implements McpStreamFactory
     }
 
     private boolean isSessionIdAligned(
-        long resolvedId,
+        long routedId,
         String sessionId)
     {
-        final long initialId = supplyInitialIdByHash.apply(resolvedId, sessionId.hashCode());
-        final int alignedIndex = streamIndex(initialId);
-        return alignedIndex == localIndex;
+        return isLocalIndex.test(routedId, sessionId.hashCode());
     }
 
     private String extractSessionIdFromState(

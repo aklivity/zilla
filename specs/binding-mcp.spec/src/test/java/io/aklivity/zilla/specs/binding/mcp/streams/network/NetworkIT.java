@@ -47,6 +47,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/lifecycle.initialize.version/client",
+        "${net}/lifecycle.initialize.version/server"})
+    public void shouldInitializeLifecycleWithNegotiatedVersion() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/lifecycle.initialize.reject.bearer/client",
         "${net}/lifecycle.initialize.reject.bearer/server"})
     public void shouldRejectLifecycleInitializeOnUpstreamBearerChallenge() throws Exception

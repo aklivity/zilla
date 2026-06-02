@@ -49,6 +49,7 @@ public class McpConfiguration extends Configuration
     public static final PropertyDef<Duration> MCP_INACTIVITY_TIMEOUT;
     public static final IntPropertyDef MCP_SESSION_ID_ATTEMPTS;
     public static final IntPropertyDef MCP_KEEPALIVE_TOLERANCE;
+    public static final IntPropertyDef MCP_HYDRATE_ATTEMPTS_MAX;
     public static final PropertyDef<Duration> MCP_SSE_KEEPALIVE_INTERVAL;
     public static final BooleanPropertyDef MCP_ALT_SVC_ENABLED;
     public static final PropertyDef<Duration> MCP_ALT_SVC_MAX_AGE;
@@ -76,6 +77,7 @@ public class McpConfiguration extends Configuration
         MCP_SESSION_ID_ATTEMPTS = config.property("session.id.attempts",
             McpConfiguration::defaultSessionIdAttempts);
         MCP_KEEPALIVE_TOLERANCE = config.property("keepalive.tolerance", 2);
+        MCP_HYDRATE_ATTEMPTS_MAX = config.property("hydrate.attempts.max", 5);
         MCP_SSE_KEEPALIVE_INTERVAL = config.property(Duration.class, "sse.keepalive.interval",
             (c, v) -> Duration.parse(v), "PT15S");
         MCP_ALT_SVC_ENABLED = config.property("alt.svc.enabled", McpConfiguration::defaultAltSvcEnabled);
@@ -144,6 +146,11 @@ public class McpConfiguration extends Configuration
     public int sessionIdAttempts()
     {
         return MCP_SESSION_ID_ATTEMPTS.getAsInt(this);
+    }
+
+    public int hydrateAttemptsMax()
+    {
+        return MCP_HYDRATE_ATTEMPTS_MAX.getAsInt(this);
     }
 
     public Duration sseKeepaliveInterval()
