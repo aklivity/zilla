@@ -264,7 +264,12 @@ public final class McpProxyCache
         {
             store.lock(storeLockKey, leaseTtl, (k, t) ->
             {
-                lockToken = t;
+                // only adopt the token on success; a failed acquire (t == null) from an overlapping
+                // attempt must not clobber a token already held, otherwise release() cannot unlock it
+                if (t != null)
+                {
+                    lockToken = t;
+                }
                 completion.accept(t != null);
             });
         }

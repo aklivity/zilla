@@ -17,17 +17,17 @@ package io.aklivity.zilla.runtime.engine.test.internal.store;
 
 import java.util.List;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.Consumer;
 import java.util.function.LongFunction;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.StoreConfig;
 import io.aklivity.zilla.runtime.engine.store.StoreContext;
 import io.aklivity.zilla.runtime.engine.test.internal.store.config.TestStoreOptionsConfig;
 
 public final class TestStoreContext implements StoreContext
 {
-    private final Signaler signaler;
+    private final Consumer<Runnable> dispatcher;
     private final LongFunction<ConcurrentMap<String, String>> supplyEntries;
     private final LongFunction<ConcurrentMap<String, List<TestWatcher>>> supplyListeners;
     private final LongFunction<ConcurrentMap<String, TestLockEntry>> supplyLocks;
@@ -38,7 +38,7 @@ public final class TestStoreContext implements StoreContext
         LongFunction<ConcurrentMap<String, List<TestWatcher>>> supplyListeners,
         LongFunction<ConcurrentMap<String, TestLockEntry>> supplyLocks)
     {
-        this.signaler = context.signaler();
+        this.dispatcher = context::dispatch;
         this.supplyEntries = supplyEntries;
         this.supplyListeners = supplyListeners;
         this.supplyLocks = supplyLocks;
@@ -55,7 +55,7 @@ public final class TestStoreContext implements StoreContext
         }
         final ConcurrentMap<String, List<TestWatcher>> listeners = supplyListeners.apply(store.id);
         final ConcurrentMap<String, TestLockEntry> locks = supplyLocks.apply(store.id);
-        return new TestStoreHandler(store, signaler, entries, listeners, locks);
+        return new TestStoreHandler(store, dispatcher, entries, listeners, locks);
     }
 
     @Override

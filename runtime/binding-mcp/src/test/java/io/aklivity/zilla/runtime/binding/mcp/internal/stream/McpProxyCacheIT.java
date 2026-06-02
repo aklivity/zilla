@@ -51,6 +51,7 @@ public class McpProxyCacheIT
         .external("app1")
         .external("app2")
         .configure(MCP_SESSION_ID_NAME, "%s::sessionId".formatted(McpProxyCacheIT.class.getName()))
+        .aroundStart(k3po::deferStartable)
         .clean();
 
     @Rule
@@ -166,6 +167,18 @@ public class McpProxyCacheIT
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
     public void shouldRefreshToolsOnListChangedNotification() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.cache.refresh.yaml")
+    @Specification({
+        "${app}/cache.notify.tools.list.changed.during.refresh/client",
+        "${app}/cache.notify.tools.list.changed.during.refresh/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
+    public void shouldNotifyToolsListChangedDuringRefresh() throws Exception
     {
         k3po.finish();
     }
