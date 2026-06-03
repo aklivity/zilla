@@ -1625,9 +1625,10 @@ public final class McpServerFactory implements McpStreamFactory
                 final McpBearerResetExFW bearer = resetEx.bearer();
                 final String realm = bearer.realm().asString();
                 final String scopes = bearer.scopes().asString();
+                final String resourceMetadata = bearer.resourceMetadata().asString();
                 final McpBearerError error = bearer.error().get();
                 final String status = bearerChallengeStatus(error);
-                final String wwwAuthenticate = bearerChallengeHeader(realm, scopes, error);
+                final String wwwAuthenticate = bearerChallengeHeader(realm, scopes, resourceMetadata, error);
                 doNetBeginRejectedBearer(traceId, authorization, status, wwwAuthenticate);
                 rejected = true;
             }
@@ -3659,9 +3660,10 @@ public final class McpServerFactory implements McpStreamFactory
                 final McpBearerResetExFW bearer = resetEx.bearer();
                 final String realm = bearer.realm().asString();
                 final String scopes = bearer.scopes().asString();
+                final String resourceMetadata = bearer.resourceMetadata().asString();
                 final McpBearerError error = bearer.error().get();
                 final String status = bearerChallengeStatus(error);
-                final String wwwAuthenticate = bearerChallengeHeader(realm, scopes, error);
+                final String wwwAuthenticate = bearerChallengeHeader(realm, scopes, resourceMetadata, error);
                 doNetWindow(traceId, authorization, 0, 0);
                 doNetBegin(traceId, authorization, httpBeginExRW
                     .wrap(codecBuffer, 0, codecBuffer.capacity())
@@ -5029,6 +5031,7 @@ public final class McpServerFactory implements McpStreamFactory
     private static String bearerChallengeHeader(
         String realm,
         String scopes,
+        String resourceMetadata,
         McpBearerError error)
     {
         final StringBuilder challenge = new StringBuilder("Bearer");
@@ -5041,6 +5044,11 @@ public final class McpServerFactory implements McpStreamFactory
         if (scopes != null)
         {
             challenge.append(separator).append("scope=\"").append(scopes).append('"');
+            separator = ", ";
+        }
+        if (resourceMetadata != null)
+        {
+            challenge.append(separator).append("resource_metadata=\"").append(resourceMetadata).append('"');
             separator = ", ";
         }
         challenge.append(separator).append("error=\"").append(error.name().toLowerCase()).append('"');

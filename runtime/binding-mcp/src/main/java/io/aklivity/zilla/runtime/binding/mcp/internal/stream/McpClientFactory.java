@@ -128,6 +128,7 @@ public final class McpClientFactory implements McpStreamFactory
         "^\\s*Bearer\\b" +
         "(?=.*?\\brealm\\s*=\\s*\"(?<realm>[^\"]*)\")?" +
         "(?=.*?\\bscope\\s*=\\s*\"(?<scope>[^\"]*)\")?" +
+        "(?=.*?\\bresource_metadata\\s*=\\s*\"(?<resourceMetadata>[^\"]*)\")?" +
         "(?=.*?\\berror\\s*=\\s*\"(?<error>invalid_request|invalid_token|insufficient_scope)\")?" +
         ".*$",
         Pattern.CASE_INSENSITIVE);
@@ -3482,13 +3483,14 @@ public final class McpClientFactory implements McpStreamFactory
             {
                 final String realm = bearerChallengeMatcher.group("realm");
                 final String scopes = bearerChallengeMatcher.group("scope");
+                final String resourceMetadata = bearerChallengeMatcher.group("resourceMetadata");
                 final String errorParam = bearerChallengeMatcher.group("error");
                 final McpBearerError error = errorParam != null
                     ? McpBearerError.valueOf(errorParam.toUpperCase())
                     : STATUS_403.equals(status) ? McpBearerError.INSUFFICIENT_SCOPE : McpBearerError.INVALID_TOKEN;
                 final McpResetExFW mcpResetEx = mcpResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
                     .typeId(mcpTypeId)
-                    .bearer(b -> b.realm(realm).scopes(scopes).error(s -> s.set(error)))
+                    .bearer(b -> b.realm(realm).scopes(scopes).resourceMetadata(resourceMetadata).error(s -> s.set(error)))
                     .build();
                 mcp.doAppReset(traceId, authorization, mcpResetEx);
                 doNetReset(traceId, authorization);

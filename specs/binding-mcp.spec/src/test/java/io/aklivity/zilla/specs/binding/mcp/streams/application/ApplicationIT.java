@@ -74,6 +74,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/lifecycle.initialize.reject.bearer.resource.metadata/client",
+        "${app}/lifecycle.initialize.reject.bearer.resource.metadata/server"})
+    public void shouldRejectLifecycleInitializeOnUpstreamBearerChallengeResourceMetadata() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/tools.call.reject.bearer/client",
         "${app}/tools.call.reject.bearer/server"})
     public void shouldRejectToolsCallOnUpstreamBearerChallenge() throws Exception

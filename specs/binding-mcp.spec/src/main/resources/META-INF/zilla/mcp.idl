@@ -120,6 +120,7 @@ scope mcp
         {
             string16 realm = null;
             string16 scopes = null;
+            string16 resourceMetadata = null;
             McpBearerError error;
         }
 

@@ -119,6 +119,16 @@ public class McpClientIT
     @Test
     @Configuration("client.yaml")
     @Specification({
+        "${app}/lifecycle.initialize.reject.bearer.resource.metadata/client",
+        "${net}/lifecycle.initialize.reject.bearer.resource.metadata/server"})
+    public void shouldRejectLifecycleInitializeWithBearerChallengeResourceMetadata() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
         "${app}/tools.call.reject.bearer/client",
         "${net}/tools.call.reject.bearer/server"})
     public void shouldRejectToolsCallWithBearerChallenge() throws Exception

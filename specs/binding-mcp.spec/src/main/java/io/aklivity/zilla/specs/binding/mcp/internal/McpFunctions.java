@@ -1781,6 +1781,7 @@ public final class McpFunctions
         {
             private String realm;
             private String scopes;
+            private String resourceMetadata;
             private McpBearerError error;
 
             public McpBearerResetExBuilder realm(
@@ -1797,6 +1798,13 @@ public final class McpFunctions
                 return this;
             }
 
+            public McpBearerResetExBuilder resourceMetadata(
+                String resourceMetadata)
+            {
+                this.resourceMetadata = resourceMetadata;
+                return this;
+            }
+
             public McpBearerResetExBuilder error(
                 String error)
             {
@@ -1806,7 +1814,7 @@ public final class McpFunctions
 
             public McpResetExBuilder build()
             {
-                resetExRW.bearer(b -> b.realm(realm).scopes(scopes).error(s -> s.set(error)));
+                resetExRW.bearer(b -> b.realm(realm).scopes(scopes).resourceMetadata(resourceMetadata).error(s -> s.set(error)));
                 return McpResetExBuilder.this;
             }
         }
@@ -1886,6 +1894,7 @@ public final class McpFunctions
         {
             private String16FW realm;
             private String16FW scopes;
+            private String16FW resourceMetadata;
             private McpBearerError error;
 
             public McpBearerResetExMatcherBuilder realm(
@@ -1899,6 +1908,13 @@ public final class McpFunctions
                 String scopes)
             {
                 this.scopes = new String16FW(scopes);
+                return this;
+            }
+
+            public McpBearerResetExMatcherBuilder resourceMetadata(
+                String resourceMetadata)
+            {
+                this.resourceMetadata = new String16FW(resourceMetadata);
                 return this;
             }
 
@@ -1918,7 +1934,7 @@ public final class McpFunctions
                 McpResetExFW resetEx)
             {
                 final McpBearerResetExFW bearer = resetEx.bearer();
-                return matchRealm(bearer) && matchScopes(bearer) && matchError(bearer);
+                return matchRealm(bearer) && matchScopes(bearer) && matchResourceMetadata(bearer) && matchError(bearer);
             }
 
             private boolean matchRealm(
@@ -1931,6 +1947,12 @@ public final class McpFunctions
                 McpBearerResetExFW bearer)
             {
                 return scopes == null || scopes.equals(bearer.scopes());
+            }
+
+            private boolean matchResourceMetadata(
+                McpBearerResetExFW bearer)
+            {
+                return resourceMetadata == null || resourceMetadata.equals(bearer.resourceMetadata());
             }
 
             private boolean matchError(
