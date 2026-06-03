@@ -1,0 +1,193 @@
+# Handoff — Issue #1810: per-toolkit `oauth` for `mcp` proxy
+
+Branch: `claude/kind-wright-P3p6I` (zilla repo). Develop here; push here only.
+Issue: https://github.com/aklivity/zilla/issues/1810 — the design/phasing is the
+source of truth. This file carries the cross-session context (the remote
+environment is ephemeral: each session is a fresh clone with no prior chat).
+
+---
+
+## Status
+
+| Phase | State |
+| --- | --- |
+| 1 — `resource_metadata` capture + carry + re-render | **DONE, pushed, full module green** |
+| 2 — split hydrater from live entry; remove `originId == routedId` loopback | not started (next) |
+| 3 — `with.cache` static credential over `options.cache.authorization` | not started (depends on 2) |
+| 4 — protocol `2025-11-25` + `elicitation.url` negotiation | already landed before this branch (#1820) |
+| 5 — guard `NEEDS_PREAUTHORIZE → preauthorize → callback → reauthorize` | not started |
+| 6 — `timeout` option + per-request `McpXxxBeginEx` carriage; hold-and-resume | not started |
+| 7 — non-blocking `tools/list` / blocking `tools/call` | not started |
+| 8 — per-client listing filter (SEP-1488 / operator map / annotations) | not started |
+| 9 — IT coverage of the preauthorize→elicit→callback→reauthorize flow | not started |
+
+### Phase 1 — what shipped (2 commits on this branch)
+- `feat(binding-mcp): capture and re-render RFC 9728 resource_metadata on bearer challenge`
+- `test(binding-mcp): cover resource_metadata on the SSE events-resume bearer reject path`
+
+Change set:
+- IDL: added `resourceMetadata` (string16, null default) to `McpBearerResetEx`
+  in `specs/binding-mcp.spec/src/main/resources/META-INF/zilla/mcp.idl`.
+- Capture: `McpClientFactory` — added a `resource_metadata` named group to
+  `BEARER_CHALLENGE_PATTERN` and set it on the `McpBearerResetEx` builder.
+- Re-render: `McpServerFactory.bearerChallengeHeader(...)` takes
+  `resourceMetadata` and emits `resource_metadata="..."`; both reject paths
+  (`McpServer.doNetRejectBearer` POST path + `McpEventStream.doNetRejectBearer`
+  GET/SSE path) pass it through.
+- Spec helpers: `McpFunctions` builder + matcher extended with `resourceMetadata`.
+- Scenarios (network + application): `lifecycle.initialize.reject.bearer.resource.metadata`,
+  `lifecycle.events.resume.reject.bearer.resource.metadata`.
+- IT methods added in `NetworkIT`, `ApplicationIT`, `McpClientIT` (capture),
+  `McpServerIT` (both render paths).
+
+Verified: `./mvnw clean verify -pl runtime/binding-mcp` — all UTs + ITs +
+checkstyle + license + JaCoCo pass. Do **not** redo Phase 1.
+
+---
+
+## Build / test notes (this environment)
+
+- Java 25 build. The flyweight plugin is a local SNAPSHOT — if it's missing,
+  build it once: `./mvnw -q clean install -pl build/flyweight-maven-plugin -am -DskipTests`
+- After any `.idl` change, rebuild the spec module so flyweights regenerate.
+- IT classes (`*IT`) run under **maven-failsafe at `verify`**, with K3PO started
+  in `pre-integration-test`. Running `mvn test` (surefire) will **not** start
+  K3PO — you'll see "Failed to connect. Is K3PO ready?". Use:
+  `./mvnw -q clean verify -pl <module> -Dit.test='ClassIT#method[,Class2IT#method]'`
+- Always pass `clean` — the moditect plugin fails with "File ... already exists"
+  / "already modular" if a prior `target/modules` jar is present.
+- Useful skips while iterating: `-Dcheckstyle.skip -Dlicense.skip -Djacoco.skip=true`
+  (but run a final pass WITHOUT skips before committing).
+- Spec ITs run scripts peer-to-peer (no engine); runtime ITs run them against a
+  live engine. The `network/` and `application/` script trees are shared
+  between client-kind and server-kind ITs. Runtime ITs resolve scripts from the
+  spec test-jar on the classpath, so **reinstall the spec module**
+  (`./mvnw clean install -pl specs/binding-mcp.spec -DskipTests ...`) after
+  adding/editing scripts before running runtime ITs.
+
+---
+
+## Architecture map (binding-mcp proxy) — verified current state
+
+Stream factories in
+`runtime/binding-mcp/src/main/java/io/aklivity/zilla/runtime/binding/mcp/internal/stream/`:
+
+- `McpProxyFactory` — dispatches by capability to the per-capability factories.
+- `McpProxyLifecycleFactory` (~1086 lines) — live lifecycle entry **and** the
+  loopback hydration fan-out. `McpLifecycleServer` (inner) holds session state,
+  fans out to per-route `McpLifecycleClient`s, aggregates capabilities +
+  list-changed.
+- `McpProxyListFactory` (~1700 lines) — tools/prompts/resources list
+  aggregation across routes (prefixes toolkit names, merges JSON arrays).
+- `McpProxyToolsCallFactory`, `McpProxyPromptsGetFactory`,
+  `McpProxyResourcesReadFactory`, `McpProxyItemFactory` — per-item ops.
+- `McpClientFactory` — south side (HTTP/JSON-RPC). Resolves credentials
+  (guard then static `binding.credentials`) and injects `authorization: Bearer`.
+  This is where the Phase-1 bearer-challenge capture lives.
+- `McpServerFactory` — north side (HTTP server). Phase-1 bearer re-render lives
+  here (two `doNetRejectBearer` paths).
+- `cache/` — `McpProxyCache` (shared store: keys `tools`/`resources`/`prompts`,
+  lock keys `*.lock`), `McpProxyCacheManager`, `McpProxyCacheHydrater`,
+  `McpProxyCacheHandler`, `McpProxyCacheListener`.
+
+### The loopback (the heart of Phase 2)
+`McpProxyCacheHydrater` drives background hydration. Its streams
+(`McpHydrateLifecycleStream`, `McpListHydrateStream`) open with
+`originId == routedId == cache.bindingId` — i.e. they **loop back into the
+proxy's own binding**. The proxy factories detect this and treat it as a
+hydration stream that fans out to route exits + aggregates:
+
+- `McpProxyLifecycleFactory`:
+  - line ~268 `aggregating()` → `eventIds != null && originId != routedId`
+  - line ~271–273 `hydrating()` → `originId == routedId`
+  - line ~417 `if (binding.cache != null && originId != routedId)` (register
+    cache-completion listener only for live streams)
+  - lines ~1026, ~1074 `if (!(server.hydrating() && sessionId == null))`
+    (suppress upstream abort/reset for hydration streams)
+- `McpProxyListFactory`:
+  - line ~159 `if (cache != null && originId != routedId)`
+
+The cache `.rpt` scenarios only observe the **south-side** route-exit streams
+(`zilla://streams/app0`), so they are agnostic to loopback-vs-direct. That makes
+them a safety net but also means they will pass even if internal aggregation
+regresses — add explicit live-path assertions when doing Phase 2.
+
+---
+
+## Phase 2 — concrete plan (do this next, test-first)
+
+Goal (issue §1): two distinct flows — background **cache hydrater** (shared,
+list-only credential, tolerant, populates the shared store) vs **live entry
+point** (per connecting client, eliciting). Hydrater fans out **directly** to
+route exits; remove the `originId == routedId` self-stream detection so the
+proxy entry only ever handles live client requests.
+
+Steps:
+1. Relocate route fan-out + list aggregation from the loopback path into
+   `McpProxyCacheHydrater` (and/or a helper in `cache/`): resolve the routes the
+   hydrater should enumerate (see `McpBindingConfig.aggregateRoutes` /
+   `resolveAll`), open lifecycle + per-list streams **directly to each route
+   exit** (`originId = cache.bindingId`, `routedId = route.id`), and aggregate
+   the N responses into the single cached blob the store expects (mirror the
+   prefix/merge logic in `McpProxyListFactory`).
+2. Delete `hydrating()` / `aggregating()`-via-loopback and the
+   `originId == routedId` / `originId != routedId` guards listed above; the
+   lifecycle/list factories then only serve live client requests.
+3. Enforce the correctness constraint: per-client OAuth tokens/lists are
+   per-identity and must **never** enter the shared store (cross-user leakage).
+   The shared cache is the shareable baseline only.
+4. Tests: keep all `cache.*` scenarios green; add a scenario proving a live
+   `tools/list` is served from baseline + the client's per-identity toolkits
+   (not the degraded cached aggregate). Update `McpProxyCacheIT` /
+   `McpProxyLifecycleIT` / `McpProxyListIT` accordingly.
+
+Note: this is a large, tightly-coupled refactor. Treat it as its own PR. Do not
+proceed to Phase 3+ until Phase 2 is confidently green (existing suite + new
+live-path assertions).
+
+---
+
+## Phases 3–9 — sketch (each depends on 2)
+
+- **3**: add `with.cache.credentials` (per-route static) to `McpWithConfig` +
+  `McpWithConfigAdapter` + schema `binding-mcp.schema.json`; precedence `with`
+  over `options.cache.authorization`; list-only usage. Wire the chosen
+  credential into the hydrater's per-route stream (clean once Phase 2 fans out
+  per route). Add a `McpWithConfigAdapter`/`McpOptionsConfigAdapter` unit test
+  and a `cache.hydrate.credentials`-style per-route scenario.
+- **5**: single guard-agnostic path per route —
+  `reauthorize(inbound-bearer-or-null)` → valid → `credentials()` → stamp;
+  `NEEDS_PREAUTHORIZE` → `preauthorize(callback = Zilla connect URL)` → authorize
+  URL; on callback feed callback URL into async `reauthorize`. `binding-mcp`
+  owns only the MCP surface (elicitation emission, `McpAuthCallbackHandler`,
+  state correlation). Store execution tokens per `(identity, route)` — never in
+  the shared store.
+- **6**: `timeout` option on the mcp **server** binding (default `0`);
+  `0` → emit `URLElicitationRequiredError (-32042)` and retry; `>0` → hold the
+  request open up to `timeout` via the resumable stream, fall back to `-32042`
+  on expiry. Server resolves the effective timeout (gated by client's negotiated
+  `elicitation.url` + hold/resume capability) and stamps it on each request's
+  `McpXxxBeginEx` (IDL change + carriage).
+- **7**: non-blocking `tools/list` (return authorized toolkits' tools
+  immediately + emit per-unauthorized-toolkit `elicitation/create` URL-mode +
+  fire `notifications/tools/list_changed`); blocking `tools/call` honors the
+  per-request timeout.
+- **8**: per-client listing filter — consume SEP-1488 `securitySchemes` when
+  present, else operator-declared tool→scope map, else annotation default
+  (`readOnlyHint`/`destructiveHint`); per-identity live listing where metadata
+  is absent. Distinguish acquirable (list + prompt on use) from non-acquirable
+  (filter out).
+- **9**: IT coverage of preauthorize→elicit→callback→reauthorize using the
+  engine's `type: test` guard exercising `NEEDS_PREAUTHORIZE`/`preauthorize`
+  (no live OAuth provider). Use the engine test-jar's `TestGuard` — do not pull
+  a production guard SPI into test scope.
+
+References: SEP-1036 (URL elicitation), SEP-1488 (per-tool securitySchemes,
+draft), RFC 9728, RFC 6750; related #1793, #1795, #1818, #1820.
+
+---
+
+## Housekeeping
+
+- No PR opened (none requested). No issue comments posted.
+- Delete this `HANDOFF.md` before opening the eventual PR.
