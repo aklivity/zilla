@@ -5,6 +5,14 @@ Issue: https://github.com/aklivity/zilla/issues/1810 — the design/phasing is t
 source of truth. This file carries the cross-session context (the remote
 environment is ephemeral: each session is a fresh clone with no prior chat).
 
+> **Next session — start here:** Phase 2 is the current task. Read
+> [Phase 2 — concrete plan](#phase-2--concrete-plan-do-this-next-test-first)
+> below in full **before touching code**. It is a large, self-contained refactor;
+> a prior session already proved the tempting shortcut does **not** work (the
+> "⚠️ Verified finding" subsection) — go straight to the **full relocation**.
+> Branch is green; only `HANDOFF.md` differs from Phase 1. Re-grep line numbers
+> before editing (files have moved since older notes).
+
 ---
 
 ## Status
@@ -91,12 +99,13 @@ Stream factories in
 `runtime/binding-mcp/src/main/java/io/aklivity/zilla/runtime/binding/mcp/internal/stream/`:
 
 - `McpProxyFactory` — dispatches by capability to the per-capability factories.
-- `McpProxyLifecycleFactory` (~1086 lines) — live lifecycle entry **and** the
+- `McpProxyLifecycleFactory` (~1489 lines) — live lifecycle entry **and** the
   loopback hydration fan-out. `McpLifecycleServer` (inner) holds session state,
   fans out to per-route `McpLifecycleClient`s, aggregates capabilities +
   list-changed.
-- `McpProxyListFactory` (~1700 lines) — tools/prompts/resources list
-  aggregation across routes (prefixes toolkit names, merges JSON arrays).
+- `McpProxyListFactory` (~2032 lines) — tools/prompts/resources list
+  aggregation across routes (prefixes toolkit names, merges JSON arrays);
+  `McpListServer` + `McpListClient` (inner) hold the streaming-JSON merge.
 - `McpProxyToolsCallFactory`, `McpProxyPromptsGetFactory`,
   `McpProxyResourcesReadFactory`, `McpProxyItemFactory` — per-item ops.
 - `McpClientFactory` — south side (HTTP/JSON-RPC). Resolves credentials
@@ -105,30 +114,14 @@ Stream factories in
 - `McpServerFactory` — north side (HTTP server). Phase-1 bearer re-render lives
   here (two `doNetRejectBearer` paths).
 - `cache/` — `McpProxyCache` (shared store: keys `tools`/`resources`/`prompts`,
-  lock keys `*.lock`), `McpProxyCacheManager`, `McpProxyCacheHydrater`,
+  lock keys `*.lock`), `McpProxyCacheManager`, `McpProxyCacheHydrater` (~915 lines),
   `McpProxyCacheHandler`, `McpProxyCacheListener`.
 
-### The loopback (the heart of Phase 2)
-`McpProxyCacheHydrater` drives background hydration. Its streams
-(`McpHydrateLifecycleStream`, `McpListHydrateStream`) open with
-`originId == routedId == cache.bindingId` — i.e. they **loop back into the
-proxy's own binding**. The proxy factories detect this and treat it as a
-hydration stream that fans out to route exits + aggregates:
-
-- `McpProxyLifecycleFactory`:
-  - line ~268 `aggregating()` → `eventIds != null && originId != routedId`
-  - line ~271–273 `hydrating()` → `originId == routedId`
-  - line ~417 `if (binding.cache != null && originId != routedId)` (register
-    cache-completion listener only for live streams)
-  - lines ~1026, ~1074 `if (!(server.hydrating() && sessionId == null))`
-    (suppress upstream abort/reset for hydration streams)
-- `McpProxyListFactory`:
-  - line ~159 `if (cache != null && originId != routedId)`
-
-The cache `.rpt` scenarios only observe the **south-side** route-exit streams
-(`zilla://streams/app0`), so they are agnostic to loopback-vs-direct. That makes
-them a safety net but also means they will pass even if internal aggregation
-regresses — add explicit live-path assertions when doing Phase 2.
+> The loopback mechanism (the heart of Phase 2) — its exact flow, the
+> discriminators to remove, and the verified async constraint — is documented in
+> [Phase 2 — concrete plan](#phase-2--concrete-plan-do-this-next-test-first).
+> Don't duplicate it here; that section is authoritative and line numbers there
+> were re-verified this session.
 
 ---
 
