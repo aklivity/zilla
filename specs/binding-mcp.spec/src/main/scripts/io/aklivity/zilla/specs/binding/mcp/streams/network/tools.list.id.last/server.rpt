@@ -30,7 +30,7 @@ read zilla:begin.ext ${http:matchBeginEx()
 
 connected
 
-read '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}}}'
+read '{"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}},"jsonrpc":"2.0","id":1}'
 read closed
 
 write zilla:begin.ext ${http:beginEx()
@@ -85,13 +85,47 @@ read zilla:begin.ext ${http:matchBeginEx()
 
 connected
 
-read '{"jsonrpc":"2.0","method":"tools/list","id":2}'
+read '{"method":"tools/list","jsonrpc":"2.0","id":2}'
 read closed
 
 write zilla:begin.ext ${http:beginEx()
                             .typeId(zilla:id("http"))
-                            .header(":status", "400")
+                            .header(":status", "200")
+                            .header("content-type", "application/json")
                             .build()}
+write flush
+
+write '{"jsonrpc":"2.0","id":2,"result":'
+      '{"tools":'
+        '['
+          '{'
+            '"name": "get_weather",'
+            '"title": "Weather Information Provider",'
+            '"description": "Get current weather information for a location",'
+            '"inputSchema": {'
+              '"type": "object",'
+              '"properties": {'
+                '"location": {'
+                  '"type": "string",'
+                  '"description": "City name or zip code"'
+                '}'
+              '},'
+              '"required": ["location"]'
+            '},'
+            '"icons": ['
+              '{'
+                '"src": "https://example.com/weather-icon.png",'
+                '"mimeType": "image/png",'
+                '"sizes": ["48x48"]'
+              '}'
+            '],'
+            '"execution": {'
+              '"taskSupport": "optional"'
+            '}'
+          '}'
+        ']'
+      '}'
+    '}'
 write flush
 
 write close
