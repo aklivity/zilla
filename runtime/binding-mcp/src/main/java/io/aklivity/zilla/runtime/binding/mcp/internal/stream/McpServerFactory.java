@@ -141,6 +141,11 @@ public final class McpServerFactory implements McpStreamFactory
     private static final String JSON_RPC_ERROR_CODE = ",\"error\":{\"code\":";
     private static final String JSON_RPC_ERROR_MESSAGE = ",\"message\":\"";
     private static final String JSON_RPC_ERROR_SUFFIX = "\"}}";
+    private static final String JSON_RPC_ERROR_CODE_URL_REQUIRED = "-32042";
+    private static final String JSON_RPC_ERROR_MESSAGE_URL_REQUIRED = "URL elicitation required";
+    private static final String JSON_RPC_ERROR_DATA_URL_PREFIX = "\",\"data\":[{\"mode\":\"url\",\"url\":\"";
+    private static final String JSON_RPC_ERROR_DATA_URL_MIDDLE = "\",\"elicitationId\":\"";
+    private static final String JSON_RPC_ERROR_DATA_URL_SUFFIX = "\"}]}}";
     private static final String INITIALIZE_RESPONSE_PROTOCOL_PREFIX = "{\"protocolVersion\":\"";
     private static final String INITIALIZE_RESPONSE_CAPABILITIES_PREFIX = "\",\"capabilities\":";
     private static final String INITIALIZE_RESPONSE_SERVER_INFO_PREFIX = ",\"serverInfo\":{\"name\":\"";
@@ -2304,6 +2309,39 @@ public final class McpServerFactory implements McpStreamFactory
             doNetData(traceId, authorization, codecBuffer, 0, codecLimit);
         }
 
+        private void doEncodeElicitUrlRequiredEvent(
+            long traceId,
+            long authorization,
+            String url,
+            String elicitationId)
+        {
+            int codecLimit = codecBuffer.putStringWithoutLengthAscii(0, SSE_DATA_PREFIX);
+            codecLimit += encodeUrlRequiredError(codecLimit, url, elicitationId);
+            codecBuffer.putBytes(codecLimit, SSE_MESSAGE_TERMINATOR_BYTES);
+            codecLimit += SSE_MESSAGE_TERMINATOR_BYTES.length;
+            doNetData(traceId, authorization, codecBuffer, 0, codecLimit);
+        }
+
+        private int encodeUrlRequiredError(
+            int offset,
+            String url,
+            String elicitationId)
+        {
+            int codecLimit = offset;
+            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, JSON_RPC_ERROR_PREFIX);
+            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, decodedId);
+            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, JSON_RPC_ERROR_CODE);
+            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, JSON_RPC_ERROR_CODE_URL_REQUIRED);
+            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, JSON_RPC_ERROR_MESSAGE);
+            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, JSON_RPC_ERROR_MESSAGE_URL_REQUIRED);
+            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, JSON_RPC_ERROR_DATA_URL_PREFIX);
+            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, url);
+            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, JSON_RPC_ERROR_DATA_URL_MIDDLE);
+            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, elicitationId);
+            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, JSON_RPC_ERROR_DATA_URL_SUFFIX);
+            return codecLimit - offset;
+        }
+
         private void doEncodeResponseData(
             long traceId,
             long authorization,
@@ -4119,6 +4157,7 @@ public final class McpServerFactory implements McpStreamFactory
         McpEventStream sse;
 
         private String elicitationId;
+        private String elicitUrl;
 
         private int state;
 
@@ -4418,6 +4457,7 @@ public final class McpServerFactory implements McpStreamFactory
                 manipulateElicitUrl(originalUrl, session.sessionId, synthesisedElicitationId, server.redirectURI);
 
             elicitationId = synthesisedElicitationId;
+            elicitUrl = manipulatedUrl;
             session.elicitations.put(synthesisedElicitationId, this);
 
             server.onAppChallenge(traceId, authorization);
@@ -4581,7 +4621,7 @@ public final class McpServerFactory implements McpStreamFactory
                 server.doEncodeResponseEnd(traceId, authorization);
                 break;
             case CANCELLED:
-                server.doEncodeElicitErrorEvent(traceId, authorization, -32000, "Authorization timed out");
+                server.doEncodeElicitUrlRequiredEvent(traceId, authorization, elicitUrl, resolvedElicitationId);
                 server.doEncodeResponseEnd(traceId, authorization);
                 break;
             default:
