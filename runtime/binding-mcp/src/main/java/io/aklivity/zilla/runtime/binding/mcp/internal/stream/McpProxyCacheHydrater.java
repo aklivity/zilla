@@ -339,8 +339,14 @@ public final class McpProxyCacheHydrater
                 {
                     final McpListRouteSink sink = new McpListRouteSink(this, route.prefix().asString());
                     sinks.add(sink);
+                    // per-route with.cache.credentials takes precedence over options.cache.authorization;
+                    // it is reauthorized through the cache guard to a per-route authorization, falling back
+                    // to the shared cache authorization when the route carries no credential override
+                    final long authorization = route.credentials() != null && handler.cache.guard != null
+                        ? handler.cache.guard.reauthorize(traceId, handler.cache.bindingId, 0L, route.credentials())
+                        : handler.cache.authorization;
                     sink.server = listFactory.newHydrationList(
-                        handler.lifecycle, sink::onMessage, handler.cache.authorization,
+                        handler.lifecycle, sink::onMessage, authorization,
                         bufferPool.slotCapacity(), route, traceId);
                 }
             }

@@ -26,6 +26,7 @@ public final class McpWithConfigBuilder<T> extends ConfigBuilder<T, McpWithConfi
     private final Function<WithConfig, T> mapper;
 
     private Map<String, String> headers;
+    private McpWithCacheConfig cache;
 
     public McpWithConfigBuilder(
         Function<WithConfig, T> mapper)
@@ -45,6 +46,18 @@ public final class McpWithConfigBuilder<T> extends ConfigBuilder<T, McpWithConfi
         return this;
     }
 
+    public McpWithConfigBuilder<T> cache(
+        McpWithCacheConfig cache)
+    {
+        this.cache = cache;
+        return this;
+    }
+
+    public McpWithCacheConfigBuilder<McpWithConfigBuilder<T>> cache()
+    {
+        return McpWithCacheConfig.builder(this::cache);
+    }
+
     @Override
     @SuppressWarnings("unchecked")
     protected Class<McpWithConfigBuilder<T>> thisType()
@@ -55,6 +68,6 @@ public final class McpWithConfigBuilder<T> extends ConfigBuilder<T, McpWithConfi
     @Override
     public T build()
     {
-        return mapper.apply(new McpWithConfig(headers));
+        return mapper.apply(new McpWithConfig(headers, cache));
     }
 }

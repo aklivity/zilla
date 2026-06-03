@@ -201,6 +201,20 @@
                                                 }
                                             },
                                             "additionalProperties": false
+                                        },
+                                        "cache":
+                                        {
+                                            "title": "Cache",
+                                            "type": "object",
+                                            "properties":
+                                            {
+                                                "credentials":
+                                                {
+                                                    "title": "Credentials",
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "additionalProperties": false
                                         }
                                     },
                                     "additionalProperties": false

@@ -101,6 +101,17 @@ public class McpProxyCacheIT
     }
 
     @Test
+    @Configuration("proxy.cache.credentials.toolkit.yaml")
+    @Specification({
+        "${app}/cache.hydrate.credentials.toolkit/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
+    public void shouldHydrateToolkitWithRouteCredentials() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.cache.toolkit.multi.yaml")
     @Specification({
         "${app}/cache.hydrate.toolkit.multi.skip.unauthorized/server",
