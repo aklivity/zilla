@@ -173,8 +173,13 @@ it as a single green landing (the IT loop is fast — see build notes — so ite
   memory** as a *pure sink* (it never sends WINDOW/RESET back into a merge
   engine). That removes the synchronous re-entrancy that sank the direct-call
   shortcut — there is no in-process fake loopback stream at all. The hydrater
-  reuses the **streaming-JSON list decoder** (prefix injection in `decodeItemId`)
-  but with its own item-sink that writes fragments to the slice buffer.
+  **reuses the existing decoder states and stream classes directly** —
+  `McpListServer` / `McpListClient` / `McpLifecycleClient` and the `decode*`
+  states — driven per route, with a pure-sink `MessageConsumer` accumulator as
+  the reply target and a pre-granted (large, fixed) reply window so the merge
+  engine never needs back-pressure. **Do not introduce new abstractions beyond
+  the decoder states and the stream classes** (maintainer constraint): no
+  `*Sink`/helper interface, no extracted decoder utility.
 - The live no-cache path **keeps** `McpListServer`'s all-routes merge — that path
   is not loopback and must stay. Loopback removal only deletes the
   `originId == routedId` entry-side handling.
@@ -191,24 +196,32 @@ it as a single green landing (the IT loop is fast — see build notes — so ite
   lifecycle+list to the route exit, decode+prefix into a slice accumulator,
   `cacheOf(kind).putSlice(prefix, value)`. Remove the loopback lifecycle/list
   stream impersonation.
-- `stream/McpProxyListFactory.java` — extract decoder (`decodeInit…decodeIgnore`
-  + `indexOfByte`, lines ~668-1082, 1811-1826) into a reusable, sink-abstracted
-  helper so both `McpListServer` (live) and the hydrater use it. `McpCacheListServer`
-  (lines 1582-1809) read path → concat slices. Remove `cache != null && originId
-  != routedId` discriminator (line 159) → just `cache != null`.
+- `stream/McpProxyListFactory.java` — **reuse** the decoder states
+  (`decodeInit…decodeIgnore` + `indexOfByte`, lines ~668-1082, 1811-1826) and the
+  existing `McpListServer`/`McpListClient` stream classes **in place** (no
+  extraction, no new abstraction). The relocated hydrater (moved into this
+  `stream` package so it can reach the package-private inner classes) drives a
+  `McpListServer` **per route** (one prefix in `remaining`) whose `lifecycle`
+  host is a hydrater-owned `McpLifecycleServer` and whose reply `sender` is a
+  pure-sink accumulator; strip the known `prelude`/`postlude` (`{"tools":[` …
+  `]}`) to obtain the item-fragment slice. `McpCacheListServer` (lines 1582-1809)
+  read path → concat slices. Remove `cache != null && originId != routedId`
+  discriminator (line 159) → just `cache != null`.
 - `stream/McpProxyLifecycleFactory.java` — delete `hydrating()` (271-274) and its
   uses (`onClientAbort` 1026, `onClientReset` 1074), the loopback `else` branch in
   `onServerBegin` (426-429), and the loopback half of `deferring` in
   `onClientFlush` (936). `aggregating()` (266-269) can drop the `originId !=
   routedId` term once loopback is gone (it's then always a live stream).
 
-### Decoder extraction = the one cleanly-separable green-able sub-step
+### No separable green sub-step — land it atomically (maintainer constraint)
 
-Extracting the streaming-JSON list decoder + its `McpListClient` decode state into
-a reusable helper with an item-sink interface (`beginItem/itemChunk/endItem`) is
-behavior-preserving for the live `McpListServer` path (validated by existing list
-ITs) and is the prerequisite the per-route hydrater reuses. It is the safe place
-to start the code, independent of the storage/loopback churn.
+Because we **reuse decoder states + stream classes in place** (no extraction, no
+new abstraction), there is no behavior-preserving partial commit to land first.
+Relocate the hydrater into the `stream` package, wire it to drive
+`McpListServer`/`McpListClient`/`McpLifecycleClient` per route into a pure-sink
+accumulator, switch storage to per-slice, update the serve concat path, remove
+the loopback discriminators, and fix the affected yamls/ITs — then land green in
+one focused pass. The IT loop is fast; iterate.
 
 ---
 
