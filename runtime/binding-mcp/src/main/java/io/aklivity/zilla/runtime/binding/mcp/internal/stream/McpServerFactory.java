@@ -682,6 +682,20 @@ public final class McpServerFactory implements McpStreamFactory
             parser.close();
             server.decoder = decodeIgnore;
 
+            final String method = server.decodedMethod;
+            if (method != null && !method.startsWith("notifications/") && server.decodedId == null)
+            {
+                server.onDecodeInvalidRequest(traceId, authorization);
+            }
+            else if ("ping".equals(method))
+            {
+                server.onDecodePing(traceId, authorization);
+            }
+            else
+            {
+                server.onDecodeRequestId(server.decodedId);
+            }
+
             progress = limit - input.available();
         }
 
@@ -784,12 +798,6 @@ public final class McpServerFactory implements McpStreamFactory
             }
 
             final String method = parser.getString();
-            if (!method.startsWith("notifications/") && server.decodedId == null)
-            {
-                server.onDecodeParseError(traceId, authorization);
-                server.decoder = decodeIgnore;
-                break decode;
-            }
 
             if ("initialize".equals(method))
             {
@@ -810,7 +818,6 @@ public final class McpServerFactory implements McpStreamFactory
                     server.onDecodeNotifyInitialized(traceId, authorization);
                     break;
                 case "ping":
-                    server.onDecodePing(traceId, authorization);
                     break;
                 case "tools/list":
                     server.onDecodeToolsList(traceId, authorization);
@@ -1965,7 +1972,7 @@ public final class McpServerFactory implements McpStreamFactory
                 .build();
 
             assert stream == null;
-            stream = new McpRequestStream(session, decodedId, this);
+            stream = new McpRequestStream(session, this);
             stream.doAppBegin(traceId, authorization, beginEx);
         }
 
@@ -1985,7 +1992,7 @@ public final class McpServerFactory implements McpStreamFactory
                 .build();
 
             assert stream == null;
-            stream = new McpRequestStream(session, decodedId, this);
+            stream = new McpRequestStream(session, this);
             stream.doAppBegin(traceId, authorization, beginEx);
         }
 
@@ -2001,7 +2008,7 @@ public final class McpServerFactory implements McpStreamFactory
                 .build();
 
             assert stream == null;
-            stream = new McpRequestStream(session, decodedId, this);
+            stream = new McpRequestStream(session, this);
             stream.doAppBegin(traceId, authorization, beginEx);
         }
 
@@ -2021,7 +2028,7 @@ public final class McpServerFactory implements McpStreamFactory
                 .build();
 
             assert stream == null;
-            stream = new McpRequestStream(session, decodedId, this);
+            stream = new McpRequestStream(session, this);
             stream.doAppBegin(traceId, authorization, beginEx);
         }
 
@@ -2037,7 +2044,7 @@ public final class McpServerFactory implements McpStreamFactory
                 .build();
 
             assert stream == null;
-            stream = new McpRequestStream(session, decodedId, this);
+            stream = new McpRequestStream(session, this);
             stream.doAppBegin(traceId, authorization, beginEx);
         }
 
@@ -2057,8 +2064,18 @@ public final class McpServerFactory implements McpStreamFactory
                 .build();
 
             assert stream == null;
-            stream = new McpRequestStream(session, decodedId, this);
+            stream = new McpRequestStream(session, this);
             stream.doAppBegin(traceId, authorization, beginEx);
+        }
+
+        private void onDecodeRequestId(
+            String requestId)
+        {
+            if (stream != null)
+            {
+                stream.requestId = requestId;
+                session.requests.put(requestId, stream);
+            }
         }
 
         private int onDecodeRequestParams(
@@ -4071,7 +4088,7 @@ public final class McpServerFactory implements McpStreamFactory
     private final class McpRequestStream
     {
         private final McpLifecycleStream session;
-        private final String requestId;
+        private String requestId;
         private final McpServer server;
         private final long originId;
         private final long routedId;
@@ -4096,11 +4113,9 @@ public final class McpServerFactory implements McpStreamFactory
 
         private McpRequestStream(
             McpLifecycleStream session,
-            String requestId,
             McpServer server)
         {
             this.session = session;
-            this.requestId = requestId;
             this.server = server;
             this.originId = server.routedId;
             this.routedId = server.resolvedId;
@@ -4121,8 +4136,6 @@ public final class McpServerFactory implements McpStreamFactory
                 extension);
 
             state = McpState.openingInitial(state);
-
-            session.requests.put(requestId, this);
         }
 
         private int doAppData(

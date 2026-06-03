@@ -146,9 +146,27 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/reject.request.method.before.id/client",
-        "${net}/reject.request.method.before.id/server"})
-    public void shouldRejectRequestMethodBeforeId() throws Exception
+        "${net}/lifecycle.initialize.id.last/client",
+        "${net}/lifecycle.initialize.id.last/server"})
+    public void shouldInitializeLifecycleWithIdLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/tools.list.id.last/client",
+        "${net}/tools.list.id.last/server"})
+    public void shouldListToolsWithIdLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/lifecycle.ping.id.last/client",
+        "${net}/lifecycle.ping.id.last/server"})
+    public void shouldPingLifecycleWithIdLast() throws Exception
     {
         k3po.finish();
     }

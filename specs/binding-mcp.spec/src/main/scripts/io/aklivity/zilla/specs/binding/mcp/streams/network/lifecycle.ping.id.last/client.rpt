@@ -30,7 +30,7 @@ write zilla:begin.ext ${http:beginEx()
 
 connected
 
-write '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}}}'
+write '{"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}},"jsonrpc":"2.0","id":1}'
 write close
 
 read zilla:begin.ext ${http:matchBeginEx()
@@ -88,12 +88,14 @@ write zilla:begin.ext ${http:beginEx()
 
 connected
 
-write '{"jsonrpc":"2.0","method":"tools/list","id":2}'
+write '{"method":"ping","jsonrpc":"2.0","id":2}'
 write close
 
 read zilla:begin.ext ${http:matchBeginEx()
                            .typeId(zilla:id("http"))
-                           .header(":status", "400")
+                           .header(":status", "200")
+                           .header("content-type", "application/json")
                            .build()}
 
+read '{"jsonrpc":"2.0","id":2,"result":{}}'
 read closed

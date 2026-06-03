@@ -177,9 +177,29 @@ public class McpServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/reject.request.method.before.id/client",
-        "${app}/reject.request.method.before.id/server"})
-    public void shouldRejectRequestMethodBeforeId() throws Exception
+        "${net}/lifecycle.initialize.id.last/client",
+        "${app}/lifecycle.initialize/server"})
+    public void shouldInitializeLifecycleWithIdLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/tools.list.id.last/client",
+        "${app}/tools.list/server"})
+    public void shouldListToolsWithIdLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/lifecycle.ping.id.last/client",
+        "${app}/lifecycle.initialize/server"})
+    public void shouldPingLifecycleWithIdLast() throws Exception
     {
         k3po.finish();
     }
