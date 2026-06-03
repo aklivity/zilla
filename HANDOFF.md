@@ -78,24 +78,22 @@ Maintainer-confirmed model (supersedes the older Phase-5 "per-route guard / inbo
   `Authorization: Bearer test-token`; `client.identity.yaml`; `NetworkIT` +
   `McpClientIT` green; full spec + runtime `install` green.
 
-**REMAINING for the work unit:**
-1. **Gap A for `prompts/get` + `resources/read`** — same inbound-reuse on their path.
-   They inherit base `McpStream.proceedWithRequest` (which intentionally stays unguarded
-   for the lifecycle), so add the inbound-reuse to the shared `McpRequestStream` (the base
-   of the three request kinds) — NOT to `McpStream` (would re-introduce the lifecycle
-   stall). Add `prompts.get.identity` / `resources.read.identity` scenarios (same pattern).
-2. **Gap B (elicit) for `prompts/get` + `resources/read`** — push the elicit machinery
-   (`pendingAuth`, `elicit*`, buffered body, `elicitCompletion`/`onElicitCompleted`/
-   `onElicitFailed`, timeout signal) from `McpToolsCallStream` down into `McpRequestStream`.
-   Keep existing `tools.call.elicit.*` ITs green.
-3. **Schema constraint (`options.authorization: false` for `kind: proxy`)** — NOTE: the
-   existing **valid** `proxy.options.yaml` currently sets `options.authorization: { name: jwt0 }`
-   (and `SchemaTest.shouldValidateProxy` asserts it). Adding the constraint requires first
-   **removing `options.authorization`** from `proxy.options.yaml` (and any other proxy
-   fixture that sets it — grep `proxy*.yaml`), updating `shouldValidateProxy`, then adding
-   `shouldRejectProxyWithAuthorization` (+ `proxy.authorization.invalid.yaml`). Safe at
-   runtime (no proxy-kind factory reads `binding.guard`; only `binding.cache.guard`), but
-   verify the runtime proxy ITs that use `proxy.options.yaml`/derived configs still pass.
+**Work unit COMPLETE — all shipped + pushed, full spec & runtime builds green:**
+1. **Schema constraint** — `feat(binding-mcp): disallow options.authorization for kind: proxy`.
+   Proxy `then` branch adds `options.properties.authorization: false`; removed the unused
+   `options.authorization` from `proxy.options.yaml`; added `proxy.authorization.invalid.yaml`
+   + `SchemaTest.shouldRejectProxyWithAuthorization`. server/client keep the field.
+2. **Gap A for `prompts/get` + `resources/read` (+ `tools/list`)** —
+   `feat(binding-mcp): forward inbound client identity for prompts/get and resources/read`.
+   Inbound-reuse added to the shared `McpRequestStream.proceedWithRequest` (NOT `McpStream`,
+   so the lifecycle stays unguarded). New `prompts.get.identity` / `resources.read.identity`
+   network scenarios (app scripts parameterized with `authorization`, `@ScriptProperty` override).
+3. **Gap B (elicit) for `prompts/get` + `resources/read`** —
+   `refactor(binding-mcp): share elicit flow across request streams`. The full elicit
+   machinery moved from `McpToolsCallStream` into `McpRequestStream`; `tools/call`,
+   `prompts/get`, `resources/read` inherit one implementation. New
+   `prompts.get.elicit.completed.guarded` / `resources.read.elicit.completed.guarded`
+   scenarios; existing `tools.call.elicit.*` ITs cover the moved code (no regression).
 
 ### Phase 1 — what shipped (2 commits on this branch)
 - `feat(binding-mcp): capture and re-render RFC 9728 resource_metadata on bearer challenge`
