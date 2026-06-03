@@ -105,8 +105,6 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
     private static final int PRODUCE_API_KEY = 0;
     private static final int PRODUCE_API_VERSION = 3;
 
-    private static final int ERROR_CORRUPT_MESSAGE = 2;
-    private static final int ERROR_NOT_LEADER_FOR_PARTITION = 6;
     private static final int ERROR_RECORD_LIST_TOO_LARGE = 18;
     private static final int NO_ERROR = -1;
     private static final int UNKNOWN_ERROR = -2;
@@ -536,6 +534,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         private long groupCleanupId = NO_CANCEL_ID;
         private long partitionIndex = NO_CREDITOR_INDEX;
         private long reconnectAt = NO_CANCEL_ID;
+        private int reconnectAttempt;
 
         private KafkaCacheClientProduceFan(
             long originId,
@@ -898,7 +897,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             final int error = kafkaResetEx != null ? kafkaResetEx.error() : UNKNOWN_ERROR;
             doClientFanReplyResetIfNecessary(traceId);
 
-            if (reconnectDelay != 0 && !members.isEmpty() && error == ERROR_NOT_LEADER_FOR_PARTITION)
+            if (reconnectDelay != 0 && !members.isEmpty() && KafkaError.of(error).isRetriable())
             {
                 if (reconnectAt != NO_CANCEL_ID)
                 {
@@ -906,7 +905,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 }
 
                 this.reconnectAt = signaler.signalAt(
-                        currentTimeMillis() + SECONDS.toMillis(reconnectDelay),
+                        currentTimeMillis() + Math.min(50 << reconnectAttempt++, SECONDS.toMillis(reconnectDelay)),
                         SIGNAL_RECONNECT,
                         this::onClientFanInitialSignalReconnect);
             }
@@ -998,6 +997,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         {
             assert !KafkaState.initialOpened(state);
             state = KafkaState.openedInitial(state);
+            this.reconnectAttempt = 0;
         }
 
         private void onClientFanInitialClosed()

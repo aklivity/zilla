@@ -1204,6 +1204,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
             private MessageConsumer network;
             private final KafkaProduceStream stream;
+            private final KafkaClientRoute clientRoute;
             private final String topic;
             private final int partitionId;
 
@@ -1262,6 +1263,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
             {
                 super(server, sasl, stream.routedId, resolvedId);
                 this.stream = stream;
+                this.clientRoute = supplyClientRoute.apply(resolvedId);
                 this.topic = requireNonNull(topic);
                 this.partitionId = partitionId;
                 this.flusher = flushRecord;
@@ -2261,6 +2263,10 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                     assert partitionId == this.partitionId;
                     break;
                 default:
+                    if (KafkaError.of(errorCode).isRetriable())
+                    {
+                        clientRoute.metaFlush.accept(traceId);
+                    }
                     onDecodeResponseErrorCode(traceId, originId, errorCode, topic);
                     final KafkaResetExFW resetEx = kafkaResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
                                                                  .typeId(kafkaTypeId)
