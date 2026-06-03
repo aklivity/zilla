@@ -95,6 +95,45 @@ Maintainer-confirmed model (supersedes the older Phase-5 "per-route guard / inbo
    `prompts.get.elicit.completed.guarded` / `resources.read.elicit.completed.guarded`
    scenarios; existing `tools.call.elicit.*` ITs cover the moved code (no regression).
 
+### Phase 6 — `timeout` + per-request carriage + hold-and-resume (IN PROGRESS)
+
+Design: Issue #1810 §5–§6. Two sub-steps (maintainer-approved). `timeout` is **elicitation-scoped**:
+no elicitation (authorized/credentialed request) → no timer, no `-32042`, proceeds immediately.
+
+**6a plumbing — DONE + pushed** (`feat(binding-mcp): add server timeout option and per-request
+McpXxxBeginEx timeout carriage`): `int64 timeout = 0` on the six operation BeginEx variants;
+`McpFunctions` timeout builders/matchers (+ McpFunctionsTest); `options.timeout` Duration option
+(`McpOptionsConfig`/Builder/`McpOptionsConfigAdapter` — absent→null, runtime treats null as 0; +
+`McpOptionsConfigAdapterTest`); schema `timeout` (format duration) in the shared options block.
+No behavior yet (nothing stamps/consumes it).
+
+**6a server stamping — REMAINING.** `McpServerFactory` must resolve the EFFECTIVE timeout =
+`binding.options.timeout` millis, gated to `0` when the client didn't negotiate
+`CLIENT_ELICITATION_URL`, and stamp it on each request BeginEx it builds (the six `onDecodeXxx`
+~1964-2070 each do `.toolsCall(t -> t.sessionId(...)...)` → add `.timeout(effective)`).
+Plumbing gaps to close first: (a) the negotiated client caps are per-connection
+(`McpServer.decodedClientCapabilities` ~1305, set at initialize ~1891) but requests arrive on
+separate connections of the same session — persist them on the session: add an `int
+clientCapabilities` (and the resolved `long requestTimeout`) to `McpLifecycleStream` (~3022),
+set at initialize (~1841-1852 where the session is created and `decodedClientCapabilities` known);
+(b) reach `binding.options.timeout` — `McpServer` ctor (~1314) doesn't carry the binding; either
+thread it in at the `new McpServer(...)` site or compute the effective value at initialize (binding
+via `bindings.get(routedId)`) and store on the session. Test: `server.timeout.yaml`
+(`options.timeout: PT30S`) + a McpServerIT scenario where an `elicitation.url`-negotiating client's
+`tools/call` app BeginEx carries `timeout=30000`, and a non-negotiating client gets `0`. This
+config also covers the adapter timeout branches via IT load.
+
+**6b behavior — REMAINING.** Define `-32042 URLElicitationRequiredError` (extend the
+`doEncodeElicitErrorEvent`/`doEncodeResponseError` encoders in `McpServerFactory` ~2271/2333 with a
+`data` array carrying the single `ElicitRequestURLParams{mode:url,url,message,elicitationId}` —
+multi-entry array optional per §6). The client-side elicit path (now unified in
+`McpRequestStream`, `McpClientFactory`) consumes the per-request BeginEx `timeout` instead of the
+global `inactivity.timeout`: `timeout==0` → don't hold → `-32042` (carry the preauthorize URL) for
+retry; `timeout>0` → hold via the existing `elicitation/create` challenge up to `timeout`, on
+expiry → `-32042`. Today the CANCELLED elicit path emits `-32000 "Authorization timed out"`
+(`McpServerFactory` ~4566) — Phase 6 routes timeout/no-hold to `-32042`. Scenarios: timeout==0
+immediate, timeout>0 expiry, timeout>0 completed-in-time.
+
 ### Phase 1 — what shipped (2 commits on this branch)
 - `feat(binding-mcp): capture and re-render RFC 9728 resource_metadata on bearer challenge`
 - `test(binding-mcp): cover resource_metadata on the SSE events-resume bearer reject path`
