@@ -6,12 +6,12 @@ source of truth. This file carries the cross-session context (the remote
 environment is ephemeral: each session is a fresh clone with no prior chat).
 
 > **Next session — start here:** Phase 2 is the current task. Read
-> [Phase 2 — concrete plan](#phase-2--concrete-plan-do-this-next-test-first)
-> below in full **before touching code**. It is a large, self-contained refactor;
-> a prior session already proved the tempting shortcut does **not** work (the
-> "⚠️ Verified finding" subsection) — go straight to the **full relocation**.
-> Branch is green; only `HANDOFF.md` differs from Phase 1. Re-grep line numbers
-> before editing (files have moved since older notes).
+> [Phase 2 — CONFIRMED DESIGN](#phase-2--confirmed-design-per-route--per-slice)
+> first — it supersedes the older "concrete plan" framing below and records two
+> design decisions the maintainer confirmed (per-route hydration; per-`(kind,prefix)`
+> slice keys) plus the key structural findings. The older "concrete plan" /
+> "Verified finding" subsections remain as background (the loopback async
+> constraint is still true). Branch is green. Re-grep line numbers before editing.
 
 ---
 
@@ -20,7 +20,7 @@ environment is ephemeral: each session is a fresh clone with no prior chat).
 | Phase | State |
 | --- | --- |
 | 1 — `resource_metadata` capture + carry + re-render | **DONE, pushed, full module green** |
-| 2 — split hydrater from live entry; remove `originId == routedId` loopback | **investigated; direct-call shortcut proven infeasible (see below); full relocation required — not yet landed** |
+| 2 — split hydrater from live entry; remove `originId == routedId` loopback | **design CONFIRMED (per-route + per-slice, see below); full code change is one atomic PR — not yet landed. Baseline re-verified green in fresh container.** |
 | 3 — `with.cache` static credential over `options.cache.authorization` | not started (depends on 2) |
 | 4 — protocol `2025-11-25` + `elicitation.url` negotiation | already landed before this branch (#1820) |
 | 5 — guard `NEEDS_PREAUTHORIZE → preauthorize → callback → reauthorize` | not started |
@@ -72,6 +72,11 @@ checkstyle + license + JaCoCo pass. Do **not** redo Phase 1.
   spec test-jar on the classpath, so **reinstall the spec module**
   (`./mvnw clean install -pl specs/binding-mcp.spec -DskipTests ...`) after
   adding/editing scripts before running runtime ITs.
+- Fresh-container bootstrap that worked this session (NOT offline — local repo
+  was empty on clone): `./mvnw -q clean install -pl build/flyweight-maven-plugin
+  -am -DskipTests` then `./mvnw -q clean install -pl runtime/binding-mcp -am
+  -DskipTests`, then the IT run below without `-o`. After that the offline `-o`
+  loop works. Baseline `McpProxyCacheIT` = **27 ITs green (~12s)**.
 - Confirmed working loop this session (all offline, `-o`):
   1. `./mvnw -q -o clean install -pl build/flyweight-maven-plugin -am -DskipTests`
      (once per fresh container — without `clean` the moditect step fails
@@ -122,6 +127,88 @@ Stream factories in
 > [Phase 2 — concrete plan](#phase-2--concrete-plan-do-this-next-test-first).
 > Don't duplicate it here; that section is authoritative and line numbers there
 > were re-verified this session.
+
+---
+
+## Phase 2 — CONFIRMED DESIGN (per-route + per-slice)
+
+This subsection is authoritative and supersedes the "concrete plan" framing that
+follows. Two maintainer decisions (confirmed this session):
+
+1. **Hydration unit = per-route slice replace.** Each route hydrates
+   independently and replaces only *its* `<prefix>`-prefixed entries; a route
+   that now returns an empty list just drops its old prefixed entries
+   ("possibly none"). Do **not** reuse `McpListServer`'s all-routes merge for
+   hydration.
+2. **Cache storage = per-`(kind,prefix)` slice keys.** Store a separate slice
+   per `(kind, prefix)`; concatenate slices on read. Slice value = comma-joined,
+   prefix-injected item objects **without** the `{"tools":[ … ]}` envelope;
+   `""`/absent ⇒ none. Serve = `prelude` + join(non-empty slices, `,`) + `]}`.
+
+### Why this is ONE atomic change (do not try to split into green steps)
+
+The slice **representation** change (envelope blob → item fragments) forces
+changing, together: `McpProxyCache`/`McpListCache` storage, `McpCacheListServer`
+serve/concat path, the **hydrater** (today it produces the envelope via the
+loopback merge), the loopback removal, **and every seeded `*.yaml` + several
+`.rpt`/serve ITs**. A hydrate→serve roundtrip breaks the instant the two
+representations diverge, so there is no behavior-preserving partial commit. Plan
+it as a single green landing (the IT loop is fast — see build notes — so iterate).
+
+### Critical structural findings (verified this session)
+
+- **`routeByPrefix`/`aggregateRoutes` are EMPTY for single-route bindings.**
+  `McpBindingConfig` only computes prefixes when `routes.size() > 1` (line ~65).
+  Most cache ITs are single-route → today they store *unprefixed* entries under
+  the bare `tools`/`resources`/`prompts` keys. The slice scheme needs a
+  single-route fallback: one slice with empty prefix `""` → slice key = the bare
+  base key (`tools`), so single-route storage/serve stays byte-compatible. Do
+  **not** naively set `aggregateRoutes` non-empty for the single-route case —
+  `McpLifecycleServer.eventIds` allocation and `aggregating()` key off
+  `aggregateRoutes.length > 0` and would change lifecycle/resume behavior.
+- **Re-entrancy-safe relocation design (resolves the prior "Verified finding"):**
+  the relocated hydrater opens its route-exit streams (lifecycle + list) over the
+  **real engine bus** (async, exactly the ids used today: `originId =
+  cache.bindingId`, `routedId = route.id`) and **accumulates each slice in
+  memory** as a *pure sink* (it never sends WINDOW/RESET back into a merge
+  engine). That removes the synchronous re-entrancy that sank the direct-call
+  shortcut — there is no in-process fake loopback stream at all. The hydrater
+  reuses the **streaming-JSON list decoder** (prefix injection in `decodeItemId`)
+  but with its own item-sink that writes fragments to the slice buffer.
+- The live no-cache path **keeps** `McpListServer`'s all-routes merge — that path
+  is not loopback and must stay. Loopback removal only deletes the
+  `originId == routedId` entry-side handling.
+
+### File/line targets (verified current; re-grep before editing)
+
+- `cache/McpProxyCache.java` — `McpListCache` (lines ~235-355): replace single
+  `(storeKey, storeLockKey)` with a per-prefix slice map; get/put/acquire/release
+  per slice; kind-level concat + per-slice checksum (any slice change ⇒ fire
+  kind `list_changed` via `onSettled`). Store key consts lines 43-50.
+- `cache/McpProxyCacheManager.java` — `hydrate(kind)` stays the manager-facing
+  API; the hydrater internally fans out per route (keep per-kind retry/backoff).
+- `cache/McpProxyCacheHydrater.java` (~915 lines) — rewrite: per route open
+  lifecycle+list to the route exit, decode+prefix into a slice accumulator,
+  `cacheOf(kind).putSlice(prefix, value)`. Remove the loopback lifecycle/list
+  stream impersonation.
+- `stream/McpProxyListFactory.java` — extract decoder (`decodeInit…decodeIgnore`
+  + `indexOfByte`, lines ~668-1082, 1811-1826) into a reusable, sink-abstracted
+  helper so both `McpListServer` (live) and the hydrater use it. `McpCacheListServer`
+  (lines 1582-1809) read path → concat slices. Remove `cache != null && originId
+  != routedId` discriminator (line 159) → just `cache != null`.
+- `stream/McpProxyLifecycleFactory.java` — delete `hydrating()` (271-274) and its
+  uses (`onClientAbort` 1026, `onClientReset` 1074), the loopback `else` branch in
+  `onServerBegin` (426-429), and the loopback half of `deferring` in
+  `onClientFlush` (936). `aggregating()` (266-269) can drop the `originId !=
+  routedId` term once loopback is gone (it's then always a live stream).
+
+### Decoder extraction = the one cleanly-separable green-able sub-step
+
+Extracting the streaming-JSON list decoder + its `McpListClient` decode state into
+a reusable helper with an item-sink interface (`beginItem/itemChunk/endItem`) is
+behavior-preserving for the live `McpListServer` path (validated by existing list
+ITs) and is the prerequisite the per-route hydrater reuses. It is the safe place
+to start the code, independent of the storage/loopback churn.
 
 ---
 
