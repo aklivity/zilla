@@ -24,8 +24,7 @@ import java.util.function.BiConsumer;
 
 import org.agrona.CloseHelper;
 
-import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
-import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyCacheHydrater;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 
 public final class McpProxyCacheManager implements McpProxyCacheListener
@@ -346,11 +345,11 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
         private final Signaler signaler;
 
         public Factory(
-            McpConfiguration config,
-            EngineContext context)
+            McpProxyCacheHydrater hydrater,
+            Signaler signaler)
         {
-            this.hydrater = new McpProxyCacheHydrater(config, context);
-            this.signaler = context.signaler();
+            this.hydrater = hydrater;
+            this.signaler = signaler;
         }
 
         public McpProxyCacheManager create(

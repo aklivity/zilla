@@ -65,21 +65,35 @@ public final class McpProxyFactory implements McpStreamFactory
         this.bindings = new Long2ObjectHashMap<>();
         this.managers = new Long2ObjectHashMap<>();
         this.factories = new Int2ObjectHashMap<>();
-        this.supplyManager = new McpProxyCacheManager.Factory(config, context)::create;
-        this.factories.put(KIND_LIFECYCLE,
-            new McpProxyLifecycleFactory(config, context, bindings::get));
+
+        final McpProxyLifecycleFactory lifecycleFactory =
+            new McpProxyLifecycleFactory(config, context, bindings::get);
+        final McpProxyToolsListFactory toolsListFactory =
+            new McpProxyToolsListFactory(config, context, bindings::get);
+        final McpProxyPromptsListFactory promptsListFactory =
+            new McpProxyPromptsListFactory(config, context, bindings::get);
+        final McpProxyResourcesListFactory resourcesListFactory =
+            new McpProxyResourcesListFactory(config, context, bindings::get);
+
+        final Int2ObjectHashMap<McpProxyListFactory> listFactories = new Int2ObjectHashMap<>();
+        listFactories.put(KIND_TOOLS_LIST, toolsListFactory);
+        listFactories.put(KIND_PROMPTS_LIST, promptsListFactory);
+        listFactories.put(KIND_RESOURCES_LIST, resourcesListFactory);
+
+        final McpProxyCacheHydrater hydrater = new McpProxyCacheHydrater(
+            context.bufferPool(), context::supplyTraceId, bindings::get, lifecycleFactory, listFactories);
+        this.supplyManager = new McpProxyCacheManager.Factory(hydrater, context.signaler())::create;
+
+        this.factories.put(KIND_LIFECYCLE, lifecycleFactory);
         this.factories.put(KIND_TOOLS_CALL,
             new McpProxyToolsCallFactory(config, context, bindings::get));
         this.factories.put(KIND_PROMPTS_GET,
             new McpProxyPromptsGetFactory(config, context, bindings::get));
         this.factories.put(KIND_RESOURCES_READ,
             new McpProxyResourcesReadFactory(config, context, bindings::get));
-        this.factories.put(KIND_TOOLS_LIST,
-            new McpProxyToolsListFactory(config, context, bindings::get));
-        this.factories.put(KIND_PROMPTS_LIST,
-            new McpProxyPromptsListFactory(config, context, bindings::get));
-        this.factories.put(KIND_RESOURCES_LIST,
-            new McpProxyResourcesListFactory(config, context, bindings::get));
+        this.factories.put(KIND_TOOLS_LIST, toolsListFactory);
+        this.factories.put(KIND_PROMPTS_LIST, promptsListFactory);
+        this.factories.put(KIND_RESOURCES_LIST, resourcesListFactory);
         this.mcpTypeId = context.supplyTypeId(MCP_TYPE_NAME);
     }
 

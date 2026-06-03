@@ -88,6 +88,7 @@ abstract class McpProxyListFactory implements BindingHandler
     private final BindingHandler streamFactory;
     private final BufferPool bufferPool;
     private final int decodeMax;
+    private final LongUnaryOperator supplyInitialId;
     private final LongIntToLongFunction supplyInitialIdHash;
     private final LongUnaryOperator supplyReplyId;
     private final LongSupplier supplyTraceId;
@@ -119,6 +120,7 @@ abstract class McpProxyListFactory implements BindingHandler
         this.streamFactory = context.streamFactory();
         this.bufferPool = context.bufferPool();
         this.decodeMax = bufferPool.slotCapacity();
+        this.supplyInitialId = context::supplyInitialId;
         this.supplyInitialIdHash = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.supplyTraceId = context::supplyTraceId;
@@ -156,7 +158,7 @@ abstract class McpProxyListFactory implements BindingHandler
             if (binding.sessions.get(sessionId) instanceof McpLifecycleServer lifecycle)
             {
                 final McpProxyCache.McpListCache cache = cacheOf(binding);
-                if (cache != null && originId != routedId)
+                if (cache != null)
                 {
                     newStream = new McpCacheListServer(
                         lifecycle,
@@ -203,6 +205,33 @@ abstract class McpProxyListFactory implements BindingHandler
 
     protected abstract String sessionId(
         McpBeginExFW beginEx);
+
+    String hydrationPrelude()
+    {
+        final DirectBuffer prelude = listReplyOpenPrelude();
+        return prelude.getStringWithoutLengthUtf8(0, prelude.capacity());
+    }
+
+    String hydrationClose()
+    {
+        return listReplyCloseRO.getStringWithoutLengthUtf8(0, listReplyCloseRO.capacity());
+    }
+
+    MessageConsumer newHydrationList(
+        McpLifecycleServer lifecycle,
+        MessageConsumer sink,
+        long authorization,
+        int replyMax,
+        McpRoutePrefix route,
+        long traceId)
+    {
+        final long initialId = supplyInitialId.applyAsLong(route.resolvedId());
+        final McpListServer server = new McpListServer(
+            lifecycle, sink, true, initialId, 0L, authorization, List.of(route));
+        server.replyMax = replyMax;
+        server.driveHydrationBegin(traceId);
+        return server::onServerMessage;
+    }
 
     private final class McpListClient implements McpRouteRequest
     {
@@ -456,6 +485,11 @@ abstract class McpProxyListFactory implements BindingHandler
             }
 
             decode(traceId, authorization, budgetId, reserved, buffer, offset, limit);
+
+            if (server.hydration)
+            {
+                flushClientWindow(traceId, 0L, 0, replySlotOffset, decodeMax);
+            }
         }
 
         private void onClientEnd(
@@ -1084,6 +1118,8 @@ abstract class McpProxyListFactory implements BindingHandler
     private final class McpListServer
     {
         private final McpLifecycleServer lifecycle;
+        private final MessageConsumer sender;
+        private final boolean hydration;
         private final long initialId;
         private final long replyId;
         private final long affinity;
@@ -1120,7 +1156,21 @@ abstract class McpProxyListFactory implements BindingHandler
             long authorization,
             List<McpRoutePrefix> prefixes)
         {
+            this(lifecycle, lifecycle.sender, false, initialId, affinity, authorization, prefixes);
+        }
+
+        private McpListServer(
+            McpLifecycleServer lifecycle,
+            MessageConsumer sender,
+            boolean hydration,
+            long initialId,
+            long affinity,
+            long authorization,
+            List<McpRoutePrefix> prefixes)
+        {
             this.lifecycle = lifecycle;
+            this.sender = sender;
+            this.hydration = hydration;
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.affinity = affinity;
@@ -1175,6 +1225,14 @@ abstract class McpProxyListFactory implements BindingHandler
 
             flushServerWindow(traceId, 0L, 0, 0L, 0);
 
+            doServerBegin(traceId);
+            onNextClient(traceId);
+        }
+
+        private void driveHydrationBegin(
+            long traceId)
+        {
+            state = McpState.openingInitial(state);
             doServerBegin(traceId);
             onNextClient(traceId);
         }
@@ -1377,9 +1435,13 @@ abstract class McpProxyListFactory implements BindingHandler
                 final int length = Math.min(Math.max(replyWin, 0), maxLength);
                 if (length > 0)
                 {
-                    doData(lifecycle.sender, lifecycle.originId, lifecycle.routedId, replyId, replySeq, replyAck, replyMax,
+                    doData(sender, lifecycle.originId, lifecycle.routedId, replyId, replySeq, replyAck, replyMax,
                         traceId, authorization, 0x03, 0L, length, buffer, offset, length);
                     replySeq += length;
+                    if (hydration)
+                    {
+                        replyAck = replySeq;
+                    }
                 }
                 accepted = length;
                 final int remaining = maxLength - length;
@@ -1421,7 +1483,7 @@ abstract class McpProxyListFactory implements BindingHandler
                 final int length = Math.min(Math.max(replyWin, 0), encodeSlotOffset);
                 if (length > 0)
                 {
-                    doData(lifecycle.sender, lifecycle.originId, lifecycle.routedId, replyId, replySeq, replyAck, replyMax,
+                    doData(sender, lifecycle.originId, lifecycle.routedId, replyId, replySeq, replyAck, replyMax,
                         traceId, authorization, 0x03, 0L, length, slot, 0, length);
                     replySeq += length;
                     final int remaining = encodeSlotOffset - length;
@@ -1514,7 +1576,7 @@ abstract class McpProxyListFactory implements BindingHandler
                 .inject(b -> injectReplyBeginEx(b, sid))
                 .build();
 
-            doBegin(lifecycle.sender, lifecycle.originId, lifecycle.routedId, replyId, replySeq, replyAck, replyMax,
+            doBegin(sender, lifecycle.originId, lifecycle.routedId, replyId, replySeq, replyAck, replyMax,
                 traceId, authorization, affinity, beginEx);
             state = McpState.openedReply(state);
         }
@@ -1524,7 +1586,7 @@ abstract class McpProxyListFactory implements BindingHandler
         {
             if (!McpState.replyClosed(state))
             {
-                doEnd(lifecycle.sender, lifecycle.originId, lifecycle.routedId, replyId, replySeq, replyAck, replyMax,
+                doEnd(sender, lifecycle.originId, lifecycle.routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization);
                 state = McpState.closedReply(state);
                 if (McpState.closed(state))
@@ -1539,7 +1601,7 @@ abstract class McpProxyListFactory implements BindingHandler
         {
             if (!McpState.replyClosed(state))
             {
-                doAbort(lifecycle.sender, lifecycle.originId, lifecycle.routedId, replyId, replySeq, replyAck, replyMax,
+                doAbort(sender, lifecycle.originId, lifecycle.routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization);
                 state = McpState.closedReply(state);
                 cleanupEncodeSlot();
@@ -1556,7 +1618,7 @@ abstract class McpProxyListFactory implements BindingHandler
             int padding)
         {
             state = McpState.openedInitial(state);
-            doWindow(lifecycle.sender, lifecycle.originId, lifecycle.routedId, initialId, initialSeq, initialAck, initialMax,
+            doWindow(sender, lifecycle.originId, lifecycle.routedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, authorization, budgetId, padding);
         }
 

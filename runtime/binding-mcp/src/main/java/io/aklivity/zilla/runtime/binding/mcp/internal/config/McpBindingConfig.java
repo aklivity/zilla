@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.mcp.internal.config;
 import static io.aklivity.zilla.runtime.binding.mcp.config.McpElicitationConfig.DEFAULT_CALLBACK_PATH;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +29,7 @@ import org.agrona.collections.Object2ObjectHashMap;
 import io.aklivity.zilla.runtime.binding.mcp.config.McpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.internal.stream.cache.McpProxyCache;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -174,6 +176,28 @@ public final class McpBindingConfig
                 result.add(route.id);
             }
         }
+        return result;
+    }
+
+    public List<McpRoutePrefix> resolveAll(
+        int kind,
+        long authorization)
+    {
+        final String capability = McpRouteConfig.capabilityOf(kind);
+        final List<McpRoutePrefix> result = new ArrayList<>();
+
+        if (capability != null)
+        {
+            for (McpRouteConfig route : routes)
+            {
+                if (route.authorized(authorization) && route.serves(capability))
+                {
+                    result.add(new McpRoutePrefix(route.id, new String8FW(route.prefix(kind))));
+                }
+            }
+            result.sort(Comparator.comparing(p -> p.prefix().asString()));
+        }
+
         return result;
     }
 

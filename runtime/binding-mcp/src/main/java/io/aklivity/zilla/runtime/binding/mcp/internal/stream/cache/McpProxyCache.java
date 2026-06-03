@@ -68,7 +68,7 @@ public final class McpProxyCache
     private final CRC32 crc32 = new CRC32();
     private String lockToken;
 
-    boolean populated;
+    public boolean populated;
 
     Runnable onReady;
     public ListChangedListener onSettled = (kind, changed) -> {};
@@ -143,7 +143,7 @@ public final class McpProxyCache
         }
     }
 
-    void acquireLock(
+    public void acquireLock(
         Consumer<Boolean> completion)
     {
         store.lock(STORE_LOCK_KEY_LIFECYCLE, leaseTtl, (k, t) ->
@@ -153,7 +153,7 @@ public final class McpProxyCache
         });
     }
 
-    void releaseLock(
+    public void releaseLock(
         Consumer<String> completion)
     {
         final String token = lockToken;
