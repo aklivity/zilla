@@ -20,7 +20,7 @@ environment is ephemeral: each session is a fresh clone with no prior chat).
 | Phase | State |
 | --- | --- |
 | 1 — `resource_metadata` capture + carry + re-render | **DONE, pushed, full module green** |
-| 2 — split hydrater from live entry; remove `originId == routedId` loopback | **design CONFIRMED (per-route + per-slice, see below); full code change is one atomic PR — not yet landed. Baseline re-verified green in fresh container.** |
+| 2 — split hydrater from live entry; remove `originId == routedId` loopback | **DESIGN REVISED → single-blob (see "Phase 2 — DESIGN REVISION" below); supersedes the per-route/per-slice plan. Not yet landed. Baseline re-verified green (27 ITs) in fresh container.** |
 | 3 — `with.cache` static credential over `options.cache.authorization` | not started (depends on 2) |
 | 4 — protocol `2025-11-25` + `elicitation.url` negotiation | already landed before this branch (#1820) |
 | 5 — guard `NEEDS_PREAUTHORIZE → preauthorize → callback → reauthorize` | not started |
@@ -131,7 +131,56 @@ Stream factories in
 
 ---
 
-## Phase 2 — CONFIRMED DESIGN (per-route + per-slice)
+## Phase 2 — DESIGN REVISION (single-blob, supersedes everything below)
+
+**Maintainer reversal (this session, john@aklivity.io):** keep **single aggregated
+cache storage per kind** (the current envelope-blob format) instead of
+per-`(kind,prefix)` slices. This reverses decisions #1 (per-route hydration) and
+#2 (per-slice keys) recorded in the now-superseded "CONFIRMED DESIGN" subsection.
+
+Rationale: storage format is **orthogonal** to the only thing Phase 2 must do —
+remove the `originId == routedId` loopback. `McpListServer` already performs the
+all-routes merge (it's the live no-cache path's job); the relocated hydrater just
+drives that merge once over **all** authorized routes, accumulates the full
+`{"tools":[…]}` envelope in a pure-sink accumulator, and `put`s it as the single
+per-kind blob — byte-identical to today's stored value.
+
+What this keeps UNCHANGED (much smaller blast radius, safer):
+- `McpProxyCache.McpListCache` storage (one value per kind) — **unchanged**.
+- `McpCacheListServer` serve path — **unchanged**.
+- Seeded YAMLs (×3) and **all** `.rpt` scripts — **unchanged** (both wire
+  boundaries preserved: backend→proxy on hydrate, proxy→client on serve).
+
+What still changes (the actual Phase 2 work):
+- Relocate the hydrater into the `stream` package so it can drive
+  `McpLifecycleServer`/`McpListServer`/`McpListClient`/`McpLifecycleClient` and the
+  `decode*` states **in place** (no new abstractions, no `*Sink` interface, no
+  extracted decoder). Sink `MessageConsumer` as reply target + pre-granted fixed
+  reply window; route-exit streams stay async via the engine bus (the only
+  re-entrancy-safe decoupling — the synchronous direct-call shortcut is still
+  proven fatal, see "Verified finding" below).
+- Drive ONE `McpListServer` over **all** routes (not per-route); store one blob.
+- Remove the loopback discriminators (`hydrating()`, the `originId != routedId`
+  term in `aggregating()`, the onServerBegin loopback branch, `deferring` in
+  onClientFlush, `server.hydrating()` guards, and the `McpProxyListFactory.newStream`
+  `originId != routedId` term).
+
+Trade-off (accepted): no per-route independent slice replacement / per-route
+independent refresh. Costs nothing today (refresh is already per-kind full
+re-hydrate; Phase 3 per-route credential affects hydration *auth* not *storage*;
+Phase 7/8 per-identity listings never enter the shared store). Reintroduce slices
+later only if per-route independent refresh becomes a real feature.
+
+Still: land as ONE atomic green commit; defer 2d.
+
+---
+
+## Phase 2 — superseded CONFIRMED DESIGN (per-route + per-slice) — DO NOT IMPLEMENT
+
+> Kept for history only. The single-blob revision above supersedes this. The
+> structural findings (loopback flow, discriminator locations, the rejected
+> synchronous-shortcut finding) remain accurate and useful; the per-slice
+> storage/serve/seeded-yaml changes do **not** apply.
 
 This subsection is authoritative and supersedes the "concrete plan" framing that
 follows. Two maintainer decisions (confirmed this session):
