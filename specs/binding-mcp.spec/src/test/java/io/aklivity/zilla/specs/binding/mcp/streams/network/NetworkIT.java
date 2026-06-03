@@ -263,6 +263,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/tools.call.identity/client",
+        "${net}/tools.call.identity/server"})
+    public void shouldCallToolWithIdentity() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/tools.list/client",
         "${net}/tools.list/server"})
     public void shouldListTools() throws Exception

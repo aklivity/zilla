@@ -29,6 +29,7 @@ import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
 
+import io.aklivity.k3po.runtime.junit.annotation.ScriptProperty;
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
@@ -241,12 +242,24 @@ public class McpClientIT
         k3po.finish();
     }
 
+
     @Test
     @Configuration("client.yaml")
     @Specification({
         "${app}/tools.call/client",
         "${net}/tools.call/server"})
     public void shouldCallTool() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.identity.yaml")
+    @Specification({
+        "${app}/tools.call/client",
+        "${net}/tools.call.identity/server"})
+    @ScriptProperty("authorization 1L")
+    public void shouldCallToolWithIdentity() throws Exception
     {
         k3po.finish();
     }

@@ -2944,6 +2944,12 @@ public final class McpClientFactory implements McpStreamFactory
                 return true;
             }
 
+            if ((authorization & GuardHandler.MASK_AUTHORIZED) != 0L)
+            {
+                credentials = guard.credentials(authorization);
+                return true;
+            }
+
             final long sessionId = guard.reauthorize(traceId, session.binding.id, initialId, null);
 
             if ((sessionId & GuardHandler.MASK_AUTHORIZED) != 0L)
@@ -3813,9 +3819,11 @@ public final class McpClientFactory implements McpStreamFactory
         {
             state = McpState.openingInitial(state);
 
+            // the inbound client identity is consumed at this binding and conveyed upstream via the
+            // Authorization bearer (see injectAuthorization); the upstream stream itself is unguarded
             net = newStream(this::onNetMessage,
                 originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                traceId, authorization, affinity, httpBeginEx);
+                traceId, 0L, affinity, httpBeginEx);
 
             assert net != null;
         }
