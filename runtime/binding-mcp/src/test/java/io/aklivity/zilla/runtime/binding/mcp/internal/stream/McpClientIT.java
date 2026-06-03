@@ -224,6 +224,26 @@ public class McpClientIT
     @Test
     @Configuration("client.guarded.yaml")
     @Specification({
+        "${app}/prompts.get.elicit.completed.guarded/client",
+        "${net}/prompts.get/server"})
+    public void shouldGetPromptElicitCompletedGuarded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.guarded.yaml")
+    @Specification({
+        "${app}/resources.read.elicit.completed.guarded/client",
+        "${net}/resources.read/server"})
+    public void shouldReadResourceElicitCompletedGuarded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.guarded.yaml")
+    @Specification({
         "${app}/tools.call.elicit.declined.guarded/client",
         "${net}/lifecycle.initialize/server"})
     public void shouldCallToolElicitDeclinedGuarded() throws Exception

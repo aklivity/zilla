@@ -560,6 +560,24 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/prompts.get.elicit.completed.guarded/client",
+        "${app}/prompts.get.elicit.completed.guarded/server"})
+    public void shouldGetPromptElicitCompletedGuarded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/resources.read.elicit.completed.guarded/client",
+        "${app}/resources.read.elicit.completed.guarded/server"})
+    public void shouldReadResourceElicitCompletedGuarded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/tools.call.elicit.declined.guarded/client",
         "${app}/tools.call.elicit.declined.guarded/server"})
     public void shouldCallToolElicitDeclinedGuarded() throws Exception
