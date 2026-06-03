@@ -167,6 +167,7 @@ public final class McpFunctions
         public final class McpToolsListBeginExBuilder
         {
             private String sessionId;
+            private long timeout;
 
             public McpToolsListBeginExBuilder sessionId(
                 String sessionId)
@@ -175,9 +176,16 @@ public final class McpFunctions
                 return this;
             }
 
+            public McpToolsListBeginExBuilder timeout(
+                long timeout)
+            {
+                this.timeout = timeout;
+                return this;
+            }
+
             public McpBeginExBuilder build()
             {
-                beginExRW.toolsList(b -> b.sessionId(sessionId));
+                beginExRW.toolsList(b -> b.sessionId(sessionId).timeout(timeout));
                 return McpBeginExBuilder.this;
             }
         }
@@ -187,6 +195,7 @@ public final class McpFunctions
             private String sessionId;
             private String name;
             private int contentLength = -1;
+            private long timeout;
 
             public McpToolsCallBeginExBuilder sessionId(
                 String sessionId)
@@ -209,9 +218,16 @@ public final class McpFunctions
                 return this;
             }
 
+            public McpToolsCallBeginExBuilder timeout(
+                long timeout)
+            {
+                this.timeout = timeout;
+                return this;
+            }
+
             public McpBeginExBuilder build()
             {
-                beginExRW.toolsCall(b -> b.sessionId(sessionId).name(name).contentLength(contentLength));
+                beginExRW.toolsCall(b -> b.sessionId(sessionId).name(name).contentLength(contentLength).timeout(timeout));
                 return McpBeginExBuilder.this;
             }
         }
@@ -219,6 +235,7 @@ public final class McpFunctions
         public final class McpPromptsListBeginExBuilder
         {
             private String sessionId;
+            private long timeout;
 
             public McpPromptsListBeginExBuilder sessionId(
                 String sessionId)
@@ -227,9 +244,16 @@ public final class McpFunctions
                 return this;
             }
 
+            public McpPromptsListBeginExBuilder timeout(
+                long timeout)
+            {
+                this.timeout = timeout;
+                return this;
+            }
+
             public McpBeginExBuilder build()
             {
-                beginExRW.promptsList(b -> b.sessionId(sessionId));
+                beginExRW.promptsList(b -> b.sessionId(sessionId).timeout(timeout));
                 return McpBeginExBuilder.this;
             }
         }
@@ -239,6 +263,7 @@ public final class McpFunctions
             private String sessionId;
             private String name;
             private int contentLength = -1;
+            private long timeout;
 
             public McpPromptsGetBeginExBuilder sessionId(
                 String sessionId)
@@ -261,9 +286,16 @@ public final class McpFunctions
                 return this;
             }
 
+            public McpPromptsGetBeginExBuilder timeout(
+                long timeout)
+            {
+                this.timeout = timeout;
+                return this;
+            }
+
             public McpBeginExBuilder build()
             {
-                beginExRW.promptsGet(b -> b.sessionId(sessionId).name(name).contentLength(contentLength));
+                beginExRW.promptsGet(b -> b.sessionId(sessionId).name(name).contentLength(contentLength).timeout(timeout));
                 return McpBeginExBuilder.this;
             }
         }
@@ -271,6 +303,7 @@ public final class McpFunctions
         public final class McpResourcesListBeginExBuilder
         {
             private String sessionId;
+            private long timeout;
 
             public McpResourcesListBeginExBuilder sessionId(
                 String sessionId)
@@ -279,9 +312,16 @@ public final class McpFunctions
                 return this;
             }
 
+            public McpResourcesListBeginExBuilder timeout(
+                long timeout)
+            {
+                this.timeout = timeout;
+                return this;
+            }
+
             public McpBeginExBuilder build()
             {
-                beginExRW.resourcesList(b -> b.sessionId(sessionId));
+                beginExRW.resourcesList(b -> b.sessionId(sessionId).timeout(timeout));
                 return McpBeginExBuilder.this;
             }
         }
@@ -291,6 +331,7 @@ public final class McpFunctions
             private String sessionId;
             private String uri;
             private int contentLength = -1;
+            private long timeout;
 
             public McpResourcesReadBeginExBuilder sessionId(
                 String sessionId)
@@ -313,9 +354,16 @@ public final class McpFunctions
                 return this;
             }
 
+            public McpResourcesReadBeginExBuilder timeout(
+                long timeout)
+            {
+                this.timeout = timeout;
+                return this;
+            }
+
             public McpBeginExBuilder build()
             {
-                beginExRW.resourcesRead(b -> b.sessionId(sessionId).uri(uri).contentLength(contentLength));
+                beginExRW.resourcesRead(b -> b.sessionId(sessionId).uri(uri).contentLength(contentLength).timeout(timeout));
                 return McpBeginExBuilder.this;
             }
         }
@@ -486,11 +534,19 @@ public final class McpFunctions
         public final class McpToolsListBeginExMatcherBuilder
         {
             private String16FW sessionId;
+            private Long timeout;
 
             public McpToolsListBeginExMatcherBuilder sessionId(
                 String sessionId)
             {
                 this.sessionId = new String16FW(sessionId);
+                return this;
+            }
+
+            public McpToolsListBeginExMatcherBuilder timeout(
+                long timeout)
+            {
+                this.timeout = timeout;
                 return this;
             }
 
@@ -502,13 +558,20 @@ public final class McpFunctions
             private boolean match(
                 McpBeginExFW beginEx)
             {
-                return matchSessionId(beginEx.toolsList());
+                final McpToolsListBeginExFW toolsList = beginEx.toolsList();
+                return matchSessionId(toolsList) && matchTimeout(toolsList);
             }
 
             private boolean matchSessionId(
                 McpToolsListBeginExFW toolsList)
             {
                 return sessionId == null || sessionId.equals(toolsList.sessionId());
+            }
+
+            private boolean matchTimeout(
+                McpToolsListBeginExFW toolsList)
+            {
+                return timeout == null || timeout == toolsList.timeout();
             }
         }
 
@@ -517,6 +580,7 @@ public final class McpFunctions
             private String16FW sessionId;
             private String16FW name;
             private Integer contentLength;
+            private Long timeout;
 
             public McpToolsCallBeginExMatcherBuilder sessionId(
                 String sessionId)
@@ -539,6 +603,13 @@ public final class McpFunctions
                 return this;
             }
 
+            public McpToolsCallBeginExMatcherBuilder timeout(
+                long timeout)
+            {
+                this.timeout = timeout;
+                return this;
+            }
+
             public McpBeginExMatcherBuilder build()
             {
                 return McpBeginExMatcherBuilder.this;
@@ -548,7 +619,8 @@ public final class McpFunctions
                 McpBeginExFW beginEx)
             {
                 final McpToolsCallBeginExFW toolsCall = beginEx.toolsCall();
-                return matchSessionId(toolsCall) && matchName(toolsCall) && matchContentLength(toolsCall);
+                return matchSessionId(toolsCall) && matchName(toolsCall) && matchContentLength(toolsCall) &&
+                    matchTimeout(toolsCall);
             }
 
             private boolean matchSessionId(
@@ -568,16 +640,30 @@ public final class McpFunctions
             {
                 return contentLength == null || contentLength == toolsCall.contentLength();
             }
+
+            private boolean matchTimeout(
+                McpToolsCallBeginExFW toolsCall)
+            {
+                return timeout == null || timeout == toolsCall.timeout();
+            }
         }
 
         public final class McpPromptsListBeginExMatcherBuilder
         {
             private String16FW sessionId;
+            private Long timeout;
 
             public McpPromptsListBeginExMatcherBuilder sessionId(
                 String sessionId)
             {
                 this.sessionId = new String16FW(sessionId);
+                return this;
+            }
+
+            public McpPromptsListBeginExMatcherBuilder timeout(
+                long timeout)
+            {
+                this.timeout = timeout;
                 return this;
             }
 
@@ -589,13 +675,20 @@ public final class McpFunctions
             private boolean match(
                 McpBeginExFW beginEx)
             {
-                return matchSessionId(beginEx.promptsList());
+                final McpPromptsListBeginExFW promptsList = beginEx.promptsList();
+                return matchSessionId(promptsList) && matchTimeout(promptsList);
             }
 
             private boolean matchSessionId(
                 McpPromptsListBeginExFW promptsList)
             {
                 return sessionId == null || sessionId.equals(promptsList.sessionId());
+            }
+
+            private boolean matchTimeout(
+                McpPromptsListBeginExFW promptsList)
+            {
+                return timeout == null || timeout == promptsList.timeout();
             }
         }
 
@@ -604,6 +697,7 @@ public final class McpFunctions
             private String16FW sessionId;
             private String16FW name;
             private Integer contentLength;
+            private Long timeout;
 
             public McpPromptsGetBeginExMatcherBuilder sessionId(
                 String sessionId)
@@ -626,6 +720,13 @@ public final class McpFunctions
                 return this;
             }
 
+            public McpPromptsGetBeginExMatcherBuilder timeout(
+                long timeout)
+            {
+                this.timeout = timeout;
+                return this;
+            }
+
             public McpBeginExMatcherBuilder build()
             {
                 return McpBeginExMatcherBuilder.this;
@@ -635,7 +736,8 @@ public final class McpFunctions
                 McpBeginExFW beginEx)
             {
                 final McpPromptsGetBeginExFW promptsGet = beginEx.promptsGet();
-                return matchSessionId(promptsGet) && matchName(promptsGet) && matchContentLength(promptsGet);
+                return matchSessionId(promptsGet) && matchName(promptsGet) && matchContentLength(promptsGet) &&
+                    matchTimeout(promptsGet);
             }
 
             private boolean matchSessionId(
@@ -655,16 +757,30 @@ public final class McpFunctions
             {
                 return contentLength == null || contentLength == promptsGet.contentLength();
             }
+
+            private boolean matchTimeout(
+                McpPromptsGetBeginExFW promptsGet)
+            {
+                return timeout == null || timeout == promptsGet.timeout();
+            }
         }
 
         public final class McpResourcesListBeginExMatcherBuilder
         {
             private String16FW sessionId;
+            private Long timeout;
 
             public McpResourcesListBeginExMatcherBuilder sessionId(
                 String sessionId)
             {
                 this.sessionId = new String16FW(sessionId);
+                return this;
+            }
+
+            public McpResourcesListBeginExMatcherBuilder timeout(
+                long timeout)
+            {
+                this.timeout = timeout;
                 return this;
             }
 
@@ -676,13 +792,20 @@ public final class McpFunctions
             private boolean match(
                 McpBeginExFW beginEx)
             {
-                return matchSessionId(beginEx.resourcesList());
+                final McpResourcesListBeginExFW resourcesList = beginEx.resourcesList();
+                return matchSessionId(resourcesList) && matchTimeout(resourcesList);
             }
 
             private boolean matchSessionId(
                 McpResourcesListBeginExFW resourcesList)
             {
                 return sessionId == null || sessionId.equals(resourcesList.sessionId());
+            }
+
+            private boolean matchTimeout(
+                McpResourcesListBeginExFW resourcesList)
+            {
+                return timeout == null || timeout == resourcesList.timeout();
             }
         }
 
@@ -691,6 +814,7 @@ public final class McpFunctions
             private String16FW sessionId;
             private String16FW uri;
             private Integer contentLength;
+            private Long timeout;
 
             public McpResourcesReadBeginExMatcherBuilder sessionId(
                 String sessionId)
@@ -713,6 +837,13 @@ public final class McpFunctions
                 return this;
             }
 
+            public McpResourcesReadBeginExMatcherBuilder timeout(
+                long timeout)
+            {
+                this.timeout = timeout;
+                return this;
+            }
+
             public McpBeginExMatcherBuilder build()
             {
                 return McpBeginExMatcherBuilder.this;
@@ -722,7 +853,8 @@ public final class McpFunctions
                 McpBeginExFW beginEx)
             {
                 final McpResourcesReadBeginExFW resourcesRead = beginEx.resourcesRead();
-                return matchSessionId(resourcesRead) && matchUri(resourcesRead) && matchContentLength(resourcesRead);
+                return matchSessionId(resourcesRead) && matchUri(resourcesRead) && matchContentLength(resourcesRead) &&
+                    matchTimeout(resourcesRead);
             }
 
             private boolean matchSessionId(
@@ -741,6 +873,12 @@ public final class McpFunctions
                 McpResourcesReadBeginExFW resourcesRead)
             {
                 return contentLength == null || contentLength == resourcesRead.contentLength();
+            }
+
+            private boolean matchTimeout(
+                McpResourcesReadBeginExFW resourcesRead)
+            {
+                return timeout == null || timeout == resourcesRead.timeout();
             }
         }
     }

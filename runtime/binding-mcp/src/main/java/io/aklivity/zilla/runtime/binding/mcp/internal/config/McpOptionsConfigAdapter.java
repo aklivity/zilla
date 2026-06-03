@@ -55,6 +55,8 @@ public final class McpOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
     private static final String CACHE_AUTHORIZATION_NAME = "authorization";
     private static final String CACHE_AUTHORIZATION_CREDENTIALS_NAME = "credentials";
 
+    private static final String TIMEOUT_NAME = "timeout";
+
     @Override
     public Kind kind()
     {
@@ -138,6 +140,11 @@ public final class McpOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
             object.add(CACHE_NAME, cache);
         }
 
+        if (mcpOptions.timeout != null)
+        {
+            object.add(TIMEOUT_NAME, mcpOptions.timeout.toString());
+        }
+
         return object.build();
     }
 
@@ -215,6 +222,11 @@ public final class McpOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
             }
 
             cacheBuilder.build();
+        }
+
+        if (object.containsKey(TIMEOUT_NAME))
+        {
+            builder.timeout(Duration.parse(object.getString(TIMEOUT_NAME)));
         }
 
         return builder.build();

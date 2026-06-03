@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.specs.binding.mcp.internal;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
@@ -83,10 +84,14 @@ public class McpFunctionsTest
             .typeId(0)
             .toolsList()
                 .sessionId("session-1")
+                .timeout(30000L)
                 .build()
             .build();
 
         assertNotNull(bytes);
+
+        McpBeginExFW beginEx = new McpBeginExFW().wrap(new UnsafeBuffer(bytes), 0, bytes.length);
+        assertEquals(30000L, beginEx.toolsList().timeout());
     }
 
     @Test
@@ -96,6 +101,7 @@ public class McpFunctionsTest
             .typeId(0)
             .toolsList()
                 .sessionId("session-1")
+                .timeout(30000L)
                 .build()
             .build();
 
@@ -104,7 +110,7 @@ public class McpFunctionsTest
         new McpBeginExFW.Builder()
             .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
-            .toolsList(b -> b.sessionId("session-1"))
+            .toolsList(b -> b.sessionId("session-1").timeout(30000L))
             .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -119,10 +125,14 @@ public class McpFunctionsTest
                 .sessionId("session-1")
                 .name("my-tool")
                 .contentLength(59)
+                .timeout(45000L)
                 .build()
             .build();
 
         assertNotNull(bytes);
+
+        McpBeginExFW beginEx = new McpBeginExFW().wrap(new UnsafeBuffer(bytes), 0, bytes.length);
+        assertEquals(45000L, beginEx.toolsCall().timeout());
     }
 
     @Test
@@ -134,6 +144,7 @@ public class McpFunctionsTest
                 .sessionId("session-1")
                 .name("my-tool")
                 .contentLength(59)
+                .timeout(45000L)
                 .build()
             .build();
 
@@ -145,7 +156,8 @@ public class McpFunctionsTest
             .toolsCall(b -> b
                 .sessionId("session-1")
                 .name("my-tool")
-                .contentLength(59))
+                .contentLength(59)
+                .timeout(45000L))
             .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -158,10 +170,14 @@ public class McpFunctionsTest
             .typeId(0)
             .promptsList()
                 .sessionId("session-1")
+                .timeout(15000L)
                 .build()
             .build();
 
         assertNotNull(bytes);
+
+        McpBeginExFW beginEx = new McpBeginExFW().wrap(new UnsafeBuffer(bytes), 0, bytes.length);
+        assertEquals(15000L, beginEx.promptsList().timeout());
     }
 
     @Test
@@ -171,6 +187,7 @@ public class McpFunctionsTest
             .typeId(0)
             .promptsList()
                 .sessionId("session-1")
+                .timeout(15000L)
                 .build()
             .build();
 
@@ -180,7 +197,8 @@ public class McpFunctionsTest
             .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .promptsList(b -> b
-                .sessionId("session-1"))
+                .sessionId("session-1")
+                .timeout(15000L))
             .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -195,10 +213,14 @@ public class McpFunctionsTest
                 .sessionId("session-1")
                 .name("my-prompt")
                 .contentLength(25)
+                .timeout(20000L)
                 .build()
             .build();
 
         assertNotNull(bytes);
+
+        McpBeginExFW beginEx = new McpBeginExFW().wrap(new UnsafeBuffer(bytes), 0, bytes.length);
+        assertEquals(20000L, beginEx.promptsGet().timeout());
     }
 
     @Test
@@ -210,6 +232,7 @@ public class McpFunctionsTest
                 .sessionId("session-1")
                 .name("my-prompt")
                 .contentLength(25)
+                .timeout(20000L)
                 .build()
             .build();
 
@@ -221,7 +244,8 @@ public class McpFunctionsTest
             .promptsGet(b -> b
                 .sessionId("session-1")
                 .name("my-prompt")
-                .contentLength(25))
+                .contentLength(25)
+                .timeout(20000L))
             .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -234,10 +258,14 @@ public class McpFunctionsTest
             .typeId(0)
             .resourcesList()
                 .sessionId("session-1")
+                .timeout(10000L)
                 .build()
             .build();
 
         assertNotNull(bytes);
+
+        McpBeginExFW beginEx = new McpBeginExFW().wrap(new UnsafeBuffer(bytes), 0, bytes.length);
+        assertEquals(10000L, beginEx.resourcesList().timeout());
     }
 
     @Test
@@ -247,6 +275,7 @@ public class McpFunctionsTest
             .typeId(0)
             .resourcesList()
                 .sessionId("session-1")
+                .timeout(10000L)
                 .build()
             .build();
 
@@ -256,7 +285,8 @@ public class McpFunctionsTest
             .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .resourcesList(b -> b
-                .sessionId("session-1"))
+                .sessionId("session-1")
+                .timeout(10000L))
             .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -271,10 +301,14 @@ public class McpFunctionsTest
                 .sessionId("session-1")
                 .uri("file:///data/resource.txt")
                 .contentLength(33)
+                .timeout(25000L)
                 .build()
             .build();
 
         assertNotNull(bytes);
+
+        McpBeginExFW beginEx = new McpBeginExFW().wrap(new UnsafeBuffer(bytes), 0, bytes.length);
+        assertEquals(25000L, beginEx.resourcesRead().timeout());
     }
 
     @Test
@@ -286,6 +320,7 @@ public class McpFunctionsTest
                 .sessionId("session-1")
                 .uri("file:///data/resource.txt")
                 .contentLength(33)
+                .timeout(25000L)
                 .build()
             .build();
 
@@ -297,7 +332,8 @@ public class McpFunctionsTest
             .resourcesRead(b -> b
                 .sessionId("session-1")
                 .uri("file:///data/resource.txt")
-                .contentLength(33))
+                .contentLength(33)
+                .timeout(25000L))
             .build();
 
         assertNotNull(matcher.match(byteBuf));

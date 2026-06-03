@@ -133,6 +133,7 @@ scope mcp
         struct McpToolsListBeginEx
         {
             string16 sessionId;
+            int64 timeout = 0;
         }
 
         struct McpToolsCallBeginEx
@@ -140,11 +141,13 @@ scope mcp
             string16 sessionId;
             string16 name;
             int32 contentLength = -1;
+            int64 timeout = 0;
         }
 
         struct McpPromptsListBeginEx
         {
             string16 sessionId;
+            int64 timeout = 0;
         }
 
         struct McpPromptsGetBeginEx
@@ -152,11 +155,13 @@ scope mcp
             string16 sessionId;
             string16 name;
             int32 contentLength = -1;
+            int64 timeout = 0;
         }
 
         struct McpResourcesListBeginEx
         {
             string16 sessionId;
+            int64 timeout = 0;
         }
 
         struct McpResourcesReadBeginEx
@@ -164,6 +169,7 @@ scope mcp
             string16 sessionId;
             string16 uri;
             int32 contentLength = -1;
+            int64 timeout = 0;
         }
 
         struct McpAbortEx extends core::stream::Extension

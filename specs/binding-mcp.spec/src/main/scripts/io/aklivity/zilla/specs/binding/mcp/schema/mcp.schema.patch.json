@@ -140,6 +140,13 @@
                                     }
                                 },
                                 "additionalProperties": false
+                            },
+                            "timeout":
+                            {
+                                "title": "Elicitation Timeout",
+                                "type": "string",
+                                "format": "duration",
+                                "default": "PT0S"
                             }
                         },
                         "additionalProperties": false
