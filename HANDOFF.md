@@ -33,6 +33,29 @@ environment is ephemeral: each session is a fresh clone with no prior chat).
 | 2d — live-path baseline test (baseline + per-identity toolkits) | **deferred to Phase 7/8** (maintainer decision) |
 | 9 — IT coverage of the preauthorize→elicit→callback→reauthorize flow | **DONE in `develop` (#1739/#1752), NOT this branch.** Scenarios: `tools.call.elicit.{completed,declined,timeout}` × {plain, `.guarded`, `.proxied`}, `reject.auth.callback.unknown.elicitation`, `lifecycle.initialize.elicitation.{url,form}`. (Residual: no IT for the Phase-5 per-route/inbound-bearer gaps above, since those aren't implemented.) |
 
+### Phase 5 residual (Gap A + Gap B) — CONFIRMED DESIGN (current task)
+
+Maintainer-confirmed model (supersedes the older Phase-5 "per-route guard / inbound-bearer" framing):
+
+- **Cache/list path** (Phase 3, done): list caches hydrated with per-route `with.cache.credentials` → fallback `options.cache.authorization`; `tools/list` etc. served from cache, no backend hit. Future zilla-plus: a single `options.cache.authorization` + OAuth-guard **token exchange** maintains identity per remote server (per-route cache creds then unnecessary).
+- **Live `tools/call` / `prompts/get` / `resources/read`**: each follows **exactly one route** by tool-name prefix (already done — `McpProxyItemFactory.resolve(beginEx, authorization)` + `route.strip`/`route.prefix`). The **inbound authorization long** (the connecting client's guard session) must be **used** on the client-kind path; may trigger elicitation; client completes it; call proceeds.
+
+**Decisions locked:**
+1. **Carry the authorization *long* only — NOT a bearer string.** The inbound `authorization` already flows north→proxy→south unchanged on every `BEGIN`; no IDL field, no `Authorization`-header capture at the server, no `McpFunctions` field. `McpClientFactory.proceedWithRequest`'s `authorization` param already *is* the inbound `begin.authorization()`; today it is ignored (`reauthorize(...,initialId,null)` + `binding.credentials` fallback).
+2. **Mechanism (idiomatic, per HTTP/MQTT precedent):** when the inbound `authorization` is already authorized by `binding.guard` (`(authorization & GuardHandler.MASK_AUTHORIZED) != 0`), reuse it → `credentials = guard.credentials(authorization)` and proceed without elicit. Otherwise fall through to the existing `reauthorize(...,null)` → `NEEDS_PREAUTHORIZE` → `preauthorize`/elicit path. The inbound-reuse branch belongs in the shared base so all three request kinds get it.
+3. **Gap B:** push the elicit machinery (`pendingAuth`, `elicit*`, buffered body, `elicitCompletion`/`onElicitCompleted`/`onElicitFailed`, timeout signal) down from `McpToolsCallStream` into the shared `McpRequestStream` so `prompts/get` + `resources/read` can elicit too. Must keep existing `tools.call.elicit.*` ITs green.
+4. **Schema:** in the proxy `then` branch (`mcp.schema.patch.json` ~lines 240-261) add `options.properties.authorization: false` — disallow the whole `authorization` block for `kind: proxy`. **Keep** `McpAuthorizationConfig.credentials` + adapter + builder + `McpBindingConfig.credentials` in Java untouched — `server`/`client` kinds still use `options.authorization.credentials` (unified syntax). Safe because **no proxy-kind factory reads `binding.guard`** — only `binding.cache.guard` (verified). Mirror of the existing `cache: false` constraint in the server/client `else` branch.
+
+**Verified facts (2026-06-03 grounding):**
+- Proxy kinds use only `binding.cache.guard`, never `binding.guard` → schema disallow is safe.
+- Live request streams open with `server.authorization` (inbound long), not a cache value (`McpProxyItemFactory.onLifecycleSettled` ~624; `McpProxyLifecycleFactory.doClientBegin` ~839 — cache reauthorize only when `server.hydration`).
+- `TestGuardHandler`: `reauthorize` matches on the credential string (ignores `contextId`); `credentials(sessionId)` returns the configured token regardless of id; `verify` authorizes if session in map.
+- **Test mechanism:** `option zilla:authorization 1L` on the app-layer connect presents an authorized session (HTTP binding's `rfc7230/authorization/*` app scripts use exactly this). With guard `credentials: "test-token"`, an authorized inbound → `guard.credentials(1L)` = `"test-token"` injected upstream, no elicit.
+
+**Edit points (`McpClientFactory.java`):** base `McpStream.proceedWithRequest` ~1749-1768; `McpToolsCallStream.proceedWithRequest` ~2933-2993 + elicit machinery ~2898-3138; `McpPromptsGetStream`/`McpResourcesReadStream` ~3200-3278 (no override today); `injectAuthorization` ~3342-3349 (11 call sites); `credentials` field on `McpStream` ~1525.
+
+**Test plan (test-first):** new app+net scenarios `tools.call.identity`, `prompts.get.identity`, `resources.read.identity` (client connects `option zilla:authorization 1L`, no challenge expected; net side asserts `Authorization: Bearer test-token` on lifecycle + request); new `client.identity.yaml` (guard `oauth` type test, `credentials: "test-token"`); IT methods in `McpClientIT` + peer `ApplicationIT`/`NetworkIT`; config-validation IT rejecting `authorization` under `kind: proxy`.
+
 ### Phase 1 — what shipped (2 commits on this branch)
 - `feat(binding-mcp): capture and re-render RFC 9728 resource_metadata on bearer challenge`
 - `test(binding-mcp): cover resource_metadata on the SSE events-resume bearer reject path`
