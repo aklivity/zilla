@@ -45,6 +45,7 @@ write zilla:begin.ext ${mcp:beginEx()
                                .sessionId("session-1")
                                .name("weather_prompt")
                                .contentLength(25)
+                               .timeout(30000)
                                .build()
                            .build()}
 

@@ -1499,6 +1499,16 @@ public final class McpClientFactory implements McpStreamFactory
                             case KIND_RESOURCES_READ -> mcpBeginEx.resourcesRead().contentLength();
                             default -> -1;
                             };
+                            request.timeout = switch (mcpBeginEx.kind())
+                            {
+                            case KIND_TOOLS_LIST -> mcpBeginEx.toolsList().timeout();
+                            case KIND_TOOLS_CALL -> mcpBeginEx.toolsCall().timeout();
+                            case KIND_PROMPTS_LIST -> mcpBeginEx.promptsList().timeout();
+                            case KIND_PROMPTS_GET -> mcpBeginEx.promptsGet().timeout();
+                            case KIND_RESOURCES_LIST -> mcpBeginEx.resourcesList().timeout();
+                            case KIND_RESOURCES_READ -> mcpBeginEx.resourcesRead().timeout();
+                            default -> 0L;
+                            };
                             newStream = request::onAppMessage;
                         }
                     }
@@ -2546,6 +2556,7 @@ public final class McpClientFactory implements McpStreamFactory
         final McpLifecycleStream session;
         final int requestId;
         int contentLength = -1;
+        long timeout;
         private HttpEventStream sse;
 
         JsonParser paramsParser;
@@ -2638,10 +2649,6 @@ public final class McpClientFactory implements McpStreamFactory
                     return false;
                 }
 
-                pendingAuth = true;
-                elicitTraceId = traceId;
-                elicitAuthorization = authorization;
-
                 final McpChallengeExFW challengeEx = mcpChallengeExRW
                     .wrap(extBuffer, 0, extBuffer.capacity())
                     .typeId(mcpTypeId)
@@ -2649,10 +2656,22 @@ public final class McpClientFactory implements McpStreamFactory
                     .build();
                 doAppChallenge(traceId, authorization, challengeEx);
 
-                elicitTimeoutId = signaler.signalAt(
-                    System.currentTimeMillis() + inactivityTimeoutMillis,
-                    originId, routedId, replyId,
-                    traceId, ELICIT_TIMEOUT_SIGNAL_ID, 0);
+                if (timeout > 0L)
+                {
+                    pendingAuth = true;
+                    elicitTraceId = traceId;
+                    elicitAuthorization = authorization;
+
+                    elicitTimeoutId = signaler.signalAt(
+                        System.currentTimeMillis() + timeout,
+                        originId, routedId, replyId,
+                        traceId, ELICIT_TIMEOUT_SIGNAL_ID, 0);
+                }
+                else
+                {
+                    doAppReset(traceId, authorization);
+                    doAppAbort(traceId, authorization);
+                }
 
                 return false;
             }

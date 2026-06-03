@@ -605,6 +605,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/tools.call.elicit.reject.guarded/client",
+        "${app}/tools.call.elicit.reject.guarded/server"})
+    public void shouldCallToolElicitRejectGuarded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/tools.call.10k.with.progress/client",
         "${app}/tools.call.10k.with.progress/server"})
     public void shouldCallToolWith10kParamsWithProgress() throws Exception

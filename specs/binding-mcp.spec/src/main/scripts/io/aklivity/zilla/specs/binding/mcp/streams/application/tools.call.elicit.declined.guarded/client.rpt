@@ -45,6 +45,7 @@ write zilla:begin.ext ${mcp:beginEx()
                                .sessionId("session-1")
                                .name("get_weather")
                                .contentLength(59)
+                               .timeout(30000)
                                .build()
                            .build()}
 

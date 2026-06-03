@@ -41,42 +41,15 @@ connect await LIFECYCLE_INITIALIZED
 
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
-                           .resourcesRead()
+                           .toolsCall()
                                .sessionId("session-1")
-                               .uri("file:///data/readme.txt")
-                               .contentLength(33)
-                               .timeout(30000)
+                               .name("get_weather")
+                               .contentLength(59)
+                               .timeout(0)
                                .build()
                            .build()}
 
-write advised zilla:challenge ${mcp:matchChallengeEx()
-                                    .typeId(zilla:id("mcp"))
-                                    .elicitCreate()
-                                        .id("1")
-                                        .url("https://server.example.com/authorize?state=7f3a9b1c&redirect_uri=%s".formatted(http:encodeQuery("https://replace.me/callback")))
-                                        .build()
-                                    .build()}
+# timeout is zero — the request is not held; the binding challenges then rejects
+# the request, the server emits -32042 to the connecting client out of band
 
-connected
-
-write '{"uri":"file:///data/readme.txt"}'
-
-write advise zilla:flush ${mcp:flushEx()
-                              .typeId(zilla:id("mcp"))
-                              .elicitCallback()
-                                  .url("http://localhost:8080/mcp/auth/callback?code=xyz&state=session-1.elicit-1.7f3a9b1c")
-                                  .build()
-                              .build()}
-
-read advised zilla:flush ${mcp:matchFlushEx()
-                               .typeId(zilla:id("mcp"))
-                               .elicitComplete()
-                                   .id("1")
-                                   .status("COMPLETED")
-                                   .build()
-                               .build()}
-
-read '{"contents":[{"uri":"file:///data/readme.txt","mimeType":"text/plain","text":"Hello World"}]}'
-read closed
-
-write close
+connect aborted

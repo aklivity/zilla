@@ -256,8 +256,17 @@ public class McpClientIT
     @Specification({
         "${app}/tools.call.elicit.timeout.guarded/client",
         "${net}/lifecycle.initialize/server"})
-    @Configure(name = MCP_INACTIVITY_TIMEOUT_NAME, value = "PT0.2S")
     public void shouldCallToolElicitTimeoutGuarded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.guarded.yaml")
+    @Specification({
+        "${app}/tools.call.elicit.reject.guarded/client",
+        "${net}/lifecycle.initialize/server"})
+    public void shouldCallToolElicitRejectGuarded() throws Exception
     {
         k3po.finish();
     }
