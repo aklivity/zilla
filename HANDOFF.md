@@ -107,21 +107,15 @@ McpXxxBeginEx timeout carriage`): `int64 timeout = 0` on the six operation Begin
 `McpOptionsConfigAdapterTest`); schema `timeout` (format duration) in the shared options block.
 No behavior yet (nothing stamps/consumes it).
 
-**6a server stamping — REMAINING.** `McpServerFactory` must resolve the EFFECTIVE timeout =
-`binding.options.timeout` millis, gated to `0` when the client didn't negotiate
-`CLIENT_ELICITATION_URL`, and stamp it on each request BeginEx it builds (the six `onDecodeXxx`
-~1964-2070 each do `.toolsCall(t -> t.sessionId(...)...)` → add `.timeout(effective)`).
-Plumbing gaps to close first: (a) the negotiated client caps are per-connection
-(`McpServer.decodedClientCapabilities` ~1305, set at initialize ~1891) but requests arrive on
-separate connections of the same session — persist them on the session: add an `int
-clientCapabilities` (and the resolved `long requestTimeout`) to `McpLifecycleStream` (~3022),
-set at initialize (~1841-1852 where the session is created and `decodedClientCapabilities` known);
-(b) reach `binding.options.timeout` — `McpServer` ctor (~1314) doesn't carry the binding; either
-thread it in at the `new McpServer(...)` site or compute the effective value at initialize (binding
-via `bindings.get(routedId)`) and store on the session. Test: `server.timeout.yaml`
-(`options.timeout: PT30S`) + a McpServerIT scenario where an `elicitation.url`-negotiating client's
-`tools/call` app BeginEx carries `timeout=30000`, and a non-negotiating client gets `0`. This
-config also covers the adapter timeout branches via IT load.
+**6a server stamping — DONE + pushed** (`feat(binding-mcp): stamp effective elicitation timeout
+on request BeginEx at the server`). `McpServerFactory` resolves effective = `options.timeout`
+millis gated to `0` without `CLIENT_ELICITATION_URL` (client caps persisted per session at
+initialize — added `int`... actually stored as the resolved `long requestTimeout` on
+`McpLifecycleStream`, set at initialize); `McpServer` carries the configured timeout (ctor param
+from `binding.options.timeout`); the six `onDecodeXxx` stamp `.timeout(session.requestTimeout)`.
+Proven by `tools.call.timeout` (initialize negotiates `elicitation.url` → app toolsCall BeginEx
+`timeout=30000`) via McpServerIT (`server.timeout.yaml`) + peer NetworkIT/ApplicationIT. Still
+behavior-neutral downstream.
 
 **6b behavior — REMAINING.** Define `-32042 URLElicitationRequiredError` (extend the
 `doEncodeElicitErrorEvent`/`doEncodeResponseError` encoders in `McpServerFactory` ~2271/2333 with a
