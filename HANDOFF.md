@@ -27,6 +27,7 @@ environment is ephemeral: each session is a fresh clone with no prior chat).
 | 6 — `timeout` option + per-request `McpXxxBeginEx` carriage; hold-and-resume | not started |
 | 7 — non-blocking `tools/list` / blocking `tools/call` | not started |
 | 8 — per-client listing filter (SEP-1488 / operator map / annotations) | not started |
+| 2d — live-path baseline test (baseline + per-identity toolkits) | **deferred to Phase 7/8** (maintainer decision) |
 | 9 — IT coverage of the preauthorize→elicit→callback→reauthorize flow | not started |
 
 ### Phase 1 — what shipped (2 commits on this branch)
@@ -222,6 +223,39 @@ Relocate the hydrater into the `stream` package, wire it to drive
 accumulator, switch storage to per-slice, update the serve concat path, remove
 the loopback discriminators, and fix the affected yamls/ITs — then land green in
 one focused pass. The IT loop is fast; iterate.
+
+### Execution decisions (maintainer)
+
+- **Land as ONE atomic commit.** Do the whole relocation in a single green pass
+  (hydrater relocation + per-slice storage + serve concat + loopback-discriminator
+  removal + affected yamls/ITs). It cannot be split *green* anyway; do not commit
+  intermediate broken states.
+- **Defer 2d** (the live-path baseline test that proves baseline + per-identity
+  toolkits). Keep all existing `cache.*` / lifecycle ITs green and adjust them to
+  the slice scheme; do not add the new live-path scenario in this pass — it lands
+  with Phase 7/8 (per-identity live listing).
+
+### Kickoff for the next session (self-contained)
+
+Read this whole "CONFIRMED DESIGN" subsection, then execute the Phase 2 atomic
+landing test-first, committing only green to `claude/kind-wright-P3p6I`. Honor:
+reuse `decode*` states + `McpListServer`/`McpListClient`/`McpLifecycleClient` **in
+place** (no new abstractions / no `*Sink` / no extracted decoder); relocate the
+hydrater into the `stream` package; per-route hydration into per-`(kind,prefix)`
+slice keys with the empty-prefix single-route fallback; pure-sink accumulator with
+a pre-granted fixed reply window. One atomic commit; defer 2d.
+
+First action — bootstrap (fresh container has an empty local repo), then confirm
+baseline green before changing anything:
+
+```
+./mvnw -q clean install -pl build/flyweight-maven-plugin -am -DskipTests
+./mvnw -q clean install -pl runtime/binding-mcp -am -DskipTests
+./mvnw clean verify -pl runtime/binding-mcp -Dcheckstyle.skip -Dlicense.skip \
+  -Djacoco.skip=true -Dit.test=McpProxyCacheIT -Dsurefire.failIfNoSpecifiedTests=false
+```
+
+Expect `McpProxyCacheIT` = 27 green (~12s). Then the offline `-o` loop works.
 
 ---
 
