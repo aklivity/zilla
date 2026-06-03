@@ -12,7 +12,7 @@ environment is ephemeral: each session is a fresh clone with no prior chat).
 | Phase | State |
 | --- | --- |
 | 1 — `resource_metadata` capture + carry + re-render | **DONE, pushed, full module green** |
-| 2 — split hydrater from live entry; remove `originId == routedId` loopback | not started (next) |
+| 2 — split hydrater from live entry; remove `originId == routedId` loopback | **investigated; direct-call shortcut proven infeasible (see below); full relocation required — not yet landed** |
 | 3 — `with.cache` static credential over `options.cache.authorization` | not started (depends on 2) |
 | 4 — protocol `2025-11-25` + `elicitation.url` negotiation | already landed before this branch (#1820) |
 | 5 — guard `NEEDS_PREAUTHORIZE → preauthorize → callback → reauthorize` | not started |
@@ -64,6 +64,24 @@ checkstyle + license + JaCoCo pass. Do **not** redo Phase 1.
   spec test-jar on the classpath, so **reinstall the spec module**
   (`./mvnw clean install -pl specs/binding-mcp.spec -DskipTests ...`) after
   adding/editing scripts before running runtime ITs.
+- Confirmed working loop this session (all offline, `-o`):
+  1. `./mvnw -q -o clean install -pl build/flyweight-maven-plugin -am -DskipTests`
+     (once per fresh container — without `clean` the moditect step fails
+     "already modular").
+  2. `./mvnw -q -o clean install -pl specs/binding-mcp.spec -DskipTests ...`
+  3. `./mvnw -o clean verify -pl runtime/binding-mcp -Dcheckstyle.skip -Dlicense.skip
+     -Djacoco.skip=true -Dit.test='McpProxyCacheIT,McpProxyLifecycleIT,McpProxyIT'
+     -Dsurefire.failIfNoSpecifiedTests=false` — **78 ITs green in ~29s**; a single
+     `McpProxyCacheIT` (27 ITs) is ~13s. The loop is fast; iterate freely.
+- **`FileSystemAlreadyExists` gotcha:** if a prior IT run is interrupted/fails,
+  it can leave a mapped engine dir under `runtime/binding-mcp/target/` that makes
+  the *next* run error on **every** test with
+  `FileSystemAlreadyExists`/`AgentTerminationException` (not a code failure). Fix:
+  `rm -rf runtime/binding-mcp/target/test* runtime/binding-mcp/target/zilla* ;
+  find runtime/binding-mcp/target -name '*.dump*' -delete` then re-run with `clean`.
+  Also: when a real test failure leaves the engine un-shut-down, **subsequent**
+  tests in the same run cascade as `receiver is null` errors — read the
+  failsafe report top-down and fix the *first real FAILURE*, ignore the cascade.
 
 ---
 
@@ -122,14 +140,54 @@ point** (per connecting client, eliciting). Hydrater fans out **directly** to
 route exits; remove the `originId == routedId` self-stream detection so the
 proxy entry only ever handles live client requests.
 
-Steps:
+### ⚠️ Verified finding — do NOT retry the "direct-call decoupling" shortcut
+
+A previous session prototyped a surgical shortcut and **proved it does not
+work**; the result was reverted to keep the branch green. Record so it is not
+rediscovered:
+
+- **Idea (rejected):** keep `McpLifecycleServer` / `McpListServer` aggregation
+  where they are, but have the hydrater stop opening loopback streams via the
+  engine bus (`streamFactory.newStream`) and instead call dedicated
+  `newHydrationStream(...)` entry points on `McpProxyLifecycleFactory` /
+  `McpProxyListFactory` **directly** (in-process), passing the hydrater's own
+  `MessageConsumer` as `sender`, plus an explicit `boolean hydrating` flag to
+  replace the `originId == routedId` checks.
+- **Why it fails:** the hydrater↔proxy-entry path relies on the engine bus
+  delivering frames **asynchronously** (each frame on a later `EngineWorker.doWork`
+  iteration). A direct call is **synchronous and re-entrant**: inside the
+  hydrater's `doLifecycleBegin`, `factory.newHydrationStream(...)` returns the
+  host consumer, then `receiver.accept(BEGIN)` synchronously runs the host's
+  `onServerBegin → doServerBeginDeferred → doServerBegin`, which sends the reply
+  BEGIN straight back into the hydrater's `onLifecycleBegin → doLifecycleWindow →
+  doWindow(receiver)` **before** the hydrater's `receiver` field has been
+  assigned → `NullPointerException: receiver is null`. (Asserts are disabled at
+  runtime so the `assert receiver != null` does not catch it.) Even if that one
+  NPE is patched by assigning the field first, the same synchronous re-entrancy
+  pervades flow-control / window / DATA-ordering throughout the stream handlers,
+  which are all written against the engine's async model. The loopback exists
+  precisely to obtain that async decoupling.
+- **Conclusion:** the only correct way to remove the loopback is the **full
+  relocation** below — the hydrater must open streams to **route exits** (real
+  cross-binding streams, so they go through the engine bus and stay async) and
+  do the merge itself. There is no flag-swap shortcut.
+
+### Required approach (full relocation)
+
 1. Relocate route fan-out + list aggregation from the loopback path into
    `McpProxyCacheHydrater` (and/or a helper in `cache/`): resolve the routes the
    hydrater should enumerate (see `McpBindingConfig.aggregateRoutes` /
    `resolveAll`), open lifecycle + per-list streams **directly to each route
-   exit** (`originId = cache.bindingId`, `routedId = route.id`), and aggregate
-   the N responses into the single cached blob the store expects (mirror the
-   prefix/merge logic in `McpProxyListFactory`).
+   exit via the engine bus** (`streamFactory.newStream` with
+   `originId = cache.bindingId`, `routedId = route.id` — note these are exactly
+   the ids `McpListClient`/`McpLifecycleClient` already use today, so the
+   upstream-facing wire behaviour is unchanged), and aggregate the N responses
+   into the single cached blob the store expects (mirror the prefix/merge logic
+   in `McpProxyListFactory`'s `McpListServer`/`McpListClient`: streaming-JSON
+   array merge with per-route `prefix(kind)`). The merge code is the bulk of the
+   work (~900 lines in `McpProxyListFactory`); plan to extract it into a shared,
+   package-accessible helper rather than duplicate it, OR move the hydration
+   driver into `stream` (non-`cache`) so it can reuse the private inner classes.
 2. Delete `hydrating()` / `aggregating()`-via-loopback and the
    `originId == routedId` / `originId != routedId` guards listed above; the
    lifecycle/list factories then only serve live client requests.
@@ -144,6 +202,38 @@ Steps:
 Note: this is a large, tightly-coupled refactor. Treat it as its own PR. Do not
 proceed to Phase 3+ until Phase 2 is confidently green (existing suite + new
 live-path assertions).
+
+### Architecture confirmed this session (current `develop` + this branch)
+
+- File sizes: `McpProxyLifecycleFactory` 1489 lines, `McpProxyListFactory` 2032,
+  `McpProxyCacheHydrater` 915 (the file/line numbers in older notes were stale —
+  re-grep before editing).
+- The loopback is **purely internal plumbing**. In the loopback case the
+  upstream route-exit streams are *already* opened with
+  `originId = cache.bindingId`, `routedId = route.id` (see
+  `McpListClient` `originId = server.lifecycle.originId`,
+  `McpLifecycleClient` `originId = server.routedId`). So "fan out directly to
+  route exits" is about removing the hydrater↔entry round-trip, **not** changing
+  how upstream streams are opened. Because of this, the **runtime ITs run only
+  the south-side (`server`) scripts** against the live engine, so a correct
+  relocation that preserves the route-exit frame sequence should keep them green
+  **without rewriting `.rpt` scripts**; the spec-level peer-to-peer `ProxyCacheIT`
+  scripts are likewise unaffected unless you change choreography.
+- Flow: hydrater `acquireLock` → opens loopback **lifecycle** stream
+  (`originId==routedId==bindingId`) → `McpLifecycleServer` mints `sessionId`,
+  registers in `binding.sessions`, replies BEGIN(sessionId) which the hydrater
+  captures as `cache.sessionId` → `onOpened` → for each kind opens a loopback
+  **list** stream carrying `cache.sessionId` → `McpProxyListFactory` looks up the
+  host by sessionId, runs `McpListServer` aggregate (fan out via
+  `McpListClient` → `server.lifecycle.supplyClient(routedId)`), streams the
+  merged JSON back as DATA on the loopback reply → hydrater accumulates and
+  `cache.cacheOf(kind).put(value, …)`.
+- Discriminators to remove (verified): `McpProxyLifecycleFactory`
+  `aggregating()` (`eventIds != null && originId != routedId`), `hydrating()`
+  (`originId == routedId`), the `onServerBegin` branch
+  `if (binding.cache != null && originId != routedId)`, and `server.hydrating()`
+  uses in `onClientReset`/`onClientAbort`; `McpProxyListFactory.newStream`
+  `if (cache != null && originId != routedId)`.
 
 ---
 
