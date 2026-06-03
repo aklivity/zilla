@@ -241,6 +241,13 @@
                         {
                             "properties":
                             {
+                                "options":
+                                {
+                                    "properties":
+                                    {
+                                        "authorization": false
+                                    }
+                                },
                                 "routes":
                                 {
                                     "items":
