@@ -117,16 +117,52 @@ Proven by `tools.call.timeout` (initialize negotiates `elicitation.url` → app 
 `timeout=30000`) via McpServerIT (`server.timeout.yaml`) + peer NetworkIT/ApplicationIT. Still
 behavior-neutral downstream.
 
-**6b behavior — REMAINING.** Define `-32042 URLElicitationRequiredError` (extend the
-`doEncodeElicitErrorEvent`/`doEncodeResponseError` encoders in `McpServerFactory` ~2271/2333 with a
-`data` array carrying the single `ElicitRequestURLParams{mode:url,url,message,elicitationId}` —
-multi-entry array optional per §6). The client-side elicit path (now unified in
-`McpRequestStream`, `McpClientFactory`) consumes the per-request BeginEx `timeout` instead of the
-global `inactivity.timeout`: `timeout==0` → don't hold → `-32042` (carry the preauthorize URL) for
-retry; `timeout>0` → hold via the existing `elicitation/create` challenge up to `timeout`, on
-expiry → `-32042`. Today the CANCELLED elicit path emits `-32000 "Authorization timed out"`
-(`McpServerFactory` ~4566) — Phase 6 routes timeout/no-hold to `-32042`. Scenarios: timeout==0
-immediate, timeout>0 expiry, timeout>0 completed-in-time.
+**6b behavior — REMAINING (design LOCKED 2026-06-03, audited; execute fresh — wide cross-factory
+change at high context, deferred deliberately).** Maintainer decisions: (1) expiry/no-hold →
+`-32042 URLElicitationRequiredError`; explicit user DECLINE stays `-32000 "Authorization declined"`.
+(2) `timeout==0` → emit `-32042` directly, NO `elicitation/create` first.
+
+Audited current flow (verbatim line refs may drift — re-grep):
+- **Client** `McpClientFactory.McpRequestStream.proceedWithRequest` (~2603-2669): NEEDS_PREAUTHORIZE →
+  `guard.preauthorize` → send `elicitCreate` CHALLENGE(url) → `pendingAuth`, buffer body, arm timer
+  with **global `inactivityTimeoutMillis`** (~2652). Timer/expiry → `onAppSignal`
+  ELICIT_TIMEOUT (~2769) → `emitElicitComplete(CANCELLED)` (~2834) + abort. Callback FLUSH →
+  async reauthorize → `onElicitCompleted` (COMPLETED→replay buffered body / DECLINED→abort).
+- **Server** `McpServerFactory`: on `elicitCreate` CHALLENGE → `doEncodeElicitCreateDataEvent`
+  (~2248) emits SSE `{"jsonrpc":"2.0","method":"elicitation/create","params":{"mode":"url",
+  "elicitationId":…,"url":…}}` and holds the connecting client's SSE open. On `elicitComplete`
+  FLUSH → `onAppFlushElicitComplete` (~4560): DECLINED→`doEncodeElicitErrorEvent(-32000,
+  "Authorization declined")`, CANCELLED→`-32000 "Authorization timed out"`, COMPLETED→proceed.
+  Error encoders `doEncodeElicitErrorEvent` (~2288, SSE) / `doEncodeResponseError` (~2350, plain)
+  emit only `{code,message}` — no `data`. `session.requestTimeout` (on `McpLifecycleStream` ~3067)
+  is reachable at the CHALLENGE/elicitComplete handling point.
+
+Implementation:
+1. **Client per-request timer.** In `McpClientFactory.newStream` (~1488-1504, the `switch
+   (mcpBeginEx.kind())` that sets `contentLength`) also read `.timeout()` per variant into a new
+   `McpRequestStream.timeout` field. In `proceedWithRequest`, arm the elicit timer with
+   `this.timeout` (not `inactivityTimeoutMillis`) when `timeout>0`; when `timeout==0` do NOT
+   hold/buffer — send the CHALLENGE then abort the upstream attempt (server emits `-32042`). NOTE:
+   `McpBeginExFW` has no polymorphic `timeout()` — switch on `kind()`.
+2. **Server hold-vs-reject.** Gate the CHALLENGE response on `session.requestTimeout`: `>0` →
+   `elicitation/create` SSE + hold (today), and remember the url (store `elicitUrl` on the server
+   request stream); `==0` → emit `-32042` (url in data) + end, NO `elicitation/create`. On
+   `CANCELLED` (expiry) → `-32042` with the remembered url (not `-32000`). DECLINED → `-32000`
+   (unchanged).
+3. **`-32042` encoder.** Add an encoder variant emitting
+   `{"jsonrpc":"2.0","id":<id>,"error":{"code":-32042,"message":"URL elicitation required",
+   "data":[{"mode":"url","url":"<url>","elicitationId":"<id>"}]}}` (SSE variant for the held path,
+   plain variant for the no-hold path — mirror the existing two encoders). Single-entry array
+   (tools/call targets one toolkit; multi-entry optional per §6).
+4. **Re-touch existing elicit scenarios.** `tools.call.elicit.{completed,declined,timeout}.guarded`
+   currently rely on the global `inactivity.timeout` for the hold (via `@Configure
+   MCP_INACTIVITY_TIMEOUT`). Under 6b the hold budget is the per-request `timeout`, so these must
+   carry a stamped `timeout>0` (app driver `.toolsCall()....timeout(N)`) to keep holding;
+   the `timeout` (CANCELLED) case now asserts `-32042` not `-32000`. New scenarios: `timeout==0`
+   immediate `-32042` (no elicitation/create); `timeout>0` expiry `-32042`; `timeout>0`
+   completed-in-time proceeds. Cover McpServerIT (server emits the error to the connecting client)
+   + McpClientIT (client honors the per-request timer) + peer ITs.
+5. Gate with full spec + runtime `install` (jacoco/checkstyle/license).
 
 ### Phase 1 — what shipped (2 commits on this branch)
 - `feat(binding-mcp): capture and re-render RFC 9728 resource_metadata on bearer challenge`
