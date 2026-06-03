@@ -409,6 +409,9 @@ public final class McpServerFactory implements McpStreamFactory
                         .map(h -> h.value().asString())
                         .map(Integer::parseInt)
                         .orElse(-1);
+                    final long configuredTimeout = binding.options != null && binding.options.timeout != null
+                        ? binding.options.timeout.toMillis()
+                        : 0L;
                     newStream = new McpServer(
                         sender,
                         originId,
@@ -418,7 +421,8 @@ public final class McpServerFactory implements McpStreamFactory
                         session,
                         redirectURI,
                         altSvc,
-                        contentLength)::onNetMessage;
+                        contentLength,
+                        configuredTimeout)::onNetMessage;
                 }
                 break;
             case "GET":
@@ -1310,6 +1314,7 @@ public final class McpServerFactory implements McpStreamFactory
         private final String redirectURI;
         private final String altSvc;
         private final int contentLength;
+        private final long configuredTimeout;
 
         private McpServer(
             MessageConsumer sender,
@@ -1320,7 +1325,8 @@ public final class McpServerFactory implements McpStreamFactory
             McpLifecycleStream session,
             String redirectURI,
             String altSvc,
-            int contentLength)
+            int contentLength,
+            long configuredTimeout)
         {
             this.net = sender;
             this.originId = originId;
@@ -1334,6 +1340,7 @@ public final class McpServerFactory implements McpStreamFactory
             this.redirectURI = redirectURI;
             this.altSvc = altSvc;
             this.contentLength = contentLength;
+            this.configuredTimeout = configuredTimeout;
         }
 
         private void onNetMessage(
@@ -1844,6 +1851,10 @@ public final class McpServerFactory implements McpStreamFactory
                 assert this.session == null;
                 this.session = session;
 
+                session.requestTimeout = (decodedClientCapabilities & CLIENT_ELICITATION_URL.value()) != 0
+                    ? configuredTimeout
+                    : 0L;
+
                 final int clientCapabilities = decodedClientCapabilities;
                 McpBeginExFW beginEx = mcpBeginExRW
                     .wrap(codecBuffer, 0, codecBuffer.capacity())
@@ -1969,7 +1980,8 @@ public final class McpServerFactory implements McpStreamFactory
                 .wrap(codecBuffer, 0, codecBuffer.capacity())
                 .typeId(mcpTypeId)
                 .toolsList(t -> t
-                    .sessionId(session.unifiedId))
+                    .sessionId(session.unifiedId)
+                    .timeout(session.requestTimeout))
                 .build();
 
             assert stream == null;
@@ -1989,7 +2001,8 @@ public final class McpServerFactory implements McpStreamFactory
                 .toolsCall(t -> t
                     .sessionId(session.unifiedId)
                     .name(name)
-                    .contentLength(paramsLength))
+                    .contentLength(paramsLength)
+                    .timeout(session.requestTimeout))
                 .build();
 
             assert stream == null;
@@ -2005,7 +2018,8 @@ public final class McpServerFactory implements McpStreamFactory
                 .wrap(codecBuffer, 0, codecBuffer.capacity())
                 .typeId(mcpTypeId)
                 .promptsList(p -> p
-                    .sessionId(session.unifiedId))
+                    .sessionId(session.unifiedId)
+                    .timeout(session.requestTimeout))
                 .build();
 
             assert stream == null;
@@ -2025,7 +2039,8 @@ public final class McpServerFactory implements McpStreamFactory
                 .promptsGet(p -> p
                     .sessionId(session.unifiedId)
                     .name(name)
-                    .contentLength(paramsLength))
+                    .contentLength(paramsLength)
+                    .timeout(session.requestTimeout))
                 .build();
 
             assert stream == null;
@@ -2041,7 +2056,8 @@ public final class McpServerFactory implements McpStreamFactory
                 .wrap(codecBuffer, 0, codecBuffer.capacity())
                 .typeId(mcpTypeId)
                 .resourcesList(r -> r
-                    .sessionId(session.unifiedId))
+                    .sessionId(session.unifiedId)
+                    .timeout(session.requestTimeout))
                 .build();
 
             assert stream == null;
@@ -2061,7 +2077,8 @@ public final class McpServerFactory implements McpStreamFactory
                 .resourcesRead(r -> r
                     .sessionId(session.unifiedId)
                     .uri(uri)
-                    .contentLength(paramsLength))
+                    .contentLength(paramsLength)
+                    .timeout(session.requestTimeout))
                 .build();
 
             assert stream == null;
@@ -3047,6 +3064,7 @@ public final class McpServerFactory implements McpStreamFactory
         private McpEventStream sse;
         private boolean eventsUnsupported;
         private int serverCapabilities;
+        private long requestTimeout;
 
         private McpLifecycleStream(
             McpServer server,

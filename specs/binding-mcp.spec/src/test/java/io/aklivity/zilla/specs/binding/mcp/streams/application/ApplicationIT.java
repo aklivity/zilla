@@ -209,6 +209,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/tools.call.timeout/client",
+        "${app}/tools.call.timeout/server"})
+    public void shouldCallToolWithTimeout() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/tools.list/client",
         "${app}/tools.list/server"})
     public void shouldListTools() throws Exception

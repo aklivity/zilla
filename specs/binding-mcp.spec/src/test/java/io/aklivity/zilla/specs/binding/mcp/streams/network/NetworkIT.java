@@ -263,6 +263,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/tools.call.timeout/client",
+        "${net}/tools.call.timeout/server"})
+    public void shouldCallToolWithTimeout() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/tools.call.identity/client",
         "${net}/tools.call.identity/server"})
     public void shouldCallToolWithIdentity() throws Exception

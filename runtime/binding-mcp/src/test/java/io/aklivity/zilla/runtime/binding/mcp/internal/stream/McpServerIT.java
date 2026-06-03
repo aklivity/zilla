@@ -295,6 +295,16 @@ public class McpServerIT
     }
 
     @Test
+    @Configuration("server.timeout.yaml")
+    @Specification({
+        "${net}/tools.call.timeout/client",
+        "${app}/tools.call.timeout/server"})
+    public void shouldCallToolWithTimeout() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.yaml")
     @Specification({
         "${net}/tools.call.elicit.completed/client",
