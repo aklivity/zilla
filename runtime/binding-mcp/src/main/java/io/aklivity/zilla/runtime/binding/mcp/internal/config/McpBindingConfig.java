@@ -179,6 +179,21 @@ public final class McpBindingConfig
         return result;
     }
 
+    public String routeCacheCredentials(
+        long routedId)
+    {
+        String credentials = null;
+        for (McpRouteConfig route : routes)
+        {
+            if (route.id == routedId && route.with != null && route.with.cache != null)
+            {
+                credentials = route.with.cache.credentials;
+                break;
+            }
+        }
+        return credentials;
+    }
+
     public List<McpRoutePrefix> resolveAll(
         int kind,
         long authorization)
@@ -192,10 +207,7 @@ public final class McpBindingConfig
             {
                 if (route.authorized(authorization) && route.serves(capability))
                 {
-                    final String credentials = route.with != null && route.with.cache != null
-                        ? route.with.cache.credentials
-                        : null;
-                    result.add(new McpRoutePrefix(route.id, new String8FW(route.prefix(kind)), credentials));
+                    result.add(new McpRoutePrefix(route.id, new String8FW(route.prefix(kind))));
                 }
             }
             result.sort(Comparator.comparing(p -> p.prefix().asString()));

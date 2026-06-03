@@ -18,13 +18,6 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.String8FW;
 
 public record McpRoutePrefix(
     long resolvedId,
-    String8FW prefix,
-    String credentials)
+    String8FW prefix)
 {
-    public McpRoutePrefix(
-        long resolvedId,
-        String8FW prefix)
-    {
-        this(resolvedId, prefix, null);
-    }
 }

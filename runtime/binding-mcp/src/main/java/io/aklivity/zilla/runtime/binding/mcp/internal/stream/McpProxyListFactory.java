@@ -309,7 +309,7 @@ abstract class McpProxyListFactory implements BindingHandler
                     .build();
 
                 sender = newStream(this::onClientMessage, originId, routedId, initialId,
-                    initialSeq, initialAck, initialMax, traceId, server.authorization, server.affinity, beginEx);
+                    initialSeq, initialAck, initialMax, traceId, lifecycle.authorization, server.affinity, beginEx);
                 state = McpState.openingInitial(state);
             }
             else
@@ -327,7 +327,7 @@ abstract class McpProxyListFactory implements BindingHandler
                 if (McpState.initialOpening(state))
                 {
                     doEnd(sender, originId, routedId, initialId,
-                        initialSeq, initialAck, initialMax, traceId, server.authorization);
+                        initialSeq, initialAck, initialMax, traceId, lifecycle.authorization);
                 }
                 state = McpState.closedInitial(state);
             }
@@ -341,7 +341,7 @@ abstract class McpProxyListFactory implements BindingHandler
                 if (McpState.initialOpening(state))
                 {
                     doAbort(sender, originId, routedId, initialId,
-                        initialSeq, initialAck, initialMax, traceId, server.authorization);
+                        initialSeq, initialAck, initialMax, traceId, lifecycle.authorization);
                 }
                 state = McpState.closedInitial(state);
             }
@@ -355,7 +355,7 @@ abstract class McpProxyListFactory implements BindingHandler
                 if (McpState.initialOpening(state))
                 {
                     doReset(sender, originId, routedId, replyId,
-                        replySeq, replyAck, replyMax, traceId, server.authorization, emptyRO);
+                        replySeq, replyAck, replyMax, traceId, lifecycle.authorization, emptyRO);
                 }
                 state = McpState.closedReply(state);
             }
@@ -370,7 +370,7 @@ abstract class McpProxyListFactory implements BindingHandler
             {
                 state = McpState.openedReply(state);
                 doWindow(sender, originId, routedId, replyId,
-                    replySeq, replyAck, replyMax, traceId, server.authorization, budgetId, padding);
+                    replySeq, replyAck, replyMax, traceId, lifecycle.authorization, budgetId, padding);
             }
         }
 
@@ -648,7 +648,7 @@ abstract class McpProxyListFactory implements BindingHandler
             if (replySlot != NO_SLOT)
             {
                 final MutableDirectBuffer slot = bufferPool.buffer(replySlot);
-                decode(traceId, server.authorization, 0L, 0, slot, 0, replySlotOffset);
+                decode(traceId, lifecycle.authorization, 0L, 0, slot, 0, replySlotOffset);
             }
         }
 

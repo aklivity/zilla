@@ -784,6 +784,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
         private MessageConsumer sender;
         private int state;
         String sessionId;
+        long authorization;
         private String resumeId;
         private final List<McpRouteRequest> requests = new ArrayList<>();
 
@@ -806,6 +807,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
             this.routedId = routedId;
             this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
+            this.authorization = server.authorization;
         }
 
         void doClientBegin(
@@ -813,6 +815,19 @@ final class McpProxyLifecycleFactory implements BindingHandler
         {
             if (!McpState.initialOpening(state))
             {
+                // during hydration a route's with.cache.credentials takes precedence over
+                // options.cache.authorization; reauthorize it once through the cache guard so this
+                // route's lifecycle and list streams share a single per-route authorization
+                if (server.hydration && server.binding.cache != null && server.binding.cache.guard != null)
+                {
+                    final String credentials = server.binding.routeCacheCredentials(routedId);
+                    if (credentials != null)
+                    {
+                        authorization = server.binding.cache.guard.reauthorize(
+                            traceId, server.binding.cache.bindingId, 0L, credentials);
+                    }
+                }
+
                 final int clientCapabilities = server.clientCapabilities;
                 final McpBeginExFW beginEx = mcpBeginExRW
                     .wrap(codecBuffer, 0, codecBuffer.capacity())
@@ -821,7 +836,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
                     .build();
 
                 sender = newStream(this::onClientMessage, originId, routedId, initialId,
-                    initialSeq, initialAck, initialMax, traceId, server.authorization, server.affinity, beginEx);
+                    initialSeq, initialAck, initialMax, traceId, authorization, server.affinity, beginEx);
                 state = McpState.openingInitial(state);
             }
         }
@@ -859,7 +874,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
             if (!McpState.initialClosed(state))
             {
                 doEnd(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId,
-                    server.authorization);
+                    authorization);
                 state = McpState.closedInitial(state);
             }
         }
@@ -870,7 +885,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
             if (!McpState.initialClosed(state))
             {
                 doAbort(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId,
-                    server.authorization);
+                    authorization);
                 state = McpState.closedInitial(state);
             }
         }
@@ -881,7 +896,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
             if (!McpState.replyClosed(state))
             {
                 doReset(sender, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId,
-                    server.authorization, emptyRO);
+                    authorization, emptyRO);
                 state = McpState.closedReply(state);
             }
         }
