@@ -5,13 +5,15 @@ Issue: https://github.com/aklivity/zilla/issues/1810 — the design/phasing is t
 source of truth. This file carries the cross-session context (the remote
 environment is ephemeral: each session is a fresh clone with no prior chat).
 
-> **Next session — start here:** Phase 2 is the current task. Read
-> [Phase 2 — CONFIRMED DESIGN](#phase-2--confirmed-design-per-route--per-slice)
-> first — it supersedes the older "concrete plan" framing below and records two
-> design decisions the maintainer confirmed (per-route hydration; per-`(kind,prefix)`
-> slice keys) plus the key structural findings. The older "concrete plan" /
-> "Verified finding" subsections remain as background (the loopback async
-> constraint is still true). Branch is green. Re-grep line numbers before editing.
+> **Next session — start here:** Phases 1, 2, 2e, 3 are DONE+pushed on this
+> branch. Phases 4, 5, 9 already landed in `develop` (Phase 4 #1820; Phases 5 + 9
+> core via #1739/#1752 — see the corrected Status table, audited 2026-06-03).
+> **The first genuinely-unbuilt phase is Phase 6** (`timeout` option +
+> `-32042 URLElicitationRequiredError` + per-request `McpXxxBeginEx` timeout
+> carriage + hold-and-resume). Phases 7 and 8 follow. Phase 5 has two residual
+> gaps (binding-level not per-route guard/creds; `reauthorize(null)` not inbound
+> bearer) — flagged in the table, not yet scoped. Branch is green. Re-grep line
+> numbers before editing.
 
 ---
 
@@ -24,12 +26,12 @@ environment is ephemeral: each session is a fresh clone with no prior chat).
 | 2e — spec-module jacoco 0.95<0.96 (pre-existing Phase-1 `McpFunctions` gap) | **DONE+pushed. Extended `McpFunctionsTest` (50→69) → 0.98; full spec verify green (184 ITs + UT + jacoco/checkstyle/license).** |
 | 3 — `with.cache` static credential over `options.cache.authorization` | **DONE+pushed.** Per-route `with.cache.credentials` added to `McpWithConfig` (+`McpWithCacheConfig`/builder), `McpWithConfigAdapter`, and the route `with` schema block. **Per-route credential is resolved once in `McpLifecycleClient.doClientBegin` (hydration only): if the route has `with.cache.credentials` it is reauthorized through the cache guard into the lifecycle client's `authorization`, else it inherits `server.authorization` (= the binding cache authorization from `options.cache.authorization`) → precedence `with` > `options`.** The route's **lifecycle AND list streams share that single per-route authorization**: `McpListClient`'s upstream (route-exit) frames now use `lifecycle.authorization` instead of `server.authorization`. `McpBindingConfig.routeCacheCredentials(routedId)` looks up the override. Reauthorize is once-per-route (lifecycle client is `supplyClient`-memoized, `doClientBegin` idempotent), so all list kinds for a route reuse the same session. New `McpWithConfigAdapterTest` (4) + scenario `cache.hydrate.credentials.toolkit` (single accept @ `authorization`=1L covers lifecycle+toolsList since they now match) wired into `McpProxyCacheIT#shouldHydrateToolkitWithRouteCredentials` (server-only, hydrate filter=tools) and peer-to-peer `ProxyCacheIT#shouldHydrateToolkitWithRouteCredentials`. Negative-checked (reverting the reauthorize → IT times out). Full no-skip green: runtime 200 ITs/UT + jacoco/checkstyle/license/notice; spec 185 + gates. |
 | 4 — protocol `2025-11-25` + `elicitation.url` negotiation | already landed before this branch (#1820) |
-| 5 — guard `NEEDS_PREAUTHORIZE → preauthorize → callback → reauthorize` | not started |
-| 6 — `timeout` option + per-request `McpXxxBeginEx` carriage; hold-and-resume | not started |
-| 7 — non-blocking `tools/list` / blocking `tools/call` | not started |
-| 8 — per-client listing filter (SEP-1488 / operator map / annotations) | not started |
+| 5 — guard `NEEDS_PREAUTHORIZE → preauthorize → callback → reauthorize` | **CORE DONE in `develop` (#1739/#1752 "MCP elicitation across server, proxy, client"), NOT this branch.** `McpClientFactory`: `reauthorize(null)`→`MASK_AUTHORIZED`→`credentials()`→stamp; `NEEDS_PREAUTHORIZE`→`guard.preauthorize`→`elicitCreate` challenge→async `reauthorize` on callback (`onElicitCompleted`). `McpServerFactory`: `McpAuthCallbackHandler`, `isAuthCallbackPath`, `resolveRedirectURI`, state correlation. **Residual gaps vs spec wording (audited 2026-06-03, unaddressed):** (a) live guard+credentials are **binding-level** (`binding.guard`/`binding.credentials`), `McpRouteConfig` has no guard/creds — NOT per-route; (b) `reauthorize` is called with **`null`**, not the connecting client's inbound bearer (no inbound `Authorization` capture on the live path). Decide whether these are wanted (overlaps Phase 8 per-identity). |
+| 6 — `timeout` option + per-request `McpXxxBeginEx` carriage; hold-and-resume | **NOT STARTED (first genuinely-unbuilt phase — audited 2026-06-03).** Only an engine-level `inactivity.timeout` PROPERTY (`McpConfiguration.MCP_INACTIVITY_TIMEOUT`) + abort-on-timeout emitting `-32000 "Authorization timed out"` exists. MISSING: per-binding `timeout` OPTION (config/builder/adapter/schema); `-32042 URLElicitationRequiredError`; `timeout` field on per-request `McpXxxBeginEx` (IDL) + carriage; hold-and-resume via resumable stream + `-32042` fallback on expiry. PARTIAL building block: `CLIENT_ELICITATION_URL` capability IS tracked at lifecycle initialize (`McpServerFactory` ~1875) but NOT gated for timeout/elicit decisions. |
+| 7 — non-blocking `tools/list` / blocking `tools/call` | **NOT STARTED (audited 2026-06-03).** `tools/list` is BLOCKING — `McpProxyListFactory.onNextClient` finalizes only when all routes polled; unauthorized toolkit is silently SKIPPED (`onClientSkip`→`onNextClient`), no `elicitation/create` emitted from `tools/list` (only from `tools/call`). `KIND_TOOLS_LIST_CHANGED` flush plumbing exists but only fires after a full cache-refresh cycle, NOT per-toolkit when a toolkit authorizes during a live list. Depends on Phase 6 timeout. |
+| 8 — per-client listing filter (SEP-1488 / operator map / annotations) | **NOT STARTED — zero implementation (audited 2026-06-03).** List serve path (`McpCacheListServer`) emits the SAME shared aggregate bytes to every client; `authorization` is captured but never used to filter. No `securitySchemes`, no tool→scope map config, no `readOnlyHint`/`destructiveHint`, no acquirable/non-acquirable distinction, no per-identity live listing. |
 | 2d — live-path baseline test (baseline + per-identity toolkits) | **deferred to Phase 7/8** (maintainer decision) |
-| 9 — IT coverage of the preauthorize→elicit→callback→reauthorize flow | not started |
+| 9 — IT coverage of the preauthorize→elicit→callback→reauthorize flow | **DONE in `develop` (#1739/#1752), NOT this branch.** Scenarios: `tools.call.elicit.{completed,declined,timeout}` × {plain, `.guarded`, `.proxied`}, `reject.auth.callback.unknown.elicitation`, `lifecycle.initialize.elicitation.{url,form}`. (Residual: no IT for the Phase-5 per-route/inbound-bearer gaps above, since those aren't implemented.) |
 
 ### Phase 1 — what shipped (2 commits on this branch)
 - `feat(binding-mcp): capture and re-render RFC 9728 resource_metadata on bearer challenge`
