@@ -21,7 +21,7 @@ environment is ephemeral: each session is a fresh clone with no prior chat).
 | --- | --- |
 | 1 — `resource_metadata` capture + carry + re-render | **DONE, pushed, full module green** |
 | 2 — split hydrater from live entry; remove `originId == routedId` loopback | **DONE+pushed. Commit 1: relocation + loopback removal + per-route fragment assembly (behavior-preserving). Commit 2: keep-stale — per-route fragments live on `McpProxyCache.McpListCache`; failed route (abort/reset/timeout/bearer challenge) keeps last-known-good, success replaces, empty→empty; new `cache.refresh.toolkit.keep.stale.on.failure` scenario + `shouldRefreshToolkitKeepingStaleOnFailure`. Runtime no-skip green: McpProxyCacheIT 28, McpProxyLifecycleIT 7, UT 20, checkstyle/license/jacoco pass.** |
-| 2e — spec-module jacoco 0.95<0.96 (pre-existing Phase-1 `McpFunctions` gap) | **fix IN PROGRESS (extend `McpFunctionsTest`); runtime module unaffected/green** |
+| 2e — spec-module jacoco 0.95<0.96 (pre-existing Phase-1 `McpFunctions` gap) | **DONE+pushed. Extended `McpFunctionsTest` (50→69) → 0.98; full spec verify green (184 ITs + UT + jacoco/checkstyle/license).** |
 | 3 — `with.cache` static credential over `options.cache.authorization` | not started (depends on 2) |
 | 4 — protocol `2025-11-25` + `elicitation.url` negotiation | already landed before this branch (#1820) |
 | 5 — guard `NEEDS_PREAUTHORIZE → preauthorize → callback → reauthorize` | not started |
