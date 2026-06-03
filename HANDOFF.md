@@ -131,47 +131,71 @@ Stream factories in
 
 ---
 
-## Phase 2 — DESIGN REVISION (single-blob, supersedes everything below)
+## Phase 2 — DESIGN REVISION (unified blob + per-route fragments, supersedes everything below)
 
-**Maintainer reversal (this session, john@aklivity.io):** keep **single aggregated
-cache storage per kind** (the current envelope-blob format) instead of
-per-`(kind,prefix)` slices. This reverses decisions #1 (per-route hydration) and
-#2 (per-slice keys) recorded in the now-superseded "CONFIRMED DESIGN" subsection.
+**Maintainer decisions (this session, john@aklivity.io):**
+- Keep **single unified cache storage per kind** (the current envelope-blob
+  format) in the store — NOT per-`(kind,prefix)` store keys. This reverses the
+  per-slice STORAGE of decision #2.
+- BUT the hydrater holds, per kind, an **in-memory per-route fragment map**
+  (prefix → that route's prefix-injected items, no envelope) and **assembles the
+  unified blob** from it. This keeps decision #1's per-route hydration *drive* and
+  enables per-`(route,kind)` refresh / failure isolation.
+- **Failure handling = keep-stale per route.** On a route's hydrate:
+  - success with items → `fragment[prefix] = items`
+  - success but empty → `fragment[prefix] = ""` (**replace with empty** — a toolkit
+    that legitimately emptied its list IS reflected)
+  - failure (reset/abort/bearer-challenge/timeout) → **leave `fragment[prefix]`
+    unchanged** (retain last-known-good); a transient route failure must NOT wipe
+    its tools from the aggregate.
+- The store always holds the **unified blob per kind**, reassembled as
+  `prelude(kind)` + join(configured routes' non-empty fragments in sorted prefix
+  order, `,`) + `close`. Per-`(route,kind)` refresh just updates that route's
+  fragment and rewrites the unified blob.
 
-Rationale: storage format is **orthogonal** to the only thing Phase 2 must do —
-remove the `originId == routedId` loopback. `McpListServer` already performs the
-all-routes merge (it's the live no-cache path's job); the relocated hydrater just
-drives that merge once over **all** authorized routes, accumulates the full
-`{"tools":[…]}` envelope in a pure-sink accumulator, and `put`s it as the single
-per-kind blob — byte-identical to today's stored value.
+Why this satisfies "single storage" AND resilience: the per-route breakdown is
+**hydrater-internal (per-worker) state**, not stored; only the assembled unified
+blob is persisted. On lock-handover/failover the new lock-holder rebuilds
+fragments via a full populate, then refreshes incrementally.
 
-What this keeps UNCHANGED (much smaller blast radius, safer):
-- `McpProxyCache.McpListCache` storage (one value per kind) — **unchanged**.
+What this keeps UNCHANGED (small blast radius, safer):
+- `McpProxyCache.McpListCache` STORE layout (one value per kind) — **unchanged**.
 - `McpCacheListServer` serve path — **unchanged**.
 - Seeded YAMLs (×3) and **all** `.rpt` scripts — **unchanged** (both wire
-  boundaries preserved: backend→proxy on hydrate, proxy→client on serve).
+  boundaries preserved). The assembled unified blob must be **byte-identical** to
+  today's single all-routes merge for the existing hydrate ITs (verify per-route
+  fragment concat reproduces the merge bytes: same prelude/`,`/close, same
+  per-route prefix injection, skip empty fragments to avoid stray separators).
 
-What still changes (the actual Phase 2 work):
+What changes (the actual Phase 2 work):
 - Relocate the hydrater into the `stream` package so it can drive
   `McpLifecycleServer`/`McpListServer`/`McpListClient`/`McpLifecycleClient` and the
   `decode*` states **in place** (no new abstractions, no `*Sink` interface, no
-  extracted decoder). Sink `MessageConsumer` as reply target + pre-granted fixed
-  reply window; route-exit streams stay async via the engine bus (the only
-  re-entrancy-safe decoupling — the synchronous direct-call shortcut is still
-  proven fatal, see "Verified finding" below).
-- Drive ONE `McpListServer` over **all** routes (not per-route); store one blob.
-- Remove the loopback discriminators (`hydrating()`, the `originId != routedId`
-  term in `aggregating()`, the onServerBegin loopback branch, `deferring` in
-  onClientFlush, `server.hydrating()` guards, and the `McpProxyListFactory.newStream`
-  `originId != routedId` term).
+  extracted decoder). Sink `MessageConsumer` reply target + pre-granted fixed reply
+  window; route-exit streams stay async via the engine bus (the only re-entrancy-
+  safe decoupling — the synchronous direct-call shortcut is still proven fatal,
+  see "Verified finding" below).
+- Drive `McpListServer` **per route** (one prefix in `remaining`) into a per-route
+  fragment; keep-stale policy above; assemble + `put` the unified blob per kind.
+- Replace the `originId == routedId` proxy with an explicit `hydration` boolean on
+  `McpLifecycleServer`. Remove the loopback discriminators (`hydrating()`, the
+  `originId != routedId` term in `aggregating()`, the onServerBegin loopback
+  branch, the `deferring`/`server.hydrating()` guards → keyed on `hydration`, and
+  the `McpProxyListFactory.newStream` `originId != routedId` term).
 
-Trade-off (accepted): no per-route independent slice replacement / per-route
-independent refresh. Costs nothing today (refresh is already per-kind full
-re-hydrate; Phase 3 per-route credential affects hydration *auth* not *storage*;
-Phase 7/8 per-identity listings never enter the shared store). Reintroduce slices
-later only if per-route independent refresh becomes a real feature.
+Keep-stale is a NEW behavior on the refresh path → needs its own spec scenario +
+IT (test-first). It does NOT break existing ITs (they don't fail a route during a
+refresh that had a prior value; initial-populate failure still contributes nothing,
+matching `cache.hydrate.toolkit.multi.skip.unauthorized`).
 
-Still: land as ONE atomic green commit; defer 2d.
+Sequencing (no PR yet, so split is fine and lower-risk):
+- **Commit 1:** relocation + loopback removal + per-route fragment assembly +
+  keep-stale fragment policy — all EXISTING ITs green (behavior-preserving for the
+  cases they cover). Green checkpoint.
+- **Commit 2:** new `cache.refresh.*.keep.stale.on.failure`-style spec scenario +
+  IT proving a failing route retains its prior tools while others refresh.
+
+Defer 2d (live-path baseline) to Phase 7/8 as before.
 
 ---
 
