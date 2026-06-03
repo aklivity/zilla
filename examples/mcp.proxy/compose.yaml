@@ -1,0 +1,62 @@
+name: ${NAMESPACE:-zilla-mcp-proxy}
+services:
+  zilla:
+    image: ghcr.io/aklivity/zilla:${ZILLA_VERSION:-latest}
+    restart: unless-stopped
+    hostname: zilla.examples.dev
+    ports:
+      - 7114:7114
+      - 7190:7190
+      # - 4444:4444
+    healthcheck:
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      test: ["CMD", "bash", "-c", "echo -n '' > /dev/tcp/127.0.0.1/7114"]
+    environment:
+      ZILLA_INCUBATOR_ENABLED: "true"
+      # JAVA_OPTIONS: "-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=*:4444"
+    volumes:
+      - ./etc:/etc/zilla
+      # - ~/docker-captures:/var/log/zilla-captures
+    command: start -v -e
+    depends_on:
+      everything:
+        condition: service_healthy
+      urlelicit:
+        condition: service_healthy
+
+  everything:
+    image: node:20-alpine
+    hostname: everything
+    restart: unless-stopped
+    command: ["npx", "-y", "@modelcontextprotocol/server-everything", "streamableHttp"]
+    environment:
+      PORT: "3001"
+    healthcheck:
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      test: ["CMD", "nc", "-z", "127.0.0.1", "3001"]
+
+  urlelicit:
+    image: node:20-alpine
+    hostname: urlelicit
+    restart: unless-stopped
+    working_dir: /app
+    command: ["sh", "-c", "npm install --no-audit --no-fund --silent && node server.mjs"]
+    ports:
+      - 3003:3003
+    environment:
+      PORT: "3003"
+    volumes:
+      - ./url-elicit:/app
+    healthcheck:
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      test: ["CMD", "nc", "-z", "127.0.0.1", "3003"]
+
+networks:
+  default:
+    driver: bridge
