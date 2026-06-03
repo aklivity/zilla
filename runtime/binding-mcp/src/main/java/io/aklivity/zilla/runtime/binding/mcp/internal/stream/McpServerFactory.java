@@ -32,6 +32,7 @@ import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import jakarta.json.JsonValue;
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParserFactory;
@@ -1867,12 +1868,14 @@ public final class McpServerFactory implements McpStreamFactory
             decodedProtocolVersion = params.protocolVersion;
 
             int capabilities = 0;
-            final McpInitializeParams.Elicitation elicitation =
-                params.capabilities != null ? params.capabilities.elicitation : null;
+            final JsonValue elicitation = params.capabilities != null
+                ? params.capabilities.get("elicitation")
+                : null;
             if (elicitation != null)
             {
                 capabilities |= CLIENT_ELICITATION.value() | CLIENT_ELICITATION_FORM.value();
-                if (elicitation.url != null)
+                if (elicitation.getValueType() == JsonValue.ValueType.OBJECT &&
+                    elicitation.asJsonObject().containsKey("url"))
                 {
                     capabilities |= CLIENT_ELICITATION_URL.value();
                 }

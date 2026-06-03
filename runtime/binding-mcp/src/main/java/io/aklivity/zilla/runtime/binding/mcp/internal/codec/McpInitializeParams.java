@@ -14,20 +14,10 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal.codec;
 
-import jakarta.json.JsonValue;
+import jakarta.json.JsonObject;
 
 public class McpInitializeParams
 {
     public String protocolVersion;
-    public Capabilities capabilities;
-
-    public static class Capabilities
-    {
-        public Elicitation elicitation;
-    }
-
-    public static class Elicitation
-    {
-        public JsonValue url;
-    }
+    public JsonObject capabilities;
 }
