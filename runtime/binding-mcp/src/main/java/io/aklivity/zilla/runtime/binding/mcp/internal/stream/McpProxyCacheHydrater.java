@@ -23,8 +23,6 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpFlu
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 
@@ -264,7 +262,7 @@ public final class McpProxyCacheHydrater
     {
         private final HandlerImpl handler;
         private final int kind;
-        private final Map<String, String> fragments;
+        private final List<String> prefixes;
         private final List<McpListRouteSink> sinks;
 
         private int pending;
@@ -276,7 +274,7 @@ public final class McpProxyCacheHydrater
         {
             this.handler = handler;
             this.kind = kind;
-            this.fragments = new TreeMap<>();
+            this.prefixes = new ArrayList<>();
             this.sinks = new ArrayList<>();
         }
 
@@ -325,6 +323,11 @@ public final class McpProxyCacheHydrater
             final List<McpRoutePrefix> routes =
                 supplyBinding.apply(handler.cache.bindingId).resolveAll(kind, handler.cache.authorization);
 
+            for (McpRoutePrefix route : routes)
+            {
+                prefixes.add(route.prefix().asString());
+            }
+
             if (routes.isEmpty())
             {
                 assemble(traceId);
@@ -348,13 +351,15 @@ public final class McpProxyCacheHydrater
             long traceId)
         {
             pending--;
+            // keep-stale: a failed route keeps its prior fragment (no putFragment), a successful
+            // route replaces it; success-empty stores an empty fragment that drops out of assembly
             if (sink.failed)
             {
                 failedAny = true;
             }
             else
             {
-                fragments.put(sink.prefix, sink.fragment());
+                handler.cache.cacheOf(kind).putFragment(sink.prefix, sink.fragment());
             }
 
             if (pending == 0)
@@ -366,30 +371,20 @@ public final class McpProxyCacheHydrater
         private void assemble(
             long traceId)
         {
-            final boolean allFailed = failedAny && fragments.isEmpty();
-            if (allFailed)
+            final McpProxyCache.McpListCache listCache = handler.cache.cacheOf(kind);
+            if (listCache.fragmentsAbsent(prefixes))
             {
+                // no route has ever produced a fragment (total failure with nothing cached) —
+                // surface as an error so a retry is scheduled
                 terminal(true);
             }
             else
             {
+                // re-assemble from the persistent per-route fragments, keeping stale fragments for
+                // any route that failed this cycle; still surface a retry when a route failed
                 final McpProxyListFactory listFactory = listFactories.get(kind);
-                final StringBuilder builder = new StringBuilder(listFactory.hydrationPrelude());
-                boolean first = true;
-                for (String fragment : fragments.values())
-                {
-                    if (fragment != null && !fragment.isEmpty())
-                    {
-                        if (!first)
-                        {
-                            builder.append(',');
-                        }
-                        builder.append(fragment);
-                        first = false;
-                    }
-                }
-                builder.append(listFactory.hydrationClose());
-                handler.cache.cacheOf(kind).put(builder.toString(), k -> terminal(false));
+                listCache.putAssembled(listFactory.hydrationPrelude(), listFactory.hydrationClose(),
+                    prefixes, k -> terminal(failedAny));
             }
         }
 

@@ -112,6 +112,17 @@ public class McpProxyCacheIT
     }
 
     @Test
+    @Configuration("proxy.cache.toolkit.multi.refresh.yaml")
+    @Specification({
+        "${app}/cache.refresh.toolkit.keep.stale.on.failure/server",
+        "${app}/cache.refresh.toolkit.keep.stale.on.failure/client" })
+    @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
+    public void shouldRefreshToolkitKeepingStaleOnFailure() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.cache.seeded.yaml")
     @Specification({
         "${app}/cache.serve.initialize/client" })
