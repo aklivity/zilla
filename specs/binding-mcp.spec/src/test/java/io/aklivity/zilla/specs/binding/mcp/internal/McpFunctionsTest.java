@@ -24,6 +24,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
+import io.aklivity.zilla.specs.binding.mcp.internal.types.McpCapabilities;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.String16FW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpAbortExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpBearerError;
@@ -1058,5 +1059,183 @@ public class McpFunctionsTest
             .build();
 
         matcher.match(byteBuf);
+    }
+
+    @Test
+    public void shouldGenerateLifecycleBeginExWithCapabilities()
+    {
+        byte[] bytes = McpFunctions.beginEx()
+            .typeId(0)
+            .lifecycle()
+                .sessionId("session-1")
+                .capabilities("SERVER_TOOLS", "SERVER_PROMPTS", "SERVER_RESOURCES")
+                .build()
+            .build();
+
+        assertNotNull(bytes);
+    }
+
+    @Test
+    public void shouldMatchLifecycleBeginExWithCapabilities() throws Exception
+    {
+        BytesMatcher matcher = McpFunctions.matchBeginEx()
+            .typeId(0)
+            .lifecycle()
+                .sessionId("session-1")
+                .capabilities("SERVER_TOOLS", "SERVER_PROMPTS")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new McpBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .lifecycle(b -> b
+                .sessionId("session-1")
+                .capabilities(McpCapabilities.SERVER_TOOLS.value() | McpCapabilities.SERVER_PROMPTS.value()))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test(expected = Exception.class)
+    public void shouldFailWhenLifecycleBeginExCapabilitiesMismatch() throws Exception
+    {
+        BytesMatcher matcher = McpFunctions.matchBeginEx()
+            .typeId(0)
+            .lifecycle()
+                .capabilities("SERVER_TOOLS")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new McpBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .lifecycle(b -> b
+                .sessionId("session-1")
+                .capabilities(McpCapabilities.SERVER_PROMPTS.value()))
+            .build();
+
+        matcher.match(byteBuf);
+    }
+
+    @Test
+    public void shouldGenerateBearerResetExWithResourceMetadata()
+    {
+        byte[] bytes = McpFunctions.resetEx()
+            .typeId(0)
+            .bearer()
+                .realm("github")
+                .scopes("repo")
+                .resourceMetadata("https://server.example.com/.well-known/oauth-protected-resource")
+                .error("INSUFFICIENT_SCOPE")
+                .build()
+            .build();
+
+        assertNotNull(bytes);
+    }
+
+    @Test
+    public void shouldMatchBearerResetExWithResourceMetadata() throws Exception
+    {
+        BytesMatcher matcher = McpFunctions.matchResetEx()
+            .typeId(0)
+            .bearer()
+                .realm("github")
+                .scopes("repo")
+                .resourceMetadata("https://server.example.com/.well-known/oauth-protected-resource")
+                .error("INSUFFICIENT_SCOPE")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new McpResetExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .bearer(b -> b
+                .realm("github")
+                .scopes("repo")
+                .resourceMetadata("https://server.example.com/.well-known/oauth-protected-resource")
+                .error(s -> s.set(McpBearerError.INSUFFICIENT_SCOPE)))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test(expected = Exception.class)
+    public void shouldFailWhenBearerResetExResourceMetadataMismatch() throws Exception
+    {
+        BytesMatcher matcher = McpFunctions.matchResetEx()
+            .typeId(0)
+            .bearer()
+                .resourceMetadata("https://server.example.com/.well-known/expected")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new McpResetExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .bearer(b -> b
+                .resourceMetadata("https://server.example.com/.well-known/actual")
+                .error(s -> s.set(McpBearerError.INVALID_TOKEN)))
+            .build();
+
+        matcher.match(byteBuf);
+    }
+
+    @Test
+    public void shouldReturnNullWhenFlushExMatcherBufferIsEmpty() throws Exception
+    {
+        BytesMatcher matcher = McpFunctions.matchFlushEx()
+            .typeId(0)
+            .build();
+
+        assertNull(matcher.match(ByteBuffer.allocate(0)));
+    }
+
+    @Test
+    public void shouldReturnNullWhenChallengeExMatcherBufferIsEmpty() throws Exception
+    {
+        BytesMatcher matcher = McpFunctions.matchChallengeEx()
+            .typeId(0)
+            .build();
+
+        assertNull(matcher.match(ByteBuffer.allocate(0)));
+    }
+
+    @Test
+    public void shouldReturnNullWhenResetExMatcherBufferIsEmpty() throws Exception
+    {
+        BytesMatcher matcher = McpFunctions.matchResetEx()
+            .typeId(0)
+            .build();
+
+        assertNull(matcher.match(ByteBuffer.allocate(0)));
+    }
+
+    @Test
+    public void shouldReturnNullWhenAbortExMatcherBufferIsEmpty() throws Exception
+    {
+        BytesMatcher matcher = McpFunctions.matchAbortEx()
+            .typeId(0)
+            .build();
+
+        assertNull(matcher.match(ByteBuffer.allocate(0)));
+    }
+
+    @Test
+    public void shouldReturnNullWhenBeginExMatcherBufferIsEmpty() throws Exception
+    {
+        BytesMatcher matcher = McpFunctions.matchBeginEx()
+            .typeId(0)
+            .build();
+
+        assertNull(matcher.match(ByteBuffer.allocate(0)));
     }
 }
