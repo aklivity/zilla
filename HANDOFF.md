@@ -20,7 +20,7 @@ environment is ephemeral: each session is a fresh clone with no prior chat).
 | Phase | State |
 | --- | --- |
 | 1 — `resource_metadata` capture + carry + re-render | **DONE, pushed, full module green** |
-| 2 — split hydrater from live entry; remove `originId == routedId` loopback | **DESIGN REVISED → single-blob (see "Phase 2 — DESIGN REVISION" below); supersedes the per-route/per-slice plan. Not yet landed. Baseline re-verified green (27 ITs) in fresh container.** |
+| 2 — split hydrater from live entry; remove `originId == routedId` loopback | **Commit 1 DONE+pushed (relocation + loopback removal + per-route fragment assembly; behavior-preserving; 27+7 ITs + 20 UT green, no-skip pass clean). Commit 2 (true keep-stale + test) IN PROGRESS — see "Phase 2 — DESIGN REVISION" + "Commit 2 spec" below.** |
 | 3 — `with.cache` static credential over `options.cache.authorization` | not started (depends on 2) |
 | 4 — protocol `2025-11-25` + `elicitation.url` negotiation | already landed before this branch (#1820) |
 | 5 — guard `NEEDS_PREAUTHORIZE → preauthorize → callback → reauthorize` | not started |
@@ -196,6 +196,36 @@ Sequencing (no PR yet, so split is fine and lower-risk):
   IT proving a failing route retains its prior tools while others refresh.
 
 Defer 2d (live-path baseline) to Phase 7/8 as before.
+
+### Commit 2 spec (true keep-stale — IN PROGRESS)
+
+Commit 1 landed the relocation but its `fragments` map is **per hydrate cycle**
+(fresh per `McpListKindHydrater`), so it is still effectively **drop-on-failure**
+(matches today; existing ITs pass). Commit 2 delivers real keep-stale:
+
+1. **Persist fragments per `(handler, kind)`** across hydrate cycles (hoist the
+   map from `McpListKindHydrater` onto `HandlerImpl`, keyed by kind). Assemble the
+   unified blob from the persisted map each cycle.
+2. **Fragment-update policy (confirmed rule):**
+   - successful list with items → update fragment
+   - successful list, empty (`{"...":[]}`, lifecycle established) → update to `""`
+     (replace-with-empty)
+   - ANY failure — abort / reset / **bearer challenge** / timeout / lifecycle not
+     established → **do NOT update** (retain last-known-good)
+   So a route's per-cycle drive must surface skip/failure to its sink as **ABORT**
+   (failed), distinct from a genuine empty END. In Commit 1 a bearer-skip currently
+   reaches the sink as an empty END (→ fragment `""`); Commit 2 must classify it as
+   failure so the prior fragment is kept.
+3. **Test-first new scenario** (multi-route refresh): populate two toolkits (A, B)
+   both returning tools; refresh where A returns updated tools and B fails (abort
+   or bearer challenge); assert the served list = A-updated + **B-original** (B kept
+   stale). Confirm it FAILS on Commit 1 (B dropped) before implementing. Add the
+   `.rpt` (network+application as needed), the `McpProxyCacheIT` method, and the
+   peer-to-peer `ProxyCacheIT` method. Needs a multi-route refresh `zilla.yaml`
+   (model on `proxy.cache.toolkit.multi.yaml` + `proxy.cache.refresh.yaml`).
+4. Existing ITs must stay green (initial-populate skip still contributes nothing —
+   `cache.hydrate.toolkit.multi.skip.unauthorized` unaffected since there is no
+   prior fragment on first populate).
 
 ---
 
