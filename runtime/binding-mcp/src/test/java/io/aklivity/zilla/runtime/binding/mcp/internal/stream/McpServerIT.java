@@ -468,6 +468,16 @@ public class McpServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/lifecycle.events.resume.reject.bearer.resource.metadata/client",
+        "${app}/lifecycle.events.resume.reject.bearer.resource.metadata/server"})
+    public void shouldRejectLifecycleEventsResumeWithBearerChallengeResourceMetadata() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/lifecycle.events.session.unknown/client"})
     public void shouldRejectLifecycleEventsSessionUnknown() throws Exception
     {

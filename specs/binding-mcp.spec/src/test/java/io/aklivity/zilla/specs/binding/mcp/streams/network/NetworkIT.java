@@ -416,6 +416,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/lifecycle.events.resume.reject.bearer.resource.metadata/client",
+        "${net}/lifecycle.events.resume.reject.bearer.resource.metadata/server"})
+    public void shouldRejectLifecycleEventsResumeOnUpstreamBearerChallengeResourceMetadata() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/lifecycle.events.session.unknown/client",
         "${net}/lifecycle.events.session.unknown/server"})
     public void shouldRejectLifecycleEventsSessionUnknown() throws Exception

@@ -362,6 +362,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/lifecycle.events.resume.reject.bearer.resource.metadata/client",
+        "${app}/lifecycle.events.resume.reject.bearer.resource.metadata/server"})
+    public void shouldRejectLifecycleEventsResumeOnUpstreamBearerChallengeResourceMetadata() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/lifecycle.events.unsupported/client",
         "${app}/lifecycle.events.unsupported/server"})
     public void shouldRejectLifecycleEventsUnsupported() throws Exception
