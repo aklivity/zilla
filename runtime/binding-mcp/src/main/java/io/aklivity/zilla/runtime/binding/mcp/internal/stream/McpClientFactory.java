@@ -2574,6 +2574,31 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         @Override
+        boolean proceedWithRequest(
+            long traceId,
+            long authorization,
+            McpBeginExFW mcpBeginEx)
+        {
+            final McpBindingConfig binding = binding();
+            final GuardHandler guard = binding.guard;
+            if (guard != null)
+            {
+                final long sessionId = (authorization & GuardHandler.MASK_AUTHORIZED) != 0L
+                    ? authorization
+                    : guard.reauthorize(traceId, binding.id, initialId, null);
+                if ((sessionId & GuardHandler.MASK_AUTHORIZED) != 0L)
+                {
+                    credentials = guard.credentials(sessionId);
+                }
+            }
+            if (credentials == null)
+            {
+                credentials = binding.credentials;
+            }
+            return true;
+        }
+
+        @Override
         String transportSessionId()
         {
             return session.transportSessionId();

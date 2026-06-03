@@ -407,11 +407,33 @@ public class McpClientIT
     }
 
     @Test
+    @Configuration("client.identity.yaml")
+    @Specification({
+        "${app}/prompts.get/client",
+        "${net}/prompts.get.identity/server"})
+    @ScriptProperty("authorization 1L")
+    public void shouldGetPromptWithIdentity() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("client.yaml")
     @Specification({
         "${app}/resources.read/client",
         "${net}/resources.read/server"})
     public void shouldReadResource() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.identity.yaml")
+    @Specification({
+        "${app}/resources.read/client",
+        "${net}/resources.read.identity/server"})
+    @ScriptProperty("authorization 1L")
+    public void shouldReadResourceWithIdentity() throws Exception
     {
         k3po.finish();
     }

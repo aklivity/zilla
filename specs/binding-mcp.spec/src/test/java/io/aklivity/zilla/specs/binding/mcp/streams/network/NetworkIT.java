@@ -380,9 +380,27 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/prompts.get.identity/client",
+        "${net}/prompts.get.identity/server"})
+    public void shouldGetPromptWithIdentity() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/resources.read/client",
         "${net}/resources.read/server"})
     public void shouldReadResource() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/resources.read.identity/client",
+        "${net}/resources.read.identity/server"})
+    public void shouldReadResourceWithIdentity() throws Exception
     {
         k3po.finish();
     }
