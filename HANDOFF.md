@@ -381,10 +381,16 @@ Demo flow:
 1. Client initializes (lifecycle); advertises URL-elicitation capability.
 2. Client `tools/list` with NO token → proxy fans out; public toolkits return tools immediately
    (non-blocking finalize); the auth-guarded remote returns a **URL `elicitation/create`** (its own
-   authorize URL), which Zilla relays to the client as a per-toolkit `elicitation/create`. The in-progress
-   request is held up to `timeout` (per E).
-3. Client opens the elicitation URL → completes OAuth **directly with the remote's AS** → obtains a bearer
-   scoped to that remote. (No Zilla guard involved — Zilla just relayed the URL.)
+   authorize URL), which Zilla relays to the client. **The north server `manipulateElicitUrl`
+   (`McpServerFactory:5154`) rewrites the authorize URL before rendering it: `state` ←
+   `<sessionId>.<elicitationId>.<toolkit>__<nonce>` AND `redirect_uri` ← `server.redirectURI` (Zilla's
+   own `/mcp/auth/callback`) — so the OAuth callback ALWAYS routes back through Zilla, never direct.**
+   The in-progress request is held up to `timeout` (per E).
+3. Client opens the (Zilla-rewritten) authorize URL → completes OAuth **directly with the remote's AS** →
+   the AS redirects the browser to **Zilla's** `/mcp/auth/callback?code=...&state=<sessionId>.<elicitationId>.<toolkit>__<nonce>`.
+   Zilla correlates via `state` (resume held request / route toolkit) and relays the callback UP to the
+   remote as the `elicitCallback` flush; the remote exchanges the code and emits `elicitComplete`. (No
+   Zilla guard involved — Zilla rewrote the URL + relayed; the remote is the OAuth client.)
 4. Remote now treats the identity as authorized and emits native `notifications/tools/list_changed`,
    which Zilla relays up the lifecycle SSE (or the client simply re-lists after the elicitation completes).
 5. Client re-sends `tools/list` WITH the bearer → Zilla forwards the bearer to the remote (live
