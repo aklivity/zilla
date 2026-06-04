@@ -463,18 +463,15 @@ classifies every phase as still-required / no-longer-required / new, given the e
   via `credentials(authorization)`), so it is MORE important now, not less. Keep.
 - **P9** preauthorize→elicit→callback→reauthorize ITs — Track B coverage. Keep.
 
-**DONE but NOW QUESTIONABLE / SIMPLIFIABLE (design evolved — needs maintainer confirm before touching):**
-- **P6 hold-and-resume (the `timeout>0` branch: body buffering + signal-based resume in `McpRequestStream`)
-  is likely NO LONGER REQUIRED.** The client-driven REPLAY insight (return promptly → client authorizes →
-  client re-issues → Gap A makes the re-issue succeed) is the universal recovery pattern across BOTH
-  tracks. Under it, Zilla need not buffer/hold/resume. What REMAINS essential from P6: the `timeout`
-  option + the **`-32042 URLElicitationRequiredError`** emission (the "auth-required, go elicit then retry"
-  signal = `timeout==0` path). So P6 reduces to "emit -32042" and the hold/buffer/resume machinery becomes
-  removable. CAVEAT: in-band hold (no client round-trip) vs error+retry are both valid MCP patterns; this
-  is a deliberate UX call — confirm with maintainer before removing shipped behavior. **Top audit finding.**
-- **P3 per-route `with.cache.credentials`** — already flagged (Phase 5 residual) as future-superseded by a
-  single `options.cache.authorization` + zilla-plus OAuth-guard **token exchange**. Not obsolete now; mark
-  "may retire when Track B token-exchange lands."
+**DONE & KEPT BY DESIGN (design evolved but retained deliberately):**
+- **P6 hold-and-resume (`timeout>0`: body buffer + signal resume).** The client-driven REPLAY pattern
+  (return promptly → client authorizes → client re-issues → Gap A makes the re-issue succeed) works for
+  BOTH tracks, so the hold is **additive UX** (request resumes automatically, no client re-issue round-trip)
+  rather than strictly required. **Maintainer decision (2026-06-04): KEEP it** as a deliberate UX
+  differentiator. `timeout==0`/`-32042` remains the portable default; the hold is the opt-in enhancement.
+  So nothing already-done is being removed.
+- **P3 per-route `with.cache.credentials`** — not obsolete; may retire later if a single
+  `options.cache.authorization` + token-exchange-capable guard supersedes per-route cache creds.
 
 **NOT STARTED & STILL REQUIRED (re-scoped):**
 - **P7a (Track A, OSS)** — slim: origin-conditional passthrough relay of the remote's elicitation +
