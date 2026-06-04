@@ -461,6 +461,50 @@ E. **Elicitation timeout — URL-mode ONLY for now (form deferred).** Because bo
    (not a Zilla-side hold). Do NOT arm a timer on the remote-relayed `:1357` path. Revisit
    origin-discrimination only when form-mode lands.
 
+### Phase 7a — GROUNDED FINDINGS (2026-06-04, re-verified against code; CORRECTS the implementation shape above)
+
+Phase 7a (Track A non-blocking live `tools/list` + relay elicit + relay native `list_changed`) is BIGGER than
+"add a challenge relay to `McpProxyListFactory`". Verified current behavior:
+- **The live list already non-blocks.** `McpProxyListFactory.McpListServer.onClientSkip` (`:1371`): on `hydration`
+  → abort; on LIVE → `onNextClient` (continue aggregating). So partial aggregation across routes already works.
+- **An unauthorized route surfaces at the per-route LIFECYCLE, not the list stream.** `McpListClient.onLifecycleSettled`
+  (`McpProxyListFactory:291`) skips a route precisely when its per-route `McpLifecycleClient.sessionId == null`
+  (`:299` → `:317 server.onClientSkip`). The list stream itself never sees a challenge.
+- **THE BLOCKER: lifecycle establishment is all-or-nothing.** When a route-exit replies with a bearer RESET
+  (upstream needs auth) before the north reply opens, `McpLifecycleServer.onClientBearerReset`
+  (`McpProxyLifecycleFactory:505`) `doServerReset`s the ENTIRE unified north lifecycle with that bearer extension
+  and aborts every other route client (`:512-521`, guarded by `!McpState.replyOpened(state)`). So ONE unauthorized
+  route currently fails the whole proxy `initialize`. Bearer reset reaches there via `McpLifecycleClient.onClientReset`
+  `:1108` (`bearer = extension.sizeof() > 0` `:1129` → `:1134 server.onClientBearerReset`).
+- **Relay primitives already exist:** north→client challenge `McpLifecycleServer.doClientChallenge`
+  (`McpProxyLifecycleFactory:904`, today used for RESUME); native `list_changed` relay up the lifecycle SSE via
+  `extractEventId :1150` + `injectFlushEx :1178` (`KIND_TOOLS_LIST_CHANGED`); N1 verbatim elicit-URL passthrough
+  in `McpServerFactory.manipulateElicitUrl` (placeholder `replace.me` gate, `:5155`/called `:4477`).
+
+**Core 7a work = restructure the lifecycle aggregation to allow PARTIAL auth** (let the unified lifecycle OPEN
+when ≥1 route settles / a zero-auth baseline exists; for each unauthorized route relay its elicitation/create UP
+the north lifecycle SSE instead of resetting the whole session), then the already-non-blocking list serves the
+authorized subset and native `list_changed` rides up as routes authorize. This changes `onClientBearerReset` from
+"reset-all" to "mark-route-unauthorized + relay-elicit + keep-going", and gates north-reply-open on partial rather
+than total settlement. Touches `McpProxyLifecycleFactory` (aggregation + elicit relay) primarily, NOT mainly
+`McpProxyListFactory`.
+
+**Test-first plan (first PR-able increment):**
+1. Spec scenario(s), application + network: live `initialize` to a 2-route proxy, route A authorized (settles,
+   `session-1a`) + route B bearer/elicit (relay `elicitation/create` up the north lifecycle SSE); unified lifecycle
+   OPENS (`session-1`); `tools/list` returns A's tools only; then route B authorizes → native `list_changed`
+   relayed up → re-list returns A∪B. Closest templates: `tools.list.toolkit.multi` (live 2-route list),
+   `cache.hydrate.toolkit.multi.skip.unauthorized` (skip shape), `tools.call.elicit.passthrough` (N1 verbatim URL),
+   `lifecycle.notify.tools.list.changed.toolkit.multi` (list_changed). NEW scenario dir needed — none covers
+   live partial-auth lifecycle + elicit relay today.
+2. Confirm RED against current code (all-or-nothing reset fails the partial-open assertion).
+3. Implement the aggregation restructure; McpProxyIT + McpProxyLifecycleIT + peer Network/ApplicationIT; gate full
+   spec + runtime `install`.
+
+**OPEN DECISION for kickoff:** north-reply-open gate when ALL routes need auth — open with an empty baseline +
+elicit-for-all, or bearer-reset the session (status quo) only in the zero-success case? (Leaning: open with empty
+baseline + per-route elicit, so the client is always prompted — matches issue §6 motivation "never silently skip".)
+
 ### #1810 BROADENED SCOPE + DONE-vs-NEEDED AUDIT (maintainer 2026-06-04)
 
 Broaden #1810 to cover BOTH tracks (A = OSS relay; B = Zilla-managed per-toolkit OAuth). Audit below
