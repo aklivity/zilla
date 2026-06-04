@@ -544,6 +544,14 @@ public class EngineWorker implements EngineContext, Agent
     }
 
     @Override
+    public boolean isLocalIndex(
+        long bindingId,
+        int hash)
+    {
+        return localIndex == resolveRemoteIndex(bindingId, hash);
+    }
+
+    @Override
     public long supplyReplyId(
         long initialId)
     {
@@ -881,6 +889,12 @@ public class EngineWorker implements EngineContext, Agent
         }
         finally
         {
+            targetsByIndex.forEach((k, v) -> quietClose(v));
+            quietClose(streamsLayout);
+            quietClose(bufferPoolLayout);
+            debitorsByIndex.forEach((k, v) -> quietClose(v));
+            quietClose(creditor);
+            quietClose(eventWriter);
             thread = null;
         }
     }
@@ -1058,14 +1072,6 @@ public class EngineWorker implements EngineContext, Agent
         }
 
         targetsByIndex.forEach((k, v) -> v.detach());
-        targetsByIndex.forEach((k, v) -> quietClose(v));
-
-        quietClose(streamsLayout);
-        quietClose(bufferPoolLayout);
-
-        debitorsByIndex.forEach((k, v) -> quietClose(v));
-        quietClose(creditor);
-        quietClose(eventWriter);
 
         if (acquiredBuffers != 0 || acquiredCreditors != 0 || acquiredDebitors != 0L)
         {

@@ -25,5 +25,5 @@ bindings:
     options:
       cache:
         store: memory0
-        ttl: PT1S
+        ttl: PT0.25S
     exit: app1

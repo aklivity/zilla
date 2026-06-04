@@ -20,7 +20,6 @@ connect "zilla://streams/app0"
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .lifecycle()
-                               .sessionId("agent-1")
                                .build()
                            .build()}
 
@@ -45,6 +44,7 @@ write zilla:begin.ext ${mcp:beginEx()
                            .toolsCall()
                                .sessionId("agent-1")
                                .name("get_weather")
+                               .contentLength(59)
                                .build()
                            .build()}
 

@@ -58,6 +58,24 @@ public class ProduceIT
 
     @Test
     @Specification({
+        "${net}/leader.not.available/client",
+        "${net}/leader.not.available/server"})
+    public void shouldLeaderNotAvailable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/storage.error/client",
+        "${net}/storage.error/server"})
+    public void shouldStorageError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/message.key/client",
         "${net}/message.key/server"})
     public void shouldSendMessageKey() throws Exception

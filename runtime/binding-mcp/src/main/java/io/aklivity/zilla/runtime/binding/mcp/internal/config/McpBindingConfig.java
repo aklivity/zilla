@@ -42,6 +42,7 @@ public final class McpBindingConfig
     public final long id;
     public final McpOptionsConfig options;
     public final GuardHandler guard;
+    public final String credentials;
     public final McpProxyCache cache;
     public final Map<String, McpProxySession> sessions;
     public final Map<String, McpRouteConfig> routeByPrefix;
@@ -85,6 +86,12 @@ public final class McpBindingConfig
             .map(a -> a.name)
             .map(binding.resolveId::applyAsLong)
             .map(context::supplyGuard)
+            .orElse(null);
+
+        this.credentials = Optional.ofNullable(options)
+            .map(o -> o.authorization)
+            .map(a -> a.credentials)
+            .filter(c -> !c.isEmpty())
             .orElse(null);
 
         this.cache = Optional.ofNullable(options)

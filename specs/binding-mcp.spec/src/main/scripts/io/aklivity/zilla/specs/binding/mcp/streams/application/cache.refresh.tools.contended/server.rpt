@@ -25,7 +25,6 @@ accepted
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .lifecycle()
-                              .sessionId("hydrate-A")
                               .build()
                           .build()}
 

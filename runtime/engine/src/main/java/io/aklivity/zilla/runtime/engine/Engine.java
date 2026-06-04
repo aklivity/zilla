@@ -105,6 +105,7 @@ public final class Engine implements Collector, AutoCloseable
     private final RouterConfig routerConfig;
 
     private final EventWriter eventWriter;
+    private final AtomicBoolean initialized;
     private final AtomicBoolean closed;
 
     private FileSystem fileSystem = null;
@@ -271,6 +272,7 @@ public final class Engine implements Collector, AutoCloseable
         this.readonly = readonly;
         this.manager = manager;
         this.diagnostics = diagnostics;
+        this.initialized = new AtomicBoolean(false);
         this.closed = new AtomicBoolean(false);
     }
 
@@ -290,14 +292,23 @@ public final class Engine implements Collector, AutoCloseable
         manager.process(config);
     }
 
+    public void init()
+    {
+        if (initialized.compareAndSet(false, true))
+        {
+            for (EngineWorker worker : workers)
+            {
+                worker.doStart();
+            }
+
+            boss.doStart();
+        }
+    }
+
     public void start() throws Exception
     {
-        for (EngineWorker worker : workers)
-        {
-            worker.doStart();
-        }
-
-        boss.doStart();
+        // start workers and boss if init() has not already been called; idempotent
+        init();
 
         // ignore the config file in read-only mode; no config will be read so no namespaces, bindings, etc. will be attached
         if (!readonly)
@@ -321,7 +332,9 @@ public final class Engine implements Collector, AutoCloseable
 
         if (config.drainOnClose())
         {
-            workers.forEach(EngineWorker::drain);
+            workers.stream()
+                   .filter(worker -> !worker.runner().isClosed())
+                   .forEach(EngineWorker::drain);
         }
 
         final List<Throwable> errors = new ArrayList<>();

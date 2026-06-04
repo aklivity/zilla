@@ -637,168 +637,207 @@ final class TestBindingFactory implements BindingHandler
             {
                 return;
             }
-            for (StoreAssertion a : storeAssertions)
+            runStoreAssertion(traceId, 0);
+        }
+
+        private void runStoreAssertion(
+            long traceId,
+            int index)
+        {
+            if (index >= storeAssertions.size())
             {
-                if (a.delay > 0L)
+                return;
+            }
+
+            final StoreAssertion a = storeAssertions.get(index);
+
+            if (a.delay > 0L)
+            {
+                try
                 {
-                    try
+                    Thread.sleep(a.delay);
+                }
+                catch (InterruptedException ex)
+                {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException(ex);
+                }
+            }
+
+            final Thread dispatchThread = Thread.currentThread();
+            // returned guards the contract that the callback fires strictly later than the call;
+            // fired guards against a duplicate callback
+            final MutableBoolean returned = new MutableBoolean();
+            final MutableBoolean fired = new MutableBoolean();
+            // advance only from within the callback so a dependent op (renew/unlock) observes the
+            // token delivered by a prior lock's asynchronous callback
+            final Runnable next = () -> runStoreAssertion(traceId, index + 1);
+
+            switch (a.op)
+            {
+            case "get":
+                store.get(a.key, (k, v) ->
+                {
+                    if (Thread.currentThread() != dispatchThread ||
+                        !returned.value ||
+                        fired.value ||
+                        a.hasExpect && !Objects.equals(v, a.expect))
                     {
-                        Thread.sleep(a.delay);
+                        doInitialReset(traceId);
                     }
-                    catch (InterruptedException ex)
+                    fired.value = true;
+                    next.run();
+                });
+                returned.value = true;
+                break;
+            case "put":
+                store.put(a.key, a.value, a.ttl, v ->
+                {
+                    if (Thread.currentThread() != dispatchThread ||
+                        !returned.value ||
+                        fired.value)
                     {
-                        Thread.currentThread().interrupt();
-                        throw new RuntimeException(ex);
+                        doInitialReset(traceId);
                     }
-                }
-                final Thread dispatchThread = Thread.currentThread();
-                final MutableBoolean callbackFired = new MutableBoolean();
-                switch (a.op)
+                    fired.value = true;
+                    next.run();
+                });
+                returned.value = true;
+                break;
+            case "putIfAbsent":
+                store.putIfAbsent(a.key, a.value, a.ttl, v ->
                 {
-                case "get":
-                    store.get(a.key, (k, v) ->
+                    if (Thread.currentThread() != dispatchThread ||
+                        !returned.value ||
+                        fired.value ||
+                        a.hasExpect && !Objects.equals(v, a.expect))
                     {
-                        if (Thread.currentThread() != dispatchThread ||
-                            callbackFired.value ||
-                            a.hasExpect && !Objects.equals(v, a.expect))
-                        {
-                            doInitialReset(traceId);
-                        }
-                        callbackFired.value = true;
-                    });
-                    break;
-                case "put":
-                    store.put(a.key, a.value, a.ttl, v ->
-                    {
-                        if (Thread.currentThread() != dispatchThread ||
-                            callbackFired.value)
-                        {
-                            doInitialReset(traceId);
-                        }
-                        callbackFired.value = true;
-                    });
-                    break;
-                case "putIfAbsent":
-                    store.putIfAbsent(a.key, a.value, a.ttl, v ->
-                    {
-                        if (Thread.currentThread() != dispatchThread ||
-                            callbackFired.value ||
-                            a.hasExpect && !Objects.equals(v, a.expect))
-                        {
-                            doInitialReset(traceId);
-                        }
-                        callbackFired.value = true;
-                    });
-                    break;
-                case "delete":
-                    store.delete(a.key, v ->
-                    {
-                        if (Thread.currentThread() != dispatchThread ||
-                            callbackFired.value)
-                        {
-                            doInitialReset(traceId);
-                        }
-                        callbackFired.value = true;
-                    });
-                    break;
-                case "getAndDelete":
-                    store.getAndDelete(a.key, v ->
-                    {
-                        if (Thread.currentThread() != dispatchThread ||
-                            callbackFired.value ||
-                            a.hasExpect && !Objects.equals(v, a.expect))
-                        {
-                            doInitialReset(traceId);
-                        }
-                        callbackFired.value = true;
-                    });
-                    break;
-                case "lock":
-                    store.lock(a.key, a.ttl, (k, token) ->
-                    {
-                        if (Thread.currentThread() != dispatchThread ||
-                            callbackFired.value)
-                        {
-                            doInitialReset(traceId);
-                        }
-                        // expect="" → token must be null (lock failed);
-                        // expect=non-empty → token must be non-null (lock succeeded)
-                        if (a.hasExpect)
-                        {
-                            boolean expectAcquired = a.expect != null && !a.expect.isEmpty();
-                            boolean acquired = token != null;
-                            if (expectAcquired != acquired)
-                            {
-                                doInitialReset(traceId);
-                            }
-                        }
-                        if (token != null)
-                        {
-                            heldLockTokens.put(k, token);
-                        }
-                        callbackFired.value = true;
-                    });
-                    break;
-                case "unlock":
-                    store.unlock(a.key, resolveToken(a), v ->
-                    {
-                        if (Thread.currentThread() != dispatchThread ||
-                            callbackFired.value ||
-                            a.hasExpect && !Objects.equals(v, a.expect))
-                        {
-                            doInitialReset(traceId);
-                        }
-                        if (v != null)
-                        {
-                            heldLockTokens.remove(a.key);
-                        }
-                        callbackFired.value = true;
-                    });
-                    break;
-                case "renew":
-                    store.renew(a.key, resolveToken(a), a.ttl, v ->
-                    {
-                        if (Thread.currentThread() != dispatchThread ||
-                            callbackFired.value)
-                        {
-                            doInitialReset(traceId);
-                        }
-                        // expect="" or "null" → v must be null (renew failed);
-                        // expect=non-empty → v must be non-null (renew succeeded)
-                        if (a.hasExpect)
-                        {
-                            boolean expectRenewed = a.expect != null && !a.expect.isEmpty() &&
-                                !"null".equals(a.expect);
-                            boolean renewed = v != null;
-                            if (expectRenewed != renewed)
-                            {
-                                doInitialReset(traceId);
-                            }
-                        }
-                        callbackFired.value = true;
-                    });
-                    break;
-                case "watch":
-                    // registration is synchronous; listener fires async on mutations
-                    store.watch(a.key, (k, v) ->
-                    {
-                        if (Thread.currentThread() != dispatchThread ||
-                            a.hasExpect && !Objects.equals(v, a.expect))
-                        {
-                            doInitialReset(traceId);
-                        }
-                    });
-                    callbackFired.value = false;
-                    continue;
-                default:
-                    doInitialReset(traceId);
-                    break;
-                }
-                if (callbackFired.value)
+                        doInitialReset(traceId);
+                    }
+                    fired.value = true;
+                    next.run();
+                });
+                returned.value = true;
+                break;
+            case "delete":
+                store.delete(a.key, v ->
                 {
-                    // store contract: callback must fire strictly later than the call
-                    doInitialReset(traceId);
-                }
+                    if (Thread.currentThread() != dispatchThread ||
+                        !returned.value ||
+                        fired.value)
+                    {
+                        doInitialReset(traceId);
+                    }
+                    fired.value = true;
+                    next.run();
+                });
+                returned.value = true;
+                break;
+            case "getAndDelete":
+                store.getAndDelete(a.key, v ->
+                {
+                    if (Thread.currentThread() != dispatchThread ||
+                        !returned.value ||
+                        fired.value ||
+                        a.hasExpect && !Objects.equals(v, a.expect))
+                    {
+                        doInitialReset(traceId);
+                    }
+                    fired.value = true;
+                    next.run();
+                });
+                returned.value = true;
+                break;
+            case "lock":
+                store.lock(a.key, a.ttl, (k, token) ->
+                {
+                    if (Thread.currentThread() != dispatchThread ||
+                        !returned.value ||
+                        fired.value)
+                    {
+                        doInitialReset(traceId);
+                    }
+                    // expect="" → token must be null (lock failed);
+                    // expect=non-empty → token must be non-null (lock succeeded)
+                    if (a.hasExpect)
+                    {
+                        boolean expectAcquired = a.expect != null && !a.expect.isEmpty();
+                        boolean acquired = token != null;
+                        if (expectAcquired != acquired)
+                        {
+                            doInitialReset(traceId);
+                        }
+                    }
+                    if (token != null)
+                    {
+                        heldLockTokens.put(k, token);
+                    }
+                    fired.value = true;
+                    next.run();
+                });
+                returned.value = true;
+                break;
+            case "unlock":
+                store.unlock(a.key, resolveToken(a), v ->
+                {
+                    if (Thread.currentThread() != dispatchThread ||
+                        !returned.value ||
+                        fired.value ||
+                        a.hasExpect && !Objects.equals(v, a.expect))
+                    {
+                        doInitialReset(traceId);
+                    }
+                    if (v != null)
+                    {
+                        heldLockTokens.remove(a.key);
+                    }
+                    fired.value = true;
+                    next.run();
+                });
+                returned.value = true;
+                break;
+            case "renew":
+                store.renew(a.key, resolveToken(a), a.ttl, v ->
+                {
+                    if (Thread.currentThread() != dispatchThread ||
+                        !returned.value ||
+                        fired.value)
+                    {
+                        doInitialReset(traceId);
+                    }
+                    // expect="" or "null" → v must be null (renew failed);
+                    // expect=non-empty → v must be non-null (renew succeeded)
+                    if (a.hasExpect)
+                    {
+                        boolean expectRenewed = a.expect != null && !a.expect.isEmpty() &&
+                            !"null".equals(a.expect);
+                        boolean renewed = v != null;
+                        if (expectRenewed != renewed)
+                        {
+                            doInitialReset(traceId);
+                        }
+                    }
+                    fired.value = true;
+                    next.run();
+                });
+                returned.value = true;
+                break;
+            case "watch":
+                // registration is synchronous; listener fires async on mutations
+                store.watch(a.key, (k, v) ->
+                {
+                    if (Thread.currentThread() != dispatchThread ||
+                        a.hasExpect && !Objects.equals(v, a.expect))
+                    {
+                        doInitialReset(traceId);
+                    }
+                });
+                next.run();
+                break;
+            default:
+                doInitialReset(traceId);
+                next.run();
+                break;
             }
         }
 

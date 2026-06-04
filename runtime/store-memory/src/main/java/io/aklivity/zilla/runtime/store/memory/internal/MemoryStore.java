@@ -53,7 +53,7 @@ final class MemoryStore implements Store
             this::supplyWatchers,
             this::supplyLocks,
             this::releaseEntries,
-            context.signaler());
+            context::dispatch);
     }
 
     @Override

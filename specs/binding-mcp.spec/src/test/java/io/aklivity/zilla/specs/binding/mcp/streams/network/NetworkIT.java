@@ -47,6 +47,42 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/lifecycle.initialize.elicitation.url/client",
+        "${net}/lifecycle.initialize.elicitation.url/server"})
+    public void shouldInitializeLifecycleWithElicitationUrl() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/lifecycle.initialize.elicitation.form/client",
+        "${net}/lifecycle.initialize.elicitation.form/server"})
+    public void shouldInitializeLifecycleWithElicitationForm() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/lifecycle.initialize.negotiate/client",
+        "${net}/lifecycle.initialize.negotiate/server"})
+    public void shouldNegotiateLifecycleInitializeVersion() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/lifecycle.initialize.version/client",
+        "${net}/lifecycle.initialize.version/server"})
+    public void shouldInitializeLifecycleWithNegotiatedVersion() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/lifecycle.initialize.reject.bearer/client",
         "${net}/lifecycle.initialize.reject.bearer/server"})
     public void shouldRejectLifecycleInitializeOnUpstreamBearerChallenge() throws Exception
@@ -110,9 +146,27 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/reject.request.method.before.id/client",
-        "${net}/reject.request.method.before.id/server"})
-    public void shouldRejectRequestMethodBeforeId() throws Exception
+        "${net}/lifecycle.initialize.id.last/client",
+        "${net}/lifecycle.initialize.id.last/server"})
+    public void shouldInitializeLifecycleWithIdLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/tools.list.id.last/client",
+        "${net}/tools.list.id.last/server"})
+    public void shouldListToolsWithIdLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/lifecycle.ping.id.last/client",
+        "${net}/lifecycle.ping.id.last/server"})
+    public void shouldPingLifecycleWithIdLast() throws Exception
     {
         k3po.finish();
     }
@@ -131,6 +185,15 @@ public class NetworkIT
         "${net}/reject.request.params.array/client",
         "${net}/reject.request.params.array/server"})
     public void shouldRejectRequestParamsWithArray() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/reject.tools.call.without.content.length/client",
+        "${net}/reject.tools.call.without.content.length/server"})
+    public void shouldRejectToolsCallWithoutContentLength() throws Exception
     {
         k3po.finish();
     }

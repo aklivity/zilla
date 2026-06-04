@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
+import java.util.function.LongConsumer;
+
 import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
@@ -27,7 +29,10 @@ public final class KafkaClientRoute
     public final Long2ObjectHashMap<KafkaServerConfig> servers;
     public final Int2ObjectHashMap<Int2IntHashMap> partitions;
 
+    public static final LongConsumer NOOP = t -> {};
+
     public volatile long metaInitialId;
+    public LongConsumer metaFlush = NOOP;
 
     public KafkaClientRoute(
         long resolvedId)

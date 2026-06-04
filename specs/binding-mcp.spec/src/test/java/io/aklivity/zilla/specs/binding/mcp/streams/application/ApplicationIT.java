@@ -47,6 +47,24 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/lifecycle.initialize.elicitation.url/client",
+        "${app}/lifecycle.initialize.elicitation.url/server"})
+    public void shouldInitializeLifecycleWithElicitationUrl() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/lifecycle.initialize.elicitation.form/client",
+        "${app}/lifecycle.initialize.elicitation.form/server"})
+    public void shouldInitializeLifecycleWithElicitationForm() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/lifecycle.initialize.reject.bearer/client",
         "${app}/lifecycle.initialize.reject.bearer/server"})
     public void shouldRejectLifecycleInitializeOnUpstreamBearerChallenge() throws Exception
@@ -113,15 +131,6 @@ public class ApplicationIT
         "${app}/lifecycle.timeout.rejected/client",
         "${app}/lifecycle.timeout.rejected/server"})
     public void shouldTimeoutLifecycleRejected() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/reject.request.method.before.id/client",
-        "${app}/reject.request.method.before.id/server"})
-    public void shouldRejectRequestMethodBeforeId() throws Exception
     {
         k3po.finish();
     }

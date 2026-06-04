@@ -73,6 +73,36 @@ public class McpServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/lifecycle.initialize.elicitation.url/client",
+        "${app}/lifecycle.initialize.elicitation.url/server"})
+    public void shouldInitializeLifecycleWithElicitationUrl() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/lifecycle.initialize.elicitation.form/client",
+        "${app}/lifecycle.initialize.elicitation.form/server"})
+    public void shouldInitializeLifecycleWithElicitationForm() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/lifecycle.initialize.negotiate/client",
+        "${app}/lifecycle.initialize/server"})
+    public void shouldNegotiateLifecycleInitializeVersion() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/lifecycle.initialize.reject.bearer/client",
         "${app}/lifecycle.initialize.reject.bearer/server"})
     public void shouldRejectLifecycleInitializeWithBearerChallenge() throws Exception
@@ -147,9 +177,29 @@ public class McpServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/reject.request.method.before.id/client",
-        "${app}/reject.request.method.before.id/server"})
-    public void shouldRejectRequestMethodBeforeId() throws Exception
+        "${net}/lifecycle.initialize.id.last/client",
+        "${app}/lifecycle.initialize/server"})
+    public void shouldInitializeLifecycleWithIdLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/tools.list.id.last/client",
+        "${app}/tools.list/server"})
+    public void shouldListToolsWithIdLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/lifecycle.ping.id.last/client",
+        "${app}/lifecycle.initialize/server"})
+    public void shouldPingLifecycleWithIdLast() throws Exception
     {
         k3po.finish();
     }
@@ -170,6 +220,16 @@ public class McpServerIT
         "${net}/reject.request.params.array/client",
         "${app}/reject.request.params.array/server"})
     public void shouldRejectRequestParamsWithArray() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/reject.tools.call.without.content.length/client",
+        "${app}/reject.tools.call.without.content.length/server"})
+    public void shouldRejectToolsCallWithoutContentLength() throws Exception
     {
         k3po.finish();
     }

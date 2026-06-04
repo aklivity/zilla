@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_SESSION_ID_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -40,6 +41,7 @@ public class McpProxyLifecycleIT
         .directory("target/zilla-itests")
         .countersBufferCapacity(8192)
         .configurationRoot("io/aklivity/zilla/specs/binding/mcp/config")
+        .configure(MCP_SESSION_ID_NAME, "%s::sessionId".formatted(McpProxyLifecycleIT.class.getName()))
         .external("app1")
         .clean();
 
@@ -121,5 +123,10 @@ public class McpProxyLifecycleIT
     public void shouldRejectLifecycleInitializeWithBearerChallenge() throws Exception
     {
         k3po.finish();
+    }
+
+    public static String sessionId()
+    {
+        return "agent-1";
     }
 }

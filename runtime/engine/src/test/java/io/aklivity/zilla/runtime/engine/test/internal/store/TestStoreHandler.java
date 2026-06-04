@@ -25,7 +25,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.StoreConfig;
 import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 
@@ -34,17 +33,17 @@ public final class TestStoreHandler implements StoreHandler
     private final ConcurrentMap<String, String> entries;
     private final ConcurrentMap<String, List<TestWatcher>> listeners;
     private final ConcurrentMap<String, TestLockEntry> locks;
-    private final Signaler signaler;
+    private final Consumer<Runnable> dispatcher;
 
     public TestStoreHandler(
         StoreConfig store,
-        Signaler signaler,
+        Consumer<Runnable> dispatcher,
         ConcurrentMap<String, String> entries,
         ConcurrentMap<String, List<TestWatcher>> listeners,
         ConcurrentMap<String, TestLockEntry> locks)
     {
         this.entries = Objects.requireNonNull(entries);
-        this.signaler = Objects.requireNonNull(signaler);
+        this.dispatcher = Objects.requireNonNull(dispatcher);
         this.listeners = Objects.requireNonNull(listeners);
         this.locks = Objects.requireNonNull(locks);
     }
@@ -187,7 +186,7 @@ public final class TestStoreHandler implements StoreHandler
         String key,
         BiConsumer<String, String> listener)
     {
-        final TestWatcher watcher = new TestWatcher(listener, signaler);
+        final TestWatcher watcher = new TestWatcher(listener, dispatcher);
         final List<TestWatcher> list = listeners.computeIfAbsent(key, k -> new CopyOnWriteArrayList<>());
         list.add(watcher);
         return () ->
@@ -207,10 +206,9 @@ public final class TestStoreHandler implements StoreHandler
         final List<TestWatcher> list = listeners.get(key);
         if (list != null && !list.isEmpty())
         {
-            final long now = System.currentTimeMillis();
             for (TestWatcher w : list)
             {
-                w.signaler().signalAt(now, 0, ignored -> w.listener().accept(key, value));
+                w.dispatcher().accept(() -> w.listener().accept(key, value));
             }
         }
     }
@@ -218,7 +216,6 @@ public final class TestStoreHandler implements StoreHandler
     private void defer(
         Runnable task)
     {
-        // contract: callback fires strictly later than the call, on the caller's I/O thread
-        signaler.signalAt(System.currentTimeMillis(), 0, ignored -> task.run());
+        dispatcher.accept(task);
     }
 }

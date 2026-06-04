@@ -24,7 +24,9 @@ scope mcp
         SERVER_RESOURCES_LIST_CHANGED(32),
         CLIENT_ROOTS(64),
         CLIENT_SAMPLING(128),
-        CLIENT_ELICITATION(256)
+        CLIENT_ELICITATION(256),
+        CLIENT_ELICITATION_FORM(512),
+        CLIENT_ELICITATION_URL(1024)
     }
 
     scope stream
@@ -123,7 +125,7 @@ scope mcp
 
         struct McpLifecycleBeginEx
         {
-            string16 sessionId;
+            string16 sessionId = null;
             uint16 capabilities = 0;
         }
 
@@ -136,6 +138,7 @@ scope mcp
         {
             string16 sessionId;
             string16 name;
+            int32 contentLength = -1;
         }
 
         struct McpPromptsListBeginEx
@@ -147,6 +150,7 @@ scope mcp
         {
             string16 sessionId;
             string16 name;
+            int32 contentLength = -1;
         }
 
         struct McpResourcesListBeginEx
@@ -158,6 +162,7 @@ scope mcp
         {
             string16 sessionId;
             string16 uri;
+            int32 contentLength = -1;
         }
 
         struct McpAbortEx extends core::stream::Extension

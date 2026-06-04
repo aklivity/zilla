@@ -16,10 +16,10 @@ package io.aklivity.zilla.runtime.store.memory.internal;
 
 import java.util.List;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.Consumer;
 import java.util.function.LongConsumer;
 import java.util.function.LongFunction;
 
-import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.StoreConfig;
 import io.aklivity.zilla.runtime.engine.store.StoreContext;
 import io.aklivity.zilla.runtime.engine.store.StoreHandler;
@@ -32,20 +32,20 @@ final class MemoryStoreContext implements StoreContext
     private final LongFunction<ConcurrentMap<String, List<Watcher>>> supplyWatchers;
     private final LongFunction<ConcurrentMap<String, LockEntry>> supplyLocks;
     private final LongConsumer removeEntries;
-    private final Signaler signaler;
+    private final Consumer<Runnable> dispatcher;
 
     MemoryStoreContext(
         LongFunction<ConcurrentMap<String, MemoryEntry>> supplyEntries,
         LongFunction<ConcurrentMap<String, List<Watcher>>> supplyWatchers,
         LongFunction<ConcurrentMap<String, LockEntry>> supplyLocks,
         LongConsumer removeEntries,
-        Signaler signaler)
+        Consumer<Runnable> dispatcher)
     {
         this.supplyEntries = supplyEntries;
         this.supplyWatchers = supplyWatchers;
         this.supplyLocks = supplyLocks;
         this.removeEntries = removeEntries;
-        this.signaler = signaler;
+        this.dispatcher = dispatcher;
     }
 
     @Override
@@ -56,7 +56,7 @@ final class MemoryStoreContext implements StoreContext
             supplyEntries.apply(config.id),
             supplyWatchers.apply(config.id),
             supplyLocks.apply(config.id),
-            signaler);
+            dispatcher);
     }
 
     @Override

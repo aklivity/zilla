@@ -25,7 +25,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
-import java.util.function.Supplier;
 
 import org.agrona.DirectBuffer;
 import org.agrona.ExpandableArrayBuffer;
@@ -61,7 +60,6 @@ final class McpProxyCacheHydrater
     private final LongUnaryOperator supplyReplyId;
     private final LongSupplier supplyTraceId;
     private final int mcpTypeId;
-    private final Supplier<String> supplySessionId;
 
     private final BeginFW beginRO = new BeginFW();
     private final EndFW endRO = new EndFW();
@@ -70,6 +68,7 @@ final class McpProxyCacheHydrater
     private final FlushFW flushRO = new FlushFW();
     private final ResetFW resetRO = new ResetFW();
     private final WindowFW windowRO = new WindowFW();
+    private final McpBeginExFW mcpBeginExRO = new McpBeginExFW();
     private final McpFlushExFW mcpFlushExRO = new McpFlushExFW();
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
     private final EndFW.Builder endRW = new EndFW.Builder();
@@ -92,7 +91,6 @@ final class McpProxyCacheHydrater
         this.supplyReplyId = context::supplyReplyId;
         this.supplyTraceId = context::supplyTraceId;
         this.mcpTypeId = context.supplyTypeId("mcp");
-        this.supplySessionId = config.sessionIdSupplier();
 
         this.hydraters = new Int2ObjectHashMap<>();
         hydraters.put(KIND_TOOLS_LIST, new McpToolsListHydrater());
@@ -140,7 +138,9 @@ final class McpProxyCacheHydrater
             stopped = true;
             if (lifecycle != null)
             {
-                lifecycle.doLifecycleEnd(supplyTraceId.getAsLong());
+                final long traceId = supplyTraceId.getAsLong();
+                lifecycle.abortStreams(traceId);
+                lifecycle.doLifecycleEnd(traceId);
                 lifecycle = null;
             }
             cache.releaseLock(k -> {});
@@ -181,7 +181,6 @@ final class McpProxyCacheHydrater
             if (acquired)
             {
                 final long traceId = supplyTraceId.getAsLong();
-                cache.sessionId = supplySessionId.get();
                 cache.authorization = cache.guard != null
                     ? cache.guard.reauthorize(traceId, cache.bindingId, 0L, cache.credentials)
                     : 0L;
@@ -277,6 +276,22 @@ final class McpProxyCacheHydrater
             }
         }
 
+        void abortStreams(
+            long traceId)
+        {
+            if (streams.isEmpty())
+            {
+                return;
+            }
+            final List<McpListHydrater.McpListHydrateStream> copy = new ArrayList<>(streams);
+            streams.clear();
+            for (McpListHydrater.McpListHydrateStream stream : copy)
+            {
+                stream.doListHydrateAbort(traceId);
+                stream.doListHydrateReset(traceId);
+            }
+        }
+
         private void onLifecycleMessage(
             int msgTypeId,
             DirectBuffer buffer,
@@ -315,6 +330,16 @@ final class McpProxyCacheHydrater
         {
             final long traceId = begin.traceId();
             state = McpState.openingReply(state);
+
+            final OctetsFW extension = begin.extension();
+            final McpBeginExFW beginEx = extension.sizeof() > 0
+                ? mcpBeginExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit())
+                : null;
+            if (beginEx != null && beginEx.kind() == McpBeginExFW.KIND_LIFECYCLE)
+            {
+                handler.cache.sessionId = beginEx.lifecycle().sessionId().asString();
+            }
+
             doLifecycleWindow(traceId);
             handler.onLifecycleOpened(traceId);
         }
@@ -376,7 +401,7 @@ final class McpProxyCacheHydrater
             final McpBeginExFW beginEx = mcpBeginExRW
                 .wrap(codecBuffer, 0, codecBuffer.capacity())
                 .typeId(mcpTypeId)
-                .lifecycle(l -> l.sessionId(handler.cache.sessionId))
+                .lifecycle(l -> l.capabilities(0))
                 .build();
 
             receiver = newStream(this::onLifecycleMessage, originId, routedId, initialId,

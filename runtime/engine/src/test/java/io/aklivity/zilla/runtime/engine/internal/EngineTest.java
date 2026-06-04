@@ -75,6 +75,53 @@ public class EngineTest
     }
 
     @Test
+    public void shouldInitThenStart()
+    {
+        EngineConfiguration config = new EngineConfiguration(properties);
+        List<Throwable> errors = new LinkedList<>();
+        try (Engine engine = Engine.builder()
+                .config(config)
+                .errorHandler(errors::add)
+                .build())
+        {
+            engine.init();
+            engine.start();
+        }
+        catch (Throwable ex)
+        {
+            errors.add(ex);
+        }
+        finally
+        {
+            assertThat(errors, empty());
+        }
+    }
+
+    @Test
+    public void shouldInitIdempotent()
+    {
+        EngineConfiguration config = new EngineConfiguration(properties);
+        List<Throwable> errors = new LinkedList<>();
+        try (Engine engine = Engine.builder()
+                .config(config)
+                .errorHandler(errors::add)
+                .build())
+        {
+            engine.init();
+            engine.init();
+            engine.start();
+        }
+        catch (Throwable ex)
+        {
+            errors.add(ex);
+        }
+        finally
+        {
+            assertThat(errors, empty());
+        }
+    }
+
+    @Test
     public void shouldConfigure()
     {
         String resource = String.format("%s-%s.json", getClass().getSimpleName(), "configure");

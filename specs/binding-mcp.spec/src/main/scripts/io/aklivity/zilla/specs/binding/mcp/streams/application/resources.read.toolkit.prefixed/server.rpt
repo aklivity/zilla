@@ -24,7 +24,6 @@ accepted
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .lifecycle()
-                              .sessionId("session-1")
                               .build()
                           .build()}
 
@@ -45,6 +44,7 @@ read zilla:begin.ext ${mcp:matchBeginEx()
                           .resourcesRead()
                               .sessionId("session-1")
                               .uri("bluesky+file:///data/readme.txt")
+                              .contentLength(41)
                               .build()
                           .build()}
 

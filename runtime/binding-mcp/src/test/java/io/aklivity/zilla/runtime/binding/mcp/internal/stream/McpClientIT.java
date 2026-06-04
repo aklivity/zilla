@@ -19,6 +19,7 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTes
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_CLIENT_NAME_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_CLIENT_VERSION_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_INACTIVITY_TIMEOUT_NAME;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_SESSION_ID_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -48,6 +49,7 @@ public class McpClientIT
         .configurationRoot("io/aklivity/zilla/specs/binding/mcp/config")
         .configure(MCP_CLIENT_NAME_NAME, "test")
         .configure(MCP_CLIENT_VERSION_NAME, "1.0")
+        .configure(MCP_SESSION_ID_NAME, "%s::sessionId".formatted(McpClientIT.class.getName()))
         .external("net0")
         .clean();
 
@@ -60,6 +62,46 @@ public class McpClientIT
         "${app}/lifecycle.initialize/client",
         "${net}/lifecycle.initialize/server"})
     public void shouldInitializeLifecycle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/lifecycle.initialize.elicitation.url/client",
+        "${net}/lifecycle.initialize.elicitation.url/server"})
+    public void shouldInitializeLifecycleWithElicitationUrl() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/lifecycle.initialize.elicitation.form/client",
+        "${net}/lifecycle.initialize.elicitation.form/server"})
+    public void shouldInitializeLifecycleWithElicitationForm() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.credentials.yaml")
+    @Specification({
+        "${app}/lifecycle.initialize/client",
+        "${net}/lifecycle.initialize.credentials/server"})
+    public void shouldInitializeLifecycleWithBootstrapCredential() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/lifecycle.initialize/client",
+        "${net}/lifecycle.initialize.version/server"})
+    public void shouldInitializeLifecycleWithNegotiatedVersion() throws Exception
     {
         k3po.finish();
     }
@@ -559,5 +601,10 @@ public class McpClientIT
     public void shouldGetPromptWith100kMessageWithProgress() throws Exception
     {
         k3po.finish();
+    }
+
+    public static String sessionId()
+    {
+        return "session-1";
     }
 }

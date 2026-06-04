@@ -56,6 +56,7 @@ public final class McpProxyCache
     public final Duration leaseTtl;
     public final Duration renewTtl;
     public final Duration leaseRetry;
+    public final int hydrateAttemptsMax;
     public final Duration cacheTtl;
 
     public String sessionId;
@@ -97,6 +98,7 @@ public final class McpProxyCache
         this.leaseTtl = config.leaseTtl();
         this.renewTtl = this.leaseTtl.dividedBy(3);
         this.leaseRetry = config.leaseRetry();
+        this.hydrateAttemptsMax = config.hydrateAttemptsMax();
         this.cacheTtl = cache.ttl;
         this.awaiters = new ArrayList<>();
         this.caches = new Int2ObjectHashMap<>();
@@ -198,11 +200,22 @@ public final class McpProxyCache
         populated = false;
     }
 
+    public void markDegraded(
+        int kind)
+    {
+        final McpListCache cache = caches.get(kind);
+        if (cache != null && !cache.populated)
+        {
+            cache.degraded = true;
+            checkReady();
+        }
+    }
+
     private void checkReady()
     {
         for (McpListCache cache : caches.values())
         {
-            if (!cache.populated)
+            if (!cache.settled())
             {
                 return;
             }
@@ -229,6 +242,17 @@ public final class McpProxyCache
         private String lockToken;
 
         boolean populated;
+        boolean degraded;
+
+        boolean settled()
+        {
+            return populated || degraded;
+        }
+
+        public boolean degraded()
+        {
+            return degraded;
+        }
 
         private McpListCache(
             int kind,
@@ -264,7 +288,12 @@ public final class McpProxyCache
         {
             store.lock(storeLockKey, leaseTtl, (k, t) ->
             {
-                lockToken = t;
+                // only adopt the token on success; a failed acquire (t == null) from an overlapping
+                // attempt must not clobber a token already held, otherwise release() cannot unlock it
+                if (t != null)
+                {
+                    lockToken = t;
+                }
                 completion.accept(t != null);
             });
         }
@@ -308,6 +337,10 @@ public final class McpProxyCache
                 changed = false;
             }
             populated = value != null;
+            if (populated)
+            {
+                degraded = false;
+            }
             checkReady();
             onSettled.accept(kind, changed);
         }
@@ -316,6 +349,7 @@ public final class McpProxyCache
             String key)
         {
             populated = true;
+            degraded = false;
             checkReady();
         }
     }

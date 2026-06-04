@@ -16,11 +16,10 @@
 package io.aklivity.zilla.runtime.engine.test.internal.store;
 
 import java.util.function.BiConsumer;
-
-import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
+import java.util.function.Consumer;
 
 record TestWatcher(
     BiConsumer<String, String> listener,
-    Signaler signaler)
+    Consumer<Runnable> dispatcher)
 {
 }

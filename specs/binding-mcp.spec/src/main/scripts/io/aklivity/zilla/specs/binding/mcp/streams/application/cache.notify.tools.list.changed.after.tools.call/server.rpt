@@ -24,7 +24,6 @@ accepted
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .lifecycle()
-                              .sessionId("hydrate-1")
                               .build()
                           .build()}
 
@@ -73,7 +72,6 @@ accepted
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .lifecycle()
-                              .sessionId("agent-1")
                               .build()
                           .build()}
 
@@ -102,6 +100,7 @@ read zilla:begin.ext ${mcp:matchBeginEx()
                           .toolsCall()
                               .sessionId("agent-1")
                               .name("get_weather")
+                              .contentLength(58)
                               .build()
                           .build()}
 

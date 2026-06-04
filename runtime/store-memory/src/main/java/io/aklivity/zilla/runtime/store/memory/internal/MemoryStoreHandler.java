@@ -24,7 +24,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 
 final class MemoryStoreHandler implements StoreHandler
@@ -32,18 +31,18 @@ final class MemoryStoreHandler implements StoreHandler
     private final ConcurrentMap<String, MemoryEntry> entries;
     private final ConcurrentMap<String, List<Watcher>> watchers;
     private final ConcurrentMap<String, LockEntry> locks;
-    private final Signaler signaler;
+    private final Consumer<Runnable> dispatcher;
 
     MemoryStoreHandler(
         ConcurrentMap<String, MemoryEntry> entries,
         ConcurrentMap<String, List<Watcher>> watchers,
         ConcurrentMap<String, LockEntry> locks,
-        Signaler signaler)
+        Consumer<Runnable> dispatcher)
     {
         this.entries = entries;
         this.watchers = watchers;
         this.locks = locks;
-        this.signaler = Objects.requireNonNull(signaler);
+        this.dispatcher = Objects.requireNonNull(dispatcher);
     }
 
     @Override
@@ -198,7 +197,7 @@ final class MemoryStoreHandler implements StoreHandler
         String key,
         BiConsumer<String, String> listener)
     {
-        final Watcher watcher = new Watcher(listener, signaler);
+        final Watcher watcher = new Watcher(listener, dispatcher);
         final List<Watcher> list = watchers.computeIfAbsent(key, k -> new CopyOnWriteArrayList<>());
         list.add(watcher);
         return () ->
@@ -218,10 +217,9 @@ final class MemoryStoreHandler implements StoreHandler
         final List<Watcher> list = watchers.get(key);
         if (list != null && !list.isEmpty())
         {
-            final long now = System.currentTimeMillis();
             for (Watcher w : list)
             {
-                w.signaler.signalAt(now, 0, ignored -> w.listener.accept(key, value));
+                w.dispatcher.accept(() -> w.listener.accept(key, value));
             }
         }
     }
@@ -229,8 +227,7 @@ final class MemoryStoreHandler implements StoreHandler
     private void defer(
         Runnable task)
     {
-        // contract: callback fires strictly later than the call, on the caller's I/O thread
-        signaler.signalAt(System.currentTimeMillis(), 0, ignored -> task.run());
+        dispatcher.accept(task);
     }
 
     private static long expiresAt(
@@ -241,7 +238,7 @@ final class MemoryStoreHandler implements StoreHandler
 
     record Watcher(
         BiConsumer<String, String> listener,
-        Signaler signaler)
+        Consumer<Runnable> dispatcher)
     {
     }
 

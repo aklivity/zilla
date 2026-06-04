@@ -38,6 +38,7 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
     private final Signaler signaler;
     private final long[] hydrateBackoffMs;
     private final long[] hydrateRetryIds;
+    private final int[] hydrateAttempts;
     private final Closeable[] watchHandles;
 
     private McpProxyCacheHandler handler;
@@ -57,6 +58,7 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
         this.signaler = signaler;
         this.hydrateBackoffMs = new long[KIND_SLOTS];
         this.hydrateRetryIds = new long[KIND_SLOTS];
+        this.hydrateAttempts = new int[KIND_SLOTS];
         this.watchHandles = new Closeable[KIND_SLOTS];
         Arrays.fill(this.hydrateRetryIds, NO_CANCEL_ID);
         this.refreshId = NO_CANCEL_ID;
@@ -123,6 +125,7 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
             return;
         }
         Arrays.fill(hydrateBackoffMs, 0L);
+        Arrays.fill(hydrateAttempts, 0);
         sessionBackoffMs = 0L;
         scheduleLifecycleRenew();
         for (int kind : cache.caches().keySet())
@@ -149,6 +152,8 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
         {
             return;
         }
+        hydrateBackoffMs[kind] = 0L;
+        hydrateAttempts[kind] = 0;
         cancelRefresh();
         handler.hydrate(kind);
     }
@@ -181,11 +186,12 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
 
     private void scheduleRefresh()
     {
-        if (cache.cacheTtl == null)
+        // refresh is re-armed both by the local hydrate put-completion and by the store watch that the
+        // same put self-triggers; coalesce to a single pending refresh so only one hydrate runs per cycle
+        if (cache.cacheTtl == null || refreshId != NO_CANCEL_ID)
         {
             return;
         }
-        cancelRefresh();
         refreshId = signaler.signalAt(
             Instant.now().plus(cache.cacheTtl), 0, this::onRefreshed);
     }
@@ -252,6 +258,11 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
         int kind)
     {
         cancelHydrateRetry(kind);
+        if (++hydrateAttempts[kind] >= cache.hydrateAttemptsMax)
+        {
+            cache.markDegraded(kind);
+            return;
+        }
         long delay = hydrateBackoffMs[kind];
         delay = delay == 0L ? cache.leaseRetry.toMillis() : Math.min(delay * 2L, cache.leaseTtl.toMillis());
         hydrateBackoffMs[kind] = delay;
