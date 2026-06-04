@@ -21,7 +21,7 @@ bindings:
     kind: proxy
     options:
       authorization:
-        name: jwt0
+        jwt0: {}
     routes:
       - exit: app1
         when:

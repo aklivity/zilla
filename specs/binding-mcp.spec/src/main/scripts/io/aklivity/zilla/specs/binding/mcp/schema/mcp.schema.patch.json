@@ -126,20 +126,24 @@
                             {
                                 "title": "Authorization",
                                 "type": "object",
-                                "properties":
+                                "patternProperties":
                                 {
-                                    "name":
+                                    "^[A-Za-z0-9_-]+$":
                                     {
-                                        "title": "Guard Name",
-                                        "type": "string"
-                                    },
-                                    "credentials":
-                                    {
-                                        "title": "Credentials",
-                                        "type": "string"
+                                        "type": "object",
+                                        "properties":
+                                        {
+                                            "credentials":
+                                            {
+                                                "title": "Credentials",
+                                                "type": "string"
+                                            }
+                                        },
+                                        "additionalProperties": false
                                     }
                                 },
-                                "additionalProperties": false
+                                "additionalProperties": false,
+                                "maxProperties": 1
                             },
                             "timeout":
                             {
