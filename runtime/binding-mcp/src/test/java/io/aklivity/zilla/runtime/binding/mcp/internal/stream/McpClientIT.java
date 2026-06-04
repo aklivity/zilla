@@ -70,6 +70,16 @@ public class McpClientIT
     @Test
     @Configuration("client.yaml")
     @Specification({
+        "${app}/lifecycle.initialize.session.affinity/client",
+        "${net}/lifecycle.initialize.session.affinity/server"})
+    public void shouldInitializeLifecycleWithSessionAffinity() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
         "${app}/lifecycle.initialize.elicitation.url/client",
         "${net}/lifecycle.initialize.elicitation.url/server"})
     public void shouldInitializeLifecycleWithElicitationUrl() throws Exception

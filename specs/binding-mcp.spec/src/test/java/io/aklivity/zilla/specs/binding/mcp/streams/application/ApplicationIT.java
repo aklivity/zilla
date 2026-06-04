@@ -47,6 +47,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/lifecycle.initialize.session.affinity/client",
+        "${app}/lifecycle.initialize.session.affinity/server"})
+    public void shouldInitializeLifecycleWithSessionAffinity() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/lifecycle.initialize.elicitation.url/client",
         "${app}/lifecycle.initialize.elicitation.url/server"})
     public void shouldInitializeLifecycleWithElicitationUrl() throws Exception

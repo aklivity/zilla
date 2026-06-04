@@ -498,8 +498,23 @@ classifies every phase as still-required / no-longer-required / new, given the e
   (Server 68 / Client 61 / Proxy 44); checkstyle clean. Open follow-up: placeholder-trust (a malicious
   upstream sending the `replace.me` host to coax Zilla into the callback path) — belongs to the gateway/Track-B
   callback path, not this additive passthrough.
-- **N2 — persistent per-route lifecycle + `Mcp-Session-Id`/`MCP-Protocol-Version` replay + resume,
-  Store-backed** (C3.2 + lifecycle-persistence invariant) — the session-bound "memory."
+- **N2 — persistent per-route lifecycle + `Mcp-Session-Id`/`MCP-Protocol-Version` replay + resume.**
+  **FINDING (2026-06-04): N2a/N2b already implemented in `McpClientFactory`** — explore summary was wrong;
+  verified in code: upstream `Mcp-Session-Id` captured at `onNetBegin :2371` → `remoteSessionId` on the
+  persistent `McpLifecycleStream`; `MCP-Protocol-Version` captured `:4135` → `negotiatedVersion`; both
+  replayed via `transportSessionId() :2150` / `protocolVersion() :2156` on every subsequent request encoder
+  (`HttpNotifyInitialized :4190`, `HttpKeepalive :4230`, request `:4207`); session kept warm across requests
+  by keepalive ping (`scheduleKeepalive :2501`), torn down only at `doAppTerminate :2526`. Existing tests
+  masked it by reusing `session-1` on both app + transport sides. **DONE: added `lifecycle.initialize.session.affinity`
+  lock-in test** (distinct ids: app-facing `session-1` ≠ transport `transport-1`) proving the client replays
+  the transport id toward the upstream while keeping the app id separate — McpClientIT/NetworkIT/ApplicationIT,
+  all green; checkstyle clean. **Naming convention adopted: `session-N` = app-facing/unified id, `transport-N`
+  = upstream transport id.** Store-backing (N2d) **deferred** — session state is per-worker and same-session
+  streams are worker-affine by design (session id drives stream affinity), so a Store is redundant for
+  correctness; only needed for cross-restart/multi-replica durability (filed as follow-up). **N2c (resume /
+  `Last-Event-Id`) still to assess** — substantial machinery already exists (`McpEventStream` suspend/resume,
+  `Last-Event-Id` parse `McpServerFactory :465`). Full end-to-end affinity (north unified id ↔ transport id
+  mapped through the proxy with real distinct ids) will be exercised by N3 (the example) against real upstreams.
 - **N3 — the OSS `mcp-proxy` example itself** (zilla.yaml + demo + ITs) demonstrating elicitation +
   auth-guarded list/call via relay, scaling to N remotes.
 
