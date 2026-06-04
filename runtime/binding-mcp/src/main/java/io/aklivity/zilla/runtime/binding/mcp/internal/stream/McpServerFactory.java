@@ -2911,7 +2911,7 @@ public final class McpServerFactory implements McpStreamFactory
 
             if (resolved != null)
             {
-                resolved.doAppFlushElicitCallback(traceId, authorization, callbackURL);
+                resolved.doAppFlushElicitCallback(traceId, authorization, stripElicitState(callbackURL));
                 resolved.doAppEnd(traceId, authorization);
                 resolved.server.doDeferredCloseInitial();
                 doNetReply200(traceId, authorization, AUTH_CALLBACK_OK_BODY);
@@ -5173,6 +5173,32 @@ public final class McpServerFactory implements McpStreamFactory
                 final String encodedRedirect = URLEncoder.encode(redirectURI, StandardCharsets.UTF_8);
                 result = REDIRECT_URI_PARAM_PATTERN.matcher(result)
                     .replaceFirst(Matcher.quoteReplacement("redirect_uri=" + encodedRedirect));
+            }
+        }
+
+        return result;
+    }
+
+    // reverse of manipulateElicitUrl's state injection: the server strips exactly the
+    // <sessionId>.<elicitationId>. prefix it added on the way up, so the callback forwarded down
+    // the app pipeline carries only what the downstream injected (a <toolkit>__ prefix for a proxy
+    // route, else the bare nonce the route-exit guard minted). each hop reverses its own injection.
+    private static String stripElicitState(
+        String url)
+    {
+        String result = url;
+
+        final Matcher matcher = STATE_PARAM_PATTERN.matcher(url);
+        if (matcher.find())
+        {
+            final String value = matcher.group(1);
+            final int firstDot = value.indexOf('.');
+            final int secondDot = firstDot > 0 ? value.indexOf('.', firstDot + 1) : -1;
+            if (secondDot > firstDot)
+            {
+                final String residual = value.substring(secondDot + 1);
+                result = STATE_PARAM_PATTERN.matcher(url)
+                    .replaceFirst(Matcher.quoteReplacement("state=" + residual));
             }
         }
 
