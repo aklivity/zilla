@@ -30,7 +30,7 @@ connected
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .lifecycle()
-                               .sessionId("session-2")
+                               .sessionId("session-1a")
                                .build()
                            .build()}
 write flush
