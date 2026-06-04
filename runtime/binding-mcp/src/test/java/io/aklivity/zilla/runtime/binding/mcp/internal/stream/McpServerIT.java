@@ -752,7 +752,7 @@ public class McpServerIT
 
     public static String sessionId()
     {
-        return "session-1";
+        return "transport-1";
     }
 
     public static String elicitationId()

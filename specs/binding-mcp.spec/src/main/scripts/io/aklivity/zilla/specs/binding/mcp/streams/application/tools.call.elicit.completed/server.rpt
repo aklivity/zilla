@@ -69,7 +69,7 @@ read  '{'
 read advised zilla:flush ${mcp:matchFlushEx()
                                .typeId(zilla:id("mcp"))
                                .elicitCallback()
-                                   .url("http://localhost:8080/mcp/auth/callback?code=xyz&state=session-1.elicit-1.7f3a9b1c")
+                                   .url("http://localhost:8080/mcp/auth/callback?code=xyz&state=transport-1.elicit-1.7f3a9b1c")
                                    .build()
                                .build()}
 

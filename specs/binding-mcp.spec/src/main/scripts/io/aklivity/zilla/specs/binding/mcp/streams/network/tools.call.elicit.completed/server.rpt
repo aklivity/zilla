@@ -37,7 +37,7 @@ write zilla:begin.ext ${http:beginEx()
                             .typeId(zilla:id("http"))
                             .header(":status", "200")
                             .header("content-type", "application/json")
-                            .header("mcp-session-id", "session-1")
+                            .header("mcp-session-id", "transport-1")
                             .build()}
 write flush
 
@@ -55,7 +55,7 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .header("content-type", "application/json")
                            .header("accept", "application/json, text/event-stream")
                            .header("mcp-protocol-version", "2025-11-25")
-                           .header("mcp-session-id", "session-1")
+                           .header("mcp-session-id", "transport-1")
                            .build()}
 
 connected
@@ -80,7 +80,7 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .header("content-type", "application/json")
                            .header("accept", "application/json, text/event-stream")
                            .header("mcp-protocol-version", "2025-11-25")
-                           .header("mcp-session-id", "session-1")
+                           .header("mcp-session-id", "transport-1")
                            .header("content-length", "115")
                            .build()}
 
@@ -105,7 +105,7 @@ write 'data: {'
         '{'
           '"mode":"url",'
           '"elicitationId":"elicit-1",'
-          '"url":"https://server.example.com/authorize?state=session-1.elicit-1.7f3a9b1c&redirect_uri='
+          '"url":"https://server.example.com/authorize?state=transport-1.elicit-1.7f3a9b1c&redirect_uri='
          ${http:encodeQuery("https://localhost:8080/mcp/auth/callback")}
          '"'
         '}'
@@ -154,7 +154,7 @@ read await ELICIT_CREATED
 read zilla:begin.ext ${http:matchBeginEx()
                            .typeId(zilla:id("http"))
                            .header(":method", "GET")
-                           .header(":path", "/mcp/auth/callback?code=xyz&state=session-1.elicit-1.7f3a9b1c")
+                           .header(":path", "/mcp/auth/callback?code=xyz&state=transport-1.elicit-1.7f3a9b1c")
                            .build()}
 
 connected
