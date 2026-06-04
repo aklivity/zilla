@@ -35,8 +35,6 @@ write zilla:begin.ext ${mcp:beginEx()
                            .build()}
 write flush
 
-read aborted
-
 accept "zilla://streams/app2"
        option zilla:window 8192
        option zilla:transmission "half-duplex"
@@ -59,5 +57,3 @@ write zilla:reset.ext ${mcp:resetEx()
                                .error("INSUFFICIENT_SCOPE")
                                .build()
                            .build()}
-
-read abort

@@ -150,9 +150,9 @@ public class McpProxyIT
     @Test
     @Configuration("proxy.toolkit.multi.yaml")
     @Specification({
-        "${app}/lifecycle.initialize.reject.bearer.toolkit.multi/client",
-        "${app}/lifecycle.initialize.reject.bearer.toolkit.multi/server" })
-    public void shouldRejectLifecycleInitializeWithBearerChallengeToolkitMulti() throws Exception
+        "${app}/lifecycle.initialize.skip.bearer.toolkit.multi/client",
+        "${app}/lifecycle.initialize.skip.bearer.toolkit.multi/server" })
+    public void shouldInitializeLifecyclePartialSkippingBearerRejectedToolkitMulti() throws Exception
     {
         k3po.finish();
     }

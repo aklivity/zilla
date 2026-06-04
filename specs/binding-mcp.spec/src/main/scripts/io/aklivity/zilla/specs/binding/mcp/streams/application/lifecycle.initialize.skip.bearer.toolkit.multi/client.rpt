@@ -25,13 +25,11 @@ write zilla:begin.ext ${mcp:beginEx()
 
 connected
 
-read zilla:reset.ext ${mcp:matchResetEx()
+read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
-                          .bearer()
-                              .realm("github")
-                              .scopes("repo")
-                              .error("INSUFFICIENT_SCOPE")
+                          .lifecycle()
+                              .sessionId("session-1")
                               .build()
                           .build()}
 
-write aborted
+write close
