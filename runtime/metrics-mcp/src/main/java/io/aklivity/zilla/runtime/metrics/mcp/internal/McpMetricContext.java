@@ -39,12 +39,16 @@ import io.aklivity.zilla.runtime.metrics.mcp.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.metrics.mcp.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.metrics.mcp.internal.types.stream.FrameFW;
 import io.aklivity.zilla.runtime.metrics.mcp.internal.types.stream.McpBeginExFW;
+import io.aklivity.zilla.runtime.metrics.mcp.internal.types.stream.McpEndExFW;
+import io.aklivity.zilla.runtime.metrics.mcp.internal.types.stream.McpOutcome;
 import io.aklivity.zilla.runtime.metrics.mcp.internal.types.stream.ResetFW;
 
 public final class McpMetricContext implements MetricContext
 {
     private static final String OUTCOME_OK = "ok";
     private static final String OUTCOME_ERROR = "error";
+    private static final long OUTCOME_OK_CODE = 0L;
+    private static final long OUTCOME_ERROR_CODE = 1L;
 
     private final String group;
     private final String name;
@@ -119,9 +123,12 @@ public final class McpMetricContext implements MetricContext
         private final McpAttributeHelper helper;
         private final Long2LongHashMap masks;
         private final Long2LongHashMap timestamps;
+        private final Long2LongHashMap outcomes;
         private final Long2ObjectHashMap<Map<String, String>> pending;
         private final BeginFW beginRO = new BeginFW();
+        private final EndFW endRO = new EndFW();
         private final McpBeginExFW mcpBeginExRO = new McpBeginExFW();
+        private final McpEndExFW mcpEndExRO = new McpEndExFW();
 
         private McpMetricHandler(
             IntFunction<LongConsumer> recorder,
@@ -131,6 +138,7 @@ public final class McpMetricContext implements MetricContext
             this.helper = helper;
             this.masks = new Long2LongHashMap(NOT_TRACKED);
             this.timestamps = new Long2LongHashMap(INITIAL_TIMESTAMP);
+            this.outcomes = new Long2LongHashMap(OUTCOME_OK_CODE);
             this.pending = new Long2ObjectHashMap<>();
         }
 
@@ -156,7 +164,10 @@ public final class McpMetricContext implements MetricContext
                 }
                 break;
             case EndFW.TYPE_ID:
-                onClose(exchangeId, streamDirection, timestamp);
+                final EndFW end = endRO.wrap(buffer, index, index + length);
+                final McpEndExFW mcpEndEx = end.extension().get(mcpEndExRO::tryWrap);
+                final boolean errored = mcpEndEx != null && mcpEndEx.outcome().get() == McpOutcome.ERROR;
+                onClose(exchangeId, streamDirection, timestamp, errored);
                 break;
             case AbortFW.TYPE_ID:
             case ResetFW.TYPE_ID:
@@ -192,15 +203,21 @@ public final class McpMetricContext implements MetricContext
         private void onClose(
             long exchangeId,
             long streamDirection,
-            long timestamp)
+            long timestamp,
+            boolean errored)
         {
             final long current = masks.get(exchangeId);
             if (current != NOT_TRACKED)
             {
+                if (errored)
+                {
+                    outcomes.put(exchangeId, OUTCOME_ERROR_CODE);
+                }
                 final long status = current | 1L << streamDirection;
                 if (status == EXCHANGE_CLOSED)
                 {
-                    record(exchangeId, OUTCOME_OK, timestamp);
+                    String outcome = outcomes.get(exchangeId) == OUTCOME_ERROR_CODE ? OUTCOME_ERROR : OUTCOME_OK;
+                    record(exchangeId, outcome, timestamp);
                     cleanup(exchangeId);
                 }
                 else
@@ -253,6 +270,7 @@ public final class McpMetricContext implements MetricContext
         {
             masks.remove(exchangeId);
             timestamps.remove(exchangeId);
+            outcomes.remove(exchangeId);
             pending.remove(exchangeId);
         }
     }

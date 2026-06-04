@@ -49,6 +49,8 @@ import io.aklivity.zilla.runtime.metrics.mcp.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.metrics.mcp.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.metrics.mcp.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.metrics.mcp.internal.types.stream.McpBeginExFW;
+import io.aklivity.zilla.runtime.metrics.mcp.internal.types.stream.McpEndExFW;
+import io.aklivity.zilla.runtime.metrics.mcp.internal.types.stream.McpOutcome;
 import io.aklivity.zilla.runtime.metrics.mcp.internal.types.stream.ResetFW;
 
 public class McpMetricGroupTest
@@ -261,6 +263,53 @@ public class McpMetricGroupTest
     }
 
     @Test
+    public void shouldLabelToolsCallWithOutcomeErrorOnEndExtension()
+    {
+        EngineContext engineContext = mock(EngineContext.class);
+        when(engineContext.supplyTypeId(anyString())).thenReturn(11);
+        LongConsumer recorder = mock(LongConsumer.class);
+        IntFunction<LongConsumer> recorderByAttr = attr -> recorder;
+        List<AttributeConfig> attributes = List.of(
+            AttributeConfig.builder().name("tool").value("${mcp.tool}").build(),
+            AttributeConfig.builder().name("outcome").value("${mcp.outcome}").build());
+
+        MetricContext context = new McpMetricGroup(config).supply("mcp.tools.call").supply(engineContext);
+        MessageConsumer handler = context.supply(recorderByAttr, attributes);
+
+        begin(handler, 1L, 0L, b -> b.toolsCall(t -> t.sessionId("s").name("weather").contentLength(-1)));
+        endWithOutcome(handler, 0L, 0L, McpOutcome.ERROR);
+        end(handler, 1L, 0L);
+
+        ArgumentCaptor<String> label = ArgumentCaptor.forClass(String.class);
+        verify(engineContext).supplyTypeId(label.capture());
+        assertThat(label.getValue(), equalTo("outcome=error,tool=weather"));
+        verify(recorder, times(1)).accept(1L);
+    }
+
+    @Test
+    public void shouldRecordOkWhenEndOutcomeOmitted()
+    {
+        EngineContext engineContext = mock(EngineContext.class);
+        when(engineContext.supplyTypeId(anyString())).thenReturn(13);
+        LongConsumer recorder = mock(LongConsumer.class);
+        IntFunction<LongConsumer> recorderByAttr = attr -> recorder;
+        List<AttributeConfig> attributes = List.of(
+            AttributeConfig.builder().name("outcome").value("${mcp.outcome}").build());
+
+        MetricContext context = new McpMetricGroup(config).supply("mcp.tools.call").supply(engineContext);
+        MessageConsumer handler = context.supply(recorderByAttr, attributes);
+
+        begin(handler, 1L, 0L, b -> b.toolsCall(t -> t.sessionId("s").name("weather").contentLength(-1)));
+        end(handler, 0L, 0L);
+        end(handler, 1L, 0L);
+
+        ArgumentCaptor<String> label = ArgumentCaptor.forClass(String.class);
+        verify(engineContext).supplyTypeId(label.capture());
+        assertThat(label.getValue(), equalTo("outcome=ok"));
+        verify(recorder, times(1)).accept(1L);
+    }
+
+    @Test
     public void shouldLabelToolsCallWithOutcomeErrorOnAbort()
     {
         EngineContext engineContext = mock(EngineContext.class);
@@ -323,6 +372,27 @@ public class McpMetricGroupTest
             .originId(0L).routedId(0L).streamId(streamId)
             .sequence(0L).acknowledge(0L).maximum(0).timestamp(timestamp)
             .traceId(0L).authorization(0L)
+            .build();
+        handler.accept(EndFW.TYPE_ID, end.buffer(), end.offset(), end.sizeof());
+    }
+
+    private static void endWithOutcome(
+        MessageConsumer handler,
+        long streamId,
+        long timestamp,
+        McpOutcome outcome)
+    {
+        McpEndExFW endEx = new McpEndExFW.Builder()
+            .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
+            .typeId(0)
+            .outcome(o -> o.set(outcome))
+            .build();
+        MutableDirectBuffer buffer = new UnsafeBuffer(new byte[256]);
+        EndFW end = new EndFW.Builder().wrap(buffer, 0, buffer.capacity())
+            .originId(0L).routedId(0L).streamId(streamId)
+            .sequence(0L).acknowledge(0L).maximum(0).timestamp(timestamp)
+            .traceId(0L).authorization(0L)
+            .extension(endEx.buffer(), endEx.offset(), endEx.limit())
             .build();
         handler.accept(EndFW.TYPE_ID, end.buffer(), end.offset(), end.sizeof());
     }

@@ -177,6 +177,17 @@ scope mcp
             string16 reason = null;
         }
 
+        enum McpOutcome (uint8)
+        {
+            OK(0),
+            ERROR(1)
+        }
+
+        struct McpEndEx extends core::stream::Extension
+        {
+            McpOutcome outcome = OK;
+        }
+
         enum McpElicitStatus (uint8)
         {
             COMPLETED(0),
