@@ -3855,6 +3855,10 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 final DataFW data = dataRO.wrap(buffer, index, index + length);
                 onKafkaData(data);
                 break;
+            case FlushFW.TYPE_ID:
+                final FlushFW flush = flushRO.wrap(buffer, index, index + length);
+                onKafkaFlush(flush);
+                break;
             case EndFW.TYPE_ID:
                 final EndFW end = endRO.wrap(buffer, index, index + length);
                 onKafkaEnd(end);
@@ -3926,6 +3930,26 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             }
 
             delegate.onOffsetFetched(traceId, authorization, entries, this);
+        }
+
+        // no #offsets record yet: cache catches up and signals empty via FLUSH (KafkaEvaluation.EAGER)
+        private void onKafkaFlush(
+            FlushFW flush)
+        {
+            final long sequence = flush.sequence();
+            final long acknowledge = flush.acknowledge();
+            final long traceId = flush.traceId();
+            final long authorization = flush.authorization();
+            final long reserved = flush.reserved();
+
+            assert acknowledge <= sequence;
+            assert sequence >= replySeq;
+
+            replySeq = sequence + reserved;
+
+            assert replyAck <= replySeq;
+
+            delegate.onOffsetFetched(traceId, authorization, List.of(), this);
         }
 
         private void onKafkaEnd(

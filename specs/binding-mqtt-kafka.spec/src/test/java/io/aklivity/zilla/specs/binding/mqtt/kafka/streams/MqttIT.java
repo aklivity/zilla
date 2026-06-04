@@ -652,6 +652,16 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/publish.qos2.no.prior.offsets/client",
+        "${mqtt}/publish.qos2.no.prior.offsets/server"})
+    public void shouldPublishQoS2MessageNoPriorOffsets() throws Exception
+    {
+        k3po.start();
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/publish.qos2.retained/client",
         "${mqtt}/publish.qos2.retained/server"})
     public void shouldPublishQoS2MessageRetained() throws Exception

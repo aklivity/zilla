@@ -830,6 +830,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/publish.qos2.no.prior.offsets/client",
+        "${kafka}/publish.qos2.no.prior.offsets/server"})
+    public void shouldPublishQoS2MessageNoPriorOffsets() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/publish.qos2.retained/client",
         "${kafka}/publish.qos2.retained/server"})
     public void shouldPublishQoS2MessageRetained() throws Exception
