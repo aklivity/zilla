@@ -30,7 +30,7 @@ connected
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .lifecycle()
-                               .sessionId("session-1")
+                               .sessionId("session-2")
                                .build()
                            .build()}
 write flush
@@ -58,7 +58,7 @@ accepted
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .toolsList()
-                              .sessionId("session-1")
+                              .sessionId("session-2")
                               .build()
                           .build()}
 
@@ -96,7 +96,7 @@ connected
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .lifecycle()
-                               .sessionId("session-1")
+                               .sessionId("session-3")
                                .build()
                            .build()}
 write flush
@@ -117,7 +117,7 @@ accepted
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .toolsList()
-                              .sessionId("session-1")
+                              .sessionId("session-3")
                               .build()
                           .build()}
 
