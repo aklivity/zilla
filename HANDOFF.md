@@ -563,6 +563,12 @@ hooks for both tracks ship in OSS in this PR; only the **OAuth-client guard impl
   unless the plus example needs cached listing (cache-less plus routes avoid it).
 - **First example shipped: OSS relay (N3)** — zilla.yaml + demo + ITs, Track A only. **NOTE: N3 is now
   split OUT of #1810 (maintainer 2026-06-04)** — it ships as a separate effort and does not gate the binding PR.
+- **#1810 issue tracking (decided 2026-06-04): do NOT edit the issue body or the existing 2026-06-04
+  broadening comment.** The body (Model B / gateway-managed design) + that comment (Model A relay, 7a/7b
+  split, N1/N2/N3) already capture the scope. Fold the STATUS DELTAS into the **PR description** when the PR
+  opens (NOT a new issue comment): N1+N2 DONE; N3 split out (separate effort); remaining #1810 binding work =
+  Phase 7 (7a non-blocking `tools/list` + relay native `list_changed`; 7b gateway-managed `state`
+  inject/strip + callback routing + `list_changed` origination); P8 + zilla-plus OAuth guard stay future.
 - **Orthogonal simplification (still confirm):** P6-hold removal vs client-replay is independent of
   dual-readiness — it does not block either example; decide separately. If confirmed, it is the one piece
   of ALREADY-DONE work the evolved design makes redundant.
