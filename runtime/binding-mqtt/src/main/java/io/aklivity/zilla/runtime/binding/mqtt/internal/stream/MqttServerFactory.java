@@ -2423,9 +2423,6 @@ public final class MqttServerFactory implements MqttStreamFactory
         return limit;
     }
 
-    // Holds the network decode loop while session ownership is being acquired from the store.
-    // The decoder transitions away from this state from the ownership-locked callback (or the
-    // redirect path tears the connection down) — so this method simply parks the loop.
     private int decodeAwaitOwnership(
         MqttServer server,
         long traceId,
@@ -3047,9 +3044,6 @@ public final class MqttServerFactory implements MqttStreamFactory
                 if (store != null && !ownershipResolved)
                 {
                     doAcquireOwnership(traceId, authorization);
-                    // park the decode loop here; the ownership-locked callback re-drives the
-                    // decoder once ownership is acquired, or doRedirect tears it down on a
-                    // strong-remote-owner mismatch.
                     decoder = decodeAwaitOwnership;
                 }
                 else
@@ -3114,9 +3108,6 @@ public final class MqttServerFactory implements MqttStreamFactory
             session.doSessionBegin(traceId, affinity, builder.build());
         }
 
-        // Consult the store for the current owner of this clientId. When the owner is a
-        // different replica advertising a strong (externally-addressable) identity, redirect
-        // the client to it; otherwise claim ownership cooperatively.
         private void doAcquireOwnership(
             long traceId,
             long authorization)
@@ -3143,7 +3134,6 @@ public final class MqttServerFactory implements MqttStreamFactory
             }
             else
             {
-                // lock then put: record carries the live lock token so a later contender can force-unlock us
                 claimed = true;
                 store.lock(ownerKey, sessionLease, (key, token) -> onOwnershipLocked(traceId, authorization, token));
             }
@@ -3303,7 +3293,6 @@ public final class MqttServerFactory implements MqttStreamFactory
             }
         }
 
-        // MQTT-3.1.4-3: takeover MUST publish the will, so abort (not END) the downstream session when a will is present
         private void doSurrenderOwnership(
             long traceId)
         {
@@ -7600,18 +7589,6 @@ public final class MqttServerFactory implements MqttStreamFactory
         }
     }
 
-    // Session-ownership record stored on the clientId#owner key. It carries a single identity
-    // token for the owning replica: a strong (externally-addressable) owner stores its server
-    // reference verbatim, while a weak owner stores its opaque replica identity behind an
-    // ETag-style "W/" prefix. The token both identifies the owner and, when strong, is the
-    // server reference a displaced client is redirected to. The record additionally carries
-    // the live lock token of the owning replica so a contender can force-unlock an
-    // unresponsive prior holder; tokens issued by other replicas are opaque (a force-unlock
-    // against a stored token that no longer matches the live holder is a no-op).
-    //
-    // Externally-seeded records and any legacy record written before this revision may carry
-    // only the identity, or identity + nonce, with no token. The decode handles each trailing
-    // field as nullable so those records remain consumable.
     private static final class OwnershipRecord
     {
         private static final String WEAK_PREFIX = "W/";

@@ -606,7 +606,6 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             if (isSetWillFlag(sessionFlags) && !isSetCleanStart(sessionFlags))
             {
-                // fetch the prior will signal first; its flush drives session establishment
                 session.doKafkaBeginIfNecessary(traceId, authorization, affinity);
             }
             else
@@ -1160,9 +1159,6 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 traceId, authorization, budgetId, willPadding, 0, capabilities);
         }
 
-        // Establish the session now that this replica owns the clientId: qos < 2 replies to the
-        // client and opens the session-state stream directly; qos2 first fetches partition
-        // metadata and idempotent-producer offsets, which culminate in the session-state stream.
         private void doEstablishSession(
             long traceId,
             long authorization)
@@ -3932,7 +3928,6 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             delegate.onOffsetFetched(traceId, authorization, entries, this);
         }
 
-        // no #offsets record yet: cache catches up and signals empty via FLUSH (KafkaEvaluation.EAGER)
         private void onKafkaFlush(
             FlushFW flush)
         {
