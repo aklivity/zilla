@@ -344,6 +344,17 @@ C. **OSS-vs-plus split for per-user auth.** OSS ships only `guard-identity` + `g
    `options.cache.authorization`); per-identity OAuth token → INSIDE THE GUARD keyed by the session
    (`reauthorize` stores, `credentials(authorization)` retrieves) — NEVER the shared store (cross-user
    leakage). So the **guard-driven** per-user flow needs zilla-plus.
+   Token-home by model (do not conflate):
+   - **guard-driven (zilla-plus):** callback relayed to route-exit client → `guard.reauthorize(...,
+     callbackUrl, completion)` (`McpClientFactory:2784`); the OAuth guard (e.g. `guard-azure-ad`, NOT
+     `guard-identity`) does the async code→token exchange off-reactor and stashes the token keyed by
+     `authorization`/sessionId; subsequent same-session requests inject it via `guard.credentials(...)`
+     (`:2630`,`:2817`). Binding never blocks — guard does `sendAsync`→`signalAt`. Token lives in Zilla's guard.
+   - **OSS relay (example):** no Zilla OAuth guard runs; Zilla rewrites `redirect_uri`→its callback and
+     relays the callback UP to the remote (`elicitCallback` flush); the REMOTE is the OAuth client,
+     exchanges code→token, and holds it keyed by its MCP session; subsequent requests ride the same
+     upstream session (already authorized) — token NEVER lives in Zilla. (Or client carries a bearer and
+     Zilla relays the `Authorization` header.)
 
 D. **Cached-proxy per-user `*/list` needs the Phase-8 hybrid serve.** `McpProxyListFactory.newStream`
    today is cache-XOR-live: with a cache it serves the shared baseline ONLY (`McpCacheListServer`); the
