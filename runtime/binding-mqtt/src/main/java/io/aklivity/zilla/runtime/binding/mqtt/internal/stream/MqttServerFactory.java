@@ -2481,6 +2481,10 @@ public final class MqttServerFactory implements MqttStreamFactory
         private final MqttConnectProperty authField;
         private final List<MqttVersion> versions;
         private final StoreHandler store;
+        private final String ownerIdentity;
+        private final String ownerNonce;
+        private final String ownershipRecordPrefix;
+        private final Consumer<String> onOwnershipRenewedRef = this::onOwnershipRenewed;
 
         private String ownerKey;
         private String ownerToken;
@@ -2490,6 +2494,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         private boolean claimed;
         private boolean ownershipResolved;
         private Closeable ownerWatch;
+        private long renewTraceId;
         private long pendingSessionRoutedId;
         private long pendingSessionCompositeId;
         private int pendingConnectPayloadLimit;
@@ -2596,6 +2601,10 @@ public final class MqttServerFactory implements MqttStreamFactory
             this.credentials = credentials;
             this.authField = authField;
             this.store = store;
+            this.ownerIdentity = serviceHostname != null ? serviceHostname : replicaId;
+            this.ownerNonce = replicaId + '-' + initialId;
+            this.ownershipRecordPrefix = (serviceHostname != null ? serviceHostname : OwnershipRecord.WEAK_PREFIX + replicaId) +
+                OwnershipRecord.FIELD_SEPARATOR + ownerNonce + OwnershipRecord.FIELD_SEPARATOR;
             this.encodeBudgetId = supplyBudgetId.getAsLong();
             this.decoder = decodeInitialType;
             this.publishes = new Long2ObjectHashMap<>();
@@ -3128,7 +3137,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             final OwnershipRecord owner = OwnershipRecord.decode(value);
 
-            if (owner != null && owner.strong && !ownerIdentity().equals(owner.identity))
+            if (owner != null && owner.strong && !ownerIdentity.equals(owner.identity))
             {
                 doRedirect(traceId, authorization, owner.identity);
             }
@@ -3171,7 +3180,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             owns = true;
             ownerToken = token;
             ownershipResolved = true;
-            store.put(ownerKey, ownershipRecord(token), sessionLease, ignored -> {});
+            store.put(ownerKey, ownershipRecordPrefix + token, sessionLease, ignored -> {});
             ownerWatch = store.watch(ownerKey, (key, value) -> onOwnershipChallenged(traceId, value));
             renewAt = signaler.signalAt(currentTimeMillis() + sessionRenew.toMillis(),
                 originId, routedId, initialId, traceId, SIGNAL_RENEW_SESSION_OWNERSHIP, 0);
@@ -3262,14 +3271,15 @@ public final class MqttServerFactory implements MqttStreamFactory
             renewAt = NO_CANCEL_ID;
             if (owns && ownerToken != null)
             {
-                store.renew(ownerKey, ownerToken, sessionLease, token -> onOwnershipRenewed(traceId, token));
+                renewTraceId = traceId;
+                store.renew(ownerKey, ownerToken, sessionLease, onOwnershipRenewedRef);
             }
         }
 
         private void onOwnershipRenewed(
-            long traceId,
             String token)
         {
+            final long traceId = renewTraceId;
             if (token != null)
             {
                 renewAt = signaler.signalAt(currentTimeMillis() + sessionRenew.toMillis(),
@@ -3287,7 +3297,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             final OwnershipRecord challenger = OwnershipRecord.decode(value);
 
-            if (owns && challenger != null && !ownerNonce().equals(challenger.nonce))
+            if (owns && challenger != null && !ownerNonce.equals(challenger.nonce))
             {
                 doSurrenderOwnership(traceId);
             }
@@ -3371,22 +3381,6 @@ public final class MqttServerFactory implements MqttStreamFactory
             doNetworkEnd(traceId, authorization);
             decoder = decodeIgnoreAll;
             cleanupDecodeSlot();
-        }
-
-        private String ownerIdentity()
-        {
-            return serviceHostname != null ? serviceHostname : replicaId;
-        }
-
-        private String ownerNonce()
-        {
-            return replicaId + '-' + initialId;
-        }
-
-        private String ownershipRecord(
-            String token)
-        {
-            return OwnershipRecord.encode(serviceHostname != null, ownerIdentity(), ownerNonce(), token);
         }
 
         private int onDecodeConnectWillMessage(
@@ -7609,17 +7603,6 @@ public final class MqttServerFactory implements MqttStreamFactory
             this.identity = identity;
             this.nonce = nonce;
             this.token = token;
-        }
-
-        private static String encode(
-            boolean strong,
-            String identity,
-            String nonce,
-            String token)
-        {
-            return (strong ? identity : WEAK_PREFIX + identity) +
-                FIELD_SEPARATOR + nonce +
-                FIELD_SEPARATOR + token;
         }
 
         private static OwnershipRecord decode(
