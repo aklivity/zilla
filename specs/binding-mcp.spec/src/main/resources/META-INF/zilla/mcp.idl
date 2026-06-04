@@ -188,11 +188,13 @@ scope mcp
         {
             string16 id;
             string16 url;
+            string8 context = null;
         }
 
         struct McpElicitCallbackFlushEx
         {
             string16 url;
+            string8 context = null;
         }
 
         struct McpElicitCompleteFlushEx
