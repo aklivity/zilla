@@ -29,7 +29,7 @@ environment is ephemeral: each session is a fresh clone with no prior chat).
 | 4 — protocol `2025-11-25` + `elicitation.url` negotiation | already landed before this branch (#1820) |
 | 5 — guard `NEEDS_PREAUTHORIZE → preauthorize → callback → reauthorize` | **CORE in `develop` (#1739/#1752); the live-identity follow-up (Gap A+B) DONE+pushed on THIS branch (commits `73c45825`, `b1addfd1`, `d0d8b480`, `88f5bab3`, `e2cafd12`) — see the "Phase 5 Gap A+B" section.** Core: `McpClientFactory` `reauthorize(null)`→`MASK_AUTHORIZED`→`credentials()`→stamp; `NEEDS_PREAUTHORIZE`→`guard.preauthorize`→`elicitCreate` challenge→async `reauthorize` on callback; `McpServerFactory` `McpAuthCallbackHandler`/state correlation. **Gap A (inbound identity) RESOLVED on this branch:** the shared `McpRequestStream.proceedWithRequest` (~2628) reuses the inbound `authorization` long when already authorized (`MASK_AUTHORIZED`)→`guard.credentials(authorization)`; else falls through to `reauthorize(...,null)`→elicit. Upstream net opened with `authorization 0L` (`HttpStream.doNetBegin` ~3829) — identity consumed at the binding, conveyed via the `Authorization` bearer. Covered by `tools.call/prompts.get/resources.read.identity` + `client.identity.yaml` (`McpClientIT#shouldCallToolWithIdentity` etc. + peer `NetworkIT`). **Gap B (elicit) RESOLVED:** elicit machinery lives in the base `McpRequestStream` (shared by tools/call+prompts/get+resources/read). **Schema:** proxy kind disallows `options.authorization` (`SchemaTest#shouldRejectProxyWithAuthorization`). **Superseded (won't-do, maintainer):** the older "(a) per-route `McpRouteConfig` guard/creds; (b) `reauthorize` with inbound bearer string" framing — the locked design carries the inbound authorization *long* (not a bearer string) and the live tools/call follows one route by prefix; future zilla-plus uses `options.cache.authorization` + token exchange. No open Phase-5 work remains on this branch. |
 | 6 — `timeout` option + per-request `McpXxxBeginEx` carriage; hold-and-resume | **DONE+pushed (6a plumbing + 6a server stamping + 6b behavior).** Per-binding `timeout` option (config/builder/adapter/schema); `int64 timeout` on the six request BeginEx variants + `McpFunctions`; server stamps effective timeout (gated by `CLIENT_ELICITATION_URL`) on each request BeginEx; client honors it as the elicit hold budget; server holds (`elicitation/create` SSE) when `timeout>0` and emits `-32042 URLElicitationRequiredError` (url in `data`) on expiry/`timeout==0`; explicit DECLINE stays `-32000`. See the "Phase 6 — 6b" section for the 3 commits + k3po teardown notes. |
-| 7 — non-blocking `tools/list` / blocking `tools/call` | **NOT STARTED (audited 2026-06-03).** `tools/list` is BLOCKING — `McpProxyListFactory.onNextClient` finalizes only when all routes polled; unauthorized toolkit is silently SKIPPED (`onClientSkip`→`onNextClient`), no `elicitation/create` emitted from `tools/list` (only from `tools/call`). `KIND_TOOLS_LIST_CHANGED` flush plumbing exists but only fires after a full cache-refresh cycle, NOT per-toolkit when a toolkit authorizes during a live list. Depends on Phase 6 timeout. |
+| 7 — non-blocking `tools/list` / blocking `tools/call` | **NOT STARTED; design discussed + PLAN written 2026-06-04 — see the "Phase 7 — plan" section.** Decisions locked: (A) proxy **relays** per-route elicitation decisions from the route-exit client bindings (defer to upstream; proxy never originates); (B) `elicitationId = <toolkit>__<nonce>` so the OAuth callback **self-routes** to the right toolkit independent of the (closed, non-blocking) list stream; guard owns nonce + identity-binding, binding does route + notify; `list_changed` rides the lifecycle SSE. Current code: `tools/list` is BLOCKING — `McpProxyListFactory.onNextClient` finalizes only when all routes polled; unauthorized toolkit silently SKIPPED (`onClientSkip`→`onNextClient`); `KIND_TOOLS_LIST_CHANGED` exists but fires only after a full cache-refresh cycle. Depends on Phase 6 timeout (done). |
 | 8 — per-client listing filter (SEP-1488 / operator map / annotations) | **NOT STARTED — zero implementation (audited 2026-06-03).** List serve path (`McpCacheListServer`) emits the SAME shared aggregate bytes to every client; `authorization` is captured but never used to filter. No `securitySchemes`, no tool→scope map config, no `readOnlyHint`/`destructiveHint`, no acquirable/non-acquirable distinction, no per-identity live listing. |
 | 2d — live-path baseline test (baseline + per-identity toolkits) | **deferred to Phase 7/8** (maintainer decision) |
 | 9 — IT coverage of the preauthorize→elicit→callback→reauthorize flow | **DONE in `develop` (#1739/#1752), NOT this branch.** Scenarios: `tools.call.elicit.{completed,declined,timeout}` × {plain, `.guarded`, `.proxied`}, `reject.auth.callback.unknown.elicitation`, `lifecycle.initialize.elicitation.{url,form}`. (The Gap-A inbound-identity reuse IS covered by `tools.call/prompts.get/resources.read.identity` ITs on this branch; the superseded per-route guard/creds has no IT, by design.) |
@@ -190,6 +190,82 @@ Implementation:
    completed-in-time proceeds. Cover McpServerIT (server emits the error to the connecting client)
    + McpClientIT (client honors the per-request timer) + peer ITs.
 5. Gate with full spec + runtime `install` (jacoco/checkstyle/license).
+
+### Phase 7 — non-blocking `tools/list` + blocking `tools/call` (PLAN, design discussed 2026-06-04; NOT STARTED)
+
+Issue #1810 §6. Two architecture decisions LOCKED this session (maintainer, john@aklivity.io):
+
+**Decision A — defer the elicitation decision to the upstream (route-exit client binding).**
+Each proxy route exits to its own south `mcp` `kind: client` binding representing a distinct
+remote server; that binding already owns the auth decision for *its* upstream (guard
+`NEEDS_PREAUTHORIZE → preauthorize → elicitCreate` challenge, or relaying the remote's own
+`elicitation/create`). The proxy must NOT synthesize/originate elicitations — it is a
+**relay/aggregator** of per-route decisions. Different routes legitimately make different
+elicitation decisions. (Anti-phishing rendering — Zilla-minted `elicitationId`, callback
+`redirect_uri`, `state` — still happens at the north `McpServerFactory` exactly as it does
+for `tools/call` today; "defer to upstream" governs *who decides what to elicit*, not *who
+renders it to the client*.)
+
+**Decision B — encode the toolkit in the `elicitationId` so the OAuth callback self-routes.**
+`elicitationId = <toolkit>__<nonce>` — `__` is already `McpRouteConfig.DELIMITER_NAME` (tool
+names ship as `github__get_issue`), so it is the consistent boundary and won't collide with
+the `.`-delimited callback `state`. Why this matters: `tools/list` is **non-blocking**, so the
+list request stream is CLOSED by the time the OAuth callback lands — today's
+`resolveElicitation` (McpServerFactory ~2952) resolves the callback by
+`sessions.get(sessionId).elicitations.get(elicitationId)` → **a live held `McpRequestStream`**,
+which no longer exists. Tagging the toolkit makes the callback self-routing without the held
+stream: parse `__` → toolkit → route; hand `callbackUrl` to that route's guard; on completion
+fire `list_changed`. The held-stream map (`session.elicitations`) drops to **optional** (only
+the blocking `tools/call` resume still uses it). Invariant to assert: a toolkit prefix must not
+contain `__` (`McpAggregateEventId.computePrefixes` derives unique prefixes — cheap to check).
+
+**Division of responsibility (locked):**
+- **binding** = MCP surface only: route by toolkit (strip the `<toolkit>__` prefix), emit/relay
+  the per-route `elicitation/create`, fire `notifications/tools/list_changed`.
+- **guard** = all security: validate the `nonce` (replay/forgery, internally or against the AS),
+  bind `state` to **identity** end-to-end (embed at `preauthorize`, re-derive + validate at the
+  async `reauthorize(callbackUrl)`), store the token per `(identity, route)`. Identity-binding
+  (the spec MUST) lives **inside the guard**, NOT enforced earlier in the pipeline — the binding
+  is never trusted with it. The guard surfaces the identity *back* to the binding on completion
+  **only** so the binding knows which lifecycle SSE to address with `list_changed` (notification
+  routing, not enforcement).
+- **`list_changed` rides the lifecycle/events SSE** (existing `KIND_TOOLS_LIST_CHANGED` flush
+  plumbing), NOT the (closed) list request stream — confirmed.
+
+**Implementation shape (re-grep line numbers before editing):**
+1. **Non-blocking list relay.** `McpProxyListFactory` already separates `hydration` from live
+   (`onClientSkip` ~1371 keys off it). Hydration keeps skip+keep-stale. On the **live** path,
+   instead of skip-to-next, relay the route-exit's `elicitCreate` CHALLENGE out as a per-toolkit
+   `elicitation/create` while authorized toolkits' tools stream through; finalize the list
+   without blocking; emit `list_changed` as each callback later lands. The route-exit list stream
+   already produces the challenge — `McpToolsListStream` is a `McpRequestStream`, so
+   `proceedWithRequest` runs `NEEDS_PREAUTHORIZE → preauthorize → elicitCreate` (Phase 5/6).
+   Confirm the **live** `McpListClient` begin carries the **connecting client's authorization**
+   (inbound long), not a cache credential, so the per-identity decision is the upstream's to make
+   (hydration uses the cache credential; live must use the inbound identity).
+2. **Multi-elicitation correlation.** Today correlation is single (`elicitationId` → one held
+   stream). Make it per-route via the `<toolkit>__<nonce>` scheme: rework `manipulateElicitUrl`,
+   the `elicitationId` supplier, and `resolveElicitation` (drop the 3-part `.`-split; parse
+   toolkit from `elicitationId`, validate against configured routes, hand off to the route's
+   guard). N `elicitation/create` events per `tools/list`, each its own `elicitationId`.
+3. **Callback handler** (`McpAuthCallbackHandler`) collapses to: parse toolkit → route →
+   `guard.reauthorize(callbackUrl, completion)`; guard validates nonce + identity internally; on
+   completion fire `list_changed` to the returned identity's lifecycle SSE.
+4. **Blocking `tools/call`** honors the per-request `timeout` Phase 6 added (`timeout==0` →
+   `-32042`; `>0` → hold + `elicitation/create`, single-shot). Largely already in place from
+   Phase 6; verify it composes with the per-route relay.
+5. Test-first: spec scripts first (per-toolkit `elicitation/create` on a live `tools/list` to a
+   multi-route binding with one authorized + one needs-preauth toolkit; `list_changed` after the
+   callback; `tools/call` blocking honoring timeout). McpServerIT + McpProxy*IT + peer
+   Network/ApplicationIT. Gate full spec + runtime `install` (jacoco/checkstyle/license).
+
+Open questions to resolve at kickoff (none blocking the above):
+- Emit all per-toolkit `elicitation/create`s up-front then one `list_changed` per authorization
+  (read of §6), vs batch — go with up-front.
+- Where the guard returns the identity on async completion (callback signature) — confirm the
+  `GuardHandler` async `reauthorize(...,completion)` surfaces enough for `list_changed` targeting;
+  if not, the binding keeps a lightweight `nonce → initiating session` note (notification routing
+  only, not security).
 
 ### Phase 1 — what shipped (2 commits on this branch)
 - `feat(binding-mcp): capture and re-render RFC 9728 resource_metadata on bearer challenge`
