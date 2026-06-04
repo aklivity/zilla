@@ -14,10 +14,8 @@
  */
 package io.aklivity.zilla.runtime.command.dump.internal.test;
 
-import static org.agrona.LangUtil.rethrowUnchecked;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.net.URI;
 import java.net.URL;
 import java.nio.file.Files;
@@ -32,7 +30,7 @@ import org.testcontainers.images.builder.ImageFromDockerfile;
 import org.testcontainers.images.builder.Transferable;
 import org.testcontainers.utility.DockerImageName;
 
-import io.aklivity.zilla.runtime.command.dump.internal.airline.ZillaDumpCommand;
+import io.aklivity.zilla.runtime.command.dump.internal.airline.ZillaDumpDissectors;
 
 class TsharkRunner
 {
@@ -67,14 +65,9 @@ class TsharkRunner
             throw new RuntimeException("tshark is not running");
         }
         System.out.printf("Container %s (%s) is running!%n", tshark.getContainerName(), tshark.getContainerId());
-        try
-        {
-            copyResource("zilla.lua", tshark, "/home/tshark/.local/lib/wireshark/plugins/zilla.lua");
-        }
-        catch (Exception ex)
-        {
-            rethrowUnchecked(ex);
-        }
+        String dissector = ZillaDumpDissectors.assemble();
+        tshark.copyFileToContainer(Transferable.of(dissector.getBytes(UTF_8)),
+            "/home/tshark/.local/lib/wireshark/plugins/zilla.lua");
     }
 
     public Container.ExecResult createTxt(
@@ -91,18 +84,5 @@ class TsharkRunner
         URL resource = TsharkRunner.class.getResource(name);
         assert resource != null;
         return Path.of(URI.create(resource.toString()));
-    }
-
-    private static void copyResource(
-        String resourceName,
-        GenericContainer<?> container,
-        String containerPath) throws IOException
-    {
-        assert container.isRunning();
-        try (InputStream is = ZillaDumpCommand.class.getResourceAsStream(resourceName))
-        {
-            assert is != null;
-            container.copyFileToContainer(Transferable.of(is.readAllBytes()), containerPath);
-        }
     }
 }
