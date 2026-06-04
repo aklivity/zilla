@@ -446,6 +446,40 @@ E. **Elicitation timeout — URL-mode ONLY for now (form deferred).** Because bo
    (not a Zilla-side hold). Do NOT arm a timer on the remote-relayed `:1357` path. Revisit
    origin-discrimination only when form-mode lands.
 
+### #1810 PHASING IMPLICATIONS of the OSS Path B understanding (maintainer 2026-06-04)
+
+The relay understanding BIFURCATES #1810 into two tracks; most of the current plan is Track B.
+- **Track A — OSS relay:** remote is the auth authority; token session-bound at the remote; callback goes
+  DIRECT to the remote (Zilla out of the callback loop); works in pure OSS, no OAuth guard.
+- **Track B — guard-driven:** Zilla is the OAuth client; token in Zilla's guard per (route, identity);
+  callback returns THROUGH Zilla; needs an OAuth-client guard (zilla-plus, or the Path-A new OSS guard).
+
+Mapping of existing phases:
+- **Phase 5** (guard preauthorize→reauthorize) → **Track B only**; OSS relay never calls it.
+- **Phase 6** (`timeout` hold + `-32042`) → **Track B only**; Path B is client-driven replay, no Zilla hold
+  (conclusion E correction) — NOT on the OSS critical path.
+- **Phase 7 splits:** the **§1–2 state-injection / symmetric-strip / Zilla-in-callback routing → Track B
+  only** (only needed when the callback returns through Zilla). The **non-blocking `tools/list` +
+  `list_changed`** is needed by both, but Track A's version is much smaller: passthrough the remote's
+  elicitation, relay the remote's NATIVE `list_changed` — no tag/strip. Call it **Phase 7a (OSS relay)**
+  vs **Phase 7b (guard)**.
+- **Phase 8** (per-client filter / cached-baseline∪per-identity hybrid) → **Track B / optimization**;
+  Track A gets per-identity listing free from the remote on **cache-less routes**. Not required for the
+  OSS example.
+
+Two genuinely-NEW items the OSS example needs (NOT in any current phase) — the OSS critical path:
+1. **Origin-conditional passthrough** — suppress `manipulateElicitUrl` for remote-originated elicitations
+   (verbatim URL; see C3.1). Small, essential.
+2. **Persistent per-route lifecycle + `Mcp-Session-Id`/`MCP-Protocol-Version` replay + resume, Store-backed**
+   (see C3.2 + the lifecycle-persistence invariant). Partly present (session map); durable affinity to build.
+
+NET: the OSS example deliverable can ship WITHOUT Phases 5, 6, the §1–2 part of 7, and Phase 8 (all Track
+B / zilla-plus). OSS critical path = **(new) passthrough + (new) persistent session affinity + slim Phase
+7a non-blocking-list relay + native `list_changed` relay**. SCOPING QUESTION for #1810: its title is
+"per-toolkit **oauth** for mcp proxy" = literally Track B (Zilla-managed OAuth). Decide whether the OSS
+relay example is in-scope for #1810 (add the two new Track-A items) or split to a separate
+"OSS mcp-proxy elicitation example" issue, with #1810 remaining the Zilla-managed-OAuth (Track B) work.
+
 ### Phase 7 — how the OSS mcp-proxy EXAMPLE demonstrates elicitation + auth-guarded list & call
 
 Goal: show URL elicitation AND an auth-guarded `tools/list` + `tools/call` working in **pure OSS** (no
