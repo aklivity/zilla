@@ -21,10 +21,15 @@ environment is ephemeral: each session is a fresh clone with no prior chat).
 > replay / resume) are DONE+pushed** — see the "Track A OSS critical path"
 > section. N2 is locked in by a face-based session-id convention swept across the
 > whole corpus (net=`transport-N`, app=`session-N`; proxy per-toolkit exits
-> `session-1a`/`session-1b` under aggregate `session-1`). **The next Track-A
-> deliverable is N3 — the `examples/mcp.proxy` relay example** (zilla.yaml + demo
-> + ITs against real upstreams). Full no-skip green: spec 197 IT/76 UT, runtime
-> 209 IT/26 UT.
+> `session-1a`/`session-1b` under aggregate `session-1`). **The only remaining
+> binding work in #1810 is Phase 7 — P7a (Track A: non-blocking live `tools/list`
+> + relay the remote's native `list_changed`; N1 already did the elicitation-URL
+> passthrough) and P7b (Track B binding hooks: `<toolkit>__` state inject-on-UP +
+> symmetric strip-on-BACK + Zilla-in-callback proxy routing + `list_changed`
+> origination).** **N3 — the `examples/mcp.proxy` relay example + e2e ITs — is
+> SPLIT OUT of #1810** (separate effort, maintainer 2026-06-04); it can ship
+> independently against real upstreams. P8 + the zilla-plus OAuth guard remain
+> out. Full no-skip green: spec 197 IT/76 UT, runtime 209 IT/26 UT.
 
 ---
 
@@ -541,7 +546,8 @@ classifies every phase as still-required / no-longer-required / new, given the e
   proxy multi scenarios + ApplicationIT peer fix; `975356e2` rename per-toolkit exits → `session-1a`/`session-1b`.
   **Full no-skip green: spec 197 ITs + 76 UT; runtime 209 ITs + 26 UT (jacoco/checkstyle/license/notice pass).**
 - **N3 — the OSS `mcp-proxy` example itself** (zilla.yaml + demo + ITs) demonstrating elicitation +
-  auth-guarded list/call via relay, scaling to N remotes.
+  auth-guarded list/call via relay, scaling to N remotes. **SPLIT OUT of #1810 (maintainer 2026-06-04)** —
+  the e2e example can ship as a separate effort against real upstreams; it does NOT gate the binding PR.
 
 **PR DELIVERABLE = a DUAL-READY mcp BINDING (maintainer 2026-06-04).** When this PR merges, the binding
 must support BOTH the OSS-relay example and the zilla-plus guard example — even though only the **OSS
@@ -555,7 +561,8 @@ hooks for both tracks ship in OSS in this PR; only the **OAuth-client guard impl
 - **NOT in this PR:** the zilla-plus OAuth-client guard (`guard-*`), and the zilla-plus example (built
   later against the dual-ready binding). P8 (per-client filter / cached+per-identity hybrid) stays future
   unless the plus example needs cached listing (cache-less plus routes avoid it).
-- **First example shipped: OSS relay (N3)** — zilla.yaml + demo + ITs, Track A only.
+- **First example shipped: OSS relay (N3)** — zilla.yaml + demo + ITs, Track A only. **NOTE: N3 is now
+  split OUT of #1810 (maintainer 2026-06-04)** — it ships as a separate effort and does not gate the binding PR.
 - **Orthogonal simplification (still confirm):** P6-hold removal vs client-replay is independent of
   dual-readiness — it does not block either example; decide separately. If confirmed, it is the one piece
   of ALREADY-DONE work the evolved design makes redundant.
