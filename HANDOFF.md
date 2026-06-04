@@ -29,7 +29,7 @@ environment is ephemeral: each session is a fresh clone with no prior chat).
 | 4 — protocol `2025-11-25` + `elicitation.url` negotiation | already landed before this branch (#1820) |
 | 5 — guard `NEEDS_PREAUTHORIZE → preauthorize → callback → reauthorize` | **CORE in `develop` (#1739/#1752); the live-identity follow-up (Gap A+B) DONE+pushed on THIS branch (commits `73c45825`, `b1addfd1`, `d0d8b480`, `88f5bab3`, `e2cafd12`) — see the "Phase 5 Gap A+B" section.** Core: `McpClientFactory` `reauthorize(null)`→`MASK_AUTHORIZED`→`credentials()`→stamp; `NEEDS_PREAUTHORIZE`→`guard.preauthorize`→`elicitCreate` challenge→async `reauthorize` on callback; `McpServerFactory` `McpAuthCallbackHandler`/state correlation. **Gap A (inbound identity) RESOLVED on this branch:** the shared `McpRequestStream.proceedWithRequest` (~2628) reuses the inbound `authorization` long when already authorized (`MASK_AUTHORIZED`)→`guard.credentials(authorization)`; else falls through to `reauthorize(...,null)`→elicit. Upstream net opened with `authorization 0L` (`HttpStream.doNetBegin` ~3829) — identity consumed at the binding, conveyed via the `Authorization` bearer. Covered by `tools.call/prompts.get/resources.read.identity` + `client.identity.yaml` (`McpClientIT#shouldCallToolWithIdentity` etc. + peer `NetworkIT`). **Gap B (elicit) RESOLVED:** elicit machinery lives in the base `McpRequestStream` (shared by tools/call+prompts/get+resources/read). **Schema:** proxy kind disallows `options.authorization` (`SchemaTest#shouldRejectProxyWithAuthorization`). **Superseded (won't-do, maintainer):** the older "(a) per-route `McpRouteConfig` guard/creds; (b) `reauthorize` with inbound bearer string" framing — the locked design carries the inbound authorization *long* (not a bearer string) and the live tools/call follows one route by prefix; future zilla-plus uses `options.cache.authorization` + token exchange. No open Phase-5 work remains on this branch. |
 | 6 — `timeout` option + per-request `McpXxxBeginEx` carriage; hold-and-resume | **DONE+pushed (6a plumbing + 6a server stamping + 6b behavior).** Per-binding `timeout` option (config/builder/adapter/schema); `int64 timeout` on the six request BeginEx variants + `McpFunctions`; server stamps effective timeout (gated by `CLIENT_ELICITATION_URL`) on each request BeginEx; client honors it as the elicit hold budget; server holds (`elicitation/create` SSE) when `timeout>0` and emits `-32042 URLElicitationRequiredError` (url in `data`) on expiry/`timeout==0`; explicit DECLINE stays `-32000`. See the "Phase 6 — 6b" section for the 3 commits + k3po teardown notes. |
-| 7 — non-blocking `tools/list` / blocking `tools/call` | **NOT STARTED; design discussed + PLAN written 2026-06-04 — see the "Phase 7 — plan" section.** Decisions locked: (A) proxy **relays** per-route elicitation decisions from the route-exit client bindings (defer to upstream; proxy never originates); (B) `elicitationId = <toolkit>__<nonce>` so the OAuth callback **self-routes** to the right toolkit independent of the (closed, non-blocking) list stream; guard owns nonce + identity-binding, binding does route + notify; `list_changed` rides the lifecycle SSE. Current code: `tools/list` is BLOCKING — `McpProxyListFactory.onNextClient` finalizes only when all routes polled; unauthorized toolkit silently SKIPPED (`onClientSkip`→`onNextClient`); `KIND_TOOLS_LIST_CHANGED` exists but fires only after a full cache-refresh cycle. Depends on Phase 6 timeout (done). |
+| 7 — non-blocking `tools/list` / blocking `tools/call` | **NOT STARTED; MECHANISM CONFIRMED with maintainer 2026-06-04 — see "Phase 7 — CONFIRMED MECHANISM".** Net of the refinement: **no IDL change** (drop the `<toolkit>__<nonce>` *elicitationId* idea). Instead the **proxy injects the `<toolkit>__` tag into the elicit `state`'s 3rd part on the way UP** (client→proxy→server) and **extracts it from `state` on the way BACK**; the server has a single exit so it just forwards the callback down to the proxy, which routes by the toolkit-in-state and fires `list_changed` up the lifecycle SSE. Blocking `tools/call` already works via held-stream + state-preservation (verified). `tools.call.toolkit.elicit{,.prefixed}` are peer-to-peer ApplicationIT-only shape scripts that hardcode `bluesky__`; the proxy does NOT inject today (`McpProxyItemFactory.onClientChallenge` relays the ext verbatim) — that injection + the non-blocking list relay are the unbuilt work. One entangled detail flagged for kickoff (strip-on-BACK). Depends on Phase 6 timeout (done). |
 | 8 — per-client listing filter (SEP-1488 / operator map / annotations) | **NOT STARTED — zero implementation (audited 2026-06-03).** List serve path (`McpCacheListServer`) emits the SAME shared aggregate bytes to every client; `authorization` is captured but never used to filter. No `securitySchemes`, no tool→scope map config, no `readOnlyHint`/`destructiveHint`, no acquirable/non-acquirable distinction, no per-identity live listing. |
 | 2d — live-path baseline test (baseline + per-identity toolkits) | **deferred to Phase 7/8** (maintainer decision) |
 | 9 — IT coverage of the preauthorize→elicit→callback→reauthorize flow | **DONE in `develop` (#1739/#1752), NOT this branch.** Scenarios: `tools.call.elicit.{completed,declined,timeout}` × {plain, `.guarded`, `.proxied`}, `reject.auth.callback.unknown.elicitation`, `lifecycle.initialize.elicitation.{url,form}`. (The Gap-A inbound-identity reuse IS covered by `tools.call/prompts.get/resources.read.identity` ITs on this branch; the superseded per-route guard/creds has no IT, by design.) |
@@ -266,6 +266,69 @@ Open questions to resolve at kickoff (none blocking the above):
   `GuardHandler` async `reauthorize(...,completion)` surfaces enough for `list_changed` targeting;
   if not, the binding keeps a lightweight `nonce → initiating session` note (notification routing
   only, not security).
+
+### Phase 7 — CONFIRMED MECHANISM (maintainer, 2026-06-04 session — supersedes the IDL-field idea)
+
+Grounding corrected this session (verified against scripts + code):
+- The **blocking** `tools/call` toolkit elicit ALREADY works via *state-preservation*: the Zilla
+  `elicitationId` stays the plain nonce (`elicit-1`); the toolkit lives inside the upstream `state`
+  the server preserves as the **3rd `.`-part** → manipulated state =
+  `<sessionId>.<elicitationId>.<toolkit>__<upstreamNonce>` (e.g. `session-1.elicit-1.bluesky__7f3a9b1c`).
+  The callback resolves through the **held** `McpRequestStream` (`session.elicitations.get(elicitationId)`),
+  so the toolkit tag is NOT needed to route the blocking case.
+- BUT `tools.call.toolkit.elicit{,.prefixed}` are **peer-to-peer `ApplicationIT`-only** scripts that
+  **hardcode** `bluesky__` on BOTH sides (client.rpt writes it, server.rpt reads it). They validate
+  the script/`McpFunctions` *shape* only — they do NOT prove the proxy injects `bluesky__`. Verified:
+  the proxy does **not** inject today — `McpProxyItemFactory.McpClient.onClientChallenge` relays
+  `challenge.extension()` **verbatim** to `server.doServerChallenge` (~line 800). No runtime IT exercises
+  the prefixed toolkit elicit. **So the proxy-side injection IS unbuilt Phase 7 work.**
+
+Confirmed mechanism (NOT the earlier IDL-field-on-`McpElicitCreateChallengeEx` framing — DROP that;
+no IDL change):
+1. **UP (elicit relay):** as the route-exit's `elicitCreate` (carrying `url?...state=<upstreamNonce>`)
+   flows client→proxy→server, the **proxy** injects the toolkit into the `state` — prepend the route's
+   capability prefix (`server.prefix`, already `bluesky__` for tools / `bluesky+` for resources — but use
+   the `__` form for the elicit tag) to the existing `state` value → `state=bluesky__<upstreamNonce>`.
+   The server then does its normal `manipulateElicitUrl` (prepends `<sessionId>.<elicitationId>.`) and
+   renders `elicitation/create` to the client. Injection point: `McpProxyItemFactory` challenge relay
+   (and the NEW `McpProxyListFactory` relay for the non-blocking list).
+2. **BACK (callback):** the OAuth callback lands at the north `kind: server` (`McpAuthCallbackHandler`).
+   The server has exactly **one exit** (the proxy), so it just forwards the callback (the `state`-bearing
+   URL) down that one exit. **The proxy** extracts the toolkit by reading the `state`'s 3rd `.`-part up to
+   the first `__` → picks that route → `guard.reauthorize(callbackUrl, completion)`. On completion the
+   **proxy** fires `notifications/tools/list_changed` up the lifecycle SSE for that `sessionId` (the proxy
+   owns the `McpLifecycleServer` for the session, so no separate binding-side note is needed for routing
+   OR notify targeting).
+3. **Zilla `elicitationId` (2nd part) stays the plain nonce.** The toolkit is purely in the proxy-owned
+   3rd part. Blocking `tools/call` is unchanged (held stream routes it; toolkit tag rides along).
+4. **Non-blocking list (the headline):** `McpProxyListFactory` returns authorized toolkits' tools and
+   finalizes WITHOUT blocking; for each unauthorized toolkit it relays an `elicitation/create` (UP per §1);
+   on each callback (BACK per §2) the proxy reauthorizes that route and fires `list_changed`. The
+   live `McpListClient` begin must carry the connecting client's inbound authorization (not a cache
+   credential) so the per-identity decision is the upstream's.
+
+ENTANGLED DETAIL TO RESOLVE WITH MAINTAINER AT KICKOFF (do not guess):
+- On the BACK path, should the proxy **strip** the `bluesky__` tag from `state` before handing the
+  callback to the route-exit's guard? The guard *issued* `<upstreamNonce>` and would receive
+  `bluesky__<upstreamNonce>` — a likely mismatch ⇒ proxy should strip its own tag before reauthorize.
+  BUT the existing `tools.call.toolkit.elicit.prefixed/server.rpt` (line ~72) shows the route-exit
+  READING the UN-stripped `...bluesky__7f3a9b1c` — so either that anticipatory script is wrong (the
+  proxy should strip, and the script needs updating) or the guard ignores the prefix. Confirm before
+  writing the BACK-path test. Symmetric-strip (proxy injects on UP, strips on BACK) is the clean default.
+
+Edit points (re-grep; numbers drift):
+- `McpProxyItemFactory.java` `McpClient.onClientChallenge` (~797-801) + a url/state rewrite helper:
+  parse the `elicitCreate.url()`, prepend `<toolkit>__` to the `state=` value, rebuild the `McpChallengeEx`,
+  relay up. `McpServer.prefix` holds the capability prefix; derive the `<toolkit>` (strip the capability
+  delimiter, or thread the route's toolkit name).
+- `McpServerFactory.resolveElicitation` (~2952) + `McpAuthCallbackHandler` (~2793): when no held stream
+  exists (closed list), forward the callback down the single exit instead of 410-GONE.
+- `McpProxyLifecycleFactory` / `McpProxyListFactory`: receive the forwarded callback, parse toolkit from
+  `state`, `supplyClient(route).reauthorize(...)`, then `KIND_TOOLS_LIST_CHANGED` flush up the lifecycle SSE.
+- Test-first: a runtime multi-route proxy IT (one authorized + one needs-preauth toolkit) — currently
+  ZERO runtime ITs cover the prefixed toolkit elicit; add net+app scripts + `McpProxy*IT` + peer
+  `Network/ApplicationIT`. Gate full spec + runtime `install`.
+
 
 ### Phase 1 — what shipped (2 commits on this branch)
 - `feat(binding-mcp): capture and re-render RFC 9728 resource_metadata on bearer challenge`
