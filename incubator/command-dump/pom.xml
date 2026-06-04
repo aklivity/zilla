@@ -170,6 +170,7 @@
         <configuration>
           <excludes>
             <exclude>src/test/resources/io/aklivity/zilla/runtime/command/dump/internal/*.txt</exclude>
+            <exclude>src/main/resources/io/aklivity/zilla/runtime/command/dump/internal/dissector/*.lua</exclude>
             <exclude>**/keys</exclude>
             <exclude>**/trust</exclude>
           </excludes>
@@ -267,7 +268,15 @@
         <directory>src/main/resources</directory>
         <filtering>true</filtering>
         <includes>
-          <include>**/zilla.lua</include>
+          <include>**/airline/zilla.lua</include>
+        </includes>
+      </resource>
+      <resource>
+        <directory>src/main/resources</directory>
+        <filtering>false</filtering>
+        <includes>
+          <include>**/internal/dissector/*.lua</include>
+          <include>META-INF/services/**</include>
         </includes>
       </resource>
       <resource>
