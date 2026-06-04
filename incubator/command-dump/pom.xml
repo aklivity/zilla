@@ -170,7 +170,6 @@
         <configuration>
           <excludes>
             <exclude>src/test/resources/io/aklivity/zilla/runtime/command/dump/internal/*.txt</exclude>
-            <exclude>src/main/resources/io/aklivity/zilla/runtime/command/dump/internal/dissector/*.lua</exclude>
             <exclude>**/keys</exclude>
             <exclude>**/trust</exclude>
           </excludes>

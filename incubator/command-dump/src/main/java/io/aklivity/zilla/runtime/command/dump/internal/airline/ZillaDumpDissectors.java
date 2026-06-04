@@ -22,6 +22,8 @@ import java.io.UncheckedIOException;
 import java.net.URL;
 import java.util.Comparator;
 import java.util.ServiceLoader;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -33,6 +35,8 @@ public final class ZillaDumpDissectors
 
     private static final String MARKER = "-- @dissectors@\n";
 
+    private static final Pattern DISSECTOR_MARKER = Pattern.compile("(?m)^-- \\w+ dissector$");
+
     public static String assemble()
     {
         String template = read(ZillaDumpDissectors.class.getResource(TEMPLATE));
@@ -40,8 +44,23 @@ public final class ZillaDumpDissectors
             .sorted(Comparator.comparing(ZillaDumpDissectorSpi::type))
             .map(ZillaDumpDissectorSpi::dissector)
             .map(ZillaDumpDissectors::read)
+            .map(ZillaDumpDissectors::trimToMarker)
             .collect(Collectors.joining());
         return template.replace(MARKER, dissectors);
+    }
+
+    // omit each fragment's preamble (e.g. license header) up to its "-- <name> dissector" marker,
+    // so the assembled script carries the license header only once, from the template head
+    private static String trimToMarker(
+        String fragment)
+    {
+        Matcher matcher = DISSECTOR_MARKER.matcher(fragment);
+        String result = fragment;
+        if (matcher.find())
+        {
+            result = fragment.substring(matcher.start());
+        }
+        return result;
     }
 
     private static ServiceLoader<ZillaDumpDissectorSpi> load()
