@@ -79,5 +79,3 @@ write advised zilla:challenge ${mcp:matchChallengeEx()
                                         .url("https://server.example.com/authorize?state=7f3a9b1c&redirect_uri=%s".formatted(http:encodeQuery("https://replace.me/callback")))
                                         .build()
                                     .build()}
-
-write close

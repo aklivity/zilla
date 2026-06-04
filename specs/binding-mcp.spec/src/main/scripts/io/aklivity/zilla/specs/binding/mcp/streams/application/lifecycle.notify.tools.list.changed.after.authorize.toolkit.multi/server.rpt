@@ -105,6 +105,8 @@ read advise zilla:challenge ${mcp:challengeEx()
                                      .build()
                                  .build()}
 
+write await FIRST_LIST_DONE
+
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .lifecycle()

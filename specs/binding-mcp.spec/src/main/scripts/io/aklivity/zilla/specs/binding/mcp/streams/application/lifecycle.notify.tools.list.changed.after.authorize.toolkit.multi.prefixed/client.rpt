@@ -45,9 +45,11 @@ read notify LIFECYCLE_INITIALIZED
 read advised zilla:flush ${mcp:matchFlushEx()
                                .typeId(zilla:id("mcp"))
                                .toolsListChanged()
-                                   .id("2=200;S=100")
+                                   .id("2=200")
                                    .build()
                                .build()}
+
+read notify LIST_CHANGED
 
 connect await LIFECYCLE_INITIALIZED
         "zilla://streams/app0"
@@ -72,7 +74,7 @@ read closed
 
 read notify FIRST_LIST_DONE
 
-connect await FIRST_LIST_DONE
+connect await LIST_CHANGED
         "zilla://streams/app0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"

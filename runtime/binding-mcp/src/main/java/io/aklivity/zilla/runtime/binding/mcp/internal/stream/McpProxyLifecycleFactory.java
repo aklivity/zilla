@@ -694,6 +694,15 @@ final class McpProxyLifecycleFactory implements BindingHandler
             }
         }
 
+        private void doServerChallenge(
+            long traceId,
+            long authorization,
+            OctetsFW extension)
+        {
+            doChallenge(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                traceId, authorization, extension);
+        }
+
         private void doServerFlush(
             long traceId,
             long authorization,
@@ -783,6 +792,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
 
         private MessageConsumer sender;
         private int state;
+        private boolean settled;
         String sessionId;
         long authorization;
         private String resumeId;
@@ -845,7 +855,10 @@ final class McpProxyLifecycleFactory implements BindingHandler
             long traceId,
             McpRouteRequest request)
         {
-            if (McpState.replyOpened(state) && sessionId != null ||
+            // a route is settled once it has reported its lifecycle disposition: opened its reply
+            // (sessionId present) or advised an elicitCreate challenge (unauthorized, sessionId null) —
+            // the latter lets list aggregation skip it instead of blocking on a reply that never comes
+            if (settled ||
                 McpState.initialClosed(state) ||
                 McpState.replyClosed(state))
             {
@@ -971,6 +984,10 @@ final class McpProxyLifecycleFactory implements BindingHandler
                 final FlushFW flush = flushRO.wrap(buffer, index, index + length);
                 onClientFlush(flush);
                 break;
+            case ChallengeFW.TYPE_ID:
+                final ChallengeFW challenge = challengeRO.wrap(buffer, index, index + length);
+                onClientChallenge(challenge);
+                break;
             case WindowFW.TYPE_ID:
                 final WindowFW window = windowRO.wrap(buffer, index, index + length);
                 onClientWindow(window);
@@ -1004,6 +1021,30 @@ final class McpProxyLifecycleFactory implements BindingHandler
             }
         }
 
+        private void onClientChallenge(
+            ChallengeFW challenge)
+        {
+            final long traceId = challenge.traceId();
+            final long authorization = challenge.authorization();
+            final OctetsFW extension = challenge.extension();
+
+            // a route-exit that needs authorization advises an elicitCreate challenge instead of
+            // settling with a sessionId; count it toward partial-open so the unified lifecycle opens
+            // on whatever authorized subset exists, then relay the elicitation up the north lifecycle
+            settleLifecycle(traceId);
+            server.doServerChallenge(traceId, authorization, extension);
+        }
+
+        private void settleLifecycle(
+            long traceId)
+        {
+            if (!settled)
+            {
+                settled = true;
+                server.onClientLifecycleOpened(traceId);
+            }
+        }
+
         private void onClientBegin(
             BeginFW begin)
         {
@@ -1028,7 +1069,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
 
             state = McpState.openedReply(state);
 
-            server.onClientLifecycleOpened(traceId);
+            settleLifecycle(traceId);
 
             settleRequests(traceId);
 

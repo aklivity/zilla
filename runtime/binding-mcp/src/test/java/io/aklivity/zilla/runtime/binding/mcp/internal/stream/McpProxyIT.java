@@ -170,6 +170,36 @@ public class McpProxyIT
     @Test
     @Configuration("proxy.toolkit.multi.yaml")
     @Specification({
+        "${app}/lifecycle.initialize.partial.toolkit.multi/client",
+        "${app}/lifecycle.initialize.partial.toolkit.multi/server" })
+    public void shouldInitializeLifecyclePartialToolkitMulti() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.toolkit.multi.yaml")
+    @Specification({
+        "${app}/tools.list.partial.toolkit.multi.prefixed/client",
+        "${app}/tools.list.partial.toolkit.multi/server" })
+    public void shouldListToolsWithPartialToolkitMulti() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.toolkit.multi.yaml")
+    @Specification({
+        "${app}/lifecycle.notify.tools.list.changed.after.authorize.toolkit.multi.prefixed/client",
+        "${app}/lifecycle.notify.tools.list.changed.after.authorize.toolkit.multi/server" })
+    public void shouldNotifyToolsListChangedAfterAuthorizeToolkitMulti() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.toolkit.multi.yaml")
+    @Specification({
         "${app}/lifecycle.events.resume.aggregate.prefixed/client",
         "${app}/lifecycle.events.resume.aggregate/server" })
     public void shouldResumeLifecycleEventsAggregate() throws Exception
