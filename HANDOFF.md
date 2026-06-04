@@ -15,6 +15,16 @@ environment is ephemeral: each session is a fresh clone with no prior chat).
 > `develop`; the live-identity Gap A+B follow-up landed here — the older
 > "per-route guard / inbound-bearer" framing was superseded by the maintainer,
 > not pending). Branch is green. Re-grep line numbers before editing.
+>
+> **Track A (OSS relay) status:** **N1 (origin-conditional passthrough) + N2
+> (persistent per-route lifecycle / `Mcp-Session-Id`+`MCP-Protocol-Version`
+> replay / resume) are DONE+pushed** — see the "Track A OSS critical path"
+> section. N2 is locked in by a face-based session-id convention swept across the
+> whole corpus (net=`transport-N`, app=`session-N`; proxy per-toolkit exits
+> `session-1a`/`session-1b` under aggregate `session-1`). **The next Track-A
+> deliverable is N3 — the `examples/mcp.proxy` relay example** (zilla.yaml + demo
+> + ITs against real upstreams). Full no-skip green: spec 197 IT/76 UT, runtime
+> 209 IT/26 UT.
 
 ---
 
@@ -498,23 +508,38 @@ classifies every phase as still-required / no-longer-required / new, given the e
   (Server 68 / Client 61 / Proxy 44); checkstyle clean. Open follow-up: placeholder-trust (a malicious
   upstream sending the `replace.me` host to coax Zilla into the callback path) — belongs to the gateway/Track-B
   callback path, not this additive passthrough.
-- **N2 — persistent per-route lifecycle + `Mcp-Session-Id`/`MCP-Protocol-Version` replay + resume.**
-  **FINDING (2026-06-04): N2a/N2b already implemented in `McpClientFactory`** — explore summary was wrong;
-  verified in code: upstream `Mcp-Session-Id` captured at `onNetBegin :2371` → `remoteSessionId` on the
-  persistent `McpLifecycleStream`; `MCP-Protocol-Version` captured `:4135` → `negotiatedVersion`; both
-  replayed via `transportSessionId() :2150` / `protocolVersion() :2156` on every subsequent request encoder
-  (`HttpNotifyInitialized :4190`, `HttpKeepalive :4230`, request `:4207`); session kept warm across requests
-  by keepalive ping (`scheduleKeepalive :2501`), torn down only at `doAppTerminate :2526`. Existing tests
-  masked it by reusing `session-1` on both app + transport sides. **DONE: added `lifecycle.initialize.session.affinity`
-  lock-in test** (distinct ids: app-facing `session-1` ≠ transport `transport-1`) proving the client replays
-  the transport id toward the upstream while keeping the app id separate — McpClientIT/NetworkIT/ApplicationIT,
-  all green; checkstyle clean. **Naming convention adopted: `session-N` = app-facing/unified id, `transport-N`
-  = upstream transport id.** Store-backing (N2d) **deferred** — session state is per-worker and same-session
-  streams are worker-affine by design (session id drives stream affinity), so a Store is redundant for
-  correctness; only needed for cross-restart/multi-replica durability (filed as follow-up). **N2c (resume /
-  `Last-Event-Id`) still to assess** — substantial machinery already exists (`McpEventStream` suspend/resume,
-  `Last-Event-Id` parse `McpServerFactory :465`). Full end-to-end affinity (north unified id ↔ transport id
-  mapped through the proxy with real distinct ids) will be exercised by N3 (the example) against real upstreams.
+- **N2 — persistent per-route lifecycle + `Mcp-Session-Id`/`MCP-Protocol-Version` replay + resume. DONE+pushed
+  (2026-06-04, branch claude/kind-wright-P3p6I).**
+  **FINDING: N2a/N2b were already implemented in `McpClientFactory`** — explore summary was wrong; verified in
+  code: upstream `Mcp-Session-Id` captured at `onNetBegin :2371` → `remoteSessionId` on the persistent
+  `McpLifecycleStream`; `MCP-Protocol-Version` captured `:4135` → `negotiatedVersion`; both replayed via
+  `transportSessionId() :2150` / `protocolVersion() :2156` on every subsequent request encoder
+  (`HttpNotifyInitialized :4190`, `HttpKeepalive :4230`, request `:4207`); session kept warm by keepalive ping
+  (`scheduleKeepalive :2501`), torn down only at `doAppTerminate :2526`. Existing tests MASKED this by reusing
+  `session-1` on BOTH the app and transport sides.
+  **Locked in by a face-based session-id naming convention swept across the ENTIRE binding-mcp test corpus**
+  (so every boundary remap is asserted, not hidden):
+  - **net face** (HTTP/transport) = `transport-N`; **app face** (application/unified) = `session-N`.
+  - **Server**: generates the transport id (`supplySessionId`, affinity-aligned), takes the app/unified id from
+    downstream. **Client**: captures the upstream transport id, generates its own app session id. OAuth callback
+    `state` prefix carries the transport/`sessions`-key id.
+  - **Proxy** (`McpProxyLifecycleFactory`, verified): MINTS its own north app id (`supplySessionId`/`newSessionId`
+    `:186`, called `:171`, replied north `:544`) = `session-1`, and CAPTURES each route-exit's app id per route
+    (`McpLifecycleClient.sessionId :1024`) replaying it on that route's fan-out. The captured per-toolkit exits
+    are named **`session-1a` / `session-1b`** to convey they are the per-route children of the aggregate north
+    `session-1`; the `.prefixed` (north/aggregated) view stays `session-1`.
+  - The earlier dedicated `lifecycle.initialize.session.affinity` lock-in scenario was REMOVED as redundant once
+    `lifecycle.initialize` itself carried `transport-1`/`session-1`.
+  **N2c (resume / `Last-Event-Id`) — COVERED**, not just "to assess": the resume paths (`lifecycle.events.resume`,
+  `tools.call.with.progress.resume`, and the multi-toolkit `lifecycle.events.resume.aggregate`/`.partial`) now
+  carry distinct transport/session ids end-to-end, so resume affinity is asserted. **N2d (Store-backing)
+  deferred** — session state is per-worker and same-session streams are worker-affine by design (session id
+  drives stream affinity), so a Store is redundant for correctness; only needed for cross-restart/multi-replica
+  durability (filed as follow-up). Full real-upstream affinity is exercised next by N3.
+  **Commits** (this branch): `46568507` server+client face-based convention (163 files); `924bdc6c` remove
+  redundant affinity scenario; `e848c3ce` proxy `tools.list.toolkit.multi` per-toolkit; `e26b0bde` remaining
+  proxy multi scenarios + ApplicationIT peer fix; `975356e2` rename per-toolkit exits → `session-1a`/`session-1b`.
+  **Full no-skip green: spec 197 ITs + 76 UT; runtime 209 ITs + 26 UT (jacoco/checkstyle/license/notice pass).**
 - **N3 — the OSS `mcp-proxy` example itself** (zilla.yaml + demo + ITs) demonstrating elicitation +
   auth-guarded list/call via relay, scaling to N remotes.
 
