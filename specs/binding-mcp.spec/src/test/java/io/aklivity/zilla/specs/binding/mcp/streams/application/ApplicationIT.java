@@ -962,4 +962,22 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/tools.list.partial.toolkit.multi/client",
+        "${app}/tools.list.partial.toolkit.multi/server"})
+    public void shouldListToolsWithPartialToolkitMulti() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/tools.list.partial.toolkit.multi.prefixed/client",
+        "${app}/tools.list.partial.toolkit.multi.prefixed/server"})
+    public void shouldListToolsWithPartialToolkitMultiPrefixed() throws Exception
+    {
+        k3po.finish();
+    }
 }

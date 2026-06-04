@@ -510,6 +510,27 @@ elicitations). So in a proxy IT the route-exit (app-side script standing in for 
 face) emits the `elicitCreate` CHALLENGE on its lifecycle reply instead of settling with a sessionId; the proxy
 relays it up and marks that route unauthorized (skips it in the list) while keeping the session open.
 
+**SPEC CONTRACT AUTHORED + peer-green (2026-06-04, in tree → committed).** New scenarios under
+`specs/.../streams/application/`: `lifecycle.initialize.partial.toolkit.multi` (proxy-only: app1 settles
+`session-1a` NOT aborted; app2 relays `elicitCreate`; north opens `session-1` + reads relayed elicit),
+`tools.list.partial.toolkit.multi{,.prefixed}` (peer-tested: authorized route A returns tools, route B skipped),
+`lifecycle.notify.tools.list.changed.after.authorize.toolkit.multi{,.prefixed}` (proxy-only: route B authorizes
+out-of-band → native `list_changed` relayed up → re-list returns A∪B). No `McpFunctions` changes needed
+(`challengeEx.elicitCreate`/`matchChallengeEx`, lifecycle/toolsList begin, `toolsListChanged` flush all exist).
+Challenge verb direction: accept-side `read advise zilla:challenge` (builder) ↔ initiator-side
+`write advised zilla:challenge` (matcher) — mirror `tools.call.toolkit.elicit`. Peer ApplicationIT methods added:
+`shouldListToolsWithPartialToolkitMulti{,Prefixed}` (ApplicationIT 103→105, full spec module green). The
+lifecycle/notify scenarios are proxy-only (no self-consistent peer pair — matches `reject.bearer.toolkit.multi`
+precedent). **Minor TODO at impl: the relay elicit url reuses the `replace.me` placeholder; a pure relay carries
+the remote's real `redirect_uri` verbatim — tidy when wiring (harmless, proxy relays bytes unchanged).**
+
+**Proxy-IT RED targets to wire ALONGSIDE the runtime change** (do NOT add before — they fail today and break CI).
+Add to `McpProxyIT` (already has `.external("app1").external("app2")` + `@Configuration("proxy.toolkit.multi.yaml")`):
+1. `shouldInitializeLifecyclePartialToolkitMulti` → `${app}/lifecycle.initialize.partial.toolkit.multi/{client,server}`
+2. `shouldListToolsWithPartialToolkitMulti` → `${app}/tools.list.partial.toolkit.multi.prefixed/client` + `${app}/tools.list.partial.toolkit.multi/server`
+3. `shouldNotifyToolsListChangedAfterAuthorizeToolkitMulti` → `${app}/lifecycle.notify.tools.list.changed.after.authorize.toolkit.multi.prefixed/client` + `.../after.authorize.toolkit.multi/server`
+(Mirror the existing `shouldRejectLifecycleInitializeWithBearerChallengeToolkitMulti` / `shouldNotifyToolsListChangedWithAggregateEventId` cross-pattern.)
+
 ### #1810 BROADENED SCOPE + DONE-vs-NEEDED AUDIT (maintainer 2026-06-04)
 
 Broaden #1810 to cover BOTH tracks (A = OSS relay; B = Zilla-managed per-toolkit OAuth). Audit below
