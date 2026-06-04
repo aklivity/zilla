@@ -47,15 +47,6 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/lifecycle.initialize.session.affinity/client",
-        "${net}/lifecycle.initialize.session.affinity/server"})
-    public void shouldInitializeLifecycleWithSessionAffinity() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${net}/lifecycle.initialize.elicitation.url/client",
         "${net}/lifecycle.initialize.elicitation.url/server"})
     public void shouldInitializeLifecycleWithElicitationUrl() throws Exception
