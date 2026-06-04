@@ -3169,7 +3169,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             else if (claimed)
             {
                 stealAt = signaler.signalAt(currentTimeMillis() + sessionRenew.toMillis(),
-                    originId, routedId, initialId, traceId, SIGNAL_STEAL_SESSION_OWNERSHIP, 0);
+                    originId, routedId, replyId, traceId, SIGNAL_STEAL_SESSION_OWNERSHIP, 0);
             }
         }
 
@@ -3183,7 +3183,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             store.put(ownerKey, ownershipRecordPrefix + token, sessionLease, ignored -> {});
             ownerWatch = store.watch(ownerKey, (key, value) -> onOwnershipChallenged(traceId, value));
             renewAt = signaler.signalAt(currentTimeMillis() + sessionRenew.toMillis(),
-                originId, routedId, initialId, traceId, SIGNAL_RENEW_SESSION_OWNERSHIP, 0);
+                originId, routedId, replyId, traceId, SIGNAL_RENEW_SESSION_OWNERSHIP, 0);
 
             doEstablishSession(traceId);
 
@@ -3283,7 +3283,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             if (token != null)
             {
                 renewAt = signaler.signalAt(currentTimeMillis() + sessionRenew.toMillis(),
-                    originId, routedId, initialId, traceId, SIGNAL_RENEW_SESSION_OWNERSHIP, 0);
+                    originId, routedId, replyId, traceId, SIGNAL_RENEW_SESSION_OWNERSHIP, 0);
             }
             else if (owns)
             {
