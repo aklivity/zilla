@@ -2134,7 +2134,6 @@ public final class McpClientFactory implements McpStreamFactory
         String remoteSessionId;
         String negotiatedVersion;
         private int nextRequestId = 2;
-        private int nextNotifyId = 1;
         private long reauthTraceId;
         private long reauthAuthorization;
         private long keepaliveId = Signaler.NO_CANCEL_ID;
@@ -2455,11 +2454,15 @@ public final class McpClientFactory implements McpStreamFactory
         {
             if ((sessionId & GuardHandler.MASK_AUTHORIZED) != 0L)
             {
-                final String notifyId = Integer.toString(nextNotifyId++);
+                // synthetic notification injected on behalf of the remote: emit no event id so it
+                // never enters the remote's Last-Event-Id resumption space (it is a transient
+                // re-list nudge, not a resumable position)
                 final McpFlushExFW flushEx = mcpFlushExRW
                     .wrap(extBuffer, 0, extBuffer.capacity())
                     .typeId(mcpTypeId)
-                    .toolsListChanged(b -> b.id(notifyId))
+                    .toolsListChanged(b ->
+                    {
+                    })
                     .build();
                 doAppFlush(reauthTraceId, reauthAuthorization, flushEx);
             }
