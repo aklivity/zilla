@@ -22,30 +22,30 @@ environment is ephemeral: each session is a fresh clone with no prior chat).
 > `e665f996` server strips its own elicitation state prefix on the callback; `bb3f74d6`
 > `context` IDL field on the elicit challenge + callback extensions.
 >
-> **7b progress (this session, newest last):** `6a3e93cb` step-1 `McpFunctions` `context`
-> builder+matcher + 6 tests; `7ef4988b` step-2a server echoes `context` on the held-stream
-> `elicitCallback`; `93c30c20` step-2b non-blocking callback routing (lifecycle `ChallengeFW`
-> handling + `elicitation/create` on the lifecycle SSE + `McpElicitation` record + 3-way callback
-> resolution held/no-stream/410); `5da3e4e3` step-3a proxy routes per-toolkit callbacks (UP
-> `context`=route prefix inject in `injectChallengeContext`; BACK `onServerFlush` route-by-context
-> via `routeByPrefix` + pop + `doClientFlushElicitCallback` to the route-exit).
-> **Steps 1, 2a, 2b, 3a DONE+pushed. Branch green at `5da3e4e3`** (runtime 215 IT/26 UT; spec
-> 201 IT/82 UT, all gates).
-> **REMAINING: 3b (route-exit `McpClientFactory` lifecycle: consume the forwarded `elicitCallback`
-> → `guard.reauthorize(callbackUrl, completion)` → on success fire `KIND_TOOLS_LIST_CHANGED` UP)
-> and 2c (TTL on open-elicitation records).**
-> **3b OPEN DESIGN QUESTION (maintainer): what SSE event id should a GUARD-DRIVEN `list_changed`
-> carry?** Native (relayed) `list_changed` reuses the upstream SSE event id (`onDecodeNotification`
-> `McpClientFactory:2335`, e.g. `200` → proxy aggregates `2=200`). A guard-driven reauthorize has
-> no upstream event, so the binding must MINT an id; the scheme (counter? derived from
-> elicitationId?) affects resumption and the proxy aggregate id and is a maintainer call — do not
-> invent. 3b plumbing grounded: blocking reauthorize lives in the request-stream subclass
-> (`onAppFlush` `:2750` → `guard.reauthorize(...,elicitCompletion)` `:2784`; `LongCompletionCallback`
-> `:2572`; `onElicitCompleted` `:2807`). 3b mirrors this on `McpLifecycleStream` (`:2130`, override
-> `onAppFlush` for `KIND_ELICIT_CALLBACK`, completion fires `toolsListChanged` via `doAppFlush`
-> like `onDecodeNotification:2335`). Test = a new McpClientIT net+app scenario with
-> `client.guarded.yaml` (guard `oauth` test type): app stand-in sends the `elicitCallback` on the
-> lifecycle, asserts a `toolsListChanged` flush back; net server handles `initialize`.
+> **7b COMPLETE (this session). All binding-side 7b work DONE+pushed. Commits (newest last):**
+> `6a3e93cb` step-1 `McpFunctions` `context` builder+matcher + 6 tests; `7ef4988b` step-2a server
+> echoes `context` on the held-stream `elicitCallback`; `93c30c20` step-2b non-blocking callback
+> routing (lifecycle `ChallengeFW` handling + `elicitation/create` on the lifecycle SSE +
+> `McpElicitation` record + 3-way callback resolution held/no-stream/410); `5da3e4e3` step-3a proxy
+> routes per-toolkit callbacks (UP `context`=route prefix inject in `injectChallengeContext`; BACK
+> `onServerFlush` route-by-context via `routeByPrefix` + pop + `doClientFlushElicitCallback` to the
+> route-exit); `4af27e7d` client session-SSE elicitation decode symmetry (`McpLifecycleStream`
+> overrides `onDecodeElicitCreate`/`onDecodeElicitComplete` → relay up); `886e58b8` step-3b route-exit
+> lifecycle reauthorize (`onAppFlush` `KIND_ELICIT_CALLBACK` → `guard.reauthorize(callbackUrl,
+> completion)` → fire `toolsListChanged` UP); `0f4e0949` synthetic `list_changed` carries NO event id
+> (avoids polluting the remote's `Last-Event-Id` resumption space — proxy skips id-less events in
+> aggregation, north server renders a data-only SSE event); `cfb07b6a` step-2c single-use callback
+> resolution (`resolveElicitation` removes the record → replay/duplicate callback = 410; temporal
+> bound is the session lifetime via existing inactivity eviction).
+> **Branch green at `cfb07b6a`: runtime 218 IT/26 UT; spec 203 IT/82 UT (jacoco/checkstyle/license).**
+>
+> **3b event-id decision (RESOLVED, maintainer):** a guard-driven (synthetic) `list_changed` carries
+> NO id — only natively-relayed `list_changed` reuses the remote's upstream SSE id
+> (`onDecodeNotification` `McpClientFactory:~2335`). The earlier "what id to mint?" question is moot.
+>
+> **REMAINING for #1810 (NOT binding work; out of this branch's scope per the dual-ready PR plan):**
+> the zilla-plus interactive OAuth-client guard (separate repo) and the OSS `mcp.proxy` relay example
+> N3 (split out). P8 (per-client listing filter) is #1831. The binding itself is now dual-ready.
 >
 > **Track A (OSS relay) status:** **N1 (origin-conditional passthrough) + N2
 > (persistent per-route lifecycle / `Mcp-Session-Id`+`MCP-Protocol-Version`
@@ -297,7 +297,10 @@ remote (Track A). Phase 8 split to **#1831** (per-client listing filter).
   keeps full state.
 - `context` IDL field (`bb3f74d6`).
 
-**REMAINING (ordered, test-first):**
+**STATUS: 7b COMPLETE — all items below DONE+pushed (see start-here block for the commit map).
+Branch green at `cfb07b6a`: runtime 218 IT/26 UT; spec 203 IT/82 UT.**
+
+**ITEMS (ordered, test-first):**
 1. ✅ **DONE+pushed (`6a3e93cb`).** `McpFunctions`: `context` builder + matcher for `elicitCreate`
    + `elicitCallback` (4 spots) + 6 `McpFunctionsTest` cases (gen/match/mismatch × 2). String8FW
    import added. McpFunctionsTest 69→75.
