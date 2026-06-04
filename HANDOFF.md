@@ -446,6 +446,73 @@ E. **Elicitation timeout — URL-mode ONLY for now (form deferred).** Because bo
    (not a Zilla-side hold). Do NOT arm a timer on the remote-relayed `:1357` path. Revisit
    origin-discrimination only when form-mode lands.
 
+### #1810 BROADENED SCOPE + DONE-vs-NEEDED AUDIT (maintainer 2026-06-04)
+
+Broaden #1810 to cover BOTH tracks (A = OSS relay; B = Zilla-managed per-toolkit OAuth). Audit below
+classifies every phase as still-required / no-longer-required / new, given the evolved design.
+
+**DONE & STILL REQUIRED (no change):**
+- **P1** resource_metadata capture/re-render — both tracks (AS discovery for B; surfacing the remote's
+  auth requirement for A). Keep.
+- **P2 / 2e** hydrater split + keep-stale + jacoco — cache infra for the shared/public baseline list;
+  orthogonal to auth track. Keep.
+- **P4** protocol `2025-11-25` + `elicitation.url` negotiation — fundamental to surfacing URL elicitation
+  in both tracks. Keep.
+- **P5** guard preauthorize→reauthorize **+ Gap A/B** — Track B core. NOTE Gap A (inbound MASK_AUTHORIZED
+  reuse) is the LINCHPIN of client-driven replay in Track B (a re-issued request after auth succeeds
+  via `credentials(authorization)`), so it is MORE important now, not less. Keep.
+- **P9** preauthorize→elicit→callback→reauthorize ITs — Track B coverage. Keep.
+
+**DONE but NOW QUESTIONABLE / SIMPLIFIABLE (design evolved — needs maintainer confirm before touching):**
+- **P6 hold-and-resume (the `timeout>0` branch: body buffering + signal-based resume in `McpRequestStream`)
+  is likely NO LONGER REQUIRED.** The client-driven REPLAY insight (return promptly → client authorizes →
+  client re-issues → Gap A makes the re-issue succeed) is the universal recovery pattern across BOTH
+  tracks. Under it, Zilla need not buffer/hold/resume. What REMAINS essential from P6: the `timeout`
+  option + the **`-32042 URLElicitationRequiredError`** emission (the "auth-required, go elicit then retry"
+  signal = `timeout==0` path). So P6 reduces to "emit -32042" and the hold/buffer/resume machinery becomes
+  removable. CAVEAT: in-band hold (no client round-trip) vs error+retry are both valid MCP patterns; this
+  is a deliberate UX call — confirm with maintainer before removing shipped behavior. **Top audit finding.**
+- **P3 per-route `with.cache.credentials`** — already flagged (Phase 5 residual) as future-superseded by a
+  single `options.cache.authorization` + zilla-plus OAuth-guard **token exchange**. Not obsolete now; mark
+  "may retire when Track B token-exchange lands."
+
+**NOT STARTED & STILL REQUIRED (re-scoped):**
+- **P7a (Track A, OSS)** — slim: origin-conditional passthrough relay of the remote's elicitation +
+  non-blocking `tools/list` that returns public tools immediately + relay the remote's NATIVE
+  `list_changed`. NO state tag/strip, NO Zilla-in-callback. (Depends on N1+N2 below.)
+- **P7b (Track B, guard)** — the heavy part: §1–2 `<toolkit>__` state inject on UP + symmetric strip on
+  BACK + Zilla-in-callback routing to the right route's guard + `list_changed` origination on reauthorize.
+  §1–2 IS required for B's NON-BLOCKING-list callback routing (closed stream ⇒ no held-stream correlation ⇒
+  must route by toolkit-in-state). Blocking `tools/call` already works (held stream).
+- **P8 per-client listing filter (SEP-1488)** — Track B / future optimization. NOT required for the OSS
+  example (Track A gets per-identity listing free from the remote on cache-less routes). Keep as future.
+- **2d live-path baseline test** — still relevant (folds into P7a/P8 testing).
+
+**NEW — Track A OSS critical path (ADD to broadened #1810):**
+- **N1 — origin-conditional passthrough:** suppress `manipulateElicitUrl` for remote-originated
+  elicitations (verbatim URL; C3.1).
+- **N2 — persistent per-route lifecycle + `Mcp-Session-Id`/`MCP-Protocol-Version` replay + resume,
+  Store-backed** (C3.2 + lifecycle-persistence invariant) — the session-bound "memory."
+- **N3 — the OSS `mcp-proxy` example itself** (zilla.yaml + demo + ITs) demonstrating elicitation +
+  auth-guarded list/call via relay, scaling to N remotes.
+
+**PR DELIVERABLE = a DUAL-READY mcp BINDING (maintainer 2026-06-04).** When this PR merges, the binding
+must support BOTH the OSS-relay example and the zilla-plus guard example — even though only the **OSS
+example ships first**. The mcp binding lives in zilla OSS and zilla-plus builds on it, so ALL binding-level
+hooks for both tracks ship in OSS in this PR; only the **OAuth-client guard implementation is zilla-plus**
+(separate repo, later). Concretely:
+- **In this PR (binding, zilla OSS):** Track A — **N1 + N2 + P7a**; Track B binding hooks — **P7b** (§1–2
+  state inject/strip + Zilla-in-callback routing + `list_changed` origination) on top of the already-done
+  **P5** (preauthorize/reauthorize orchestration) and **P6** (timeout/-32042). I.e. P7b is IN scope now
+  (binding readiness), NOT deferred — the guard must be able to drive it later with no binding changes.
+- **NOT in this PR:** the zilla-plus OAuth-client guard (`guard-*`), and the zilla-plus example (built
+  later against the dual-ready binding). P8 (per-client filter / cached+per-identity hybrid) stays future
+  unless the plus example needs cached listing (cache-less plus routes avoid it).
+- **First example shipped: OSS relay (N3)** — zilla.yaml + demo + ITs, Track A only.
+- **Orthogonal simplification (still confirm):** P6-hold removal vs client-replay is independent of
+  dual-readiness — it does not block either example; decide separately. If confirmed, it is the one piece
+  of ALREADY-DONE work the evolved design makes redundant.
+
 ### #1810 PHASING IMPLICATIONS of the OSS Path B understanding (maintainer 2026-06-04)
 
 The relay understanding BIFURCATES #1810 into two tracks; most of the current plan is Track B.
