@@ -194,7 +194,7 @@ public class McpClientIT
     @Configuration("client.yaml")
     @Specification({
         "${app}/tools.call.elicit.timeout.proxied/client",
-        "${net}/tools.call.elicit.timeout/server"})
+        "${net}/tools.call.elicit.timeout.proxied/server"})
     public void shouldCallToolElicitTimeoutProxied() throws Exception
     {
         k3po.finish();

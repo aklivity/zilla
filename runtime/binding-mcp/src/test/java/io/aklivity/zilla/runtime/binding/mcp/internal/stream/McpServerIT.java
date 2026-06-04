@@ -305,7 +305,7 @@ public class McpServerIT
     }
 
     @Test
-    @Configuration("server.yaml")
+    @Configuration("server.timeout.yaml")
     @Specification({
         "${net}/tools.call.elicit.completed/client",
         "${app}/tools.call.elicit.completed/server"})
@@ -315,7 +315,7 @@ public class McpServerIT
     }
 
     @Test
-    @Configuration("server.yaml")
+    @Configuration("server.timeout.yaml")
     @Specification({
         "${net}/tools.call.elicit.declined/client",
         "${app}/tools.call.elicit.declined/server"})
@@ -325,11 +325,21 @@ public class McpServerIT
     }
 
     @Test
-    @Configuration("server.yaml")
+    @Configuration("server.timeout.yaml")
     @Specification({
         "${net}/tools.call.elicit.timeout/client",
         "${app}/tools.call.elicit.timeout/server"})
     public void shouldCallToolElicitTimeout() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/tools.call.elicit.reject/client",
+        "${app}/tools.call.elicit.reject/server"})
+    public void shouldRejectToolsCallElicitUrlRequired() throws Exception
     {
         k3po.finish();
     }

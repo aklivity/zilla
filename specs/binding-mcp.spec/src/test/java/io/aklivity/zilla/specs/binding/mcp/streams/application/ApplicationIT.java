@@ -551,6 +551,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/tools.call.elicit.reject/client",
+        "${app}/tools.call.elicit.reject/server"})
+    public void shouldRejectToolsCallElicitUrlRequired() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/tools.call.elicit.timeout.proxied/client",
         "${app}/tools.call.elicit.timeout.proxied/server"})
     public void shouldCallToolElicitTimeoutProxied() throws Exception

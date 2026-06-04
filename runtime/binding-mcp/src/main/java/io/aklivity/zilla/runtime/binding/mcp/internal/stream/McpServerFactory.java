@@ -2322,6 +2322,25 @@ public final class McpServerFactory implements McpStreamFactory
             doNetData(traceId, authorization, codecBuffer, 0, codecLimit);
         }
 
+        private void doEncodeResponseUrlRequired(
+            long traceId,
+            long authorization,
+            String url,
+            String elicitationId)
+        {
+            doNetBegin(traceId, authorization, httpBeginExRW
+                .wrap(codecBuffer, 0, codecBuffer.capacity())
+                .typeId(httpTypeId)
+                .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(STATUS_200))
+                .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_JSON))
+                .headersItem(h -> h.name(HTTP_HEADER_SESSION).value(session.sessionId))
+                .inject(this::injectAltSvc)
+                .build());
+            final int codecLimit = encodeUrlRequiredError(0, url, elicitationId);
+            doNetData(traceId, authorization, codecBuffer, 0, codecLimit);
+            doEncodeResponseEnd(traceId, authorization);
+        }
+
         private int encodeUrlRequiredError(
             int offset,
             String url,
@@ -4458,10 +4477,20 @@ public final class McpServerFactory implements McpStreamFactory
 
             elicitationId = synthesisedElicitationId;
             elicitUrl = manipulatedUrl;
-            session.elicitations.put(synthesisedElicitationId, this);
 
-            server.onAppChallenge(traceId, authorization);
-            server.doEncodeElicitCreateDataEvent(traceId, authorization, elicitId, synthesisedElicitationId, manipulatedUrl);
+            if (session.requestTimeout > 0L)
+            {
+                session.elicitations.put(synthesisedElicitationId, this);
+
+                server.onAppChallenge(traceId, authorization);
+                server.doEncodeElicitCreateDataEvent(traceId, authorization, elicitId, synthesisedElicitationId, manipulatedUrl);
+            }
+            else
+            {
+                server.doEncodeResponseUrlRequired(traceId, authorization, manipulatedUrl, synthesisedElicitationId);
+                doAppReset(traceId, authorization);
+                doAppAbort(traceId, authorization);
+            }
         }
 
         private void onAppBegin(

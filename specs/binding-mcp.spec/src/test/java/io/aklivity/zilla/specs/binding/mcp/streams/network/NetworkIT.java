@@ -596,6 +596,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/tools.call.elicit.reject/client",
+        "${net}/tools.call.elicit.reject/server"})
+    public void shouldRejectToolsCallElicitUrlRequired() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/tools.call.elicit.completed.proxied/client",
         "${net}/tools.call.elicit.completed.proxied/server"})
     public void shouldCallToolElicitCompletedProxied() throws Exception
