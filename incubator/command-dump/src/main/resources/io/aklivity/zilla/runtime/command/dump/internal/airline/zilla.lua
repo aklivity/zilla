@@ -43,833 +43,138 @@ SIGNAL_ID = 0x40000003
 CHALLENGE_ID = 0x40000004
 REDIRECT_ID = 0x40000005
 
-AMQP_ID = 0x112dc182
-FILESYSTEM_ID = 0xe4e6aa9e
-GRPC_ID = 0xf9c7583a
-HTTP_ID = 0x8ab62046
-KAFKA_ID = 0x084b20e1
-MQTT_ID = 0xd0d41a76
-PROXY_ID = 0x8dcea850
-SSE_ID = 0x03409e2e
-TLS_ID = 0x99f321bc
-WS_ID = 0x569dcde9
-
 local flags_types = {
     [0] = "Not set",
     [1] = "Set"
 }
 
-local proxy_ext_address_family_types = {
-    [0] = "INET",
-    [1] = "INET4",
-    [2] = "INET6",
-    [3] = "UNIX",
-    [4] = "NONE",
-}
+-- dissector registry
+local dissector_types = {}
+local dissector_ext_handlers = {}
+local dissector_payloads = {}
 
-local proxy_ext_address_protocol_types = {
-    [0] = "STREAM",
-    [1] = "DATAGRAM",
-}
+local fields = {}
 
-local proxy_ext_info_types = {
-    [0x01] = "ALPN",
-    [0x02] = "AUTHORITY",
-    [0x05] = "IDENTITY",
-    [0x20] = "SECURE",
-    [0x30] = "NAMESPACE",
-}
+function add_field(key, field)
+    fields[key] = field
+end
 
-local proxy_ext_secure_info_types = {
-    [0x21] = "VERSION",
-    [0x22] = "NAME",
-    [0x23] = "CIPHER",
-    [0x24] = "SIGNATURE",
-    [0x25] = "KEY",
-}
-
-local grpc_types = {
-    [0] = "TEXT",
-    [1] = "BASE64"
-}
-
-local mqtt_ext_kinds = {
-    [0] = "PUBLISH",
-    [1] = "SUBSCRIBE",
-    [2] = "SESSION",
-}
-
-local mqtt_ext_qos_types = {
-    [0] = "AT_MOST_ONCE",
-    [1] = "AT_LEAST_ONCE",
-    [2] = "EXACTLY_ONCE",
-}
-
-local mqtt_ext_subscribe_flags = {
-    [0] = "SEND_RETAINED",
-    [1] = "RETAIN_AS_PUBLISHED",
-    [2] = "NO_LOCAL",
-    [3] = "RETAIN",
-}
-
-local mqtt_ext_publish_flags = {
-    [0] = "RETAIN",
-}
-
-local mqtt_ext_session_flags = {
-    [1] = "CLEAN_START",
-    [2] = "WILL",
-}
-
-local mqtt_ext_payload_format_types = {
-    [0] = "BINARY",
-    [1] = "TEXT",
-    [2] = "NONE",
-}
-
-local mqtt_ext_data_kinds = {
-    [0] = "STATE",
-    [1] = "WILL",
-}
-
-local mqtt_ext_offset_state_flags = {
-    [0] = "COMPLETE",
-    [1] = "INCOMPLETE",
-}
-
-local kafka_ext_apis = {
-    [252] = "CONSUMER",
-    [253] = "GROUP",
-    [254] = "BOOTSTRAP",
-    [255] = "MERGED",
-    [22]  = "INIT_PRODUCER_ID",
-    [3]   = "META",
-    [8]   = "OFFSET_COMMIT",
-    [9]   = "OFFSET_FETCH",
-    [32]  = "DESCRIBE",
-    [1]   = "FETCH",
-    [0]   = "PRODUCE",
-}
-
-local kafka_ext_capabilities_types = {
-    [1] = "PRODUCE_ONLY",
-    [2] = "FETCH_ONLY",
-    [3] = "PRODUCE_AND_FETCH",
-}
-
-local kafka_ext_evaluation_types = {
-    [0] = "LAZY",
-    [1] = "EAGER",
-}
-
-local kafka_ext_isolation_types = {
-    [0] = "READ_UNCOMMITTED",
-    [1] = "READ_COMMITTED",
-}
-
-local kafka_ext_delta_types = {
-    [0] = "NONE",
-    [1] = "JSON_PATCH",
-}
-
-local kafka_ext_ack_modes = {
-    [0] = "NONE",
-    [1] = "LEADER_ONLY",
-    [-1] = "IN_SYNC_REPLICAS",
-}
-
-local kafka_ext_condition_types = {
-    [0] = "KEY",
-    [1] = "HEADER",
-    [2] = "NOT",
-    [3] = "HEADERS",
-}
-
-local kafka_ext_value_match_types = {
-    [0] = "VALUE",
-    [1] = "SKIP",
-}
-
-local kafka_ext_skip_types = {
-    [0] = "SKIP",
-    [1] = "SKIP_MANY",
-}
-
-local kafka_ext_transaction_result_types = {
-    [0] = "ABORT",
-    [1] = "COMMIT",
-}
-
-local amqp_ext_capabilities_types = {
-    [1] = "SEND_ONLY",
-    [2] = "RECEIVE_ONLY",
-    [3] = "SEND_AND_RECEIVE",
-}
-
-local amqp_ext_sender_settle_modes = {
-    [0] = "UNSETTLED",
-    [1] = "SETTLED",
-    [2] = "MIXED",
-}
-
-local amqp_ext_receiver_settle_modes = {
-    [0] = "FIRST",
-    [1] = "SECOND",
-}
-
-local amqp_ext_transfer_flags = {
-    [0] = "SETTLED",
-    [1] = "RESUME",
-    [2] = "ABORTED",
-    [3] = "BATCHABLE",
-}
-
-local amqp_ext_annotation_key_types = {
-    [1] = "ID",
-    [2] = "NAME",
-}
-
-local amqp_ext_body_kinds = {
-    [0] = "DATA",
-    [1] = "SEQUENCE",
-    [2] = "VALUE_STRING32",
-    [3] = "VALUE_STRING8",
-    [4] = "VALUE_BINARY32",
-    [5] = "VALUE_BINARY8",
-    [6] = "VALUE_SYMBOL32",
-    [7] = "VALUE_SYMBOL8",
-    [8] = "VALUE_NULL",
-    [9] = "VALUE",
-}
-
-local amqp_ext_message_id_types = {
-    [1] = "ULONG",
-    [2] = "UUID",
-    [3] = "BINARY",
-    [4] = "STRINGTYPE",
-}
-
-local fields = {
-    -- header
-    frame_type_id = ProtoField.uint32("zilla.frame_type_id", "Frame Type ID", base.HEX),
-    frame_type = ProtoField.string("zilla.frame_type", "Frame Type", base.NONE),
-    protocol_type_id = ProtoField.uint32("zilla.protocol_type_id", "Protocol Type ID", base.HEX),
-    protocol_type = ProtoField.string("zilla.protocol_type", "Protocol Type", base.NONE),
-    stream_type_id = ProtoField.uint32("zilla.stream_type_id", "Stream Type ID", base.HEX),
-    stream_type = ProtoField.string("zilla.stream_type", "Stream Type", base.NONE),
-    worker = ProtoField.int32("zilla.worker", "Worker", base.DEC),
-    offset = ProtoField.uint32("zilla.offset", "Offset", base.HEX),
-
-    -- labels
-    origin_namespace = ProtoField.string("zilla.origin_namespace", "Origin Namespace", base.STRING),
-    origin_binding = ProtoField.string("zilla.origin_binding", "Origin Binding", base.STRING),
-    routed_namespace = ProtoField.string("zilla.routed_namespace", "Routed Namespace", base.STRING),
-    routed_binding = ProtoField.string("zilla.routed_binding", "Routed Binding", base.STRING),
-
-    -- all frames
-    origin_id = ProtoField.uint64("zilla.origin_id", "Origin ID", base.HEX),
-    routed_id = ProtoField.uint64("zilla.routed_id", "Routed ID", base.HEX),
-    stream_id = ProtoField.uint64("zilla.stream_id", "Stream ID", base.HEX),
-    direction = ProtoField.string("zilla.direction", "Direction", base.NONE),
-    initial_id = ProtoField.uint64("zilla.initial_id", "Initial ID", base.HEX),
-    reply_id = ProtoField.uint64("zilla.reply_id", "Reply ID", base.HEX),
-    sequence = ProtoField.int64("zilla.sequence", "Sequence", base.DEC),
-    acknowledge = ProtoField.int64("zilla.acknowledge", "Acknowledge", base.DEC),
-    maximum = ProtoField.int32("zilla.maximum", "Maximum", base.DEC),
-    timestamp = ProtoField.uint64("zilla.timestamp", "Timestamp", base.HEX),
-    trace_id = ProtoField.uint64("zilla.trace_id", "Trace ID", base.HEX),
-    authorization = ProtoField.uint64("zilla.authorization", "Authorization", base.HEX),
-
-    -- begin frame
-    affinity = ProtoField.uint64("zilla.affinity", "Affinity", base.HEX),
-
-    -- data frame
-    flags = ProtoField.uint8("zilla.flags", "Flags", base.HEX),
-    flags_fin = ProtoField.uint8("zilla.flags_fin", "FIN", base.DEC, flags_types, 0x01),
-    flags_init = ProtoField.uint8("zilla.flags_init", "INIT", base.DEC, flags_types, 0x02),
-    flags_incomplete = ProtoField.uint8("zilla.flags_incomplete", "INCOMPLETE", base.DEC, flags_types, 0x04),
-    flags_skip = ProtoField.uint8("zilla.flags_skip", "SKIP", base.DEC, flags_types, 0x08),
-    budget_id = ProtoField.uint64("zilla.budget_id", "Budget ID", base.HEX),
-    reserved = ProtoField.int32("zilla.reserved", "Reserved", base.DEC),
-    payload_length = ProtoField.int32("zilla.payload_length", "Length", base.DEC),
-    progress = ProtoField.int64("zilla.progress", "Progress", base.DEC),
-    progress_maximum = ProtoField.string("zilla.progress_maximum", "Progress/Maximum", base.NONE),
-    payload = ProtoField.protocol("zilla.payload", "Payload", base.HEX),
-
-    -- window frame
-    padding = ProtoField.int32("zilla.padding", "Padding", base.DEC),
-    minimum = ProtoField.int32("zilla.minimum", "Minimum", base.DEC),
-    capabilities = ProtoField.uint8("zilla.capabilities", "Capabilities", base.HEX),
-
-    -- signal frame
-    cancel_id = ProtoField.uint64("zilla.cancel_id", "Cancel ID", base.HEX),
-    signal_id = ProtoField.uint32("zilla.signal_id", "Signal ID", base.HEX),
-    context_id = ProtoField.uint32("zilla.context_id", "Context ID", base.HEX),
-
-    -- proxy extension
-    --     address
-    proxy_ext_address_family = ProtoField.uint8("zilla.proxy_ext.address_family", "Family", base.DEC,
-        proxy_ext_address_family_types),
-    proxy_ext_address_protocol = ProtoField.uint8("zilla.proxy_ext.address_protocol", "Protocol", base.DEC,
-        proxy_ext_address_protocol_types),
-    proxy_ext_address_inet_source_port = ProtoField.uint16("zilla.proxy_ext.address_inet_source_port", "Source Port",
-        base.DEC),
-    proxy_ext_address_inet_destination_port = ProtoField.uint16("zilla.proxy_ext.address_inet_destination_port",
-        "Destination Port", base.DEC),
-    proxy_ext_address_inet_source = ProtoField.string("zilla.proxy_ext.address_inet_source", "Source", base.NONE),
-    proxy_ext_address_inet_destination = ProtoField.string("zilla.proxy_ext.address_inet_destination", "Destination",
-        base.NONE),
-    proxy_ext_address_inet4_source = ProtoField.new("Source", "zilla.proxy_ext.address_inet4_source", ftypes.IPv4),
-    proxy_ext_address_inet4_destination = ProtoField.new("Destination", "zilla.proxy_ext.address_inet4_destination",
-        ftypes.IPv4),
-    proxy_ext_address_inet6_source = ProtoField.new("Source", "zilla.proxy_ext.address_inet6_source", ftypes.IPv6),
-    proxy_ext_address_inet6_destination = ProtoField.new("Destination", "zilla.proxy_ext.address_inet6_destination",
-        ftypes.IPv6),
-    proxy_ext_address_unix_source = ProtoField.string("zilla.proxy_ext.address_unix_source", "Source", base.NONE),
-    proxy_ext_address_unix_destination = ProtoField.string("zilla.proxy_ext.address_unix_destination", "Destination",
-        base.NONE),
-    --     info
-    proxy_ext_info_array_length = ProtoField.int8("zilla.proxy_ext.info_array_length", "Length", base.DEC),
-    proxy_ext_info_array_size = ProtoField.int8("zilla.proxy_ext.info_array_size", "Size", base.DEC),
-    proxy_ext_info_type = ProtoField.uint8("zilla.proxy_ext.info_type", "Type", base.HEX, proxy_ext_info_types),
-    proxy_ext_info_length = ProtoField.int16("zilla.proxy_ext.info_length", "Length", base.DEC),
-    proxy_ext_info_alpn = ProtoField.string("zilla.proxy_ext.info_alpn", "Value", base.NONE),
-    proxy_ext_info_authority = ProtoField.string("zilla.proxy_ext.info_authority", "Value", base.NONE),
-    proxy_ext_info_identity = ProtoField.bytes("zilla.proxy_ext.info_identity", "Value", base.NONE),
-    proxy_ext_info_namespace = ProtoField.string("zilla.proxy_ext.info_namespace", "Value", base.NONE),
-    proxy_ext_info_secure = ProtoField.string("zilla.proxy_ext.info_secure", "Value", base.NONE),
-    proxy_ext_info_secure_type = ProtoField.uint8("zilla.proxy_ext.info_secure_type", "Secure Type", base.HEX,
-        proxy_ext_secure_info_types),
-
-    -- http extension
-    --     headers
-    http_ext_headers_array_length = ProtoField.int8("zilla.http_ext.headers_array_length", "Length", base.DEC),
-    http_ext_headers_array_size = ProtoField.int8("zilla.http_ext.headers_array_size", "Size", base.DEC),
-    http_ext_header_name_length = ProtoField.int8("zilla.http_ext.header_name_length", "Length", base.DEC),
-    http_ext_header_name = ProtoField.string("zilla.http_ext.header_name", "Name", base.NONE),
-    http_ext_header_value_length = ProtoField.int16("zilla.http_ext.header_value_length", "Length", base.DEC),
-    http_ext_header_value = ProtoField.string("zilla.http_ext.header_value", "Value", base.NONE),
-    --    promise id
-    http_ext_promise_id = ProtoField.uint64("zilla.promise_id", "Promise ID", base.HEX),
-
-    -- grpc extension
-    grpc_ext_scheme_length = ProtoField.int16("zilla.grpc_ext.scheme_length", "Length", base.DEC),
-    grpc_ext_scheme = ProtoField.string("zilla.grpc_ext.scheme", "Scheme", base.NONE),
-    grpc_ext_authority_length = ProtoField.int16("zilla.grpc_ext.authority_length", "Length", base.DEC),
-    grpc_ext_authority = ProtoField.string("zilla.grpc_ext.authority", "Authority", base.NONE),
-    grpc_ext_service_length = ProtoField.int16("zilla.grpc_ext.service_length", "Length", base.DEC),
-    grpc_ext_service = ProtoField.string("zilla.grpc_ext.service", "Service", base.NONE),
-    grpc_ext_method_length = ProtoField.int16("zilla.grpc_ext.method_length", "Length", base.DEC),
-    grpc_ext_method = ProtoField.string("zilla.grpc_ext.method", "Method", base.NONE),
-    grpc_ext_deferred = ProtoField.int32("zilla.grpc_ext.deferred", "Deferred", base.DEC),
-    grpc_ext_status_length = ProtoField.int16("zilla.grpc_ext.status_length", "Length", base.DEC),
-    grpc_ext_status = ProtoField.string("zilla.grpc_ext.status", "Status", base.NONE),
-    --    metadata
-    grpc_ext_metadata_array_length = ProtoField.int8("zilla.grpc_ext.metadata_array_length", "Length", base.DEC),
-    grpc_ext_metadata_array_size = ProtoField.int8("zilla.grpc_ext.metadata_array_size", "Size", base.DEC),
-    grpc_ext_metadata_type = ProtoField.uint8("zilla.grpc_ext.metadata_type", "Type", base.DEC, grpc_types),
-    grpc_ext_metadata_name_length_varint = ProtoField.bytes("zilla.grpc_ext.metadata_name_varint", "Length (varint32)",
-        base.NONE),
-    grpc_ext_metadata_name_length = ProtoField.int32("zilla.grpc_ext.metadata_name_length", "Length", base.DEC),
-    grpc_ext_metadata_name = ProtoField.string("zilla.grpc_ext.metadata_name", "Name", base.NONE),
-    grpc_ext_metadata_value_length_varint = ProtoField.bytes("zilla.grpc_ext.metadata_value_length_varint", "Length (varint32)",
-        base.NONE),
-    grpc_ext_metadata_value_length = ProtoField.int32("zilla.grpc_ext.metadata_value_length", "Length", base.DEC),
-    grpc_ext_metadata_value = ProtoField.string("zilla.grpc_ext.metadata_value", "Value", base.NONE),
-
-    -- sse extension
-    sse_ext_scheme_length = ProtoField.int16("zilla.sse_ext.scheme_length", "Length", base.DEC),
-    sse_ext_scheme = ProtoField.string("zilla.sse_ext.scheme", "Scheme", base.NONE),
-    sse_ext_authority_length = ProtoField.int16("zilla.sse_ext.authority_length", "Length", base.DEC),
-    sse_ext_authority = ProtoField.string("zilla.sse_ext.authority", "Authority", base.NONE),
-    sse_ext_path_length = ProtoField.int16("zilla.sse_ext.path_length", "Length", base.DEC),
-    sse_ext_path = ProtoField.string("zilla.sse_ext.path", "Path", base.NONE),
-    sse_ext_last_id_length = ProtoField.int8("zilla.sse_ext.last_id_length", "Length", base.DEC),
-    sse_ext_last_id = ProtoField.string("zilla.sse_ext.last_id", "Last ID", base.NONE),
-    sse_ext_timestamp = ProtoField.uint64("zilla.sse_ext.timestamp", "Timestamp", base.HEX),
-    sse_ext_id_length = ProtoField.int8("zilla.sse_ext.id_length", "Length", base.DEC),
-    sse_ext_id = ProtoField.string("zilla.sse_ext.id", "ID", base.NONE),
-    sse_ext_type_length = ProtoField.int8("zilla.sse_ext.type_length", "Length", base.DEC),
-    sse_ext_type = ProtoField.string("zilla.sse_ext.type", "Type", base.NONE),
-
-    -- ws extension
-    ws_ext_protocol_length = ProtoField.int8("zilla.ws_ext.protocol_length", "Length", base.DEC),
-    ws_ext_protocol = ProtoField.string("zilla.ws_ext.protocol", "Protocol", base.NONE),
-    ws_ext_scheme_length = ProtoField.int8("zilla.ws_ext.scheme_length", "Length", base.DEC),
-    ws_ext_scheme = ProtoField.string("zilla.ws_ext.scheme", "Scheme", base.NONE),
-    ws_ext_authority_length = ProtoField.int8("zilla.ws_ext.authority_length", "Length", base.DEC),
-    ws_ext_authority = ProtoField.string("zilla.ws_ext.authority", "Authority", base.NONE),
-    ws_ext_path_length = ProtoField.int8("zilla.ws_ext.path_length", "Length", base.DEC),
-    ws_ext_path = ProtoField.string("zilla.ws_ext.path", "Path", base.NONE),
-    ws_ext_flags = ProtoField.uint8("zilla.ws_ext.flags", "Flags", base.HEX),
-    ws_ext_info = ProtoField.bytes("zilla.ws_ext.info", "Info", base.NONE),
-    ws_ext_code = ProtoField.int16("zilla.ws_ext.code", "Code", base.DEC),
-    ws_ext_reason_length = ProtoField.int8("zilla.ws_ext.reason_length", "Length", base.DEC),
-    ws_ext_reason = ProtoField.string("zilla.ws_ext.reason", "Reason", base.NONE),
-
-    -- filesystem extension
-    filesystem_ext_capabilities = ProtoField.uint32("zilla.filesystem_ext.capabilities", "Capabilities", base.HEX),
-    filesystem_ext_capabilities_create_directory = ProtoField.uint32("zilla.filesystem_ext.capabilities_create_directory",
-        "CREATE_DIRECTORY", base.DEC, flags_types, 0x01),
-    filesystem_ext_capabilities_create_file = ProtoField.uint32("zilla.filesystem_ext.capabilities_create_file",
-        "CREATE_FILE", base.DEC, flags_types, 0x02),
-    filesystem_ext_capabilities_delete_directory = ProtoField.uint32("zilla.filesystem_ext.capabilities_delete_directory",
-        "DELETE_DIRECTORY", base.DEC, flags_types, 0x04),
-    filesystem_ext_capabilities_delete_file = ProtoField.uint32("zilla.filesystem_ext.capabilities_delete_file",
-        "DELETE_FILE", base.DEC, flags_types, 0x08),
-    filesystem_ext_capabilities_read_directory = ProtoField.uint32("zilla.filesystem_ext.capabilities_read_directory",
-        "READ_DIRECTORY", base.DEC, flags_types, 0x10),
-    filesystem_ext_capabilities_read_file = ProtoField.uint32("zilla.filesystem_ext.capabilities_read_file",
-        "READ_FILE", base.DEC, flags_types, 0x20),
-    filesystem_ext_capabilities_read_file_changes = ProtoField.uint32("zilla.filesystem_ext.capabilities_read_file_changes",
-        "READ_FILE_CHANGES", base.DEC, flags_types, 0x40),
-    filesystem_ext_capabilities_read_metadata = ProtoField.uint32("zilla.filesystem_ext.capabilities_read_metadata",
-        "READ_METADATA", base.DEC, flags_types, 0x80),
-    filesystem_ext_capabilities_write_file = ProtoField.uint32("zilla.filesystem_ext.capabilities_write_file",
-        "WRITE_FILE", base.DEC, flags_types, 0x100),
-    filesystem_ext_directory_length = ProtoField.int16("zilla.filesystem_ext.directory_length", "Length", base.DEC),
-    filesystem_ext_directory = ProtoField.string("zilla.filesystem_ext.directory", "Directory", base.NONE),
-    filesystem_ext_path_length = ProtoField.int16("zilla.filesystem_ext.path_length", "Length", base.DEC),
-    filesystem_ext_path = ProtoField.string("zilla.filesystem_ext.path", "Path", base.NONE),
-    filesystem_ext_type_length = ProtoField.int16("zilla.filesystem_ext.type_length", "Length", base.DEC),
-    filesystem_ext_type = ProtoField.string("zilla.filesystem_ext.type", "Type", base.NONE),
-    filesystem_ext_payload_size = ProtoField.int64("zilla.filesystem_ext.payload_size", "Payload Size", base.DEC),
-    filesystem_ext_tag_length = ProtoField.int16("zilla.filesystem_ext.tag_length", "Length", base.DEC),
-    filesystem_ext_tag = ProtoField.string("zilla.filesystem_ext.tag", "Tag", base.NONE),
-    filesystem_ext_timeout = ProtoField.int64("zilla.filesystem_ext.timeout", "Timeout", base.DEC),
-
-    -- mqtt extension
-    mqtt_ext_kind = ProtoField.uint8("zilla.mqtt_ext.kind", "Kind", base.DEC, mqtt_ext_kinds),
-    --     begin
-    mqtt_ext_qos = ProtoField.uint8("zilla.mqtt_ext.qos", "QoS", base.DEC, mqtt_ext_qos_types),
-    mqtt_ext_client_id_length = ProtoField.int16("zilla.mqtt_ext.client_id_length", "Length", base.DEC),
-    mqtt_ext_client_id = ProtoField.string("zilla.mqtt_ext.client_id", "Client ID", base.NONE),
-    mqtt_ext_topic_length = ProtoField.int16("zilla.mqtt_ext.topic_length", "Length", base.DEC),
-    mqtt_ext_topic = ProtoField.string("zilla.mqtt_ext.topic", "Topic", base.NONE),
-    mqtt_ext_expiry = ProtoField.int32("zilla.mqtt_ext.expiry", "Expiry", base.DEC),
-    mqtt_ext_subscribe_qos_max = ProtoField.uint16("zilla.mqtt_ext.subscribe_qos_max", "Subscribe QoS Maximum", base.DEC),
-    mqtt_ext_publish_qos_max = ProtoField.uint16("zilla.mqtt_ext.publish_qos_max", "Publish QoS Maximum", base.DEC),
-    mqtt_ext_packet_size_max = ProtoField.uint32("zilla.mqtt_ext.packet_size_max", "Packet Size Maximum", base.DEC),
-    mqtt_ext_packet_ids_array_size = ProtoField.int8("zilla.mqtt_ext.packet_ids_array_size", "Size", base.DEC),
-    --     capabilities
-    mqtt_ext_capabilities = ProtoField.uint8("zilla.mqtt_ext.capabilities", "Capabilities", base.HEX),
-    mqtt_ext_capabilities_retain = ProtoField.uint8("zilla.mqtt_ext.capabilities_retain", "RETAIN",
-        base.DEC, flags_types, 0x01),
-    mqtt_ext_capabilities_wildcard = ProtoField.uint8("zilla.mqtt_ext.capabilities_wildcard", "WILDCARD",
-        base.DEC, flags_types, 0x02),
-    mqtt_ext_capabilities_subscription_ids = ProtoField.uint8("zilla.mqtt_ext.capabilities_subscription_ids",
-        "SUBSCRIPTION_IDS", base.DEC, flags_types, 0x04),
-    mqtt_ext_capabilities_shared_subscriptions = ProtoField.uint8("zilla.mqtt_ext.capabilities_shared_subscriptions",
-        "SHARED_SUBSCRIPTIONS", base.DEC, flags_types, 0x08),
-    --     subscribe flags
-    mqtt_ext_subscribe_flags = ProtoField.uint8("zilla.mqtt_ext.subscribe_flags", "Flags", base.HEX),
-    mqtt_ext_subscribe_flags_send_retained = ProtoField.uint8("zilla.mqtt_ext.subscribe_flags_send_retained",
-        "SEND_RETAINED", base.DEC, flags_types, 0x01),
-    mqtt_ext_subscribe_flags_retain_as_published = ProtoField.uint8("zilla.mqtt_ext.subscribe_flags_retain_as_published",
-        "RETAIN_AS_PUBLISHED", base.DEC, flags_types, 0x02),
-    mqtt_ext_subscribe_flags_no_local = ProtoField.uint8("zilla.mqtt_ext.subscribe_flags_no_local",
-        "NO_LOCAL", base.DEC, flags_types, 0x04),
-    mqtt_ext_subscribe_flags_retain = ProtoField.uint8("zilla.mqtt_ext.subscribe_flags_retain",
-        "RETAIN", base.DEC, flags_types, 0x08),
-    --     publish flags
-    mqtt_ext_publish_flags = ProtoField.uint8("zilla.mqtt_ext.publish_flags", "Flags", base.HEX),
-    mqtt_ext_publish_flags_retain = ProtoField.uint8("zilla.mqtt_ext.publish_flags_retain", "RETAIN", base.DEC,
-        flags_types, 0x01),
-    --     session flags
-    mqtt_ext_session_flags = ProtoField.uint8("zilla.mqtt_ext.session_flags", "Flags", base.HEX),
-    mqtt_ext_session_flags_clean_start = ProtoField.uint8("zilla.mqtt_ext.session_flags_clean_start", "CLEAN_START",
-        base.DEC, flags_types, 0x02),
-    mqtt_ext_session_flags_will = ProtoField.uint8("zilla.mqtt_ext.session_flags_will", "WILL", base.DEC, flags_types, 0x04),
-    --     filters
-    mqtt_ext_filters_array_length = ProtoField.int8("zilla.mqtt_ext.filters_array_length", "Length", base.DEC),
-    mqtt_ext_filters_array_size = ProtoField.int8("zilla.mqtt_ext.filters_array_size", "Size", base.DEC),
-    mqtt_ext_filter_subscription_id = ProtoField.uint32("zilla.mqtt_ext.filter_subscription_id", "Subscription ID", base.HEX),
-    mqtt_ext_filter_qos = ProtoField.uint8("zilla.mqtt_ext.filter_qos", "QoS", base.DEC, mqtt_ext_qos_types),
-    mqtt_ext_filter_reason_code = ProtoField.uint8("zilla.mqtt_ext.filter_reason_code", "Reason Code", base.DEC),
-    mqtt_ext_filter_pattern_length = ProtoField.int16("zilla.mqtt_ext.filter_pattern_length", "Length", base.DEC),
-    mqtt_ext_filter_pattern = ProtoField.string("zilla.mqtt_ext.filter_pattern", "Pattern", base.NONE),
-    --     data
-    mqtt_ext_deferred = ProtoField.uint32("zilla.mqtt_ext.deferred", "Deferred", base.DEC),
-    mqtt_ext_expiry_interval = ProtoField.int16("zilla.mqtt_ext.expiry_interval", "Expiry Interval", base.DEC),
-    mqtt_ext_content_type_length = ProtoField.int16("zilla.mqtt_ext.content_type_length", "Length", base.DEC),
-    mqtt_ext_content_type = ProtoField.string("zilla.mqtt_ext.content_type", "Content Type", base.NONE),
-    mqtt_ext_payload_format = ProtoField.uint8("zilla.mqtt_ext.payload_format", "Payload Format", base.DEC,
-        mqtt_ext_payload_format_types),
-    mqtt_ext_response_topic_length = ProtoField.int16("zilla.mqtt_ext.response_topic_length", "Length", base.DEC),
-    mqtt_ext_response_topic = ProtoField.string("zilla.mqtt_ext.response_topic", "Response Topic", base.NONE),
-    mqtt_ext_correlation_length = ProtoField.int16("zilla.mqtt_ext.correlation_length", "Length", base.DEC),
-    mqtt_ext_correlation = ProtoField.bytes("zilla.mqtt_ext.correlation", "Correlation", base.NONE),
-    mqtt_ext_properties_array_length = ProtoField.int8("zilla.mqtt_ext.properties_array_length", "Length", base.DEC),
-    mqtt_ext_properties_array_size = ProtoField.int8("zilla.mqtt_ext.properties_array_size", "Size", base.DEC),
-    mqtt_ext_property_key_length = ProtoField.int16("zilla.mqtt_ext.property_key_length", "Length", base.DEC),
-    mqtt_ext_property_key = ProtoField.string("zilla.mqtt_ext.property_key", "Key", base.NONE),
-    mqtt_ext_property_value_length = ProtoField.int16("zilla.mqtt_ext.property_value_length", "Length", base.DEC),
-    mqtt_ext_property_value = ProtoField.string("zilla.mqtt_ext.property_value", "Value", base.NONE),
-    mqtt_ext_data_kind = ProtoField.uint8("zilla.mqtt_ext.data_kind", "Data Kind", base.HEX, mqtt_ext_data_kinds),
-    mqtt_ext_packet_id = ProtoField.uint16("zilla.mqtt_ext.packet_id", "Packet ID", base.HEX),
-    mqtt_ext_subscription_ids_array_length = ProtoField.int8("zilla.mqtt_ext.subscription_ids_array_length", "Length",
-        base.DEC),
-    mqtt_ext_subscription_ids_array_size = ProtoField.int8("zilla.mqtt_ext.subscription_ids_array_size", "Size",
-        base.DEC),
-    mqtt_ext_subscription_id_varuint = ProtoField.bytes("zilla.mqtt_ext.subsciption_id_varuint", "Subscription ID (varuint32)",
-        base.NONE),
-    mqtt_ext_subscription_id = ProtoField.int32("zilla.mqtt_ext.subsciption_id", "Subscription ID", base.DEC),
-    --     reset
-    mqtt_ext_server_ref_length = ProtoField.int16("zilla.mqtt_ext.server_ref_length", "Length", base.DEC),
-    mqtt_ext_server_ref = ProtoField.string("zilla.mqtt_ext.server_ref", "Value", base.NONE),
-    mqtt_ext_reason_code = ProtoField.uint8("zilla.mqtt_ext.reason_code", "Reason Code", base.DEC),
-    mqtt_ext_reason_length = ProtoField.int16("zilla.mqtt_ext.reason_length", "Length", base.DEC),
-    mqtt_ext_reason = ProtoField.string("zilla.mqtt_ext.reason", "Value", base.NONE),
-    --     reset
-    mqtt_ext_state = ProtoField.uint8("zilla.mqtt_ext.state", "State", base.DEC, mqtt_ext_offset_state_flags),
-
-    -- kafka extension
-    kafka_ext_api = ProtoField.uint8("zilla.kafka_ext.api", "API", base.DEC, kafka_ext_apis),
-    --     reset
-    kafka_ext_error = ProtoField.int32("zilla.kafka_ext.error", "Error", base.DEC),
-    --     consumer
-    kafka_ext_group_id_length = ProtoField.int16("zilla.kafka_ext.group_id_length", "Length", base.DEC),
-    kafka_ext_group_id = ProtoField.string("zilla.kafka_ext.group_id", "Group ID", base.NONE),
-    kafka_ext_consumer_id_length = ProtoField.int16("zilla.kafka_ext.consumer_id_length", "Length", base.DEC),
-    kafka_ext_consumer_id = ProtoField.string("zilla.kafka_ext.consumer_id", "Consumer ID", base.NONE),
-    kafka_ext_host_length = ProtoField.int16("zilla.kafka_ext.host_length", "Length", base.DEC),
-    kafka_ext_host = ProtoField.string("zilla.kafka_ext.host", "Host", base.NONE),
-    kafka_ext_port = ProtoField.int32("zilla.kafka_ext.port", "Port", base.DEC),
-    kafka_ext_timeout = ProtoField.int32("zilla.kafka_ext.timeout", "Timeout", base.DEC),
-    kafka_ext_topic_length = ProtoField.int16("zilla.kafka_ext.topic_length", "Length", base.DEC),
-    kafka_ext_topic = ProtoField.string("zilla.kafka_ext.topic", "Topic", base.NONE),
-    kafka_ext_partition_ids_array_length = ProtoField.int8("zilla.kafka_ext.partition_ids_array_length", "Length", base.DEC),
-    kafka_ext_partition_ids_array_size = ProtoField.int8("zilla.kafka_ext.partition_ids_array_size", "Size", base.DEC),
-    kafka_ext_partition_id = ProtoField.int32("zilla.kafka_ext.partition_id", "Partition ID", base.DEC),
-    kafka_ext_consumer_assignments_array_length = ProtoField.int8("zilla.kafka_ext.consumer_assignments_array_length",
-        "Length", base.DEC),
-    kafka_ext_consumer_assignments_array_size = ProtoField.int8("zilla.kafka_ext.consumer_assignments_array_size",
-        "Size", base.DEC),
-    kafka_ext_partition_offset = ProtoField.int64("zilla.kafka_ext.partition_offset", "Partition Offset", base.DEC),
-    kafka_ext_stable_offset = ProtoField.int64("zilla.kafka_ext.stable_offset", "Stable Offset", base.DEC),
-    kafka_ext_latest_offset = ProtoField.int64("zilla.kafka_ext.latest_offset", "Latest Offset", base.DEC),
-    kafka_ext_metadata_length = ProtoField.int32("zilla.kafka_ext.metadata_length", "Length", base.DEC),
-    kafka_ext_metadata = ProtoField.string("zilla.kafka_ext.metadata", "Metadata", base.NONE),
-    kafka_ext_leader_epoch = ProtoField.int32("zilla.kafka_ext.leader_epoch", "Leader Epoch", base.DEC),
-    kafka_ext_correlation_id = ProtoField.int64("zilla.kafka_ext.correlation_id", "Correlation ID", base.DEC),
-    --     group
-    kafka_ext_protocol_length = ProtoField.int16("zilla.kafka_ext.protocol_length", "Length", base.DEC),
-    kafka_ext_protocol = ProtoField.string("zilla.kafka_ext.protocol", "Protocol", base.NONE),
-    kafka_ext_instance_id_length = ProtoField.int16("zilla.kafka_ext.instance_id_length", "Length", base.DEC),
-    kafka_ext_instance_id = ProtoField.string("zilla.kafka_ext.instance_id", "Instance ID", base.NONE),
-    kafka_ext_metadata_length_varint = ProtoField.bytes("zilla.kafka_ext.metadata_length_varint", "Length (varint32)", base.NONE),
-    kafka_ext_metadata_bytes = ProtoField.bytes("zilla.kafka_ext.metadata_bytes", "Metadata", base.NONE),
-    kafka_ext_generation_id = ProtoField.int32("zilla.kafka_ext.generation_id", "Generation ID", base.DEC),
-    kafka_ext_leader_id_length = ProtoField.int16("zilla.kafka_ext.leader_id_length", "Length", base.DEC),
-    kafka_ext_leader_id = ProtoField.string("zilla.kafka_ext.leader_id", "Leader ID", base.NONE),
-    kafka_ext_member_id_length = ProtoField.int16("zilla.kafka_ext.member_id_length", "Length", base.DEC),
-    kafka_ext_member_id = ProtoField.string("zilla.kafka_ext.member_id", "Member ID", base.NONE),
-    -- merged
-    kafka_ext_capabilities = ProtoField.uint8("zilla.kafka_ext.capabilities", "Capabilities", base.DEC,
-        kafka_ext_capabilities_types),
-    kafka_ext_partitions_array_length = ProtoField.int8("zilla.kafka_ext.partitions_array_length", "Length", base.DEC),
-    kafka_ext_partitions_array_size = ProtoField.int8("zilla.kafka_ext.partitions_array_size", "Size", base.DEC),
-    kafka_ext_filters_array_length = ProtoField.int8("zilla.kafka_ext.filters_array_length", "Length", base.DEC),
-    kafka_ext_filters_array_size = ProtoField.int8("zilla.kafka_ext.filters_array_size", "Size", base.DEC),
-    kafka_ext_conditions_array_length = ProtoField.int8("zilla.kafka_ext.conditions_array_length", "Length", base.DEC),
-    kafka_ext_conditions_array_size = ProtoField.int8("zilla.kafka_ext.conditions_array_size", "Size", base.DEC),
-    kafka_ext_condition_type = ProtoField.int8("zilla.kafka_ext.condition_type", "Type", base.DEC, kafka_ext_condition_types),
-    kafka_ext_key_length_varint = ProtoField.bytes("zilla.kafka_ext.key_length_varint", "Length (varint32)", base.NONE),
-    kafka_ext_key_length = ProtoField.int32("zilla.kafka_ext.key_length", "Length", base.DEC),
-    kafka_ext_key = ProtoField.string("zilla.kafka_ext.key", "Key", base.NONE),
-    kafka_ext_name_length_varint = ProtoField.bytes("zilla.kafka_ext.name_length_varint", "Length (varint32)", base.NONE),
-    kafka_ext_name_length = ProtoField.int32("zilla.kafka_ext.name_length", "Length", base.DEC),
-    kafka_ext_name = ProtoField.string("zilla.kafka_ext.name", "Name", base.NONE),
-    kafka_ext_value_length_varint = ProtoField.bytes("zilla.kafka_ext.value_length_varint", "Length (varint32)", base.NONE),
-    kafka_ext_value_length = ProtoField.int32("zilla.kafka_ext.value_length", "Length", base.DEC),
-    kafka_ext_value = ProtoField.string("zilla.kafka_ext.value", "Value", base.NONE),
-    kafka_ext_value_match_array_length = ProtoField.int8("zilla.kafka_ext.value_match_array_length", "Length", base.DEC),
-    kafka_ext_value_match_array_size = ProtoField.int8("zilla.kafka_ext.value_match_array_size", "Size", base.DEC),
-    kafka_ext_value_match_type = ProtoField.uint8("zilla.kafka_ext.value_match_type", "Type", base.DEC,
-        kafka_ext_value_match_types),
-    kafka_ext_skip_type = ProtoField.uint8("zilla.kafka_ext.skip_type", "Skip Type", base.DEC, kafka_ext_skip_types),
-    kafka_ext_evaluation = ProtoField.uint8("zilla.kafka_ext.evaluation", "Evaluation", base.DEC, kafka_ext_evaluation_types),
-    kafka_ext_isolation = ProtoField.uint8("zilla.kafka_ext.isolation", "Isolation", base.DEC, kafka_ext_isolation_types),
-    kafka_ext_delta_type = ProtoField.uint8("zilla.kafka_ext.delta_type", "Delta Type", base.DEC, kafka_ext_delta_types),
-    kafka_ext_ack_mode_id = ProtoField.int16("zilla.kafka_ext.ack_mode_id", "Ack Mode ID", base.DEC),
-    kafka_ext_ack_mode = ProtoField.string("zilla.kafka_ext.ack_mode", "Ack Mode", base.NONE),
-    kafka_ext_merged_api = ProtoField.uint8("zilla.kafka_ext.data_api", "Merged API", base.DEC, kafka_ext_apis),
-    kafka_ext_deferred = ProtoField.int32("zilla.kafka_ext.deferred", "Deferred", base.DEC),
-    kafka_ext_filters = ProtoField.int64("zilla.kafka_ext.filters", "Filters", base.DEC),
-    kafka_ext_progress_array_length = ProtoField.int8("zilla.kafka_ext.progress_array_length", "Length", base.DEC),
-    kafka_ext_progress_array_size = ProtoField.int8("zilla.kafka_ext.progress_array_size", "Size", base.DEC),
-    kafka_ext_ancestor_offset = ProtoField.int64("zilla.kafka_ext.ancestor_offset", "Ancestor Offset", base.DEC),
-    kafka_ext_headers_array_length = ProtoField.int8("zilla.kafka_ext.headers_array_length", "Length", base.DEC),
-    kafka_ext_headers_array_size = ProtoField.int8("zilla.kafka_ext.headers_array_size", "Size", base.DEC),
-    kafka_ext_producer_id = ProtoField.uint64("zilla.kafka_ext.producer_id", "Producer ID", base.HEX),
-    kafka_ext_producer_epoch = ProtoField.uint16("zilla.kafka_ext.producer_epoch", "Producer Epoch", base.HEX),
-    -- meta
-    kafka_ext_partition_leader_id = ProtoField.int32("zilla.kafka_ext.partition_leader_id", "Leader ID", base.DEC),
-    -- offset_fetch
-    kafka_ext_topic_partition_array_length = ProtoField.int8("zilla.kafka_ext.topic_partition_array_length", "Length", base.DEC),
-    kafka_ext_topic_partition_array_size = ProtoField.int8("zilla.kafka_ext.topic_partition_array_size", "Size", base.DEC),
-    kafka_ext_topic_partition_offset_array_length = ProtoField.int8("zilla.kafka_ext.topic_partition_offset_array_length",
-        "Length", base.DEC),
-    kafka_ext_topic_partition_offset_array_size = ProtoField.int8("zilla.kafka_ext.topic_partition_offset_array_size",
-        "Size", base.DEC),
-    -- describe
-    kafka_ext_config_array_length = ProtoField.int8("zilla.kafka_ext.config_array_length", "Length", base.DEC),
-    kafka_ext_config_array_size = ProtoField.int8("zilla.kafka_ext.config_array_size", "Size", base.DEC),
-    kafka_ext_config_length = ProtoField.int16("zilla.kafka_ext.config_length", "Length", base.DEC),
-    kafka_ext_config = ProtoField.string("zilla.kafka_ext.config", "Config", base.NONE),
-    -- fetch
-    kafka_ext_header_size_max = ProtoField.int32("zilla.kafka_ext.header_size_max", "Header Size Maximum", base.DEC),
-    kafka_ext_transactions_array_length = ProtoField.int8("zilla.kafka_ext.transactions_array_length", "Length", base.DEC),
-    kafka_ext_transactions_array_size = ProtoField.int8("zilla.kafka_ext.transactions_array_size", "Size", base.DEC),
-    kafka_ext_transaction_result = ProtoField.int8("zilla.kafka_ext.transaction_result", "Result", base.DEC,
-        kafka_ext_transaction_result_types),
-    -- produce
-    kafka_ext_transaction_length = ProtoField.int16("zilla.kafka_ext.transaction_length", "Length", base.DEC),
-    kafka_ext_transaction = ProtoField.string("zilla.kafka_ext.transaction", "Transaction", base.NONE),
-    kafka_ext_sequence = ProtoField.int32("zilla.kafka_ext.sequence", "Sequence", base.DEC),
-    kafka_ext_crc32c = ProtoField.uint32("zilla.kafka_ext.crc32c", "CRC32C", base.HEX),
-
-    -- amqp extension
-    --     begin
-    amqp_ext_address_length = ProtoField.int8("zilla.amqp_ext.address_length", "Length", base.DEC),
-    amqp_ext_address = ProtoField.string("zilla.amqp_ext.address", "Name", base.NONE),
-    amqp_ext_capabilities = ProtoField.uint8("zilla.amqp_ext.capabilities", "Capabilities", base.DEC,
-        amqp_ext_capabilities_types),
-    amqp_ext_sender_settle_mode = ProtoField.uint8("zilla.amqp_ext.sender_settle_mode", "Sender Settle Mode", base.DEC,
-        amqp_ext_sender_settle_modes),
-    amqp_ext_receiver_settle_mode = ProtoField.uint8("zilla.amqp_ext.receiver_settle_mode", "Receiver Settle Mode", base.DEC,
-        amqp_ext_receiver_settle_modes),
-    --     data
-    amqp_ext_delivery_tag_length = ProtoField.int16("zilla.amqp_ext.delivery_tag_length", "Length", base.DEC),
-    amqp_ext_delivery_tag = ProtoField.string("zilla.amqp_ext.delivery_tag", "Delivery Tag", base.NONE),
-    amqp_ext_message_format = ProtoField.uint32("zilla.amqp_ext.message_format", "Message Format", base.DEC),
-    amqp_ext_body_kind = ProtoField.uint8("zilla.amqp_ext.body_kind", "Body Kind", base.DEC, amqp_ext_body_kinds),
-    amqp_ext_deferred = ProtoField.int32("zilla.amqp_ext.deferred", "Deferred", base.DEC),
-    --     flags
-    amqp_ext_transfer_flags = ProtoField.uint8("zilla.amqp_ext.transfer_flags", "Flags", base.HEX),
-    amqp_ext_transfer_flags_settled = ProtoField.uint8("zilla.amqp_ext.transfer_flags_settled", "SETTLED",
-        base.DEC, flags_types, 0x01),
-    amqp_ext_transfer_flags_resume = ProtoField.uint8("zilla.amqp_ext.transfer_flags_resume", "RESUME",
-        base.DEC, flags_types, 0x02),
-    amqp_ext_transfer_flags_aborted = ProtoField.uint8("zilla.amqp_ext.transfer_flags_aborted", "ABORTED",
-        base.DEC, flags_types, 0x04),
-    amqp_ext_transfer_flags_batchable = ProtoField.uint8("zilla.amqp_ext.transfer_flags_batchable", "BATCHABLE",
-        base.DEC, flags_types, 0x08),
-    --     annotations
-    amqp_ext_annotations_length = ProtoField.int16("zilla.amqp_ext.annotations_length", "Length", base.DEC),
-    amqp_ext_annotations_size = ProtoField.int16("zilla.amqp_ext.annotations_size", "Size", base.DEC),
-    amqp_ext_annotation_key_type = ProtoField.uint8("zilla.amqp_ext.annotation_key_type", "Key Type", base.DEC,
-        amqp_ext_annotation_key_types),
-    amqp_ext_annotation_key_id = ProtoField.uint64("zilla.amqp_ext.annotation_key_id", "Key [ID]", base.HEX),
-    amqp_ext_annotation_key_name_length = ProtoField.uint8("zilla.amqp_ext.annotation_key_name_length", "Length", base.DEC),
-    amqp_ext_annotation_key_name = ProtoField.string("zilla.amqp_ext.annotation_key_name", "Key Name", base.NONE),
-    amqp_ext_annotation_value_length = ProtoField.uint8("zilla.amqp_ext.annotation_value_length", "Length", base.DEC),
-    amqp_ext_annotation_value = ProtoField.string("zilla.amqp_ext.annotation_value", "Value", base.NONE),
-    --     properties
-    amqp_ext_properties_length = ProtoField.int16("zilla.amqp_ext.properties_length", "Length", base.DEC),
-    amqp_ext_properties_size = ProtoField.int16("zilla.amqp_ext.properties_size", "Size", base.DEC),
-    amqp_ext_properties_fields = ProtoField.uint64("zilla.amqp_ext.properties_fields", "Fields", base.HEX),
-    amqp_ext_property_message_id_type = ProtoField.int16("zilla.amqp_ext.message_id_type", "ID Type", base.DEC,
-        amqp_ext_message_id_types),
-    amqp_ext_property_message_id_ulong = ProtoField.uint64("zilla.amqp_ext.message_id_ulong", "Message ID", base.HEX),
-    amqp_ext_property_message_id_uuid_length = ProtoField.int8("zilla.amqp_ext.property_message_id_uuid_length",
-        "Length", base.DEC),
-    amqp_ext_property_message_id_uuid = ProtoField.string("zilla.amqp_ext.property_message_id_uuid", "Message ID", base.NONE),
-    amqp_ext_property_message_id_binary_length = ProtoField.int8("zilla.amqp_ext.property_message_id_binary_length",
-        "Length", base.DEC),
-    amqp_ext_property_message_id_binary = ProtoField.string("zilla.amqp_ext.property_message_id_binary", "Message ID", base.NONE),
-    amqp_ext_property_message_id_stringtype_length = ProtoField.int8("zilla.amqp_ext.property_message_id_stringtype_length",
-        "Length", base.DEC),
-    amqp_ext_property_message_id_stringtype = ProtoField.string("zilla.amqp_ext.property_message_id_stringtype",
-        "Message ID", base.NONE),
-    amqp_ext_property_user_id_length = ProtoField.int16("zilla.amqp_ext.property_user_id_length", "Length", base.DEC),
-    amqp_ext_property_user_id = ProtoField.string("zilla.amqp_ext.property_user_id", "User ID", base.NONE),
-    amqp_ext_property_to_length = ProtoField.int8("zilla.amqp_ext.property_to_length", "Length", base.DEC),
-    amqp_ext_property_to = ProtoField.string("zilla.amqp_ext.property_to", "To", base.NONE),
-    amqp_ext_property_subject_length = ProtoField.int8("zilla.amqp_ext.property_subject_length", "Length", base.DEC),
-    amqp_ext_property_subject = ProtoField.string("zilla.amqp_ext.property_subject", "Subject", base.NONE),
-    amqp_ext_property_reply_to_length = ProtoField.int8("zilla.amqp_ext.property_reply_to_length", "Length", base.DEC),
-    amqp_ext_property_reply_to = ProtoField.string("zilla.amqp_ext.property_reply_to", "Reply To", base.NONE),
-    amqp_ext_property_correlation_id_type = ProtoField.int16("zilla.amqp_ext.correlation_id_type", "ID Type", base.DEC,
-        amqp_ext_message_id_types),
-    amqp_ext_property_correlation_id_ulong = ProtoField.uint64("zilla.amqp_ext.correlation_id_ulong", "Correlation ID", base.HEX),
-    amqp_ext_property_correlation_id_uuid_length = ProtoField.int8("zilla.amqp_ext.property_correlation_id_uuid_length",
-        "Length", base.DEC),
-    amqp_ext_property_correlation_id_uuid = ProtoField.string("zilla.amqp_ext.property_correlation_id_uuid", "Correlation ID", base.NONE),
-    amqp_ext_property_correlation_id_binary_length = ProtoField.int8("zilla.amqp_ext.property_correlation_id_binary_length",
-        "Length", base.DEC),
-    amqp_ext_property_correlation_id_binary = ProtoField.string("zilla.amqp_ext.property_correlation_id_binary", "Correlation ID", base.NONE),
-    amqp_ext_property_correlation_id_stringtype_length = ProtoField.int8("zilla.amqp_ext.property_correlation_id_stringtype_length",
-        "Length", base.DEC),
-    amqp_ext_property_correlation_id_stringtype = ProtoField.string("zilla.amqp_ext.property_correlation_id_stringtype",
-        "Correlation ID", base.NONE),
-    amqp_ext_property_content_type_length = ProtoField.int8("zilla.amqp_ext.property_content_type_length", "Length", base.DEC),
-    amqp_ext_property_content_type = ProtoField.string("zilla.amqp_ext.property_content_type", "Content Type", base.NONE),
-    amqp_ext_property_content_encoding_length = ProtoField.int8("zilla.amqp_ext.property_content_encoding_length", "Length",
-        base.DEC),
-    amqp_ext_property_content_encoding = ProtoField.string("zilla.amqp_ext.property_content_encoding", "Content Encoding",
-        base.NONE),
-    amqp_ext_property_absolute_expiry_time = ProtoField.int64("zilla.amqp_ext.property_absolut_expiry_time",
-        "Property: Absolute Expiry Time", base.DEC),
-    amqp_ext_property_creation_time = ProtoField.int64("zilla.amqp_ext.property_creation_time", "Property: Creation Time",
-        base.DEC),
-    amqp_ext_property_group_id_length = ProtoField.int8("zilla.amqp_ext.property_group_id_length", "Length", base.DEC),
-    amqp_ext_property_group_id = ProtoField.string("zilla.amqp_ext.property_group_id", "Group ID", base.NONE),
-    amqp_ext_property_group_sequence = ProtoField.int32("zilla.amqp_ext.property_group_sequence", "Property: Group Sequence", base.DEC),
-    amqp_ext_property_reply_to_group_id_length = ProtoField.int8("zilla.amqp_ext.property_reply_to_group_id_length", "Length",
-        base.DEC),
-    amqp_ext_property_reply_to_group_id = ProtoField.string("zilla.amqp_ext.property_reply_to_group_id", "Reply To Group ID",
-        base.NONE),
-    --     application_properties
-    amqp_ext_application_properties_length = ProtoField.int16("zilla.amqp_ext.application_properties_length", "Length",
-        base.DEC),
-    amqp_ext_application_properties_size = ProtoField.int16("zilla.amqp_ext.application_properties_size", "Size", base.DEC),
-    amqp_ext_application_property_key_length = ProtoField.uint32("zilla.amqp_ext.application_property_key_length", "Length",
-        base.DEC),
-    amqp_ext_application_property_key = ProtoField.string("zilla.amqp_ext.application_property_key", "Key", base.NONE),
-    amqp_ext_application_property_value_length = ProtoField.uint8("zilla.amqp_ext.application_property_value_length", "Length",
-        base.DEC),
-    amqp_ext_application_property_value = ProtoField.string("zilla.amqp_ext.application_property_value", "Value", base.NONE),
-    --     abort
-    amqp_ext_condition_length = ProtoField.uint8("zilla.amqp_ext.condition_length", "Length", base.DEC),
-    amqp_ext_condition = ProtoField.string("zilla.amqp_ext.condition", "Condition", base.NONE),
-}
-
-zilla_protocol.fields = fields;
-
-function zilla_protocol.dissector(buffer, pinfo, tree)
-    if buffer:len() == 0 then return end
-    local subtree = tree:add(zilla_protocol, buffer(), "Zilla Frame")
-
-    -- header
-    local slice_frame_type_id = buffer(HEADER_OFFSET, 4)
-    local frame_type_id = slice_frame_type_id:le_uint()
-    local frame_type = resolve_frame_type(frame_type_id)
-    subtree:add_le(fields.frame_type_id, slice_frame_type_id)
-    subtree:add(fields.frame_type, frame_type)
-
-    local slice_protocol_type_id = buffer(HEADER_OFFSET + 4, 4)
-    local protocol_type_id = slice_protocol_type_id:le_uint()
-    local protocol_type = resolve_type(protocol_type_id)
-    subtree:add_le(fields.protocol_type_id, slice_protocol_type_id)
-    subtree:add(fields.protocol_type, protocol_type)
-
-    local slice_worker = buffer(HEADER_OFFSET + 8, 4)
-    local slice_offset = buffer(HEADER_OFFSET + 12, 4)
-    subtree:add_le(fields.worker, slice_worker)
-    subtree:add_le(fields.offset, slice_offset)
-
-    -- labels
-    local slice_labels_length = buffer(LABELS_OFFSET, 4)
-    local labels_length = slice_labels_length:le_uint()
-
-    -- origin id
-    local frame_offset = LABELS_OFFSET + labels_length
-    local slice_origin_id = buffer(frame_offset + 4, 8)
-    subtree:add_le(fields.origin_id, slice_origin_id)
-
-    local label_offset = LABELS_OFFSET + 4;
-    local origin_namespace_length = buffer(label_offset, 4):le_uint()
-    label_offset = label_offset + 4
-    local slice_origin_namespace = buffer(label_offset, origin_namespace_length)
-    label_offset = label_offset + origin_namespace_length
-    if (origin_namespace_length > 0) then
-        subtree:add(fields.origin_namespace, slice_origin_namespace)
+function register_dissector(type_id, name, ext_handler, payload_resolver)
+    dissector_types[type_id] = name
+    if ext_handler then
+        dissector_ext_handlers[type_id] = ext_handler
     end
-
-    local origin_binding_length = buffer(label_offset, 4):le_uint()
-    label_offset = label_offset + 4
-    local slice_origin_binding = buffer(label_offset, origin_binding_length)
-    label_offset = label_offset + origin_binding_length
-    if (origin_binding_length > 0) then
-        subtree:add(fields.origin_binding, slice_origin_binding)
+    if payload_resolver then
+        dissector_payloads[name] = payload_resolver
     end
+end
 
-    -- routed id
-    local slice_routed_id = buffer(frame_offset + 12, 8)
-    subtree:add_le(fields.routed_id, slice_routed_id)
+-- core frame fields
+-- header
+add_field("frame_type_id", ProtoField.uint32("zilla.frame_type_id", "Frame Type ID", base.HEX))
+add_field("frame_type", ProtoField.string("zilla.frame_type", "Frame Type", base.NONE))
+add_field("protocol_type_id", ProtoField.uint32("zilla.protocol_type_id", "Protocol Type ID", base.HEX))
+add_field("protocol_type", ProtoField.string("zilla.protocol_type", "Protocol Type", base.NONE))
+add_field("stream_type_id", ProtoField.uint32("zilla.stream_type_id", "Stream Type ID", base.HEX))
+add_field("stream_type", ProtoField.string("zilla.stream_type", "Stream Type", base.NONE))
+add_field("worker", ProtoField.int32("zilla.worker", "Worker", base.DEC))
+add_field("offset", ProtoField.uint32("zilla.offset", "Offset", base.HEX))
 
-    local routed_namespace_length = buffer(label_offset, 4):le_uint()
-    label_offset = label_offset + 4
-    slice_routed_namespace = buffer(label_offset, routed_namespace_length)
-    label_offset = label_offset + routed_namespace_length
-    if (routed_namespace_length > 0) then
-        subtree:add(fields.routed_namespace, slice_routed_namespace)
+-- labels
+add_field("origin_namespace", ProtoField.string("zilla.origin_namespace", "Origin Namespace", base.STRING))
+add_field("origin_binding", ProtoField.string("zilla.origin_binding", "Origin Binding", base.STRING))
+add_field("routed_namespace", ProtoField.string("zilla.routed_namespace", "Routed Namespace", base.STRING))
+add_field("routed_binding", ProtoField.string("zilla.routed_binding", "Routed Binding", base.STRING))
+
+-- all frames
+add_field("origin_id", ProtoField.uint64("zilla.origin_id", "Origin ID", base.HEX))
+add_field("routed_id", ProtoField.uint64("zilla.routed_id", "Routed ID", base.HEX))
+add_field("stream_id", ProtoField.uint64("zilla.stream_id", "Stream ID", base.HEX))
+add_field("direction", ProtoField.string("zilla.direction", "Direction", base.NONE))
+add_field("initial_id", ProtoField.uint64("zilla.initial_id", "Initial ID", base.HEX))
+add_field("reply_id", ProtoField.uint64("zilla.reply_id", "Reply ID", base.HEX))
+add_field("sequence", ProtoField.int64("zilla.sequence", "Sequence", base.DEC))
+add_field("acknowledge", ProtoField.int64("zilla.acknowledge", "Acknowledge", base.DEC))
+add_field("maximum", ProtoField.int32("zilla.maximum", "Maximum", base.DEC))
+add_field("timestamp", ProtoField.uint64("zilla.timestamp", "Timestamp", base.HEX))
+add_field("trace_id", ProtoField.uint64("zilla.trace_id", "Trace ID", base.HEX))
+add_field("authorization", ProtoField.uint64("zilla.authorization", "Authorization", base.HEX))
+
+-- begin frame
+add_field("affinity", ProtoField.uint64("zilla.affinity", "Affinity", base.HEX))
+
+-- data frame
+add_field("flags", ProtoField.uint8("zilla.flags", "Flags", base.HEX))
+add_field("flags_fin", ProtoField.uint8("zilla.flags_fin", "FIN", base.DEC, flags_types, 0x01))
+add_field("flags_init", ProtoField.uint8("zilla.flags_init", "INIT", base.DEC, flags_types, 0x02))
+add_field("flags_incomplete", ProtoField.uint8("zilla.flags_incomplete", "INCOMPLETE", base.DEC, flags_types, 0x04))
+add_field("flags_skip", ProtoField.uint8("zilla.flags_skip", "SKIP", base.DEC, flags_types, 0x08))
+add_field("budget_id", ProtoField.uint64("zilla.budget_id", "Budget ID", base.HEX))
+add_field("reserved", ProtoField.int32("zilla.reserved", "Reserved", base.DEC))
+add_field("payload_length", ProtoField.int32("zilla.payload_length", "Length", base.DEC))
+add_field("progress", ProtoField.int64("zilla.progress", "Progress", base.DEC))
+add_field("progress_maximum", ProtoField.string("zilla.progress_maximum", "Progress/Maximum", base.NONE))
+add_field("payload", ProtoField.protocol("zilla.payload", "Payload", base.HEX))
+
+-- window frame
+add_field("padding", ProtoField.int32("zilla.padding", "Padding", base.DEC))
+add_field("minimum", ProtoField.int32("zilla.minimum", "Minimum", base.DEC))
+add_field("capabilities", ProtoField.uint8("zilla.capabilities", "Capabilities", base.HEX))
+
+-- signal frame
+add_field("cancel_id", ProtoField.uint64("zilla.cancel_id", "Cancel ID", base.HEX))
+add_field("signal_id", ProtoField.uint32("zilla.signal_id", "Signal ID", base.HEX))
+add_field("context_id", ProtoField.uint32("zilla.context_id", "Context ID", base.HEX))
+
+function resolve_frame_type(frame_type_id)
+    local frame_type = ""
+        if frame_type_id == BEGIN_ID     then frame_type = "BEGIN"
+    elseif frame_type_id == DATA_ID      then frame_type = "DATA"
+    elseif frame_type_id == END_ID       then frame_type = "END"
+    elseif frame_type_id == ABORT_ID     then frame_type = "ABORT"
+    elseif frame_type_id == FLUSH_ID     then frame_type = "FLUSH"
+    elseif frame_type_id == RESET_ID     then frame_type = "RESET"
+    elseif frame_type_id == WINDOW_ID    then frame_type = "WINDOW"
+    elseif frame_type_id == SIGNAL_ID    then frame_type = "SIGNAL"
+    elseif frame_type_id == CHALLENGE_ID then frame_type = "CHALLENGE"
+    elseif frame_type_id == REDIRECT_ID  then frame_type = "REDIRECT"
     end
+    return frame_type
+end
 
-    local routed_binding_length = buffer(label_offset, 4):le_uint()
-    label_offset = label_offset + 4
-    local slice_routed_binding = buffer(label_offset, routed_binding_length)
-    label_offset = label_offset + routed_binding_length
-    if (routed_binding_length > 0) then
-        subtree:add(fields.routed_binding, slice_routed_binding)
+function resolve_type(type_id)
+    return dissector_types[type_id] or ""
+end
+
+function resolve_dissector(protocol_type, payload)
+    local resolver = dissector_payloads[protocol_type]
+    local dissector
+    if resolver then
+        dissector = resolver(payload)
     end
+    return dissector
+end
 
-    -- stream id
-    local slice_stream_id = buffer(frame_offset + 20, 8)
-    local stream_id = slice_stream_id:le_uint64();
-    subtree:add_le(fields.stream_id, slice_stream_id)
-    local direction
-    local initial_id
-    local reply_id
-    if stream_id == UInt64(0) then
-        direction = ""
-    else
-        if (stream_id % 2) == UInt64(0) then
-            direction = "REP"
-            initial_id = stream_id + UInt64(1)
-            reply_id = stream_id
-        else
-            direction = "INI"
-            initial_id = stream_id
-            reply_id = stream_id - UInt64(1)
+function handle_extension(buffer, subtree, pinfo, info, offset, frame_type_id)
+    if buffer:len() > offset then
+        local slice_stream_type_id = buffer(offset, 4)
+        local stream_type_id = slice_stream_type_id:le_uint();
+        local stream_type = resolve_type(stream_type_id)
+        local extension_label = string.format("Extension: %s", stream_type)
+        local slice_extension = buffer(offset)
+        local ext_subtree = subtree:add(zilla_protocol, slice_extension, extension_label)
+        ext_subtree:add(fields.stream_type_id, slice_stream_type_id)
+        ext_subtree:add(fields.stream_type, stream_type)
+
+        local extension_offset = offset + 8 + 4;
+        local ext_handler = dissector_ext_handlers[stream_type_id]
+        if ext_handler then
+            ext_handler(buffer, extension_offset, ext_subtree, frame_type_id)
         end
-        subtree:add(fields.initial_id, initial_id)
-        subtree:add(fields.reply_id, reply_id)
-    end
-    subtree:add(fields.direction, direction)
 
-    -- more frame properties
-    local slice_sequence = buffer(frame_offset + 28, 8)
-    local sequence = slice_sequence:le_int64();
-    local slice_acknowledge = buffer(frame_offset + 36, 8)
-    local acknowledge = slice_acknowledge:le_int64();
-    local slice_maximum = buffer(frame_offset + 44, 4)
-    local maximum = slice_maximum:le_int();
-    local slice_timestamp = buffer(frame_offset + 48, 8)
-    local slice_trace_id = buffer(frame_offset + 56, 8)
-    local slice_authorization = buffer(frame_offset + 64, 8)
-    subtree:add_le(fields.sequence, slice_sequence)
-    subtree:add_le(fields.acknowledge, slice_acknowledge)
-    subtree:add_le(fields.maximum, slice_maximum)
-    subtree:add_le(fields.timestamp, slice_timestamp)
-    subtree:add_le(fields.trace_id, slice_trace_id)
-    subtree:add_le(fields.authorization, slice_authorization)
-
-    pinfo.cols.protocol = zilla_protocol.name
-    local info = string.format("ZILLA %s %s", frame_type, direction)
-    if protocol_type and protocol_type ~= "" then
-        info = string.format("%s p=%s", info, protocol_type)
-    end
-    pinfo.cols.info:set(info)
-
-    local next_offset = frame_offset + 72
-    if frame_type_id == BEGIN_ID then
-        handle_begin_frame(buffer, next_offset, subtree, pinfo, info)
-    elseif frame_type_id == DATA_ID then
-        handle_data_frame(buffer, next_offset, tree, subtree, sequence, acknowledge, maximum, pinfo, info, protocol_type)
-    elseif frame_type_id == FLUSH_ID then
-        handle_flush_frame(buffer, next_offset, subtree, pinfo, info)
-    elseif frame_type_id == END_ID then
-        handle_end_frame(buffer, next_offset, subtree, pinfo, info)
-    elseif frame_type_id == WINDOW_ID then
-        handle_window_frame(buffer, next_offset, subtree, sequence, acknowledge, maximum, pinfo, info)
-    elseif frame_type_id == SIGNAL_ID then
-        handle_signal_frame(buffer, next_offset, subtree, pinfo, info)
-    elseif frame_type_id == ABORT_ID or frame_type_id == RESET_ID or frame_type_id == CHALLENGE_ID then
-        handle_extension(buffer, subtree, pinfo, info, next_offset, frame_type_id)
-    elseif frame_type_id == REDIRECT_ID then
-        handle_redirect_frame(buffer, next_offset, subtree, pinfo, info)
+        if stream_type and stream_type ~= "" then
+            pinfo.cols.info:set(string.format("%s s=%s", info, stream_type))
+        end
     end
 end
 
@@ -972,114 +277,160 @@ function handle_signal_frame(buffer, offset, subtree, pinfo, info)
     end
 end
 
-function resolve_frame_type(frame_type_id)
-    local frame_type = ""
-        if frame_type_id == BEGIN_ID     then frame_type = "BEGIN"
-    elseif frame_type_id == DATA_ID      then frame_type = "DATA"
-    elseif frame_type_id == END_ID       then frame_type = "END"
-    elseif frame_type_id == ABORT_ID     then frame_type = "ABORT"
-    elseif frame_type_id == FLUSH_ID     then frame_type = "FLUSH"
-    elseif frame_type_id == RESET_ID     then frame_type = "RESET"
-    elseif frame_type_id == WINDOW_ID    then frame_type = "WINDOW"
-    elseif frame_type_id == SIGNAL_ID    then frame_type = "SIGNAL"
-    elseif frame_type_id == CHALLENGE_ID then frame_type = "CHALLENGE"
-    elseif frame_type_id == REDIRECT_ID  then frame_type = "REDIRECT"
-    end
-    return frame_type
+-- shared parsing helpers
+function dissect_length_value(buffer, offset, length_length)
+    local slice_length = buffer(offset, length_length)
+    local length = math.max(slice_length:le_int(), 0)
+    local slice_value = buffer(offset + length_length, length)
+    local item_length = length + length_length
+    return item_length, slice_length, slice_value
 end
 
-function resolve_type(type_id)
-    local type = ""
-        if type_id == AMQP_ID        then type = "amqp"
-    elseif type_id == FILESYSTEM_ID  then type = "filesystem"
-    elseif type_id == GRPC_ID        then type = "grpc"
-    elseif type_id == HTTP_ID        then type = "http"
-    elseif type_id == KAFKA_ID       then type = "kafka"
-    elseif type_id == MQTT_ID        then type = "mqtt"
-    elseif type_id == PROXY_ID       then type = "proxy"
-    elseif type_id == SSE_ID         then type = "sse"
-    elseif type_id == TLS_ID         then type = "tls"
-    elseif type_id == WS_ID          then type = "ws"
-    end
-    return type
+function add_string_as_subtree(buffer, tree, label_format, slice_length, slice_text, field_length, field_text)
+    local text = slice_text:string()
+    local label = string.format(label_format, text)
+    local subtree = tree:add(zilla_protocol, buffer, label)
+    subtree:add_le(field_length, slice_length)
+    subtree:add(field_text, slice_text)
 end
 
-function resolve_dissector(protocol_type, payload)
-    local dissector
-        if protocol_type == "amqp"  then dissector = Dissector.get("amqp")
-    elseif protocol_type == "http"  then dissector = resolve_http_dissector(payload)
-    elseif protocol_type == "kafka" then dissector = Dissector.get("kafka")
-    elseif protocol_type == "mqtt"  then dissector = Dissector.get("mqtt")
-    elseif protocol_type == "tls"   then dissector = Dissector.get("tls")
-    end
-    return dissector
+function add_varint_as_subtree(buffer, tree, label_format, slice, value, field_varint, field_value)
+    local label = string.format(label_format, value)
+    local subtree = tree:add(zilla_protocol, buffer, label)
+    subtree:add_le(field_varint, slice)
+    subtree:add(field_value, value)
 end
 
-function resolve_http_dissector(payload)
-    if payload:range(0, 3):int() + 9 == payload:len() then
-        return Dissector.get("http2")
-    elseif payload:range(0, 3):string() == "PRI" then
-        return Dissector.get("http2")
-    elseif payload:range(0, 4):string() == "HTTP" then
-        return Dissector.get("http")
-    elseif payload:range(0, 3):string() == "GET" then
-        return Dissector.get("http")
-    elseif payload:range(0, 4):string() == "POST" then
-        return Dissector.get("http")
-    elseif payload:range(0, 3):string() == "PUT" then
-        return Dissector.get("http")
-    elseif payload:range(0, 6):string() == "DELETE" then
-        return Dissector.get("http")
-    elseif payload:range(0, 4):string() == "HEAD" then
-        return Dissector.get("http")
-    elseif payload:range(0, 7):string() == "OPTIONS" then
-        return Dissector.get("http")
-    elseif payload:range(0, 5):string() == "TRACE" then
-        return Dissector.get("http")
-    elseif payload:range(0, 7):string() == "CONNECT" then
-        return Dissector.get("http")
-    else
-        return nil
-    end
-end
+function decode_varint32(buffer, offset)
+    local value = 0
+    local i = 0
+    local pos = offset
+    local b = buffer(pos, 1):le_int()
 
-function handle_extension(buffer, subtree, pinfo, info, offset, frame_type_id)
-    if buffer:len() > offset then
-        local slice_stream_type_id = buffer(offset, 4)
-        local stream_type_id = slice_stream_type_id:le_uint();
-        local stream_type = resolve_type(stream_type_id)
-        local extension_label = string.format("Extension: %s", stream_type)
-        local slice_extension = buffer(offset)
-        local ext_subtree = subtree:add(zilla_protocol, slice_extension, extension_label)
-        ext_subtree:add(fields.stream_type_id, slice_stream_type_id)
-        ext_subtree:add(fields.stream_type, stream_type)
-
-        local extension_offset = offset + 8 + 4;
-        if stream_type_id == PROXY_ID then
-            handle_proxy_extension(buffer, extension_offset, ext_subtree)
-        elseif stream_type_id == FILESYSTEM_ID then
-            handle_filesystem_extension(buffer, extension_offset, ext_subtree)
-        elseif stream_type_id == HTTP_ID then
-            handle_http_extension(buffer, extension_offset, ext_subtree, frame_type_id)
-        elseif stream_type_id == GRPC_ID then
-            handle_grpc_extension(buffer, extension_offset, ext_subtree, frame_type_id)
-        elseif stream_type_id == SSE_ID then
-            handle_sse_extension(buffer, extension_offset, ext_subtree, frame_type_id)
-        elseif stream_type_id == WS_ID then
-            handle_ws_extension(buffer, extension_offset, ext_subtree, frame_type_id)
-        elseif stream_type_id == MQTT_ID then
-            handle_mqtt_extension(buffer, extension_offset, ext_subtree, frame_type_id)
-        elseif stream_type_id == KAFKA_ID then
-            handle_kafka_extension(buffer, extension_offset, ext_subtree, frame_type_id)
-        elseif stream_type_id == AMQP_ID then
-            handle_amqp_extension(buffer, extension_offset, ext_subtree, frame_type_id)
+    while bit.band(b, 0x80) ~= 0 do
+        value = bit.bor(value, bit.lshift(bit.band(b, 0x7F), i))
+        i = i + 7
+        if i > 35 then
+            error("varint32 value too long")
         end
-
-        if stream_type and stream_type ~= "" then
-            pinfo.cols.info:set(string.format("%s s=%s", info, stream_type))
-        end
+        pos = pos + 1
+        b = buffer(pos, 1):le_int()
     end
+
+    local unsigned = bit.bor(value, bit.lshift(b, i))
+    local result = bit.rshift(bit.bxor(bit.rshift(bit.lshift(unsigned, 31), 31), unsigned), 1)
+    result = bit.bxor(result, bit.band(unsigned, bit.lshift(1, 31)))
+    local length = pos - offset + 1
+    return result, buffer(offset, length), length
 end
+
+function decode_varuint32(buffer, offset)
+    local max_length = 5
+    local limit = math.min(buffer:len(), offset + max_length)
+    local value = 0
+    local progress = offset
+
+    if progress < limit then
+        local shift = 0
+        local bits
+        repeat
+            bits = buffer(progress, 1):uint()
+            value = bit.bor(value, bit.lshift(bit.band(bits, 0x7F), shift))
+            shift = shift + 7
+            progress = progress + 1
+        until progress >= limit or bit.band(bits, 0x80) == 0
+    end
+
+    local length = progress - offset
+    return value, buffer(offset, length), length
+end
+
+function dissect_and_add_array_header_as_subtree(buffer, offset, tree, label_format, field_array_length, field_array_size)
+    local slice_array_length = buffer(offset, 4)
+    local slice_array_size = buffer(offset + 4, 4)
+    local header_length = 4 + 4
+    local array_size = slice_array_size:le_int()
+    local label = string.format(label_format, array_size)
+    local array_subtree = tree:add(zilla_protocol, buffer(offset, header_length), label)
+    array_subtree:add_le(field_array_length, slice_array_length)
+    array_subtree:add_le(field_array_size, slice_array_size)
+    return header_length, array_size
+end
+
+function resolve_length_of_array(buffer, offset)
+    local slice_array_length = buffer(offset, 4)
+    return 4 + slice_array_length:le_int()
+end
+
+function field_exists(list_fields, position)
+    return bit.band(tostring(list_fields), bit.lshift(1, position)) > 0
+end
+
+-- proxy dissector
+PROXY_ID = 0x8dcea850
+
+local proxy_ext_address_family_types = {
+    [0] = "INET",
+    [1] = "INET4",
+    [2] = "INET6",
+    [3] = "UNIX",
+    [4] = "NONE",
+}
+
+local proxy_ext_address_protocol_types = {
+    [0] = "STREAM",
+    [1] = "DATAGRAM",
+}
+
+local proxy_ext_info_types = {
+    [0x01] = "ALPN",
+    [0x02] = "AUTHORITY",
+    [0x05] = "IDENTITY",
+    [0x20] = "SECURE",
+    [0x30] = "NAMESPACE",
+}
+
+local proxy_ext_secure_info_types = {
+    [0x21] = "VERSION",
+    [0x22] = "NAME",
+    [0x23] = "CIPHER",
+    [0x24] = "SIGNATURE",
+    [0x25] = "KEY",
+}
+
+--     address
+add_field("proxy_ext_address_family", ProtoField.uint8("zilla.proxy_ext.address_family", "Family", base.DEC,
+        proxy_ext_address_family_types))
+add_field("proxy_ext_address_protocol", ProtoField.uint8("zilla.proxy_ext.address_protocol", "Protocol", base.DEC,
+        proxy_ext_address_protocol_types))
+add_field("proxy_ext_address_inet_source_port", ProtoField.uint16("zilla.proxy_ext.address_inet_source_port", "Source Port",
+        base.DEC))
+add_field("proxy_ext_address_inet_destination_port", ProtoField.uint16("zilla.proxy_ext.address_inet_destination_port",
+        "Destination Port", base.DEC))
+add_field("proxy_ext_address_inet_source", ProtoField.string("zilla.proxy_ext.address_inet_source", "Source", base.NONE))
+add_field("proxy_ext_address_inet_destination", ProtoField.string("zilla.proxy_ext.address_inet_destination", "Destination",
+        base.NONE))
+add_field("proxy_ext_address_inet4_source", ProtoField.new("Source", "zilla.proxy_ext.address_inet4_source", ftypes.IPv4))
+add_field("proxy_ext_address_inet4_destination", ProtoField.new("Destination", "zilla.proxy_ext.address_inet4_destination",
+        ftypes.IPv4))
+add_field("proxy_ext_address_inet6_source", ProtoField.new("Source", "zilla.proxy_ext.address_inet6_source", ftypes.IPv6))
+add_field("proxy_ext_address_inet6_destination", ProtoField.new("Destination", "zilla.proxy_ext.address_inet6_destination",
+        ftypes.IPv6))
+add_field("proxy_ext_address_unix_source", ProtoField.string("zilla.proxy_ext.address_unix_source", "Source", base.NONE))
+add_field("proxy_ext_address_unix_destination", ProtoField.string("zilla.proxy_ext.address_unix_destination", "Destination",
+        base.NONE))
+--     info
+add_field("proxy_ext_info_array_length", ProtoField.int8("zilla.proxy_ext.info_array_length", "Length", base.DEC))
+add_field("proxy_ext_info_array_size", ProtoField.int8("zilla.proxy_ext.info_array_size", "Size", base.DEC))
+add_field("proxy_ext_info_type", ProtoField.uint8("zilla.proxy_ext.info_type", "Type", base.HEX, proxy_ext_info_types))
+add_field("proxy_ext_info_length", ProtoField.int16("zilla.proxy_ext.info_length", "Length", base.DEC))
+add_field("proxy_ext_info_alpn", ProtoField.string("zilla.proxy_ext.info_alpn", "Value", base.NONE))
+add_field("proxy_ext_info_authority", ProtoField.string("zilla.proxy_ext.info_authority", "Value", base.NONE))
+add_field("proxy_ext_info_identity", ProtoField.bytes("zilla.proxy_ext.info_identity", "Value", base.NONE))
+add_field("proxy_ext_info_namespace", ProtoField.string("zilla.proxy_ext.info_namespace", "Value", base.NONE))
+add_field("proxy_ext_info_secure", ProtoField.string("zilla.proxy_ext.info_secure", "Value", base.NONE))
+add_field("proxy_ext_info_secure_type", ProtoField.uint8("zilla.proxy_ext.info_secure_type", "Secure Type", base.HEX,
+        proxy_ext_secure_info_types))
 
 function handle_proxy_extension(buffer, offset, ext_subtree)
     -- BEGIN frame
@@ -1269,14 +620,6 @@ function dissect_and_add_namespace_info(buffer, offset, tree)
     return type_id_length + length
 end
 
-function dissect_length_value(buffer, offset, length_length)
-    local slice_length = buffer(offset, length_length)
-    local length = math.max(slice_length:le_int(), 0)
-    local slice_value = buffer(offset + length_length, length)
-    local item_length = length + length_length
-    return item_length, slice_length, slice_value
-end
-
 function add_proxy_string_as_subtree(buffer, tree, label_format, slice_type_id, slice_length, slice_text, field_type, field_length,
         field_text)
     local type_id = slice_type_id:le_int()
@@ -1288,6 +631,21 @@ function add_proxy_string_as_subtree(buffer, tree, label_format, slice_type_id, 
     subtree:add_le(field_length, slice_length)
     subtree:add(field_text, slice_text)
 end
+
+register_dissector(PROXY_ID, "proxy", handle_proxy_extension)
+
+-- http dissector
+HTTP_ID = 0x8ab62046
+
+--     headers
+add_field("http_ext_headers_array_length", ProtoField.int8("zilla.http_ext.headers_array_length", "Length", base.DEC))
+add_field("http_ext_headers_array_size", ProtoField.int8("zilla.http_ext.headers_array_size", "Size", base.DEC))
+add_field("http_ext_header_name_length", ProtoField.int8("zilla.http_ext.header_name_length", "Length", base.DEC))
+add_field("http_ext_header_name", ProtoField.string("zilla.http_ext.header_name", "Name", base.NONE))
+add_field("http_ext_header_value_length", ProtoField.int16("zilla.http_ext.header_value_length", "Length", base.DEC))
+add_field("http_ext_header_value", ProtoField.string("zilla.http_ext.header_value", "Value", base.NONE))
+--    promise id
+add_field("http_ext_promise_id", ProtoField.uint64("zilla.promise_id", "Promise ID", base.HEX))
 
 function handle_http_extension(buffer, offset, ext_subtree, frame_type_id)
     if frame_type_id == BEGIN_ID or frame_type_id == RESET_ID or frame_type_id == CHALLENGE_ID or
@@ -1320,6 +678,68 @@ function dissect_and_add_http_headers(buffer, offset, tree, plural_name, singula
         item_offset = item_offset + name_length + value_length
     end
 end
+
+function resolve_http_dissector(payload)
+    if payload:range(0, 3):int() + 9 == payload:len() then
+        return Dissector.get("http2")
+    elseif payload:range(0, 3):string() == "PRI" then
+        return Dissector.get("http2")
+    elseif payload:range(0, 4):string() == "HTTP" then
+        return Dissector.get("http")
+    elseif payload:range(0, 3):string() == "GET" then
+        return Dissector.get("http")
+    elseif payload:range(0, 4):string() == "POST" then
+        return Dissector.get("http")
+    elseif payload:range(0, 3):string() == "PUT" then
+        return Dissector.get("http")
+    elseif payload:range(0, 6):string() == "DELETE" then
+        return Dissector.get("http")
+    elseif payload:range(0, 4):string() == "HEAD" then
+        return Dissector.get("http")
+    elseif payload:range(0, 7):string() == "OPTIONS" then
+        return Dissector.get("http")
+    elseif payload:range(0, 5):string() == "TRACE" then
+        return Dissector.get("http")
+    elseif payload:range(0, 7):string() == "CONNECT" then
+        return Dissector.get("http")
+    else
+        return nil
+    end
+end
+
+register_dissector(HTTP_ID, "http", handle_http_extension, resolve_http_dissector)
+
+-- grpc dissector
+GRPC_ID = 0xf9c7583a
+
+local grpc_types = {
+    [0] = "TEXT",
+    [1] = "BASE64"
+}
+
+add_field("grpc_ext_scheme_length", ProtoField.int16("zilla.grpc_ext.scheme_length", "Length", base.DEC))
+add_field("grpc_ext_scheme", ProtoField.string("zilla.grpc_ext.scheme", "Scheme", base.NONE))
+add_field("grpc_ext_authority_length", ProtoField.int16("zilla.grpc_ext.authority_length", "Length", base.DEC))
+add_field("grpc_ext_authority", ProtoField.string("zilla.grpc_ext.authority", "Authority", base.NONE))
+add_field("grpc_ext_service_length", ProtoField.int16("zilla.grpc_ext.service_length", "Length", base.DEC))
+add_field("grpc_ext_service", ProtoField.string("zilla.grpc_ext.service", "Service", base.NONE))
+add_field("grpc_ext_method_length", ProtoField.int16("zilla.grpc_ext.method_length", "Length", base.DEC))
+add_field("grpc_ext_method", ProtoField.string("zilla.grpc_ext.method", "Method", base.NONE))
+add_field("grpc_ext_deferred", ProtoField.int32("zilla.grpc_ext.deferred", "Deferred", base.DEC))
+add_field("grpc_ext_status_length", ProtoField.int16("zilla.grpc_ext.status_length", "Length", base.DEC))
+add_field("grpc_ext_status", ProtoField.string("zilla.grpc_ext.status", "Status", base.NONE))
+--    metadata
+add_field("grpc_ext_metadata_array_length", ProtoField.int8("zilla.grpc_ext.metadata_array_length", "Length", base.DEC))
+add_field("grpc_ext_metadata_array_size", ProtoField.int8("zilla.grpc_ext.metadata_array_size", "Size", base.DEC))
+add_field("grpc_ext_metadata_type", ProtoField.uint8("zilla.grpc_ext.metadata_type", "Type", base.DEC, grpc_types))
+add_field("grpc_ext_metadata_name_length_varint", ProtoField.bytes("zilla.grpc_ext.metadata_name_varint", "Length (varint32)",
+        base.NONE))
+add_field("grpc_ext_metadata_name_length", ProtoField.int32("zilla.grpc_ext.metadata_name_length", "Length", base.DEC))
+add_field("grpc_ext_metadata_name", ProtoField.string("zilla.grpc_ext.metadata_name", "Name", base.NONE))
+add_field("grpc_ext_metadata_value_length_varint", ProtoField.bytes("zilla.grpc_ext.metadata_value_length_varint", "Length (varint32)",
+        base.NONE))
+add_field("grpc_ext_metadata_value_length", ProtoField.int32("zilla.grpc_ext.metadata_value_length", "Length", base.DEC))
+add_field("grpc_ext_metadata_value", ProtoField.string("zilla.grpc_ext.metadata_value", "Value", base.NONE))
 
 function handle_grpc_extension(buffer, offset, ext_subtree, frame_type_id)
     if frame_type_id == BEGIN_ID or frame_type_id == REDIRECT_ID then
@@ -1381,21 +801,6 @@ function handle_grpc_abort_reset_extension(buffer, offset, ext_subtree)
         slice_status_text, fields.grpc_ext_status_length, fields.grpc_ext_status)
 end
 
-function add_string_as_subtree(buffer, tree, label_format, slice_length, slice_text, field_length, field_text)
-    local text = slice_text:string()
-    local label = string.format(label_format, text)
-    local subtree = tree:add(zilla_protocol, buffer, label)
-    subtree:add_le(field_length, slice_length)
-    subtree:add(field_text, slice_text)
-end
-
-function add_varint_as_subtree(buffer, tree, label_format, slice, value, field_varint, field_value)
-    local label = string.format(label_format, value)
-    local subtree = tree:add(zilla_protocol, buffer, label)
-    subtree:add_le(field_varint, slice)
-    subtree:add(field_value, value)
-end
-
 function dissect_and_add_grpc_metadata(buffer, offset, tree)
     -- type
     local type_offset = offset
@@ -1430,49 +835,24 @@ function dissect_and_add_grpc_metadata(buffer, offset, tree)
     return record_length
 end
 
-function decode_varint32(buffer, offset)
-    local value = 0
-    local i = 0
-    local pos = offset
-    local b = buffer(pos, 1):le_int()
+register_dissector(GRPC_ID, "grpc", handle_grpc_extension)
 
-    while bit.band(b, 0x80) ~= 0 do
-        value = bit.bor(value, bit.lshift(bit.band(b, 0x7F), i))
-        i = i + 7
-        if i > 35 then
-            error("varint32 value too long")
-        end
-        pos = pos + 1
-        b = buffer(pos, 1):le_int()
-    end
+-- sse dissector
+SSE_ID = 0x03409e2e
 
-    local unsigned = bit.bor(value, bit.lshift(b, i))
-    local result = bit.rshift(bit.bxor(bit.rshift(bit.lshift(unsigned, 31), 31), unsigned), 1)
-    result = bit.bxor(result, bit.band(unsigned, bit.lshift(1, 31)))
-    local length = pos - offset + 1
-    return result, buffer(offset, length), length
-end
-
-function decode_varuint32(buffer, offset)
-    local max_length = 5
-    local limit = math.min(buffer:len(), offset + max_length)
-    local value = 0
-    local progress = offset
-
-    if progress < limit then
-        local shift = 0
-        local bits
-        repeat
-            bits = buffer(progress, 1):uint()
-            value = bit.bor(value, bit.lshift(bit.band(bits, 0x7F), shift))
-            shift = shift + 7
-            progress = progress + 1
-        until progress >= limit or bit.band(bits, 0x80) == 0
-    end
-
-    local length = progress - offset
-    return value, buffer(offset, length), length
-end
+add_field("sse_ext_scheme_length", ProtoField.int16("zilla.sse_ext.scheme_length", "Length", base.DEC))
+add_field("sse_ext_scheme", ProtoField.string("zilla.sse_ext.scheme", "Scheme", base.NONE))
+add_field("sse_ext_authority_length", ProtoField.int16("zilla.sse_ext.authority_length", "Length", base.DEC))
+add_field("sse_ext_authority", ProtoField.string("zilla.sse_ext.authority", "Authority", base.NONE))
+add_field("sse_ext_path_length", ProtoField.int16("zilla.sse_ext.path_length", "Length", base.DEC))
+add_field("sse_ext_path", ProtoField.string("zilla.sse_ext.path", "Path", base.NONE))
+add_field("sse_ext_last_id_length", ProtoField.int8("zilla.sse_ext.last_id_length", "Length", base.DEC))
+add_field("sse_ext_last_id", ProtoField.string("zilla.sse_ext.last_id", "Last ID", base.NONE))
+add_field("sse_ext_timestamp", ProtoField.uint64("zilla.sse_ext.timestamp", "Timestamp", base.HEX))
+add_field("sse_ext_id_length", ProtoField.int8("zilla.sse_ext.id_length", "Length", base.DEC))
+add_field("sse_ext_id", ProtoField.string("zilla.sse_ext.id", "ID", base.NONE))
+add_field("sse_ext_type_length", ProtoField.int8("zilla.sse_ext.type_length", "Length", base.DEC))
+add_field("sse_ext_type", ProtoField.string("zilla.sse_ext.type", "Type", base.NONE))
 
 function handle_sse_extension(buffer, offset, ext_subtree, frame_type_id)
     if frame_type_id == BEGIN_ID or frame_type_id == REDIRECT_ID then
@@ -1530,6 +910,25 @@ function handle_sse_end_extension(buffer, offset, ext_subtree)
     add_string_as_subtree(buffer(offset, id_length), ext_subtree, "Id: %s", slice_id_length,
         slice_id_text, fields.sse_ext_id_length, fields.sse_ext_id)
 end
+
+register_dissector(SSE_ID, "sse", handle_sse_extension)
+
+-- ws dissector
+WS_ID = 0x569dcde9
+
+add_field("ws_ext_protocol_length", ProtoField.int8("zilla.ws_ext.protocol_length", "Length", base.DEC))
+add_field("ws_ext_protocol", ProtoField.string("zilla.ws_ext.protocol", "Protocol", base.NONE))
+add_field("ws_ext_scheme_length", ProtoField.int8("zilla.ws_ext.scheme_length", "Length", base.DEC))
+add_field("ws_ext_scheme", ProtoField.string("zilla.ws_ext.scheme", "Scheme", base.NONE))
+add_field("ws_ext_authority_length", ProtoField.int8("zilla.ws_ext.authority_length", "Length", base.DEC))
+add_field("ws_ext_authority", ProtoField.string("zilla.ws_ext.authority", "Authority", base.NONE))
+add_field("ws_ext_path_length", ProtoField.int8("zilla.ws_ext.path_length", "Length", base.DEC))
+add_field("ws_ext_path", ProtoField.string("zilla.ws_ext.path", "Path", base.NONE))
+add_field("ws_ext_flags", ProtoField.uint8("zilla.ws_ext.flags", "Flags", base.HEX))
+add_field("ws_ext_info", ProtoField.bytes("zilla.ws_ext.info", "Info", base.NONE))
+add_field("ws_ext_code", ProtoField.int16("zilla.ws_ext.code", "Code", base.DEC))
+add_field("ws_ext_reason_length", ProtoField.int8("zilla.ws_ext.reason_length", "Length", base.DEC))
+add_field("ws_ext_reason", ProtoField.string("zilla.ws_ext.reason", "Reason", base.NONE))
 
 function handle_ws_extension(buffer, offset, ext_subtree, frame_type_id)
     if frame_type_id == BEGIN_ID or frame_type_id == REDIRECT_ID then
@@ -1590,6 +989,41 @@ function handle_ws_end_extension(buffer, offset, ext_subtree)
         slice_reason_length, slice_reason_text, fields.ws_ext_reason_length, fields.ws_ext_reason)
 end
 
+register_dissector(WS_ID, "ws", handle_ws_extension)
+
+-- filesystem dissector
+FILESYSTEM_ID = 0xe4e6aa9e
+
+add_field("filesystem_ext_capabilities", ProtoField.uint32("zilla.filesystem_ext.capabilities", "Capabilities", base.HEX))
+add_field("filesystem_ext_capabilities_create_directory", ProtoField.uint32("zilla.filesystem_ext.capabilities_create_directory",
+        "CREATE_DIRECTORY", base.DEC, flags_types, 0x01))
+add_field("filesystem_ext_capabilities_create_file", ProtoField.uint32("zilla.filesystem_ext.capabilities_create_file",
+        "CREATE_FILE", base.DEC, flags_types, 0x02))
+add_field("filesystem_ext_capabilities_delete_directory", ProtoField.uint32("zilla.filesystem_ext.capabilities_delete_directory",
+        "DELETE_DIRECTORY", base.DEC, flags_types, 0x04))
+add_field("filesystem_ext_capabilities_delete_file", ProtoField.uint32("zilla.filesystem_ext.capabilities_delete_file",
+        "DELETE_FILE", base.DEC, flags_types, 0x08))
+add_field("filesystem_ext_capabilities_read_directory", ProtoField.uint32("zilla.filesystem_ext.capabilities_read_directory",
+        "READ_DIRECTORY", base.DEC, flags_types, 0x10))
+add_field("filesystem_ext_capabilities_read_file", ProtoField.uint32("zilla.filesystem_ext.capabilities_read_file",
+        "READ_FILE", base.DEC, flags_types, 0x20))
+add_field("filesystem_ext_capabilities_read_file_changes", ProtoField.uint32("zilla.filesystem_ext.capabilities_read_file_changes",
+        "READ_FILE_CHANGES", base.DEC, flags_types, 0x40))
+add_field("filesystem_ext_capabilities_read_metadata", ProtoField.uint32("zilla.filesystem_ext.capabilities_read_metadata",
+        "READ_METADATA", base.DEC, flags_types, 0x80))
+add_field("filesystem_ext_capabilities_write_file", ProtoField.uint32("zilla.filesystem_ext.capabilities_write_file",
+        "WRITE_FILE", base.DEC, flags_types, 0x100))
+add_field("filesystem_ext_directory_length", ProtoField.int16("zilla.filesystem_ext.directory_length", "Length", base.DEC))
+add_field("filesystem_ext_directory", ProtoField.string("zilla.filesystem_ext.directory", "Directory", base.NONE))
+add_field("filesystem_ext_path_length", ProtoField.int16("zilla.filesystem_ext.path_length", "Length", base.DEC))
+add_field("filesystem_ext_path", ProtoField.string("zilla.filesystem_ext.path", "Path", base.NONE))
+add_field("filesystem_ext_type_length", ProtoField.int16("zilla.filesystem_ext.type_length", "Length", base.DEC))
+add_field("filesystem_ext_type", ProtoField.string("zilla.filesystem_ext.type", "Type", base.NONE))
+add_field("filesystem_ext_payload_size", ProtoField.int64("zilla.filesystem_ext.payload_size", "Payload Size", base.DEC))
+add_field("filesystem_ext_tag_length", ProtoField.int16("zilla.filesystem_ext.tag_length", "Length", base.DEC))
+add_field("filesystem_ext_tag", ProtoField.string("zilla.filesystem_ext.tag", "Tag", base.NONE))
+add_field("filesystem_ext_timeout", ProtoField.int64("zilla.filesystem_ext.timeout", "Timeout", base.DEC))
+
 function handle_filesystem_extension(buffer, offset, ext_subtree)
     -- BEGIN frame
     -- capabilities
@@ -1638,6 +1072,139 @@ function handle_filesystem_extension(buffer, offset, ext_subtree)
     local slice_timeout = buffer(timeout_offset, timeout_length)
     ext_subtree:add_le(fields.filesystem_ext_timeout, slice_timeout)
 end
+
+register_dissector(FILESYSTEM_ID, "filesystem", handle_filesystem_extension)
+
+-- mqtt dissector
+MQTT_ID = 0xd0d41a76
+
+local mqtt_ext_kinds = {
+    [0] = "PUBLISH",
+    [1] = "SUBSCRIBE",
+    [2] = "SESSION",
+}
+
+local mqtt_ext_qos_types = {
+    [0] = "AT_MOST_ONCE",
+    [1] = "AT_LEAST_ONCE",
+    [2] = "EXACTLY_ONCE",
+}
+
+local mqtt_ext_subscribe_flags = {
+    [0] = "SEND_RETAINED",
+    [1] = "RETAIN_AS_PUBLISHED",
+    [2] = "NO_LOCAL",
+    [3] = "RETAIN",
+}
+
+local mqtt_ext_publish_flags = {
+    [0] = "RETAIN",
+}
+
+local mqtt_ext_session_flags = {
+    [1] = "CLEAN_START",
+    [2] = "WILL",
+}
+
+local mqtt_ext_payload_format_types = {
+    [0] = "BINARY",
+    [1] = "TEXT",
+    [2] = "NONE",
+}
+
+local mqtt_ext_data_kinds = {
+    [0] = "STATE",
+    [1] = "WILL",
+}
+
+local mqtt_ext_offset_state_flags = {
+    [0] = "COMPLETE",
+    [1] = "INCOMPLETE",
+}
+
+add_field("mqtt_ext_kind", ProtoField.uint8("zilla.mqtt_ext.kind", "Kind", base.DEC, mqtt_ext_kinds))
+--     begin
+add_field("mqtt_ext_qos", ProtoField.uint8("zilla.mqtt_ext.qos", "QoS", base.DEC, mqtt_ext_qos_types))
+add_field("mqtt_ext_client_id_length", ProtoField.int16("zilla.mqtt_ext.client_id_length", "Length", base.DEC))
+add_field("mqtt_ext_client_id", ProtoField.string("zilla.mqtt_ext.client_id", "Client ID", base.NONE))
+add_field("mqtt_ext_topic_length", ProtoField.int16("zilla.mqtt_ext.topic_length", "Length", base.DEC))
+add_field("mqtt_ext_topic", ProtoField.string("zilla.mqtt_ext.topic", "Topic", base.NONE))
+add_field("mqtt_ext_expiry", ProtoField.int32("zilla.mqtt_ext.expiry", "Expiry", base.DEC))
+add_field("mqtt_ext_subscribe_qos_max", ProtoField.uint16("zilla.mqtt_ext.subscribe_qos_max", "Subscribe QoS Maximum", base.DEC))
+add_field("mqtt_ext_publish_qos_max", ProtoField.uint16("zilla.mqtt_ext.publish_qos_max", "Publish QoS Maximum", base.DEC))
+add_field("mqtt_ext_packet_size_max", ProtoField.uint32("zilla.mqtt_ext.packet_size_max", "Packet Size Maximum", base.DEC))
+add_field("mqtt_ext_packet_ids_array_size", ProtoField.int8("zilla.mqtt_ext.packet_ids_array_size", "Size", base.DEC))
+--     capabilities
+add_field("mqtt_ext_capabilities", ProtoField.uint8("zilla.mqtt_ext.capabilities", "Capabilities", base.HEX))
+add_field("mqtt_ext_capabilities_retain", ProtoField.uint8("zilla.mqtt_ext.capabilities_retain", "RETAIN",
+        base.DEC, flags_types, 0x01))
+add_field("mqtt_ext_capabilities_wildcard", ProtoField.uint8("zilla.mqtt_ext.capabilities_wildcard", "WILDCARD",
+        base.DEC, flags_types, 0x02))
+add_field("mqtt_ext_capabilities_subscription_ids", ProtoField.uint8("zilla.mqtt_ext.capabilities_subscription_ids",
+        "SUBSCRIPTION_IDS", base.DEC, flags_types, 0x04))
+add_field("mqtt_ext_capabilities_shared_subscriptions", ProtoField.uint8("zilla.mqtt_ext.capabilities_shared_subscriptions",
+        "SHARED_SUBSCRIPTIONS", base.DEC, flags_types, 0x08))
+--     subscribe flags
+add_field("mqtt_ext_subscribe_flags", ProtoField.uint8("zilla.mqtt_ext.subscribe_flags", "Flags", base.HEX))
+add_field("mqtt_ext_subscribe_flags_send_retained", ProtoField.uint8("zilla.mqtt_ext.subscribe_flags_send_retained",
+        "SEND_RETAINED", base.DEC, flags_types, 0x01))
+add_field("mqtt_ext_subscribe_flags_retain_as_published", ProtoField.uint8("zilla.mqtt_ext.subscribe_flags_retain_as_published",
+        "RETAIN_AS_PUBLISHED", base.DEC, flags_types, 0x02))
+add_field("mqtt_ext_subscribe_flags_no_local", ProtoField.uint8("zilla.mqtt_ext.subscribe_flags_no_local",
+        "NO_LOCAL", base.DEC, flags_types, 0x04))
+add_field("mqtt_ext_subscribe_flags_retain", ProtoField.uint8("zilla.mqtt_ext.subscribe_flags_retain",
+        "RETAIN", base.DEC, flags_types, 0x08))
+--     publish flags
+add_field("mqtt_ext_publish_flags", ProtoField.uint8("zilla.mqtt_ext.publish_flags", "Flags", base.HEX))
+add_field("mqtt_ext_publish_flags_retain", ProtoField.uint8("zilla.mqtt_ext.publish_flags_retain", "RETAIN", base.DEC,
+        flags_types, 0x01))
+--     session flags
+add_field("mqtt_ext_session_flags", ProtoField.uint8("zilla.mqtt_ext.session_flags", "Flags", base.HEX))
+add_field("mqtt_ext_session_flags_clean_start", ProtoField.uint8("zilla.mqtt_ext.session_flags_clean_start", "CLEAN_START",
+        base.DEC, flags_types, 0x02))
+add_field("mqtt_ext_session_flags_will", ProtoField.uint8("zilla.mqtt_ext.session_flags_will", "WILL", base.DEC, flags_types, 0x04))
+--     filters
+add_field("mqtt_ext_filters_array_length", ProtoField.int8("zilla.mqtt_ext.filters_array_length", "Length", base.DEC))
+add_field("mqtt_ext_filters_array_size", ProtoField.int8("zilla.mqtt_ext.filters_array_size", "Size", base.DEC))
+add_field("mqtt_ext_filter_subscription_id", ProtoField.uint32("zilla.mqtt_ext.filter_subscription_id", "Subscription ID", base.HEX))
+add_field("mqtt_ext_filter_qos", ProtoField.uint8("zilla.mqtt_ext.filter_qos", "QoS", base.DEC, mqtt_ext_qos_types))
+add_field("mqtt_ext_filter_reason_code", ProtoField.uint8("zilla.mqtt_ext.filter_reason_code", "Reason Code", base.DEC))
+add_field("mqtt_ext_filter_pattern_length", ProtoField.int16("zilla.mqtt_ext.filter_pattern_length", "Length", base.DEC))
+add_field("mqtt_ext_filter_pattern", ProtoField.string("zilla.mqtt_ext.filter_pattern", "Pattern", base.NONE))
+--     data
+add_field("mqtt_ext_deferred", ProtoField.uint32("zilla.mqtt_ext.deferred", "Deferred", base.DEC))
+add_field("mqtt_ext_expiry_interval", ProtoField.int16("zilla.mqtt_ext.expiry_interval", "Expiry Interval", base.DEC))
+add_field("mqtt_ext_content_type_length", ProtoField.int16("zilla.mqtt_ext.content_type_length", "Length", base.DEC))
+add_field("mqtt_ext_content_type", ProtoField.string("zilla.mqtt_ext.content_type", "Content Type", base.NONE))
+add_field("mqtt_ext_payload_format", ProtoField.uint8("zilla.mqtt_ext.payload_format", "Payload Format", base.DEC,
+        mqtt_ext_payload_format_types))
+add_field("mqtt_ext_response_topic_length", ProtoField.int16("zilla.mqtt_ext.response_topic_length", "Length", base.DEC))
+add_field("mqtt_ext_response_topic", ProtoField.string("zilla.mqtt_ext.response_topic", "Response Topic", base.NONE))
+add_field("mqtt_ext_correlation_length", ProtoField.int16("zilla.mqtt_ext.correlation_length", "Length", base.DEC))
+add_field("mqtt_ext_correlation", ProtoField.bytes("zilla.mqtt_ext.correlation", "Correlation", base.NONE))
+add_field("mqtt_ext_properties_array_length", ProtoField.int8("zilla.mqtt_ext.properties_array_length", "Length", base.DEC))
+add_field("mqtt_ext_properties_array_size", ProtoField.int8("zilla.mqtt_ext.properties_array_size", "Size", base.DEC))
+add_field("mqtt_ext_property_key_length", ProtoField.int16("zilla.mqtt_ext.property_key_length", "Length", base.DEC))
+add_field("mqtt_ext_property_key", ProtoField.string("zilla.mqtt_ext.property_key", "Key", base.NONE))
+add_field("mqtt_ext_property_value_length", ProtoField.int16("zilla.mqtt_ext.property_value_length", "Length", base.DEC))
+add_field("mqtt_ext_property_value", ProtoField.string("zilla.mqtt_ext.property_value", "Value", base.NONE))
+add_field("mqtt_ext_data_kind", ProtoField.uint8("zilla.mqtt_ext.data_kind", "Data Kind", base.HEX, mqtt_ext_data_kinds))
+add_field("mqtt_ext_packet_id", ProtoField.uint16("zilla.mqtt_ext.packet_id", "Packet ID", base.HEX))
+add_field("mqtt_ext_subscription_ids_array_length", ProtoField.int8("zilla.mqtt_ext.subscription_ids_array_length", "Length",
+        base.DEC))
+add_field("mqtt_ext_subscription_ids_array_size", ProtoField.int8("zilla.mqtt_ext.subscription_ids_array_size", "Size",
+        base.DEC))
+add_field("mqtt_ext_subscription_id_varuint", ProtoField.bytes("zilla.mqtt_ext.subsciption_id_varuint", "Subscription ID (varuint32)",
+        base.NONE))
+add_field("mqtt_ext_subscription_id", ProtoField.int32("zilla.mqtt_ext.subsciption_id", "Subscription ID", base.DEC))
+--     reset
+add_field("mqtt_ext_server_ref_length", ProtoField.int16("zilla.mqtt_ext.server_ref_length", "Length", base.DEC))
+add_field("mqtt_ext_server_ref", ProtoField.string("zilla.mqtt_ext.server_ref", "Value", base.NONE))
+add_field("mqtt_ext_reason_code", ProtoField.uint8("zilla.mqtt_ext.reason_code", "Reason Code", base.DEC))
+add_field("mqtt_ext_reason_length", ProtoField.int16("zilla.mqtt_ext.reason_length", "Length", base.DEC))
+add_field("mqtt_ext_reason", ProtoField.string("zilla.mqtt_ext.reason", "Value", base.NONE))
+--     reset
+add_field("mqtt_ext_state", ProtoField.uint8("zilla.mqtt_ext.state", "State", base.DEC, mqtt_ext_offset_state_flags))
 
 function handle_mqtt_extension(buffer, offset, ext_subtree, frame_type_id)
     if frame_type_id == BEGIN_ID or frame_type_id == DATA_ID or frame_type_id == FLUSH_ID or
@@ -2056,6 +1623,179 @@ function handle_mqtt_reset_extension(buffer, offset, ext_subtree)
     add_string_as_subtree(buffer(reason_offset, reason_length), ext_subtree, "Reason: %s",
         slice_reason_length, slice_reason_text, fields.mqtt_ext_reason_length, fields.mqtt_ext_reason)
 end
+
+register_dissector(MQTT_ID, "mqtt", handle_mqtt_extension, function (payload) return Dissector.get("mqtt") end)
+
+-- kafka dissector
+KAFKA_ID = 0x084b20e1
+
+local kafka_ext_apis = {
+    [252] = "CONSUMER",
+    [253] = "GROUP",
+    [254] = "BOOTSTRAP",
+    [255] = "MERGED",
+    [22]  = "INIT_PRODUCER_ID",
+    [3]   = "META",
+    [8]   = "OFFSET_COMMIT",
+    [9]   = "OFFSET_FETCH",
+    [32]  = "DESCRIBE",
+    [1]   = "FETCH",
+    [0]   = "PRODUCE",
+}
+
+local kafka_ext_capabilities_types = {
+    [1] = "PRODUCE_ONLY",
+    [2] = "FETCH_ONLY",
+    [3] = "PRODUCE_AND_FETCH",
+}
+
+local kafka_ext_evaluation_types = {
+    [0] = "LAZY",
+    [1] = "EAGER",
+}
+
+local kafka_ext_isolation_types = {
+    [0] = "READ_UNCOMMITTED",
+    [1] = "READ_COMMITTED",
+}
+
+local kafka_ext_delta_types = {
+    [0] = "NONE",
+    [1] = "JSON_PATCH",
+}
+
+local kafka_ext_ack_modes = {
+    [0] = "NONE",
+    [1] = "LEADER_ONLY",
+    [-1] = "IN_SYNC_REPLICAS",
+}
+
+local kafka_ext_condition_types = {
+    [0] = "KEY",
+    [1] = "HEADER",
+    [2] = "NOT",
+    [3] = "HEADERS",
+}
+
+local kafka_ext_value_match_types = {
+    [0] = "VALUE",
+    [1] = "SKIP",
+}
+
+local kafka_ext_skip_types = {
+    [0] = "SKIP",
+    [1] = "SKIP_MANY",
+}
+
+local kafka_ext_transaction_result_types = {
+    [0] = "ABORT",
+    [1] = "COMMIT",
+}
+
+add_field("kafka_ext_api", ProtoField.uint8("zilla.kafka_ext.api", "API", base.DEC, kafka_ext_apis))
+--     reset
+add_field("kafka_ext_error", ProtoField.int32("zilla.kafka_ext.error", "Error", base.DEC))
+--     consumer
+add_field("kafka_ext_group_id_length", ProtoField.int16("zilla.kafka_ext.group_id_length", "Length", base.DEC))
+add_field("kafka_ext_group_id", ProtoField.string("zilla.kafka_ext.group_id", "Group ID", base.NONE))
+add_field("kafka_ext_consumer_id_length", ProtoField.int16("zilla.kafka_ext.consumer_id_length", "Length", base.DEC))
+add_field("kafka_ext_consumer_id", ProtoField.string("zilla.kafka_ext.consumer_id", "Consumer ID", base.NONE))
+add_field("kafka_ext_host_length", ProtoField.int16("zilla.kafka_ext.host_length", "Length", base.DEC))
+add_field("kafka_ext_host", ProtoField.string("zilla.kafka_ext.host", "Host", base.NONE))
+add_field("kafka_ext_port", ProtoField.int32("zilla.kafka_ext.port", "Port", base.DEC))
+add_field("kafka_ext_timeout", ProtoField.int32("zilla.kafka_ext.timeout", "Timeout", base.DEC))
+add_field("kafka_ext_topic_length", ProtoField.int16("zilla.kafka_ext.topic_length", "Length", base.DEC))
+add_field("kafka_ext_topic", ProtoField.string("zilla.kafka_ext.topic", "Topic", base.NONE))
+add_field("kafka_ext_partition_ids_array_length", ProtoField.int8("zilla.kafka_ext.partition_ids_array_length", "Length", base.DEC))
+add_field("kafka_ext_partition_ids_array_size", ProtoField.int8("zilla.kafka_ext.partition_ids_array_size", "Size", base.DEC))
+add_field("kafka_ext_partition_id", ProtoField.int32("zilla.kafka_ext.partition_id", "Partition ID", base.DEC))
+add_field("kafka_ext_consumer_assignments_array_length", ProtoField.int8("zilla.kafka_ext.consumer_assignments_array_length",
+        "Length", base.DEC))
+add_field("kafka_ext_consumer_assignments_array_size", ProtoField.int8("zilla.kafka_ext.consumer_assignments_array_size",
+        "Size", base.DEC))
+add_field("kafka_ext_partition_offset", ProtoField.int64("zilla.kafka_ext.partition_offset", "Partition Offset", base.DEC))
+add_field("kafka_ext_stable_offset", ProtoField.int64("zilla.kafka_ext.stable_offset", "Stable Offset", base.DEC))
+add_field("kafka_ext_latest_offset", ProtoField.int64("zilla.kafka_ext.latest_offset", "Latest Offset", base.DEC))
+add_field("kafka_ext_metadata_length", ProtoField.int32("zilla.kafka_ext.metadata_length", "Length", base.DEC))
+add_field("kafka_ext_metadata", ProtoField.string("zilla.kafka_ext.metadata", "Metadata", base.NONE))
+add_field("kafka_ext_leader_epoch", ProtoField.int32("zilla.kafka_ext.leader_epoch", "Leader Epoch", base.DEC))
+add_field("kafka_ext_correlation_id", ProtoField.int64("zilla.kafka_ext.correlation_id", "Correlation ID", base.DEC))
+--     group
+add_field("kafka_ext_protocol_length", ProtoField.int16("zilla.kafka_ext.protocol_length", "Length", base.DEC))
+add_field("kafka_ext_protocol", ProtoField.string("zilla.kafka_ext.protocol", "Protocol", base.NONE))
+add_field("kafka_ext_instance_id_length", ProtoField.int16("zilla.kafka_ext.instance_id_length", "Length", base.DEC))
+add_field("kafka_ext_instance_id", ProtoField.string("zilla.kafka_ext.instance_id", "Instance ID", base.NONE))
+add_field("kafka_ext_metadata_length_varint", ProtoField.bytes("zilla.kafka_ext.metadata_length_varint", "Length (varint32)", base.NONE))
+add_field("kafka_ext_metadata_bytes", ProtoField.bytes("zilla.kafka_ext.metadata_bytes", "Metadata", base.NONE))
+add_field("kafka_ext_generation_id", ProtoField.int32("zilla.kafka_ext.generation_id", "Generation ID", base.DEC))
+add_field("kafka_ext_leader_id_length", ProtoField.int16("zilla.kafka_ext.leader_id_length", "Length", base.DEC))
+add_field("kafka_ext_leader_id", ProtoField.string("zilla.kafka_ext.leader_id", "Leader ID", base.NONE))
+add_field("kafka_ext_member_id_length", ProtoField.int16("zilla.kafka_ext.member_id_length", "Length", base.DEC))
+add_field("kafka_ext_member_id", ProtoField.string("zilla.kafka_ext.member_id", "Member ID", base.NONE))
+-- merged
+add_field("kafka_ext_capabilities", ProtoField.uint8("zilla.kafka_ext.capabilities", "Capabilities", base.DEC,
+        kafka_ext_capabilities_types))
+add_field("kafka_ext_partitions_array_length", ProtoField.int8("zilla.kafka_ext.partitions_array_length", "Length", base.DEC))
+add_field("kafka_ext_partitions_array_size", ProtoField.int8("zilla.kafka_ext.partitions_array_size", "Size", base.DEC))
+add_field("kafka_ext_filters_array_length", ProtoField.int8("zilla.kafka_ext.filters_array_length", "Length", base.DEC))
+add_field("kafka_ext_filters_array_size", ProtoField.int8("zilla.kafka_ext.filters_array_size", "Size", base.DEC))
+add_field("kafka_ext_conditions_array_length", ProtoField.int8("zilla.kafka_ext.conditions_array_length", "Length", base.DEC))
+add_field("kafka_ext_conditions_array_size", ProtoField.int8("zilla.kafka_ext.conditions_array_size", "Size", base.DEC))
+add_field("kafka_ext_condition_type", ProtoField.int8("zilla.kafka_ext.condition_type", "Type", base.DEC, kafka_ext_condition_types))
+add_field("kafka_ext_key_length_varint", ProtoField.bytes("zilla.kafka_ext.key_length_varint", "Length (varint32)", base.NONE))
+add_field("kafka_ext_key_length", ProtoField.int32("zilla.kafka_ext.key_length", "Length", base.DEC))
+add_field("kafka_ext_key", ProtoField.string("zilla.kafka_ext.key", "Key", base.NONE))
+add_field("kafka_ext_name_length_varint", ProtoField.bytes("zilla.kafka_ext.name_length_varint", "Length (varint32)", base.NONE))
+add_field("kafka_ext_name_length", ProtoField.int32("zilla.kafka_ext.name_length", "Length", base.DEC))
+add_field("kafka_ext_name", ProtoField.string("zilla.kafka_ext.name", "Name", base.NONE))
+add_field("kafka_ext_value_length_varint", ProtoField.bytes("zilla.kafka_ext.value_length_varint", "Length (varint32)", base.NONE))
+add_field("kafka_ext_value_length", ProtoField.int32("zilla.kafka_ext.value_length", "Length", base.DEC))
+add_field("kafka_ext_value", ProtoField.string("zilla.kafka_ext.value", "Value", base.NONE))
+add_field("kafka_ext_value_match_array_length", ProtoField.int8("zilla.kafka_ext.value_match_array_length", "Length", base.DEC))
+add_field("kafka_ext_value_match_array_size", ProtoField.int8("zilla.kafka_ext.value_match_array_size", "Size", base.DEC))
+add_field("kafka_ext_value_match_type", ProtoField.uint8("zilla.kafka_ext.value_match_type", "Type", base.DEC,
+        kafka_ext_value_match_types))
+add_field("kafka_ext_skip_type", ProtoField.uint8("zilla.kafka_ext.skip_type", "Skip Type", base.DEC, kafka_ext_skip_types))
+add_field("kafka_ext_evaluation", ProtoField.uint8("zilla.kafka_ext.evaluation", "Evaluation", base.DEC, kafka_ext_evaluation_types))
+add_field("kafka_ext_isolation", ProtoField.uint8("zilla.kafka_ext.isolation", "Isolation", base.DEC, kafka_ext_isolation_types))
+add_field("kafka_ext_delta_type", ProtoField.uint8("zilla.kafka_ext.delta_type", "Delta Type", base.DEC, kafka_ext_delta_types))
+add_field("kafka_ext_ack_mode_id", ProtoField.int16("zilla.kafka_ext.ack_mode_id", "Ack Mode ID", base.DEC))
+add_field("kafka_ext_ack_mode", ProtoField.string("zilla.kafka_ext.ack_mode", "Ack Mode", base.NONE))
+add_field("kafka_ext_merged_api", ProtoField.uint8("zilla.kafka_ext.data_api", "Merged API", base.DEC, kafka_ext_apis))
+add_field("kafka_ext_deferred", ProtoField.int32("zilla.kafka_ext.deferred", "Deferred", base.DEC))
+add_field("kafka_ext_filters", ProtoField.int64("zilla.kafka_ext.filters", "Filters", base.DEC))
+add_field("kafka_ext_progress_array_length", ProtoField.int8("zilla.kafka_ext.progress_array_length", "Length", base.DEC))
+add_field("kafka_ext_progress_array_size", ProtoField.int8("zilla.kafka_ext.progress_array_size", "Size", base.DEC))
+add_field("kafka_ext_ancestor_offset", ProtoField.int64("zilla.kafka_ext.ancestor_offset", "Ancestor Offset", base.DEC))
+add_field("kafka_ext_headers_array_length", ProtoField.int8("zilla.kafka_ext.headers_array_length", "Length", base.DEC))
+add_field("kafka_ext_headers_array_size", ProtoField.int8("zilla.kafka_ext.headers_array_size", "Size", base.DEC))
+add_field("kafka_ext_producer_id", ProtoField.uint64("zilla.kafka_ext.producer_id", "Producer ID", base.HEX))
+add_field("kafka_ext_producer_epoch", ProtoField.uint16("zilla.kafka_ext.producer_epoch", "Producer Epoch", base.HEX))
+-- meta
+add_field("kafka_ext_partition_leader_id", ProtoField.int32("zilla.kafka_ext.partition_leader_id", "Leader ID", base.DEC))
+-- offset_fetch
+add_field("kafka_ext_topic_partition_array_length", ProtoField.int8("zilla.kafka_ext.topic_partition_array_length", "Length", base.DEC))
+add_field("kafka_ext_topic_partition_array_size", ProtoField.int8("zilla.kafka_ext.topic_partition_array_size", "Size", base.DEC))
+add_field("kafka_ext_topic_partition_offset_array_length", ProtoField.int8("zilla.kafka_ext.topic_partition_offset_array_length",
+        "Length", base.DEC))
+add_field("kafka_ext_topic_partition_offset_array_size", ProtoField.int8("zilla.kafka_ext.topic_partition_offset_array_size",
+        "Size", base.DEC))
+-- describe
+add_field("kafka_ext_config_array_length", ProtoField.int8("zilla.kafka_ext.config_array_length", "Length", base.DEC))
+add_field("kafka_ext_config_array_size", ProtoField.int8("zilla.kafka_ext.config_array_size", "Size", base.DEC))
+add_field("kafka_ext_config_length", ProtoField.int16("zilla.kafka_ext.config_length", "Length", base.DEC))
+add_field("kafka_ext_config", ProtoField.string("zilla.kafka_ext.config", "Config", base.NONE))
+-- fetch
+add_field("kafka_ext_header_size_max", ProtoField.int32("zilla.kafka_ext.header_size_max", "Header Size Maximum", base.DEC))
+add_field("kafka_ext_transactions_array_length", ProtoField.int8("zilla.kafka_ext.transactions_array_length", "Length", base.DEC))
+add_field("kafka_ext_transactions_array_size", ProtoField.int8("zilla.kafka_ext.transactions_array_size", "Size", base.DEC))
+add_field("kafka_ext_transaction_result", ProtoField.int8("zilla.kafka_ext.transaction_result", "Result", base.DEC,
+        kafka_ext_transaction_result_types))
+-- produce
+add_field("kafka_ext_transaction_length", ProtoField.int16("zilla.kafka_ext.transaction_length", "Length", base.DEC))
+add_field("kafka_ext_transaction", ProtoField.string("zilla.kafka_ext.transaction", "Transaction", base.NONE))
+add_field("kafka_ext_sequence", ProtoField.int32("zilla.kafka_ext.sequence", "Sequence", base.DEC))
+add_field("kafka_ext_crc32c", ProtoField.uint32("zilla.kafka_ext.crc32c", "CRC32C", base.HEX))
 
 function handle_kafka_extension(buffer, offset, ext_subtree, frame_type_id)
     if frame_type_id == BEGIN_ID or frame_type_id == DATA_ID or frame_type_id == FLUSH_ID or
@@ -2495,23 +2235,6 @@ function dissect_and_add_kafka_filters_array(buffer, offset, tree, field_array_l
             fields.kafka_ext_conditions_array_length, fields.kafka_ext_conditions_array_size)
         item_offset = item_offset + item_length
     end
-end
-
-function dissect_and_add_array_header_as_subtree(buffer, offset, tree, label_format, field_array_length, field_array_size)
-    local slice_array_length = buffer(offset, 4)
-    local slice_array_size = buffer(offset + 4, 4)
-    local header_length = 4 + 4
-    local array_size = slice_array_size:le_int()
-    local label = string.format(label_format, array_size)
-    local array_subtree = tree:add(zilla_protocol, buffer(offset, header_length), label)
-    array_subtree:add_le(field_array_length, slice_array_length)
-    array_subtree:add_le(field_array_size, slice_array_size)
-    return header_length, array_size
-end
-
-function resolve_length_of_array(buffer, offset)
-    local slice_array_length = buffer(offset, 4)
-    return 4 + slice_array_length:le_int()
 end
 
 function dissect_and_add_kafka_conditions_array(buffer, offset, tree, field_array_length, field_array_size)
@@ -3512,6 +3235,164 @@ function handle_kafka_reset_extension(buffer, offset, ext_subtree)
         slice_consumer_id_length, slice_consumer_id_text, fields.kafka_ext_consumer_id_length, fields.kafka_ext_consumer_id)
 end
 
+register_dissector(KAFKA_ID, "kafka", handle_kafka_extension, function (payload) return Dissector.get("kafka") end)
+
+-- amqp dissector
+AMQP_ID = 0x112dc182
+
+local amqp_ext_capabilities_types = {
+    [1] = "SEND_ONLY",
+    [2] = "RECEIVE_ONLY",
+    [3] = "SEND_AND_RECEIVE",
+}
+
+local amqp_ext_sender_settle_modes = {
+    [0] = "UNSETTLED",
+    [1] = "SETTLED",
+    [2] = "MIXED",
+}
+
+local amqp_ext_receiver_settle_modes = {
+    [0] = "FIRST",
+    [1] = "SECOND",
+}
+
+local amqp_ext_transfer_flags = {
+    [0] = "SETTLED",
+    [1] = "RESUME",
+    [2] = "ABORTED",
+    [3] = "BATCHABLE",
+}
+
+local amqp_ext_annotation_key_types = {
+    [1] = "ID",
+    [2] = "NAME",
+}
+
+local amqp_ext_body_kinds = {
+    [0] = "DATA",
+    [1] = "SEQUENCE",
+    [2] = "VALUE_STRING32",
+    [3] = "VALUE_STRING8",
+    [4] = "VALUE_BINARY32",
+    [5] = "VALUE_BINARY8",
+    [6] = "VALUE_SYMBOL32",
+    [7] = "VALUE_SYMBOL8",
+    [8] = "VALUE_NULL",
+    [9] = "VALUE",
+}
+
+local amqp_ext_message_id_types = {
+    [1] = "ULONG",
+    [2] = "UUID",
+    [3] = "BINARY",
+    [4] = "STRINGTYPE",
+}
+
+--     begin
+add_field("amqp_ext_address_length", ProtoField.int8("zilla.amqp_ext.address_length", "Length", base.DEC))
+add_field("amqp_ext_address", ProtoField.string("zilla.amqp_ext.address", "Name", base.NONE))
+add_field("amqp_ext_capabilities", ProtoField.uint8("zilla.amqp_ext.capabilities", "Capabilities", base.DEC,
+        amqp_ext_capabilities_types))
+add_field("amqp_ext_sender_settle_mode", ProtoField.uint8("zilla.amqp_ext.sender_settle_mode", "Sender Settle Mode", base.DEC,
+        amqp_ext_sender_settle_modes))
+add_field("amqp_ext_receiver_settle_mode", ProtoField.uint8("zilla.amqp_ext.receiver_settle_mode", "Receiver Settle Mode", base.DEC,
+        amqp_ext_receiver_settle_modes))
+--     data
+add_field("amqp_ext_delivery_tag_length", ProtoField.int16("zilla.amqp_ext.delivery_tag_length", "Length", base.DEC))
+add_field("amqp_ext_delivery_tag", ProtoField.string("zilla.amqp_ext.delivery_tag", "Delivery Tag", base.NONE))
+add_field("amqp_ext_message_format", ProtoField.uint32("zilla.amqp_ext.message_format", "Message Format", base.DEC))
+add_field("amqp_ext_body_kind", ProtoField.uint8("zilla.amqp_ext.body_kind", "Body Kind", base.DEC, amqp_ext_body_kinds))
+add_field("amqp_ext_deferred", ProtoField.int32("zilla.amqp_ext.deferred", "Deferred", base.DEC))
+--     flags
+add_field("amqp_ext_transfer_flags", ProtoField.uint8("zilla.amqp_ext.transfer_flags", "Flags", base.HEX))
+add_field("amqp_ext_transfer_flags_settled", ProtoField.uint8("zilla.amqp_ext.transfer_flags_settled", "SETTLED",
+        base.DEC, flags_types, 0x01))
+add_field("amqp_ext_transfer_flags_resume", ProtoField.uint8("zilla.amqp_ext.transfer_flags_resume", "RESUME",
+        base.DEC, flags_types, 0x02))
+add_field("amqp_ext_transfer_flags_aborted", ProtoField.uint8("zilla.amqp_ext.transfer_flags_aborted", "ABORTED",
+        base.DEC, flags_types, 0x04))
+add_field("amqp_ext_transfer_flags_batchable", ProtoField.uint8("zilla.amqp_ext.transfer_flags_batchable", "BATCHABLE",
+        base.DEC, flags_types, 0x08))
+--     annotations
+add_field("amqp_ext_annotations_length", ProtoField.int16("zilla.amqp_ext.annotations_length", "Length", base.DEC))
+add_field("amqp_ext_annotations_size", ProtoField.int16("zilla.amqp_ext.annotations_size", "Size", base.DEC))
+add_field("amqp_ext_annotation_key_type", ProtoField.uint8("zilla.amqp_ext.annotation_key_type", "Key Type", base.DEC,
+        amqp_ext_annotation_key_types))
+add_field("amqp_ext_annotation_key_id", ProtoField.uint64("zilla.amqp_ext.annotation_key_id", "Key [ID]", base.HEX))
+add_field("amqp_ext_annotation_key_name_length", ProtoField.uint8("zilla.amqp_ext.annotation_key_name_length", "Length", base.DEC))
+add_field("amqp_ext_annotation_key_name", ProtoField.string("zilla.amqp_ext.annotation_key_name", "Key Name", base.NONE))
+add_field("amqp_ext_annotation_value_length", ProtoField.uint8("zilla.amqp_ext.annotation_value_length", "Length", base.DEC))
+add_field("amqp_ext_annotation_value", ProtoField.string("zilla.amqp_ext.annotation_value", "Value", base.NONE))
+--     properties
+add_field("amqp_ext_properties_length", ProtoField.int16("zilla.amqp_ext.properties_length", "Length", base.DEC))
+add_field("amqp_ext_properties_size", ProtoField.int16("zilla.amqp_ext.properties_size", "Size", base.DEC))
+add_field("amqp_ext_properties_fields", ProtoField.uint64("zilla.amqp_ext.properties_fields", "Fields", base.HEX))
+add_field("amqp_ext_property_message_id_type", ProtoField.int16("zilla.amqp_ext.message_id_type", "ID Type", base.DEC,
+        amqp_ext_message_id_types))
+add_field("amqp_ext_property_message_id_ulong", ProtoField.uint64("zilla.amqp_ext.message_id_ulong", "Message ID", base.HEX))
+add_field("amqp_ext_property_message_id_uuid_length", ProtoField.int8("zilla.amqp_ext.property_message_id_uuid_length",
+        "Length", base.DEC))
+add_field("amqp_ext_property_message_id_uuid", ProtoField.string("zilla.amqp_ext.property_message_id_uuid", "Message ID", base.NONE))
+add_field("amqp_ext_property_message_id_binary_length", ProtoField.int8("zilla.amqp_ext.property_message_id_binary_length",
+        "Length", base.DEC))
+add_field("amqp_ext_property_message_id_binary", ProtoField.string("zilla.amqp_ext.property_message_id_binary", "Message ID", base.NONE))
+add_field("amqp_ext_property_message_id_stringtype_length", ProtoField.int8("zilla.amqp_ext.property_message_id_stringtype_length",
+        "Length", base.DEC))
+add_field("amqp_ext_property_message_id_stringtype", ProtoField.string("zilla.amqp_ext.property_message_id_stringtype",
+        "Message ID", base.NONE))
+add_field("amqp_ext_property_user_id_length", ProtoField.int16("zilla.amqp_ext.property_user_id_length", "Length", base.DEC))
+add_field("amqp_ext_property_user_id", ProtoField.string("zilla.amqp_ext.property_user_id", "User ID", base.NONE))
+add_field("amqp_ext_property_to_length", ProtoField.int8("zilla.amqp_ext.property_to_length", "Length", base.DEC))
+add_field("amqp_ext_property_to", ProtoField.string("zilla.amqp_ext.property_to", "To", base.NONE))
+add_field("amqp_ext_property_subject_length", ProtoField.int8("zilla.amqp_ext.property_subject_length", "Length", base.DEC))
+add_field("amqp_ext_property_subject", ProtoField.string("zilla.amqp_ext.property_subject", "Subject", base.NONE))
+add_field("amqp_ext_property_reply_to_length", ProtoField.int8("zilla.amqp_ext.property_reply_to_length", "Length", base.DEC))
+add_field("amqp_ext_property_reply_to", ProtoField.string("zilla.amqp_ext.property_reply_to", "Reply To", base.NONE))
+add_field("amqp_ext_property_correlation_id_type", ProtoField.int16("zilla.amqp_ext.correlation_id_type", "ID Type", base.DEC,
+        amqp_ext_message_id_types))
+add_field("amqp_ext_property_correlation_id_ulong", ProtoField.uint64("zilla.amqp_ext.correlation_id_ulong", "Correlation ID", base.HEX))
+add_field("amqp_ext_property_correlation_id_uuid_length", ProtoField.int8("zilla.amqp_ext.property_correlation_id_uuid_length",
+        "Length", base.DEC))
+add_field("amqp_ext_property_correlation_id_uuid", ProtoField.string("zilla.amqp_ext.property_correlation_id_uuid", "Correlation ID", base.NONE))
+add_field("amqp_ext_property_correlation_id_binary_length", ProtoField.int8("zilla.amqp_ext.property_correlation_id_binary_length",
+        "Length", base.DEC))
+add_field("amqp_ext_property_correlation_id_binary", ProtoField.string("zilla.amqp_ext.property_correlation_id_binary", "Correlation ID", base.NONE))
+add_field("amqp_ext_property_correlation_id_stringtype_length", ProtoField.int8("zilla.amqp_ext.property_correlation_id_stringtype_length",
+        "Length", base.DEC))
+add_field("amqp_ext_property_correlation_id_stringtype", ProtoField.string("zilla.amqp_ext.property_correlation_id_stringtype",
+        "Correlation ID", base.NONE))
+add_field("amqp_ext_property_content_type_length", ProtoField.int8("zilla.amqp_ext.property_content_type_length", "Length", base.DEC))
+add_field("amqp_ext_property_content_type", ProtoField.string("zilla.amqp_ext.property_content_type", "Content Type", base.NONE))
+add_field("amqp_ext_property_content_encoding_length", ProtoField.int8("zilla.amqp_ext.property_content_encoding_length", "Length",
+        base.DEC))
+add_field("amqp_ext_property_content_encoding", ProtoField.string("zilla.amqp_ext.property_content_encoding", "Content Encoding",
+        base.NONE))
+add_field("amqp_ext_property_absolute_expiry_time", ProtoField.int64("zilla.amqp_ext.property_absolut_expiry_time",
+        "Property: Absolute Expiry Time", base.DEC))
+add_field("amqp_ext_property_creation_time", ProtoField.int64("zilla.amqp_ext.property_creation_time", "Property: Creation Time",
+        base.DEC))
+add_field("amqp_ext_property_group_id_length", ProtoField.int8("zilla.amqp_ext.property_group_id_length", "Length", base.DEC))
+add_field("amqp_ext_property_group_id", ProtoField.string("zilla.amqp_ext.property_group_id", "Group ID", base.NONE))
+add_field("amqp_ext_property_group_sequence", ProtoField.int32("zilla.amqp_ext.property_group_sequence", "Property: Group Sequence", base.DEC))
+add_field("amqp_ext_property_reply_to_group_id_length", ProtoField.int8("zilla.amqp_ext.property_reply_to_group_id_length", "Length",
+        base.DEC))
+add_field("amqp_ext_property_reply_to_group_id", ProtoField.string("zilla.amqp_ext.property_reply_to_group_id", "Reply To Group ID",
+        base.NONE))
+--     application_properties
+add_field("amqp_ext_application_properties_length", ProtoField.int16("zilla.amqp_ext.application_properties_length", "Length",
+        base.DEC))
+add_field("amqp_ext_application_properties_size", ProtoField.int16("zilla.amqp_ext.application_properties_size", "Size", base.DEC))
+add_field("amqp_ext_application_property_key_length", ProtoField.uint32("zilla.amqp_ext.application_property_key_length", "Length",
+        base.DEC))
+add_field("amqp_ext_application_property_key", ProtoField.string("zilla.amqp_ext.application_property_key", "Key", base.NONE))
+add_field("amqp_ext_application_property_value_length", ProtoField.uint8("zilla.amqp_ext.application_property_value_length", "Length",
+        base.DEC))
+add_field("amqp_ext_application_property_value", ProtoField.string("zilla.amqp_ext.application_property_value", "Value", base.NONE))
+--     abort
+add_field("amqp_ext_condition_length", ProtoField.uint8("zilla.amqp_ext.condition_length", "Length", base.DEC))
+add_field("amqp_ext_condition", ProtoField.string("zilla.amqp_ext.condition", "Condition", base.NONE))
+
 function handle_amqp_extension(buffer, offset, ext_subtree, frame_type_id)
     if frame_type_id == BEGIN_ID then
         handle_amqp_begin_extension(buffer, offset, ext_subtree)
@@ -3874,10 +3755,6 @@ function resolve_length_of_list_amqp(buffer, offset)
     return slice_list_length:int()
 end
 
-function field_exists(list_fields, position)
-    return bit.band(tostring(list_fields), bit.lshift(1, position)) > 0
-end
-
 function dissect_and_add_amqp_message_id_as_subtree(buffer, offset, tree, subtree_label, value_label, field_id_type,
     field_ulong, field_uuid_length, field_uuid, field_binary_length, field_binary, field_stringtype_length, field_stringtype)
     local message_id_type_length = 1
@@ -3950,6 +3827,150 @@ function handle_amqp_flush_extension(buffer, offset, ext_subtree)
     local capabilities_length = 1
     local slice_capabilities = buffer(capabilities_offset, capabilities_length)
     ext_subtree:add_le(fields.amqp_ext_capabilities, slice_capabilities)
+end
+
+register_dissector(AMQP_ID, "amqp", handle_amqp_extension, function (payload) return Dissector.get("amqp") end)
+
+-- tls dissector
+TLS_ID = 0x99f321bc
+register_dissector(TLS_ID, "tls", nil, function (payload) return Dissector.get("tls") end)
+
+zilla_protocol.fields = fields;
+
+function zilla_protocol.dissector(buffer, pinfo, tree)
+    if buffer:len() == 0 then return end
+    local subtree = tree:add(zilla_protocol, buffer(), "Zilla Frame")
+
+    -- header
+    local slice_frame_type_id = buffer(HEADER_OFFSET, 4)
+    local frame_type_id = slice_frame_type_id:le_uint()
+    local frame_type = resolve_frame_type(frame_type_id)
+    subtree:add_le(fields.frame_type_id, slice_frame_type_id)
+    subtree:add(fields.frame_type, frame_type)
+
+    local slice_protocol_type_id = buffer(HEADER_OFFSET + 4, 4)
+    local protocol_type_id = slice_protocol_type_id:le_uint()
+    local protocol_type = resolve_type(protocol_type_id)
+    subtree:add_le(fields.protocol_type_id, slice_protocol_type_id)
+    subtree:add(fields.protocol_type, protocol_type)
+
+    local slice_worker = buffer(HEADER_OFFSET + 8, 4)
+    local slice_offset = buffer(HEADER_OFFSET + 12, 4)
+    subtree:add_le(fields.worker, slice_worker)
+    subtree:add_le(fields.offset, slice_offset)
+
+    -- labels
+    local slice_labels_length = buffer(LABELS_OFFSET, 4)
+    local labels_length = slice_labels_length:le_uint()
+
+    -- origin id
+    local frame_offset = LABELS_OFFSET + labels_length
+    local slice_origin_id = buffer(frame_offset + 4, 8)
+    subtree:add_le(fields.origin_id, slice_origin_id)
+
+    local label_offset = LABELS_OFFSET + 4;
+    local origin_namespace_length = buffer(label_offset, 4):le_uint()
+    label_offset = label_offset + 4
+    local slice_origin_namespace = buffer(label_offset, origin_namespace_length)
+    label_offset = label_offset + origin_namespace_length
+    if (origin_namespace_length > 0) then
+        subtree:add(fields.origin_namespace, slice_origin_namespace)
+    end
+
+    local origin_binding_length = buffer(label_offset, 4):le_uint()
+    label_offset = label_offset + 4
+    local slice_origin_binding = buffer(label_offset, origin_binding_length)
+    label_offset = label_offset + origin_binding_length
+    if (origin_binding_length > 0) then
+        subtree:add(fields.origin_binding, slice_origin_binding)
+    end
+
+    -- routed id
+    local slice_routed_id = buffer(frame_offset + 12, 8)
+    subtree:add_le(fields.routed_id, slice_routed_id)
+
+    local routed_namespace_length = buffer(label_offset, 4):le_uint()
+    label_offset = label_offset + 4
+    slice_routed_namespace = buffer(label_offset, routed_namespace_length)
+    label_offset = label_offset + routed_namespace_length
+    if (routed_namespace_length > 0) then
+        subtree:add(fields.routed_namespace, slice_routed_namespace)
+    end
+
+    local routed_binding_length = buffer(label_offset, 4):le_uint()
+    label_offset = label_offset + 4
+    local slice_routed_binding = buffer(label_offset, routed_binding_length)
+    label_offset = label_offset + routed_binding_length
+    if (routed_binding_length > 0) then
+        subtree:add(fields.routed_binding, slice_routed_binding)
+    end
+
+    -- stream id
+    local slice_stream_id = buffer(frame_offset + 20, 8)
+    local stream_id = slice_stream_id:le_uint64();
+    subtree:add_le(fields.stream_id, slice_stream_id)
+    local direction
+    local initial_id
+    local reply_id
+    if stream_id == UInt64(0) then
+        direction = ""
+    else
+        if (stream_id % 2) == UInt64(0) then
+            direction = "REP"
+            initial_id = stream_id + UInt64(1)
+            reply_id = stream_id
+        else
+            direction = "INI"
+            initial_id = stream_id
+            reply_id = stream_id - UInt64(1)
+        end
+        subtree:add(fields.initial_id, initial_id)
+        subtree:add(fields.reply_id, reply_id)
+    end
+    subtree:add(fields.direction, direction)
+
+    -- more frame properties
+    local slice_sequence = buffer(frame_offset + 28, 8)
+    local sequence = slice_sequence:le_int64();
+    local slice_acknowledge = buffer(frame_offset + 36, 8)
+    local acknowledge = slice_acknowledge:le_int64();
+    local slice_maximum = buffer(frame_offset + 44, 4)
+    local maximum = slice_maximum:le_int();
+    local slice_timestamp = buffer(frame_offset + 48, 8)
+    local slice_trace_id = buffer(frame_offset + 56, 8)
+    local slice_authorization = buffer(frame_offset + 64, 8)
+    subtree:add_le(fields.sequence, slice_sequence)
+    subtree:add_le(fields.acknowledge, slice_acknowledge)
+    subtree:add_le(fields.maximum, slice_maximum)
+    subtree:add_le(fields.timestamp, slice_timestamp)
+    subtree:add_le(fields.trace_id, slice_trace_id)
+    subtree:add_le(fields.authorization, slice_authorization)
+
+    pinfo.cols.protocol = zilla_protocol.name
+    local info = string.format("ZILLA %s %s", frame_type, direction)
+    if protocol_type and protocol_type ~= "" then
+        info = string.format("%s p=%s", info, protocol_type)
+    end
+    pinfo.cols.info:set(info)
+
+    local next_offset = frame_offset + 72
+    if frame_type_id == BEGIN_ID then
+        handle_begin_frame(buffer, next_offset, subtree, pinfo, info)
+    elseif frame_type_id == DATA_ID then
+        handle_data_frame(buffer, next_offset, tree, subtree, sequence, acknowledge, maximum, pinfo, info, protocol_type)
+    elseif frame_type_id == FLUSH_ID then
+        handle_flush_frame(buffer, next_offset, subtree, pinfo, info)
+    elseif frame_type_id == END_ID then
+        handle_end_frame(buffer, next_offset, subtree, pinfo, info)
+    elseif frame_type_id == WINDOW_ID then
+        handle_window_frame(buffer, next_offset, subtree, sequence, acknowledge, maximum, pinfo, info)
+    elseif frame_type_id == SIGNAL_ID then
+        handle_signal_frame(buffer, next_offset, subtree, pinfo, info)
+    elseif frame_type_id == ABORT_ID or frame_type_id == RESET_ID or frame_type_id == CHALLENGE_ID then
+        handle_extension(buffer, subtree, pinfo, info, next_offset, frame_type_id)
+    elseif frame_type_id == REDIRECT_ID then
+        handle_redirect_frame(buffer, next_offset, subtree, pinfo, info)
+    end
 end
 
 local data_dissector = DissectorTable.get("tcp.port")
