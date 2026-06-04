@@ -2907,14 +2907,20 @@ public final class McpServerFactory implements McpStreamFactory
 
             state = McpState.closingInitial(state);
 
-            final McpRequestStream resolved = resolveElicitation(path);
+            final McpElicitation resolved = resolveElicitation(path);
 
-            if (resolved != null)
+            if (resolved != null && resolved.held != null)
             {
-                resolved.doAppFlushElicitCallback(traceId, authorization, stripElicitState(callbackURL),
-                    resolved.elicitContext);
-                resolved.doAppEnd(traceId, authorization);
-                resolved.server.doDeferredCloseInitial();
+                final McpRequestStream held = resolved.held;
+                held.doAppFlushElicitCallback(traceId, authorization, stripElicitState(callbackURL), resolved.context);
+                held.doAppEnd(traceId, authorization);
+                held.server.doDeferredCloseInitial();
+                doNetReply200(traceId, authorization, AUTH_CALLBACK_OK_BODY);
+            }
+            else if (resolved != null)
+            {
+                resolved.session.doAppFlushElicitCallback(traceId, authorization, stripElicitState(callbackURL),
+                    resolved.context);
                 doNetReply200(traceId, authorization, AUTH_CALLBACK_OK_BODY);
             }
             else
@@ -2951,10 +2957,10 @@ public final class McpServerFactory implements McpStreamFactory
             doNetEnd(traceId, authorization);
         }
 
-        private McpRequestStream resolveElicitation(
+        private McpElicitation resolveElicitation(
             String requestPath)
         {
-            McpRequestStream resolved = null;
+            McpElicitation resolved = null;
             if (requestPath != null)
             {
                 final int queryAt = requestPath.indexOf('?');
@@ -3095,12 +3101,29 @@ public final class McpServerFactory implements McpStreamFactory
         }
     }
 
+    private final class McpElicitation
+    {
+        private final McpLifecycleStream session;
+        private final McpRequestStream held;
+        private final String context;
+
+        private McpElicitation(
+            McpLifecycleStream session,
+            McpRequestStream held,
+            String context)
+        {
+            this.session = session;
+            this.held = held;
+            this.context = context;
+        }
+    }
+
     private final class McpLifecycleStream
     {
         private final String sessionId;
         private String unifiedId;
         private final Object2ObjectHashMap<String, McpRequestStream> requests;
-        private final Object2ObjectHashMap<String, McpRequestStream> elicitations;
+        private final Object2ObjectHashMap<String, McpElicitation> elicitations;
 
         private final McpServer server;
         private final long originId;
@@ -3289,9 +3312,70 @@ public final class McpServerFactory implements McpStreamFactory
                 final SignalFW signal = signalRO.wrap(buffer, index, index + length);
                 onAppSignal(signal);
                 break;
+            case ChallengeFW.TYPE_ID:
+                final ChallengeFW challenge = challengeRO.wrap(buffer, index, index + length);
+                onAppChallenge(challenge);
+                break;
             default:
                 break;
             }
+        }
+
+        private void onAppChallenge(
+            ChallengeFW challenge)
+        {
+            final long traceId = challenge.traceId();
+            final long authorization = challenge.authorization();
+            final OctetsFW extension = challenge.extension();
+
+            McpChallengeExFW challengeEx = null;
+            if (extension.sizeof() > 0)
+            {
+                challengeEx = mcpChallengeExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit());
+            }
+
+            if (challengeEx != null && challengeEx.kind() == McpChallengeExFW.KIND_ELICIT_CREATE)
+            {
+                onAppChallengeElicitCreate(traceId, authorization, challengeEx.elicitCreate());
+            }
+        }
+
+        private void onAppChallengeElicitCreate(
+            long traceId,
+            long authorization,
+            McpElicitCreateChallengeExFW elicitCreate)
+        {
+            final String originalUrl = elicitCreate.url().asString();
+            final String context = elicitCreate.context().asString();
+            final String synthesisedElicitationId = supplyElicitationId.get();
+            final String manipulatedUrl =
+                manipulateElicitUrl(originalUrl, sessionId, synthesisedElicitationId, server.redirectURI);
+
+            elicitations.put(synthesisedElicitationId,
+                new McpElicitation(this, null, context));
+
+            if (sse != null)
+            {
+                sse.doEncodeElicitCreateNotifyEvent(traceId, authorization,
+                    synthesisedElicitationId, manipulatedUrl);
+            }
+        }
+
+        private void doAppFlushElicitCallback(
+            long traceId,
+            long authorization,
+            String callbackURL,
+            String context)
+        {
+            final McpFlushExFW flushEx = mcpFlushExRW
+                .wrap(codecBuffer, 0, codecBuffer.capacity())
+                .typeId(mcpTypeId)
+                .elicitCallback(b -> b.url(callbackURL).context(context))
+                .build();
+
+            doFlush(app, originId, routedId, initialId,
+                initialSeq, initialAck, initialMax, traceId, authorization,
+                0L, 0, flushEx);
         }
 
         private void onAppBegin(
@@ -3900,6 +3984,34 @@ public final class McpServerFactory implements McpStreamFactory
             doNetData(traceId, authorization, codecBuffer, 0, length);
         }
 
+        private void doEncodeElicitCreateNotifyEvent(
+            long traceId,
+            long authorization,
+            String elicitationId,
+            String url)
+        {
+            if (McpState.replyClosed(state))
+            {
+                return;
+            }
+
+            if (!McpState.replyOpening(state))
+            {
+                doNetBeginAccepted(traceId, authorization);
+            }
+
+            int codecLimit = codecBuffer.putStringWithoutLengthAscii(0, SSE_DATA_PREFIX);
+            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit,
+                "{\"jsonrpc\":\"2.0\",\"method\":\"elicitation/create\",\"params\":{\"mode\":\"url\",\"elicitationId\":\"");
+            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, elicitationId);
+            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, "\",\"url\":\"");
+            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, url);
+            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, "\"}}");
+            codecBuffer.putBytes(codecLimit, SSE_MESSAGE_TERMINATOR_BYTES);
+            codecLimit += SSE_MESSAGE_TERMINATOR_BYTES.length;
+            doNetData(traceId, authorization, codecBuffer, 0, codecLimit);
+        }
+
         private void doEncodeProgressEvent(
             long traceId,
             long authorization,
@@ -4485,7 +4597,8 @@ public final class McpServerFactory implements McpStreamFactory
 
             if (session.requestTimeout > 0L)
             {
-                session.elicitations.put(synthesisedElicitationId, this);
+                session.elicitations.put(synthesisedElicitationId,
+                    new McpElicitation(session, this, elicitContext));
 
                 server.onAppChallenge(traceId, authorization);
                 server.doEncodeElicitCreateDataEvent(traceId, authorization, elicitId, synthesisedElicitationId, manipulatedUrl);

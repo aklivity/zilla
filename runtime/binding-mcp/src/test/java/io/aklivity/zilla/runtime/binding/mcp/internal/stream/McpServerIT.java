@@ -327,6 +327,16 @@ public class McpServerIT
     @Test
     @Configuration("server.timeout.yaml")
     @Specification({
+        "${net}/lifecycle.elicit.toolkit/client",
+        "${app}/lifecycle.elicit.toolkit/server"})
+    public void shouldRouteLifecycleElicitToolkitCallback() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.timeout.yaml")
+    @Specification({
         "${net}/tools.call.elicit.passthrough/client",
         "${app}/tools.call.elicit.passthrough/server"})
     public void shouldCallToolElicitPassthrough() throws Exception
