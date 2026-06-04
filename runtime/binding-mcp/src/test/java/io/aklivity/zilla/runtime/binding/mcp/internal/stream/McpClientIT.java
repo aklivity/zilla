@@ -540,6 +540,16 @@ public class McpClientIT
     @Test
     @Configuration("client.yaml")
     @Specification({
+        "${app}/lifecycle.events.elicit/client",
+        "${net}/lifecycle.events.elicit/server"})
+    public void shouldRelayRemoteElicitOnLifecycleEvents() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
         "${app}/lifecycle.notify.prompts.list.changed/client",
         "${net}/lifecycle.notify.prompts.list.changed/server"})
     public void shouldNotifyPromptsListChanged() throws Exception

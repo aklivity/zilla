@@ -2365,6 +2365,39 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         @Override
+        void onDecodeElicitCreate(
+            long traceId,
+            long authorization,
+            String id,
+            String elicitationId,
+            String url)
+        {
+            final McpChallengeExFW challengeEx = mcpChallengeExRW
+                .wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(mcpTypeId)
+                .elicitCreate(b -> b.id(id).url(url))
+                .build();
+            doAppChallenge(traceId, authorization, challengeEx);
+        }
+
+        @Override
+        void onDecodeElicitComplete(
+            long traceId,
+            long authorization,
+            String id,
+            String elicitationId,
+            String status)
+        {
+            final McpElicitStatus resolvedStatus = resolveElicitStatus(status);
+            final McpFlushExFW flushEx = mcpFlushExRW
+                .wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(mcpTypeId)
+                .elicitComplete(b -> b.id(id).status(s -> s.set(resolvedStatus)))
+                .build();
+            doAppFlush(traceId, authorization, flushEx);
+        }
+
+        @Override
         void onNetBegin(
             BeginFW begin)
         {

@@ -416,6 +416,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/lifecycle.events.elicit/client",
+        "${app}/lifecycle.events.elicit/server"})
+    public void shouldRelayRemoteElicitOnLifecycleEvents() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/lifecycle.events.resume.aggregate/client",
         "${app}/lifecycle.events.resume.aggregate/server"})
     public void shouldResumeLifecycleEventsAggregate() throws Exception
