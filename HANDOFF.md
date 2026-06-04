@@ -501,9 +501,14 @@ than total settlement. Touches `McpProxyLifecycleFactory` (aggregation + elicit 
 3. Implement the aggregation restructure; McpProxyIT + McpProxyLifecycleIT + peer Network/ApplicationIT; gate full
    spec + runtime `install`.
 
-**OPEN DECISION for kickoff:** north-reply-open gate when ALL routes need auth — open with an empty baseline +
-elicit-for-all, or bearer-reset the session (status quo) only in the zero-success case? (Leaning: open with empty
-baseline + per-route elicit, so the client is always prompted — matches issue §6 motivation "never silently skip".)
+**DECIDED (maintainer 2026-06-04):** (1) **Open partial; empty baseline if all routes fail** — the unified
+lifecycle always opens, serving whatever authorized subset exists (possibly empty), never bearer-resetting the
+whole session. (2) **The elicitation is SOURCED at the route-exit `mcp client` binding, NOT minted by the proxy.**
+The proxy only RELAYS the route-exit's `elicitCreate` CHALLENGE up the north lifecycle SSE (via `doClientChallenge`
+`McpProxyLifecycleFactory:904`). Consistent with Decision A (proxy = relay/aggregator; it never originates
+elicitations). So in a proxy IT the route-exit (app-side script standing in for the `mcp client` binding's app
+face) emits the `elicitCreate` CHALLENGE on its lifecycle reply instead of settling with a sessionId; the proxy
+relays it up and marks that route unauthorized (skips it in the list) while keeping the session open.
 
 ### #1810 BROADENED SCOPE + DONE-vs-NEEDED AUDIT (maintainer 2026-06-04)
 
