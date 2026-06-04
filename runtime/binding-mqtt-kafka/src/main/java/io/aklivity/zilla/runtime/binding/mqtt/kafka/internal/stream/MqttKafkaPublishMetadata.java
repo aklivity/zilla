@@ -15,9 +15,9 @@
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.PrimitiveIterator;
+import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 
 import org.agrona.BitUtil;
@@ -163,6 +163,11 @@ public class MqttKafkaPublishMetadata
 
         private final MqttKafkaSessionOffsetsFW.Builder sessionOffsetsRW = new MqttKafkaSessionOffsetsFW.Builder();
         private final MutableDirectBuffer offsetBuffer;
+        private final Consumer<MqttKafkaSessionOffsetMetadataFW.Builder> encodeEntry = this::encodeEntry;
+        private final IntConsumer appendPacketId = this::appendPacketId;
+
+        private KafkaOffsetMetadata encodingMetadata;
+        private MqttKafkaSessionOffsetMetadataFW.Builder encodingItem;
 
         KafkaSessionOffsetsHelper(
             MutableDirectBuffer offsetBuffer)
@@ -171,11 +176,17 @@ public class MqttKafkaPublishMetadata
         }
 
         public MqttKafkaSessionOffsetsFW encode(
-            Collection<KafkaOffsetMetadata> entries)
+            List<KafkaOffsetMetadata> entries)
         {
             sessionOffsetsRW.wrap(offsetBuffer, 0, offsetBuffer.capacity());
             sessionOffsetsRW.version(SESSION_OFFSETS_VERSION);
-            entries.forEach(metadata -> sessionOffsetsRW.entriesItem(item -> encodeEntry(item, metadata)));
+            for (int i = 0, size = entries.size(); i < size; i++)
+            {
+                encodingMetadata = entries.get(i);
+                sessionOffsetsRW.entriesItem(encodeEntry);
+            }
+            encodingMetadata = null;
+            encodingItem = null;
             return sessionOffsetsRW.build();
         }
 
@@ -203,9 +214,10 @@ public class MqttKafkaPublishMetadata
         }
 
         private void encodeEntry(
-            MqttKafkaSessionOffsetMetadataFW.Builder item,
-            KafkaOffsetMetadata metadata)
+            MqttKafkaSessionOffsetMetadataFW.Builder item)
         {
+            final KafkaOffsetMetadata metadata = encodingMetadata;
+            encodingItem = item;
             item.topic(metadata.topic);
             item.partitionId(metadata.partitionId);
             item.consumedOffset(metadata.sequence);
@@ -214,8 +226,14 @@ public class MqttKafkaPublishMetadata
             item.producerSequence(metadata.producerSequence);
             if (metadata.packetIds != null)
             {
-                metadata.packetIds.forEach(p -> item.appendPacketIds(p.shortValue()));
+                metadata.packetIds.forEachInt(appendPacketId);
             }
+        }
+
+        private void appendPacketId(
+            int packetId)
+        {
+            encodingItem.appendPacketIds((short) packetId);
         }
     }
 }

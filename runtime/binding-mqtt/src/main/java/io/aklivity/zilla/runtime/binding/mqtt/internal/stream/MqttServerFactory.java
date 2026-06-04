@@ -3143,9 +3143,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             }
             else
             {
-                // Lock first, then publish the record carrying the lock token in the success
-                // callback. Writing the record before lock would force a token-less record that
-                // a later contender could not force-unlock against.
+                // lock then put: record carries the live lock token so a later contender can force-unlock us
                 claimed = true;
                 store.lock(ownerKey, sessionLease, (key, token) -> onOwnershipLocked(traceId, authorization, token));
             }
@@ -3171,16 +3169,11 @@ public final class MqttServerFactory implements MqttStreamFactory
             }
             else if (claimed)
             {
-                // Lock contended: the current owner either yields cooperatively (its watch fired
-                // on our record) or, if unresponsive, we force-unlock its stale token and steal.
                 stealAt = signaler.signalAt(currentTimeMillis() + sessionRenew.toMillis(),
                     originId, routedId, initialId, traceId, SIGNAL_STEAL_SESSION_OWNERSHIP, 0);
             }
         }
 
-        // Shared success path for both the initial lock acquisition and a steal that succeeded
-        // after force-unlocking the prior holder. Writes the ownership record carrying the live
-        // lock token so a future contender can force-unlock us if we ever go unresponsive.
         private void completeOwnership(
             long traceId,
             String token)
@@ -3195,10 +3188,6 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             doEstablishSession(traceId);
 
-            // unstick the decoder so further CONNECT bytes (will message + payload) can
-            // be consumed by their respective decode stages; for a no-will CONNECT the
-            // next decoder is the next-packet-type which simply parks until more bytes
-            // arrive on the network.
             if (decoder == decodeAwaitOwnership)
             {
                 decoder = pendingConnectWillFlagSet
@@ -3209,12 +3198,6 @@ public final class MqttServerFactory implements MqttStreamFactory
             decodeNetwork(traceId);
         }
 
-        // Re-read the contended record. If it still names an owner with a live lock token we
-        // can see, force-unlock against that token; the store treats the unlock as a no-op if
-        // the token no longer matches the live holder (e.g. the prior owner already yielded
-        // and the lock is held by yet another contender). Then re-attempt the lock; the result
-        // is dispatched to onStealComplete which accepts on success or rejects with
-        // CONNACK SERVER_BUSY on failure.
         private void onStealOwnership(
             long traceId,
             long authorization)
@@ -3271,11 +3254,6 @@ public final class MqttServerFactory implements MqttStreamFactory
             }
         }
 
-        // Steal failed: another contender beat us to the force-unlock + lock race. We chose to
-        // claim (not redirect) back in onOwnershipResolved, so respond with CONNACK SERVER_BUSY
-        // (0x89) and tear down the network without a serverReference. Session was never
-        // established (doEstablishSession lives on the success path) so there is nothing
-        // downstream to clean up.
         private void rejectWithServerBusy(
             long traceId,
             long authorization)
@@ -3298,9 +3276,6 @@ public final class MqttServerFactory implements MqttStreamFactory
             }
         }
 
-        // A null token from renew means the live lock has moved to another holder — the prior
-        // displaced-fence path only flipped owns=false and leaked the connection. Surrender via
-        // the same SESSION_TAKEN_OVER teardown that onOwnershipChallenged uses on a watch hit.
         private void onOwnershipRenewed(
             long traceId,
             String token)
@@ -3316,29 +3291,19 @@ public final class MqttServerFactory implements MqttStreamFactory
             }
         }
 
-        // The ownership record changed under us: another connection is claiming this clientId.
-        // Surrender ownership so the new owner can lock and begin serving.
         private void onOwnershipChallenged(
             long traceId,
             String value)
         {
             final OwnershipRecord challenger = OwnershipRecord.decode(value);
 
-            // Surrender to any other connection that has claimed the clientId — a different
-            // nonce means a newer connection (same replica or another) now owns the session.
             if (owns && challenger != null && !ownerNonce().equals(challenger.nonce))
             {
                 doSurrenderOwnership(traceId);
             }
         }
 
-        // Surrender path shared by onOwnershipChallenged (record-changed watch hit) and
-        // onOwnershipRenewed (renew said "not the holder anymore"). Mirror the protocol-correct
-        // path taken by mqtt-kafka's RESET(SESSION_TAKEN_OVER): send DISCONNECT 0x8E to the
-        // client (or CONNACK 0x8E if CONNECT was not yet acknowledged), then close the network.
-        // Per MQTT-3.1.4-3, takeover MUST publish the will, so abort (not END) the downstream
-        // session when a will is present; mqtt-kafka treats the orderly END path as a clean
-        // disconnect and suppresses will delivery.
+        // MQTT-3.1.4-3: takeover MUST publish the will, so abort (not END) the downstream session when a will is present
         private void doSurrenderOwnership(
             long traceId)
         {
@@ -3396,8 +3361,6 @@ public final class MqttServerFactory implements MqttStreamFactory
                 store.unlock(ownerKey, ownerToken, ignored -> {});
             }
 
-            // Only retract the record while we still own it; a record written by another
-            // connection that displaced us must be left intact.
             if (claimed && owns)
             {
                 store.delete(ownerKey, ignored -> {});
@@ -3426,8 +3389,6 @@ public final class MqttServerFactory implements MqttStreamFactory
             return serviceHostname != null ? serviceHostname : replicaId;
         }
 
-        // Globally-unique per-connection discriminator: replicaId is unique per engine
-        // instance (node), initialId is unique per stream within a node.
         private String ownerNonce()
         {
             return replicaId + '-' + initialId;
@@ -7691,8 +7652,8 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             if (value != null && !value.isEmpty())
             {
-                final boolean weak = value.startsWith(WEAK_PREFIX);
-                final String body = weak ? value.substring(WEAK_PREFIX.length()) : value;
+                final boolean strong = !value.startsWith(WEAK_PREFIX);
+                final String body = strong ? value : value.substring(WEAK_PREFIX.length());
                 final int firstSeparator = body.indexOf(FIELD_SEPARATOR);
                 final String identity = firstSeparator >= 0 ? body.substring(0, firstSeparator) : body;
 
@@ -7713,7 +7674,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     }
                 }
 
-                record = new OwnershipRecord(!weak, identity, nonce, token);
+                record = new OwnershipRecord(strong, identity, nonce, token);
             }
 
             return record;
