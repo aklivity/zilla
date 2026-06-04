@@ -337,6 +337,16 @@ public class McpServerIT
     @Test
     @Configuration("server.timeout.yaml")
     @Specification({
+        "${net}/lifecycle.elicit.toolkit.replay/client",
+        "${app}/lifecycle.elicit.toolkit.replay/server"})
+    public void shouldRejectReplayedLifecycleElicitToolkitCallback() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.timeout.yaml")
+    @Specification({
         "${net}/tools.call.elicit.passthrough/client",
         "${app}/tools.call.elicit.passthrough/server"})
     public void shouldCallToolElicitPassthrough() throws Exception

@@ -2978,7 +2978,10 @@ public final class McpServerFactory implements McpStreamFactory
                             final McpLifecycleStream session = sessions.get(resolvedSessionId);
                             if (session != null)
                             {
-                                resolved = session.elicitations.get(resolvedElicitationId);
+                                // single-use: consume the record so a replayed or duplicate
+                                // callback for the same elicitation resolves to 410, and a
+                                // resolved record never lingers past its one callback
+                                resolved = session.elicitations.remove(resolvedElicitationId);
                             }
                         }
                     }
