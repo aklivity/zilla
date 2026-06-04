@@ -515,6 +515,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/tools.call.elicit.completed.context/client",
+        "${app}/tools.call.elicit.completed.context/server"})
+    public void shouldCallToolElicitCompletedWithContext() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/tools.call.elicit.passthrough/client",
         "${app}/tools.call.elicit.passthrough/server"})
     public void shouldCallToolElicitPassthrough() throws Exception

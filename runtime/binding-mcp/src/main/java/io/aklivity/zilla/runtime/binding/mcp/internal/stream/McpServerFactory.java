@@ -2911,7 +2911,8 @@ public final class McpServerFactory implements McpStreamFactory
 
             if (resolved != null)
             {
-                resolved.doAppFlushElicitCallback(traceId, authorization, stripElicitState(callbackURL));
+                resolved.doAppFlushElicitCallback(traceId, authorization, stripElicitState(callbackURL),
+                    resolved.elicitContext);
                 resolved.doAppEnd(traceId, authorization);
                 resolved.server.doDeferredCloseInitial();
                 doNetReply200(traceId, authorization, AUTH_CALLBACK_OK_BODY);
@@ -4178,6 +4179,7 @@ public final class McpServerFactory implements McpStreamFactory
 
         private String elicitationId;
         private String elicitUrl;
+        private String elicitContext;
 
         private int state;
 
@@ -4260,12 +4262,13 @@ public final class McpServerFactory implements McpStreamFactory
         private void doAppFlushElicitCallback(
             long traceId,
             long authorization,
-            String callbackURL)
+            String callbackURL,
+            String context)
         {
             final McpFlushExFW flushEx = mcpFlushExRW
                 .wrap(codecBuffer, 0, codecBuffer.capacity())
                 .typeId(mcpTypeId)
-                .elicitCallback(b -> b.url(callbackURL))
+                .elicitCallback(b -> b.url(callbackURL).context(context))
                 .build();
 
             doFlush(app, originId, routedId, initialId,
@@ -4478,6 +4481,7 @@ public final class McpServerFactory implements McpStreamFactory
 
             elicitationId = synthesisedElicitationId;
             elicitUrl = manipulatedUrl;
+            elicitContext = elicitCreate.context().asString();
 
             if (session.requestTimeout > 0L)
             {
