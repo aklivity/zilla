@@ -47,7 +47,9 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpChallengeExFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpElicitCallbackFlushExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpElicitCompleteFlushExFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpElicitCreateChallengeExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpElicitStatus;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpFlushExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpProgressFlushExFW;
@@ -103,6 +105,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer codecBuffer;
     private final MutableDirectBuffer flushExBuffer;
+    private final MutableDirectBuffer challengeExBuffer;
     private final MutableDirectBuffer aggregateBuffer;
     private final BindingHandler streamFactory;
     private final Signaler signaler;
@@ -122,6 +125,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
         this.writeBuffer = context.writeBuffer();
         this.codecBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.flushExBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.challengeExBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.aggregateBuffer = new UnsafeBuffer(new byte[AGGREGATE_BUFFER_CAPACITY]);
         this.streamFactory = context.streamFactory();
         this.signaler = context.signaler();
@@ -362,6 +366,10 @@ final class McpProxyLifecycleFactory implements BindingHandler
                 final ResetFW reset = resetRO.wrap(buffer, index, index + length);
                 onServerReset(reset);
                 break;
+            case FlushFW.TYPE_ID:
+                final FlushFW flush = flushRO.wrap(buffer, index, index + length);
+                onServerFlush(flush);
+                break;
             case ChallengeFW.TYPE_ID:
                 final ChallengeFW challenge = challengeRO.wrap(buffer, index, index + length);
                 onServerChallenge(challenge);
@@ -372,6 +380,40 @@ final class McpProxyLifecycleFactory implements BindingHandler
                 break;
             default:
                 break;
+            }
+        }
+
+        private void onServerFlush(
+            FlushFW flush)
+        {
+            final long traceId = flush.traceId();
+            final long authorization = flush.authorization();
+            final OctetsFW extension = flush.extension();
+            final McpFlushExFW flushEx = extension.sizeof() > 0
+                ? mcpFlushExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit())
+                : null;
+
+            if (flushEx != null && flushEx.kind() == McpFlushExFW.KIND_ELICIT_CALLBACK)
+            {
+                final McpElicitCallbackFlushExFW callback = flushEx.elicitCallback();
+                final String context = callback.context().asString();
+                final String url = callback.url().asString();
+                final McpRouteConfig route = context != null ? binding.routeByPrefix.get(context) : null;
+
+                McpLifecycleClient client = null;
+                if (route != null)
+                {
+                    client = supplyClient(route.id);
+                }
+                else if (context == null && clients.size() == 1)
+                {
+                    client = clients.values().iterator().next();
+                }
+
+                if (client != null)
+                {
+                    client.doClientFlushElicitCallback(traceId, authorization, url);
+                }
             }
         }
 
@@ -769,6 +811,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
         private final long routedId;
         private final long initialId;
         private final long replyId;
+        private final String prefix;
 
         private MessageConsumer sender;
         private int state;
@@ -798,6 +841,32 @@ final class McpProxyLifecycleFactory implements BindingHandler
             this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.authorization = server.authorization;
+
+            String prefix = null;
+            for (McpAggregateRoute route : server.binding.aggregateRoutes)
+            {
+                if (route.routedId() == routedId)
+                {
+                    prefix = route.prefix();
+                    break;
+                }
+            }
+            this.prefix = prefix;
+        }
+
+        private void doClientFlushElicitCallback(
+            long traceId,
+            long authorization,
+            String url)
+        {
+            final McpFlushExFW flushEx = mcpFlushExRW
+                .wrap(flushExBuffer, 0, flushExBuffer.capacity())
+                .typeId(mcpTypeId)
+                .elicitCallback(b -> b.url(url))
+                .build();
+
+            doFlush(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                traceId, authorization, 0L, 0, flushEx);
         }
 
         void doClientBegin(
@@ -1012,7 +1081,33 @@ final class McpProxyLifecycleFactory implements BindingHandler
             // settling with a sessionId; count it toward partial-open so the unified lifecycle opens
             // on whatever authorized subset exists, then relay the elicitation up the north lifecycle
             settleLifecycle(traceId);
-            server.doServerChallenge(traceId, authorization, extension);
+            server.doServerChallenge(traceId, authorization, injectChallengeContext(extension));
+        }
+
+        private OctetsFW injectChallengeContext(
+            OctetsFW extension)
+        {
+            OctetsFW relayed = extension;
+            final McpChallengeExFW challengeEx = extension.sizeof() > 0
+                ? mcpChallengeExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit())
+                : null;
+
+            if (prefix != null &&
+                challengeEx != null &&
+                challengeEx.kind() == McpChallengeExFW.KIND_ELICIT_CREATE)
+            {
+                final McpElicitCreateChallengeExFW elicitCreate = challengeEx.elicitCreate();
+                final String id = elicitCreate.id().asString();
+                final String url = elicitCreate.url().asString();
+                final McpChallengeExFW rewritten = mcpChallengeExRW
+                    .wrap(challengeExBuffer, 0, challengeExBuffer.capacity())
+                    .typeId(mcpTypeId)
+                    .elicitCreate(b -> b.id(id).url(url).context(prefix))
+                    .build();
+                relayed = rewrittenExRO.wrap(rewritten.buffer(), rewritten.offset(), rewritten.limit());
+            }
+
+            return relayed;
         }
 
         private void settleLifecycle(

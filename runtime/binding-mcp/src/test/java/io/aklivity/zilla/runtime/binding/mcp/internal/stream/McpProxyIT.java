@@ -180,6 +180,16 @@ public class McpProxyIT
     @Test
     @Configuration("proxy.toolkit.multi.yaml")
     @Specification({
+        "${app}/lifecycle.elicit.toolkit.multi/client",
+        "${app}/lifecycle.elicit.toolkit.multi/server" })
+    public void shouldRouteElicitCallbackToToolkit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.toolkit.multi.yaml")
+    @Specification({
         "${app}/tools.list.partial.toolkit.multi.prefixed/client",
         "${app}/tools.list.partial.toolkit.multi/server" })
     public void shouldListToolsWithPartialToolkitMulti() throws Exception
