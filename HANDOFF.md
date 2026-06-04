@@ -5,15 +5,15 @@ Issue: https://github.com/aklivity/zilla/issues/1810 — the design/phasing is t
 source of truth. This file carries the cross-session context (the remote
 environment is ephemeral: each session is a fresh clone with no prior chat).
 
-> **Next session — start here:** Phases 1, 2, 2e, 3 are DONE+pushed on this
+> **Next session — start here:** Phases 1, 2, 2e, 3, 6 are DONE+pushed on this
 > branch. Phases 4, 5, 9 already landed in `develop` (Phase 4 #1820; Phases 5 + 9
 > core via #1739/#1752 — see the corrected Status table, audited 2026-06-03).
-> **The first genuinely-unbuilt phase is Phase 6** (`timeout` option +
-> `-32042 URLElicitationRequiredError` + per-request `McpXxxBeginEx` timeout
-> carriage + hold-and-resume). Phases 7 and 8 follow. Phase 5 has two residual
-> gaps (binding-level not per-route guard/creds; `reauthorize(null)` not inbound
-> bearer) — flagged in the table, not yet scoped. Branch is green. Re-grep line
-> numbers before editing.
+> **The first genuinely-unbuilt phase is now Phase 7** (non-blocking `tools/list`
+> emitting per-unauthorized-toolkit `elicitation/create` + `notifications/tools/list_changed`;
+> blocking `tools/call` honoring the per-request timeout — the timeout plumbing
+> Phase 6 added). Phase 8 follows. Phase 5 has two residual gaps (binding-level
+> not per-route guard/creds; `reauthorize(null)` not inbound bearer) — flagged in
+> the table, not yet scoped. Branch is green. Re-grep line numbers before editing.
 
 ---
 
@@ -27,7 +27,7 @@ environment is ephemeral: each session is a fresh clone with no prior chat).
 | 3 — `with.cache` static credential over `options.cache.authorization` | **DONE+pushed.** Per-route `with.cache.credentials` added to `McpWithConfig` (+`McpWithCacheConfig`/builder), `McpWithConfigAdapter`, and the route `with` schema block. **Per-route credential is resolved once in `McpLifecycleClient.doClientBegin` (hydration only): if the route has `with.cache.credentials` it is reauthorized through the cache guard into the lifecycle client's `authorization`, else it inherits `server.authorization` (= the binding cache authorization from `options.cache.authorization`) → precedence `with` > `options`.** The route's **lifecycle AND list streams share that single per-route authorization**: `McpListClient`'s upstream (route-exit) frames now use `lifecycle.authorization` instead of `server.authorization`. `McpBindingConfig.routeCacheCredentials(routedId)` looks up the override. Reauthorize is once-per-route (lifecycle client is `supplyClient`-memoized, `doClientBegin` idempotent), so all list kinds for a route reuse the same session. New `McpWithConfigAdapterTest` (4) + scenario `cache.hydrate.credentials.toolkit` (single accept @ `authorization`=1L covers lifecycle+toolsList since they now match) wired into `McpProxyCacheIT#shouldHydrateToolkitWithRouteCredentials` (server-only, hydrate filter=tools) and peer-to-peer `ProxyCacheIT#shouldHydrateToolkitWithRouteCredentials`. Negative-checked (reverting the reauthorize → IT times out). Full no-skip green: runtime 200 ITs/UT + jacoco/checkstyle/license/notice; spec 185 + gates. |
 | 4 — protocol `2025-11-25` + `elicitation.url` negotiation | already landed before this branch (#1820) |
 | 5 — guard `NEEDS_PREAUTHORIZE → preauthorize → callback → reauthorize` | **CORE DONE in `develop` (#1739/#1752 "MCP elicitation across server, proxy, client"), NOT this branch.** `McpClientFactory`: `reauthorize(null)`→`MASK_AUTHORIZED`→`credentials()`→stamp; `NEEDS_PREAUTHORIZE`→`guard.preauthorize`→`elicitCreate` challenge→async `reauthorize` on callback (`onElicitCompleted`). `McpServerFactory`: `McpAuthCallbackHandler`, `isAuthCallbackPath`, `resolveRedirectURI`, state correlation. **Residual gaps vs spec wording (audited 2026-06-03, unaddressed):** (a) live guard+credentials are **binding-level** (`binding.guard`/`binding.credentials`), `McpRouteConfig` has no guard/creds — NOT per-route; (b) `reauthorize` is called with **`null`**, not the connecting client's inbound bearer (no inbound `Authorization` capture on the live path). Decide whether these are wanted (overlaps Phase 8 per-identity). |
-| 6 — `timeout` option + per-request `McpXxxBeginEx` carriage; hold-and-resume | **NOT STARTED (first genuinely-unbuilt phase — audited 2026-06-03).** Only an engine-level `inactivity.timeout` PROPERTY (`McpConfiguration.MCP_INACTIVITY_TIMEOUT`) + abort-on-timeout emitting `-32000 "Authorization timed out"` exists. MISSING: per-binding `timeout` OPTION (config/builder/adapter/schema); `-32042 URLElicitationRequiredError`; `timeout` field on per-request `McpXxxBeginEx` (IDL) + carriage; hold-and-resume via resumable stream + `-32042` fallback on expiry. PARTIAL building block: `CLIENT_ELICITATION_URL` capability IS tracked at lifecycle initialize (`McpServerFactory` ~1875) but NOT gated for timeout/elicit decisions. |
+| 6 — `timeout` option + per-request `McpXxxBeginEx` carriage; hold-and-resume | **DONE+pushed (6a plumbing + 6a server stamping + 6b behavior).** Per-binding `timeout` option (config/builder/adapter/schema); `int64 timeout` on the six request BeginEx variants + `McpFunctions`; server stamps effective timeout (gated by `CLIENT_ELICITATION_URL`) on each request BeginEx; client honors it as the elicit hold budget; server holds (`elicitation/create` SSE) when `timeout>0` and emits `-32042 URLElicitationRequiredError` (url in `data`) on expiry/`timeout==0`; explicit DECLINE stays `-32000`. See the "Phase 6 — 6b" section for the 3 commits + k3po teardown notes. |
 | 7 — non-blocking `tools/list` / blocking `tools/call` | **NOT STARTED (audited 2026-06-03).** `tools/list` is BLOCKING — `McpProxyListFactory.onNextClient` finalizes only when all routes polled; unauthorized toolkit is silently SKIPPED (`onClientSkip`→`onNextClient`), no `elicitation/create` emitted from `tools/list` (only from `tools/call`). `KIND_TOOLS_LIST_CHANGED` flush plumbing exists but only fires after a full cache-refresh cycle, NOT per-toolkit when a toolkit authorizes during a live list. Depends on Phase 6 timeout. |
 | 8 — per-client listing filter (SEP-1488 / operator map / annotations) | **NOT STARTED — zero implementation (audited 2026-06-03).** List serve path (`McpCacheListServer`) emits the SAME shared aggregate bytes to every client; `authorization` is captured but never used to filter. No `securitySchemes`, no tool→scope map config, no `readOnlyHint`/`destructiveHint`, no acquirable/non-acquirable distinction, no per-identity live listing. |
 | 2d — live-path baseline test (baseline + per-identity toolkits) | **deferred to Phase 7/8** (maintainer decision) |
@@ -117,10 +117,36 @@ Proven by `tools.call.timeout` (initialize negotiates `elicitation.url` → app 
 `timeout=30000`) via McpServerIT (`server.timeout.yaml`) + peer NetworkIT/ApplicationIT. Still
 behavior-neutral downstream.
 
-**6b behavior — REMAINING (design LOCKED 2026-06-03, audited; execute fresh — wide cross-factory
-change at high context, deferred deliberately).** Maintainer decisions: (1) expiry/no-hold →
-`-32042 URLElicitationRequiredError`; explicit user DECLINE stays `-32000 "Authorization declined"`.
-(2) `timeout==0` → emit `-32042` directly, NO `elicitation/create` first.
+**6b behavior — DONE + pushed (3 commits on this branch).** Maintainer decisions implemented:
+(1) expiry/no-hold → `-32042 URLElicitationRequiredError`; explicit user DECLINE stays
+`-32000 "Authorization declined"`. (2) `timeout==0` → emit `-32042` directly, NO
+`elicitation/create` first. Full no-skip green: runtime 208 ITs + UT + jacoco/checkstyle/license;
+spec 195 ITs + UT + gates.
+
+Commits:
+1. `feat(binding-mcp): emit -32042 URLElicitationRequiredError on elicitation expiry` — server
+   CANCELLED→`-32042` (SSE encoder + `elicitUrl` remembered from the elicitCreate challenge,
+   data array `[{"mode":"url","url":…,"elicitationId":…}]`); net `tools.call.elicit.timeout`
+   scripts assert `-32042`.
+2. `feat(binding-mcp): honor per-request elicitation timeout on the client` — `McpRequestStream.timeout`
+   read per kind in `newStream`; elicit hold armed with per-request `timeout` (not the engine-wide
+   inactivity); `timeout==0` → no hold (challenge then reset+abort). Guarded elicit scenarios carry a
+   stamped `.timeout(...)`; new `tools.call.elicit.reject.guarded` (client `connect aborted` ↔
+   server `rejected`) covers the zero-timeout client path.
+3. `feat(binding-mcp): reject tools/call with -32042 when elicitation hold disabled` — server
+   `onAppChallengeElicitCreate` gates on `session.requestTimeout`: `>0` hold (elicitation/create SSE,
+   today), `==0` → plain `-32042` (`doEncodeResponseUrlRequired`, deferred end via
+   `doEncodeResponseEnd` so the buffered body survives a not-yet-granted reply window) + tear down.
+   Server-kind hold scenarios (completed/declined/timeout) migrated to negotiate `elicitation.url` +
+   `server.timeout.yaml` so they keep holding; new `tools.call.elicit.reject` (net+app) covers the
+   immediate reject; the proxied timeout test got its own upstream script
+   (`tools.call.elicit.timeout.proxied/server`) since `tools.call.elicit.timeout/server` is now
+   `elicitation.url`.
+
+k3po teardown notes (for future reference): a connect whose reply resets before `connected`
+registers is expressed as `connect aborted` ↔ `rejected`; a reply that begins then aborts is
+`connected` + `read aborted`. The runtime coalesces begin+challenge+reset into one turn, so the
+guarded reject app client uses `connect aborted`.
 
 Audited current flow (verbatim line refs may drift — re-grep):
 - **Client** `McpClientFactory.McpRequestStream.proceedWithRequest` (~2603-2669): NEEDS_PREAUTHORIZE →
