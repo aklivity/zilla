@@ -2134,11 +2134,32 @@ public final class McpClientFactory implements McpStreamFactory
         String remoteSessionId;
         String negotiatedVersion;
         private int nextRequestId = 2;
+        private int nextNotifyId = 1;
+        private long reauthTraceId;
+        private long reauthAuthorization;
         private long keepaliveId = Signaler.NO_CANCEL_ID;
         private long lastActiveAt;
         private int failedKeepalives;
         private HttpEventStream sse;
         boolean eventsUnsupported;
+
+        private final LongCompletionCallback reauthorizeCompletion = new LongCompletionCallback()
+        {
+            @Override
+            public void completed(
+                long contextId,
+                long sessionId)
+            {
+                onReauthorized(sessionId);
+            }
+
+            @Override
+            public void failed(
+                long contextId,
+                Throwable ex)
+            {
+            }
+        };
 
         @Override
         McpBindingConfig binding()
@@ -2395,6 +2416,53 @@ public final class McpClientFactory implements McpStreamFactory
                 .elicitComplete(b -> b.id(id).status(s -> s.set(resolvedStatus)))
                 .build();
             doAppFlush(traceId, authorization, flushEx);
+        }
+
+        @Override
+        void onAppFlush(
+            FlushFW flush)
+        {
+            super.onAppFlush(flush);
+
+            final OctetsFW extension = flush.extension();
+            if (extension.sizeof() == 0)
+            {
+                return;
+            }
+
+            final McpFlushExFW flushEx = mcpFlushExRO.tryWrap(
+                extension.buffer(), extension.offset(), extension.limit());
+            if (flushEx == null || flushEx.kind() != McpFlushExFW.KIND_ELICIT_CALLBACK)
+            {
+                return;
+            }
+
+            final GuardHandler guard = binding.guard;
+            if (guard == null)
+            {
+                return;
+            }
+
+            reauthTraceId = flush.traceId();
+            reauthAuthorization = flush.authorization();
+
+            final String callbackUrl = flushEx.elicitCallback().url().asString();
+            guard.reauthorize(reauthTraceId, binding.id, initialId, callbackUrl, reauthorizeCompletion);
+        }
+
+        private void onReauthorized(
+            long sessionId)
+        {
+            if ((sessionId & GuardHandler.MASK_AUTHORIZED) != 0L)
+            {
+                final String notifyId = Integer.toString(nextNotifyId++);
+                final McpFlushExFW flushEx = mcpFlushExRW
+                    .wrap(extBuffer, 0, extBuffer.capacity())
+                    .typeId(mcpTypeId)
+                    .toolsListChanged(b -> b.id(notifyId))
+                    .build();
+                doAppFlush(reauthTraceId, reauthAuthorization, flushEx);
+            }
         }
 
         @Override

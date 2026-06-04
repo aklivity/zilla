@@ -425,6 +425,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/lifecycle.elicit.reauthorize/client",
+        "${app}/lifecycle.elicit.reauthorize/server"})
+    public void shouldReauthorizeElicitCallbackOnLifecycleEvents() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/lifecycle.events.resume.aggregate/client",
         "${app}/lifecycle.events.resume.aggregate/server"})
     public void shouldResumeLifecycleEventsAggregate() throws Exception

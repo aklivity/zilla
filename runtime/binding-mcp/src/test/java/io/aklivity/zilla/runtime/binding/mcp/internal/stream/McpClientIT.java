@@ -548,6 +548,16 @@ public class McpClientIT
     }
 
     @Test
+    @Configuration("client.guarded.yaml")
+    @Specification({
+        "${app}/lifecycle.elicit.reauthorize/client",
+        "${net}/lifecycle.elicit.reauthorize/server"})
+    public void shouldReauthorizeElicitCallbackOnLifecycleEvents() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("client.yaml")
     @Specification({
         "${app}/lifecycle.notify.prompts.list.changed/client",
