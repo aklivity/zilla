@@ -381,6 +381,42 @@ C2. **"Zilla remembers a per-remote token" ⟺ "Zilla IS the OAuth client for th
    key = (route≈remote, identity) → token, owned by the guard. Inherently zilla-plus; OSS pure-relay
    cannot remember (Zilla isn't the OAuth client there).
 
+C3. **OSS Path B — relay/passthrough concrete mechanism (chosen OSS story; remote holds token).**
+   Three parts make it work; the §1–2 state-injection/symmetric-strip machinery is NOT needed here (that's
+   guard-model only — the callback never returns through Zilla):
+   1. **Origin-conditional passthrough of the elicitation URL.** For a **remote-originated** `elicitCreate`
+      (binding knows origin per-elicitation: `onDecodeElicitCreate` `:1357` vs guard mint `:2655`),
+      SUPPRESS `manipulateElicitUrl` entirely — pass the URL **verbatim** (do NOT rewrite `redirect_uri`
+      AND do NOT rewrite `state`). Rewriting `state` alone would break the remote's own callback
+      correlation. The AS then redirects the browser straight to the REMOTE's callback; the remote
+      exchanges the code and binds auth to ITS `Mcp-Session-Id`. Anti-phishing *rendering* may still occur
+      (rendering ≠ rewriting). `manipulateElicitUrl` (`McpServerFactory:5154`/called `:4476`) must become
+      origin-conditional (today it rewrites unconditionally).
+   2. **Persistent upstream session + header replay = the actual "memory."** Route-exit client keeps ONE
+      persistent upstream session per (route≈toolkit, connecting `sessionId`), captures the remote's
+      `Mcp-Session-Id` from `initialize`, and replays `Mcp-Session-Id` + `MCP-Protocol-Version`
+      (`HTTP_HEADER_SESSION="mcp-session-id"` `:118`, `HTTP_HEADER_MCP_VERSION="mcp-protocol-version"`
+      `:122`) on EVERY subsequent request; resume on reconnect via `Last-Event-ID`. Map shape:
+      `connecting sessionId → { toolkit → remote Mcp-Session-Id }`. Store-back for cross-worker/replica +
+      durability. This is the part to verify/build (binding already has a session map + the header consts).
+      The connecting client presents ONLY its own identity — never a per-remote token.
+      **Lifecycle-persistence invariant (maintainer 2026-06-04):** once a per-route `McpLifecycleClient`
+      (upstream session to a remote) is active for a connecting client it MUST remain active — retaining
+      its `Mcp-Session-Id` — for the entire UNIFIED north session (`McpLifecycleServer`), NOT opened/closed
+      per request. Establish it lazily on first use of the toolkit; per-request streams (`tools/list`,
+      `tools/call`) reuse it; release the route sessions only when the unified session ends. Tearing a
+      route's upstream session down between requests loses the remote's session-bound auth ⇒ re-elicitation
+      every call. The persistent lifecycle is also what lets a later native `list_changed` ride up.
+   3. **No Zilla hold/timeout; recovery is client-driven REPLAY.** Surface the elicitation and return
+      promptly; the client completes OAuth out-of-band, then RE-ISSUES the original request. Since the
+      session is now authorized, the replay is just another subsequent request and succeeds. Safe to
+      replay because the original returned the elicitation *instead of executing* (no side effect); the
+      client (not Zilla) drives the retry, so Zilla buffers nothing. (Per E: timeout/`-32042` are
+      guard-model only.)
+   `list_changed` after auth is emitted natively by the remote and relayed up (conclusion B). Limits:
+   token lifetime tied to the remote session; depends on the remote supporting session-bound auth +
+   resumption. Full parity (Zilla holds tokens) is Path A (a generic community-licensed OAuth guard).
+
 D. **Cached-proxy per-user `*/list` needs the Phase-8 hybrid serve.** `McpProxyListFactory.newStream`
    today is cache-XOR-live: with a cache it serves the shared baseline ONLY (`McpCacheListServer`); the
    live path (`McpListServer`, no cache) fans out per-identity using the inbound authorization. So a
@@ -395,10 +431,12 @@ E. **Elicitation timeout — URL-mode ONLY for now (form deferred).** Because bo
    So the binding does NOT need to distinguish origin, and NO discriminator/IDL change is needed. (Proven:
    both origins collapse to the same `McpChallengeEx.elicitCreate{id,url}` — guard mint at
    `McpClientFactory:2655`, remote SSE decode at `:1357`→`:3070`; server `:4470` sees no origin field.)
-   Remaining work: Phase-6's hold/timer is armed ONLY on the guard `preauthorize` branch (`:2655`); a
-   **remote-relayed** URL `elicitCreate` (`:1357`) must arm the SAME hold. Since semantics are identical
-   under URL-only, unify it — server-side enforcement is fine and simplest (the `timeout` rides the begin
-   ex and the server holds the client-facing SSE). Revisit origin-discrimination only when form-mode lands.
+   SCOPE (maintainer pushback 2026-06-04): the hold/timer + `-32042` are **GUARD-MODEL ONLY** (Phase 6,
+   already shipped on the `preauthorize` branch `:2655`). The **relay/passthrough model needs NO Zilla
+   timer** — see C3: in passthrough Zilla is a transparent relay holding no buffered per-elicitation state,
+   the REMOTE owns its request's lifetime, and recovery is client-driven retry on the authorized session
+   (not a Zilla-side hold). Do NOT arm a timer on the remote-relayed `:1357` path. Revisit
+   origin-discrimination only when form-mode lands.
 
 ### Phase 7 — how the OSS mcp-proxy EXAMPLE demonstrates elicitation + auth-guarded list & call
 
