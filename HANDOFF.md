@@ -18,9 +18,18 @@ environment is ephemeral: each session is a fresh clone with no prior chat).
 > SUPERSEDES the older `<toolkit>__` state-injection mechanism.** Phase 8 split out to
 > #1831. Branch is green. Re-grep line numbers before editing.
 >
-> **This session's commits (newest last):** `d199b467` bearer-skip + eager reply-open;
+> **Prior session's commits (newest last):** `d199b467` bearer-skip + eager reply-open;
 > `e665f996` server strips its own elicitation state prefix on the callback; `bb3f74d6`
 > `context` IDL field on the elicit challenge + callback extensions.
+>
+> **7b progress (this session, newest last):** `6a3e93cb` 7b-step-1 — `McpFunctions` `context`
+> builder+matcher (4 spots) + 6 tests; `7ef4988b` 7b-step-2a — server echoes `context` on the
+> held-stream `elicitCallback`. **Step 1 DONE; step 2a DONE. Remaining: 2b (non-blocking
+> lifecycle elicit handling — NOT started, grounded findings in "Phase 7b … REMAINING" below),
+> 2c (TTL), step 3 (proxy push/route/pop + reauthorize-off-lifecycle), step 4 (proxy IT).**
+> 2b is the next intricate piece: the north server must handle a `ChallengeFW` on the lifecycle
+> stream + render `elicitation/create` on the lifecycle SSE (new net encoding) + forward the
+> callback up the lifecycle. Branch is green at `7ef4988b`.
 >
 > **Track A (OSS relay) status:** **N1 (origin-conditional passthrough) + N2
 > (persistent per-route lifecycle / `Mcp-Session-Id`+`MCP-Protocol-Version`
@@ -273,19 +282,58 @@ remote (Track A). Phase 8 split to **#1831** (per-client listing filter).
 - `context` IDL field (`bb3f74d6`).
 
 **REMAINING (ordered, test-first):**
-1. `McpFunctions`: `context` builder + matcher for `elicitCreate` + `elicitCallback` (4 spots) +
-   `McpFunctionsTest` cases.
-2. `McpServerFactory`: record `context` per elicitation (all, not just `timeout>0`); echo on the
-   forwarded `elicitCallback`; resolve callback by recognized/held/no-stream/unknown (410 on unknown);
-   forward non-blocking callbacks via the session path; add a TTL on open-elicitation records.
+1. ✅ **DONE+pushed (`6a3e93cb`).** `McpFunctions`: `context` builder + matcher for `elicitCreate`
+   + `elicitCallback` (4 spots) + 6 `McpFunctionsTest` cases (gen/match/mismatch × 2). String8FW
+   import added. McpFunctionsTest 69→75.
+2. **PARTIAL.**
+   - ✅ **2a DONE+pushed (`7ef4988b`): held-case context echo.** `McpRequestStream.elicitContext`
+     field set from `elicitCreate.context().asString()` in `onAppChallengeElicitCreate`;
+     `doAppFlushElicitCallback` gained a `context` param → `.elicitCallback(b -> b.url(u).context(c))`;
+     the `McpAuthCallbackHandler.onNetEnd` held-stream caller passes `resolved.elicitContext`. New
+     `tools.call.elicit.completed.context` app scenario; ApplicationIT peer +
+     `McpServerIT#shouldCallToolElicitCompletedWithContext` (server echoes context). `context` null
+     default → non-proxy flow byte-identical. McpServerIT 68→69; full McpServerIT+McpClientIT green.
+   - ⏳ **2b NOT STARTED: non-blocking (no-held-stream) callback routing.** GROUNDED FINDINGS this
+     session (read before implementing):
+     * Today `session.elicitations` is `Map<String, McpRequestStream>` (held streams only); populated
+       in `McpRequestStream.onAppChallengeElicitCreate` **only when `session.requestTimeout > 0`**
+       (`~4482`); removed on elicitComplete (`~4645`); read in `McpAuthCallbackHandler.resolveElicitation`
+       (`~2974`, parses `<sessionId>.<elicitationId>.<nonce>` from `state`).
+     * The **lifecycle stream does NOT handle `ChallengeFW`** (`McpLifecycleStream.onAppMessage` `~3255`
+       has no `ChallengeFW.TYPE_ID` case). The non-blocking partial-auth list elicit is relayed by the
+       proxy UP the **lifecycle** (7a `McpProxyLifecycleFactory.doServerChallenge`), so the north server
+       must learn to handle a `ChallengeFW` on the lifecycle stream: mint elicitationId, manipulate URL,
+       record `{context, elicitUrl, held=null, session}` keyed by elicitationId, and **render
+       `elicitation/create` on the lifecycle events SSE** — this is NEW net encoding (no existing encoder;
+       `doEncodeElicitCreateDataEvent` `~2254` uses the request `decodedId`, not the lifecycle SSE; model
+       a new encoder on `doEncodeNotifyEvent` / `LIFECYCLE_STREAM_ID_PREFIX` `~3413`).
+     * Callback resolution must become: refactor `elicitations` value to a record (held may be null);
+       `resolveElicitation` returns the record; held≠null → request-stream flush (2a, done) + 200;
+       held==null → **flush `elicitCallback` UP the lifecycle** (new `McpLifecycleStream.doAppFlushElicitCallback`
+       echoing `context`) + 200; unknown/expired → 410 (keep `reject.auth.callback.unknown.elicitation`).
+     * **TTL caveat:** a lazy `expiresAt` check on resolve adds an uncovered boolean operand →
+       runtime/binding-mcp **jacoco** will flag it unless exercised; testing expiry needs clock control
+       (no k3po clock hook found). Plan: either a `McpServerFactoryTest` unit around an extracted helper,
+       or a config with a tiny TTL + a deterministic late-callback scenario. Do NOT add the TTL branch
+       without its covering test.
+     * Test surface for 2b: a NEW `McpServerIT` scenario where the app downstream (proxy stand-in)
+       connects the lifecycle, opens the events SSE, **issues an `elicitCreate` CHALLENGE on the lifecycle**
+       (`read advise zilla:challenge` w/ `context`), the server renders `elicitation/create` on the
+       lifecycle SSE to the net client, the net client GETs the callback, and the server **forwards
+       `elicitCallback` UP the lifecycle** (app reads `read advised zilla:flush ...elicitCallback().context(...)`)
+       + 200. Plus peer ApplicationIT.
 3. Proxy (`McpProxyItemFactory` + `McpProxyLifecycleFactory`): push `context = route prefix` on the
    relayed `elicitCreate`; route by echoed `context` → `routeByPrefix` → route + pop on the
    `elicitCallback`; non-blocking callback rides the lifecycle/session path with `reauthorize` driven
    off it (new plumbing — `reauthorize` is currently only triggered from the request stream's
-   `onAppFlush` in `McpClientFactory`).
+   `onAppFlush` in `McpClientFactory`). NOTE: the proxy challenge relay already exists
+   (`McpProxyItemFactory.onClientChallenge`→`doServerChallenge`; `McpProxyLifecycleFactory.onClientChallenge`
+   →`doServerChallenge`); 3 adds the `context` push there + the `elicitCallback` echo/route/pop.
 4. Scenario + IT: a **purpose-built multi-route non-blocking-list-elicit** proxy scenario (one
    authorized toolkit + one needs-auth; partial list → relayed elicit → callback routes by `context`
    → reauthorize → `list_changed` → re-list full) in `McpProxyIT` + peer `ApplicationIT`.
+   GOTCHA (still valid): the existing `tools.call.toolkit.elicit{,.prefixed}` scripts are ApplicationIT
+   "shape" scripts and do NOT compose through the proxy — author a NEW proxy-specific scenario.
 
 **GOTCHAS found this session (save the next session the rediscovery):**
 - The existing `tools.call.toolkit.elicit{,.prefixed}` scripts are **ApplicationIT peer "shape"
