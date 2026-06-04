@@ -416,6 +416,14 @@ C3. **OSS Path B — relay/passthrough concrete mechanism (chosen OSS story; rem
    `list_changed` after auth is emitted natively by the remote and relayed up (conclusion B). Limits:
    token lifetime tied to the remote session; depends on the remote supporting session-bound auth +
    resumption. Full parity (Zilla holds tokens) is Path A (a generic community-licensed OAuth guard).
+   **Scales to N remotes each requiring elicitation (maintainer 2026-06-04):** per-route isolation (own
+   lifecycle, own `Mcp-Session-Id`, own elicitation, own native `list_changed`) + callbacks going DIRECT
+   to each remote (so each self-correlates via its OWN `state` — no shared Zilla correlation namespace, no
+   cross-talk between concurrent elicitations) means N remotes coexist with no collision. Client authorizes
+   each in any order and replays each toolkit's request on its own authorized session; a non-blocking
+   `tools/list` surfaces one elicitation/create per unauthorized remote, returns public tools immediately,
+   and fills in progressively as each remote's native `list_changed` is relayed. Only cost is resource:
+   one persistent upstream session per actively-used remote per connecting client for the unified session.
 
 D. **Cached-proxy per-user `*/list` needs the Phase-8 hybrid serve.** `McpProxyListFactory.newStream`
    today is cache-XOR-live: with a cache it serves the shared baseline ONLY (`McpCacheListServer`); the
