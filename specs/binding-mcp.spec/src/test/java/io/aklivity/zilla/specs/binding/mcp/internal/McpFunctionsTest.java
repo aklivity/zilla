@@ -856,6 +856,71 @@ public class McpFunctionsTest
     }
 
     @Test
+    public void shouldGenerateElicitCreateChallengeExWithContext()
+    {
+        byte[] bytes = McpFunctions.challengeEx()
+            .typeId(0)
+            .elicitCreate()
+                .id("elicit-1")
+                .url("https://server.example.com/authorize?state=7f3a9b1c")
+                .context("a1b2c3")
+                .build()
+            .build();
+
+        assertNotNull(bytes);
+    }
+
+    @Test
+    public void shouldMatchElicitCreateChallengeExWithContext() throws Exception
+    {
+        BytesMatcher matcher = McpFunctions.matchChallengeEx()
+            .typeId(0)
+            .elicitCreate()
+                .id("elicit-1")
+                .url("https://server.example.com/authorize?state=7f3a9b1c")
+                .context("a1b2c3")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new McpChallengeExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .elicitCreate(b -> b
+                .id("elicit-1")
+                .url("https://server.example.com/authorize?state=7f3a9b1c")
+                .context("a1b2c3"))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test(expected = Exception.class)
+    public void shouldFailWhenElicitCreateChallengeContextMismatch() throws Exception
+    {
+        BytesMatcher matcher = McpFunctions.matchChallengeEx()
+            .typeId(0)
+            .elicitCreate()
+                .context("expected")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new McpChallengeExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .elicitCreate(b -> b
+                .id("elicit-1")
+                .url("https://server.example.com/authorize?state=7f3a9b1c")
+                .context("actual"))
+            .build();
+
+        matcher.match(byteBuf);
+    }
+
+    @Test
     public void shouldGenerateElicitCallbackFlushEx()
     {
         byte[] bytes = McpFunctions.flushEx()
@@ -888,6 +953,67 @@ public class McpFunctionsTest
             .build();
 
         assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldGenerateElicitCallbackFlushExWithContext()
+    {
+        byte[] bytes = McpFunctions.flushEx()
+            .typeId(0)
+            .elicitCallback()
+                .url("https://zilla.example/mcp/auth/callback?code=xyz&state=7f3a9b1c")
+                .context("a1b2c3")
+                .build()
+            .build();
+
+        assertNotNull(bytes);
+    }
+
+    @Test
+    public void shouldMatchElicitCallbackFlushExWithContext() throws Exception
+    {
+        BytesMatcher matcher = McpFunctions.matchFlushEx()
+            .typeId(0)
+            .elicitCallback()
+                .url("https://zilla.example/mcp/auth/callback?code=xyz&state=7f3a9b1c")
+                .context("a1b2c3")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new McpFlushExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .elicitCallback(b -> b
+                .url("https://zilla.example/mcp/auth/callback?code=xyz&state=7f3a9b1c")
+                .context("a1b2c3"))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test(expected = Exception.class)
+    public void shouldFailWhenElicitCallbackFlushContextMismatch() throws Exception
+    {
+        BytesMatcher matcher = McpFunctions.matchFlushEx()
+            .typeId(0)
+            .elicitCallback()
+                .context("expected")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new McpFlushExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .elicitCallback(b -> b
+                .url("https://zilla.example/mcp/auth/callback?code=xyz&state=7f3a9b1c")
+                .context("actual"))
+            .build();
+
+        matcher.match(byteBuf);
     }
 
     @Test

@@ -28,6 +28,7 @@ import io.aklivity.k3po.runtime.lang.el.Function;
 import io.aklivity.k3po.runtime.lang.el.spi.FunctionMapperSpi;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.McpCapabilities;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.String16FW;
+import io.aklivity.zilla.specs.binding.mcp.internal.types.String8FW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpAbortExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpBearerError;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpBearerResetExFW;
@@ -1119,6 +1120,7 @@ public final class McpFunctions
         public final class McpElicitCallbackFlushExBuilder
         {
             private String url;
+            private String context;
 
             public McpElicitCallbackFlushExBuilder url(
                 String url)
@@ -1127,9 +1129,16 @@ public final class McpFunctions
                 return this;
             }
 
+            public McpElicitCallbackFlushExBuilder context(
+                String context)
+            {
+                this.context = context;
+                return this;
+            }
+
             public McpFlushExBuilder build()
             {
-                flushExRW.elicitCallback(b -> b.url(url));
+                flushExRW.elicitCallback(b -> b.url(url).context(context));
                 return McpFlushExBuilder.this;
             }
         }
@@ -1522,11 +1531,19 @@ public final class McpFunctions
         public final class McpElicitCallbackFlushExMatcherBuilder
         {
             private String16FW url;
+            private String8FW context;
 
             public McpElicitCallbackFlushExMatcherBuilder url(
                 String url)
             {
                 this.url = new String16FW(url);
+                return this;
+            }
+
+            public McpElicitCallbackFlushExMatcherBuilder context(
+                String context)
+            {
+                this.context = new String8FW(context);
                 return this;
             }
 
@@ -1538,13 +1555,20 @@ public final class McpFunctions
             private boolean match(
                 McpFlushExFW flushEx)
             {
-                return matchUrl(flushEx.elicitCallback());
+                final McpElicitCallbackFlushExFW elicitCallback = flushEx.elicitCallback();
+                return matchUrl(elicitCallback) && matchContext(elicitCallback);
             }
 
             private boolean matchUrl(
                 McpElicitCallbackFlushExFW elicitCallback)
             {
                 return url == null || url.equals(elicitCallback.url());
+            }
+
+            private boolean matchContext(
+                McpElicitCallbackFlushExFW elicitCallback)
+            {
+                return context == null || context.equals(elicitCallback.context());
             }
         }
 
@@ -1689,6 +1713,7 @@ public final class McpFunctions
         {
             private String id;
             private String url;
+            private String context;
 
             public McpElicitCreateChallengeExBuilder id(
                 String id)
@@ -1704,9 +1729,16 @@ public final class McpFunctions
                 return this;
             }
 
+            public McpElicitCreateChallengeExBuilder context(
+                String context)
+            {
+                this.context = context;
+                return this;
+            }
+
             public McpChallengeExBuilder build()
             {
-                challengeExRW.elicitCreate(b -> b.id(id).url(url));
+                challengeExRW.elicitCreate(b -> b.id(id).url(url).context(context));
                 return McpChallengeExBuilder.this;
             }
         }
@@ -1845,6 +1877,7 @@ public final class McpFunctions
         {
             private String16FW id;
             private String16FW url;
+            private String8FW context;
 
             public McpElicitCreateChallengeExMatcherBuilder id(
                 String id)
@@ -1860,6 +1893,13 @@ public final class McpFunctions
                 return this;
             }
 
+            public McpElicitCreateChallengeExMatcherBuilder context(
+                String context)
+            {
+                this.context = new String8FW(context);
+                return this;
+            }
+
             public McpChallengeExMatcherBuilder build()
             {
                 return McpChallengeExMatcherBuilder.this;
@@ -1869,7 +1909,7 @@ public final class McpFunctions
                 McpChallengeExFW challengeEx)
             {
                 final McpElicitCreateChallengeExFW elicitCreate = challengeEx.elicitCreate();
-                return matchId(elicitCreate) && matchUrl(elicitCreate);
+                return matchId(elicitCreate) && matchUrl(elicitCreate) && matchContext(elicitCreate);
             }
 
             private boolean matchId(
@@ -1882,6 +1922,12 @@ public final class McpFunctions
                 McpElicitCreateChallengeExFW elicitCreate)
             {
                 return url == null || url.equals(elicitCreate.url());
+            }
+
+            private boolean matchContext(
+                McpElicitCreateChallengeExFW elicitCreate)
+            {
+                return context == null || context.equals(elicitCreate.context());
             }
         }
     }
