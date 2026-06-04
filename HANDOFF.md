@@ -319,6 +319,84 @@ no IDL change):
    live `McpListClient` begin must carry the connecting client's inbound authorization (not a cache
    credential) so the per-identity decision is the upstream's.
 
+### Phase 7 — SETTLED DESIGN CONCLUSIONS (consolidated, maintainer Q&A 2026-06-04)
+
+These refine/augment the mechanism above and are all DECIDED (not open):
+
+A. **No IDL change** — for the toolkit tag (use `state` injection, §1) AND for the elicit origin
+   (see D). Drop both the `<toolkit>__<nonce>`-elicitationId idea and the `McpElicitOrigin` discriminator
+   idea.
+
+B. **`reauthorize` + `list_changed` ORIGINATE at the route-exit `mcp` client; the proxy only ROUTES +
+   RELAYS.** The transition unauthorized→authorized happens inside the route-exit client's `reauthorize`,
+   so it is the only party that knows "my toolkit's listing changed" — it emits `KIND_TOOLS_LIST_CHANGED`
+   up its lifecycle reply; the proxy aggregates/relays it up the session lifecycle SSE (same path it
+   already relays an upstream-native `notifications/tools/list_changed`). Proxy never synthesizes the
+   notification (consistent with Decision A: proxy defers to upstream). `tools/list_changed` carries no
+   params, so one from any route just tells the client "re-list" — double-firing (route + native) is a
+   harmless idempotent re-list; no dedup needed.
+
+C. **OSS-vs-plus split for per-user auth.** OSS ships only `guard-identity` + `guard-jwt`; NEITHER
+   originates the OAuth redirect (`preauthorize` → authorize URL) or exchanges/caches a per-identity token
+   (`reauthorize(callbackUrl)`). The interactive OAuth-code-flow guard is a **zilla-plus** component
+   (`guard-azure-ad` / `guard-aws-lambda` / `guard-api-keys`). Credential homes: shared/baseline list
+   credential → `McpProxyCache` store (hydrated with `with.cache.credentials` → fallback
+   `options.cache.authorization`); per-identity OAuth token → INSIDE THE GUARD keyed by the session
+   (`reauthorize` stores, `credentials(authorization)` retrieves) — NEVER the shared store (cross-user
+   leakage). So the **guard-driven** per-user flow needs zilla-plus.
+
+D. **Cached-proxy per-user `*/list` needs the Phase-8 hybrid serve.** `McpProxyListFactory.newStream`
+   today is cache-XOR-live: with a cache it serves the shared baseline ONLY (`McpCacheListServer`); the
+   live path (`McpListServer`, no cache) fans out per-identity using the inbound authorization. So a
+   newly-authorized per-identity toolkit appears on re-list ONLY if (i) the route is cache-less (live
+   per-identity fan-out works in OSS today) OR (ii) Phase 8 adds the hybrid "cached baseline ∪ live
+   per-identity merge". Phase 7 delivers the SIGNALING (elicit + list_changed); it is NOT sufficient for
+   cached-proxy per-user listing on its own.
+
+E. **Elicitation timeout — URL-mode ONLY for now (form deferred).** Because both the guard-triggered and
+   the remote-server-triggered elicitations are URL mode, they have IDENTICAL hold + expiry semantics
+   (hold the in-progress request up to `timeout`; on expiry emit `-32042 URLElicitationRequiredError`).
+   So the binding does NOT need to distinguish origin, and NO discriminator/IDL change is needed. (Proven:
+   both origins collapse to the same `McpChallengeEx.elicitCreate{id,url}` — guard mint at
+   `McpClientFactory:2655`, remote SSE decode at `:1357`→`:3070`; server `:4470` sees no origin field.)
+   Remaining work: Phase-6's hold/timer is armed ONLY on the guard `preauthorize` branch (`:2655`); a
+   **remote-relayed** URL `elicitCreate` (`:1357`) must arm the SAME hold. Since semantics are identical
+   under URL-only, unify it — server-side enforcement is fine and simplest (the `timeout` rides the begin
+   ex and the server holds the client-facing SSE). Revisit origin-discrimination only when form-mode lands.
+
+### Phase 7 — how the OSS mcp-proxy EXAMPLE demonstrates elicitation + auth-guarded list & call
+
+Goal: show URL elicitation AND an auth-guarded `tools/list` + `tools/call` working in **pure OSS** (no
+zilla-plus OAuth guard). Key: the **remote MCP server is the auth authority** and **originates** the URL
+elicitation; Zilla proxy RELAYS the elicitation down and the client's bearer up — Zilla is a transparent
+credential relay, not the OAuth boundary (contrast: zilla-plus where the OAuth guard makes Zilla itself
+the boundary and does token-exchange + cached/per-identity hybrid listing).
+
+Config shape: mcp `kind: server` (north) → mcp `kind: proxy` → one or more mcp `kind: client` routes to
+remote MCP servers; at least one remote requires OAuth. Use a **cache-less** (or baseline-cache-only)
+route so the live per-identity path runs (per D); optional `guard-jwt` at the north only to validate the
+presented bearer — it does NOT originate the flow.
+
+Demo flow:
+1. Client initializes (lifecycle); advertises URL-elicitation capability.
+2. Client `tools/list` with NO token → proxy fans out; public toolkits return tools immediately
+   (non-blocking finalize); the auth-guarded remote returns a **URL `elicitation/create`** (its own
+   authorize URL), which Zilla relays to the client as a per-toolkit `elicitation/create`. The in-progress
+   request is held up to `timeout` (per E).
+3. Client opens the elicitation URL → completes OAuth **directly with the remote's AS** → obtains a bearer
+   scoped to that remote. (No Zilla guard involved — Zilla just relayed the URL.)
+4. Remote now treats the identity as authorized and emits native `notifications/tools/list_changed`,
+   which Zilla relays up the lifecycle SSE (or the client simply re-lists after the elicitation completes).
+5. Client re-sends `tools/list` WITH the bearer → Zilla forwards the bearer to the remote (live
+   per-identity path) → remote returns the full auth-guarded toolset → merged into the aggregate list.
+6. Client `tools/call` an auth-guarded tool WITH the bearer → Zilla relays it → remote executes → result
+   streams back.
+
+Result: elicitation (URL, remote-originated, relayed) + auth-guarded list + auth-guarded call, all in OSS,
+with the per-identity token carried by the client and relayed by Zilla. The zilla-plus OAuth guard is only
+needed when Zilla must BE the auth boundary (originate the redirect, exchange/cache tokens, and serve a
+cached baseline merged with per-identity toolkits — Phase 8).
+
 RESOLVED at kickoff discussion (maintainer, 2026-06-04): symmetric per-hop strip (see §2) — each hop
 strips exactly what it injected; the route-exit `mcp` client owns the `reauthorize`; the proxy has NO
 route guard (cache guard only).
