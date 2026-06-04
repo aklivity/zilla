@@ -356,6 +356,31 @@ C. **OSS-vs-plus split for per-user auth.** OSS ships only `guard-identity` + `g
      upstream session (already authorized) — token NEVER lives in Zilla. (Or client carries a bearer and
      Zilla relays the `Authorization` header.)
 
+C2. **"Zilla remembers a per-remote token" ⟺ "Zilla IS the OAuth client for that remote" — so it requires
+   a per-route OAuth guard (zilla-plus); the binding cannot capture the token in the pure-relay case.**
+   Only the OAuth client receives the token from the code→token exchange. In pure relay the REMOTE is the
+   OAuth client (its own `client_id`), so the binding structurally cannot "process the callback directly"
+   to capture credentials — doing the raw exchange in the binding would reinvent a guard on the hot path
+   (blocking I/O). Two distinct MCP mechanisms (do not merge):
+   - **(a) Upstream auth (RFC 9728 / MCP authorization):** remote returns `401`+`WWW-Authenticate`
+     w/ `resource_metadata`; the MCP *client* (Zilla+guard) discovers the AS, (dynamically) registers,
+     runs auth-code, holds the token, attaches bearer on later calls. Zilla SURFACES it to the connecting
+     client as a URL `elicitation/create`. **Token held by Zilla's guard.** Phase-1 `resource_metadata`
+     capture is the discovery hook. ← this is the mechanism that meets the "remember per-remote" goal.
+   - **(b) Elicitation (SEP-1036 URL elicitation):** remote asks the user for an out-of-band URL action
+     the REMOTE processes. **Token held by the remote.** ← relay model; Zilla cannot remember.
+   Behavioral fork (matches the maintainer's instinct): the discriminator is **"did Zilla MINT the
+   elicitation (`guard.preauthorize`, a) or RELAY it from the remote SSE (`onDecodeElicitCreate`, b)?"** —
+   tracked per-elicitation in binding state (no IDL discriminator). Minted ⇒ `guard.reauthorize` (Zilla
+   remembers); relayed ⇒ forward callback up to remote (remote remembers).
+   Scaling design (meets goal): model the memory as a **per-route OAuth guard** — per-route = per-remote
+   partitioning automatically; cache keyed by `authorization` (connecting-client identity, established at
+   north, flowed down); `credentials(authorization)` re-presents on every subsequent request so the
+   connecting client presents ONLY its own identity, never the per-remote tokens; back the per-worker map
+   with a referenced `Store` (e.g. `store-redis`) for cross-worker/replica + durability. Effective vault
+   key = (route≈remote, identity) → token, owned by the guard. Inherently zilla-plus; OSS pure-relay
+   cannot remember (Zilla isn't the OAuth client there).
+
 D. **Cached-proxy per-user `*/list` needs the Phase-8 hybrid serve.** `McpProxyListFactory.newStream`
    today is cache-XOR-live: with a cache it serves the shared baseline ONLY (`McpCacheListServer`); the
    live path (`McpListServer`, no cache) fans out per-identity using the inbound authorization. So a
