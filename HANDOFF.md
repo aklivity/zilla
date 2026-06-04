@@ -486,8 +486,18 @@ classifies every phase as still-required / no-longer-required / new, given the e
 - **2d live-path baseline test** — still relevant (folds into P7a/P8 testing).
 
 **NEW — Track A OSS critical path (ADD to broadened #1810):**
-- **N1 — origin-conditional passthrough:** suppress `manipulateElicitUrl` for remote-originated
-  elicitations (verbatim URL; C3.1).
+- **N1 — origin-conditional passthrough: DONE (2026-06-04, branch claude/kind-wright-P3p6I).**
+  Mechanism (maintainer-chosen): the `redirect_uri` **placeholder** (`replace.me`) is the origin/OAuth-client
+  signal — no IDL field, no per-stream origin tracking. `manipulateElicitUrl` (`McpServerFactory`) now gates
+  BOTH the `state` and `redirect_uri` rewrites on the original `redirect_uri` value containing the placeholder:
+  present → Zilla is the OAuth client, rewrite (gateway/existing behavior, unchanged); absent → remote is the
+  OAuth client, **verbatim passthrough** (state + redirect_uri untouched). Security rationale: redirect_uri
+  registration + `state` (CSRF) + PKCE are all bound to the OAuth client, so always-via-Zilla breaks the
+  remote-client case — placeholder gate = correct AND secure. Tests: `tools.call.elicit.passthrough`
+  (network+application .rpt) + IT methods in McpServerIT/NetworkIT/ApplicationIT. All elicit ITs green
+  (Server 68 / Client 61 / Proxy 44); checkstyle clean. Open follow-up: placeholder-trust (a malicious
+  upstream sending the `replace.me` host to coax Zilla into the callback path) — belongs to the gateway/Track-B
+  callback path, not this additive passthrough.
 - **N2 — persistent per-route lifecycle + `Mcp-Session-Id`/`MCP-Protocol-Version` replay + resume,
   Store-backed** (C3.2 + lifecycle-persistence invariant) — the session-bound "memory."
 - **N3 — the OSS `mcp-proxy` example itself** (zilla.yaml + demo + ITs) demonstrating elicitation +

@@ -135,6 +135,7 @@ public final class McpServerFactory implements McpStreamFactory
 
     private static final Pattern STATE_PARAM_PATTERN = Pattern.compile("(?<=[?&])state=([^&]*)");
     private static final Pattern REDIRECT_URI_PARAM_PATTERN = Pattern.compile("(?<=[?&])redirect_uri=[^&]*");
+    private static final String REDIRECT_URI_PLACEHOLDER = "replace.me";
     private static final String JSON_RPC_RESULT_PREFIX = "{\"jsonrpc\":\"2.0\",\"id\":";
     private static final String JSON_RPC_RESULT_MIDDLE = ",\"result\":";
     private static final String JSON_RPC_ERROR_PREFIX = "{\"jsonrpc\":\"2.0\",\"id\":";
@@ -5157,19 +5158,22 @@ public final class McpServerFactory implements McpStreamFactory
         String elicitationId,
         String redirectURI)
     {
-        if (originalUrl == null || originalUrl.indexOf('?') < 0)
-        {
-            return originalUrl;
-        }
+        String result = originalUrl;
 
-        String result = STATE_PARAM_PATTERN.matcher(originalUrl)
-            .replaceFirst(Matcher.quoteReplacement("state=" + sessionId + "." + elicitationId + ".") + "$1");
+        final int query = originalUrl != null ? originalUrl.indexOf('?') : -1;
+        final String redirect = query < 0 ? null : extractQueryParam(originalUrl, query + 1, "redirect_uri");
 
-        if (redirectURI != null)
+        if (redirect != null && redirect.contains(REDIRECT_URI_PLACEHOLDER))
         {
-            final String encodedRedirect = URLEncoder.encode(redirectURI, StandardCharsets.UTF_8);
-            result = REDIRECT_URI_PARAM_PATTERN.matcher(result)
-                .replaceFirst(Matcher.quoteReplacement("redirect_uri=" + encodedRedirect));
+            result = STATE_PARAM_PATTERN.matcher(originalUrl)
+                .replaceFirst(Matcher.quoteReplacement("state=" + sessionId + "." + elicitationId + ".") + "$1");
+
+            if (redirectURI != null)
+            {
+                final String encodedRedirect = URLEncoder.encode(redirectURI, StandardCharsets.UTF_8);
+                result = REDIRECT_URI_PARAM_PATTERN.matcher(result)
+                    .replaceFirst(Matcher.quoteReplacement("redirect_uri=" + encodedRedirect));
+            }
         }
 
         return result;

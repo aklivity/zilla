@@ -515,6 +515,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/tools.call.elicit.passthrough/client",
+        "${app}/tools.call.elicit.passthrough/server"})
+    public void shouldCallToolElicitPassthrough() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/tools.call.elicit.completed.proxied/client",
         "${app}/tools.call.elicit.completed.proxied/server"})
     public void shouldCallToolElicitCompletedProxied() throws Exception

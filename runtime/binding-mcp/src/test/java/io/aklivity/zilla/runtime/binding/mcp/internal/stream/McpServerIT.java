@@ -317,6 +317,16 @@ public class McpServerIT
     @Test
     @Configuration("server.timeout.yaml")
     @Specification({
+        "${net}/tools.call.elicit.passthrough/client",
+        "${app}/tools.call.elicit.passthrough/server"})
+    public void shouldCallToolElicitPassthrough() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.timeout.yaml")
+    @Specification({
         "${net}/tools.call.elicit.declined/client",
         "${app}/tools.call.elicit.declined/server"})
     public void shouldCallToolElicitDeclined() throws Exception
