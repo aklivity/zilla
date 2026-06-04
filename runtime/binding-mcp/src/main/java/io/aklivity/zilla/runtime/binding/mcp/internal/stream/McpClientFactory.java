@@ -2454,9 +2454,6 @@ public final class McpClientFactory implements McpStreamFactory
         {
             if ((sessionId & GuardHandler.MASK_AUTHORIZED) != 0L)
             {
-                // synthetic notification injected on behalf of the remote: emit no event id so it
-                // never enters the remote's Last-Event-Id resumption space (it is a transient
-                // re-list nudge, not a resumable position)
                 final McpFlushExFW flushEx = mcpFlushExRW
                     .wrap(extBuffer, 0, extBuffer.capacity())
                     .typeId(mcpTypeId)
@@ -3926,8 +3923,6 @@ public final class McpClientFactory implements McpStreamFactory
         {
             state = McpState.openingInitial(state);
 
-            // the inbound client identity is consumed at this binding and conveyed upstream via the
-            // Authorization bearer (see injectAuthorization); the upstream stream itself is unguarded
             net = newStream(this::onNetMessage,
                 originId, routedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, 0L, affinity, httpBeginEx);

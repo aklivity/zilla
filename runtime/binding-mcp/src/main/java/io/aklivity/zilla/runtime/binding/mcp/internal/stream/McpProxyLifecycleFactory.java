@@ -523,11 +523,6 @@ final class McpProxyLifecycleFactory implements BindingHandler
                 client.doClientBegin(traceId);
             }
 
-            // open the unified reply immediately: the sessionId is minted and serverCapabilities is
-            // derived from the configured routes, so the connecting client's initialize is answered
-            // without blocking on per-route settlement. routes settle independently and their tools
-            // fill in via tools/list, so a slow or unauthorized route can neither delay the session
-            // nor tear it down when the client finishes its initialize request before the route settles.
             doServerBeginDeferred(traceId);
         }
 
@@ -874,9 +869,6 @@ final class McpProxyLifecycleFactory implements BindingHandler
         {
             if (!McpState.initialOpening(state))
             {
-                // during hydration a route's with.cache.credentials takes precedence over
-                // options.cache.authorization; reauthorize it once through the cache guard so this
-                // route's lifecycle and list streams share a single per-route authorization
                 if (server.hydration && server.binding.cache != null && server.binding.cache.guard != null)
                 {
                     final String credentials = server.binding.routeCacheCredentials(routedId);
@@ -904,9 +896,6 @@ final class McpProxyLifecycleFactory implements BindingHandler
             long traceId,
             McpRouteRequest request)
         {
-            // a route is settled once it has reported its lifecycle disposition: opened its reply
-            // (sessionId present) or advised an elicitCreate challenge (unauthorized, sessionId null) —
-            // the latter lets list aggregation skip it instead of blocking on a reply that never comes
             if (settled ||
                 McpState.initialClosed(state) ||
                 McpState.replyClosed(state))
@@ -1077,9 +1066,6 @@ final class McpProxyLifecycleFactory implements BindingHandler
             final long authorization = challenge.authorization();
             final OctetsFW extension = challenge.extension();
 
-            // a route-exit that needs authorization advises an elicitCreate challenge instead of
-            // settling with a sessionId; count it toward partial-open so the unified lifecycle opens
-            // on whatever authorized subset exists, then relay the elicitation up the north lifecycle
             settleLifecycle(traceId);
             server.doServerChallenge(traceId, authorization, injectChallengeContext(extension));
         }
@@ -1247,15 +1233,6 @@ final class McpProxyLifecycleFactory implements BindingHandler
             {
                 if (bearer)
                 {
-                    // the proxy is a 1-to-many aggregator and auth lives on the route-exit (the many)
-                    // side; a bare bearer challenge is not actionable for the connecting client, which
-                    // must not present per-remote credentials to the aggregate endpoint. mark this route
-                    // unauthorized and open the unified lifecycle on whatever authorized subset exists
-                    // rather than failing the whole session. a route-exit guard converts a 401 into an
-                    // elicitCreate challenge (onClientChallenge) before it reaches the proxy, so only a
-                    // bare, unconvertible reset degrades the route to skipped; the faithful bearer relay
-                    // to the connecting client happens only in the non-proxy mcp server -> mcp client
-                    // topology (McpServerFactory / McpClientFactory), never through the proxy.
                     settleLifecycle(traceId);
                 }
                 else

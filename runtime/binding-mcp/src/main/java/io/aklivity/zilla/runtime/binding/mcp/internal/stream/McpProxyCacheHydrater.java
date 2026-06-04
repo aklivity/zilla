@@ -351,8 +351,6 @@ public final class McpProxyCacheHydrater
             long traceId)
         {
             pending--;
-            // keep-stale: a failed route keeps its prior fragment (no putFragment), a successful
-            // route replaces it; success-empty stores an empty fragment that drops out of assembly
             if (sink.failed)
             {
                 failedAny = true;
@@ -374,14 +372,10 @@ public final class McpProxyCacheHydrater
             final McpProxyCache.McpListCache listCache = handler.cache.cacheOf(kind);
             if (listCache.fragmentsAbsent(prefixes))
             {
-                // no route has ever produced a fragment (total failure with nothing cached) —
-                // surface as an error so a retry is scheduled
                 terminal(true);
             }
             else
             {
-                // re-assemble from the persistent per-route fragments, keeping stale fragments for
-                // any route that failed this cycle; still surface a retry when a route failed
                 final McpProxyListFactory listFactory = listFactories.get(kind);
                 listCache.putAssembled(listFactory.hydrationPrelude(), listFactory.hydrationClose(),
                     prefixes, k -> terminal(failedAny));

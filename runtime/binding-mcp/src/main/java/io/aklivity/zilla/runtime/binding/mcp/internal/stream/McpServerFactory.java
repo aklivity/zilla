@@ -2978,9 +2978,6 @@ public final class McpServerFactory implements McpStreamFactory
                             final McpLifecycleStream session = sessions.get(resolvedSessionId);
                             if (session != null)
                             {
-                                // single-use: consume the record so a replayed or duplicate
-                                // callback for the same elicitation resolves to 410, and a
-                                // resolved record never lingers past its one callback
                                 resolved = session.elicitations.remove(resolvedElicitationId);
                             }
                         }
@@ -5299,10 +5296,6 @@ public final class McpServerFactory implements McpStreamFactory
         return result;
     }
 
-    // reverse of manipulateElicitUrl's state injection: the server strips exactly the
-    // <sessionId>.<elicitationId>. prefix it added on the way up, so the callback forwarded down
-    // the app pipeline carries only what the downstream injected (a <toolkit>__ prefix for a proxy
-    // route, else the bare nonce the route-exit guard minted). each hop reverses its own injection.
     private static String stripElicitState(
         String url)
     {

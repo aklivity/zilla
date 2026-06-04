@@ -1374,8 +1374,6 @@ abstract class McpProxyListFactory implements BindingHandler
             client = null;
             if (hydration)
             {
-                // a skipped route during hydration (e.g. bearer challenge / no session) is a route
-                // failure, not an empty list — abort so the cache keeps the route's stale fragment
                 remaining.clear();
                 doServerAbort(traceId);
             }
