@@ -64,6 +64,12 @@ public class SchemaTest
     }
 
     @Test(expected = JsonValidatingException.class)
+    public void shouldRejectProxyWithAuthorization()
+    {
+        schema.validate("proxy.authorization.invalid.yaml");
+    }
+
+    @Test(expected = JsonValidatingException.class)
     public void shouldRejectServerWithCache()
     {
         schema.validate("server.cache.invalid.yaml");

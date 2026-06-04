@@ -23,7 +23,9 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.TreeMap;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.IntPredicate;
@@ -68,7 +70,7 @@ public final class McpProxyCache
     private final CRC32 crc32 = new CRC32();
     private String lockToken;
 
-    boolean populated;
+    public boolean populated;
 
     Runnable onReady;
     public ListChangedListener onSettled = (kind, changed) -> {};
@@ -143,7 +145,7 @@ public final class McpProxyCache
         }
     }
 
-    void acquireLock(
+    public void acquireLock(
         Consumer<Boolean> completion)
     {
         store.lock(STORE_LOCK_KEY_LIFECYCLE, leaseTtl, (k, t) ->
@@ -153,7 +155,7 @@ public final class McpProxyCache
         });
     }
 
-    void releaseLock(
+    public void releaseLock(
         Consumer<String> completion)
     {
         final String token = lockToken;
@@ -238,6 +240,7 @@ public final class McpProxyCache
 
         private final String storeKey;
         private final String storeLockKey;
+        private final Map<String, String> fragments;
         private long lastChecksum = -1L;
         private String lockToken;
 
@@ -262,6 +265,54 @@ public final class McpProxyCache
             this.kind = kind;
             this.storeKey = storeKey;
             this.storeLockKey = storeLockKey;
+            this.fragments = new TreeMap<>();
+        }
+
+        public void putFragment(
+            String prefix,
+            String items)
+        {
+            fragments.put(prefix, items);
+        }
+
+        public boolean fragmentsAbsent(
+            List<String> orderedPrefixes)
+        {
+            boolean absent = true;
+            for (String prefix : orderedPrefixes)
+            {
+                if (fragments.containsKey(prefix))
+                {
+                    absent = false;
+                    break;
+                }
+            }
+            return absent;
+        }
+
+        public void putAssembled(
+            String prelude,
+            String close,
+            List<String> orderedPrefixes,
+            Consumer<String> completion)
+        {
+            final StringBuilder builder = new StringBuilder(prelude);
+            boolean first = true;
+            for (String prefix : orderedPrefixes)
+            {
+                final String items = fragments.get(prefix);
+                if (items != null && !items.isEmpty())
+                {
+                    if (!first)
+                    {
+                        builder.append(',');
+                    }
+                    builder.append(items);
+                    first = false;
+                }
+            }
+            builder.append(close);
+            put(builder.toString(), completion);
         }
 
         public void get(

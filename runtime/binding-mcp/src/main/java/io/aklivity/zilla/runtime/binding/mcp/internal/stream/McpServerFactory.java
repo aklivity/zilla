@@ -135,12 +135,18 @@ public final class McpServerFactory implements McpStreamFactory
 
     private static final Pattern STATE_PARAM_PATTERN = Pattern.compile("(?<=[?&])state=([^&]*)");
     private static final Pattern REDIRECT_URI_PARAM_PATTERN = Pattern.compile("(?<=[?&])redirect_uri=[^&]*");
+    private static final String REDIRECT_URI_PLACEHOLDER = "replace.me";
     private static final String JSON_RPC_RESULT_PREFIX = "{\"jsonrpc\":\"2.0\",\"id\":";
     private static final String JSON_RPC_RESULT_MIDDLE = ",\"result\":";
     private static final String JSON_RPC_ERROR_PREFIX = "{\"jsonrpc\":\"2.0\",\"id\":";
     private static final String JSON_RPC_ERROR_CODE = ",\"error\":{\"code\":";
     private static final String JSON_RPC_ERROR_MESSAGE = ",\"message\":\"";
     private static final String JSON_RPC_ERROR_SUFFIX = "\"}}";
+    private static final String JSON_RPC_ERROR_CODE_URL_REQUIRED = "-32042";
+    private static final String JSON_RPC_ERROR_MESSAGE_URL_REQUIRED = "URL elicitation required";
+    private static final String JSON_RPC_ERROR_DATA_URL_PREFIX = "\",\"data\":[{\"mode\":\"url\",\"url\":\"";
+    private static final String JSON_RPC_ERROR_DATA_URL_MIDDLE = "\",\"elicitationId\":\"";
+    private static final String JSON_RPC_ERROR_DATA_URL_SUFFIX = "\"}]}}";
     private static final String INITIALIZE_RESPONSE_PROTOCOL_PREFIX = "{\"protocolVersion\":\"";
     private static final String INITIALIZE_RESPONSE_CAPABILITIES_PREFIX = "\",\"capabilities\":";
     private static final String INITIALIZE_RESPONSE_SERVER_INFO_PREFIX = ",\"serverInfo\":{\"name\":\"";
@@ -409,6 +415,9 @@ public final class McpServerFactory implements McpStreamFactory
                         .map(h -> h.value().asString())
                         .map(Integer::parseInt)
                         .orElse(-1);
+                    final long configuredTimeout = binding.options != null && binding.options.timeout != null
+                        ? binding.options.timeout.toMillis()
+                        : 0L;
                     newStream = new McpServer(
                         sender,
                         originId,
@@ -418,7 +427,8 @@ public final class McpServerFactory implements McpStreamFactory
                         session,
                         redirectURI,
                         altSvc,
-                        contentLength)::onNetMessage;
+                        contentLength,
+                        configuredTimeout)::onNetMessage;
                 }
                 break;
             case "GET":
@@ -1310,6 +1320,7 @@ public final class McpServerFactory implements McpStreamFactory
         private final String redirectURI;
         private final String altSvc;
         private final int contentLength;
+        private final long configuredTimeout;
 
         private McpServer(
             MessageConsumer sender,
@@ -1320,7 +1331,8 @@ public final class McpServerFactory implements McpStreamFactory
             McpLifecycleStream session,
             String redirectURI,
             String altSvc,
-            int contentLength)
+            int contentLength,
+            long configuredTimeout)
         {
             this.net = sender;
             this.originId = originId;
@@ -1334,6 +1346,7 @@ public final class McpServerFactory implements McpStreamFactory
             this.redirectURI = redirectURI;
             this.altSvc = altSvc;
             this.contentLength = contentLength;
+            this.configuredTimeout = configuredTimeout;
         }
 
         private void onNetMessage(
@@ -1625,9 +1638,10 @@ public final class McpServerFactory implements McpStreamFactory
                 final McpBearerResetExFW bearer = resetEx.bearer();
                 final String realm = bearer.realm().asString();
                 final String scopes = bearer.scopes().asString();
+                final String resourceMetadata = bearer.resourceMetadata().asString();
                 final McpBearerError error = bearer.error().get();
                 final String status = bearerChallengeStatus(error);
-                final String wwwAuthenticate = bearerChallengeHeader(realm, scopes, error);
+                final String wwwAuthenticate = bearerChallengeHeader(realm, scopes, resourceMetadata, error);
                 doNetBeginRejectedBearer(traceId, authorization, status, wwwAuthenticate);
                 rejected = true;
             }
@@ -1843,6 +1857,10 @@ public final class McpServerFactory implements McpStreamFactory
                 assert this.session == null;
                 this.session = session;
 
+                session.requestTimeout = (decodedClientCapabilities & CLIENT_ELICITATION_URL.value()) != 0
+                    ? configuredTimeout
+                    : 0L;
+
                 final int clientCapabilities = decodedClientCapabilities;
                 McpBeginExFW beginEx = mcpBeginExRW
                     .wrap(codecBuffer, 0, codecBuffer.capacity())
@@ -1968,7 +1986,8 @@ public final class McpServerFactory implements McpStreamFactory
                 .wrap(codecBuffer, 0, codecBuffer.capacity())
                 .typeId(mcpTypeId)
                 .toolsList(t -> t
-                    .sessionId(session.unifiedId))
+                    .sessionId(session.unifiedId)
+                    .timeout(session.requestTimeout))
                 .build();
 
             assert stream == null;
@@ -1988,7 +2007,8 @@ public final class McpServerFactory implements McpStreamFactory
                 .toolsCall(t -> t
                     .sessionId(session.unifiedId)
                     .name(name)
-                    .contentLength(paramsLength))
+                    .contentLength(paramsLength)
+                    .timeout(session.requestTimeout))
                 .build();
 
             assert stream == null;
@@ -2004,7 +2024,8 @@ public final class McpServerFactory implements McpStreamFactory
                 .wrap(codecBuffer, 0, codecBuffer.capacity())
                 .typeId(mcpTypeId)
                 .promptsList(p -> p
-                    .sessionId(session.unifiedId))
+                    .sessionId(session.unifiedId)
+                    .timeout(session.requestTimeout))
                 .build();
 
             assert stream == null;
@@ -2024,7 +2045,8 @@ public final class McpServerFactory implements McpStreamFactory
                 .promptsGet(p -> p
                     .sessionId(session.unifiedId)
                     .name(name)
-                    .contentLength(paramsLength))
+                    .contentLength(paramsLength)
+                    .timeout(session.requestTimeout))
                 .build();
 
             assert stream == null;
@@ -2040,7 +2062,8 @@ public final class McpServerFactory implements McpStreamFactory
                 .wrap(codecBuffer, 0, codecBuffer.capacity())
                 .typeId(mcpTypeId)
                 .resourcesList(r -> r
-                    .sessionId(session.unifiedId))
+                    .sessionId(session.unifiedId)
+                    .timeout(session.requestTimeout))
                 .build();
 
             assert stream == null;
@@ -2060,7 +2083,8 @@ public final class McpServerFactory implements McpStreamFactory
                 .resourcesRead(r -> r
                     .sessionId(session.unifiedId)
                     .uri(uri)
-                    .contentLength(paramsLength))
+                    .contentLength(paramsLength)
+                    .timeout(session.requestTimeout))
                 .build();
 
             assert stream == null;
@@ -2284,6 +2308,58 @@ public final class McpServerFactory implements McpStreamFactory
             codecBuffer.putBytes(codecLimit, SSE_MESSAGE_TERMINATOR_BYTES);
             codecLimit += SSE_MESSAGE_TERMINATOR_BYTES.length;
             doNetData(traceId, authorization, codecBuffer, 0, codecLimit);
+        }
+
+        private void doEncodeElicitUrlRequiredEvent(
+            long traceId,
+            long authorization,
+            String url,
+            String elicitationId)
+        {
+            int codecLimit = codecBuffer.putStringWithoutLengthAscii(0, SSE_DATA_PREFIX);
+            codecLimit += encodeUrlRequiredError(codecLimit, url, elicitationId);
+            codecBuffer.putBytes(codecLimit, SSE_MESSAGE_TERMINATOR_BYTES);
+            codecLimit += SSE_MESSAGE_TERMINATOR_BYTES.length;
+            doNetData(traceId, authorization, codecBuffer, 0, codecLimit);
+        }
+
+        private void doEncodeResponseUrlRequired(
+            long traceId,
+            long authorization,
+            String url,
+            String elicitationId)
+        {
+            doNetBegin(traceId, authorization, httpBeginExRW
+                .wrap(codecBuffer, 0, codecBuffer.capacity())
+                .typeId(httpTypeId)
+                .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(STATUS_200))
+                .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_JSON))
+                .headersItem(h -> h.name(HTTP_HEADER_SESSION).value(session.sessionId))
+                .inject(this::injectAltSvc)
+                .build());
+            final int codecLimit = encodeUrlRequiredError(0, url, elicitationId);
+            doNetData(traceId, authorization, codecBuffer, 0, codecLimit);
+            doEncodeResponseEnd(traceId, authorization);
+        }
+
+        private int encodeUrlRequiredError(
+            int offset,
+            String url,
+            String elicitationId)
+        {
+            int codecLimit = offset;
+            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, JSON_RPC_ERROR_PREFIX);
+            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, decodedId);
+            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, JSON_RPC_ERROR_CODE);
+            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, JSON_RPC_ERROR_CODE_URL_REQUIRED);
+            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, JSON_RPC_ERROR_MESSAGE);
+            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, JSON_RPC_ERROR_MESSAGE_URL_REQUIRED);
+            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, JSON_RPC_ERROR_DATA_URL_PREFIX);
+            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, url);
+            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, JSON_RPC_ERROR_DATA_URL_MIDDLE);
+            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, elicitationId);
+            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, JSON_RPC_ERROR_DATA_URL_SUFFIX);
+            return codecLimit - offset;
         }
 
         private void doEncodeResponseData(
@@ -2831,13 +2907,20 @@ public final class McpServerFactory implements McpStreamFactory
 
             state = McpState.closingInitial(state);
 
-            final McpRequestStream resolved = resolveElicitation(path);
+            final McpElicitation resolved = resolveElicitation(path);
 
-            if (resolved != null)
+            if (resolved != null && resolved.held != null)
             {
-                resolved.doAppFlushElicitCallback(traceId, authorization, callbackURL);
-                resolved.doAppEnd(traceId, authorization);
-                resolved.server.doDeferredCloseInitial();
+                final McpRequestStream held = resolved.held;
+                held.doAppFlushElicitCallback(traceId, authorization, stripElicitState(callbackURL), resolved.context);
+                held.doAppEnd(traceId, authorization);
+                held.server.doDeferredCloseInitial();
+                doNetReply200(traceId, authorization, AUTH_CALLBACK_OK_BODY);
+            }
+            else if (resolved != null)
+            {
+                resolved.session.doAppFlushElicitCallback(traceId, authorization, stripElicitState(callbackURL),
+                    resolved.context);
                 doNetReply200(traceId, authorization, AUTH_CALLBACK_OK_BODY);
             }
             else
@@ -2874,10 +2957,10 @@ public final class McpServerFactory implements McpStreamFactory
             doNetEnd(traceId, authorization);
         }
 
-        private McpRequestStream resolveElicitation(
+        private McpElicitation resolveElicitation(
             String requestPath)
         {
-            McpRequestStream resolved = null;
+            McpElicitation resolved = null;
             if (requestPath != null)
             {
                 final int queryAt = requestPath.indexOf('?');
@@ -2895,7 +2978,7 @@ public final class McpServerFactory implements McpStreamFactory
                             final McpLifecycleStream session = sessions.get(resolvedSessionId);
                             if (session != null)
                             {
-                                resolved = session.elicitations.get(resolvedElicitationId);
+                                resolved = session.elicitations.remove(resolvedElicitationId);
                             }
                         }
                     }
@@ -3018,12 +3101,29 @@ public final class McpServerFactory implements McpStreamFactory
         }
     }
 
+    private final class McpElicitation
+    {
+        private final McpLifecycleStream session;
+        private final McpRequestStream held;
+        private final String context;
+
+        private McpElicitation(
+            McpLifecycleStream session,
+            McpRequestStream held,
+            String context)
+        {
+            this.session = session;
+            this.held = held;
+            this.context = context;
+        }
+    }
+
     private final class McpLifecycleStream
     {
         private final String sessionId;
         private String unifiedId;
         private final Object2ObjectHashMap<String, McpRequestStream> requests;
-        private final Object2ObjectHashMap<String, McpRequestStream> elicitations;
+        private final Object2ObjectHashMap<String, McpElicitation> elicitations;
 
         private final McpServer server;
         private final long originId;
@@ -3046,6 +3146,7 @@ public final class McpServerFactory implements McpStreamFactory
         private McpEventStream sse;
         private boolean eventsUnsupported;
         private int serverCapabilities;
+        private long requestTimeout;
 
         private McpLifecycleStream(
             McpServer server,
@@ -3211,9 +3312,70 @@ public final class McpServerFactory implements McpStreamFactory
                 final SignalFW signal = signalRO.wrap(buffer, index, index + length);
                 onAppSignal(signal);
                 break;
+            case ChallengeFW.TYPE_ID:
+                final ChallengeFW challenge = challengeRO.wrap(buffer, index, index + length);
+                onAppChallenge(challenge);
+                break;
             default:
                 break;
             }
+        }
+
+        private void onAppChallenge(
+            ChallengeFW challenge)
+        {
+            final long traceId = challenge.traceId();
+            final long authorization = challenge.authorization();
+            final OctetsFW extension = challenge.extension();
+
+            McpChallengeExFW challengeEx = null;
+            if (extension.sizeof() > 0)
+            {
+                challengeEx = mcpChallengeExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit());
+            }
+
+            if (challengeEx != null && challengeEx.kind() == McpChallengeExFW.KIND_ELICIT_CREATE)
+            {
+                onAppChallengeElicitCreate(traceId, authorization, challengeEx.elicitCreate());
+            }
+        }
+
+        private void onAppChallengeElicitCreate(
+            long traceId,
+            long authorization,
+            McpElicitCreateChallengeExFW elicitCreate)
+        {
+            final String originalUrl = elicitCreate.url().asString();
+            final String context = elicitCreate.context().asString();
+            final String synthesisedElicitationId = supplyElicitationId.get();
+            final String manipulatedUrl =
+                manipulateElicitUrl(originalUrl, sessionId, synthesisedElicitationId, server.redirectURI);
+
+            elicitations.put(synthesisedElicitationId,
+                new McpElicitation(this, null, context));
+
+            if (sse != null)
+            {
+                sse.doEncodeElicitCreateNotifyEvent(traceId, authorization,
+                    synthesisedElicitationId, manipulatedUrl);
+            }
+        }
+
+        private void doAppFlushElicitCallback(
+            long traceId,
+            long authorization,
+            String callbackURL,
+            String context)
+        {
+            final McpFlushExFW flushEx = mcpFlushExRW
+                .wrap(codecBuffer, 0, codecBuffer.capacity())
+                .typeId(mcpTypeId)
+                .elicitCallback(b -> b.url(callbackURL).context(context))
+                .build();
+
+            doFlush(app, originId, routedId, initialId,
+                initialSeq, initialAck, initialMax, traceId, authorization,
+                0L, 0, flushEx);
         }
 
         private void onAppBegin(
@@ -3659,9 +3821,10 @@ public final class McpServerFactory implements McpStreamFactory
                 final McpBearerResetExFW bearer = resetEx.bearer();
                 final String realm = bearer.realm().asString();
                 final String scopes = bearer.scopes().asString();
+                final String resourceMetadata = bearer.resourceMetadata().asString();
                 final McpBearerError error = bearer.error().get();
                 final String status = bearerChallengeStatus(error);
-                final String wwwAuthenticate = bearerChallengeHeader(realm, scopes, error);
+                final String wwwAuthenticate = bearerChallengeHeader(realm, scopes, resourceMetadata, error);
                 doNetWindow(traceId, authorization, 0, 0);
                 doNetBegin(traceId, authorization, httpBeginExRW
                     .wrap(codecBuffer, 0, codecBuffer.capacity())
@@ -3819,6 +3982,34 @@ public final class McpServerFactory implements McpStreamFactory
 
             final int length = encodeSseNotifyEvent(codecBuffer, 0, streamIdPrefix, id, body);
             doNetData(traceId, authorization, codecBuffer, 0, length);
+        }
+
+        private void doEncodeElicitCreateNotifyEvent(
+            long traceId,
+            long authorization,
+            String elicitationId,
+            String url)
+        {
+            if (McpState.replyClosed(state))
+            {
+                return;
+            }
+
+            if (!McpState.replyOpening(state))
+            {
+                doNetBeginAccepted(traceId, authorization);
+            }
+
+            int codecLimit = codecBuffer.putStringWithoutLengthAscii(0, SSE_DATA_PREFIX);
+            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit,
+                "{\"jsonrpc\":\"2.0\",\"method\":\"elicitation/create\",\"params\":{\"mode\":\"url\",\"elicitationId\":\"");
+            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, elicitationId);
+            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, "\",\"url\":\"");
+            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, url);
+            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, "\"}}");
+            codecBuffer.putBytes(codecLimit, SSE_MESSAGE_TERMINATOR_BYTES);
+            codecLimit += SSE_MESSAGE_TERMINATOR_BYTES.length;
+            doNetData(traceId, authorization, codecBuffer, 0, codecLimit);
         }
 
         private void doEncodeProgressEvent(
@@ -4099,6 +4290,8 @@ public final class McpServerFactory implements McpStreamFactory
         McpEventStream sse;
 
         private String elicitationId;
+        private String elicitUrl;
+        private String elicitContext;
 
         private int state;
 
@@ -4181,12 +4374,13 @@ public final class McpServerFactory implements McpStreamFactory
         private void doAppFlushElicitCallback(
             long traceId,
             long authorization,
-            String callbackURL)
+            String callbackURL,
+            String context)
         {
             final McpFlushExFW flushEx = mcpFlushExRW
                 .wrap(codecBuffer, 0, codecBuffer.capacity())
                 .typeId(mcpTypeId)
-                .elicitCallback(b -> b.url(callbackURL))
+                .elicitCallback(b -> b.url(callbackURL).context(context))
                 .build();
 
             doFlush(app, originId, routedId, initialId,
@@ -4398,10 +4592,23 @@ public final class McpServerFactory implements McpStreamFactory
                 manipulateElicitUrl(originalUrl, session.sessionId, synthesisedElicitationId, server.redirectURI);
 
             elicitationId = synthesisedElicitationId;
-            session.elicitations.put(synthesisedElicitationId, this);
+            elicitUrl = manipulatedUrl;
+            elicitContext = elicitCreate.context().asString();
 
-            server.onAppChallenge(traceId, authorization);
-            server.doEncodeElicitCreateDataEvent(traceId, authorization, elicitId, synthesisedElicitationId, manipulatedUrl);
+            if (session.requestTimeout > 0L)
+            {
+                session.elicitations.put(synthesisedElicitationId,
+                    new McpElicitation(session, this, elicitContext));
+
+                server.onAppChallenge(traceId, authorization);
+                server.doEncodeElicitCreateDataEvent(traceId, authorization, elicitId, synthesisedElicitationId, manipulatedUrl);
+            }
+            else
+            {
+                server.doEncodeResponseUrlRequired(traceId, authorization, manipulatedUrl, synthesisedElicitationId);
+                doAppReset(traceId, authorization);
+                doAppAbort(traceId, authorization);
+            }
         }
 
         private void onAppBegin(
@@ -4561,7 +4768,7 @@ public final class McpServerFactory implements McpStreamFactory
                 server.doEncodeResponseEnd(traceId, authorization);
                 break;
             case CANCELLED:
-                server.doEncodeElicitErrorEvent(traceId, authorization, -32000, "Authorization timed out");
+                server.doEncodeElicitUrlRequiredEvent(traceId, authorization, elicitUrl, resolvedElicitationId);
                 server.doEncodeResponseEnd(traceId, authorization);
                 break;
             default:
@@ -5029,6 +5236,7 @@ public final class McpServerFactory implements McpStreamFactory
     private static String bearerChallengeHeader(
         String realm,
         String scopes,
+        String resourceMetadata,
         McpBearerError error)
     {
         final StringBuilder challenge = new StringBuilder("Bearer");
@@ -5041,6 +5249,11 @@ public final class McpServerFactory implements McpStreamFactory
         if (scopes != null)
         {
             challenge.append(separator).append("scope=\"").append(scopes).append('"');
+            separator = ", ";
+        }
+        if (resourceMetadata != null)
+        {
+            challenge.append(separator).append("resource_metadata=\"").append(resourceMetadata).append('"');
             separator = ", ";
         }
         challenge.append(separator).append("error=\"").append(error.name().toLowerCase()).append('"');
@@ -5062,19 +5275,44 @@ public final class McpServerFactory implements McpStreamFactory
         String elicitationId,
         String redirectURI)
     {
-        if (originalUrl == null || originalUrl.indexOf('?') < 0)
+        String result = originalUrl;
+
+        final int query = originalUrl != null ? originalUrl.indexOf('?') : -1;
+        final String redirect = query < 0 ? null : extractQueryParam(originalUrl, query + 1, "redirect_uri");
+
+        if (redirect != null && redirect.contains(REDIRECT_URI_PLACEHOLDER))
         {
-            return originalUrl;
+            result = STATE_PARAM_PATTERN.matcher(originalUrl)
+                .replaceFirst(Matcher.quoteReplacement("state=" + sessionId + "." + elicitationId + ".") + "$1");
+
+            if (redirectURI != null)
+            {
+                final String encodedRedirect = URLEncoder.encode(redirectURI, StandardCharsets.UTF_8);
+                result = REDIRECT_URI_PARAM_PATTERN.matcher(result)
+                    .replaceFirst(Matcher.quoteReplacement("redirect_uri=" + encodedRedirect));
+            }
         }
 
-        String result = STATE_PARAM_PATTERN.matcher(originalUrl)
-            .replaceFirst(Matcher.quoteReplacement("state=" + sessionId + "." + elicitationId + ".") + "$1");
+        return result;
+    }
 
-        if (redirectURI != null)
+    private static String stripElicitState(
+        String url)
+    {
+        String result = url;
+
+        final Matcher matcher = STATE_PARAM_PATTERN.matcher(url);
+        if (matcher.find())
         {
-            final String encodedRedirect = URLEncoder.encode(redirectURI, StandardCharsets.UTF_8);
-            result = REDIRECT_URI_PARAM_PATTERN.matcher(result)
-                .replaceFirst(Matcher.quoteReplacement("redirect_uri=" + encodedRedirect));
+            final String value = matcher.group(1);
+            final int firstDot = value.indexOf('.');
+            final int secondDot = firstDot > 0 ? value.indexOf('.', firstDot + 1) : -1;
+            if (secondDot > firstDot)
+            {
+                final String residual = value.substring(secondDot + 1);
+                result = STATE_PARAM_PATTERN.matcher(url)
+                    .replaceFirst(Matcher.quoteReplacement("state=" + residual));
+            }
         }
 
         return result;

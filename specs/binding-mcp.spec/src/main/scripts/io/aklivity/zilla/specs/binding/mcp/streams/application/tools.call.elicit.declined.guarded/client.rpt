@@ -45,6 +45,7 @@ write zilla:begin.ext ${mcp:beginEx()
                                .sessionId("session-1")
                                .name("get_weather")
                                .contentLength(59)
+                               .timeout(30000)
                                .build()
                            .build()}
 
@@ -69,7 +70,7 @@ write '{'
 write advise zilla:flush ${mcp:flushEx()
                               .typeId(zilla:id("mcp"))
                               .elicitCallback()
-                                  .url("http://localhost:8080/mcp/auth/callback?error=access_denied&state=session-1.elicit-1.7f3a9b1c")
+                                  .url("http://localhost:8080/mcp/auth/callback?error=access_denied&state=7f3a9b1c")
                                   .build()
                               .build()}
 

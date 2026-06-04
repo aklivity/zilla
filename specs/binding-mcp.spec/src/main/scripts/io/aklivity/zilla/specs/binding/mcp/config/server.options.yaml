@@ -26,7 +26,7 @@ bindings:
       elicitation:
         callback: auth/callback
       authorization:
-        name: jwt0
+        jwt0: {}
     routes:
       - exit: app0
         when:

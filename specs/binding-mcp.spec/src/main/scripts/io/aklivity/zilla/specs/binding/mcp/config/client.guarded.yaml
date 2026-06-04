@@ -27,7 +27,7 @@ bindings:
     kind: client
     options:
       authorization:
-        name: oauth
+        oauth: {}
     routes:
       - exit: net0
         with:

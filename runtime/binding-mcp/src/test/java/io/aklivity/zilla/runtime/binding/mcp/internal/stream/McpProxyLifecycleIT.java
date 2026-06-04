@@ -117,10 +117,10 @@ public class McpProxyLifecycleIT
     @Test
     @Configuration("proxy.yaml")
     @Specification({
-        "${app}/lifecycle.initialize.reject.bearer/client",
-        "${app}/lifecycle.initialize.reject.bearer/server" })
+        "${app}/lifecycle.initialize.skip.bearer/client",
+        "${app}/lifecycle.initialize.skip.bearer/server" })
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
-    public void shouldRejectLifecycleInitializeWithBearerChallenge() throws Exception
+    public void shouldInitializeLifecycleSkippingBearerRejectedRoute() throws Exception
     {
         k3po.finish();
     }

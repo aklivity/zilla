@@ -13,31 +13,9 @@
 # specific language governing permissions and limitations under the License.
 #
 
-accept "zilla://streams/app1"
-       option zilla:window 8192
-       option zilla:transmission "half-duplex"
+property serverAddress "zilla://streams/app0"
 
-accepted
-
-read zilla:begin.ext ${mcp:matchBeginEx()
-                          .typeId(zilla:id("mcp"))
-                          .lifecycle()
-                              .build()
-                          .build()}
-
-connected
-
-write zilla:begin.ext ${mcp:beginEx()
-                           .typeId(zilla:id("mcp"))
-                           .lifecycle()
-                               .sessionId("session-1")
-                               .build()
-                           .build()}
-write flush
-
-read aborted
-
-accept "zilla://streams/app2"
+accept ${serverAddress}
        option zilla:window 8192
        option zilla:transmission "half-duplex"
 
@@ -54,9 +32,8 @@ connected
 write zilla:reset.ext ${mcp:resetEx()
                            .typeId(zilla:id("mcp"))
                            .bearer()
-                               .realm("github")
-                               .scopes("repo")
-                               .error("INSUFFICIENT_SCOPE")
+                               .resourceMetadata("https://localhost:8080/.well-known/oauth-protected-resource")
+                               .error("INVALID_TOKEN")
                                .build()
                            .build()}
 

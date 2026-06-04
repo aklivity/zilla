@@ -65,6 +65,15 @@ public class ProxyCacheIT
 
     @Test
     @Specification({
+        "${app}/cache.hydrate.credentials.toolkit/client",
+        "${app}/cache.hydrate.credentials.toolkit/server" })
+    public void shouldHydrateToolkitWithRouteCredentials() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/cache.hydrate.toolkit/client",
         "${app}/cache.hydrate.toolkit/server" })
     public void shouldHydrateToolkit() throws Exception

@@ -24,7 +24,6 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonString;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.runtime.binding.mcp.config.McpAuthorizationConfigBuilder;
 import io.aklivity.zilla.runtime.binding.mcp.config.McpCacheConfig;
 import io.aklivity.zilla.runtime.binding.mcp.config.McpCacheConfigBuilder;
 import io.aklivity.zilla.runtime.binding.mcp.config.McpElicitationConfig;
@@ -45,7 +44,6 @@ public final class McpOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
     private static final String ELICITATION_CALLBACK_NAME = "callback";
 
     private static final String AUTHORIZATION_NAME = "authorization";
-    private static final String AUTHORIZATION_NAME_NAME = "name";
     private static final String AUTHORIZATION_CREDENTIALS_NAME = "credentials";
 
     private static final String CACHE_NAME = "cache";
@@ -54,6 +52,8 @@ public final class McpOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
     private static final String CACHE_TTL_DEFAULT = "PT5M";
     private static final String CACHE_AUTHORIZATION_NAME = "authorization";
     private static final String CACHE_AUTHORIZATION_CREDENTIALS_NAME = "credentials";
+
+    private static final String TIMEOUT_NAME = "timeout";
 
     @Override
     public Kind kind()
@@ -98,17 +98,15 @@ public final class McpOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
             object.add(ELICITATION_NAME, elicitation);
         }
 
-        if (mcpOptions.authorization != null)
+        if (mcpOptions.authorization != null && mcpOptions.authorization.name != null)
         {
             JsonObjectBuilder authorization = Json.createObjectBuilder();
-            if (mcpOptions.authorization.name != null)
-            {
-                authorization.add(AUTHORIZATION_NAME_NAME, mcpOptions.authorization.name);
-            }
+            JsonObjectBuilder guardObject = Json.createObjectBuilder();
             if (mcpOptions.authorization.credentials != null)
             {
-                authorization.add(AUTHORIZATION_CREDENTIALS_NAME, mcpOptions.authorization.credentials);
+                guardObject.add(AUTHORIZATION_CREDENTIALS_NAME, mcpOptions.authorization.credentials);
             }
+            authorization.add(mcpOptions.authorization.name, guardObject);
             object.add(AUTHORIZATION_NAME, authorization);
         }
 
@@ -136,6 +134,11 @@ public final class McpOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
             }
 
             object.add(CACHE_NAME, cache);
+        }
+
+        if (mcpOptions.timeout != null)
+        {
+            object.add(TIMEOUT_NAME, mcpOptions.timeout.toString());
         }
 
         return object.build();
@@ -175,17 +178,17 @@ public final class McpOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
         if (object.containsKey(AUTHORIZATION_NAME))
         {
             JsonObject authorization = object.getJsonObject(AUTHORIZATION_NAME);
-            McpAuthorizationConfigBuilder<McpOptionsConfigBuilder<McpOptionsConfig>> authorizationBuilder =
-                builder.authorization();
-            if (authorization.containsKey(AUTHORIZATION_NAME_NAME))
+            authorization.forEach((guard, value) ->
             {
-                authorizationBuilder.name(authorization.getString(AUTHORIZATION_NAME_NAME));
-            }
-            if (authorization.containsKey(AUTHORIZATION_CREDENTIALS_NAME))
-            {
-                authorizationBuilder.credentials(authorization.getString(AUTHORIZATION_CREDENTIALS_NAME));
-            }
-            authorizationBuilder.build();
+                JsonObject guardObject = (JsonObject) value;
+                String credentials = guardObject.containsKey(AUTHORIZATION_CREDENTIALS_NAME)
+                    ? ((JsonString) guardObject.get(AUTHORIZATION_CREDENTIALS_NAME)).getString()
+                    : null;
+                builder.authorization()
+                    .name(guard)
+                    .credentials(credentials)
+                    .build();
+            });
         }
 
         if (object.containsKey(CACHE_NAME))
@@ -215,6 +218,11 @@ public final class McpOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
             }
 
             cacheBuilder.build();
+        }
+
+        if (object.containsKey(TIMEOUT_NAME))
+        {
+            builder.timeout(Duration.parse(object.getString(TIMEOUT_NAME)));
         }
 
         return builder.build();

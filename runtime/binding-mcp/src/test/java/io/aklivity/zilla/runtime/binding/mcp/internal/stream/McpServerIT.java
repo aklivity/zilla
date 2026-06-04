@@ -113,6 +113,16 @@ public class McpServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/lifecycle.initialize.reject.bearer.resource.metadata/client",
+        "${app}/lifecycle.initialize.reject.bearer.resource.metadata/server"})
+    public void shouldRejectLifecycleInitializeWithBearerChallengeResourceMetadata() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/tools.call.reject.bearer/client",
         "${app}/tools.call.reject.bearer/server"})
     public void shouldRejectToolsCallWithBearerChallenge() throws Exception
@@ -285,7 +295,17 @@ public class McpServerIT
     }
 
     @Test
-    @Configuration("server.yaml")
+    @Configuration("server.timeout.yaml")
+    @Specification({
+        "${net}/tools.call.timeout/client",
+        "${app}/tools.call.timeout/server"})
+    public void shouldCallToolWithTimeout() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.timeout.yaml")
     @Specification({
         "${net}/tools.call.elicit.completed/client",
         "${app}/tools.call.elicit.completed/server"})
@@ -295,7 +315,47 @@ public class McpServerIT
     }
 
     @Test
-    @Configuration("server.yaml")
+    @Configuration("server.timeout.yaml")
+    @Specification({
+        "${net}/tools.call.elicit.completed/client",
+        "${app}/tools.call.elicit.completed.context/server"})
+    public void shouldCallToolElicitCompletedWithContext() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.timeout.yaml")
+    @Specification({
+        "${net}/lifecycle.elicit.toolkit/client",
+        "${app}/lifecycle.elicit.toolkit/server"})
+    public void shouldRouteLifecycleElicitToolkitCallback() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.timeout.yaml")
+    @Specification({
+        "${net}/lifecycle.elicit.toolkit.replay/client",
+        "${app}/lifecycle.elicit.toolkit.replay/server"})
+    public void shouldRejectReplayedLifecycleElicitToolkitCallback() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.timeout.yaml")
+    @Specification({
+        "${net}/tools.call.elicit.passthrough/client",
+        "${app}/tools.call.elicit.passthrough/server"})
+    public void shouldCallToolElicitPassthrough() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.timeout.yaml")
     @Specification({
         "${net}/tools.call.elicit.declined/client",
         "${app}/tools.call.elicit.declined/server"})
@@ -305,11 +365,21 @@ public class McpServerIT
     }
 
     @Test
-    @Configuration("server.yaml")
+    @Configuration("server.timeout.yaml")
     @Specification({
         "${net}/tools.call.elicit.timeout/client",
         "${app}/tools.call.elicit.timeout/server"})
     public void shouldCallToolElicitTimeout() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/tools.call.elicit.reject/client",
+        "${app}/tools.call.elicit.reject/server"})
+    public void shouldRejectToolsCallElicitUrlRequired() throws Exception
     {
         k3po.finish();
     }
@@ -451,6 +521,16 @@ public class McpServerIT
         "${net}/lifecycle.events.resume.reject.bearer/client",
         "${app}/lifecycle.events.resume.reject.bearer/server"})
     public void shouldRejectLifecycleEventsResumeWithBearerChallenge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/lifecycle.events.resume.reject.bearer.resource.metadata/client",
+        "${app}/lifecycle.events.resume.reject.bearer.resource.metadata/server"})
+    public void shouldRejectLifecycleEventsResumeWithBearerChallengeResourceMetadata() throws Exception
     {
         k3po.finish();
     }
@@ -702,7 +782,7 @@ public class McpServerIT
 
     public static String sessionId()
     {
-        return "session-1";
+        return "transport-1";
     }
 
     public static String elicitationId()

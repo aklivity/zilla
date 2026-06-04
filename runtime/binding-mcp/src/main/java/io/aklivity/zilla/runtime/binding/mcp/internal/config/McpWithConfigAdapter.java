@@ -22,6 +22,7 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.runtime.binding.mcp.config.McpWithCacheConfigBuilder;
 import io.aklivity.zilla.runtime.binding.mcp.config.McpWithConfig;
 import io.aklivity.zilla.runtime.binding.mcp.config.McpWithConfigBuilder;
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpBinding;
@@ -31,6 +32,8 @@ import io.aklivity.zilla.runtime.engine.config.WithConfigAdapterSpi;
 public final class McpWithConfigAdapter implements WithConfigAdapterSpi, JsonbAdapter<WithConfig, JsonObject>
 {
     private static final String HEADERS_NAME = "headers";
+    private static final String CACHE_NAME = "cache";
+    private static final String CACHE_CREDENTIALS_NAME = "credentials";
 
     @Override
     public String type()
@@ -53,6 +56,13 @@ public final class McpWithConfigAdapter implements WithConfigAdapterSpi, JsonbAd
             object.add(HEADERS_NAME, headers);
         }
 
+        if (mcpWith.cache != null && mcpWith.cache.credentials != null)
+        {
+            JsonObjectBuilder cache = Json.createObjectBuilder();
+            cache.add(CACHE_CREDENTIALS_NAME, mcpWith.cache.credentials);
+            object.add(CACHE_NAME, cache);
+        }
+
         return object.build();
     }
 
@@ -68,6 +78,17 @@ public final class McpWithConfigAdapter implements WithConfigAdapterSpi, JsonbAd
             final Map<String, String> headers = new LinkedHashMap<>();
             headersObject.forEach((k, v) -> headers.put(k, headersObject.getString(k)));
             headers.forEach(builder::header);
+        }
+
+        if (object.containsKey(CACHE_NAME))
+        {
+            final JsonObject cacheObject = object.getJsonObject(CACHE_NAME);
+            final McpWithCacheConfigBuilder<McpWithConfigBuilder<McpWithConfig>> cacheBuilder = builder.cache();
+            if (cacheObject.containsKey(CACHE_CREDENTIALS_NAME))
+            {
+                cacheBuilder.credentials(cacheObject.getString(CACHE_CREDENTIALS_NAME));
+            }
+            cacheBuilder.build();
         }
 
         return builder.build();

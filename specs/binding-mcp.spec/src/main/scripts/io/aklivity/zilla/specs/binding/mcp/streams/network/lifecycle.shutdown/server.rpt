@@ -37,7 +37,7 @@ write zilla:begin.ext ${http:beginEx()
                             .typeId(zilla:id("http"))
                             .header(":status", "200")
                             .header("content-type", "application/json")
-                            .header("mcp-session-id", "session-1")
+                            .header("mcp-session-id", "transport-1")
                             .build()}
 write flush
 
@@ -55,7 +55,7 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .header("content-type", "application/json")
                            .header("accept", "application/json, text/event-stream")
                            .header("mcp-protocol-version", "2025-11-25")
-                           .header("mcp-session-id", "session-1")
+                           .header("mcp-session-id", "transport-1")
                            .build()}
 
 connected
@@ -78,7 +78,7 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .header(":method", "DELETE")
                            .header(":path", "/mcp")
                            .header("mcp-protocol-version", "2025-11-25")
-                           .header("mcp-session-id", "session-1")
+                           .header("mcp-session-id", "transport-1")
                            .build()}
 
 connected

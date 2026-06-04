@@ -150,9 +150,9 @@ public class McpProxyIT
     @Test
     @Configuration("proxy.toolkit.multi.yaml")
     @Specification({
-        "${app}/lifecycle.initialize.reject.bearer.toolkit.multi/client",
-        "${app}/lifecycle.initialize.reject.bearer.toolkit.multi/server" })
-    public void shouldRejectLifecycleInitializeWithBearerChallengeToolkitMulti() throws Exception
+        "${app}/lifecycle.initialize.skip.bearer.toolkit.multi/client",
+        "${app}/lifecycle.initialize.skip.bearer.toolkit.multi/server" })
+    public void shouldInitializeLifecyclePartialSkippingBearerRejectedToolkitMulti() throws Exception
     {
         k3po.finish();
     }
@@ -163,6 +163,46 @@ public class McpProxyIT
         "${app}/lifecycle.notify.tools.list.changed.toolkit.multi.prefixed/client",
         "${app}/lifecycle.notify.tools.list.changed.toolkit.multi/server" })
     public void shouldNotifyToolsListChangedWithAggregateEventId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.toolkit.multi.yaml")
+    @Specification({
+        "${app}/lifecycle.initialize.partial.toolkit.multi/client",
+        "${app}/lifecycle.initialize.partial.toolkit.multi/server" })
+    public void shouldInitializeLifecyclePartialToolkitMulti() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.toolkit.multi.yaml")
+    @Specification({
+        "${app}/lifecycle.elicit.toolkit.multi/client",
+        "${app}/lifecycle.elicit.toolkit.multi/server" })
+    public void shouldRouteElicitCallbackToToolkit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.toolkit.multi.yaml")
+    @Specification({
+        "${app}/tools.list.partial.toolkit.multi.prefixed/client",
+        "${app}/tools.list.partial.toolkit.multi/server" })
+    public void shouldListToolsWithPartialToolkitMulti() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.toolkit.multi.yaml")
+    @Specification({
+        "${app}/lifecycle.notify.tools.list.changed.after.authorize.toolkit.multi.prefixed/client",
+        "${app}/lifecycle.notify.tools.list.changed.after.authorize.toolkit.multi/server" })
+    public void shouldNotifyToolsListChangedAfterAuthorizeToolkitMulti() throws Exception
     {
         k3po.finish();
     }

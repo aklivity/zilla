@@ -31,8 +31,6 @@ bindings:
           description: house rules
       elicitation:
         callback: auth/callback
-      authorization:
-        name: jwt0
     routes:
       - exit: app1
         when:

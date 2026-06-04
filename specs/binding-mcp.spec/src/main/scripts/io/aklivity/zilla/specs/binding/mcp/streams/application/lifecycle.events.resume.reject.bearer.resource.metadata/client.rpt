@@ -25,12 +25,24 @@ write zilla:begin.ext ${mcp:beginEx()
 
 connected
 
+read zilla:begin.ext ${mcp:matchBeginEx()
+                          .typeId(zilla:id("mcp"))
+                          .lifecycle()
+                              .sessionId("session-1")
+                              .build()
+                          .build()}
+
+read advise zilla:challenge ${mcp:challengeEx()
+                                  .typeId(zilla:id("mcp"))
+                                  .resume()
+                                      .build()
+                                  .build()}
+
 read zilla:reset.ext ${mcp:matchResetEx()
                           .typeId(zilla:id("mcp"))
                           .bearer()
-                              .realm("github")
-                              .scopes("repo")
-                              .error("INSUFFICIENT_SCOPE")
+                              .resourceMetadata("https://localhost:8080/.well-known/oauth-protected-resource")
+                              .error("INVALID_TOKEN")
                               .build()
                           .build()}
 
