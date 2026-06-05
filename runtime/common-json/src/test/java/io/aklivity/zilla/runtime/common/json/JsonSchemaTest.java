@@ -196,10 +196,6 @@ class JsonSchemaTest
     @Test
     void shouldFailFastForUnsupportedKeywords()
     {
-        assertUnsupported("{\"allOf\":[]}");
-        assertUnsupported("{\"anyOf\":[]}");
-        assertUnsupported("{\"oneOf\":[]}");
-        assertUnsupported("{\"not\":{}}");
         assertUnsupported("{\"$ref\":\"#\"}");
         assertUnsupported("{\"patternProperties\":{}}");
         assertUnsupported("{\"uniqueItems\":true}");

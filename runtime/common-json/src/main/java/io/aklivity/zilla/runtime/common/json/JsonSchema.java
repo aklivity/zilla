@@ -16,6 +16,8 @@ package io.aklivity.zilla.runtime.common.json;
 
 import static jakarta.json.stream.JsonParser.Event.END_ARRAY;
 import static jakarta.json.stream.JsonParser.Event.END_OBJECT;
+import static jakarta.json.stream.JsonParser.Event.START_ARRAY;
+import static jakarta.json.stream.JsonParser.Event.START_OBJECT;
 import static jakarta.json.stream.JsonParser.Event.VALUE_FALSE;
 import static jakarta.json.stream.JsonParser.Event.VALUE_NULL;
 import static jakarta.json.stream.JsonParser.Event.VALUE_NUMBER;
@@ -44,16 +46,19 @@ import jakarta.json.stream.JsonParser.Event;
  * consuming a streaming {@link JsonParser} event stream without materializing a DOM.
  * <p>
  * Compile once per schema and reuse for the lifetime of the binding; {@link
- * #validate(JsonParser)} holds no instance state and may be called repeatedly on the
+ * #validate(JsonParser)} creates a per-call evaluator and may be called repeatedly on the
  * owning worker thread.
  * <p>
- * Supported keywords: {@code type} (including {@code integer}), {@code enum} and {@code
- * const} (scalar values), {@code minimum}/{@code maximum}/{@code exclusiveMinimum}/{@code
- * exclusiveMaximum}/{@code multipleOf}, {@code minLength}/{@code maxLength}/{@code
- * pattern}, {@code items} (single schema), {@code minItems}/{@code maxItems}, {@code
- * properties}, {@code required}, {@code additionalProperties} (boolean or schema), and
- * {@code minProperties}/{@code maxProperties}. Unsupported assertion keywords (combinators,
- * {@code $ref}, {@code patternProperties}, etc.) fail fast at compile time.
+ * Validation is event-driven and push-based: each event is fed to every live evaluator, so
+ * combinators evaluate their candidate subschemas concurrently over the single stream without
+ * buffering. Supported keywords: {@code type} (including {@code integer}), {@code enum} and
+ * {@code const} (scalar values), {@code minimum}/{@code maximum}/{@code exclusiveMinimum}/{@code
+ * exclusiveMaximum}/{@code multipleOf}, {@code minLength}/{@code maxLength}/{@code pattern},
+ * {@code items} (single schema), {@code minItems}/{@code maxItems}, {@code properties}, {@code
+ * required}, {@code additionalProperties} (boolean or schema), {@code minProperties}/{@code
+ * maxProperties}, and the combinators {@code allOf}/{@code anyOf}/{@code oneOf}/{@code not}/{@code
+ * if}/{@code then}/{@code else}. Unsupported assertion keywords ({@code $ref}, {@code
+ * patternProperties}, etc.) fail fast at compile time.
  */
 public final class JsonSchema
 {
@@ -61,13 +66,17 @@ public final class JsonSchema
     private static final JsonSchema NONE = new JsonSchema(true);
 
     private static final List<String> UNSUPPORTED = List.of(
-        "patternProperties", "allOf", "anyOf", "oneOf", "not",
-        "if", "then", "else", "$ref", "dependencies", "dependentRequired",
+        "patternProperties", "$ref", "dependencies", "dependentRequired",
         "dependentSchemas", "propertyNames", "contains", "uniqueItems", "additionalItems");
 
     private enum JsonType
     {
         OBJECT, ARRAY, STRING, NUMBER, INTEGER, BOOLEAN, NULL
+    }
+
+    private enum Verdict
+    {
+        VALID, INVALID, PENDING
     }
 
     private final boolean deny;
@@ -91,6 +100,13 @@ public final class JsonSchema
     private final JsonSchema additionalSchema;
     private final int minProperties;
     private final int maxProperties;
+    private final List<JsonSchema> allOf;
+    private final List<JsonSchema> anyOf;
+    private final List<JsonSchema> oneOf;
+    private final JsonSchema notSchema;
+    private final JsonSchema ifSchema;
+    private final JsonSchema thenSchema;
+    private final JsonSchema elseSchema;
 
     public static JsonSchema of(
         JsonObject schema)
@@ -101,7 +117,13 @@ public final class JsonSchema
     public boolean validate(
         JsonParser parser)
     {
-        return parser.hasNext() && check(parser, parser.next());
+        Eval eval = new Eval();
+        Verdict verdict = Verdict.PENDING;
+        while (parser.hasNext() && verdict == Verdict.PENDING)
+        {
+            verdict = eval.feed(parser.next(), parser);
+        }
+        return verdict == Verdict.VALID;
     }
 
     private JsonSchema(
@@ -148,6 +170,13 @@ public final class JsonSchema
         this.additionalSchema = additionalSchema;
         this.minProperties = integer(schema, "minProperties");
         this.maxProperties = integer(schema, "maxProperties");
+        this.allOf = parseSchemaArray(schema.get("allOf"));
+        this.anyOf = parseSchemaArray(schema.get("anyOf"));
+        this.oneOf = parseSchemaArray(schema.get("oneOf"));
+        this.notSchema = schema.containsKey("not") ? from(schema.get("not")) : null;
+        this.ifSchema = schema.containsKey("if") ? from(schema.get("if")) : null;
+        this.thenSchema = schema.containsKey("then") ? from(schema.get("then")) : null;
+        this.elseSchema = schema.containsKey("else") ? from(schema.get("else")) : null;
     }
 
     private JsonSchema(
@@ -174,99 +203,18 @@ public final class JsonSchema
         this.additionalSchema = null;
         this.minProperties = -1;
         this.maxProperties = -1;
+        this.allOf = null;
+        this.anyOf = null;
+        this.oneOf = null;
+        this.notSchema = null;
+        this.ifSchema = null;
+        this.thenSchema = null;
+        this.elseSchema = null;
     }
 
-    private boolean check(
-        JsonParser parser,
-        Event event)
+    private Eval eval()
     {
-        if (deny)
-        {
-            return false;
-        }
-
-        boolean valid;
-        switch (event)
-        {
-        case START_OBJECT:
-            valid = checkObject(parser);
-            break;
-        case START_ARRAY:
-            valid = checkArray(parser);
-            break;
-        case VALUE_STRING:
-            valid = checkString(parser.getString());
-            break;
-        case VALUE_NUMBER:
-            valid = checkNumber(parser);
-            break;
-        case VALUE_TRUE:
-        case VALUE_FALSE:
-            valid = (types == null || types.contains(JsonType.BOOLEAN)) && checkConstEnum(event, null, null);
-            break;
-        case VALUE_NULL:
-            valid = (types == null || types.contains(JsonType.NULL)) && checkConstEnum(VALUE_NULL, null, null);
-            break;
-        default:
-            valid = false;
-            break;
-        }
-        return valid;
-    }
-
-    private boolean checkObject(
-        JsonParser parser)
-    {
-        boolean valid = types == null || types.contains(JsonType.OBJECT);
-        if (valid)
-        {
-            Set<String> seen = new HashSet<>();
-            int count = 0;
-            Event event = parser.next();
-            while (valid && event != END_OBJECT)
-            {
-                String key = parser.getString();
-                count++;
-                seen.add(key);
-                JsonSchema child = childFor(key);
-                Event value = parser.next();
-                valid = child != null && child.check(parser, value);
-                if (valid)
-                {
-                    event = parser.next();
-                }
-            }
-            valid = valid &&
-                (required == null || seen.containsAll(required)) &&
-                (minProperties < 0 || count >= minProperties) &&
-                (maxProperties < 0 || count <= maxProperties);
-        }
-        return valid;
-    }
-
-    private boolean checkArray(
-        JsonParser parser)
-    {
-        boolean valid = types == null || types.contains(JsonType.ARRAY);
-        if (valid)
-        {
-            JsonSchema child = items != null ? items : ANY;
-            int count = 0;
-            Event event = parser.next();
-            while (valid && event != END_ARRAY)
-            {
-                count++;
-                valid = child.check(parser, event);
-                if (valid)
-                {
-                    event = parser.next();
-                }
-            }
-            valid = valid &&
-                (minItems < 0 || count >= minItems) &&
-                (maxItems < 0 || count <= maxItems);
-        }
-        return valid;
+        return new Eval();
     }
 
     private boolean checkString(
@@ -324,7 +272,7 @@ public final class JsonSchema
         JsonSchema child = properties != null ? properties.get(key) : null;
         if (child == null)
         {
-            child = additionalSchema != null ? additionalSchema : additionalAllowed ? ANY : null;
+            child = additionalSchema != null ? additionalSchema : additionalAllowed ? ANY : NONE;
         }
         return child;
     }
@@ -497,6 +445,21 @@ public final class JsonSchema
         return result;
     }
 
+    private static List<JsonSchema> parseSchemaArray(
+        JsonValue value)
+    {
+        List<JsonSchema> result = null;
+        if (value != null)
+        {
+            result = new ArrayList<>();
+            for (JsonValue element : value.asJsonArray())
+            {
+                result.add(from(element));
+            }
+        }
+        return result;
+    }
+
     private static BigDecimal number(
         JsonObject schema,
         String key)
@@ -509,5 +472,289 @@ public final class JsonSchema
         String key)
     {
         return schema.containsKey(key) ? schema.getJsonNumber(key).intValue() : -1;
+    }
+
+    private final class Eval
+    {
+        private final Eval[] allOfEvals;
+        private final Eval[] anyOfEvals;
+        private final Eval[] oneOfEvals;
+        private final Eval notEval;
+        private final Eval ifEval;
+        private final Eval thenEval;
+        private final Eval elseEval;
+
+        private boolean started;
+        private boolean done;
+        private Verdict result;
+        private int depth;
+        private boolean directInvalid;
+        private boolean object;
+        private boolean array;
+        private Set<String> seen;
+        private int count;
+        private Eval directChild;
+
+        private Eval()
+        {
+            this.allOfEvals = evalsOf(allOf);
+            this.anyOfEvals = evalsOf(anyOf);
+            this.oneOfEvals = evalsOf(oneOf);
+            this.notEval = notSchema != null ? notSchema.eval() : null;
+            this.ifEval = ifSchema != null ? ifSchema.eval() : null;
+            this.thenEval = thenSchema != null ? thenSchema.eval() : null;
+            this.elseEval = elseSchema != null ? elseSchema.eval() : null;
+        }
+
+        private Verdict feed(
+            Event event,
+            JsonParser parser)
+        {
+            Verdict verdict;
+            if (done)
+            {
+                verdict = result;
+            }
+            else
+            {
+                directFeed(event, parser);
+                feedCombinators(event, parser);
+                if (event == START_OBJECT || event == START_ARRAY)
+                {
+                    depth++;
+                }
+                else if (event == END_OBJECT || event == END_ARRAY)
+                {
+                    depth--;
+                }
+                started = true;
+                if (depth == 0)
+                {
+                    done = true;
+                    result = combine();
+                    verdict = result;
+                }
+                else
+                {
+                    verdict = Verdict.PENDING;
+                }
+            }
+            return verdict;
+        }
+
+        private void directFeed(
+            Event event,
+            JsonParser parser)
+        {
+            if (started)
+            {
+                onInner(event, parser);
+            }
+            else
+            {
+                onOpen(event, parser);
+            }
+        }
+
+        private void onOpen(
+            Event event,
+            JsonParser parser)
+        {
+            if (deny)
+            {
+                directInvalid = true;
+            }
+            switch (event)
+            {
+            case START_OBJECT:
+                object = true;
+                seen = new HashSet<>();
+                directInvalid |= types != null && !types.contains(JsonType.OBJECT);
+                break;
+            case START_ARRAY:
+                array = true;
+                directInvalid |= types != null && !types.contains(JsonType.ARRAY);
+                break;
+            case VALUE_STRING:
+                directInvalid |= !checkString(parser.getString());
+                break;
+            case VALUE_NUMBER:
+                directInvalid |= !checkNumber(parser);
+                break;
+            case VALUE_TRUE:
+            case VALUE_FALSE:
+                directInvalid |= !((types == null || types.contains(JsonType.BOOLEAN)) && checkConstEnum(event, null, null));
+                break;
+            case VALUE_NULL:
+                directInvalid |= !((types == null || types.contains(JsonType.NULL)) && checkConstEnum(VALUE_NULL, null, null));
+                break;
+            default:
+                directInvalid = true;
+                break;
+            }
+        }
+
+        private void onInner(
+            Event event,
+            JsonParser parser)
+        {
+            if (directChild != null)
+            {
+                routeChild(event, parser);
+            }
+            else if (object)
+            {
+                onObjectInner(event, parser);
+            }
+            else if (array)
+            {
+                onArrayInner(event, parser);
+            }
+        }
+
+        private void onObjectInner(
+            Event event,
+            JsonParser parser)
+        {
+            if (event == END_OBJECT)
+            {
+                directInvalid |= required != null && !seen.containsAll(required) ||
+                    minProperties >= 0 && count < minProperties ||
+                    maxProperties >= 0 && count > maxProperties;
+            }
+            else
+            {
+                String key = parser.getString();
+                count++;
+                seen.add(key);
+                directChild = childFor(key).eval();
+            }
+        }
+
+        private void onArrayInner(
+            Event event,
+            JsonParser parser)
+        {
+            if (event == END_ARRAY)
+            {
+                directInvalid |= minItems >= 0 && count < minItems ||
+                    maxItems >= 0 && count > maxItems;
+            }
+            else
+            {
+                count++;
+                directChild = (items != null ? items : ANY).eval();
+                routeChild(event, parser);
+            }
+        }
+
+        private void routeChild(
+            Event event,
+            JsonParser parser)
+        {
+            Verdict verdict = directChild.feed(event, parser);
+            if (verdict != Verdict.PENDING)
+            {
+                directInvalid |= verdict == Verdict.INVALID;
+                directChild = null;
+            }
+        }
+
+        private void feedCombinators(
+            Event event,
+            JsonParser parser)
+        {
+            feedAll(allOfEvals, event, parser);
+            feedAll(anyOfEvals, event, parser);
+            feedAll(oneOfEvals, event, parser);
+            feedOne(notEval, event, parser);
+            feedOne(ifEval, event, parser);
+            feedOne(thenEval, event, parser);
+            feedOne(elseEval, event, parser);
+        }
+
+        private void feedAll(
+            Eval[] evals,
+            Event event,
+            JsonParser parser)
+        {
+            if (evals != null)
+            {
+                for (Eval eval : evals)
+                {
+                    feedOne(eval, event, parser);
+                }
+            }
+        }
+
+        private void feedOne(
+            Eval eval,
+            Event event,
+            JsonParser parser)
+        {
+            if (eval != null && !eval.done)
+            {
+                eval.feed(event, parser);
+            }
+        }
+
+        private Verdict combine()
+        {
+            boolean valid = !directInvalid;
+            if (valid && allOfEvals != null)
+            {
+                for (Eval eval : allOfEvals)
+                {
+                    valid &= eval.result == Verdict.VALID;
+                }
+            }
+            if (valid && anyOfEvals != null)
+            {
+                boolean any = false;
+                for (Eval eval : anyOfEvals)
+                {
+                    any |= eval.result == Verdict.VALID;
+                }
+                valid = any;
+            }
+            if (valid && oneOfEvals != null)
+            {
+                int matched = 0;
+                for (Eval eval : oneOfEvals)
+                {
+                    if (eval.result == Verdict.VALID)
+                    {
+                        matched++;
+                    }
+                }
+                valid = matched == 1;
+            }
+            if (valid && notEval != null)
+            {
+                valid = notEval.result != Verdict.VALID;
+            }
+            if (valid && ifEval != null)
+            {
+                valid = ifEval.result == Verdict.VALID
+                    ? thenEval == null || thenEval.result == Verdict.VALID
+                    : elseEval == null || elseEval.result == Verdict.VALID;
+            }
+            return valid ? Verdict.VALID : Verdict.INVALID;
+        }
+
+        private Eval[] evalsOf(
+            List<JsonSchema> schemas)
+        {
+            Eval[] result = null;
+            if (schemas != null)
+            {
+                result = new Eval[schemas.size()];
+                for (int i = 0; i < schemas.size(); i++)
+                {
+                    result[i] = schemas.get(i).eval();
+                }
+            }
+            return result;
+        }
     }
 }
