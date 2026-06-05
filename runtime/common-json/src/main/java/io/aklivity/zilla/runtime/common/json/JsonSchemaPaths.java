@@ -20,9 +20,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import jakarta.json.JsonObject;
-import jakarta.json.JsonValue;
-
 /**
  * Compiles a JSON Schema (draft-07 subset) into the set of RFC 6901 JSON Pointers to retain
  * when projecting an instance with {@link StreamingJsonProjector} — the union of the paths
@@ -42,22 +39,22 @@ public final class JsonSchemaPaths
     }
 
     public static List<String> retained(
-        JsonObject schema)
+        String schema)
     {
         Set<String> pointers = new LinkedHashSet<>();
-        collect(schema, "", pointers);
+        collect(JsonNode.parse(schema), "", pointers);
         return new ArrayList<>(pointers);
     }
 
     private static void collect(
-        JsonValue schema,
+        JsonNode schema,
         String pointer,
         Set<String> pointers)
     {
-        switch (schema.getValueType())
+        switch (schema.kind())
         {
         case OBJECT:
-            collectObject(schema.asJsonObject(), pointer, pointers);
+            collectObject(schema, pointer, pointers);
             break;
         case TRUE:
             pointers.add(pointer);
@@ -68,23 +65,23 @@ public final class JsonSchemaPaths
     }
 
     private static void collectObject(
-        JsonObject schema,
+        JsonNode schema,
         String pointer,
         Set<String> pointers)
     {
         boolean structured = false;
 
-        if (schema.containsKey("properties"))
+        if (schema.has("properties"))
         {
             structured = true;
-            for (Map.Entry<String, JsonValue> entry : schema.getJsonObject("properties").entrySet())
+            for (Map.Entry<String, JsonNode> entry : schema.get("properties").members().entrySet())
             {
                 collect(entry.getValue(), pointer + "/" + escape(entry.getKey()), pointers);
             }
         }
 
-        JsonValue items = schema.get("items");
-        if (items != null && items.getValueType() != JsonValue.ValueType.ARRAY)
+        JsonNode items = schema.get("items");
+        if (items != null && !items.isArray())
         {
             structured = true;
             collect(items, pointer + "/-", pointers);
@@ -104,16 +101,15 @@ public final class JsonSchemaPaths
     }
 
     private static boolean collectBranches(
-        JsonObject schema,
+        JsonNode schema,
         String keyword,
         String pointer,
         Set<String> pointers)
     {
-        boolean present = schema.containsKey(keyword) &&
-            schema.get(keyword).getValueType() == JsonValue.ValueType.ARRAY;
+        boolean present = schema.has(keyword) && schema.get(keyword).isArray();
         if (present)
         {
-            for (JsonValue branch : schema.getJsonArray(keyword))
+            for (JsonNode branch : schema.get(keyword).elements())
             {
                 collect(branch, pointer, pointers);
             }
@@ -122,12 +118,12 @@ public final class JsonSchemaPaths
     }
 
     private static boolean collectBranch(
-        JsonObject schema,
+        JsonNode schema,
         String keyword,
         String pointer,
         Set<String> pointers)
     {
-        boolean present = schema.containsKey(keyword);
+        boolean present = schema.has(keyword);
         if (present)
         {
             collect(schema.get(keyword), pointer, pointers);

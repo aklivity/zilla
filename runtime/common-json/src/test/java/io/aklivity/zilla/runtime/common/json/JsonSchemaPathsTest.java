@@ -17,11 +17,8 @@ package io.aklivity.zilla.runtime.common.json;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.io.StringReader;
 import java.util.List;
 
-import jakarta.json.Json;
-import jakarta.json.JsonObject;
 import jakarta.json.stream.JsonParser;
 
 import org.agrona.MutableDirectBuffer;
@@ -106,10 +103,10 @@ class JsonSchemaPathsTest
     @Test
     void shouldDriveProjectorEndToEnd()
     {
-        JsonObject schema = read("{\"type\":\"object\",\"properties\":{" +
+        StreamingJsonProjector projector = new StreamingJsonProjector(JsonSchemaPaths.retained(
+            "{\"type\":\"object\",\"properties\":{" +
             "\"items\":{\"type\":\"array\",\"items\":{\"type\":\"object\"," +
-            "\"properties\":{\"id\":{\"type\":\"integer\"}}}}}}");
-        StreamingJsonProjector projector = new StreamingJsonProjector(JsonSchemaPaths.retained(schema));
+            "\"properties\":{\"id\":{\"type\":\"integer\"}}}}}}"));
         MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
         JsonParser parser = parserFor("{\"items\":[{\"id\":1,\"x\":9},{\"id\":2}],\"k\":0} ");
         int length = projector.project(parser, buffer, 0);
@@ -121,13 +118,7 @@ class JsonSchemaPathsTest
     private static List<String> retained(
         String schema)
     {
-        return JsonSchemaPaths.retained(read(schema));
-    }
-
-    private static JsonObject read(
-        String schema)
-    {
-        return Json.createReader(new StringReader(schema)).readObject();
+        return JsonSchemaPaths.retained(schema);
     }
 
     private static JsonParser parserFor(

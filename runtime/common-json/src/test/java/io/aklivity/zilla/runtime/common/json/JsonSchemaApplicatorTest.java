@@ -18,10 +18,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.StringReader;
-
-import jakarta.json.Json;
-import jakarta.json.JsonObject;
 import jakarta.json.stream.JsonParser;
 
 import org.agrona.concurrent.UnsafeBuffer;
@@ -75,13 +71,7 @@ class JsonSchemaApplicatorTest
         String schema,
         String instance)
     {
-        return JsonSchema.of(read(schema)).validate(parserFor(instance + " "));
-    }
-
-    private static JsonObject read(
-        String schema)
-    {
-        return Json.createReader(new StringReader(schema)).readObject();
+        return JsonSchema.of(schema).validate(parserFor(instance + " "));
     }
 
     private static JsonParser parserFor(

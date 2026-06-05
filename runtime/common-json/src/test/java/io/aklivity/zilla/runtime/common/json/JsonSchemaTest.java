@@ -19,10 +19,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.StringReader;
-
-import jakarta.json.Json;
-import jakarta.json.JsonObject;
 import jakarta.json.stream.JsonParser;
 
 import org.agrona.concurrent.UnsafeBuffer;
@@ -189,8 +185,7 @@ class JsonSchemaTest
     @Test
     void shouldRejectUnknownTypeName()
     {
-        JsonObject schema = read("{\"type\":\"bogus\"}");
-        assertThrows(IllegalArgumentException.class, () -> JsonSchema.of(schema));
+        assertThrows(IllegalArgumentException.class, () -> JsonSchema.of("{\"type\":\"bogus\"}"));
     }
 
     @Test
@@ -210,8 +205,7 @@ class JsonSchemaTest
     private static void assertUnsupported(
         String schema)
     {
-        JsonObject parsed = read(schema);
-        assertThrows(UnsupportedOperationException.class, () -> JsonSchema.of(parsed));
+        assertThrows(UnsupportedOperationException.class, () -> JsonSchema.of(schema));
     }
 
     private static boolean valid(
@@ -220,13 +214,7 @@ class JsonSchemaTest
     {
         // trailing space terminates a top-level number for the resumable parser,
         // which otherwise treats end-of-input mid-number as awaiting more bytes
-        return JsonSchema.of(read(schema)).validate(parserFor(instance + " "));
-    }
-
-    private static JsonObject read(
-        String schema)
-    {
-        return Json.createReader(new StringReader(schema)).readObject();
+        return JsonSchema.of(schema).validate(parserFor(instance + " "));
     }
 
     private static JsonParser parserFor(

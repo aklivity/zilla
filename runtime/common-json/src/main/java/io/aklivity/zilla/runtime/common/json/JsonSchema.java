@@ -35,10 +35,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-import jakarta.json.JsonNumber;
-import jakarta.json.JsonObject;
-import jakarta.json.JsonString;
-import jakarta.json.JsonValue;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParser.Event;
 
@@ -81,8 +77,8 @@ public final class JsonSchema
 
     private final boolean deny;
     private final Set<JsonType> types;
-    private final List<JsonValue> enums;
-    private final JsonValue constant;
+    private final List<JsonNode> enums;
+    private final JsonNode constant;
     private final BigDecimal minimum;
     private final BigDecimal maximum;
     private final BigDecimal exclusiveMinimum;
@@ -117,9 +113,9 @@ public final class JsonSchema
     private final JsonSchema elseSchema;
 
     public static JsonSchema of(
-        JsonObject schema)
+        String schema)
     {
-        return new JsonSchema(schema);
+        return new JsonSchema(JsonNode.parse(schema));
     }
 
     public boolean validate(
@@ -135,23 +131,23 @@ public final class JsonSchema
     }
 
     private JsonSchema(
-        JsonObject schema)
+        JsonNode schema)
     {
         for (String keyword : UNSUPPORTED)
         {
-            if (schema.containsKey(keyword))
+            if (schema.has(keyword))
             {
                 throw new UnsupportedOperationException("JSON Schema keyword not yet supported: " + keyword);
             }
         }
 
-        JsonValue itemsValue = schema.get("items");
-        boolean tupleItems = itemsValue != null && itemsValue.getValueType() == JsonValue.ValueType.ARRAY;
+        JsonNode itemsValue = schema.get("items");
+        boolean tupleItems = itemsValue != null && itemsValue.isArray();
 
-        JsonValue additional = schema.get("additionalProperties");
-        boolean additionalAllowed = additional == null || additional.getValueType() != JsonValue.ValueType.FALSE;
-        JsonSchema additionalSchema = additional != null && additional.getValueType() == JsonValue.ValueType.OBJECT
-            ? new JsonSchema(additional.asJsonObject())
+        JsonNode additional = schema.get("additionalProperties");
+        boolean additionalAllowed = additional == null || !additional.isFalse();
+        JsonSchema additionalSchema = additional != null && additional.isObject()
+            ? new JsonSchema(additional)
             : null;
 
         this.deny = false;
@@ -165,12 +161,12 @@ public final class JsonSchema
         this.multipleOf = number(schema, "multipleOf");
         this.minLength = integer(schema, "minLength");
         this.maxLength = integer(schema, "maxLength");
-        this.pattern = schema.containsKey("pattern") ? Pattern.compile(schema.getString("pattern")) : null;
+        this.pattern = schema.has("pattern") ? Pattern.compile(schema.get("pattern").string()) : null;
         this.items = itemsValue != null && !tupleItems ? from(itemsValue) : null;
         this.itemsTuple = tupleItems ? parseSchemaArray(itemsValue) : null;
-        this.additionalItems = schema.containsKey("additionalItems") ? from(schema.get("additionalItems")) : null;
-        this.contains = schema.containsKey("contains") ? from(schema.get("contains")) : null;
-        this.uniqueItems = schema.containsKey("uniqueItems") && schema.getBoolean("uniqueItems");
+        this.additionalItems = schema.has("additionalItems") ? from(schema.get("additionalItems")) : null;
+        this.contains = schema.has("contains") ? from(schema.get("contains")) : null;
+        this.uniqueItems = schema.has("uniqueItems") && schema.get("uniqueItems").isTrue();
         this.minItems = integer(schema, "minItems");
         this.maxItems = integer(schema, "maxItems");
         this.properties = parseProperties(schema.get("properties"));
@@ -180,16 +176,16 @@ public final class JsonSchema
         this.minProperties = integer(schema, "minProperties");
         this.maxProperties = integer(schema, "maxProperties");
         this.patternProperties = parsePatternProperties(schema.get("patternProperties"));
-        this.propertyNames = schema.containsKey("propertyNames") ? from(schema.get("propertyNames")) : null;
+        this.propertyNames = schema.has("propertyNames") ? from(schema.get("propertyNames")) : null;
         this.dependentRequired = parseDependentRequired(schema.get("dependencies"));
         this.dependentSchemas = parseDependentSchemas(schema.get("dependencies"));
         this.allOf = parseSchemaArray(schema.get("allOf"));
         this.anyOf = parseSchemaArray(schema.get("anyOf"));
         this.oneOf = parseSchemaArray(schema.get("oneOf"));
-        this.notSchema = schema.containsKey("not") ? from(schema.get("not")) : null;
-        this.ifSchema = schema.containsKey("if") ? from(schema.get("if")) : null;
-        this.thenSchema = schema.containsKey("then") ? from(schema.get("then")) : null;
-        this.elseSchema = schema.containsKey("else") ? from(schema.get("else")) : null;
+        this.notSchema = schema.has("not") ? from(schema.get("not")) : null;
+        this.ifSchema = schema.has("if") ? from(schema.get("if")) : null;
+        this.thenSchema = schema.has("then") ? from(schema.get("then")) : null;
+        this.elseSchema = schema.has("else") ? from(schema.get("else")) : null;
     }
 
     private JsonSchema(
@@ -275,7 +271,7 @@ public final class JsonSchema
         if (valid && enums != null)
         {
             valid = false;
-            for (JsonValue candidate : enums)
+            for (JsonNode candidate : enums)
             {
                 if (scalarEquals(candidate, event, text, number))
                 {
@@ -288,13 +284,13 @@ public final class JsonSchema
     }
 
     private static Map<Pattern, JsonSchema> parsePatternProperties(
-        JsonValue value)
+        JsonNode value)
     {
         Map<Pattern, JsonSchema> result = null;
         if (value != null)
         {
             result = new LinkedHashMap<>();
-            for (Map.Entry<String, JsonValue> entry : value.asJsonObject().entrySet())
+            for (Map.Entry<String, JsonNode> entry : value.members().entrySet())
             {
                 result.put(Pattern.compile(entry.getKey()), from(entry.getValue()));
             }
@@ -303,19 +299,19 @@ public final class JsonSchema
     }
 
     private static Map<String, Set<String>> parseDependentRequired(
-        JsonValue value)
+        JsonNode value)
     {
         Map<String, Set<String>> result = new LinkedHashMap<>();
         if (value != null)
         {
-            for (Map.Entry<String, JsonValue> entry : value.asJsonObject().entrySet())
+            for (Map.Entry<String, JsonNode> entry : value.members().entrySet())
             {
-                if (entry.getValue().getValueType() == JsonValue.ValueType.ARRAY)
+                if (entry.getValue().isArray())
                 {
                     Set<String> names = new HashSet<>();
-                    for (JsonValue name : entry.getValue().asJsonArray())
+                    for (JsonNode name : entry.getValue().elements())
                     {
-                        names.add(((JsonString) name).getString());
+                        names.add(name.string());
                     }
                     result.put(entry.getKey(), names);
                 }
@@ -325,14 +321,14 @@ public final class JsonSchema
     }
 
     private static Map<String, JsonSchema> parseDependentSchemas(
-        JsonValue value)
+        JsonNode value)
     {
         Map<String, JsonSchema> result = new LinkedHashMap<>();
         if (value != null)
         {
-            for (Map.Entry<String, JsonValue> entry : value.asJsonObject().entrySet())
+            for (Map.Entry<String, JsonNode> entry : value.members().entrySet())
             {
-                if (entry.getValue().getValueType() != JsonValue.ValueType.ARRAY)
+                if (!entry.getValue().isArray())
                 {
                     result.put(entry.getKey(), from(entry.getValue()));
                 }
@@ -342,19 +338,19 @@ public final class JsonSchema
     }
 
     private static boolean scalarEquals(
-        JsonValue expected,
+        JsonNode expected,
         Event event,
         String text,
         BigDecimal number)
     {
         boolean result;
-        switch (expected.getValueType())
+        switch (expected.kind())
         {
         case STRING:
-            result = event == VALUE_STRING && ((JsonString) expected).getString().equals(text);
+            result = event == VALUE_STRING && expected.string().equals(text);
             break;
         case NUMBER:
-            result = event == VALUE_NUMBER && number != null && number.compareTo(((JsonNumber) expected).bigDecimalValue()) == 0;
+            result = event == VALUE_NUMBER && number != null && number.compareTo(expected.number()) == 0;
             break;
         case TRUE:
             result = event == VALUE_TRUE;
@@ -373,13 +369,13 @@ public final class JsonSchema
     }
 
     private static JsonSchema from(
-        JsonValue value)
+        JsonNode value)
     {
         JsonSchema result;
-        switch (value.getValueType())
+        switch (value.kind())
         {
         case OBJECT:
-            result = new JsonSchema(value.asJsonObject());
+            result = new JsonSchema(value);
             break;
         case FALSE:
             result = NONE;
@@ -392,24 +388,24 @@ public final class JsonSchema
     }
 
     private static Set<JsonType> parseTypes(
-        JsonValue value)
+        JsonNode value)
     {
         Set<JsonType> result;
         if (value == null)
         {
             result = null;
         }
-        else if (value.getValueType() == JsonValue.ValueType.ARRAY)
+        else if (value.isArray())
         {
             result = EnumSet.noneOf(JsonType.class);
-            for (JsonValue name : value.asJsonArray())
+            for (JsonNode name : value.elements())
             {
-                result.add(toType(((JsonString) name).getString()));
+                result.add(toType(name.string()));
             }
         }
         else
         {
-            result = EnumSet.of(toType(((JsonString) value).getString()));
+            result = EnumSet.of(toType(value.string()));
         }
         return result;
     }
@@ -447,14 +443,14 @@ public final class JsonSchema
         return result;
     }
 
-    private static List<JsonValue> parseEnum(
-        JsonValue value)
+    private static List<JsonNode> parseEnum(
+        JsonNode value)
     {
-        List<JsonValue> result = null;
+        List<JsonNode> result = null;
         if (value != null)
         {
             result = new ArrayList<>();
-            for (JsonValue candidate : value.asJsonArray())
+            for (JsonNode candidate : value.elements())
             {
                 result.add(requireScalar(candidate));
             }
@@ -462,17 +458,16 @@ public final class JsonSchema
         return result;
     }
 
-    private static JsonValue parseConst(
-        JsonValue value)
+    private static JsonNode parseConst(
+        JsonNode value)
     {
         return value != null ? requireScalar(value) : null;
     }
 
-    private static JsonValue requireScalar(
-        JsonValue value)
+    private static JsonNode requireScalar(
+        JsonNode value)
     {
-        JsonValue.ValueType type = value.getValueType();
-        if (type == JsonValue.ValueType.OBJECT || type == JsonValue.ValueType.ARRAY)
+        if (value.isStructural())
         {
             throw new UnsupportedOperationException("JSON Schema structural enum/const not yet supported");
         }
@@ -480,13 +475,13 @@ public final class JsonSchema
     }
 
     private static Map<String, JsonSchema> parseProperties(
-        JsonValue value)
+        JsonNode value)
     {
         Map<String, JsonSchema> result = null;
         if (value != null)
         {
             result = new LinkedHashMap<>();
-            for (Map.Entry<String, JsonValue> entry : value.asJsonObject().entrySet())
+            for (Map.Entry<String, JsonNode> entry : value.members().entrySet())
             {
                 result.put(entry.getKey(), from(entry.getValue()));
             }
@@ -495,28 +490,28 @@ public final class JsonSchema
     }
 
     private static Set<String> parseRequired(
-        JsonValue value)
+        JsonNode value)
     {
         Set<String> result = null;
         if (value != null)
         {
             result = new HashSet<>();
-            for (JsonValue name : value.asJsonArray())
+            for (JsonNode name : value.elements())
             {
-                result.add(((JsonString) name).getString());
+                result.add(name.string());
             }
         }
         return result;
     }
 
     private static List<JsonSchema> parseSchemaArray(
-        JsonValue value)
+        JsonNode value)
     {
         List<JsonSchema> result = null;
         if (value != null)
         {
             result = new ArrayList<>();
-            for (JsonValue element : value.asJsonArray())
+            for (JsonNode element : value.elements())
             {
                 result.add(from(element));
             }
@@ -525,17 +520,17 @@ public final class JsonSchema
     }
 
     private static BigDecimal number(
-        JsonObject schema,
+        JsonNode schema,
         String key)
     {
-        return schema.containsKey(key) ? schema.getJsonNumber(key).bigDecimalValue() : null;
+        return schema.has(key) ? schema.get(key).number() : null;
     }
 
     private static int integer(
-        JsonObject schema,
+        JsonNode schema,
         String key)
     {
-        return schema.containsKey(key) ? schema.getJsonNumber(key).intValue() : -1;
+        return schema.has(key) ? schema.get(key).integer() : -1;
     }
 
     private static String tokenText(
