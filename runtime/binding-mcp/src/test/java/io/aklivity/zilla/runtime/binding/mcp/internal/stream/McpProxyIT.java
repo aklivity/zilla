@@ -127,6 +127,17 @@ public class McpProxyIT
     }
 
     @Test
+    @Configuration("proxy.toolkit.filter.yaml")
+    @Specification({
+        "${app}/tools.call.toolkit.reject.unauthorized/client",
+        "${app}/tools.call.toolkit.reject.unauthorized/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldRejectUnauthorizedToolCallWithToolkit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.yaml")
     @Specification({
         "${app}/tools.list/client",
