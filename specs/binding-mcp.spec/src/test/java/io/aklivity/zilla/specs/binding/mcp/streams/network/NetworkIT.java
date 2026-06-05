@@ -587,6 +587,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/tools.call.elicit.after.result/client",
+        "${net}/tools.call.elicit.after.result/server"})
+    public void shouldCallToolElicitAfterResult() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/tools.call.elicit.passthrough/client",
         "${net}/tools.call.elicit.passthrough/server"})
     public void shouldCallToolElicitPassthrough() throws Exception

@@ -4570,7 +4570,11 @@ public final class McpServerFactory implements McpStreamFactory
                 challengeEx = mcpChallengeExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit());
             }
 
-            if (challengeEx != null && challengeEx.kind() == McpChallengeExFW.KIND_ELICIT_CREATE)
+            if (sse == null && McpState.replyOpening(server.state) && !server.sseUpgrade)
+            {
+                cleanupApp(traceId, authorization);
+            }
+            else if (challengeEx != null && challengeEx.kind() == McpChallengeExFW.KIND_ELICIT_CREATE)
             {
                 onAppChallengeElicitCreate(traceId, authorization, challengeEx.elicitCreate());
             }
