@@ -66,8 +66,8 @@ public final class JsonSchema
     private static final JsonSchema NONE = new JsonSchema(true);
 
     private static final List<String> UNSUPPORTED = List.of(
-        "patternProperties", "$ref", "dependencies", "dependentRequired",
-        "dependentSchemas", "propertyNames", "contains", "uniqueItems", "additionalItems");
+        "$ref", "dependencies", "dependentRequired",
+        "dependentSchemas", "contains", "uniqueItems", "additionalItems");
 
     private enum JsonType
     {
@@ -100,6 +100,8 @@ public final class JsonSchema
     private final JsonSchema additionalSchema;
     private final int minProperties;
     private final int maxProperties;
+    private final Map<Pattern, JsonSchema> patternProperties;
+    private final JsonSchema propertyNames;
     private final List<JsonSchema> allOf;
     private final List<JsonSchema> anyOf;
     private final List<JsonSchema> oneOf;
@@ -170,6 +172,8 @@ public final class JsonSchema
         this.additionalSchema = additionalSchema;
         this.minProperties = integer(schema, "minProperties");
         this.maxProperties = integer(schema, "maxProperties");
+        this.patternProperties = parsePatternProperties(schema.get("patternProperties"));
+        this.propertyNames = schema.containsKey("propertyNames") ? from(schema.get("propertyNames")) : null;
         this.allOf = parseSchemaArray(schema.get("allOf"));
         this.anyOf = parseSchemaArray(schema.get("anyOf"));
         this.oneOf = parseSchemaArray(schema.get("oneOf"));
@@ -203,6 +207,8 @@ public final class JsonSchema
         this.additionalSchema = null;
         this.minProperties = -1;
         this.maxProperties = -1;
+        this.patternProperties = null;
+        this.propertyNames = null;
         this.allOf = null;
         this.anyOf = null;
         this.oneOf = null;
@@ -266,15 +272,19 @@ public final class JsonSchema
         return valid;
     }
 
-    private JsonSchema childFor(
-        String key)
+    private static Map<Pattern, JsonSchema> parsePatternProperties(
+        JsonValue value)
     {
-        JsonSchema child = properties != null ? properties.get(key) : null;
-        if (child == null)
+        Map<Pattern, JsonSchema> result = null;
+        if (value != null)
         {
-            child = additionalSchema != null ? additionalSchema : additionalAllowed ? ANY : NONE;
+            result = new LinkedHashMap<>();
+            for (Map.Entry<String, JsonValue> entry : value.asJsonObject().entrySet())
+            {
+                result.put(Pattern.compile(entry.getKey()), from(entry.getValue()));
+            }
         }
-        return child;
+        return result;
     }
 
     private static boolean scalarEquals(
@@ -493,7 +503,7 @@ public final class JsonSchema
         private boolean array;
         private Set<String> seen;
         private int count;
-        private Eval directChild;
+        private Eval[] directChildren;
 
         private Eval()
         {
@@ -598,9 +608,9 @@ public final class JsonSchema
             Event event,
             JsonParser parser)
         {
-            if (directChild != null)
+            if (directChildren != null)
             {
-                routeChild(event, parser);
+                routeChildren(event, parser);
             }
             else if (object)
             {
@@ -627,7 +637,11 @@ public final class JsonSchema
                 String key = parser.getString();
                 count++;
                 seen.add(key);
-                directChild = childFor(key).eval();
+                if (propertyNames != null)
+                {
+                    directInvalid |= propertyNames.eval().feed(VALUE_STRING, parser) != Verdict.VALID;
+                }
+                directChildren = applicableFor(key);
             }
         }
 
@@ -643,21 +657,57 @@ public final class JsonSchema
             else
             {
                 count++;
-                directChild = (items != null ? items : ANY).eval();
-                routeChild(event, parser);
+                directChildren = new Eval[] {(items != null ? items : ANY).eval()};
+                routeChildren(event, parser);
             }
         }
 
-        private void routeChild(
+        private void routeChildren(
             Event event,
             JsonParser parser)
         {
-            Verdict verdict = directChild.feed(event, parser);
-            if (verdict != Verdict.PENDING)
+            boolean complete = false;
+            for (Eval child : directChildren)
             {
-                directInvalid |= verdict == Verdict.INVALID;
-                directChild = null;
+                Verdict verdict = child.feed(event, parser);
+                if (verdict != Verdict.PENDING)
+                {
+                    directInvalid |= verdict == Verdict.INVALID;
+                    complete = true;
+                }
             }
+            if (complete)
+            {
+                directChildren = null;
+            }
+        }
+
+        private Eval[] applicableFor(
+            String key)
+        {
+            List<JsonSchema> applicable = new ArrayList<>();
+            boolean matched = false;
+            if (properties != null && properties.containsKey(key))
+            {
+                applicable.add(properties.get(key));
+                matched = true;
+            }
+            if (patternProperties != null)
+            {
+                for (Map.Entry<Pattern, JsonSchema> entry : patternProperties.entrySet())
+                {
+                    if (entry.getKey().matcher(key).find())
+                    {
+                        applicable.add(entry.getValue());
+                        matched = true;
+                    }
+                }
+            }
+            if (!matched)
+            {
+                applicable.add(additionalSchema != null ? additionalSchema : additionalAllowed ? ANY : NONE);
+            }
+            return evalsOf(applicable);
         }
 
         private void feedCombinators(

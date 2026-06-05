@@ -197,9 +197,7 @@ class JsonSchemaTest
     void shouldFailFastForUnsupportedKeywords()
     {
         assertUnsupported("{\"$ref\":\"#\"}");
-        assertUnsupported("{\"patternProperties\":{}}");
         assertUnsupported("{\"uniqueItems\":true}");
-        assertUnsupported("{\"propertyNames\":{}}");
         assertUnsupported("{\"contains\":{}}");
     }
 
