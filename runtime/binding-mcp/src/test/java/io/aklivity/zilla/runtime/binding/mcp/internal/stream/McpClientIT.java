@@ -283,6 +283,16 @@ public class McpClientIT
     }
 
     @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/tools.call.is.error/client",
+        "${net}/tools.call.is.error/server"})
+    public void shouldCallToolIsError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("client.identity.yaml")
     @Specification({
         "${app}/tools.call/client",

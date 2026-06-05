@@ -96,6 +96,17 @@ public class McpProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Specification({
+        "${app}/tools.call.is.error/client",
+        "${app}/tools.call.is.error/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldCallToolIsError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
         "${app}/tools.call.aborted/client",
         "${app}/tools.call.aborted/server" })
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")

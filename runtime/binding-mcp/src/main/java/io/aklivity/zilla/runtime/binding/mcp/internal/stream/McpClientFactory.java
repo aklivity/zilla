@@ -71,7 +71,9 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBearerErro
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpChallengeExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpElicitStatus;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpEndExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpFlushExFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpOutcome;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpResetExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.SignalFW;
@@ -190,6 +192,7 @@ public final class McpClientFactory implements McpStreamFactory
     private final HttpBeginExFW.Builder httpBeginExRW = new HttpBeginExFW.Builder();
     private final McpBeginExFW.Builder mcpBeginExRW = new McpBeginExFW.Builder();
     private final McpChallengeExFW.Builder mcpChallengeExRW = new McpChallengeExFW.Builder();
+    private final McpEndExFW.Builder mcpEndExRW = new McpEndExFW.Builder();
     private final McpFlushExFW.Builder mcpFlushExRW = new McpFlushExFW.Builder();
     private final McpResetExFW.Builder mcpResetExRW = new McpResetExFW.Builder();
 
@@ -785,6 +788,20 @@ public final class McpClientFactory implements McpStreamFactory
                 {
                     http.decoder = http.decodedSkipObjectThen;
                     break;
+                }
+            }
+            else if (http.decodedSkipObjectThen == decodeJsonRpcResultEnd)
+            {
+                if (http.decodedResultErrorKey)
+                {
+                    http.responseError = event == JsonParser.Event.VALUE_TRUE;
+                    http.decodedResultErrorKey = false;
+                }
+                else if (event == JsonParser.Event.KEY_NAME &&
+                    http.decodedSkipObjectDepth == 1 &&
+                    "isError".equals(parser.getString()))
+                {
+                    http.decodedResultErrorKey = true;
                 }
             }
         }
@@ -2016,9 +2033,22 @@ public final class McpClientFactory implements McpStreamFactory
             if (!McpState.replyClosed(state))
             {
                 state = McpState.closedReply(state);
-                doEnd(sender, originId, routedId, replyId,
-                    replySeq, replyAck, replyMax,
-                    traceId, authorization);
+                if (http != null && http.responseError)
+                {
+                    McpEndExFW endEx = mcpEndExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                        .typeId(mcpTypeId)
+                        .outcome(o -> o.set(McpOutcome.ERROR))
+                        .build();
+                    doEnd(sender, originId, routedId, replyId,
+                        replySeq, replyAck, replyMax,
+                        traceId, authorization, endEx);
+                }
+                else
+                {
+                    doEnd(sender, originId, routedId, replyId,
+                        replySeq, replyAck, replyMax,
+                        traceId, authorization);
+                }
 
                 onAppClosed(traceId, authorization);
             }
@@ -3416,6 +3446,8 @@ public final class McpClientFactory implements McpStreamFactory
         protected int decodedParserProgress;
         protected HttpResponseDecoder decodedSkipObjectThen;
         protected int decodedSkipObjectDepth;
+        protected boolean decodedResultErrorKey;
+        protected boolean responseError;
 
         protected boolean sseMode;
         protected String sseEventId;
@@ -5525,6 +5557,33 @@ public final class McpClientFactory implements McpStreamFactory
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
+            .build();
+
+        receiver.accept(end.typeId(), end.buffer(), end.offset(), end.sizeof());
+    }
+
+    private void doEnd(
+        MessageConsumer receiver,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        Flyweight extension)
+    {
+        final EndFW end = endRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+            .originId(originId)
+            .routedId(routedId)
+            .streamId(streamId)
+            .sequence(sequence)
+            .acknowledge(acknowledge)
+            .maximum(maximum)
+            .traceId(traceId)
+            .authorization(authorization)
+            .extension(extension.buffer(), extension.offset(), extension.sizeof())
             .build();
 
         receiver.accept(end.typeId(), end.buffer(), end.offset(), end.sizeof());

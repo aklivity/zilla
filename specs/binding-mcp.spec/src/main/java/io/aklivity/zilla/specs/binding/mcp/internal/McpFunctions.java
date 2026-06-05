@@ -38,8 +38,10 @@ import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpElicitCallba
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpElicitCompleteFlushExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpElicitCreateChallengeExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpElicitStatus;
+import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpEndExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpFlushExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpLifecycleBeginExFW;
+import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpOutcome;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpProgressFlushExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpPromptsGetBeginExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpPromptsListBeginExFW;
@@ -894,6 +896,18 @@ public final class McpFunctions
     public static McpAbortExMatcherBuilder matchAbortEx()
     {
         return new McpAbortExMatcherBuilder();
+    }
+
+    @Function
+    public static McpEndExBuilder endEx()
+    {
+        return new McpEndExBuilder();
+    }
+
+    @Function
+    public static McpEndExMatcherBuilder matchEndEx()
+    {
+        return new McpEndExMatcherBuilder();
     }
 
     @Function
@@ -2239,6 +2253,102 @@ public final class McpFunctions
             McpAbortExFW abortEx)
         {
             return reason == null || reason.equals(abortEx.reason());
+        }
+    }
+
+    public static final class McpEndExBuilder
+    {
+        private final MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[256]);
+        private final McpEndExFW.Builder endExRW = new McpEndExFW.Builder();
+
+        private McpEndExBuilder()
+        {
+            endExRW.wrap(writeBuffer, 0, writeBuffer.capacity());
+        }
+
+        public McpEndExBuilder typeId(
+            int typeId)
+        {
+            endExRW.typeId(typeId);
+            return this;
+        }
+
+        public McpEndExBuilder outcome(
+            String outcome)
+        {
+            final McpOutcome resolved = McpOutcome.valueOf(outcome);
+            endExRW.outcome(o -> o.set(resolved));
+            return this;
+        }
+
+        public byte[] build()
+        {
+            final McpEndExFW endEx = endExRW.build();
+            final byte[] array = new byte[endEx.sizeof()];
+            writeBuffer.getBytes(endEx.offset(), array);
+            return array;
+        }
+    }
+
+    public static final class McpEndExMatcherBuilder
+    {
+        private final DirectBuffer bufferRO = new UnsafeBuffer();
+        private final McpEndExFW endExRO = new McpEndExFW();
+
+        private Integer typeId;
+        private McpOutcome outcome;
+
+        public McpEndExMatcherBuilder typeId(
+            int typeId)
+        {
+            this.typeId = typeId;
+            return this;
+        }
+
+        public McpEndExMatcherBuilder outcome(
+            String outcome)
+        {
+            this.outcome = McpOutcome.valueOf(outcome);
+            return this;
+        }
+
+        public BytesMatcher build()
+        {
+            return typeId != null || outcome != null ? this::match : buf -> null;
+        }
+
+        private McpEndExFW match(
+            ByteBuffer byteBuf) throws Exception
+        {
+            if (!byteBuf.hasRemaining())
+            {
+                return null;
+            }
+
+            bufferRO.wrap(byteBuf);
+            final McpEndExFW endEx = endExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.capacity());
+
+            if (endEx != null &&
+                matchTypeId(endEx) &&
+                matchOutcome(endEx))
+            {
+                byteBuf.position(byteBuf.position() + endEx.sizeof());
+                return endEx;
+            }
+
+            throw new Exception(endEx != null ? endEx.toString() : "null");
+        }
+
+        private boolean matchTypeId(
+            McpEndExFW endEx)
+        {
+            return typeId == null || typeId == endEx.typeId();
+        }
+
+        private boolean matchOutcome(
+            McpEndExFW endEx)
+        {
+            return outcome == null || outcome == endEx.outcome().get();
         }
     }
 

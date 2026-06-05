@@ -60,6 +60,7 @@
     <module>guard-jwt</module>
     <module>metrics-grpc</module>
     <module>metrics-http</module>
+    <module>metrics-mcp</module>
     <module>metrics-stream</module>
     <module>model-avro</module>
     <module>model-core</module>
@@ -285,6 +286,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>metrics-http</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>metrics-mcp</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

@@ -32,7 +32,9 @@ import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpBearerError;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpChallengeExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpElicitStatus;
+import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpEndExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpFlushExFW;
+import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpOutcome;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpResetExFW;
 
 public class McpFunctionsTest
@@ -459,6 +461,82 @@ public class McpFunctionsTest
             .reason("consumer-reason")
             .build()
             .match(byteBuf));
+    }
+
+    @Test
+    public void shouldGenerateEndEx()
+    {
+        byte[] bytes = McpFunctions.endEx()
+            .typeId(0)
+            .outcome("ERROR")
+            .build();
+
+        assertNotNull(bytes);
+    }
+
+    @Test
+    public void shouldMatchEndEx() throws Exception
+    {
+        BytesMatcher matcher = McpFunctions.matchEndEx()
+            .typeId(0)
+            .outcome("ERROR")
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new McpEndExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .outcome(o -> o.set(McpOutcome.ERROR))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchEndExByTypeIdOnly() throws Exception
+    {
+        BytesMatcher matcher = McpFunctions.matchEndEx()
+            .typeId(0)
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new McpEndExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .outcome(o -> o.set(McpOutcome.OK))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldReturnNullWhenEndExMatcherIsEmpty() throws Exception
+    {
+        BytesMatcher matcher = McpFunctions.matchEndEx()
+            .build();
+
+        assertNull(matcher.match(ByteBuffer.allocate(0)));
+    }
+
+    @Test(expected = Exception.class)
+    public void shouldFailWhenEndExOutcomeMismatch() throws Exception
+    {
+        BytesMatcher matcher = McpFunctions.matchEndEx()
+            .typeId(0)
+            .outcome("OK")
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new McpEndExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .outcome(o -> o.set(McpOutcome.ERROR))
+            .build();
+
+        matcher.match(byteBuf);
     }
 
     @Test
