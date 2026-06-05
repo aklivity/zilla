@@ -28,8 +28,10 @@ import static jakarta.json.stream.JsonParser.Event.VALUE_TRUE;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -62,8 +64,13 @@ public final class JsonSchema
     private static final JsonSchema ANY = new JsonSchema(false);
     private static final JsonSchema NONE = new JsonSchema(true);
 
+    private static final RefResolver LOCAL_ONLY = ref ->
+    {
+        throw new UnsupportedOperationException("non-local $ref not resolvable: " + ref);
+    };
+
     private static final List<String> UNSUPPORTED = List.of(
-        "$ref", "dependentRequired", "dependentSchemas");
+        "dependentRequired", "dependentSchemas");
 
     private enum JsonType
     {
@@ -76,6 +83,8 @@ public final class JsonSchema
     }
 
     private final boolean deny;
+    private final String ref;
+    private final Context context;
     private final Set<JsonType> types;
     private final List<JsonNode> enums;
     private final JsonNode constant;
@@ -115,13 +124,29 @@ public final class JsonSchema
     public static JsonSchema of(
         String schema)
     {
-        return new JsonSchema(JsonNode.parse(schema));
+        return of(schema, LOCAL_ONLY);
+    }
+
+    public static JsonSchema of(
+        String schema,
+        RefResolver resolver)
+    {
+        JsonNode root = JsonNode.parse(schema);
+        return from(root, new Context(root, resolver));
+    }
+
+    public static Set<String> collectRefs(
+        String schema)
+    {
+        Set<String> refs = new LinkedHashSet<>();
+        collectRefs(JsonNode.parse(schema), refs);
+        return refs;
     }
 
     public boolean validate(
         JsonParser parser)
     {
-        Eval eval = new Eval();
+        Eval eval = eval();
         Verdict verdict = Verdict.PENDING;
         while (parser.hasNext() && verdict == Verdict.PENDING)
         {
@@ -131,7 +156,8 @@ public final class JsonSchema
     }
 
     private JsonSchema(
-        JsonNode schema)
+        JsonNode schema,
+        Context context)
     {
         for (String keyword : UNSUPPORTED)
         {
@@ -147,10 +173,12 @@ public final class JsonSchema
         JsonNode additional = schema.get("additionalProperties");
         boolean additionalAllowed = additional == null || !additional.isFalse();
         JsonSchema additionalSchema = additional != null && additional.isObject()
-            ? new JsonSchema(additional)
+            ? from(additional, context)
             : null;
 
         this.deny = false;
+        this.ref = null;
+        this.context = context;
         this.types = parseTypes(schema.get("type"));
         this.enums = parseEnum(schema.get("enum"));
         this.constant = parseConst(schema.get("const"));
@@ -162,36 +190,82 @@ public final class JsonSchema
         this.minLength = integer(schema, "minLength");
         this.maxLength = integer(schema, "maxLength");
         this.pattern = schema.has("pattern") ? Pattern.compile(schema.get("pattern").string()) : null;
-        this.items = itemsValue != null && !tupleItems ? from(itemsValue) : null;
-        this.itemsTuple = tupleItems ? parseSchemaArray(itemsValue) : null;
-        this.additionalItems = schema.has("additionalItems") ? from(schema.get("additionalItems")) : null;
-        this.contains = schema.has("contains") ? from(schema.get("contains")) : null;
+        this.items = itemsValue != null && !tupleItems ? from(itemsValue, context) : null;
+        this.itemsTuple = tupleItems ? parseSchemaArray(itemsValue, context) : null;
+        this.additionalItems = schema.has("additionalItems") ? from(schema.get("additionalItems"), context) : null;
+        this.contains = schema.has("contains") ? from(schema.get("contains"), context) : null;
         this.uniqueItems = schema.has("uniqueItems") && schema.get("uniqueItems").isTrue();
         this.minItems = integer(schema, "minItems");
         this.maxItems = integer(schema, "maxItems");
-        this.properties = parseProperties(schema.get("properties"));
+        this.properties = parseProperties(schema.get("properties"), context);
         this.required = parseRequired(schema.get("required"));
         this.additionalAllowed = additionalAllowed;
         this.additionalSchema = additionalSchema;
         this.minProperties = integer(schema, "minProperties");
         this.maxProperties = integer(schema, "maxProperties");
-        this.patternProperties = parsePatternProperties(schema.get("patternProperties"));
-        this.propertyNames = schema.has("propertyNames") ? from(schema.get("propertyNames")) : null;
+        this.patternProperties = parsePatternProperties(schema.get("patternProperties"), context);
+        this.propertyNames = schema.has("propertyNames") ? from(schema.get("propertyNames"), context) : null;
         this.dependentRequired = parseDependentRequired(schema.get("dependencies"));
-        this.dependentSchemas = parseDependentSchemas(schema.get("dependencies"));
-        this.allOf = parseSchemaArray(schema.get("allOf"));
-        this.anyOf = parseSchemaArray(schema.get("anyOf"));
-        this.oneOf = parseSchemaArray(schema.get("oneOf"));
-        this.notSchema = schema.has("not") ? from(schema.get("not")) : null;
-        this.ifSchema = schema.has("if") ? from(schema.get("if")) : null;
-        this.thenSchema = schema.has("then") ? from(schema.get("then")) : null;
-        this.elseSchema = schema.has("else") ? from(schema.get("else")) : null;
+        this.dependentSchemas = parseDependentSchemas(schema.get("dependencies"), context);
+        this.allOf = parseSchemaArray(schema.get("allOf"), context);
+        this.anyOf = parseSchemaArray(schema.get("anyOf"), context);
+        this.oneOf = parseSchemaArray(schema.get("oneOf"), context);
+        this.notSchema = schema.has("not") ? from(schema.get("not"), context) : null;
+        this.ifSchema = schema.has("if") ? from(schema.get("if"), context) : null;
+        this.thenSchema = schema.has("then") ? from(schema.get("then"), context) : null;
+        this.elseSchema = schema.has("else") ? from(schema.get("else"), context) : null;
+    }
+
+    private JsonSchema(
+        String ref,
+        Context context)
+    {
+        this.deny = false;
+        this.ref = ref;
+        this.context = context;
+        this.types = null;
+        this.enums = null;
+        this.constant = null;
+        this.minimum = null;
+        this.maximum = null;
+        this.exclusiveMinimum = null;
+        this.exclusiveMaximum = null;
+        this.multipleOf = null;
+        this.minLength = -1;
+        this.maxLength = -1;
+        this.pattern = null;
+        this.items = null;
+        this.itemsTuple = null;
+        this.additionalItems = null;
+        this.contains = null;
+        this.uniqueItems = false;
+        this.minItems = -1;
+        this.maxItems = -1;
+        this.properties = null;
+        this.required = null;
+        this.additionalAllowed = true;
+        this.additionalSchema = null;
+        this.minProperties = -1;
+        this.maxProperties = -1;
+        this.patternProperties = null;
+        this.propertyNames = null;
+        this.dependentRequired = null;
+        this.dependentSchemas = null;
+        this.allOf = null;
+        this.anyOf = null;
+        this.oneOf = null;
+        this.notSchema = null;
+        this.ifSchema = null;
+        this.thenSchema = null;
+        this.elseSchema = null;
     }
 
     private JsonSchema(
         boolean deny)
     {
         this.deny = deny;
+        this.ref = null;
+        this.context = null;
         this.types = null;
         this.enums = null;
         this.constant = null;
@@ -230,6 +304,25 @@ public final class JsonSchema
     }
 
     private Eval eval()
+    {
+        JsonSchema schema = this;
+        Set<String> visited = null;
+        while (schema.ref != null)
+        {
+            if (visited == null)
+            {
+                visited = new HashSet<>();
+            }
+            if (!visited.add(schema.ref))
+            {
+                throw new IllegalStateException("cyclic $ref: " + schema.ref);
+            }
+            schema = schema.context.resolve(schema.ref);
+        }
+        return schema.evalDirect();
+    }
+
+    private Eval evalDirect()
     {
         return new Eval();
     }
@@ -284,7 +377,8 @@ public final class JsonSchema
     }
 
     private static Map<Pattern, JsonSchema> parsePatternProperties(
-        JsonNode value)
+        JsonNode value,
+        Context context)
     {
         Map<Pattern, JsonSchema> result = null;
         if (value != null)
@@ -292,7 +386,7 @@ public final class JsonSchema
             result = new LinkedHashMap<>();
             for (Map.Entry<String, JsonNode> entry : value.members().entrySet())
             {
-                result.put(Pattern.compile(entry.getKey()), from(entry.getValue()));
+                result.put(Pattern.compile(entry.getKey()), from(entry.getValue(), context));
             }
         }
         return result;
@@ -321,7 +415,8 @@ public final class JsonSchema
     }
 
     private static Map<String, JsonSchema> parseDependentSchemas(
-        JsonNode value)
+        JsonNode value,
+        Context context)
     {
         Map<String, JsonSchema> result = new LinkedHashMap<>();
         if (value != null)
@@ -330,7 +425,7 @@ public final class JsonSchema
             {
                 if (!entry.getValue().isArray())
                 {
-                    result.put(entry.getKey(), from(entry.getValue()));
+                    result.put(entry.getKey(), from(entry.getValue(), context));
                 }
             }
         }
@@ -369,22 +464,55 @@ public final class JsonSchema
     }
 
     private static JsonSchema from(
-        JsonNode value)
+        JsonNode value,
+        Context context)
     {
         JsonSchema result;
-        switch (value.kind())
+        if (value.isObject() && value.has("$ref"))
         {
-        case OBJECT:
-            result = new JsonSchema(value);
-            break;
-        case FALSE:
-            result = NONE;
-            break;
-        default:
-            result = ANY;
-            break;
+            result = new JsonSchema(value.get("$ref").string(), context);
+        }
+        else
+        {
+            switch (value.kind())
+            {
+            case OBJECT:
+                result = new JsonSchema(value, context);
+                break;
+            case FALSE:
+                result = NONE;
+                break;
+            default:
+                result = ANY;
+                break;
+            }
         }
         return result;
+    }
+
+    private static void collectRefs(
+        JsonNode node,
+        Set<String> refs)
+    {
+        if (node.isObject())
+        {
+            JsonNode ref = node.get("$ref");
+            if (ref != null && ref.isString())
+            {
+                refs.add(ref.string());
+            }
+            for (JsonNode member : node.members().values())
+            {
+                collectRefs(member, refs);
+            }
+        }
+        else if (node.isArray())
+        {
+            for (JsonNode element : node.elements())
+            {
+                collectRefs(element, refs);
+            }
+        }
     }
 
     private static Set<JsonType> parseTypes(
@@ -475,7 +603,8 @@ public final class JsonSchema
     }
 
     private static Map<String, JsonSchema> parseProperties(
-        JsonNode value)
+        JsonNode value,
+        Context context)
     {
         Map<String, JsonSchema> result = null;
         if (value != null)
@@ -483,7 +612,7 @@ public final class JsonSchema
             result = new LinkedHashMap<>();
             for (Map.Entry<String, JsonNode> entry : value.members().entrySet())
             {
-                result.put(entry.getKey(), from(entry.getValue()));
+                result.put(entry.getKey(), from(entry.getValue(), context));
             }
         }
         return result;
@@ -505,7 +634,8 @@ public final class JsonSchema
     }
 
     private static List<JsonSchema> parseSchemaArray(
-        JsonNode value)
+        JsonNode value,
+        Context context)
     {
         List<JsonSchema> result = null;
         if (value != null)
@@ -513,7 +643,7 @@ public final class JsonSchema
             result = new ArrayList<>();
             for (JsonNode element : value.elements())
             {
-                result.add(from(element));
+                result.add(from(element, context));
             }
         }
         return result;
@@ -602,6 +732,67 @@ public final class JsonSchema
     {
         BigDecimal value = new BigDecimal(text);
         return value.signum() == 0 ? "0" : value.stripTrailingZeros().toPlainString();
+    }
+
+    private static final class Context
+    {
+        private final JsonNode root;
+        private final RefResolver resolver;
+        private final Map<String, JsonSchema> cache;
+
+        private Context(
+            JsonNode root,
+            RefResolver resolver)
+        {
+            this.root = root;
+            this.resolver = resolver;
+            this.cache = new HashMap<>();
+        }
+
+        private JsonSchema resolve(
+            String ref)
+        {
+            JsonSchema schema = cache.get(ref);
+            if (schema == null)
+            {
+                schema = from(target(ref), this);
+                cache.put(ref, schema);
+            }
+            return schema;
+        }
+
+        private JsonNode target(
+            String ref)
+        {
+            JsonNode node;
+            if (ref.startsWith("#"))
+            {
+                node = root;
+                String pointer = ref.substring(1);
+                if (!pointer.isEmpty())
+                {
+                    for (String segment : pointer.substring(1).split("/", -1))
+                    {
+                        String key = segment.replace("~1", "/").replace("~0", "~");
+                        node = node.isArray() ? node.elements().get(Integer.parseInt(key)) : node.get(key);
+                        if (node == null)
+                        {
+                            throw new IllegalArgumentException("unresolved $ref: " + ref);
+                        }
+                    }
+                }
+            }
+            else
+            {
+                String text = resolver.resolve(ref);
+                if (text == null)
+                {
+                    throw new IllegalArgumentException("unresolved $ref: " + ref);
+                }
+                node = JsonNode.parse(text);
+            }
+            return node;
+        }
     }
 
     private static final class Token
