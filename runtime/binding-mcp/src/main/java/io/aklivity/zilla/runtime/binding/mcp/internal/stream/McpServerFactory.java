@@ -4570,7 +4570,11 @@ public final class McpServerFactory implements McpStreamFactory
                 challengeEx = mcpChallengeExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit());
             }
 
-            if (challengeEx != null && challengeEx.kind() == McpChallengeExFW.KIND_ELICIT_CREATE)
+            if (sse == null && McpState.replyOpening(server.state) && !server.sseUpgrade)
+            {
+                cleanupApp(traceId, authorization);
+            }
+            else if (challengeEx != null && challengeEx.kind() == McpChallengeExFW.KIND_ELICIT_CREATE)
             {
                 onAppChallengeElicitCreate(traceId, authorization, challengeEx.elicitCreate());
             }
@@ -4714,32 +4718,32 @@ public final class McpServerFactory implements McpStreamFactory
 
             assert replyAck <= replySeq;
 
+            final McpFlushExFW flushEx = extension.get(mcpFlushExRO::tryWrap);
+
             if (replySeq > replyAck + decodeMax)
             {
                 cleanupApp(traceId, authorization);
             }
             else if (!server.sseUpgrade)
             {
-                cleanupApp(traceId, authorization);
-            }
-            else if (extension.sizeof() > 0)
-            {
-                final McpFlushExFW flushEx =
-                    mcpFlushExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit());
-                if (flushEx != null)
+                if (flushEx == null || flushEx.kind() != McpFlushExFW.KIND_RESUMABLE)
                 {
-                    if (flushEx.kind() == McpFlushExFW.KIND_ELICIT_COMPLETE)
-                    {
-                        onAppFlushElicitComplete(traceId, authorization, flushEx.elicitComplete());
-                    }
-                    else if (sse != null)
-                    {
-                        encodeRequestEventViaEventStream(traceId, authorization, flushEx);
-                    }
-                    else
-                    {
-                        server.doEncodeRequestEvent(traceId, authorization, requestId, flushEx);
-                    }
+                    cleanupApp(traceId, authorization);
+                }
+            }
+            else if (flushEx != null)
+            {
+                if (flushEx.kind() == McpFlushExFW.KIND_ELICIT_COMPLETE)
+                {
+                    onAppFlushElicitComplete(traceId, authorization, flushEx.elicitComplete());
+                }
+                else if (sse != null)
+                {
+                    encodeRequestEventViaEventStream(traceId, authorization, flushEx);
+                }
+                else
+                {
+                    server.doEncodeRequestEvent(traceId, authorization, requestId, flushEx);
                 }
             }
         }
