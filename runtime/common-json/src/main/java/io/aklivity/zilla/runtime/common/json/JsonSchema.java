@@ -66,8 +66,7 @@ public final class JsonSchema
     private static final JsonSchema NONE = new JsonSchema(true);
 
     private static final List<String> UNSUPPORTED = List.of(
-        "$ref", "dependencies", "dependentRequired",
-        "dependentSchemas", "contains", "uniqueItems", "additionalItems");
+        "$ref", "dependencies", "dependentRequired", "dependentSchemas", "uniqueItems");
 
     private enum JsonType
     {
@@ -92,6 +91,9 @@ public final class JsonSchema
     private final int maxLength;
     private final Pattern pattern;
     private final JsonSchema items;
+    private final List<JsonSchema> itemsTuple;
+    private final JsonSchema additionalItems;
+    private final JsonSchema contains;
     private final int minItems;
     private final int maxItems;
     private final Map<String, JsonSchema> properties;
@@ -140,10 +142,7 @@ public final class JsonSchema
         }
 
         JsonValue itemsValue = schema.get("items");
-        if (itemsValue != null && itemsValue.getValueType() == JsonValue.ValueType.ARRAY)
-        {
-            throw new UnsupportedOperationException("JSON Schema tuple items not yet supported");
-        }
+        boolean tupleItems = itemsValue != null && itemsValue.getValueType() == JsonValue.ValueType.ARRAY;
 
         JsonValue additional = schema.get("additionalProperties");
         boolean additionalAllowed = additional == null || additional.getValueType() != JsonValue.ValueType.FALSE;
@@ -163,7 +162,10 @@ public final class JsonSchema
         this.minLength = integer(schema, "minLength");
         this.maxLength = integer(schema, "maxLength");
         this.pattern = schema.containsKey("pattern") ? Pattern.compile(schema.getString("pattern")) : null;
-        this.items = itemsValue != null ? from(itemsValue) : null;
+        this.items = itemsValue != null && !tupleItems ? from(itemsValue) : null;
+        this.itemsTuple = tupleItems ? parseSchemaArray(itemsValue) : null;
+        this.additionalItems = schema.containsKey("additionalItems") ? from(schema.get("additionalItems")) : null;
+        this.contains = schema.containsKey("contains") ? from(schema.get("contains")) : null;
         this.minItems = integer(schema, "minItems");
         this.maxItems = integer(schema, "maxItems");
         this.properties = parseProperties(schema.get("properties"));
@@ -199,6 +201,9 @@ public final class JsonSchema
         this.maxLength = -1;
         this.pattern = null;
         this.items = null;
+        this.itemsTuple = null;
+        this.additionalItems = null;
+        this.contains = null;
         this.minItems = -1;
         this.maxItems = -1;
         this.properties = null;
@@ -504,6 +509,8 @@ public final class JsonSchema
         private Set<String> seen;
         private int count;
         private Eval[] directChildren;
+        private Eval containsChild;
+        private int containsMatched;
 
         private Eval()
         {
@@ -652,14 +659,41 @@ public final class JsonSchema
             if (event == END_ARRAY)
             {
                 directInvalid |= minItems >= 0 && count < minItems ||
-                    maxItems >= 0 && count > maxItems;
+                    maxItems >= 0 && count > maxItems ||
+                    contains != null && containsMatched == 0;
             }
             else
             {
+                int index = count;
                 count++;
-                directChildren = new Eval[] {(items != null ? items : ANY).eval()};
+                directChildren = new Eval[] {elementSchema(index).eval()};
+                if (contains != null)
+                {
+                    containsChild = contains.eval();
+                }
                 routeChildren(event, parser);
             }
+        }
+
+        private JsonSchema elementSchema(
+            int index)
+        {
+            JsonSchema schema;
+            if (items != null)
+            {
+                schema = items;
+            }
+            else if (itemsTuple != null)
+            {
+                schema = index < itemsTuple.size()
+                    ? itemsTuple.get(index)
+                    : additionalItems != null ? additionalItems : ANY;
+            }
+            else
+            {
+                schema = ANY;
+            }
+            return schema;
         }
 
         private void routeChildren(
@@ -674,6 +708,18 @@ public final class JsonSchema
                 {
                     directInvalid |= verdict == Verdict.INVALID;
                     complete = true;
+                }
+            }
+            if (containsChild != null)
+            {
+                Verdict verdict = containsChild.feed(event, parser);
+                if (verdict != Verdict.PENDING)
+                {
+                    if (verdict == Verdict.VALID)
+                    {
+                        containsMatched++;
+                    }
+                    containsChild = null;
                 }
             }
             if (complete)

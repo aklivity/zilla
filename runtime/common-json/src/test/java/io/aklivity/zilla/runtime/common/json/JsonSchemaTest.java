@@ -198,13 +198,6 @@ class JsonSchemaTest
     {
         assertUnsupported("{\"$ref\":\"#\"}");
         assertUnsupported("{\"uniqueItems\":true}");
-        assertUnsupported("{\"contains\":{}}");
-    }
-
-    @Test
-    void shouldFailFastForTupleItems()
-    {
-        assertUnsupported("{\"items\":[]}");
     }
 
     @Test
