@@ -204,6 +204,16 @@ public final class StreamingJsonTokenizer
         return streamOffset;
     }
 
+    public boolean inObjectContext()
+    {
+        return pathDepth > 0 && !pathInArray[pathDepth - 1];
+    }
+
+    public boolean inArrayContext()
+    {
+        return pathDepth > 0 && pathInArray[pathDepth - 1];
+    }
+
     public boolean valueReadable()
     {
         return valueReadable;
