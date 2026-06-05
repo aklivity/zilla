@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
+import java.util.function.Predicate;
 
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParserFactory;
@@ -243,8 +244,7 @@ abstract class McpProxyListFactory implements BindingHandler
         private final long originId;
         private final long routedId;
         private final String8FW prefix;
-        private final McpRouteConfig route;
-        private final boolean filtering;
+        private final Predicate<String> admits;
         private final McpLifecycleClient lifecycle;
         private long initialId;
         private long replyId;
@@ -280,14 +280,13 @@ abstract class McpProxyListFactory implements BindingHandler
             McpListServer server,
             long routedId,
             String8FW prefix,
-            McpRouteConfig route)
+            Predicate<String> admits)
         {
             this.server = server;
             this.originId = server.lifecycle.originId;
             this.routedId = routedId;
             this.prefix = prefix;
-            this.route = route;
-            this.filtering = route != null && route.filters(kind);
+            this.admits = admits;
             this.lifecycle = server.lifecycle.supplyClient(routedId);
         }
 
@@ -922,7 +921,7 @@ abstract class McpProxyListFactory implements BindingHandler
                 client.decodedItemProgress = decodedItemProgress - 1;
                 client.decodeItemDepth = 1;
                 client.itemBegun = false;
-                if (client.filtering)
+                if (client.admits != null)
                 {
                     client.itemDeferred = true;
                     client.decoder = decodeItemScan;
@@ -1019,7 +1018,7 @@ abstract class McpProxyListFactory implements BindingHandler
             if (event == JsonParser.Event.VALUE_STRING)
             {
                 final String name = parser.getString();
-                if (client.route == null || client.route.admits(kind, name))
+                if (client.admits == null || client.admits.test(name))
                 {
                     client.onDecodedItemBegin(traceId);
                     client.itemDeferred = false;
@@ -1565,7 +1564,11 @@ abstract class McpProxyListFactory implements BindingHandler
                 doEncodeEndItems(traceId);
                 return;
             }
-            client = new McpListClient(this, route.resolvedId(), route.prefix(), route.route());
+            final McpRouteConfig routeConfig = route.route();
+            final Predicate<String> admits = routeConfig != null && routeConfig.filters(kind)
+                ? name -> routeConfig.admits(kind, name)
+                : null;
+            client = new McpListClient(this, route.resolvedId(), route.prefix(), admits);
             client.doClientBegin(traceId);
         }
 
