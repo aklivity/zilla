@@ -62,6 +62,7 @@
     "io.aklivity.zilla:metrics-stream",
     "io.aklivity.zilla:metrics-http",
     "io.aklivity.zilla:metrics-grpc",
+    "io.aklivity.zilla:metrics-mcp",
     "io.aklivity.zilla:model-avro",
     "io.aklivity.zilla:model-core",
     "io.aklivity.zilla:model-json",
