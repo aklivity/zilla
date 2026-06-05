@@ -26,7 +26,6 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTes
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -305,8 +304,6 @@ public class McpServerIT
         k3po.finish();
     }
 
-    @Ignore("TODO(#1841): temporarily ignored due to a pre-existing CI timing flake in the " +
-        "elicitation/SSE flow, unrelated to this PR; remove once the fix is merged to develop")
     @Test
     @Configuration("server.timeout.yaml")
     @Specification({
