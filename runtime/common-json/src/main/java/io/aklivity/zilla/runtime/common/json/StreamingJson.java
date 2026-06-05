@@ -23,6 +23,15 @@ import jakarta.json.stream.JsonParserFactory;
 import io.aklivity.zilla.runtime.common.json.internal.StreamingJsonParser;
 import io.aklivity.zilla.runtime.common.json.internal.StreamingJsonParserFactory;
 
+/**
+ * Entry point for {@code common-json}'s streaming JSON parsing over Agrona buffers.
+ * <p>
+ * {@link #createParser(InputStream)} returns a standard {@link jakarta.json.stream.JsonParser},
+ * so it can be used anywhere a streaming pull parser is expected — including one-shot,
+ * complete-buffer cases that do not need the resumable, slot-fragmented chunked streaming this
+ * parser also supports. It requires no {@code jakarta.json} provider on the classpath;
+ * {@code common-json} ships the implementation.
+ */
 public final class StreamingJson
 {
     /**
