@@ -473,11 +473,13 @@ abstract class McpProxyItemFactory implements BindingHandler
         }
 
         private void doServerEnd(
-            long traceId)
+            long traceId,
+            OctetsFW extension)
         {
             if (!McpState.replyClosed(state))
             {
-                doEnd(sender, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization);
+                doEnd(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                    traceId, authorization, extension);
                 state = McpState.closedReply(state);
             }
         }
@@ -873,7 +875,7 @@ abstract class McpProxyItemFactory implements BindingHandler
             assert replyAck <= replySeq;
 
             state = McpState.closedReply(state);
-            server.doServerEnd(traceId);
+            server.doServerEnd(traceId, end.extension());
         }
 
         private void onClientAbort(
@@ -1060,6 +1062,33 @@ abstract class McpProxyItemFactory implements BindingHandler
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
+            .build();
+
+        receiver.accept(end.typeId(), end.buffer(), end.offset(), end.sizeof());
+    }
+
+    private void doEnd(
+        MessageConsumer receiver,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        OctetsFW extension)
+    {
+        final EndFW end = endRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+            .originId(originId)
+            .routedId(routedId)
+            .streamId(streamId)
+            .sequence(sequence)
+            .acknowledge(acknowledge)
+            .maximum(maximum)
+            .traceId(traceId)
+            .authorization(authorization)
+            .extension(extension.buffer(), extension.offset(), extension.sizeof())
             .build();
 
         receiver.accept(end.typeId(), end.buffer(), end.offset(), end.sizeof());
