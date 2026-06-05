@@ -200,6 +200,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/tools.call.resumable/client",
+        "${app}/tools.call.resumable/server"})
+    public void shouldCallToolWithUpstreamResumableFlush() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/tools.call/client",
         "${app}/tools.call/server"})
     public void shouldCallTool() throws Exception
