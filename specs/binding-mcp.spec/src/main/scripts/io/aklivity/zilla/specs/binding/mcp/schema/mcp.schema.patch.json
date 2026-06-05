@@ -189,6 +189,33 @@
                                                 },
                                                 "minItems": 1,
                                                 "uniqueItems": true
+                                            },
+                                            "tools":
+                                            {
+                                                "title": "Tools",
+                                                "type": "array",
+                                                "items":
+                                                {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "prompts":
+                                            {
+                                                "title": "Prompts",
+                                                "type": "array",
+                                                "items":
+                                                {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "resources":
+                                            {
+                                                "title": "Resources",
+                                                "type": "array",
+                                                "items":
+                                                {
+                                                    "type": "string"
+                                                }
                                             }
                                         },
                                         "additionalProperties": false
@@ -269,7 +296,61 @@
                                             {
                                                 "items":
                                                 {
-                                                    "required": [ "toolkit" ]
+                                                    "required": [ "toolkit" ],
+                                                    "allOf":
+                                                    [
+                                                        {
+                                                            "if":
+                                                            {
+                                                                "required": [ "capability" ],
+                                                                "properties":
+                                                                {
+                                                                    "capability":
+                                                                    {
+                                                                        "not": { "contains": { "const": "tools" } }
+                                                                    }
+                                                                }
+                                                            },
+                                                            "then":
+                                                            {
+                                                                "not": { "required": [ "tools" ] }
+                                                            }
+                                                        },
+                                                        {
+                                                            "if":
+                                                            {
+                                                                "required": [ "capability" ],
+                                                                "properties":
+                                                                {
+                                                                    "capability":
+                                                                    {
+                                                                        "not": { "contains": { "const": "prompts" } }
+                                                                    }
+                                                                }
+                                                            },
+                                                            "then":
+                                                            {
+                                                                "not": { "required": [ "prompts" ] }
+                                                            }
+                                                        },
+                                                        {
+                                                            "if":
+                                                            {
+                                                                "required": [ "capability" ],
+                                                                "properties":
+                                                                {
+                                                                    "capability":
+                                                                    {
+                                                                        "not": { "contains": { "const": "resources" } }
+                                                                    }
+                                                                }
+                                                            },
+                                                            "then":
+                                                            {
+                                                                "not": { "required": [ "resources" ] }
+                                                            }
+                                                        }
+                                                    ]
                                                 }
                                             }
                                         }
@@ -300,7 +381,10 @@
                                                 {
                                                     "properties":
                                                     {
-                                                        "toolkit": false
+                                                        "toolkit": false,
+                                                        "tools": false,
+                                                        "prompts": false,
+                                                        "resources": false
                                                     }
                                                 }
                                             }
