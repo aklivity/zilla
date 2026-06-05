@@ -174,6 +174,18 @@ public class McpProxyCacheIT
     }
 
     @Test
+    @Configuration("proxy.cache.toolkit.filter.yaml")
+    @Specification({
+        "${app}/cache.serve.tools.list.toolkit.filtered/server",
+        "${app}/cache.serve.tools.list.toolkit.filtered/client" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
+    public void shouldServeToolsListFilteredByAllowSet() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.cache.yaml")
     @Specification({
         "${app}/cache.serve.tools.list.degraded/server",
