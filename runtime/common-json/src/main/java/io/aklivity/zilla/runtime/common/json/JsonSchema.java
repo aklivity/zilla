@@ -66,7 +66,7 @@ public final class JsonSchema
     private static final JsonSchema NONE = new JsonSchema(true);
 
     private static final List<String> UNSUPPORTED = List.of(
-        "$ref", "dependencies", "dependentRequired", "dependentSchemas", "uniqueItems");
+        "$ref", "dependentRequired", "dependentSchemas", "uniqueItems");
 
     private enum JsonType
     {
@@ -104,6 +104,8 @@ public final class JsonSchema
     private final int maxProperties;
     private final Map<Pattern, JsonSchema> patternProperties;
     private final JsonSchema propertyNames;
+    private final Map<String, Set<String>> dependentRequired;
+    private final Map<String, JsonSchema> dependentSchemas;
     private final List<JsonSchema> allOf;
     private final List<JsonSchema> anyOf;
     private final List<JsonSchema> oneOf;
@@ -176,6 +178,8 @@ public final class JsonSchema
         this.maxProperties = integer(schema, "maxProperties");
         this.patternProperties = parsePatternProperties(schema.get("patternProperties"));
         this.propertyNames = schema.containsKey("propertyNames") ? from(schema.get("propertyNames")) : null;
+        this.dependentRequired = parseDependentRequired(schema.get("dependencies"));
+        this.dependentSchemas = parseDependentSchemas(schema.get("dependencies"));
         this.allOf = parseSchemaArray(schema.get("allOf"));
         this.anyOf = parseSchemaArray(schema.get("anyOf"));
         this.oneOf = parseSchemaArray(schema.get("oneOf"));
@@ -214,6 +218,8 @@ public final class JsonSchema
         this.maxProperties = -1;
         this.patternProperties = null;
         this.propertyNames = null;
+        this.dependentRequired = null;
+        this.dependentSchemas = null;
         this.allOf = null;
         this.anyOf = null;
         this.oneOf = null;
@@ -290,6 +296,45 @@ public final class JsonSchema
             }
         }
         return result;
+    }
+
+    private static Map<String, Set<String>> parseDependentRequired(
+        JsonValue value)
+    {
+        Map<String, Set<String>> result = new LinkedHashMap<>();
+        if (value != null)
+        {
+            for (Map.Entry<String, JsonValue> entry : value.asJsonObject().entrySet())
+            {
+                if (entry.getValue().getValueType() == JsonValue.ValueType.ARRAY)
+                {
+                    Set<String> names = new HashSet<>();
+                    for (JsonValue name : entry.getValue().asJsonArray())
+                    {
+                        names.add(((JsonString) name).getString());
+                    }
+                    result.put(entry.getKey(), names);
+                }
+            }
+        }
+        return result.isEmpty() ? null : result;
+    }
+
+    private static Map<String, JsonSchema> parseDependentSchemas(
+        JsonValue value)
+    {
+        Map<String, JsonSchema> result = new LinkedHashMap<>();
+        if (value != null)
+        {
+            for (Map.Entry<String, JsonValue> entry : value.asJsonObject().entrySet())
+            {
+                if (entry.getValue().getValueType() != JsonValue.ValueType.ARRAY)
+                {
+                    result.put(entry.getKey(), from(entry.getValue()));
+                }
+            }
+        }
+        return result.isEmpty() ? null : result;
     }
 
     private static boolean scalarEquals(
@@ -498,6 +543,7 @@ public final class JsonSchema
         private final Eval ifEval;
         private final Eval thenEval;
         private final Eval elseEval;
+        private final Map<String, Eval> dependentSchemaEvals;
 
         private boolean started;
         private boolean done;
@@ -521,6 +567,7 @@ public final class JsonSchema
             this.ifEval = ifSchema != null ? ifSchema.eval() : null;
             this.thenEval = thenSchema != null ? thenSchema.eval() : null;
             this.elseEval = elseSchema != null ? elseSchema.eval() : null;
+            this.dependentSchemaEvals = evalsOfMap(dependentSchemas);
         }
 
         private Verdict feed(
@@ -767,6 +814,13 @@ public final class JsonSchema
             feedOne(ifEval, event, parser);
             feedOne(thenEval, event, parser);
             feedOne(elseEval, event, parser);
+            if (dependentSchemaEvals != null)
+            {
+                for (Eval eval : dependentSchemaEvals.values())
+                {
+                    feedOne(eval, event, parser);
+                }
+            }
         }
 
         private void feedAll(
@@ -835,6 +889,28 @@ public final class JsonSchema
                     ? thenEval == null || thenEval.result == Verdict.VALID
                     : elseEval == null || elseEval.result == Verdict.VALID;
             }
+            if (valid && seen != null && dependentRequired != null)
+            {
+                for (Map.Entry<String, Set<String>> entry : dependentRequired.entrySet())
+                {
+                    if (seen.contains(entry.getKey()) && !seen.containsAll(entry.getValue()))
+                    {
+                        valid = false;
+                        break;
+                    }
+                }
+            }
+            if (valid && seen != null && dependentSchemaEvals != null)
+            {
+                for (Map.Entry<String, Eval> entry : dependentSchemaEvals.entrySet())
+                {
+                    if (seen.contains(entry.getKey()) && entry.getValue().result != Verdict.VALID)
+                    {
+                        valid = false;
+                        break;
+                    }
+                }
+            }
             return valid ? Verdict.VALID : Verdict.INVALID;
         }
 
@@ -848,6 +924,21 @@ public final class JsonSchema
                 for (int i = 0; i < schemas.size(); i++)
                 {
                     result[i] = schemas.get(i).eval();
+                }
+            }
+            return result;
+        }
+
+        private Map<String, Eval> evalsOfMap(
+            Map<String, JsonSchema> schemas)
+        {
+            Map<String, Eval> result = null;
+            if (schemas != null)
+            {
+                result = new LinkedHashMap<>();
+                for (Map.Entry<String, JsonSchema> entry : schemas.entrySet())
+                {
+                    result.put(entry.getKey(), entry.getValue().eval());
                 }
             }
             return result;
