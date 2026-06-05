@@ -100,6 +100,37 @@ public class McpConditionMatcherTest
     }
 
     @Test
+    public void shouldAdmitNamesByAllowSet()
+    {
+        McpConditionConfig condition = McpConditionConfig.builder()
+            .toolkit("github")
+            .capability(asList("tools", "resources"))
+            .tools(asList("get_*"))
+            .build();
+        McpConditionMatcher matcher = new McpConditionMatcher(condition);
+
+        assertTrue(matcher.admits("tools", "get_user"));
+        assertFalse(matcher.admits("tools", "delete_repo"));
+        assertTrue(matcher.admits("resources", "anything"));
+        assertFalse(matcher.admits("prompts", "anything"));
+    }
+
+    @Test
+    public void shouldReportFilteringByAllowSet()
+    {
+        McpConditionConfig condition = McpConditionConfig.builder()
+            .toolkit("github")
+            .capability(asList("tools", "resources"))
+            .tools(asList("get_*"))
+            .build();
+        McpConditionMatcher matcher = new McpConditionMatcher(condition);
+
+        assertTrue(matcher.filters("tools"));
+        assertFalse(matcher.filters("resources"));
+        assertFalse(matcher.filters("prompts"));
+    }
+
+    @Test
     public void shouldNotMatchUnservedCapability()
     {
         McpConditionConfig condition = McpConditionConfig.builder()

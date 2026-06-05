@@ -105,6 +105,19 @@ final class McpConditionMatcher
         return prefix(capability) != null;
     }
 
+    boolean admits(
+        String capability,
+        String name)
+    {
+        return serves(capability) && admits(allow(capability), name);
+    }
+
+    boolean filters(
+        String capability)
+    {
+        return serves(capability) && allow(capability) != null;
+    }
+
     String prefix(
         String capability)
     {

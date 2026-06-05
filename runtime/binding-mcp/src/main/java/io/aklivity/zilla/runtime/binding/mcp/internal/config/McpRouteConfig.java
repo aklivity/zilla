@@ -192,6 +192,55 @@ public final class McpRouteConfig
         return result;
     }
 
+    public boolean admits(
+        int kind,
+        String name)
+    {
+        return admits(capabilityOf(kind), name);
+    }
+
+    public boolean filters(
+        int kind)
+    {
+        final String capability = capabilityOf(kind);
+        boolean result = false;
+
+        if (capability != null)
+        {
+            for (McpConditionMatcher matcher : matchers)
+            {
+                if (matcher.filters(capability))
+                {
+                    result = true;
+                    break;
+                }
+            }
+        }
+
+        return result;
+    }
+
+    public boolean admits(
+        String capability,
+        String name)
+    {
+        boolean result = matchers.isEmpty();
+
+        if (!result)
+        {
+            for (McpConditionMatcher matcher : matchers)
+            {
+                if (matcher.admits(capability, name))
+                {
+                    result = true;
+                    break;
+                }
+            }
+        }
+
+        return result;
+    }
+
     static String capabilityOf(
         McpBeginExFW beginEx)
     {

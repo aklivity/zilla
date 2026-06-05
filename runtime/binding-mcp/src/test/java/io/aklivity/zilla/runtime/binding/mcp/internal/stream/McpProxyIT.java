@@ -160,6 +160,17 @@ public class McpProxyIT
     }
 
     @Test
+    @Configuration("proxy.toolkit.filter.yaml")
+    @Specification({
+        "${app}/tools.list.toolkit.filtered/client",
+        "${app}/tools.list.toolkit.filtered/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldListToolsFilteredByAllowSet() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.toolkit.multi.yaml")
     @Specification({
         "${app}/tools.list.toolkit.multi.prefixed/client",
