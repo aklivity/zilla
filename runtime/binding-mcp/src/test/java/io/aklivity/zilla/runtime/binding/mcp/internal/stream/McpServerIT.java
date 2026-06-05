@@ -315,7 +315,7 @@ public class McpServerIT
     }
 
     @Test
-    @Configuration("server.yaml")
+    @Configuration("server.timeout.yaml")
     @Specification({
         "${net}/tools.call.elicit.completed/client",
         "${app}/tools.call.elicit.completed/server"})
