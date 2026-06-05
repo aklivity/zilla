@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.common.json;
 
 import static jakarta.json.stream.JsonParser.Event.END_ARRAY;
 import static jakarta.json.stream.JsonParser.Event.END_OBJECT;
+import static jakarta.json.stream.JsonParser.Event.KEY_NAME;
 import static jakarta.json.stream.JsonParser.Event.START_ARRAY;
 import static jakarta.json.stream.JsonParser.Event.START_OBJECT;
 import static jakarta.json.stream.JsonParser.Event.VALUE_FALSE;
@@ -66,7 +67,7 @@ public final class JsonSchema
     private static final JsonSchema NONE = new JsonSchema(true);
 
     private static final List<String> UNSUPPORTED = List.of(
-        "$ref", "dependentRequired", "dependentSchemas", "uniqueItems");
+        "$ref", "dependentRequired", "dependentSchemas");
 
     private enum JsonType
     {
@@ -94,6 +95,7 @@ public final class JsonSchema
     private final List<JsonSchema> itemsTuple;
     private final JsonSchema additionalItems;
     private final JsonSchema contains;
+    private final boolean uniqueItems;
     private final int minItems;
     private final int maxItems;
     private final Map<String, JsonSchema> properties;
@@ -168,6 +170,7 @@ public final class JsonSchema
         this.itemsTuple = tupleItems ? parseSchemaArray(itemsValue) : null;
         this.additionalItems = schema.containsKey("additionalItems") ? from(schema.get("additionalItems")) : null;
         this.contains = schema.containsKey("contains") ? from(schema.get("contains")) : null;
+        this.uniqueItems = schema.containsKey("uniqueItems") && schema.getBoolean("uniqueItems");
         this.minItems = integer(schema, "minItems");
         this.maxItems = integer(schema, "maxItems");
         this.properties = parseProperties(schema.get("properties"));
@@ -208,6 +211,7 @@ public final class JsonSchema
         this.itemsTuple = null;
         this.additionalItems = null;
         this.contains = null;
+        this.uniqueItems = false;
         this.minItems = -1;
         this.maxItems = -1;
         this.properties = null;
@@ -534,6 +538,91 @@ public final class JsonSchema
         return schema.containsKey(key) ? schema.getJsonNumber(key).intValue() : -1;
     }
 
+    private static String tokenText(
+        Event event,
+        JsonParser parser)
+    {
+        return event == KEY_NAME || event == VALUE_STRING || event == VALUE_NUMBER ? parser.getString() : null;
+    }
+
+    private static String canonicalize(
+        List<Token> tokens,
+        int[] position)
+    {
+        Token token = tokens.get(position[0]++);
+        String result;
+        switch (token.event)
+        {
+        case START_OBJECT:
+        {
+            List<String> members = new ArrayList<>();
+            while (tokens.get(position[0]).event != END_OBJECT)
+            {
+                String key = tokens.get(position[0]++).text;
+                members.add(quote(key) + ":" + canonicalize(tokens, position));
+            }
+            position[0]++;
+            members.sort(null);
+            result = "{" + String.join(",", members) + "}";
+            break;
+        }
+        case START_ARRAY:
+        {
+            List<String> elements = new ArrayList<>();
+            while (tokens.get(position[0]).event != END_ARRAY)
+            {
+                elements.add(canonicalize(tokens, position));
+            }
+            position[0]++;
+            result = "[" + String.join(",", elements) + "]";
+            break;
+        }
+        case VALUE_STRING:
+            result = quote(token.text);
+            break;
+        case VALUE_NUMBER:
+            result = normalizeNumber(token.text);
+            break;
+        case VALUE_TRUE:
+            result = "true";
+            break;
+        case VALUE_FALSE:
+            result = "false";
+            break;
+        default:
+            result = "null";
+            break;
+        }
+        return result;
+    }
+
+    private static String quote(
+        String value)
+    {
+        return "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
+    }
+
+    private static String normalizeNumber(
+        String text)
+    {
+        BigDecimal value = new BigDecimal(text);
+        return value.signum() == 0 ? "0" : value.stripTrailingZeros().toPlainString();
+    }
+
+    private static final class Token
+    {
+        private final Event event;
+        private final String text;
+
+        private Token(
+            Event event,
+            String text)
+        {
+            this.event = event;
+            this.text = text;
+        }
+    }
+
     private final class Eval
     {
         private final Eval[] allOfEvals;
@@ -557,6 +646,8 @@ public final class JsonSchema
         private Eval[] directChildren;
         private Eval containsChild;
         private int containsMatched;
+        private Set<String> uniqueSeen;
+        private List<Token> uniqueTokens;
 
         private Eval()
         {
@@ -718,6 +809,14 @@ public final class JsonSchema
                 {
                     containsChild = contains.eval();
                 }
+                if (uniqueItems)
+                {
+                    if (uniqueSeen == null)
+                    {
+                        uniqueSeen = new HashSet<>();
+                    }
+                    uniqueTokens = new ArrayList<>();
+                }
                 routeChildren(event, parser);
             }
         }
@@ -747,6 +846,10 @@ public final class JsonSchema
             Event event,
             JsonParser parser)
         {
+            if (uniqueTokens != null)
+            {
+                uniqueTokens.add(new Token(event, tokenText(event, parser)));
+            }
             boolean complete = false;
             for (Eval child : directChildren)
             {
@@ -772,6 +875,11 @@ public final class JsonSchema
             if (complete)
             {
                 directChildren = null;
+                if (uniqueTokens != null)
+                {
+                    directInvalid |= !uniqueSeen.add(canonicalize(uniqueTokens, new int[] {0}));
+                    uniqueTokens = null;
+                }
             }
         }
 

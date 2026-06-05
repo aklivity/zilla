@@ -197,7 +197,7 @@ class JsonSchemaTest
     void shouldFailFastForUnsupportedKeywords()
     {
         assertUnsupported("{\"$ref\":\"#\"}");
-        assertUnsupported("{\"uniqueItems\":true}");
+        assertUnsupported("{\"dependentSchemas\":{}}");
     }
 
     @Test
