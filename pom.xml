@@ -62,6 +62,7 @@
     <jmock.version>2.6.0</jmock.version>
     <mockito.version>5.23.0</mockito.version>
     <k3po.version>3.4.2</k3po.version>
+    <kaazing.net.version>1.1.0.9</kaazing.net.version>
     <jmh.version>1.37</jmh.version>
   </properties>
 
@@ -218,6 +219,26 @@
         <groupId>io.aklivity.k3po</groupId>
         <artifactId>control-junit</artifactId>
         <version>${k3po.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.kaazing</groupId>
+        <artifactId>net.api</artifactId>
+        <version>${kaazing.net.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.kaazing</groupId>
+        <artifactId>net.data</artifactId>
+        <version>${kaazing.net.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.kaazing</groupId>
+        <artifactId>net.tcp</artifactId>
+        <version>${kaazing.net.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.kaazing</groupId>
+        <artifactId>net.bbosh</artifactId>
+        <version>${kaazing.net.version}</version>
       </dependency>
       <dependency>
         <groupId>org.jboss.byteman</groupId>
