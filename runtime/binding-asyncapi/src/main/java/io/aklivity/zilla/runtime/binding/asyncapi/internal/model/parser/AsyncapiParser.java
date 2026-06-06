@@ -25,11 +25,11 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonReader;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
+import jakarta.json.stream.JsonParser;
 
 import org.agrona.collections.Object2ObjectHashMap;
 import org.leadpony.justify.api.JsonSchema;
@@ -38,6 +38,7 @@ import org.leadpony.justify.api.ProblemHandler;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiBinding;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
+import io.aklivity.zilla.runtime.common.yaml.Yaml;
 import io.aklivity.zilla.runtime.engine.config.ConfigException;
 
 public class AsyncapiParser
@@ -63,17 +64,21 @@ public class AsyncapiParser
 
         try
         {
-            String asyncApiVersion = detectAsyncApiVersion(asyncapiText);
+            JsonObject asyncapiObject = readAsyncapiObject(asyncapiText);
+            String asyncApiVersion = detectAsyncApiVersion(asyncapiObject);
 
-            JsonValidationService service = JsonValidationService.newInstance();
+            JsonValidationService service = JsonValidationService.newInstance(Yaml.provider());
             ProblemHandler handler = service.createProblemPrinter(msg -> errors.add(new ConfigException(msg)));
             JsonSchema schema = schemas.get(asyncApiVersion);
 
-            service.createReader(new StringReader(asyncapiText), schema, handler).read();
+            try (JsonParser parser = Yaml.createParser(new StringReader(asyncapiText)))
+            {
+                service.createReader(parser, schema, handler).read();
+            }
 
             Jsonb jsonb = JsonbBuilder.create();
 
-            asyncapi = jsonb.fromJson(asyncapiText, Asyncapi.class);
+            asyncapi = jsonb.fromJson(asyncapiObject.toString(), Asyncapi.class);
         }
         catch (Exception ex)
         {
@@ -104,27 +109,32 @@ public class AsyncapiParser
                 .read();
     }
 
-    private String detectAsyncApiVersion(
+    private JsonObject readAsyncapiObject(
         String asyncapiText)
     {
-        try (JsonReader reader = Json.createReader(new StringReader(asyncapiText)))
+        try (JsonReader reader = Yaml.provider().createReader(new StringReader(asyncapiText)))
         {
-            JsonObject json = reader.readObject();
-            if (json.containsKey("asyncapi"))
-            {
-                final String versionString = json.getString("asyncapi");
-                final Matcher matcher = VERSION_PATTERN.matcher(versionString);
-
-                return matcher.matches() ? matcher.group(0) : null;
-            }
-            else
-            {
-                throw new IllegalArgumentException("Unable to determine AsyncApi version.");
-            }
+            return reader.readObject();
         }
         catch (Exception e)
         {
             throw new RuntimeException("Error reading AsyncApi document.", e);
+        }
+    }
+
+    private String detectAsyncApiVersion(
+        JsonObject json)
+    {
+        if (json.containsKey("asyncapi"))
+        {
+            final String versionString = json.getString("asyncapi");
+            final Matcher matcher = VERSION_PATTERN.matcher(versionString);
+
+            return matcher.matches() ? matcher.group(0) : null;
+        }
+        else
+        {
+            throw new IllegalArgumentException("Unable to determine AsyncApi version.");
         }
     }
 }

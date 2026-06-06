@@ -37,6 +37,8 @@ import org.leadpony.justify.api.JsonSchemaReader;
 import org.leadpony.justify.api.JsonValidationService;
 import org.leadpony.justify.api.ProblemHandler;
 
+import io.aklivity.zilla.runtime.common.yaml.Yaml;
+
 public final class ConfigSchemaRule implements TestRule
 {
     private JsonProvider provider;
@@ -105,7 +107,8 @@ public final class ConfigSchemaRule implements TestRule
         JsonSchemaReader reader = service.createSchemaReader(schemaParser);
         JsonSchema schema = reader.read();
 
-        provider = service.createJsonProvider(schema, parser -> ProblemHandler.throwing());
+        JsonValidationService yamlService = JsonValidationService.newInstance(Yaml.provider());
+        provider = yamlService.createJsonProvider(schema, parser -> ProblemHandler.throwing());
 
         if (configurationRoot != null)
         {

@@ -27,6 +27,7 @@ import static jakarta.json.stream.JsonParser.Event.VALUE_TRUE;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.ByteArrayInputStream;
@@ -35,7 +36,9 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
+import jakarta.json.JsonObject;
 import jakarta.json.JsonValue;
+import jakarta.json.spi.JsonProvider;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParserFactory;
 import jakarta.json.stream.JsonParsingException;
@@ -191,6 +194,130 @@ class YamlParserTest
     }
 
     @Test
+    void shouldParseDocumentMarkersDirectivesAndExposeNextDocumentLocation()
+    {
+        String text = """
+            %YAML 1.2
+            ---
+            name: one
+            ---
+            name: two
+            """;
+        JsonParser parser = parserFor(text);
+
+        assertEquals(List.of(
+            "START_OBJECT",
+            "KEY_NAME:name",
+            "VALUE_STRING:one",
+            "END_OBJECT"), events(parser));
+        assertEquals(text.indexOf("---", text.indexOf("---") + 1), parser.getLocation().getStreamOffset());
+    }
+
+    @Test
+    void shouldParseBlockScalarsAndMultiLineFlowCollections()
+    {
+        JsonParser parser = parserFor("""
+            description: |
+              alpha
+              beta
+            summary: >
+              folded
+              line
+            values: [
+              1,
+              {name: test, flag: true}
+            ]
+            """);
+
+        assertEquals(List.of(
+            "START_OBJECT",
+            "KEY_NAME:description",
+            "VALUE_STRING:alpha\nbeta\n",
+            "KEY_NAME:summary",
+            "VALUE_STRING:folded line\n",
+            "KEY_NAME:values",
+            "START_ARRAY",
+            "VALUE_NUMBER:1",
+            "START_OBJECT",
+            "KEY_NAME:name",
+            "VALUE_STRING:test",
+            "KEY_NAME:flag",
+            "VALUE_TRUE",
+            "END_OBJECT",
+            "END_ARRAY",
+            "END_OBJECT"), events(parser));
+    }
+
+    @Test
+    void shouldResolveAnchorsAliasesMergeKeysCoreTagsAndExplicitScalarKeys()
+    {
+        JsonParser parser = parserFor("""
+            defaults: &defaults
+              type: test
+              enabled: true
+            binding:
+              <<: *defaults
+              enabled: false
+              port: !!int "7143"
+            ? "quoted key"
+            : !!str 42
+            items:
+              - &item {name: one, value: !!float "1.5"}
+              - *item
+            """);
+
+        assertEquals(List.of(
+            "START_OBJECT",
+            "KEY_NAME:defaults",
+            "START_OBJECT",
+            "KEY_NAME:type",
+            "VALUE_STRING:test",
+            "KEY_NAME:enabled",
+            "VALUE_TRUE",
+            "END_OBJECT",
+            "KEY_NAME:binding",
+            "START_OBJECT",
+            "KEY_NAME:type",
+            "VALUE_STRING:test",
+            "KEY_NAME:enabled",
+            "VALUE_FALSE",
+            "KEY_NAME:port",
+            "VALUE_NUMBER:7143",
+            "END_OBJECT",
+            "KEY_NAME:quoted key",
+            "VALUE_STRING:42",
+            "KEY_NAME:items",
+            "START_ARRAY",
+            "START_OBJECT",
+            "KEY_NAME:name",
+            "VALUE_STRING:one",
+            "KEY_NAME:value",
+            "VALUE_NUMBER:1.5",
+            "END_OBJECT",
+            "START_OBJECT",
+            "KEY_NAME:name",
+            "VALUE_STRING:one",
+            "KEY_NAME:value",
+            "VALUE_NUMBER:1.5",
+            "END_OBJECT",
+            "END_ARRAY",
+            "END_OBJECT"), events(parser));
+    }
+
+    @Test
+    void shouldCreateExplicitYamlProviderWithoutServiceRegistration()
+    {
+        JsonProvider provider = Yaml.provider();
+        JsonParser parser = provider.createParser(new StringReader("name: test\n"));
+
+        assertEquals("YamlProvider", provider.getClass().getSimpleName());
+        assertEquals(START_OBJECT, parser.next());
+        assertEquals(KEY_NAME, parser.next());
+        assertEquals("name", parser.getString());
+        assertNotSame(provider, JsonProvider.provider());
+    }
+
+    @Test
     void shouldExposeParserLocations()
     {
         JsonParser parser = parserFor("name: test\n");
@@ -225,14 +352,18 @@ class YamlParserTest
     @Test
     void shouldExposeUnsupportedParserMethods()
     {
-        JsonParser parser = parserFor("name: test\n");
+        JsonParser parser = parserFor("""
+            name: test
+            values: [1]
+            """);
 
-        assertThrows(UnsupportedOperationException.class, parser::getObject);
-        assertThrows(UnsupportedOperationException.class, parser::getValue);
-        assertThrows(UnsupportedOperationException.class, parser::getArray);
-        assertThrows(UnsupportedOperationException.class, parser::getArrayStream);
-        assertThrows(UnsupportedOperationException.class, parser::getObjectStream);
-        assertThrows(UnsupportedOperationException.class, parser::getValueStream);
+        assertThrows(IllegalStateException.class, parser::getValue);
+        assertEquals(START_OBJECT, parser.next());
+        JsonObject object = parser.getObject();
+        assertEquals("test", object.getString("name"));
+        assertEquals(1, object.getJsonArray("values").getInt(0));
+        assertEquals(2, parser.getObjectStream().count());
+        assertEquals(1, parser.getValueStream().count());
         assertThrows(UnsupportedOperationException.class, parser::skipObject);
         assertThrows(UnsupportedOperationException.class, parser::skipArray);
 
@@ -244,11 +375,13 @@ class YamlParserTest
     }
 
     @Test
-    void shouldRejectOutOfScopeYamlFeatures()
+    void shouldRejectUnsupportedYamlFeaturesAndMalformedDocuments()
     {
-        assertThrows(JsonParsingException.class, () -> parserFor("value: &anchor test\n"));
-        assertThrows(JsonParsingException.class, () -> parserFor("value: |\n  text\n"));
-        assertThrows(JsonParsingException.class, () -> parserFor("---\nname: one\n---\nname: two\n"));
+        assertThrows(JsonParsingException.class, () -> parserFor("value: !custom test\n"));
+        assertThrows(JsonParsingException.class, () -> parserFor("value: *missing\n"));
+        assertThrows(JsonParsingException.class, () -> parserFor("{[key]: value}\n"));
+        assertThrows(JsonParsingException.class, () -> parserFor("value: .nan\n"));
+        assertThrows(JsonParsingException.class, () -> parserFor("value: |\ntext\n"));
         assertThrows(JsonParsingException.class, () -> parserFor("\tname: test\n"));
         assertThrows(JsonParsingException.class, () -> parserFor("name: \"test\n"));
         assertThrows(JsonParsingException.class, () -> parserFor("values: [1, 2\n"));

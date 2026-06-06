@@ -21,6 +21,7 @@ final class YamlEntry
     final int line;
     final int column;
     final long offset;
+    final boolean merged;
 
     YamlEntry(
         String name,
@@ -29,10 +30,22 @@ final class YamlEntry
         int column,
         long offset)
     {
+        this(name, value, line, column, offset, false);
+    }
+
+    YamlEntry(
+        String name,
+        YamlNode value,
+        int line,
+        int column,
+        long offset,
+        boolean merged)
+    {
         this.name = name;
         this.value = value;
         this.line = line;
         this.column = column;
         this.offset = offset;
+        this.merged = merged;
     }
 }

@@ -20,6 +20,7 @@ final class YamlEvent
 {
     final JsonParser.Event event;
     final String value;
+    final YamlNode node;
     final YamlLocation location;
 
     YamlEvent(
@@ -29,8 +30,20 @@ final class YamlEvent
         int column,
         long offset)
     {
+        this(event, value, null, line, column, offset);
+    }
+
+    YamlEvent(
+        JsonParser.Event event,
+        String value,
+        YamlNode node,
+        int line,
+        int column,
+        long offset)
+    {
         this.event = event;
         this.value = value;
+        this.node = node;
         this.location = new YamlLocation(line, column, offset);
     }
 }

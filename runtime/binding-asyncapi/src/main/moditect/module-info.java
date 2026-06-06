@@ -14,9 +14,8 @@
  */
 module io.aklivity.zilla.runtime.binding.asyncapi
 {
-    requires com.fasterxml.jackson.databind;
-    requires com.fasterxml.jackson.dataformat.yaml;
     requires io.aklivity.zilla.runtime.engine;
+    requires io.aklivity.zilla.runtime.common.yaml;
     requires io.aklivity.zilla.runtime.binding.mqtt;
     requires io.aklivity.zilla.runtime.binding.http;
     requires io.aklivity.zilla.runtime.binding.sse;

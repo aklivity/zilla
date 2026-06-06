@@ -25,8 +25,11 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 
 import jakarta.json.JsonArray;
+import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
+import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
+import jakarta.json.spi.JsonProvider;
 import jakarta.json.stream.JsonLocation;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParsingException;
@@ -37,6 +40,8 @@ public final class YamlParser implements JsonParser
     private final YamlLocation end;
     private YamlEvent current;
     private YamlEvent next;
+    private JsonProvider provider;
+    private boolean exhausted;
 
     public YamlParser(
         Reader reader)
@@ -60,18 +65,19 @@ public final class YamlParser implements JsonParser
     private YamlParser(
         String text)
     {
-        YamlNode node = YamlDocumentParser.parse(text);
+        YamlDocumentParser.Result result = YamlDocumentParser.parse(text);
         this.stack = new ArrayDeque<>();
-        stack.push(new Frame(node));
-        this.end = new YamlLocation(1, 1, text.length());
+        stack.push(new Frame(result.node));
+        this.end = result.end;
     }
 
     @Override
     public boolean hasNext()
     {
-        if (next == null)
+        if (next == null && !exhausted)
         {
             next = nextEvent();
+            exhausted = next == null;
         }
         return next != null;
     }
@@ -134,7 +140,7 @@ public final class YamlParser implements JsonParser
     @Override
     public JsonLocation getLocation()
     {
-        return current != null ? current.location : end;
+        return exhausted ? end : current != null ? current.location : end;
     }
 
     @Override
@@ -145,37 +151,51 @@ public final class YamlParser implements JsonParser
     @Override
     public JsonObject getObject()
     {
-        throw new UnsupportedOperationException("getObject not yet supported");
+        JsonValue value = getValue();
+        if (value instanceof JsonObject object)
+        {
+            return object;
+        }
+        throw new IllegalStateException("Current YAML value is not an object");
     }
 
     @Override
     public JsonValue getValue()
     {
-        throw new UnsupportedOperationException("getValue not yet supported");
+        if (current == null || current.node == null)
+        {
+            throw new IllegalStateException("No value is available for current event");
+        }
+        return toJsonValue(current.node);
     }
 
     @Override
     public JsonArray getArray()
     {
-        throw new UnsupportedOperationException("getArray not yet supported");
+        JsonValue value = getValue();
+        if (value instanceof JsonArray array)
+        {
+            return array;
+        }
+        throw new IllegalStateException("Current YAML value is not an array");
     }
 
     @Override
     public java.util.stream.Stream<JsonValue> getArrayStream()
     {
-        throw new UnsupportedOperationException("getArrayStream not yet supported");
+        return getArray().stream();
     }
 
     @Override
     public java.util.stream.Stream<java.util.Map.Entry<String, JsonValue>> getObjectStream()
     {
-        throw new UnsupportedOperationException("getObjectStream not yet supported");
+        return getObject().entrySet().stream();
     }
 
     @Override
     public java.util.stream.Stream<JsonValue> getValueStream()
     {
-        throw new UnsupportedOperationException("getValueStream not yet supported");
+        return java.util.stream.Stream.of(getValue());
     }
 
     @Override
@@ -209,7 +229,7 @@ public final class YamlParser implements JsonParser
                 if (!frame.started)
                 {
                     frame.started = true;
-                    return new YamlEvent(Event.START_OBJECT, null, object.line, object.column, object.offset);
+                    return new YamlEvent(Event.START_OBJECT, null, object, object.line, object.column, object.offset);
                 }
                 if (frame.value)
                 {
@@ -233,7 +253,7 @@ public final class YamlParser implements JsonParser
                 if (!frame.started)
                 {
                     frame.started = true;
-                    return new YamlEvent(Event.START_ARRAY, null, array.line, array.column, array.offset);
+                    return new YamlEvent(Event.START_ARRAY, null, array, array.line, array.column, array.offset);
                 }
                 if (frame.index < array.values.size())
                 {
@@ -252,7 +272,7 @@ public final class YamlParser implements JsonParser
         return null;
     }
 
-    private static YamlEvent scalarEvent(
+    private YamlEvent scalarEvent(
         YamlScalarNode scalar)
     {
         Event event = switch (scalar.type)
@@ -263,7 +283,49 @@ public final class YamlParser implements JsonParser
         case FALSE -> Event.VALUE_FALSE;
         case NULL -> Event.VALUE_NULL;
         };
-        return new YamlEvent(event, scalar.value, scalar.line, scalar.column, scalar.offset);
+        return new YamlEvent(event, scalar.value, scalar, scalar.line, scalar.column, scalar.offset);
+    }
+
+    private JsonValue toJsonValue(
+        YamlNode node)
+    {
+        if (node instanceof YamlObjectNode object)
+        {
+            JsonObjectBuilder builder = provider().createObjectBuilder();
+            for (YamlEntry entry : object.entries)
+            {
+                builder.add(entry.name, toJsonValue(entry.value));
+            }
+            return builder.build();
+        }
+        if (node instanceof YamlArrayNode array)
+        {
+            JsonArrayBuilder builder = provider().createArrayBuilder();
+            for (YamlNode value : array.values)
+            {
+                builder.add(toJsonValue(value));
+            }
+            return builder.build();
+        }
+
+        YamlScalarNode scalar = (YamlScalarNode) node;
+        return switch (scalar.type)
+        {
+        case STRING -> provider().createValue(scalar.value);
+        case NUMBER -> provider().createValue(new BigDecimal(scalar.value));
+        case TRUE -> JsonValue.TRUE;
+        case FALSE -> JsonValue.FALSE;
+        case NULL -> JsonValue.NULL;
+        };
+    }
+
+    private JsonProvider provider()
+    {
+        if (provider == null)
+        {
+            provider = JsonProvider.provider();
+        }
+        return provider;
     }
 
     private static String readAll(

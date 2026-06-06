@@ -41,4 +41,10 @@ final class YamlObjectNode extends YamlNode
     {
         entries.addAll(object.entries);
     }
+
+    void removeMerged(
+        String name)
+    {
+        entries.removeIf(e -> e.merged && e.name.equals(name));
+    }
 }

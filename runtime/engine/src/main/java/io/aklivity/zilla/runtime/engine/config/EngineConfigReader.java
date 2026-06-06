@@ -46,6 +46,7 @@ import org.leadpony.justify.api.JsonSchemaReader;
 import org.leadpony.justify.api.JsonValidationService;
 import org.leadpony.justify.api.ProblemHandler;
 
+import io.aklivity.zilla.runtime.common.yaml.Yaml;
 import io.aklivity.zilla.runtime.engine.Engine;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.internal.config.NamespaceAdapter;
@@ -120,7 +121,8 @@ public final class EngineConfigReader
             JsonSchemaReader validator = service.createSchemaReader(schemaParser);
             JsonSchema schema = new UniquePropertyKeysSchema(validator.read());
 
-            JsonProvider provider = service.createJsonProvider(schema, parser -> handler);
+            JsonValidationService yamlService = JsonValidationService.newInstance(Yaml.provider());
+            JsonProvider provider = yamlService.createJsonProvider(schema, parser -> handler);
             String readable = configText.stripTrailing();
 
             IntArrayList configsAt = new IntArrayList();
@@ -131,7 +133,7 @@ public final class EngineConfigReader
                 Reader reader = new StringReader(readable);
                 reader.skip(configAt);
 
-                try (JsonParser parser = service.createParser(reader, schema, handler))
+                try (JsonParser parser = yamlService.createParser(reader, schema, handler))
                 {
                     while (parser.hasNext())
                     {
@@ -226,6 +228,7 @@ public final class EngineConfigReader
             ProblemHandler handler = service.createProblemPrinter(msg -> errors.add(new ConfigException(msg)));
             final JsonSchemaReader validator = service.createSchemaReader(schemaParser);
             final JsonSchema schema = new UniquePropertyKeysSchema(validator.read());
+            final JsonValidationService yamlService = JsonValidationService.newInstance(Yaml.provider());
 
             String readable = configText.stripTrailing();
 
@@ -237,7 +240,7 @@ public final class EngineConfigReader
                 Reader reader = new StringReader(readable);
                 reader.skip(configAt);
 
-                try (JsonParser parser = service.createParser(reader, schema, handler))
+                try (JsonParser parser = yamlService.createParser(reader, schema, handler))
                 {
                     while (parser.hasNext())
                     {

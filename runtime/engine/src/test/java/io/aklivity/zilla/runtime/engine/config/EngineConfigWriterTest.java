@@ -95,9 +95,9 @@ public class EngineConfigWriterTest
                 "    options:",
                 "      mode: test",
                 "    routes:",
-                "    - exit: exit0",
-                "      when:",
-                "      - match: test",
+                "      - exit: exit0",
+                "        when:",
+                "          - match: test",
                 ""
             })));
     }
@@ -144,9 +144,9 @@ public class EngineConfigWriterTest
                 "    options:",
                 "      mode: test",
                 "    routes:",
-                "    - exit: exit0",
-                "      when:",
-                "      - match: test",
+                "      - exit: exit0",
+                "        when:",
+                "          - match: test",
                 ""
             })));
     }

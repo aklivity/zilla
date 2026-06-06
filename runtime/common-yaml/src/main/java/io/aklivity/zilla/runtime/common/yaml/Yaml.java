@@ -20,6 +20,7 @@ import java.io.Reader;
 import java.io.Writer;
 import java.util.Map;
 
+import jakarta.json.spi.JsonProvider;
 import jakarta.json.stream.JsonGenerator;
 import jakarta.json.stream.JsonGeneratorFactory;
 import jakarta.json.stream.JsonParser;
@@ -29,11 +30,17 @@ import io.aklivity.zilla.runtime.common.yaml.internal.YamlGenerator;
 import io.aklivity.zilla.runtime.common.yaml.internal.YamlGeneratorFactory;
 import io.aklivity.zilla.runtime.common.yaml.internal.YamlParser;
 import io.aklivity.zilla.runtime.common.yaml.internal.YamlParserFactory;
+import io.aklivity.zilla.runtime.common.yaml.internal.YamlProvider;
 
 public final class Yaml
 {
     private Yaml()
     {
+    }
+
+    public static JsonProvider provider()
+    {
+        return ProviderHolder.PROVIDER;
     }
 
     public static JsonParser createParser(
@@ -70,5 +77,10 @@ public final class Yaml
         Map<String, ?> config)
     {
         return new YamlGeneratorFactory(config);
+    }
+
+    private static final class ProviderHolder
+    {
+        private static final JsonProvider PROVIDER = new YamlProvider();
     }
 }
