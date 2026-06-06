@@ -337,6 +337,16 @@ public class McpServerIT
     @Test
     @Configuration("server.timeout.yaml")
     @Specification({
+        "${net}/tools.call.elicit.deferred.begin/client",
+        "${app}/tools.call.elicit.deferred.begin/server"})
+    public void shouldCallToolElicitWhenReplyBeginsBeforeChallenge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.timeout.yaml")
+    @Specification({
         "${net}/tools.call.elicit.completed/client",
         "${app}/tools.call.elicit.completed.context/server"})
     public void shouldCallToolElicitCompletedWithContext() throws Exception
