@@ -2193,6 +2193,22 @@ public final class McpServerFactory implements McpStreamFactory
 
         private void doEncodeResponseBegin(
             long traceId,
+            long authorization)
+        {
+            if (!McpState.replyOpening(state))
+            {
+                final String contentType = sseUpgrade ? CONTENT_TYPE_EVENT_STREAM : CONTENT_TYPE_JSON;
+                doEncodeResponseBegin(traceId, authorization, httpBeginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
+                    .typeId(httpTypeId)
+                    .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(STATUS_200))
+                    .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(contentType))
+                    .inject(this::injectAltSvc)
+                    .build());
+            }
+        }
+
+        private void doEncodeResponseBegin(
+            long traceId,
             long authorization,
             Flyweight extension)
         {
@@ -4457,7 +4473,7 @@ public final class McpServerFactory implements McpStreamFactory
             long traceId,
             long authorization)
         {
-            server.doNetBegin(traceId, authorization, emptyRO);
+            server.doEncodeResponseBegin(traceId, authorization);
             server.doNetAbort(traceId, authorization);
             doAppReset(traceId, authorization);
             doAppAbort(traceId, authorization);
@@ -4639,25 +4655,9 @@ public final class McpServerFactory implements McpStreamFactory
                 server.sseUpgrade = true;
             }
 
-            if (server.sseUpgrade)
+            if (server.sseUpgrade || session.requestTimeout == 0L)
             {
-                server.doEncodeResponseBegin(traceId, authorization,
-                    httpBeginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
-                        .typeId(httpTypeId)
-                        .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(STATUS_200))
-                        .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_EVENT_STREAM))
-                        .inject(server::injectAltSvc)
-                        .build());
-            }
-            else
-            {
-                server.doEncodeResponseBegin(traceId, authorization,
-                    httpBeginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
-                        .typeId(httpTypeId)
-                        .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(STATUS_200))
-                        .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_JSON))
-                        .inject(server::injectAltSvc)
-                        .build());
+                server.doEncodeResponseBegin(traceId, authorization);
             }
 
             flushAppWindow(traceId, authorization, 0L, 0, 0, encodeMax);
@@ -4695,6 +4695,7 @@ public final class McpServerFactory implements McpStreamFactory
                 }
                 else
                 {
+                    server.doEncodeResponseBegin(traceId, authorization);
                     server.doEncodeResponseData(traceId, authorization, payload.value());
                 }
             }
@@ -4834,6 +4835,7 @@ public final class McpServerFactory implements McpStreamFactory
             }
             else
             {
+                server.doEncodeResponseBegin(traceId, authorization);
                 server.doEncodeResponseEnd(traceId, authorization);
             }
 
@@ -4846,6 +4848,7 @@ public final class McpServerFactory implements McpStreamFactory
             final long traceId = abort.traceId();
             final long authorization = abort.authorization();
 
+            server.doEncodeResponseBegin(traceId, authorization);
             server.doNetAbort(traceId, authorization);
 
             doAppAbort(traceId, authorization);
