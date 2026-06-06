@@ -24,8 +24,8 @@
   </licenses>
 
   <properties>
-    <jacoco.coverage.ratio>0.00</jacoco.coverage.ratio>
-    <jacoco.missed.count>99</jacoco.missed.count>
+    <jacoco.coverage.ratio>0.98</jacoco.coverage.ratio>
+    <jacoco.missed.count>1</jacoco.missed.count>
   </properties>
 
   <dependencies>
