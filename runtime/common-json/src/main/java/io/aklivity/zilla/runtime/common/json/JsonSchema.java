@@ -819,6 +819,7 @@ public final class JsonSchema
         private final Eval thenEval;
         private final Eval elseEval;
         private final Map<String, Eval> dependentSchemaEvals;
+        private final boolean trackKeys;
 
         private boolean started;
         private boolean done;
@@ -829,6 +830,7 @@ public final class JsonSchema
         private boolean array;
         private Set<String> seen;
         private int count;
+        private Eval directChild;
         private Eval[] directChildren;
         private Eval containsChild;
         private int containsMatched;
@@ -845,6 +847,7 @@ public final class JsonSchema
             this.thenEval = thenSchema != null ? thenSchema.eval() : null;
             this.elseEval = elseSchema != null ? elseSchema.eval() : null;
             this.dependentSchemaEvals = evalsOfMap(dependentSchemas);
+            this.trackKeys = required != null || dependentRequired != null || dependentSchemaEvals != null;
         }
 
         private Verdict feed(
@@ -887,13 +890,16 @@ public final class JsonSchema
             Event event,
             JsonParser parser)
         {
-            if (started)
+            if (JsonSchema.this != ANY)
             {
-                onInner(event, parser);
-            }
-            else
-            {
-                onOpen(event, parser);
+                if (started)
+                {
+                    onInner(event, parser);
+                }
+                else
+                {
+                    onOpen(event, parser);
+                }
             }
         }
 
@@ -909,7 +915,7 @@ public final class JsonSchema
             {
             case START_OBJECT:
                 object = true;
-                seen = new HashSet<>();
+                seen = trackKeys ? new HashSet<>() : null;
                 directInvalid |= types != null && !types.contains(JsonType.OBJECT);
                 break;
             case START_ARRAY:
@@ -939,7 +945,7 @@ public final class JsonSchema
             Event event,
             JsonParser parser)
         {
-            if (directChildren != null)
+            if (directChild != null || directChildren != null)
             {
                 routeChildren(event, parser);
             }
@@ -967,12 +973,15 @@ public final class JsonSchema
             {
                 String key = parser.getString();
                 count++;
-                seen.add(key);
+                if (seen != null)
+                {
+                    seen.add(key);
+                }
                 if (propertyNames != null)
                 {
                     directInvalid |= propertyNames.eval().feed(VALUE_STRING, parser) != Verdict.VALID;
                 }
-                directChildren = applicableFor(key);
+                setApplicableFor(key);
             }
         }
 
@@ -990,8 +999,8 @@ public final class JsonSchema
             {
                 int index = count;
                 count++;
-                directChildren = new Eval[] {elementSchema(index).eval()};
-                if (contains != null)
+                directChild = elementSchema(index).eval();
+                if (contains != null && containsMatched == 0)
                 {
                     containsChild = contains.eval();
                 }
@@ -1037,13 +1046,26 @@ public final class JsonSchema
                 uniqueTokens.add(new Token(event, tokenText(event, parser)));
             }
             boolean complete = false;
-            for (Eval child : directChildren)
+            if (directChild != null)
             {
-                Verdict verdict = child.feed(event, parser);
+                Verdict verdict = directChild.feed(event, parser);
                 if (verdict != Verdict.PENDING)
                 {
                     directInvalid |= verdict == Verdict.INVALID;
+                    directChild = null;
                     complete = true;
+                }
+            }
+            if (directChildren != null)
+            {
+                for (Eval child : directChildren)
+                {
+                    Verdict verdict = child.feed(event, parser);
+                    if (verdict != Verdict.PENDING)
+                    {
+                        directInvalid |= verdict == Verdict.INVALID;
+                        complete = true;
+                    }
                 }
             }
             if (containsChild != null)
@@ -1060,6 +1082,7 @@ public final class JsonSchema
             }
             if (complete)
             {
+                directChild = null;
                 directChildren = null;
                 if (uniqueTokens != null)
                 {
@@ -1069,18 +1092,28 @@ public final class JsonSchema
             }
         }
 
-        private Eval[] applicableFor(
+        private void setApplicableFor(
             String key)
         {
-            List<JsonSchema> applicable = new ArrayList<>();
-            boolean matched = false;
-            if (properties != null && properties.containsKey(key))
+            if (patternProperties == null)
             {
-                applicable.add(properties.get(key));
-                matched = true;
+                JsonSchema schema = properties != null ? properties.get(key) : null;
+                if (schema == null)
+                {
+                    schema = additionalSchema != null ? additionalSchema : additionalAllowed ? ANY : NONE;
+                }
+                directChild = schema.eval();
+                directChildren = null;
             }
-            if (patternProperties != null)
+            else
             {
+                List<JsonSchema> applicable = new ArrayList<>();
+                boolean matched = false;
+                if (properties != null && properties.containsKey(key))
+                {
+                    applicable.add(properties.get(key));
+                    matched = true;
+                }
                 for (Map.Entry<Pattern, JsonSchema> entry : patternProperties.entrySet())
                 {
                     if (entry.getKey().matcher(key).find())
@@ -1089,12 +1122,27 @@ public final class JsonSchema
                         matched = true;
                     }
                 }
+                if (!matched)
+                {
+                    applicable.add(additionalSchema != null ? additionalSchema : additionalAllowed ? ANY : NONE);
+                }
+                setApplicable(applicable);
             }
-            if (!matched)
+        }
+
+        private void setApplicable(
+            List<JsonSchema> applicable)
+        {
+            if (applicable.size() == 1)
             {
-                applicable.add(additionalSchema != null ? additionalSchema : additionalAllowed ? ANY : NONE);
+                directChild = applicable.get(0).eval();
+                directChildren = null;
             }
-            return evalsOf(applicable);
+            else
+            {
+                directChild = null;
+                directChildren = evalsOf(applicable);
+            }
         }
 
         private void feedCombinators(

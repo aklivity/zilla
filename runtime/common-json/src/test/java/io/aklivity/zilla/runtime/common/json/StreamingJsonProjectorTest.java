@@ -50,6 +50,21 @@ class StreamingJsonProjectorTest
     }
 
     @Test
+    void shouldRetainExplicitArrayIndex()
+    {
+        assertEquals("{\"items\":[\"b\"]}",
+            project(List.of("/items/1"), "{\"items\":[\"a\",\"b\",\"c\"]}"));
+    }
+
+    @Test
+    void shouldNotMatchInvalidArrayIndexes()
+    {
+        assertEquals("{\"items\":[]}",
+            project(List.of("/items/01", "/items/999999999999999999999"),
+                "{\"items\":[\"a\",\"b\",\"c\"]}"));
+    }
+
+    @Test
     void shouldKeepWholeRetainedSubtree()
     {
         assertEquals("{\"a\":{\"b\":1,\"c\":[1,2]}}",

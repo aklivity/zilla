@@ -50,6 +50,7 @@ public final class StreamingJsonProjector
 
     private final List<String[]> retained;
     private final String[] segments = new String[MAX_DEPTH];
+    private final int[] indexes = new int[MAX_DEPTH];
     private final StreamingJsonGenerator generator = new StreamingJsonGenerator();
 
     private int depth;
@@ -174,7 +175,9 @@ public final class StreamingJsonProjector
         Event event = parser.next();
         while (event != END_ARRAY)
         {
-            segments[depth++] = Integer.toString(index);
+            segments[depth] = null;
+            indexes[depth] = index;
+            depth++;
             Decision child = decision == Decision.KEEP_ALL ? Decision.KEEP_ALL : decide();
             if (emit && keeps(child, event))
             {
@@ -255,7 +258,7 @@ public final class StreamingJsonProjector
         boolean matches = true;
         for (int i = 0; i < length; i++)
         {
-            if (!segmentMatches(pointer[i], segments[i]))
+            if (!segmentMatches(pointer[i], i))
             {
                 matches = false;
                 break;
@@ -264,22 +267,37 @@ public final class StreamingJsonProjector
         return matches;
     }
 
-    private static boolean segmentMatches(
+    private boolean segmentMatches(
         String pointerSegment,
-        String pathSegment)
+        int pathIndex)
     {
-        return WILDCARD.equals(pointerSegment) ? isIndex(pathSegment) : pointerSegment.equals(pathSegment);
+        String pathSegment = segments[pathIndex];
+        return pathSegment == null
+            ? WILDCARD.equals(pointerSegment) || matchesIndex(pointerSegment, indexes[pathIndex])
+            : pointerSegment.equals(pathSegment);
     }
 
-    private static boolean isIndex(
-        String segment)
+    private static boolean matchesIndex(
+        String segment,
+        int index)
     {
-        boolean index = !segment.isEmpty();
-        for (int i = 0; index && i < segment.length(); i++)
+        boolean matches = !segment.isEmpty() && (segment.length() == 1 || segment.charAt(0) != '0');
+        int value = 0;
+        for (int i = 0; matches && i < segment.length(); i++)
         {
-            index = Character.isDigit(segment.charAt(i));
+            char c = segment.charAt(i);
+            matches = Character.isDigit(c);
+            if (matches)
+            {
+                int digit = c - '0';
+                matches = value <= (Integer.MAX_VALUE - digit) / 10;
+                if (matches)
+                {
+                    value = value * 10 + digit;
+                }
+            }
         }
-        return index;
+        return matches && value == index;
     }
 
     private static String[] compile(
