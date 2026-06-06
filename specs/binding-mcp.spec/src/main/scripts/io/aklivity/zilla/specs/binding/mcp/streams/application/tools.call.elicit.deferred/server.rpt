@@ -58,9 +58,6 @@ read  '{'
         '}'
       '}'
 
-# reply opens before the elicitation challenge arrives — the server must NOT
-# commit the response content-type yet (no progressToken), otherwise the
-# subsequent elicitation/create cannot be streamed over text/event-stream
 write flush
 
 read advise zilla:challenge ${mcp:challengeEx()
