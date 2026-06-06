@@ -2080,9 +2080,7 @@ public final class McpServerFactory implements McpStreamFactory
             doNetBegin(traceId, authorization,
                 httpBeginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
                     .typeId(httpTypeId)
-                    .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(STATUS_200))
-                    .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_JSON))
-                    .headersItem(h -> h.name(HTTP_HEADER_SESSION).value(session.sessionId))
+                    .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(STATUS_202))
                     .inject(this::injectAltSvc)
                     .build());
             doNetEnd(traceId, authorization);
