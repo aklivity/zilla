@@ -51,8 +51,10 @@ read zilla:begin.ext ${mcp:matchBeginEx()
 read advise zilla:challenge ${mcp:challengeEx()
                                   .typeId(zilla:id("mcp"))
                                   .elicitCreate()
-                                      .id("1")
-                                      .url("https://server.example.com/authorize?state=7f3a9b1c&redirect_uri=%s".formatted(http:encodeQuery("https://replace.me/callback")))
+                                      .id("elicit-1")
+                                      .url("https://server.example.com/authorize?state=7f3a9b1c")
+                                      .message("Open the link to authorize access.")
+                                      .requestId("3")
                                       .build()
                                   .build()}
 
@@ -68,8 +70,9 @@ read  '{'
 
 read advised zilla:flush ${mcp:matchFlushEx()
                                .typeId(zilla:id("mcp"))
-                               .elicitCallback()
-                                   .url("http://localhost:8080/mcp/auth/callback?code=xyz&state=7f3a9b1c")
+                               .elicitResponse()
+                                   .requestId("3")
+                                   .action("ACCEPT")
                                    .build()
                                .build()}
 
@@ -78,7 +81,7 @@ write flush
 write advise zilla:flush ${mcp:flushEx()
                               .typeId(zilla:id("mcp"))
                               .elicitComplete()
-                                  .id("1")
+                                  .id("elicit-1")
                                   .status("COMPLETED")
                                   .build()
                               .build()}
