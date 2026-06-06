@@ -578,6 +578,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/lifecycle.elicit.completed/client",
+        "${app}/lifecycle.elicit.completed/server"})
+    public void shouldCompleteLifecycleElicit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/tools.call.elicit.passthrough/client",
         "${app}/tools.call.elicit.passthrough/server"})
     public void shouldCallToolElicitPassthrough() throws Exception

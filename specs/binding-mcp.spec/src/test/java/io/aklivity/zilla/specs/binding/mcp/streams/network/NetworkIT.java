@@ -605,6 +605,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/lifecycle.elicit.completed/client",
+        "${net}/lifecycle.elicit.completed/server"})
+    public void shouldCompleteLifecycleElicit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/tools.call.elicit.after.result/client",
         "${net}/tools.call.elicit.after.result/server"})
     public void shouldCallToolElicitAfterResult() throws Exception
