@@ -25,11 +25,11 @@ import java.util.Map;
 import jakarta.json.stream.JsonGenerator;
 import jakarta.json.stream.JsonGeneratorFactory;
 
-public final class YamlGeneratorFactory implements JsonGeneratorFactory
+public final class YamlJsonGeneratorFactory implements JsonGeneratorFactory
 {
     private final Map<String, ?> config;
 
-    public YamlGeneratorFactory(
+    public YamlJsonGeneratorFactory(
         Map<String, ?> config)
     {
         this.config = config;
@@ -39,14 +39,14 @@ public final class YamlGeneratorFactory implements JsonGeneratorFactory
     public JsonGenerator createGenerator(
         Writer writer)
     {
-        return new YamlGenerator(writer);
+        return new YamlJsonGenerator(writer);
     }
 
     @Override
     public JsonGenerator createGenerator(
         OutputStream out)
     {
-        return new YamlGenerator(new OutputStreamWriter(out, UTF_8));
+        return new YamlJsonGenerator(new OutputStreamWriter(out, UTF_8));
     }
 
     @Override
@@ -54,7 +54,7 @@ public final class YamlGeneratorFactory implements JsonGeneratorFactory
         OutputStream out,
         Charset charset)
     {
-        return new YamlGenerator(new OutputStreamWriter(out, charset));
+        return new YamlJsonGenerator(new OutputStreamWriter(out, charset));
     }
 
     @Override

@@ -34,7 +34,7 @@ import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 import jakarta.json.stream.JsonGenerator;
 
-public final class YamlGenerator implements JsonGenerator
+public final class YamlJsonGenerator implements JsonGenerator
 {
     private final Writer writer;
     private final Deque<Context> stack;
@@ -42,14 +42,14 @@ public final class YamlGenerator implements JsonGenerator
     private boolean written;
     private boolean closed;
 
-    public YamlGenerator(
+    public YamlJsonGenerator(
         Writer writer)
     {
         this.writer = writer;
         this.stack = new ArrayDeque<>();
     }
 
-    public YamlGenerator(
+    public YamlJsonGenerator(
         OutputStream out)
     {
         this(new OutputStreamWriter(out, UTF_8));

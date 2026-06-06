@@ -27,13 +27,13 @@ import jakarta.json.JsonValue;
 import jakarta.json.spi.JsonProvider;
 import jakarta.json.stream.JsonParser;
 
-public final class YamlReader implements JsonReader
+public final class YamlJsonReader implements JsonReader
 {
     private final JsonParser parser;
     private JsonProvider provider;
     private boolean read;
 
-    public YamlReader(
+    public YamlJsonReader(
         JsonParser parser)
     {
         this.parser = parser;

@@ -12,10 +12,19 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-module io.aklivity.zilla.runtime.common.yaml
-{
-    requires transitive jakarta.json;
+package io.aklivity.zilla.runtime.common.yaml;
 
-    exports io.aklivity.zilla.runtime.common.yaml;
-    exports io.aklivity.zilla.runtime.common.yaml.spi;
+public interface YamlWriter extends AutoCloseable
+{
+    void write(
+        YamlValue value);
+
+    void writeObject(
+        YamlObject object);
+
+    void writeArray(
+        YamlArray array);
+
+    @Override
+    void close();
 }

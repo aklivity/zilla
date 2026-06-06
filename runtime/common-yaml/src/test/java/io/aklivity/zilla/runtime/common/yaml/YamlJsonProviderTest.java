@@ -41,12 +41,12 @@ import jakarta.json.stream.JsonParserFactory;
 
 import org.junit.jupiter.api.Test;
 
-class YamlProviderTest
+class YamlJsonProviderTest
 {
     @Test
     void shouldCreateYamlParsersReadersGeneratorsAndWriters()
     {
-        JsonProvider provider = Yaml.provider();
+        JsonProvider provider = YamlJson.provider();
 
         JsonParserFactory parserFactory = provider.createParserFactory(Map.of("parser", "value"));
         assertEquals(Map.of("parser", "value"), parserFactory.getConfigInUse());
@@ -108,7 +108,7 @@ class YamlProviderTest
     @Test
     void shouldDelegateJsonModelApisToDefaultProvider()
     {
-        JsonProvider provider = Yaml.provider();
+        JsonProvider provider = YamlJson.provider();
 
         JsonObject object = provider.createObjectBuilder()
             .add("name", provider.createValue("test"))

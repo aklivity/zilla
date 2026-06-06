@@ -24,11 +24,11 @@ import jakarta.json.JsonObject;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParserFactory;
 
-public final class YamlParserFactory implements JsonParserFactory
+public final class YamlJsonParserFactory implements JsonParserFactory
 {
     private final Map<String, ?> config;
 
-    public YamlParserFactory(
+    public YamlJsonParserFactory(
         Map<String, ?> config)
     {
         this.config = config;
@@ -38,14 +38,14 @@ public final class YamlParserFactory implements JsonParserFactory
     public JsonParser createParser(
         Reader reader)
     {
-        return new YamlParser(reader);
+        return new YamlJsonParser(reader);
     }
 
     @Override
     public JsonParser createParser(
         InputStream in)
     {
-        return new YamlParser(in);
+        return new YamlJsonParser(in);
     }
 
     @Override
@@ -53,21 +53,21 @@ public final class YamlParserFactory implements JsonParserFactory
         InputStream in,
         Charset charset)
     {
-        return new YamlParser(in, charset);
+        return new YamlJsonParser(in, charset);
     }
 
     @Override
     public JsonParser createParser(
         JsonObject obj)
     {
-        throw new UnsupportedOperationException("YamlParserFactory only supports text sources");
+        throw new UnsupportedOperationException("YamlJsonParserFactory only supports text sources");
     }
 
     @Override
     public JsonParser createParser(
         JsonArray array)
     {
-        throw new UnsupportedOperationException("YamlParserFactory only supports text sources");
+        throw new UnsupportedOperationException("YamlJsonParserFactory only supports text sources");
     }
 
     @Override

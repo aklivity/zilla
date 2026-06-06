@@ -35,13 +35,13 @@ import jakarta.json.stream.JsonParser;
 
 import org.junit.jupiter.api.Test;
 
-class YamlGeneratorTest
+class YamlJsonGeneratorTest
 {
     @Test
     void shouldGenerateYamlUsingJsonGeneratorApi()
     {
         StringWriter out = new StringWriter();
-        JsonGenerator generator = Yaml.createGenerator(out);
+        JsonGenerator generator = YamlJson.createGenerator(out);
 
         generator.writeStartObject()
             .write("name", "test")
@@ -82,7 +82,7 @@ class YamlGeneratorTest
     {
         StringWriter out = new StringWriter();
 
-        Yaml.createGenerator(out)
+        YamlJson.createGenerator(out)
             .writeStartObject()
                 .write("quoted", "2.0")
                 .write("integer", 42)
@@ -115,7 +115,7 @@ class YamlGeneratorTest
     void shouldGenerateFromJsonValues()
     {
         StringWriter out = new StringWriter();
-        Yaml.createGenerator(out)
+        YamlJson.createGenerator(out)
             .writeStartObject()
                 .write("empty", JsonValue.EMPTY_JSON_OBJECT)
                 .write("items", JsonValue.EMPTY_JSON_ARRAY)
@@ -136,7 +136,7 @@ class YamlGeneratorTest
     void shouldCreateGeneratorFromFactory()
     {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        JsonGeneratorFactory factory = Yaml.createGeneratorFactory(Map.of("test", "value"));
+        JsonGeneratorFactory factory = YamlJson.createGeneratorFactory(Map.of("test", "value"));
 
         factory.createGenerator(out, UTF_8)
             .writeStartObject()
@@ -152,7 +152,7 @@ class YamlGeneratorTest
     void shouldGenerateViaOutputStreamEntryPointsAndFlush()
     {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        JsonGenerator generator = Yaml.createGenerator(out);
+        JsonGenerator generator = YamlJson.createGenerator(out);
 
         generator.writeStartArray()
             .write(1L)
@@ -170,7 +170,7 @@ class YamlGeneratorTest
         generator.close();
 
         out = new ByteArrayOutputStream();
-        Yaml.createGeneratorFactory(Map.of())
+        YamlJson.createGeneratorFactory(Map.of())
             .createGenerator(out)
             .write(JsonValue.TRUE)
             .close();
@@ -181,11 +181,11 @@ class YamlGeneratorTest
     void shouldGenerateEmptyRootValues()
     {
         StringWriter out = new StringWriter();
-        Yaml.createGenerator(out).write(JsonValue.EMPTY_JSON_OBJECT).close();
+        YamlJson.createGenerator(out).write(JsonValue.EMPTY_JSON_OBJECT).close();
         assertEquals("{}\n", out.toString());
 
         out = new StringWriter();
-        Yaml.createGenerator(out).write(JsonValue.EMPTY_JSON_ARRAY).close();
+        YamlJson.createGenerator(out).write(JsonValue.EMPTY_JSON_ARRAY).close();
         assertEquals("[]\n", out.toString());
     }
 
@@ -193,7 +193,7 @@ class YamlGeneratorTest
     void shouldRoundTripGeneratedYamlThroughParser()
     {
         StringWriter out = new StringWriter();
-        Yaml.createGenerator(out)
+        YamlJson.createGenerator(out)
             .writeStartObject()
                 .write("name", "test")
                 .writeStartArray("values")
@@ -214,13 +214,13 @@ class YamlGeneratorTest
             "VALUE_STRING:text",
             "VALUE_FALSE",
             "END_ARRAY",
-            "END_OBJECT"), events(Yaml.createParser(new StringReader(out.toString()))));
+            "END_OBJECT"), events(YamlJson.createParser(new StringReader(out.toString()))));
     }
 
     @Test
     void shouldRejectIncompleteDocuments()
     {
-        JsonGenerator generator = Yaml.createGenerator(new StringWriter());
+        JsonGenerator generator = YamlJson.createGenerator(new StringWriter());
 
         generator.writeStartObject().writeKey("name");
 
@@ -230,19 +230,19 @@ class YamlGeneratorTest
     @Test
     void shouldRejectInvalidGeneratorState()
     {
-        assertThrows(JsonException.class, () -> Yaml.createGenerator(new StringWriter()).writeKey("name"));
-        assertThrows(JsonException.class, () -> Yaml.createGenerator(new StringWriter()).writeEnd());
-        assertThrows(JsonException.class, () -> Yaml.createGenerator(new StringWriter()).write(Double.NaN));
+        assertThrows(JsonException.class, () -> YamlJson.createGenerator(new StringWriter()).writeKey("name"));
+        assertThrows(JsonException.class, () -> YamlJson.createGenerator(new StringWriter()).writeEnd());
+        assertThrows(JsonException.class, () -> YamlJson.createGenerator(new StringWriter()).write(Double.NaN));
 
-        JsonGenerator object = Yaml.createGenerator(new StringWriter()).writeStartObject();
+        JsonGenerator object = YamlJson.createGenerator(new StringWriter()).writeStartObject();
         assertThrows(JsonException.class, () -> object.write("value"));
         assertThrows(JsonException.class, () -> object.writeKey("a").writeKey("b"));
 
-        JsonGenerator rooted = Yaml.createGenerator(new StringWriter());
+        JsonGenerator rooted = YamlJson.createGenerator(new StringWriter());
         rooted.write(1);
         assertThrows(JsonException.class, () -> rooted.write(2));
 
-        JsonGenerator generator = Yaml.createGenerator(new StringWriter());
+        JsonGenerator generator = YamlJson.createGenerator(new StringWriter());
         generator.write(1).close();
         JsonGenerator closed = generator;
         assertThrows(JsonException.class, () -> closed.write(2));

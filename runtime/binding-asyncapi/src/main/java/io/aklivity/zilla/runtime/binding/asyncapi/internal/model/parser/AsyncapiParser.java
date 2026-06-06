@@ -38,7 +38,7 @@ import org.leadpony.justify.api.ProblemHandler;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiBinding;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
-import io.aklivity.zilla.runtime.common.yaml.Yaml;
+import io.aklivity.zilla.runtime.common.yaml.YamlJson;
 import io.aklivity.zilla.runtime.engine.config.ConfigException;
 
 public class AsyncapiParser
@@ -67,11 +67,11 @@ public class AsyncapiParser
             JsonObject asyncapiObject = readAsyncapiObject(asyncapiText);
             String asyncApiVersion = detectAsyncApiVersion(asyncapiObject);
 
-            JsonValidationService service = JsonValidationService.newInstance(Yaml.provider());
+            JsonValidationService service = JsonValidationService.newInstance(YamlJson.provider());
             ProblemHandler handler = service.createProblemPrinter(msg -> errors.add(new ConfigException(msg)));
             JsonSchema schema = schemas.get(asyncApiVersion);
 
-            try (JsonParser parser = Yaml.createParser(new StringReader(asyncapiText)))
+            try (JsonParser parser = YamlJson.createParser(new StringReader(asyncapiText)))
             {
                 service.createReader(parser, schema, handler).read();
             }
@@ -112,7 +112,7 @@ public class AsyncapiParser
     private JsonObject readAsyncapiObject(
         String asyncapiText)
     {
-        try (JsonReader reader = Yaml.provider().createReader(new StringReader(asyncapiText)))
+        try (JsonReader reader = YamlJson.provider().createReader(new StringReader(asyncapiText)))
         {
             return reader.readObject();
         }

@@ -12,10 +12,35 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-module io.aklivity.zilla.runtime.common.yaml
-{
-    requires transitive jakarta.json;
+package io.aklivity.zilla.runtime.common.yaml;
 
-    exports io.aklivity.zilla.runtime.common.yaml;
-    exports io.aklivity.zilla.runtime.common.yaml.spi;
+public interface YamlValue
+{
+    ValueType getValueType();
+
+    default YamlObject asYamlObject()
+    {
+        return (YamlObject) this;
+    }
+
+    default YamlArray asYamlArray()
+    {
+        return (YamlArray) this;
+    }
+
+    default YamlScalar asYamlScalar()
+    {
+        return (YamlScalar) this;
+    }
+
+    enum ValueType
+    {
+        OBJECT,
+        ARRAY,
+        STRING,
+        NUMBER,
+        TRUE,
+        FALSE,
+        NULL
+    }
 }

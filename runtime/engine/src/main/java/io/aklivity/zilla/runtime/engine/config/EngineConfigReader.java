@@ -46,7 +46,7 @@ import org.leadpony.justify.api.JsonSchemaReader;
 import org.leadpony.justify.api.JsonValidationService;
 import org.leadpony.justify.api.ProblemHandler;
 
-import io.aklivity.zilla.runtime.common.yaml.Yaml;
+import io.aklivity.zilla.runtime.common.yaml.YamlJson;
 import io.aklivity.zilla.runtime.engine.Engine;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.internal.config.NamespaceAdapter;
@@ -121,7 +121,7 @@ public final class EngineConfigReader
             JsonSchemaReader validator = service.createSchemaReader(schemaParser);
             JsonSchema schema = new UniquePropertyKeysSchema(validator.read());
 
-            JsonValidationService yamlService = JsonValidationService.newInstance(Yaml.provider());
+            JsonValidationService yamlService = JsonValidationService.newInstance(YamlJson.provider());
             JsonProvider provider = yamlService.createJsonProvider(schema, parser -> handler);
             String readable = configText.stripTrailing();
 
@@ -228,7 +228,7 @@ public final class EngineConfigReader
             ProblemHandler handler = service.createProblemPrinter(msg -> errors.add(new ConfigException(msg)));
             final JsonSchemaReader validator = service.createSchemaReader(schemaParser);
             final JsonSchema schema = new UniquePropertyKeysSchema(validator.read());
-            final JsonValidationService yamlService = JsonValidationService.newInstance(Yaml.provider());
+            final JsonValidationService yamlService = JsonValidationService.newInstance(YamlJson.provider());
 
             String readable = configText.stripTrailing();
 

@@ -12,79 +12,74 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.common.yaml;
+package io.aklivity.zilla.runtime.common.yaml.internal;
 
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Reader;
 import java.io.Writer;
 
-import io.aklivity.zilla.runtime.common.yaml.internal.YamlGeneratorImpl;
-import io.aklivity.zilla.runtime.common.yaml.internal.YamlParserImpl;
-import io.aklivity.zilla.runtime.common.yaml.internal.YamlProviderImpl;
+import io.aklivity.zilla.runtime.common.yaml.YamlGenerator;
+import io.aklivity.zilla.runtime.common.yaml.YamlParser;
+import io.aklivity.zilla.runtime.common.yaml.YamlReader;
+import io.aklivity.zilla.runtime.common.yaml.YamlWriter;
 import io.aklivity.zilla.runtime.common.yaml.spi.YamlProvider;
 
-public final class Yaml
+public final class YamlProviderImpl extends YamlProvider
 {
-    private Yaml()
-    {
-    }
-
-    public static YamlProvider provider()
-    {
-        return ProviderHolder.PROVIDER;
-    }
-
-    public static YamlParser createParser(
+    @Override
+    public YamlParser createParser(
         Reader reader)
     {
         return new YamlParserImpl(reader);
     }
 
-    public static YamlParser createParser(
+    @Override
+    public YamlParser createParser(
         InputStream in)
     {
         return new YamlParserImpl(in);
     }
 
-    public static YamlReader createReader(
+    @Override
+    public YamlReader createReader(
         Reader reader)
     {
-        return provider().createReader(reader);
+        return new YamlReaderImpl(createParser(reader));
     }
 
-    public static YamlReader createReader(
+    @Override
+    public YamlReader createReader(
         InputStream in)
     {
-        return provider().createReader(in);
+        return new YamlReaderImpl(createParser(in));
     }
 
-    public static YamlGenerator createGenerator(
+    @Override
+    public YamlGenerator createGenerator(
         Writer writer)
     {
         return new YamlGeneratorImpl(writer);
     }
 
-    public static YamlGenerator createGenerator(
+    @Override
+    public YamlGenerator createGenerator(
         OutputStream out)
     {
         return new YamlGeneratorImpl(out);
     }
 
-    public static YamlWriter createWriter(
+    @Override
+    public YamlWriter createWriter(
         Writer writer)
     {
-        return provider().createWriter(writer);
+        return new YamlWriterImpl(createGenerator(writer));
     }
 
-    public static YamlWriter createWriter(
+    @Override
+    public YamlWriter createWriter(
         OutputStream out)
     {
-        return provider().createWriter(out);
-    }
-
-    private static final class ProviderHolder
-    {
-        private static final YamlProvider PROVIDER = new YamlProviderImpl();
+        return new YamlWriterImpl(createGenerator(out));
     }
 }

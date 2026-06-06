@@ -31,7 +31,7 @@ import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
 import jakarta.json.spi.JsonProvider;
 
-import io.aklivity.zilla.runtime.common.yaml.Yaml;
+import io.aklivity.zilla.runtime.common.yaml.YamlJson;
 import io.aklivity.zilla.runtime.engine.internal.config.NamespaceAdapter;
 
 public final class EngineConfigWriter
@@ -180,6 +180,6 @@ public final class EngineConfigWriter
 
         JsonObject jsonObject = provider.createReader(new StringReader(jsonText)).readObject();
         JsonObject patched = patch.apply(jsonObject);
-        Yaml.createGenerator(writer).write(patched).close();
+        YamlJson.createGenerator(writer).write(patched).close();
     }
 }

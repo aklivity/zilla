@@ -45,7 +45,7 @@ import jakarta.json.stream.JsonParsingException;
 
 import org.junit.jupiter.api.Test;
 
-class YamlParserTest
+class YamlJsonParserTest
 {
     @Test
     void shouldParseBlockMappingsAndIndentlessSequences()
@@ -305,12 +305,12 @@ class YamlParserTest
     }
 
     @Test
-    void shouldCreateExplicitYamlProviderWithoutServiceRegistration()
+    void shouldCreateExplicitYamlJsonProviderWithoutServiceRegistration()
     {
-        JsonProvider provider = Yaml.provider();
+        JsonProvider provider = YamlJson.provider();
         JsonParser parser = provider.createParser(new StringReader("name: test\n"));
 
-        assertEquals("YamlProvider", provider.getClass().getSimpleName());
+        assertEquals("YamlJsonProvider", provider.getClass().getSimpleName());
         assertEquals(START_OBJECT, parser.next());
         assertEquals(KEY_NAME, parser.next());
         assertEquals("name", parser.getString());
@@ -331,7 +331,7 @@ class YamlParserTest
     @Test
     void shouldCreateParserFromFactory()
     {
-        JsonParserFactory factory = Yaml.createParserFactory(Map.of("test", "value"));
+        JsonParserFactory factory = YamlJson.createParserFactory(Map.of("test", "value"));
         JsonParser parser = factory.createParser(new ByteArrayInputStream("name: test\n".getBytes(UTF_8)));
 
         assertEquals(Map.of("test", "value"), factory.getConfigInUse());
@@ -391,7 +391,7 @@ class YamlParserTest
     private static JsonParser parserFor(
         String text)
     {
-        return Yaml.createParser(new StringReader(text));
+        return YamlJson.createParser(new StringReader(text));
     }
 
     private static List<String> events(

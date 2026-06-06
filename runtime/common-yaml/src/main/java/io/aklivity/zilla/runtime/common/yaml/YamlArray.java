@@ -12,10 +12,26 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-module io.aklivity.zilla.runtime.common.yaml
-{
-    requires transitive jakarta.json;
+package io.aklivity.zilla.runtime.common.yaml;
 
-    exports io.aklivity.zilla.runtime.common.yaml;
-    exports io.aklivity.zilla.runtime.common.yaml.spi;
+import java.util.Iterator;
+import java.util.List;
+
+public interface YamlArray extends YamlStructure, Iterable<YamlValue>
+{
+    List<YamlValue> values();
+
+    YamlValue get(
+        int index);
+
+    default int size()
+    {
+        return values().size();
+    }
+
+    @Override
+    default Iterator<YamlValue> iterator()
+    {
+        return values().iterator();
+    }
 }

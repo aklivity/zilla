@@ -46,7 +46,7 @@ import jakarta.json.stream.JsonGeneratorFactory;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParserFactory;
 
-public final class YamlProvider extends JsonProvider
+public final class YamlJsonProvider extends JsonProvider
 {
     private JsonProvider delegate;
 
@@ -54,84 +54,84 @@ public final class YamlProvider extends JsonProvider
     public JsonParser createParser(
         Reader reader)
     {
-        return new YamlParser(reader);
+        return new YamlJsonParser(reader);
     }
 
     @Override
     public JsonParser createParser(
         InputStream in)
     {
-        return new YamlParser(in);
+        return new YamlJsonParser(in);
     }
 
     @Override
     public JsonParserFactory createParserFactory(
         Map<String, ?> config)
     {
-        return new YamlParserFactory(config);
+        return new YamlJsonParserFactory(config);
     }
 
     @Override
     public JsonGenerator createGenerator(
         Writer writer)
     {
-        return new YamlGenerator(writer);
+        return new YamlJsonGenerator(writer);
     }
 
     @Override
     public JsonGenerator createGenerator(
         OutputStream out)
     {
-        return new YamlGenerator(out);
+        return new YamlJsonGenerator(out);
     }
 
     @Override
     public JsonGeneratorFactory createGeneratorFactory(
         Map<String, ?> config)
     {
-        return new YamlGeneratorFactory(config);
+        return new YamlJsonGeneratorFactory(config);
     }
 
     @Override
     public JsonReader createReader(
         Reader reader)
     {
-        return new YamlReader(createParser(reader));
+        return new YamlJsonReader(createParser(reader));
     }
 
     @Override
     public JsonReader createReader(
         InputStream in)
     {
-        return new YamlReader(createParser(in));
+        return new YamlJsonReader(createParser(in));
     }
 
     @Override
     public JsonWriter createWriter(
         Writer writer)
     {
-        return new YamlWriter(createGenerator(writer));
+        return new YamlJsonWriter(createGenerator(writer));
     }
 
     @Override
     public JsonWriter createWriter(
         OutputStream out)
     {
-        return new YamlWriter(createGenerator(out));
+        return new YamlJsonWriter(createGenerator(out));
     }
 
     @Override
     public JsonWriterFactory createWriterFactory(
         Map<String, ?> config)
     {
-        return new YamlWriterFactory(config);
+        return new YamlJsonWriterFactory(config);
     }
 
     @Override
     public JsonReaderFactory createReaderFactory(
         Map<String, ?> config)
     {
-        return new YamlReaderFactory(config);
+        return new YamlJsonReaderFactory(config);
     }
 
     @Override

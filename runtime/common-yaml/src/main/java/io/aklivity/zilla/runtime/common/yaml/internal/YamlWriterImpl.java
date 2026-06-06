@@ -14,49 +14,41 @@
  */
 package io.aklivity.zilla.runtime.common.yaml.internal;
 
-import jakarta.json.JsonArray;
-import jakarta.json.JsonObject;
-import jakarta.json.JsonStructure;
-import jakarta.json.JsonValue;
-import jakarta.json.JsonWriter;
-import jakarta.json.stream.JsonGenerator;
+import io.aklivity.zilla.runtime.common.yaml.YamlArray;
+import io.aklivity.zilla.runtime.common.yaml.YamlGenerator;
+import io.aklivity.zilla.runtime.common.yaml.YamlObject;
+import io.aklivity.zilla.runtime.common.yaml.YamlValue;
+import io.aklivity.zilla.runtime.common.yaml.YamlWriter;
 
-public final class YamlWriter implements JsonWriter
+public final class YamlWriterImpl implements YamlWriter
 {
-    private final JsonGenerator generator;
+    private final YamlGenerator generator;
 
-    public YamlWriter(
-        JsonGenerator generator)
+    public YamlWriterImpl(
+        YamlGenerator generator)
     {
         this.generator = generator;
     }
 
     @Override
-    public void writeArray(
-        JsonArray array)
+    public void write(
+        YamlValue value)
     {
-        write(array);
+        generator.write(value).close();
     }
 
     @Override
     public void writeObject(
-        JsonObject object)
+        YamlObject object)
     {
         write(object);
     }
 
     @Override
-    public void write(
-        JsonStructure value)
+    public void writeArray(
+        YamlArray array)
     {
-        write((JsonValue) value);
-    }
-
-    @Override
-    public void write(
-        JsonValue value)
-    {
-        generator.write(value).close();
+        write(array);
     }
 
     @Override

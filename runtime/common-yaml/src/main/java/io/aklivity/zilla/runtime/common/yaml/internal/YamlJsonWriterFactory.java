@@ -16,44 +16,45 @@ package io.aklivity.zilla.runtime.common.yaml.internal;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.io.InputStream;
-import java.io.Reader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
 import java.nio.charset.Charset;
 import java.util.Map;
 
-import jakarta.json.JsonReader;
-import jakarta.json.JsonReaderFactory;
+import jakarta.json.JsonWriter;
+import jakarta.json.JsonWriterFactory;
 
-public final class YamlReaderFactory implements JsonReaderFactory
+public final class YamlJsonWriterFactory implements JsonWriterFactory
 {
     private final Map<String, ?> config;
 
-    public YamlReaderFactory(
+    public YamlJsonWriterFactory(
         Map<String, ?> config)
     {
         this.config = config;
     }
 
     @Override
-    public JsonReader createReader(
-        Reader reader)
+    public JsonWriter createWriter(
+        Writer writer)
     {
-        return new YamlReader(new YamlParser(reader));
+        return new YamlJsonWriter(new YamlJsonGenerator(writer));
     }
 
     @Override
-    public JsonReader createReader(
-        InputStream in)
+    public JsonWriter createWriter(
+        OutputStream out)
     {
-        return createReader(in, UTF_8);
+        return createWriter(out, UTF_8);
     }
 
     @Override
-    public JsonReader createReader(
-        InputStream in,
+    public JsonWriter createWriter(
+        OutputStream out,
         Charset charset)
     {
-        return new YamlReader(new YamlParser(in, charset));
+        return new YamlJsonWriter(new YamlJsonGenerator(new OutputStreamWriter(out, charset)));
     }
 
     @Override

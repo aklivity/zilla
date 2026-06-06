@@ -34,7 +34,7 @@ import jakarta.json.stream.JsonLocation;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParsingException;
 
-public final class YamlParser implements JsonParser
+public final class YamlJsonParser implements JsonParser
 {
     private final Deque<Frame> stack;
     private final YamlLocation end;
@@ -43,26 +43,26 @@ public final class YamlParser implements JsonParser
     private JsonProvider provider;
     private boolean exhausted;
 
-    public YamlParser(
+    public YamlJsonParser(
         Reader reader)
     {
         this(readAll(reader));
     }
 
-    public YamlParser(
+    public YamlJsonParser(
         InputStream in)
     {
         this(in, UTF_8);
     }
 
-    public YamlParser(
+    public YamlJsonParser(
         InputStream in,
         Charset charset)
     {
         this(readAll(in, charset));
     }
 
-    private YamlParser(
+    private YamlJsonParser(
         String text)
     {
         YamlDocumentParser.Result result = YamlDocumentParser.parse(text);
