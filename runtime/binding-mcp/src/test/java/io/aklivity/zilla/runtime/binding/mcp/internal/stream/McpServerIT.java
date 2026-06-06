@@ -40,6 +40,8 @@ import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 public class McpServerIT
 {
+    private static final String ENGINE_WORKERS_NAME = "zilla.engine.workers";
+
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("net", "io/aklivity/zilla/specs/binding/mcp/streams/network")
         .addScriptRoot("app", "io/aklivity/zilla/specs/binding/mcp/streams/application");
@@ -806,6 +808,16 @@ public class McpServerIT
     @Specification({
         "${net}/reject.auth.callback.unknown.elicitation/client"})
     public void shouldRejectAuthCallbackUnknownElicitation() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/lifecycle.redirect.session/client"})
+    @Configure(name = ENGINE_WORKERS_NAME, value = "2")
+    public void shouldRedirectLifecycleForRemoteSession() throws Exception
     {
         k3po.finish();
     }
