@@ -34,9 +34,11 @@ import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpBearerError;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpBearerResetExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpChallengeExFW;
+import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpElicitAction;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpElicitCallbackFlushExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpElicitCompleteFlushExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpElicitCreateChallengeExFW;
+import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpElicitResponseFlushExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpElicitStatus;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpEndExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpFlushExFW;
@@ -979,6 +981,11 @@ public final class McpFunctions
             return new McpElicitCompleteFlushExBuilder();
         }
 
+        public McpElicitResponseFlushExBuilder elicitResponse()
+        {
+            return new McpElicitResponseFlushExBuilder();
+        }
+
         public byte[] build()
         {
             final byte[] array = new byte[flushExRW.limit()];
@@ -1182,6 +1189,32 @@ public final class McpFunctions
                 return McpFlushExBuilder.this;
             }
         }
+
+        public final class McpElicitResponseFlushExBuilder
+        {
+            private String requestId;
+            private McpElicitAction action;
+
+            public McpElicitResponseFlushExBuilder requestId(
+                String requestId)
+            {
+                this.requestId = requestId;
+                return this;
+            }
+
+            public McpElicitResponseFlushExBuilder action(
+                String action)
+            {
+                this.action = McpElicitAction.valueOf(action);
+                return this;
+            }
+
+            public McpFlushExBuilder build()
+            {
+                flushExRW.elicitResponse(b -> b.requestId(requestId).action(a -> a.set(action)));
+                return McpFlushExBuilder.this;
+            }
+        }
     }
 
     public static final class McpFlushExMatcherBuilder
@@ -1260,6 +1293,14 @@ public final class McpFunctions
         {
             this.kind = McpFlushExFW.KIND_ELICIT_COMPLETE;
             final McpElicitCompleteFlushExMatcherBuilder matcher = new McpElicitCompleteFlushExMatcherBuilder();
+            this.caseMatcher = matcher::match;
+            return matcher;
+        }
+
+        public McpElicitResponseFlushExMatcherBuilder elicitResponse()
+        {
+            this.kind = McpFlushExFW.KIND_ELICIT_RESPONSE;
+            final McpElicitResponseFlushExMatcherBuilder matcher = new McpElicitResponseFlushExMatcherBuilder();
             this.caseMatcher = matcher::match;
             return matcher;
         }
@@ -1629,6 +1670,50 @@ public final class McpFunctions
                 return status == null || status == elicitComplete.status().get();
             }
         }
+
+        public final class McpElicitResponseFlushExMatcherBuilder
+        {
+            private String16FW requestId;
+            private McpElicitAction action;
+
+            public McpElicitResponseFlushExMatcherBuilder requestId(
+                String requestId)
+            {
+                this.requestId = new String16FW(requestId);
+                return this;
+            }
+
+            public McpElicitResponseFlushExMatcherBuilder action(
+                String action)
+            {
+                this.action = McpElicitAction.valueOf(action);
+                return this;
+            }
+
+            public McpFlushExMatcherBuilder build()
+            {
+                return McpFlushExMatcherBuilder.this;
+            }
+
+            private boolean match(
+                McpFlushExFW flushEx)
+            {
+                final McpElicitResponseFlushExFW elicitResponse = flushEx.elicitResponse();
+                return matchRequestId(elicitResponse) && matchAction(elicitResponse);
+            }
+
+            private boolean matchRequestId(
+                McpElicitResponseFlushExFW elicitResponse)
+            {
+                return requestId == null || requestId.equals(elicitResponse.requestId());
+            }
+
+            private boolean matchAction(
+                McpElicitResponseFlushExFW elicitResponse)
+            {
+                return action == null || action == elicitResponse.action().get();
+            }
+        }
     }
 
     @Function
@@ -1728,6 +1813,8 @@ public final class McpFunctions
             private String id;
             private String url;
             private String context;
+            private String message;
+            private String requestId;
 
             public McpElicitCreateChallengeExBuilder id(
                 String id)
@@ -1750,9 +1837,23 @@ public final class McpFunctions
                 return this;
             }
 
+            public McpElicitCreateChallengeExBuilder message(
+                String message)
+            {
+                this.message = message;
+                return this;
+            }
+
+            public McpElicitCreateChallengeExBuilder requestId(
+                String requestId)
+            {
+                this.requestId = requestId;
+                return this;
+            }
+
             public McpChallengeExBuilder build()
             {
-                challengeExRW.elicitCreate(b -> b.id(id).url(url).context(context));
+                challengeExRW.elicitCreate(b -> b.id(id).url(url).context(context).message(message).requestId(requestId));
                 return McpChallengeExBuilder.this;
             }
         }
@@ -1892,6 +1993,8 @@ public final class McpFunctions
             private String16FW id;
             private String16FW url;
             private String8FW context;
+            private String16FW message;
+            private String16FW requestId;
 
             public McpElicitCreateChallengeExMatcherBuilder id(
                 String id)
@@ -1914,6 +2017,20 @@ public final class McpFunctions
                 return this;
             }
 
+            public McpElicitCreateChallengeExMatcherBuilder message(
+                String message)
+            {
+                this.message = new String16FW(message);
+                return this;
+            }
+
+            public McpElicitCreateChallengeExMatcherBuilder requestId(
+                String requestId)
+            {
+                this.requestId = new String16FW(requestId);
+                return this;
+            }
+
             public McpChallengeExMatcherBuilder build()
             {
                 return McpChallengeExMatcherBuilder.this;
@@ -1923,7 +2040,8 @@ public final class McpFunctions
                 McpChallengeExFW challengeEx)
             {
                 final McpElicitCreateChallengeExFW elicitCreate = challengeEx.elicitCreate();
-                return matchId(elicitCreate) && matchUrl(elicitCreate) && matchContext(elicitCreate);
+                return matchId(elicitCreate) && matchUrl(elicitCreate) &&
+                    matchContext(elicitCreate) && matchMessage(elicitCreate) && matchRequestId(elicitCreate);
             }
 
             private boolean matchId(
@@ -1942,6 +2060,18 @@ public final class McpFunctions
                 McpElicitCreateChallengeExFW elicitCreate)
             {
                 return context == null || context.equals(elicitCreate.context());
+            }
+
+            private boolean matchMessage(
+                McpElicitCreateChallengeExFW elicitCreate)
+            {
+                return message == null || message.equals(elicitCreate.message());
+            }
+
+            private boolean matchRequestId(
+                McpElicitCreateChallengeExFW elicitCreate)
+            {
+                return requestId == null || requestId.equals(elicitCreate.requestId());
             }
         }
     }

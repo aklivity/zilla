@@ -52,6 +52,7 @@ scope mcp
             case 5: mcp::stream::McpSuspendFlushEx suspend;
             case 6: mcp::stream::McpElicitCallbackFlushEx elicitCallback;
             case 7: mcp::stream::McpElicitCompleteFlushEx elicitComplete;
+            case 8: mcp::stream::McpElicitResponseFlushEx elicitResponse;
         }
 
         union McpChallengeEx switch (uint8) extends core::stream::Extension
@@ -195,11 +196,20 @@ scope mcp
             CANCELLED(2)
         }
 
+        enum McpElicitAction (uint8)
+        {
+            ACCEPT(0),
+            DECLINE(1),
+            CANCEL(2)
+        }
+
         struct McpElicitCreateChallengeEx
         {
             string16 id;
             string16 url;
             string8 context = null;
+            string16 message = null;
+            string16 requestId = null;
         }
 
         struct McpElicitCallbackFlushEx
@@ -212,6 +222,12 @@ scope mcp
         {
             string16 id;
             McpElicitStatus status;
+        }
+
+        struct McpElicitResponseFlushEx
+        {
+            string16 requestId;
+            McpElicitAction action;
         }
     }
 }
