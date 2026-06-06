@@ -30,7 +30,7 @@ write zilla:begin.ext ${http:beginEx()
 
 connected
 
-write '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}}}'
+write '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{"elicitation":{"url":{}}},"clientInfo":{"name":"test","version":"1.0"}}}'
 write close
 
 read zilla:begin.ext ${http:matchBeginEx()
@@ -76,30 +76,24 @@ connect await LIFECYCLE_INITIALIZED
 
 write zilla:begin.ext ${http:beginEx()
                             .typeId(zilla:id("http"))
-                            .header(":method", "POST")
+                            .header(":method", "GET")
                             .header(":scheme", "http")
                             .header(":authority", "localhost:8080")
                             .header(":path", "/mcp")
-                            .header("content-type", "application/json")
-                            .header("accept", "application/json, text/event-stream")
+                            .header("accept", "text/event-stream")
                             .header("mcp-protocol-version", "2025-11-25")
                             .header("mcp-session-id", "transport-1")
-                            .header("content-length", "115")
                             .build()}
 
 connected
-
-write '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"get_weather","arguments":{"location": "New York"}}}'
-
-write close
 
 read zilla:begin.ext ${http:matchBeginEx()
                            .typeId(zilla:id("http"))
                            .header(":status", "200")
                            .header("content-type", "text/event-stream")
+                           .header("mcp-session-id", "transport-1")
                            .build()}
 
-read 'id: 2:1\n'
 read 'data: {'
        '"jsonrpc":"2.0",'
        '"id":3,'
@@ -124,25 +118,6 @@ read 'data: {'
        '}'
      '}\n'
 read '\n'
-
-read 'data: {'
-       '"jsonrpc":"2.0",'
-       '"id":2,'
-       '"result":'
-       '{'
-         '"content":'
-         '['
-           '{'
-             '"type": "text",'
-             '"text": "Current weather in New York:\\nTemperature: 72°F\\nConditions: Partly cloudy"'
-           '}'
-         '],'
-         '"isError": false'
-       '}'
-     '}\n'
-read '\n'
-
-read closed
 
 connect await ELICIT_CREATED
         "zilla://streams/net0"

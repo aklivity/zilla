@@ -32,31 +32,11 @@ read zilla:begin.ext ${mcp:matchBeginEx()
                               .build()
                           .build()}
 
-read notify LIFECYCLE_INITIALIZED
-
-connect await LIFECYCLE_INITIALIZED
-        "zilla://streams/app0"
-        option zilla:window 8192
-        option zilla:transmission "half-duplex"
-
-write zilla:begin.ext ${mcp:beginEx()
-                           .typeId(zilla:id("mcp"))
-                           .toolsCall()
-                               .sessionId("session-1")
-                               .name("get_weather")
-                               .contentLength(59)
-                               .build()
-                           .build()}
-
-connected
-
-write '{'
-        '"name":"get_weather",'
-        '"arguments":'
-        '{'
-          '"location": "New York"'
-        '}'
-      '}'
+read advise zilla:challenge ${mcp:challengeEx()
+                                  .typeId(zilla:id("mcp"))
+                                  .resume()
+                                      .build()
+                                  .build()}
 
 write advised zilla:challenge ${mcp:matchChallengeEx()
                                     .typeId(zilla:id("mcp"))
@@ -84,16 +64,6 @@ read advised zilla:flush ${mcp:matchFlushEx()
                                    .build()
                                .build()}
 
-read '{'
-       '"content":'
-       '['
-         '{'
-           '"type": "text",'
-           '"text": "Current weather in New York:\\nTemperature: 72°F\\nConditions: Partly cloudy"'
-         '}'
-       '],'
-       '"isError": false'
-     '}'
 read closed
 
 write close

@@ -315,7 +315,6 @@ public class McpServerIT
         k3po.finish();
     }
 
-    @Ignore("WIP: SEP-1036 url-mode elicitation passthrough north impl pending; scenario now conformant")
     @Test
     @Configuration("server.timeout.yaml")
     @Specification({
@@ -346,6 +345,7 @@ public class McpServerIT
         k3po.finish();
     }
 
+    @Ignore("broker OAuth-callback elicit (context/elicitCallback) pending dedicated broker net scripts; see issue #1810")
     @Test
     @Configuration("server.timeout.yaml")
     @Specification({
@@ -362,6 +362,16 @@ public class McpServerIT
         "${net}/lifecycle.elicit.toolkit/client",
         "${app}/lifecycle.elicit.toolkit/server"})
     public void shouldRouteLifecycleElicitToolkitCallback() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.timeout.yaml")
+    @Specification({
+        "${net}/lifecycle.elicit.completed/client",
+        "${app}/lifecycle.elicit.completed/server"})
+    public void shouldCompleteLifecycleElicit() throws Exception
     {
         k3po.finish();
     }

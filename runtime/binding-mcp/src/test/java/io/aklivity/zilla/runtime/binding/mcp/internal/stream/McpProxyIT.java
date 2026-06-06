@@ -580,6 +580,17 @@ public class McpProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Specification({
+        "${app}/lifecycle.elicit.completed/client",
+        "${app}/lifecycle.elicit.completed/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldCompleteLifecycleElicit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
         "${app}/tools.call.elicit.declined.proxied/client",
         "${app}/tools.call.elicit.declined.proxied/server" })
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
