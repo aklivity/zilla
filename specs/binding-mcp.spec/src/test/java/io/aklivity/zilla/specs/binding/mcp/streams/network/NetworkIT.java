@@ -488,6 +488,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/lifecycle.redirect.session/client",
+        "${net}/lifecycle.redirect.session/server"})
+    public void shouldRedirectLifecycleForRemoteSession() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/reject.method.not.allowed/client",
         "${net}/reject.method.not.allowed/server"})
     public void shouldRejectMethodNotAllowed() throws Exception
