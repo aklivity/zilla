@@ -21,8 +21,8 @@ import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
 import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.ArrayDeque;
+import java.util.Deque;
 
 import jakarta.json.JsonArray;
 import jakarta.json.JsonObject;
@@ -33,10 +33,10 @@ import jakarta.json.stream.JsonParsingException;
 
 public final class YamlParser implements JsonParser
 {
-    private final List<YamlEvent> events;
+    private final Deque<Frame> stack;
     private final YamlLocation end;
-    private int cursor;
     private YamlEvent current;
+    private YamlEvent next;
 
     public YamlParser(
         Reader reader)
@@ -61,16 +61,19 @@ public final class YamlParser implements JsonParser
         String text)
     {
         YamlNode node = YamlDocumentParser.parse(text);
-        this.events = new ArrayList<>();
-        flatten(node, events);
+        this.stack = new ArrayDeque<>();
+        stack.push(new Frame(node));
         this.end = new YamlLocation(1, 1, text.length());
-        this.cursor = -1;
     }
 
     @Override
     public boolean hasNext()
     {
-        return cursor + 1 < events.size();
+        if (next == null)
+        {
+            next = nextEvent();
+        }
+        return next != null;
     }
 
     @Override
@@ -80,7 +83,8 @@ public final class YamlParser implements JsonParser
         {
             throw new JsonParsingException("No more events", getLocation());
         }
-        current = events.get(++cursor);
+        current = next;
+        next = null;
         return current.event;
     }
 
@@ -195,38 +199,61 @@ public final class YamlParser implements JsonParser
         return current.value;
     }
 
-    private static void flatten(
-        YamlNode node,
-        List<YamlEvent> events)
+    private YamlEvent nextEvent()
     {
-        if (node instanceof YamlObjectNode object)
+        while (!stack.isEmpty())
         {
-            events.add(new YamlEvent(Event.START_OBJECT, null, object.line, object.column, object.offset));
-            for (YamlEntry entry : object.entries)
+            Frame frame = stack.peek();
+            if (frame.node instanceof YamlObjectNode object)
             {
-                events.add(new YamlEvent(Event.KEY_NAME, entry.name, entry.line, entry.column, entry.offset));
-                flatten(entry.value, events);
+                if (!frame.started)
+                {
+                    frame.started = true;
+                    return new YamlEvent(Event.START_OBJECT, null, object.line, object.column, object.offset);
+                }
+                if (frame.value)
+                {
+                    frame.value = false;
+                    stack.push(new Frame(object.entries.get(frame.index++).value));
+                    continue;
+                }
+                if (frame.index < object.entries.size())
+                {
+                    YamlEntry entry = object.entries.get(frame.index);
+                    frame.value = true;
+                    return new YamlEvent(Event.KEY_NAME, entry.name, entry.line, entry.column, entry.offset);
+                }
+
+                stack.pop();
+                return new YamlEvent(Event.END_OBJECT, null, object.line, object.column, object.offset);
             }
-            events.add(new YamlEvent(Event.END_OBJECT, null, object.line, object.column, object.offset));
-        }
-        else if (node instanceof YamlArrayNode array)
-        {
-            events.add(new YamlEvent(Event.START_ARRAY, null, array.line, array.column, array.offset));
-            for (YamlNode value : array.values)
+
+            if (frame.node instanceof YamlArrayNode array)
             {
-                flatten(value, events);
+                if (!frame.started)
+                {
+                    frame.started = true;
+                    return new YamlEvent(Event.START_ARRAY, null, array.line, array.column, array.offset);
+                }
+                if (frame.index < array.values.size())
+                {
+                    stack.push(new Frame(array.values.get(frame.index++)));
+                    continue;
+                }
+
+                stack.pop();
+                return new YamlEvent(Event.END_ARRAY, null, array.line, array.column, array.offset);
             }
-            events.add(new YamlEvent(Event.END_ARRAY, null, array.line, array.column, array.offset));
+
+            stack.pop();
+            return scalarEvent((YamlScalarNode) frame.node);
         }
-        else
-        {
-            flattenScalar((YamlScalarNode) node, events);
-        }
+
+        return null;
     }
 
-    private static void flattenScalar(
-        YamlScalarNode scalar,
-        List<YamlEvent> events)
+    private static YamlEvent scalarEvent(
+        YamlScalarNode scalar)
     {
         Event event = switch (scalar.type)
         {
@@ -236,7 +263,7 @@ public final class YamlParser implements JsonParser
         case FALSE -> Event.VALUE_FALSE;
         case NULL -> Event.VALUE_NULL;
         };
-        events.add(new YamlEvent(event, scalar.value, scalar.line, scalar.column, scalar.offset));
+        return new YamlEvent(event, scalar.value, scalar.line, scalar.column, scalar.offset);
     }
 
     private static String readAll(
@@ -272,6 +299,20 @@ public final class YamlParser implements JsonParser
         {
             throw new JsonParsingException(ex.getMessage(), ex,
                 new YamlLocation(1, 1, 0));
+        }
+    }
+
+    private static final class Frame
+    {
+        final YamlNode node;
+        int index;
+        boolean started;
+        boolean value;
+
+        private Frame(
+            YamlNode node)
+        {
+            this.node = node;
         }
     }
 }
