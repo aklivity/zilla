@@ -4101,12 +4101,7 @@ public final class McpServerFactory implements McpStreamFactory
         private void onNetClientEnd(
             EndFW end)
         {
-            final long traceId = end.traceId();
-            final long authorization = end.authorization();
-
             state = McpState.closedInitial(state);
-
-            doNetEnd(traceId, authorization);
         }
 
         private void onNetAbort(

@@ -93,5 +93,3 @@ write zilla:begin.ext ${http:beginEx()
                             .header("mcp-session-id", "transport-1")
                             .build()}
 write flush
-
-write close
