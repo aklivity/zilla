@@ -2126,7 +2126,10 @@ public final class McpServerFactory implements McpStreamFactory
             assert session != null;
 
             McpRequestStream request = session.requests.get(params.requestId.toString());
-            request.doAppCancel(traceId, authorization);
+            if (request != null)
+            {
+                request.doAppCancel(traceId, authorization);
+            }
 
             doEncodeNotifyCanceled(traceId, authorization);
 
