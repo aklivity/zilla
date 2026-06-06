@@ -47,17 +47,17 @@ class YamlParserTest
     @Test
     void shouldParseBlockMappingsAndIndentlessSequences()
     {
-        JsonParser parser = parserFor(String.join("\n",
-            "name: test",
-            "bindings:",
-            "  test0:",
-            "    type: test",
-            "    kind: server",
-            "    routes:",
-            "    - exit: exit0",
-            "      when:",
-            "      - match: test",
-            ""));
+        JsonParser parser = parserFor("""
+            name: test
+            bindings:
+              test0:
+                type: test
+                kind: server
+                routes:
+                - exit: exit0
+                  when:
+                  - match: test
+            """);
 
         assertEquals(List.of(
             "START_OBJECT",
@@ -93,10 +93,10 @@ class YamlParserTest
     @Test
     void shouldParseFlowCollectionsAndComments()
     {
-        JsonParser parser = parserFor(String.join("\n",
-            "name: test # trailing comment",
-            "values: [1, true, false, null, \"a # value\", {path: \"/a#b\"}]",
-            ""));
+        JsonParser parser = parserFor("""
+            name: test # trailing comment
+            values: [1, true, false, null, "a # value", {path: "/a#b"}]
+            """);
 
         assertEquals(START_OBJECT, parser.next());
         assertEquals(KEY_NAME, parser.next());
@@ -144,10 +144,10 @@ class YamlParserTest
     @Test
     void shouldParseQuotedScalarsAndEscapes()
     {
-        JsonParser parser = parserFor(String.join("\n",
-            "single: 'it''s'",
-            "double: \"line\\n\\u0041\"",
-            ""));
+        JsonParser parser = parserFor("""
+            single: 'it''s'
+            double: "line\\n\\u0041"
+            """);
 
         assertEquals(List.of(
             "START_OBJECT",
@@ -163,15 +163,15 @@ class YamlParserTest
     {
         assertEquals(List.of("VALUE_NULL"), events(parserFor("")));
 
-        JsonParser parser = parserFor(String.join("\n",
-            "---",
-            "items:",
-            "  -",
-            "    name: one",
-            "  - two",
-            "  - []",
-            "  - {}",
-            ""));
+        JsonParser parser = parserFor("""
+            ---
+            items:
+              -
+                name: one
+              - two
+              - []
+              - {}
+            """);
 
         assertEquals(List.of(
             "START_OBJECT",

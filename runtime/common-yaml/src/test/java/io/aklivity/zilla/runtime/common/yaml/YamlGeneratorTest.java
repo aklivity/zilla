@@ -64,17 +64,17 @@ class YamlGeneratorTest
             .writeEnd()
             .close();
 
-        assertEquals(String.join("\n",
-            "name: test",
-            "bindings:",
-            "  test0:",
-            "    type: test",
-            "    kind: server",
-            "    routes:",
-            "      - exit: exit0",
-            "        when:",
-            "          - match: test",
-            ""), out.toString());
+        assertEquals("""
+            name: test
+            bindings:
+              test0:
+                type: test
+                kind: server
+                routes:
+                  - exit: exit0
+                    when:
+                      - match: test
+            """, out.toString());
     }
 
     @Test
@@ -98,17 +98,17 @@ class YamlGeneratorTest
             .writeEnd()
             .close();
 
-        assertEquals(String.join("\n",
-            "quoted: \"2.0\"",
-            "integer: 42",
-            "decimal: 3.14",
-            "enabled: true",
-            "missing: null",
-            "items:",
-            "  - alpha",
-            "  -",
-            "    - 1",
-            ""), out.toString());
+        assertEquals("""
+            quoted: "2.0"
+            integer: 42
+            decimal: 3.14
+            enabled: true
+            missing: null
+            items:
+              - alpha
+              -
+                - 1
+            """, out.toString());
     }
 
     @Test
@@ -124,12 +124,12 @@ class YamlGeneratorTest
             .writeEnd()
             .close();
 
-        assertEquals(String.join("\n",
-            "empty: {}",
-            "items: []",
-            "flag: true",
-            "missing: null",
-            ""), out.toString());
+        assertEquals("""
+            empty: {}
+            items: []
+            flag: true
+            missing: null
+            """, out.toString());
     }
 
     @Test
@@ -161,11 +161,11 @@ class YamlGeneratorTest
             .writeEnd()
             .flush();
 
-        assertEquals(String.join("\n",
-            "- 1",
-            "- 2",
-            "- 3.0",
-            ""), out.toString(UTF_8));
+        assertEquals("""
+            - 1
+            - 2
+            - 3.0
+            """, out.toString(UTF_8));
         assertThrows(JsonException.class, () -> generator.write(4));
         generator.close();
 
