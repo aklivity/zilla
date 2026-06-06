@@ -14,11 +14,11 @@
  */
 package io.aklivity.zilla.runtime.common.yaml.internal;
 
-abstract class YamlNode
+public abstract class YamlNode
 {
-    final int line;
-    final int column;
-    final long offset;
+    public final int line;
+    public final int column;
+    public final long offset;
 
     YamlNode(
         int line,

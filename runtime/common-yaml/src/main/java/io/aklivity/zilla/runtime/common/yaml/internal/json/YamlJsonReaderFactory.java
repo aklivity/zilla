@@ -12,49 +12,48 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.common.yaml.internal;
+package io.aklivity.zilla.runtime.common.yaml.internal.json;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
+import java.io.InputStream;
+import java.io.Reader;
 import java.nio.charset.Charset;
 import java.util.Map;
 
-import jakarta.json.stream.JsonGenerator;
-import jakarta.json.stream.JsonGeneratorFactory;
+import jakarta.json.JsonReader;
+import jakarta.json.JsonReaderFactory;
 
-public final class YamlJsonGeneratorFactory implements JsonGeneratorFactory
+public final class YamlJsonReaderFactory implements JsonReaderFactory
 {
     private final Map<String, ?> config;
 
-    public YamlJsonGeneratorFactory(
+    public YamlJsonReaderFactory(
         Map<String, ?> config)
     {
         this.config = config;
     }
 
     @Override
-    public JsonGenerator createGenerator(
-        Writer writer)
+    public JsonReader createReader(
+        Reader reader)
     {
-        return new YamlJsonGenerator(writer);
+        return new YamlJsonReader(new YamlJsonParser(reader));
     }
 
     @Override
-    public JsonGenerator createGenerator(
-        OutputStream out)
+    public JsonReader createReader(
+        InputStream in)
     {
-        return new YamlJsonGenerator(new OutputStreamWriter(out, UTF_8));
+        return createReader(in, UTF_8);
     }
 
     @Override
-    public JsonGenerator createGenerator(
-        OutputStream out,
+    public JsonReader createReader(
+        InputStream in,
         Charset charset)
     {
-        return new YamlJsonGenerator(new OutputStreamWriter(out, charset));
+        return new YamlJsonReader(new YamlJsonParser(in, charset));
     }
 
     @Override

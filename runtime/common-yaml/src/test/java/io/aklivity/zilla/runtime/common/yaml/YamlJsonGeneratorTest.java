@@ -35,6 +35,8 @@ import jakarta.json.stream.JsonParser;
 
 import org.junit.jupiter.api.Test;
 
+import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
+
 class YamlJsonGeneratorTest
 {
     @Test

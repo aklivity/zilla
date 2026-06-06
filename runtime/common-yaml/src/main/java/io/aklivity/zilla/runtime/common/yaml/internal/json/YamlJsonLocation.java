@@ -12,36 +12,37 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.common.yaml.internal;
+package io.aklivity.zilla.runtime.common.yaml.internal.json;
 
-public final class YamlLocation
+import jakarta.json.stream.JsonLocation;
+
+import io.aklivity.zilla.runtime.common.yaml.internal.YamlLocation;
+
+public final class YamlJsonLocation implements JsonLocation
 {
-    private final int line;
-    private final int column;
-    private final long offset;
+    private final YamlLocation location;
 
-    public YamlLocation(
-        int line,
-        int column,
-        long offset)
+    public YamlJsonLocation(
+        YamlLocation location)
     {
-        this.line = line;
-        this.column = column;
-        this.offset = offset;
+        this.location = location;
     }
 
-    public long line()
+    @Override
+    public long getLineNumber()
     {
-        return line;
+        return location.line();
     }
 
-    public long column()
+    @Override
+    public long getColumnNumber()
     {
-        return column;
+        return location.column();
     }
 
-    public long offset()
+    @Override
+    public long getStreamOffset()
     {
-        return offset;
+        return location.offset();
     }
 }

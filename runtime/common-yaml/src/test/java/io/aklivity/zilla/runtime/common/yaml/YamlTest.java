@@ -27,11 +27,14 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.List;
 
 import jakarta.json.spi.JsonProvider;
 
 import org.junit.jupiter.api.Test;
 
+import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 import io.aklivity.zilla.runtime.common.yaml.spi.YamlProvider;
 
 class YamlTest
@@ -101,6 +104,42 @@ class YamlTest
         assertEquals(YamlValue.ValueType.NUMBER, scalar.getValueType());
         assertEquals(YamlScalarType.NUMBER, scalar.asYamlScalar().getScalarType());
         assertEquals("42", scalar.asYamlScalar().getString());
+    }
+
+    @Test
+    void shouldParseNativeEvents()
+    {
+        YamlParser parser = Yaml.createParser(new StringReader("""
+            name: test
+            items:
+              - 1
+              - false
+            """));
+        List<String> events = new ArrayList<>();
+
+        while (parser.hasNext())
+        {
+            YamlEvent event = parser.next();
+            events.add(event.getEventType() + (event.getString() != null ? ":" + event.getString() : ""));
+            if (event.getValue() != null && event.getEventType() == YamlEvent.EventType.START_OBJECT)
+            {
+                assertEquals(YamlValue.ValueType.OBJECT, event.getValue().getValueType());
+            }
+        }
+
+        assertEquals(List.of(
+            "START_OBJECT",
+            "KEY_NAME:name",
+            "VALUE_STRING:test",
+            "KEY_NAME:items",
+            "START_ARRAY",
+            "VALUE_NUMBER:1",
+            "VALUE_FALSE",
+            "END_ARRAY",
+            "END_OBJECT"), events);
+        assertFalse(parser.hasNext());
+        assertThrows(IllegalStateException.class, parser::next);
+        assertThrows(IllegalStateException.class, parser::parse);
     }
 
     @Test

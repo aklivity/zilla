@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.common.yaml.internal;
 
-enum YamlScalarType
+public enum YamlScalarType
 {
     STRING,
     NUMBER,

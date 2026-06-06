@@ -14,36 +14,20 @@
  */
 package io.aklivity.zilla.runtime.common.yaml.internal;
 
-import jakarta.json.stream.JsonParser;
-
-final class YamlEvent
+public final class YamlParseException extends RuntimeException
 {
-    final JsonParser.Event event;
-    final String value;
-    final YamlNode node;
-    final YamlLocation location;
+    private final YamlLocation location;
 
-    YamlEvent(
-        JsonParser.Event event,
-        String value,
-        int line,
-        int column,
-        long offset)
+    public YamlParseException(
+        String message,
+        YamlLocation location)
     {
-        this(event, value, null, line, column, offset);
+        super(message);
+        this.location = location;
     }
 
-    YamlEvent(
-        JsonParser.Event event,
-        String value,
-        YamlNode node,
-        int line,
-        int column,
-        long offset)
+    public YamlLocation location()
     {
-        this.event = event;
-        this.value = value;
-        this.node = node;
-        this.location = new YamlLocation(line, column, offset);
+        return location;
     }
 }

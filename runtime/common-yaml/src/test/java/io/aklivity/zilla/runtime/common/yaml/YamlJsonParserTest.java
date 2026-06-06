@@ -45,6 +45,8 @@ import jakarta.json.stream.JsonParsingException;
 
 import org.junit.jupiter.api.Test;
 
+import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
+
 class YamlJsonParserTest
 {
     @Test

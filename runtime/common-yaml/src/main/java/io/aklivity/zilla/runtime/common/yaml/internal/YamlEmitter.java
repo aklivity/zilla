@@ -19,7 +19,7 @@ import java.io.Writer;
 import java.util.Locale;
 import java.util.regex.Pattern;
 
-final class YamlEmitter
+public final class YamlEmitter
 {
     private static final Pattern NUMBER_PATTERN = Pattern.compile(
         "-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?:[eE][+-]?[0-9]+)?");
@@ -29,7 +29,7 @@ final class YamlEmitter
     {
     }
 
-    static void write(
+    public static void write(
         YamlNode node,
         Writer writer) throws IOException
     {

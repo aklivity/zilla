@@ -46,7 +46,7 @@ import org.leadpony.justify.api.JsonSchemaReader;
 import org.leadpony.justify.api.JsonValidationService;
 import org.leadpony.justify.api.ProblemHandler;
 
-import io.aklivity.zilla.runtime.common.yaml.YamlJson;
+import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 import io.aklivity.zilla.runtime.engine.Engine;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.internal.config.NamespaceAdapter;

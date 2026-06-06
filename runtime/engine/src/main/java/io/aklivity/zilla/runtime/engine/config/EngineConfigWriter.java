@@ -31,7 +31,7 @@ import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
 import jakarta.json.spi.JsonProvider;
 
-import io.aklivity.zilla.runtime.common.yaml.YamlJson;
+import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 import io.aklivity.zilla.runtime.engine.internal.config.NamespaceAdapter;
 
 public final class EngineConfigWriter

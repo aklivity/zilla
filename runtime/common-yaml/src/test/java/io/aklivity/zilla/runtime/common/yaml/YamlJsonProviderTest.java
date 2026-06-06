@@ -41,6 +41,8 @@ import jakarta.json.stream.JsonParserFactory;
 
 import org.junit.jupiter.api.Test;
 
+import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
+
 class YamlJsonProviderTest
 {
     @Test

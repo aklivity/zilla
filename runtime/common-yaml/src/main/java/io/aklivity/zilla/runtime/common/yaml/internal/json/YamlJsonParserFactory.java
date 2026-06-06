@@ -12,48 +12,62 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.common.yaml.internal;
-
-import static java.nio.charset.StandardCharsets.UTF_8;
+package io.aklivity.zilla.runtime.common.yaml.internal.json;
 
 import java.io.InputStream;
 import java.io.Reader;
 import java.nio.charset.Charset;
 import java.util.Map;
 
-import jakarta.json.JsonReader;
-import jakarta.json.JsonReaderFactory;
+import jakarta.json.JsonArray;
+import jakarta.json.JsonObject;
+import jakarta.json.stream.JsonParser;
+import jakarta.json.stream.JsonParserFactory;
 
-public final class YamlJsonReaderFactory implements JsonReaderFactory
+public final class YamlJsonParserFactory implements JsonParserFactory
 {
     private final Map<String, ?> config;
 
-    public YamlJsonReaderFactory(
+    public YamlJsonParserFactory(
         Map<String, ?> config)
     {
         this.config = config;
     }
 
     @Override
-    public JsonReader createReader(
+    public JsonParser createParser(
         Reader reader)
     {
-        return new YamlJsonReader(new YamlJsonParser(reader));
+        return new YamlJsonParser(reader);
     }
 
     @Override
-    public JsonReader createReader(
+    public JsonParser createParser(
         InputStream in)
     {
-        return createReader(in, UTF_8);
+        return new YamlJsonParser(in);
     }
 
     @Override
-    public JsonReader createReader(
+    public JsonParser createParser(
         InputStream in,
         Charset charset)
     {
-        return new YamlJsonReader(new YamlJsonParser(in, charset));
+        return new YamlJsonParser(in, charset);
+    }
+
+    @Override
+    public JsonParser createParser(
+        JsonObject obj)
+    {
+        throw new UnsupportedOperationException("YamlJsonParserFactory only supports text sources");
+    }
+
+    @Override
+    public JsonParser createParser(
+        JsonArray array)
+    {
+        throw new UnsupportedOperationException("YamlJsonParserFactory only supports text sources");
     }
 
     @Override

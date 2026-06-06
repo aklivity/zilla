@@ -20,16 +20,23 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.nio.charset.Charset;
+import java.util.ArrayDeque;
+import java.util.Deque;
 
-import jakarta.json.stream.JsonParsingException;
-
+import io.aklivity.zilla.runtime.common.yaml.YamlEvent;
+import io.aklivity.zilla.runtime.common.yaml.YamlEvent.EventType;
 import io.aklivity.zilla.runtime.common.yaml.YamlParser;
 import io.aklivity.zilla.runtime.common.yaml.YamlValue;
 
 public final class YamlParserImpl implements YamlParser
 {
     private final String text;
+    private Deque<Frame> stack;
+    private YamlNode root;
+    private YamlEvent next;
     private boolean parsed;
+    private boolean streaming;
+    private boolean exhausted;
 
     public YamlParserImpl(
         Reader reader)
@@ -51,19 +58,134 @@ public final class YamlParserImpl implements YamlParser
     }
 
     @Override
-    public YamlValue parse()
+    public boolean hasNext()
     {
         if (parsed)
+        {
+            return false;
+        }
+        if (next == null && !exhausted)
+        {
+            streaming = true;
+            ensureStack();
+            next = nextEvent();
+            exhausted = next == null;
+        }
+        return next != null;
+    }
+
+    @Override
+    public YamlEvent next()
+    {
+        if (!hasNext())
+        {
+            throw new IllegalStateException("No more YAML events");
+        }
+        YamlEvent event = next;
+        next = null;
+        return event;
+    }
+
+    @Override
+    public YamlValue parse()
+    {
+        if (parsed || streaming)
         {
             throw new IllegalStateException("YAML document has already been parsed");
         }
         parsed = true;
-        return YamlValues.wrap(YamlDocumentParser.parse(text).node);
+        return YamlValues.wrap(root());
     }
 
     @Override
     public void close()
     {
+    }
+
+    private YamlNode root()
+    {
+        if (root == null)
+        {
+            root = YamlDocumentParser.parse(text).node;
+        }
+        return root;
+    }
+
+    private void ensureStack()
+    {
+        if (stack == null)
+        {
+            stack = new ArrayDeque<>();
+            stack.push(new Frame(root()));
+        }
+    }
+
+    private YamlEvent nextEvent()
+    {
+        while (!stack.isEmpty())
+        {
+            Frame frame = stack.peek();
+            if (frame.node instanceof YamlObjectNode object)
+            {
+                if (!frame.started)
+                {
+                    frame.started = true;
+                    return new YamlEvent(EventType.START_OBJECT, null, YamlValues.wrap(object));
+                }
+                if (frame.value)
+                {
+                    frame.value = false;
+                    stack.push(new Frame(object.entries.get(frame.index++).value));
+                    continue;
+                }
+                if (frame.index < object.entries.size())
+                {
+                    YamlEntry entry = object.entries.get(frame.index);
+                    frame.value = true;
+                    return new YamlEvent(EventType.KEY_NAME, entry.name,
+                        YamlValues.wrap(YamlScalarNode.string(entry.name, entry.line, entry.column, entry.offset)));
+                }
+
+                stack.pop();
+                return new YamlEvent(EventType.END_OBJECT, null, null);
+            }
+
+            if (frame.node instanceof YamlArrayNode array)
+            {
+                if (!frame.started)
+                {
+                    frame.started = true;
+                    return new YamlEvent(EventType.START_ARRAY, null, YamlValues.wrap(array));
+                }
+                if (frame.index < array.values.size())
+                {
+                    stack.push(new Frame(array.values.get(frame.index++)));
+                    continue;
+                }
+
+                stack.pop();
+                return new YamlEvent(EventType.END_ARRAY, null, null);
+            }
+
+            stack.pop();
+            return scalarEvent((YamlScalarNode) frame.node);
+        }
+
+        return null;
+    }
+
+    private YamlEvent scalarEvent(
+        YamlScalarNode scalar)
+    {
+        EventType eventType = switch (scalar.type)
+        {
+        case STRING -> EventType.VALUE_STRING;
+        case NUMBER -> EventType.VALUE_NUMBER;
+        case TRUE -> EventType.VALUE_TRUE;
+        case FALSE -> EventType.VALUE_FALSE;
+        case NULL -> EventType.VALUE_NULL;
+        };
+        return new YamlEvent(eventType, scalar.value, YamlValues.wrap(scalar));
     }
 
     private static String readAll(
@@ -82,8 +204,7 @@ public final class YamlParserImpl implements YamlParser
         }
         catch (IOException ex)
         {
-            throw new JsonParsingException(ex.getMessage(), ex,
-                new YamlLocation(1, 1, 0));
+            throw new YamlParseException(ex.getMessage(), new YamlLocation(1, 1, 0));
         }
     }
 
@@ -97,8 +218,21 @@ public final class YamlParserImpl implements YamlParser
         }
         catch (IOException ex)
         {
-            throw new JsonParsingException(ex.getMessage(), ex,
-                new YamlLocation(1, 1, 0));
+            throw new YamlParseException(ex.getMessage(), new YamlLocation(1, 1, 0));
+        }
+    }
+
+    private static final class Frame
+    {
+        final YamlNode node;
+        int index;
+        boolean started;
+        boolean value;
+
+        private Frame(
+            YamlNode node)
+        {
+            this.node = node;
         }
     }
 }

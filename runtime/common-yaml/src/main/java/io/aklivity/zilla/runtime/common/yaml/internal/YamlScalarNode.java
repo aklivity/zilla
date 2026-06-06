@@ -14,12 +14,12 @@
  */
 package io.aklivity.zilla.runtime.common.yaml.internal;
 
-final class YamlScalarNode extends YamlNode
+public final class YamlScalarNode extends YamlNode
 {
-    final YamlScalarType type;
-    final String value;
+    public final YamlScalarType type;
+    public final String value;
 
-    YamlScalarNode(
+    public YamlScalarNode(
         YamlScalarType type,
         String value,
         int line,
@@ -31,7 +31,7 @@ final class YamlScalarNode extends YamlNode
         this.value = value;
     }
 
-    static YamlScalarNode string(
+    public static YamlScalarNode string(
         String value,
         int line,
         int column,
@@ -40,7 +40,7 @@ final class YamlScalarNode extends YamlNode
         return new YamlScalarNode(YamlScalarType.STRING, value, line, column, offset);
     }
 
-    static YamlScalarNode number(
+    public static YamlScalarNode number(
         String value,
         int line,
         int column,
@@ -49,7 +49,7 @@ final class YamlScalarNode extends YamlNode
         return new YamlScalarNode(YamlScalarType.NUMBER, value, line, column, offset);
     }
 
-    static YamlScalarNode literal(
+    public static YamlScalarNode literal(
         YamlScalarType type,
         int line,
         int column,

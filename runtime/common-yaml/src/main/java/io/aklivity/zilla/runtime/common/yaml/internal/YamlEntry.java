@@ -14,16 +14,16 @@
  */
 package io.aklivity.zilla.runtime.common.yaml.internal;
 
-final class YamlEntry
+public final class YamlEntry
 {
-    final String name;
-    final YamlNode value;
-    final int line;
-    final int column;
-    final long offset;
-    final boolean merged;
+    public final String name;
+    public final YamlNode value;
+    public final int line;
+    public final int column;
+    public final long offset;
+    public final boolean merged;
 
-    YamlEntry(
+    public YamlEntry(
         String name,
         YamlNode value,
         int line,
@@ -33,7 +33,7 @@ final class YamlEntry
         this(name, value, line, column, offset, false);
     }
 
-    YamlEntry(
+    public YamlEntry(
         String name,
         YamlNode value,
         int line,

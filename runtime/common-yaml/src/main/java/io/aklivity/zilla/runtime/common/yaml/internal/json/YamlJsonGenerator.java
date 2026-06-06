@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.common.yaml.internal;
+package io.aklivity.zilla.runtime.common.yaml.internal.json;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -33,6 +33,14 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 import jakarta.json.stream.JsonGenerator;
+
+import io.aklivity.zilla.runtime.common.yaml.internal.YamlArrayNode;
+import io.aklivity.zilla.runtime.common.yaml.internal.YamlEmitter;
+import io.aklivity.zilla.runtime.common.yaml.internal.YamlEntry;
+import io.aklivity.zilla.runtime.common.yaml.internal.YamlNode;
+import io.aklivity.zilla.runtime.common.yaml.internal.YamlObjectNode;
+import io.aklivity.zilla.runtime.common.yaml.internal.YamlScalarNode;
+import io.aklivity.zilla.runtime.common.yaml.internal.YamlScalarType;
 
 public final class YamlJsonGenerator implements JsonGenerator
 {

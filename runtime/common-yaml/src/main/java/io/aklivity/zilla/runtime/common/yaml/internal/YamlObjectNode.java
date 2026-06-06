@@ -17,11 +17,11 @@ package io.aklivity.zilla.runtime.common.yaml.internal;
 import java.util.ArrayList;
 import java.util.List;
 
-final class YamlObjectNode extends YamlNode
+public final class YamlObjectNode extends YamlNode
 {
-    final List<YamlEntry> entries;
+    public final List<YamlEntry> entries;
 
-    YamlObjectNode(
+    public YamlObjectNode(
         int line,
         int column,
         long offset)
@@ -30,19 +30,19 @@ final class YamlObjectNode extends YamlNode
         this.entries = new ArrayList<>();
     }
 
-    void add(
+    public void add(
         YamlEntry entry)
     {
         entries.add(entry);
     }
 
-    void addAll(
+    public void addAll(
         YamlObjectNode object)
     {
         entries.addAll(object.entries);
     }
 
-    void removeMerged(
+    public void removeMerged(
         String name)
     {
         entries.removeIf(e -> e.merged && e.name.equals(name));

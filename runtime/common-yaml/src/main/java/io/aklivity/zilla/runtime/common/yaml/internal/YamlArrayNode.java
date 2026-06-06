@@ -17,11 +17,11 @@ package io.aklivity.zilla.runtime.common.yaml.internal;
 import java.util.ArrayList;
 import java.util.List;
 
-final class YamlArrayNode extends YamlNode
+public final class YamlArrayNode extends YamlNode
 {
-    final List<YamlNode> values;
+    public final List<YamlNode> values;
 
-    YamlArrayNode(
+    public YamlArrayNode(
         int line,
         int column,
         long offset)
@@ -30,7 +30,7 @@ final class YamlArrayNode extends YamlNode
         this.values = new ArrayList<>();
     }
 
-    void add(
+    public void add(
         YamlNode value)
     {
         values.add(value);

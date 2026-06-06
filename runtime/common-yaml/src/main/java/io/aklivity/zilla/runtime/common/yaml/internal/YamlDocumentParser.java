@@ -21,9 +21,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-import jakarta.json.stream.JsonParsingException;
-
-final class YamlDocumentParser
+public final class YamlDocumentParser
 {
     private static final Pattern NUMBER_PATTERN = Pattern.compile(
         "-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?:[eE][+-]?[0-9]+)?");
@@ -44,7 +42,7 @@ final class YamlDocumentParser
         this.end = document.end;
     }
 
-    static Result parse(
+    public static Result parse(
         String text)
     {
         Document document = new DocumentScanner(text).scan();
@@ -1013,17 +1011,17 @@ final class YamlDocumentParser
         return text;
     }
 
-    private static JsonParsingException error(
+    private static YamlParseException error(
         String message,
         Line line)
     {
-        return new JsonParsingException(message, new YamlLocation(line.line, line.column, line.offset));
+        return new YamlParseException(message, new YamlLocation(line.line, line.column, line.offset));
     }
 
-    static final class Result
+    public static final class Result
     {
-        final YamlNode node;
-        final YamlLocation end;
+        public final YamlNode node;
+        public final YamlLocation end;
 
         Result(
             YamlNode node,

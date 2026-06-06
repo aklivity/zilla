@@ -16,6 +16,10 @@ package io.aklivity.zilla.runtime.common.yaml;
 
 public interface YamlParser extends AutoCloseable
 {
+    boolean hasNext();
+
+    YamlEvent next();
+
     YamlValue parse();
 
     @Override

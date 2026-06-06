@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.common.yaml.internal;
+package io.aklivity.zilla.runtime.common.yaml.internal.json;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -34,12 +34,21 @@ import jakarta.json.stream.JsonLocation;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParsingException;
 
+import io.aklivity.zilla.runtime.common.yaml.internal.YamlArrayNode;
+import io.aklivity.zilla.runtime.common.yaml.internal.YamlDocumentParser;
+import io.aklivity.zilla.runtime.common.yaml.internal.YamlEntry;
+import io.aklivity.zilla.runtime.common.yaml.internal.YamlLocation;
+import io.aklivity.zilla.runtime.common.yaml.internal.YamlNode;
+import io.aklivity.zilla.runtime.common.yaml.internal.YamlObjectNode;
+import io.aklivity.zilla.runtime.common.yaml.internal.YamlParseException;
+import io.aklivity.zilla.runtime.common.yaml.internal.YamlScalarNode;
+
 public final class YamlJsonParser implements JsonParser
 {
     private final Deque<Frame> stack;
-    private final YamlLocation end;
-    private YamlEvent current;
-    private YamlEvent next;
+    private final YamlJsonLocation end;
+    private YamlJsonEvent current;
+    private YamlJsonEvent next;
     private JsonProvider provider;
     private boolean exhausted;
 
@@ -65,10 +74,17 @@ public final class YamlJsonParser implements JsonParser
     private YamlJsonParser(
         String text)
     {
-        YamlDocumentParser.Result result = YamlDocumentParser.parse(text);
-        this.stack = new ArrayDeque<>();
-        stack.push(new Frame(result.node));
-        this.end = result.end;
+        try
+        {
+            YamlDocumentParser.Result result = YamlDocumentParser.parse(text);
+            this.stack = new ArrayDeque<>();
+            stack.push(new Frame(result.node));
+            this.end = new YamlJsonLocation(result.end);
+        }
+        catch (YamlParseException ex)
+        {
+            throw new JsonParsingException(ex.getMessage(), new YamlJsonLocation(ex.location()));
+        }
     }
 
     @Override
@@ -219,7 +235,7 @@ public final class YamlJsonParser implements JsonParser
         return current.value;
     }
 
-    private YamlEvent nextEvent()
+    private YamlJsonEvent nextEvent()
     {
         while (!stack.isEmpty())
         {
@@ -229,7 +245,7 @@ public final class YamlJsonParser implements JsonParser
                 if (!frame.started)
                 {
                     frame.started = true;
-                    return new YamlEvent(Event.START_OBJECT, null, object, object.line, object.column, object.offset);
+                    return new YamlJsonEvent(Event.START_OBJECT, null, object, object.line, object.column, object.offset);
                 }
                 if (frame.value)
                 {
@@ -241,11 +257,11 @@ public final class YamlJsonParser implements JsonParser
                 {
                     YamlEntry entry = object.entries.get(frame.index);
                     frame.value = true;
-                    return new YamlEvent(Event.KEY_NAME, entry.name, entry.line, entry.column, entry.offset);
+                    return new YamlJsonEvent(Event.KEY_NAME, entry.name, entry.line, entry.column, entry.offset);
                 }
 
                 stack.pop();
-                return new YamlEvent(Event.END_OBJECT, null, object.line, object.column, object.offset);
+                return new YamlJsonEvent(Event.END_OBJECT, null, object.line, object.column, object.offset);
             }
 
             if (frame.node instanceof YamlArrayNode array)
@@ -253,7 +269,7 @@ public final class YamlJsonParser implements JsonParser
                 if (!frame.started)
                 {
                     frame.started = true;
-                    return new YamlEvent(Event.START_ARRAY, null, array, array.line, array.column, array.offset);
+                    return new YamlJsonEvent(Event.START_ARRAY, null, array, array.line, array.column, array.offset);
                 }
                 if (frame.index < array.values.size())
                 {
@@ -262,7 +278,7 @@ public final class YamlJsonParser implements JsonParser
                 }
 
                 stack.pop();
-                return new YamlEvent(Event.END_ARRAY, null, array.line, array.column, array.offset);
+                return new YamlJsonEvent(Event.END_ARRAY, null, array.line, array.column, array.offset);
             }
 
             stack.pop();
@@ -272,7 +288,7 @@ public final class YamlJsonParser implements JsonParser
         return null;
     }
 
-    private YamlEvent scalarEvent(
+    private YamlJsonEvent scalarEvent(
         YamlScalarNode scalar)
     {
         Event event = switch (scalar.type)
@@ -283,7 +299,7 @@ public final class YamlJsonParser implements JsonParser
         case FALSE -> Event.VALUE_FALSE;
         case NULL -> Event.VALUE_NULL;
         };
-        return new YamlEvent(event, scalar.value, scalar, scalar.line, scalar.column, scalar.offset);
+        return new YamlJsonEvent(event, scalar.value, scalar, scalar.line, scalar.column, scalar.offset);
     }
 
     private JsonValue toJsonValue(
@@ -345,7 +361,7 @@ public final class YamlJsonParser implements JsonParser
         catch (IOException ex)
         {
             throw new JsonParsingException(ex.getMessage(), ex,
-                new YamlLocation(1, 1, 0));
+                new YamlJsonLocation(new YamlLocation(1, 1, 0)));
         }
     }
 
@@ -360,7 +376,7 @@ public final class YamlJsonParser implements JsonParser
         catch (IOException ex)
         {
             throw new JsonParsingException(ex.getMessage(), ex,
-                new YamlLocation(1, 1, 0));
+                new YamlJsonLocation(new YamlLocation(1, 1, 0)));
         }
     }
 

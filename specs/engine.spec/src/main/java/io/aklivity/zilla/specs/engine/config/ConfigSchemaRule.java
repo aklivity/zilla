@@ -37,7 +37,7 @@ import org.leadpony.justify.api.JsonSchemaReader;
 import org.leadpony.justify.api.JsonValidationService;
 import org.leadpony.justify.api.ProblemHandler;
 
-import io.aklivity.zilla.runtime.common.yaml.YamlJson;
+import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 
 public final class ConfigSchemaRule implements TestRule
 {
