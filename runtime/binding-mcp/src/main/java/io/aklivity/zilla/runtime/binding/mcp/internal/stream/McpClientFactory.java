@@ -2509,7 +2509,7 @@ public final class McpClientFactory implements McpStreamFactory
                 final McpElicitResponseFlushExFW elicitResponse = flushEx.elicitResponse();
                 final String requestId = elicitResponse.requestId().asString();
                 final String action = elicitResponse.action().get().name().toLowerCase();
-                new HttpElicitResponse(this, requestId, action).doNetBegin(flush.traceId(), flush.authorization());
+                new HttpElicitResponse(this, requestId, action).doEncodeRequestBegin(flush.traceId(), flush.authorization());
                 return;
             }
 
@@ -2982,7 +2982,7 @@ public final class McpClientFactory implements McpStreamFactory
             final String requestId = elicitResponse.requestId().asString();
             final String action = elicitResponse.action().get().name().toLowerCase();
 
-            new HttpElicitResponse(this, requestId, action).doNetBegin(traceId, authorization);
+            new HttpElicitResponse(this, requestId, action).doEncodeRequestBegin(traceId, authorization);
         }
 
         @Override
@@ -4616,6 +4616,7 @@ public final class McpClientFactory implements McpStreamFactory
                 .map(String16FW::asString)
                 .orElse(null);
 
+
             if (STATUS_405.equals(status))
             {
                 mcp.markEventsUnsupported();
@@ -5531,9 +5532,11 @@ public final class McpClientFactory implements McpStreamFactory
         private final String requestId;
         private final String action;
         private final McpWithConfig with;
+        private final int contentLength;
 
         private MessageConsumer net;
         private long authorization;
+        private boolean sent;
 
         private long initialSeq;
         private long initialAck;
@@ -5560,9 +5563,11 @@ public final class McpClientFactory implements McpStreamFactory
             this.routedId = mcp.resolvedId;
             this.affinity = mcp.affinity;
             this.with = mcp.with;
+            this.contentLength = JSON_RPC_ELICIT_RESPONSE_PREFIX.length() + requestId.length() +
+                JSON_RPC_ELICIT_RESPONSE_MIDDLE.length() + action.length() + JSON_RPC_ELICIT_RESPONSE_SUFFIX.length();
         }
 
-        void doNetBegin(
+        void doEncodeRequestBegin(
             long traceId,
             long authorization)
         {
@@ -5584,6 +5589,7 @@ public final class McpClientFactory implements McpStreamFactory
                 .headersItem(h -> h.name(HTTP_HEADER_ACCEPT).value(CONTENT_TYPE_JSON_AND_EVENT_STREAM))
                 .headersItem(h -> h.name(HTTP_HEADER_MCP_VERSION).value(protocolVersion))
                 .headersItem(h -> h.name(HTTP_HEADER_SESSION).value(sid))
+                .headersItem(h -> h.name(HTTP_HEADER_CONTENT_LENGTH).value(Integer.toString(contentLength)))
                 .build();
 
             net = newStream(this::onNetMessage, originId, routedId, initialId,
@@ -5591,26 +5597,28 @@ public final class McpClientFactory implements McpStreamFactory
                 traceId, authorization, affinity, httpBeginEx);
         }
 
-        void doNetData(
+        private void doNetData(
             long traceId,
-            long authorization,
-            DirectBuffer buffer,
-            int offset,
-            int limit)
+            long authorization)
         {
-            final int length = limit - offset;
-            final int reserved = length;
+            int codecLength = 0;
+            codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, JSON_RPC_ELICIT_RESPONSE_PREFIX);
+            codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, requestId);
+            codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, JSON_RPC_ELICIT_RESPONSE_MIDDLE);
+            codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, action);
+            codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, JSON_RPC_ELICIT_RESPONSE_SUFFIX);
 
+            final int reserved = codecLength;
             doData(net, originId, routedId, initialId,
                 initialSeq, initialAck, initialMax,
                 traceId, authorization,
                 DATA_FLAGS_COMPLETE, 0L, reserved,
-                buffer, offset, length);
+                codecBuffer, 0, codecLength);
 
             initialSeq += reserved;
         }
 
-        void doNetEnd(
+        private void doNetEnd(
             long traceId,
             long authorization)
         {
@@ -5623,20 +5631,7 @@ public final class McpClientFactory implements McpStreamFactory
             }
         }
 
-        void doNetAbort(
-            long traceId,
-            long authorization)
-        {
-            if (!McpState.initialClosed(state))
-            {
-                state = McpState.closedInitial(state);
-                doAbort(net, originId, routedId, initialId,
-                    initialSeq, initialAck, initialMax,
-                    traceId, authorization);
-            }
-        }
-
-        void doNetReset(
+        private void doNetReset(
             long traceId,
             long authorization)
         {
@@ -5707,26 +5702,19 @@ public final class McpClientFactory implements McpStreamFactory
             WindowFW window)
         {
             final long traceId = window.traceId();
-            final long sequence = window.sequence();
             final long acknowledge = window.acknowledge();
             final int maximum = window.maximum();
-
-            assert acknowledge <= sequence;
+            final int padding = window.padding();
 
             state = McpState.openedInitial(state);
             initialAck = acknowledge;
             initialMax = maximum;
 
-            if (!McpState.initialClosed(state))
+            final int available = initialMax - (int)(initialSeq - initialAck) - padding;
+            if (!sent && available >= contentLength)
             {
-                int codecLength = 0;
-                codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, JSON_RPC_ELICIT_RESPONSE_PREFIX);
-                codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, requestId);
-                codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, JSON_RPC_ELICIT_RESPONSE_MIDDLE);
-                codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, action);
-                codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, JSON_RPC_ELICIT_RESPONSE_SUFFIX);
-
-                doNetData(traceId, authorization, codecBuffer, 0, codecLength);
+                sent = true;
+                doNetData(traceId, authorization);
                 doNetEnd(traceId, authorization);
             }
         }
@@ -5734,22 +5722,19 @@ public final class McpClientFactory implements McpStreamFactory
         private void onNetEnd(
             EndFW end)
         {
-            final long traceId = end.traceId();
-            doNetEnd(traceId, authorization);
+            doNetEnd(end.traceId(), authorization);
         }
 
         private void onNetAbort(
             AbortFW abort)
         {
-            final long traceId = abort.traceId();
-            doNetAbort(traceId, authorization);
+            doNetReset(abort.traceId(), authorization);
         }
 
         private void onNetReset(
             ResetFW reset)
         {
-            final long traceId = reset.traceId();
-            doNetReset(traceId, authorization);
+            doNetEnd(reset.traceId(), authorization);
         }
     }
 
