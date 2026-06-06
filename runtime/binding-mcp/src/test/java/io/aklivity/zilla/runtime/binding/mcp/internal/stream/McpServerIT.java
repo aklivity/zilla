@@ -497,6 +497,16 @@ public class McpServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/notifications.cancelled.unknown/client",
+        "${app}/lifecycle.initialize/server"})
+    public void shouldAcceptCancelUnknownRequest() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/prompts.list/client",
         "${app}/prompts.list/server"})
     public void shouldListPrompts() throws Exception
