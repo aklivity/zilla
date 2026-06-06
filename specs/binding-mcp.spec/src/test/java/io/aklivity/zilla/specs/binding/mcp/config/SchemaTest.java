@@ -57,10 +57,24 @@ public class SchemaTest
         assertThat(config, not(nullValue()));
     }
 
+    @Test
+    public void shouldValidateProxyFilter()
+    {
+        JsonObject config = schema.validate("proxy.filter.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
     @Test(expected = JsonValidatingException.class)
     public void shouldRejectProxyRouteMissingToolkit()
     {
         schema.validate("proxy.routes.missing.toolkit.invalid.yaml");
+    }
+
+    @Test(expected = JsonValidatingException.class)
+    public void shouldRejectProxyRouteFilterCapabilityMismatch()
+    {
+        schema.validate("proxy.routes.filter.capability.invalid.yaml");
     }
 
     @Test(expected = JsonValidatingException.class)

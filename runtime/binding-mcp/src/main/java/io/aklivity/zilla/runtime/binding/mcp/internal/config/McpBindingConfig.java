@@ -207,7 +207,7 @@ public final class McpBindingConfig
             {
                 if (route.authorized(authorization) && route.serves(capability))
                 {
-                    result.add(new McpRoutePrefix(route.id, new String8FW(route.prefix(kind))));
+                    result.add(new McpRoutePrefix(route.id, new String8FW(route.prefix(kind)), route));
                 }
             }
             result.sort(Comparator.comparing(p -> p.prefix().asString()));
