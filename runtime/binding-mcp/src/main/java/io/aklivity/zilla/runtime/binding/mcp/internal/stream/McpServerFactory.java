@@ -1995,8 +1995,14 @@ public final class McpServerFactory implements McpStreamFactory
                 McpBeginExFW beginEx = mcpBeginExRW
                     .wrap(codecBuffer, 0, codecBuffer.capacity())
                     .typeId(mcpTypeId)
-                    .lifecycle(i -> i
-                        .capabilities(clientCapabilities))
+                    .lifecycle(i ->
+                    {
+                        i.capabilities(clientCapabilities);
+                        if (redirectURI != null)
+                        {
+                            i.authCallback(redirectURI);
+                        }
+                    })
                     .build();
                 session.doAppBegin(traceId, authorization, beginEx);
             }

@@ -1548,6 +1548,7 @@ public final class McpClientFactory implements McpStreamFactory
         protected HttpStream http;
         protected String credentials;
         protected int clientCapabilities;
+        protected String authCallback;
         protected int serverCapabilities = SERVER_CAPABILITIES;
         protected McpRequestDecoder decoder;
 
@@ -1758,6 +1759,7 @@ public final class McpClientFactory implements McpStreamFactory
             if (mcpBeginEx != null && mcpBeginEx.kind() == KIND_LIFECYCLE)
             {
                 clientCapabilities = mcpBeginEx.lifecycle().capabilities();
+                authCallback = mcpBeginEx.lifecycle().authCallback().asString();
             }
 
             if (proceedWithRequest(traceId, authorization, mcpBeginEx))
