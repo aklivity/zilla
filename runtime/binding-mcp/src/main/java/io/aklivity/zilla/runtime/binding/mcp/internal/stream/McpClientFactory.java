@@ -2314,6 +2314,7 @@ public final class McpClientFactory implements McpStreamFactory
                         final String lastEventId = resumeId != null ? resumeId.asString() : null;
                         sse = new HttpEventStream(this, lastEventId);
                         sse.doNetStart(traceId, authorization);
+                        scheduleKeepalive(traceId);
                     }
                     break;
                 case McpChallengeExFW.KIND_SUSPENDED:
@@ -2322,6 +2323,7 @@ public final class McpClientFactory implements McpStreamFactory
                         sse.doNetAbort(traceId, authorization);
                         sse.detach();
                     }
+                    cancelKeepalive();
                     break;
                 default:
                     break;
