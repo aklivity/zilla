@@ -409,13 +409,13 @@ final class McpProxyLifecycleFactory implements BindingHandler
             else if (flushEx != null && flushEx.kind() == McpFlushExFW.KIND_ELICIT_RESPONSE)
             {
                 final McpElicitResponseFlushExFW elicitResponse = flushEx.elicitResponse();
-                final String requestId = elicitResponse.requestId().asString();
+                final String correlationId = elicitResponse.correlationId().asString();
                 final McpElicitAction action = elicitResponse.action().get();
-                final McpLifecycleClient client = elicitClients.remove(requestId);
+                final McpLifecycleClient client = elicitClients.remove(correlationId);
 
                 if (client != null)
                 {
-                    client.doClientFlushElicitResponse(traceId, authorization, requestId, action);
+                    client.doClientFlushElicitResponse(traceId, authorization, correlationId, action);
                 }
             }
         }
@@ -874,13 +874,13 @@ final class McpProxyLifecycleFactory implements BindingHandler
         private void doClientFlushElicitResponse(
             long traceId,
             long authorization,
-            String requestId,
+            String correlationId,
             McpElicitAction action)
         {
             final McpFlushExFW flushEx = mcpFlushExRW
                 .wrap(flushExBuffer, 0, flushExBuffer.capacity())
                 .typeId(mcpTypeId)
-                .elicitResponse(b -> b.requestId(requestId).action(a -> a.set(action)))
+                .elicitResponse(b -> b.correlationId(correlationId).action(a -> a.set(action)))
                 .build();
 
             doFlush(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
@@ -1097,10 +1097,10 @@ final class McpProxyLifecycleFactory implements BindingHandler
             if (challengeEx != null &&
                 challengeEx.kind() == McpChallengeExFW.KIND_ELICIT_CREATE)
             {
-                final String requestId = challengeEx.elicitCreate().requestId().asString();
-                if (requestId != null)
+                final String correlationId = challengeEx.elicitCreate().correlationId().asString();
+                if (correlationId != null)
                 {
-                    server.elicitClients.put(requestId, this);
+                    server.elicitClients.put(correlationId, this);
                 }
             }
 
@@ -1118,7 +1118,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
             if (prefix != null &&
                 challengeEx != null &&
                 challengeEx.kind() == McpChallengeExFW.KIND_ELICIT_CREATE &&
-                challengeEx.elicitCreate().requestId().asString() == null)
+                challengeEx.elicitCreate().correlationId().asString() == null)
             {
                 final McpElicitCreateChallengeExFW elicitCreate = challengeEx.elicitCreate();
                 final String id = elicitCreate.id().asString();

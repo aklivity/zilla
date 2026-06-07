@@ -1192,13 +1192,13 @@ public final class McpFunctions
 
         public final class McpElicitResponseFlushExBuilder
         {
-            private String requestId;
+            private String correlationId;
             private McpElicitAction action;
 
-            public McpElicitResponseFlushExBuilder requestId(
-                String requestId)
+            public McpElicitResponseFlushExBuilder correlationId(
+                String correlationId)
             {
-                this.requestId = requestId;
+                this.correlationId = correlationId;
                 return this;
             }
 
@@ -1211,7 +1211,7 @@ public final class McpFunctions
 
             public McpFlushExBuilder build()
             {
-                flushExRW.elicitResponse(b -> b.requestId(requestId).action(a -> a.set(action)));
+                flushExRW.elicitResponse(b -> b.correlationId(correlationId).action(a -> a.set(action)));
                 return McpFlushExBuilder.this;
             }
         }
@@ -1673,13 +1673,13 @@ public final class McpFunctions
 
         public final class McpElicitResponseFlushExMatcherBuilder
         {
-            private String16FW requestId;
+            private String16FW correlationId;
             private McpElicitAction action;
 
-            public McpElicitResponseFlushExMatcherBuilder requestId(
-                String requestId)
+            public McpElicitResponseFlushExMatcherBuilder correlationId(
+                String correlationId)
             {
-                this.requestId = new String16FW(requestId);
+                this.correlationId = new String16FW(correlationId);
                 return this;
             }
 
@@ -1699,13 +1699,13 @@ public final class McpFunctions
                 McpFlushExFW flushEx)
             {
                 final McpElicitResponseFlushExFW elicitResponse = flushEx.elicitResponse();
-                return matchRequestId(elicitResponse) && matchAction(elicitResponse);
+                return matchCorrelationId(elicitResponse) && matchAction(elicitResponse);
             }
 
-            private boolean matchRequestId(
+            private boolean matchCorrelationId(
                 McpElicitResponseFlushExFW elicitResponse)
             {
-                return requestId == null || requestId.equals(elicitResponse.requestId());
+                return correlationId == null || correlationId.equals(elicitResponse.correlationId());
             }
 
             private boolean matchAction(
@@ -1814,7 +1814,7 @@ public final class McpFunctions
             private String url;
             private String context;
             private String message;
-            private String requestId;
+            private String correlationId;
 
             public McpElicitCreateChallengeExBuilder id(
                 String id)
@@ -1844,16 +1844,16 @@ public final class McpFunctions
                 return this;
             }
 
-            public McpElicitCreateChallengeExBuilder requestId(
-                String requestId)
+            public McpElicitCreateChallengeExBuilder correlationId(
+                String correlationId)
             {
-                this.requestId = requestId;
+                this.correlationId = correlationId;
                 return this;
             }
 
             public McpChallengeExBuilder build()
             {
-                challengeExRW.elicitCreate(b -> b.id(id).url(url).context(context).message(message).requestId(requestId));
+                challengeExRW.elicitCreate(b -> b.id(id).url(url).context(context).message(message).correlationId(correlationId));
                 return McpChallengeExBuilder.this;
             }
         }
@@ -1994,7 +1994,7 @@ public final class McpFunctions
             private String16FW url;
             private String8FW context;
             private String16FW message;
-            private String16FW requestId;
+            private String16FW correlationId;
 
             public McpElicitCreateChallengeExMatcherBuilder id(
                 String id)
@@ -2024,10 +2024,10 @@ public final class McpFunctions
                 return this;
             }
 
-            public McpElicitCreateChallengeExMatcherBuilder requestId(
-                String requestId)
+            public McpElicitCreateChallengeExMatcherBuilder correlationId(
+                String correlationId)
             {
-                this.requestId = new String16FW(requestId);
+                this.correlationId = new String16FW(correlationId);
                 return this;
             }
 
@@ -2041,7 +2041,7 @@ public final class McpFunctions
             {
                 final McpElicitCreateChallengeExFW elicitCreate = challengeEx.elicitCreate();
                 return matchId(elicitCreate) && matchUrl(elicitCreate) &&
-                    matchContext(elicitCreate) && matchMessage(elicitCreate) && matchRequestId(elicitCreate);
+                    matchContext(elicitCreate) && matchMessage(elicitCreate) && matchCorrelationId(elicitCreate);
             }
 
             private boolean matchId(
@@ -2068,10 +2068,10 @@ public final class McpFunctions
                 return message == null || message.equals(elicitCreate.message());
             }
 
-            private boolean matchRequestId(
+            private boolean matchCorrelationId(
                 McpElicitCreateChallengeExFW elicitCreate)
             {
-                return requestId == null || requestId.equals(elicitCreate.requestId());
+                return correlationId == null || correlationId.equals(elicitCreate.correlationId());
             }
         }
     }

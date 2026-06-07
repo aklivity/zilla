@@ -44,14 +44,14 @@ write advised zilla:challenge ${mcp:matchChallengeEx()
                                         .id("elicit-1")
                                         .url("https://server.example.com/authorize?state=7f3a9b1c")
                                         .message("Open the link to authorize access.")
-                                        .requestId("3")
+                                        .correlationId("3")
                                         .build()
                                     .build()}
 
 write advise zilla:flush ${mcp:flushEx()
                               .typeId(zilla:id("mcp"))
                               .elicitResponse()
-                                  .requestId("3")
+                                  .correlationId("3")
                                   .action("ACCEPT")
                                   .build()
                               .build()}

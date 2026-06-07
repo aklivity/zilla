@@ -2267,19 +2267,19 @@ public final class McpServerFactory implements McpStreamFactory
         private void onDecodeElicitResponse(
             long traceId,
             long authorization,
-            String requestId,
+            String correlationId,
             String action)
         {
             assert session != null;
 
-            McpRequestStream request = session.elicitRequests.remove(requestId);
+            McpRequestStream request = session.elicitRequests.remove(correlationId);
             if (request != null)
             {
-                request.doAppFlushElicitResponse(traceId, authorization, requestId, action);
+                request.doAppFlushElicitResponse(traceId, authorization, correlationId, action);
             }
             else
             {
-                session.doAppFlushElicitResponse(traceId, authorization, requestId, action);
+                session.doAppFlushElicitResponse(traceId, authorization, correlationId, action);
             }
 
             doEncodeNotifyCanceled(traceId, authorization);
@@ -2443,7 +2443,7 @@ public final class McpServerFactory implements McpStreamFactory
             long traceId,
             long authorization,
             String elicitSeq,
-            String requestId,
+            String correlationId,
             String elicitationId,
             String url,
             String message)
@@ -2451,7 +2451,7 @@ public final class McpServerFactory implements McpStreamFactory
             int codecLimit = encodeSseElicitIdLine(codecBuffer, 0, decodedId, elicitSeq);
             codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, SSE_DATA_PREFIX);
             codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, "{\"jsonrpc\":\"2.0\",\"id\":");
-            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, requestId);
+            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, correlationId);
             codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit,
                 ",\"method\":\"elicitation/create\",\"params\":{\"mode\":\"url\",\"elicitationId\":\"");
             codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, elicitationId);
@@ -3561,8 +3561,8 @@ public final class McpServerFactory implements McpStreamFactory
             long authorization,
             McpElicitCreateChallengeExFW elicitCreate)
         {
-            final String requestId = elicitCreate.requestId().asString();
-            if (requestId != null)
+            final String correlationId = elicitCreate.correlationId().asString();
+            if (correlationId != null)
             {
                 final String elicitationId = elicitCreate.id().asString();
                 final String url = elicitCreate.url().asString();
@@ -3571,7 +3571,7 @@ public final class McpServerFactory implements McpStreamFactory
                 if (sse != null)
                 {
                     sse.doEncodeElicitCreateNotifyEvent(traceId, authorization,
-                        requestId, elicitationId, url, message);
+                        correlationId, elicitationId, url, message);
                 }
             }
             else
@@ -3596,14 +3596,14 @@ public final class McpServerFactory implements McpStreamFactory
         private void doAppFlushElicitResponse(
             long traceId,
             long authorization,
-            String requestId,
+            String correlationId,
             String action)
         {
             final McpElicitAction elicitAction = McpElicitAction.valueOf(action.toUpperCase());
             final McpFlushExFW flushEx = mcpFlushExRW
                 .wrap(codecBuffer, 0, codecBuffer.capacity())
                 .typeId(mcpTypeId)
-                .elicitResponse(b -> b.requestId(requestId).action(a -> a.set(elicitAction)))
+                .elicitResponse(b -> b.correlationId(correlationId).action(a -> a.set(elicitAction)))
                 .build();
 
             doFlush(app, originId, routedId, initialId,
@@ -4267,7 +4267,7 @@ public final class McpServerFactory implements McpStreamFactory
         private void doEncodeElicitCreateNotifyEvent(
             long traceId,
             long authorization,
-            String requestId,
+            String correlationId,
             String elicitationId,
             String url,
             String message)
@@ -4284,7 +4284,7 @@ public final class McpServerFactory implements McpStreamFactory
 
             int codecLimit = codecBuffer.putStringWithoutLengthAscii(0, SSE_DATA_PREFIX);
             codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, "{\"jsonrpc\":\"2.0\",\"id\":");
-            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, requestId);
+            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, correlationId);
             codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit,
                 ",\"method\":\"elicitation/create\",\"params\":{\"mode\":\"url\",\"elicitationId\":\"");
             codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, elicitationId);
@@ -4603,7 +4603,7 @@ public final class McpServerFactory implements McpStreamFactory
         private String elicitationId;
         private String elicitUrl;
         private String elicitContext;
-        private String elicitRequestId;
+        private String elicitCorrelationId;
         private int elicitSeq;
 
         private int state;
@@ -4704,14 +4704,14 @@ public final class McpServerFactory implements McpStreamFactory
         private void doAppFlushElicitResponse(
             long traceId,
             long authorization,
-            String requestId,
+            String correlationId,
             String action)
         {
             final McpElicitAction elicitAction = McpElicitAction.valueOf(action.toUpperCase());
             final McpFlushExFW flushEx = mcpFlushExRW
                 .wrap(codecBuffer, 0, codecBuffer.capacity())
                 .typeId(mcpTypeId)
-                .elicitResponse(b -> b.requestId(requestId).action(a -> a.set(elicitAction)))
+                .elicitResponse(b -> b.correlationId(correlationId).action(a -> a.set(elicitAction)))
                 .build();
 
             doFlush(app, originId, routedId, initialId,
@@ -4791,10 +4791,10 @@ public final class McpServerFactory implements McpStreamFactory
                 session.requests.remove(requestId);
             }
 
-            if (elicitRequestId != null)
+            if (elicitCorrelationId != null)
             {
-                session.elicitRequests.remove(elicitRequestId);
-                elicitRequestId = null;
+                session.elicitRequests.remove(elicitCorrelationId);
+                elicitCorrelationId = null;
             }
         }
 
@@ -4934,10 +4934,10 @@ public final class McpServerFactory implements McpStreamFactory
             long authorization,
             McpElicitCreateChallengeExFW elicitCreate)
         {
-            final String requestId = elicitCreate.requestId().asString();
-            if (requestId != null)
+            final String correlationId = elicitCreate.correlationId().asString();
+            if (correlationId != null)
             {
-                onAppChallengeElicitCreatePassthrough(traceId, authorization, elicitCreate, requestId);
+                onAppChallengeElicitCreatePassthrough(traceId, authorization, elicitCreate, correlationId);
             }
             else
             {
@@ -4949,7 +4949,7 @@ public final class McpServerFactory implements McpStreamFactory
             long traceId,
             long authorization,
             McpElicitCreateChallengeExFW elicitCreate,
-            String requestId)
+            String correlationId)
         {
             final String resolvedElicitationId = elicitCreate.id().asString();
             final String url = elicitCreate.url().asString();
@@ -4957,13 +4957,13 @@ public final class McpServerFactory implements McpStreamFactory
 
             elicitationId = resolvedElicitationId;
             elicitUrl = url;
-            elicitRequestId = requestId;
+            elicitCorrelationId = correlationId;
 
-            session.elicitRequests.put(requestId, this);
+            session.elicitRequests.put(correlationId, this);
 
             server.onAppChallenge(traceId, authorization);
             server.doEncodeElicitCreateDataEvent(traceId, authorization, Integer.toString(++elicitSeq),
-                requestId, resolvedElicitationId, url, message);
+                correlationId, resolvedElicitationId, url, message);
         }
 
         private void onAppChallengeElicitCreateBroker(
@@ -5120,7 +5120,7 @@ public final class McpServerFactory implements McpStreamFactory
             long authorization,
             McpElicitCompleteFlushExFW elicitComplete)
         {
-            if (elicitRequestId != null)
+            if (elicitCorrelationId != null)
             {
                 onAppFlushElicitCompletePassthrough(traceId, authorization, elicitComplete);
             }
@@ -5138,7 +5138,7 @@ public final class McpServerFactory implements McpStreamFactory
             final String resolvedElicitationId = elicitComplete.id().asString();
 
             elicitationId = null;
-            elicitRequestId = null;
+            elicitCorrelationId = null;
 
             server.doEncodeElicitCompleteNotification(traceId, authorization, resolvedElicitationId);
         }
