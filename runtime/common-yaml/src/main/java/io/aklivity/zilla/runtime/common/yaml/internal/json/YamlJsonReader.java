@@ -24,13 +24,11 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonReader;
 import jakarta.json.JsonStructure;
 import jakarta.json.JsonValue;
-import jakarta.json.spi.JsonProvider;
 import jakarta.json.stream.JsonParser;
 
 public final class YamlJsonReader implements JsonReader
 {
     private final JsonParser parser;
-    private JsonProvider provider;
     private boolean read;
 
     public YamlJsonReader(
@@ -100,8 +98,8 @@ public final class YamlJsonReader implements JsonReader
         {
         case START_OBJECT -> readObjectValue();
         case START_ARRAY -> readArrayValue();
-        case VALUE_STRING -> provider().createValue(parser.getString());
-        case VALUE_NUMBER -> provider().createValue(new BigDecimal(parser.getString()));
+        case VALUE_STRING -> YamlJsonValues.string(parser.getString());
+        case VALUE_NUMBER -> YamlJsonValues.number(new BigDecimal(parser.getString()));
         case VALUE_TRUE -> JsonValue.TRUE;
         case VALUE_FALSE -> JsonValue.FALSE;
         case VALUE_NULL -> JsonValue.NULL;
@@ -111,7 +109,7 @@ public final class YamlJsonReader implements JsonReader
 
     private JsonObject readObjectValue()
     {
-        JsonObjectBuilder object = provider().createObjectBuilder();
+        JsonObjectBuilder object = YamlJsonValues.objectBuilder();
         while (parser.hasNext())
         {
             JsonParser.Event event = parser.next();
@@ -135,7 +133,7 @@ public final class YamlJsonReader implements JsonReader
 
     private JsonArray readArrayValue()
     {
-        JsonArrayBuilder array = provider().createArrayBuilder();
+        JsonArrayBuilder array = YamlJsonValues.arrayBuilder();
         while (parser.hasNext())
         {
             JsonParser.Event event = parser.next();
@@ -148,12 +146,4 @@ public final class YamlJsonReader implements JsonReader
         throw new JsonException("Unterminated YAML array");
     }
 
-    private JsonProvider provider()
-    {
-        if (provider == null)
-        {
-            provider = YamlJsonProvider.delegateProvider();
-        }
-        return provider;
-    }
 }

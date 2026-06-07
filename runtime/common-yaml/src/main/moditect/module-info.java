@@ -16,8 +16,6 @@ module io.aklivity.zilla.runtime.common.yaml
 {
     requires transitive jakarta.json;
 
-    uses jakarta.json.spi.JsonProvider;
-
     exports io.aklivity.zilla.runtime.common.yaml;
     exports io.aklivity.zilla.runtime.common.yaml.json;
     exports io.aklivity.zilla.runtime.common.yaml.spi;

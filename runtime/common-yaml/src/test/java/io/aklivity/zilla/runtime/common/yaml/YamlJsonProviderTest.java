@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.common.yaml;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -23,14 +24,22 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 import jakarta.json.Json;
 import jakarta.json.JsonArray;
+import jakarta.json.JsonArrayBuilder;
+import jakarta.json.JsonBuilderFactory;
 import jakarta.json.JsonException;
+import jakarta.json.JsonMergePatch;
+import jakarta.json.JsonNumber;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonPatch;
+import jakarta.json.JsonPointer;
 import jakarta.json.JsonReader;
 import jakarta.json.JsonReaderFactory;
 import jakarta.json.JsonValue;
@@ -168,5 +177,131 @@ class YamlJsonProviderTest
         assertEquals(object, provider.createMergeDiff(JsonValue.EMPTY_JSON_OBJECT, object).apply(JsonValue.EMPTY_JSON_OBJECT));
         assertEquals(JsonValue.ValueType.ARRAY,
             provider.createDiff(JsonValue.EMPTY_JSON_OBJECT, object).toJsonArray().getValueType());
+    }
+
+    @Test
+    void shouldProvideJsonModelApisWithoutExternalProvider()
+    {
+        JsonProvider provider = YamlJson.provider();
+        JsonBuilderFactory builderFactory = provider.createBuilderFactory(Map.of("builder", "value"));
+        assertEquals(Map.of("builder", "value"), builderFactory.getConfigInUse());
+
+        JsonArrayBuilder arrayBuilder = builderFactory.createArrayBuilder()
+            .add("zero")
+            .add(2)
+            .add(false)
+            .addNull();
+        arrayBuilder.add(1, "one");
+        arrayBuilder.set(2, 1);
+        arrayBuilder.remove(4);
+        JsonArray array = arrayBuilder.build();
+        assertEquals("one", array.getString(1));
+        assertEquals(1, array.getInt(2));
+        assertFalse(array.getBoolean(3));
+        assertEquals(4, array.getValuesAs(JsonValue.class).size());
+
+        Map<String, Object> mapped = new LinkedHashMap<>();
+        mapped.put("name", "test");
+        mapped.put("count", 1);
+        mapped.put("items", List.of("a", "b"));
+        JsonObject object = builderFactory.createObjectBuilder(mapped)
+            .add("nested", builderFactory.createObjectBuilder().add("enabled", true))
+            .add("array", builderFactory.createArrayBuilder(array))
+            .remove("count")
+            .build();
+        assertEquals("""
+            {"name":"test","items":["a","b"],"nested":{"enabled":true},"array":["zero","one",1,false]}
+            """.strip(), object.toString());
+        assertEquals("fallback", object.getString("missing", "fallback"));
+        assertEquals(7, object.getInt("missing", 7));
+        assertTrue(object.getJsonObject("nested").getBoolean("enabled"));
+        assertFalse(object.isNull("missing"));
+
+        JsonNumber decimal = provider.createValue(new BigDecimal("42.0"));
+        assertTrue(decimal.isIntegral());
+        assertEquals(42, decimal.intValueExact());
+        assertEquals(42L, decimal.longValueExact());
+        assertEquals(new BigDecimal("42"), decimal.bigDecimalValue());
+
+        try (JsonParser parser = provider.createParserFactory(Map.of()).createParser(object))
+        {
+            assertEquals(JsonParser.Event.START_OBJECT, parser.next());
+            assertEquals(JsonParser.Event.START_OBJECT, parser.currentEvent());
+            assertEquals(4, parser.getObjectStream().count());
+        }
+        try (JsonParser parser = provider.createParserFactory(Map.of()).createParser(array))
+        {
+            assertEquals(JsonParser.Event.START_ARRAY, parser.next());
+            assertEquals(4, parser.getArrayStream().count());
+        }
+
+        JsonPointer nested = provider.createPointer("/nested/enabled");
+        assertTrue(nested.containsValue(object));
+        assertEquals(JsonValue.TRUE, nested.getValue(object));
+        assertFalse(provider.createPointer("/nested/missing").containsValue(object));
+        assertTrue(provider.createPointer("/added").add(object, JsonValue.TRUE).getBoolean("added"));
+        assertFalse(provider.createPointer("/nested/enabled").replace(object, JsonValue.FALSE)
+            .getJsonObject("nested")
+            .getBoolean("enabled"));
+        assertFalse(provider.createPointer("/nested/enabled").remove(object).getJsonObject("nested").containsKey("enabled"));
+
+        JsonPatch patch = provider.createPatchBuilder()
+            .add("/copied", "value")
+            .copy("/moved", "/copied")
+            .move("/renamed", "/moved")
+            .replace("/name", "patched")
+            .test("/name", "patched")
+            .remove("/copied")
+            .build();
+        JsonObject patched = patch.apply(object);
+        assertEquals("patched", patched.getString("name"));
+        assertEquals("value", patched.getString("renamed"));
+        assertFalse(patched.containsKey("copied"));
+        assertEquals(JsonValue.ValueType.ARRAY, patch.toJsonArray().getValueType());
+
+        JsonMergePatch mergePatch = provider.createMergePatch(provider.createObjectBuilder()
+            .addNull("name")
+            .add("nested", provider.createObjectBuilder().add("extra", true))
+            .build());
+        JsonObject merged = mergePatch.apply(object).asJsonObject();
+        assertFalse(merged.containsKey("name"));
+        assertTrue(merged.getJsonObject("nested").getBoolean("extra"));
+        assertEquals(JsonValue.ValueType.OBJECT, mergePatch.toJsonValue().getValueType());
+
+        JsonArray overloads = provider.createArrayBuilder()
+            .add(0, new BigDecimal("1.5"))
+            .add(1, new BigInteger("2"))
+            .add(2, 3L)
+            .add(3, 4.5)
+            .add(4, true)
+            .addNull(5)
+            .add(6, provider.createObjectBuilder().add("name", "child"))
+            .add(7, provider.createArrayBuilder().add("nested"))
+            .set(0, "one")
+            .set(1, new BigDecimal("2.5"))
+            .set(2, new BigInteger("3"))
+            .set(3, 4L)
+            .set(4, 5.5)
+            .set(5, false)
+            .setNull(6)
+            .set(7, provider.createObjectBuilder().add("name", "updated"))
+            .build();
+        assertEquals("one", overloads.getString(0));
+        assertEquals(new BigDecimal("2.5"), overloads.getJsonNumber(1).bigDecimalValue());
+        assertFalse(overloads.getBoolean(5));
+        assertTrue(overloads.isNull(6));
+        assertEquals("updated", overloads.getJsonObject(7).getString("name"));
+
+        JsonArray pointerArray = provider.createPointer("/-").add(provider.createArrayBuilder().add("first").build(),
+            provider.createValue("last"));
+        pointerArray = provider.createPointer("/0").replace(pointerArray, provider.createValue("updated"));
+        pointerArray = provider.createPointer("/1").remove(pointerArray);
+        assertEquals(1, pointerArray.size());
+        assertEquals("updated", pointerArray.getString(0));
+
+        assertEquals("scalar", provider.createMergePatch(provider.createValue("scalar"))
+            .apply(JsonValue.EMPTY_JSON_OBJECT)
+            .toString()
+            .replace("\"", ""));
     }
 }

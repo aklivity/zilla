@@ -22,12 +22,10 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Map;
-import java.util.ServiceLoader;
 
 import jakarta.json.JsonArray;
 import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonBuilderFactory;
-import jakarta.json.JsonException;
 import jakarta.json.JsonMergePatch;
 import jakarta.json.JsonNumber;
 import jakarta.json.JsonObject;
@@ -50,10 +48,6 @@ import jakarta.json.stream.JsonParserFactory;
 
 public final class YamlJsonProvider extends JsonProvider
 {
-    private static final String DEFAULT_PROVIDER = "org.eclipse.parsson.JsonProviderImpl";
-
-    private JsonProvider delegate;
-
     @Override
     public JsonParser createParser(
         Reader reader)
@@ -141,75 +135,75 @@ public final class YamlJsonProvider extends JsonProvider
     @Override
     public JsonObjectBuilder createObjectBuilder()
     {
-        return delegate().createObjectBuilder();
+        return YamlJsonValues.objectBuilder();
     }
 
     @Override
     public JsonObjectBuilder createObjectBuilder(
         JsonObject object)
     {
-        return delegate().createObjectBuilder(object);
+        return YamlJsonValues.objectBuilder(object);
     }
 
     @Override
     public JsonObjectBuilder createObjectBuilder(
         Map<String, ?> map)
     {
-        return delegate().createObjectBuilder(map);
+        return YamlJsonValues.objectBuilder(map);
     }
 
     @Override
     public JsonArrayBuilder createArrayBuilder()
     {
-        return delegate().createArrayBuilder();
+        return YamlJsonValues.arrayBuilder();
     }
 
     @Override
     public JsonArrayBuilder createArrayBuilder(
         JsonArray array)
     {
-        return delegate().createArrayBuilder(array);
+        return YamlJsonValues.arrayBuilder(array);
     }
 
     @Override
     public JsonArrayBuilder createArrayBuilder(
         Collection<?> collection)
     {
-        return delegate().createArrayBuilder(collection);
+        return YamlJsonValues.arrayBuilder(collection);
     }
 
     @Override
     public JsonBuilderFactory createBuilderFactory(
         Map<String, ?> config)
     {
-        return delegate().createBuilderFactory(config);
+        return YamlJsonValues.builderFactory(config);
     }
 
     @Override
     public JsonPointer createPointer(
         String jsonPointer)
     {
-        return delegate().createPointer(jsonPointer);
+        return YamlJsonValues.pointer(jsonPointer);
     }
 
     @Override
     public JsonPatchBuilder createPatchBuilder()
     {
-        return delegate().createPatchBuilder();
+        return new YamlJsonValues.PatchBuilder();
     }
 
     @Override
     public JsonPatchBuilder createPatchBuilder(
         JsonArray array)
     {
-        return delegate().createPatchBuilder(array);
+        return YamlJsonValues.patchBuilder(array);
     }
 
     @Override
     public JsonPatch createPatch(
         JsonArray array)
     {
-        return delegate().createPatch(array);
+        return YamlJsonValues.patch(array);
     }
 
     @Override
@@ -217,14 +211,14 @@ public final class YamlJsonProvider extends JsonProvider
         JsonStructure source,
         JsonStructure target)
     {
-        return delegate().createDiff(source, target);
+        return YamlJsonValues.diff(source, target);
     }
 
     @Override
     public JsonMergePatch createMergePatch(
         JsonValue value)
     {
-        return delegate().createMergePatch(value);
+        return YamlJsonValues.mergePatch(value);
     }
 
     @Override
@@ -232,96 +226,55 @@ public final class YamlJsonProvider extends JsonProvider
         JsonValue source,
         JsonValue target)
     {
-        return delegate().createMergeDiff(source, target);
+        return YamlJsonValues.mergeDiff(source, target);
     }
 
     @Override
     public JsonString createValue(
         String value)
     {
-        return delegate().createValue(value);
+        return YamlJsonValues.string(value);
     }
 
     @Override
     public JsonNumber createValue(
         int value)
     {
-        return delegate().createValue(value);
+        return YamlJsonValues.number(value);
     }
 
     @Override
     public JsonNumber createValue(
         long value)
     {
-        return delegate().createValue(value);
+        return YamlJsonValues.number(value);
     }
 
     @Override
     public JsonNumber createValue(
         double value)
     {
-        return delegate().createValue(value);
+        return YamlJsonValues.number(value);
     }
 
     @Override
     public JsonNumber createValue(
         BigDecimal value)
     {
-        return delegate().createValue(value);
+        return YamlJsonValues.number(value);
     }
 
     @Override
     public JsonNumber createValue(
         BigInteger value)
     {
-        return delegate().createValue(value);
+        return YamlJsonValues.number(value);
     }
 
     @Override
     public JsonNumber createValue(
         Number value)
     {
-        return delegate().createValue(value);
-    }
-
-    private JsonProvider delegate()
-    {
-        if (delegate == null)
-        {
-            delegate = delegateProvider();
-        }
-        return delegate;
-    }
-
-    static JsonProvider delegateProvider()
-    {
-        String providerClass = System.getProperty(JSONP_PROVIDER_FACTORY);
-        if (providerClass != null && !YamlJsonProvider.class.getName().equals(providerClass))
-        {
-            return provider(providerClass);
-        }
-
-        for (JsonProvider provider : ServiceLoader.load(JsonProvider.class))
-        {
-            if (provider.getClass() != YamlJsonProvider.class)
-            {
-                return provider;
-            }
-        }
-
-        return provider(DEFAULT_PROVIDER);
-    }
-
-    private static JsonProvider provider(
-        String providerClass)
-    {
-        try
-        {
-            return (JsonProvider) Class.forName(providerClass).getConstructor().newInstance();
-        }
-        catch (ReflectiveOperationException ex)
-        {
-            throw new JsonException("Unable to load JSON provider: " + providerClass, ex);
-        }
+        return YamlJsonValues.number(value);
     }
 }

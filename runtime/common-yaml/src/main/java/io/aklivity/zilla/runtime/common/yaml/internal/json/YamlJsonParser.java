@@ -29,7 +29,6 @@ import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
-import jakarta.json.spi.JsonProvider;
 import jakarta.json.stream.JsonLocation;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParsingException;
@@ -49,7 +48,6 @@ public final class YamlJsonParser implements JsonParser
     private final YamlJsonLocation end;
     private YamlJsonEvent current;
     private YamlJsonEvent next;
-    private JsonProvider provider;
     private boolean exhausted;
 
     public YamlJsonParser(
@@ -257,11 +255,13 @@ public final class YamlJsonParser implements JsonParser
                 {
                     YamlEntry entry = object.entries.get(frame.index);
                     frame.value = true;
-                    return new YamlJsonEvent(Event.KEY_NAME, entry.name, entry.line, entry.column, entry.offset);
+                    return new YamlJsonEvent(Event.KEY_NAME, entry.name,
+                        YamlScalarNode.string(entry.name, entry.line, entry.column, entry.offset),
+                        entry.line, entry.column, entry.offset);
                 }
 
                 stack.pop();
-                return new YamlJsonEvent(Event.END_OBJECT, null, object.line, object.column, object.offset);
+                return new YamlJsonEvent(Event.END_OBJECT, null, object, object.line, object.column, object.offset);
             }
 
             if (frame.node instanceof YamlArrayNode array)
@@ -278,7 +278,7 @@ public final class YamlJsonParser implements JsonParser
                 }
 
                 stack.pop();
-                return new YamlJsonEvent(Event.END_ARRAY, null, array.line, array.column, array.offset);
+                return new YamlJsonEvent(Event.END_ARRAY, null, array, array.line, array.column, array.offset);
             }
 
             stack.pop();
@@ -307,7 +307,7 @@ public final class YamlJsonParser implements JsonParser
     {
         if (node instanceof YamlObjectNode object)
         {
-            JsonObjectBuilder builder = provider().createObjectBuilder();
+            JsonObjectBuilder builder = YamlJsonValues.objectBuilder();
             for (YamlEntry entry : object.entries)
             {
                 builder.add(entry.name, toJsonValue(entry.value));
@@ -316,7 +316,7 @@ public final class YamlJsonParser implements JsonParser
         }
         if (node instanceof YamlArrayNode array)
         {
-            JsonArrayBuilder builder = provider().createArrayBuilder();
+            JsonArrayBuilder builder = YamlJsonValues.arrayBuilder();
             for (YamlNode value : array.values)
             {
                 builder.add(toJsonValue(value));
@@ -327,21 +327,12 @@ public final class YamlJsonParser implements JsonParser
         YamlScalarNode scalar = (YamlScalarNode) node;
         return switch (scalar.type)
         {
-        case STRING -> provider().createValue(scalar.value);
-        case NUMBER -> provider().createValue(new BigDecimal(scalar.value));
+        case STRING -> YamlJsonValues.string(scalar.value);
+        case NUMBER -> YamlJsonValues.number(new BigDecimal(scalar.value));
         case TRUE -> JsonValue.TRUE;
         case FALSE -> JsonValue.FALSE;
         case NULL -> JsonValue.NULL;
         };
-    }
-
-    private JsonProvider provider()
-    {
-        if (provider == null)
-        {
-            provider = YamlJsonProvider.delegateProvider();
-        }
-        return provider;
     }
 
     private static String readAll(
