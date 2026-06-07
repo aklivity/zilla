@@ -19,9 +19,7 @@ import static jakarta.json.stream.JsonGenerator.PRETTY_PRINTING;
 import static java.util.Collections.singletonMap;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
-import java.io.IOException;
 import java.io.InputStream;
-import java.io.Reader;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.net.URL;
@@ -124,28 +122,10 @@ public final class EngineConfigReader
             JsonProvider provider = service.createJsonProvider(schema, parser -> handler);
             String readable = configText.stripTrailing();
 
-            IntArrayList configsAt = new IntArrayList();
-            for (int configAt = 0; configAt < readable.length(); )
+            IntArrayList configsAt = validateDocuments(readable, service, schema, handler, errors);
+            if (!errors.isEmpty())
             {
-                configsAt.addInt(configAt);
-
-                Reader reader = new StringReader(readable);
-                reader.skip(configAt);
-
-                try (JsonParser parser = service.createParser(reader, schema, handler))
-                {
-                    while (parser.hasNext())
-                    {
-                        parser.next();
-                    }
-
-                    configAt += (int) parser.getLocation().getStreamOffset();
-                }
-
-                if (!errors.isEmpty())
-                {
-                    break read;
-                }
+                break read;
             }
 
             JsonbConfig config = new JsonbConfig()
@@ -155,13 +135,11 @@ public final class EngineConfigReader
                 .withConfig(config)
                 .build();
 
-            Reader reader = new StringReader(readable);
             EngineConfigBuilder<EngineConfig> builder = EngineConfig.builder();
             for (int configAt : configsAt)
             {
-                reader.reset();
-                reader.skip(configAt);
-                NamespaceConfig namespace = jsonb.fromJson(reader, NamespaceConfig.class);
+                NamespaceConfig namespace = jsonb.fromJson(
+                    new StringReader(readable.substring(configAt)), NamespaceConfig.class);
                 namespace.configAt = configAt;
                 builder.namespace(namespace);
 
@@ -209,7 +187,6 @@ public final class EngineConfigReader
     {
         boolean valid = false;
 
-        validate:
         try
         {
             final EngineConfigAnnotator annotator = new EngineConfigAnnotator();
@@ -230,38 +207,53 @@ public final class EngineConfigReader
 
             String readable = configText.stripTrailing();
 
-            IntArrayList configsAt = new IntArrayList();
-            for (int configAt = 0; configAt < readable.length(); )
-            {
-                configsAt.addInt(configAt);
+            validateDocuments(readable, service, schema, handler, errors);
 
-                Reader reader = new StringReader(readable);
-                reader.skip(configAt);
-
-                try (JsonParser parser = service.createParser(reader, schema, handler))
-                {
-                    while (parser.hasNext())
-                    {
-                        parser.next();
-                    }
-
-                    configAt += (int) parser.getLocation().getStreamOffset();
-                }
-
-                if (!errors.isEmpty())
-                {
-                    break validate;
-                }
-            }
-
-            valid = true;
+            valid = errors.isEmpty();
         }
-        catch (IOException ex)
+        catch (Exception ex)
         {
             errors.add(ex);
         }
 
         return valid;
 
+    }
+
+    private IntArrayList validateDocuments(
+        String readable,
+        JsonValidationService service,
+        JsonSchema schema,
+        ProblemHandler handler,
+        List<Exception> errors)
+    {
+        IntArrayList documentsAt = new IntArrayList();
+
+        for (int documentAt = 0; documentAt < readable.length(); )
+        {
+            documentsAt.addInt(documentAt);
+
+            try (JsonParser parser = service.createParser(new StringReader(readable.substring(documentAt)), schema, handler))
+            {
+                while (parser.hasNext())
+                {
+                    parser.next();
+                }
+
+                int documentLength = (int) parser.getLocation().getStreamOffset();
+                if (documentLength <= 0)
+                {
+                    throw new ConfigException("YAML parser did not advance to next document");
+                }
+                documentAt += documentLength;
+            }
+
+            if (!errors.isEmpty())
+            {
+                break;
+            }
+        }
+
+        return documentsAt;
     }
 }

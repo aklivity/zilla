@@ -290,6 +290,45 @@ class YamlJsonParserTest
     }
 
     @Test
+    void shouldParseMultiDocumentStreamWithRepeatedParsers()
+    {
+        String text = """
+            ---
+            name: one
+            ...
+            ---
+            name: two
+            values: [1, 2]
+            """;
+        int documentAt = 0;
+
+        JsonParser parser = parserFor(text.substring(documentAt));
+        assertEquals(List.of(
+            "START_OBJECT",
+            "KEY_NAME:name",
+            "VALUE_STRING:one",
+            "END_OBJECT"), events(parser));
+
+        documentAt += (int) parser.getLocation().getStreamOffset();
+        assertEquals(text.indexOf("---", text.indexOf("...")), documentAt);
+
+        parser = parserFor(text.substring(documentAt));
+        assertEquals(List.of(
+            "START_OBJECT",
+            "KEY_NAME:name",
+            "VALUE_STRING:two",
+            "KEY_NAME:values",
+            "START_ARRAY",
+            "VALUE_NUMBER:1",
+            "VALUE_NUMBER:2",
+            "END_ARRAY",
+            "END_OBJECT"), events(parser));
+
+        documentAt += (int) parser.getLocation().getStreamOffset();
+        assertEquals(text.length(), documentAt);
+    }
+
+    @Test
     void shouldParseBlockScalarsAndMultiLineFlowCollections()
     {
         JsonParser parser = parserFor("""
