@@ -57,6 +57,21 @@ services:
       retries: 20
       test: ["CMD", "nc", "-z", "127.0.0.1", "3003"]
 
+  # Run on demand: `docker compose run --rm urlelicit-client`.
+  # A distinct service so the one-off client container does not claim the
+  # `urlelicit` network alias and round-robin Zilla's upstream resolution onto
+  # itself (which would intermittently break the south connection to the server).
+  urlelicit-client:
+    image: node:20-alpine
+    deploy:
+      replicas: 0
+    working_dir: /app
+    environment:
+      MCP_URL: "http://zilla:7114/mcp"
+    volumes:
+      - ./url-elicit:/app
+    entrypoint: ["node", "/app/client.mjs"]
+
 networks:
   default:
     driver: bridge

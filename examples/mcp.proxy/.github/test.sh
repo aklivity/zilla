@@ -38,7 +38,7 @@ fi
 #       notifications/elicitation/complete back to the client
 ELICIT_OUT=$(docker compose run --rm --no-deps \
     -e MCP_URL="http://zilla:$PORT/mcp" \
-    --entrypoint node urlelicit /app/client.mjs 2>&1)
+    urlelicit-client 2>&1)
 echo "$ELICIT_OUT"
 if echo "$ELICIT_OUT" | grep -q 'OK url-mode elicitation relayed end-to-end'; then
   echo ✅ url-mode elicitation relayed end-to-end
