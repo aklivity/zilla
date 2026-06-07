@@ -134,6 +134,16 @@ public class McpProxyCacheIT
     }
 
     @Test
+    @Configuration("proxy.cache.seeded.toolkit.multi.yaml")
+    @Specification({
+        "${app}/lifecycle.elicit.cached/client",
+        "${app}/lifecycle.elicit.cached/server" })
+    public void shouldCompleteLifecycleElicitWhenCached() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.cache.seeded.yaml")
     @Specification({
         "${app}/cache.serve.initialize/client" })
