@@ -470,19 +470,20 @@ public final class McpServerFactory implements McpStreamFactory
                     final HttpHeaderFW lastEventIdHeader = httpBeginEx.headers()
                         .matchFirst(h -> HTTP_HEADER_LAST_EVENT_ID.equals(h.name().asString()));
                     String lastEventIdPrefix = null;
-                    String lastEventIdSuffix = null;
+                    String resumeEventId = null;
                     McpRequestStream resolvedRequest = null;
                     if (lastEventIdHeader != null)
                     {
                         final String lastEventId = lastEventIdHeader.value().asString();
+                        resumeEventId = lastEventId;
                         final int colon = lastEventId != null ? lastEventId.indexOf(':') : -1;
                         if (colon >= 0)
                         {
                             lastEventIdPrefix = lastEventId.substring(0, colon);
-                            lastEventIdSuffix = lastEventId.substring(colon + 1);
                             if (!lastEventIdPrefix.isEmpty())
                             {
                                 resolvedRequest = session.requests.get(lastEventIdPrefix);
+                                resumeEventId = lastEventId.substring(colon + 1);
                             }
                         }
                     }
@@ -500,7 +501,7 @@ public final class McpServerFactory implements McpStreamFactory
                             initialId,
                             session,
                             resolvedRequest,
-                            lastEventIdSuffix,
+                            resumeEventId,
                             altSvc)::onNetMessage;
                     }
                 }
@@ -3425,13 +3426,18 @@ public final class McpServerFactory implements McpStreamFactory
 
         private void doAppResume(
             long traceId,
-            long authorization)
+            long authorization,
+            String lastEventId)
         {
             final McpChallengeExFW resumeEx = mcpChallengeExRW
                 .wrap(codecBuffer, 0, codecBuffer.capacity())
                 .typeId(mcpTypeId)
                 .resume(b ->
                 {
+                    if (lastEventId != null)
+                    {
+                        b.id(lastEventId);
+                    }
                 })
                 .build();
             doAppChallenge(traceId, authorization, resumeEx);
@@ -4021,7 +4027,7 @@ public final class McpServerFactory implements McpStreamFactory
                     session.sse.doNetEnd(traceId, authorization);
                 }
                 session.sse = this;
-                session.doAppResume(traceId, authorization);
+                session.doAppResume(traceId, authorization, lastEventId);
             }
         }
 
