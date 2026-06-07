@@ -53,7 +53,7 @@ final class YamlValues
 
         return switch (value.getValueType())
         {
-        case OBJECT -> objectNode(value.asYamlObject());
+        case OBJECT -> throw new IllegalArgumentException("Only parsed YAML objects can be emitted by this generator");
         case ARRAY -> arrayNode(value.asYamlArray());
         case STRING -> YamlScalarNode.string(value.asYamlScalar().getString(), 1, 1, 0);
         case NUMBER -> YamlScalarNode.number(value.asYamlScalar().getString(), 1, 1, 0);
@@ -61,17 +61,6 @@ final class YamlValues
         case FALSE -> YamlScalarNode.literal(YamlScalarType.FALSE, 1, 1, 0);
         case NULL -> YamlScalarNode.literal(YamlScalarType.NULL, 1, 1, 0);
         };
-    }
-
-    private static YamlObjectNode objectNode(
-        YamlObject value)
-    {
-        YamlObjectNode object = new YamlObjectNode(1, 1, 0);
-        for (io.aklivity.zilla.runtime.common.yaml.YamlEntry entry : value.entries())
-        {
-            object.add(new YamlEntry(keyName(entry), node(entry.value()), 1, 1, 0));
-        }
-        return object;
     }
 
     private static YamlArrayNode arrayNode(
@@ -83,24 +72,6 @@ final class YamlValues
             array.add(node(item));
         }
         return array;
-    }
-
-    private static String keyName(
-        io.aklivity.zilla.runtime.common.yaml.YamlEntry entry)
-    {
-        String name = entry.name();
-        if (name != null)
-        {
-            return name;
-        }
-
-        YamlValue key = entry.key();
-        if (key instanceof YamlScalar scalar &&
-            scalar.getType() == io.aklivity.zilla.runtime.common.yaml.YamlScalarType.STRING)
-        {
-            return scalar.getString();
-        }
-        throw new IllegalArgumentException("Only scalar string YAML keys can be emitted by this generator");
     }
 
     private abstract static class NodeValue implements YamlValue
@@ -132,18 +103,92 @@ final class YamlValues
         }
 
         @Override
-        public List<io.aklivity.zilla.runtime.common.yaml.YamlEntry> entries()
+        public boolean containsKey(
+            String name)
         {
-            List<io.aklivity.zilla.runtime.common.yaml.YamlEntry> entries = new ArrayList<>(object.entries.size());
-            for (YamlEntry entry : object.entries)
-            {
-                entries.add(new EntryValue(entry));
-            }
-            return Collections.unmodifiableList(entries);
+            return value(name) != null;
         }
 
         @Override
-        public YamlValue get(
+        public int size()
+        {
+            return object.entries.size();
+        }
+
+        @Override
+        public YamlObject getObject(
+            String name)
+        {
+            return value(name).asYamlObject();
+        }
+
+        @Override
+        public YamlArray getArray(
+            String name)
+        {
+            return value(name).asYamlArray();
+        }
+
+        @Override
+        public YamlScalar getScalar(
+            String name)
+        {
+            return value(name).asYamlScalar();
+        }
+
+        @Override
+        public String getString(
+            String name)
+        {
+            return getScalar(name).getString();
+        }
+
+        @Override
+        public String getString(
+            String name,
+            String defaultValue)
+        {
+            YamlValue value = value(name);
+            return value != null ? value.asYamlScalar().getString() : defaultValue;
+        }
+
+        @Override
+        public int getInt(
+            String name)
+        {
+            return Integer.parseInt(getString(name));
+        }
+
+        @Override
+        public long getLong(
+            String name)
+        {
+            return Long.parseLong(getString(name));
+        }
+
+        @Override
+        public double getDouble(
+            String name)
+        {
+            return Double.parseDouble(getString(name));
+        }
+
+        @Override
+        public boolean getBoolean(
+            String name)
+        {
+            return Boolean.parseBoolean(getString(name));
+        }
+
+        @Override
+        public boolean isNull(
+            String name)
+        {
+            YamlValue value = value(name);
+            return value != null && value.getValueType() == ValueType.NULL;
+        }
+
+        private YamlValue value(
             String name)
         {
             for (int index = object.entries.size() - 1; index >= 0; index--)
@@ -243,32 +288,4 @@ final class YamlValues
         }
     }
 
-    private static final class EntryValue implements io.aklivity.zilla.runtime.common.yaml.YamlEntry
-    {
-        private final YamlEntry entry;
-
-        private EntryValue(
-            YamlEntry entry)
-        {
-            this.entry = entry;
-        }
-
-        @Override
-        public YamlValue key()
-        {
-            return wrap(YamlScalarNode.string(entry.name, entry.line, entry.column, entry.offset));
-        }
-
-        @Override
-        public String name()
-        {
-            return entry.name;
-        }
-
-        @Override
-        public YamlValue value()
-        {
-            return wrap(entry.value);
-        }
-    }
 }

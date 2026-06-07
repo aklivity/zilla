@@ -83,12 +83,8 @@ class YamlTest
         assertSame(object, object.asYamlObject());
         assertTrue(object.containsKey("items"));
         assertEquals(4, object.size());
-        assertEquals("name", object.iterator().next().name());
-        assertEquals("name", object.entries().get(0).key().asYamlScalar().getString());
-        assertEquals("test", object.get("name").asYamlScalar().getString());
         assertEquals("test", object.getString("name"));
         assertEquals("fallback", object.getString("unknown", "fallback"));
-        assertNull(object.get("unknown"));
 
         YamlArray array = object.getArray("items");
         assertSame(array, array.asYamlArray());
@@ -105,7 +101,7 @@ class YamlTest
         assertEquals("true", enabled.getString());
         assertTrue(object.getBoolean("enabled"));
 
-        YamlScalar missing = object.get("missing").asYamlScalar();
+        YamlScalar missing = object.getScalar("missing");
         assertEquals(YamlValue.ValueType.NULL, missing.getValueType());
         assertEquals(YamlScalarType.NULL, missing.getType());
         assertNull(missing.getString());

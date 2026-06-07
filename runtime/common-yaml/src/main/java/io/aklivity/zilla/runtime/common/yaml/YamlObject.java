@@ -14,93 +14,41 @@
  */
 package io.aklivity.zilla.runtime.common.yaml;
 
-import java.util.Iterator;
-import java.util.List;
-
-public interface YamlObject extends YamlStructure, Iterable<YamlEntry>
+public interface YamlObject extends YamlStructure
 {
-    List<YamlEntry> entries();
-
-    YamlValue get(
+    boolean containsKey(
         String name);
 
-    default YamlObject getObject(
-        String name)
-    {
-        return get(name).asYamlObject();
-    }
+    int size();
 
-    default YamlArray getArray(
-        String name)
-    {
-        return get(name).asYamlArray();
-    }
+    YamlObject getObject(
+        String name);
 
-    default YamlScalar getScalar(
-        String name)
-    {
-        return get(name).asYamlScalar();
-    }
+    YamlArray getArray(
+        String name);
 
-    default String getString(
-        String name)
-    {
-        return getScalar(name).getString();
-    }
+    YamlScalar getScalar(
+        String name);
 
-    default String getString(
+    String getString(
+        String name);
+
+    String getString(
         String name,
-        String defaultValue)
-    {
-        YamlValue value = get(name);
-        return value != null ? value.asYamlScalar().getString() : defaultValue;
-    }
+        String defaultValue);
 
-    default int getInt(
-        String name)
-    {
-        return Integer.parseInt(getString(name));
-    }
+    int getInt(
+        String name);
 
-    default long getLong(
-        String name)
-    {
-        return Long.parseLong(getString(name));
-    }
+    long getLong(
+        String name);
 
-    default double getDouble(
-        String name)
-    {
-        return Double.parseDouble(getString(name));
-    }
+    double getDouble(
+        String name);
 
-    default boolean getBoolean(
-        String name)
-    {
-        return Boolean.parseBoolean(getString(name));
-    }
+    boolean getBoolean(
+        String name);
 
-    default boolean isNull(
-        String name)
-    {
-        YamlValue value = get(name);
-        return value != null && value.getValueType() == YamlValue.ValueType.NULL;
-    }
-
-    default boolean containsKey(
-        String name)
-    {
-        return get(name) != null;
-    }
-
-    default int size()
-    {
-        return entries().size();
-    }
-
-    @Override
-    default Iterator<YamlEntry> iterator()
-    {
-        return entries().iterator();
-    }
+    boolean isNull(
+        String name);
 }
