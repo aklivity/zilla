@@ -19,8 +19,6 @@ import java.io.OutputStream;
 import java.io.Reader;
 import java.io.Writer;
 
-import io.aklivity.zilla.runtime.common.yaml.internal.YamlGeneratorImpl;
-import io.aklivity.zilla.runtime.common.yaml.internal.YamlParserImpl;
 import io.aklivity.zilla.runtime.common.yaml.internal.YamlProviderImpl;
 import io.aklivity.zilla.runtime.common.yaml.spi.YamlProvider;
 
@@ -38,13 +36,13 @@ public final class Yaml
     public static YamlParser createParser(
         Reader reader)
     {
-        return new YamlParserImpl(reader);
+        return provider().createParser(reader);
     }
 
     public static YamlParser createParser(
         InputStream in)
     {
-        return new YamlParserImpl(in);
+        return provider().createParser(in);
     }
 
     public static YamlReader createReader(
@@ -62,13 +60,13 @@ public final class Yaml
     public static YamlGenerator createGenerator(
         Writer writer)
     {
-        return new YamlGeneratorImpl(writer);
+        return provider().createGenerator(writer);
     }
 
     public static YamlGenerator createGenerator(
         OutputStream out)
     {
-        return new YamlGeneratorImpl(out);
+        return provider().createGenerator(out);
     }
 
     public static YamlWriter createWriter(

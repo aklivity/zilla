@@ -130,6 +130,80 @@ class YamlJsonParserTest
     }
 
     @Test
+    void shouldParseJsonObjectDocument()
+    {
+        JsonParser parser = parserFor("""
+            {
+              "name": "test",
+              "enabled": true,
+              "missing": null,
+              "numbers": [0, -0, -42, 3.14, 1.0e+10, -2E-3],
+              "escaped": "quote \\" slash \\/ backslash \\\\ line\\n tab\\t unicode \\u0041",
+              "nested": {
+                "emptyObject": {},
+                "emptyArray": []
+              }
+            }
+            """);
+
+        assertEquals(List.of(
+            "START_OBJECT",
+            "KEY_NAME:name",
+            "VALUE_STRING:test",
+            "KEY_NAME:enabled",
+            "VALUE_TRUE",
+            "KEY_NAME:missing",
+            "VALUE_NULL",
+            "KEY_NAME:numbers",
+            "START_ARRAY",
+            "VALUE_NUMBER:0",
+            "VALUE_NUMBER:-0",
+            "VALUE_NUMBER:-42",
+            "VALUE_NUMBER:3.14",
+            "VALUE_NUMBER:1.0e+10",
+            "VALUE_NUMBER:-2E-3",
+            "END_ARRAY",
+            "KEY_NAME:escaped",
+            "VALUE_STRING:quote \" slash / backslash \\ line\n tab\t unicode A",
+            "KEY_NAME:nested",
+            "START_OBJECT",
+            "KEY_NAME:emptyObject",
+            "START_OBJECT",
+            "END_OBJECT",
+            "KEY_NAME:emptyArray",
+            "START_ARRAY",
+            "END_ARRAY",
+            "END_OBJECT",
+            "END_OBJECT"), events(parser));
+    }
+
+    @Test
+    void shouldParseJsonArrayAndScalarDocuments()
+    {
+        assertEquals(List.of(
+            "START_ARRAY",
+            "START_OBJECT",
+            "KEY_NAME:name",
+            "VALUE_STRING:test",
+            "END_OBJECT",
+            "VALUE_FALSE",
+            "VALUE_NULL",
+            "END_ARRAY"), events(parserFor("""
+            [
+              {"name": "test"},
+              false,
+              null
+            ]
+            """)));
+
+        assertEquals(List.of("VALUE_STRING:value"), events(parserFor("\"value\"\n")));
+        assertEquals(List.of("VALUE_NUMBER:-12.5e-1"), events(parserFor("-12.5e-1\n")));
+        assertEquals(List.of("VALUE_TRUE"), events(parserFor("true\n")));
+        assertEquals(List.of("VALUE_FALSE"), events(parserFor("false\n")));
+        assertEquals(List.of("VALUE_NULL"), events(parserFor("null\n")));
+    }
+
+    @Test
     void shouldParseNumbers()
     {
         JsonParser parser = parserFor("values: [-42, 3.14, 1e10]\n");
@@ -347,8 +421,13 @@ class YamlJsonParserTest
         parser = factory.createParser(new ByteArrayInputStream("name: test\n".getBytes(UTF_8)), UTF_8);
         assertEquals(START_OBJECT, parser.next());
 
-        assertThrows(UnsupportedOperationException.class, () -> factory.createParser(JsonValue.EMPTY_JSON_OBJECT));
-        assertThrows(UnsupportedOperationException.class, () -> factory.createParser(JsonValue.EMPTY_JSON_ARRAY));
+        parser = factory.createParser(JsonValue.EMPTY_JSON_OBJECT);
+        assertEquals(START_OBJECT, parser.next());
+        assertEquals(END_OBJECT, parser.next());
+
+        parser = factory.createParser(JsonValue.EMPTY_JSON_ARRAY);
+        assertEquals(START_ARRAY, parser.next());
+        assertEquals(END_ARRAY, parser.next());
     }
 
     @Test

@@ -71,9 +71,12 @@ public class AsyncapiParser
             ProblemHandler handler = service.createProblemPrinter(msg -> errors.add(new ConfigException(msg)));
             JsonSchema schema = schemas.get(asyncApiVersion);
 
-            try (JsonParser parser = YamlJson.createParser(new StringReader(asyncapiText)))
+            try (JsonParser parser = service.createParser(new StringReader(asyncapiText), schema, handler))
             {
-                service.createReader(parser, schema, handler).read();
+                while (parser.hasNext())
+                {
+                    parser.next();
+                }
             }
 
             Jsonb jsonb = JsonbBuilder.create();

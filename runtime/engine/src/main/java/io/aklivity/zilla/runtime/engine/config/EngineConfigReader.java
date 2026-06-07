@@ -116,13 +116,12 @@ public final class EngineConfigReader
             JsonParser schemaParser = schemaProvider.createParserFactory(null)
                 .createParser(new StringReader(schemaObject.toString()));
 
-            JsonValidationService service = JsonValidationService.newInstance();
+            JsonValidationService service = JsonValidationService.newInstance(YamlJson.provider());
             ProblemHandler handler = service.createProblemPrinter(msg -> errors.add(new ConfigException(msg)));
             JsonSchemaReader validator = service.createSchemaReader(schemaParser);
             JsonSchema schema = new UniquePropertyKeysSchema(validator.read());
 
-            JsonValidationService yamlService = JsonValidationService.newInstance(YamlJson.provider());
-            JsonProvider provider = yamlService.createJsonProvider(schema, parser -> handler);
+            JsonProvider provider = service.createJsonProvider(schema, parser -> handler);
             String readable = configText.stripTrailing();
 
             IntArrayList configsAt = new IntArrayList();
@@ -133,7 +132,7 @@ public final class EngineConfigReader
                 Reader reader = new StringReader(readable);
                 reader.skip(configAt);
 
-                try (JsonParser parser = yamlService.createParser(reader, schema, handler))
+                try (JsonParser parser = service.createParser(reader, schema, handler))
                 {
                     while (parser.hasNext())
                     {
@@ -224,11 +223,10 @@ public final class EngineConfigReader
             final JsonParser schemaParser = schemaProvider.createParserFactory(null)
                 .createParser(new StringReader(annotatedSchemaObject.toString()));
 
-            final JsonValidationService service = JsonValidationService.newInstance();
+            final JsonValidationService service = JsonValidationService.newInstance(YamlJson.provider());
             ProblemHandler handler = service.createProblemPrinter(msg -> errors.add(new ConfigException(msg)));
             final JsonSchemaReader validator = service.createSchemaReader(schemaParser);
             final JsonSchema schema = new UniquePropertyKeysSchema(validator.read());
-            final JsonValidationService yamlService = JsonValidationService.newInstance(YamlJson.provider());
 
             String readable = configText.stripTrailing();
 
@@ -240,7 +238,7 @@ public final class EngineConfigReader
                 Reader reader = new StringReader(readable);
                 reader.skip(configAt);
 
-                try (JsonParser parser = yamlService.createParser(reader, schema, handler))
+                try (JsonParser parser = service.createParser(reader, schema, handler))
                 {
                     while (parser.hasNext())
                     {

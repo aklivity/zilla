@@ -21,12 +21,14 @@ import java.util.Map;
 
 import jakarta.json.JsonArray;
 import jakarta.json.JsonObject;
+import jakarta.json.spi.JsonProvider;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParserFactory;
 
 public final class YamlJsonParserFactory implements JsonParserFactory
 {
     private final Map<String, ?> config;
+    private JsonProvider delegate;
 
     public YamlJsonParserFactory(
         Map<String, ?> config)
@@ -60,19 +62,28 @@ public final class YamlJsonParserFactory implements JsonParserFactory
     public JsonParser createParser(
         JsonObject obj)
     {
-        throw new UnsupportedOperationException("YamlJsonParserFactory only supports text sources");
+        return delegate().createParserFactory(config).createParser(obj);
     }
 
     @Override
     public JsonParser createParser(
         JsonArray array)
     {
-        throw new UnsupportedOperationException("YamlJsonParserFactory only supports text sources");
+        return delegate().createParserFactory(config).createParser(array);
     }
 
     @Override
     public Map<String, ?> getConfigInUse()
     {
         return config;
+    }
+
+    private JsonProvider delegate()
+    {
+        if (delegate == null)
+        {
+            delegate = JsonProvider.provider();
+        }
+        return delegate;
     }
 }

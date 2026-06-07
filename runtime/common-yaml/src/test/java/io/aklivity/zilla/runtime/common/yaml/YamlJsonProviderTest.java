@@ -63,6 +63,15 @@ class YamlJsonProviderTest
         assertEquals("test", object.getString("name"));
         assertEquals(1, object.getJsonArray("items").getInt(0));
 
+        JsonObject jsonObject = readerFactory.createReader(new StringReader("""
+            {
+              "name": "test",
+              "items": [1]
+            }
+            """)).readObject();
+        assertEquals("test", jsonObject.getString("name"));
+        assertEquals(1, jsonObject.getJsonArray("items").getInt(0));
+
         JsonArray array = provider.createReader(new ByteArrayInputStream("- true\n- null\n".getBytes(UTF_8))).readArray();
         assertEquals(JsonValue.TRUE, array.get(0));
         assertEquals(JsonValue.NULL, array.get(1));

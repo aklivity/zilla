@@ -103,12 +103,11 @@ public final class ConfigSchemaRule implements TestRule
         JsonParser schemaParser = schemaProvider.createParserFactory(null)
             .createParser(new StringReader(schemaObject.toString()));
 
-        JsonValidationService service = JsonValidationService.newInstance();
+        JsonValidationService service = JsonValidationService.newInstance(YamlJson.provider());
         JsonSchemaReader reader = service.createSchemaReader(schemaParser);
         JsonSchema schema = reader.read();
 
-        JsonValidationService yamlService = JsonValidationService.newInstance(YamlJson.provider());
-        provider = yamlService.createJsonProvider(schema, parser -> ProblemHandler.throwing());
+        provider = service.createJsonProvider(schema, parser -> ProblemHandler.throwing());
 
         if (configurationRoot != null)
         {
