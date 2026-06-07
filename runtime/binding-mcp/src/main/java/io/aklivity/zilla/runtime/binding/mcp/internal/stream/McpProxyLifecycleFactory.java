@@ -193,19 +193,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
     private String newSessionId(
         long bindingId)
     {
-        String sessionId = null;
-
-        for (int i = 0; i < sessionIdAttempts; i++)
-        {
-            final String candidate = supplySessionId.get();
-            if (isLocalIndex.test(bindingId, candidate.hashCode()))
-            {
-                sessionId = candidate;
-                break;
-            }
-        }
-
-        return sessionId;
+        return McpSessionId.newSessionId(bindingId, sessionIdAttempts, supplySessionId, isLocalIndex);
     }
 
     McpLifecycleServer newHydrationLifecycle(
