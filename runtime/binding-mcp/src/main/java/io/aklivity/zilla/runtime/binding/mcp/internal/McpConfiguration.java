@@ -250,7 +250,8 @@ public class McpConfiguration extends Configuration
     private static int defaultSessionIdAttempts(
         Configuration config)
     {
-        return Math.max(1, ENGINE_WORKERS.getAsInt(config) * 2);
+        // 64x the expected reject-sampling tries (~workers), leaving ~e^-64 exhaustion
+        return Math.max(1, ENGINE_WORKERS.getAsInt(config) * 64);
     }
 
     private static boolean defaultAltSvcEnabled(

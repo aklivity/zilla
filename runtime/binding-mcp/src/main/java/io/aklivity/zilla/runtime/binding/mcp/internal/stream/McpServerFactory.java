@@ -5983,19 +5983,7 @@ public final class McpServerFactory implements McpStreamFactory
     private String newSessionId(
         long routedId)
     {
-        String sessionId = null;
-
-        for (int i = 0; i < sessionIdAttempts; i++)
-        {
-            final String candidate = supplySessionId.get();
-            if (isSessionIdAligned(routedId, candidate))
-            {
-                sessionId = candidate;
-                break;
-            }
-        }
-
-        return sessionId;
+        return McpSessionId.newSessionId(routedId, sessionIdAttempts, supplySessionId, isLocalIndex);
     }
 
     private boolean isSessionIdAligned(

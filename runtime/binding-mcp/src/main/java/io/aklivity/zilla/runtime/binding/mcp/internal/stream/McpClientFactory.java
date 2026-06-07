@@ -320,19 +320,7 @@ public final class McpClientFactory implements McpStreamFactory
     private String newSessionId(
         long routedId)
     {
-        String sessionId = null;
-
-        for (int i = 0; i < sessionIdAttempts; i++)
-        {
-            final String candidate = supplySessionId.get();
-            if (isLocalIndex.test(routedId, candidate.hashCode()))
-            {
-                sessionId = candidate;
-                break;
-            }
-        }
-
-        return sessionId;
+        return McpSessionId.newSessionId(routedId, sessionIdAttempts, supplySessionId, isLocalIndex);
     }
 
     @FunctionalInterface
