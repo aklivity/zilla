@@ -50,10 +50,8 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpChallengeExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpElicitAction;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpElicitCallbackFlushExFW;
-import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpElicitCompleteFlushExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpElicitCreateChallengeExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpElicitResponseFlushExFW;
-import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpElicitStatus;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpFlushExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpProgressFlushExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpPromptsListChangedFlushExFW;
@@ -449,6 +447,10 @@ final class McpProxyLifecycleFactory implements BindingHandler
                 }
                 else
                 {
+                    if (aggregating())
+                    {
+                        onServerResumeRoutes(traceId);
+                    }
                     for (McpLifecycleClient client : clients.values())
                     {
                         client.doClientResume(traceId, authorization);
@@ -1168,12 +1170,12 @@ final class McpProxyLifecycleFactory implements BindingHandler
 
             settleLifecycle(traceId);
 
-            settleRequests(traceId);
-
             if (resumeId != null || server.resumePending)
             {
                 doClientResume(traceId, authorization);
             }
+
+            settleRequests(traceId);
         }
 
         private void onClientEnd(
@@ -1289,7 +1291,6 @@ final class McpProxyLifecycleFactory implements BindingHandler
         case McpFlushExFW.KIND_PROMPTS_LIST_CHANGED -> flushEx.promptsListChanged().id();
         case McpFlushExFW.KIND_RESOURCES_LIST_CHANGED -> flushEx.resourcesListChanged().id();
         case McpFlushExFW.KIND_PROGRESS -> flushEx.progress().id();
-        case McpFlushExFW.KIND_ELICIT_COMPLETE -> flushEx.elicitComplete().id();
         default -> null;
         };
         return id != null && id.length() != -1 ? id.asString() : null;
@@ -1324,9 +1325,6 @@ final class McpProxyLifecycleFactory implements BindingHandler
             break;
         case McpFlushExFW.KIND_PROGRESS:
             builder.progress(b -> injectProgressFlushEx(b, flushEx.progress(), aggregate));
-            break;
-        case McpFlushExFW.KIND_ELICIT_COMPLETE:
-            builder.elicitComplete(b -> injectElicitCompleteFlushEx(b, flushEx.elicitComplete(), aggregate));
             break;
         default:
             break;
@@ -1376,15 +1374,6 @@ final class McpProxyLifecycleFactory implements BindingHandler
         {
             builder.message(message);
         }
-    }
-
-    private void injectElicitCompleteFlushEx(
-        McpElicitCompleteFlushExFW.Builder builder,
-        McpElicitCompleteFlushExFW elicitComplete,
-        OctetsFW aggregate)
-    {
-        final McpElicitStatus status = elicitComplete.status().get();
-        builder.id(aggregate.buffer(), aggregate.offset(), aggregate.sizeof()).status(s -> s.set(status));
     }
 
     private MessageConsumer newStream(
