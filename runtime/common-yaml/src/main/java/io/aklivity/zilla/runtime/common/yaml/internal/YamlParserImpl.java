@@ -23,9 +23,12 @@ import java.nio.charset.Charset;
 import java.util.ArrayDeque;
 import java.util.Deque;
 
+import io.aklivity.zilla.runtime.common.yaml.YamlArray;
 import io.aklivity.zilla.runtime.common.yaml.YamlEvent;
 import io.aklivity.zilla.runtime.common.yaml.YamlEvent.EventType;
+import io.aklivity.zilla.runtime.common.yaml.YamlObject;
 import io.aklivity.zilla.runtime.common.yaml.YamlParser;
+import io.aklivity.zilla.runtime.common.yaml.YamlScalar;
 import io.aklivity.zilla.runtime.common.yaml.YamlValue;
 
 public final class YamlParserImpl implements YamlParser
@@ -33,6 +36,7 @@ public final class YamlParserImpl implements YamlParser
     private final String text;
     private Deque<Frame> stack;
     private YamlNode root;
+    private YamlEvent current;
     private YamlEvent next;
     private boolean parsed;
     private boolean streaming;
@@ -83,6 +87,7 @@ public final class YamlParserImpl implements YamlParser
         }
         YamlEvent event = next;
         next = null;
+        current = event;
         return event;
     }
 
@@ -95,6 +100,36 @@ public final class YamlParserImpl implements YamlParser
         }
         parsed = true;
         return YamlValues.wrap(root());
+    }
+
+    @Override
+    public YamlValue getValue()
+    {
+        return current != null ? current.getValue() : null;
+    }
+
+    @Override
+    public YamlObject getObject()
+    {
+        return getValue().asYamlObject();
+    }
+
+    @Override
+    public YamlArray getArray()
+    {
+        return getValue().asYamlArray();
+    }
+
+    @Override
+    public YamlScalar getScalar()
+    {
+        return getValue().asYamlScalar();
+    }
+
+    @Override
+    public String getString()
+    {
+        return current != null ? current.getString() : null;
     }
 
     @Override

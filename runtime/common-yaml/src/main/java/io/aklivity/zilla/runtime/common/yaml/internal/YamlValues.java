@@ -96,7 +96,7 @@ final class YamlValues
 
         YamlValue key = entry.key();
         if (key instanceof YamlScalar scalar &&
-            scalar.getScalarType() == io.aklivity.zilla.runtime.common.yaml.YamlScalarType.STRING)
+            scalar.getType() == io.aklivity.zilla.runtime.common.yaml.YamlScalarType.STRING)
         {
             return scalar.getString();
         }
@@ -219,7 +219,7 @@ final class YamlValues
         }
 
         @Override
-        public io.aklivity.zilla.runtime.common.yaml.YamlScalarType getScalarType()
+        public io.aklivity.zilla.runtime.common.yaml.YamlScalarType getType()
         {
             return switch (scalar.type)
             {

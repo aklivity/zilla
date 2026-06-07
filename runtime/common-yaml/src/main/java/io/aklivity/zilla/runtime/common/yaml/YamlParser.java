@@ -22,6 +22,16 @@ public interface YamlParser extends AutoCloseable
 
     YamlValue parse();
 
+    YamlValue getValue();
+
+    YamlObject getObject();
+
+    YamlArray getArray();
+
+    YamlScalar getScalar();
+
+    String getString();
+
     @Override
     void close();
 }

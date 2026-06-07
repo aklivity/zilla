@@ -16,8 +16,67 @@ package io.aklivity.zilla.runtime.common.yaml;
 
 public interface YamlGenerator extends AutoCloseable
 {
+    YamlGenerator writeStartObject();
+
+    YamlGenerator writeStartObject(
+        String name);
+
+    YamlGenerator writeStartArray();
+
+    YamlGenerator writeStartArray(
+        String name);
+
+    YamlGenerator writeKey(
+        String name);
+
+    YamlGenerator write(
+        String value);
+
+    YamlGenerator write(
+        String name,
+        String value);
+
+    YamlGenerator write(
+        int value);
+
+    YamlGenerator write(
+        String name,
+        int value);
+
+    YamlGenerator write(
+        long value);
+
+    YamlGenerator write(
+        String name,
+        long value);
+
+    YamlGenerator write(
+        double value);
+
+    YamlGenerator write(
+        String name,
+        double value);
+
+    YamlGenerator write(
+        boolean value);
+
+    YamlGenerator write(
+        String name,
+        boolean value);
+
+    YamlGenerator writeNull();
+
+    YamlGenerator writeNull(
+        String name);
+
     YamlGenerator write(
         YamlValue value);
+
+    YamlGenerator write(
+        String name,
+        YamlValue value);
+
+    YamlGenerator writeEnd();
 
     void flush();
 

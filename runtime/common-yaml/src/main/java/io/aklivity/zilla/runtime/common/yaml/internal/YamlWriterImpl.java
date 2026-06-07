@@ -52,6 +52,47 @@ public final class YamlWriterImpl implements YamlWriter
     }
 
     @Override
+    public void writeString(
+        String value)
+    {
+        generator.write(value).close();
+    }
+
+    @Override
+    public void writeNumber(
+        int value)
+    {
+        generator.write(value).close();
+    }
+
+    @Override
+    public void writeNumber(
+        long value)
+    {
+        generator.write(value).close();
+    }
+
+    @Override
+    public void writeNumber(
+        double value)
+    {
+        generator.write(value).close();
+    }
+
+    @Override
+    public void writeBoolean(
+        boolean value)
+    {
+        generator.write(value).close();
+    }
+
+    @Override
+    public void writeNull()
+    {
+        generator.writeNull().close();
+    }
+
+    @Override
     public void close()
     {
         generator.close();

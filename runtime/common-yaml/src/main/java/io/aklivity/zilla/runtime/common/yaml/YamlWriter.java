@@ -25,6 +25,23 @@ public interface YamlWriter extends AutoCloseable
     void writeArray(
         YamlArray array);
 
+    void writeString(
+        String value);
+
+    void writeNumber(
+        int value);
+
+    void writeNumber(
+        long value);
+
+    void writeNumber(
+        double value);
+
+    void writeBoolean(
+        boolean value);
+
+    void writeNull();
+
     @Override
     void close();
 }

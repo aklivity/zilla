@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.common.yaml;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -51,6 +52,20 @@ class YamlTest
     }
 
     @Test
+    void shouldCreateNativeFactoryMethods()
+    {
+        assertNotNull(Yaml.provider());
+        assertNotNull(Yaml.createParser(new StringReader("name: test\n")));
+        assertNotNull(Yaml.createParser(new ByteArrayInputStream("name: test\n".getBytes(UTF_8))));
+        assertNotNull(Yaml.createReader(new StringReader("name: test\n")));
+        assertNotNull(Yaml.createReader(new ByteArrayInputStream("name: test\n".getBytes(UTF_8))));
+        assertNotNull(Yaml.createGenerator(new StringWriter()));
+        assertNotNull(Yaml.createGenerator(new ByteArrayOutputStream()));
+        assertNotNull(Yaml.createWriter(new StringWriter()));
+        assertNotNull(Yaml.createWriter(new ByteArrayOutputStream()));
+    }
+
+    @Test
     void shouldReadNativeObjectValues()
     {
         YamlProvider provider = Yaml.provider();
@@ -71,26 +86,30 @@ class YamlTest
         assertEquals("name", object.iterator().next().name());
         assertEquals("name", object.entries().get(0).key().asYamlScalar().getString());
         assertEquals("test", object.get("name").asYamlScalar().getString());
+        assertEquals("test", object.getString("name"));
+        assertEquals("fallback", object.getString("unknown", "fallback"));
         assertNull(object.get("unknown"));
 
-        YamlArray array = object.get("items").asYamlArray();
+        YamlArray array = object.getArray("items");
         assertSame(array, array.asYamlArray());
         assertEquals(YamlValue.ValueType.ARRAY, array.getValueType());
         assertEquals(2, array.size());
         assertEquals("one", array.iterator().next().asYamlScalar().getString());
-        assertEquals(YamlScalarType.NUMBER, array.get(1).asYamlScalar().getScalarType());
+        assertEquals(YamlScalarType.NUMBER, array.get(1).asYamlScalar().getType());
         assertEquals("2", array.get(1).asYamlScalar().getString());
 
-        YamlScalar enabled = object.get("enabled").asYamlScalar();
+        YamlScalar enabled = object.getScalar("enabled");
         assertSame(enabled, enabled.asYamlScalar());
         assertEquals(YamlValue.ValueType.TRUE, enabled.getValueType());
-        assertEquals(YamlScalarType.BOOLEAN, enabled.getScalarType());
+        assertEquals(YamlScalarType.BOOLEAN, enabled.getType());
         assertEquals("true", enabled.getString());
+        assertTrue(object.getBoolean("enabled"));
 
         YamlScalar missing = object.get("missing").asYamlScalar();
         assertEquals(YamlValue.ValueType.NULL, missing.getValueType());
-        assertEquals(YamlScalarType.NULL, missing.getScalarType());
+        assertEquals(YamlScalarType.NULL, missing.getType());
         assertNull(missing.getString());
+        assertTrue(object.isNull("missing"));
     }
 
     @Test
@@ -102,7 +121,7 @@ class YamlTest
 
         YamlValue scalar = Yaml.createParser(new ByteArrayInputStream("42\n".getBytes(UTF_8))).parse();
         assertEquals(YamlValue.ValueType.NUMBER, scalar.getValueType());
-        assertEquals(YamlScalarType.NUMBER, scalar.asYamlScalar().getScalarType());
+        assertEquals(YamlScalarType.NUMBER, scalar.asYamlScalar().getType());
         assertEquals("42", scalar.asYamlScalar().getString());
     }
 
@@ -121,9 +140,19 @@ class YamlTest
         {
             YamlEvent event = parser.next();
             events.add(event.getEventType() + (event.getString() != null ? ":" + event.getString() : ""));
+            assertSame(event.getValue(), parser.getValue());
+            assertEquals(event.getString(), parser.getString());
             if (event.getValue() != null && event.getEventType() == YamlEvent.EventType.START_OBJECT)
             {
-                assertEquals(YamlValue.ValueType.OBJECT, event.getValue().getValueType());
+                assertEquals(YamlValue.ValueType.OBJECT, parser.getObject().getValueType());
+            }
+            if (event.getValue() != null && event.getEventType() == YamlEvent.EventType.START_ARRAY)
+            {
+                assertEquals(YamlValue.ValueType.ARRAY, parser.getArray().getValueType());
+            }
+            if (event.getEventType() == YamlEvent.EventType.VALUE_NUMBER)
+            {
+                assertEquals(YamlScalarType.NUMBER, parser.getScalar().getType());
             }
         }
 
@@ -165,6 +194,28 @@ class YamlTest
             enabled: true
             missing: null
             """, generated.toString());
+
+        StringWriter streamed = new StringWriter();
+        Yaml.createGenerator(streamed)
+            .writeStartObject()
+            .write("name", "test")
+            .writeStartArray("items")
+            .write("one")
+            .write(2)
+            .writeEnd()
+            .write("enabled", true)
+            .writeNull("missing")
+            .writeEnd()
+            .close();
+
+        assertEquals("""
+            name: test
+            items:
+              - one
+              - 2
+            enabled: true
+            missing: null
+            """, streamed.toString());
     }
 
     @Test
@@ -173,13 +224,25 @@ class YamlTest
         YamlObject object = Yaml.createReader(new StringReader("name: test\n")).readObject();
         StringWriter objectWriter = new StringWriter();
         ByteArrayOutputStream arrayWriter = new ByteArrayOutputStream();
+        StringWriter stringWriter = new StringWriter();
+        StringWriter numberWriter = new StringWriter();
+        StringWriter booleanWriter = new StringWriter();
+        StringWriter nullWriter = new StringWriter();
 
         Yaml.createWriter(objectWriter).writeObject(object);
         Yaml.provider().createWriter(arrayWriter).writeArray(
             Yaml.createReader(new StringReader("- one\n")).readArray());
+        Yaml.createWriter(stringWriter).writeString("test");
+        Yaml.createWriter(numberWriter).writeNumber(42);
+        Yaml.createWriter(booleanWriter).writeBoolean(true);
+        Yaml.createWriter(nullWriter).writeNull();
 
         assertEquals("name: test\n", objectWriter.toString());
         assertEquals("- one\n", arrayWriter.toString(UTF_8));
+        assertEquals("test\n", stringWriter.toString());
+        assertEquals("42\n", numberWriter.toString());
+        assertEquals("true\n", booleanWriter.toString());
+        assertEquals("null\n", nullWriter.toString());
     }
 
     @Test
@@ -201,5 +264,15 @@ class YamlTest
         generator.close();
         assertThrows(IllegalStateException.class,
             () -> generator.write(Yaml.createReader(new StringReader("name: closed\n")).readObject()));
+
+        assertThrows(IllegalStateException.class, () -> Yaml.createGenerator(new StringWriter()).writeKey("name"));
+        assertThrows(IllegalStateException.class, () -> Yaml.createGenerator(new StringWriter()).writeEnd());
+        assertThrows(IllegalArgumentException.class, () -> Yaml.createGenerator(new StringWriter()).write(Double.NaN));
+
+        YamlGenerator open = Yaml.createGenerator(new StringWriter()).writeStartObject().writeKey("name");
+        assertThrows(IllegalStateException.class, open::writeEnd);
+
+        YamlGenerator incomplete = Yaml.createGenerator(new StringWriter()).writeStartArray();
+        assertThrows(IllegalStateException.class, incomplete::close);
     }
 }

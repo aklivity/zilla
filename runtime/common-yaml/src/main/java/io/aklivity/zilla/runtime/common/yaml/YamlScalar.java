@@ -16,7 +16,7 @@ package io.aklivity.zilla.runtime.common.yaml;
 
 public interface YamlScalar extends YamlValue
 {
-    YamlScalarType getScalarType();
+    YamlScalarType getType();
 
     String getString();
 }
