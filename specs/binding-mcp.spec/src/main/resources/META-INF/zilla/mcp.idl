@@ -129,6 +129,7 @@ scope mcp
         {
             string16 sessionId = null;
             uint16 capabilities = 0;
+            string16 authCallback = null;
         }
 
         struct McpToolsListBeginEx

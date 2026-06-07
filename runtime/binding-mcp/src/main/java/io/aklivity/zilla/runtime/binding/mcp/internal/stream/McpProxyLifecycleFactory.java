@@ -177,9 +177,10 @@ final class McpProxyLifecycleFactory implements BindingHandler
             if (sessionId != null)
             {
                 final int clientCapabilities = beginEx.lifecycle().capabilities();
+                final String authCallback = beginEx.lifecycle().authCallback().asString();
                 final McpLifecycleServer lifecycle = new McpLifecycleServer(
                     binding, sender, originId, routedId, initialId, affinity, authorization,
-                    clientCapabilities, sessionId, false);
+                    clientCapabilities, sessionId, authCallback, false);
                 binding.sessions.put(sessionId, lifecycle);
                 newStream = lifecycle::onServerMessage;
             }
@@ -203,7 +204,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
         final String sessionId = newSessionId(bindingId);
         return new McpLifecycleServer(
             binding, sink, bindingId, bindingId, supplyInitialId.applyAsLong(bindingId),
-            0L, authorization, 0, sessionId, true);
+            0L, authorization, 0, sessionId, null, true);
     }
 
     final class McpLifecycleServer implements McpProxySession
@@ -218,6 +219,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
         private final long authorization;
         private final int clientCapabilities;
         final String sessionId;
+        final String authCallback;
         private final boolean hydration;
         private final Long2ObjectHashMap<McpLifecycleClient> clients;
         private final Long2ObjectHashMap<String> eventIds;
@@ -247,6 +249,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
             long authorization,
             int clientCapabilities,
             String sessionId,
+            String authCallback,
             boolean hydration)
         {
             this.binding = binding;
@@ -259,6 +262,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
             this.authorization = authorization;
             this.clientCapabilities = clientCapabilities;
             this.sessionId = sessionId;
+            this.authCallback = authCallback;
             this.hydration = hydration;
             this.clients = new Long2ObjectHashMap<>();
             this.elicitClients = new Object2ObjectHashMap<>();
@@ -903,10 +907,18 @@ final class McpProxyLifecycleFactory implements BindingHandler
                 }
 
                 final int clientCapabilities = server.clientCapabilities;
+                final String authCallback = server.authCallback;
                 final McpBeginExFW beginEx = mcpBeginExRW
                     .wrap(codecBuffer, 0, codecBuffer.capacity())
                     .typeId(mcpTypeId)
-                    .lifecycle(l -> l.capabilities(clientCapabilities))
+                    .lifecycle(l ->
+                    {
+                        l.capabilities(clientCapabilities);
+                        if (authCallback != null)
+                        {
+                            l.authCallback(authCallback);
+                        }
+                    })
                     .build();
 
                 sender = newStream(this::onClientMessage, originId, routedId, initialId,

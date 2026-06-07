@@ -147,6 +147,7 @@ public final class McpFunctions
         {
             private String sessionId;
             private int capabilities;
+            private String authCallback;
 
             public McpLifecycleBeginExBuilder sessionId(
                 String sessionId)
@@ -162,9 +163,16 @@ public final class McpFunctions
                 return this;
             }
 
+            public McpLifecycleBeginExBuilder authCallback(
+                String authCallback)
+            {
+                this.authCallback = authCallback;
+                return this;
+            }
+
             public McpBeginExBuilder build()
             {
-                beginExRW.lifecycle(b -> b.sessionId(sessionId).capabilities(capabilities));
+                beginExRW.lifecycle(b -> b.sessionId(sessionId).capabilities(capabilities).authCallback(authCallback));
                 return McpBeginExBuilder.this;
             }
         }
@@ -496,6 +504,7 @@ public final class McpFunctions
         {
             private String16FW sessionId;
             private Integer capabilities;
+            private String16FW authCallback;
 
             public McpLifecycleBeginExMatcherBuilder sessionId(
                 String sessionId)
@@ -511,6 +520,13 @@ public final class McpFunctions
                 return this;
             }
 
+            public McpLifecycleBeginExMatcherBuilder authCallback(
+                String authCallback)
+            {
+                this.authCallback = new String16FW(authCallback);
+                return this;
+            }
+
             public McpBeginExMatcherBuilder build()
             {
                 return McpBeginExMatcherBuilder.this;
@@ -520,7 +536,7 @@ public final class McpFunctions
                 McpBeginExFW beginEx)
             {
                 final McpLifecycleBeginExFW lifecycle = beginEx.lifecycle();
-                return matchSessionId(lifecycle) && matchCapabilities(lifecycle);
+                return matchSessionId(lifecycle) && matchCapabilities(lifecycle) && matchAuthCallback(lifecycle);
             }
 
             private boolean matchSessionId(
@@ -533,6 +549,12 @@ public final class McpFunctions
                 McpLifecycleBeginExFW lifecycle)
             {
                 return capabilities == null || capabilities == lifecycle.capabilities();
+            }
+
+            private boolean matchAuthCallback(
+                McpLifecycleBeginExFW lifecycle)
+            {
+                return authCallback == null || authCallback.equals(lifecycle.authCallback());
             }
         }
 
