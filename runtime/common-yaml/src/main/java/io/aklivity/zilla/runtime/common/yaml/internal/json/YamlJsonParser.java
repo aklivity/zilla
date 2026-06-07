@@ -339,7 +339,7 @@ public final class YamlJsonParser implements JsonParser
     {
         if (provider == null)
         {
-            provider = JsonProvider.provider();
+            provider = YamlJsonProvider.delegateProvider();
         }
         return provider;
     }

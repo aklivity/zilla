@@ -26,6 +26,7 @@ import java.io.StringWriter;
 import java.util.List;
 import java.util.Map;
 
+import jakarta.json.Json;
 import jakarta.json.JsonArray;
 import jakarta.json.JsonException;
 import jakarta.json.JsonObject;
@@ -62,6 +63,9 @@ class YamlJsonProviderTest
         JsonObject object = readerFactory.createReader(new StringReader("name: test\nitems: [1]\n")).readObject();
         assertEquals("test", object.getString("name"));
         assertEquals(1, object.getJsonArray("items").getInt(0));
+
+        JsonObject globalObject = Json.createReader(new StringReader("name: global\n")).readObject();
+        assertEquals("global", globalObject.getString("name"));
 
         JsonObject jsonObject = readerFactory.createReader(new StringReader("""
             {
@@ -114,6 +118,13 @@ class YamlJsonProviderTest
         ByteArrayOutputStream writtenValue = new ByteArrayOutputStream();
         provider.createWriter(writtenValue).write(JsonValue.TRUE);
         assertEquals("true\n", writtenValue.toString(UTF_8));
+
+        JsonObject directObject = YamlJson.createReader(new StringReader("name: direct\n")).readObject();
+        assertEquals("direct", directObject.getString("name"));
+
+        StringWriter directWriter = new StringWriter();
+        YamlJson.createWriter(directWriter).writeObject(directObject);
+        assertEquals("name: direct\n", directWriter.toString());
     }
 
     @Test

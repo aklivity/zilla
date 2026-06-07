@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonReader;
 import jakarta.json.bind.Jsonb;
@@ -115,7 +116,7 @@ public class AsyncapiParser
     private JsonObject readAsyncapiObject(
         String asyncapiText)
     {
-        try (JsonReader reader = YamlJson.provider().createReader(new StringReader(asyncapiText)))
+        try (JsonReader reader = Json.createReader(new StringReader(asyncapiText)))
         {
             return reader.readObject();
         }

@@ -41,14 +41,14 @@ import io.aklivity.zilla.runtime.common.yaml.spi.YamlProvider;
 class YamlTest
 {
     @Test
-    void shouldCreateNativeProviderWithoutJsonProviderRegistration()
+    void shouldCreateNativeProviderWithJsonProviderRegistration()
     {
         Object provider = Yaml.provider();
 
         assertEquals("YamlProviderImpl", provider.getClass().getSimpleName());
         assertFalse(provider instanceof JsonProvider);
         assertNotSame(provider, YamlJson.provider());
-        assertNotSame(YamlJson.provider(), JsonProvider.provider());
+        assertEquals("YamlJsonProvider", JsonProvider.provider().getClass().getSimpleName());
     }
 
     @Test

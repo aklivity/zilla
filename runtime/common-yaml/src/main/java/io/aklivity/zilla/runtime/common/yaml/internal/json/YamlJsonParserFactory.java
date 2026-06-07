@@ -82,7 +82,7 @@ public final class YamlJsonParserFactory implements JsonParserFactory
     {
         if (delegate == null)
         {
-            delegate = JsonProvider.provider();
+            delegate = YamlJsonProvider.delegateProvider();
         }
         return delegate;
     }

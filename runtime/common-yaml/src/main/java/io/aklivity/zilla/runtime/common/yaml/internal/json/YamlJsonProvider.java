@@ -22,10 +22,12 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Map;
+import java.util.ServiceLoader;
 
 import jakarta.json.JsonArray;
 import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonBuilderFactory;
+import jakarta.json.JsonException;
 import jakarta.json.JsonMergePatch;
 import jakarta.json.JsonNumber;
 import jakarta.json.JsonObject;
@@ -48,6 +50,8 @@ import jakarta.json.stream.JsonParserFactory;
 
 public final class YamlJsonProvider extends JsonProvider
 {
+    private static final String DEFAULT_PROVIDER = "org.eclipse.parsson.JsonProviderImpl";
+
     private JsonProvider delegate;
 
     @Override
@@ -284,8 +288,40 @@ public final class YamlJsonProvider extends JsonProvider
     {
         if (delegate == null)
         {
-            delegate = JsonProvider.provider();
+            delegate = delegateProvider();
         }
         return delegate;
+    }
+
+    static JsonProvider delegateProvider()
+    {
+        String providerClass = System.getProperty(JSONP_PROVIDER_FACTORY);
+        if (providerClass != null && !YamlJsonProvider.class.getName().equals(providerClass))
+        {
+            return provider(providerClass);
+        }
+
+        for (JsonProvider provider : ServiceLoader.load(JsonProvider.class))
+        {
+            if (provider.getClass() != YamlJsonProvider.class)
+            {
+                return provider;
+            }
+        }
+
+        return provider(DEFAULT_PROVIDER);
+    }
+
+    private static JsonProvider provider(
+        String providerClass)
+    {
+        try
+        {
+            return (JsonProvider) Class.forName(providerClass).getConstructor().newInstance();
+        }
+        catch (ReflectiveOperationException ex)
+        {
+            throw new JsonException("Unable to load JSON provider: " + providerClass, ex);
+        }
     }
 }

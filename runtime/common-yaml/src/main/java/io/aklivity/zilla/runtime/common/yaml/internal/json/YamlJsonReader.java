@@ -152,7 +152,7 @@ public final class YamlJsonReader implements JsonReader
     {
         if (provider == null)
         {
-            provider = JsonProvider.provider();
+            provider = YamlJsonProvider.delegateProvider();
         }
         return provider;
     }
