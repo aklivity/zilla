@@ -1691,7 +1691,7 @@ public final class McpClientFactory implements McpStreamFactory
             String elicitationId,
             String url,
             String message,
-            String requestId)
+            String correlationId)
         {
         }
 
@@ -2163,7 +2163,7 @@ public final class McpClientFactory implements McpStreamFactory
         String remoteSessionId;
         String negotiatedVersion;
         private int nextRequestId = 2;
-        private String elicitRequestId;
+        private String elicitCorrelationId;
         private long reauthTraceId;
         private long reauthAuthorization;
         private long keepaliveId = Signaler.NO_CANCEL_ID;
@@ -2424,16 +2424,16 @@ public final class McpClientFactory implements McpStreamFactory
             String elicitationId,
             String url,
             String message,
-            String requestId)
+            String correlationId)
         {
-            final boolean passthrough = binding.guard == null && requestId != null;
+            final boolean passthrough = binding.guard == null && correlationId != null;
             final McpChallengeExFW.Builder builder = mcpChallengeExRW
                 .wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(mcpTypeId);
             final McpChallengeExFW challengeEx;
             if (passthrough)
             {
-                elicitRequestId = requestId;
+                elicitCorrelationId = correlationId;
                 challengeEx = builder
                     .elicitCreate(b ->
                     {
@@ -2442,7 +2442,7 @@ public final class McpClientFactory implements McpStreamFactory
                         {
                             b.message(message);
                         }
-                        b.requestId(requestId);
+                        b.correlationId(correlationId);
                     })
                     .build();
             }
@@ -2463,7 +2463,7 @@ public final class McpClientFactory implements McpStreamFactory
             String elicitationId,
             String status)
         {
-            final String resolvedId = elicitRequestId != null ? elicitationId : id;
+            final String resolvedId = elicitCorrelationId != null ? elicitationId : id;
             final McpElicitStatus resolvedStatus = resolveElicitStatus(status);
             final McpFlushExFW flushEx = mcpFlushExRW
                 .wrap(extBuffer, 0, extBuffer.capacity())
@@ -2472,7 +2472,7 @@ public final class McpClientFactory implements McpStreamFactory
                 .build();
             doAppFlush(traceId, authorization, flushEx);
 
-            elicitRequestId = null;
+            elicitCorrelationId = null;
         }
 
         @Override
@@ -2497,9 +2497,9 @@ public final class McpClientFactory implements McpStreamFactory
             if (flushEx.kind() == McpFlushExFW.KIND_ELICIT_RESPONSE)
             {
                 final McpElicitResponseFlushExFW elicitResponse = flushEx.elicitResponse();
-                final String requestId = elicitResponse.requestId().asString();
+                final String correlationId = elicitResponse.correlationId().asString();
                 final String action = elicitResponse.action().get().name().toLowerCase();
-                new HttpElicitResponse(this, requestId, action).doEncodeRequestBegin(flush.traceId(), flush.authorization());
+                new HttpElicitResponse(this, correlationId, action).doEncodeRequestBegin(flush.traceId(), flush.authorization());
                 return;
             }
 
@@ -2736,7 +2736,7 @@ public final class McpClientFactory implements McpStreamFactory
         int paramsDepth;
 
         private boolean pendingAuth;
-        private String elicitRequestId;
+        private String elicitCorrelationId;
         private byte[] bufferedBody;
         private int bufferedBodyLength;
         private long elicitTraceId;
@@ -2969,10 +2969,10 @@ public final class McpClientFactory implements McpStreamFactory
             long authorization,
             McpElicitResponseFlushExFW elicitResponse)
         {
-            final String requestId = elicitResponse.requestId().asString();
+            final String correlationId = elicitResponse.correlationId().asString();
             final String action = elicitResponse.action().get().name().toLowerCase();
 
-            new HttpElicitResponse(this, requestId, action).doEncodeRequestBegin(traceId, authorization);
+            new HttpElicitResponse(this, correlationId, action).doEncodeRequestBegin(traceId, authorization);
         }
 
         @Override
@@ -3255,16 +3255,16 @@ public final class McpClientFactory implements McpStreamFactory
             String elicitationId,
             String url,
             String message,
-            String requestId)
+            String correlationId)
         {
-            final boolean passthrough = session.binding.guard == null && requestId != null;
+            final boolean passthrough = session.binding.guard == null && correlationId != null;
             final McpChallengeExFW.Builder builder = mcpChallengeExRW
                 .wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(mcpTypeId);
             final McpChallengeExFW challengeEx;
             if (passthrough)
             {
-                elicitRequestId = requestId;
+                elicitCorrelationId = correlationId;
                 challengeEx = builder
                     .elicitCreate(b ->
                     {
@@ -3273,7 +3273,7 @@ public final class McpClientFactory implements McpStreamFactory
                         {
                             b.message(message);
                         }
-                        b.requestId(requestId);
+                        b.correlationId(correlationId);
                     })
                     .build();
             }
@@ -3294,7 +3294,7 @@ public final class McpClientFactory implements McpStreamFactory
             String elicitationId,
             String status)
         {
-            final String resolvedId = elicitRequestId != null ? elicitationId : id;
+            final String resolvedId = elicitCorrelationId != null ? elicitationId : id;
             final McpElicitStatus resolvedStatus = resolveElicitStatus(status);
             final McpFlushExFW flushEx = mcpFlushExRW
                 .wrap(extBuffer, 0, extBuffer.capacity())
@@ -3303,7 +3303,7 @@ public final class McpClientFactory implements McpStreamFactory
                 .build();
             doAppFlush(traceId, authorization, flushEx);
 
-            elicitRequestId = null;
+            elicitCorrelationId = null;
         }
 
         @Override

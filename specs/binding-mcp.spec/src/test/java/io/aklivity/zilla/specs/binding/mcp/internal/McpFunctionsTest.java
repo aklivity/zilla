@@ -1000,7 +1000,7 @@ public class McpFunctionsTest
     }
 
     @Test
-    public void shouldGenerateElicitCreateChallengeExWithRequestId()
+    public void shouldGenerateElicitCreateChallengeExWithCorrelationId()
     {
         byte[] bytes = McpFunctions.challengeEx()
             .typeId(0)
@@ -1008,7 +1008,7 @@ public class McpFunctionsTest
                 .id("elicit-1")
                 .url("https://server.example.com/authorize?state=7f3a9b1c")
                 .message("Open the link to authorize access.")
-                .requestId("3")
+                .correlationId("3")
                 .build()
             .build();
 
@@ -1016,7 +1016,7 @@ public class McpFunctionsTest
     }
 
     @Test
-    public void shouldMatchElicitCreateChallengeExWithRequestId() throws Exception
+    public void shouldMatchElicitCreateChallengeExWithCorrelationId() throws Exception
     {
         BytesMatcher matcher = McpFunctions.matchChallengeEx()
             .typeId(0)
@@ -1024,7 +1024,7 @@ public class McpFunctionsTest
                 .id("elicit-1")
                 .url("https://server.example.com/authorize?state=7f3a9b1c")
                 .message("Open the link to authorize access.")
-                .requestId("3")
+                .correlationId("3")
                 .build()
             .build();
 
@@ -1037,7 +1037,7 @@ public class McpFunctionsTest
                 .id("elicit-1")
                 .url("https://server.example.com/authorize?state=7f3a9b1c")
                 .message("Open the link to authorize access.")
-                .requestId("3"))
+                .correlationId("3"))
             .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -1068,12 +1068,12 @@ public class McpFunctionsTest
     }
 
     @Test(expected = Exception.class)
-    public void shouldFailWhenElicitCreateChallengeRequestIdMismatch() throws Exception
+    public void shouldFailWhenElicitCreateChallengeCorrelationIdMismatch() throws Exception
     {
         BytesMatcher matcher = McpFunctions.matchChallengeEx()
             .typeId(0)
             .elicitCreate()
-                .requestId("3")
+                .correlationId("3")
                 .build()
             .build();
 
@@ -1085,7 +1085,7 @@ public class McpFunctionsTest
             .elicitCreate(b -> b
                 .id("elicit-1")
                 .url("https://server.example.com/authorize?state=7f3a9b1c")
-                .requestId("4"))
+                .correlationId("4"))
             .build();
 
         matcher.match(byteBuf);
@@ -1097,7 +1097,7 @@ public class McpFunctionsTest
         byte[] bytes = McpFunctions.flushEx()
             .typeId(0)
             .elicitResponse()
-                .requestId("3")
+                .correlationId("3")
                 .action("ACCEPT")
                 .build()
             .build();
@@ -1111,7 +1111,7 @@ public class McpFunctionsTest
         BytesMatcher matcher = McpFunctions.matchFlushEx()
             .typeId(0)
             .elicitResponse()
-                .requestId("3")
+                .correlationId("3")
                 .action("ACCEPT")
                 .build()
             .build();
@@ -1122,7 +1122,7 @@ public class McpFunctionsTest
             .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .elicitResponse(b -> b
-                .requestId("3")
+                .correlationId("3")
                 .action(a -> a.set(McpElicitAction.ACCEPT)))
             .build();
 
@@ -1144,7 +1144,7 @@ public class McpFunctionsTest
             .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .elicitResponse(b -> b
-                .requestId("3")
+                .correlationId("3")
                 .action(a -> a.set(McpElicitAction.ACCEPT)))
             .build();
 
@@ -1152,12 +1152,12 @@ public class McpFunctionsTest
     }
 
     @Test(expected = Exception.class)
-    public void shouldFailWhenElicitResponseRequestIdMismatch() throws Exception
+    public void shouldFailWhenElicitResponseCorrelationIdMismatch() throws Exception
     {
         BytesMatcher matcher = McpFunctions.matchFlushEx()
             .typeId(0)
             .elicitResponse()
-                .requestId("3")
+                .correlationId("3")
                 .action("ACCEPT")
                 .build()
             .build();
@@ -1168,7 +1168,7 @@ public class McpFunctionsTest
             .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .elicitResponse(b -> b
-                .requestId("4")
+                .correlationId("4")
                 .action(a -> a.set(McpElicitAction.ACCEPT)))
             .build();
 
@@ -1181,7 +1181,7 @@ public class McpFunctionsTest
         BytesMatcher matcher = McpFunctions.matchFlushEx()
             .typeId(0)
             .elicitResponse()
-                .requestId("3")
+                .correlationId("3")
                 .action("ACCEPT")
                 .build()
             .build();
@@ -1192,7 +1192,7 @@ public class McpFunctionsTest
             .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .elicitResponse(b -> b
-                .requestId("3")
+                .correlationId("3")
                 .action(a -> a.set(McpElicitAction.DECLINE)))
             .build();
 

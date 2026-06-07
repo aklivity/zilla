@@ -209,7 +209,7 @@ scope mcp
             string16 url;
             string8 context = null;
             string16 message = null;
-            string16 requestId = null;
+            string16 correlationId = null;
         }
 
         struct McpElicitCallbackFlushEx
@@ -226,7 +226,7 @@ scope mcp
 
         struct McpElicitResponseFlushEx
         {
-            string16 requestId;
+            string16 correlationId;
             McpElicitAction action;
         }
     }
