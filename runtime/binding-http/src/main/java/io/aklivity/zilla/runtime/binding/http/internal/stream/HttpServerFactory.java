@@ -1900,7 +1900,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                 if (exchange != null)
                 {
-                    exchange.onNetworkEnd(traceId);
+                    exchange.onNetworkEnd(traceId, authorization);
                 }
                 else
                 {
@@ -2982,11 +2982,18 @@ public final class HttpServerFactory implements HttpStreamFactory
             }
 
             private void onNetworkEnd(
-                long traceId)
+                long traceId,
+                long authorization)
             {
                 if (requestState != HttpExchangeState.CLOSED)
                 {
                     doRequestAbort(traceId, EMPTY_OCTETS);
+                }
+
+                if (responseState == HttpExchangeState.OPEN)
+                {
+                    doResponseReset(traceId);
+                    doNetworkAbort(traceId, authorization);
                 }
             }
 
