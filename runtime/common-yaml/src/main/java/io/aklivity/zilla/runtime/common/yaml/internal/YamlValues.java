@@ -14,10 +14,6 @@
  */
 package io.aklivity.zilla.runtime.common.yaml.internal;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
 import io.aklivity.zilla.runtime.common.yaml.YamlArray;
 import io.aklivity.zilla.runtime.common.yaml.YamlObject;
 import io.aklivity.zilla.runtime.common.yaml.YamlScalar;
@@ -67,9 +63,9 @@ final class YamlValues
         YamlArray value)
     {
         YamlArrayNode array = new YamlArrayNode(1, 1, 0);
-        for (YamlValue item : value.values())
+        for (int index = 0; index < value.size(); index++)
         {
-            array.add(node(item));
+            array.add(node(value.get(index)));
         }
         return array;
     }
@@ -221,14 +217,9 @@ final class YamlValues
         }
 
         @Override
-        public List<YamlValue> values()
+        public int size()
         {
-            List<YamlValue> values = new ArrayList<>(array.values.size());
-            for (YamlNode value : array.values)
-            {
-                values.add(wrap(value));
-            }
-            return Collections.unmodifiableList(values);
+            return array.values.size();
         }
 
         @Override
@@ -236,6 +227,69 @@ final class YamlValues
             int index)
         {
             return wrap(array.values.get(index));
+        }
+
+        @Override
+        public YamlObject getObject(
+            int index)
+        {
+            return get(index).asYamlObject();
+        }
+
+        @Override
+        public YamlArray getArray(
+            int index)
+        {
+            return get(index).asYamlArray();
+        }
+
+        @Override
+        public YamlScalar getScalar(
+            int index)
+        {
+            return get(index).asYamlScalar();
+        }
+
+        @Override
+        public String getString(
+            int index)
+        {
+            return getScalar(index).getString();
+        }
+
+        @Override
+        public int getInt(
+            int index)
+        {
+            return Integer.parseInt(getString(index));
+        }
+
+        @Override
+        public long getLong(
+            int index)
+        {
+            return Long.parseLong(getString(index));
+        }
+
+        @Override
+        public double getDouble(
+            int index)
+        {
+            return Double.parseDouble(getString(index));
+        }
+
+        @Override
+        public boolean getBoolean(
+            int index)
+        {
+            return Boolean.parseBoolean(getString(index));
+        }
+
+        @Override
+        public boolean isNull(
+            int index)
+        {
+            return get(index).getValueType() == ValueType.NULL;
         }
     }
 

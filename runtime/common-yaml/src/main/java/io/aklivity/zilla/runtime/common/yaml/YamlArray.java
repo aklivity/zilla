@@ -14,24 +14,37 @@
  */
 package io.aklivity.zilla.runtime.common.yaml;
 
-import java.util.Iterator;
-import java.util.List;
-
-public interface YamlArray extends YamlStructure, Iterable<YamlValue>
+public interface YamlArray extends YamlStructure
 {
-    List<YamlValue> values();
+    int size();
 
     YamlValue get(
         int index);
 
-    default int size()
-    {
-        return values().size();
-    }
+    YamlObject getObject(
+        int index);
 
-    @Override
-    default Iterator<YamlValue> iterator()
-    {
-        return values().iterator();
-    }
+    YamlArray getArray(
+        int index);
+
+    YamlScalar getScalar(
+        int index);
+
+    String getString(
+        int index);
+
+    int getInt(
+        int index);
+
+    long getLong(
+        int index);
+
+    double getDouble(
+        int index);
+
+    boolean getBoolean(
+        int index);
+
+    boolean isNull(
+        int index);
 }

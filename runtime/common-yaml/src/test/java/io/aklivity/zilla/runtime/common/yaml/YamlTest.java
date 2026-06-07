@@ -90,9 +90,10 @@ class YamlTest
         assertSame(array, array.asYamlArray());
         assertEquals(YamlValue.ValueType.ARRAY, array.getValueType());
         assertEquals(2, array.size());
-        assertEquals("one", array.iterator().next().asYamlScalar().getString());
-        assertEquals(YamlScalarType.NUMBER, array.get(1).asYamlScalar().getType());
-        assertEquals("2", array.get(1).asYamlScalar().getString());
+        assertEquals("one", array.getString(0));
+        assertEquals(YamlScalarType.NUMBER, array.getScalar(1).getType());
+        assertEquals("2", array.getScalar(1).getString());
+        assertEquals(2, array.getInt(1));
 
         YamlScalar enabled = object.getScalar("enabled");
         assertSame(enabled, enabled.asYamlScalar());
@@ -114,6 +115,8 @@ class YamlTest
         YamlArray array = Yaml.createReader(new ByteArrayInputStream("- false\n- null\n".getBytes(UTF_8))).readArray();
         assertEquals(YamlValue.ValueType.FALSE, array.get(0).getValueType());
         assertEquals(YamlValue.ValueType.NULL, array.get(1).getValueType());
+        assertFalse(array.getBoolean(0));
+        assertTrue(array.isNull(1));
 
         YamlValue scalar = Yaml.createParser(new ByteArrayInputStream("42\n".getBytes(UTF_8))).parse();
         assertEquals(YamlValue.ValueType.NUMBER, scalar.getValueType());
