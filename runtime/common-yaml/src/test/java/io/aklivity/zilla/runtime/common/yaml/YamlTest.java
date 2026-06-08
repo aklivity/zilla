@@ -366,6 +366,77 @@ class YamlTest
     }
 
     @Test
+    void shouldRoundTripNativeFlowNonScalarKeys()
+    {
+        String yaml = """
+            {? [a, b]: value, ? {name: test}: {nested: true}}
+            """;
+        YamlObject object = Yaml.createReader(new StringReader(yaml)).readObject();
+        StringWriter generated = new StringWriter();
+
+        Yaml.createWriter(generated).writeObject(object);
+
+        assertEquals(yaml, generated.toString());
+
+        YamlParser parser = Yaml.createParser(new StringReader(yaml));
+        assertEquals(YamlEvent.EventType.START_OBJECT, parser.next().getEventType());
+        YamlEvent key = parser.next();
+        assertEquals(YamlEvent.EventType.KEY_NAME, key.getEventType());
+        assertNull(key.getString());
+        assertEquals(YamlValue.ValueType.ARRAY, key.getValue().getValueType());
+    }
+
+    @Test
+    void shouldRoundTripNativeDecoratedMappingKeys()
+    {
+        String yaml = """
+            %TAG !e! tag:example.com,2026:
+            ---
+            ? &key !e!name "name"
+            : value
+            ? *key
+            : alias value
+            ? &items !e!items [a, b]
+            : tagged key
+            """;
+        YamlObject object = Yaml.createReader(new StringReader(yaml)).readObject();
+        StringWriter generated = new StringWriter();
+
+        Yaml.createWriter(generated).writeObject(object);
+
+        assertEquals(yaml, generated.toString());
+
+        YamlReaderFactory normalizedReader = Yaml.createReaderFactory(Map.of(YamlConfig.PRESERVE_SOURCE, false));
+        YamlObject normalized = normalizedReader.createReader(new StringReader(yaml)).readObject();
+        StringWriter normalizedOutput = new StringWriter();
+
+        Yaml.createWriter(normalizedOutput).writeObject(normalized);
+
+        assertEquals("""
+            ? &key !<tag:example.com,2026:name> "name"
+            : value
+            ? *key
+            : "alias value"
+            ? &items !<tag:example.com,2026:items> [a, b]
+            : "tagged key"
+            """, normalizedOutput.toString());
+    }
+
+    @Test
+    void shouldRejectUnknownTagHandles()
+    {
+        assertThrows(RuntimeException.class, () -> Yaml.createReader(new StringReader("value: !missing!name test\n"))
+            .readValue());
+        assertThrows(RuntimeException.class, () -> Yaml.createReader(new StringReader("""
+            %TAG !e! tag:example.com,2026:
+            ---
+            value: !e!name test
+            ---
+            value: !e!name test
+            """)).readStream());
+    }
+
+    @Test
     void shouldReadAndWriteNativeDocumentStream()
     {
         String yaml = """

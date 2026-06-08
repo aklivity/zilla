@@ -115,10 +115,23 @@ public final class YamlEmitter
         for (YamlEntry entry : object.entries)
         {
             writeLeadingComments(entry.value, writer, indent);
-            writeIndent(writer, indent);
-            writer.write(formatKey(entry.name));
-            writer.write(':');
-            writeObjectValue(entry.value, writer, indent);
+            if (entry.key != null)
+            {
+                writeIndent(writer, indent);
+                writer.write("? ");
+                writer.write(formatNode(entry.key));
+                writer.write('\n');
+                writeIndent(writer, indent);
+                writer.write(':');
+                writeObjectValue(entry.value, writer, indent);
+            }
+            else
+            {
+                writeIndent(writer, indent);
+                writer.write(formatKey(entry.name));
+                writer.write(':');
+                writeObjectValue(entry.value, writer, indent);
+            }
         }
     }
 
@@ -249,46 +262,73 @@ public final class YamlEmitter
         }
 
         YamlEntry first = object.entries.get(0);
-        writeIndent(writer, indent);
-        writer.write("- ");
-        writer.write(formatKey(first.name));
-        writer.write(':');
-        if (first.value.alias != null)
+        if (first.key != null)
         {
-            writer.write(' ');
-            writer.write(formatAlias(first.value));
-            writeLineComment(first.value, writer);
+            writeIndent(writer, indent);
+            writer.write("- ");
+            writer.write("? ");
+            writer.write(formatNode(first.key));
             writer.write('\n');
-        }
-        else if (first.value instanceof YamlScalarNode scalar)
-        {
-            writeScalar(scalar, writer, indent + 1, true);
-        }
-        else if (isEmptyObject(first.value))
-        {
-            writer.write(" {}");
-            writeLineComment(first.value, writer);
-            writer.write('\n');
-        }
-        else if (isEmptyArray(first.value))
-        {
-            writer.write(" []");
-            writeLineComment(first.value, writer);
-            writer.write('\n');
+            writeIndent(writer, indent + 1);
+            writer.write(':');
+            writeObjectValue(first.value, writer, indent + 1);
         }
         else
         {
-            writer.write('\n');
-            writeNode(first.value, writer, indent + 2);
+            writeIndent(writer, indent);
+            writer.write("- ");
+            writer.write(formatKey(first.name));
+            writer.write(':');
+            if (first.value.alias != null)
+            {
+                writer.write(' ');
+                writer.write(formatAlias(first.value));
+                writeLineComment(first.value, writer);
+                writer.write('\n');
+            }
+            else if (first.value instanceof YamlScalarNode scalar)
+            {
+                writeScalar(scalar, writer, indent + 1, true);
+            }
+            else if (isEmptyObject(first.value))
+            {
+                writer.write(" {}");
+                writeLineComment(first.value, writer);
+                writer.write('\n');
+            }
+            else if (isEmptyArray(first.value))
+            {
+                writer.write(" []");
+                writeLineComment(first.value, writer);
+                writer.write('\n');
+            }
+            else
+            {
+                writer.write('\n');
+                writeNode(first.value, writer, indent + 2);
+            }
         }
 
         for (int i = 1; i < object.entries.size(); i++)
         {
             YamlEntry entry = object.entries.get(i);
-            writeIndent(writer, indent + 1);
-            writer.write(formatKey(entry.name));
-            writer.write(':');
-            writeObjectValue(entry.value, writer, indent + 1);
+            if (entry.key != null)
+            {
+                writeIndent(writer, indent + 1);
+                writer.write("? ");
+                writer.write(formatNode(entry.key));
+                writer.write('\n');
+                writeIndent(writer, indent + 1);
+                writer.write(':');
+                writeObjectValue(entry.value, writer, indent + 1);
+            }
+            else
+            {
+                writeIndent(writer, indent + 1);
+                writer.write(formatKey(entry.name));
+                writer.write(':');
+                writeObjectValue(entry.value, writer, indent + 1);
+            }
         }
     }
 

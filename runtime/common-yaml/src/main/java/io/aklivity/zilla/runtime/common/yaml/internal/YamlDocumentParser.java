@@ -317,7 +317,9 @@ public final class YamlDocumentParser
         }
         else
         {
-            key = parseKey(keyText, line);
+            KeySpec keySpec = parseKeySpec(keyText, line);
+            key = keySpec.name;
+            keyNode = keySpec.key;
         }
         index++;
         skipIgnorable();
@@ -352,9 +354,15 @@ public final class YamlDocumentParser
 
         String keyText = content.substring(0, colonAt).trim();
         String valueText = content.substring(colonAt + 1).trim();
-        String key = parseKey(keyText, line);
-
-        addMappingEntry(object, key, valueText, indent, line);
+        KeySpec key = parseKeySpec(keyText, line);
+        if (key.key != null)
+        {
+            addMappingEntry(object, key.key, valueText, indent, line);
+        }
+        else
+        {
+            addMappingEntry(object, key.name, valueText, indent, line);
+        }
     }
 
     private void addMappingEntry(
@@ -688,7 +696,7 @@ public final class YamlDocumentParser
         return (YamlScalarNode) applyTag(value, tag, text, line);
     }
 
-    private String parseKey(
+    private KeySpec parseKeySpec(
         String text,
         Line line)
     {
@@ -698,18 +706,24 @@ public final class YamlDocumentParser
         }
         if (text.startsWith("\"") || text.startsWith("'"))
         {
-            return unquote(text, line);
+            return new KeySpec(unquote(text, line), null);
         }
         if (text.startsWith("{") || text.startsWith("["))
         {
             throw error("Non-scalar YAML mapping keys are not supported", line);
         }
         ValueSpec spec = ValueSpec.parse(text, line, tagHandles);
+        validateSpec(spec, line);
         if (spec.alias != null || spec.anchor != null || spec.tag != null)
         {
-            throw error("Decorated YAML mapping keys are not supported", line);
+            YamlNode key = spec.alias != null ? resolveAlias(spec.alias, line) :
+                spec.value.startsWith("{") || spec.value.startsWith("[") ?
+                    applyTag(new FlowParser(spec.value, line, anchors, tagHandles, config).parse(), spec.tag, spec.value, line) :
+                    parseScalar(spec.value, spec.tag, line);
+            storeAnchor(spec.anchor, key, line);
+            return new KeySpec(null, key);
         }
-        return spec.value;
+        return new KeySpec(spec.value, null);
     }
 
     private void merge(
@@ -1626,7 +1640,25 @@ public final class YamlDocumentParser
             {
                 return tagHandles.get(handle) + tag.substring(handle.length());
             }
+            if (tag.indexOf('!', 1) != -1)
+            {
+                throw error("Unknown YAML tag handle", line);
+            }
             return tag;
+        }
+    }
+
+    private static final class KeySpec
+    {
+        final String name;
+        final YamlNode key;
+
+        private KeySpec(
+            String name,
+            YamlNode key)
+        {
+            this.name = name;
+            this.key = key;
         }
     }
 
@@ -1771,14 +1803,14 @@ public final class YamlDocumentParser
 
             do
             {
-                String key = parseFlowKey();
+                KeySpec key = parseFlowKey();
                 skipWhitespaceAndComments();
                 if (!consume(':'))
                 {
                     throw error("Expected ':' in flow mapping", line);
                 }
                 YamlNode value = parseValue();
-                if ("<<".equals(key))
+                if ("<<".equals(key.name))
                 {
                     if (!config.mergeKeys())
                     {
@@ -1790,7 +1822,9 @@ public final class YamlDocumentParser
                 }
                 else
                 {
-                    object.add(new YamlEntry(key, value, line.line, line.column + cursor, line.offset + cursor));
+                    object.add(key.key != null ?
+                        new YamlEntry(key.key, value, line.line, line.column + cursor, line.offset + cursor) :
+                        new YamlEntry(key.name, value, line.line, line.column + cursor, line.offset + cursor));
                 }
                 skipWhitespaceAndComments();
             }
@@ -1828,12 +1862,20 @@ public final class YamlDocumentParser
             return array;
         }
 
-        private String parseFlowKey()
+        private KeySpec parseFlowKey()
         {
             skipWhitespaceAndComments();
+            if (consume('?'))
+            {
+                if (!config.nonScalarKeys())
+                {
+                    throw error("YAML non-scalar mapping keys are disabled", line);
+                }
+                return new KeySpec(null, parseValue());
+            }
             if (cursor < text.length() && (text.charAt(cursor) == '\'' || text.charAt(cursor) == '"'))
             {
-                return parseQuotedScalar().value;
+                return new KeySpec(parseQuotedScalar().value, null);
             }
             if (cursor < text.length() && (text.charAt(cursor) == '{' || text.charAt(cursor) == '['))
             {
@@ -1841,15 +1883,71 @@ public final class YamlDocumentParser
                 {
                     throw error("YAML non-scalar mapping keys are disabled", line);
                 }
-                throw error("Non-scalar YAML mapping keys are not supported", line);
+                return new KeySpec(null, parseValue());
             }
 
+            int mark = cursor;
+            ValueSpec spec = parseFlowDecorators();
+            new YamlDocumentParser(new Document(List.of(), new YamlLocation(1, 1, 0), "",
+                DocumentScanner.defaultTagHandles(), config))
+                .validateSpec(spec, line);
+            if (spec.alias != null)
+            {
+                return new KeySpec(null, resolve(spec.alias));
+            }
+            if (spec.anchor != null || spec.tag != null)
+            {
+                YamlNode key = switch (text.charAt(cursor))
+                {
+                case '\'', '"' -> parseQuotedScalar();
+                case '{', '[' -> parseValue();
+                default -> parseBareKeyScalar();
+                };
+                key = applyFlowTag(key, spec.tag, line, config);
+                if (spec.anchor != null)
+                {
+                    if (!config.anchors())
+                    {
+                        throw error("YAML anchors are disabled", line);
+                    }
+                    key.anchor = spec.anchor;
+                    if (anchors.put(spec.anchor, copy(key)) != null)
+                    {
+                        throw error("Duplicate YAML anchor", line);
+                    }
+                }
+                return new KeySpec(null, key);
+            }
+
+            cursor = mark;
+            return new KeySpec(parseBareFlowKey(), null);
+        }
+
+        private String parseBareFlowKey()
+        {
             int start = cursor;
             while (cursor < text.length() && text.charAt(cursor) != ':')
             {
                 cursor++;
             }
             return text.substring(start, cursor).trim();
+        }
+
+        private YamlScalarNode parseBareKeyScalar()
+        {
+            int start = cursor;
+            while (cursor < text.length())
+            {
+                char c = text.charAt(cursor);
+                if (c == ':' || c == ',' || c == ']' || c == '}' || c == '#')
+                {
+                    break;
+                }
+                cursor++;
+            }
+            return new YamlDocumentParser(new Document(List.of(), new YamlLocation(1, 1, text.length()), "",
+                DocumentScanner.defaultTagHandles(), config))
+                .parseScalar(text.substring(start, cursor).trim(), null, line);
         }
 
         private YamlScalarNode parseQuotedScalar()

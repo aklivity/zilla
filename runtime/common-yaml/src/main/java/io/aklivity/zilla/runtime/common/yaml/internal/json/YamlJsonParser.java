@@ -75,6 +75,7 @@ public final class YamlJsonParser implements JsonParser
         try
         {
             YamlDocumentParser.Result result = YamlDocumentParser.parse(text);
+            rejectJsonUnsupported(result.node);
             this.stack = new ArrayDeque<>();
             stack.push(new Frame(result.node));
             this.end = new YamlJsonLocation(result.end);
@@ -386,6 +387,31 @@ public final class YamlJsonParser implements JsonParser
         {
             throw new JsonParsingException("Unsupported YAML tag",
                 new YamlJsonLocation(new YamlLocation(node.line, node.column, node.offset)));
+        }
+    }
+
+    private static void rejectJsonUnsupported(
+        YamlNode node)
+    {
+        rejectCustomTag(node);
+        if (node instanceof YamlObjectNode object)
+        {
+            for (YamlEntry entry : object.entries)
+            {
+                if (entry.key != null)
+                {
+                    throw new JsonParsingException("Non-scalar YAML mapping keys are not supported",
+                        new YamlJsonLocation(new YamlLocation(entry.line, entry.column, entry.offset)));
+                }
+                rejectJsonUnsupported(entry.value);
+            }
+        }
+        else if (node instanceof YamlArrayNode array)
+        {
+            for (YamlNode value : array.values)
+            {
+                rejectJsonUnsupported(value);
+            }
         }
     }
 
