@@ -24,6 +24,7 @@ accepted
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .lifecycle()
+                              .authCallback("http://localhost:8080/mcp/auth/callback")
                               .build()
                           .build()}
 
@@ -51,8 +52,9 @@ read zilla:begin.ext ${mcp:matchBeginEx()
 read advise zilla:challenge ${mcp:challengeEx()
                                   .typeId(zilla:id("mcp"))
                                   .elicitCreate()
-                                      .id("1")
-                                      .url("https://server.example.com/authorize?state=7f3a9b1c&redirect_uri=%s".formatted(http:encodeQuery("https://replace.me/callback")))
+                                      .id("elicit-1")
+                                      .url("https://server.example.com/authorize?state=7f3a9b1c&redirect_uri=%s".formatted(http:encodeQuery("http://localhost:8080/mcp/auth/callback")))
+                                      .correlationId("3")
                                       .build()
                                   .build()}
 
@@ -68,8 +70,9 @@ read  '{'
 
 read advised zilla:flush ${mcp:matchFlushEx()
                                .typeId(zilla:id("mcp"))
-                               .elicitCallback()
-                                   .url("http://localhost:8080/mcp/auth/callback?error=access_denied&state=7f3a9b1c")
+                               .elicitResponse()
+                                   .correlationId("3")
+                                   .action("DECLINE")
                                    .build()
                                .build()}
 
@@ -78,8 +81,7 @@ write flush
 write advise zilla:flush ${mcp:flushEx()
                               .typeId(zilla:id("mcp"))
                               .elicitComplete()
-                                  .id("1")
-                                  .status("DECLINED")
+                                  .id("elicit-1")
                                   .build()
                               .build()}
 

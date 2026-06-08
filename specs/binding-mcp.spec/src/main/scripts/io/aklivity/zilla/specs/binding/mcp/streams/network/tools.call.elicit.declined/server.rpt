@@ -114,32 +114,18 @@ write '\n'
 write flush
 write notify ELICIT_CREATED
 
-write 'id: 2:1\n'
 write 'data: {'
         '"jsonrpc":"2.0",'
-        '"method":"elicitation/complete",'
+        '"method":"notifications/elicitation/complete",'
         '"params":'
         '{'
-          '"elicitationId":"elicit-1",'
-          '"status":"declined"'
+          '"elicitationId":"elicit-1"'
         '}'
       '}\n'
 write '\n'
 write flush
 
-write 'data: {'
-        '"jsonrpc":"2.0",'
-        '"id":2,'
-        '"error":'
-        '{'
-          '"code":-32000,'
-          '"message":"Authorization declined"'
-        '}'
-      '}\n'
-write '\n'
-write flush
-
-write close
+write abort
 
 accepted
 

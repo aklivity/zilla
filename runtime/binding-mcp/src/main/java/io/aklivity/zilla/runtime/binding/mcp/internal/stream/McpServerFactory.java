@@ -22,7 +22,6 @@ import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static java.lang.Integer.toUnsignedLong;
 
 import java.net.URLDecoder;
-import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
@@ -69,7 +68,6 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpChallengeE
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpElicitAction;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpElicitCompleteFlushExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpElicitCreateChallengeExFW;
-import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpElicitStatus;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpFlushExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpProgressFlushExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpResetExFW;
@@ -135,8 +133,6 @@ public final class McpServerFactory implements McpStreamFactory
     private static final String SSE_DATA_PREFIX = "data: ";
 
     private static final Pattern STATE_PARAM_PATTERN = Pattern.compile("(?<=[?&])state=([^&]*)");
-    private static final Pattern REDIRECT_URI_PARAM_PATTERN = Pattern.compile("(?<=[?&])redirect_uri=[^&]*");
-    private static final String REDIRECT_URI_PLACEHOLDER = "replace.me";
     private static final String JSON_RPC_RESULT_PREFIX = "{\"jsonrpc\":\"2.0\",\"id\":";
     private static final String JSON_RPC_RESULT_MIDDLE = ",\"result\":";
     private static final String JSON_RPC_ERROR_PREFIX = "{\"jsonrpc\":\"2.0\",\"id\":";
@@ -205,7 +201,6 @@ public final class McpServerFactory implements McpStreamFactory
     private final McpFlushExFW.Builder mcpFlushExRW = new McpFlushExFW.Builder();
 
     private final Supplier<String> supplySessionId;
-    private final Supplier<String> supplyElicitationId;
     private final String serverName;
     private final String serverVersion;
     private final boolean altSvcEnabled;
@@ -272,7 +267,6 @@ public final class McpServerFactory implements McpStreamFactory
     {
         this.config = config;
         this.supplySessionId = config.sessionIdSupplier();
-        this.supplyElicitationId = config.elicitationIdSupplier();
         this.serverName = config.serverName();
         this.serverVersion = config.serverVersion();
         this.altSvcEnabled = config.altSvcEnabled();
@@ -2428,26 +2422,6 @@ public final class McpServerFactory implements McpStreamFactory
         private void doEncodeElicitCreateDataEvent(
             long traceId,
             long authorization,
-            String elicitId,
-            String elicitationId,
-            String url)
-        {
-            int codecLimit = encodeSseElicitIdLine(codecBuffer, 0, decodedId, elicitId);
-            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, SSE_DATA_PREFIX);
-            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit,
-                "{\"jsonrpc\":\"2.0\",\"method\":\"elicitation/create\",\"params\":{\"mode\":\"url\",\"elicitationId\":\"");
-            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, elicitationId);
-            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, "\",\"url\":\"");
-            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, url);
-            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, "\"}}");
-            codecBuffer.putBytes(codecLimit, SSE_MESSAGE_TERMINATOR_BYTES);
-            codecLimit += SSE_MESSAGE_TERMINATOR_BYTES.length;
-            doNetData(traceId, authorization, codecBuffer, 0, codecLimit);
-        }
-
-        private void doEncodeElicitCreateDataEvent(
-            long traceId,
-            long authorization,
             String elicitSeq,
             String correlationId,
             String elicitationId,
@@ -2456,15 +2430,26 @@ public final class McpServerFactory implements McpStreamFactory
         {
             int codecLimit = encodeSseElicitIdLine(codecBuffer, 0, decodedId, elicitSeq);
             codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, SSE_DATA_PREFIX);
-            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, "{\"jsonrpc\":\"2.0\",\"id\":");
-            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, correlationId);
-            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit,
-                ",\"method\":\"elicitation/create\",\"params\":{\"mode\":\"url\",\"elicitationId\":\"");
+            if (correlationId != null)
+            {
+                codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, "{\"jsonrpc\":\"2.0\",\"id\":");
+                codecLimit += encodeJsonRpcId(codecBuffer, codecLimit, correlationId);
+                codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit,
+                    ",\"method\":\"elicitation/create\",\"params\":{\"mode\":\"url\",\"elicitationId\":\"");
+            }
+            else
+            {
+                codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit,
+                    "{\"jsonrpc\":\"2.0\",\"method\":\"elicitation/create\",\"params\":{\"mode\":\"url\",\"elicitationId\":\"");
+            }
             codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, elicitationId);
             codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, "\",\"url\":\"");
             codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, url);
-            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, "\",\"message\":\"");
-            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, message);
+            if (message != null)
+            {
+                codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, "\",\"message\":\"");
+                codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, message);
+            }
             codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, "\"}}");
             codecBuffer.putBytes(codecLimit, SSE_MESSAGE_TERMINATOR_BYTES);
             codecLimit += SSE_MESSAGE_TERMINATOR_BYTES.length;
@@ -2481,58 +2466,6 @@ public final class McpServerFactory implements McpStreamFactory
                 "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/elicitation/complete\",\"params\":{\"elicitationId\":\"");
             codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, elicitationId);
             codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, "\"}}");
-            codecBuffer.putBytes(codecLimit, SSE_MESSAGE_TERMINATOR_BYTES);
-            codecLimit += SSE_MESSAGE_TERMINATOR_BYTES.length;
-            doNetData(traceId, authorization, codecBuffer, 0, codecLimit);
-        }
-
-        private void doEncodeElicitCompleteDataEvent(
-            long traceId,
-            long authorization,
-            String elicitId,
-            String elicitationId,
-            McpElicitStatus status)
-        {
-            int codecLimit = encodeSseElicitIdLine(codecBuffer, 0, decodedId, elicitId);
-            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, SSE_DATA_PREFIX);
-            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit,
-                "{\"jsonrpc\":\"2.0\",\"method\":\"elicitation/complete\",\"params\":{\"elicitationId\":\"");
-            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, elicitationId);
-            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, "\",\"status\":\"");
-            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, status.name().toLowerCase());
-            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, "\"}}");
-            codecBuffer.putBytes(codecLimit, SSE_MESSAGE_TERMINATOR_BYTES);
-            codecLimit += SSE_MESSAGE_TERMINATOR_BYTES.length;
-            doNetData(traceId, authorization, codecBuffer, 0, codecLimit);
-        }
-
-        private void doEncodeElicitErrorEvent(
-            long traceId,
-            long authorization,
-            int code,
-            String message)
-        {
-            int codecLimit = codecBuffer.putStringWithoutLengthAscii(0, SSE_DATA_PREFIX);
-            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, JSON_RPC_ERROR_PREFIX);
-            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, decodedId);
-            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, JSON_RPC_ERROR_CODE);
-            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, Integer.toString(code));
-            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, JSON_RPC_ERROR_MESSAGE);
-            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, message);
-            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, JSON_RPC_ERROR_SUFFIX);
-            codecBuffer.putBytes(codecLimit, SSE_MESSAGE_TERMINATOR_BYTES);
-            codecLimit += SSE_MESSAGE_TERMINATOR_BYTES.length;
-            doNetData(traceId, authorization, codecBuffer, 0, codecLimit);
-        }
-
-        private void doEncodeElicitUrlRequiredEvent(
-            long traceId,
-            long authorization,
-            String url,
-            String elicitationId)
-        {
-            int codecLimit = codecBuffer.putStringWithoutLengthAscii(0, SSE_DATA_PREFIX);
-            codecLimit += encodeUrlRequiredError(codecLimit, url, elicitationId);
             codecBuffer.putBytes(codecLimit, SSE_MESSAGE_TERMINATOR_BYTES);
             codecLimit += SSE_MESSAGE_TERMINATOR_BYTES.length;
             doNetData(traceId, authorization, codecBuffer, 0, codecLimit);
@@ -3127,7 +3060,7 @@ public final class McpServerFactory implements McpStreamFactory
             if (resolved != null && resolved.held != null)
             {
                 final McpRequestStream held = resolved.held;
-                held.doAppFlushElicitCallback(traceId, authorization, stripElicitState(callbackURL), resolved.context);
+                held.doAppFlushElicitCallback(traceId, authorization, stripElicitState(callbackURL), resolved.correlationId);
                 held.doAppEnd(traceId, authorization);
                 held.server.doDeferredCloseInitial();
                 doNetReply200(traceId, authorization, AUTH_CALLBACK_OK_BODY);
@@ -3135,7 +3068,7 @@ public final class McpServerFactory implements McpStreamFactory
             else if (resolved != null)
             {
                 resolved.session.doAppFlushElicitCallback(traceId, authorization, stripElicitState(callbackURL),
-                    resolved.context);
+                    resolved.correlationId);
                 doNetReply200(traceId, authorization, AUTH_CALLBACK_OK_BODY);
             }
             else
@@ -3320,16 +3253,16 @@ public final class McpServerFactory implements McpStreamFactory
     {
         private final McpLifecycleStream session;
         private final McpRequestStream held;
-        private final String context;
+        private final String correlationId;
 
         private McpElicitation(
             McpLifecycleStream session,
             McpRequestStream held,
-            String context)
+            String correlationId)
         {
             this.session = session;
             this.held = held;
-            this.context = context;
+            this.correlationId = correlationId;
         }
     }
 
@@ -3567,35 +3500,25 @@ public final class McpServerFactory implements McpStreamFactory
             long authorization,
             McpElicitCreateChallengeExFW elicitCreate)
         {
+            final String elicitationId = elicitCreate.id().asString();
+            final String url = elicitCreate.url().asString();
+            final String message = elicitCreate.message().asString();
             final String correlationId = elicitCreate.correlationId().asString();
-            if (correlationId != null)
-            {
-                final String elicitationId = elicitCreate.id().asString();
-                final String url = elicitCreate.url().asString();
-                final String message = elicitCreate.message().asString();
 
-                if (sse != null)
-                {
-                    sse.doEncodeElicitCreateNotifyEvent(traceId, authorization,
-                        correlationId, elicitationId, url, message);
-                }
+            final boolean broker = isBrokerElicit(url, server.redirectURI);
+            final String emitUrl = broker
+                ? manipulateElicitUrl(url, sessionId, elicitationId)
+                : url;
+
+            if (broker)
+            {
+                elicitations.put(elicitationId, new McpElicitation(this, null, correlationId));
             }
-            else
+
+            if (sse != null)
             {
-                final String originalUrl = elicitCreate.url().asString();
-                final String context = elicitCreate.context().asString();
-                final String synthesisedElicitationId = supplyElicitationId.get();
-                final String manipulatedUrl =
-                    manipulateElicitUrl(originalUrl, sessionId, synthesisedElicitationId, server.redirectURI);
-
-                elicitations.put(synthesisedElicitationId,
-                    new McpElicitation(this, null, context));
-
-                if (sse != null)
-                {
-                    sse.doEncodeElicitCreateNotifyEvent(traceId, authorization,
-                        synthesisedElicitationId, manipulatedUrl);
-                }
+                sse.doEncodeElicitCreateNotifyEvent(traceId, authorization,
+                    correlationId, elicitationId, emitUrl, message);
             }
         }
 
@@ -3621,12 +3544,19 @@ public final class McpServerFactory implements McpStreamFactory
             long traceId,
             long authorization,
             String callbackURL,
-            String context)
+            String correlationId)
         {
             final McpFlushExFW flushEx = mcpFlushExRW
                 .wrap(codecBuffer, 0, codecBuffer.capacity())
                 .typeId(mcpTypeId)
-                .elicitCallback(b -> b.url(callbackURL).context(context))
+                .elicitCallback(b ->
+                {
+                    b.url(callbackURL);
+                    if (correlationId != null)
+                    {
+                        b.correlationId(correlationId);
+                    }
+                })
                 .build();
 
             doFlush(app, originId, routedId, initialId,
@@ -4245,34 +4175,6 @@ public final class McpServerFactory implements McpStreamFactory
         private void doEncodeElicitCreateNotifyEvent(
             long traceId,
             long authorization,
-            String elicitationId,
-            String url)
-        {
-            if (McpState.replyClosed(state))
-            {
-                return;
-            }
-
-            if (!McpState.replyOpening(state))
-            {
-                doNetBeginAccepted(traceId, authorization);
-            }
-
-            int codecLimit = codecBuffer.putStringWithoutLengthAscii(0, SSE_DATA_PREFIX);
-            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit,
-                "{\"jsonrpc\":\"2.0\",\"method\":\"elicitation/create\",\"params\":{\"mode\":\"url\",\"elicitationId\":\"");
-            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, elicitationId);
-            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, "\",\"url\":\"");
-            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, url);
-            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, "\"}}");
-            codecBuffer.putBytes(codecLimit, SSE_MESSAGE_TERMINATOR_BYTES);
-            codecLimit += SSE_MESSAGE_TERMINATOR_BYTES.length;
-            doNetData(traceId, authorization, codecBuffer, 0, codecLimit);
-        }
-
-        private void doEncodeElicitCreateNotifyEvent(
-            long traceId,
-            long authorization,
             String correlationId,
             String elicitationId,
             String url,
@@ -4289,15 +4191,26 @@ public final class McpServerFactory implements McpStreamFactory
             }
 
             int codecLimit = codecBuffer.putStringWithoutLengthAscii(0, SSE_DATA_PREFIX);
-            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, "{\"jsonrpc\":\"2.0\",\"id\":");
-            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, correlationId);
-            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit,
-                ",\"method\":\"elicitation/create\",\"params\":{\"mode\":\"url\",\"elicitationId\":\"");
+            if (correlationId != null)
+            {
+                codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, "{\"jsonrpc\":\"2.0\",\"id\":");
+                codecLimit += encodeJsonRpcId(codecBuffer, codecLimit, correlationId);
+                codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit,
+                    ",\"method\":\"elicitation/create\",\"params\":{\"mode\":\"url\",\"elicitationId\":\"");
+            }
+            else
+            {
+                codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit,
+                    "{\"jsonrpc\":\"2.0\",\"method\":\"elicitation/create\",\"params\":{\"mode\":\"url\",\"elicitationId\":\"");
+            }
             codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, elicitationId);
             codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, "\",\"url\":\"");
             codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, url);
-            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, "\",\"message\":\"");
-            codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, message);
+            if (message != null)
+            {
+                codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, "\",\"message\":\"");
+                codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, message);
+            }
             codecLimit += codecBuffer.putStringWithoutLengthAscii(codecLimit, "\"}}");
             codecBuffer.putBytes(codecLimit, SSE_MESSAGE_TERMINATOR_BYTES);
             codecLimit += SSE_MESSAGE_TERMINATOR_BYTES.length;
@@ -4608,7 +4521,6 @@ public final class McpServerFactory implements McpStreamFactory
 
         private String elicitationId;
         private String elicitUrl;
-        private String elicitContext;
         private String elicitCorrelationId;
         private int elicitSeq;
 
@@ -4694,12 +4606,19 @@ public final class McpServerFactory implements McpStreamFactory
             long traceId,
             long authorization,
             String callbackURL,
-            String context)
+            String correlationId)
         {
             final McpFlushExFW flushEx = mcpFlushExRW
                 .wrap(codecBuffer, 0, codecBuffer.capacity())
                 .typeId(mcpTypeId)
-                .elicitCallback(b -> b.url(callbackURL).context(context))
+                .elicitCallback(b ->
+                {
+                    b.url(callbackURL);
+                    if (correlationId != null)
+                    {
+                        b.correlationId(correlationId);
+                    }
+                })
                 .build();
 
             doFlush(app, originId, routedId, initialId,
@@ -4940,66 +4859,40 @@ public final class McpServerFactory implements McpStreamFactory
             long authorization,
             McpElicitCreateChallengeExFW elicitCreate)
         {
-            final String correlationId = elicitCreate.correlationId().asString();
-            if (correlationId != null)
-            {
-                onAppChallengeElicitCreatePassthrough(traceId, authorization, elicitCreate, correlationId);
-            }
-            else
-            {
-                onAppChallengeElicitCreateBroker(traceId, authorization, elicitCreate);
-            }
-        }
-
-        private void onAppChallengeElicitCreatePassthrough(
-            long traceId,
-            long authorization,
-            McpElicitCreateChallengeExFW elicitCreate,
-            String correlationId)
-        {
             final String resolvedElicitationId = elicitCreate.id().asString();
             final String url = elicitCreate.url().asString();
             final String message = elicitCreate.message().asString();
+            final String correlationId = elicitCreate.correlationId().asString();
+
+            final boolean broker = isBrokerElicit(url, server.redirectURI);
+            final String emitUrl = broker
+                ? manipulateElicitUrl(url, session.sessionId, resolvedElicitationId)
+                : url;
 
             elicitationId = resolvedElicitationId;
-            elicitUrl = url;
+            elicitUrl = emitUrl;
             elicitCorrelationId = correlationId;
 
-            session.elicitRequests.put(correlationId, this);
-
-            server.onAppChallenge(traceId, authorization);
-            server.doEncodeElicitCreateDataEvent(traceId, authorization, Integer.toString(++elicitSeq),
-                correlationId, resolvedElicitationId, url, message);
-        }
-
-        private void onAppChallengeElicitCreateBroker(
-            long traceId,
-            long authorization,
-            McpElicitCreateChallengeExFW elicitCreate)
-        {
-            final String elicitId = elicitCreate.id().asString();
-            final String originalUrl = elicitCreate.url().asString();
-            final String synthesisedElicitationId = supplyElicitationId.get();
-            final String manipulatedUrl =
-                manipulateElicitUrl(originalUrl, session.sessionId, synthesisedElicitationId, server.redirectURI);
-
-            elicitationId = synthesisedElicitationId;
-            elicitUrl = manipulatedUrl;
-            elicitContext = elicitCreate.context().asString();
-
-            if (session.requestTimeout > 0L)
+            if (broker && session.requestTimeout <= 0L)
             {
-                session.elicitations.put(synthesisedElicitationId,
-                    new McpElicitation(session, this, elicitContext));
-
-                server.onAppChallenge(traceId, authorization);
-                server.doEncodeElicitCreateDataEvent(traceId, authorization, elicitId, synthesisedElicitationId, manipulatedUrl);
+                server.doEncodeResponseUrlRequired(traceId, authorization, emitUrl, resolvedElicitationId);
+                doAppReset(traceId, authorization);
+                doAppAbort(traceId, authorization);
             }
             else
             {
-                server.doEncodeResponseUrlRequired(traceId, authorization, manipulatedUrl, synthesisedElicitationId);
-                doAppReset(traceId, authorization);
-                doAppAbort(traceId, authorization);
+                if (correlationId != null)
+                {
+                    session.elicitRequests.put(correlationId, this);
+                }
+                if (broker)
+                {
+                    session.elicitations.put(resolvedElicitationId, new McpElicitation(session, this, correlationId));
+                }
+
+                server.onAppChallenge(traceId, authorization);
+                server.doEncodeElicitCreateDataEvent(traceId, authorization, Integer.toString(++elicitSeq),
+                    correlationId, resolvedElicitationId, emitUrl, message);
             }
         }
 
@@ -5126,59 +5019,21 @@ public final class McpServerFactory implements McpStreamFactory
             long authorization,
             McpElicitCompleteFlushExFW elicitComplete)
         {
-            if (elicitCorrelationId != null)
-            {
-                onAppFlushElicitCompletePassthrough(traceId, authorization, elicitComplete);
-            }
-            else
-            {
-                onAppFlushElicitCompleteBroker(traceId, authorization, elicitComplete);
-            }
-        }
-
-        private void onAppFlushElicitCompletePassthrough(
-            long traceId,
-            long authorization,
-            McpElicitCompleteFlushExFW elicitComplete)
-        {
             final String resolvedElicitationId = elicitComplete.id().asString();
 
-            elicitationId = null;
-            elicitCorrelationId = null;
-
-            server.doEncodeElicitCompleteNotification(traceId, authorization, resolvedElicitationId);
-        }
-
-        private void onAppFlushElicitCompleteBroker(
-            long traceId,
-            long authorization,
-            McpElicitCompleteFlushExFW elicitComplete)
-        {
-            final String elicitId = elicitComplete.id().asString();
-            final McpElicitStatus status = elicitComplete.status().get();
-            final String resolvedElicitationId = elicitationId;
-
-            if (resolvedElicitationId != null)
+            if (elicitationId != null)
             {
-                session.elicitations.remove(resolvedElicitationId);
+                session.elicitations.remove(elicitationId);
                 elicitationId = null;
             }
 
-            server.doEncodeElicitCompleteDataEvent(traceId, authorization, elicitId, resolvedElicitationId, status);
-
-            switch (status)
+            if (elicitCorrelationId != null)
             {
-            case DECLINED:
-                server.doEncodeElicitErrorEvent(traceId, authorization, -32000, "Authorization declined");
-                server.doEncodeResponseEnd(traceId, authorization);
-                break;
-            case CANCELLED:
-                server.doEncodeElicitUrlRequiredEvent(traceId, authorization, elicitUrl, resolvedElicitationId);
-                server.doEncodeResponseEnd(traceId, authorization);
-                break;
-            default:
-                break;
+                session.elicitRequests.remove(elicitCorrelationId);
+                elicitCorrelationId = null;
             }
+
+            server.doEncodeElicitCompleteNotification(traceId, authorization, resolvedElicitationId);
         }
 
         private void encodeRequestEventViaEventStream(
@@ -5676,31 +5531,61 @@ public final class McpServerFactory implements McpStreamFactory
              accept.contains("text/*"));
     }
 
+    private static boolean isBrokerElicit(
+        String url,
+        String redirectURI)
+    {
+        boolean broker = false;
+        if (url != null && redirectURI != null)
+        {
+            final int query = url.indexOf('?');
+            final String redirect = query < 0 ? null : extractQueryParam(url, query + 1, "redirect_uri");
+            if (redirect != null)
+            {
+                final String decoded = URLDecoder.decode(redirect, StandardCharsets.UTF_8);
+                broker = decoded.equals(redirectURI);
+            }
+        }
+        return broker;
+    }
+
     private static String manipulateElicitUrl(
         String originalUrl,
         String sessionId,
-        String elicitationId,
-        String redirectURI)
+        String elicitationId)
     {
-        String result = originalUrl;
+        return STATE_PARAM_PATTERN.matcher(originalUrl)
+            .replaceFirst(Matcher.quoteReplacement("state=" + sessionId + "." + elicitationId + ".") + "$1");
+    }
 
-        final int query = originalUrl != null ? originalUrl.indexOf('?') : -1;
-        final String redirect = query < 0 ? null : extractQueryParam(originalUrl, query + 1, "redirect_uri");
-
-        if (redirect != null && redirect.contains(REDIRECT_URI_PLACEHOLDER))
+    private int encodeJsonRpcId(
+        MutableDirectBuffer buffer,
+        int offset,
+        String id)
+    {
+        int progress = offset;
+        final boolean numeric = isNumericId(id);
+        if (!numeric)
         {
-            result = STATE_PARAM_PATTERN.matcher(originalUrl)
-                .replaceFirst(Matcher.quoteReplacement("state=" + sessionId + "." + elicitationId + ".") + "$1");
-
-            if (redirectURI != null)
-            {
-                final String encodedRedirect = URLEncoder.encode(redirectURI, StandardCharsets.UTF_8);
-                result = REDIRECT_URI_PARAM_PATTERN.matcher(result)
-                    .replaceFirst(Matcher.quoteReplacement("redirect_uri=" + encodedRedirect));
-            }
+            progress += buffer.putStringWithoutLengthAscii(progress, "\"");
         }
+        progress += buffer.putStringWithoutLengthAscii(progress, id);
+        if (!numeric)
+        {
+            progress += buffer.putStringWithoutLengthAscii(progress, "\"");
+        }
+        return progress - offset;
+    }
 
-        return result;
+    private static boolean isNumericId(
+        String id)
+    {
+        boolean numeric = id != null && !id.isEmpty();
+        for (int i = 0; numeric && i < id.length(); i++)
+        {
+            numeric = Character.isDigit(id.charAt(i));
+        }
+        return numeric;
     }
 
     private static String stripElicitState(
