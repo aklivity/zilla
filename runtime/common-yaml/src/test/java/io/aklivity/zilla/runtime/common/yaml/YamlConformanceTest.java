@@ -66,7 +66,6 @@ final class YamlConformanceTest
         "9DXL",
         "9KAX",
         "9WXW",
-        "A2M4",
         "C4HZ",
         "CC74",
         "CT4Q",

@@ -271,10 +271,11 @@ public final class YamlDocumentParser
             else if (isCompactSequence(spec.value))
             {
                 index++;
-                YamlArrayNode value = parseCompactSequence(spec.value, indent + 2, line);
-                while (index < lines.size() && isSequence(peek(), indent + 2))
+                int nestedIndent = line.indent + itemAt;
+                YamlArrayNode value = parseCompactSequence(spec.value, nestedIndent, line);
+                while (index < lines.size() && isSequence(peek(), nestedIndent))
                 {
-                    YamlArrayNode continuation = parseSequence(indent + 2);
+                    YamlArrayNode continuation = parseSequence(nestedIndent);
                     continuation.values.forEach(value::add);
                 }
                 attachComments(value, line);
