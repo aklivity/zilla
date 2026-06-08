@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.common.json;
 
 import java.io.InputStream;
+import java.util.List;
 import java.util.Map;
 
 import jakarta.json.stream.JsonParser;
@@ -23,6 +24,7 @@ import jakarta.json.stream.JsonParserFactory;
 import io.aklivity.zilla.runtime.common.json.internal.StreamingJsonGenerator;
 import io.aklivity.zilla.runtime.common.json.internal.StreamingJsonParser;
 import io.aklivity.zilla.runtime.common.json.internal.StreamingJsonParserFactory;
+import io.aklivity.zilla.runtime.common.json.internal.StreamingJsonProjector;
 
 /**
  * Entry point for {@code common-json}'s streaming JSON parsing over Agrona buffers.
@@ -96,5 +98,28 @@ public final class StreamingJson
     public static JsonGeneratorEx createGenerator()
     {
         return new StreamingJsonGenerator();
+    }
+
+    /**
+     * Returns a {@link JsonProjector} that prunes a document to the given retained RFC 6901
+     * pointers, projecting into an internal {@link JsonGeneratorEx} via {@link
+     * JsonProjector#project(JsonParser, org.agrona.MutableDirectBuffer, int)}. Reuse a single
+     * instance per worker thread; it resets per top-level value.
+     */
+    public static JsonProjector createProjector(
+        List<String> pointers)
+    {
+        return new StreamingJsonProjector(pointers);
+    }
+
+    /**
+     * Returns a {@link JsonProjector} that forwards each kept event to {@code sink}, composing as
+     * a stage in a processing chain (e.g. {@code parser → projector → generator-sink}).
+     */
+    public static JsonProjector createProjector(
+        List<String> pointers,
+        JsonEventConsumer sink)
+    {
+        return new StreamingJsonProjector(pointers, sink);
     }
 }

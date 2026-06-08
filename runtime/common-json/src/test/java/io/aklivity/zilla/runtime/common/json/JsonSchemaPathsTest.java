@@ -103,7 +103,7 @@ class JsonSchemaPathsTest
     @Test
     void shouldDriveProjectorEndToEnd()
     {
-        JsonProjector projector = new JsonProjector(JsonSchemaPaths.retained(
+        JsonProjector projector = StreamingJson.createProjector(JsonSchemaPaths.retained(
             "{\"type\":\"object\",\"properties\":{" +
             "\"items\":{\"type\":\"array\",\"items\":{\"type\":\"object\"," +
             "\"properties\":{\"id\":{\"type\":\"integer\"}}}}}}"));

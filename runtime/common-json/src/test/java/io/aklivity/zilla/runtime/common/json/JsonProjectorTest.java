@@ -115,7 +115,7 @@ class JsonProjectorTest
         JsonGeneratorEx gen = StreamingJson.createGenerator();
         MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
         gen.wrap(buffer, 0);
-        JsonProjector projector = new JsonProjector(List.of("/a", "/c"), JsonEventConsumer.ofGenerator(gen));
+        JsonProjector projector = StreamingJson.createProjector(List.of("/a", "/c"), JsonEventConsumer.of(gen));
         JsonParser parser = parserFor("{\"a\":1,\"b\":2,\"c\":3} ");
         Status status = Status.PENDING;
         while (status == Status.PENDING && parser.hasNext())
@@ -131,7 +131,7 @@ class JsonProjectorTest
     @Test
     void shouldResetForReuseAcrossValues()
     {
-        JsonProjector projector = new JsonProjector(List.of("/x"));
+        JsonProjector projector = StreamingJson.createProjector(List.of("/x"));
         MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
         int len1 = projector.project(parserFor("{\"x\":1,\"y\":2} "), buffer, 0);
         byte[] out1 = new byte[len1];
@@ -147,7 +147,7 @@ class JsonProjectorTest
     void shouldRejectProjectWhenConstructedWithExternalSink()
     {
         JsonGeneratorEx gen = StreamingJson.createGenerator();
-        JsonProjector projector = new JsonProjector(List.of(""), JsonEventConsumer.ofGenerator(gen));
+        JsonProjector projector = StreamingJson.createProjector(List.of(""), JsonEventConsumer.of(gen));
         MutableDirectBuffer buffer = new UnsafeBuffer(new byte[64]);
         assertThrows(IllegalStateException.class, () -> projector.project(parserFor("1 "), buffer, 0));
     }
@@ -168,7 +168,7 @@ class JsonProjectorTest
         List<String> retained,
         String input)
     {
-        JsonProjector projector = new JsonProjector(retained);
+        JsonProjector projector = StreamingJson.createProjector(retained);
         MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
         int length = projector.project(parserFor(input + " "), buffer, 0);
         byte[] out = new byte[length];

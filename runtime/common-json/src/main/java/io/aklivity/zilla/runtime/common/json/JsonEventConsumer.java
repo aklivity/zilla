@@ -58,7 +58,7 @@ public interface JsonEventConsumer
      * each fed event into the corresponding {@code writeXxx} call. The supplied generator must
      * already be wrapped over its target buffer.
      */
-    static JsonEventConsumer ofGenerator(
+    static JsonEventConsumer of(
         JsonGeneratorEx generator)
     {
         return new GeneratorSink(generator);

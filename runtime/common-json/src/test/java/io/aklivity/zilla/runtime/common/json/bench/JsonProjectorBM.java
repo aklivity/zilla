@@ -96,11 +96,11 @@ public class JsonProjectorBM
     @Setup(Level.Trial)
     public void init()
     {
-        flatProjector = new JsonProjector(List.of("/id", "/active"));
-        nestedProjector = new JsonProjector(List.of("/meta/id", "/meta/source"));
-        arrayWildcardProjector = new JsonProjector(List.of("/items/-/id"));
-        rootIdentityProjector = new JsonProjector(List.of(""));
-        mostlySkippedProjector = new JsonProjector(List.of("/keep/id"));
+        flatProjector = StreamingJson.createProjector(List.of("/id", "/active"));
+        nestedProjector = StreamingJson.createProjector(List.of("/meta/id", "/meta/source"));
+        arrayWildcardProjector = StreamingJson.createProjector(List.of("/items/-/id"));
+        rootIdentityProjector = StreamingJson.createProjector(List.of(""));
+        mostlySkippedProjector = StreamingJson.createProjector(List.of("/keep/id"));
 
         byte[] flatBytes = FLAT_OBJECT.getBytes(UTF_8);
         byte[] nestedBytes = NESTED_OBJECT.getBytes(UTF_8);
