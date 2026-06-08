@@ -177,6 +177,117 @@ class YamlJsonParserTest
     }
 
     @Test
+    void shouldParseJsonDocumentsWithNestedWhitespaceAndDuplicateKeys()
+    {
+        JsonParser parser = parserFor("""
+              {
+                "object" : {
+                  "empty" : { },
+                  "duplicate" : "first",
+                  "duplicate" : "second"
+                },
+                "array" : [
+                  [ ],
+                  { "nested" : [ true , false , null ] }
+                ]
+              }
+            """);
+
+        assertEquals(List.of(
+            "START_OBJECT",
+            "KEY_NAME:object",
+            "START_OBJECT",
+            "KEY_NAME:empty",
+            "START_OBJECT",
+            "END_OBJECT",
+            "KEY_NAME:duplicate",
+            "VALUE_STRING:first",
+            "KEY_NAME:duplicate",
+            "VALUE_STRING:second",
+            "END_OBJECT",
+            "KEY_NAME:array",
+            "START_ARRAY",
+            "START_ARRAY",
+            "END_ARRAY",
+            "START_OBJECT",
+            "KEY_NAME:nested",
+            "START_ARRAY",
+            "VALUE_TRUE",
+            "VALUE_FALSE",
+            "VALUE_NULL",
+            "END_ARRAY",
+            "END_OBJECT",
+            "END_ARRAY",
+            "END_OBJECT"), events(parser));
+
+        JsonObject object = YamlJson.provider().createReader(new StringReader("""
+            {"name": "first", "name": "second"}
+            """)).readObject();
+        assertEquals("second", object.getString("name"));
+    }
+
+    @Test
+    void shouldParseJsonStringEscapesAndSurrogatePairs()
+    {
+        JsonObject object = YamlJson.provider().createReader(new StringReader("""
+            {
+              "escapes": "\\"\\\\\\/\\b\\f\\n\\r\\t",
+              "unicode": "\\u0000\\u001f\\u007f\\u0080\\u2028\\u2029",
+              "surrogate": "\\uD83D\\uDE00",
+              "literal": "colon: comma, brackets [] braces {} hash #"
+            }
+            """)).readObject();
+
+        assertEquals("\"\\/\b\f\n\r\t", object.getString("escapes"));
+        assertEquals("\u0000\u001f\u007f\u0080\u2028\u2029", object.getString("unicode"));
+        assertEquals(0x1f600, object.getString("surrogate").codePointAt(0));
+        assertEquals("colon: comma, brackets [] braces {} hash #", object.getString("literal"));
+    }
+
+    @Test
+    void shouldParseJsonNumberForms()
+    {
+        JsonParser parser = parserFor("""
+            [0, -0, 1, -1, 10, -10, 0.1, -0.1, 1.0, 1e0, 1E+0, 1E-0, -1.2e-3]
+            """);
+
+        assertEquals(List.of(
+            "START_ARRAY",
+            "VALUE_NUMBER:0",
+            "VALUE_NUMBER:-0",
+            "VALUE_NUMBER:1",
+            "VALUE_NUMBER:-1",
+            "VALUE_NUMBER:10",
+            "VALUE_NUMBER:-10",
+            "VALUE_NUMBER:0.1",
+            "VALUE_NUMBER:-0.1",
+            "VALUE_NUMBER:1.0",
+            "VALUE_NUMBER:1e0",
+            "VALUE_NUMBER:1E+0",
+            "VALUE_NUMBER:1E-0",
+            "VALUE_NUMBER:-1.2e-3",
+            "END_ARRAY"), events(parser));
+    }
+
+    @Test
+    void shouldParseNativeJsonDocuments()
+    {
+        YamlObject object = Yaml.createReader(new StringReader("""
+            {
+              "name": "test",
+              "enabled": true,
+              "items": [{"id": 1}, {"id": 2}],
+              "missing": null
+            }
+            """)).readObject();
+
+        assertEquals("test", object.getString("name"));
+        assertEquals(true, object.getBoolean("enabled"));
+        assertEquals(2, object.getArray("items").getObject(1).getInt("id"));
+        assertEquals(YamlValue.ValueType.NULL, object.getScalar("missing").getValueType());
+    }
+
+    @Test
     void shouldParseJsonArrayAndScalarDocuments()
     {
         assertEquals(List.of(
