@@ -18,12 +18,9 @@ name: test
 bindings:
   app0:
     type: mcp
-    kind: proxy
+    kind: client
     options:
-      prompts:
-        - name: rule
-          description: house rules
+      elicitation:
+        callback: auth/callback
     routes:
-      - exit: app1
-        when:
-          - toolkit: bluesky
+      - exit: net0

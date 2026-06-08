@@ -14,9 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.config;
 
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
@@ -26,28 +23,14 @@ public final class McpOptionsConfigBuilder<T> extends ConfigBuilder<T, McpOption
 {
     private final Function<OptionsConfig, T> mapper;
 
-    private List<McpPromptConfig> prompts;
     private McpElicitationConfig elicitation;
     private McpAuthorizationConfig authorization;
     private McpCacheConfig cache;
-    private Duration timeout;
 
     public McpOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
     {
         this.mapper = mapper;
-    }
-
-    public McpOptionsConfigBuilder<T> prompt(
-        String name,
-        String description)
-    {
-        if (prompts == null)
-        {
-            prompts = new ArrayList<>();
-        }
-        prompts.add(new McpPromptConfig(name, description));
-        return this;
     }
 
     public McpOptionsConfigBuilder<T> elicitation(
@@ -86,13 +69,6 @@ public final class McpOptionsConfigBuilder<T> extends ConfigBuilder<T, McpOption
         return McpCacheConfig.builder(this::cache);
     }
 
-    public McpOptionsConfigBuilder<T> timeout(
-        Duration timeout)
-    {
-        this.timeout = timeout;
-        return this;
-    }
-
     @Override
     @SuppressWarnings("unchecked")
     protected Class<McpOptionsConfigBuilder<T>> thisType()
@@ -103,6 +79,6 @@ public final class McpOptionsConfigBuilder<T> extends ConfigBuilder<T, McpOption
     @Override
     public T build()
     {
-        return mapper.apply(new McpOptionsConfig(prompts, elicitation, authorization, cache, timeout));
+        return mapper.apply(new McpOptionsConfig(elicitation, authorization, cache));
     }
 }

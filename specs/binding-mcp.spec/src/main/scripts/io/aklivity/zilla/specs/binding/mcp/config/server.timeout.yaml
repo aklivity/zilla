@@ -20,6 +20,7 @@ bindings:
     type: mcp
     kind: server
     options:
-      timeout: PT30S
+      elicitation:
+        timeout: PT30S
     routes:
       - exit: app0

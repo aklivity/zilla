@@ -17,8 +17,6 @@ package io.aklivity.zilla.runtime.binding.mcp.internal.config;
 import java.time.Duration;
 
 import jakarta.json.Json;
-import jakarta.json.JsonArray;
-import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonString;
@@ -27,21 +25,18 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 import io.aklivity.zilla.runtime.binding.mcp.config.McpCacheConfig;
 import io.aklivity.zilla.runtime.binding.mcp.config.McpCacheConfigBuilder;
 import io.aklivity.zilla.runtime.binding.mcp.config.McpElicitationConfig;
+import io.aklivity.zilla.runtime.binding.mcp.config.McpElicitationConfigBuilder;
 import io.aklivity.zilla.runtime.binding.mcp.config.McpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mcp.config.McpOptionsConfigBuilder;
-import io.aklivity.zilla.runtime.binding.mcp.config.McpPromptConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpBinding;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
 public final class McpOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
-    private static final String PROMPTS_NAME = "prompts";
-    private static final String PROMPT_NAME_NAME = "name";
-    private static final String PROMPT_DESCRIPTION_NAME = "description";
-
     private static final String ELICITATION_NAME = "elicitation";
     private static final String ELICITATION_CALLBACK_NAME = "callback";
+    private static final String ELICITATION_TIMEOUT_NAME = "timeout";
 
     private static final String AUTHORIZATION_NAME = "authorization";
     private static final String AUTHORIZATION_CREDENTIALS_NAME = "credentials";
@@ -52,8 +47,6 @@ public final class McpOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
     private static final String CACHE_TTL_DEFAULT = "PT5M";
     private static final String CACHE_AUTHORIZATION_NAME = "authorization";
     private static final String CACHE_AUTHORIZATION_CREDENTIALS_NAME = "credentials";
-
-    private static final String TIMEOUT_NAME = "timeout";
 
     @Override
     public Kind kind()
@@ -75,26 +68,14 @@ public final class McpOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
 
         JsonObjectBuilder object = Json.createObjectBuilder();
 
-        if (mcpOptions.prompts != null && !mcpOptions.prompts.isEmpty())
-        {
-            JsonArrayBuilder prompts = Json.createArrayBuilder();
-            for (McpPromptConfig prompt : mcpOptions.prompts)
-            {
-                JsonObjectBuilder promptObject = Json.createObjectBuilder();
-                promptObject.add(PROMPT_NAME_NAME, prompt.name);
-                if (prompt.description != null)
-                {
-                    promptObject.add(PROMPT_DESCRIPTION_NAME, prompt.description);
-                }
-                prompts.add(promptObject);
-            }
-            object.add(PROMPTS_NAME, prompts);
-        }
-
         if (mcpOptions.elicitation != null)
         {
             JsonObjectBuilder elicitation = Json.createObjectBuilder();
             elicitation.add(ELICITATION_CALLBACK_NAME, mcpOptions.elicitation.callback);
+            if (mcpOptions.elicitation.timeout != null)
+            {
+                elicitation.add(ELICITATION_TIMEOUT_NAME, mcpOptions.elicitation.timeout.toString());
+            }
             object.add(ELICITATION_NAME, elicitation);
         }
 
@@ -136,11 +117,6 @@ public final class McpOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
             object.add(CACHE_NAME, cache);
         }
 
-        if (mcpOptions.timeout != null)
-        {
-            object.add(TIMEOUT_NAME, mcpOptions.timeout.toString());
-        }
-
         return object.build();
     }
 
@@ -150,29 +126,19 @@ public final class McpOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
     {
         McpOptionsConfigBuilder<McpOptionsConfig> builder = McpOptionsConfig.builder();
 
-        if (object.containsKey(PROMPTS_NAME))
-        {
-            JsonArray prompts = object.getJsonArray(PROMPTS_NAME);
-            for (int i = 0; i < prompts.size(); i++)
-            {
-                JsonObject prompt = prompts.getJsonObject(i);
-                String name = prompt.getString(PROMPT_NAME_NAME);
-                String description = prompt.containsKey(PROMPT_DESCRIPTION_NAME)
-                    ? prompt.getString(PROMPT_DESCRIPTION_NAME)
-                    : null;
-                builder.prompt(name, description);
-            }
-        }
-
         if (object.containsKey(ELICITATION_NAME))
         {
             JsonObject elicitation = object.getJsonObject(ELICITATION_NAME);
             String callback = elicitation.containsKey(ELICITATION_CALLBACK_NAME)
                 ? elicitation.getString(ELICITATION_CALLBACK_NAME)
                 : McpElicitationConfig.DEFAULT_CALLBACK_PATH;
-            builder.elicitation()
-                .callback(callback)
-                .build();
+            McpElicitationConfigBuilder<McpOptionsConfigBuilder<McpOptionsConfig>> elicitationBuilder = builder.elicitation()
+                .callback(callback);
+            if (elicitation.containsKey(ELICITATION_TIMEOUT_NAME))
+            {
+                elicitationBuilder.timeout(Duration.parse(elicitation.getString(ELICITATION_TIMEOUT_NAME)));
+            }
+            elicitationBuilder.build();
         }
 
         if (object.containsKey(AUTHORIZATION_NAME))
@@ -218,11 +184,6 @@ public final class McpOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
             }
 
             cacheBuilder.build();
-        }
-
-        if (object.containsKey(TIMEOUT_NAME))
-        {
-            builder.timeout(Duration.parse(object.getString(TIMEOUT_NAME)));
         }
 
         return builder.build();

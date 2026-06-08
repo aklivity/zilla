@@ -44,26 +44,29 @@ public class McpOptionsConfigAdapterTest
     }
 
     @Test
-    public void shouldReadOptionsWithTimeout()
+    public void shouldReadOptionsWithElicitationTimeout()
     {
-        String text = "{\"timeout\":\"PT30S\"}";
+        String text = "{\"elicitation\":{\"timeout\":\"PT30S\"}}";
 
         McpOptionsConfig options = (McpOptionsConfig) jsonb.fromJson(text, OptionsConfig.class);
 
         assertThat(options, not(nullValue()));
-        assertThat(options.timeout, equalTo(Duration.ofSeconds(30)));
+        assertThat(options.elicitation, not(nullValue()));
+        assertThat(options.elicitation.timeout, equalTo(Duration.ofSeconds(30)));
     }
 
     @Test
-    public void shouldWriteOptionsWithTimeout()
+    public void shouldWriteOptionsWithElicitationTimeout()
     {
         McpOptionsConfig options = McpOptionsConfig.builder()
-                .timeout(Duration.ofSeconds(30))
+                .elicitation()
+                    .timeout(Duration.ofSeconds(30))
+                    .build()
                 .build();
 
         String text = jsonb.toJson(options);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"timeout\":\"PT30S\"}"));
+        assertThat(text, equalTo("{\"elicitation\":{\"callback\":\"auth/callback\",\"timeout\":\"PT30S\"}}"));
     }
 }

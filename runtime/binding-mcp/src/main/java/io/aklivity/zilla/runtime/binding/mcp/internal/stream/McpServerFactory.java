@@ -414,8 +414,10 @@ public final class McpServerFactory implements McpStreamFactory
                         .map(h -> h.value().asString())
                         .map(Integer::parseInt)
                         .orElse(-1);
-                    final long configuredTimeout = binding.options != null && binding.options.timeout != null
-                        ? binding.options.timeout.toMillis()
+                    final long configuredTimeout = binding.options != null &&
+                            binding.options.elicitation != null &&
+                            binding.options.elicitation.timeout != null
+                        ? binding.options.elicitation.timeout.toMillis()
                         : 0L;
                     newStream = new McpServer(
                         sender,

@@ -20,9 +20,6 @@ bindings:
     type: mcp
     kind: server
     options:
-      prompts:
-        - name: rule
-          description: house rules
       elicitation:
         callback: auth/callback
       authorization:

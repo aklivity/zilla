@@ -17,6 +17,8 @@ package io.aklivity.zilla.runtime.binding.mcp.config;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
+import java.time.Duration;
+
 import org.junit.Test;
 
 public class McpConfigTest
@@ -28,6 +30,16 @@ public class McpConfigTest
             .build();
 
         assertThat(elicitation.callback, equalTo(McpElicitationConfig.DEFAULT_CALLBACK_PATH));
+    }
+
+    @Test
+    public void shouldBuildElicitationWithTimeout()
+    {
+        McpElicitationConfig elicitation = McpElicitationConfig.builder()
+            .timeout(Duration.ofSeconds(30))
+            .build();
+
+        assertThat(elicitation.timeout, equalTo(Duration.ofSeconds(30)));
     }
 
     @Test
@@ -48,14 +60,5 @@ public class McpConfigTest
             .build();
 
         assertThat(callback, equalTo("auth/complete"));
-    }
-
-    @Test
-    public void shouldCreatePrompt()
-    {
-        McpPromptConfig prompt = new McpPromptConfig("prompt", "description");
-
-        assertThat(prompt.name, equalTo("prompt"));
-        assertThat(prompt.description, equalTo("description"));
     }
 }

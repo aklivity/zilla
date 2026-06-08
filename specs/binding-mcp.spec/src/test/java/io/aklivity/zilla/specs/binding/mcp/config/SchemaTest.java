@@ -108,21 +108,15 @@ public class SchemaTest
     }
 
     @Test(expected = JsonValidatingException.class)
-    public void shouldRejectClientWithPrompts()
+    public void shouldRejectClientWithElicitation()
     {
-        schema.validate("client.prompts.invalid.yaml");
+        schema.validate("client.elicitation.invalid.yaml");
     }
 
     @Test(expected = JsonValidatingException.class)
-    public void shouldRejectClientWithTimeout()
+    public void shouldRejectProxyWithElicitation()
     {
-        schema.validate("client.timeout.invalid.yaml");
-    }
-
-    @Test(expected = JsonValidatingException.class)
-    public void shouldRejectProxyWithPrompts()
-    {
-        schema.validate("proxy.prompts.invalid.yaml");
+        schema.validate("proxy.elicitation.invalid.yaml");
     }
 
     @Test(expected = JsonValidatingException.class)

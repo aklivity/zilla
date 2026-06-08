@@ -45,9 +45,6 @@ bindings:
       cache:
         store: cache
         ttl: PT5M
-      prompts:
-        - name: gateway-rules
-          description: Aggregator-level prompt advertised to every client
     routes:
       - exit: south_mcp_client_everything
         when:

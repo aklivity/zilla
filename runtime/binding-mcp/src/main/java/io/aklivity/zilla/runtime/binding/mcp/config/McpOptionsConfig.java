@@ -14,32 +14,24 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.config;
 
-import java.time.Duration;
-import java.util.List;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public final class McpOptionsConfig extends OptionsConfig
 {
-    public final List<McpPromptConfig> prompts;
     public final McpElicitationConfig elicitation;
     public final McpAuthorizationConfig authorization;
     public final McpCacheConfig cache;
-    public final Duration timeout;
 
     McpOptionsConfig(
-        List<McpPromptConfig> prompts,
         McpElicitationConfig elicitation,
         McpAuthorizationConfig authorization,
-        McpCacheConfig cache,
-        Duration timeout)
+        McpCacheConfig cache)
     {
-        this.prompts = prompts;
         this.elicitation = elicitation;
         this.authorization = authorization;
         this.cache = cache;
-        this.timeout = timeout;
     }
 
     public static McpOptionsConfigBuilder<McpOptionsConfig> builder()

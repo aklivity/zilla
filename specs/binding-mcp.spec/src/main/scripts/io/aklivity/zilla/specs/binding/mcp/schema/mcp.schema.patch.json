@@ -56,30 +56,6 @@
                                 {
                                     "properties":
                                     {
-                                        "prompts":
-                                        {
-                                            "title": "Local Prompts",
-                                            "type": "array",
-                                            "items":
-                                            {
-                                                "type": "object",
-                                                "properties":
-                                                {
-                                                    "name":
-                                                    {
-                                                        "title": "Prompt Name",
-                                                        "type": "string"
-                                                    },
-                                                    "description":
-                                                    {
-                                                        "title": "Prompt Description",
-                                                        "type": "string"
-                                                    }
-                                                },
-                                                "required": [ "name" ],
-                                                "additionalProperties": false
-                                            }
-                                        },
                                         "elicitation":
                                         {
                                             "title": "Elicitation",
@@ -91,6 +67,13 @@
                                                     "title": "Authorization Callback Path",
                                                     "type": "string",
                                                     "default": "auth/callback"
+                                                },
+                                                "timeout":
+                                                {
+                                                    "title": "Elicitation Timeout",
+                                                    "type": "string",
+                                                    "format": "duration",
+                                                    "default": "PT0S"
                                                 }
                                             },
                                             "additionalProperties": false
@@ -117,13 +100,6 @@
                                             },
                                             "additionalProperties": false,
                                             "maxProperties": 1
-                                        },
-                                        "timeout":
-                                        {
-                                            "title": "Elicitation Timeout",
-                                            "type": "string",
-                                            "format": "duration",
-                                            "default": "PT0S"
                                         }
                                     },
                                     "additionalProperties": false
