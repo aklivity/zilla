@@ -329,6 +329,10 @@ public final class YamlDocumentParser
     private YamlNode parsePlainLine()
     {
         Line line = peek();
+        if (line.directive)
+        {
+            throw error("Unexpected YAML directive", line);
+        }
         index++;
         ValueSpec spec = ValueSpec.parse(line.content.trim(), line, tagHandles);
         validateSpec(spec, line);
@@ -688,7 +692,7 @@ public final class YamlDocumentParser
         boolean allowSameIndent,
         boolean allowIndentedSequence)
     {
-        if (line.directive || isMarker(line.content, "---") || isMarker(line.content, "...") || line.indent < indent)
+        if (isMarker(line.content, "---") || isMarker(line.content, "...") || line.indent < indent)
         {
             return false;
         }
@@ -2104,10 +2108,6 @@ public final class YamlDocumentParser
             {
                 Line line = all.get(end);
                 boolean topLevel = flowDepth == 0;
-                if (topLevel && line.directive)
-                {
-                    throw error("Missing document-end marker before directive", line);
-                }
                 if (!line.blank && topLevel && (isDocumentStart(line) || isDocumentEnd(line)))
                 {
                     if (!config.documentMarkers())
@@ -2300,7 +2300,7 @@ public final class YamlDocumentParser
                 String comment = comment(trimmed);
                 boolean blank = content.isBlank();
                 boolean directive = content.startsWith("%");
-                boolean ignorable = blank || directive;
+                boolean ignorable = blank;
                 lines.add(new Line(raw, indent, content, comment, blank, directive, ignorable,
                     lineNumber, indent + 1, offset + indent, offset + raw0.length() + 1));
 

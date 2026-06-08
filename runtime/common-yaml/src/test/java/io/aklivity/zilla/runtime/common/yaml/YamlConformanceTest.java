@@ -72,11 +72,9 @@ final class YamlConformanceTest
         "CC74",
         "CUP7",
         "M5C3",
-        "M7A3",
         "P76L",
         "UGM3",
         "W4TN",
-        "XLQ9",
         "Z67P",
         "Z9M4");
     private static final Set<String> INVALID_REJECTION_GAPS = Set.of();
