@@ -28,8 +28,11 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -217,6 +220,157 @@ class YamlTest
         assertEquals(YamlValue.ValueType.NUMBER, scalar.getValueType());
         assertEquals(YamlScalarType.NUMBER, scalar.asYamlScalar().getType());
         assertEquals("42", scalar.asYamlScalar().getString());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void shouldCreateNativeBuilderValues()
+    {
+        Map<String, Object> config = new HashMap<>();
+        config.put("builder", "value");
+        YamlBuilderFactory factory = Yaml.createBuilderFactory(config);
+        config.put("builder", "changed");
+
+        assertEquals(Map.of("builder", "value"), factory.getConfigInUse());
+        assertThrows(UnsupportedOperationException.class,
+            () -> ((Map<String, Object>) factory.getConfigInUse()).put("changed", true));
+
+        YamlArray array = factory.createArrayBuilder()
+            .add("zero")
+            .add(2)
+            .add(3L)
+            .add(new BigDecimal("4.5"))
+            .add(new BigInteger("6"))
+            .add(true)
+            .addNull()
+            .add(1, Yaml.createValue("one"))
+            .set(2, Yaml.createValue(1))
+            .remove(7)
+            .build();
+
+        assertEquals(7, array.size());
+        assertEquals("one", array.getString(1));
+        assertEquals(1, array.getInt(2));
+        assertEquals(3L, array.getLong(3));
+        assertEquals(new BigDecimal("4.5"), new BigDecimal(array.getString(4)));
+        assertEquals(new BigInteger("6"), new BigInteger(array.getString(5)));
+        assertTrue(array.getBoolean(6));
+
+        Map<String, Object> mapped = new LinkedHashMap<>();
+        mapped.put("name", "test");
+        mapped.put("count", 1);
+        mapped.put("items", List.of("a", "b"));
+        mapped.put("nested", Map.of("enabled", true));
+        YamlObject object = factory.createObjectBuilder(mapped)
+            .addAll(factory.createObjectBuilder().add("merged", "yes"))
+            .add("array", factory.createArrayBuilder(array))
+            .add("child", factory.createObjectBuilder().add("name", "child"))
+            .add("long", 7L)
+            .add("double", 8.5)
+            .add("decimal", new BigDecimal("9.25"))
+            .add("big", new BigInteger("10"))
+            .add("value", Yaml.createValue("direct"))
+            .addNull("missing")
+            .remove("count")
+            .build();
+
+        assertEquals("test", object.getString("name"));
+        assertEquals("b", object.getArray("items").getString(1));
+        assertTrue(object.getObject("nested").getBoolean("enabled"));
+        assertEquals("yes", object.getString("merged"));
+        assertEquals("child", object.getObject("child").getString("name"));
+        assertEquals(7L, object.getLong("long"));
+        assertEquals(8.5, object.getDouble("double"));
+        assertEquals("direct", object.getString("value"));
+        assertTrue(object.isNull("missing"));
+        assertFalse(object.containsKey("count"));
+
+        YamlObject copied = factory.createObjectBuilder(object)
+            .add("copy", true)
+            .build();
+        assertEquals("test", copied.getString("name"));
+        assertTrue(copied.getBoolean("copy"));
+
+        YamlArray copiedArray = factory.createArrayBuilder(array)
+            .add(false)
+            .build();
+        assertEquals(8, copiedArray.size());
+        assertFalse(copiedArray.getBoolean(7));
+
+        YamlArray indexed = Yaml.createArrayBuilder()
+            .add("start")
+            .add("end")
+            .add(1, new BigDecimal("1.25"))
+            .add(2, new BigInteger("2"))
+            .add(3, 3)
+            .add(4, 4L)
+            .add(5, 5.5)
+            .add(6, true)
+            .addNull(7)
+            .add(8, Yaml.createObjectBuilder().add("name", "object"))
+            .add(9, Yaml.createArrayBuilder().add("array"))
+            .set(0, "updated")
+            .set(1, new BigDecimal("1.5"))
+            .set(2, new BigInteger("20"))
+            .set(3, 30)
+            .set(4, 40L)
+            .set(5, 50.5)
+            .set(6, false)
+            .setNull(7)
+            .set(8, Yaml.createObjectBuilder().add("name", "updated"))
+            .set(9, Yaml.createArrayBuilder().add("updated"))
+            .addAll(Yaml.createArrayBuilder().add("tail"))
+            .build();
+        assertEquals("updated", indexed.getString(0));
+        assertEquals(new BigDecimal("1.5"), new BigDecimal(indexed.getString(1)));
+        assertEquals(new BigInteger("20"), new BigInteger(indexed.getString(2)));
+        assertEquals(30, indexed.getInt(3));
+        assertEquals(40L, indexed.getLong(4));
+        assertEquals(50.5, indexed.getDouble(5));
+        assertFalse(indexed.getBoolean(6));
+        assertTrue(indexed.isNull(7));
+        assertEquals("updated", indexed.getObject(8).getString("name"));
+        assertEquals("updated", indexed.getArray(9).getString(0));
+        assertEquals("tail", indexed.getString(11));
+
+        assertTrue(Yaml.createObjectBuilder(Map.of("static", true)).build().getBoolean("static"));
+        assertEquals("test", Yaml.createObjectBuilder(object).build().getString("name"));
+        assertEquals(2, Yaml.createArrayBuilder(List.of("a", "b")).build().size());
+        assertEquals(array.size(), Yaml.createArrayBuilder(array).build().size());
+
+        assertEquals(YamlValue.ValueType.STRING, Yaml.createValue("text").getValueType());
+        assertEquals(YamlValue.ValueType.NUMBER, Yaml.createValue((Number) new BigDecimal("42")).getValueType());
+        assertEquals(YamlValue.ValueType.TRUE, Yaml.createValue(true).getValueType());
+        assertEquals(YamlValue.ValueType.NULL, Yaml.createNullValue().getValueType());
+        assertThrows(IllegalArgumentException.class, () -> Yaml.createValue(Double.NaN));
+
+        StringWriter output = new StringWriter();
+        Yaml.createWriter(output).writeObject(object);
+        assertEquals("""
+            name: test
+            items:
+              - a
+              - b
+            nested:
+              enabled: true
+            merged: yes
+            array:
+              - zero
+              - one
+              - 1
+              - 3
+              - 4.5
+              - 6
+              - true
+            child:
+              name: child
+            long: 7
+            double: 8.5
+            decimal: 9.25
+            big: 10
+            value: direct
+            missing: null
+            """, output.toString());
     }
 
     @Test

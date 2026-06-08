@@ -18,14 +18,23 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Reader;
 import java.io.Writer;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.util.Collection;
 import java.util.Map;
 
+import io.aklivity.zilla.runtime.common.yaml.YamlArray;
+import io.aklivity.zilla.runtime.common.yaml.YamlArrayBuilder;
+import io.aklivity.zilla.runtime.common.yaml.YamlBuilderFactory;
 import io.aklivity.zilla.runtime.common.yaml.YamlGenerator;
 import io.aklivity.zilla.runtime.common.yaml.YamlGeneratorFactory;
+import io.aklivity.zilla.runtime.common.yaml.YamlObject;
+import io.aklivity.zilla.runtime.common.yaml.YamlObjectBuilder;
 import io.aklivity.zilla.runtime.common.yaml.YamlParser;
 import io.aklivity.zilla.runtime.common.yaml.YamlParserFactory;
 import io.aklivity.zilla.runtime.common.yaml.YamlReader;
 import io.aklivity.zilla.runtime.common.yaml.YamlReaderFactory;
+import io.aklivity.zilla.runtime.common.yaml.YamlValue;
 import io.aklivity.zilla.runtime.common.yaml.YamlWriter;
 import io.aklivity.zilla.runtime.common.yaml.YamlWriterFactory;
 
@@ -70,4 +79,49 @@ public abstract class YamlProvider
 
     public abstract YamlWriterFactory createWriterFactory(
         Map<String, ?> config);
+
+    public abstract YamlObjectBuilder createObjectBuilder();
+
+    public abstract YamlObjectBuilder createObjectBuilder(
+        YamlObject object);
+
+    public abstract YamlObjectBuilder createObjectBuilder(
+        Map<String, ?> map);
+
+    public abstract YamlArrayBuilder createArrayBuilder();
+
+    public abstract YamlArrayBuilder createArrayBuilder(
+        YamlArray array);
+
+    public abstract YamlArrayBuilder createArrayBuilder(
+        Collection<?> collection);
+
+    public abstract YamlBuilderFactory createBuilderFactory(
+        Map<String, ?> config);
+
+    public abstract YamlValue createValue(
+        String value);
+
+    public abstract YamlValue createValue(
+        BigDecimal value);
+
+    public abstract YamlValue createValue(
+        BigInteger value);
+
+    public abstract YamlValue createValue(
+        Number value);
+
+    public abstract YamlValue createValue(
+        int value);
+
+    public abstract YamlValue createValue(
+        long value);
+
+    public abstract YamlValue createValue(
+        double value);
+
+    public abstract YamlValue createValue(
+        boolean value);
+
+    public abstract YamlValue createNullValue();
 }

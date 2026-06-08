@@ -18,6 +18,9 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Reader;
 import java.io.Writer;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.util.Collection;
 import java.util.Map;
 
 import io.aklivity.zilla.runtime.common.yaml.internal.YamlProviderImpl;
@@ -104,6 +107,99 @@ public final class Yaml
         Map<String, ?> config)
     {
         return provider().createWriterFactory(config);
+    }
+
+    public static YamlObjectBuilder createObjectBuilder()
+    {
+        return provider().createObjectBuilder();
+    }
+
+    public static YamlObjectBuilder createObjectBuilder(
+        YamlObject object)
+    {
+        return provider().createObjectBuilder(object);
+    }
+
+    public static YamlObjectBuilder createObjectBuilder(
+        Map<String, ?> map)
+    {
+        return provider().createObjectBuilder(map);
+    }
+
+    public static YamlArrayBuilder createArrayBuilder()
+    {
+        return provider().createArrayBuilder();
+    }
+
+    public static YamlArrayBuilder createArrayBuilder(
+        YamlArray array)
+    {
+        return provider().createArrayBuilder(array);
+    }
+
+    public static YamlArrayBuilder createArrayBuilder(
+        Collection<?> collection)
+    {
+        return provider().createArrayBuilder(collection);
+    }
+
+    public static YamlBuilderFactory createBuilderFactory(
+        Map<String, ?> config)
+    {
+        return provider().createBuilderFactory(config);
+    }
+
+    public static YamlValue createValue(
+        String value)
+    {
+        return provider().createValue(value);
+    }
+
+    public static YamlValue createValue(
+        BigDecimal value)
+    {
+        return provider().createValue(value);
+    }
+
+    public static YamlValue createValue(
+        BigInteger value)
+    {
+        return provider().createValue(value);
+    }
+
+    public static YamlValue createValue(
+        Number value)
+    {
+        return provider().createValue(value);
+    }
+
+    public static YamlValue createValue(
+        int value)
+    {
+        return provider().createValue(value);
+    }
+
+    public static YamlValue createValue(
+        long value)
+    {
+        return provider().createValue(value);
+    }
+
+    public static YamlValue createValue(
+        double value)
+    {
+        return provider().createValue(value);
+    }
+
+    public static YamlValue createValue(
+        boolean value)
+    {
+        return provider().createValue(value);
+    }
+
+    public static YamlValue createNullValue()
+    {
+        return provider().createNullValue();
     }
 
     private static final class ProviderHolder
