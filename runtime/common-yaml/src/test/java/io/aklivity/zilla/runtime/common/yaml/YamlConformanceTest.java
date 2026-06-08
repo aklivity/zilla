@@ -51,7 +51,6 @@ final class YamlConformanceTest
     private static final JsonProvider YAML_JSON = YamlJson.provider();
 
     private static final Set<String> JSON_PROJECTION_GAPS = Set.of(
-        "2EBW",
         "2SXE",
         "2XXW",
         "35KP",
@@ -68,7 +67,6 @@ final class YamlConformanceTest
         "9KAX",
         "9WXW",
         "A2M4",
-        "AZW3",
         "C4HZ",
         "CC74",
         "CT4Q",

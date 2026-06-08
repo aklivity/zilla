@@ -1611,10 +1611,28 @@ public final class YamlDocumentParser
             {
                 switch (c)
                 {
-                case '\'' -> single = true;
-                case '"' -> doub = true;
+                case '\'' ->
+                {
+                    if (isQuotedTokenStart(text, i))
+                    {
+                        single = true;
+                    }
+                }
+                case '"' ->
+                {
+                    if (isQuotedTokenStart(text, i))
+                    {
+                        doub = true;
+                    }
+                }
                 case '{', '[' -> depth++;
-                case '}', ']' -> depth--;
+                case '}', ']' ->
+                {
+                    if (depth > 0)
+                    {
+                        depth--;
+                    }
+                }
                 case ':' ->
                 {
                     if (depth == 0 && (i + 1 == text.length() || Character.isWhitespace(text.charAt(i + 1))))
@@ -1631,6 +1649,15 @@ public final class YamlDocumentParser
         }
 
         return -1;
+    }
+
+    private static boolean isQuotedTokenStart(
+        String text,
+        int index)
+    {
+        char previous = index == 0 ? 0 : text.charAt(index - 1);
+        return index == 0 || Character.isWhitespace(previous) ||
+            previous == '[' || previous == '{' || previous == ',' || previous == ':';
     }
 
     private static String unquote(
