@@ -521,12 +521,13 @@ public final class YamlDocumentParser
         ValueSpec spec = ValueSpec.parse(valueText, line, tagHandles);
         validateSpec(spec, line);
         index++;
+        Line valueLine = line.indent < indent ? line.atIndent(indent) : line;
 
         YamlNode value = spec.alias != null ?
             resolveAlias(spec.alias, line) :
             spec.value.isEmpty() ? nextNestedValue(indent, line) :
             isCompactSequence(spec.value) ? parseCompactSequenceValue(spec.value, indent, line) :
-            parseInlineValue(foldPlainScalar(spec.value, line, false, false), spec.tag, line, false);
+            parseInlineValue(foldPlainScalar(spec.value, valueLine, false, false), spec.tag, valueLine, false);
         if (spec.anchor != null && value.anchor != null)
         {
             throw error("YAML node cannot define multiple anchors", line);
@@ -561,12 +562,13 @@ public final class YamlDocumentParser
         ValueSpec spec = ValueSpec.parse(valueText, line, tagHandles);
         validateSpec(spec, line);
         index++;
+        Line valueLine = line.indent < indent ? line.atIndent(indent) : line;
 
         YamlNode value = spec.alias != null ?
             resolveAlias(spec.alias, line) :
             spec.value.isEmpty() ? nextNestedValue(indent, line) :
             isCompactSequence(spec.value) ? parseCompactSequenceValue(spec.value, indent, line) :
-            parseInlineValue(foldPlainScalar(spec.value, line, false, false), spec.tag, line, false);
+            parseInlineValue(foldPlainScalar(spec.value, valueLine, false, false), spec.tag, valueLine, false);
         if (spec.anchor != null && value.anchor != null)
         {
             throw error("YAML node cannot define multiple anchors", line);
@@ -959,6 +961,7 @@ public final class YamlDocumentParser
         int contentIndent = explicitIndent != -1 ? line.indent + explicitIndent :
             detectBlockScalarIndent(line.indent, allowSameIndent);
         List<BlockScalarLine> values = new ArrayList<>();
+        boolean seenContent = false;
         while (index < lines.size())
         {
             Line next = lines.get(index);
@@ -967,15 +970,16 @@ public final class YamlDocumentParser
                 break;
             }
             int nextIndent = spaceIndent(next.raw);
-            if (!next.raw.isBlank() && nextIndent < contentIndent)
+            boolean spaceOnly = isSpaceOnly(next.raw);
+            if (!spaceOnly && nextIndent < contentIndent)
             {
                 break;
             }
-            if (!allowSameIndent && !next.raw.isBlank() && nextIndent <= line.indent)
+            if (!allowSameIndent && !spaceOnly && nextIndent <= line.indent)
             {
                 break;
             }
-            if (next.raw.isBlank() && !next.raw.isEmpty() && nextIndent > contentIndent &&
+            if (!seenContent && spaceOnly && !next.raw.isEmpty() && nextIndent > contentIndent &&
                 hasFollowingBlockScalarContentOrComment(contentIndent))
             {
                 throw error("Wrong indented block scalar line", next);
@@ -983,8 +987,9 @@ public final class YamlDocumentParser
 
             values.add(new BlockScalarLine(
                 next.raw.length() >= contentIndent ? next.raw.substring(contentIndent) : "",
-                !next.raw.isBlank() && (nextIndent > contentIndent ||
+                !spaceOnly && (nextIndent > contentIndent ||
                     next.raw.length() > contentIndent && next.raw.charAt(contentIndent) == '\t')));
+            seenContent |= !spaceOnly;
             index++;
         }
 
@@ -1010,12 +1015,20 @@ public final class YamlDocumentParser
         for (int i = index; i < lines.size(); i++)
         {
             Line line = lines.get(i);
-            if (!line.raw.isBlank())
+            if (!isSpaceOnly(line.raw))
             {
                 int indent = spaceIndent(line.raw);
                 if (!allowSameIndent && indent <= parentIndent)
                 {
-                    throw error("Expected indented block scalar content", line);
+                    if (isSequence(line, indent) || isExplicitKey(line) || mappingColon(line.content) != -1 ||
+                        isMarker(line.content, "---") || isMarker(line.content, "..."))
+                    {
+                        break;
+                    }
+                    else
+                    {
+                        throw error("Expected indented block scalar content", line);
+                    }
                 }
                 return indent;
             }
@@ -1024,7 +1037,7 @@ public final class YamlDocumentParser
         for (int i = index; i < lines.size(); i++)
         {
             Line line = lines.get(i);
-            if (!line.raw.isBlank())
+            if (!isSpaceOnly(line.raw))
             {
                 break;
             }
@@ -1056,6 +1069,19 @@ public final class YamlDocumentParser
             }
         }
         return false;
+    }
+
+    private static boolean isSpaceOnly(
+        String raw)
+    {
+        for (int i = 0; i < raw.length(); i++)
+        {
+            if (raw.charAt(i) != ' ')
+            {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static int spaceIndent(
@@ -2909,6 +2935,12 @@ public final class YamlDocumentParser
             this.column = column;
             this.offset = offset;
             this.afterOffset = afterOffset;
+        }
+
+        private Line atIndent(
+            int indent)
+        {
+            return new Line(raw, indent, content, comment, blank, directive, ignorable, line, column, offset, afterOffset);
         }
     }
 }
