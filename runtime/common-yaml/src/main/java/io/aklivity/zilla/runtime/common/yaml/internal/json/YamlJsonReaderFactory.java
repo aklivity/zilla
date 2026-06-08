@@ -38,7 +38,7 @@ public final class YamlJsonReaderFactory implements JsonReaderFactory
     public JsonReader createReader(
         Reader reader)
     {
-        return new YamlJsonReader(new YamlJsonParser(reader));
+        return new YamlJsonReader(new YamlJsonParser(reader, config));
     }
 
     @Override
@@ -53,7 +53,7 @@ public final class YamlJsonReaderFactory implements JsonReaderFactory
         InputStream in,
         Charset charset)
     {
-        return new YamlJsonReader(new YamlJsonParser(in, charset));
+        return new YamlJsonReader(new YamlJsonParser(in, charset, config));
     }
 
     @Override

@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.common.yaml.internal.json;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.InputStream;
 import java.io.Reader;
 import java.nio.charset.Charset;
@@ -38,14 +40,14 @@ public final class YamlJsonParserFactory implements JsonParserFactory
     public JsonParser createParser(
         Reader reader)
     {
-        return new YamlJsonParser(reader);
+        return new YamlJsonParser(reader, config);
     }
 
     @Override
     public JsonParser createParser(
         InputStream in)
     {
-        return new YamlJsonParser(in);
+        return new YamlJsonParser(in, UTF_8, config);
     }
 
     @Override
@@ -53,7 +55,7 @@ public final class YamlJsonParserFactory implements JsonParserFactory
         InputStream in,
         Charset charset)
     {
-        return new YamlJsonParser(in, charset);
+        return new YamlJsonParser(in, charset, config);
     }
 
     @Override

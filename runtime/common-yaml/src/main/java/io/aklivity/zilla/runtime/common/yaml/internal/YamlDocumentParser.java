@@ -58,6 +58,13 @@ public final class YamlDocumentParser
 
     public static Result parse(
         String text,
+        Map<String, ?> config)
+    {
+        return parse(text, new YamlConfiguration(config));
+    }
+
+    public static Result parse(
+        String text,
         YamlConfiguration config)
     {
         Document document = new DocumentScanner(text, config).scan();
@@ -69,6 +76,13 @@ public final class YamlDocumentParser
         String text)
     {
         return parseAll(text, YamlConfiguration.DEFAULT);
+    }
+
+    public static List<Result> parseAll(
+        String text,
+        Map<String, ?> config)
+    {
+        return parseAll(text, new YamlConfiguration(config));
     }
 
     public static List<Result> parseAll(

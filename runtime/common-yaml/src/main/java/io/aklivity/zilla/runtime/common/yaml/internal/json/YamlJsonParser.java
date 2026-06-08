@@ -23,6 +23,7 @@ import java.math.BigDecimal;
 import java.nio.charset.Charset;
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.Map;
 
 import jakarta.json.JsonArray;
 import jakarta.json.JsonArrayBuilder;
@@ -53,7 +54,14 @@ public final class YamlJsonParser implements JsonParser
     public YamlJsonParser(
         Reader reader)
     {
-        this(readAll(reader));
+        this(readAll(reader), Map.of());
+    }
+
+    YamlJsonParser(
+        Reader reader,
+        Map<String, ?> config)
+    {
+        this(readAll(reader), config);
     }
 
     public YamlJsonParser(
@@ -66,15 +74,24 @@ public final class YamlJsonParser implements JsonParser
         InputStream in,
         Charset charset)
     {
-        this(readAll(in, charset));
+        this(readAll(in, charset), Map.of());
+    }
+
+    YamlJsonParser(
+        InputStream in,
+        Charset charset,
+        Map<String, ?> config)
+    {
+        this(readAll(in, charset), config);
     }
 
     private YamlJsonParser(
-        String text)
+        String text,
+        Map<String, ?> config)
     {
         try
         {
-            YamlDocumentParser.Result result = YamlDocumentParser.parse(text);
+            YamlDocumentParser.Result result = YamlDocumentParser.parse(text, config);
             rejectJsonUnsupported(result.node);
             this.stack = new ArrayDeque<>();
             stack.push(new Frame(result.node));

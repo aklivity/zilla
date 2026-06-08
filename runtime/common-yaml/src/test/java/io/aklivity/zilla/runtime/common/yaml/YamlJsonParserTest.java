@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 
 import jakarta.json.JsonObject;
+import jakarta.json.JsonReaderFactory;
 import jakarta.json.JsonValue;
 import jakarta.json.spi.JsonProvider;
 import jakarta.json.stream.JsonParser;
@@ -639,6 +640,33 @@ class YamlJsonParserTest
         parser = factory.createParser(JsonValue.EMPTY_JSON_ARRAY);
         assertEquals(START_ARRAY, parser.next());
         assertEquals(END_ARRAY, parser.next());
+    }
+
+    @Test
+    void shouldApplyYamlJsonFactoryConfig()
+    {
+        JsonParserFactory scalarResolutionDisabled = YamlJson.createParserFactory(Map.of(
+            YamlConfig.SCALAR_RESOLUTION, false));
+        JsonParser parser = scalarResolutionDisabled.createParser(new StringReader("42\n"));
+        assertEquals(VALUE_STRING, parser.next());
+        assertEquals("42", parser.getString());
+
+        JsonParserFactory flowCollectionsDisabled = YamlJson.createParserFactory(Map.of(
+            YamlConfig.FEATURE_FLOW_COLLECTIONS, false));
+        assertThrows(JsonParsingException.class,
+            () -> flowCollectionsDisabled.createParser(new ByteArrayInputStream("[1]\n".getBytes(UTF_8))));
+
+        JsonReaderFactory commentsDisabled = YamlJson.createReaderFactory(Map.of(
+            YamlConfig.FEATURE_COMMENTS, false));
+        assertThrows(JsonParsingException.class,
+            () -> commentsDisabled.createReader(new StringReader("name: test # comment\n")));
+
+        JsonReaderFactory readerScalarResolutionDisabled = YamlJson.createReaderFactory(Map.of(
+            YamlConfig.SCALAR_RESOLUTION, false));
+        assertEquals(JsonValue.ValueType.STRING, readerScalarResolutionDisabled
+            .createReader(new ByteArrayInputStream("42\n".getBytes(UTF_8)), UTF_8)
+            .readValue()
+            .getValueType());
     }
 
     @Test
