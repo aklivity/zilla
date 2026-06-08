@@ -262,8 +262,21 @@ public final class YamlDocumentParser
             else if (spec.value.isEmpty())
             {
                 index++;
-                YamlNode value = nextNestedValue(indent, line);
+                YamlNode value = nextNestedSequenceValue(indent, line);
                 value = applyTag(value, spec.tag, spec.value, line);
+                attachComments(value, line);
+                storeAnchor(spec.anchor, value, line);
+                array.add(value);
+            }
+            else if (isCompactSequence(spec.value))
+            {
+                index++;
+                YamlArrayNode value = parseCompactSequence(spec.value, indent + 2, line);
+                while (index < lines.size() && isSequence(peek(), indent + 2))
+                {
+                    YamlArrayNode continuation = parseSequence(indent + 2);
+                    continuation.values.forEach(value::add);
+                }
                 attachComments(value, line);
                 storeAnchor(spec.anchor, value, line);
                 array.add(value);
@@ -322,12 +335,87 @@ public final class YamlDocumentParser
         {
             throw error("YAML anchor cannot precede a block sequence entry", line);
         }
-        YamlNode value = spec.alias != null ?
-            resolveAlias(spec.alias, line) :
+        YamlNode value = spec.alias != null ? resolveAlias(spec.alias, line) :
+            spec.value.isEmpty() && (spec.anchor != null || spec.tag != null) ? nextAnchoredValue(line) :
             parseInlineValue(spec.value, spec.tag, line, true);
+        value = applyTag(value, spec.tag, spec.value, line);
         attachComments(value, line);
         storeAnchor(spec.anchor, value, line);
         return value;
+    }
+
+    private YamlNode nextAnchoredValue(
+        Line line)
+    {
+        skipIgnorable();
+        if (index < lines.size())
+        {
+            Line next = peek();
+            if (next.indent > line.indent)
+            {
+                return parseBlock(next.indent);
+            }
+            if (isSequence(next, next.indent))
+            {
+                return parseSequence(next.indent);
+            }
+        }
+        return YamlScalarNode.literal(YamlScalarType.NULL, line.line, line.column, line.offset);
+    }
+
+    private YamlArrayNode parseCompactSequence(
+        String text,
+        int indent,
+        Line line)
+    {
+        YamlArrayNode array = new YamlArrayNode(line.line, line.column, line.offset);
+        String item = text.substring(2).trim();
+        if (item.isEmpty())
+        {
+            array.add(YamlScalarNode.literal(YamlScalarType.NULL, line.line, line.column, line.offset));
+        }
+        else if (isCompactSequence(item))
+        {
+            array.add(parseCompactSequence(item, indent + 2, line));
+        }
+        else if (mappingColon(item) != -1)
+        {
+            YamlObjectNode object = new YamlObjectNode(line.line, line.column, line.offset);
+            addCompactMappingEntry(object, item, line);
+            array.add(object);
+        }
+        else
+        {
+            ValueSpec spec = ValueSpec.parse(item, line, tagHandles);
+            validateSpec(spec, line);
+            YamlNode value = spec.alias != null ? resolveAlias(spec.alias, line) :
+                parseInlineValue(spec.value, spec.tag, line);
+            value = applyTag(value, spec.tag, spec.value, line);
+            storeAnchor(spec.anchor, value, line);
+            array.add(value);
+        }
+        return array;
+    }
+
+    private void addCompactMappingEntry(
+        YamlObjectNode object,
+        String content,
+        Line line)
+    {
+        int colonAt = mappingColon(content);
+        String keyText = content.substring(0, colonAt).trim();
+        String valueText = content.substring(colonAt + 1).trim();
+        KeySpec key = parseKeySpec(keyText, line);
+        ValueSpec spec = ValueSpec.parse(valueText, line, tagHandles);
+        validateSpec(spec, line);
+        YamlNode value = spec.alias != null ? resolveAlias(spec.alias, line) :
+            spec.value.isEmpty() ? YamlScalarNode.literal(YamlScalarType.NULL, line.line, line.column, line.offset) :
+            parseInlineValue(spec.value, spec.tag, line);
+        value = applyTag(value, spec.tag, spec.value, line);
+        storeAnchor(spec.anchor, value, line);
+        object.add(key.key != null ?
+            new YamlEntry(key.key, value, line.line, line.column, line.offset) :
+            new YamlEntry(key.name, value, line.line, line.column, line.offset));
     }
 
     private void addExplicitMappingEntry(
@@ -472,6 +560,23 @@ public final class YamlDocumentParser
             if (next.indent == indent && isSequence(next, indent))
             {
                 return parseSequence(indent);
+            }
+        }
+
+        return YamlScalarNode.literal(YamlScalarType.NULL, line.line, line.column, line.offset);
+    }
+
+    private YamlNode nextNestedSequenceValue(
+        int indent,
+        Line line)
+    {
+        skipIgnorable();
+        if (index < lines.size())
+        {
+            Line next = peek();
+            if (next.indent > indent)
+            {
+                return parseBlock(next.indent);
             }
         }
 
@@ -1209,6 +1314,12 @@ public final class YamlDocumentParser
         return line.indent == indent && (line.content.equals("-") ||
             line.content.length() > 1 && line.content.charAt(0) == '-' &&
                 Character.isWhitespace(line.content.charAt(1)));
+    }
+
+    private static boolean isCompactSequence(
+        String text)
+    {
+        return text.length() > 1 && text.charAt(0) == '-' && Character.isWhitespace(text.charAt(1));
     }
 
     private static boolean tabIndented(
