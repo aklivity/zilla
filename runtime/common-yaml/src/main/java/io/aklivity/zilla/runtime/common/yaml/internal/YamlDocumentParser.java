@@ -965,7 +965,7 @@ public final class YamlDocumentParser
         while (index < lines.size())
         {
             Line next = lines.get(index);
-            if (next.offset >= source.length())
+            if (next.offset - next.indent >= source.length())
             {
                 break;
             }
