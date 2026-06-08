@@ -383,11 +383,45 @@ class YamlJsonParserTest
         assertEquals(true, object.getBoolean("boolean"));
         assertEquals(2, object.getJsonArray("sequence").getInt(1));
         assertEquals("test", object.getJsonObject("mapping").getString("name"));
-        assertThrows(JsonParsingException.class, () -> events(parserFor("""
+
+        assertEquals(List.of(
+            "START_OBJECT",
+            "KEY_NAME:value",
+            "VALUE_STRING:test",
+            "END_OBJECT"), events(parserFor("""
             %TAG !custom! tag:example.com,2026:
             ---
             value: !custom!thing test
             """)));
+    }
+
+    @Test
+    void shouldIgnoreUnknownTagsWhenProjectingToJson()
+    {
+        JsonParser parser = parserFor("""
+            key: !!crypto-key "xyz1123"
+            binary: !!binary "R0lGODdh"
+            sequence: !custom [1, 2]
+            mapping: !custom {name: test}
+            """);
+
+        assertEquals(List.of(
+            "START_OBJECT",
+            "KEY_NAME:key",
+            "VALUE_STRING:xyz1123",
+            "KEY_NAME:binary",
+            "VALUE_STRING:R0lGODdh",
+            "KEY_NAME:sequence",
+            "START_ARRAY",
+            "VALUE_NUMBER:1",
+            "VALUE_NUMBER:2",
+            "END_ARRAY",
+            "KEY_NAME:mapping",
+            "START_OBJECT",
+            "KEY_NAME:name",
+            "VALUE_STRING:test",
+            "END_OBJECT",
+            "END_OBJECT"), events(parser));
     }
 
     @Test
@@ -550,8 +584,13 @@ class YamlJsonParserTest
             "START_OBJECT",
             "KEY_NAME:name",
             "VALUE_STRING:one",
-            "END_OBJECT"), events(parser));
+            "END_OBJECT"), documentEvents(parser));
         assertEquals(text.indexOf("---", text.indexOf("---") + 1), parser.getLocation().getStreamOffset());
+        assertEquals(List.of(
+            "START_OBJECT",
+            "KEY_NAME:name",
+            "VALUE_STRING:two",
+            "END_OBJECT"), events(parser));
     }
 
     @Test
@@ -572,7 +611,7 @@ class YamlJsonParserTest
             "START_OBJECT",
             "KEY_NAME:name",
             "VALUE_STRING:one",
-            "END_OBJECT"), events(parser));
+            "END_OBJECT"), documentEvents(parser));
 
         documentAt += (int) parser.getLocation().getStreamOffset();
         assertEquals(text.indexOf("---", text.indexOf("...")), documentAt);
@@ -888,7 +927,11 @@ class YamlJsonParserTest
     @Test
     void shouldRejectUnsupportedYamlFeaturesAndMalformedDocuments()
     {
-        assertThrows(JsonParsingException.class, () -> events(parserFor("value: !custom test\n")));
+        assertEquals(List.of(
+            "START_OBJECT",
+            "KEY_NAME:value",
+            "VALUE_STRING:test",
+            "END_OBJECT"), events(parserFor("value: !custom test\n")));
         assertThrows(JsonParsingException.class, () -> parserFor("value: *missing\n"));
         assertEquals(List.of(
             "START_OBJECT",
@@ -933,6 +976,32 @@ class YamlJsonParserTest
             default -> events.add(event.name());
             }
         }
+        return events;
+    }
+
+    private static List<String> documentEvents(
+        JsonParser parser)
+    {
+        List<String> events = new java.util.ArrayList<>();
+        int depth = 0;
+        do
+        {
+            JsonParser.Event event = parser.next();
+            switch (event)
+            {
+            case START_OBJECT, START_ARRAY -> depth++;
+            case END_OBJECT, END_ARRAY -> depth--;
+            default ->
+            {
+            }
+            }
+            switch (event)
+            {
+            case KEY_NAME, VALUE_STRING, VALUE_NUMBER -> events.add(event.name() + ":" + parser.getString());
+            default -> events.add(event.name());
+            }
+        }
+        while (depth != 0);
         return events;
     }
 }

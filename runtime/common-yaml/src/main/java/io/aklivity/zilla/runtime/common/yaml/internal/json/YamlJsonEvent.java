@@ -49,4 +49,16 @@ final class YamlJsonEvent
         this.node = node;
         this.location = new YamlJsonLocation(new YamlLocation(line, column, offset));
     }
+
+    YamlJsonEvent(
+        JsonParser.Event event,
+        String value,
+        YamlNode node,
+        YamlJsonLocation location)
+    {
+        this.event = event;
+        this.value = value;
+        this.node = node;
+        this.location = location;
+    }
 }

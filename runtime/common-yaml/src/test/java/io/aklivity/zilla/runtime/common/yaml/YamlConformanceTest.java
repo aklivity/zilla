@@ -56,27 +56,7 @@ final class YamlConformanceTest
     private static final Path SUITE_MARKER = SUITE_DIR.resolve(".complete");
     private static final JsonProvider YAML_JSON = YamlJson.provider();
 
-    private static final Set<String> JSON_PROJECTION_GAPS = Set.of(
-        "2XXW",
-        "35KP",
-        "565N",
-        "5TYM",
-        "6CK3",
-        "6WLZ",
-        "6ZKB",
-        "7FWL",
-        "9DXL",
-        "9KAX",
-        "9WXW",
-        "C4HZ",
-        "CC74",
-        "CUP7",
-        "M5C3",
-        "P76L",
-        "UGM3",
-        "W4TN",
-        "Z67P",
-        "Z9M4");
+    private static final Set<String> JSON_PROJECTION_GAPS = Set.of();
     private static final Set<String> INVALID_REJECTION_GAPS = Set.of();
 
     @TestFactory
@@ -110,7 +90,14 @@ final class YamlConformanceTest
                     "known common-yaml invalid rejection gap");
 
                 String yaml = Files.readString(c.path.resolve("in.yaml"));
-                assertThrows(RuntimeException.class, () -> YamlJson.createReader(new StringReader(yaml)).readValue(), c.id);
+                assertThrows(RuntimeException.class, () ->
+                {
+                    JsonParser parser = YamlJson.createParser(new StringReader(yaml));
+                    while (parser.hasNext())
+                    {
+                        parser.next();
+                    }
+                }, c.id);
             }));
     }
 
@@ -144,29 +131,10 @@ final class YamlConformanceTest
         {
             return values;
         }
-        int offset = 0;
-        while (offset < text.length() && !text.substring(offset).isBlank())
+        JsonParser parser = YAML_JSON.createParser(new StringReader(text));
+        while (parser.hasNext())
         {
-            JsonParser parser = YAML_JSON.createParser(new StringReader(text.substring(offset)));
-            if (!parser.hasNext())
-            {
-                break;
-            }
             values.add(readValue(parser, parser.next()));
-            while (parser.hasNext())
-            {
-                parser.next();
-            }
-            int read = (int) parser.getLocation().getStreamOffset();
-            if (read <= 0)
-            {
-                break;
-            }
-            offset += read;
-            while (offset < text.length() && Character.isWhitespace(text.charAt(offset)))
-            {
-                offset++;
-            }
         }
         return values;
     }

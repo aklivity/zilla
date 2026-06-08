@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.common.yaml.internal;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -25,6 +26,7 @@ public final class YamlDocumentParser
 {
     private static final Pattern NUMBER_PATTERN = Pattern.compile(
         "-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?:[eE][+-]?[0-9]+)?");
+    private static final Pattern HEX_INTEGER_PATTERN = Pattern.compile("-?0x[0-9a-fA-F]+");
     private static final Pattern INTEGER_PATTERN = Pattern.compile("-?(?:0|[1-9][0-9]*)");
     private static final Pattern FLOAT_PATTERN = Pattern.compile(
         "-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?:[eE][+-]?[0-9]+)|-?(?:0|[1-9][0-9]*)\\.[0-9]+");
@@ -360,14 +362,24 @@ public final class YamlDocumentParser
             {
                 return parseBlock(next.indent);
             }
-            if (line.content.trim().startsWith("&") &&
-                next.indent == line.indent && (isExplicitKey(next) || mappingColon(next.content) != -1))
+            if (next.content.startsWith("|") || next.content.startsWith(">"))
             {
-                return parseMapping(next.indent);
+                index++;
+                Line scalar = next.indent < line.indent ? next.atIndent(0) : next;
+                return parseInlineValue(scalar.content, null, scalar, true);
             }
             if (isSequence(next, next.indent))
             {
                 return parseSequence(next.indent);
+            }
+            if ((line.content.trim().startsWith("&") || line.content.trim().startsWith("!")) &&
+                next.indent == line.indent && (isExplicitKey(next) || mappingColon(next.content) != -1))
+            {
+                return parseMapping(next.indent);
+            }
+            if (next.indent == line.indent)
+            {
+                return parsePlainLine();
             }
         }
         return YamlScalarNode.literal(YamlScalarType.NULL, line.line, line.column, line.offset);
@@ -1211,8 +1223,8 @@ public final class YamlDocumentParser
         case "true" -> YamlScalarNode.literal(YamlScalarType.TRUE, line.line, line.column, line.offset);
         case "false" -> YamlScalarNode.literal(YamlScalarType.FALSE, line.line, line.column, line.offset);
         case "null", "~" -> YamlScalarNode.literal(YamlScalarType.NULL, line.line, line.column, line.offset);
-        default -> NUMBER_PATTERN.matcher(text).matches() ?
-            YamlScalarNode.number(text, line.line, line.column, line.offset) :
+        default -> HEX_INTEGER_PATTERN.matcher(text).matches() || NUMBER_PATTERN.matcher(text).matches() ?
+            YamlScalarNode.number(numberText(text), line.line, line.column, line.offset) :
             YamlScalarNode.string(text, line.line, line.column, line.offset);
         };
         return (YamlScalarNode) applyTag(value, tag, text, line);
@@ -1324,11 +1336,11 @@ public final class YamlDocumentParser
         case "tag:yaml.org,2002:int" ->
         {
             String scalar = scalarText(value, text);
-            if (!INTEGER_PATTERN.matcher(scalar).matches())
+            if (!HEX_INTEGER_PATTERN.matcher(scalar).matches() && !INTEGER_PATTERN.matcher(scalar).matches())
             {
                 throw error("Invalid tagged integer scalar", line);
             }
-            yield YamlScalarNode.number(scalar, line.line, line.column, line.offset);
+            yield YamlScalarNode.number(numberText(scalar), line.line, line.column, line.offset);
         }
         case "tag:yaml.org,2002:float" ->
         {
@@ -1387,6 +1399,19 @@ public final class YamlDocumentParser
             case NULL -> text.isEmpty() ? "" : "null";
             default -> text;
             };
+        }
+        return text;
+    }
+
+    private static String numberText(
+        String text)
+    {
+        boolean negative = text.startsWith("-");
+        String scalar = negative ? text.substring(1) : text;
+        if (scalar.startsWith("0x"))
+        {
+            String value = new BigInteger(scalar.substring(2), 16).toString();
+            return negative ? "-" + value : value;
         }
         return text;
     }
@@ -1726,19 +1751,11 @@ public final class YamlDocumentParser
 
         folded.append(stripTrailingWhitespace(lines[0]));
         int blankLines = 0;
-        boolean escapedBreak = false;
         for (int i = 1; i < lines.length; i++)
         {
             boolean last = i == lines.length - 1;
             String line = stripLeadingWhitespace(lines[i]);
             boolean blank = line.isEmpty();
-
-            if (escapedBreak)
-            {
-                folded.append(last ? line : stripTrailingWhitespace(line));
-                escapedBreak = false;
-                continue;
-            }
 
             if (blank)
             {
@@ -1772,7 +1789,6 @@ public final class YamlDocumentParser
             if (folded.length() > 0 && folded.charAt(folded.length() - 1) == '\\')
             {
                 folded.setLength(folded.length() - 1);
-                escapedBreak = true;
             }
             else if (!separated)
             {
@@ -2476,6 +2492,10 @@ public final class YamlDocumentParser
             if ("!".equals(tag))
             {
                 return tag;
+            }
+            if (tag.indexOf('{') != -1 || tag.indexOf('}') != -1)
+            {
+                throw error("Malformed YAML tag", line);
             }
             if (tag.startsWith("!<") && tag.endsWith(">"))
             {
