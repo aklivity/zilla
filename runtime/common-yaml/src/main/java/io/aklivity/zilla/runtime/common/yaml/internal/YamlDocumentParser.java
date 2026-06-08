@@ -824,7 +824,8 @@ public final class YamlDocumentParser
 
             values.add(new BlockScalarLine(
                 next.raw.length() >= contentIndent ? next.raw.substring(contentIndent) : "",
-                !next.raw.isBlank() && nextIndent > contentIndent));
+                !next.raw.isBlank() && (nextIndent > contentIndent ||
+                    next.raw.length() > contentIndent && next.raw.charAt(contentIndent) == '\t')));
             index++;
         }
 
@@ -925,29 +926,43 @@ public final class YamlDocumentParser
         List<BlockScalarLine> lines)
     {
         StringBuilder value = new StringBuilder();
-        boolean previousBlank = false;
         boolean previousMoreIndented = false;
         boolean first = true;
+        int blankLines = 0;
         for (BlockScalarLine line : lines)
         {
             if (line.value.isEmpty())
             {
-                value.append('\n');
-                previousBlank = true;
+                blankLines++;
             }
             else
             {
-                if (!first)
+                if (blankLines != 0)
                 {
-                    value.append(previousBlank || previousMoreIndented || line.moreIndented ? '\n' : ' ');
+                    appendLineBreaks(value, blankLines + (!first && (previousMoreIndented || line.moreIndented) ? 1 : 0));
+                }
+                else if (!first)
+                {
+                    value.append(previousMoreIndented || line.moreIndented ? '\n' : ' ');
                 }
                 value.append(line.value);
-                previousBlank = false;
                 previousMoreIndented = line.moreIndented;
                 first = false;
+                blankLines = 0;
             }
         }
+        appendLineBreaks(value, blankLines);
         return value.toString();
+    }
+
+    private static void appendLineBreaks(
+        StringBuilder value,
+        int count)
+    {
+        for (int i = 0; i < count; i++)
+        {
+            value.append('\n');
+        }
     }
 
     private static String stripTrailingLineBreaks(
