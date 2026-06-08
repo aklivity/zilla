@@ -177,8 +177,10 @@ public final class YamlParserImpl implements YamlParser
                 {
                     YamlEntry entry = object.entries.get(frame.index);
                     frame.value = true;
+                    YamlValue key = entry.key != null ? YamlValues.wrap(entry.key) :
+                        YamlValues.wrap(YamlScalarNode.string(entry.name, entry.line, entry.column, entry.offset));
                     return new YamlEvent(EventType.KEY_NAME, entry.name,
-                        YamlValues.wrap(YamlScalarNode.string(entry.name, entry.line, entry.column, entry.offset)));
+                        key);
                 }
 
                 stack.pop();

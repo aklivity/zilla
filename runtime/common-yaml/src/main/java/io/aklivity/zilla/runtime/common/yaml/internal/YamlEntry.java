@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.common.yaml.internal;
 public final class YamlEntry
 {
     public final String name;
+    public final YamlNode key;
     public final YamlNode value;
     public final int line;
     public final int column;
@@ -41,7 +42,30 @@ public final class YamlEntry
         long offset,
         boolean merged)
     {
+        this(name, null, value, line, column, offset, merged);
+    }
+
+    public YamlEntry(
+        YamlNode key,
+        YamlNode value,
+        int line,
+        int column,
+        long offset)
+    {
+        this(null, key, value, line, column, offset, false);
+    }
+
+    private YamlEntry(
+        String name,
+        YamlNode key,
+        YamlNode value,
+        int line,
+        int column,
+        long offset,
+        boolean merged)
+    {
         this.name = name;
+        this.key = key;
         this.value = value;
         this.line = line;
         this.column = column;

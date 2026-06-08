@@ -31,6 +31,7 @@ public final class YamlDocumentParser
 
     private final List<Line> lines;
     private final Map<String, YamlNode> anchors;
+    private final Map<String, String> tagHandles;
     private final YamlLocation end;
     private final String source;
     private int index;
@@ -40,6 +41,7 @@ public final class YamlDocumentParser
     {
         this.lines = document.lines;
         this.anchors = new HashMap<>();
+        this.tagHandles = document.tagHandles;
         this.end = document.end;
         this.source = document.source;
     }
@@ -87,7 +89,7 @@ public final class YamlDocumentParser
             flow.append(next.raw.substring(Math.min(next.indent, next.raw.length())));
         }
         index = lines.size();
-        return new FlowParser(flow.toString(), line, anchors).parse();
+        return new FlowParser(flow.toString(), line, anchors, tagHandles).parse();
     }
 
     private YamlNode parseBlock(
@@ -165,7 +167,7 @@ public final class YamlDocumentParser
             }
 
             String item = line.content.length() == 1 ? "" : line.content.substring(2).trim();
-            ValueSpec spec = ValueSpec.parse(item, line);
+            ValueSpec spec = ValueSpec.parse(item, line, tagHandles);
 
             if (spec.alias != null)
             {
@@ -221,7 +223,7 @@ public final class YamlDocumentParser
     {
         Line line = peek();
         index++;
-        ValueSpec spec = ValueSpec.parse(line.content.trim(), line);
+        ValueSpec spec = ValueSpec.parse(line.content.trim(), line, tagHandles);
         YamlNode value = spec.alias != null ?
             resolveAlias(spec.alias, line) :
             parseScalar(spec.value, spec.tag, line);
@@ -235,12 +237,16 @@ public final class YamlDocumentParser
         Line line)
     {
         String keyText = line.content.substring(2).trim();
+        YamlNode keyNode = null;
+        String key = null;
         if (keyText.startsWith("{") || keyText.startsWith("["))
         {
-            throw error("Non-scalar YAML mapping keys are not supported", line);
+            keyNode = new FlowParser(keyText, line, anchors, tagHandles).parse();
         }
-
-        String key = parseKey(keyText, line);
+        else
+        {
+            key = parseKey(keyText, line);
+        }
         index++;
         skipIgnorable();
         if (index >= lines.size() || lines.get(index).indent != indent || !lines.get(index).content.startsWith(":"))
@@ -250,7 +256,14 @@ public final class YamlDocumentParser
 
         Line valueLine = lines.get(index);
         String valueText = valueLine.content.length() == 1 ? "" : valueLine.content.substring(1).trim();
-        addMappingEntry(object, key, valueText, indent, valueLine);
+        if (keyNode != null)
+        {
+            addMappingEntry(object, keyNode, valueText, indent, valueLine);
+        }
+        else
+        {
+            addMappingEntry(object, key, valueText, indent, valueLine);
+        }
     }
 
     private void addMappingEntry(
@@ -279,7 +292,7 @@ public final class YamlDocumentParser
         int indent,
         Line line)
     {
-        ValueSpec spec = ValueSpec.parse(valueText, line);
+        ValueSpec spec = ValueSpec.parse(valueText, line, tagHandles);
         index++;
 
         YamlNode value = spec.alias != null ?
@@ -299,6 +312,26 @@ public final class YamlDocumentParser
             object.removeMerged(key);
             object.add(new YamlEntry(key, value, line.line, line.column, line.offset));
         }
+    }
+
+    private void addMappingEntry(
+        YamlObjectNode object,
+        YamlNode key,
+        String valueText,
+        int indent,
+        Line line)
+    {
+        ValueSpec spec = ValueSpec.parse(valueText, line, tagHandles);
+        index++;
+
+        YamlNode value = spec.alias != null ?
+            resolveAlias(spec.alias, line) :
+            spec.value.isEmpty() ? nextNestedValue(indent, line) :
+            parseInlineValue(spec.value, spec.tag, line);
+
+        value = applyTag(value, spec.tag, spec.value, line);
+        storeAnchor(spec.anchor, value, line);
+        object.add(new YamlEntry(key, value, line.line, line.column, line.offset));
     }
 
     private YamlNode nextNestedValue(
@@ -334,7 +367,7 @@ public final class YamlDocumentParser
         if (text.startsWith("{") || text.startsWith("["))
         {
             String flow = collectFlowText(text, line);
-            return applyTag(new FlowParser(flow, line, anchors).parse(), tag, flow, line);
+            return applyTag(new FlowParser(flow, line, anchors, tagHandles).parse(), tag, flow, line);
         }
         return parseScalar(text, tag, line);
     }
@@ -554,7 +587,7 @@ public final class YamlDocumentParser
         return (YamlScalarNode) applyTag(value, tag, text, line);
     }
 
-    private static String parseKey(
+    private String parseKey(
         String text,
         Line line)
     {
@@ -570,7 +603,7 @@ public final class YamlDocumentParser
         {
             throw error("Non-scalar YAML mapping keys are not supported", line);
         }
-        ValueSpec spec = ValueSpec.parse(text, line);
+        ValueSpec spec = ValueSpec.parse(text, line, tagHandles);
         if (spec.alias != null || spec.anchor != null || spec.tag != null)
         {
             throw error("Decorated YAML mapping keys are not supported", line);
@@ -610,7 +643,7 @@ public final class YamlDocumentParser
     {
         for (YamlEntry entry : source.entries)
         {
-            if (!containsKey(target, entry.name))
+            if (entry.name != null && !containsKey(target, entry.name))
             {
                 target.add(new YamlEntry(entry.name, copy(entry.value), entry.line, entry.column, entry.offset, true));
             }
@@ -621,7 +654,7 @@ public final class YamlDocumentParser
         YamlObjectNode object,
         String name)
     {
-        return object.entries.stream().anyMatch(e -> e.name.equals(name));
+        return object.entries.stream().anyMatch(e -> name.equals(e.name));
     }
 
     private YamlNode applyTag(
@@ -756,7 +789,9 @@ public final class YamlDocumentParser
         copy.source = object.source;
         for (YamlEntry entry : object.entries)
         {
-            copy.add(new YamlEntry(entry.name, copy(entry.value), entry.line, entry.column, entry.offset, entry.merged));
+            copy.add(entry.key != null ?
+                new YamlEntry(copy(entry.key), copy(entry.value), entry.line, entry.column, entry.offset) :
+                new YamlEntry(entry.name, copy(entry.value), entry.line, entry.column, entry.offset, entry.merged));
         }
         return copy;
     }
@@ -910,11 +945,7 @@ public final class YamlDocumentParser
                 {
                     throw error("Unterminated escape sequence", line);
                 }
-                appendEscape(value, text.charAt(i), text, i, line);
-                if (text.charAt(i) == 'u')
-                {
-                    i += 4;
-                }
+                i = appendEscape(value, text, i, line);
             }
             else
             {
@@ -924,32 +955,60 @@ public final class YamlDocumentParser
         return value.toString();
     }
 
-    private static void appendEscape(
+    private static int appendEscape(
         StringBuilder value,
-        char escaped,
         String text,
         int at,
         Line line)
     {
+        char escaped = text.charAt(at);
         switch (escaped)
         {
+        case '0' -> value.append('\0');
+        case 'a' -> value.append('\u0007');
         case '"' -> value.append('"');
         case '\\' -> value.append('\\');
         case '/' -> value.append('/');
         case 'b' -> value.append('\b');
+        case 'e' -> value.append('\u001b');
         case 'f' -> value.append('\f');
         case 'n' -> value.append('\n');
         case 'r' -> value.append('\r');
         case 't' -> value.append('\t');
-        case 'u' ->
-        {
-            if (at + 4 >= text.length())
-            {
-                throw error("Unterminated unicode escape sequence", line);
-            }
-            value.append((char) Integer.parseInt(text.substring(at + 1, at + 5), 16));
-        }
+        case 'v' -> value.append('\u000b');
+        case ' ' -> value.append(' ');
+        case '_' -> value.append('\u00a0');
+        case 'N' -> value.append('\u0085');
+        case 'L' -> value.append('\u2028');
+        case 'P' -> value.append('\u2029');
+        case 'x' -> at = appendHexEscape(value, text, at, 2, line);
+        case 'u' -> at = appendHexEscape(value, text, at, 4, line);
+        case 'U' -> at = appendHexEscape(value, text, at, 8, line);
         default -> throw error("Unsupported escape sequence", line);
+        }
+        return at;
+    }
+
+    private static int appendHexEscape(
+        StringBuilder value,
+        String text,
+        int at,
+        int digits,
+        Line line)
+    {
+        if (at + digits >= text.length())
+        {
+            throw error("Unterminated unicode escape sequence", line);
+        }
+        try
+        {
+            int codePoint = Integer.parseUnsignedInt(text.substring(at + 1, at + 1 + digits), 16);
+            value.appendCodePoint(codePoint);
+            return at + digits;
+        }
+        catch (IllegalArgumentException ex)
+        {
+            throw error("Invalid unicode escape sequence", line);
         }
     }
 
@@ -1056,11 +1115,17 @@ public final class YamlDocumentParser
         private Document scan()
         {
             int start = 0;
+            Map<String, String> tagHandles = defaultTagHandles();
             while (start < all.size())
             {
                 Line line = all.get(start);
-                if (line.blank || line.directive)
+                if (line.blank)
                 {
+                    start++;
+                }
+                else if (line.directive)
+                {
+                    readDirective(line, tagHandles);
                     start++;
                 }
                 else if ("---".equals(line.content))
@@ -1096,7 +1161,33 @@ public final class YamlDocumentParser
                 documentLines.add(all.get(i));
             }
             String source = text.substring(0, (int) Math.min(endOffset, text.length()));
-            return new Document(documentLines, new YamlLocation(1, 1, endOffset), source);
+            return new Document(documentLines, new YamlLocation(1, 1, endOffset), source, tagHandles);
+        }
+
+        private static Map<String, String> defaultTagHandles()
+        {
+            Map<String, String> tagHandles = new HashMap<>();
+            tagHandles.put("!!", "tag:yaml.org,2002:");
+            return tagHandles;
+        }
+
+        private static void readDirective(
+            Line line,
+            Map<String, String> tagHandles)
+        {
+            if (line.content.startsWith("%TAG "))
+            {
+                String[] parts = line.content.split("\\s+");
+                if (parts.length != 3)
+                {
+                    throw error("Malformed YAML TAG directive", line);
+                }
+                if (!parts[1].startsWith("!") || !parts[1].endsWith("!"))
+                {
+                    throw error("Malformed YAML TAG handle", line);
+                }
+                tagHandles.put(parts[1], parts[2]);
+            }
         }
 
         private static List<Line> lines(
@@ -1157,15 +1248,18 @@ public final class YamlDocumentParser
         final List<Line> lines;
         final YamlLocation end;
         final String source;
+        final Map<String, String> tagHandles;
 
         private Document(
             List<Line> lines,
             YamlLocation end,
-            String source)
+            String source,
+            Map<String, String> tagHandles)
         {
             this.lines = lines;
             this.end = end;
             this.source = source;
+            this.tagHandles = tagHandles;
         }
     }
 
@@ -1190,7 +1284,8 @@ public final class YamlDocumentParser
 
         static ValueSpec parse(
             String text,
-            Line line)
+            Line line,
+            Map<String, String> tagHandles)
         {
             String anchor = null;
             String alias = null;
@@ -1226,7 +1321,7 @@ public final class YamlDocumentParser
                 else if (value.startsWith("!"))
                 {
                     int end = tagEnd(value);
-                    tag = normalizeTag(value.substring(0, end), line);
+                    tag = normalizeTag(value.substring(0, end), line, tagHandles);
                     value = value.substring(end).trim();
                     progress = true;
                 }
@@ -1274,15 +1369,12 @@ public final class YamlDocumentParser
 
         private static String normalizeTag(
             String tag,
-            Line line)
+            Line line,
+            Map<String, String> tagHandles)
         {
             if ("!".equals(tag))
             {
                 return tag;
-            }
-            if (tag.startsWith("!!"))
-            {
-                return "tag:yaml.org,2002:" + tag.substring(2);
             }
             if (tag.startsWith("!<") && tag.endsWith(">"))
             {
@@ -1291,6 +1383,14 @@ public final class YamlDocumentParser
                 {
                     return uri;
                 }
+            }
+            String handle = tagHandles.keySet().stream()
+                .filter(tag::startsWith)
+                .max((a, b) -> Integer.compare(a.length(), b.length()))
+                .orElse(null);
+            if (handle != null)
+            {
+                return tagHandles.get(handle) + tag.substring(handle.length());
             }
             throw error("Unsupported YAML tag", line);
         }
@@ -1301,16 +1401,19 @@ public final class YamlDocumentParser
         private final String text;
         private final Line line;
         private final Map<String, YamlNode> anchors;
+        private final Map<String, String> tagHandles;
         private int cursor;
 
         private FlowParser(
             String text,
             Line line,
-            Map<String, YamlNode> anchors)
+            Map<String, YamlNode> anchors,
+            Map<String, String> tagHandles)
         {
             this.text = text;
             this.line = line;
             this.anchors = anchors;
+            this.tagHandles = tagHandles;
         }
 
         private YamlNode parse()
@@ -1401,7 +1504,7 @@ public final class YamlDocumentParser
                     {
                         cursor++;
                     }
-                    tag = ValueSpec.normalizeTag(text.substring(start, cursor), line);
+                    tag = ValueSpec.normalizeTag(text.substring(start, cursor), line, tagHandles);
                     progress = true;
                 }
             }
@@ -1431,7 +1534,8 @@ public final class YamlDocumentParser
                 YamlNode value = parseValue();
                 if ("<<".equals(key))
                 {
-                    new YamlDocumentParser(new Document(List.of(), new YamlLocation(1, 1, text.length()), ""))
+                    new YamlDocumentParser(new Document(List.of(), new YamlLocation(1, 1, text.length()), "",
+                        DocumentScanner.defaultTagHandles()))
                         .merge(object, value, line);
                 }
                 else
@@ -1530,7 +1634,8 @@ public final class YamlDocumentParser
                 }
                 cursor++;
             }
-            return new YamlDocumentParser(new Document(List.of(), new YamlLocation(1, 1, text.length()), ""))
+            return new YamlDocumentParser(new Document(List.of(), new YamlLocation(1, 1, text.length()), "",
+                DocumentScanner.defaultTagHandles()))
                 .parseScalar(text.substring(start, cursor).trim(), null, line);
         }
 
@@ -1592,7 +1697,8 @@ public final class YamlDocumentParser
         String tag,
         Line line)
     {
-        return new YamlDocumentParser(new Document(List.of(), new YamlLocation(1, 1, 0), ""))
+        return new YamlDocumentParser(new Document(List.of(), new YamlLocation(1, 1, 0), "",
+            DocumentScanner.defaultTagHandles()))
             .applyTag(value, tag, scalarText(value, ""), line);
     }
 

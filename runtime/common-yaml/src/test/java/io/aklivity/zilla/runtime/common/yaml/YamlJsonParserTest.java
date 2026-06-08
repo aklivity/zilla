@@ -237,6 +237,68 @@ class YamlJsonParserTest
     }
 
     @Test
+    void shouldParseYamlDoubleQuotedEscapes()
+    {
+        JsonObject object = YamlJson.provider().createReader(new StringReader("""
+            control: "\\0\\a\\b\\t\\n\\v\\f\\r\\e"
+            space: "\\ \\_"
+            unicode: "\\N\\L\\P\\x41\\u0042\\U00000043"
+            astral: "\\U0001f600"
+            """)).readObject();
+
+        assertEquals("\0\u0007\b\t\n\u000b\f\r\u001b", object.getString("control"));
+        assertEquals(" \u00a0", object.getString("space"));
+        assertEquals("\u0085\u2028\u2029ABC", object.getString("unicode"));
+        assertEquals(0x1f600, object.getString("astral").codePointAt(0));
+    }
+
+    @Test
+    void shouldApplyTagDirectivesToCoreTags()
+    {
+        JsonObject object = YamlJson.provider().createReader(new StringReader("""
+            %TAG !yaml! tag:yaml.org,2002:
+            ---
+            string: !yaml!str 42
+            integer: !yaml!int 42
+            boolean: !yaml!bool true
+            sequence: !yaml!seq [1, 2]
+            mapping: !yaml!map {name: test}
+            """)).readObject();
+
+        assertEquals("42", object.getString("string"));
+        assertEquals(42, object.getInt("integer"));
+        assertEquals(true, object.getBoolean("boolean"));
+        assertEquals(2, object.getJsonArray("sequence").getInt(1));
+        assertEquals("test", object.getJsonObject("mapping").getString("name"));
+        assertThrows(JsonParsingException.class, () -> parserFor("""
+            %TAG !custom! tag:example.com,2026:
+            ---
+            value: !custom!thing test
+            """));
+    }
+
+    @Test
+    void shouldResolveNestedMergeAliasesInOrder()
+    {
+        JsonObject object = YamlJson.provider().createReader(new StringReader("""
+            base: &base
+              host: localhost
+              port: 7114
+            tls: &tls
+              port: 443
+              secure: true
+            route:
+              <<: [*base, *tls]
+              host: example.com
+            """)).readObject();
+
+        JsonObject route = object.getJsonObject("route");
+        assertEquals("example.com", route.getString("host"));
+        assertEquals(7114, route.getInt("port"));
+        assertEquals(true, route.getBoolean("secure"));
+    }
+
+    @Test
     void shouldParseEmptyDocumentValuesAndNestedSequenceItems()
     {
         assertEquals(List.of("VALUE_NULL"), events(parserFor("")));
@@ -558,6 +620,7 @@ class YamlJsonParserTest
         assertThrows(JsonParsingException.class, () -> parserFor("value: !custom test\n"));
         assertThrows(JsonParsingException.class, () -> parserFor("value: *missing\n"));
         assertThrows(JsonParsingException.class, () -> parserFor("{[key]: value}\n"));
+        assertThrows(JsonParsingException.class, () -> events(parserFor("? [key]\n: value\n")));
         assertThrows(JsonParsingException.class, () -> parserFor("value: .nan\n"));
         assertThrows(JsonParsingException.class, () -> parserFor("value: |\ntext\n"));
         assertThrows(JsonParsingException.class, () -> parserFor("\tname: test\n"));

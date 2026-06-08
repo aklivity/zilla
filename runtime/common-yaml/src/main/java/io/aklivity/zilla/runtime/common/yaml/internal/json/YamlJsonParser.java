@@ -287,6 +287,10 @@ public final class YamlJsonParser implements JsonParser
                 if (frame.index < object.entries.size())
                 {
                     YamlEntry entry = object.entries.get(frame.index);
+                    if (entry.key != null)
+                    {
+                        throw new JsonParsingException("Non-scalar YAML mapping keys are not supported", getLocation());
+                    }
                     frame.value = true;
                     return new YamlJsonEvent(Event.KEY_NAME, entry.name,
                         YamlScalarNode.string(entry.name, entry.line, entry.column, entry.offset),
@@ -343,6 +347,10 @@ public final class YamlJsonParser implements JsonParser
             JsonObjectBuilder builder = YamlJsonValues.objectBuilder();
             for (YamlEntry entry : object.entries)
             {
+                if (entry.key != null)
+                {
+                    throw new JsonParsingException("Non-scalar YAML mapping keys are not supported", getLocation());
+                }
                 builder.add(entry.name, toJsonValue(entry.value));
             }
             return builder.build();

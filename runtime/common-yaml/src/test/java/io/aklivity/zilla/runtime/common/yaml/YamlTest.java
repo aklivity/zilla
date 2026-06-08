@@ -246,6 +246,31 @@ class YamlTest
     }
 
     @Test
+    void shouldRoundTripNativeNonScalarKeys()
+    {
+        String yaml = """
+            ? [a, b]
+            : value
+            ? {name: test}
+            :
+              nested: true
+            """;
+        YamlValue value = Yaml.createReader(new StringReader(yaml)).readValue();
+        StringWriter generated = new StringWriter();
+
+        Yaml.createWriter(generated).write(value);
+
+        assertEquals(yaml, generated.toString());
+
+        YamlParser parser = Yaml.createParser(new StringReader(yaml));
+        assertEquals(YamlEvent.EventType.START_OBJECT, parser.next().getEventType());
+        YamlEvent key = parser.next();
+        assertEquals(YamlEvent.EventType.KEY_NAME, key.getEventType());
+        assertNull(key.getString());
+        assertEquals(YamlValue.ValueType.ARRAY, key.getValue().getValueType());
+    }
+
+    @Test
     void shouldWriteNativeValues()
     {
         YamlObject object = Yaml.createReader(new StringReader("name: test\n")).readObject();

@@ -190,7 +190,7 @@ final class YamlValues
             for (int index = object.entries.size() - 1; index >= 0; index--)
             {
                 YamlEntry entry = object.entries.get(index);
-                if (entry.name.equals(name))
+                if (name.equals(entry.name))
                 {
                     return wrap(entry.value);
                 }
