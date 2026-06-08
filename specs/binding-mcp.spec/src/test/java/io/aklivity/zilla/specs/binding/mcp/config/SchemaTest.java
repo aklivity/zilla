@@ -90,15 +90,9 @@ public class SchemaTest
     }
 
     @Test(expected = JsonValidatingException.class)
-    public void shouldRejectServerRouteWithToolkit()
+    public void shouldRejectServerWithRoutes()
     {
-        schema.validate("server.toolkit.invalid.yaml");
-    }
-
-    @Test(expected = JsonValidatingException.class)
-    public void shouldRejectServerRouteWithCacheCredentials()
-    {
-        schema.validate("server.cache.credentials.invalid.yaml");
+        schema.validate("server.routes.invalid.yaml");
     }
 
     @Test(expected = JsonValidatingException.class)

@@ -21,6 +21,3 @@ bindings:
     kind: server
     routes:
       - exit: app0
-        with:
-          cache:
-            credentials: "{token}"

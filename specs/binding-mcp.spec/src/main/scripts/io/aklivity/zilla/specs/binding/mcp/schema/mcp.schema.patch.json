@@ -104,66 +104,7 @@
                                     },
                                     "additionalProperties": false
                                 },
-                                "routes":
-                                {
-                                    "title": "Routes",
-                                    "type": "array",
-                                    "items":
-                                    {
-                                        "type": "object",
-                                        "properties":
-                                        {
-                                            "when":
-                                            {
-                                                "title": "When",
-                                                "type": "array",
-                                                "items":
-                                                {
-                                                    "type": "object",
-                                                    "properties":
-                                                    {
-                                                        "capability":
-                                                        {
-                                                            "title": "Capability",
-                                                            "type": "array",
-                                                            "items":
-                                                            {
-                                                                "type": "string",
-                                                                "enum": [ "tools", "prompts", "resources" ]
-                                                            },
-                                                            "minItems": 1,
-                                                            "uniqueItems": true
-                                                        }
-                                                    },
-                                                    "additionalProperties": false
-                                                }
-                                            },
-                                            "with":
-                                            {
-                                                "title": "With",
-                                                "type": "object",
-                                                "properties":
-                                                {
-                                                    "headers":
-                                                    {
-                                                        "title": "Headers",
-                                                        "type": "object",
-                                                        "patternProperties":
-                                                        {
-                                                            "^(?!(:method|content-type|mcp-))[A-Za-z0-9:-]+$":
-                                                            {
-                                                                "type": "string"
-                                                            }
-                                                        },
-                                                        "additionalProperties": false
-                                                    }
-                                                },
-                                                "additionalProperties": false
-                                            },
-                                            "guarded": false
-                                        }
-                                    }
-                                }
+                                "routes": false
                             }
                         }
                     },

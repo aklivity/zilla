@@ -22,5 +22,4 @@ bindings:
     options:
       elicitation:
         timeout: PT30S
-    routes:
-      - exit: app0
+    exit: app0
