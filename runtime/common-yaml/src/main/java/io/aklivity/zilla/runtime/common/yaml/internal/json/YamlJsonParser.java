@@ -23,6 +23,7 @@ import java.math.BigDecimal;
 import java.nio.charset.Charset;
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.Map;
 
 import jakarta.json.JsonArray;
@@ -34,6 +35,7 @@ import jakarta.json.stream.JsonLocation;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParsingException;
 
+import io.aklivity.zilla.runtime.common.yaml.YamlConfig;
 import io.aklivity.zilla.runtime.common.yaml.internal.YamlArrayNode;
 import io.aklivity.zilla.runtime.common.yaml.internal.YamlDocumentParser;
 import io.aklivity.zilla.runtime.common.yaml.internal.YamlEntry;
@@ -91,7 +93,7 @@ public final class YamlJsonParser implements JsonParser
     {
         try
         {
-            YamlDocumentParser.Result result = YamlDocumentParser.parse(text, config);
+            YamlDocumentParser.Result result = YamlDocumentParser.parse(text, jsonAsYamlConfig(config));
             rejectJsonUnsupported(result.node);
             this.stack = new ArrayDeque<>();
             stack.push(new Frame(result.node));
@@ -101,6 +103,18 @@ public final class YamlJsonParser implements JsonParser
         {
             throw new JsonParsingException(ex.getMessage(), new YamlJsonLocation(ex.location()));
         }
+    }
+
+    private static Map<String, ?> jsonAsYamlConfig(
+        Map<String, ?> config)
+    {
+        Map<String, Object> effective = new HashMap<>();
+        if (config != null)
+        {
+            effective.putAll(config);
+        }
+        effective.put(YamlConfig.FEATURE_NON_SCALAR_KEYS, false);
+        return Map.copyOf(effective);
     }
 
     @Override

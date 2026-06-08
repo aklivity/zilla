@@ -761,6 +761,46 @@ class YamlJsonParserTest
     }
 
     @Test
+    void shouldApplyJsonAsYamlProjectionProfile()
+    {
+        assertThrows(JsonParsingException.class, () -> events(parserFor("""
+            ? [key]
+            : value
+            """)));
+        JsonParserFactory nonScalarKeysEnabled = YamlJson.createParserFactory(Map.of(
+            YamlConfig.FEATURE_NON_SCALAR_KEYS, true));
+        assertThrows(JsonParsingException.class, () -> nonScalarKeysEnabled.createParser(new StringReader("""
+            ? [key]
+            : value
+            """)));
+
+        JsonParser parser = parserFor("""
+            # comment
+            defaults: &defaults
+              type: test
+            binding:
+              <<: *defaults
+              kind: server
+            """);
+
+        assertEquals(List.of(
+            "START_OBJECT",
+            "KEY_NAME:defaults",
+            "START_OBJECT",
+            "KEY_NAME:type",
+            "VALUE_STRING:test",
+            "END_OBJECT",
+            "KEY_NAME:binding",
+            "START_OBJECT",
+            "KEY_NAME:type",
+            "VALUE_STRING:test",
+            "KEY_NAME:kind",
+            "VALUE_STRING:server",
+            "END_OBJECT",
+            "END_OBJECT"), events(parser));
+    }
+
+    @Test
     void shouldExposeParserMethods()
     {
         JsonParser parser = parserFor("""

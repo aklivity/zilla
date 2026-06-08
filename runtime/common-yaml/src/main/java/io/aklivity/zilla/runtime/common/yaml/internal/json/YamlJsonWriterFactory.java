@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.common.yaml.internal.json;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.util.Map;
@@ -27,19 +26,19 @@ import jakarta.json.JsonWriterFactory;
 
 public final class YamlJsonWriterFactory implements JsonWriterFactory
 {
-    private final Map<String, ?> config;
+    private final YamlJsonGeneratorFactory generators;
 
     public YamlJsonWriterFactory(
         Map<String, ?> config)
     {
-        this.config = config == null ? Map.of() : Map.copyOf(config);
+        this.generators = new YamlJsonGeneratorFactory(config);
     }
 
     @Override
     public JsonWriter createWriter(
         Writer writer)
     {
-        return new YamlJsonWriter(new YamlJsonGenerator(writer));
+        return new YamlJsonWriter(generators.createGenerator(writer));
     }
 
     @Override
@@ -54,12 +53,12 @@ public final class YamlJsonWriterFactory implements JsonWriterFactory
         OutputStream out,
         Charset charset)
     {
-        return new YamlJsonWriter(new YamlJsonGenerator(new OutputStreamWriter(out, charset)));
+        return new YamlJsonWriter(generators.createGenerator(out, charset));
     }
 
     @Override
     public Map<String, ?> getConfigInUse()
     {
-        return config;
+        return generators.getConfigInUse();
     }
 }

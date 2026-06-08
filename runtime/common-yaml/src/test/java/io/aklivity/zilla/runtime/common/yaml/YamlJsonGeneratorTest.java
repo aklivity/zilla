@@ -151,6 +151,45 @@ class YamlJsonGeneratorTest
     }
 
     @Test
+    void shouldGenerateJsonAsYamlWhenYamlOnlyFeaturesAreDisabled()
+    {
+        StringWriter out = new StringWriter();
+        JsonGeneratorFactory factory = YamlJson.createGeneratorFactory(Map.ofEntries(
+            Map.entry(YamlConfig.FEATURE_DIRECTIVES, false),
+            Map.entry(YamlConfig.FEATURE_DOCUMENT_MARKERS, false),
+            Map.entry(YamlConfig.FEATURE_BLOCK_SCALARS, false),
+            Map.entry(YamlConfig.FEATURE_FLOW_COLLECTIONS, false),
+            Map.entry(YamlConfig.FEATURE_ANCHORS, false),
+            Map.entry(YamlConfig.FEATURE_ALIASES, false),
+            Map.entry(YamlConfig.FEATURE_MERGE_KEYS, false),
+            Map.entry(YamlConfig.FEATURE_TAGS, false),
+            Map.entry(YamlConfig.FEATURE_COMMENTS, false),
+            Map.entry(YamlConfig.FEATURE_NON_SCALAR_KEYS, false),
+            Map.entry(YamlConfig.FEATURE_MULTI_DOCUMENT_STREAMS, false)));
+
+        factory.createGenerator(out)
+            .writeStartObject()
+                .write("name", "test")
+                .write("count", 1)
+                .write("enabled", true)
+                .writeStartArray("items")
+                    .write("one")
+                    .write(2)
+                .writeEnd()
+            .writeEnd()
+            .close();
+
+        assertEquals("""
+            name: test
+            count: 1
+            enabled: true
+            items:
+              - one
+              - 2
+            """, out.toString());
+    }
+
+    @Test
     void shouldGenerateViaOutputStreamEntryPointsAndFlush()
     {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
