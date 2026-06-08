@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.binding.mcp.internal.config;
 
 import static io.aklivity.zilla.runtime.binding.mcp.internal.config.McpBindingConfig.authorityOf;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.config.McpBindingConfig.naturalAuthority;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.config.McpBindingConfig.pathOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -53,5 +54,23 @@ public class McpBindingConfigTest
     public void shouldDefaultRootPath()
     {
         assertThat(pathOf(URI.create("http://localhost:8080")), equalTo("/"));
+    }
+
+    @Test
+    public void shouldStripDefaultHttpsPortFromAuthority()
+    {
+        assertThat(naturalAuthority("localhost:443", "https"), equalTo("localhost"));
+    }
+
+    @Test
+    public void shouldKeepNonDefaultPortInAuthority()
+    {
+        assertThat(naturalAuthority("localhost:8080", "https"), equalTo("localhost:8080"));
+    }
+
+    @Test
+    public void shouldKeepAuthorityWithoutPort()
+    {
+        assertThat(naturalAuthority("localhost", "https"), equalTo("localhost"));
     }
 }

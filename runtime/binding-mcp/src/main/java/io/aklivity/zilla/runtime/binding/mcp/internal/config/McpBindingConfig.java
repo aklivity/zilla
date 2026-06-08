@@ -149,6 +149,16 @@ public final class McpBindingConfig
         return SCHEME_HTTPS.equals(scheme) ? PORT_HTTPS : PORT_HTTP;
     }
 
+    static String naturalAuthority(
+        String authority,
+        String scheme)
+    {
+        final String defaultSuffix = ":" + defaultPort(scheme);
+        return authority.endsWith(defaultSuffix)
+            ? authority.substring(0, authority.length() - defaultSuffix.length())
+            : authority;
+    }
+
     public McpRouteConfig resolve(
         long authorization)
     {
@@ -306,7 +316,7 @@ public final class McpBindingConfig
                     .map(o -> o.elicitation)
                     .map(e -> e.callback)
                     .orElse(DEFAULT_CALLBACK_PATH);
-                redirectURI = "https://" + authority + pathOnly + "/" + callback;
+                redirectURI = "https://" + naturalAuthority(authority, SCHEME_HTTPS) + pathOnly + "/" + callback;
             }
         }
         return redirectURI;
