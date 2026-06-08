@@ -161,7 +161,8 @@ public class JsonProjectorBM
         int length)
     {
         generator.wrap(outputBuffer, 0);
-        projector.drive(parserFor(buffer, length));
+        projector.reset();
+        projector.pump(parserFor(buffer, length));
         return generator.length();
     }
 

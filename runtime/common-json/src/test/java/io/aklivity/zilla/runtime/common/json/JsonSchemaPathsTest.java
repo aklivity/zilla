@@ -111,7 +111,8 @@ class JsonSchemaPathsTest
             "\"items\":{\"type\":\"array\",\"items\":{\"type\":\"object\"," +
             "\"properties\":{\"id\":{\"type\":\"integer\"}}}}}}"),
             JsonEventConsumer.of(gen));
-        projector.drive(parserFor("{\"items\":[{\"id\":1,\"x\":9},{\"id\":2}],\"k\":0} "));
+        projector.reset();
+        projector.pump(parserFor("{\"items\":[{\"id\":1,\"x\":9},{\"id\":2}],\"k\":0} "));
         byte[] out = new byte[gen.length()];
         buffer.getBytes(0, out);
         assertEquals("{\"items\":[{\"id\":1},{\"id\":2}]}", new String(out, UTF_8));

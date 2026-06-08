@@ -59,8 +59,8 @@ public interface JsonEventConsumer
      * event right now (returning {@link Status#PENDING}). Does <em>not</em> reset, so it resumes a
      * value left in progress by an earlier call — the pump model for slot-fragmented input, where
      * each network frame appends bytes to the underlying parser and re-invokes the pump. Call
-     * {@link #reset()} once before the first value (or {@link #drive(JsonParser)} for the one-shot
-     * case).
+     * {@link #reset()} once before the first value, then {@code pump} per frame; for the one-shot,
+     * complete-buffer case call {@code reset()} then a single {@code pump}.
      */
     default Status pump(
         JsonParser parser)
@@ -71,18 +71,6 @@ public interface JsonEventConsumer
             status = feed(parser.next(), parser);
         }
         return status;
-    }
-
-    /**
-     * Resets, then pumps {@code parser} to a terminal {@link Status} (or until it yields no
-     * further event). A convenience for the one-shot, complete-buffer case; resumable callers
-     * {@link #reset()} once and then {@link #pump(JsonParser)} per frame.
-     */
-    default Status drive(
-        JsonParser parser)
-    {
-        reset();
-        return pump(parser);
     }
 
     /**

@@ -16,16 +16,9 @@ package io.aklivity.zilla.runtime.common.json.internal;
 
 import static jakarta.json.stream.JsonParser.Event.START_ARRAY;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Stream;
 
-import jakarta.json.JsonArray;
-import jakarta.json.JsonObject;
-import jakarta.json.JsonValue;
-import jakarta.json.stream.JsonLocation;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParser.Event;
 
@@ -333,7 +326,7 @@ public final class StreamingJsonProjector implements JsonProjector
         return result;
     }
 
-    private static final class KeyParser implements JsonParser
+    private static final class KeyParser extends ForwardingJsonParser
     {
         private JsonParser delegate;
         private String keyOverride;
@@ -348,99 +341,15 @@ public final class StreamingJsonProjector implements JsonProjector
         }
 
         @Override
+        protected JsonParser delegate()
+        {
+            return delegate;
+        }
+
+        @Override
         public String getString()
         {
             return keyOverride != null ? keyOverride : delegate.getString();
-        }
-
-        @Override
-        public JsonLocation getLocation()
-        {
-            return delegate.getLocation();
-        }
-
-        @Override
-        public boolean hasNext()
-        {
-            return delegate.hasNext();
-        }
-
-        @Override
-        public Event next()
-        {
-            return delegate.next();
-        }
-
-        @Override
-        public boolean isIntegralNumber()
-        {
-            return delegate.isIntegralNumber();
-        }
-
-        @Override
-        public int getInt()
-        {
-            return delegate.getInt();
-        }
-
-        @Override
-        public long getLong()
-        {
-            return delegate.getLong();
-        }
-
-        @Override
-        public BigDecimal getBigDecimal()
-        {
-            return delegate.getBigDecimal();
-        }
-
-        @Override
-        public JsonObject getObject()
-        {
-            return delegate.getObject();
-        }
-
-        @Override
-        public JsonValue getValue()
-        {
-            return delegate.getValue();
-        }
-
-        @Override
-        public JsonArray getArray()
-        {
-            return delegate.getArray();
-        }
-
-        @Override
-        public Stream<JsonValue> getArrayStream()
-        {
-            return delegate.getArrayStream();
-        }
-
-        @Override
-        public Stream<Map.Entry<String, JsonValue>> getObjectStream()
-        {
-            return delegate.getObjectStream();
-        }
-
-        @Override
-        public Stream<JsonValue> getValueStream()
-        {
-            return delegate.getValueStream();
-        }
-
-        @Override
-        public void skipObject()
-        {
-            delegate.skipObject();
-        }
-
-        @Override
-        public void skipArray()
-        {
-            delegate.skipArray();
         }
 
         @Override

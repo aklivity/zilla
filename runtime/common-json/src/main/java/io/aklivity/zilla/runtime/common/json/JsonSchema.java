@@ -25,7 +25,10 @@ import static jakarta.json.stream.JsonParser.Event.VALUE_NUMBER;
 import static jakarta.json.stream.JsonParser.Event.VALUE_STRING;
 import static jakarta.json.stream.JsonParser.Event.VALUE_TRUE;
 
+import java.io.InputStream;
+import java.io.Reader;
 import java.math.BigDecimal;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -37,10 +40,15 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import jakarta.json.JsonArray;
+import jakarta.json.JsonObject;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParser.Event;
+import jakarta.json.stream.JsonParserFactory;
+import jakarta.json.stream.JsonParsingException;
 
 import io.aklivity.zilla.runtime.common.json.JsonEventConsumer.Status;
+import io.aklivity.zilla.runtime.common.json.internal.ForwardingJsonParser;
 
 /**
  * An immutable, compiled JSON Schema (draft-07 subset) that validates an instance by
@@ -202,6 +210,120 @@ public final class JsonSchema
         {
             eval = eval();
             next.reset();
+        }
+    }
+
+    /**
+     * Returns a {@link JsonParser} that validates against this schema as events are pulled from
+     * {@code delegate}, forwarding every read to it. When a top-level value completes invalid,
+     * the {@link JsonParser.Event} that closes it raises a {@link JsonParsingException} instead of
+     * being returned, so any pull consumer fails the way it already handles malformed input.
+     * Validation is per top-level value, so a delegate yielding a sequence of values is validated
+     * value by value. Because it is itself a {@link JsonParser}, validation can be inserted at any
+     * stage — wrap the source, or wrap a re-parse of a transform's output.
+     */
+    public JsonParser validatingParser(
+        JsonParser delegate)
+    {
+        return new ValidatingParser(delegate);
+    }
+
+    /**
+     * Returns a {@link JsonParserFactory} that wraps every parser created by {@code delegate} with
+     * {@link #validatingParser(JsonParser)}, so validation drops into a factory-wired pipeline
+     * (e.g. over {@link StreamingJson#createParserFactory(Map)}).
+     */
+    public JsonParserFactory validatingParserFactory(
+        JsonParserFactory delegate)
+    {
+        return new ValidatingParserFactory(delegate);
+    }
+
+    private final class ValidatingParser extends ForwardingJsonParser
+    {
+        private final JsonParser delegate;
+        private Eval eval;
+
+        private ValidatingParser(
+            JsonParser delegate)
+        {
+            this.delegate = delegate;
+            this.eval = eval();
+        }
+
+        @Override
+        protected JsonParser delegate()
+        {
+            return delegate;
+        }
+
+        @Override
+        public Event next()
+        {
+            Event event = delegate.next();
+            Verdict verdict = eval.feed(event, this);
+            if (verdict == Verdict.INVALID)
+            {
+                throw new JsonParsingException("JSON Schema validation failed", getLocation());
+            }
+            if (verdict == Verdict.VALID)
+            {
+                eval = eval();
+            }
+            return event;
+        }
+    }
+
+    private final class ValidatingParserFactory implements JsonParserFactory
+    {
+        private final JsonParserFactory delegate;
+
+        private ValidatingParserFactory(
+            JsonParserFactory delegate)
+        {
+            this.delegate = delegate;
+        }
+
+        @Override
+        public JsonParser createParser(
+            Reader reader)
+        {
+            return validatingParser(delegate.createParser(reader));
+        }
+
+        @Override
+        public JsonParser createParser(
+            InputStream in)
+        {
+            return validatingParser(delegate.createParser(in));
+        }
+
+        @Override
+        public JsonParser createParser(
+            InputStream in,
+            Charset charset)
+        {
+            return validatingParser(delegate.createParser(in, charset));
+        }
+
+        @Override
+        public JsonParser createParser(
+            JsonObject object)
+        {
+            return validatingParser(delegate.createParser(object));
+        }
+
+        @Override
+        public JsonParser createParser(
+            JsonArray array)
+        {
+            return validatingParser(delegate.createParser(array));
+        }
+
+        @Override
+        public Map<String, ?> getConfigInUse()
+        {
+            return delegate.getConfigInUse();
         }
     }
 

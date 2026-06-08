@@ -16,10 +16,15 @@ package io.aklivity.zilla.runtime.common.json;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.io.InputStream;
 import java.util.List;
+import java.util.Map;
 
 import jakarta.json.stream.JsonParser;
+import jakarta.json.stream.JsonParser.Event;
+import jakarta.json.stream.JsonParsingException;
 
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -42,7 +47,7 @@ class JsonValidatorChainTest
         JsonGeneratorEx gen = StreamingJson.createGenerator().wrap(buffer, 0);
         JsonEventConsumer chain = schema.validator(JsonEventConsumer.of(gen));
 
-        Status status = chain.drive(parserFor("{\"id\":1,\"name\":\"x\"} "));
+        Status status = run(chain, parserFor("{\"id\":1,\"name\":\"x\"} "));
 
         assertEquals(Status.COMPLETE, status);
         assertEquals("{\"id\":1,\"name\":\"x\"}", output(gen));
@@ -56,7 +61,7 @@ class JsonValidatorChainTest
         JsonEventConsumer chain = schema.validator(
             StreamingJson.createProjector(List.of("/id"), JsonEventConsumer.of(gen)));
 
-        Status status = chain.drive(parserFor("{\"id\":1,\"name\":\"x\"} "));
+        Status status = run(chain, parserFor("{\"id\":1,\"name\":\"x\"} "));
 
         assertEquals(Status.COMPLETE, status);
         assertEquals("{\"id\":1}", output(gen));
@@ -70,7 +75,7 @@ class JsonValidatorChainTest
         JsonEventConsumer chain = schema.validator(
             StreamingJson.createProjector(List.of("/id"), JsonEventConsumer.of(gen)));
 
-        Status status = chain.drive(parserFor("{\"id\":1} "));
+        Status status = run(chain, parserFor("{\"id\":1} "));
 
         assertEquals(Status.REJECTED, status);
         assertEquals("{\"id\":1}", output(gen));
@@ -83,7 +88,7 @@ class JsonValidatorChainTest
         JsonGeneratorEx gen = StreamingJson.createGenerator().wrap(buffer, 0);
         JsonEventConsumer chain = schema.validator(JsonEventConsumer.of(gen));
 
-        Status status = chain.drive(parserFor("{\"id\":\"x\",\"name\":\"y\"} "));
+        Status status = run(chain, parserFor("{\"id\":\"x\",\"name\":\"y\"} "));
 
         assertEquals(Status.REJECTED, status);
     }
@@ -114,11 +119,56 @@ class JsonValidatorChainTest
         JsonEventConsumer chain = schema.validator(JsonEventConsumer.of(gen));
 
         gen.wrap(buffer, 0);
-        assertEquals(Status.COMPLETE, chain.drive(parserFor("{\"id\":1,\"name\":\"a\"} ")));
+        assertEquals(Status.COMPLETE, run(chain, parserFor("{\"id\":1,\"name\":\"a\"} ")));
         assertEquals("{\"id\":1,\"name\":\"a\"}", output(gen));
 
         gen.wrap(buffer, 0);
-        assertEquals(Status.REJECTED, chain.drive(parserFor("{\"id\":2} ")));
+        assertEquals(Status.REJECTED, run(chain, parserFor("{\"id\":2} ")));
+    }
+
+    @Test
+    void shouldPullValidDocumentThroughValidatingParser()
+    {
+        JsonSchema schema = JsonSchema.of(OBJECT_SCHEMA);
+        JsonParser parser = schema.validatingParser(parserFor("{\"id\":1,\"name\":\"x\"} "));
+
+        int events = 0;
+        while (parser.hasNext())
+        {
+            parser.next();
+            events++;
+        }
+
+        assertEquals(6, events);
+    }
+
+    @Test
+    void shouldThrowFromValidatingParserOnInvalid()
+    {
+        JsonSchema schema = JsonSchema.of(OBJECT_SCHEMA);
+        JsonParser parser = schema.validatingParser(parserFor("{\"id\":\"x\",\"name\":\"y\"} "));
+
+        assertThrows(JsonParsingException.class, () ->
+        {
+            while (parser.hasNext())
+            {
+                parser.next();
+            }
+        });
+    }
+
+    @Test
+    void shouldValidateEachValueFromValidatingParserFactory()
+    {
+        JsonSchema schema = JsonSchema.of("{\"type\":\"integer\",\"minimum\":0}");
+        JsonParser parser = schema
+            .validatingParserFactory(StreamingJson.createParserFactory(Map.of()))
+            .createParser(streamFor("7 "));
+
+        Event event = parser.next();
+
+        assertEquals(Event.VALUE_NUMBER, event);
+        assertEquals(7, parser.getInt());
     }
 
     private String output(
@@ -129,12 +179,26 @@ class JsonValidatorChainTest
         return new String(out, UTF_8);
     }
 
+    private static Status run(
+        JsonEventConsumer chain,
+        JsonParser parser)
+    {
+        chain.reset();
+        return chain.pump(parser);
+    }
+
     private static JsonParser parserFor(
+        String text)
+    {
+        return StreamingJson.createParser(streamFor(text));
+    }
+
+    private static InputStream streamFor(
         String text)
     {
         byte[] bytes = text.getBytes(UTF_8);
         DirectBufferInputStreamEx in = new DirectBufferInputStreamEx();
         in.wrap(new UnsafeBuffer(bytes), 0, bytes.length);
-        return StreamingJson.createParser(in);
+        return in;
     }
 }

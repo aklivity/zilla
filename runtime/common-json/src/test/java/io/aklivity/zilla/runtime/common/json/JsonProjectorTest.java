@@ -135,13 +135,15 @@ class JsonProjectorTest
         JsonProjector projector = StreamingJson.createProjector(List.of("/x"), JsonEventConsumer.of(gen));
 
         gen.wrap(buffer, 0);
-        projector.drive(parserFor("{\"x\":1,\"y\":2} "));
+        projector.reset();
+        projector.pump(parserFor("{\"x\":1,\"y\":2} "));
         byte[] out1 = new byte[gen.length()];
         buffer.getBytes(0, out1);
         assertEquals("{\"x\":1}", new String(out1, UTF_8));
 
         gen.wrap(buffer, 0);
-        projector.drive(parserFor("{\"x\":\"two\"} "));
+        projector.reset();
+        projector.pump(parserFor("{\"x\":\"two\"} "));
         byte[] out2 = new byte[gen.length()];
         buffer.getBytes(0, out2);
         assertEquals("{\"x\":\"two\"}", new String(out2, UTF_8));
@@ -167,7 +169,8 @@ class JsonProjectorTest
         MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
         gen.wrap(buffer, 0);
         JsonProjector projector = StreamingJson.createProjector(retained, JsonEventConsumer.of(gen));
-        projector.drive(parserFor(input + " "));
+        projector.reset();
+        projector.pump(parserFor(input + " "));
         byte[] out = new byte[gen.length()];
         buffer.getBytes(0, out);
         return new String(out, UTF_8);
