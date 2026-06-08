@@ -307,7 +307,7 @@ public final class YamlDocumentParser
         validateSpec(spec, line);
         YamlNode value = spec.alias != null ?
             resolveAlias(spec.alias, line) :
-            parseScalar(spec.value, spec.tag, line);
+            parseInlineValue(spec.value, spec.tag, line, true);
         attachComments(value, line);
         storeAnchor(spec.anchor, value, line);
         return value;
@@ -393,7 +393,7 @@ public final class YamlDocumentParser
         YamlNode value = spec.alias != null ?
             resolveAlias(spec.alias, line) :
             spec.value.isEmpty() ? nextNestedValue(indent, line) :
-            parseInlineValue(spec.value, spec.tag, line);
+            parseInlineValue(spec.value, spec.tag, line, false);
 
         value = applyTag(value, spec.tag, spec.value, line);
         attachComments(value, line);
@@ -428,7 +428,7 @@ public final class YamlDocumentParser
         YamlNode value = spec.alias != null ?
             resolveAlias(spec.alias, line) :
             spec.value.isEmpty() ? nextNestedValue(indent, line) :
-            parseInlineValue(spec.value, spec.tag, line);
+            parseInlineValue(spec.value, spec.tag, line, false);
 
         value = applyTag(value, spec.tag, spec.value, line);
         attachComments(value, line);
@@ -462,13 +462,22 @@ public final class YamlDocumentParser
         String tag,
         Line line)
     {
+        return parseInlineValue(text, tag, line, false);
+    }
+
+    private YamlNode parseInlineValue(
+        String text,
+        String tag,
+        Line line,
+        boolean allowSameIndentBlockScalar)
+    {
         if (text.startsWith("|") || text.startsWith(">"))
         {
             if (!config.blockScalars())
             {
                 throw error("YAML block scalars are disabled", line);
             }
-            return parseBlockScalar(text, tag, line);
+            return parseBlockScalar(text, tag, line, allowSameIndentBlockScalar);
         }
         if (text.startsWith("{") || text.startsWith("["))
         {
@@ -569,7 +578,8 @@ public final class YamlDocumentParser
     private YamlScalarNode parseBlockScalar(
         String indicator,
         String tag,
-        Line line)
+        Line line,
+        boolean allowSameIndent)
     {
         char style = indicator.charAt(0);
         char chomping = 0;
@@ -591,33 +601,40 @@ public final class YamlDocumentParser
             }
         }
 
-        int contentIndent = explicitIndent != -1 ? line.indent + explicitIndent : detectBlockScalarIndent(line.indent);
-        List<String> values = new ArrayList<>();
+        int contentIndent = explicitIndent != -1 ? line.indent + explicitIndent :
+            detectBlockScalarIndent(line.indent, allowSameIndent);
+        List<BlockScalarLine> values = new ArrayList<>();
         while (index < lines.size())
         {
             Line next = lines.get(index);
-            if (!emptyLine(next) && next.indent < contentIndent)
+            if (next.offset >= source.length())
             {
                 break;
             }
-            if (!emptyLine(next) && next.indent <= line.indent)
+            if (!blockScalarEmpty(next) && next.indent < contentIndent)
+            {
+                break;
+            }
+            if (!allowSameIndent && !blockScalarEmpty(next) && next.indent <= line.indent)
             {
                 break;
             }
 
-            values.add(emptyLine(next) ? "" : next.raw.length() >= contentIndent ?
-                next.raw.substring(contentIndent) : "");
+            values.add(new BlockScalarLine(
+                blockScalarEmpty(next) ? "" :
+                    next.raw.length() >= contentIndent ? next.raw.substring(contentIndent) : "",
+                !blockScalarEmpty(next) && next.indent > contentIndent));
             index++;
         }
 
         String value = style == '|' ? literal(values) : folded(values);
         if (chomping == '-')
         {
-            value = value.stripTrailing();
+            value = stripTrailingLineBreaks(value);
         }
-        else if (!value.isEmpty() && !value.endsWith("\n"))
+        else if (chomping != '+')
         {
-            value += "\n";
+            value = clipTrailingLineBreaks(value);
         }
 
         YamlScalarNode scalar = YamlScalarNode.string(value, line.line, line.column, line.offset);
@@ -626,58 +643,87 @@ public final class YamlDocumentParser
     }
 
     private int detectBlockScalarIndent(
-        int parentIndent)
+        int parentIndent,
+        boolean allowSameIndent)
     {
         for (int i = index; i < lines.size(); i++)
         {
             Line line = lines.get(i);
-            if (!emptyLine(line))
+            if (!blockScalarEmpty(line))
             {
-                if (line.indent <= parentIndent)
+                if (!allowSameIndent && line.indent <= parentIndent)
                 {
                     throw error("Expected indented block scalar content", line);
                 }
                 return line.indent;
             }
         }
-        return parentIndent + 2;
+        return allowSameIndent ? parentIndent : parentIndent + 2;
     }
 
-    private static boolean emptyLine(
+    private static boolean blockScalarEmpty(
         Line line)
     {
-        return line.blank && line.comment == null;
+        return line.raw.isBlank();
     }
 
     private static String literal(
-        List<String> lines)
+        List<BlockScalarLine> lines)
     {
-        return String.join("\n", lines);
+        StringBuilder value = new StringBuilder();
+        for (BlockScalarLine line : lines)
+        {
+            value.append(line.value);
+            value.append('\n');
+        }
+        return value.toString();
     }
 
     private static String folded(
-        List<String> lines)
+        List<BlockScalarLine> lines)
     {
         StringBuilder value = new StringBuilder();
         boolean previousBlank = false;
-        for (String line : lines)
+        boolean previousMoreIndented = false;
+        boolean first = true;
+        for (BlockScalarLine line : lines)
         {
-            if (line.isEmpty())
+            if (line.value.isEmpty())
             {
                 value.append('\n');
                 previousBlank = true;
             }
             else
             {
-                if (!value.isEmpty())
+                if (!first)
                 {
-                    value.append(previousBlank ? '\n' : ' ');
+                    value.append(previousBlank || previousMoreIndented || line.moreIndented ? '\n' : ' ');
                 }
-                value.append(line);
+                value.append(line.value);
                 previousBlank = false;
+                previousMoreIndented = line.moreIndented;
+                first = false;
             }
         }
         return value.toString();
+    }
+
+    private static String stripTrailingLineBreaks(
+        String value)
+    {
+        int end = value.length();
+        while (end > 0 && value.charAt(end - 1) == '\n')
+        {
+            end--;
+        }
+        return value.substring(0, end);
+    }
+
+    private static String clipTrailingLineBreaks(
+        String value)
+    {
+        value = stripTrailingLineBreaks(value);
+        return value.isEmpty() ? value : value + "\n";
     }
 
     private YamlScalarNode parseScalar(
@@ -1755,6 +1801,12 @@ public final class YamlDocumentParser
             this.name = name;
             this.key = key;
         }
+    }
+
+    private record BlockScalarLine(
+        String value,
+        boolean moreIndented)
+    {
     }
 
     private static final class FlowParser
