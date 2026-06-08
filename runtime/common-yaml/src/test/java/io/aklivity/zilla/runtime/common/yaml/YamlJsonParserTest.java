@@ -27,6 +27,7 @@ import static jakarta.json.stream.JsonParser.Event.VALUE_TRUE;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.ByteArrayInputStream;
@@ -684,16 +685,16 @@ class YamlJsonParserTest
     }
 
     @Test
-    void shouldCreateExplicitYamlJsonProviderWithServiceRegistration()
+    void shouldCreateExplicitYamlJsonProviderWithoutServiceRegistration()
     {
         JsonProvider provider = YamlJson.provider();
         JsonParser parser = provider.createParser(new StringReader("name: test\n"));
 
         assertEquals("YamlJsonProvider", provider.getClass().getSimpleName());
+        assertNull(YamlJson.class.getClassLoader().getResource("META-INF/services/jakarta.json.spi.JsonProvider"));
         assertEquals(START_OBJECT, parser.next());
         assertEquals(KEY_NAME, parser.next());
         assertEquals("name", parser.getString());
-        assertEquals(provider.getClass(), JsonProvider.provider().getClass());
     }
 
     @Test

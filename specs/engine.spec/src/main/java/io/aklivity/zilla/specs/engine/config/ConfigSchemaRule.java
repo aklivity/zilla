@@ -83,7 +83,7 @@ public final class ConfigSchemaRule implements TestRule
 
         InputStream schemaInput = findResource.apply(schemaName);
 
-        JsonProvider schemaProvider = JsonProvider.provider();
+        JsonProvider schemaProvider = YamlJson.provider();
         JsonReader schemaReader = schemaProvider.createReader(schemaInput);
         JsonObject schemaObject = schemaReader.readObject();
 

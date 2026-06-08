@@ -36,7 +36,7 @@ import io.aklivity.zilla.runtime.engine.internal.config.NamespaceAdapter;
 
 public final class EngineConfigWriter
 {
-    private static final JsonPatch NOOP_PATCH = JsonProvider.provider().createPatch(JsonValue.EMPTY_JSON_ARRAY);
+    private static final JsonPatch NOOP_PATCH = YamlJson.provider().createPatch(JsonValue.EMPTY_JSON_ARRAY);
 
     private final ConfigAdapterContext context;
 
@@ -96,7 +96,7 @@ public final class EngineConfigWriter
         write:
         try
         {
-            JsonProvider provider = JsonProvider.provider();
+            JsonProvider provider = YamlJson.provider();
 
             JsonbConfig config = new JsonbConfig()
                 .withAdapters(new NamespaceAdapter(context))
@@ -139,7 +139,7 @@ public final class EngineConfigWriter
         write:
         try
         {
-            JsonProvider provider = JsonProvider.provider();
+            JsonProvider provider = YamlJson.provider();
 
             JsonbConfig config = new JsonbConfig()
                 .withAdapters(new NamespaceAdapter(context))

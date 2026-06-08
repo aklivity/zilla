@@ -19,7 +19,4 @@ module io.aklivity.zilla.runtime.common.yaml
     exports io.aklivity.zilla.runtime.common.yaml;
     exports io.aklivity.zilla.runtime.common.yaml.json;
     exports io.aklivity.zilla.runtime.common.yaml.spi;
-
-    provides jakarta.json.spi.JsonProvider
-        with io.aklivity.zilla.runtime.common.yaml.internal.json.YamlJsonProvider;
 }

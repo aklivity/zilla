@@ -33,7 +33,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import jakarta.json.Json;
 import jakarta.json.JsonArray;
 import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonBuilderFactory;
@@ -92,9 +91,6 @@ class YamlJsonProviderTest
         JsonObject object = readerFactory.createReader(new StringReader("name: test\nitems: [1]\n")).readObject();
         assertEquals("test", object.getString("name"));
         assertEquals(1, object.getJsonArray("items").getInt(0));
-
-        JsonObject globalObject = Json.createReader(new StringReader("name: global\n")).readObject();
-        assertEquals("global", globalObject.getString("name"));
 
         JsonObject jsonObject = readerFactory.createReader(new StringReader("""
             {
@@ -160,13 +156,13 @@ class YamlJsonProviderTest
         YamlJson.createWriter(directWriter).writeObject(directObject);
         assertEquals("name: direct\n", directWriter.toString());
 
-        JsonObject staticObject = Json.createObjectBuilder()
+        JsonObject staticObject = provider.createObjectBuilder()
             .add("name", "static")
-            .add("values", Json.createArrayBuilder().add(1).add(2))
+            .add("values", provider.createArrayBuilder().add(1).add(2))
             .build();
         assertEquals("static", staticObject.getString("name"));
         assertEquals(2, staticObject.getJsonArray("values").getInt(1));
-        assertEquals("static", Json.createPointer("/name").getValue(staticObject).toString().replace("\"", ""));
+        assertEquals("static", provider.createPointer("/name").getValue(staticObject).toString().replace("\"", ""));
     }
 
     @Test

@@ -85,7 +85,7 @@ public final class EngineConfigReader
         {
             InputStream schemaInput = Engine.class.getResourceAsStream("internal/schema/engine.schema.json");
 
-            JsonProvider schemaProvider = JsonProvider.provider();
+            JsonProvider schemaProvider = YamlJson.provider();
             JsonReader schemaReader = schemaProvider.createReader(schemaInput);
             JsonObject schemaObject = schemaReader.readObject();
 
@@ -169,7 +169,7 @@ public final class EngineConfigReader
         JsonObject schemaObject)
     {
         final StringWriter out = new StringWriter();
-        JsonProvider.provider()
+        YamlJson.provider()
             .createGeneratorFactory(singletonMap(PRETTY_PRINTING, true))
             .createGenerator(out)
             .write(schemaObject)
