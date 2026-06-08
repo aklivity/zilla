@@ -95,5 +95,3 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .header("content-type", "text/event-stream")
                            .header("mcp-session-id", "transport-1")
                            .build()}
-
-read closed

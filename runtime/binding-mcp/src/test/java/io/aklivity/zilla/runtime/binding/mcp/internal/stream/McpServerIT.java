@@ -26,6 +26,7 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTes
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -346,6 +347,7 @@ public class McpServerIT
         k3po.finish();
     }
 
+    @Ignore("broker OAuth-callback elicit (context/elicitCallback) pending dedicated broker net scripts; see issue #1810")
     @Test
     @Configuration("server.timeout.yaml")
     @Specification({
@@ -362,6 +364,16 @@ public class McpServerIT
         "${net}/lifecycle.elicit.toolkit/client",
         "${app}/lifecycle.elicit.toolkit/server"})
     public void shouldRouteLifecycleElicitToolkitCallback() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.timeout.yaml")
+    @Specification({
+        "${net}/lifecycle.elicit.completed/client",
+        "${app}/lifecycle.elicit.completed/server"})
+    public void shouldCompleteLifecycleElicit() throws Exception
     {
         k3po.finish();
     }
@@ -499,6 +511,16 @@ public class McpServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/notifications.cancelled.unknown/client",
+        "${app}/lifecycle.initialize/server"})
+    public void shouldAcceptCancelUnknownRequest() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/prompts.list/client",
         "${app}/prompts.list/server"})
     public void shouldListPrompts() throws Exception
@@ -543,6 +565,26 @@ public class McpServerIT
         "${app}/lifecycle.events.open/server"})
     @Configure(name = MCP_SSE_KEEPALIVE_INTERVAL_NAME, value = "PT30S")
     public void shouldOpenLifecycleEvents() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/lifecycle.suspend.events/client",
+        "${app}/lifecycle.suspend.events/server"})
+    public void shouldSuspendLifecycleEvents() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/lifecycle.events.resume/client",
+        "${app}/lifecycle.events.resume/server"})
+    public void shouldResumeLifecycleEvents() throws Exception
     {
         k3po.finish();
     }

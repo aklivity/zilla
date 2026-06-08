@@ -19,10 +19,14 @@ import static io.aklivity.zilla.runtime.engine.test.internal.guard.config.TestGu
 import static io.aklivity.zilla.runtime.engine.test.internal.guard.config.TestGuardOptionsConfigBuilder.DEFAULT_IDENTITY;
 import static io.aklivity.zilla.runtime.engine.test.internal.guard.config.TestGuardOptionsConfigBuilder.DEFAULT_LIFETIME_FOREVER;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.agrona.collections.Long2LongHashMap;
 import org.agrona.collections.MutableLong;
@@ -31,6 +35,9 @@ import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
 public final class TestGuardHandler implements GuardHandler
 {
+    private static final String REDIRECT_URI_PLACEHOLDER = "replace.me";
+    private static final Pattern REDIRECT_URI_PARAM_PATTERN = Pattern.compile("redirect_uri=[^&]*");
+
     private final String credentials;
     private final Duration challenge;
     private final Duration lifetime;
@@ -91,7 +98,16 @@ public final class TestGuardHandler implements GuardHandler
         long contextId,
         String callback)
     {
-        return preauthorize;
+        String result = preauthorize;
+
+        if (result != null && callback != null && result.contains(REDIRECT_URI_PLACEHOLDER))
+        {
+            final String encodedCallback = URLEncoder.encode(callback, StandardCharsets.UTF_8);
+            result = REDIRECT_URI_PARAM_PATTERN.matcher(result)
+                .replaceFirst(Matcher.quoteReplacement("redirect_uri=" + encodedCallback));
+        }
+
+        return result;
     }
 
     private long createSession()
