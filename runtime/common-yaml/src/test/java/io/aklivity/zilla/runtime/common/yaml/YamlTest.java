@@ -636,6 +636,30 @@ class YamlTest
             enabled: true
             missing: null
             """, streamed.toString());
+
+        ByteArrayOutputStream named = new ByteArrayOutputStream();
+        YamlValue direct = Yaml.createValue("direct");
+        YamlGenerator namedGenerator = Yaml.createGenerator(named)
+            .writeStartObject()
+            .writeStartObject("nested")
+            .write("int", 1)
+            .write("long", 2L)
+            .write("double", 3.5)
+            .write("value", direct)
+            .writeEnd()
+            .write("flag", false)
+            .writeEnd();
+        namedGenerator.flush();
+        namedGenerator.close();
+
+        assertEquals("""
+            nested:
+              int: 1
+              long: 2
+              double: 3.5
+              value: direct
+            flag: false
+            """, named.toString(UTF_8));
     }
 
     @Test
@@ -928,6 +952,71 @@ class YamlTest
         assertTrue(route.getBoolean("first"));
         assertTrue(route.getBoolean("second"));
         assertEquals("one", route.getString("shared"));
+    }
+
+    @Test
+    void shouldParseNativeAnchoredValuesAndCompactSequences()
+    {
+        YamlValue anchored = Yaml.createReader(new StringReader("""
+            &root
+            name: test
+            """)).readValue();
+        assertEquals("root", anchored.getAnchor());
+        assertEquals("test", anchored.asYamlObject().getString("name"));
+
+        YamlValue taggedScalar = Yaml.createReader(new StringReader("""
+            !tagged
+            value
+            """)).readValue();
+        assertEquals("!tagged", taggedScalar.getTag());
+        assertEquals("value", taggedScalar.asYamlScalar().getString());
+
+        YamlObject object = Yaml.createReader(new StringReader("""
+            nested: - name: one
+              - two
+            keyed:
+              ? [a]
+              : - value
+                -
+            """)).readObject();
+
+        YamlArray nested = object.getArray("nested");
+        assertEquals("one", nested.getObject(0).getString("name"));
+        assertEquals("two", nested.getString(1));
+
+        YamlParser parser = Yaml.createParser(new StringReader("""
+            keyed:
+              ? [a]
+              : - value
+                -
+            """));
+        assertEquals(YamlEvent.EventType.START_OBJECT, parser.next().getEventType());
+        assertEquals(YamlEvent.EventType.KEY_NAME, parser.next().getEventType());
+        assertEquals(YamlEvent.EventType.START_OBJECT, parser.next().getEventType());
+        YamlEvent key = parser.next();
+        assertEquals(YamlEvent.EventType.KEY_NAME, key.getEventType());
+        assertEquals(YamlValue.ValueType.ARRAY, key.getValue().getValueType());
+        assertEquals(YamlEvent.EventType.START_ARRAY, parser.next().getEventType());
+        assertEquals("value", parser.next().getString());
+        assertEquals(YamlEvent.EventType.VALUE_NULL, parser.next().getEventType());
+    }
+
+    @Test
+    void shouldFoldNativeMultilineQuotedScalars()
+    {
+        YamlObject object = Yaml.createReaderFactory(Map.of(YamlConfig.PRESERVE_SOURCE, false))
+            .createReader(new StringReader("""
+                single: 'one
+
+                  two
+                  three'
+                double: "one
+                  two"
+                """))
+            .readObject();
+
+        assertEquals("one\ntwo three", object.getString("single"));
+        assertEquals("one two", object.getString("double"));
     }
 
     @Test
