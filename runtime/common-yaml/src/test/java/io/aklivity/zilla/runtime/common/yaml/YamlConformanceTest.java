@@ -69,11 +69,8 @@ final class YamlConformanceTest
         "6WPF",
         "6XDY",
         "6ZKB",
-        "74H7",
         "7A4E",
-        "7BMT",
         "7FWL",
-        "7T8X",
         "7Z25",
         "82AN",
         "9DXL",
@@ -87,7 +84,6 @@ final class YamlConformanceTest
         "AZW3",
         "C4HZ",
         "CC74",
-        "CN3R",
         "CT4Q",
         "CUP7",
         "DBG4",
@@ -97,7 +93,6 @@ final class YamlConformanceTest
         "EXG3",
         "FBC9",
         "H2RW",
-        "HMQ5",
         "HS5T",
         "JEF9/02",
         "JHB9",
@@ -106,7 +101,6 @@ final class YamlConformanceTest
         "KSS4",
         "L24T/01",
         "L383",
-        "L94M",
         "M5C3",
         "M7A3",
         "NAT4",
@@ -131,8 +125,7 @@ final class YamlConformanceTest
         "XV9V",
         "Y79Y/001",
         "Z67P",
-        "Z9M4",
-        "ZH7C");
+        "Z9M4");
     private static final Set<String> INVALID_REJECTION_GAPS = Set.of();
 
     @TestFactory
