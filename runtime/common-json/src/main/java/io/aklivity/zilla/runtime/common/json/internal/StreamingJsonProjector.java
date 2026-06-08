@@ -29,28 +29,13 @@ import jakarta.json.stream.JsonLocation;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParser.Event;
 
-import org.agrona.MutableDirectBuffer;
-
 import io.aklivity.zilla.runtime.common.json.JsonEventConsumer;
-import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonProjector;
-import io.aklivity.zilla.runtime.common.json.StreamingJson;
 
 /**
- * A resumable, event-driven {@link JsonEventConsumer} that projects a JSON document down to a set
- * of retained paths and forwards the kept events to a downstream sink.
- * <p>
- * Retained paths are RFC 6901 JSON Pointers; a {@code -} array-index segment is a wildcard
- * matching any index. A node is forwarded when it lies on a retained branch — either a retained
- * pointer is a prefix of the node's path (the node is inside a retained subtree, kept whole) or
- * the node's path is a prefix of a retained pointer (an ancestor, descended to reach retained
- * descendants). Every other subtree is dropped. Output is in source order.
- * <p>
- * The projector is fed one parser event at a time via {@link #feed(Event, JsonParser)} and holds
- * no reference to the parser between feeds, so it can be paused at any event boundary while the
- * upstream slot-fragmented parser awaits more bytes. The convenience {@link
- * #project(JsonParser, MutableDirectBuffer, int)} method drives an internal generator-sink in one
- * shot for the simple, complete-buffer case.
+ * Resumable, event-driven {@link JsonProjector} implementation. See {@link JsonProjector} for the
+ * projection contract; this class holds the per-value descent state and forwards kept events to
+ * the configured downstream sink.
  */
 public final class StreamingJsonProjector implements JsonProjector
 {
@@ -64,7 +49,6 @@ public final class StreamingJsonProjector implements JsonProjector
 
     private final List<String[]> retained;
     private final JsonEventConsumer sink;
-    private final JsonGeneratorEx ownedGenerator;
 
     private final String[] segments = new String[MAX_DEPTH];
     private final int[] indexes = new int[MAX_DEPTH];
@@ -84,46 +68,11 @@ public final class StreamingJsonProjector implements JsonProjector
     private boolean rootDone;
 
     public StreamingJsonProjector(
-        List<String> pointers)
-    {
-        this(pointers, null);
-    }
-
-    public StreamingJsonProjector(
         List<String> pointers,
         JsonEventConsumer sink)
     {
         this.retained = compileAll(pointers);
-        if (sink == null)
-        {
-            this.ownedGenerator = StreamingJson.createGenerator();
-            this.sink = JsonEventConsumer.of(ownedGenerator);
-        }
-        else
-        {
-            this.ownedGenerator = null;
-            this.sink = sink;
-        }
-    }
-
-    @Override
-    public int project(
-        JsonParser parser,
-        MutableDirectBuffer buffer,
-        int offset)
-    {
-        if (ownedGenerator == null)
-        {
-            throw new IllegalStateException("project requires the no-sink constructor");
-        }
-        reset();
-        ownedGenerator.wrap(buffer, offset);
-        Status status = Status.PENDING;
-        while (status == Status.PENDING && parser.hasNext())
-        {
-            status = feed(parser.next(), parser);
-        }
-        return ownedGenerator.length();
+        this.sink = sink;
     }
 
     @Override

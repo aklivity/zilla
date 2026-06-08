@@ -102,19 +102,10 @@ public final class StreamingJson
 
     /**
      * Returns a {@link JsonProjector} that prunes a document to the given retained RFC 6901
-     * pointers, projecting into an internal {@link JsonGeneratorEx} via {@link
-     * JsonProjector#project(JsonParser, org.agrona.MutableDirectBuffer, int)}. Reuse a single
-     * instance per worker thread; it resets per top-level value.
-     */
-    public static JsonProjector createProjector(
-        List<String> pointers)
-    {
-        return new StreamingJsonProjector(pointers);
-    }
-
-    /**
-     * Returns a {@link JsonProjector} that forwards each kept event to {@code sink}, composing as
-     * a stage in a processing chain (e.g. {@code parser → projector → generator-sink}).
+     * pointers, forwarding each kept event to {@code sink} as a stage in a processing chain (e.g.
+     * {@code parser → projector → generator-sink}, where {@code sink} is {@link
+     * JsonEventConsumer#of(JsonGeneratorEx)}). Reuse a single instance per worker thread; it
+     * resets per top-level value.
      */
     public static JsonProjector createProjector(
         List<String> pointers,

@@ -40,6 +40,8 @@ import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 import io.aklivity.zilla.runtime.common.json.DirectBufferInputStreamEx;
+import io.aklivity.zilla.runtime.common.json.JsonEventConsumer;
+import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonProjector;
 import io.aklivity.zilla.runtime.common.json.StreamingJson;
 
@@ -74,6 +76,7 @@ public class JsonProjectorBM
 
     private final DirectBufferInputStreamEx inputRO = new DirectBufferInputStreamEx();
     private final MutableDirectBuffer outputBuffer = new UnsafeBuffer(new byte[16 * 1024]);
+    private final JsonGeneratorEx generator = StreamingJson.createGenerator();
 
     private JsonProjector flatProjector;
     private JsonProjector nestedProjector;
@@ -96,11 +99,12 @@ public class JsonProjectorBM
     @Setup(Level.Trial)
     public void init()
     {
-        flatProjector = StreamingJson.createProjector(List.of("/id", "/active"));
-        nestedProjector = StreamingJson.createProjector(List.of("/meta/id", "/meta/source"));
-        arrayWildcardProjector = StreamingJson.createProjector(List.of("/items/-/id"));
-        rootIdentityProjector = StreamingJson.createProjector(List.of(""));
-        mostlySkippedProjector = StreamingJson.createProjector(List.of("/keep/id"));
+        JsonEventConsumer sink = JsonEventConsumer.of(generator);
+        flatProjector = StreamingJson.createProjector(List.of("/id", "/active"), sink);
+        nestedProjector = StreamingJson.createProjector(List.of("/meta/id", "/meta/source"), sink);
+        arrayWildcardProjector = StreamingJson.createProjector(List.of("/items/-/id"), sink);
+        rootIdentityProjector = StreamingJson.createProjector(List.of(""), sink);
+        mostlySkippedProjector = StreamingJson.createProjector(List.of("/keep/id"), sink);
 
         byte[] flatBytes = FLAT_OBJECT.getBytes(UTF_8);
         byte[] nestedBytes = NESTED_OBJECT.getBytes(UTF_8);
@@ -124,31 +128,41 @@ public class JsonProjectorBM
     @Benchmark
     public int projectFlatObject()
     {
-        return flatProjector.project(parserFor(flatBuffer, flatLength), outputBuffer, 0);
+        return project(flatProjector, flatBuffer, flatLength);
     }
 
     @Benchmark
     public int projectNestedObject()
     {
-        return nestedProjector.project(parserFor(nestedBuffer, nestedLength), outputBuffer, 0);
+        return project(nestedProjector, nestedBuffer, nestedLength);
     }
 
     @Benchmark
     public int projectArrayWildcard()
     {
-        return arrayWildcardProjector.project(parserFor(arrayWildcardBuffer, arrayWildcardLength), outputBuffer, 0);
+        return project(arrayWildcardProjector, arrayWildcardBuffer, arrayWildcardLength);
     }
 
     @Benchmark
     public int projectRootIdentity()
     {
-        return rootIdentityProjector.project(parserFor(rootIdentityBuffer, rootIdentityLength), outputBuffer, 0);
+        return project(rootIdentityProjector, rootIdentityBuffer, rootIdentityLength);
     }
 
     @Benchmark
     public int projectMostlySkipped()
     {
-        return mostlySkippedProjector.project(parserFor(mostlySkippedBuffer, mostlySkippedLength), outputBuffer, 0);
+        return project(mostlySkippedProjector, mostlySkippedBuffer, mostlySkippedLength);
+    }
+
+    private int project(
+        JsonProjector projector,
+        UnsafeBuffer buffer,
+        int length)
+    {
+        generator.wrap(outputBuffer, 0);
+        projector.drive(parserFor(buffer, length));
+        return generator.length();
     }
 
     private JsonParser parserFor(

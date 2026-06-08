@@ -103,14 +103,16 @@ class JsonSchemaPathsTest
     @Test
     void shouldDriveProjectorEndToEnd()
     {
+        JsonGeneratorEx gen = StreamingJson.createGenerator();
+        MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
+        gen.wrap(buffer, 0);
         JsonProjector projector = StreamingJson.createProjector(JsonSchemaPaths.retained(
             "{\"type\":\"object\",\"properties\":{" +
             "\"items\":{\"type\":\"array\",\"items\":{\"type\":\"object\"," +
-            "\"properties\":{\"id\":{\"type\":\"integer\"}}}}}}"));
-        MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
-        JsonParser parser = parserFor("{\"items\":[{\"id\":1,\"x\":9},{\"id\":2}],\"k\":0} ");
-        int length = projector.project(parser, buffer, 0);
-        byte[] out = new byte[length];
+            "\"properties\":{\"id\":{\"type\":\"integer\"}}}}}}"),
+            JsonEventConsumer.of(gen));
+        projector.drive(parserFor("{\"items\":[{\"id\":1,\"x\":9},{\"id\":2}],\"k\":0} "));
+        byte[] out = new byte[gen.length()];
         buffer.getBytes(0, out);
         assertEquals("{\"items\":[{\"id\":1},{\"id\":2}]}", new String(out, UTF_8));
     }

@@ -14,10 +14,6 @@
  */
 package io.aklivity.zilla.runtime.common.json;
 
-import jakarta.json.stream.JsonParser;
-
-import org.agrona.MutableDirectBuffer;
-
 /**
  * A resumable, event-driven {@link JsonEventConsumer} that projects a JSON document down to a set
  * of retained paths and forwards the kept events to a downstream sink.
@@ -29,23 +25,12 @@ import org.agrona.MutableDirectBuffer;
  * descendants). Every other subtree is dropped. Output is in source order.
  * <p>
  * As a {@link JsonEventConsumer} the projector is fed one parser event at a time via {@link
- * #feed(jakarta.json.stream.JsonParser.Event, JsonParser)} and holds no reference to the parser
- * between feeds, so it can be paused at any event boundary while the upstream slot-fragmented
- * parser awaits more bytes. Obtain an instance via {@link StreamingJson#createProjector(
- * java.util.List)} (which projects into an internal generator) or {@link
- * StreamingJson#createProjector(java.util.List, JsonEventConsumer)} (which forwards kept events to
- * an explicit downstream sink).
+ * #feed(jakarta.json.stream.JsonParser.Event, jakarta.json.stream.JsonParser)} and holds no
+ * reference to the parser between feeds, so it can be paused at any event boundary while the
+ * upstream slot-fragmented parser awaits more bytes. Obtain an instance via {@link
+ * StreamingJson#createProjector(java.util.List, JsonEventConsumer)}, supplying the downstream sink
+ * that receives the kept events (commonly {@link JsonEventConsumer#of(JsonGeneratorEx)}).
  */
 public interface JsonProjector extends JsonEventConsumer
 {
-    /**
-     * Drives the parser to project the next top-level value into {@code buffer} starting at
-     * {@code offset} and returns the number of bytes written. Only available when the projector
-     * was created without an explicit sink (the internal generator is used); throws {@link
-     * IllegalStateException} otherwise.
-     */
-    int project(
-        JsonParser parser,
-        MutableDirectBuffer buffer,
-        int offset);
 }

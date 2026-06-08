@@ -54,6 +54,24 @@ public interface JsonEventConsumer
     }
 
     /**
+     * Resets, then pulls events from {@code parser} and feeds them until this consumer reaches a
+     * terminal {@link Status} for the next top-level value (or the parser is exhausted), returning
+     * that status. A convenience for the one-shot, complete-buffer case; resumable callers feed
+     * events directly via {@link #feed(Event, JsonParser)}.
+     */
+    default Status drive(
+        JsonParser parser)
+    {
+        reset();
+        Status status = Status.PENDING;
+        while (status == Status.PENDING && parser.hasNext())
+        {
+            status = feed(parser.next(), parser);
+        }
+        return status;
+    }
+
+    /**
      * Wraps a {@link JsonGeneratorEx} as a {@link JsonEventConsumer} sink that materializes
      * each fed event into the corresponding {@code writeXxx} call. The supplied generator must
      * already be wrapped over its target buffer.

@@ -16,7 +16,6 @@ package io.aklivity.zilla.runtime.common.json;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.List;
 
@@ -131,25 +130,21 @@ class JsonProjectorTest
     @Test
     void shouldResetForReuseAcrossValues()
     {
-        JsonProjector projector = StreamingJson.createProjector(List.of("/x"));
+        JsonGeneratorEx gen = StreamingJson.createGenerator();
         MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
-        int len1 = projector.project(parserFor("{\"x\":1,\"y\":2} "), buffer, 0);
-        byte[] out1 = new byte[len1];
+        JsonProjector projector = StreamingJson.createProjector(List.of("/x"), JsonEventConsumer.of(gen));
+
+        gen.wrap(buffer, 0);
+        projector.drive(parserFor("{\"x\":1,\"y\":2} "));
+        byte[] out1 = new byte[gen.length()];
         buffer.getBytes(0, out1);
         assertEquals("{\"x\":1}", new String(out1, UTF_8));
-        int len2 = projector.project(parserFor("{\"x\":\"two\"} "), buffer, 0);
-        byte[] out2 = new byte[len2];
+
+        gen.wrap(buffer, 0);
+        projector.drive(parserFor("{\"x\":\"two\"} "));
+        byte[] out2 = new byte[gen.length()];
         buffer.getBytes(0, out2);
         assertEquals("{\"x\":\"two\"}", new String(out2, UTF_8));
-    }
-
-    @Test
-    void shouldRejectProjectWhenConstructedWithExternalSink()
-    {
-        JsonGeneratorEx gen = StreamingJson.createGenerator();
-        JsonProjector projector = StreamingJson.createProjector(List.of(""), JsonEventConsumer.of(gen));
-        MutableDirectBuffer buffer = new UnsafeBuffer(new byte[64]);
-        assertThrows(IllegalStateException.class, () -> projector.project(parserFor("1 "), buffer, 0));
     }
 
     @Test
@@ -168,10 +163,12 @@ class JsonProjectorTest
         List<String> retained,
         String input)
     {
-        JsonProjector projector = StreamingJson.createProjector(retained);
+        JsonGeneratorEx gen = StreamingJson.createGenerator();
         MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
-        int length = projector.project(parserFor(input + " "), buffer, 0);
-        byte[] out = new byte[length];
+        gen.wrap(buffer, 0);
+        JsonProjector projector = StreamingJson.createProjector(retained, JsonEventConsumer.of(gen));
+        projector.drive(parserFor(input + " "));
+        byte[] out = new byte[gen.length()];
         buffer.getBytes(0, out);
         return new String(out, UTF_8);
     }
