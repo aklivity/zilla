@@ -863,12 +863,12 @@ public final class YamlDocumentParser
             {
                 throw error("Wrong indented flow collection", next);
             }
-            if (tabIndented(next) && !next.blank)
+            if (!next.blank && next.raw.startsWith("\t"))
             {
                 throw error("Tabs are not supported in flow indentation", next);
             }
             flow.append('\n');
-            flow.append(next.raw.substring(Math.min(next.indent, next.raw.length())));
+            flow.append(stripLeadingWhitespace(next.raw));
             index++;
         }
         return flow.toString();
@@ -2750,10 +2750,10 @@ public final class YamlDocumentParser
                     }
                     case ':' ->
                     {
-                        if (depth == 0)
+                        if (depth == 0 && isFlowMappingColon(i))
                         {
                             String key = text.substring(cursor, i);
-                            return !key.isBlank() && key.indexOf('\n') == -1;
+                            return !key.isBlank() && (key.indexOf('\n') == -1 || key.stripLeading().startsWith("?"));
                         }
                     }
                     default ->
@@ -2773,11 +2773,20 @@ public final class YamlDocumentParser
                 (cursor + 1 == text.length() || Character.isWhitespace(text.charAt(cursor + 1))))
             {
                 cursor++;
-                if (!config.nonScalarKeys())
+                skipWhitespaceAndComments();
+                if (cursor < text.length() && (text.charAt(cursor) == '{' || text.charAt(cursor) == '['))
                 {
-                    throw error("YAML non-scalar mapping keys are disabled", line);
+                    if (!config.nonScalarKeys())
+                    {
+                        throw error("YAML non-scalar mapping keys are disabled", line);
+                    }
+                    return new KeySpec(null, parseValue());
                 }
-                return new KeySpec(null, parseValue());
+                if (cursor < text.length() && (text.charAt(cursor) == '\'' || text.charAt(cursor) == '"'))
+                {
+                    return new KeySpec(parseQuotedScalar().value, null);
+                }
+                return new KeySpec(foldFlowScalar(parseBareFlowKey()), null);
             }
             if (cursor < text.length() && (text.charAt(cursor) == '\'' || text.charAt(cursor) == '"'))
             {
@@ -2829,9 +2838,12 @@ public final class YamlDocumentParser
         private String parseBareFlowKey()
         {
             int start = cursor;
-            while (cursor < text.length() && text.charAt(cursor) != ':' && text.charAt(cursor) != ',' &&
-                text.charAt(cursor) != '}')
+            while (cursor < text.length() && text.charAt(cursor) != ',' && text.charAt(cursor) != '}')
             {
+                if (text.charAt(cursor) == ':' && isFlowMappingColon(cursor))
+                {
+                    break;
+                }
                 cursor++;
             }
             return text.substring(start, cursor).trim();
@@ -2843,7 +2855,8 @@ public final class YamlDocumentParser
             while (cursor < text.length())
             {
                 char c = text.charAt(cursor);
-                if (c == ':' || c == ',' || c == ']' || c == '}' || c == '#')
+                if (c == ',' || c == ']' || c == '}' || isFlowComment(cursor) ||
+                    c == ':' && isFlowMappingColon(cursor))
                 {
                     break;
                 }
@@ -2893,11 +2906,11 @@ public final class YamlDocumentParser
             while (cursor < text.length())
             {
                 char c = text.charAt(cursor);
-                if (c == ',' || c == ']' || c == '}' || c == '#')
+                if (c == ',' || c == ']' || c == '}' || isFlowComment(cursor))
                 {
                     break;
                 }
-                if (c == ':' && cursor + 1 < text.length() && Character.isWhitespace(text.charAt(cursor + 1)))
+                if (c == ':' && isFlowMappingColon(cursor))
                 {
                     break;
                 }
@@ -2975,6 +2988,20 @@ public final class YamlDocumentParser
             char c)
         {
             return !Character.isWhitespace(c) && c != ',' && c != ']' && c != '}';
+        }
+
+        private boolean isFlowMappingColon(
+            int index)
+        {
+            char next = index + 1 == text.length() ? 0 : text.charAt(index + 1);
+            return index + 1 == text.length() || Character.isWhitespace(next) ||
+                next == ',' || next == ']' || next == '}';
+        }
+
+        private boolean isFlowComment(
+            int index)
+        {
+            return text.charAt(index) == '#' && (index == 0 || Character.isWhitespace(text.charAt(index - 1)));
         }
     }
 
