@@ -320,13 +320,10 @@ public final class YamlJsonParser implements JsonParser
                 if (frame.index < object.entries.size())
                 {
                     YamlEntry entry = object.entries.get(frame.index);
-                    if (entry.key != null)
-                    {
-                        throw new JsonParsingException("Non-scalar YAML mapping keys are not supported", getLocation());
-                    }
+                    String name = jsonKeyName(entry);
                     frame.value = true;
-                    return new YamlJsonEvent(Event.KEY_NAME, entry.name,
-                        YamlScalarNode.string(entry.name, entry.line, entry.column, entry.offset),
+                    return new YamlJsonEvent(Event.KEY_NAME, name,
+                        YamlScalarNode.string(name, entry.line, entry.column, entry.offset),
                         entry.line, entry.column, entry.offset);
                 }
 
@@ -381,11 +378,7 @@ public final class YamlJsonParser implements JsonParser
             JsonObjectBuilder builder = YamlJsonValues.objectBuilder();
             for (YamlEntry entry : object.entries)
             {
-                if (entry.key != null)
-                {
-                    throw new JsonParsingException("Non-scalar YAML mapping keys are not supported", getLocation());
-                }
-                builder.add(entry.name, toJsonValue(entry.value));
+                builder.add(jsonKeyName(entry), toJsonValue(entry.value));
             }
             return builder.build();
         }
@@ -431,8 +424,12 @@ public final class YamlJsonParser implements JsonParser
             {
                 if (entry.key != null)
                 {
-                    throw new JsonParsingException("Non-scalar YAML mapping keys are not supported",
-                        new YamlJsonLocation(new YamlLocation(entry.line, entry.column, entry.offset)));
+                    rejectCustomTag(entry.key);
+                    if (!(entry.key instanceof YamlScalarNode))
+                    {
+                        throw new JsonParsingException("Non-scalar YAML mapping keys are not supported",
+                            new YamlJsonLocation(new YamlLocation(entry.line, entry.column, entry.offset)));
+                    }
                 }
                 rejectJsonUnsupported(entry.value);
             }
@@ -444,6 +441,34 @@ public final class YamlJsonParser implements JsonParser
                 rejectJsonUnsupported(value);
             }
         }
+    }
+
+    private static String jsonKeyName(
+        YamlEntry entry)
+    {
+        if (entry.name != null)
+        {
+            return entry.name;
+        }
+        rejectCustomTag(entry.key);
+        if (entry.key instanceof YamlScalarNode scalar)
+        {
+            return scalarText(scalar);
+        }
+        throw new JsonParsingException("Non-scalar YAML mapping keys are not supported",
+            new YamlJsonLocation(new YamlLocation(entry.line, entry.column, entry.offset)));
+    }
+
+    private static String scalarText(
+        YamlScalarNode scalar)
+    {
+        return scalar.value != null ? scalar.value : switch (scalar.type)
+        {
+        case TRUE -> "true";
+        case FALSE -> "false";
+        case NULL -> "null";
+        default -> "";
+        };
     }
 
     private static String readAll(

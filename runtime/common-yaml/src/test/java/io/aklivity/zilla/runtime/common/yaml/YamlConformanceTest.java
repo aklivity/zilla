@@ -51,7 +51,6 @@ final class YamlConformanceTest
     private static final JsonProvider YAML_JSON = YamlJson.provider();
 
     private static final Set<String> JSON_PROJECTION_GAPS = Set.of(
-        "26DV",
         "2EBW",
         "2SXE",
         "2XXW",
@@ -64,8 +63,6 @@ final class YamlConformanceTest
         "565N",
         "5GBF",
         "5TYM",
-        "5WE3",
-        "652Z",
         "6CK3",
         "6HB6",
         "6WLZ",
@@ -77,7 +74,6 @@ final class YamlConformanceTest
         "7BMT",
         "7FWL",
         "7T8X",
-        "7W2P",
         "7Z25",
         "82AN",
         "9DXL",
@@ -97,7 +93,6 @@ final class YamlConformanceTest
         "DBG4",
         "DK95/08",
         "DWX9",
-        "E76Z",
         "EX5H",
         "EXG3",
         "FBC9",
@@ -132,14 +127,12 @@ final class YamlConformanceTest
         "UT92",
         "UV7Q",
         "W4TN",
-        "WZ62",
         "XLQ9",
         "XV9V",
         "Y79Y/001",
         "Z67P",
         "Z9M4",
-        "ZH7C",
-        "ZWK4");
+        "ZH7C");
     private static final Set<String> INVALID_REJECTION_GAPS = Set.of();
 
     @TestFactory

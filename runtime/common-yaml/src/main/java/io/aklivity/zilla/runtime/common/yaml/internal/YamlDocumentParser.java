@@ -423,9 +423,14 @@ public final class YamlDocumentParser
         int indent,
         Line line)
     {
+        if (line.content.length() > 1 && line.content.charAt(1) == '\t')
+        {
+            throw error("Tabs are not supported after explicit key indicators", line);
+        }
         String keyText = line.content.substring(2).trim();
         YamlNode keyNode = null;
         String key = null;
+        boolean advanced = false;
         if (keyText.startsWith("{") || keyText.startsWith("["))
         {
             if (!config.nonScalarKeys())
@@ -434,17 +439,35 @@ public final class YamlDocumentParser
             }
             keyNode = new FlowParser(keyText, line, anchors, tagHandles, config).parse();
         }
+        else if (keyText.startsWith("|") || keyText.startsWith(">"))
+        {
+            index++;
+            advanced = true;
+            keyNode = parseInlineValue(keyText, null, line);
+        }
         else
         {
             KeySpec keySpec = parseKeySpec(keyText, line);
             key = keySpec.name;
             keyNode = keySpec.key;
         }
-        index++;
+        if (!advanced)
+        {
+            index++;
+        }
         skipIgnorable();
         if (index >= lines.size() || lines.get(index).indent != indent || !lines.get(index).content.startsWith(":"))
         {
-            throw error("Expected explicit mapping value", line);
+            if (keyNode != null)
+            {
+                addNullMappingEntry(object, keyNode, line);
+            }
+            else
+            {
+                object.add(new YamlEntry(key, YamlScalarNode.literal(YamlScalarType.NULL, line.line, line.column, line.offset),
+                    line.line, line.column, line.offset));
+            }
+            return;
         }
 
         Line valueLine = lines.get(index);
@@ -502,7 +525,12 @@ public final class YamlDocumentParser
         YamlNode value = spec.alias != null ?
             resolveAlias(spec.alias, line) :
             spec.value.isEmpty() ? nextNestedValue(indent, line) :
+            isCompactSequence(spec.value) ? parseCompactSequenceValue(spec.value, indent, line) :
             parseInlineValue(spec.value, spec.tag, line, false);
+        if (spec.anchor != null && value.anchor != null)
+        {
+            throw error("YAML node cannot define multiple anchors", line);
+        }
 
         value = applyTag(value, spec.tag, spec.value, line);
         attachComments(value, line);
@@ -537,11 +565,39 @@ public final class YamlDocumentParser
         YamlNode value = spec.alias != null ?
             resolveAlias(spec.alias, line) :
             spec.value.isEmpty() ? nextNestedValue(indent, line) :
+            isCompactSequence(spec.value) ? parseCompactSequenceValue(spec.value, indent, line) :
             parseInlineValue(spec.value, spec.tag, line, false);
+        if (spec.anchor != null && value.anchor != null)
+        {
+            throw error("YAML node cannot define multiple anchors", line);
+        }
 
         value = applyTag(value, spec.tag, spec.value, line);
         attachComments(value, line);
         storeAnchor(spec.anchor, value, line);
+        object.add(new YamlEntry(key, value, line.line, line.column, line.offset));
+    }
+
+    private YamlArrayNode parseCompactSequenceValue(
+        String text,
+        int indent,
+        Line line)
+    {
+        YamlArrayNode value = parseCompactSequence(text, indent + 2, line);
+        while (index < lines.size() && isSequence(peek(), indent + 2))
+        {
+            YamlArrayNode continuation = parseSequence(indent + 2);
+            continuation.values.forEach(value::add);
+        }
+        return value;
+    }
+
+    private static void addNullMappingEntry(
+        YamlObjectNode object,
+        YamlNode key,
+        Line line)
+    {
+        YamlNode value = YamlScalarNode.literal(YamlScalarType.NULL, line.line, line.column, line.offset);
         object.add(new YamlEntry(key, value, line.line, line.column, line.offset));
     }
 
@@ -1764,6 +1820,10 @@ public final class YamlDocumentParser
                     String content = markerContent(line, "---");
                     if (!content.isEmpty())
                     {
+                        if (content.startsWith("&") && mappingColon(content) != -1)
+                        {
+                            throw error("YAML document start cannot anchor an implicit mapping", line);
+                        }
                         startContent = contentLine(line, content);
                     }
                     start++;
@@ -2488,8 +2548,10 @@ public final class YamlDocumentParser
         private KeySpec parseFlowKey()
         {
             skipWhitespaceAndComments();
-            if (consume('?'))
+            if (cursor < text.length() && text.charAt(cursor) == '?' &&
+                (cursor + 1 == text.length() || Character.isWhitespace(text.charAt(cursor + 1))))
             {
+                cursor++;
                 if (!config.nonScalarKeys())
                 {
                     throw error("YAML non-scalar mapping keys are disabled", line);
