@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.common.yaml;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Collection;
+import java.util.List;
 
 public interface YamlArrayBuilder
 {
@@ -146,6 +147,24 @@ public interface YamlArrayBuilder
 
     YamlArrayBuilder remove(
         int index);
+
+    YamlArrayBuilder withTag(
+        String tag);
+
+    YamlArrayBuilder withAnchor(
+        String anchor);
+
+    YamlArrayBuilder withStyle(
+        String style);
+
+    YamlArrayBuilder withLeadingComment(
+        String comment);
+
+    YamlArrayBuilder withLeadingComments(
+        List<String> comments);
+
+    YamlArrayBuilder withLineComment(
+        String comment);
 
     YamlArray build();
 }

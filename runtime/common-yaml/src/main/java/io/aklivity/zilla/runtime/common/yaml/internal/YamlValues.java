@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.common.yaml.internal;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
@@ -76,6 +77,18 @@ final class YamlValues
         };
     }
 
+    static void copyMetadata(
+        YamlNode source,
+        YamlNode target)
+    {
+        target.tag = source.tag;
+        target.anchor = source.anchor;
+        target.alias = source.alias;
+        target.style = source.style;
+        target.leadingComments = source.leadingComments != null ? List.copyOf(source.leadingComments) : null;
+        target.lineComment = source.lineComment;
+    }
+
     private static YamlArrayNode arrayNode(
         YamlArray value)
     {
@@ -95,6 +108,102 @@ final class YamlValues
             YamlNode node)
         {
             this.node = node;
+        }
+
+        @Override
+        public String getTag()
+        {
+            return node.tag;
+        }
+
+        @Override
+        public String getAnchor()
+        {
+            return node.anchor;
+        }
+
+        @Override
+        public String getAlias()
+        {
+            return node.alias;
+        }
+
+        @Override
+        public String getStyle()
+        {
+            return node.style;
+        }
+
+        @Override
+        public List<String> getLeadingComments()
+        {
+            return node.leadingComments != null ? List.copyOf(node.leadingComments) : List.of();
+        }
+
+        @Override
+        public String getLineComment()
+        {
+            return node.lineComment;
+        }
+
+        @Override
+        public YamlValue withTag(
+            String tag)
+        {
+            node.tag = tag;
+            return this;
+        }
+
+        @Override
+        public YamlValue withAnchor(
+            String anchor)
+        {
+            node.anchor = anchor;
+            return this;
+        }
+
+        @Override
+        public YamlValue withAlias(
+            String alias)
+        {
+            node.alias = alias;
+            return this;
+        }
+
+        @Override
+        public YamlValue withStyle(
+            String style)
+        {
+            node.style = style;
+            return this;
+        }
+
+        @Override
+        public YamlValue withLeadingComment(
+            String comment)
+        {
+            if (node.leadingComments == null)
+            {
+                node.leadingComments = new ArrayList<>();
+            }
+            node.leadingComments.add(comment);
+            return this;
+        }
+
+        @Override
+        public YamlValue withLeadingComments(
+            List<String> comments)
+        {
+            node.leadingComments = comments != null && !comments.isEmpty() ? List.copyOf(comments) : null;
+            return this;
+        }
+
+        @Override
+        public YamlValue withLineComment(
+            String comment)
+        {
+            node.lineComment = comment;
+            return this;
         }
     }
 

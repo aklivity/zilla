@@ -14,9 +14,44 @@
  */
 package io.aklivity.zilla.runtime.common.yaml;
 
+import java.util.List;
+
 public interface YamlValue
 {
     ValueType getValueType();
+
+    String getTag();
+
+    String getAnchor();
+
+    String getAlias();
+
+    String getStyle();
+
+    List<String> getLeadingComments();
+
+    String getLineComment();
+
+    YamlValue withTag(
+        String tag);
+
+    YamlValue withAnchor(
+        String anchor);
+
+    YamlValue withAlias(
+        String alias);
+
+    YamlValue withStyle(
+        String style);
+
+    YamlValue withLeadingComment(
+        String comment);
+
+    YamlValue withLeadingComments(
+        List<String> comments);
+
+    YamlValue withLineComment(
+        String comment);
 
     default YamlObject asYamlObject()
     {

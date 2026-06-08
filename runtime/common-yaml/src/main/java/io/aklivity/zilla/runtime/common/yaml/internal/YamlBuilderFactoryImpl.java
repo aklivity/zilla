@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.common.yaml.internal;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 
 import io.aklivity.zilla.runtime.common.yaml.YamlArray;
@@ -48,6 +49,7 @@ public final class YamlBuilderFactoryImpl implements YamlBuilderFactory
     {
         ObjectBuilder builder = new ObjectBuilder();
         YamlObjectNode node = (YamlObjectNode) YamlValues.node(object);
+        YamlValues.copyMetadata(node, builder.object);
         for (YamlEntry entry : node.entries)
         {
             builder.object.add(entry.key != null ?
@@ -76,6 +78,7 @@ public final class YamlBuilderFactoryImpl implements YamlBuilderFactory
     {
         ArrayBuilder builder = new ArrayBuilder();
         YamlArrayNode node = (YamlArrayNode) YamlValues.node(array);
+        YamlValues.copyMetadata(node, builder.array);
         builder.array.values.addAll(node.values);
         return builder;
     }
@@ -230,6 +233,15 @@ public final class YamlBuilderFactoryImpl implements YamlBuilderFactory
 
         @Override
         public YamlObjectBuilder add(
+            YamlValue key,
+            YamlValue value)
+        {
+            object.add(new YamlEntry(YamlValues.node(key), YamlValues.node(value), 1, 1, 0));
+            return this;
+        }
+
+        @Override
+        public YamlObjectBuilder add(
             String name,
             String value)
         {
@@ -329,6 +341,54 @@ public final class YamlBuilderFactoryImpl implements YamlBuilderFactory
             String name)
         {
             object.entries.removeIf(e -> name.equals(e.name));
+            return this;
+        }
+
+        @Override
+        public YamlObjectBuilder withTag(
+            String tag)
+        {
+            object.tag = tag;
+            return this;
+        }
+
+        @Override
+        public YamlObjectBuilder withAnchor(
+            String anchor)
+        {
+            object.anchor = anchor;
+            return this;
+        }
+
+        @Override
+        public YamlObjectBuilder withStyle(
+            String style)
+        {
+            object.style = style;
+            return this;
+        }
+
+        @Override
+        public YamlObjectBuilder withLeadingComment(
+            String comment)
+        {
+            YamlValues.wrap(object).withLeadingComment(comment);
+            return this;
+        }
+
+        @Override
+        public YamlObjectBuilder withLeadingComments(
+            List<String> comments)
+        {
+            object.leadingComments = comments != null && !comments.isEmpty() ? List.copyOf(comments) : null;
+            return this;
+        }
+
+        @Override
+        public YamlObjectBuilder withLineComment(
+            String comment)
+        {
+            object.lineComment = comment;
             return this;
         }
 
@@ -623,6 +683,54 @@ public final class YamlBuilderFactoryImpl implements YamlBuilderFactory
             int index)
         {
             array.values.remove(index);
+            return this;
+        }
+
+        @Override
+        public YamlArrayBuilder withTag(
+            String tag)
+        {
+            array.tag = tag;
+            return this;
+        }
+
+        @Override
+        public YamlArrayBuilder withAnchor(
+            String anchor)
+        {
+            array.anchor = anchor;
+            return this;
+        }
+
+        @Override
+        public YamlArrayBuilder withStyle(
+            String style)
+        {
+            array.style = style;
+            return this;
+        }
+
+        @Override
+        public YamlArrayBuilder withLeadingComment(
+            String comment)
+        {
+            YamlValues.wrap(array).withLeadingComment(comment);
+            return this;
+        }
+
+        @Override
+        public YamlArrayBuilder withLeadingComments(
+            List<String> comments)
+        {
+            array.leadingComments = comments != null && !comments.isEmpty() ? List.copyOf(comments) : null;
+            return this;
+        }
+
+        @Override
+        public YamlArrayBuilder withLineComment(
+            String comment)
+        {
+            array.lineComment = comment;
             return this;
         }
 

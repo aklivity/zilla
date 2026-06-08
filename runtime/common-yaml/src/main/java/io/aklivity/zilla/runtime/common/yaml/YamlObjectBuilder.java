@@ -16,12 +16,17 @@ package io.aklivity.zilla.runtime.common.yaml;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.List;
 import java.util.Map;
 
 public interface YamlObjectBuilder
 {
     YamlObjectBuilder add(
         String name,
+        YamlValue value);
+
+    YamlObjectBuilder add(
+        YamlValue key,
         YamlValue value);
 
     YamlObjectBuilder add(
@@ -71,6 +76,24 @@ public interface YamlObjectBuilder
 
     YamlObjectBuilder remove(
         String name);
+
+    YamlObjectBuilder withTag(
+        String tag);
+
+    YamlObjectBuilder withAnchor(
+        String anchor);
+
+    YamlObjectBuilder withStyle(
+        String style);
+
+    YamlObjectBuilder withLeadingComment(
+        String comment);
+
+    YamlObjectBuilder withLeadingComments(
+        List<String> comments);
+
+    YamlObjectBuilder withLineComment(
+        String comment);
 
     YamlObject build();
 }

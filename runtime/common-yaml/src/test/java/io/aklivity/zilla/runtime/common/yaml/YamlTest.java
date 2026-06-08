@@ -474,6 +474,78 @@ class YamlTest
     }
 
     @Test
+    void shouldCreateNativeBuilderValuesWithMetadata()
+    {
+        YamlValue description = Yaml.createValue("one\ntwo\n")
+            .withAnchor("desc")
+            .withTag("tag:yaml.org,2002:str")
+            .withStyle("|-")
+            .withLeadingComment("# before description")
+            .withLineComment("# after description");
+        YamlObject defaults = Yaml.createObjectBuilder()
+            .withAnchor("defaults")
+            .withTag("!defaults")
+            .withStyle("flow")
+            .withLineComment("# after defaults")
+            .add("enabled", true)
+            .build();
+        YamlArray key = Yaml.createArrayBuilder()
+            .withStyle("flow")
+            .add("key")
+            .build();
+        YamlObject object = Yaml.createObjectBuilder()
+            .withLeadingComments(List.of("# before root"))
+            .add("description", description)
+            .add("defaults", defaults)
+            .add("alias", Yaml.createNullValue().withAlias("defaults"))
+            .add(key, Yaml.createValue("mapped"))
+            .add("items", Yaml.createArrayBuilder()
+                .withStyle("flow")
+                .withLeadingComment("# before items")
+                .add("one")
+                .add(2))
+            .build();
+        YamlObject copied = Yaml.createObjectBuilder(defaults).build();
+        YamlObject copiedParsed = Yaml.createObjectBuilder(
+            Yaml.createReader(new StringReader("name: test\n")).readObject())
+            .add("copy", true)
+            .build();
+        StringWriter output = new StringWriter();
+        StringWriter copiedOutput = new StringWriter();
+
+        assertEquals("desc", description.getAnchor());
+        assertEquals("tag:yaml.org,2002:str", description.getTag());
+        assertEquals("|-", description.getStyle());
+        assertEquals(List.of("# before description"), description.getLeadingComments());
+        assertEquals("# after description", description.getLineComment());
+        assertEquals("defaults", copied.getAnchor());
+        assertEquals("!defaults", copied.getTag());
+        assertEquals("flow", copied.getStyle());
+        assertEquals("# after defaults", copied.getLineComment());
+
+        Yaml.createWriter(output).writeObject(object);
+        Yaml.createWriter(copiedOutput).writeObject(copiedParsed);
+
+        assertEquals("""
+            # before root
+            # before description
+            description: &desc !!str |- # after description
+              one
+              two
+            defaults: &defaults !defaults {enabled: true} # after defaults
+            alias: *defaults
+            ? [key]
+            : mapped
+            # before items
+            items: [one, 2]
+            """, output.toString());
+        assertEquals("""
+            name: test
+            copy: true
+            """, copiedOutput.toString());
+    }
+
+    @Test
     void shouldParseNativeEvents()
     {
         YamlParser parser = Yaml.createParser(new StringReader("""
