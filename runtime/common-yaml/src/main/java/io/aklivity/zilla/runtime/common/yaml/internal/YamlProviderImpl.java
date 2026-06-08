@@ -18,11 +18,16 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Reader;
 import java.io.Writer;
+import java.util.Map;
 
 import io.aklivity.zilla.runtime.common.yaml.YamlGenerator;
+import io.aklivity.zilla.runtime.common.yaml.YamlGeneratorFactory;
 import io.aklivity.zilla.runtime.common.yaml.YamlParser;
+import io.aklivity.zilla.runtime.common.yaml.YamlParserFactory;
 import io.aklivity.zilla.runtime.common.yaml.YamlReader;
+import io.aklivity.zilla.runtime.common.yaml.YamlReaderFactory;
 import io.aklivity.zilla.runtime.common.yaml.YamlWriter;
+import io.aklivity.zilla.runtime.common.yaml.YamlWriterFactory;
 import io.aklivity.zilla.runtime.common.yaml.spi.YamlProvider;
 
 public final class YamlProviderImpl extends YamlProvider
@@ -31,55 +36,83 @@ public final class YamlProviderImpl extends YamlProvider
     public YamlParser createParser(
         Reader reader)
     {
-        return new YamlParserImpl(reader);
+        return createParserFactory(Map.of()).createParser(reader);
     }
 
     @Override
     public YamlParser createParser(
         InputStream in)
     {
-        return new YamlParserImpl(in);
+        return createParserFactory(Map.of()).createParser(in);
+    }
+
+    @Override
+    public YamlParserFactory createParserFactory(
+        Map<String, ?> config)
+    {
+        return new YamlParserFactoryImpl(config);
     }
 
     @Override
     public YamlReader createReader(
         Reader reader)
     {
-        return new YamlReaderImpl(createParser(reader));
+        return createReaderFactory(Map.of()).createReader(reader);
     }
 
     @Override
     public YamlReader createReader(
         InputStream in)
     {
-        return new YamlReaderImpl(createParser(in));
+        return createReaderFactory(Map.of()).createReader(in);
+    }
+
+    @Override
+    public YamlReaderFactory createReaderFactory(
+        Map<String, ?> config)
+    {
+        return new YamlReaderFactoryImpl(config);
     }
 
     @Override
     public YamlGenerator createGenerator(
         Writer writer)
     {
-        return new YamlGeneratorImpl(writer);
+        return createGeneratorFactory(Map.of()).createGenerator(writer);
     }
 
     @Override
     public YamlGenerator createGenerator(
         OutputStream out)
     {
-        return new YamlGeneratorImpl(out);
+        return createGeneratorFactory(Map.of()).createGenerator(out);
+    }
+
+    @Override
+    public YamlGeneratorFactory createGeneratorFactory(
+        Map<String, ?> config)
+    {
+        return new YamlGeneratorFactoryImpl(config);
     }
 
     @Override
     public YamlWriter createWriter(
         Writer writer)
     {
-        return new YamlWriterImpl(createGenerator(writer));
+        return createWriterFactory(Map.of()).createWriter(writer);
     }
 
     @Override
     public YamlWriter createWriter(
         OutputStream out)
     {
-        return new YamlWriterImpl(createGenerator(out));
+        return createWriterFactory(Map.of()).createWriter(out);
+    }
+
+    @Override
+    public YamlWriterFactory createWriterFactory(
+        Map<String, ?> config)
+    {
+        return new YamlWriterFactoryImpl(config);
     }
 }

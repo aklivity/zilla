@@ -21,7 +21,9 @@ import java.io.Writer;
 import java.util.Map;
 
 import jakarta.json.JsonReader;
+import jakarta.json.JsonReaderFactory;
 import jakarta.json.JsonWriter;
+import jakarta.json.JsonWriterFactory;
 import jakarta.json.spi.JsonProvider;
 import jakarta.json.stream.JsonGenerator;
 import jakarta.json.stream.JsonGeneratorFactory;
@@ -75,6 +77,12 @@ public final class YamlJson
         return provider().createReader(in);
     }
 
+    public static JsonReaderFactory createReaderFactory(
+        Map<String, ?> config)
+    {
+        return provider().createReaderFactory(config);
+    }
+
     public static JsonGenerator createGenerator(
         Writer writer)
     {
@@ -103,6 +111,12 @@ public final class YamlJson
         OutputStream out)
     {
         return provider().createWriter(out);
+    }
+
+    public static JsonWriterFactory createWriterFactory(
+        Map<String, ?> config)
+    {
+        return provider().createWriterFactory(config);
     }
 
     private static final class ProviderHolder

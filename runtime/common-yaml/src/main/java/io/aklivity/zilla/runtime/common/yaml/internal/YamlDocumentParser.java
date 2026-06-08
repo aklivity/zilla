@@ -34,6 +34,7 @@ public final class YamlDocumentParser
     private final Map<String, String> tagHandles;
     private final YamlLocation end;
     private final String source;
+    private final YamlConfiguration config;
     private final List<String> comments;
     private int index;
 
@@ -45,13 +46,21 @@ public final class YamlDocumentParser
         this.tagHandles = document.tagHandles;
         this.end = document.end;
         this.source = document.source;
+        this.config = document.config;
         this.comments = new ArrayList<>();
     }
 
     public static Result parse(
         String text)
     {
-        Document document = new DocumentScanner(text).scan();
+        return parse(text, YamlConfiguration.DEFAULT);
+    }
+
+    public static Result parse(
+        String text,
+        YamlConfiguration config)
+    {
+        Document document = new DocumentScanner(text, config).scan();
         YamlNode node = new YamlDocumentParser(document).parse();
         return new Result(node, document.end);
     }
@@ -59,12 +68,19 @@ public final class YamlDocumentParser
     public static List<Result> parseAll(
         String text)
     {
+        return parseAll(text, YamlConfiguration.DEFAULT);
+    }
+
+    public static List<Result> parseAll(
+        String text,
+        YamlConfiguration config)
+    {
         List<Result> results = new ArrayList<>();
         int offset = 0;
         do
         {
             String remaining = text.substring(offset);
-            Result result = parse(remaining);
+            Result result = parse(remaining, config);
             results.add(result);
 
             int read = (int) result.end.offset();
@@ -73,6 +89,10 @@ public final class YamlDocumentParser
                 break;
             }
             offset += read;
+            if (!config.multiDocumentStreams() && offset < text.length() && !text.substring(offset).isBlank())
+            {
+                throw new YamlParseException("YAML document streams are disabled", result.end);
+            }
         }
         while (offset < text.length() && !text.substring(offset).isBlank());
 
@@ -85,7 +105,10 @@ public final class YamlDocumentParser
         if (index >= lines.size())
         {
             YamlScalarNode nullNode = YamlScalarNode.literal(YamlScalarType.NULL, 1, 1, 0);
-            nullNode.source = source;
+            if (config.preserveSource())
+            {
+                nullNode.source = source;
+            }
             return nullNode;
         }
 
@@ -99,13 +122,20 @@ public final class YamlDocumentParser
         {
             throw error("Unexpected indentation", lines.get(index));
         }
-        node.source = source;
+        if (config.preserveSource())
+        {
+            node.source = source;
+        }
         return node;
     }
 
     private YamlNode parseFlowDocument(
         Line line)
     {
+        if (!config.flowCollections())
+        {
+            throw error("YAML flow collections are disabled", line);
+        }
         StringBuilder flow = new StringBuilder(line.raw.substring(Math.min(line.indent, line.raw.length())));
         for (int i = index + 1; i < lines.size(); i++)
         {
@@ -114,7 +144,7 @@ public final class YamlDocumentParser
             flow.append(next.raw.substring(Math.min(next.indent, next.raw.length())));
         }
         index = lines.size();
-        return new FlowParser(flow.toString(), line, anchors, tagHandles).parse();
+        return new FlowParser(flow.toString(), line, anchors, tagHandles, config).parse();
     }
 
     private YamlNode parseBlock(
@@ -193,6 +223,7 @@ public final class YamlDocumentParser
 
             String item = line.content.length() == 1 ? "" : line.content.substring(2).trim();
             ValueSpec spec = ValueSpec.parse(item, line, tagHandles);
+            validateSpec(spec, line);
 
             if (spec.alias != null)
             {
@@ -259,6 +290,7 @@ public final class YamlDocumentParser
         Line line = peek();
         index++;
         ValueSpec spec = ValueSpec.parse(line.content.trim(), line, tagHandles);
+        validateSpec(spec, line);
         YamlNode value = spec.alias != null ?
             resolveAlias(spec.alias, line) :
             parseScalar(spec.value, spec.tag, line);
@@ -277,7 +309,11 @@ public final class YamlDocumentParser
         String key = null;
         if (keyText.startsWith("{") || keyText.startsWith("["))
         {
-            keyNode = new FlowParser(keyText, line, anchors, tagHandles).parse();
+            if (!config.nonScalarKeys())
+            {
+                throw error("YAML non-scalar mapping keys are disabled", line);
+            }
+            keyNode = new FlowParser(keyText, line, anchors, tagHandles, config).parse();
         }
         else
         {
@@ -329,6 +365,7 @@ public final class YamlDocumentParser
         Line line)
     {
         ValueSpec spec = ValueSpec.parse(valueText, line, tagHandles);
+        validateSpec(spec, line);
         index++;
 
         YamlNode value = spec.alias != null ?
@@ -342,6 +379,10 @@ public final class YamlDocumentParser
 
         if ("<<".equals(key))
         {
+            if (!config.mergeKeys())
+            {
+                throw error("YAML merge keys are disabled", line);
+            }
             merge(object, value, line);
         }
         else
@@ -359,6 +400,7 @@ public final class YamlDocumentParser
         Line line)
     {
         ValueSpec spec = ValueSpec.parse(valueText, line, tagHandles);
+        validateSpec(spec, line);
         index++;
 
         YamlNode value = spec.alias != null ?
@@ -400,12 +442,20 @@ public final class YamlDocumentParser
     {
         if (text.startsWith("|") || text.startsWith(">"))
         {
+            if (!config.blockScalars())
+            {
+                throw error("YAML block scalars are disabled", line);
+            }
             return parseBlockScalar(text, tag, line);
         }
         if (text.startsWith("{") || text.startsWith("["))
         {
+            if (!config.flowCollections())
+            {
+                throw error("YAML flow collections are disabled", line);
+            }
             String flow = collectFlowText(text, line);
-            return applyTag(new FlowParser(flow, line, anchors, tagHandles).parse(), tag, flow, line);
+            return applyTag(new FlowParser(flow, line, anchors, tagHandles, config).parse(), tag, flow, line);
         }
         return parseScalar(text, tag, line);
     }
@@ -619,6 +669,10 @@ public final class YamlDocumentParser
             scalar.style = text.startsWith("\"") ? "\"" : "'";
             return (YamlScalarNode) applyTag(scalar, tag, text, line);
         }
+        if (!config.scalarResolution())
+        {
+            return (YamlScalarNode) applyTag(YamlScalarNode.string(text, line.line, line.column, line.offset), tag, text, line);
+        }
 
         rejectNonFinite(text, line);
         String lower = text.toLowerCase(Locale.ROOT);
@@ -714,6 +768,10 @@ public final class YamlDocumentParser
         {
             return value;
         }
+        if (!config.tags())
+        {
+            throw error("YAML tags are disabled", line);
+        }
 
         YamlNode tagged = switch (tag)
         {
@@ -795,6 +853,10 @@ public final class YamlDocumentParser
     {
         if (anchor != null)
         {
+            if (!config.anchors())
+            {
+                throw error("YAML anchors are disabled", line);
+            }
             value.anchor = anchor;
             if (anchors.put(anchor, copy(value)) != null)
             {
@@ -807,6 +869,10 @@ public final class YamlDocumentParser
         String alias,
         Line line)
     {
+        if (!config.aliases())
+        {
+            throw error("YAML aliases are disabled", line);
+        }
         YamlNode value = anchors.get(alias);
         if (value == null)
         {
@@ -883,7 +949,14 @@ public final class YamlDocumentParser
             Line line = lines.get(index);
             if (line.comment != null && line.content.isBlank())
             {
-                comments.add(line.comment);
+                if (!config.comments())
+                {
+                    throw error("YAML comments are disabled", line);
+                }
+                if (config.preserveComments())
+                {
+                    comments.add(line.comment);
+                }
             }
             index++;
         }
@@ -893,14 +966,39 @@ public final class YamlDocumentParser
         YamlNode node,
         Line line)
     {
-        List<String> leading = takeComments();
+        List<String> leading = config.preserveComments() ? takeComments() : null;
         if (leading != null)
         {
             node.leadingComments = leading;
         }
         if (line.comment != null && !line.content.isBlank())
         {
-            node.lineComment = line.comment;
+            if (!config.comments())
+            {
+                throw error("YAML comments are disabled", line);
+            }
+            if (config.preserveComments())
+            {
+                node.lineComment = line.comment;
+            }
+        }
+    }
+
+    private void validateSpec(
+        ValueSpec spec,
+        Line line)
+    {
+        if (spec.anchor != null && !config.anchors())
+        {
+            throw error("YAML anchors are disabled", line);
+        }
+        if (spec.alias != null && !config.aliases())
+        {
+            throw error("YAML aliases are disabled", line);
+        }
+        if (spec.tag != null && !config.tags())
+        {
+            throw error("YAML tags are disabled", line);
         }
     }
 
@@ -1220,11 +1318,14 @@ public final class YamlDocumentParser
     {
         private final List<Line> all;
         private final String text;
+        private final YamlConfiguration config;
 
         private DocumentScanner(
-            String text)
+            String text,
+            YamlConfiguration config)
         {
             this.text = text;
+            this.config = config;
             this.all = lines(text);
         }
 
@@ -1241,16 +1342,28 @@ public final class YamlDocumentParser
                 }
                 else if (line.directive)
                 {
+                    if (!config.directives())
+                    {
+                        throw error("YAML directives are disabled", line);
+                    }
                     readDirective(line, tagHandles);
                     start++;
                 }
                 else if ("---".equals(line.content))
                 {
+                    if (!config.documentMarkers())
+                    {
+                        throw error("YAML document markers are disabled", line);
+                    }
                     start++;
                     break;
                 }
                 else if ("...".equals(line.content))
                 {
+                    if (!config.documentMarkers())
+                    {
+                        throw error("YAML document markers are disabled", line);
+                    }
                     start++;
                 }
                 else
@@ -1265,6 +1378,10 @@ public final class YamlDocumentParser
                 Line line = all.get(end);
                 if (!line.blank && ("---".equals(line.content) || "...".equals(line.content)))
                 {
+                    if (!config.documentMarkers())
+                    {
+                        throw error("YAML document markers are disabled", line);
+                    }
                     endOffset = "---".equals(line.content) ? line.offset : line.afterOffset;
                     break;
                 }
@@ -1277,7 +1394,7 @@ public final class YamlDocumentParser
                 documentLines.add(all.get(i));
             }
             String source = text.substring(0, (int) Math.min(endOffset, text.length()));
-            return new Document(documentLines, new YamlLocation(1, 1, endOffset), source, tagHandles);
+            return new Document(documentLines, new YamlLocation(1, 1, endOffset), source, tagHandles, config);
         }
 
         private static Map<String, String> defaultTagHandles()
@@ -1367,17 +1484,20 @@ public final class YamlDocumentParser
         final YamlLocation end;
         final String source;
         final Map<String, String> tagHandles;
+        final YamlConfiguration config;
 
         private Document(
             List<Line> lines,
             YamlLocation end,
             String source,
-            Map<String, String> tagHandles)
+            Map<String, String> tagHandles,
+            YamlConfiguration config)
         {
             this.lines = lines;
             this.end = end;
             this.source = source;
             this.tagHandles = tagHandles;
+            this.config = config;
         }
     }
 
@@ -1516,18 +1636,21 @@ public final class YamlDocumentParser
         private final Line line;
         private final Map<String, YamlNode> anchors;
         private final Map<String, String> tagHandles;
+        private final YamlConfiguration config;
         private int cursor;
 
         private FlowParser(
             String text,
             Line line,
             Map<String, YamlNode> anchors,
-            Map<String, String> tagHandles)
+            Map<String, String> tagHandles,
+            YamlConfiguration config)
         {
             this.text = text;
             this.line = line;
             this.anchors = anchors;
             this.tagHandles = tagHandles;
+            this.config = config;
         }
 
         private YamlNode parse()
@@ -1550,6 +1673,9 @@ public final class YamlDocumentParser
             }
 
             ValueSpec spec = parseFlowDecorators();
+            new YamlDocumentParser(new Document(List.of(), new YamlLocation(1, 1, 0), "",
+                DocumentScanner.defaultTagHandles(), config))
+                .validateSpec(spec, line);
             YamlNode value;
             if (spec.alias != null)
             {
@@ -1564,9 +1690,13 @@ public final class YamlDocumentParser
                 case '\'', '"' -> parseQuotedScalar();
                 default -> parseBareScalar();
                 };
-                value = applyFlowTag(value, spec.tag, line);
+                value = applyFlowTag(value, spec.tag, line, config);
                 if (spec.anchor != null)
                 {
+                    if (!config.anchors())
+                    {
+                        throw error("YAML anchors are disabled", line);
+                    }
                     value.anchor = spec.anchor;
                     if (anchors.put(spec.anchor, copy(value)) != null)
                     {
@@ -1650,8 +1780,12 @@ public final class YamlDocumentParser
                 YamlNode value = parseValue();
                 if ("<<".equals(key))
                 {
+                    if (!config.mergeKeys())
+                    {
+                        throw error("YAML merge keys are disabled", line);
+                    }
                     new YamlDocumentParser(new Document(List.of(), new YamlLocation(1, 1, text.length()), "",
-                        DocumentScanner.defaultTagHandles()))
+                        DocumentScanner.defaultTagHandles(), config))
                         .merge(object, value, line);
                 }
                 else
@@ -1703,6 +1837,10 @@ public final class YamlDocumentParser
             }
             if (cursor < text.length() && (text.charAt(cursor) == '{' || text.charAt(cursor) == '['))
             {
+                if (!config.nonScalarKeys())
+                {
+                    throw error("YAML non-scalar mapping keys are disabled", line);
+                }
                 throw error("Non-scalar YAML mapping keys are not supported", line);
             }
 
@@ -1754,13 +1892,17 @@ public final class YamlDocumentParser
                 cursor++;
             }
             return new YamlDocumentParser(new Document(List.of(), new YamlLocation(1, 1, text.length()), "",
-                DocumentScanner.defaultTagHandles()))
+                DocumentScanner.defaultTagHandles(), config))
                 .parseScalar(text.substring(start, cursor).trim(), null, line);
         }
 
         private YamlNode resolve(
             String alias)
         {
+            if (!config.aliases())
+            {
+                throw error("YAML aliases are disabled", line);
+            }
             YamlNode value = anchors.get(alias);
             if (value == null)
             {
@@ -1796,6 +1938,10 @@ public final class YamlDocumentParser
                 }
                 else if (c == '#')
                 {
+                    if (!config.comments())
+                    {
+                        throw error("YAML comments are disabled", line);
+                    }
                     while (cursor < text.length() && text.charAt(cursor) != '\n')
                     {
                         cursor++;
@@ -1818,10 +1964,11 @@ public final class YamlDocumentParser
     private static YamlNode applyFlowTag(
         YamlNode value,
         String tag,
-        Line line)
+        Line line,
+        YamlConfiguration config)
     {
         return new YamlDocumentParser(new Document(List.of(), new YamlLocation(1, 1, 0), "",
-            DocumentScanner.defaultTagHandles()))
+            DocumentScanner.defaultTagHandles(), config))
             .applyTag(value, tag, scalarText(value, ""), line);
     }
 

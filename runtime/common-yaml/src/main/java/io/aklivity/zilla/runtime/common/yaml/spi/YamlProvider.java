@@ -18,11 +18,16 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Reader;
 import java.io.Writer;
+import java.util.Map;
 
 import io.aklivity.zilla.runtime.common.yaml.YamlGenerator;
+import io.aklivity.zilla.runtime.common.yaml.YamlGeneratorFactory;
 import io.aklivity.zilla.runtime.common.yaml.YamlParser;
+import io.aklivity.zilla.runtime.common.yaml.YamlParserFactory;
 import io.aklivity.zilla.runtime.common.yaml.YamlReader;
+import io.aklivity.zilla.runtime.common.yaml.YamlReaderFactory;
 import io.aklivity.zilla.runtime.common.yaml.YamlWriter;
+import io.aklivity.zilla.runtime.common.yaml.YamlWriterFactory;
 
 public abstract class YamlProvider
 {
@@ -36,21 +41,33 @@ public abstract class YamlProvider
     public abstract YamlParser createParser(
         InputStream in);
 
+    public abstract YamlParserFactory createParserFactory(
+        Map<String, ?> config);
+
     public abstract YamlReader createReader(
         Reader reader);
 
     public abstract YamlReader createReader(
         InputStream in);
 
+    public abstract YamlReaderFactory createReaderFactory(
+        Map<String, ?> config);
+
     public abstract YamlGenerator createGenerator(
         Writer writer);
 
     public abstract YamlGenerator createGenerator(
         OutputStream out);
 
+    public abstract YamlGeneratorFactory createGeneratorFactory(
+        Map<String, ?> config);
+
     public abstract YamlWriter createWriter(
         Writer writer);
 
     public abstract YamlWriter createWriter(
         OutputStream out);
+
+    public abstract YamlWriterFactory createWriterFactory(
+        Map<String, ?> config);
 }

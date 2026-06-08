@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.common.yaml.internal.json;
+package io.aklivity.zilla.runtime.common.yaml.internal;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -22,44 +22,44 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 import java.util.Map;
 
-import jakarta.json.JsonWriter;
-import jakarta.json.JsonWriterFactory;
+import io.aklivity.zilla.runtime.common.yaml.YamlGenerator;
+import io.aklivity.zilla.runtime.common.yaml.YamlGeneratorFactory;
 
-public final class YamlJsonWriterFactory implements JsonWriterFactory
+public final class YamlGeneratorFactoryImpl implements YamlGeneratorFactory
 {
-    private final Map<String, ?> config;
+    private final YamlConfiguration config;
 
-    public YamlJsonWriterFactory(
+    public YamlGeneratorFactoryImpl(
         Map<String, ?> config)
     {
-        this.config = config == null ? Map.of() : Map.copyOf(config);
+        this.config = new YamlConfiguration(config);
     }
 
     @Override
-    public JsonWriter createWriter(
+    public YamlGenerator createGenerator(
         Writer writer)
     {
-        return new YamlJsonWriter(new YamlJsonGenerator(writer));
+        return new YamlGeneratorImpl(writer);
     }
 
     @Override
-    public JsonWriter createWriter(
+    public YamlGenerator createGenerator(
         OutputStream out)
     {
-        return createWriter(out, UTF_8);
+        return createGenerator(out, UTF_8);
     }
 
     @Override
-    public JsonWriter createWriter(
+    public YamlGenerator createGenerator(
         OutputStream out,
         Charset charset)
     {
-        return new YamlJsonWriter(new YamlJsonGenerator(new OutputStreamWriter(out, charset)));
+        return new YamlGeneratorImpl(new OutputStreamWriter(out, charset));
     }
 
     @Override
     public Map<String, ?> getConfigInUse()
     {
-        return config;
+        return config.config();
     }
 }

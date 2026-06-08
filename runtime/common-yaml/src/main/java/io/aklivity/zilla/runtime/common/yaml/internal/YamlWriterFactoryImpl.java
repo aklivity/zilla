@@ -12,54 +12,51 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.common.yaml.internal.json;
-
-import static java.nio.charset.StandardCharsets.UTF_8;
+package io.aklivity.zilla.runtime.common.yaml.internal;
 
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.util.Map;
 
-import jakarta.json.JsonWriter;
-import jakarta.json.JsonWriterFactory;
+import io.aklivity.zilla.runtime.common.yaml.YamlWriter;
+import io.aklivity.zilla.runtime.common.yaml.YamlWriterFactory;
 
-public final class YamlJsonWriterFactory implements JsonWriterFactory
+public final class YamlWriterFactoryImpl implements YamlWriterFactory
 {
-    private final Map<String, ?> config;
+    private final YamlGeneratorFactoryImpl generators;
 
-    public YamlJsonWriterFactory(
+    public YamlWriterFactoryImpl(
         Map<String, ?> config)
     {
-        this.config = config == null ? Map.of() : Map.copyOf(config);
+        this.generators = new YamlGeneratorFactoryImpl(config);
     }
 
     @Override
-    public JsonWriter createWriter(
+    public YamlWriter createWriter(
         Writer writer)
     {
-        return new YamlJsonWriter(new YamlJsonGenerator(writer));
+        return new YamlWriterImpl(generators.createGenerator(writer));
     }
 
     @Override
-    public JsonWriter createWriter(
+    public YamlWriter createWriter(
         OutputStream out)
     {
-        return createWriter(out, UTF_8);
+        return new YamlWriterImpl(generators.createGenerator(out));
     }
 
     @Override
-    public JsonWriter createWriter(
+    public YamlWriter createWriter(
         OutputStream out,
         Charset charset)
     {
-        return new YamlJsonWriter(new YamlJsonGenerator(new OutputStreamWriter(out, charset)));
+        return new YamlWriterImpl(generators.createGenerator(out, charset));
     }
 
     @Override
     public Map<String, ?> getConfigInUse()
     {
-        return config;
+        return generators.getConfigInUse();
     }
 }

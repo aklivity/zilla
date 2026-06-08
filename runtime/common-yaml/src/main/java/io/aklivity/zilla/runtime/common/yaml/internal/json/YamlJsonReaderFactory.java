@@ -31,7 +31,7 @@ public final class YamlJsonReaderFactory implements JsonReaderFactory
     public YamlJsonReaderFactory(
         Map<String, ?> config)
     {
-        this.config = config;
+        this.config = config == null ? Map.of() : Map.copyOf(config);
     }
 
     @Override

@@ -12,68 +12,51 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.common.yaml.internal.json;
+package io.aklivity.zilla.runtime.common.yaml.internal;
 
 import java.io.InputStream;
 import java.io.Reader;
 import java.nio.charset.Charset;
 import java.util.Map;
 
-import jakarta.json.JsonArray;
-import jakarta.json.JsonObject;
-import jakarta.json.stream.JsonParser;
-import jakarta.json.stream.JsonParserFactory;
+import io.aklivity.zilla.runtime.common.yaml.YamlParser;
+import io.aklivity.zilla.runtime.common.yaml.YamlParserFactory;
 
-public final class YamlJsonParserFactory implements JsonParserFactory
+public final class YamlParserFactoryImpl implements YamlParserFactory
 {
-    private final Map<String, ?> config;
+    private final YamlConfiguration config;
 
-    public YamlJsonParserFactory(
+    public YamlParserFactoryImpl(
         Map<String, ?> config)
     {
-        this.config = config == null ? Map.of() : Map.copyOf(config);
+        this.config = new YamlConfiguration(config);
     }
 
     @Override
-    public JsonParser createParser(
+    public YamlParser createParser(
         Reader reader)
     {
-        return new YamlJsonParser(reader);
+        return new YamlParserImpl(reader, config);
     }
 
     @Override
-    public JsonParser createParser(
+    public YamlParser createParser(
         InputStream in)
     {
-        return new YamlJsonParser(in);
+        return new YamlParserImpl(in, config);
     }
 
     @Override
-    public JsonParser createParser(
+    public YamlParser createParser(
         InputStream in,
         Charset charset)
     {
-        return new YamlJsonParser(in, charset);
-    }
-
-    @Override
-    public JsonParser createParser(
-        JsonObject obj)
-    {
-        return YamlJsonValues.parser(obj);
-    }
-
-    @Override
-    public JsonParser createParser(
-        JsonArray array)
-    {
-        return YamlJsonValues.parser(array);
+        return new YamlParserImpl(in, charset, config);
     }
 
     @Override
     public Map<String, ?> getConfigInUse()
     {
-        return config;
+        return config.config();
     }
-
 }

@@ -29,7 +29,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import jakarta.json.spi.JsonProvider;
 
@@ -63,6 +65,99 @@ class YamlTest
         assertNotNull(Yaml.createGenerator(new ByteArrayOutputStream()));
         assertNotNull(Yaml.createWriter(new StringWriter()));
         assertNotNull(Yaml.createWriter(new ByteArrayOutputStream()));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void shouldCreateNativeFactoriesWithConfig()
+    {
+        Map<String, Object> mutable = new HashMap<>();
+        mutable.put(YamlConfig.SCALAR_RESOLUTION, false);
+
+        YamlParserFactory parserFactory = Yaml.createParserFactory(mutable);
+        YamlReaderFactory readerFactory = Yaml.createReaderFactory(mutable);
+        YamlGeneratorFactory generatorFactory = Yaml.createGeneratorFactory(mutable);
+        YamlWriterFactory writerFactory = Yaml.createWriterFactory(mutable);
+
+        mutable.put(YamlConfig.SCALAR_RESOLUTION, true);
+
+        assertEquals(false, parserFactory.getConfigInUse().get(YamlConfig.SCALAR_RESOLUTION));
+        assertEquals(false, readerFactory.getConfigInUse().get(YamlConfig.SCALAR_RESOLUTION));
+        assertEquals(false, generatorFactory.getConfigInUse().get(YamlConfig.SCALAR_RESOLUTION));
+        assertEquals(false, writerFactory.getConfigInUse().get(YamlConfig.SCALAR_RESOLUTION));
+        assertThrows(UnsupportedOperationException.class,
+            () -> ((Map<String, Object>) parserFactory.getConfigInUse()).put("changed", true));
+
+        assertEquals(YamlValue.ValueType.STRING, parserFactory
+            .createParser(new ByteArrayInputStream("42\n".getBytes(UTF_8)), UTF_8)
+            .parse()
+            .getValueType());
+        assertEquals(YamlValue.ValueType.STRING, readerFactory
+            .createReader(new ByteArrayInputStream("42\n".getBytes(UTF_8)), UTF_8)
+            .readValue()
+            .getValueType());
+
+        StringWriter generated = new StringWriter();
+        generatorFactory.createGenerator(generated).write("test").close();
+        assertEquals("test\n", generated.toString());
+
+        ByteArrayOutputStream written = new ByteArrayOutputStream();
+        writerFactory.createWriter(written, UTF_8).writeString("test");
+        assertEquals("test\n", written.toString(UTF_8));
+
+        YamlReaderFactory normalizedReader = Yaml.createReaderFactory(Map.of(
+            YamlConfig.PRESERVE_SOURCE, false,
+            YamlConfig.PRESERVE_COMMENTS, false));
+        YamlObject normalized = normalizedReader.createReader(new StringReader("""
+            # leading comment
+            name: test # trailing comment
+            """)).readObject();
+        StringWriter normalizedOutput = new StringWriter();
+        Yaml.createWriter(normalizedOutput).writeObject(normalized);
+        assertEquals("name: test\n", normalizedOutput.toString());
+
+        assertTrue(Yaml.createParserFactory(null).getConfigInUse().isEmpty());
+        assertTrue(Yaml.createReaderFactory(null).getConfigInUse().isEmpty());
+        assertTrue(Yaml.createGeneratorFactory(null).getConfigInUse().isEmpty());
+        assertTrue(Yaml.createWriterFactory(null).getConfigInUse().isEmpty());
+    }
+
+    @Test
+    void shouldApplyNativeParserFeatureConfig()
+    {
+        assertFeatureDisabled(YamlConfig.FEATURE_DIRECTIVES, "%YAML 1.2\n---\nname: test\n");
+        assertFeatureDisabled(YamlConfig.FEATURE_DOCUMENT_MARKERS, "---\nname: test\n");
+        assertFeatureDisabled(YamlConfig.FEATURE_BLOCK_SCALARS, "description: |-\n  line\n");
+        assertFeatureDisabled(YamlConfig.FEATURE_FLOW_COLLECTIONS, "items: [one, two]\n");
+        assertFeatureDisabled(YamlConfig.FEATURE_ANCHORS, "value: &value test\n");
+        assertFeatureDisabled(YamlConfig.FEATURE_ALIASES, "value: &value test\nalias: *value\n");
+        assertFeatureDisabled(YamlConfig.FEATURE_MERGE_KEYS, """
+            defaults: &defaults
+              name: test
+            item:
+              <<: *defaults
+            """);
+        assertFeatureDisabled(YamlConfig.FEATURE_TAGS, "value: !!str 42\n");
+        assertFeatureDisabled(YamlConfig.FEATURE_COMMENTS, "name: test # comment\n");
+        assertFeatureDisabled(YamlConfig.FEATURE_NON_SCALAR_KEYS, "? [a, b]\n: value\n");
+
+        YamlReaderFactory streamDisabled = Yaml.createReaderFactory(Map.of(
+            YamlConfig.FEATURE_MULTI_DOCUMENT_STREAMS, false));
+        assertThrows(RuntimeException.class, () -> streamDisabled.createReader(new StringReader("""
+            ---
+            name: first
+            ---
+            name: second
+            """)).readStream());
+    }
+
+    private static void assertFeatureDisabled(
+        String feature,
+        String yaml)
+    {
+        YamlParser parser = Yaml.createParserFactory(Map.of(feature, false)).createParser(new StringReader(yaml));
+
+        assertThrows(RuntimeException.class, parser::parse);
     }
 
     @Test

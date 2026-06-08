@@ -32,7 +32,7 @@ public final class YamlJsonGeneratorFactory implements JsonGeneratorFactory
     public YamlJsonGeneratorFactory(
         Map<String, ?> config)
     {
-        this.config = config;
+        this.config = config == null ? Map.of() : Map.copyOf(config);
     }
 
     @Override

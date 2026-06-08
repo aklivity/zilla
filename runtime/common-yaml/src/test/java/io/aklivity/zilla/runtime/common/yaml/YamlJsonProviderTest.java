@@ -26,6 +26,7 @@ import java.io.StringReader;
 import java.io.StringWriter;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -131,6 +132,11 @@ class YamlJsonProviderTest
         JsonObject directObject = YamlJson.createReader(new StringReader("name: direct\n")).readObject();
         assertEquals("direct", directObject.getString("name"));
 
+        assertEquals(Map.of("reader", "static"), YamlJson.createReaderFactory(Map.of("reader", "static"))
+            .getConfigInUse());
+        assertEquals(Map.of("writer", "static"), YamlJson.createWriterFactory(Map.of("writer", "static"))
+            .getConfigInUse());
+
         StringWriter directWriter = new StringWriter();
         YamlJson.createWriter(directWriter).writeObject(directObject);
         assertEquals("name: direct\n", directWriter.toString());
@@ -142,6 +148,33 @@ class YamlJsonProviderTest
         assertEquals("static", staticObject.getString("name"));
         assertEquals(2, staticObject.getJsonArray("values").getInt(1));
         assertEquals("static", Json.createPointer("/name").getValue(staticObject).toString().replace("\"", ""));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void shouldCreateYamlJsonFactoriesWithDefensiveConfig()
+    {
+        Map<String, Object> mutable = new HashMap<>();
+        mutable.put("configured", true);
+
+        JsonParserFactory parserFactory = YamlJson.createParserFactory(mutable);
+        JsonReaderFactory readerFactory = YamlJson.createReaderFactory(mutable);
+        JsonGeneratorFactory generatorFactory = YamlJson.createGeneratorFactory(mutable);
+        JsonWriterFactory writerFactory = YamlJson.createWriterFactory(mutable);
+
+        mutable.put("configured", false);
+
+        assertEquals(true, parserFactory.getConfigInUse().get("configured"));
+        assertEquals(true, readerFactory.getConfigInUse().get("configured"));
+        assertEquals(true, generatorFactory.getConfigInUse().get("configured"));
+        assertEquals(true, writerFactory.getConfigInUse().get("configured"));
+        assertThrows(UnsupportedOperationException.class,
+            () -> ((Map<String, Object>) parserFactory.getConfigInUse()).put("changed", true));
+
+        assertTrue(YamlJson.createParserFactory(null).getConfigInUse().isEmpty());
+        assertTrue(YamlJson.createReaderFactory(null).getConfigInUse().isEmpty());
+        assertTrue(YamlJson.createGeneratorFactory(null).getConfigInUse().isEmpty());
+        assertTrue(YamlJson.createWriterFactory(null).getConfigInUse().isEmpty());
     }
 
     @Test

@@ -36,6 +36,7 @@ import io.aklivity.zilla.runtime.common.yaml.YamlValue;
 public final class YamlParserImpl implements YamlParser
 {
     private final String text;
+    private final YamlConfiguration config;
     private Deque<Frame> stack;
     private YamlNode root;
     private YamlEvent current;
@@ -47,20 +48,44 @@ public final class YamlParserImpl implements YamlParser
     public YamlParserImpl(
         Reader reader)
     {
+        this(reader, YamlConfiguration.DEFAULT);
+    }
+
+    public YamlParserImpl(
+        Reader reader,
+        YamlConfiguration config)
+    {
         this.text = readAll(reader);
+        this.config = config;
     }
 
     public YamlParserImpl(
         InputStream in)
     {
-        this(in, UTF_8);
+        this(in, UTF_8, YamlConfiguration.DEFAULT);
+    }
+
+    public YamlParserImpl(
+        InputStream in,
+        YamlConfiguration config)
+    {
+        this(in, UTF_8, config);
     }
 
     public YamlParserImpl(
         InputStream in,
         Charset charset)
     {
+        this(in, charset, YamlConfiguration.DEFAULT);
+    }
+
+    public YamlParserImpl(
+        InputStream in,
+        Charset charset,
+        YamlConfiguration config)
+    {
         this.text = readAll(in, charset);
+        this.config = config;
     }
 
     @Override
@@ -146,7 +171,7 @@ public final class YamlParserImpl implements YamlParser
             throw new IllegalStateException("YAML document has already been parsed");
         }
         parsed = true;
-        List<YamlNode> nodes = YamlDocumentParser.parseAll(text).stream()
+        List<YamlNode> nodes = YamlDocumentParser.parseAll(text, config).stream()
             .map(r -> r.node)
             .toList();
         return YamlValues.stream(nodes);
@@ -156,7 +181,7 @@ public final class YamlParserImpl implements YamlParser
     {
         if (root == null)
         {
-            root = YamlDocumentParser.parse(text).node;
+            root = YamlDocumentParser.parse(text, config).node;
         }
         return root;
     }

@@ -18,6 +18,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Reader;
 import java.io.Writer;
+import java.util.Map;
 
 import io.aklivity.zilla.runtime.common.yaml.internal.YamlProviderImpl;
 import io.aklivity.zilla.runtime.common.yaml.spi.YamlProvider;
@@ -45,6 +46,12 @@ public final class Yaml
         return provider().createParser(in);
     }
 
+    public static YamlParserFactory createParserFactory(
+        Map<String, ?> config)
+    {
+        return provider().createParserFactory(config);
+    }
+
     public static YamlReader createReader(
         Reader reader)
     {
@@ -55,6 +62,12 @@ public final class Yaml
         InputStream in)
     {
         return provider().createReader(in);
+    }
+
+    public static YamlReaderFactory createReaderFactory(
+        Map<String, ?> config)
+    {
+        return provider().createReaderFactory(config);
     }
 
     public static YamlGenerator createGenerator(
@@ -69,6 +82,12 @@ public final class Yaml
         return provider().createGenerator(out);
     }
 
+    public static YamlGeneratorFactory createGeneratorFactory(
+        Map<String, ?> config)
+    {
+        return provider().createGeneratorFactory(config);
+    }
+
     public static YamlWriter createWriter(
         Writer writer)
     {
@@ -79,6 +98,12 @@ public final class Yaml
         OutputStream out)
     {
         return provider().createWriter(out);
+    }
+
+    public static YamlWriterFactory createWriterFactory(
+        Map<String, ?> config)
+    {
+        return provider().createWriterFactory(config);
     }
 
     private static final class ProviderHolder
