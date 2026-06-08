@@ -48,6 +48,8 @@ public final class McpOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
     private static final String CACHE_AUTHORIZATION_NAME = "authorization";
     private static final String CACHE_AUTHORIZATION_CREDENTIALS_NAME = "credentials";
 
+    private static final String SERVER_NAME = "server";
+
     @Override
     public Kind kind()
     {
@@ -117,6 +119,11 @@ public final class McpOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
             object.add(CACHE_NAME, cache);
         }
 
+        if (mcpOptions.server != null)
+        {
+            object.add(SERVER_NAME, mcpOptions.server);
+        }
+
         return object.build();
     }
 
@@ -184,6 +191,11 @@ public final class McpOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
             }
 
             cacheBuilder.build();
+        }
+
+        if (object.containsKey(SERVER_NAME))
+        {
+            builder.server(object.getString(SERVER_NAME));
         }
 
         return builder.build();

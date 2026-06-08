@@ -127,6 +127,13 @@
                                 {
                                     "properties":
                                     {
+                                        "server":
+                                        {
+                                            "title": "Server",
+                                            "type": "string",
+                                            "format": "uri",
+                                            "pattern": "^https?://"
+                                        },
                                         "authorization":
                                         {
                                             "title": "Authorization",
@@ -151,54 +158,12 @@
                                             "maxProperties": 1
                                         }
                                     },
+                                    "required": [ "server" ],
                                     "additionalProperties": false
                                 },
-                                "routes":
-                                {
-                                    "title": "Routes",
-                                    "type": "array",
-                                    "items":
-                                    {
-                                        "type": "object",
-                                        "properties":
-                                        {
-                                            "when":
-                                            {
-                                                "title": "When",
-                                                "type": "array",
-                                                "items":
-                                                {
-                                                    "type": "object",
-                                                    "additionalProperties": false
-                                                }
-                                            },
-                                            "with":
-                                            {
-                                                "title": "With",
-                                                "type": "object",
-                                                "properties":
-                                                {
-                                                    "headers":
-                                                    {
-                                                        "title": "Headers",
-                                                        "type": "object",
-                                                        "patternProperties":
-                                                        {
-                                                            "^(?!(:method|content-type|mcp-))[A-Za-z0-9:-]+$":
-                                                            {
-                                                                "type": "string"
-                                                            }
-                                                        },
-                                                        "additionalProperties": false
-                                                    }
-                                                },
-                                                "additionalProperties": false
-                                            },
-                                            "guarded": false
-                                        }
-                                    }
-                                }
-                            }
+                                "routes": false
+                            },
+                            "required": [ "options" ]
                         }
                     },
                     {

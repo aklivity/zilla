@@ -69,4 +69,28 @@ public class McpOptionsConfigAdapterTest
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo("{\"elicitation\":{\"callback\":\"auth/callback\",\"timeout\":\"PT30S\"}}"));
     }
+
+    @Test
+    public void shouldReadOptionsWithServer()
+    {
+        String text = "{\"server\":\"http://localhost:8080/mcp\"}";
+
+        McpOptionsConfig options = (McpOptionsConfig) jsonb.fromJson(text, OptionsConfig.class);
+
+        assertThat(options, not(nullValue()));
+        assertThat(options.server, equalTo("http://localhost:8080/mcp"));
+    }
+
+    @Test
+    public void shouldWriteOptionsWithServer()
+    {
+        McpOptionsConfig options = McpOptionsConfig.builder()
+                .server("http://localhost:8080/mcp")
+                .build();
+
+        String text = jsonb.toJson(options);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo("{\"server\":\"http://localhost:8080/mcp\"}"));
+    }
 }

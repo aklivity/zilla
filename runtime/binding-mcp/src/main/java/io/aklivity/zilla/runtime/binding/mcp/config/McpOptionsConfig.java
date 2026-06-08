@@ -23,15 +23,18 @@ public final class McpOptionsConfig extends OptionsConfig
     public final McpElicitationConfig elicitation;
     public final McpAuthorizationConfig authorization;
     public final McpCacheConfig cache;
+    public final String server;
 
     McpOptionsConfig(
         McpElicitationConfig elicitation,
         McpAuthorizationConfig authorization,
-        McpCacheConfig cache)
+        McpCacheConfig cache,
+        String server)
     {
         this.elicitation = elicitation;
         this.authorization = authorization;
         this.cache = cache;
+        this.server = server;
     }
 
     public static McpOptionsConfigBuilder<McpOptionsConfig> builder()

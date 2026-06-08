@@ -20,7 +20,5 @@ bindings:
     type: mcp
     kind: client
     options:
-      server: http://localhost:8080/mcp
-      elicitation:
-        callback: auth/callback
+      server: ftp://localhost:8080/mcp
     exit: net0

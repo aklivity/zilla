@@ -14,21 +14,17 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.config;
 
-import java.util.Map;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.WithConfig;
 
 public final class McpWithConfig extends WithConfig
 {
-    public final Map<String, String> headers;
     public final McpWithCacheConfig cache;
 
     public McpWithConfig(
-        Map<String, String> headers,
         McpWithCacheConfig cache)
     {
-        this.headers = headers;
         this.cache = cache;
     }
 

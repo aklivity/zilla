@@ -96,9 +96,21 @@ public class SchemaTest
     }
 
     @Test(expected = JsonValidatingException.class)
-    public void shouldRejectClientRouteWithCapability()
+    public void shouldRejectClientWithRoutes()
     {
-        schema.validate("client.capability.invalid.yaml");
+        schema.validate("client.routes.invalid.yaml");
+    }
+
+    @Test(expected = JsonValidatingException.class)
+    public void shouldRejectClientWithoutServer()
+    {
+        schema.validate("client.server.missing.invalid.yaml");
+    }
+
+    @Test(expected = JsonValidatingException.class)
+    public void shouldRejectClientWithNonHttpServer()
+    {
+        schema.validate("client.server.invalid.yaml");
     }
 
     @Test(expected = JsonValidatingException.class)

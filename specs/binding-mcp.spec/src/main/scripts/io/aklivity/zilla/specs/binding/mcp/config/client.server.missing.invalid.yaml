@@ -20,7 +20,6 @@ bindings:
     type: mcp
     kind: client
     options:
-      server: http://localhost:8080/mcp
-      elicitation:
-        callback: auth/callback
+      authorization:
+        jwt0: {}
     exit: net0
