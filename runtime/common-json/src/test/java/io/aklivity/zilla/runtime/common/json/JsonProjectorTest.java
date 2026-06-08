@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.common.json;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.List;
 
@@ -24,6 +25,8 @@ import jakarta.json.stream.JsonParser;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
+
+import io.aklivity.zilla.runtime.common.json.JsonEventConsumer.Status;
 
 class JsonProjectorTest
 {
@@ -104,6 +107,61 @@ class JsonProjectorTest
         assertEquals("{\"meta\":{\"id\":7}}",
             project(List.of("/meta/id"),
                 "{\"meta\":{\"id\":7,\"ts\":\"now\"},\"body\":{\"big\":\"drop\"}}"));
+    }
+
+    @Test
+    void shouldProjectByFeedingEventByEvent()
+    {
+        JsonGeneratorEx gen = StreamingJson.createGenerator();
+        MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
+        gen.wrap(buffer, 0);
+        JsonProjector projector = new JsonProjector(List.of("/a", "/c"), JsonEventConsumer.ofGenerator(gen));
+        JsonParser parser = parserFor("{\"a\":1,\"b\":2,\"c\":3} ");
+        Status status = Status.PENDING;
+        while (status == Status.PENDING && parser.hasNext())
+        {
+            status = projector.feed(parser.next(), parser);
+        }
+        assertEquals(Status.COMPLETE, status);
+        byte[] out = new byte[gen.length()];
+        buffer.getBytes(0, out);
+        assertEquals("{\"a\":1,\"c\":3}", new String(out, UTF_8));
+    }
+
+    @Test
+    void shouldResetForReuseAcrossValues()
+    {
+        JsonProjector projector = new JsonProjector(List.of("/x"));
+        MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
+        int len1 = projector.project(parserFor("{\"x\":1,\"y\":2} "), buffer, 0);
+        byte[] out1 = new byte[len1];
+        buffer.getBytes(0, out1);
+        assertEquals("{\"x\":1}", new String(out1, UTF_8));
+        int len2 = projector.project(parserFor("{\"x\":\"two\"} "), buffer, 0);
+        byte[] out2 = new byte[len2];
+        buffer.getBytes(0, out2);
+        assertEquals("{\"x\":\"two\"}", new String(out2, UTF_8));
+    }
+
+    @Test
+    void shouldRejectProjectWhenConstructedWithExternalSink()
+    {
+        JsonGeneratorEx gen = StreamingJson.createGenerator();
+        JsonProjector projector = new JsonProjector(List.of(""), JsonEventConsumer.ofGenerator(gen));
+        MutableDirectBuffer buffer = new UnsafeBuffer(new byte[64]);
+        assertThrows(IllegalStateException.class, () -> projector.project(parserFor("1 "), buffer, 0));
+    }
+
+    @Test
+    void shouldProjectRootScalar()
+    {
+        assertEquals("42", project(List.of(""), "42"));
+    }
+
+    @Test
+    void shouldProjectArrayOfScalarsWithIndex()
+    {
+        assertEquals("[\"a\",\"c\"]", project(List.of("/0", "/2"), "[\"a\",\"b\",\"c\"]"));
     }
 
     private static String project(

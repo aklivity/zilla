@@ -14,31 +14,40 @@
  */
 package io.aklivity.zilla.runtime.common.json;
 
-import static jakarta.json.stream.JsonParser.Event.END_ARRAY;
-import static jakarta.json.stream.JsonParser.Event.END_OBJECT;
 import static jakarta.json.stream.JsonParser.Event.START_ARRAY;
-import static jakarta.json.stream.JsonParser.Event.START_OBJECT;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Stream;
 
+import jakarta.json.JsonArray;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonValue;
+import jakarta.json.stream.JsonLocation;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParser.Event;
 
 import org.agrona.MutableDirectBuffer;
 
 /**
- * Projects a JSON document down to a set of retained paths, reading a streaming {@link
- * JsonParser} and writing the pruned, compact result into a {@link MutableDirectBuffer} via
- * {@link JsonGeneratorEx} — no DOM, no per-call allocation.
+ * A resumable, event-driven {@link JsonEventConsumer} that projects a JSON document down to a set
+ * of retained paths and forwards the kept events to a downstream sink.
  * <p>
  * Retained paths are RFC 6901 JSON Pointers; a {@code -} array-index segment is a wildcard
- * matching any index. A node is emitted when it lies on a retained branch — either a retained
+ * matching any index. A node is forwarded when it lies on a retained branch — either a retained
  * pointer is a prefix of the node's path (the node is inside a retained subtree, kept whole) or
  * the node's path is a prefix of a retained pointer (an ancestor, descended to reach retained
- * descendants). Every other subtree is consumed and discarded. Output is in source order.
+ * descendants). Every other subtree is dropped. Output is in source order.
+ * <p>
+ * The projector is fed one parser event at a time via {@link #feed(Event, JsonParser)} and holds
+ * no reference to the parser between feeds, so it can be paused at any event boundary while the
+ * upstream slot-fragmented parser awaits more bytes. The convenience {@link
+ * #project(JsonParser, MutableDirectBuffer, int)} method drives an internal generator-sink in one
+ * shot for the simple, complete-buffer case.
  */
-public final class JsonProjector
+public final class JsonProjector implements JsonEventConsumer
 {
     private static final int MAX_DEPTH = 64;
     private static final String WILDCARD = "-";
@@ -49,184 +58,227 @@ public final class JsonProjector
     }
 
     private final List<String[]> retained;
+    private final JsonEventConsumer sink;
+    private final JsonGeneratorEx ownedGenerator;
+
     private final String[] segments = new String[MAX_DEPTH];
     private final int[] indexes = new int[MAX_DEPTH];
-    private final JsonGeneratorEx generator = StreamingJson.createGenerator();
+
+    private final boolean[] frameInArray = new boolean[MAX_DEPTH];
+    private final boolean[] frameEmit = new boolean[MAX_DEPTH];
+    private final boolean[] frameKeepAll = new boolean[MAX_DEPTH];
+    private final int[] frameNextIndex = new int[MAX_DEPTH];
+    private final int[] frameDepthAtOpen = new int[MAX_DEPTH];
+
+    private final KeyParser keyParser = new KeyParser();
 
     private int depth;
+    private int containers;
+    private Decision keyDecision;
+    private String pendingKey;
+    private boolean rootDone;
 
     public JsonProjector(
         List<String> pointers)
     {
-        List<String[]> compiled = new ArrayList<>();
-        for (String pointer : pointers)
-        {
-            compiled.add(compile(pointer));
-        }
-        this.retained = compiled;
+        this(pointers, null);
     }
 
+    public JsonProjector(
+        List<String> pointers,
+        JsonEventConsumer sink)
+    {
+        this.retained = compileAll(pointers);
+        if (sink == null)
+        {
+            this.ownedGenerator = StreamingJson.createGenerator();
+            this.sink = JsonEventConsumer.ofGenerator(ownedGenerator);
+        }
+        else
+        {
+            this.ownedGenerator = null;
+            this.sink = sink;
+        }
+    }
+
+    /**
+     * Drives the parser to project the next top-level value into {@code buffer} starting at
+     * {@code offset} and returns the number of bytes written. Only available when the projector
+     * was constructed without an explicit sink (the internal generator is used).
+     */
     public int project(
         JsonParser parser,
         MutableDirectBuffer buffer,
         int offset)
     {
-        generator.wrap(buffer, offset);
-        depth = 0;
-        if (parser.hasNext())
+        if (ownedGenerator == null)
         {
-            projectValue(parser, parser.next(), decide());
+            throw new IllegalStateException("project requires the no-sink constructor");
         }
-        return generator.length();
+        reset();
+        ownedGenerator.wrap(buffer, offset);
+        Status status = Status.PENDING;
+        while (status == Status.PENDING && parser.hasNext())
+        {
+            status = feed(parser.next(), parser);
+        }
+        return ownedGenerator.length();
     }
 
-    private void projectValue(
-        JsonParser parser,
+    @Override
+    public void reset()
+    {
+        depth = 0;
+        containers = 0;
+        keyDecision = null;
+        pendingKey = null;
+        rootDone = false;
+        sink.reset();
+    }
+
+    @Override
+    public Status feed(
         Event event,
-        Decision decision)
+        JsonParser parser)
     {
         switch (event)
         {
+        case KEY_NAME:
+            onKey(parser);
+            break;
         case START_OBJECT:
-            projectObject(parser, decision);
-            break;
         case START_ARRAY:
-            projectArray(parser, decision);
+            onStart(event, parser);
             break;
-        case VALUE_STRING:
-            if (decision == Decision.KEEP_ALL)
-            {
-                generator.write(parser.getString());
-            }
-            break;
-        case VALUE_NUMBER:
-            if (decision == Decision.KEEP_ALL)
-            {
-                generator.writeNumber(parser.getString());
-            }
-            break;
-        case VALUE_TRUE:
-            if (decision == Decision.KEEP_ALL)
-            {
-                generator.write(true);
-            }
-            break;
-        case VALUE_FALSE:
-            if (decision == Decision.KEEP_ALL)
-            {
-                generator.write(false);
-            }
-            break;
-        case VALUE_NULL:
-            if (decision == Decision.KEEP_ALL)
-            {
-                generator.writeNull();
-            }
+        case END_OBJECT:
+        case END_ARRAY:
+            onEnd(event, parser);
             break;
         default:
+            onScalar(event, parser);
             break;
         }
+        return rootDone ? Status.COMPLETE : Status.PENDING;
     }
 
-    private void projectObject(
-        JsonParser parser,
-        Decision decision)
+    private void onKey(
+        JsonParser parser)
     {
-        boolean emit = decision != Decision.SKIP;
+        String key = parser.getString();
+        segments[depth] = key;
+        indexes[depth] = -1;
+        depth++;
+        boolean parentKeepAll = containers > 0 && frameKeepAll[containers - 1];
+        Decision d = parentKeepAll ? Decision.KEEP_ALL : decide();
+        keyDecision = d;
+        pendingKey = key;
+    }
+
+    private void forwardPendingKey(
+        JsonParser parser)
+    {
+        if (pendingKey != null)
+        {
+            sink.feed(Event.KEY_NAME, keyParser.with(parser, pendingKey));
+            pendingKey = null;
+        }
+    }
+
+    private void onStart(
+        Event event,
+        JsonParser parser)
+    {
+        Decision d = enterValue();
+        boolean parentEmit = containers == 0 || frameEmit[containers - 1];
+        boolean emit = parentEmit && d != Decision.SKIP;
         if (emit)
         {
-            generator.writeStartObject();
+            forwardPendingKey(parser);
+            sink.feed(event, parser);
         }
-        Event event = parser.next();
-        while (event != END_OBJECT)
+        else
         {
-            String key = parser.getString();
-            segments[depth++] = key;
-            Event value = parser.next();
-            Decision child = decision == Decision.KEEP_ALL ? Decision.KEEP_ALL : decide();
-            if (emit && keeps(child, value))
+            pendingKey = null;
+        }
+        frameInArray[containers] = event == START_ARRAY;
+        frameEmit[containers] = emit;
+        frameKeepAll[containers] = d == Decision.KEEP_ALL;
+        frameNextIndex[containers] = 0;
+        frameDepthAtOpen[containers] = depth;
+        containers++;
+    }
+
+    private void onEnd(
+        Event event,
+        JsonParser parser)
+    {
+        containers--;
+        if (frameEmit[containers])
+        {
+            sink.feed(event, parser);
+        }
+        if (containers == 0)
+        {
+            depth = 0;
+            rootDone = true;
+        }
+        else
+        {
+            depth = frameDepthAtOpen[containers] - 1;
+        }
+    }
+
+    private void onScalar(
+        Event event,
+        JsonParser parser)
+    {
+        Decision d = enterValue();
+        boolean parentEmit = containers == 0 || frameEmit[containers - 1];
+        boolean emit = parentEmit && d == Decision.KEEP_ALL;
+        if (emit)
+        {
+            forwardPendingKey(parser);
+            sink.feed(event, parser);
+        }
+        else
+        {
+            pendingKey = null;
+        }
+        if (containers == 0)
+        {
+            rootDone = true;
+        }
+        else
+        {
+            depth--;
+        }
+    }
+
+    private Decision enterValue()
+    {
+        Decision result;
+        if (containers == 0)
+        {
+            result = decide();
+        }
+        else
+        {
+            int parent = containers - 1;
+            if (frameInArray[parent])
             {
-                generator.writeKey(key);
-                projectValue(parser, value, child);
+                segments[depth] = null;
+                indexes[depth] = frameNextIndex[parent];
+                frameNextIndex[parent] = frameNextIndex[parent] + 1;
+                depth++;
+                result = frameKeepAll[parent] ? Decision.KEEP_ALL : decide();
             }
             else
             {
-                consume(parser, value);
-            }
-            depth--;
-            event = parser.next();
-        }
-        if (emit)
-        {
-            generator.writeEnd();
-        }
-    }
-
-    private void projectArray(
-        JsonParser parser,
-        Decision decision)
-    {
-        boolean emit = decision != Decision.SKIP;
-        if (emit)
-        {
-            generator.writeStartArray();
-        }
-        int index = 0;
-        Event event = parser.next();
-        while (event != END_ARRAY)
-        {
-            segments[depth] = null;
-            indexes[depth] = index;
-            depth++;
-            Decision child = decision == Decision.KEEP_ALL ? Decision.KEEP_ALL : decide();
-            if (emit && keeps(child, event))
-            {
-                projectValue(parser, event, child);
-            }
-            else
-            {
-                consume(parser, event);
-            }
-            depth--;
-            index++;
-            event = parser.next();
-        }
-        if (emit)
-        {
-            generator.writeEnd();
-        }
-    }
-
-    private static boolean keeps(
-        Decision decision,
-        Event event)
-    {
-        return decision == Decision.KEEP_ALL ||
-            decision == Decision.DESCEND && (event == START_OBJECT || event == START_ARRAY);
-    }
-
-    private static void consume(
-        JsonParser parser,
-        Event event)
-    {
-        if (event == START_OBJECT)
-        {
-            Event next = parser.next();
-            while (next != END_OBJECT)
-            {
-                consume(parser, parser.next());
-                next = parser.next();
+                result = keyDecision;
+                keyDecision = null;
             }
         }
-        else if (event == START_ARRAY)
-        {
-            Event next = parser.next();
-            while (next != END_ARRAY)
-            {
-                consume(parser, next);
-                next = parser.next();
-            }
-        }
+        return result;
     }
 
     private Decision decide()
@@ -300,6 +352,17 @@ public final class JsonProjector
         return matches && value == index;
     }
 
+    private static List<String[]> compileAll(
+        List<String> pointers)
+    {
+        List<String[]> compiled = new ArrayList<>();
+        for (String pointer : pointers)
+        {
+            compiled.add(compile(pointer));
+        }
+        return compiled;
+    }
+
     private static String[] compile(
         String pointer)
     {
@@ -318,5 +381,121 @@ public final class JsonProjector
             result = parts;
         }
         return result;
+    }
+
+    private static final class KeyParser implements JsonParser
+    {
+        private JsonParser delegate;
+        private String keyOverride;
+
+        KeyParser with(
+            JsonParser delegate,
+            String keyOverride)
+        {
+            this.delegate = delegate;
+            this.keyOverride = keyOverride;
+            return this;
+        }
+
+        @Override
+        public String getString()
+        {
+            return keyOverride != null ? keyOverride : delegate.getString();
+        }
+
+        @Override
+        public JsonLocation getLocation()
+        {
+            return delegate.getLocation();
+        }
+
+        @Override
+        public boolean hasNext()
+        {
+            return delegate.hasNext();
+        }
+
+        @Override
+        public Event next()
+        {
+            return delegate.next();
+        }
+
+        @Override
+        public boolean isIntegralNumber()
+        {
+            return delegate.isIntegralNumber();
+        }
+
+        @Override
+        public int getInt()
+        {
+            return delegate.getInt();
+        }
+
+        @Override
+        public long getLong()
+        {
+            return delegate.getLong();
+        }
+
+        @Override
+        public BigDecimal getBigDecimal()
+        {
+            return delegate.getBigDecimal();
+        }
+
+        @Override
+        public JsonObject getObject()
+        {
+            return delegate.getObject();
+        }
+
+        @Override
+        public JsonValue getValue()
+        {
+            return delegate.getValue();
+        }
+
+        @Override
+        public JsonArray getArray()
+        {
+            return delegate.getArray();
+        }
+
+        @Override
+        public Stream<JsonValue> getArrayStream()
+        {
+            return delegate.getArrayStream();
+        }
+
+        @Override
+        public Stream<Map.Entry<String, JsonValue>> getObjectStream()
+        {
+            return delegate.getObjectStream();
+        }
+
+        @Override
+        public Stream<JsonValue> getValueStream()
+        {
+            return delegate.getValueStream();
+        }
+
+        @Override
+        public void skipObject()
+        {
+            delegate.skipObject();
+        }
+
+        @Override
+        public void skipArray()
+        {
+            delegate.skipArray();
+        }
+
+        @Override
+        public void close()
+        {
+        }
     }
 }
