@@ -356,6 +356,11 @@ public final class YamlDocumentParser
             {
                 return parseBlock(next.indent);
             }
+            if (line.content.trim().startsWith("&") &&
+                next.indent == line.indent && (isExplicitKey(next) || mappingColon(next.content) != -1))
+            {
+                return parseMapping(next.indent);
+            }
             if (isSequence(next, next.indent))
             {
                 return parseSequence(next.indent);
@@ -1644,7 +1649,10 @@ public final class YamlDocumentParser
                 {
                     if (depth == 0 && (i + 1 == text.length() || Character.isWhitespace(text.charAt(i + 1))))
                     {
-                        return i;
+                        if (!isAnchorOrAliasTokenColon(text, i))
+                        {
+                            return i;
+                        }
                     }
                 }
                 default ->
@@ -1656,6 +1664,19 @@ public final class YamlDocumentParser
         }
 
         return -1;
+    }
+
+    private static boolean isAnchorOrAliasTokenColon(
+        String text,
+        int colonAt)
+    {
+        int start = colonAt - 1;
+        while (start >= 0 && !Character.isWhitespace(text.charAt(start)))
+        {
+            start--;
+        }
+        start++;
+        return start < colonAt && (text.charAt(start) == '&' || text.charAt(start) == '*');
     }
 
     private static boolean isQuotedTokenStart(
