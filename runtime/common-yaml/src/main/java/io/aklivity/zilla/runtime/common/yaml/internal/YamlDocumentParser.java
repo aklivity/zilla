@@ -807,24 +807,24 @@ public final class YamlDocumentParser
             {
                 break;
             }
-            if (!blockScalarEmpty(next) && next.indent < contentIndent)
+            int nextIndent = spaceIndent(next.raw);
+            if (!next.raw.isBlank() && nextIndent < contentIndent)
             {
                 break;
             }
-            if (!allowSameIndent && !blockScalarEmpty(next) && next.indent <= line.indent)
+            if (!allowSameIndent && !next.raw.isBlank() && nextIndent <= line.indent)
             {
                 break;
             }
-            if (blockScalarEmpty(next) && !next.raw.isEmpty() && next.indent > contentIndent &&
+            if (next.raw.isBlank() && !next.raw.isEmpty() && nextIndent > contentIndent &&
                 hasFollowingBlockScalarContentOrComment(contentIndent))
             {
                 throw error("Wrong indented block scalar line", next);
             }
 
             values.add(new BlockScalarLine(
-                blockScalarEmpty(next) ? "" :
-                    next.raw.length() >= contentIndent ? next.raw.substring(contentIndent) : "",
-                !blockScalarEmpty(next) && next.indent > contentIndent));
+                next.raw.length() >= contentIndent ? next.raw.substring(contentIndent) : "",
+                !next.raw.isBlank() && nextIndent > contentIndent));
             index++;
         }
 
@@ -850,14 +850,32 @@ public final class YamlDocumentParser
         for (int i = index; i < lines.size(); i++)
         {
             Line line = lines.get(i);
-            if (!blockScalarEmpty(line))
+            if (!line.raw.isBlank())
             {
-                if (!allowSameIndent && line.indent <= parentIndent)
+                int indent = spaceIndent(line.raw);
+                if (!allowSameIndent && indent <= parentIndent)
                 {
                     throw error("Expected indented block scalar content", line);
                 }
-                return line.indent;
+                return indent;
             }
+        }
+        int blankIndent = -1;
+        for (int i = index; i < lines.size(); i++)
+        {
+            Line line = lines.get(i);
+            if (!line.raw.isBlank())
+            {
+                break;
+            }
+            if (!line.raw.isEmpty())
+            {
+                blankIndent = Math.max(blankIndent, spaceIndent(line.raw));
+            }
+        }
+        if (blankIndent != -1)
+        {
+            return blankIndent;
         }
         return allowSameIndent ? parentIndent : parentIndent + 2;
     }
@@ -868,11 +886,11 @@ public final class YamlDocumentParser
         for (int i = index + 1; i < lines.size(); i++)
         {
             Line line = lines.get(i);
-            if (!blockScalarEmpty(line) || line.comment != null)
+            if (!line.raw.isBlank() || line.comment != null)
             {
                 return true;
             }
-            if (line.indent < contentIndent)
+            if (spaceIndent(line.raw) < contentIndent)
             {
                 return false;
             }
@@ -880,10 +898,15 @@ public final class YamlDocumentParser
         return false;
     }
 
-    private static boolean blockScalarEmpty(
-        Line line)
+    private static int spaceIndent(
+        String raw)
     {
-        return line.raw.isBlank();
+        int indent = 0;
+        while (indent < raw.length() && raw.charAt(indent) == ' ')
+        {
+            indent++;
+        }
+        return indent;
     }
 
     private static String literal(
