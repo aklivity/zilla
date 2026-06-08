@@ -414,7 +414,7 @@ public final class YamlJsonParser implements JsonParser
         YamlNode node)
     {
         String tag = node.tag();
-        if (tag != null && !tag.startsWith("tag:yaml.org,2002:"))
+        if (tag != null && !"!".equals(tag) && !tag.startsWith("tag:yaml.org,2002:"))
         {
             throw new JsonParsingException("Unsupported YAML tag",
                 new YamlJsonLocation(new YamlLocation(node.line, node.column, node.offset)));

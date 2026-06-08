@@ -1084,13 +1084,22 @@ public final class YamlDocumentParser
         String text,
         Line line)
     {
-        if (tag == null || "!".equals(tag))
+        if (tag == null)
         {
             return value;
         }
         if (!config.tags())
         {
             throw error("YAML tags are disabled", line);
+        }
+        if ("!".equals(tag))
+        {
+            YamlNode tagged = value instanceof YamlScalarNode ?
+                YamlScalarNode.string(scalarText(value, text), line.line, line.column, line.offset) :
+                value;
+            tagged.tag = tag;
+            tagged.style = value.style;
+            return tagged;
         }
 
         YamlNode tagged = switch (tag)

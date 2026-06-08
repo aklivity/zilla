@@ -131,7 +131,6 @@ final class YamlConformanceTest
         "Q8AD",
         "R4YG",
         "RZT7",
-        "S4JQ",
         "T26H",
         "T4YY",
         "TL85",
