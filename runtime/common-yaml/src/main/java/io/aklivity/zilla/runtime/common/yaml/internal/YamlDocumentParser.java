@@ -447,6 +447,12 @@ public final class YamlDocumentParser
         }
         else
         {
+            if (!keyText.isEmpty() && isFoldablePlainScalar(keyText))
+            {
+                index++;
+                advanced = true;
+                keyText = foldPlainScalar(keyText, line, false, true);
+            }
             KeySpec keySpec = parseKeySpec(keyText, line);
             key = keySpec.name;
             keyNode = keySpec.key;

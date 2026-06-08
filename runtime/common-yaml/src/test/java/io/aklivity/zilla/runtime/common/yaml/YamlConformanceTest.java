@@ -73,7 +73,6 @@ final class YamlConformanceTest
         "CUP7",
         "DBG4",
         "JHB9",
-        "JTV5",
         "KSS4",
         "L383",
         "M5C3",
