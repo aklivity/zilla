@@ -797,7 +797,7 @@ public final class YamlDocumentParser
             {
                 throw error("Unterminated quoted scalar", line);
             }
-            if (next.raw.startsWith("\t"))
+            if (!allowSameIndent && next.raw.startsWith("\t"))
             {
                 throw error("Tabs are not supported in quoted scalar indentation", next);
             }
@@ -1660,36 +1660,94 @@ public final class YamlDocumentParser
     {
         StringBuilder folded = new StringBuilder();
         String[] lines = text.split("\\R", -1);
-        for (int i = 0; i < lines.length; i++)
+        if (lines.length == 0)
         {
-            String line = i == 0 ? lines[i] : stripLeadingSpaces(lines[i]);
-            if (i != 0)
+            return "";
+        }
+
+        folded.append(stripTrailingWhitespace(lines[0]));
+        int blankLines = 0;
+        boolean escapedBreak = false;
+        for (int i = 1; i < lines.length; i++)
+        {
+            boolean last = i == lines.length - 1;
+            String line = stripLeadingWhitespace(lines[i]);
+            boolean blank = line.isEmpty();
+
+            if (escapedBreak)
+            {
+                folded.append(last ? line : stripTrailingWhitespace(line));
+                escapedBreak = false;
+                continue;
+            }
+
+            if (blank)
+            {
+                if (last)
+                {
+                    if (blankLines > 0)
+                    {
+                        appendLineBreaks(folded, blankLines);
+                    }
+                    else
+                    {
+                        folded.append(' ');
+                    }
+                }
+                else
+                {
+                    blankLines++;
+                }
+                continue;
+            }
+
+            boolean separated = false;
+            if (blankLines > 0)
+            {
+                appendLineBreaks(folded, blankLines);
+                blankLines = 0;
+                separated = true;
+            }
+
+            String normalized = last ? line : stripTrailingWhitespace(line);
+            if (folded.length() > 0 && folded.charAt(folded.length() - 1) == '\\')
+            {
+                folded.setLength(folded.length() - 1);
+                escapedBreak = true;
+            }
+            else if (!separated)
             {
                 folded.append(' ');
             }
-            int end = line.length();
-            while (end > 0 && (line.charAt(end - 1) == ' ' || line.charAt(end - 1) == '\t'))
-            {
-                end--;
-            }
-            if (end < line.length() && line.charAt(end) == '\t' && end > 0 && line.charAt(end - 1) == '\\')
-            {
-                end++;
-            }
-            folded.append(line, 0, end);
+            folded.append(normalized);
         }
         return folded.toString();
     }
 
-    private static String stripLeadingSpaces(
+    private static String stripLeadingWhitespace(
         String text)
     {
         int start = 0;
-        while (start < text.length() && text.charAt(start) == ' ')
+        while (start < text.length() && (text.charAt(start) == ' ' || text.charAt(start) == '\t'))
         {
             start++;
         }
         return text.substring(start);
+    }
+
+    private static String stripTrailingWhitespace(
+        String text)
+    {
+        int end = text.length();
+        while (end > 0 && (text.charAt(end - 1) == ' ' || text.charAt(end - 1) == '\t'))
+        {
+            if (text.charAt(end - 1) == '\t' && end > 1 && text.charAt(end - 2) == '\\')
+            {
+                break;
+            }
+            end--;
+        }
+        return text.substring(0, end);
     }
 
     private static String unquoteSingle(
