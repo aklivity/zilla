@@ -32,6 +32,7 @@ public final class YamlDocumentParser
     private final List<Line> lines;
     private final Map<String, YamlNode> anchors;
     private final YamlLocation end;
+    private final String source;
     private int index;
 
     private YamlDocumentParser(
@@ -40,6 +41,7 @@ public final class YamlDocumentParser
         this.lines = document.lines;
         this.anchors = new HashMap<>();
         this.end = document.end;
+        this.source = document.source;
     }
 
     public static Result parse(
@@ -55,7 +57,9 @@ public final class YamlDocumentParser
         skipIgnorable();
         if (index >= lines.size())
         {
-            return YamlScalarNode.literal(YamlScalarType.NULL, 1, 1, 0);
+            YamlScalarNode nullNode = YamlScalarNode.literal(YamlScalarType.NULL, 1, 1, 0);
+            nullNode.source = source;
+            return nullNode;
         }
 
         Line line = peek();
@@ -68,6 +72,7 @@ public final class YamlDocumentParser
         {
             throw error("Unexpected indentation", lines.get(index));
         }
+        node.source = source;
         return node;
     }
 
@@ -731,11 +736,14 @@ public final class YamlDocumentParser
     {
         if (value instanceof YamlScalarNode scalar)
         {
-            return new YamlScalarNode(scalar.type, scalar.value, scalar.line, scalar.column, scalar.offset);
+            YamlScalarNode copy = new YamlScalarNode(scalar.type, scalar.value, scalar.line, scalar.column, scalar.offset);
+            copy.source = scalar.source;
+            return copy;
         }
         if (value instanceof YamlArrayNode array)
         {
             YamlArrayNode copy = new YamlArrayNode(array.line, array.column, array.offset);
+            copy.source = array.source;
             for (YamlNode element : array.values)
             {
                 copy.add(copy(element));
@@ -745,6 +753,7 @@ public final class YamlDocumentParser
 
         YamlObjectNode object = (YamlObjectNode) value;
         YamlObjectNode copy = new YamlObjectNode(object.line, object.column, object.offset);
+        copy.source = object.source;
         for (YamlEntry entry : object.entries)
         {
             copy.add(new YamlEntry(entry.name, copy(entry.value), entry.line, entry.column, entry.offset, entry.merged));
@@ -1068,7 +1077,6 @@ public final class YamlDocumentParser
                     break;
                 }
             }
-
             int end = start;
             long endOffset = text.length();
             while (end < all.size())
@@ -1087,7 +1095,8 @@ public final class YamlDocumentParser
             {
                 documentLines.add(all.get(i));
             }
-            return new Document(documentLines, new YamlLocation(1, 1, endOffset));
+            String source = text.substring(0, (int) Math.min(endOffset, text.length()));
+            return new Document(documentLines, new YamlLocation(1, 1, endOffset), source);
         }
 
         private static List<Line> lines(
@@ -1147,13 +1156,16 @@ public final class YamlDocumentParser
     {
         final List<Line> lines;
         final YamlLocation end;
+        final String source;
 
         private Document(
             List<Line> lines,
-            YamlLocation end)
+            YamlLocation end,
+            String source)
         {
             this.lines = lines;
             this.end = end;
+            this.source = source;
         }
     }
 
@@ -1419,7 +1431,7 @@ public final class YamlDocumentParser
                 YamlNode value = parseValue();
                 if ("<<".equals(key))
                 {
-                    new YamlDocumentParser(new Document(List.of(), new YamlLocation(1, 1, text.length())))
+                    new YamlDocumentParser(new Document(List.of(), new YamlLocation(1, 1, text.length()), ""))
                         .merge(object, value, line);
                 }
                 else
@@ -1518,7 +1530,7 @@ public final class YamlDocumentParser
                 }
                 cursor++;
             }
-            return new YamlDocumentParser(new Document(List.of(), new YamlLocation(1, 1, text.length())))
+            return new YamlDocumentParser(new Document(List.of(), new YamlLocation(1, 1, text.length()), ""))
                 .parseScalar(text.substring(start, cursor).trim(), null, line);
         }
 
@@ -1580,7 +1592,7 @@ public final class YamlDocumentParser
         String tag,
         Line line)
     {
-        return new YamlDocumentParser(new Document(List.of(), new YamlLocation(1, 1, 0)))
+        return new YamlDocumentParser(new Document(List.of(), new YamlLocation(1, 1, 0), ""))
             .applyTag(value, tag, scalarText(value, ""), line);
     }
 

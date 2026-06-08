@@ -33,7 +33,11 @@ public final class YamlEmitter
         YamlNode node,
         Writer writer) throws IOException
     {
-        if (isEmptyObject(node))
+        if (node.source != null)
+        {
+            writer.write(node.source);
+        }
+        else if (isEmptyObject(node))
         {
             writer.write("{}\n");
         }

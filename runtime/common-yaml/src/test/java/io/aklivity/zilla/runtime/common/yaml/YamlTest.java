@@ -218,6 +218,34 @@ class YamlTest
     }
 
     @Test
+    void shouldRoundTripNativeSource()
+    {
+        String yaml = """
+            %YAML 1.2
+            ---
+            # leading comment
+            defaults: &defaults
+              name: !!str test
+              description: |-
+                line one
+                line two
+            flow: [1, "two", {enabled: true}]
+            item:
+              <<: *defaults
+              description: >-
+                folded
+                text
+            ...
+            """;
+        YamlValue value = Yaml.createReader(new StringReader(yaml)).readValue();
+        StringWriter generated = new StringWriter();
+
+        Yaml.createWriter(generated).write(value);
+
+        assertEquals(yaml, generated.toString());
+    }
+
+    @Test
     void shouldWriteNativeValues()
     {
         YamlObject object = Yaml.createReader(new StringReader("name: test\n")).readObject();
