@@ -1485,6 +1485,10 @@ public final class YamlDocumentParser
             while (end < all.size())
             {
                 Line line = all.get(end);
+                if (line.directive)
+                {
+                    throw error("Missing document-end marker before directive", line);
+                }
                 if (!line.blank && (isDocumentStart(line) || isDocumentEnd(line)))
                 {
                     if (!config.documentMarkers())
@@ -1861,7 +1865,8 @@ public final class YamlDocumentParser
             {
                 throw error("Expected flow value", line);
             }
-            if (text.charAt(cursor) == ',' || text.charAt(cursor) == ']' || text.charAt(cursor) == '}')
+            if (text.charAt(cursor) == ',' || text.charAt(cursor) == ']' || text.charAt(cursor) == '}' ||
+                text.charAt(cursor) == '#')
             {
                 throw error("Expected flow value", line);
             }
@@ -2322,7 +2327,7 @@ public final class YamlDocumentParser
                 {
                     cursor++;
                 }
-                else if (c == '#')
+                else if (c == '#' && (cursor == 0 || Character.isWhitespace(text.charAt(cursor - 1))))
                 {
                     if (!config.comments())
                     {

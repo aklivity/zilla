@@ -183,16 +183,8 @@ final class YamlConformanceTest
     private static final Set<String> INVALID_REJECTION_GAPS = Set.of(
         "5LLU",
         "9C9N",
-        "9JBA",
-        "9MAG",
-        "CTN5",
-        "CVW2",
         "DK4H",
-        "EB22",
-        "G5U8",
         "MUS6/00",
-        "MUS6/01",
-        "RHX7",
         "S98Z",
         "SR86",
         "SY6V",
@@ -206,7 +198,6 @@ final class YamlConformanceTest
         "Y79Y/007",
         "Y79Y/008",
         "Y79Y/009",
-        "YJV2",
         "ZCZ6");
 
     @TestFactory
