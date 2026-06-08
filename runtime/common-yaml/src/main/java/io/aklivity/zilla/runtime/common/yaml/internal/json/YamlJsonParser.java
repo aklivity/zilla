@@ -109,6 +109,16 @@ public final class YamlJsonParser implements JsonParser
     }
 
     @Override
+    public Event currentEvent()
+    {
+        if (current == null)
+        {
+            throw new IllegalStateException("No current event");
+        }
+        return current.event;
+    }
+
+    @Override
     public String getString()
     {
         if (current == null || current.value == null)
@@ -215,13 +225,36 @@ public final class YamlJsonParser implements JsonParser
     @Override
     public void skipObject()
     {
-        throw new UnsupportedOperationException("skipObject not yet supported; use event-by-event consumption instead");
+        skip(Event.START_OBJECT);
     }
 
     @Override
     public void skipArray()
     {
-        throw new UnsupportedOperationException("skipArray not yet supported; use event-by-event consumption instead");
+        skip(Event.START_ARRAY);
+    }
+
+    private void skip(
+        Event expected)
+    {
+        if (current == null || current.event != expected)
+        {
+            throw new IllegalStateException("Parser is not positioned on " + expected);
+        }
+
+        int depth = 1;
+        while (depth != 0)
+        {
+            Event event = next();
+            switch (event)
+            {
+            case START_OBJECT, START_ARRAY -> depth++;
+            case END_OBJECT, END_ARRAY -> depth--;
+            default ->
+            {
+            }
+            }
+        }
     }
 
     private String numberValue()

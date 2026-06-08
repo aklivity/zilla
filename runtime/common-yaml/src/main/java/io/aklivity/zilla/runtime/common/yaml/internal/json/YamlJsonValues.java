@@ -1912,8 +1912,43 @@ final class YamlJsonValues
         }
 
         @Override
+        public void skipArray()
+        {
+            skip(START_ARRAY);
+        }
+
+        @Override
+        public void skipObject()
+        {
+            skip(START_OBJECT);
+        }
+
+        @Override
         public void close()
         {
+        }
+
+        private void skip(
+            Event expected)
+        {
+            if (current != expected)
+            {
+                throw new IllegalStateException("Parser is not positioned on " + expected);
+            }
+
+            int depth = 1;
+            while (depth != 0)
+            {
+                Event event = next();
+                switch (event)
+                {
+                case START_OBJECT, START_ARRAY -> depth++;
+                case END_OBJECT, END_ARRAY -> depth--;
+                default ->
+                {
+                }
+                }
+            }
         }
 
         private Event event(

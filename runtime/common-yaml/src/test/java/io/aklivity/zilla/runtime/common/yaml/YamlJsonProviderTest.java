@@ -134,6 +134,14 @@ class YamlJsonProviderTest
         StringWriter directWriter = new StringWriter();
         YamlJson.createWriter(directWriter).writeObject(directObject);
         assertEquals("name: direct\n", directWriter.toString());
+
+        JsonObject staticObject = Json.createObjectBuilder()
+            .add("name", "static")
+            .add("values", Json.createArrayBuilder().add(1).add(2))
+            .build();
+        assertEquals("static", staticObject.getString("name"));
+        assertEquals(2, staticObject.getJsonArray("values").getInt(1));
+        assertEquals("static", Json.createPointer("/name").getValue(staticObject).toString().replace("\"", ""));
     }
 
     @Test
@@ -233,6 +241,23 @@ class YamlJsonProviderTest
         {
             assertEquals(JsonParser.Event.START_ARRAY, parser.next());
             assertEquals(4, parser.getArrayStream().count());
+        }
+        try (JsonParser parser = provider.createParserFactory(Map.of()).createParser(provider.createObjectBuilder()
+            .add("skip", provider.createObjectBuilder()
+                .add("nested", provider.createArrayBuilder()
+                    .add(1)
+                    .add(provider.createObjectBuilder().add("deep", true))))
+            .add("after", "done")
+            .build()))
+        {
+            assertEquals(JsonParser.Event.START_OBJECT, parser.next());
+            assertEquals(JsonParser.Event.KEY_NAME, parser.next());
+            assertEquals("skip", parser.getString());
+            assertEquals(JsonParser.Event.START_OBJECT, parser.next());
+            parser.skipObject();
+            assertEquals(JsonParser.Event.END_OBJECT, parser.currentEvent());
+            assertEquals(JsonParser.Event.KEY_NAME, parser.next());
+            assertEquals("after", parser.getString());
         }
 
         JsonPointer nested = provider.createPointer("/nested/enabled");

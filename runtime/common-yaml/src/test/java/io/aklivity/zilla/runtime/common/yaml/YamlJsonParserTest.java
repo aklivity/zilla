@@ -469,28 +469,87 @@ class YamlJsonParserTest
     }
 
     @Test
-    void shouldExposeUnsupportedParserMethods()
+    void shouldExposeParserMethods()
     {
         JsonParser parser = parserFor("""
             name: test
             values: [1]
             """);
 
+        assertThrows(IllegalStateException.class, parser::currentEvent);
         assertThrows(IllegalStateException.class, parser::getValue);
         assertEquals(START_OBJECT, parser.next());
+        assertEquals(START_OBJECT, parser.currentEvent());
         JsonObject object = parser.getObject();
         assertEquals("test", object.getString("name"));
         assertEquals(1, object.getJsonArray("values").getInt(0));
         assertEquals(2, parser.getObjectStream().count());
         assertEquals(1, parser.getValueStream().count());
-        assertThrows(UnsupportedOperationException.class, parser::skipObject);
-        assertThrows(UnsupportedOperationException.class, parser::skipArray);
+        assertThrows(IllegalStateException.class, parser::skipArray);
 
         while (parser.hasNext())
         {
             parser.next();
         }
         assertThrows(JsonParsingException.class, parser::next);
+    }
+
+    @Test
+    void shouldSkipNestedObject()
+    {
+        JsonParser parser = parserFor("""
+            name: test
+            skip:
+              child:
+                - 1
+                - nested: true
+            after: done
+            """);
+
+        assertEquals(START_OBJECT, parser.next());
+        assertEquals(KEY_NAME, parser.next());
+        assertEquals("name", parser.getString());
+        assertEquals(VALUE_STRING, parser.next());
+        assertEquals("test", parser.getString());
+        assertEquals(KEY_NAME, parser.next());
+        assertEquals("skip", parser.getString());
+        assertEquals(START_OBJECT, parser.next());
+
+        parser.skipObject();
+
+        assertEquals(END_OBJECT, parser.currentEvent());
+        assertEquals(KEY_NAME, parser.next());
+        assertEquals("after", parser.getString());
+        assertEquals(VALUE_STRING, parser.next());
+        assertEquals("done", parser.getString());
+        assertEquals(END_OBJECT, parser.next());
+    }
+
+    @Test
+    void shouldSkipNestedArray()
+    {
+        JsonParser parser = parserFor("""
+            [
+              {"name": "skip", "values": [1, {"nested": true}]},
+              "after"
+            ]
+            """);
+
+        assertEquals(START_ARRAY, parser.next());
+        assertEquals(START_OBJECT, parser.next());
+
+        parser.skipObject();
+
+        assertEquals(END_OBJECT, parser.currentEvent());
+        assertEquals(VALUE_STRING, parser.next());
+        assertEquals("after", parser.getString());
+        assertEquals(END_ARRAY, parser.next());
+
+        parser = parserFor("[{\"name\":\"skip\",\"values\":[1,{\"nested\":true}]},\"after\"]\n");
+        assertEquals(START_ARRAY, parser.next());
+        parser.skipArray();
+        assertEquals(END_ARRAY, parser.currentEvent());
+        assertFalse(parser.hasNext());
     }
 
     @Test
