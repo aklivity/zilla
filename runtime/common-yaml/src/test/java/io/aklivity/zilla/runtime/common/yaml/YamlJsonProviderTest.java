@@ -24,6 +24,8 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.HashMap;
@@ -39,6 +41,7 @@ import jakarta.json.JsonException;
 import jakarta.json.JsonMergePatch;
 import jakarta.json.JsonNumber;
 import jakarta.json.JsonObject;
+import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonPatch;
 import jakarta.json.JsonPointer;
 import jakarta.json.JsonReader;
@@ -46,9 +49,11 @@ import jakarta.json.JsonReaderFactory;
 import jakarta.json.JsonValue;
 import jakarta.json.JsonWriterFactory;
 import jakarta.json.spi.JsonProvider;
+import jakarta.json.stream.JsonGenerator;
 import jakarta.json.stream.JsonGeneratorFactory;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParserFactory;
+import jakarta.json.stream.JsonParsingException;
 
 import org.junit.jupiter.api.Test;
 
@@ -56,6 +61,20 @@ import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 
 class YamlJsonProviderTest
 {
+    @Test
+    void shouldOverrideJsonProviderAbstractMethods()
+    {
+        Class<? extends JsonProvider> providerType = YamlJson.provider().getClass();
+
+        for (Method method : JsonProvider.class.getMethods())
+        {
+            if (Modifier.isAbstract(method.getModifiers()))
+            {
+                assertEquals(providerType, override(providerType, method).getDeclaringClass(), method.toString());
+            }
+        }
+    }
+
     @Test
     void shouldCreateYamlParsersReadersGeneratorsAndWriters()
     {
@@ -148,6 +167,94 @@ class YamlJsonProviderTest
         assertEquals("static", staticObject.getString("name"));
         assertEquals(2, staticObject.getJsonArray("values").getInt(1));
         assertEquals("static", Json.createPointer("/name").getValue(staticObject).toString().replace("\"", ""));
+    }
+
+    @Test
+    void shouldBehaveAsJsonProviderDropIn()
+    {
+        JsonProvider provider = YamlJson.provider();
+
+        JsonObject object = provider.createObjectBuilder()
+            .add("name", "test")
+            .add("items", provider.createArrayBuilder()
+                .add("one")
+                .add(2)
+                .add(true)
+                .addNull())
+            .build();
+
+        JsonParserFactory parserFactory = provider.createParserFactory(Map.of());
+        try (JsonParser parser = parserFactory.createParser(object))
+        {
+            assertEquals(JsonParser.Event.START_OBJECT, parser.next());
+            assertEquals(JsonParser.Event.KEY_NAME, parser.next());
+            assertEquals("name", parser.getString());
+            assertEquals(JsonParser.Event.VALUE_STRING, parser.next());
+            assertEquals("test", parser.getString());
+        }
+        try (JsonParser parser = parserFactory.createParser(object.getJsonArray("items")))
+        {
+            assertEquals(JsonParser.Event.START_ARRAY, parser.next());
+            assertEquals(JsonParser.Event.VALUE_STRING, parser.next());
+            assertEquals("one", parser.getString());
+        }
+
+        StringWriter generated = new StringWriter();
+        JsonGenerator generator = provider.createGenerator(generated)
+            .writeStartObject()
+            .write("name", "test")
+            .writeStartArray("items")
+            .write("one")
+            .write(new BigInteger("2"))
+            .write(new BigDecimal("3.5"))
+            .write(false)
+            .writeNull()
+            .writeEnd()
+            .write("nested", object)
+            .writeEnd();
+        generator.flush();
+        generator.close();
+        assertEquals("""
+            name: test
+            items:
+              - one
+              - 2
+              - 3.5
+              - false
+              - null
+            nested:
+              name: test
+              items:
+                - one
+                - 2
+                - true
+                - null
+            """, generated.toString());
+        assertThrows(JsonException.class, () -> generator.write("after"));
+
+        assertThrows(JsonException.class, () -> provider.createGenerator(new StringWriter())
+            .writeStartObject()
+            .writeKey("name")
+            .close());
+        assertThrows(JsonException.class, () -> provider.createGenerator(new StringWriter()).write(Double.NaN));
+
+        JsonObjectBuilder builder = provider.createObjectBuilder()
+            .add("zero", 0)
+            .add("decimal", new BigDecimal("1.25"))
+            .add("big", new BigInteger("42"))
+            .add("long", 43L)
+            .add("double", 4.5)
+            .add("enabled", true)
+            .addNull("missing")
+            .add("nested", provider.createObjectBuilder().add("name", "child"))
+            .add("array", provider.createArrayBuilder().add("item"));
+        assertEquals(
+            "{\"zero\":0,\"decimal\":1.25,\"big\":42,\"long\":43,\"double\":4.5,\"enabled\":true," +
+            "\"missing\":null,\"nested\":{\"name\":\"child\"},\"array\":[\"item\"]}",
+            builder.build().toString());
+
+        assertThrows(JsonParsingException.class, () -> provider.createParser(new StringReader("broken: [1\n")));
+        assertThrows(JsonException.class, () -> provider.createReader(new StringReader("[]\n")).readObject());
     }
 
     @Test
@@ -361,5 +468,19 @@ class YamlJsonProviderTest
             .apply(JsonValue.EMPTY_JSON_OBJECT)
             .toString()
             .replace("\"", ""));
+    }
+
+    private static Method override(
+        Class<?> type,
+        Method method)
+    {
+        try
+        {
+            return type.getMethod(method.getName(), method.getParameterTypes());
+        }
+        catch (NoSuchMethodException ex)
+        {
+            throw new AssertionError(ex);
+        }
     }
 }
