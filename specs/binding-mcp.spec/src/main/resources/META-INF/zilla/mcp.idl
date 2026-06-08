@@ -190,13 +190,6 @@ scope mcp
             McpOutcome outcome = OK;
         }
 
-        enum McpElicitStatus (uint8)
-        {
-            COMPLETED(0),
-            DECLINED(1),
-            CANCELLED(2)
-        }
-
         enum McpElicitAction (uint8)
         {
             ACCEPT(0),
@@ -208,7 +201,6 @@ scope mcp
         {
             string16 id;
             string16 url;
-            string8 context = null;
             string16 message = null;
             string16 correlationId = null;
         }
@@ -216,13 +208,12 @@ scope mcp
         struct McpElicitCallbackFlushEx
         {
             string16 url;
-            string8 context = null;
+            string16 correlationId = null;
         }
 
         struct McpElicitCompleteFlushEx
         {
             string16 id;
-            McpElicitStatus status;
         }
 
         struct McpElicitResponseFlushEx

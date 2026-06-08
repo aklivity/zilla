@@ -54,7 +54,7 @@ read advised zilla:flush ${mcp:matchFlushEx()
 write advised zilla:challenge ${mcp:matchChallengeEx()
                                     .typeId(zilla:id("mcp"))
                                     .elicitCreate()
-                                        .id("1")
+                                        .id("remote-1")
                                         .url("https://remote.example.com/authorize?state=remote-nonce")
                                         .build()
                                     .build()}
@@ -62,8 +62,7 @@ write advised zilla:challenge ${mcp:matchChallengeEx()
 read advised zilla:flush ${mcp:matchFlushEx()
                                .typeId(zilla:id("mcp"))
                                .elicitComplete()
-                                   .id("2")
-                                   .status("COMPLETED")
+                                   .id("remote-1")
                                    .build()
                                .build()}
 

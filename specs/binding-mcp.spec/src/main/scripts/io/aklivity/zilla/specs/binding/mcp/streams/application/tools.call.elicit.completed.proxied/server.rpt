@@ -82,7 +82,6 @@ write advise zilla:flush ${mcp:flushEx()
                               .typeId(zilla:id("mcp"))
                               .elicitComplete()
                                   .id("elicit-1")
-                                  .status("COMPLETED")
                                   .build()
                               .build()}
 

@@ -60,7 +60,6 @@ read advised zilla:flush ${mcp:matchFlushEx()
                                .typeId(zilla:id("mcp"))
                                .elicitComplete()
                                    .id("elicit-1")
-                                   .status("COMPLETED")
                                    .build()
                                .build()}
 

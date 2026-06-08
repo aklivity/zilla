@@ -28,7 +28,6 @@ import java.util.function.Supplier;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
-import org.agrona.collections.Object2ObjectHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
@@ -223,7 +222,6 @@ final class McpProxyLifecycleFactory implements BindingHandler
         private final boolean hydration;
         private final Long2ObjectHashMap<McpLifecycleClient> clients;
         private final Long2ObjectHashMap<String> eventIds;
-        private final Object2ObjectHashMap<String, McpLifecycleClient> elicitClients;
 
         private int state;
         private boolean resumePending;
@@ -265,7 +263,6 @@ final class McpProxyLifecycleFactory implements BindingHandler
             this.authCallback = authCallback;
             this.hydration = hydration;
             this.clients = new Long2ObjectHashMap<>();
-            this.elicitClients = new Object2ObjectHashMap<>();
             this.eventIds = binding.aggregateRoutes.length > 0
                 ? new Long2ObjectHashMap<>()
                 : null;
@@ -391,23 +388,13 @@ final class McpProxyLifecycleFactory implements BindingHandler
             if (flushEx != null && flushEx.kind() == McpFlushExFW.KIND_ELICIT_CALLBACK)
             {
                 final McpElicitCallbackFlushExFW callback = flushEx.elicitCallback();
-                final String context = callback.context().asString();
+                final String correlationId = callback.correlationId().asString();
                 final String url = callback.url().asString();
-                final McpRouteConfig route = context != null ? binding.routeByPrefix.get(context) : null;
-
-                McpLifecycleClient client = null;
-                if (route != null)
-                {
-                    client = supplyClient(route.id);
-                }
-                else if (context == null && clients.size() == 1)
-                {
-                    client = clients.values().iterator().next();
-                }
+                final McpLifecycleClient client = clientByCorrelationId(correlationId);
 
                 if (client != null)
                 {
-                    client.doClientFlushElicitCallback(traceId, authorization, url);
+                    client.doClientFlushElicitCallback(traceId, authorization, url, stripPrefix(correlationId));
                 }
             }
             else if (flushEx != null && flushEx.kind() == McpFlushExFW.KIND_ELICIT_RESPONSE)
@@ -415,13 +402,55 @@ final class McpProxyLifecycleFactory implements BindingHandler
                 final McpElicitResponseFlushExFW elicitResponse = flushEx.elicitResponse();
                 final String correlationId = elicitResponse.correlationId().asString();
                 final McpElicitAction action = elicitResponse.action().get();
-                final McpLifecycleClient client = elicitClients.remove(correlationId);
+                final McpLifecycleClient client = clientByCorrelationId(correlationId);
 
                 if (client != null)
                 {
-                    client.doClientFlushElicitResponse(traceId, authorization, correlationId, action);
+                    client.doClientFlushElicitResponse(traceId, authorization, stripPrefix(correlationId), action);
                 }
             }
+        }
+
+        private McpLifecycleClient clientByCorrelationId(
+            String correlationId)
+        {
+            McpLifecycleClient client = null;
+
+            final int colon = correlationId != null ? correlationId.indexOf(':') : -1;
+            final String prefixKey = colon > 0 ? correlationId.substring(0, colon) : correlationId;
+            if (prefixKey != null)
+            {
+                final McpRouteConfig route = binding.routeByPrefix.get(prefixKey);
+                if (route != null)
+                {
+                    client = supplyClient(route.id);
+                }
+            }
+
+            if (client == null && clients.size() == 1)
+            {
+                client = clients.values().iterator().next();
+            }
+
+            return client;
+        }
+
+        private String stripPrefix(
+            String correlationId)
+        {
+            String inner = correlationId;
+
+            final int colon = correlationId != null ? correlationId.indexOf(':') : -1;
+            if (colon > 0 && binding.routeByPrefix.get(correlationId.substring(0, colon)) != null)
+            {
+                inner = correlationId.substring(colon + 1);
+            }
+            else if (colon < 0 && correlationId != null && binding.routeByPrefix.get(correlationId) != null)
+            {
+                inner = null;
+            }
+
+            return inner;
         }
 
         private void onServerChallenge(
@@ -863,12 +892,20 @@ final class McpProxyLifecycleFactory implements BindingHandler
         private void doClientFlushElicitCallback(
             long traceId,
             long authorization,
-            String url)
+            String url,
+            String correlationId)
         {
             final McpFlushExFW flushEx = mcpFlushExRW
                 .wrap(flushExBuffer, 0, flushExBuffer.capacity())
                 .typeId(mcpTypeId)
-                .elicitCallback(b -> b.url(url))
+                .elicitCallback(b ->
+                {
+                    b.url(url);
+                    if (correlationId != null)
+                    {
+                        b.correlationId(correlationId);
+                    }
+                })
                 .build();
 
             doFlush(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
@@ -1103,23 +1140,10 @@ final class McpProxyLifecycleFactory implements BindingHandler
 
             settleLifecycle(traceId);
 
-            final McpChallengeExFW challengeEx = extension.sizeof() > 0
-                ? mcpChallengeExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit())
-                : null;
-            if (challengeEx != null &&
-                challengeEx.kind() == McpChallengeExFW.KIND_ELICIT_CREATE)
-            {
-                final String correlationId = challengeEx.elicitCreate().correlationId().asString();
-                if (correlationId != null)
-                {
-                    server.elicitClients.put(correlationId, this);
-                }
-            }
-
-            server.doServerChallenge(traceId, authorization, injectChallengeContext(extension));
+            server.doServerChallenge(traceId, authorization, prefixChallengeCorrelationId(extension));
         }
 
-        private OctetsFW injectChallengeContext(
+        private OctetsFW prefixChallengeCorrelationId(
             OctetsFW extension)
         {
             OctetsFW relayed = extension;
@@ -1129,16 +1153,26 @@ final class McpProxyLifecycleFactory implements BindingHandler
 
             if (prefix != null &&
                 challengeEx != null &&
-                challengeEx.kind() == McpChallengeExFW.KIND_ELICIT_CREATE &&
-                challengeEx.elicitCreate().correlationId().asString() == null)
+                challengeEx.kind() == McpChallengeExFW.KIND_ELICIT_CREATE)
             {
                 final McpElicitCreateChallengeExFW elicitCreate = challengeEx.elicitCreate();
                 final String id = elicitCreate.id().asString();
                 final String url = elicitCreate.url().asString();
+                final String message = elicitCreate.message().asString();
+                final String correlationId = elicitCreate.correlationId().asString();
+                final String prefixed = correlationId != null ? prefix + ":" + correlationId : prefix;
                 final McpChallengeExFW rewritten = mcpChallengeExRW
                     .wrap(challengeExBuffer, 0, challengeExBuffer.capacity())
                     .typeId(mcpTypeId)
-                    .elicitCreate(b -> b.id(id).url(url).context(prefix))
+                    .elicitCreate(b ->
+                    {
+                        b.id(id).url(url);
+                        if (message != null)
+                        {
+                            b.message(message);
+                        }
+                        b.correlationId(prefixed);
+                    })
                     .build();
                 relayed = rewrittenExRO.wrap(rewritten.buffer(), rewritten.offset(), rewritten.limit());
             }

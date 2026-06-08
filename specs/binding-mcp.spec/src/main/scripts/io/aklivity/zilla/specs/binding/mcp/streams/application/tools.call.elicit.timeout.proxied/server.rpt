@@ -61,7 +61,7 @@ read  '{'
 read advise zilla:challenge ${mcp:challengeEx()
                                   .typeId(zilla:id("mcp"))
                                   .elicitCreate()
-                                      .id("1")
+                                      .id("elicit-1")
                                       .url("https://server.example.com/authorize?state=transport-1.elicit-1.7f3a9b1c&redirect_uri=%s".formatted(http:encodeQuery("https://localhost:8080/mcp/auth/callback")))
                                       .build()
                                   .build()}
@@ -73,8 +73,7 @@ write flush
 write advise zilla:flush ${mcp:flushEx()
                               .typeId(zilla:id("mcp"))
                               .elicitComplete()
-                                  .id("1")
-                                  .status("CANCELLED")
+                                  .id("elicit-1")
                                   .build()
                               .build()}
 
