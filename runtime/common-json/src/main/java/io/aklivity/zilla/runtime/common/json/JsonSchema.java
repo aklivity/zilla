@@ -40,6 +40,8 @@ import java.util.regex.Pattern;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParser.Event;
 
+import io.aklivity.zilla.runtime.common.json.JsonEventConsumer.Status;
+
 /**
  * An immutable, compiled JSON Schema (draft-07 subset) that validates an instance by
  * consuming a streaming {@link JsonParser} event stream without materializing a DOM.
@@ -153,6 +155,54 @@ public final class JsonSchema
             verdict = eval.feed(parser.next(), parser);
         }
         return verdict == Verdict.VALID;
+    }
+
+    /**
+     * Returns a {@link JsonEventConsumer} stage that validates the event stream against this
+     * schema while forwarding every event unchanged to {@code next}. As a transparent emitter it
+     * lets a downstream projector see the complete, unpruned stream (required for whole-value
+     * keywords like {@code required}, {@code additionalProperties}, and the combinators); the
+     * stage's own {@link Status} reflects the schema verdict — {@link Status#COMPLETE} when the
+     * value validates, {@link Status#REJECTED} when it does not. Rejection is reported at the
+     * value boundary, after the forwarded events have already been emitted, so callers abort the
+     * output stream on {@code REJECTED} (emit-then-abort).
+     */
+    public JsonEventConsumer validator(
+        JsonEventConsumer next)
+    {
+        return new Validator(next);
+    }
+
+    private final class Validator implements JsonEventConsumer
+    {
+        private final JsonEventConsumer next;
+        private Eval eval;
+
+        private Validator(
+            JsonEventConsumer next)
+        {
+            this.next = next;
+            reset();
+        }
+
+        @Override
+        public Status feed(
+            Event event,
+            JsonParser parser)
+        {
+            next.feed(event, parser);
+            Verdict verdict = eval.feed(event, parser);
+            return verdict == Verdict.VALID
+                ? Status.COMPLETE
+                : verdict == Verdict.INVALID ? Status.REJECTED : Status.PENDING;
+        }
+
+        @Override
+        public void reset()
+        {
+            eval = eval();
+            next.reset();
+        }
     }
 
     private JsonSchema(
