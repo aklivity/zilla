@@ -977,10 +977,6 @@ class YamlTest
     {
         assertThrows(RuntimeException.class, () -> Yaml.createReader(new StringReader("value: *missing\n")).readValue());
         assertThrows(RuntimeException.class, () -> Yaml.createReader(new StringReader("""
-            first: &dup one
-            second: &dup two
-            """)).readValue());
-        assertThrows(RuntimeException.class, () -> Yaml.createReader(new StringReader("""
             defaults: &defaults scalar
             route:
               <<: *defaults
@@ -992,6 +988,18 @@ class YamlTest
             route:
               <<: *defaults
             """)).readValue());
+    }
+
+    @Test
+    void shouldResolveDuplicateNativeAnchorToLatestValue()
+    {
+        YamlObject object = Yaml.createReader(new StringReader("""
+            first: &dup one
+            second: &dup two
+            alias: *dup
+            """)).readObject();
+
+        assertEquals("two", object.getString("alias"));
     }
 
     @Test

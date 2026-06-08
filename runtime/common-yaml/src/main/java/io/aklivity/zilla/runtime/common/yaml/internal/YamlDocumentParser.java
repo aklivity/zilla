@@ -940,10 +940,7 @@ public final class YamlDocumentParser
                 throw error("YAML anchors are disabled", line);
             }
             value.anchor = anchor;
-            if (anchors.put(anchor, copy(value)) != null)
-            {
-                throw error("Duplicate YAML anchor", line);
-            }
+            anchors.put(anchor, copy(value));
         }
     }
 
@@ -1895,10 +1892,7 @@ public final class YamlDocumentParser
                         throw error("YAML anchors are disabled", line);
                     }
                     value.anchor = spec.anchor;
-                    if (anchors.put(spec.anchor, copy(value)) != null)
-                    {
-                        throw error("Duplicate YAML anchor", line);
-                    }
+                    anchors.put(spec.anchor, copy(value));
                 }
             }
             return value;
@@ -2197,10 +2191,7 @@ public final class YamlDocumentParser
                         throw error("YAML anchors are disabled", line);
                     }
                     key.anchor = spec.anchor;
-                    if (anchors.put(spec.anchor, copy(key)) != null)
-                    {
-                        throw error("Duplicate YAML anchor", line);
-                    }
+                    anchors.put(spec.anchor, copy(key));
                 }
                 return new KeySpec(null, key);
             }

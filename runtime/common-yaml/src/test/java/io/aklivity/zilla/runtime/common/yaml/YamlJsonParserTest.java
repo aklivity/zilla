@@ -890,7 +890,15 @@ class YamlJsonParserTest
     {
         assertThrows(JsonParsingException.class, () -> events(parserFor("value: !custom test\n")));
         assertThrows(JsonParsingException.class, () -> parserFor("value: *missing\n"));
-        assertThrows(JsonParsingException.class, () -> parserFor("first: &dup one\nsecond: &dup two\n"));
+        assertEquals(List.of(
+            "START_OBJECT",
+            "KEY_NAME:first",
+            "VALUE_STRING:one",
+            "KEY_NAME:second",
+            "VALUE_STRING:two",
+            "KEY_NAME:alias",
+            "VALUE_STRING:two",
+            "END_OBJECT"), events(parserFor("first: &dup one\nsecond: &dup two\nalias: *dup\n")));
         assertThrows(JsonParsingException.class, () -> parserFor("""
             defaults: &defaults scalar
             route:
