@@ -229,31 +229,61 @@ public final class EngineConfigReader
     {
         IntArrayList documentsAt = new IntArrayList();
 
-        for (int documentAt = 0; documentAt < readable.length(); )
+        if (!readable.isEmpty())
         {
-            documentsAt.addInt(documentAt);
+            documentsAt.addInt(0);
+        }
 
-            try (JsonParser parser = service.createParser(new StringReader(readable.substring(documentAt)), schema, handler))
+        try (JsonParser parser = service.createParser(new StringReader(readable), schema, handler))
+        {
+            int depth = 0;
+            int documentAt = 0;
+            while (parser.hasNext())
             {
-                while (parser.hasNext())
+                JsonParser.Event event = parser.next();
+                switch (event)
                 {
-                    parser.next();
-                }
-
-                int documentLength = (int) parser.getLocation().getStreamOffset();
-                if (documentLength <= 0)
+                case START_OBJECT, START_ARRAY ->
+                    depth++;
+                case END_OBJECT, END_ARRAY ->
                 {
-                    throw new ConfigException("YAML parser did not advance to next document");
+                    depth--;
+                    if (depth == 0)
+                    {
+                        documentAt = nextDocumentAt(parser, documentsAt, documentAt);
+                    }
                 }
-                documentAt += documentLength;
-            }
-
-            if (!errors.isEmpty())
-            {
-                break;
+                case VALUE_STRING, VALUE_NUMBER, VALUE_TRUE, VALUE_FALSE, VALUE_NULL ->
+                {
+                    if (depth == 0)
+                    {
+                        documentAt = nextDocumentAt(parser, documentsAt, documentAt);
+                    }
+                }
+                default ->
+                {
+                }
+                }
             }
         }
 
         return documentsAt;
+    }
+
+    private int nextDocumentAt(
+        JsonParser parser,
+        IntArrayList documentsAt,
+        int documentAt)
+    {
+        int nextDocumentAt = (int) parser.getLocation().getStreamOffset();
+        if (nextDocumentAt <= documentAt)
+        {
+            throw new ConfigException("YAML parser did not advance to next document");
+        }
+        if (parser.hasNext())
+        {
+            documentsAt.addInt(nextDocumentAt);
+        }
+        return nextDocumentAt;
     }
 }

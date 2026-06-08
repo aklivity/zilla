@@ -10,6 +10,7 @@ WARRANTIES OF ANY KIND, either express or implied.  See the License for the
 specific language governing permissions and limitations under the License.
 
 This project includes:
+  Eclipse Parsson under Eclipse Public License 2.0 or GNU General Public License, version 2 with the GNU Classpath Exception
   Jakarta JSON Processing API under Eclipse Public License 2.0 or GNU General Public License, version 2 with the GNU Classpath Exception
   zilla::runtime::common-yaml under Aklivity Community License Agreement
 

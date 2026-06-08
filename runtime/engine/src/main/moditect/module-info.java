@@ -47,6 +47,7 @@ module io.aklivity.zilla.runtime.engine
 
     requires transitive jakarta.json;
     requires transitive jakarta.json.bind;
+    requires org.eclipse.parsson;
     requires transitive org.agrona;
     requires org.leadpony.justify;
     requires jdk.management;

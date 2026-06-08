@@ -251,6 +251,7 @@
               <include>io.aklivity.zilla:common-yaml</include>
               <include>jakarta.json:jakarta.json-api</include>
               <include>jakarta.json.bind:jakarta.json.bind-api</include>
+              <include>org.eclipse.parsson:parsson</include>
               <include>org.eclipse:yasson</include>
               <include>org.leadpony.justify</include>
               <include>com.ibm.icu:icu4j</include>

@@ -54,6 +54,10 @@
       <artifactId>jakarta.json.bind-api</artifactId>
     </dependency>
     <dependency>
+      <groupId>org.eclipse.parsson</groupId>
+      <artifactId>parsson</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.leadpony.justify</groupId>
       <artifactId>justify</artifactId>
     </dependency>
