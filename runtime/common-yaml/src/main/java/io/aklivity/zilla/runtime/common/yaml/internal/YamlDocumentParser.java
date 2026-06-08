@@ -2098,15 +2098,17 @@ public final class YamlDocumentParser
                 throw error("YAML directives require an explicit document", line);
             }
             int end = start;
+            int flowDepth = startContent == null ? 0 : flowDepth(startContent.content, 0);
             long endOffset = text.length();
             while (end < all.size())
             {
                 Line line = all.get(end);
-                if (line.directive)
+                boolean topLevel = flowDepth == 0;
+                if (topLevel && line.directive)
                 {
                     throw error("Missing document-end marker before directive", line);
                 }
-                if (!line.blank && (isDocumentStart(line) || isDocumentEnd(line)))
+                if (!line.blank && topLevel && (isDocumentStart(line) || isDocumentEnd(line)))
                 {
                     if (!config.documentMarkers())
                     {
@@ -2115,6 +2117,7 @@ public final class YamlDocumentParser
                     endOffset = isDocumentStart(line) ? line.offset : line.afterOffset;
                     break;
                 }
+                flowDepth = flowDepth(line.raw.substring(Math.min(line.indent, line.raw.length())), flowDepth);
                 end++;
             }
 
@@ -2191,6 +2194,75 @@ public final class YamlDocumentParser
             return content.equals(marker) ||
                 content.startsWith(marker) && content.length() > marker.length() &&
                     Character.isWhitespace(content.charAt(marker.length()));
+        }
+
+        private static int flowDepth(
+            String content,
+            int depth)
+        {
+            boolean single = false;
+            boolean doub = false;
+            boolean escaped = false;
+            boolean comment = false;
+            for (int i = 0; i < content.length(); i++)
+            {
+                char c = content.charAt(i);
+                if (comment)
+                {
+                    break;
+                }
+                else if (doub)
+                {
+                    if (escaped)
+                    {
+                        escaped = false;
+                    }
+                    else if (c == '\\')
+                    {
+                        escaped = true;
+                    }
+                    else if (c == '"')
+                    {
+                        doub = false;
+                    }
+                }
+                else if (single)
+                {
+                    if (c == '\'')
+                    {
+                        if (i + 1 < content.length() && content.charAt(i + 1) == '\'')
+                        {
+                            i++;
+                        }
+                        else
+                        {
+                            single = false;
+                        }
+                    }
+                }
+                else
+                {
+                    switch (c)
+                    {
+                    case '#' ->
+                    {
+                        if (i == 0 || Character.isWhitespace(content.charAt(i - 1)))
+                        {
+                            comment = true;
+                        }
+                    }
+                    case '\'' -> single = true;
+                    case '"' -> doub = true;
+                    case '{', '[' -> depth++;
+                    case '}', ']' -> depth = Math.max(0, depth - 1);
+                    default ->
+                    {
+                        // continue
+                    }
+                    }
+                }
+            }
+            return depth;
         }
 
         private static String markerContent(
@@ -2883,9 +2955,14 @@ public final class YamlDocumentParser
                 }
                 cursor++;
             }
+            String value = foldFlowScalar(text.substring(start, cursor).trim());
+            if (isFlowDocumentMarker(value))
+            {
+                throw error("Document markers are not allowed in flow collection", line);
+            }
             return new YamlDocumentParser(new Document(List.of(), new YamlLocation(1, 1, text.length()), "",
                 DocumentScanner.defaultTagHandles(), config))
-                .parseScalar(foldFlowScalar(text.substring(start, cursor).trim()), null, line);
+                .parseScalar(value, null, line);
         }
 
         private static String foldFlowScalar(
@@ -2942,9 +3019,19 @@ public final class YamlDocumentParser
             {
                 throw error("Expected flow value", line);
             }
+            if (isFlowDocumentMarker(value))
+            {
+                throw error("Document markers are not allowed in flow collection", line);
+            }
             return new YamlDocumentParser(new Document(List.of(), new YamlLocation(1, 1, text.length()), "",
                 DocumentScanner.defaultTagHandles(), config))
                 .parseScalar(value, null, line);
+        }
+
+        private static boolean isFlowDocumentMarker(
+            String value)
+        {
+            return "---".equals(value) || "...".equals(value);
         }
 
         private YamlNode resolve(

@@ -21,18 +21,24 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
+import java.math.BigDecimal;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
+import jakarta.json.JsonArrayBuilder;
+import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
 import jakarta.json.spi.JsonProvider;
+import jakarta.json.stream.JsonParser;
 
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.TestFactory;
@@ -57,27 +63,18 @@ final class YamlConformanceTest
         "5TYM",
         "6CK3",
         "6WLZ",
-        "6XDY",
         "6ZKB",
         "7FWL",
-        "7Z25",
         "9DXL",
         "9KAX",
         "9WXW",
         "C4HZ",
         "CC74",
         "CUP7",
-        "JHB9",
-        "KSS4",
-        "L383",
         "M5C3",
         "M7A3",
         "P76L",
-        "PUW8",
-        "RZT7",
-        "U9NS",
         "UGM3",
-        "UT92",
         "W4TN",
         "XLQ9",
         "Z67P",
@@ -96,8 +93,8 @@ final class YamlConformanceTest
                 assumeTrue(isStrict() || !JSON_PROJECTION_GAPS.contains(c.id),
                     "known common-yaml JSON projection gap");
 
-                JsonValue expected = readJson(c.path.resolve("in.json"));
-                JsonValue actual = readYamlAsJson(c.path.resolve("in.yaml"));
+                List<JsonValue> expected = readJson(c.path.resolve("in.json"));
+                List<JsonValue> actual = readYamlAsJson(c.path.resolve("in.yaml"));
                 assertEquals(expected, actual, c.id);
             }));
     }
@@ -129,16 +126,233 @@ final class YamlConformanceTest
             .sorted(Comparator.comparing(c -> c.id));
     }
 
-    private static JsonValue readJson(
+    private static List<JsonValue> readJson(
         Path path) throws IOException
     {
-        return readYamlAsJson(path);
+        List<JsonValue> values = new ArrayList<>();
+        for (String value : splitJsonValues(Files.readString(path)))
+        {
+            values.add(YAML_JSON.createReader(new StringReader(value)).readValue());
+        }
+        return values;
     }
 
-    private static JsonValue readYamlAsJson(
+    private static List<JsonValue> readYamlAsJson(
         Path path) throws IOException
     {
-        return YAML_JSON.createReader(new StringReader(Files.readString(path))).readValue();
+        String text = Files.readString(path);
+        List<JsonValue> values = new ArrayList<>();
+        if (isEmptyYamlStream(text))
+        {
+            return values;
+        }
+        int offset = 0;
+        while (offset < text.length() && !text.substring(offset).isBlank())
+        {
+            JsonParser parser = YAML_JSON.createParser(new StringReader(text.substring(offset)));
+            if (!parser.hasNext())
+            {
+                break;
+            }
+            values.add(readValue(parser, parser.next()));
+            while (parser.hasNext())
+            {
+                parser.next();
+            }
+            int read = (int) parser.getLocation().getStreamOffset();
+            if (read <= 0)
+            {
+                break;
+            }
+            offset += read;
+            while (offset < text.length() && Character.isWhitespace(text.charAt(offset)))
+            {
+                offset++;
+            }
+        }
+        return values;
+    }
+
+    private static boolean isEmptyYamlStream(
+        String text)
+    {
+        for (String line : text.split("\\R", -1))
+        {
+            String content = line.stripLeading();
+            int commentAt = content.indexOf('#');
+            if (commentAt != -1)
+            {
+                content = content.substring(0, commentAt);
+            }
+            content = content.strip();
+            if (!content.isEmpty() && !"...".equals(content))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static JsonValue readValue(
+        JsonParser parser,
+        JsonParser.Event event)
+    {
+        return switch (event)
+        {
+        case START_OBJECT -> readObject(parser);
+        case START_ARRAY -> readArray(parser);
+        case VALUE_STRING -> YAML_JSON.createValue(parser.getString());
+        case VALUE_NUMBER -> YAML_JSON.createValue(new BigDecimal(parser.getString()));
+        case VALUE_TRUE -> JsonValue.TRUE;
+        case VALUE_FALSE -> JsonValue.FALSE;
+        case VALUE_NULL -> JsonValue.NULL;
+        default -> throw new IllegalStateException("Unexpected JSON event: " + event);
+        };
+    }
+
+    private static JsonValue readObject(
+        JsonParser parser)
+    {
+        JsonObjectBuilder builder = YAML_JSON.createObjectBuilder();
+        while (parser.hasNext())
+        {
+            JsonParser.Event event = parser.next();
+            if (event == JsonParser.Event.END_OBJECT)
+            {
+                return builder.build();
+            }
+            String key = parser.getString();
+            builder.add(key, readValue(parser, parser.next()));
+        }
+        throw new IllegalStateException("Unterminated JSON object");
+    }
+
+    private static JsonValue readArray(
+        JsonParser parser)
+    {
+        JsonArrayBuilder builder = YAML_JSON.createArrayBuilder();
+        while (parser.hasNext())
+        {
+            JsonParser.Event event = parser.next();
+            if (event == JsonParser.Event.END_ARRAY)
+            {
+                return builder.build();
+            }
+            builder.add(readValue(parser, event));
+        }
+        throw new IllegalStateException("Unterminated JSON array");
+    }
+
+    private static List<String> splitJsonValues(
+        String text)
+    {
+        List<String> values = new ArrayList<>();
+        int offset = 0;
+        while (offset < text.length())
+        {
+            while (offset < text.length() && Character.isWhitespace(text.charAt(offset)))
+            {
+                offset++;
+            }
+            if (offset == text.length())
+            {
+                break;
+            }
+            int end = jsonValueEnd(text, offset);
+            values.add(text.substring(offset, end));
+            offset = end;
+        }
+        return values;
+    }
+
+    private static int jsonValueEnd(
+        String text,
+        int offset)
+    {
+        char first = text.charAt(offset);
+        if (first == '{' || first == '[')
+        {
+            return jsonBalancedEnd(text, offset);
+        }
+        if (first == '"')
+        {
+            return jsonStringEnd(text, offset);
+        }
+        int end = offset;
+        while (end < text.length() && !Character.isWhitespace(text.charAt(end)))
+        {
+            end++;
+        }
+        return end;
+    }
+
+    private static int jsonBalancedEnd(
+        String text,
+        int offset)
+    {
+        boolean string = false;
+        boolean escaped = false;
+        int depth = 0;
+        for (int i = offset; i < text.length(); i++)
+        {
+            char c = text.charAt(i);
+            if (string)
+            {
+                if (escaped)
+                {
+                    escaped = false;
+                }
+                else if (c == '\\')
+                {
+                    escaped = true;
+                }
+                else if (c == '"')
+                {
+                    string = false;
+                }
+            }
+            else if (c == '"')
+            {
+                string = true;
+            }
+            else if (c == '{' || c == '[')
+            {
+                depth++;
+            }
+            else if (c == '}' || c == ']')
+            {
+                depth--;
+                if (depth == 0)
+                {
+                    return i + 1;
+                }
+            }
+        }
+        return text.length();
+    }
+
+    private static int jsonStringEnd(
+        String text,
+        int offset)
+    {
+        boolean escaped = false;
+        for (int i = offset + 1; i < text.length(); i++)
+        {
+            char c = text.charAt(i);
+            if (escaped)
+            {
+                escaped = false;
+            }
+            else if (c == '\\')
+            {
+                escaped = true;
+            }
+            else if (c == '"')
+            {
+                return i + 1;
+            }
+        }
+        return text.length();
     }
 
     private static void ensureSuite() throws IOException
