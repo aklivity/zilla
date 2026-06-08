@@ -11,7 +11,7 @@
         {
             "if":
             {
-               "properties":
+                "properties":
                 {
                     "type":
                     {
@@ -33,237 +33,257 @@
                     },
                     "catalog": false,
                     "vault": false,
-                    "entry": false,
-                    "options":
+                    "entry": false
+                },
+                "allOf":
+                [
                     {
-                        "properties":
+                        "if":
                         {
-                            "cache":
+                            "properties":
                             {
-                                "title": "Cache",
-                                "type": "object",
-                                "properties":
+                                "kind":
                                 {
-                                    "store":
+                                    "const": "server"
+                                }
+                            }
+                        },
+                        "then":
+                        {
+                            "properties":
+                            {
+                                "options":
+                                {
+                                    "properties":
                                     {
-                                        "title": "Store",
-                                        "type": "string"
-                                    },
-                                    "ttl":
-                                    {
-                                        "title": "Refresh TTL",
-                                        "type": "string",
-                                        "format": "duration",
-                                        "default": "PT5M"
-                                    },
-                                    "authorization":
-                                    {
-                                        "title": "Authorization",
-                                        "type": "object",
-                                        "patternProperties":
+                                        "prompts":
                                         {
-                                            "^[A-Za-z0-9_-]+$":
+                                            "title": "Local Prompts",
+                                            "type": "array",
+                                            "items":
                                             {
                                                 "type": "object",
                                                 "properties":
                                                 {
-                                                    "credentials":
+                                                    "name":
                                                     {
-                                                        "title": "Credentials",
+                                                        "title": "Prompt Name",
+                                                        "type": "string"
+                                                    },
+                                                    "description":
+                                                    {
+                                                        "title": "Prompt Description",
                                                         "type": "string"
                                                     }
                                                 },
+                                                "required": [ "name" ],
                                                 "additionalProperties": false
                                             }
                                         },
-                                        "additionalProperties": false,
-                                        "maxProperties": 1
-                                    }
-                                },
-                                "required": [ "store" ],
-                                "additionalProperties": false
-                            },
-                            "prompts":
-                            {
-                                "title": "Local Prompts",
-                                "type": "array",
-                                "items":
-                                {
-                                    "type": "object",
-                                    "properties":
-                                    {
-                                        "name":
+                                        "elicitation":
                                         {
-                                            "title": "Prompt Name",
-                                            "type": "string"
+                                            "title": "Elicitation",
+                                            "type": "object",
+                                            "properties":
+                                            {
+                                                "callback":
+                                                {
+                                                    "title": "Authorization Callback Path",
+                                                    "type": "string",
+                                                    "default": "auth/callback"
+                                                }
+                                            },
+                                            "additionalProperties": false
                                         },
-                                        "description":
+                                        "authorization":
                                         {
-                                            "title": "Prompt Description",
-                                            "type": "string"
+                                            "title": "Authorization",
+                                            "type": "object",
+                                            "patternProperties":
+                                            {
+                                                "^[A-Za-z0-9_-]+$":
+                                                {
+                                                    "type": "object",
+                                                    "properties":
+                                                    {
+                                                        "credentials":
+                                                        {
+                                                            "title": "Credentials",
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "additionalProperties": false
+                                                }
+                                            },
+                                            "additionalProperties": false,
+                                            "maxProperties": 1
+                                        },
+                                        "timeout":
+                                        {
+                                            "title": "Elicitation Timeout",
+                                            "type": "string",
+                                            "format": "duration",
+                                            "default": "PT0S"
                                         }
                                     },
-                                    "required": [ "name" ],
                                     "additionalProperties": false
-                                }
-                            },
-                            "elicitation":
-                            {
-                                "title": "Elicitation",
-                                "type": "object",
-                                "properties":
-                                {
-                                    "callback":
-                                    {
-                                        "title": "Authorization Callback Path",
-                                        "type": "string",
-                                        "default": "auth/callback"
-                                    }
                                 },
-                                "additionalProperties": false
-                            },
-                            "authorization":
-                            {
-                                "title": "Authorization",
-                                "type": "object",
-                                "patternProperties":
+                                "routes":
                                 {
-                                    "^[A-Za-z0-9_-]+$":
-                                    {
-                                        "type": "object",
-                                        "properties":
-                                        {
-                                            "credentials":
-                                            {
-                                                "title": "Credentials",
-                                                "type": "string"
-                                            }
-                                        },
-                                        "additionalProperties": false
-                                    }
-                                },
-                                "additionalProperties": false,
-                                "maxProperties": 1
-                            },
-                            "timeout":
-                            {
-                                "title": "Elicitation Timeout",
-                                "type": "string",
-                                "format": "duration",
-                                "default": "PT0S"
-                            }
-                        },
-                        "additionalProperties": false
-                    },
-                    "routes":
-                    {
-                        "title": "Routes",
-                        "type": "array",
-                        "items":
-                        {
-                            "type": "object",
-                            "properties":
-                            {
-                                "when":
-                                {
-                                    "title": "When",
+                                    "title": "Routes",
                                     "type": "array",
                                     "items":
                                     {
                                         "type": "object",
                                         "properties":
                                         {
-                                            "toolkit":
+                                            "when":
                                             {
-                                                "title": "Toolkit",
-                                                "type": "string"
-                                            },
-                                            "capability":
-                                            {
-                                                "title": "Capability",
+                                                "title": "When",
                                                 "type": "array",
                                                 "items":
                                                 {
-                                                    "type": "string",
-                                                    "enum": [ "tools", "prompts", "resources" ]
+                                                    "type": "object",
+                                                    "properties":
+                                                    {
+                                                        "capability":
+                                                        {
+                                                            "title": "Capability",
+                                                            "type": "array",
+                                                            "items":
+                                                            {
+                                                                "type": "string",
+                                                                "enum": [ "tools", "prompts", "resources" ]
+                                                            },
+                                                            "minItems": 1,
+                                                            "uniqueItems": true
+                                                        }
+                                                    },
+                                                    "additionalProperties": false
+                                                }
+                                            },
+                                            "with":
+                                            {
+                                                "title": "With",
+                                                "type": "object",
+                                                "properties":
+                                                {
+                                                    "headers":
+                                                    {
+                                                        "title": "Headers",
+                                                        "type": "object",
+                                                        "patternProperties":
+                                                        {
+                                                            "^(?!(:method|content-type|mcp-))[A-Za-z0-9:-]+$":
+                                                            {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "additionalProperties": false
+                                                    }
                                                 },
-                                                "minItems": 1,
-                                                "uniqueItems": true
+                                                "additionalProperties": false
                                             },
-                                            "tools":
-                                            {
-                                                "title": "Tools",
-                                                "type": "array",
-                                                "items":
-                                                {
-                                                    "type": "string"
-                                                }
-                                            },
-                                            "prompts":
-                                            {
-                                                "title": "Prompts",
-                                                "type": "array",
-                                                "items":
-                                                {
-                                                    "type": "string"
-                                                }
-                                            },
-                                            "resources":
-                                            {
-                                                "title": "Resources",
-                                                "type": "array",
-                                                "items":
-                                                {
-                                                    "type": "string"
-                                                }
-                                            }
-                                        },
-                                        "additionalProperties": false
+                                            "guarded": false
+                                        }
                                     }
-                                },
-                                "with":
+                                }
+                            }
+                        }
+                    },
+                    {
+                        "if":
+                        {
+                            "properties":
+                            {
+                                "kind":
                                 {
-                                    "title": "With",
-                                    "type": "object",
+                                    "const": "client"
+                                }
+                            }
+                        },
+                        "then":
+                        {
+                            "properties":
+                            {
+                                "options":
+                                {
                                     "properties":
                                     {
-                                        "headers":
+                                        "authorization":
                                         {
-                                            "title": "Headers",
+                                            "title": "Authorization",
                                             "type": "object",
                                             "patternProperties":
                                             {
-                                                "^(?!(:method|content-type|mcp-))[A-Za-z0-9:-]+$":
+                                                "^[A-Za-z0-9_-]+$":
                                                 {
-                                                    "type": "string"
+                                                    "type": "object",
+                                                    "properties":
+                                                    {
+                                                        "credentials":
+                                                        {
+                                                            "title": "Credentials",
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "additionalProperties": false
                                                 }
                                             },
-                                            "additionalProperties": false
-                                        },
-                                        "cache":
-                                        {
-                                            "title": "Cache",
-                                            "type": "object",
-                                            "properties":
-                                            {
-                                                "credentials":
-                                                {
-                                                    "title": "Credentials",
-                                                    "type": "string"
-                                                }
-                                            },
-                                            "additionalProperties": false
+                                            "additionalProperties": false,
+                                            "maxProperties": 1
                                         }
                                     },
                                     "additionalProperties": false
                                 },
-                                "guarded": false
+                                "routes":
+                                {
+                                    "title": "Routes",
+                                    "type": "array",
+                                    "items":
+                                    {
+                                        "type": "object",
+                                        "properties":
+                                        {
+                                            "when":
+                                            {
+                                                "title": "When",
+                                                "type": "array",
+                                                "items":
+                                                {
+                                                    "type": "object",
+                                                    "additionalProperties": false
+                                                }
+                                            },
+                                            "with":
+                                            {
+                                                "title": "With",
+                                                "type": "object",
+                                                "properties":
+                                                {
+                                                    "headers":
+                                                    {
+                                                        "title": "Headers",
+                                                        "type": "object",
+                                                        "patternProperties":
+                                                        {
+                                                            "^(?!(:method|content-type|mcp-))[A-Za-z0-9:-]+$":
+                                                            {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "additionalProperties": false
+                                                    }
+                                                },
+                                                "additionalProperties": false
+                                            },
+                                            "guarded": false
+                                        }
+                                    }
+                                }
                             }
                         }
-                    }
-                },
-                "allOf":
-                [
+                    },
                     {
                         "if":
                         {
@@ -283,20 +303,119 @@
                                 {
                                     "properties":
                                     {
-                                        "authorization": false
-                                    }
+                                        "cache":
+                                        {
+                                            "title": "Cache",
+                                            "type": "object",
+                                            "properties":
+                                            {
+                                                "store":
+                                                {
+                                                    "title": "Store",
+                                                    "type": "string"
+                                                },
+                                                "ttl":
+                                                {
+                                                    "title": "Refresh TTL",
+                                                    "type": "string",
+                                                    "format": "duration",
+                                                    "default": "PT5M"
+                                                },
+                                                "authorization":
+                                                {
+                                                    "title": "Authorization",
+                                                    "type": "object",
+                                                    "patternProperties":
+                                                    {
+                                                        "^[A-Za-z0-9_-]+$":
+                                                        {
+                                                            "type": "object",
+                                                            "properties":
+                                                            {
+                                                                "credentials":
+                                                                {
+                                                                    "title": "Credentials",
+                                                                    "type": "string"
+                                                                }
+                                                            },
+                                                            "additionalProperties": false
+                                                        }
+                                                    },
+                                                    "additionalProperties": false,
+                                                    "maxProperties": 1
+                                                }
+                                            },
+                                            "required": [ "store" ],
+                                            "additionalProperties": false
+                                        }
+                                    },
+                                    "additionalProperties": false
                                 },
                                 "routes":
                                 {
+                                    "title": "Routes",
+                                    "type": "array",
                                     "items":
                                     {
+                                        "type": "object",
                                         "properties":
                                         {
                                             "when":
                                             {
+                                                "title": "When",
+                                                "type": "array",
                                                 "items":
                                                 {
+                                                    "type": "object",
+                                                    "properties":
+                                                    {
+                                                        "toolkit":
+                                                        {
+                                                            "title": "Toolkit",
+                                                            "type": "string"
+                                                        },
+                                                        "capability":
+                                                        {
+                                                            "title": "Capability",
+                                                            "type": "array",
+                                                            "items":
+                                                            {
+                                                                "type": "string",
+                                                                "enum": [ "tools", "prompts", "resources" ]
+                                                            },
+                                                            "minItems": 1,
+                                                            "uniqueItems": true
+                                                        },
+                                                        "tools":
+                                                        {
+                                                            "title": "Tools",
+                                                            "type": "array",
+                                                            "items":
+                                                            {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "prompts":
+                                                        {
+                                                            "title": "Prompts",
+                                                            "type": "array",
+                                                            "items":
+                                                            {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "resources":
+                                                        {
+                                                            "title": "Resources",
+                                                            "type": "array",
+                                                            "items":
+                                                            {
+                                                                "type": "string"
+                                                            }
+                                                        }
+                                                    },
                                                     "required": [ "toolkit" ],
+                                                    "additionalProperties": false,
                                                     "allOf":
                                                     [
                                                         {
@@ -352,42 +471,31 @@
                                                         }
                                                     ]
                                                 }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        },
-                        "else":
-                        {
-                            "properties":
-                            {
-                                "options":
-                                {
-                                    "properties":
-                                    {
-                                        "cache": false
-                                    }
-                                },
-                                "routes":
-                                {
-                                    "items":
-                                    {
-                                        "properties":
-                                        {
-                                            "when":
+                                            },
+                                            "with":
                                             {
-                                                "items":
+                                                "title": "With",
+                                                "type": "object",
+                                                "properties":
                                                 {
-                                                    "properties":
+                                                    "cache":
                                                     {
-                                                        "toolkit": false,
-                                                        "tools": false,
-                                                        "prompts": false,
-                                                        "resources": false
+                                                        "title": "Cache",
+                                                        "type": "object",
+                                                        "properties":
+                                                        {
+                                                            "credentials":
+                                                            {
+                                                                "title": "Credentials",
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "additionalProperties": false
                                                     }
-                                                }
-                                            }
+                                                },
+                                                "additionalProperties": false
+                                            },
+                                            "guarded": false
                                         }
                                     }
                                 }

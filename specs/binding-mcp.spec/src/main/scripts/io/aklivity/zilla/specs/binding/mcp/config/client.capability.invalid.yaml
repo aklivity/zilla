@@ -19,11 +19,10 @@ bindings:
   app0:
     type: mcp
     kind: client
-    options:
-      authorization:
-        jwt0: {}
     routes:
       - exit: net0
+        when:
+          - capability: [tools]
         with:
           headers:
             :scheme: http

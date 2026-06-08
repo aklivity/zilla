@@ -18,14 +18,12 @@ name: test
 bindings:
   app0:
     type: mcp
-    kind: client
+    kind: proxy
     options:
-      authorization:
-        jwt0: {}
+      prompts:
+        - name: rule
+          description: house rules
     routes:
-      - exit: net0
-        with:
-          headers:
-            :scheme: http
-            :authority: localhost
-            :path: /mcp
+      - exit: app1
+        when:
+          - toolkit: bluesky

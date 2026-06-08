@@ -94,4 +94,40 @@ public class SchemaTest
     {
         schema.validate("server.toolkit.invalid.yaml");
     }
+
+    @Test(expected = JsonValidatingException.class)
+    public void shouldRejectServerRouteWithCacheCredentials()
+    {
+        schema.validate("server.cache.credentials.invalid.yaml");
+    }
+
+    @Test(expected = JsonValidatingException.class)
+    public void shouldRejectClientRouteWithCapability()
+    {
+        schema.validate("client.capability.invalid.yaml");
+    }
+
+    @Test(expected = JsonValidatingException.class)
+    public void shouldRejectClientWithPrompts()
+    {
+        schema.validate("client.prompts.invalid.yaml");
+    }
+
+    @Test(expected = JsonValidatingException.class)
+    public void shouldRejectClientWithTimeout()
+    {
+        schema.validate("client.timeout.invalid.yaml");
+    }
+
+    @Test(expected = JsonValidatingException.class)
+    public void shouldRejectProxyWithPrompts()
+    {
+        schema.validate("proxy.prompts.invalid.yaml");
+    }
+
+    @Test(expected = JsonValidatingException.class)
+    public void shouldRejectProxyRouteWithHeaders()
+    {
+        schema.validate("proxy.headers.invalid.yaml");
+    }
 }
