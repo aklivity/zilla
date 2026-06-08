@@ -411,6 +411,97 @@ class YamlJsonParserTest
     }
 
     @Test
+    void shouldProjectMergeSequenceWithFirstEntryWinningAndExplicitOverride()
+    {
+        JsonObject object = YamlJson.provider().createReader(new StringReader("""
+            base: &base
+              host: localhost
+              port: 7114
+              nested:
+                base: true
+            tls: &tls
+              port: 443
+              secure: true
+              nested:
+                tls: true
+            route:
+              <<: [*base, *tls]
+              host: example.com
+              nested:
+                route: true
+            """)).readObject();
+
+        JsonObject route = object.getJsonObject("route");
+        assertEquals("example.com", route.getString("host"));
+        assertEquals(7114, route.getInt("port"));
+        assertEquals(true, route.getBoolean("secure"));
+        assertEquals(true, route.getJsonObject("nested").getBoolean("route"));
+        assertFalse(route.getJsonObject("nested").containsKey("base"));
+        assertFalse(route.getJsonObject("nested").containsKey("tls"));
+    }
+
+    @Test
+    void shouldProjectAliasesAsExpandedJsonValues()
+    {
+        JsonObject object = YamlJson.provider().createReader(new StringReader("""
+            scalar: &scalar value
+            object: &object
+              name: test
+              nested:
+                value: one
+            array: &array [one, {two: 2}]
+            scalarAlias: *scalar
+            objectAlias: *object
+            arrayAlias: *array
+            items:
+              - *object
+              - *array
+            """)).readObject();
+
+        assertEquals("value", object.getString("scalarAlias"));
+        assertEquals("test", object.getJsonObject("objectAlias").getString("name"));
+        assertEquals("one", object.getJsonObject("objectAlias").getJsonObject("nested").getString("value"));
+        assertEquals("one", object.getJsonArray("arrayAlias").getString(0));
+        assertEquals(2, object.getJsonArray("arrayAlias").getJsonObject(1).getInt("two"));
+        assertEquals("test", object.getJsonArray("items").getJsonObject(0).getString("name"));
+        assertEquals(2, object.getJsonArray("items").getJsonArray(1).getJsonObject(1).getInt("two"));
+    }
+
+    @Test
+    void shouldProjectFlowMergeAliases()
+    {
+        JsonObject object = YamlJson.provider().createReader(new StringReader("""
+            {base: &base {host: localhost, port: 7114}, tls: &tls {port: 443, secure: true},
+             route: {<<: [*base, *tls], host: example.com}}
+            """)).readObject();
+
+        JsonObject route = object.getJsonObject("route");
+        assertEquals("example.com", route.getString("host"));
+        assertEquals(7114, route.getInt("port"));
+        assertEquals(true, route.getBoolean("secure"));
+    }
+
+    @Test
+    void shouldProjectSequenceOfMergeAliases()
+    {
+        JsonObject object = YamlJson.provider().createReader(new StringReader("""
+            one: &one
+              first: true
+              shared: one
+            two: &two
+              second: true
+              shared: two
+            route:
+              <<: [*one, *two]
+            """)).readObject();
+
+        JsonObject route = object.getJsonObject("route");
+        assertEquals(true, route.getBoolean("first"));
+        assertEquals(true, route.getBoolean("second"));
+        assertEquals("one", route.getString("shared"));
+    }
+
+    @Test
     void shouldParseEmptyDocumentValuesAndNestedSequenceItems()
     {
         assertEquals(List.of("VALUE_NULL"), events(parserFor("")));
@@ -758,6 +849,12 @@ class YamlJsonParserTest
     {
         assertThrows(JsonParsingException.class, () -> events(parserFor("value: !custom test\n")));
         assertThrows(JsonParsingException.class, () -> parserFor("value: *missing\n"));
+        assertThrows(JsonParsingException.class, () -> parserFor("first: &dup one\nsecond: &dup two\n"));
+        assertThrows(JsonParsingException.class, () -> parserFor("""
+            defaults: &defaults scalar
+            route:
+              <<: *defaults
+            """));
         assertThrows(JsonParsingException.class, () -> parserFor("{[key]: value}\n"));
         assertThrows(JsonParsingException.class, () -> events(parserFor("? [key]\n: value\n")));
         assertThrows(JsonParsingException.class, () -> parserFor("value: .nan\n"));

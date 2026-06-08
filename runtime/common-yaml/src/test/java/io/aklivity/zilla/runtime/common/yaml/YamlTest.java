@@ -783,6 +783,146 @@ class YamlTest
     }
 
     @Test
+    void shouldResolveNativeMergePrecedenceAndExplicitOverrides()
+    {
+        YamlObject object = Yaml.createReaderFactory(Map.of(YamlConfig.PRESERVE_SOURCE, false))
+            .createReader(new StringReader("""
+            base: &base
+              host: localhost
+              port: 7114
+              nested:
+                base: true
+            tls: &tls
+              port: 443
+              secure: true
+              nested:
+                tls: true
+            route:
+              <<: [*base, *tls]
+              host: example.com
+              nested:
+                route: true
+            """))
+            .readObject();
+
+        YamlObject route = object.getObject("route");
+        assertEquals("example.com", route.getString("host"));
+        assertEquals(7114, route.getInt("port"));
+        assertTrue(route.getBoolean("secure"));
+        assertTrue(route.getObject("nested").getBoolean("route"));
+        assertFalse(route.getObject("nested").containsKey("base"));
+        assertFalse(route.getObject("nested").containsKey("tls"));
+
+        StringWriter generated = new StringWriter();
+        Yaml.createWriterFactory(Map.of(YamlConfig.PRESERVE_SOURCE, false))
+            .createWriter(generated)
+            .writeObject(object);
+
+        assertEquals("""
+            base:
+              host: localhost
+              port: 7114
+              nested:
+                base: true
+            tls:
+              port: 443
+              secure: true
+              nested:
+                tls: true
+            route:
+              port: 7114
+              secure: true
+              host: example.com
+              nested:
+                route: true
+            """, generated.toString());
+    }
+
+    @Test
+    void shouldResolveNativeSequenceOfMergeAliases()
+    {
+        YamlObject object = Yaml.createReader(new StringReader("""
+            one: &one
+              first: true
+              shared: one
+            two: &two
+              second: true
+              shared: two
+            route:
+              <<: [*one, *two]
+            """)).readObject();
+
+        YamlObject route = object.getObject("route");
+        assertTrue(route.getBoolean("first"));
+        assertTrue(route.getBoolean("second"));
+        assertEquals("one", route.getString("shared"));
+    }
+
+    @Test
+    void shouldPreserveNativeAliasNodesWhenWritingChildren()
+    {
+        YamlObject object = Yaml.createReaderFactory(Map.of(YamlConfig.PRESERVE_SOURCE, false))
+            .createReader(new StringReader("""
+            defaults: &defaults
+              name: test
+              nested:
+                value: one
+            alias: *defaults
+            aliases:
+              - *defaults
+            """))
+            .readObject();
+        StringWriter alias = new StringWriter();
+        StringWriter aliases = new StringWriter();
+        StringWriter generated = new StringWriter();
+
+        YamlObject resolved = object.getObject("alias");
+        assertEquals("test", resolved.getString("name"));
+        assertEquals("one", resolved.getObject("nested").getString("value"));
+        assertEquals("test", object.getArray("aliases").getObject(0).getString("name"));
+
+        Yaml.createWriter(alias).writeObject(resolved);
+        Yaml.createWriter(aliases).writeArray(object.getArray("aliases"));
+        Yaml.createWriterFactory(Map.of(YamlConfig.PRESERVE_SOURCE, false))
+            .createWriter(generated)
+            .writeObject(object);
+
+        assertEquals("*defaults\n", alias.toString());
+        assertEquals("- *defaults\n", aliases.toString());
+        assertEquals("""
+            defaults:
+              name: test
+              nested:
+                value: one
+            alias: *defaults
+            aliases:
+              - *defaults
+            """, generated.toString());
+    }
+
+    @Test
+    void shouldRejectInvalidNativeAliasAndMergeDocuments()
+    {
+        assertThrows(RuntimeException.class, () -> Yaml.createReader(new StringReader("value: *missing\n")).readValue());
+        assertThrows(RuntimeException.class, () -> Yaml.createReader(new StringReader("""
+            first: &dup one
+            second: &dup two
+            """)).readValue());
+        assertThrows(RuntimeException.class, () -> Yaml.createReader(new StringReader("""
+            defaults: &defaults scalar
+            route:
+              <<: *defaults
+            """)).readValue());
+        assertThrows(RuntimeException.class, () -> Yaml.createReader(new StringReader("""
+            defaults: &defaults
+              - name: one
+              - two
+            route:
+              <<: *defaults
+            """)).readValue());
+    }
+
+    @Test
     void shouldWriteNativeValues()
     {
         YamlObject object = Yaml.createReader(new StringReader("name: test\n")).readObject();
