@@ -31,6 +31,7 @@ import io.aklivity.zilla.runtime.common.yaml.YamlValue;
 public final class YamlGeneratorImpl implements YamlGenerator
 {
     private final Writer writer;
+    private final YamlConfiguration config;
     private final Deque<Context> stack;
     private YamlNode rootNode;
     private boolean written;
@@ -39,7 +40,15 @@ public final class YamlGeneratorImpl implements YamlGenerator
     public YamlGeneratorImpl(
         Writer writer)
     {
+        this(writer, YamlConfiguration.DEFAULT);
+    }
+
+    public YamlGeneratorImpl(
+        Writer writer,
+        YamlConfiguration config)
+    {
         this.writer = writer;
+        this.config = config;
         this.stack = new ArrayDeque<>();
     }
 
@@ -279,9 +288,23 @@ public final class YamlGeneratorImpl implements YamlGenerator
         }
         try
         {
+            if (!config.multiDocumentStreams() && stream.size() > 1)
+            {
+                throw new IllegalStateException("YAML document streams are disabled");
+            }
+            if (!config.documentMarkers() && !config.preserveSource() && stream.size() > 1)
+            {
+                throw new IllegalStateException("YAML document markers are disabled");
+            }
+            int index = 0;
             for (YamlDocument document : stream)
             {
-                YamlEmitter.write(YamlValues.node(document.getValue()), writer);
+                if (index != 0 && !config.preserveSource())
+                {
+                    writer.write("---\n");
+                }
+                YamlEmitter.write(YamlValues.node(document.getValue()), writer, config);
+                index++;
             }
         }
         catch (IOException ex)
@@ -302,7 +325,7 @@ public final class YamlGeneratorImpl implements YamlGenerator
         {
             try
             {
-                YamlEmitter.write(rootNode, writer);
+                YamlEmitter.write(rootNode, writer, config);
             }
             catch (IOException ex)
             {

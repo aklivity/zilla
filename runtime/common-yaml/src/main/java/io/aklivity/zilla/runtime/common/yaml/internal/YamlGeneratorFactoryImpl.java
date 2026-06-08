@@ -39,7 +39,7 @@ public final class YamlGeneratorFactoryImpl implements YamlGeneratorFactory
     public YamlGenerator createGenerator(
         Writer writer)
     {
-        return new YamlGeneratorImpl(writer);
+        return new YamlGeneratorImpl(writer, config);
     }
 
     @Override

@@ -154,6 +154,96 @@ class YamlTest
             """)).readStream());
     }
 
+    @Test
+    void shouldApplyNativeGeneratorConfig()
+    {
+        YamlValue value = Yaml.createReader(new StringReader("""
+            # leading comment
+            flow: [1, 2] # line comment
+            block: |-
+              line
+            """)).readValue();
+
+        StringWriter exact = new StringWriter();
+        Yaml.createWriter(exact).write(value);
+        assertEquals("""
+            # leading comment
+            flow: [1, 2] # line comment
+            block: |-
+              line
+            """, exact.toString());
+
+        StringWriter normalized = new StringWriter();
+        Yaml.createWriterFactory(Map.of(YamlConfig.PRESERVE_SOURCE, false))
+            .createWriter(normalized)
+            .write(value);
+        assertEquals("""
+            flow: [1, 2] # line comment
+            block: |-
+              line
+            """, normalized.toString());
+
+        StringWriter uncommented = new StringWriter();
+        Yaml.createWriterFactory(Map.of(
+            YamlConfig.PRESERVE_SOURCE, false,
+            YamlConfig.PRESERVE_COMMENTS, false))
+            .createWriter(uncommented)
+            .write(value);
+        assertEquals("""
+            flow: [1, 2]
+            block: |-
+              line
+            """, uncommented.toString());
+
+        StringWriter generated = new StringWriter();
+        Yaml.createGeneratorFactory(Map.of(YamlConfig.PRESERVE_COMMENTS, false))
+            .createGenerator(generated)
+            .writeStartObject()
+            .write("name", "test")
+            .writeEnd()
+            .close();
+        assertEquals("name: test\n", generated.toString());
+    }
+
+    @Test
+    void shouldApplyNativeGeneratorFeatureConfig()
+    {
+        assertGeneratorFeatureDisabled(YamlConfig.FEATURE_DIRECTIVES, "%YAML 1.2\n---\nname: test\n");
+        assertGeneratorFeatureDisabled(YamlConfig.FEATURE_DOCUMENT_MARKERS, "---\nname: test\n");
+        assertGeneratorFeatureDisabled(YamlConfig.FEATURE_BLOCK_SCALARS, "description: |-\n  line\n");
+        assertGeneratorFeatureDisabled(YamlConfig.FEATURE_FLOW_COLLECTIONS, "items: [one, two]\n");
+        assertGeneratorFeatureDisabled(YamlConfig.FEATURE_ANCHORS, "value: &value test\n");
+        assertGeneratorFeatureDisabled(YamlConfig.FEATURE_ALIASES, "value: &value test\nalias: *value\n");
+        assertGeneratorFeatureDisabled(YamlConfig.FEATURE_MERGE_KEYS, """
+            defaults: &defaults
+              name: test
+            item:
+              <<: *defaults
+            """);
+        assertGeneratorFeatureDisabled(YamlConfig.FEATURE_TAGS, "value: !!str 42\n");
+        assertGeneratorFeatureDisabled(YamlConfig.FEATURE_COMMENTS, "name: test # comment\n");
+        assertGeneratorFeatureDisabled(YamlConfig.FEATURE_NON_SCALAR_KEYS, "? [a, b]\n: value\n");
+
+        YamlStream stream = Yaml.createReader(new StringReader("""
+            ---
+            name: first
+            ---
+            name: second
+            """)).readStream();
+        StringWriter output = new StringWriter();
+        YamlWriter streamDisabled = Yaml.createWriterFactory(Map.of(
+            YamlConfig.FEATURE_MULTI_DOCUMENT_STREAMS, false))
+            .createWriter(output);
+        assertThrows(RuntimeException.class, () -> streamDisabled.writeStream(stream));
+
+        StringWriter markersDisabled = new StringWriter();
+        YamlWriter writer = Yaml.createWriterFactory(Map.of(
+            YamlConfig.PRESERVE_SOURCE, false,
+            YamlConfig.FEATURE_DOCUMENT_MARKERS, false))
+            .createWriter(markersDisabled);
+        assertThrows(RuntimeException.class, () -> writer.writeStream(stream));
+    }
+
     private static void assertFeatureDisabled(
         String feature,
         String yaml)
@@ -161,6 +251,16 @@ class YamlTest
         YamlParser parser = Yaml.createParserFactory(Map.of(feature, false)).createParser(new StringReader(yaml));
 
         assertThrows(RuntimeException.class, parser::parse);
+    }
+
+    private static void assertGeneratorFeatureDisabled(
+        String feature,
+        String yaml)
+    {
+        YamlValue value = Yaml.createReader(new StringReader(yaml)).readValue();
+        YamlWriter writer = Yaml.createWriterFactory(Map.of(feature, false)).createWriter(new StringWriter());
+
+        assertThrows(RuntimeException.class, () -> writer.write(value));
     }
 
     @Test
