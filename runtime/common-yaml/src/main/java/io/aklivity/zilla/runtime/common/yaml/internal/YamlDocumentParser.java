@@ -1361,6 +1361,9 @@ public final class YamlDocumentParser
         {
             int start = 0;
             Map<String, String> tagHandles = defaultTagHandles();
+            boolean directives = false;
+            boolean yamlDirective = false;
+            Line startContent = null;
             while (start < all.size())
             {
                 Line line = all.get(start);
@@ -1374,49 +1377,72 @@ public final class YamlDocumentParser
                     {
                         throw error("YAML directives are disabled", line);
                     }
-                    readDirective(line, tagHandles);
+                    directives = true;
+                    yamlDirective = readDirective(line, tagHandles, yamlDirective);
                     start++;
                 }
-                else if ("---".equals(line.content))
+                else if (isDocumentStart(line))
                 {
                     if (!config.documentMarkers())
                     {
                         throw error("YAML document markers are disabled", line);
                     }
+                    String content = markerContent(line, "---");
+                    if (!content.isEmpty())
+                    {
+                        startContent = contentLine(line, content);
+                    }
                     start++;
                     break;
                 }
-                else if ("...".equals(line.content))
+                else if (isDocumentEnd(line))
                 {
                     if (!config.documentMarkers())
                     {
                         throw error("YAML document markers are disabled", line);
+                    }
+                    if (directives)
+                    {
+                        throw error("YAML directives require an explicit document", line);
                     }
                     start++;
                 }
                 else
                 {
+                    if (directives)
+                    {
+                        throw error("YAML directives require an explicit document", line);
+                    }
                     break;
                 }
+            }
+            if (directives && start >= all.size())
+            {
+                Line line = all.get(start - 1);
+                throw error("YAML directives require an explicit document", line);
             }
             int end = start;
             long endOffset = text.length();
             while (end < all.size())
             {
                 Line line = all.get(end);
-                if (!line.blank && ("---".equals(line.content) || "...".equals(line.content)))
+                if (!line.blank && (isDocumentStart(line) || isDocumentEnd(line)))
                 {
                     if (!config.documentMarkers())
                     {
                         throw error("YAML document markers are disabled", line);
                     }
-                    endOffset = "---".equals(line.content) ? line.offset : line.afterOffset;
+                    endOffset = isDocumentStart(line) ? line.offset : line.afterOffset;
                     break;
                 }
                 end++;
             }
 
             List<Line> documentLines = new ArrayList<>();
+            if (startContent != null)
+            {
+                documentLines.add(startContent);
+            }
             for (int i = start; i < end; i++)
             {
                 documentLines.add(all.get(i));
@@ -1432,11 +1458,25 @@ public final class YamlDocumentParser
             return tagHandles;
         }
 
-        private static void readDirective(
+        private static boolean readDirective(
             Line line,
-            Map<String, String> tagHandles)
+            Map<String, String> tagHandles,
+            boolean yamlDirective)
         {
-            if (line.content.startsWith("%TAG "))
+            if (line.content.startsWith("%YAML"))
+            {
+                String[] parts = line.content.split("\\s+");
+                if (parts.length != 2)
+                {
+                    throw error("Malformed YAML directive", line);
+                }
+                if (yamlDirective)
+                {
+                    throw error("Duplicate YAML directive", line);
+                }
+                return true;
+            }
+            else if (line.content.startsWith("%TAG "))
             {
                 String[] parts = line.content.split("\\s+");
                 if (parts.length != 3)
@@ -1449,6 +1489,47 @@ public final class YamlDocumentParser
                 }
                 tagHandles.put(parts[1], parts[2]);
             }
+            return yamlDirective;
+        }
+
+        private static boolean isDocumentStart(
+            Line line)
+        {
+            return isMarker(line.content, "---");
+        }
+
+        private static boolean isDocumentEnd(
+            Line line)
+        {
+            return line.content.equals("...");
+        }
+
+        private static boolean isMarker(
+            String content,
+            String marker)
+        {
+            return content.equals(marker) ||
+                content.startsWith(marker) && content.length() > marker.length() &&
+                    Character.isWhitespace(content.charAt(marker.length()));
+        }
+
+        private static String markerContent(
+            Line line,
+            String marker)
+        {
+            return line.content.length() == marker.length() ? "" :
+                line.content.substring(marker.length()).stripLeading();
+        }
+
+        private static Line contentLine(
+            Line line,
+            String content)
+        {
+            int rawAt = line.raw.indexOf(content);
+            int column = rawAt == -1 ? line.column + 4 : rawAt + 1;
+            long offset = rawAt == -1 ? line.offset + 4 : line.offset - line.indent + rawAt;
+            return new Line(content, 0, content, line.comment, content.isBlank(), false, content.isBlank(),
+                line.line, column, offset, line.afterOffset);
         }
 
         private static List<Line> lines(
