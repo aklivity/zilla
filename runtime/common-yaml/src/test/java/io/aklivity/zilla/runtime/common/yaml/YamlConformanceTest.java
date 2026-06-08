@@ -180,25 +180,7 @@ final class YamlConformanceTest
         "Z9M4",
         "ZH7C",
         "ZWK4");
-    private static final Set<String> INVALID_REJECTION_GAPS = Set.of(
-        "5LLU",
-        "9C9N",
-        "DK4H",
-        "MUS6/00",
-        "S98Z",
-        "SR86",
-        "SY6V",
-        "T833",
-        "U99R",
-        "VJP3/00",
-        "W9L4",
-        "Y79Y/004",
-        "Y79Y/005",
-        "Y79Y/006",
-        "Y79Y/007",
-        "Y79Y/008",
-        "Y79Y/009",
-        "ZCZ6");
+    private static final Set<String> INVALID_REJECTION_GAPS = Set.of();
 
     @TestFactory
     Stream<DynamicTest> shouldProjectYamlTestSuiteJsonCases() throws Exception

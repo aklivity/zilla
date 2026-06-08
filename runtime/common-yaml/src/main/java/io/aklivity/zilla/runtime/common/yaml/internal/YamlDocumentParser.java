@@ -238,8 +238,17 @@ public final class YamlDocumentParser
             {
                 break;
             }
+            int itemAt = 1;
+            while (itemAt < line.content.length() && Character.isWhitespace(line.content.charAt(itemAt)))
+            {
+                itemAt++;
+            }
+            String item = itemAt == line.content.length() ? "" : line.content.substring(itemAt).trim();
+            if (line.content.substring(0, itemAt).indexOf('\t') != -1 && ("-".equals(item) || item.startsWith("- ")))
+            {
+                throw error("Tabs are not supported after sequence indicators", line);
+            }
 
-            String item = line.content.length() == 1 ? "" : line.content.substring(2).trim();
             ValueSpec spec = ValueSpec.parse(item, line, tagHandles);
             validateSpec(spec, line);
 
@@ -309,6 +318,10 @@ public final class YamlDocumentParser
         index++;
         ValueSpec spec = ValueSpec.parse(line.content.trim(), line, tagHandles);
         validateSpec(spec, line);
+        if (spec.anchor != null && spec.value.startsWith("- "))
+        {
+            throw error("YAML anchor cannot precede a block sequence entry", line);
+        }
         YamlNode value = spec.alias != null ?
             resolveAlias(spec.alias, line) :
             parseInlineValue(spec.value, spec.tag, line, true);
@@ -347,6 +360,10 @@ public final class YamlDocumentParser
         }
 
         Line valueLine = lines.get(index);
+        if (valueLine.content.length() > 1 && valueLine.content.charAt(1) == '\t')
+        {
+            throw error("Tabs are not supported after explicit value indicators", valueLine);
+        }
         String valueText = valueLine.content.length() == 1 ? "" : valueLine.content.substring(1).trim();
         if (keyNode != null)
         {
@@ -507,6 +524,10 @@ public final class YamlDocumentParser
             {
                 throw error("Unterminated flow collection", line);
             }
+            if (!next.blank && next.indent <= line.indent && !next.content.startsWith("]") && !next.content.startsWith("}"))
+            {
+                throw error("Wrong indented flow collection", next);
+            }
             if (tabIndented(next) && !next.blank)
             {
                 throw error("Tabs are not supported in flow indentation", next);
@@ -627,6 +648,11 @@ public final class YamlDocumentParser
             {
                 break;
             }
+            if (blockScalarEmpty(next) && !next.raw.isEmpty() && next.indent > contentIndent &&
+                hasFollowingBlockScalarContentOrComment(contentIndent))
+            {
+                throw error("Wrong indented block scalar line", next);
+            }
 
             values.add(new BlockScalarLine(
                 blockScalarEmpty(next) ? "" :
@@ -667,6 +693,24 @@ public final class YamlDocumentParser
             }
         }
         return allowSameIndent ? parentIndent : parentIndent + 2;
+    }
+
+    private boolean hasFollowingBlockScalarContentOrComment(
+        int contentIndent)
+    {
+        for (int i = index + 1; i < lines.size(); i++)
+        {
+            Line line = lines.get(i);
+            if (!blockScalarEmpty(line) || line.comment != null)
+            {
+                return true;
+            }
+            if (line.indent < contentIndent)
+            {
+                return false;
+            }
+        }
+        return false;
     }
 
     private static boolean blockScalarEmpty(
@@ -744,6 +788,10 @@ public final class YamlDocumentParser
             YamlScalarNode scalar = YamlScalarNode.string(unquote(text, line), line.line, line.column, line.offset);
             scalar.style = text.startsWith("\"") ? "\"" : "'";
             return (YamlScalarNode) applyTag(scalar, tag, text, line);
+        }
+        if (mappingColon(text) != -1)
+        {
+            throw error("Invalid mapping in plain scalar", line);
         }
         if (!config.scalarResolution())
         {
@@ -1079,6 +1127,10 @@ public final class YamlDocumentParser
         {
             throw error("YAML tags are disabled", line);
         }
+        if (spec.anchor != null && spec.alias != null)
+        {
+            throw error("YAML alias cannot also define an anchor", line);
+        }
     }
 
     private List<String> takeComments()
@@ -1106,7 +1158,8 @@ public final class YamlDocumentParser
     private static boolean isExplicitKey(
         Line line)
     {
-        return line.content.equals("?") || line.content.startsWith("? ");
+        return line.content.equals("?") || line.content.length() > 1 && line.content.charAt(0) == '?' &&
+            Character.isWhitespace(line.content.charAt(1));
     }
 
     private static int mappingColon(
@@ -1529,7 +1582,7 @@ public final class YamlDocumentParser
             if (line.content.startsWith("%YAML"))
             {
                 String[] parts = line.content.split("\\s+");
-                if (parts.length != 2)
+                if (parts.length != 2 || !parts[1].matches("[0-9]+\\.[0-9]+"))
                 {
                     throw error("Malformed YAML directive", line);
                 }
@@ -1730,6 +1783,10 @@ public final class YamlDocumentParser
                 {
                     int end = tagEnd(value);
                     tag = normalizeTag(value.substring(0, end), line, tagHandles);
+                    if (end < value.length() && value.charAt(end) == ',')
+                    {
+                        throw error("Malformed YAML tag", line);
+                    }
                     value = value.substring(end).trim();
                     progress = true;
                 }
@@ -2272,6 +2329,10 @@ public final class YamlDocumentParser
             {
                 char c = text.charAt(cursor);
                 if (c == ',' || c == ']' || c == '}' || c == '#')
+                {
+                    break;
+                }
+                if (c == ':' && cursor + 1 < text.length() && Character.isWhitespace(text.charAt(cursor + 1)))
                 {
                     break;
                 }
