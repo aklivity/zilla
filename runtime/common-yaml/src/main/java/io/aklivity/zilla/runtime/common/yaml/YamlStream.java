@@ -14,18 +14,14 @@
  */
 package io.aklivity.zilla.runtime.common.yaml;
 
-public interface YamlReader extends AutoCloseable
+import java.util.List;
+
+public interface YamlStream extends Iterable<YamlDocument>
 {
-    YamlStructure read();
+    int size();
 
-    YamlObject readObject();
+    YamlDocument getDocument(
+        int index);
 
-    YamlArray readArray();
-
-    YamlValue readValue();
-
-    YamlStream readStream();
-
-    @Override
-    void close();
+    List<YamlDocument> getDocuments();
 }

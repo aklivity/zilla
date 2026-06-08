@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.common.yaml.internal;
 
+import java.util.List;
+
 public abstract class YamlNode
 {
     public final int line;
@@ -22,7 +24,10 @@ public abstract class YamlNode
     String source;
     String tag;
     String anchor;
+    String alias;
     String style;
+    List<String> leadingComments;
+    String lineComment;
 
     YamlNode(
         int line,
@@ -32,5 +37,10 @@ public abstract class YamlNode
         this.line = line;
         this.column = column;
         this.offset = offset;
+    }
+
+    public String tag()
+    {
+        return tag;
     }
 }

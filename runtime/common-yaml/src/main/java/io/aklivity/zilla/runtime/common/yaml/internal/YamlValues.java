@@ -14,9 +14,14 @@
  */
 package io.aklivity.zilla.runtime.common.yaml.internal;
 
+import java.util.Iterator;
+import java.util.List;
+
 import io.aklivity.zilla.runtime.common.yaml.YamlArray;
+import io.aklivity.zilla.runtime.common.yaml.YamlDocument;
 import io.aklivity.zilla.runtime.common.yaml.YamlObject;
 import io.aklivity.zilla.runtime.common.yaml.YamlScalar;
+import io.aklivity.zilla.runtime.common.yaml.YamlStream;
 import io.aklivity.zilla.runtime.common.yaml.YamlValue;
 
 final class YamlValues
@@ -37,6 +42,18 @@ final class YamlValues
             return new ArrayValue(array);
         }
         return new ScalarValue((YamlScalarNode) node);
+    }
+
+    static YamlDocument document(
+        YamlNode node)
+    {
+        return new DocumentValue(node);
+    }
+
+    static YamlStream stream(
+        List<YamlNode> nodes)
+    {
+        return new StreamValue(nodes.stream().map(YamlValues::document).toList());
     }
 
     static YamlNode node(
@@ -78,6 +95,59 @@ final class YamlValues
             YamlNode node)
         {
             this.node = node;
+        }
+    }
+
+    private static final class DocumentValue implements YamlDocument
+    {
+        private final YamlValue value;
+
+        private DocumentValue(
+            YamlNode node)
+        {
+            this.value = wrap(node);
+        }
+
+        @Override
+        public YamlValue getValue()
+        {
+            return value;
+        }
+    }
+
+    private static final class StreamValue implements YamlStream
+    {
+        private final List<YamlDocument> documents;
+
+        private StreamValue(
+            List<YamlDocument> documents)
+        {
+            this.documents = List.copyOf(documents);
+        }
+
+        @Override
+        public int size()
+        {
+            return documents.size();
+        }
+
+        @Override
+        public YamlDocument getDocument(
+            int index)
+        {
+            return documents.get(index);
+        }
+
+        @Override
+        public List<YamlDocument> getDocuments()
+        {
+            return documents;
+        }
+
+        @Override
+        public Iterator<YamlDocument> iterator()
+        {
+            return documents.iterator();
         }
     }
 

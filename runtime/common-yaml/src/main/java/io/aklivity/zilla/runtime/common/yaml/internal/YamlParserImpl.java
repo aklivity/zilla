@@ -22,6 +22,7 @@ import java.io.Reader;
 import java.nio.charset.Charset;
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.List;
 
 import io.aklivity.zilla.runtime.common.yaml.YamlArray;
 import io.aklivity.zilla.runtime.common.yaml.YamlEvent;
@@ -29,6 +30,7 @@ import io.aklivity.zilla.runtime.common.yaml.YamlEvent.EventType;
 import io.aklivity.zilla.runtime.common.yaml.YamlObject;
 import io.aklivity.zilla.runtime.common.yaml.YamlParser;
 import io.aklivity.zilla.runtime.common.yaml.YamlScalar;
+import io.aklivity.zilla.runtime.common.yaml.YamlStream;
 import io.aklivity.zilla.runtime.common.yaml.YamlValue;
 
 public final class YamlParserImpl implements YamlParser
@@ -135,6 +137,19 @@ public final class YamlParserImpl implements YamlParser
     @Override
     public void close()
     {
+    }
+
+    YamlStream parseStream()
+    {
+        if (parsed || streaming)
+        {
+            throw new IllegalStateException("YAML document has already been parsed");
+        }
+        parsed = true;
+        List<YamlNode> nodes = YamlDocumentParser.parseAll(text).stream()
+            .map(r -> r.node)
+            .toList();
+        return YamlValues.stream(nodes);
     }
 
     private YamlNode root()

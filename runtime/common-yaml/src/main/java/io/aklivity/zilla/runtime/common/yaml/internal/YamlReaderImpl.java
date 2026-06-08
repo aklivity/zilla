@@ -18,6 +18,7 @@ import io.aklivity.zilla.runtime.common.yaml.YamlArray;
 import io.aklivity.zilla.runtime.common.yaml.YamlObject;
 import io.aklivity.zilla.runtime.common.yaml.YamlParser;
 import io.aklivity.zilla.runtime.common.yaml.YamlReader;
+import io.aklivity.zilla.runtime.common.yaml.YamlStream;
 import io.aklivity.zilla.runtime.common.yaml.YamlStructure;
 import io.aklivity.zilla.runtime.common.yaml.YamlValue;
 
@@ -68,6 +69,16 @@ public final class YamlReaderImpl implements YamlReader
     public YamlValue readValue()
     {
         return parser.parse();
+    }
+
+    @Override
+    public YamlStream readStream()
+    {
+        if (parser instanceof YamlParserImpl yaml)
+        {
+            return yaml.parseStream();
+        }
+        return YamlValues.stream(java.util.List.of(YamlValues.node(parser.parse())));
     }
 
     @Override

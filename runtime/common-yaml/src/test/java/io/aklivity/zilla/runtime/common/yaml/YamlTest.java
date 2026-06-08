@@ -271,6 +271,32 @@ class YamlTest
     }
 
     @Test
+    void shouldReadAndWriteNativeDocumentStream()
+    {
+        String yaml = """
+            ---
+            name: first
+            ...
+            ---
+            name: second
+            """;
+        YamlStream stream = Yaml.createReader(new StringReader(yaml)).readStream();
+        StringWriter generated = new StringWriter();
+        List<String> names = new ArrayList<>();
+
+        for (YamlDocument document : stream)
+        {
+            names.add(document.getValue().asYamlObject().getString("name"));
+        }
+        Yaml.createWriter(generated).writeStream(stream);
+
+        assertEquals(2, stream.size());
+        assertEquals("first", stream.getDocument(0).getValue().asYamlObject().getString("name"));
+        assertEquals(List.of("first", "second"), names);
+        assertEquals(yaml, generated.toString());
+    }
+
+    @Test
     void shouldGenerateParsedNativeChildStyleMetadata()
     {
         YamlObject object = Yaml.createReader(new StringReader("""
@@ -279,23 +305,39 @@ class YamlTest
             block: |-
               one
               two
+            # before scalar
+            commented: value # after scalar
             flow: [1, "two", {enabled: true}]
             tagged: !!str "42"
             anchored: &anchored value
+            alias: *anchored
+            items:
+              # before item
+              - alias: *anchored
+              - item # after item
+            custom: !custom "tagged"
             """)).readObject();
         StringWriter single = new StringWriter();
         StringWriter doub = new StringWriter();
         StringWriter block = new StringWriter();
         StringWriter flow = new StringWriter();
+        StringWriter commented = new StringWriter();
         StringWriter tagged = new StringWriter();
         StringWriter anchored = new StringWriter();
+        StringWriter alias = new StringWriter();
+        StringWriter items = new StringWriter();
+        StringWriter custom = new StringWriter();
 
         Yaml.createWriter(single).write(object.getScalar("single"));
         Yaml.createWriter(doub).write(object.getScalar("double"));
         Yaml.createWriter(block).write(object.getScalar("block"));
         Yaml.createWriter(flow).write(object.getArray("flow"));
+        Yaml.createWriter(commented).write(object.getScalar("commented"));
         Yaml.createWriter(tagged).write(object.getScalar("tagged"));
         Yaml.createWriter(anchored).write(object.getScalar("anchored"));
+        Yaml.createWriter(alias).write(object.getScalar("alias"));
+        Yaml.createWriter(items).write(object.getArray("items"));
+        Yaml.createWriter(custom).write(object.getScalar("custom"));
 
         assertEquals("'it''s'\n", single.toString());
         assertEquals("\"line\\nA\"\n", doub.toString());
@@ -305,8 +347,19 @@ class YamlTest
               two
             """, block.toString());
         assertEquals("[1, \"two\", {enabled: true}]\n", flow.toString());
+        assertEquals("""
+            # before scalar
+            value # after scalar
+            """, commented.toString());
         assertEquals("!!str \"42\"\n", tagged.toString());
         assertEquals("&anchored value\n", anchored.toString());
+        assertEquals("*anchored\n", alias.toString());
+        assertEquals("""
+            # before item
+            - alias: *anchored
+            - item # after item
+            """, items.toString());
+        assertEquals("!custom \"tagged\"\n", custom.toString());
     }
 
     @Test

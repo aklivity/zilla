@@ -23,7 +23,9 @@ import java.io.Writer;
 import java.util.ArrayDeque;
 import java.util.Deque;
 
+import io.aklivity.zilla.runtime.common.yaml.YamlDocument;
 import io.aklivity.zilla.runtime.common.yaml.YamlGenerator;
+import io.aklivity.zilla.runtime.common.yaml.YamlStream;
 import io.aklivity.zilla.runtime.common.yaml.YamlValue;
 
 public final class YamlGeneratorImpl implements YamlGenerator
@@ -261,6 +263,32 @@ public final class YamlGeneratorImpl implements YamlGenerator
             }
             closed = true;
         }
+    }
+
+    void writeStream(
+        YamlStream stream)
+    {
+        ensureOpen();
+        if (!stack.isEmpty())
+        {
+            throw new IllegalStateException("YAML document has an open collection");
+        }
+        if (written || rootNode != null)
+        {
+            throw new IllegalStateException("YAML document has already been written");
+        }
+        try
+        {
+            for (YamlDocument document : stream)
+            {
+                YamlEmitter.write(YamlValues.node(document.getValue()), writer);
+            }
+        }
+        catch (IOException ex)
+        {
+            throw new IllegalStateException(ex.getMessage(), ex);
+        }
+        written = true;
     }
 
     private void writeDocument()

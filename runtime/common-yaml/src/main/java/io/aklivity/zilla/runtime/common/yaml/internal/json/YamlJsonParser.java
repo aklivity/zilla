@@ -271,6 +271,7 @@ public final class YamlJsonParser implements JsonParser
         while (!stack.isEmpty())
         {
             Frame frame = stack.peek();
+            rejectCustomTag(frame.node);
             if (frame.node instanceof YamlObjectNode object)
             {
                 if (!frame.started)
@@ -342,6 +343,7 @@ public final class YamlJsonParser implements JsonParser
     private JsonValue toJsonValue(
         YamlNode node)
     {
+        rejectCustomTag(node);
         if (node instanceof YamlObjectNode object)
         {
             JsonObjectBuilder builder = YamlJsonValues.objectBuilder();
@@ -374,6 +376,17 @@ public final class YamlJsonParser implements JsonParser
         case FALSE -> JsonValue.FALSE;
         case NULL -> JsonValue.NULL;
         };
+    }
+
+    private static void rejectCustomTag(
+        YamlNode node)
+    {
+        String tag = node.tag();
+        if (tag != null && !tag.startsWith("tag:yaml.org,2002:"))
+        {
+            throw new JsonParsingException("Unsupported YAML tag",
+                new YamlJsonLocation(new YamlLocation(node.line, node.column, node.offset)));
+        }
     }
 
     private static String readAll(

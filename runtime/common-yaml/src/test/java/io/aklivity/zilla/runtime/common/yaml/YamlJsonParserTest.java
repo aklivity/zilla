@@ -270,11 +270,11 @@ class YamlJsonParserTest
         assertEquals(true, object.getBoolean("boolean"));
         assertEquals(2, object.getJsonArray("sequence").getInt(1));
         assertEquals("test", object.getJsonObject("mapping").getString("name"));
-        assertThrows(JsonParsingException.class, () -> parserFor("""
+        assertThrows(JsonParsingException.class, () -> events(parserFor("""
             %TAG !custom! tag:example.com,2026:
             ---
             value: !custom!thing test
-            """));
+            """)));
     }
 
     @Test
@@ -617,7 +617,7 @@ class YamlJsonParserTest
     @Test
     void shouldRejectUnsupportedYamlFeaturesAndMalformedDocuments()
     {
-        assertThrows(JsonParsingException.class, () -> parserFor("value: !custom test\n"));
+        assertThrows(JsonParsingException.class, () -> events(parserFor("value: !custom test\n")));
         assertThrows(JsonParsingException.class, () -> parserFor("value: *missing\n"));
         assertThrows(JsonParsingException.class, () -> parserFor("{[key]: value}\n"));
         assertThrows(JsonParsingException.class, () -> events(parserFor("? [key]\n: value\n")));

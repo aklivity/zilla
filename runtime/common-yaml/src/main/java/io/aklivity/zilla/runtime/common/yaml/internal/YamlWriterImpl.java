@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.common.yaml.internal;
 import io.aklivity.zilla.runtime.common.yaml.YamlArray;
 import io.aklivity.zilla.runtime.common.yaml.YamlGenerator;
 import io.aklivity.zilla.runtime.common.yaml.YamlObject;
+import io.aklivity.zilla.runtime.common.yaml.YamlStream;
 import io.aklivity.zilla.runtime.common.yaml.YamlValue;
 import io.aklivity.zilla.runtime.common.yaml.YamlWriter;
 
@@ -49,6 +50,21 @@ public final class YamlWriterImpl implements YamlWriter
         YamlArray array)
     {
         write(array);
+    }
+
+    @Override
+    public void writeStream(
+        YamlStream stream)
+    {
+        if (generator instanceof YamlGeneratorImpl yaml)
+        {
+            yaml.writeStream(stream);
+            yaml.close();
+        }
+        else
+        {
+            throw new IllegalStateException("YAML generator does not support streams");
+        }
     }
 
     @Override

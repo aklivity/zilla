@@ -37,19 +37,34 @@ public final class YamlEmitter
         {
             writer.write(node.source);
         }
+        else if (node.alias != null)
+        {
+            writeLeadingComments(node, writer, 0);
+            writer.write(formatAlias(node));
+            writeLineComment(node, writer);
+            writer.write('\n');
+        }
         else if (isEmptyObject(node))
         {
-            writer.write("{}\n");
+            writeLeadingComments(node, writer, 0);
+            writer.write("{}");
+            writeLineComment(node, writer);
+            writer.write('\n');
         }
         else if (isEmptyArray(node))
         {
-            writer.write("[]\n");
+            writeLeadingComments(node, writer, 0);
+            writer.write("[]");
+            writeLineComment(node, writer);
+            writer.write('\n');
         }
         else
         {
+            writeLeadingComments(node, writer, 0);
             writeNode(node, writer, 0);
             if ("flow".equals(node.style))
             {
+                writeLineComment(node, writer);
                 writer.write('\n');
             }
         }
@@ -60,7 +75,11 @@ public final class YamlEmitter
         Writer writer,
         int indent) throws IOException
     {
-        if (node instanceof YamlObjectNode object)
+        if (node.alias != null)
+        {
+            writer.write(formatAlias(node));
+        }
+        else if (node instanceof YamlObjectNode object)
         {
             if ("flow".equals(object.style))
             {
@@ -95,6 +114,7 @@ public final class YamlEmitter
     {
         for (YamlEntry entry : object.entries)
         {
+            writeLeadingComments(entry.value, writer, indent);
             writeIndent(writer, indent);
             writer.write(formatKey(entry.name));
             writer.write(':');
@@ -107,7 +127,14 @@ public final class YamlEmitter
         Writer writer,
         int indent) throws IOException
     {
-        if (value instanceof YamlScalarNode scalar)
+        if (value.alias != null)
+        {
+            writer.write(' ');
+            writer.write(formatAlias(value));
+            writeLineComment(value, writer);
+            writer.write('\n');
+        }
+        else if (value instanceof YamlScalarNode scalar)
         {
             writeScalar(scalar, writer, indent, true);
         }
@@ -115,22 +142,28 @@ public final class YamlEmitter
         {
             writer.write(' ');
             writer.write(formatPrefix(value));
-            writer.write("{}\n");
+            writer.write("{}");
+            writeLineComment(value, writer);
+            writer.write('\n');
         }
         else if (isEmptyArray(value))
         {
             writer.write(' ');
             writer.write(formatPrefix(value));
-            writer.write("[]\n");
+            writer.write("[]");
+            writeLineComment(value, writer);
+            writer.write('\n');
         }
         else if ("flow".equals(value.style))
         {
             writer.write(' ');
             writer.write(formatNode(value));
+            writeLineComment(value, writer);
             writer.write('\n');
         }
         else
         {
+            writeLineComment(value, writer);
             writer.write('\n');
             writeNode(value, writer, indent + 1);
         }
@@ -143,7 +176,16 @@ public final class YamlEmitter
     {
         for (YamlNode value : array.values)
         {
-            if (value instanceof YamlScalarNode scalar)
+            writeLeadingComments(value, writer, indent);
+            if (value.alias != null)
+            {
+                writeIndent(writer, indent);
+                writer.write("- ");
+                writer.write(formatAlias(value));
+                writeLineComment(value, writer);
+                writer.write('\n');
+            }
+            else if (value instanceof YamlScalarNode scalar)
             {
                 writeIndent(writer, indent);
                 writer.write("- ");
@@ -151,26 +193,42 @@ public final class YamlEmitter
             }
             else if (value instanceof YamlObjectNode object)
             {
-                writeArrayObject(object, writer, indent);
+                if (object.lineComment != null)
+                {
+                    writeIndent(writer, indent);
+                    writer.write("-");
+                    writeLineComment(object, writer);
+                    writer.write('\n');
+                    writeNode(object, writer, indent + 1);
+                }
+                else
+                {
+                    writeArrayObject(object, writer, indent);
+                }
             }
             else if (isEmptyArray(value))
             {
                 writeIndent(writer, indent);
                 writer.write("- ");
                 writer.write(formatPrefix(value));
-                writer.write("[]\n");
+                writer.write("[]");
+                writeLineComment(value, writer);
+                writer.write('\n');
             }
             else if ("flow".equals(value.style))
             {
                 writeIndent(writer, indent);
                 writer.write("- ");
                 writer.write(formatNode(value));
+                writeLineComment(value, writer);
                 writer.write('\n');
             }
             else
             {
                 writeIndent(writer, indent);
-                writer.write("-\n");
+                writer.write("-");
+                writeLineComment(value, writer);
+                writer.write('\n');
                 writeNode(value, writer, indent + 1);
             }
         }
@@ -184,7 +242,9 @@ public final class YamlEmitter
         if (object.entries.isEmpty())
         {
             writeIndent(writer, indent);
-            writer.write("- {}\n");
+            writer.write("- {}");
+            writeLineComment(object, writer);
+            writer.write('\n');
             return;
         }
 
@@ -193,17 +253,28 @@ public final class YamlEmitter
         writer.write("- ");
         writer.write(formatKey(first.name));
         writer.write(':');
-        if (first.value instanceof YamlScalarNode scalar)
+        if (first.value.alias != null)
+        {
+            writer.write(' ');
+            writer.write(formatAlias(first.value));
+            writeLineComment(first.value, writer);
+            writer.write('\n');
+        }
+        else if (first.value instanceof YamlScalarNode scalar)
         {
             writeScalar(scalar, writer, indent + 1, true);
         }
         else if (isEmptyObject(first.value))
         {
-            writer.write(" {}\n");
+            writer.write(" {}");
+            writeLineComment(first.value, writer);
+            writer.write('\n');
         }
         else if (isEmptyArray(first.value))
         {
-            writer.write(" []\n");
+            writer.write(" []");
+            writeLineComment(first.value, writer);
+            writer.write('\n');
         }
         else
         {
@@ -252,6 +323,10 @@ public final class YamlEmitter
     private static String formatNode(
         YamlNode node)
     {
+        if (node.alias != null)
+        {
+            return formatAlias(node);
+        }
         if (node instanceof YamlScalarNode scalar)
         {
             return formatScalar(scalar);
@@ -277,6 +352,7 @@ public final class YamlEmitter
             }
             writer.write(formatPrefix(scalar));
             writer.write(scalar.style);
+            writeLineComment(scalar, writer);
             writer.write('\n');
             writeBlockScalarContent(scalar.value, writer, indent + 1);
         }
@@ -287,7 +363,35 @@ public final class YamlEmitter
                 writer.write(' ');
             }
             writer.write(formatScalar(scalar));
+            writeLineComment(scalar, writer);
             writer.write('\n');
+        }
+    }
+
+    private static void writeLeadingComments(
+        YamlNode node,
+        Writer writer,
+        int indent) throws IOException
+    {
+        if (node.leadingComments != null)
+        {
+            for (String comment : node.leadingComments)
+            {
+                writeIndent(writer, indent);
+                writer.write(comment);
+                writer.write('\n');
+            }
+        }
+    }
+
+    private static void writeLineComment(
+        YamlNode node,
+        Writer writer) throws IOException
+    {
+        if (node.lineComment != null)
+        {
+            writer.write(' ');
+            writer.write(node.lineComment);
         }
     }
 
@@ -329,7 +433,14 @@ public final class YamlEmitter
         String tag)
     {
         return tag.startsWith("tag:yaml.org,2002:") ? "!!" + tag.substring("tag:yaml.org,2002:".length()) :
+            tag.startsWith("!") ? tag :
             "!<" + tag + ">";
+    }
+
+    private static String formatAlias(
+        YamlNode node)
+    {
+        return "*" + node.alias;
     }
 
     private static String formatFlowArray(

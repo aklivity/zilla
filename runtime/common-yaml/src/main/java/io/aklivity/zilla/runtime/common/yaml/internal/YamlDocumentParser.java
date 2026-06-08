@@ -34,6 +34,7 @@ public final class YamlDocumentParser
     private final Map<String, String> tagHandles;
     private final YamlLocation end;
     private final String source;
+    private final List<String> comments;
     private int index;
 
     private YamlDocumentParser(
@@ -44,6 +45,7 @@ public final class YamlDocumentParser
         this.tagHandles = document.tagHandles;
         this.end = document.end;
         this.source = document.source;
+        this.comments = new ArrayList<>();
     }
 
     public static Result parse(
@@ -52,6 +54,29 @@ public final class YamlDocumentParser
         Document document = new DocumentScanner(text).scan();
         YamlNode node = new YamlDocumentParser(document).parse();
         return new Result(node, document.end);
+    }
+
+    public static List<Result> parseAll(
+        String text)
+    {
+        List<Result> results = new ArrayList<>();
+        int offset = 0;
+        do
+        {
+            String remaining = text.substring(offset);
+            Result result = parse(remaining);
+            results.add(result);
+
+            int read = (int) result.end.offset();
+            if (read <= 0)
+            {
+                break;
+            }
+            offset += read;
+        }
+        while (offset < text.length() && !text.substring(offset).isBlank());
+
+        return results;
     }
 
     private YamlNode parse()
@@ -172,18 +197,22 @@ public final class YamlDocumentParser
             if (spec.alias != null)
             {
                 index++;
-                array.add(resolveAlias(spec.alias, line));
+                YamlNode value = resolveAlias(spec.alias, line);
+                attachComments(value, line);
+                array.add(value);
             }
             else if (spec.value.isEmpty())
             {
                 index++;
                 YamlNode value = nextNestedValue(indent, line);
                 value = applyTag(value, spec.tag, spec.value, line);
+                attachComments(value, line);
                 storeAnchor(spec.anchor, value, line);
                 array.add(value);
             }
             else if (mappingColon(spec.value) != -1)
             {
+                List<String> itemComments = takeComments();
                 YamlObjectNode object = new YamlObjectNode(line.line, line.column + 2, line.offset + 2);
                 addMappingEntry(object, spec.value, indent + 2, line);
 
@@ -204,6 +233,11 @@ public final class YamlDocumentParser
                 }
 
                 object = (YamlObjectNode) applyTag(object, spec.tag, spec.value, line);
+                attachComments(object, line);
+                if (itemComments != null)
+                {
+                    object.leadingComments = itemComments;
+                }
                 storeAnchor(spec.anchor, object, line);
                 array.add(object);
             }
@@ -211,6 +245,7 @@ public final class YamlDocumentParser
             {
                 index++;
                 YamlNode value = parseInlineValue(spec.value, spec.tag, line);
+                attachComments(value, line);
                 storeAnchor(spec.anchor, value, line);
                 array.add(value);
             }
@@ -227,6 +262,7 @@ public final class YamlDocumentParser
         YamlNode value = spec.alias != null ?
             resolveAlias(spec.alias, line) :
             parseScalar(spec.value, spec.tag, line);
+        attachComments(value, line);
         storeAnchor(spec.anchor, value, line);
         return value;
     }
@@ -301,6 +337,7 @@ public final class YamlDocumentParser
             parseInlineValue(spec.value, spec.tag, line);
 
         value = applyTag(value, spec.tag, spec.value, line);
+        attachComments(value, line);
         storeAnchor(spec.anchor, value, line);
 
         if ("<<".equals(key))
@@ -330,6 +367,7 @@ public final class YamlDocumentParser
             parseInlineValue(spec.value, spec.tag, line);
 
         value = applyTag(value, spec.tag, spec.value, line);
+        attachComments(value, line);
         storeAnchor(spec.anchor, value, line);
         object.add(new YamlEntry(key, value, line.line, line.column, line.offset));
     }
@@ -486,16 +524,16 @@ public final class YamlDocumentParser
         while (index < lines.size())
         {
             Line next = lines.get(index);
-            if (!next.blank && next.indent < contentIndent)
+            if (!emptyLine(next) && next.indent < contentIndent)
             {
                 break;
             }
-            if (!next.blank && next.indent <= line.indent)
+            if (!emptyLine(next) && next.indent <= line.indent)
             {
                 break;
             }
 
-            values.add(next.blank ? "" : next.raw.length() >= contentIndent ?
+            values.add(emptyLine(next) ? "" : next.raw.length() >= contentIndent ?
                 next.raw.substring(contentIndent) : "");
             index++;
         }
@@ -521,7 +559,7 @@ public final class YamlDocumentParser
         for (int i = index; i < lines.size(); i++)
         {
             Line line = lines.get(i);
-            if (!line.blank)
+            if (!emptyLine(line))
             {
                 if (line.indent <= parentIndent)
                 {
@@ -531,6 +569,12 @@ public final class YamlDocumentParser
             }
         }
         return parentIndent + 2;
+    }
+
+    private static boolean emptyLine(
+        Line line)
+    {
+        return line.blank && line.comment == null;
     }
 
     private static String literal(
@@ -720,7 +764,7 @@ public final class YamlDocumentParser
             }
             yield value;
         }
-        default -> throw error("Unsupported YAML tag", line);
+        default -> value;
         };
         tagged.tag = tag;
         tagged.style = value.style;
@@ -768,7 +812,13 @@ public final class YamlDocumentParser
         {
             throw error("Unresolved YAML alias", line);
         }
-        return copy(value);
+        YamlNode resolved = copy(value);
+        resolved.source = null;
+        resolved.anchor = null;
+        resolved.alias = alias;
+        resolved.leadingComments = null;
+        resolved.lineComment = null;
+        return resolved;
     }
 
     private static YamlNode copy(
@@ -780,7 +830,10 @@ public final class YamlDocumentParser
             copy.source = scalar.source;
             copy.tag = scalar.tag;
             copy.anchor = scalar.anchor;
+            copy.alias = scalar.alias;
             copy.style = scalar.style;
+            copy.leadingComments = scalar.leadingComments;
+            copy.lineComment = scalar.lineComment;
             return copy;
         }
         if (value instanceof YamlArrayNode array)
@@ -789,7 +842,10 @@ public final class YamlDocumentParser
             copy.source = array.source;
             copy.tag = array.tag;
             copy.anchor = array.anchor;
+            copy.alias = array.alias;
             copy.style = array.style;
+            copy.leadingComments = array.leadingComments;
+            copy.lineComment = array.lineComment;
             for (YamlNode element : array.values)
             {
                 copy.add(copy(element));
@@ -802,7 +858,10 @@ public final class YamlDocumentParser
         copy.source = object.source;
         copy.tag = object.tag;
         copy.anchor = object.anchor;
+        copy.alias = object.alias;
         copy.style = object.style;
+        copy.leadingComments = object.leadingComments;
+        copy.lineComment = object.lineComment;
         for (YamlEntry entry : object.entries)
         {
             copy.add(entry.key != null ?
@@ -821,8 +880,35 @@ public final class YamlDocumentParser
     {
         while (index < lines.size() && lines.get(index).ignorable)
         {
+            Line line = lines.get(index);
+            if (line.comment != null && line.content.isBlank())
+            {
+                comments.add(line.comment);
+            }
             index++;
         }
+    }
+
+    private void attachComments(
+        YamlNode node,
+        Line line)
+    {
+        List<String> leading = takeComments();
+        if (leading != null)
+        {
+            node.leadingComments = leading;
+        }
+        if (line.comment != null && !line.content.isBlank())
+        {
+            node.lineComment = line.comment;
+        }
+    }
+
+    private List<String> takeComments()
+    {
+        List<String> leading = comments.isEmpty() ? null : List.copyOf(comments);
+        comments.clear();
+        return leading;
     }
 
     private static boolean isSequence(
@@ -1042,6 +1128,20 @@ public final class YamlDocumentParser
     private static String stripComment(
         String text)
     {
+        int index = commentIndex(text);
+        return index == -1 ? text : text.substring(0, index);
+    }
+
+    private static String comment(
+        String text)
+    {
+        int index = commentIndex(text);
+        return index == -1 ? null : text.substring(index).stripTrailing();
+    }
+
+    private static int commentIndex(
+        String text)
+    {
         boolean single = false;
         boolean doub = false;
         boolean escaped = false;
@@ -1088,11 +1188,11 @@ public final class YamlDocumentParser
             }
             else if (c == '#' && (i == 0 || Character.isWhitespace(text.charAt(i - 1))))
             {
-                return text.substring(0, i);
+                return i;
             }
         }
 
-        return text;
+        return -1;
     }
 
     private static YamlParseException error(
@@ -1217,11 +1317,13 @@ public final class YamlDocumentParser
             {
                 String raw = raw0.endsWith("\r") ? raw0.substring(0, raw0.length() - 1) : raw0;
                 int indent = indent(raw, lineNumber, offset);
-                String content = stripComment(raw.substring(indent)).stripTrailing();
+                String trimmed = raw.substring(indent);
+                String content = stripComment(trimmed).stripTrailing();
+                String comment = comment(trimmed);
                 boolean blank = content.isBlank();
                 boolean directive = content.startsWith("%");
                 boolean ignorable = blank || directive;
-                lines.add(new Line(raw, indent, content, blank, directive, ignorable,
+                lines.add(new Line(raw, indent, content, comment, blank, directive, ignorable,
                     lineNumber, indent + 1, offset + indent, offset + raw0.length() + 1));
 
                 offset += raw0.length() + 1;
@@ -1247,7 +1349,7 @@ public final class YamlDocumentParser
                 else if (c == '\t')
                 {
                     throw error("Tabs are not supported in indentation",
-                        new Line(line, indent, line, false, false, false,
+                        new Line(line, indent, line, null, false, false, false,
                             lineNumber, indent + 1, offset + indent, offset + line.length()));
                 }
                 else
@@ -1394,11 +1496,7 @@ public final class YamlDocumentParser
             }
             if (tag.startsWith("!<") && tag.endsWith(">"))
             {
-                String uri = tag.substring(2, tag.length() - 1);
-                if (uri.startsWith("tag:yaml.org,2002:"))
-                {
-                    return uri;
-                }
+                return tag.substring(2, tag.length() - 1);
             }
             String handle = tagHandles.keySet().stream()
                 .filter(tag::startsWith)
@@ -1408,7 +1506,7 @@ public final class YamlDocumentParser
             {
                 return tagHandles.get(handle) + tag.substring(handle.length());
             }
-            throw error("Unsupported YAML tag", line);
+            return tag;
         }
     }
 
@@ -1469,6 +1567,7 @@ public final class YamlDocumentParser
                 value = applyFlowTag(value, spec.tag, line);
                 if (spec.anchor != null)
                 {
+                    value.anchor = spec.anchor;
                     if (anchors.put(spec.anchor, copy(value)) != null)
                     {
                         throw error("Duplicate YAML anchor", line);
@@ -1667,7 +1766,11 @@ public final class YamlDocumentParser
             {
                 throw error("Unresolved YAML alias", line);
             }
-            return copy(value);
+            YamlNode resolved = copy(value);
+            resolved.source = null;
+            resolved.anchor = null;
+            resolved.alias = alias;
+            return resolved;
         }
 
         private boolean consume(
@@ -1727,6 +1830,7 @@ public final class YamlDocumentParser
         final String raw;
         final int indent;
         final String content;
+        final String comment;
         final boolean blank;
         final boolean directive;
         final boolean ignorable;
@@ -1739,6 +1843,7 @@ public final class YamlDocumentParser
             String raw,
             int indent,
             String content,
+            String comment,
             boolean blank,
             boolean directive,
             boolean ignorable,
@@ -1750,6 +1855,7 @@ public final class YamlDocumentParser
             this.raw = raw;
             this.indent = indent;
             this.content = content;
+            this.comment = comment;
             this.blank = blank;
             this.directive = directive;
             this.ignorable = ignorable;

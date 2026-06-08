@@ -14,18 +14,7 @@
  */
 package io.aklivity.zilla.runtime.common.yaml;
 
-public interface YamlReader extends AutoCloseable
+public interface YamlDocument
 {
-    YamlStructure read();
-
-    YamlObject readObject();
-
-    YamlArray readArray();
-
-    YamlValue readValue();
-
-    YamlStream readStream();
-
-    @Override
-    void close();
+    YamlValue getValue();
 }
