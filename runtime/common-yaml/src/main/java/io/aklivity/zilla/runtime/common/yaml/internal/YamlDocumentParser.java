@@ -510,7 +510,9 @@ public final class YamlDocumentParser
             value += "\n";
         }
 
-        return (YamlScalarNode) applyTag(YamlScalarNode.string(value, line.line, line.column, line.offset), tag, indicator, line);
+        YamlScalarNode scalar = YamlScalarNode.string(value, line.line, line.column, line.offset);
+        scalar.style = indicator;
+        return (YamlScalarNode) applyTag(scalar, tag, indicator, line);
     }
 
     private int detectBlockScalarIndent(
@@ -569,8 +571,9 @@ public final class YamlDocumentParser
     {
         if (text.startsWith("\"") || text.startsWith("'"))
         {
-            return (YamlScalarNode) applyTag(YamlScalarNode.string(unquote(text, line), line.line, line.column, line.offset),
-                tag, text, line);
+            YamlScalarNode scalar = YamlScalarNode.string(unquote(text, line), line.line, line.column, line.offset);
+            scalar.style = text.startsWith("\"") ? "\"" : "'";
+            return (YamlScalarNode) applyTag(scalar, tag, text, line);
         }
 
         rejectNonFinite(text, line);
@@ -668,7 +671,7 @@ public final class YamlDocumentParser
             return value;
         }
 
-        return switch (tag)
+        YamlNode tagged = switch (tag)
         {
         case "tag:yaml.org,2002:str" -> YamlScalarNode.string(scalarText(value, text), line.line, line.column, line.offset);
         case "tag:yaml.org,2002:int" ->
@@ -719,6 +722,9 @@ public final class YamlDocumentParser
         }
         default -> throw error("Unsupported YAML tag", line);
         };
+        tagged.tag = tag;
+        tagged.style = value.style;
+        return tagged;
     }
 
     private static String scalarText(
@@ -745,6 +751,7 @@ public final class YamlDocumentParser
     {
         if (anchor != null)
         {
+            value.anchor = anchor;
             if (anchors.put(anchor, copy(value)) != null)
             {
                 throw error("Duplicate YAML anchor", line);
@@ -771,12 +778,18 @@ public final class YamlDocumentParser
         {
             YamlScalarNode copy = new YamlScalarNode(scalar.type, scalar.value, scalar.line, scalar.column, scalar.offset);
             copy.source = scalar.source;
+            copy.tag = scalar.tag;
+            copy.anchor = scalar.anchor;
+            copy.style = scalar.style;
             return copy;
         }
         if (value instanceof YamlArrayNode array)
         {
             YamlArrayNode copy = new YamlArrayNode(array.line, array.column, array.offset);
             copy.source = array.source;
+            copy.tag = array.tag;
+            copy.anchor = array.anchor;
+            copy.style = array.style;
             for (YamlNode element : array.values)
             {
                 copy.add(copy(element));
@@ -787,6 +800,9 @@ public final class YamlDocumentParser
         YamlObjectNode object = (YamlObjectNode) value;
         YamlObjectNode copy = new YamlObjectNode(object.line, object.column, object.offset);
         copy.source = object.source;
+        copy.tag = object.tag;
+        copy.anchor = object.anchor;
+        copy.style = object.style;
         for (YamlEntry entry : object.entries)
         {
             copy.add(entry.key != null ?
@@ -1516,6 +1532,7 @@ public final class YamlDocumentParser
         private YamlObjectNode parseObject()
         {
             YamlObjectNode object = new YamlObjectNode(line.line, line.column + cursor, line.offset + cursor);
+            object.style = "flow";
             cursor++;
             skipWhitespaceAndComments();
             if (consume('}'))
@@ -1556,6 +1573,7 @@ public final class YamlDocumentParser
         private YamlArrayNode parseArray()
         {
             YamlArrayNode array = new YamlArrayNode(line.line, line.column + cursor, line.offset + cursor);
+            array.style = "flow";
             cursor++;
             skipWhitespaceAndComments();
             if (consume(']'))
@@ -1618,8 +1636,10 @@ public final class YamlDocumentParser
                     break;
                 }
             }
-            return YamlScalarNode.string(unquote(text.substring(start, cursor), line),
+            YamlScalarNode scalar = YamlScalarNode.string(unquote(text.substring(start, cursor), line),
                 line.line, line.column + start, line.offset + start);
+            scalar.style = quote == '"' ? "\"" : "'";
+            return scalar;
         }
 
         private YamlScalarNode parseBareScalar()

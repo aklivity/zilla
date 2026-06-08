@@ -20,6 +20,9 @@ public abstract class YamlNode
     public final int column;
     public final long offset;
     String source;
+    String tag;
+    String anchor;
+    String style;
 
     YamlNode(
         int line,

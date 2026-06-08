@@ -271,6 +271,45 @@ class YamlTest
     }
 
     @Test
+    void shouldGenerateParsedNativeChildStyleMetadata()
+    {
+        YamlObject object = Yaml.createReader(new StringReader("""
+            single: 'it''s'
+            double: "line\\nA"
+            block: |-
+              one
+              two
+            flow: [1, "two", {enabled: true}]
+            tagged: !!str "42"
+            anchored: &anchored value
+            """)).readObject();
+        StringWriter single = new StringWriter();
+        StringWriter doub = new StringWriter();
+        StringWriter block = new StringWriter();
+        StringWriter flow = new StringWriter();
+        StringWriter tagged = new StringWriter();
+        StringWriter anchored = new StringWriter();
+
+        Yaml.createWriter(single).write(object.getScalar("single"));
+        Yaml.createWriter(doub).write(object.getScalar("double"));
+        Yaml.createWriter(block).write(object.getScalar("block"));
+        Yaml.createWriter(flow).write(object.getArray("flow"));
+        Yaml.createWriter(tagged).write(object.getScalar("tagged"));
+        Yaml.createWriter(anchored).write(object.getScalar("anchored"));
+
+        assertEquals("'it''s'\n", single.toString());
+        assertEquals("\"line\\nA\"\n", doub.toString());
+        assertEquals("""
+            |-
+              one
+              two
+            """, block.toString());
+        assertEquals("[1, \"two\", {enabled: true}]\n", flow.toString());
+        assertEquals("!!str \"42\"\n", tagged.toString());
+        assertEquals("&anchored value\n", anchored.toString());
+    }
+
+    @Test
     void shouldWriteNativeValues()
     {
         YamlObject object = Yaml.createReader(new StringReader("name: test\n")).readObject();
