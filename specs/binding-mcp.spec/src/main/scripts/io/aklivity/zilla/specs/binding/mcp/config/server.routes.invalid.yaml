@@ -16,9 +16,8 @@
 ---
 name: test
 bindings:
-  app0:
+  net0:
     type: mcp
-    kind: client
-    options:
-      server: http://localhost:8080/mcp
-    exit: net0
+    kind: server
+    routes:
+      - exit: app0

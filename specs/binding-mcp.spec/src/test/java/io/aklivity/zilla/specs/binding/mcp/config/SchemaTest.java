@@ -90,8 +90,44 @@ public class SchemaTest
     }
 
     @Test(expected = JsonValidatingException.class)
-    public void shouldRejectServerRouteWithToolkit()
+    public void shouldRejectServerWithRoutes()
     {
-        schema.validate("server.toolkit.invalid.yaml");
+        schema.validate("server.routes.invalid.yaml");
+    }
+
+    @Test(expected = JsonValidatingException.class)
+    public void shouldRejectClientWithRoutes()
+    {
+        schema.validate("client.routes.invalid.yaml");
+    }
+
+    @Test(expected = JsonValidatingException.class)
+    public void shouldRejectClientWithoutServer()
+    {
+        schema.validate("client.server.missing.invalid.yaml");
+    }
+
+    @Test(expected = JsonValidatingException.class)
+    public void shouldRejectClientWithNonHttpServer()
+    {
+        schema.validate("client.server.invalid.yaml");
+    }
+
+    @Test(expected = JsonValidatingException.class)
+    public void shouldRejectClientWithElicitation()
+    {
+        schema.validate("client.elicitation.invalid.yaml");
+    }
+
+    @Test(expected = JsonValidatingException.class)
+    public void shouldRejectProxyWithElicitation()
+    {
+        schema.validate("proxy.elicitation.invalid.yaml");
+    }
+
+    @Test(expected = JsonValidatingException.class)
+    public void shouldRejectProxyRouteWithHeaders()
+    {
+        schema.validate("proxy.headers.invalid.yaml");
     }
 }

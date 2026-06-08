@@ -14,9 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal.config;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
-
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
@@ -31,7 +28,6 @@ import io.aklivity.zilla.runtime.engine.config.WithConfigAdapterSpi;
 
 public final class McpWithConfigAdapter implements WithConfigAdapterSpi, JsonbAdapter<WithConfig, JsonObject>
 {
-    private static final String HEADERS_NAME = "headers";
     private static final String CACHE_NAME = "cache";
     private static final String CACHE_CREDENTIALS_NAME = "credentials";
 
@@ -49,13 +45,6 @@ public final class McpWithConfigAdapter implements WithConfigAdapterSpi, JsonbAd
 
         JsonObjectBuilder object = Json.createObjectBuilder();
 
-        if (mcpWith.headers != null && !mcpWith.headers.isEmpty())
-        {
-            JsonObjectBuilder headers = Json.createObjectBuilder();
-            mcpWith.headers.forEach(headers::add);
-            object.add(HEADERS_NAME, headers);
-        }
-
         if (mcpWith.cache != null && mcpWith.cache.credentials != null)
         {
             JsonObjectBuilder cache = Json.createObjectBuilder();
@@ -71,14 +60,6 @@ public final class McpWithConfigAdapter implements WithConfigAdapterSpi, JsonbAd
         JsonObject object)
     {
         McpWithConfigBuilder<McpWithConfig> builder = McpWithConfig.builder();
-
-        if (object.containsKey(HEADERS_NAME))
-        {
-            final JsonObject headersObject = object.getJsonObject(HEADERS_NAME);
-            final Map<String, String> headers = new LinkedHashMap<>();
-            headersObject.forEach((k, v) -> headers.put(k, headersObject.getString(k)));
-            headers.forEach(builder::header);
-        }
 
         if (object.containsKey(CACHE_NAME))
         {

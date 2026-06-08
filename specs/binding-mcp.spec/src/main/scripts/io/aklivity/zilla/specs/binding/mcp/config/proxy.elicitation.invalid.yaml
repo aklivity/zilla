@@ -18,7 +18,11 @@ name: test
 bindings:
   app0:
     type: mcp
-    kind: client
+    kind: proxy
     options:
-      server: http://localhost:8080/mcp
-    exit: net0
+      elicitation:
+        callback: auth/callback
+    routes:
+      - exit: app1
+        when:
+          - toolkit: bluesky

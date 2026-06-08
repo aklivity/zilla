@@ -16,10 +16,11 @@
 ---
 name: test
 bindings:
-  net0:
+  app0:
     type: mcp
-    kind: server
-    routes:
-      - exit: app0
-        when:
-          - toolkit: bluesky
+    kind: client
+    options:
+      server: http://localhost:8080/mcp
+      elicitation:
+        callback: auth/callback
+    exit: net0

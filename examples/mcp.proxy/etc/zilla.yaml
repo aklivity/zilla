@@ -45,9 +45,6 @@ bindings:
       cache:
         store: cache
         ttl: PT5M
-      prompts:
-        - name: gateway-rules
-          description: Aggregator-level prompt advertised to every client
     routes:
       - exit: south_mcp_client_everything
         when:
@@ -60,23 +57,15 @@ bindings:
   south_mcp_client_everything:
     type: mcp
     kind: client
-    routes:
-      - exit: sys:http_client
-        with:
-          headers:
-            :scheme: http
-            :authority: everything:3001
-            :path: /mcp
+    options:
+      server: http://everything:3001/mcp
+    exit: sys:http_client
   south_mcp_client_urlelicit:
     type: mcp
     kind: client
-    routes:
-      - exit: sys:http_client
-        with:
-          headers:
-            :scheme: http
-            :authority: urlelicit:3003
-            :path: /mcp
+    options:
+      server: http://urlelicit:3003/mcp
+    exit: sys:http_client
 telemetry:
   metrics:
     - mcp.initialize

@@ -21,4 +21,5 @@ bindings:
     kind: client
     options:
       server: http://localhost:8080/mcp
-    exit: net0
+    routes:
+      - exit: net0
