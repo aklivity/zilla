@@ -1850,6 +1850,10 @@ public final class YamlDocumentParser
             {
                 throw error("Expected flow value", line);
             }
+            if (text.charAt(cursor) == ',' || text.charAt(cursor) == ']' || text.charAt(cursor) == '}')
+            {
+                throw error("Expected flow value", line);
+            }
 
             ValueSpec spec = parseFlowDecorators();
             new YamlDocumentParser(new Document(List.of(), new YamlLocation(1, 1, 0), "",
@@ -1948,7 +1952,7 @@ public final class YamlDocumentParser
                 return object;
             }
 
-            do
+            while (true)
             {
                 KeySpec key = parseFlowKey();
                 skipWhitespaceAndComments();
@@ -1956,7 +1960,10 @@ public final class YamlDocumentParser
                 {
                     throw error("Expected ':' in flow mapping", line);
                 }
-                YamlNode value = parseValue();
+                skipWhitespaceAndComments();
+                YamlNode value = cursor < text.length() && (text.charAt(cursor) == ',' || text.charAt(cursor) == '}') ?
+                    YamlScalarNode.literal(YamlScalarType.NULL, line.line, line.column + cursor, line.offset + cursor) :
+                    parseValue();
                 if ("<<".equals(key.name))
                 {
                     if (!config.mergeKeys())
@@ -1974,8 +1981,16 @@ public final class YamlDocumentParser
                         new YamlEntry(key.name, value, line.line, line.column + cursor, line.offset + cursor));
                 }
                 skipWhitespaceAndComments();
+                if (!consume(','))
+                {
+                    break;
+                }
+                skipWhitespaceAndComments();
+                if (consume('}'))
+                {
+                    return object;
+                }
             }
-            while (consume(','));
 
             if (!consume('}'))
             {
@@ -1995,18 +2010,128 @@ public final class YamlDocumentParser
                 return array;
             }
 
-            do
+            while (true)
             {
-                array.add(parseValue());
+                array.add(parseArrayEntry());
                 skipWhitespaceAndComments();
+                if (!consume(','))
+                {
+                    break;
+                }
+                skipWhitespaceAndComments();
+                if (consume(']'))
+                {
+                    return array;
+                }
             }
-            while (consume(','));
 
             if (!consume(']'))
             {
                 throw error("Expected ']' in flow sequence", line);
             }
             return array;
+        }
+
+        private YamlNode parseArrayEntry()
+        {
+            if (flowEntryMapping())
+            {
+                YamlObjectNode object = new YamlObjectNode(line.line, line.column + cursor, line.offset + cursor);
+                object.style = "flow";
+                KeySpec key = parseFlowKey();
+                if (!consume(':'))
+                {
+                    throw error("Expected ':' in flow mapping", line);
+                }
+                skipWhitespaceAndComments();
+                YamlNode value = cursor < text.length() && (text.charAt(cursor) == ',' || text.charAt(cursor) == ']') ?
+                    YamlScalarNode.literal(YamlScalarType.NULL, line.line, line.column + cursor, line.offset + cursor) :
+                    parseValue();
+                object.add(key.key != null ?
+                    new YamlEntry(key.key, value, line.line, line.column + cursor, line.offset + cursor) :
+                    new YamlEntry(key.name, value, line.line, line.column + cursor, line.offset + cursor));
+                return object;
+            }
+            return parseValue();
+        }
+
+        private boolean flowEntryMapping()
+        {
+            boolean single = false;
+            boolean doub = false;
+            boolean escaped = false;
+            int depth = 0;
+
+            for (int i = cursor; i < text.length(); i++)
+            {
+                char c = text.charAt(i);
+                if (doub)
+                {
+                    if (escaped)
+                    {
+                        escaped = false;
+                    }
+                    else if (c == '\\')
+                    {
+                        escaped = true;
+                    }
+                    else if (c == '"')
+                    {
+                        doub = false;
+                    }
+                }
+                else if (single)
+                {
+                    if (c == '\'')
+                    {
+                        if (i + 1 < text.length() && text.charAt(i + 1) == '\'')
+                        {
+                            i++;
+                        }
+                        else
+                        {
+                            single = false;
+                        }
+                    }
+                }
+                else
+                {
+                    switch (c)
+                    {
+                    case '\'' -> single = true;
+                    case '"' -> doub = true;
+                    case '{', '[' -> depth++;
+                    case '}', ']' ->
+                    {
+                        if (depth == 0)
+                        {
+                            return false;
+                        }
+                        depth--;
+                    }
+                    case ',' ->
+                    {
+                        if (depth == 0)
+                        {
+                            return false;
+                        }
+                    }
+                    case ':' ->
+                    {
+                        if (depth == 0)
+                        {
+                            String key = text.substring(cursor, i);
+                            return !key.isBlank() && key.indexOf('\n') == -1;
+                        }
+                    }
+                    default ->
+                    {
+                        // continue
+                    }
+                    }
+                }
+            }
+            return false;
         }
 
         private KeySpec parseFlowKey()
@@ -2094,7 +2219,13 @@ public final class YamlDocumentParser
             }
             return new YamlDocumentParser(new Document(List.of(), new YamlLocation(1, 1, text.length()), "",
                 DocumentScanner.defaultTagHandles(), config))
-                .parseScalar(text.substring(start, cursor).trim(), null, line);
+                .parseScalar(foldFlowScalar(text.substring(start, cursor).trim()), null, line);
+        }
+
+        private static String foldFlowScalar(
+            String value)
+        {
+            return value.replaceAll("[ \\t]*\\R[ \\t]*", " ");
         }
 
         private YamlScalarNode parseQuotedScalar()
@@ -2136,9 +2267,14 @@ public final class YamlDocumentParser
                 }
                 cursor++;
             }
+            String value = foldFlowScalar(text.substring(start, cursor).trim());
+            if ("-".equals(value))
+            {
+                throw error("Expected flow value", line);
+            }
             return new YamlDocumentParser(new Document(List.of(), new YamlLocation(1, 1, text.length()), "",
                 DocumentScanner.defaultTagHandles(), config))
-                .parseScalar(text.substring(start, cursor).trim(), null, line);
+                .parseScalar(value, null, line);
         }
 
         private YamlNode resolve(
