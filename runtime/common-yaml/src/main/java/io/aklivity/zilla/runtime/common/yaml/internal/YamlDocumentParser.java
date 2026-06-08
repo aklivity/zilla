@@ -174,6 +174,10 @@ public final class YamlDocumentParser
         {
             throw error("Unexpected indentation", line);
         }
+        if (tabIndented(line) && (isSequence(line, indent) || isExplicitKey(line) || mappingColon(line.content) != -1))
+        {
+            throw error("Tabs are not supported in block indentation", line);
+        }
 
         return isSequence(line, indent) ? parseSequence(indent) :
             isExplicitKey(line) || mappingColon(line.content) != -1 ? parseMapping(indent) :
@@ -502,6 +506,10 @@ public final class YamlDocumentParser
             if (!next.blank && ("---".equals(next.content) || "...".equals(next.content)))
             {
                 throw error("Unterminated flow collection", line);
+            }
+            if (tabIndented(next) && !next.blank)
+            {
+                throw error("Tabs are not supported in flow indentation", next);
             }
             flow.append('\n');
             flow.append(next.raw.substring(Math.min(next.indent, next.raw.length())));
@@ -1087,7 +1095,15 @@ public final class YamlDocumentParser
         Line line,
         int indent)
     {
-        return line.indent == indent && (line.content.equals("-") || line.content.startsWith("- "));
+        return line.indent == indent && (line.content.equals("-") ||
+            line.content.length() > 1 && line.content.charAt(0) == '-' &&
+                Character.isWhitespace(line.content.charAt(1)));
+    }
+
+    private static boolean tabIndented(
+        Line line)
+    {
+        return line.raw.substring(0, Math.min(line.indent, line.raw.length())).indexOf('\t') != -1;
     }
 
     private static boolean isExplicitKey(
@@ -1618,15 +1634,13 @@ public final class YamlDocumentParser
                 {
                     indent++;
                 }
-                else if (c == '\t')
+                else if (c != '\t')
                 {
-                    throw error("Tabs are not supported in indentation",
-                        new Line(line, indent, line, null, false, false, false,
-                            lineNumber, indent + 1, offset + indent, offset + line.length()));
+                    break;
                 }
                 else
                 {
-                    break;
+                    indent++;
                 }
             }
             return indent;
