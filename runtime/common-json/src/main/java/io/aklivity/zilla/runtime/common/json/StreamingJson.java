@@ -20,6 +20,7 @@ import java.util.Map;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParserFactory;
 
+import io.aklivity.zilla.runtime.common.json.internal.StreamingJsonGenerator;
 import io.aklivity.zilla.runtime.common.json.internal.StreamingJsonParser;
 import io.aklivity.zilla.runtime.common.json.internal.StreamingJsonParserFactory;
 
@@ -83,5 +84,17 @@ public final class StreamingJson
         Map<String, ?> config)
     {
         return new StreamingJsonParserFactory(config);
+    }
+
+    /**
+     * Returns a buffer-backed {@link JsonGeneratorEx} — a standard {@link
+     * jakarta.json.stream.JsonGenerator} extended with the streaming-to-buffer methods. Reuse a
+     * single instance per worker thread, calling {@link JsonGeneratorEx#wrap(
+     * org.agrona.MutableDirectBuffer, int)} before each value. Requires no {@code jakarta.json}
+     * provider on the classpath; {@code common-json} ships the implementation.
+     */
+    public static JsonGeneratorEx createGenerator()
+    {
+        return new StreamingJsonGenerator();
     }
 }

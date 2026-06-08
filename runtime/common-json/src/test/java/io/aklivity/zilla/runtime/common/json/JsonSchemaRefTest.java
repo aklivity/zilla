@@ -79,7 +79,7 @@ class JsonSchemaRefTest
     @Test
     void shouldResolveNonLocalRefViaResolver()
     {
-        RefResolver resolver = ref -> "urn:pos".equals(ref) ? "{\"type\":\"integer\",\"minimum\":0}" : null;
+        JsonRefResolver resolver = ref -> "urn:pos".equals(ref) ? "{\"type\":\"integer\",\"minimum\":0}" : null;
         JsonSchema schema = JsonSchema.of("{\"$ref\":\"urn:pos\"}", resolver);
         assertTrue(schema.validate(parserFor("5 ")));
         assertFalse(schema.validate(parserFor("-1 ")));

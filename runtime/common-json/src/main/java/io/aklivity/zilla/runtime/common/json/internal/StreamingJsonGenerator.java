@@ -12,22 +12,29 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.common.json;
+package io.aklivity.zilla.runtime.common.json.internal;
+
+import java.math.BigDecimal;
+import java.math.BigInteger;
+
+import jakarta.json.JsonValue;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 
+import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
+
 /**
- * A streaming, compact JSON generator that writes directly into a {@link MutableDirectBuffer}
- * with no intermediate DOM and no per-call allocation. Structural separators ({@code ,} and
- * {@code :}) and quoting are inserted automatically from an internal context stack; output is
- * emitted in source order with no insignificant whitespace.
+ * Streaming, compact {@link JsonGeneratorEx} that writes directly into a {@link
+ * MutableDirectBuffer} with no intermediate DOM and no per-call allocation. Structural separators
+ * ({@code ,} and {@code :}) and quoting are inserted automatically from an internal context
+ * stack; output is emitted in source order with no insignificant whitespace.
  * <p>
- * Reuse a single instance per worker thread: {@link #wrap(MutableDirectBuffer, int)} resets the
- * generator over a target region, then drive it with the {@code startObject}/{@code startArray}/
- * {@code key}/{@code *Value}/{@code end} methods. {@link #length()} reports the bytes written.
+ * {@code common-json} ships this implementation; it requires no {@code jakarta.json} provider on
+ * the classpath. The DOM-coupled {@code write} overloads that accept a {@link JsonValue} are
+ * unsupported, mirroring the way the parser declines its DOM accessors.
  */
-public final class StreamingJsonGenerator
+public final class StreamingJsonGenerator implements JsonGeneratorEx
 {
     private static final int MAX_DEPTH = 64;
     private static final byte[] HEX = "0123456789abcdef".getBytes();
@@ -41,6 +48,7 @@ public final class StreamingJsonGenerator
     private int depth;
     private boolean afterKey;
 
+    @Override
     public StreamingJsonGenerator wrap(
         MutableDirectBuffer buffer,
         int offset)
@@ -53,12 +61,14 @@ public final class StreamingJsonGenerator
         return this;
     }
 
+    @Override
     public int length()
     {
         return limit - offset;
     }
 
-    public StreamingJsonGenerator startObject()
+    @Override
+    public StreamingJsonGenerator writeStartObject()
     {
         preValue();
         putByte('{');
@@ -66,7 +76,16 @@ public final class StreamingJsonGenerator
         return this;
     }
 
-    public StreamingJsonGenerator startArray()
+    @Override
+    public StreamingJsonGenerator writeStartObject(
+        String name)
+    {
+        writeKey(name);
+        return writeStartObject();
+    }
+
+    @Override
+    public StreamingJsonGenerator writeStartArray()
     {
         preValue();
         putByte('[');
@@ -74,14 +93,16 @@ public final class StreamingJsonGenerator
         return this;
     }
 
-    public StreamingJsonGenerator end()
+    @Override
+    public StreamingJsonGenerator writeStartArray(
+        String name)
     {
-        depth--;
-        putByte(inArray[depth] ? ']' : '}');
-        return this;
+        writeKey(name);
+        return writeStartArray();
     }
 
-    public StreamingJsonGenerator key(
+    @Override
+    public StreamingJsonGenerator writeKey(
         String name)
     {
         if (hasMembers[depth - 1])
@@ -95,7 +116,16 @@ public final class StreamingJsonGenerator
         return this;
     }
 
-    public StreamingJsonGenerator stringValue(
+    @Override
+    public StreamingJsonGenerator writeEnd()
+    {
+        depth--;
+        putByte(inArray[depth] ? ']' : '}');
+        return this;
+    }
+
+    @Override
+    public StreamingJsonGenerator write(
         String value)
     {
         preValue();
@@ -103,15 +133,47 @@ public final class StreamingJsonGenerator
         return this;
     }
 
-    public StreamingJsonGenerator numberValue(
-        String value)
+    @Override
+    public StreamingJsonGenerator write(
+        BigDecimal value)
     {
-        preValue();
-        writeAscii(value);
-        return this;
+        return writeNumber(value.toString());
     }
 
-    public StreamingJsonGenerator booleanValue(
+    @Override
+    public StreamingJsonGenerator write(
+        BigInteger value)
+    {
+        return writeNumber(value.toString());
+    }
+
+    @Override
+    public StreamingJsonGenerator write(
+        int value)
+    {
+        return writeNumber(Integer.toString(value));
+    }
+
+    @Override
+    public StreamingJsonGenerator write(
+        long value)
+    {
+        return writeNumber(Long.toString(value));
+    }
+
+    @Override
+    public StreamingJsonGenerator write(
+        double value)
+    {
+        if (Double.isNaN(value) || Double.isInfinite(value))
+        {
+            throw new NumberFormatException("not a valid JSON number: " + value);
+        }
+        return writeNumber(Double.toString(value));
+    }
+
+    @Override
+    public StreamingJsonGenerator write(
         boolean value)
     {
         preValue();
@@ -119,14 +181,113 @@ public final class StreamingJsonGenerator
         return this;
     }
 
-    public StreamingJsonGenerator nullValue()
+    @Override
+    public StreamingJsonGenerator writeNull()
     {
         preValue();
         writeAscii("null");
         return this;
     }
 
-    public StreamingJsonGenerator rawValue(
+    @Override
+    public StreamingJsonGenerator write(
+        String name,
+        String value)
+    {
+        writeKey(name);
+        return write(value);
+    }
+
+    @Override
+    public StreamingJsonGenerator write(
+        String name,
+        BigInteger value)
+    {
+        writeKey(name);
+        return write(value);
+    }
+
+    @Override
+    public StreamingJsonGenerator write(
+        String name,
+        BigDecimal value)
+    {
+        writeKey(name);
+        return write(value);
+    }
+
+    @Override
+    public StreamingJsonGenerator write(
+        String name,
+        int value)
+    {
+        writeKey(name);
+        return write(value);
+    }
+
+    @Override
+    public StreamingJsonGenerator write(
+        String name,
+        long value)
+    {
+        writeKey(name);
+        return write(value);
+    }
+
+    @Override
+    public StreamingJsonGenerator write(
+        String name,
+        double value)
+    {
+        writeKey(name);
+        return write(value);
+    }
+
+    @Override
+    public StreamingJsonGenerator write(
+        String name,
+        boolean value)
+    {
+        writeKey(name);
+        return write(value);
+    }
+
+    @Override
+    public StreamingJsonGenerator writeNull(
+        String name)
+    {
+        writeKey(name);
+        return writeNull();
+    }
+
+    @Override
+    public StreamingJsonGenerator write(
+        JsonValue value)
+    {
+        throw new UnsupportedOperationException("write(JsonValue) requires a DOM; " +
+            "drive the generator with the streaming write methods instead");
+    }
+
+    @Override
+    public StreamingJsonGenerator write(
+        String name,
+        JsonValue value)
+    {
+        throw new UnsupportedOperationException("write(String, JsonValue) requires a DOM; " +
+            "drive the generator with the streaming write methods instead");
+    }
+
+    @Override
+    public StreamingJsonGenerator writeNumber(
+        String literal)
+    {
+        preValue();
+        writeAscii(literal);
+        return this;
+    }
+
+    @Override
+    public StreamingJsonGenerator writeRaw(
         DirectBuffer source,
         int index,
         int length)
@@ -135,6 +296,16 @@ public final class StreamingJsonGenerator
         buffer.putBytes(limit, source, index, length);
         limit += length;
         return this;
+    }
+
+    @Override
+    public void flush()
+    {
+    }
+
+    @Override
+    public void close()
+    {
     }
 
     private void push(

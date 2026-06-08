@@ -30,7 +30,7 @@ import org.agrona.MutableDirectBuffer;
 /**
  * Projects a JSON document down to a set of retained paths, reading a streaming {@link
  * JsonParser} and writing the pruned, compact result into a {@link MutableDirectBuffer} via
- * {@link StreamingJsonGenerator} — no DOM, no per-call allocation.
+ * {@link JsonGeneratorEx} — no DOM, no per-call allocation.
  * <p>
  * Retained paths are RFC 6901 JSON Pointers; a {@code -} array-index segment is a wildcard
  * matching any index. A node is emitted when it lies on a retained branch — either a retained
@@ -38,7 +38,7 @@ import org.agrona.MutableDirectBuffer;
  * the node's path is a prefix of a retained pointer (an ancestor, descended to reach retained
  * descendants). Every other subtree is consumed and discarded. Output is in source order.
  */
-public final class StreamingJsonProjector
+public final class JsonProjector
 {
     private static final int MAX_DEPTH = 64;
     private static final String WILDCARD = "-";
@@ -51,11 +51,11 @@ public final class StreamingJsonProjector
     private final List<String[]> retained;
     private final String[] segments = new String[MAX_DEPTH];
     private final int[] indexes = new int[MAX_DEPTH];
-    private final StreamingJsonGenerator generator = new StreamingJsonGenerator();
+    private final JsonGeneratorEx generator = StreamingJson.createGenerator();
 
     private int depth;
 
-    public StreamingJsonProjector(
+    public JsonProjector(
         List<String> pointers)
     {
         List<String[]> compiled = new ArrayList<>();
@@ -96,31 +96,31 @@ public final class StreamingJsonProjector
         case VALUE_STRING:
             if (decision == Decision.KEEP_ALL)
             {
-                generator.stringValue(parser.getString());
+                generator.write(parser.getString());
             }
             break;
         case VALUE_NUMBER:
             if (decision == Decision.KEEP_ALL)
             {
-                generator.numberValue(parser.getString());
+                generator.writeNumber(parser.getString());
             }
             break;
         case VALUE_TRUE:
             if (decision == Decision.KEEP_ALL)
             {
-                generator.booleanValue(true);
+                generator.write(true);
             }
             break;
         case VALUE_FALSE:
             if (decision == Decision.KEEP_ALL)
             {
-                generator.booleanValue(false);
+                generator.write(false);
             }
             break;
         case VALUE_NULL:
             if (decision == Decision.KEEP_ALL)
             {
-                generator.nullValue();
+                generator.writeNull();
             }
             break;
         default:
@@ -135,7 +135,7 @@ public final class StreamingJsonProjector
         boolean emit = decision != Decision.SKIP;
         if (emit)
         {
-            generator.startObject();
+            generator.writeStartObject();
         }
         Event event = parser.next();
         while (event != END_OBJECT)
@@ -146,7 +146,7 @@ public final class StreamingJsonProjector
             Decision child = decision == Decision.KEEP_ALL ? Decision.KEEP_ALL : decide();
             if (emit && keeps(child, value))
             {
-                generator.key(key);
+                generator.writeKey(key);
                 projectValue(parser, value, child);
             }
             else
@@ -158,7 +158,7 @@ public final class StreamingJsonProjector
         }
         if (emit)
         {
-            generator.end();
+            generator.writeEnd();
         }
     }
 
@@ -169,7 +169,7 @@ public final class StreamingJsonProjector
         boolean emit = decision != Decision.SKIP;
         if (emit)
         {
-            generator.startArray();
+            generator.writeStartArray();
         }
         int index = 0;
         Event event = parser.next();
@@ -193,7 +193,7 @@ public final class StreamingJsonProjector
         }
         if (emit)
         {
-            generator.end();
+            generator.writeEnd();
         }
     }
 

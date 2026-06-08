@@ -25,7 +25,7 @@ import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
 
-class StreamingJsonProjectorTest
+class JsonProjectorTest
 {
     @Test
     void shouldRetainTopLevelProperty()
@@ -110,7 +110,7 @@ class StreamingJsonProjectorTest
         List<String> retained,
         String input)
     {
-        StreamingJsonProjector projector = new StreamingJsonProjector(retained);
+        JsonProjector projector = new JsonProjector(retained);
         MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
         int length = projector.project(parserFor(input + " "), buffer, 0);
         byte[] out = new byte[length];

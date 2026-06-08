@@ -64,7 +64,7 @@ public final class JsonSchema
     private static final JsonSchema ANY = new JsonSchema(false);
     private static final JsonSchema NONE = new JsonSchema(true);
 
-    private static final RefResolver LOCAL_ONLY = ref ->
+    private static final JsonRefResolver LOCAL_ONLY = ref ->
     {
         throw new UnsupportedOperationException("non-local $ref not resolvable: " + ref);
     };
@@ -129,7 +129,7 @@ public final class JsonSchema
 
     public static JsonSchema of(
         String schema,
-        RefResolver resolver)
+        JsonRefResolver resolver)
     {
         JsonNode root = JsonNode.parse(schema);
         return from(root, new Context(root, resolver));
@@ -737,12 +737,12 @@ public final class JsonSchema
     private static final class Context
     {
         private final JsonNode root;
-        private final RefResolver resolver;
+        private final JsonRefResolver resolver;
         private final Map<String, JsonSchema> cache;
 
         private Context(
             JsonNode root,
-            RefResolver resolver)
+            JsonRefResolver resolver)
         {
             this.root = root;
             this.resolver = resolver;

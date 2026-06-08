@@ -24,7 +24,7 @@ package io.aklivity.zilla.runtime.common.json;
  * responsibility, performed off the hot path before the referenced text is needed here.
  */
 @FunctionalInterface
-public interface RefResolver
+public interface JsonRefResolver
 {
     String resolve(
         String ref);

@@ -40,8 +40,8 @@ import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 import io.aklivity.zilla.runtime.common.json.DirectBufferInputStreamEx;
+import io.aklivity.zilla.runtime.common.json.JsonProjector;
 import io.aklivity.zilla.runtime.common.json.StreamingJson;
-import io.aklivity.zilla.runtime.common.json.StreamingJsonProjector;
 
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.Throughput)
@@ -49,7 +49,7 @@ import io.aklivity.zilla.runtime.common.json.StreamingJsonProjector;
 @Warmup(iterations = 10, time = 1, timeUnit = SECONDS)
 @Measurement(iterations = 5, time = 1, timeUnit = SECONDS)
 @OutputTimeUnit(SECONDS)
-public class StreamingJsonProjectorBM
+public class JsonProjectorBM
 {
     private static final String FLAT_OBJECT =
         "{\"id\":42,\"name\":\"zilla\",\"active\":true,\"secret\":\"drop\",\"version\":1} ";
@@ -75,11 +75,11 @@ public class StreamingJsonProjectorBM
     private final DirectBufferInputStreamEx inputRO = new DirectBufferInputStreamEx();
     private final MutableDirectBuffer outputBuffer = new UnsafeBuffer(new byte[16 * 1024]);
 
-    private StreamingJsonProjector flatProjector;
-    private StreamingJsonProjector nestedProjector;
-    private StreamingJsonProjector arrayWildcardProjector;
-    private StreamingJsonProjector rootIdentityProjector;
-    private StreamingJsonProjector mostlySkippedProjector;
+    private JsonProjector flatProjector;
+    private JsonProjector nestedProjector;
+    private JsonProjector arrayWildcardProjector;
+    private JsonProjector rootIdentityProjector;
+    private JsonProjector mostlySkippedProjector;
 
     private UnsafeBuffer flatBuffer;
     private UnsafeBuffer nestedBuffer;
@@ -96,11 +96,11 @@ public class StreamingJsonProjectorBM
     @Setup(Level.Trial)
     public void init()
     {
-        flatProjector = new StreamingJsonProjector(List.of("/id", "/active"));
-        nestedProjector = new StreamingJsonProjector(List.of("/meta/id", "/meta/source"));
-        arrayWildcardProjector = new StreamingJsonProjector(List.of("/items/-/id"));
-        rootIdentityProjector = new StreamingJsonProjector(List.of(""));
-        mostlySkippedProjector = new StreamingJsonProjector(List.of("/keep/id"));
+        flatProjector = new JsonProjector(List.of("/id", "/active"));
+        nestedProjector = new JsonProjector(List.of("/meta/id", "/meta/source"));
+        arrayWildcardProjector = new JsonProjector(List.of("/items/-/id"));
+        rootIdentityProjector = new JsonProjector(List.of(""));
+        mostlySkippedProjector = new JsonProjector(List.of("/keep/id"));
 
         byte[] flatBytes = FLAT_OBJECT.getBytes(UTF_8);
         byte[] nestedBytes = NESTED_OBJECT.getBytes(UTF_8);
@@ -163,7 +163,7 @@ public class StreamingJsonProjectorBM
         String[] args) throws RunnerException
     {
         Options opt = new OptionsBuilder()
-            .include(StreamingJsonProjectorBM.class.getSimpleName())
+            .include(JsonProjectorBM.class.getSimpleName())
             .forks(0)
             .build();
 
