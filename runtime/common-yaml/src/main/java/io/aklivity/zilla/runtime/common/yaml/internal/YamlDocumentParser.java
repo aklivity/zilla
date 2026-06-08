@@ -492,6 +492,10 @@ public final class YamlDocumentParser
         Line line,
         boolean allowSameIndentBlockScalar)
     {
+        if (text.startsWith("\"") || text.startsWith("'"))
+        {
+            text = collectQuotedText(text, line, allowSameIndentBlockScalar);
+        }
         if (text.startsWith("|") || text.startsWith(">"))
         {
             if (!config.blockScalars())
@@ -510,6 +514,64 @@ public final class YamlDocumentParser
             return applyTag(new FlowParser(flow, line, anchors, tagHandles, config).parse(), tag, flow, line);
         }
         return parseScalar(text, tag, line);
+    }
+
+    private String collectQuotedText(
+        String text,
+        Line line,
+        boolean allowSameIndent)
+    {
+        int rawAt = line.raw.indexOf(text);
+        StringBuilder quoted = new StringBuilder(rawAt == -1 ? text : line.raw.substring(rawAt));
+        while (!isQuotedComplete(quoted.toString()) && index < lines.size())
+        {
+            Line next = lines.get(index);
+            if (!next.blank && ("---".equals(next.content) || "...".equals(next.content) ||
+                next.content.startsWith("--- ") || next.content.startsWith("... ")))
+            {
+                throw error("Unterminated quoted scalar", line);
+            }
+            if (next.raw.startsWith("\t"))
+            {
+                throw error("Tabs are not supported in quoted scalar indentation", next);
+            }
+            if (!allowSameIndent && !next.blank && next.indent <= line.indent)
+            {
+                throw error("Wrong indented quoted scalar", next);
+            }
+            quoted.append('\n');
+            quoted.append(next.raw.substring(Math.min(next.indent, next.raw.length())));
+            index++;
+        }
+        return quoted.toString();
+    }
+
+    private static boolean isQuotedComplete(
+        String text)
+    {
+        char quote = text.charAt(0);
+        boolean escaped = false;
+        for (int i = 1; i < text.length(); i++)
+        {
+            char c = text.charAt(i);
+            if (quote == '"' && escaped)
+            {
+                escaped = false;
+            }
+            else if (quote == '"' && c == '\\')
+            {
+                escaped = true;
+            }
+            else if (quote == '\'' && c == '\'' && i + 1 < text.length() && text.charAt(i + 1) == '\'')
+            {
+                i++;
+            }
+            else if (c == quote)
+            {
+                return i == text.length() - 1;
+            }
+        }
+        return false;
     }
 
     private String collectFlowText(
@@ -969,7 +1031,7 @@ public final class YamlDocumentParser
             {
             case TRUE -> "true";
             case FALSE -> "false";
-            case NULL -> "null";
+            case NULL -> text.isEmpty() ? "" : "null";
             default -> text;
             };
         }
@@ -1242,8 +1304,49 @@ public final class YamlDocumentParser
         {
             throw error("Unterminated quoted scalar", line);
         }
+        if (text.indexOf('\n') != -1)
+        {
+            text = quote + foldQuotedLines(text.substring(1, text.length() - 1)) + quote;
+        }
 
         return quote == '\'' ? unquoteSingle(text, line) : unquoteDouble(text, line);
+    }
+
+    private static String foldQuotedLines(
+        String text)
+    {
+        StringBuilder folded = new StringBuilder();
+        String[] lines = text.split("\\R", -1);
+        for (int i = 0; i < lines.length; i++)
+        {
+            String line = i == 0 ? lines[i] : stripLeadingSpaces(lines[i]);
+            if (i != 0)
+            {
+                folded.append(' ');
+            }
+            int end = line.length();
+            while (end > 0 && (line.charAt(end - 1) == ' ' || line.charAt(end - 1) == '\t'))
+            {
+                end--;
+            }
+            if (end < line.length() && line.charAt(end) == '\t' && end > 0 && line.charAt(end - 1) == '\\')
+            {
+                end++;
+            }
+            folded.append(line, 0, end);
+        }
+        return folded.toString();
+    }
+
+    private static String stripLeadingSpaces(
+        String text)
+    {
+        int start = 0;
+        while (start < text.length() && text.charAt(start) == ' ')
+        {
+            start++;
+        }
+        return text.substring(start);
     }
 
     private static String unquoteSingle(
@@ -1315,6 +1418,7 @@ public final class YamlDocumentParser
         case 'n' -> value.append('\n');
         case 'r' -> value.append('\r');
         case 't' -> value.append('\t');
+        case '\t' -> value.append('\t');
         case 'v' -> value.append('\u000b');
         case ' ' -> value.append(' ');
         case '_' -> value.append('\u00a0');
@@ -2028,7 +2132,26 @@ public final class YamlDocumentParser
                 skipWhitespaceAndComments();
                 if (!consume(':'))
                 {
-                    throw error("Expected ':' in flow mapping", line);
+                    YamlNode value = YamlScalarNode.literal(YamlScalarType.NULL, line.line, line.column + cursor,
+                        line.offset + cursor);
+                    object.add(key.key != null ?
+                        new YamlEntry(key.key, value, line.line, line.column + cursor, line.offset + cursor) :
+                        new YamlEntry(key.name, value, line.line, line.column + cursor, line.offset + cursor));
+                    skipWhitespaceAndComments();
+                    if (!consume(','))
+                    {
+                        if (consume('}'))
+                        {
+                            return object;
+                        }
+                        throw error("Expected ':' in flow mapping", line);
+                    }
+                    skipWhitespaceAndComments();
+                    if (consume('}'))
+                    {
+                        return object;
+                    }
+                    continue;
                 }
                 skipWhitespaceAndComments();
                 YamlNode value = cursor < text.length() && (text.charAt(cursor) == ',' || text.charAt(cursor) == '}') ?
@@ -2259,13 +2382,14 @@ public final class YamlDocumentParser
             }
 
             cursor = mark;
-            return new KeySpec(parseBareFlowKey(), null);
+            return new KeySpec(foldFlowScalar(parseBareFlowKey()), null);
         }
 
         private String parseBareFlowKey()
         {
             int start = cursor;
-            while (cursor < text.length() && text.charAt(cursor) != ':')
+            while (cursor < text.length() && text.charAt(cursor) != ':' && text.charAt(cursor) != ',' &&
+                text.charAt(cursor) != '}')
             {
                 cursor++;
             }
