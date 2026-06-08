@@ -315,7 +315,7 @@ public final class YamlDocumentParser
             else
             {
                 index++;
-                YamlNode value = parseInlineValue(spec.value, spec.tag, line);
+                YamlNode value = parseInlineValue(foldPlainScalar(spec.value, line, false, true), spec.tag, line);
                 attachComments(value, line);
                 storeAnchor(spec.anchor, value, line);
                 array.add(value);
@@ -337,7 +337,7 @@ public final class YamlDocumentParser
         }
         YamlNode value = spec.alias != null ? resolveAlias(spec.alias, line) :
             spec.value.isEmpty() && (spec.anchor != null || spec.tag != null) ? nextAnchoredValue(line) :
-            parseInlineValue(spec.value, spec.tag, line, true);
+            parseInlineValue(foldPlainScalar(spec.value, line, true, true), spec.tag, line, true);
         value = applyTag(value, spec.tag, spec.value, line);
         attachComments(value, line);
         storeAnchor(spec.anchor, value, line);
@@ -526,7 +526,7 @@ public final class YamlDocumentParser
             resolveAlias(spec.alias, line) :
             spec.value.isEmpty() ? nextNestedValue(indent, line) :
             isCompactSequence(spec.value) ? parseCompactSequenceValue(spec.value, indent, line) :
-            parseInlineValue(spec.value, spec.tag, line, false);
+            parseInlineValue(foldPlainScalar(spec.value, line, false, false), spec.tag, line, false);
         if (spec.anchor != null && value.anchor != null)
         {
             throw error("YAML node cannot define multiple anchors", line);
@@ -566,7 +566,7 @@ public final class YamlDocumentParser
             resolveAlias(spec.alias, line) :
             spec.value.isEmpty() ? nextNestedValue(indent, line) :
             isCompactSequence(spec.value) ? parseCompactSequenceValue(spec.value, indent, line) :
-            parseInlineValue(spec.value, spec.tag, line, false);
+            parseInlineValue(foldPlainScalar(spec.value, line, false, false), spec.tag, line, false);
         if (spec.anchor != null && value.anchor != null)
         {
             throw error("YAML node cannot define multiple anchors", line);
@@ -599,6 +599,109 @@ public final class YamlDocumentParser
     {
         YamlNode value = YamlScalarNode.literal(YamlScalarType.NULL, line.line, line.column, line.offset);
         object.add(new YamlEntry(key, value, line.line, line.column, line.offset));
+    }
+
+    private String foldPlainScalar(
+        String first,
+        Line firstLine,
+        boolean allowSameIndent,
+        boolean allowIndentedSequence)
+    {
+        if (!isFoldablePlainScalar(first))
+        {
+            return first;
+        }
+
+        StringBuilder value = new StringBuilder(trimPlainLine(first));
+        int indent = firstLine.indent;
+        boolean commentTerminated = firstLine.comment != null;
+        while (index < lines.size())
+        {
+            int blankAt = index;
+            int blankLines = 0;
+            boolean blankComment = false;
+            while (index < lines.size() && peek().blank)
+            {
+                blankComment |= peek().comment != null;
+                blankLines++;
+                index++;
+            }
+
+            if (index >= lines.size() ||
+                !isPlainScalarContinuation(peek(), indent, allowSameIndent, allowIndentedSequence))
+            {
+                index = blankAt;
+                break;
+            }
+            if (commentTerminated || blankComment)
+            {
+                throw error("Plain scalar cannot continue after a comment", peek());
+            }
+
+            Line line = peek();
+            index++;
+            if (blankLines == 0)
+            {
+                value.append(' ');
+            }
+            else
+            {
+                appendLineBreaks(value, blankLines);
+            }
+            value.append(trimPlainLine(line.content));
+            commentTerminated = line.comment != null;
+        }
+
+        return value.toString();
+    }
+
+    private static boolean isFoldablePlainScalar(
+        String text)
+    {
+        return !text.isEmpty() &&
+            !text.startsWith("\"") &&
+            !text.startsWith("'") &&
+            !text.startsWith("[") &&
+            !text.startsWith("{") &&
+            !text.startsWith("|") &&
+            !text.startsWith(">") &&
+            !text.startsWith("*");
+    }
+
+    private static boolean isPlainScalarContinuation(
+        Line line,
+        int indent,
+        boolean allowSameIndent,
+        boolean allowIndentedSequence)
+    {
+        if (line.directive || isMarker(line.content, "---") || isMarker(line.content, "...") || line.indent < indent)
+        {
+            return false;
+        }
+        if (line.indent == indent)
+        {
+            return allowSameIndent && !isSequence(line, indent) && !isExplicitKey(line) && mappingColon(line.content) == -1;
+        }
+        if (!allowIndentedSequence && isSequence(line, line.indent))
+        {
+            return false;
+        }
+        return mappingColon(line.content) == -1;
+    }
+
+    private static String trimPlainLine(
+        String text)
+    {
+        return text.strip();
+    }
+
+    private static boolean isMarker(
+        String content,
+        String marker)
+    {
+        return content.equals(marker) ||
+            content.startsWith(marker) && content.length() > marker.length() &&
+                Character.isWhitespace(content.charAt(marker.length()));
     }
 
     private YamlNode nextNestedValue(
