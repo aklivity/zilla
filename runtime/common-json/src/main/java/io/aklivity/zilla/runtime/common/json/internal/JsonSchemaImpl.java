@@ -111,6 +111,8 @@ public final class JsonSchemaImpl implements JsonSchema
     private final List<JsonSchemaImpl> itemsTuple;
     private final JsonSchemaImpl additionalItems;
     private final JsonSchemaImpl contains;
+    private final int minContains;
+    private final int maxContains;
     private final boolean uniqueItems;
     private final int minItems;
     private final int maxItems;
@@ -211,7 +213,28 @@ public final class JsonSchemaImpl implements JsonSchema
         Context context)
     {
         JsonNode itemsValue = schema.get("items");
-        boolean tupleItems = itemsValue != null && itemsValue.isArray();
+        JsonNode prefixItemsValue = schema.get("prefixItems");
+        List<JsonSchemaImpl> tuple;
+        JsonSchemaImpl allItems;
+        JsonSchemaImpl restItems;
+        if (prefixItemsValue != null)
+        {
+            tuple = parseSchemaArray(prefixItemsValue, context);
+            allItems = null;
+            restItems = itemsValue != null ? from(itemsValue, context) : null;
+        }
+        else if (itemsValue != null && itemsValue.isArray())
+        {
+            tuple = parseSchemaArray(itemsValue, context);
+            allItems = null;
+            restItems = schema.has("additionalItems") ? from(schema.get("additionalItems"), context) : null;
+        }
+        else
+        {
+            tuple = null;
+            allItems = itemsValue != null ? from(itemsValue, context) : null;
+            restItems = null;
+        }
 
         JsonNode additional = schema.get("additionalProperties");
         boolean additionalAllowed = additional == null || !additional.isFalse();
@@ -241,10 +264,12 @@ public final class JsonSchemaImpl implements JsonSchema
         this.minLength = integer(schema, "minLength");
         this.maxLength = integer(schema, "maxLength");
         this.pattern = schema.has("pattern") ? Pattern.compile(schema.get("pattern").string()) : null;
-        this.items = itemsValue != null && !tupleItems ? from(itemsValue, context) : null;
-        this.itemsTuple = tupleItems ? parseSchemaArray(itemsValue, context) : null;
-        this.additionalItems = schema.has("additionalItems") ? from(schema.get("additionalItems"), context) : null;
+        this.items = allItems;
+        this.itemsTuple = tuple;
+        this.additionalItems = restItems;
         this.contains = schema.has("contains") ? from(schema.get("contains"), context) : null;
+        this.minContains = integer(schema, "minContains");
+        this.maxContains = integer(schema, "maxContains");
         this.uniqueItems = schema.has("uniqueItems") && schema.get("uniqueItems").isTrue();
         this.minItems = integer(schema, "minItems");
         this.maxItems = integer(schema, "maxItems");
@@ -289,6 +314,8 @@ public final class JsonSchemaImpl implements JsonSchema
         this.itemsTuple = null;
         this.additionalItems = null;
         this.contains = null;
+        this.minContains = -1;
+        this.maxContains = -1;
         this.uniqueItems = false;
         this.minItems = -1;
         this.maxItems = -1;
@@ -332,6 +359,8 @@ public final class JsonSchemaImpl implements JsonSchema
         this.itemsTuple = null;
         this.additionalItems = null;
         this.contains = null;
+        this.minContains = -1;
+        this.maxContains = -1;
         this.uniqueItems = false;
         this.minItems = -1;
         this.maxItems = -1;
@@ -1554,10 +1583,21 @@ public final class JsonSchemaImpl implements JsonSchema
                     directInvalid = true;
                     trace.report("maxItems", count + " > maxItems " + maxItems, parser);
                 }
-                if (contains != null && containsMatched == 0)
+                if (contains != null)
                 {
-                    directInvalid = true;
-                    trace.report("contains", "no array element matched contains subschema", parser);
+                    int min = minContains >= 0 ? minContains : 1;
+                    if (containsMatched < min)
+                    {
+                        directInvalid = true;
+                        trace.report("contains", "matched " + containsMatched +
+                            " elements, fewer than minContains " + min, parser);
+                    }
+                    if (maxContains >= 0 && containsMatched > maxContains)
+                    {
+                        directInvalid = true;
+                        trace.report("maxContains", "matched " + containsMatched +
+                            " elements, more than maxContains " + maxContains, parser);
+                    }
                 }
             }
             else
@@ -1566,7 +1606,7 @@ public final class JsonSchemaImpl implements JsonSchema
                 count++;
                 directChildMark = trace.push(index);
                 directChild = elementSchema(index).eval(trace);
-                if (contains != null && containsMatched == 0)
+                if (contains != null)
                 {
                     containsChild = contains.eval(Trace.NONE);
                 }

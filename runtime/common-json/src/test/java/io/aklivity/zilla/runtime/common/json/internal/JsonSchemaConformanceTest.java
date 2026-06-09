@@ -26,6 +26,7 @@ import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.PatternSyntaxException;
 import java.util.stream.Stream;
 
 import jakarta.json.stream.JsonParser;
@@ -80,12 +81,22 @@ class JsonSchemaConformanceTest
 
     private static final String[] DRAFT2019_FILES =
     {
-        "dependentRequired", "dependentSchemas"
+        "type", "enum", "const", "multipleOf", "minimum", "maximum", "exclusiveMinimum",
+        "exclusiveMaximum", "minLength", "maxLength", "pattern", "minItems", "maxItems",
+        "uniqueItems", "minProperties", "maxProperties", "required", "properties",
+        "patternProperties", "additionalProperties", "additionalItems", "propertyNames",
+        "boolean_schema", "allOf", "anyOf", "oneOf", "if-then-else", "items", "contains",
+        "minContains", "maxContains", "dependentRequired", "dependentSchemas"
     };
 
     private static final String[] DRAFT2020_FILES =
     {
-        "dependentRequired", "dependentSchemas"
+        "type", "enum", "const", "multipleOf", "minimum", "maximum", "exclusiveMinimum",
+        "exclusiveMaximum", "minLength", "maxLength", "pattern", "minItems", "maxItems",
+        "uniqueItems", "minProperties", "maxProperties", "required", "properties",
+        "patternProperties", "additionalProperties", "propertyNames", "boolean_schema", "allOf",
+        "anyOf", "oneOf", "if-then-else", "prefixItems", "items", "contains", "minContains",
+        "maxContains", "dependentRequired", "dependentSchemas"
     };
 
     @TestFactory
@@ -161,6 +172,10 @@ class JsonSchemaConformanceTest
         catch (UnsupportedOperationException ex)
         {
             node = dynamicTest(description, () -> abort("unsupported keyword: " + ex.getMessage()));
+        }
+        catch (PatternSyntaxException ex)
+        {
+            node = dynamicTest(description, () -> abort("ECMA-262 regex unsupported by java.util.regex"));
         }
         return node;
     }
