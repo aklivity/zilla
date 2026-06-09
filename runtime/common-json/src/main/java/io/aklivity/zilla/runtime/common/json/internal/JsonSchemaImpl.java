@@ -38,6 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import jakarta.json.stream.JsonLocation;
@@ -277,7 +278,7 @@ public final class JsonSchemaImpl implements JsonSchema
         this.multipleOf = number(schema, "multipleOf");
         this.minLength = integer(schema, "minLength");
         this.maxLength = integer(schema, "maxLength");
-        this.pattern = schema.has("pattern") ? Pattern.compile(schema.get("pattern").string()) : null;
+        this.pattern = schema.has("pattern") ? compilePattern(schema.get("pattern").string()) : null;
         this.items = allItems;
         this.itemsTuple = tuple;
         this.additionalItems = restItems;
@@ -455,6 +456,64 @@ public final class JsonSchemaImpl implements JsonSchema
         return new Eval(trace, parentScope);
     }
 
+    private static final Pattern UNICODE_PROPERTY = Pattern.compile("\\\\([pP])\\{([A-Za-z_]+)\\}");
+
+    private static final Map<String, String> UNICODE_CATEGORIES = Map.ofEntries(
+        Map.entry("Letter", "L"),
+        Map.entry("Uppercase_Letter", "Lu"),
+        Map.entry("Lowercase_Letter", "Ll"),
+        Map.entry("Titlecase_Letter", "Lt"),
+        Map.entry("Modifier_Letter", "Lm"),
+        Map.entry("Other_Letter", "Lo"),
+        Map.entry("Mark", "M"),
+        Map.entry("Nonspacing_Mark", "Mn"),
+        Map.entry("Spacing_Mark", "Mc"),
+        Map.entry("Enclosing_Mark", "Me"),
+        Map.entry("Number", "N"),
+        Map.entry("Decimal_Number", "Nd"),
+        Map.entry("Letter_Number", "Nl"),
+        Map.entry("Other_Number", "No"),
+        Map.entry("Punctuation", "P"),
+        Map.entry("Connector_Punctuation", "Pc"),
+        Map.entry("Dash_Punctuation", "Pd"),
+        Map.entry("Open_Punctuation", "Ps"),
+        Map.entry("Close_Punctuation", "Pe"),
+        Map.entry("Initial_Punctuation", "Pi"),
+        Map.entry("Final_Punctuation", "Pf"),
+        Map.entry("Other_Punctuation", "Po"),
+        Map.entry("Symbol", "S"),
+        Map.entry("Math_Symbol", "Sm"),
+        Map.entry("Currency_Symbol", "Sc"),
+        Map.entry("Modifier_Symbol", "Sk"),
+        Map.entry("Other_Symbol", "So"),
+        Map.entry("Separator", "Z"),
+        Map.entry("Space_Separator", "Zs"),
+        Map.entry("Line_Separator", "Zl"),
+        Map.entry("Paragraph_Separator", "Zp"),
+        Map.entry("Other", "C"),
+        Map.entry("Control", "Cc"),
+        Map.entry("Format", "Cf"),
+        Map.entry("Surrogate", "Cs"),
+        Map.entry("Private_Use", "Co"),
+        Map.entry("Unassigned", "Cn"));
+
+    private static Pattern compilePattern(
+        String regex)
+    {
+        Matcher matcher = UNICODE_PROPERTY.matcher(regex);
+        StringBuilder result = new StringBuilder();
+        while (matcher.find())
+        {
+            String code = UNICODE_CATEGORIES.get(matcher.group(2));
+            String replacement = code != null
+                ? "\\\\" + matcher.group(1) + "{" + code + "}"
+                : Matcher.quoteReplacement(matcher.group());
+            matcher.appendReplacement(result, replacement);
+        }
+        matcher.appendTail(result);
+        return Pattern.compile(result.toString());
+    }
+
     private static Map<Pattern, JsonSchemaImpl> parsePatternProperties(
         JsonNode value,
         Context context)
@@ -465,7 +524,7 @@ public final class JsonSchemaImpl implements JsonSchema
             result = new LinkedHashMap<>();
             for (Map.Entry<String, JsonNode> entry : value.members().entrySet())
             {
-                result.put(Pattern.compile(entry.getKey()), from(entry.getValue(), context));
+                result.put(compilePattern(entry.getKey()), from(entry.getValue(), context));
             }
         }
         return result;

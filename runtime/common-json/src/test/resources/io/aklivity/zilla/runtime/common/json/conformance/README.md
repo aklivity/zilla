@@ -31,13 +31,12 @@ Excluded by design:
   `JsonSchemaRefTest`, the `definitions`/`defs`/`anchor` files, and the
   meta-schema validation throughout.
 
-Two classes of group are reported as skipped rather than failed:
-
-- a schema using an ECMA-262 regex construct unsupported by `java.util.regex`
-  (a regex-dialect limitation, not a validator-logic gap); and
-- a case referencing a remote document that is not vendored here (a
-  fixture-availability limitation — the resolution engine itself is proven by
-  the vendored remotes and the dynamic-ref suites).
+ECMA-262 `\p{...}` Unicode general-category names (e.g. `\p{Letter}`) are
+translated to their `java.util.regex` equivalents at compile time, so the
+`pattern`/`patternProperties` suites pass. A case referencing a remote document
+that is not vendored here is reported as skipped (a fixture-availability
+limitation — the resolution engine itself is proven by the vendored remotes and
+the dynamic-ref suites).
 
 ## Provenance
 

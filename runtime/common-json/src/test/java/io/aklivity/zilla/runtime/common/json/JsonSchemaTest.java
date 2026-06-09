@@ -198,6 +198,14 @@ class JsonSchemaTest
     }
 
     @Test
+    void shouldTranslateEcmaUnicodePropertyPattern()
+    {
+        assertTrue(valid("{\"pattern\":\"^\\\\p{Letter}+$\"}", "\"abc\""));
+        assertFalse(valid("{\"pattern\":\"^\\\\p{Letter}+$\"}", "\"123\""));
+        assertTrue(valid("{\"pattern\":\"^\\\\p{Number}+$\"}", "\"42\""));
+    }
+
+    @Test
     void shouldTreatFormatAsAnnotationNotAssertion()
     {
         String schema = "{\"type\":\"string\",\"format\":\"email\"}";
