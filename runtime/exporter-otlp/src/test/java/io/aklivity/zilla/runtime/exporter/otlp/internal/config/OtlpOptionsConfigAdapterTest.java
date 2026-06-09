@@ -34,7 +34,7 @@ import org.junit.Test;
 
 import io.aklivity.zilla.runtime.exporter.otlp.config.OtlpOptionsConfig;
 
-public class OltpOptionsConfigAdapterTest
+public class OtlpOptionsConfigAdapterTest
 {
     private Jsonb jsonb;
 
@@ -55,7 +55,7 @@ public class OltpOptionsConfigAdapterTest
                 "\"interval\": 30,\n" +
                 "\"signals\":\n" +
                     "[\n" +
-                        "metrics\n" +
+                        "\"metrics\"\n" +
                     "],\n" +
                 "\"endpoint\":\n" +
                     "{\n" +

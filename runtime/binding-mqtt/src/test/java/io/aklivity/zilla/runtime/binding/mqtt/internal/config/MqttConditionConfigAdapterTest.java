@@ -67,7 +67,7 @@ public class MqttConditionConfigAdapterTest
                         "\"params\": {" +
                             "\"id\": \"${guarded['jwt'].identity}\"" +
                         "}" +
-                    "}," +
+                    "}" +
                 "]," +
                 "\"publish\":" +
                 "[" +
@@ -82,7 +82,7 @@ public class MqttConditionConfigAdapterTest
                         "\"params\": {" +
                             "\"id\": \"${guarded['jwt'].identity}\"" +
                         "}" +
-                    "}," +
+                    "}" +
                 "]" +
             "}";
 

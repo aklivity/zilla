@@ -589,6 +589,13 @@ final class YamlJsonValues
         }
 
         @Override
+        public JsonValue getValue(
+            String jsonPointer)
+        {
+            return pointer(jsonPointer).getValue(this);
+        }
+
+        @Override
         public String toString()
         {
             return objectToJson(this);

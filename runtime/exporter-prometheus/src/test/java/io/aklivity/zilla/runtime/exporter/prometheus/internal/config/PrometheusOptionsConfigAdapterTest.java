@@ -74,7 +74,7 @@ public class PrometheusOptionsConfigAdapterTest
                 "[\n" +
                     "{\n" +
                         "\"scheme\": \"http\",\n" +
-                        "\"port\": 9090,\n" +
+                        "\"port\": 9090\n" +
                     "}\n" +
                 "]\n" +
             "}";

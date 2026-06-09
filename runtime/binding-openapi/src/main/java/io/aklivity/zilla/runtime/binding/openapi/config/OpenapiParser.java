@@ -25,11 +25,11 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonReader;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
+import jakarta.json.spi.JsonProvider;
 
 import org.agrona.collections.Object2ObjectHashMap;
 import org.leadpony.justify.api.JsonSchema;
@@ -38,6 +38,7 @@ import org.leadpony.justify.api.ProblemHandler;
 
 import io.aklivity.zilla.runtime.binding.openapi.internal.OpenapiBinding;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.Openapi;
+import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 import io.aklivity.zilla.runtime.engine.config.ConfigException;
 
 public class OpenapiParser
@@ -64,13 +65,16 @@ public class OpenapiParser
         {
             String openApiVersion = detectOpenApiVersion(openapiText);
 
-            JsonValidationService service = JsonValidationService.newInstance();
+            JsonProvider provider = YamlJson.provider();
+            JsonValidationService service = JsonValidationService.newInstance(provider);
             ProblemHandler handler = service.createProblemPrinter(msg -> errors.add(new ConfigException(msg)));
             JsonSchema schema = schemas.get(openApiVersion);
 
             service.createReader(new StringReader(openapiText), schema, handler).read();
 
-            Jsonb jsonb = JsonbBuilder.create();
+            Jsonb jsonb = JsonbBuilder.newBuilder()
+                    .withProvider(provider)
+                    .build();
 
             openapi = jsonb.fromJson(openapiText, Openapi.class);
         }
@@ -107,7 +111,7 @@ public class OpenapiParser
     private String detectOpenApiVersion(
         String openapiText)
     {
-        try (JsonReader reader = Json.createReader(new StringReader(openapiText)))
+        try (JsonReader reader = YamlJson.createReader(new StringReader(openapiText)))
         {
             JsonObject json = reader.readObject();
             if (json.containsKey("openapi"))

@@ -225,15 +225,17 @@ public class KafkaOptionsConfigAdapterTest
                 "\"topics\":" +
                 "[" +
                     "{" +
-                    "\"name\": \"test\"," +
-                    "\"transforms\":" +
-                    "[" +
-                        "\"extract-key\": \"${message.key.id}\"," +
-                        "\"extract-headers\":" +
-                        "{" +
-                            "\"correlation-id\": \"${message.value.correlationId}\"" +
-                        "}" +
-                    "]" +
+                        "\"name\": \"test\"," +
+                        "\"transforms\":" +
+                        "[" +
+                            "{" +
+                                "\"extract-key\": \"${message.key.id}\"," +
+                                "\"extract-headers\":" +
+                                "{" +
+                                    "\"correlation-id\": \"${message.value.correlationId}\"" +
+                                "}" +
+                            "}" +
+                        "]" +
                     "}" +
                 "]" +
             "}";

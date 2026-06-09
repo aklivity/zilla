@@ -29,6 +29,7 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonReader;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
+import jakarta.json.spi.JsonProvider;
 import jakarta.json.stream.JsonParser;
 
 import org.agrona.collections.Object2ObjectHashMap;
@@ -67,7 +68,8 @@ public class AsyncapiParser
             JsonObject asyncapiObject = readAsyncapiObject(asyncapiText);
             String asyncApiVersion = detectAsyncApiVersion(asyncapiObject);
 
-            JsonValidationService service = JsonValidationService.newInstance(YamlJson.provider());
+            JsonProvider provider = YamlJson.provider();
+            JsonValidationService service = JsonValidationService.newInstance(provider);
             ProblemHandler handler = service.createProblemPrinter(msg -> errors.add(new ConfigException(msg)));
             JsonSchema schema = schemas.get(asyncApiVersion);
 
