@@ -253,8 +253,6 @@
               <include>jakarta.json.bind:jakarta.json.bind-api</include>
               <include>org.eclipse.parsson:parsson</include>
               <include>org.eclipse:yasson</include>
-              <include>org.leadpony.justify</include>
-              <include>com.ibm.icu:icu4j</include>
               <include>org.openjdk.jmh:jmh-core</include>
               <include>net.sf.jopt-simple:jopt-simple</include>
               <include>org.apache.commons:commons-math3</include>

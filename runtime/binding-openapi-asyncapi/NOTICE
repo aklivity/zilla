@@ -10,10 +10,9 @@ WARRANTIES OF ANY KIND, either express or implied.  See the License for the
 specific language governing permissions and limitations under the License.
 
 This project includes:
+  agrona under The Apache License, Version 2.0
   Eclipse Parsson under Eclipse Public License 2.0 or GNU General Public License, version 2 with the GNU Classpath Exception
-  ICU4J under Unicode/ICU License
   Jakarta JSON Processing API under Eclipse Public License 2.0 or GNU General Public License, version 2 with the GNU Classpath Exception
-  org.leadpony.justify under The Apache Software License, Version 2.0
   zilla::runtime::binding-asyncapi under Aklivity Community License Agreement
   zilla::runtime::binding-http under The Apache Software License, Version 2.0
   zilla::runtime::binding-http-kafka under Aklivity Community License Agreement
@@ -24,6 +23,7 @@ This project includes:
   zilla::runtime::binding-tcp under The Apache Software License, Version 2.0
   zilla::runtime::binding-tls under The Apache Software License, Version 2.0
   zilla::runtime::catalog-inline under Aklivity Community License Agreement
+  zilla::runtime::common-json under Aklivity Community License Agreement
   zilla::runtime::common-yaml under Aklivity Community License Agreement
   zilla::runtime::model-core under Aklivity Community License Agreement
   zilla::runtime::model-json under Aklivity Community License Agreement
