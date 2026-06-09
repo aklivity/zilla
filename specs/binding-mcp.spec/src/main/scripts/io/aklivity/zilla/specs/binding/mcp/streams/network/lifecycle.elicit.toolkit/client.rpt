@@ -96,6 +96,7 @@ read zilla:begin.ext ${http:matchBeginEx()
 
 read 'data: {'
        '"jsonrpc":"2.0",'
+       '"id":"a1b2c3",'
        '"method":"elicitation/create",'
        '"params":'
        '{'

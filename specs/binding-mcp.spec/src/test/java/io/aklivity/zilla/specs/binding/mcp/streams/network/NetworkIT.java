@@ -371,6 +371,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/notifications.cancelled.unknown/client",
+        "${net}/notifications.cancelled.unknown/server"})
+    public void shouldAcceptCancelUnknownRequest() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/prompts.list/client",
         "${net}/prompts.list/server"})
     public void shouldListPrompts() throws Exception
@@ -488,6 +497,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/lifecycle.redirect.session/client",
+        "${net}/lifecycle.redirect.session/server"})
+    public void shouldRedirectLifecycleForRemoteSession() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/reject.method.not.allowed/client",
         "${net}/reject.method.not.allowed/server"})
     public void shouldRejectMethodNotAllowed() throws Exception
@@ -581,6 +599,15 @@ public class NetworkIT
         "${net}/tools.call.elicit.completed/client",
         "${net}/tools.call.elicit.completed/server"})
     public void shouldCallToolElicitCompleted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/lifecycle.elicit.completed/client",
+        "${net}/lifecycle.elicit.completed/server"})
+    public void shouldCompleteLifecycleElicit() throws Exception
     {
         k3po.finish();
     }

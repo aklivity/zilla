@@ -108,6 +108,8 @@ read zilla:begin.ext ${http:matchBeginEx()
 
 connected
 
+read closed
+
 write zilla:begin.ext ${http:beginEx()
                             .typeId(zilla:id("http"))
                             .header(":status", "200")
@@ -116,6 +118,3 @@ write zilla:begin.ext ${http:beginEx()
                             .build()}
 write flush
 write notify EVENT_STREAM_EVICTED
-
-read closed
-write close

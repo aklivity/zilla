@@ -35,9 +35,9 @@ read zilla:begin.ext ${mcp:matchBeginEx()
 write advised zilla:challenge ${mcp:matchChallengeEx()
                                     .typeId(zilla:id("mcp"))
                                     .elicitCreate()
-                                        .id("1")
+                                        .id("elicit-1")
                                         .url("https://server.example.com/authorize?state=7f3a9b1c&redirect_uri=%s".formatted(http:encodeQuery("https://replace.me/callback")))
-                                        .context("2")
+                                        .correlationId("2")
                                         .build()
                                     .build()}
 
@@ -45,7 +45,7 @@ write advise zilla:flush ${mcp:flushEx()
                               .typeId(zilla:id("mcp"))
                               .elicitCallback()
                                   .url("http://localhost:8080/mcp/auth/callback?code=xyz&state=7f3a9b1c")
-                                  .context("2")
+                                  .correlationId("2")
                                   .build()
                               .build()}
 

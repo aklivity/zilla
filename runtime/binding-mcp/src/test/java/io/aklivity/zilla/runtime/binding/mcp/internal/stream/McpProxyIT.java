@@ -127,6 +127,17 @@ public class McpProxyIT
     }
 
     @Test
+    @Configuration("proxy.toolkit.filter.yaml")
+    @Specification({
+        "${app}/tools.call.toolkit.reject.unauthorized/client",
+        "${app}/tools.call.toolkit.reject.unauthorized/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldRejectUnauthorizedToolCallWithToolkit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.yaml")
     @Specification({
         "${app}/tools.list/client",
@@ -144,6 +155,17 @@ public class McpProxyIT
         "${app}/tools.list.toolkit/server" })
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldListToolsWithToolkit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.toolkit.filter.yaml")
+    @Specification({
+        "${app}/tools.list.toolkit.filtered/client",
+        "${app}/tools.list.toolkit.filtered/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldListToolsFilteredByAllowSet() throws Exception
     {
         k3po.finish();
     }
@@ -551,6 +573,17 @@ public class McpProxyIT
         "${app}/tools.call.elicit.completed.proxied/server" })
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldCallToolElicitCompletedProxied() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${app}/lifecycle.elicit.completed/client",
+        "${app}/lifecycle.elicit.completed/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldCompleteLifecycleElicit() throws Exception
     {
         k3po.finish();
     }

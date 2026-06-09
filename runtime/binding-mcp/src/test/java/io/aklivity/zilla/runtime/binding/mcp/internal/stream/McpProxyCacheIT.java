@@ -134,6 +134,16 @@ public class McpProxyCacheIT
     }
 
     @Test
+    @Configuration("proxy.cache.seeded.toolkit.multi.yaml")
+    @Specification({
+        "${app}/lifecycle.elicit.cached/client",
+        "${app}/lifecycle.elicit.cached/server" })
+    public void shouldCompleteLifecycleElicitWhenCached() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.cache.seeded.yaml")
     @Specification({
         "${app}/cache.serve.initialize/client" })
@@ -169,6 +179,18 @@ public class McpProxyCacheIT
         "${app}/cache.serve.tools.list/client" })
     @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
     public void shouldServeToolsList() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.cache.toolkit.filter.yaml")
+    @Specification({
+        "${app}/cache.serve.tools.list.toolkit.filtered/server",
+        "${app}/cache.serve.tools.list.toolkit.filtered/client" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
+    public void shouldServeToolsListFilteredByAllowSet() throws Exception
     {
         k3po.finish();
     }

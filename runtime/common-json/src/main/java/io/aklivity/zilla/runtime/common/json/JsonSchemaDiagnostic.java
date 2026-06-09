@@ -12,18 +12,18 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.mcp.config;
+package io.aklivity.zilla.runtime.common.json;
 
-public final class McpPromptConfig
+public record JsonSchemaDiagnostic(
+    long line,
+    long column,
+    String pointer,
+    String keyword,
+    String message)
 {
-    public final String name;
-    public final String description;
-
-    public McpPromptConfig(
-        String name,
-        String description)
+    @Override
+    public String toString()
     {
-        this.name = name;
-        this.description = description;
+        return "[" + line + "," + column + "][" + pointer + "] " + message;
     }
 }

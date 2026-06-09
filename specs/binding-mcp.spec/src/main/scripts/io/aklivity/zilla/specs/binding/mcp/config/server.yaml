@@ -19,5 +19,4 @@ bindings:
   net0:
     type: mcp
     kind: server
-    routes:
-      - exit: app0
+    exit: app0

@@ -84,6 +84,8 @@ read zilla:begin.ext ${http:matchBeginEx()
 
 connected
 
+read closed
+
 write zilla:begin.ext ${http:beginEx()
                             .typeId(zilla:id("http"))
                             .header(":status", "200")
@@ -100,7 +102,3 @@ write 'id: :1\n'
 write 'data: {"jsonrpc":"2.0","method":"notifications/resources/list_changed"}\n'
 write '\n'
 write flush
-
-read closed
-
-write close
