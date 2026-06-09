@@ -198,6 +198,15 @@ class JsonSchemaTest
     }
 
     @Test
+    void shouldTreatFormatAsAnnotationNotAssertion()
+    {
+        String schema = "{\"type\":\"string\",\"format\":\"email\"}";
+        assertTrue(valid(schema, "\"not-an-email\""));
+        assertTrue(valid(schema, "\"a@b.com\""));
+        assertFalse(valid(schema, "5"));
+    }
+
+    @Test
     void shouldValidateStructuralEnum()
     {
         String schema = "{\"enum\":[{\"a\":1},[1,2],\"x\"]}";

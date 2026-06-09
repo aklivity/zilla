@@ -59,7 +59,7 @@ class JsonSchemaConformanceTest
         "multipleOf", "minLength", "maxLength", "pattern", "items", "additionalItems", "contains",
         "uniqueItems", "minItems", "maxItems", "properties", "required", "additionalProperties",
         "minProperties", "maxProperties", "patternProperties", "propertyNames", "dependencies",
-        "allOf", "anyOf", "oneOf", "not", "if-then-else", "boolean_schema", "definitions"
+        "allOf", "anyOf", "oneOf", "not", "if-then-else", "boolean_schema", "definitions", "format"
     };
 
     private static final String[] DRAFT6_FILES =
@@ -68,7 +68,7 @@ class JsonSchemaConformanceTest
         "multipleOf", "minLength", "maxLength", "pattern", "items", "additionalItems", "contains",
         "uniqueItems", "minItems", "maxItems", "properties", "required", "additionalProperties",
         "minProperties", "maxProperties", "patternProperties", "propertyNames", "dependencies",
-        "allOf", "anyOf", "oneOf", "not", "boolean_schema", "definitions"
+        "allOf", "anyOf", "oneOf", "not", "boolean_schema", "definitions", "format"
     };
 
     private static final String[] DRAFT4_FILES =
@@ -76,7 +76,7 @@ class JsonSchemaConformanceTest
         "type", "enum", "minimum", "maximum", "multipleOf", "minLength", "maxLength", "pattern",
         "items", "additionalItems", "uniqueItems", "minItems", "maxItems", "properties", "required",
         "additionalProperties", "minProperties", "maxProperties", "patternProperties", "dependencies",
-        "allOf", "anyOf", "oneOf", "not", "definitions"
+        "allOf", "anyOf", "oneOf", "not", "definitions", "format"
     };
 
     private static final String[] DRAFT2019_FILES =
@@ -86,7 +86,7 @@ class JsonSchemaConformanceTest
         "uniqueItems", "minProperties", "maxProperties", "required", "properties",
         "patternProperties", "additionalProperties", "additionalItems", "propertyNames",
         "boolean_schema", "allOf", "anyOf", "oneOf", "if-then-else", "items", "contains",
-        "minContains", "maxContains", "dependentRequired", "dependentSchemas"
+        "minContains", "maxContains", "dependentRequired", "dependentSchemas", "format"
     };
 
     private static final String[] DRAFT2020_FILES =
@@ -96,7 +96,7 @@ class JsonSchemaConformanceTest
         "uniqueItems", "minProperties", "maxProperties", "required", "properties",
         "patternProperties", "additionalProperties", "propertyNames", "boolean_schema", "allOf",
         "anyOf", "oneOf", "if-then-else", "prefixItems", "items", "contains", "minContains",
-        "maxContains", "dependentRequired", "dependentSchemas"
+        "maxContains", "dependentRequired", "dependentSchemas", "format"
     };
 
     @TestFactory
