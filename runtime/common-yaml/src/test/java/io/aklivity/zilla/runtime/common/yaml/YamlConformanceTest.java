@@ -19,20 +19,17 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.StringReader;
 import java.math.BigDecimal;
-import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
 
 import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObjectBuilder;
@@ -50,10 +47,7 @@ final class YamlConformanceTest
     private static final String ENABLED_PROPERTY = "zilla.yaml.conformance";
     private static final String STRICT_PROPERTY = "zilla.yaml.conformance.strict";
     private static final String SUITE_TAG = "data-2022-01-17";
-    private static final URI SUITE_ARCHIVE = URI.create(
-        "https://codeload.github.com/yaml/yaml-test-suite/zip/refs/tags/" + SUITE_TAG);
-    private static final Path SUITE_DIR = Path.of("target", "yaml-test-suite", SUITE_TAG);
-    private static final Path SUITE_MARKER = SUITE_DIR.resolve(".complete");
+    private static final Path SUITE_DIR = resolveSuite();
     private static final JsonProvider YAML_JSON = YamlJson.provider();
 
     private static final Set<String> JSON_PROJECTION_GAPS = Set.of();
@@ -103,8 +97,6 @@ final class YamlConformanceTest
 
     private static Stream<Case> cases() throws IOException
     {
-        ensureSuite();
-
         return Files.find(SUITE_DIR, 3, (p, a) -> a.isRegularFile() && "in.yaml".equals(p.getFileName().toString()))
             .map(Path::getParent)
             .map(Case::new)
@@ -321,50 +313,21 @@ final class YamlConformanceTest
         return text.length();
     }
 
-    private static void ensureSuite() throws IOException
+    private static Path resolveSuite()
     {
-        if (Files.exists(SUITE_MARKER))
+        URL resource = YamlConformanceTest.class.getResource(SUITE_TAG);
+        if (resource == null)
         {
-            return;
+            throw new IllegalStateException("Missing vendored YAML test suite: " + SUITE_TAG);
         }
-
-        Files.createDirectories(SUITE_DIR);
-        try (InputStream input = SUITE_ARCHIVE.toURL().openStream();
-             ZipInputStream zip = new ZipInputStream(input))
+        try
         {
-            ZipEntry entry;
-            while ((entry = zip.getNextEntry()) != null)
-            {
-                String name = stripTopLevelDirectory(entry.getName());
-                if (!name.isEmpty())
-                {
-                    Path target = SUITE_DIR.resolve(name).normalize();
-                    if (!target.startsWith(SUITE_DIR))
-                    {
-                        throw new IOException("Invalid YAML test suite archive entry: " + entry.getName());
-                    }
-                    if (entry.isDirectory())
-                    {
-                        Files.createDirectories(target);
-                    }
-                    else
-                    {
-                        Files.createDirectories(target.getParent());
-                        Files.copy(zip, target, StandardCopyOption.REPLACE_EXISTING);
-                    }
-                }
-                zip.closeEntry();
-            }
+            return Path.of(resource.toURI());
         }
-
-        Files.createFile(SUITE_MARKER);
-    }
-
-    private static String stripTopLevelDirectory(
-        String name)
-    {
-        int slashAt = name.indexOf('/');
-        return slashAt == -1 ? "" : name.substring(slashAt + 1);
+        catch (URISyntaxException ex)
+        {
+            throw new IllegalStateException("Invalid vendored YAML test suite location: " + resource, ex);
+        }
     }
 
     private static String enableMessage()
