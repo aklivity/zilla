@@ -23,6 +23,7 @@ import java.io.InputStream;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
@@ -40,11 +41,9 @@ import jakarta.json.spi.JsonProvider;
 import jakarta.json.stream.JsonParser;
 
 import org.agrona.collections.IntArrayList;
-import org.leadpony.justify.api.JsonSchema;
-import org.leadpony.justify.api.JsonSchemaReader;
-import org.leadpony.justify.api.JsonValidationService;
-import org.leadpony.justify.api.ProblemHandler;
 
+import io.aklivity.zilla.runtime.common.json.JsonSchema;
+import io.aklivity.zilla.runtime.common.json.JsonSchemaDiagnostic;
 import io.aklivity.zilla.runtime.common.yaml.YamlConfig;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 import io.aklivity.zilla.runtime.engine.Engine;
@@ -54,7 +53,7 @@ import io.aklivity.zilla.runtime.engine.resolver.Resolver;
 
 public final class EngineConfigReader
 {
-    private static final JsonProvider VALIDATION_PROVIDER =
+    private static final JsonProvider CONFIG_PROVIDER =
         YamlJson.provider(Map.of(YamlConfig.FEATURE_UNIQUE_KEYS, true));
 
     private final EngineConfiguration config;
@@ -108,25 +107,17 @@ public final class EngineConfigReader
                 logSchema(schemaObject);
             }
 
-            if (!validateAnnotatedSchema(schemaObject, schemaProvider, errors, configText))
+            if (!validateAnnotatedSchema(schemaObject, errors, configText))
             {
                 break read;
             }
 
             configText = expressions.resolve(configText);
-
-            JsonParser schemaParser = schemaProvider.createParserFactory(null)
-                .createParser(new StringReader(schemaObject.toString()));
-
-            JsonValidationService service = JsonValidationService.newInstance(VALIDATION_PROVIDER);
-            ProblemHandler handler = service.createProblemPrinter(msg -> errors.add(new ConfigException(msg)));
-            JsonSchemaReader validator = service.createSchemaReader(schemaParser);
-            JsonSchema schema = validator.read();
-
-            JsonProvider provider = service.createJsonProvider(schema, parser -> handler);
             String readable = configText.stripTrailing();
 
-            IntArrayList configsAt = validateDocuments(readable, service, schema, handler, errors);
+            JsonSchema schema = JsonSchema.of(schemaObject.toString());
+
+            IntArrayList configsAt = validateDocuments(readable, schema, errors);
             if (!errors.isEmpty())
             {
                 break read;
@@ -135,7 +126,7 @@ public final class EngineConfigReader
             JsonbConfig config = new JsonbConfig()
                 .withAdapters(new NamespaceAdapter(context));
             Jsonb jsonb = JsonbBuilder.newBuilder()
-                .withProvider(provider)
+                .withProvider(CONFIG_PROVIDER)
                 .withConfig(config)
                 .build();
 
@@ -185,7 +176,6 @@ public final class EngineConfigReader
 
     private boolean validateAnnotatedSchema(
         JsonObject schemaObject,
-        JsonProvider schemaProvider,
         List<Exception> errors,
         String configText)
     {
@@ -201,17 +191,11 @@ public final class EngineConfigReader
                 logSchema(annotatedSchemaObject);
             }
 
-            final JsonParser schemaParser = schemaProvider.createParserFactory(null)
-                .createParser(new StringReader(annotatedSchemaObject.toString()));
-
-            final JsonValidationService service = JsonValidationService.newInstance(VALIDATION_PROVIDER);
-            ProblemHandler handler = service.createProblemPrinter(msg -> errors.add(new ConfigException(msg)));
-            final JsonSchemaReader validator = service.createSchemaReader(schemaParser);
-            final JsonSchema schema = validator.read();
+            final JsonSchema schema = JsonSchema.of(annotatedSchemaObject.toString());
 
             String readable = configText.stripTrailing();
 
-            validateDocuments(readable, service, schema, handler, errors);
+            validateDocuments(readable, schema, errors);
 
             valid = errors.isEmpty();
         }
@@ -221,15 +205,33 @@ public final class EngineConfigReader
         }
 
         return valid;
-
     }
 
     private IntArrayList validateDocuments(
         String readable,
-        JsonValidationService service,
         JsonSchema schema,
-        ProblemHandler handler,
         List<Exception> errors)
+    {
+        IntArrayList documentsAt = documentOffsets(readable);
+
+        for (int index = 0; index < documentsAt.size(); index++)
+        {
+            int documentAt = documentsAt.getInt(index);
+            List<JsonSchemaDiagnostic> diagnostics = new ArrayList<>();
+            try (JsonParser parser = CONFIG_PROVIDER.createParser(new StringReader(readable.substring(documentAt))))
+            {
+                if (!schema.validate(parser, diagnostics::add))
+                {
+                    diagnostics.forEach(problem -> errors.add(new ConfigException(problem.toString())));
+                }
+            }
+        }
+
+        return documentsAt;
+    }
+
+    private IntArrayList documentOffsets(
+        String readable)
     {
         IntArrayList documentsAt = new IntArrayList();
 
@@ -238,7 +240,7 @@ public final class EngineConfigReader
             documentsAt.addInt(0);
         }
 
-        try (JsonParser parser = service.createParser(new StringReader(readable), schema, handler))
+        try (JsonParser parser = CONFIG_PROVIDER.createParser(new StringReader(readable)))
         {
             int depth = 0;
             int documentAt = 0;
