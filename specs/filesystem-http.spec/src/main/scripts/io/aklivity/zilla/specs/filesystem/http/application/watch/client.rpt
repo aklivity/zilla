@@ -24,8 +24,10 @@ read http:status "200" "OK"
 read http:header "Etag" "AAAAAAA"
 read "Hello World!"
 read closed
+read notify CREATED
 
-connect "http://localhost:8080/hello.txt"
+connect await CREATED
+    "http://localhost:8080/hello.txt"
 connected
 
 write http:method "GET"
