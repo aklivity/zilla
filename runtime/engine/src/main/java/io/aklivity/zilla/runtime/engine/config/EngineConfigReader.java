@@ -23,7 +23,6 @@ import java.io.InputStream;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
@@ -43,7 +42,6 @@ import jakarta.json.stream.JsonParser;
 import org.agrona.collections.IntArrayList;
 
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
-import io.aklivity.zilla.runtime.common.json.JsonSchemaDiagnostic;
 import io.aklivity.zilla.runtime.common.yaml.YamlConfig;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 import io.aklivity.zilla.runtime.engine.Engine;
@@ -217,13 +215,9 @@ public final class EngineConfigReader
         for (int index = 0; index < documentsAt.size(); index++)
         {
             int documentAt = documentsAt.getInt(index);
-            List<JsonSchemaDiagnostic> diagnostics = new ArrayList<>();
             try (JsonParser parser = CONFIG_PROVIDER.createParser(new StringReader(readable.substring(documentAt))))
             {
-                if (!schema.validate(parser, diagnostics::add))
-                {
-                    diagnostics.forEach(problem -> errors.add(new ConfigException(problem.toString())));
-                }
+                schema.validate(parser, problem -> errors.add(new ConfigException(problem.toString())));
             }
         }
 

@@ -14,9 +14,7 @@
  */
 package io.aklivity.zilla.runtime.model.json.internal;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import jakarta.json.spi.JsonProvider;
@@ -28,7 +26,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 import org.agrona.io.DirectBufferInputStream;
 
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
-import io.aklivity.zilla.runtime.common.json.JsonSchemaDiagnostic;
+import io.aklivity.zilla.runtime.common.json.JsonValidationException;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
@@ -90,89 +88,53 @@ public abstract class JsonModelHandler
                 {
                     value.wrap(EMPTY_BUFFER, 0, 0);
                 }
-
-                // common-json validates by consuming a parser; a second pass extracts field
-                // offsets. Restore single-pass once common-json offers a validating parser.
                 in.wrap(buffer, index, length);
-                boolean valid;
-                try (JsonParser validator = schemaProvider.createParser(in))
+                parser = schema.newParser(true, schemaProvider.createParser(in));
+                OctetsFW valueBytes = null;
+                while (parser.hasNext())
                 {
-                    valid = schema.validate(validator);
-                }
-                status &= valid;
-
-                if (!valid)
-                {
-                    event.validationFailure(traceId, bindingId, failure(schema, buffer, index, length));
-                }
-                else if (!extracted.isEmpty())
-                {
-                    extract(buffer, index, length);
+                    JsonParser.Event event = parser.next();
+                    if (!extracted.isEmpty())
+                    {
+                        switch (event)
+                        {
+                        case KEY_NAME:
+                            String key = parser.getString();
+                            valueBytes = extracted.get(key);
+                            break;
+                        case VALUE_STRING:
+                            if (valueBytes != null)
+                            {
+                                int offset = (int) parser.getLocation().getStreamOffset() - DOUBLE_QUOTE_LENGTH;
+                                offset += index;
+                                int valLength = calculateValueLength();
+                                valueBytes.wrap(in.buffer(), offset - valLength, offset);
+                                valueBytes = null;
+                            }
+                            break;
+                        case VALUE_NUMBER:
+                            if (valueBytes != null)
+                            {
+                                int offset = (int) parser.getLocation().getStreamOffset();
+                                offset += index;
+                                int valLength = calculateValueLength();
+                                valueBytes.wrap(in.buffer(), offset - valLength, offset);
+                                valueBytes = null;
+                            }
+                            break;
+                        default:
+                            break;
+                        }
+                    }
                 }
             }
         }
-        catch (RuntimeException ex)
+        catch (JsonValidationException ex)
         {
             status = false;
             event.validationFailure(traceId, bindingId, ex.getMessage());
         }
         return status;
-    }
-
-    private void extract(
-        DirectBuffer buffer,
-        int index,
-        int length)
-    {
-        in.wrap(buffer, index, length);
-        parser = schemaProvider.createParser(in);
-        OctetsFW valueBytes = null;
-        while (parser.hasNext())
-        {
-            JsonParser.Event event = parser.next();
-            switch (event)
-            {
-            case KEY_NAME:
-                String key = parser.getString();
-                valueBytes = extracted.get(key);
-                break;
-            case VALUE_STRING:
-                if (valueBytes != null)
-                {
-                    int offset = (int) parser.getLocation().getStreamOffset() - DOUBLE_QUOTE_LENGTH + index;
-                    int valLength = calculateValueLength();
-                    valueBytes.wrap(in.buffer(), offset - valLength, offset);
-                    valueBytes = null;
-                }
-                break;
-            case VALUE_NUMBER:
-                if (valueBytes != null)
-                {
-                    int offset = (int) parser.getLocation().getStreamOffset() + index;
-                    int valLength = calculateValueLength();
-                    valueBytes.wrap(in.buffer(), offset - valLength, offset);
-                    valueBytes = null;
-                }
-                break;
-            default:
-                break;
-            }
-        }
-    }
-
-    private String failure(
-        JsonSchema schema,
-        DirectBuffer buffer,
-        int index,
-        int length)
-    {
-        List<JsonSchemaDiagnostic> diagnostics = new ArrayList<>();
-        in.wrap(buffer, index, length);
-        try (JsonParser validator = schemaProvider.createParser(in))
-        {
-            schema.validate(validator, diagnostics::add);
-        }
-        return diagnostics.isEmpty() ? "json validation failed" : diagnostics.get(0).toString();
     }
 
     private int calculateValueLength()

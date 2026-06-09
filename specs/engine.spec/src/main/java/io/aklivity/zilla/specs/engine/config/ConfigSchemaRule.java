@@ -26,7 +26,6 @@ import java.util.Objects;
 import java.util.function.Function;
 
 import jakarta.json.JsonArray;
-import jakarta.json.JsonException;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonPatch;
 import jakarta.json.JsonReader;
@@ -38,7 +37,6 @@ import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
 
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
-import io.aklivity.zilla.runtime.common.json.JsonSchemaDiagnostic;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 
 public final class ConfigSchemaRule implements TestRule
@@ -132,18 +130,12 @@ public final class ConfigSchemaRule implements TestRule
             config = reader.readObject();
         }
 
-        List<JsonSchemaDiagnostic> diagnostics = new ArrayList<>();
-        boolean valid;
-        try (JsonParser parser = provider.createParser(new StringReader(configText)))
+        try (JsonParser parser = schema.newParser(true, provider.createParser(new StringReader(configText))))
         {
-            valid = schema.validate(parser, diagnostics::add);
-        }
-
-        if (!valid)
-        {
-            throw new JsonException(diagnostics.isEmpty()
-                ? "configuration failed schema validation"
-                : diagnostics.get(0).toString());
+            while (parser.hasNext())
+            {
+                parser.next();
+            }
         }
 
         return config;

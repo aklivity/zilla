@@ -21,7 +21,6 @@ import static org.agrona.LangUtil.rethrowUnchecked;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -40,7 +39,6 @@ import org.agrona.collections.Object2ObjectHashMap;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiBinding;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
-import io.aklivity.zilla.runtime.common.json.JsonSchemaDiagnostic;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 import io.aklivity.zilla.runtime.engine.config.ConfigException;
 
@@ -73,15 +71,9 @@ public class AsyncapiParser
             JsonProvider provider = YamlJson.provider();
             JsonSchema schema = schemas.get(asyncApiVersion);
 
-            List<JsonSchemaDiagnostic> diagnostics = new ArrayList<>();
-            boolean valid;
             try (JsonParser parser = provider.createParser(new StringReader(asyncapiText)))
             {
-                valid = schema.validate(parser, diagnostics::add);
-            }
-            if (!valid)
-            {
-                diagnostics.forEach(problem -> errors.add(new ConfigException(problem.toString())));
+                schema.validate(parser, problem -> errors.add(new ConfigException(problem.toString())));
             }
 
             Jsonb jsonb = JsonbBuilder.create();
