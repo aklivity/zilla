@@ -73,9 +73,6 @@ public final class JsonSchemaImpl implements JsonSchema
         throw new UnsupportedOperationException("non-local $ref not resolvable: " + ref);
     };
 
-    private static final List<String> UNSUPPORTED = List.of(
-        "dependentRequired", "dependentSchemas");
-
     private enum JsonType
     {
         OBJECT, ARRAY, STRING, NUMBER, INTEGER, BOOLEAN, NULL
@@ -199,14 +196,6 @@ public final class JsonSchemaImpl implements JsonSchema
         JsonNode schema,
         Context context)
     {
-        for (String keyword : UNSUPPORTED)
-        {
-            if (schema.has(keyword))
-            {
-                throw new UnsupportedOperationException("JSON Schema keyword not yet supported: " + keyword);
-            }
-        }
-
         JsonNode itemsValue = schema.get("items");
         boolean tupleItems = itemsValue != null && itemsValue.isArray();
 
@@ -253,8 +242,8 @@ public final class JsonSchemaImpl implements JsonSchema
         this.maxProperties = integer(schema, "maxProperties");
         this.patternProperties = parsePatternProperties(schema.get("patternProperties"), context);
         this.propertyNames = schema.has("propertyNames") ? from(schema.get("propertyNames"), context) : null;
-        this.dependentRequired = parseDependentRequired(schema.get("dependencies"));
-        this.dependentSchemas = parseDependentSchemas(schema.get("dependencies"), context);
+        this.dependentRequired = parseDependentRequired(schema);
+        this.dependentSchemas = parseDependentSchemas(schema, context);
         this.allOf = parseSchemaArray(schema.get("allOf"), context);
         this.anyOf = parseSchemaArray(schema.get("anyOf"), context);
         this.oneOf = parseSchemaArray(schema.get("oneOf"), context);
@@ -420,16 +409,25 @@ public final class JsonSchemaImpl implements JsonSchema
     }
 
     private static Map<String, Set<String>> parseDependentRequired(
-        JsonNode value)
+        JsonNode schema)
     {
         Map<String, Set<String>> result = new LinkedHashMap<>();
+        collectDependentRequired(schema.get("dependencies"), result);
+        collectDependentRequired(schema.get("dependentRequired"), result);
+        return result.isEmpty() ? null : result;
+    }
+
+    private static void collectDependentRequired(
+        JsonNode value,
+        Map<String, Set<String>> result)
+    {
         if (value != null)
         {
             for (Map.Entry<String, JsonNode> entry : value.members().entrySet())
             {
                 if (entry.getValue().isArray())
                 {
-                    Set<String> names = new HashSet<>();
+                    Set<String> names = new LinkedHashSet<>();
                     for (JsonNode name : entry.getValue().elements())
                     {
                         names.add(name.string());
@@ -438,14 +436,23 @@ public final class JsonSchemaImpl implements JsonSchema
                 }
             }
         }
-        return result.isEmpty() ? null : result;
     }
 
     private static Map<String, JsonSchemaImpl> parseDependentSchemas(
-        JsonNode value,
+        JsonNode schema,
         Context context)
     {
         Map<String, JsonSchemaImpl> result = new LinkedHashMap<>();
+        collectDependentSchemas(schema.get("dependencies"), context, result);
+        collectDependentSchemas(schema.get("dependentSchemas"), context, result);
+        return result.isEmpty() ? null : result;
+    }
+
+    private static void collectDependentSchemas(
+        JsonNode value,
+        Context context,
+        Map<String, JsonSchemaImpl> result)
+    {
         if (value != null)
         {
             for (Map.Entry<String, JsonNode> entry : value.members().entrySet())
@@ -456,7 +463,6 @@ public final class JsonSchemaImpl implements JsonSchema
                 }
             }
         }
-        return result.isEmpty() ? null : result;
     }
 
     private static boolean scalarEquals(
@@ -743,6 +749,18 @@ public final class JsonSchemaImpl implements JsonSchema
                 else if (text.contains("draft-06"))
                 {
                     draft = Draft.DRAFT_06;
+                }
+                else if (text.contains("draft-07"))
+                {
+                    draft = Draft.DRAFT_07;
+                }
+                else if (text.contains("2019-09"))
+                {
+                    draft = Draft.DRAFT_2019_09;
+                }
+                else if (text.contains("2020-12"))
+                {
+                    draft = Draft.DRAFT_2020_12;
                 }
             }
         }

@@ -78,6 +78,16 @@ class JsonSchemaConformanceTest
         "allOf", "anyOf", "oneOf", "not"
     };
 
+    private static final String[] DRAFT2019_FILES =
+    {
+        "dependentRequired", "dependentSchemas"
+    };
+
+    private static final String[] DRAFT2020_FILES =
+    {
+        "dependentRequired", "dependentSchemas"
+    };
+
     @TestFactory
     Stream<DynamicNode> draft7()
     {
@@ -94,6 +104,18 @@ class JsonSchemaConformanceTest
     Stream<DynamicNode> draft4()
     {
         return suite(Draft.DRAFT_04, "draft4", DRAFT4_FILES);
+    }
+
+    @TestFactory
+    Stream<DynamicNode> draft201909()
+    {
+        return suite(Draft.DRAFT_2019_09, "draft2019-09", DRAFT2019_FILES);
+    }
+
+    @TestFactory
+    Stream<DynamicNode> draft202012()
+    {
+        return suite(Draft.DRAFT_2020_12, "draft2020-12", DRAFT2020_FILES);
     }
 
     private static Stream<DynamicNode> suite(

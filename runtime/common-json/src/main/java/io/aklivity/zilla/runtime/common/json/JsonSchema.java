@@ -38,7 +38,7 @@ public interface JsonSchema
 {
     enum Draft
     {
-        DRAFT_04, DRAFT_06, DRAFT_07
+        DRAFT_04, DRAFT_06, DRAFT_07, DRAFT_2019_09, DRAFT_2020_12
     }
 
     static JsonSchema of(

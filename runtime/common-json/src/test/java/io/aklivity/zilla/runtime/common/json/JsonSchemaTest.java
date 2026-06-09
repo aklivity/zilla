@@ -189,13 +189,6 @@ class JsonSchemaTest
     }
 
     @Test
-    void shouldFailFastForUnsupportedKeywords()
-    {
-        assertUnsupported("{\"dependentRequired\":{}}");
-        assertUnsupported("{\"dependentSchemas\":{}}");
-    }
-
-    @Test
     void shouldFailFastForStructuralEnum()
     {
         assertUnsupported("{\"enum\":[{}]}");
