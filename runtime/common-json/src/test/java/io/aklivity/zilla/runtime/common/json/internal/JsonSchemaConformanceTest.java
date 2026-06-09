@@ -87,7 +87,7 @@ class JsonSchemaConformanceTest
         "patternProperties", "additionalProperties", "additionalItems", "propertyNames",
         "boolean_schema", "allOf", "anyOf", "oneOf", "not", "if-then-else", "items", "contains",
         "minContains", "maxContains", "dependentRequired", "dependentSchemas", "format",
-        "unevaluatedProperties", "unevaluatedItems"
+        "unevaluatedProperties", "unevaluatedItems", "recursiveRef", "defs", "anchor"
     };
 
     private static final String[] DRAFT2020_FILES =
@@ -98,7 +98,7 @@ class JsonSchemaConformanceTest
         "patternProperties", "additionalProperties", "propertyNames", "boolean_schema", "allOf",
         "anyOf", "oneOf", "not", "if-then-else", "prefixItems", "items", "contains", "minContains",
         "maxContains", "dependentRequired", "dependentSchemas", "format",
-        "unevaluatedProperties", "unevaluatedItems"
+        "unevaluatedProperties", "unevaluatedItems", "dynamicRef", "defs", "anchor"
     };
 
     @TestFactory
@@ -161,10 +161,6 @@ class JsonSchemaConformanceTest
         String description = group.get("description").string();
         String schema = toJson(group.get("schema"));
         DynamicNode node;
-        if (schema.contains("$dynamicRef") || schema.contains("$recursiveRef"))
-        {
-            return dynamicTest(description, () -> abort("dynamic refs pending"));
-        }
         try
         {
             JsonSchema compiled = JsonSchema.of(schema, JsonSchemaConformanceTest::resolveRemote, draft);
@@ -183,6 +179,10 @@ class JsonSchemaConformanceTest
         {
             node = dynamicTest(description, () -> abort("ECMA-262 regex unsupported by java.util.regex"));
         }
+        catch (IllegalArgumentException ex)
+        {
+            node = dynamicTest(description, () -> abort("remote document not vendored: " + ex.getMessage()));
+        }
         return node;
     }
 
@@ -195,8 +195,20 @@ class JsonSchemaConformanceTest
         String data = toJson(test.get("data"));
         boolean expected = test.get("valid").isTrue();
         return dynamicTest(description, () ->
-            assertEquals(expected, compiled.validate(parserFor(data + " ")),
-                () -> "schema verdict mismatch for schema: " + schema + " data: " + data));
+        {
+            boolean actual;
+            try
+            {
+                actual = compiled.validate(parserFor(data + " "));
+            }
+            catch (IllegalArgumentException ex)
+            {
+                abort("remote document not vendored: " + ex.getMessage());
+                return;
+            }
+            assertEquals(expected, actual,
+                () -> "schema verdict mismatch for schema: " + schema + " data: " + data);
+        });
     }
 
     private static String toJson(
@@ -315,6 +327,15 @@ class JsonSchemaConformanceTest
         {
             String version = uri.substring("http://json-schema.org/".length(), uri.length() - "/schema".length());
             resource = ROOT + "metaschema/" + version + ".json";
+        }
+        else if (uri.startsWith("https://json-schema.org/draft/"))
+        {
+            String path = uri.substring("https://json-schema.org/".length());
+            resource = ROOT + "remotes/" + path + ".json";
+        }
+        else if (uri.startsWith("http://localhost:1234/"))
+        {
+            resource = ROOT + "remotes/" + uri.substring("http://localhost:1234/".length());
         }
         return resource != null && exists(resource) ? read(resource) : null;
     }

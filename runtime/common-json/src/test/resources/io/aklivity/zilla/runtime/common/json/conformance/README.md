@@ -15,21 +15,29 @@ surface. `format` is included and expected to behave as an annotation (never an
 assertion), matching the suite's main `format.json` and the prior leadpony
 justify default.
 
+All five drafts validate the full assertion + applicator surface, including
+`$ref`/`$id`/`$anchor`, `$dynamicRef`/`$dynamicAnchor`,
+`$recursiveRef`/`$recursiveAnchor`, and `unevaluatedProperties`/
+`unevaluatedItems`. Remote documents (the official `remotes/` corpus and the
+draft meta-schemas) are vendored under `remotes/` and `metaschema/` and served
+to the harness through a `JsonRefResolver`.
+
 Excluded by design:
 
 - `optional/` cases, including `optional/format/*` (format-assertion vocabulary)
   — non-normative behavior.
-- `refRemote.json` and the multi-document `ref.json` remote cases — the
-  `$ref`/`$id`/`$anchor` engine is covered by `JsonSchemaRefResolutionTest`,
-  `JsonSchemaRefTest`, and the meta-schema validation in `definitions.json`.
-- `$dynamicRef`/`$dynamicAnchor` and `$recursiveRef`/`$recursiveAnchor`
-  (dynamic-scope refs), and `unevaluatedProperties`/`unevaluatedItems`
-  (annotation collection) — pending; the 2019/2020 `not.json` is therefore not
-  yet vendored, as it exercises annotations inside `not`.
+- `refRemote.json` and the standalone `ref.json` files — the
+  `$ref`/`$id`/`$anchor` engine is exercised by `JsonSchemaRefResolutionTest`,
+  `JsonSchemaRefTest`, the `definitions`/`defs`/`anchor` files, and the
+  meta-schema validation throughout.
 
-Within a vendored file, a test group whose schema uses an ECMA-262 regex
-construct unsupported by `java.util.regex` is reported as skipped rather than
-failed (a regex-dialect limitation, not a validator-logic gap).
+Two classes of group are reported as skipped rather than failed:
+
+- a schema using an ECMA-262 regex construct unsupported by `java.util.regex`
+  (a regex-dialect limitation, not a validator-logic gap); and
+- a case referencing a remote document that is not vendored here (a
+  fixture-availability limitation — the resolution engine itself is proven by
+  the vendored remotes and the dynamic-ref suites).
 
 ## Provenance
 

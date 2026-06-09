@@ -97,6 +97,8 @@ public final class JsonSchemaImpl implements JsonSchema
     private final boolean deny;
     private final String ref;
     private final String refApplicator;
+    private final String dynamicRef;
+    private final boolean recursiveRef;
     private final Context context;
     private final Set<JsonType> types;
     private final Set<String> enumCanons;
@@ -252,6 +254,10 @@ public final class JsonSchemaImpl implements JsonSchema
         this.refApplicator = is2019Plus(context.draft()) && schema.has("$ref")
             ? context.resolveRef(schema.get("$ref").string())
             : null;
+        this.dynamicRef = is2019Plus(context.draft()) && schema.has("$dynamicRef")
+            ? schema.get("$dynamicRef").string()
+            : null;
+        this.recursiveRef = is2019Plus(context.draft()) && schema.has("$recursiveRef");
         this.context = context;
         this.types = parseTypes(schema.get("type"));
         this.enumCanons = parseEnumCanons(schema.get("enum"));
@@ -314,6 +320,8 @@ public final class JsonSchemaImpl implements JsonSchema
         this.deny = false;
         this.ref = ref;
         this.refApplicator = null;
+        this.dynamicRef = null;
+        this.recursiveRef = false;
         this.context = context;
         this.types = null;
         this.enumCanons = null;
@@ -363,6 +371,8 @@ public final class JsonSchemaImpl implements JsonSchema
         this.deny = deny;
         this.ref = null;
         this.refApplicator = null;
+        this.dynamicRef = null;
+        this.recursiveRef = false;
         this.context = null;
         this.types = null;
         this.enumCanons = null;
@@ -408,11 +418,18 @@ public final class JsonSchemaImpl implements JsonSchema
 
     private Eval eval()
     {
-        return eval(Trace.NONE);
+        return eval(Trace.NONE, DynScope.ROOT);
     }
 
     private Eval eval(
         Trace trace)
+    {
+        return eval(trace, DynScope.ROOT);
+    }
+
+    private Eval eval(
+        Trace trace,
+        DynScope parentScope)
     {
         JsonSchemaImpl schema = this;
         Set<String> visited = null;
@@ -428,13 +445,14 @@ public final class JsonSchemaImpl implements JsonSchema
             }
             schema = schema.context.resolve(schema.ref);
         }
-        return schema.evalDirect(trace);
+        return schema.evalDirect(trace, parentScope);
     }
 
     private Eval evalDirect(
-        Trace trace)
+        Trace trace,
+        DynScope parentScope)
     {
-        return new Eval(trace);
+        return new Eval(trace, parentScope);
     }
 
     private static Map<Pattern, JsonSchemaImpl> parsePatternProperties(
@@ -958,6 +976,16 @@ public final class JsonSchemaImpl implements JsonSchema
             {
                 registry.anchors.put(anchorKey(scope, anchorNode.string()), node);
             }
+            JsonNode dynamicAnchorNode = node.get("$dynamicAnchor");
+            if (dynamicAnchorNode != null && dynamicAnchorNode.isString())
+            {
+                registry.dynamicAnchors.put(anchorKey(scope, dynamicAnchorNode.string()), node);
+            }
+            JsonNode recursiveAnchorNode = node.get("$recursiveAnchor");
+            if (recursiveAnchorNode != null && recursiveAnchorNode.isTrue())
+            {
+                registry.recursiveResources.add(scope.toString());
+            }
             indexChildren(node, scope, registry);
         }
     }
@@ -1025,6 +1053,8 @@ public final class JsonSchemaImpl implements JsonSchema
         private final Draft draft;
         private final Map<String, JsonNode> ids;
         private final Map<String, JsonNode> anchors;
+        private final Map<String, JsonNode> dynamicAnchors;
+        private final Set<String> recursiveResources;
         private final Map<String, JsonSchemaImpl> cache;
 
         private Registry(
@@ -1035,6 +1065,8 @@ public final class JsonSchemaImpl implements JsonSchema
             this.draft = draft;
             this.ids = new HashMap<>();
             this.anchors = new HashMap<>();
+            this.dynamicAnchors = new HashMap<>();
+            this.recursiveResources = new HashSet<>();
             this.cache = new HashMap<>();
         }
     }
@@ -1095,6 +1127,10 @@ public final class JsonSchemaImpl implements JsonSchema
                     node = registry.anchors.get(uri + "#" + fragment);
                     if (node == null)
                     {
+                        node = registry.dynamicAnchors.get(uri + "#" + fragment);
+                    }
+                    if (node == null)
+                    {
                         throw new IllegalArgumentException("unresolved $ref: " + ref);
                     }
                 }
@@ -1140,6 +1176,78 @@ public final class JsonSchemaImpl implements JsonSchema
             }
             return node;
         }
+
+        private JsonSchemaImpl resolveDynamic(
+            String dynamicRef,
+            DynScope scope)
+        {
+            String absolute = resolveRef(dynamicRef);
+            int hash = absolute.indexOf('#');
+            String targetBase = hash < 0 ? absolute : absolute.substring(0, hash);
+            String name = hash < 0 ? "" : absolute.substring(hash + 1);
+            JsonSchemaImpl result;
+            boolean bookended = !name.isEmpty() && registry.dynamicAnchors.containsKey(targetBase + "#" + name);
+            if (bookended)
+            {
+                String outerBase = scope.dynamicAnchorBase(registry, name);
+                String resolvedBase = outerBase != null ? outerBase : targetBase;
+                JsonNode node = registry.dynamicAnchors.get(resolvedBase + "#" + name);
+                result = from(node, new Context(registry, URI.create(resolvedBase)));
+            }
+            else
+            {
+                result = resolve(absolute);
+            }
+            return result;
+        }
+
+        private JsonSchemaImpl resolveRecursive(
+            DynScope scope)
+        {
+            String outerBase = registry.recursiveResources.contains(base.toString())
+                ? scope.recursiveBase(registry)
+                : null;
+            URI target = outerBase != null ? URI.create(outerBase) : base;
+            return from(registry.ids.get(target.toString()), new Context(registry, target));
+        }
+    }
+
+    private static final class DynScope
+    {
+        private static final DynScope ROOT = new DynScope(null, null);
+
+        private final DynScope parent;
+        private final String base;
+
+        private DynScope(
+            DynScope parent,
+            String base)
+        {
+            this.parent = parent;
+            this.base = base;
+        }
+
+        private DynScope push(
+            String base)
+        {
+            return base.equals(this.base) ? this : new DynScope(this, base);
+        }
+
+        private String dynamicAnchorBase(
+            Registry registry,
+            String name)
+        {
+            String outer = parent != null ? parent.dynamicAnchorBase(registry, name) : null;
+            return outer != null ? outer
+                : base != null && registry.dynamicAnchors.containsKey(base + "#" + name) ? base : null;
+        }
+
+        private String recursiveBase(
+            Registry registry)
+        {
+            String outer = parent != null ? parent.recursiveBase(registry) : null;
+            return outer != null ? outer : base != null && registry.recursiveResources.contains(base) ? base : null;
+        }
     }
 
     private static final class Token
@@ -1157,9 +1265,10 @@ public final class JsonSchemaImpl implements JsonSchema
     }
 
     private boolean validateTokens(
-        List<Token> tokens)
+        List<Token> tokens,
+        DynScope scope)
     {
-        Eval eval = eval(Trace.NONE);
+        Eval eval = eval(Trace.NONE, scope);
         TokenCursor cursor = new TokenCursor();
         Verdict verdict = Verdict.PENDING;
         for (Token token : tokens)
@@ -1336,6 +1445,7 @@ public final class JsonSchemaImpl implements JsonSchema
         private List<Token> uniqueTokens;
         private final List<Token> valueTokens;
         private Eval refEval;
+        private Eval dynEval;
 
         private final boolean annotate;
         private Set<String> evaluatedProps;
@@ -1345,19 +1455,23 @@ public final class JsonSchemaImpl implements JsonSchema
         private List<List<Token>> itemValues;
         private List<Token> childTokens;
 
+        private final DynScope dynScope;
+
         private Eval(
-            Trace trace)
+            Trace trace,
+            DynScope parentScope)
         {
             this.trace = trace;
+            this.dynScope = context != null ? parentScope.push(context.base.toString()) : parentScope;
             this.annotate = context != null && is2019Plus(context.draft());
             this.valueTokens = constantCanon != null || enumCanons != null ? new ArrayList<>() : null;
             this.allOfEvals = evalsOf(allOf, trace);
             this.anyOfEvals = evalsOf(anyOf, trace);
             this.oneOfEvals = evalsOf(oneOf, trace);
-            this.notEval = notSchema != null ? notSchema.eval(trace) : null;
-            this.ifEval = ifSchema != null ? ifSchema.eval(trace) : null;
-            this.thenEval = thenSchema != null ? thenSchema.eval(trace) : null;
-            this.elseEval = elseSchema != null ? elseSchema.eval(trace) : null;
+            this.notEval = notSchema != null ? notSchema.eval(trace, dynScope) : null;
+            this.ifEval = ifSchema != null ? ifSchema.eval(trace, dynScope) : null;
+            this.thenEval = thenSchema != null ? thenSchema.eval(trace, dynScope) : null;
+            this.elseEval = elseSchema != null ? elseSchema.eval(trace, dynScope) : null;
             this.dependentSchemaEvals = evalsOfMap(dependentSchemas, trace);
             this.trackKeys = required != null || dependentRequired != null || dependentSchemaEvals != null;
         }
@@ -1379,7 +1493,15 @@ public final class JsonSchemaImpl implements JsonSchema
                 }
                 if (refApplicator != null && refEval == null)
                 {
-                    refEval = context.resolve(refApplicator).eval(trace);
+                    refEval = context.resolve(refApplicator).eval(trace, dynScope);
+                }
+                if (dynamicRef != null && dynEval == null)
+                {
+                    dynEval = context.resolveDynamic(dynamicRef, dynScope).eval(trace, dynScope);
+                }
+                if (recursiveRef && dynEval == null)
+                {
+                    dynEval = context.resolveRecursive(dynScope).eval(trace, dynScope);
                 }
                 directFeed(event, parser);
                 feedCombinators(event, parser);
@@ -1649,7 +1771,7 @@ public final class JsonSchemaImpl implements JsonSchema
                 {
                     childTokens = new ArrayList<>();
                 }
-                if (propertyNames != null && propertyNames.eval(trace).feed(VALUE_STRING, parser) != Verdict.VALID)
+                if (propertyNames != null && propertyNames.eval(trace, dynScope).feed(VALUE_STRING, parser) != Verdict.VALID)
                 {
                     directInvalid = true;
                     trace.report("propertyNames", "property name '" + key + "' violates propertyNames", parser);
@@ -1697,14 +1819,14 @@ public final class JsonSchemaImpl implements JsonSchema
                 count++;
                 currentIndex = index;
                 directChildMark = trace.push(index);
-                directChild = elementSchema(index).eval(trace);
+                directChild = elementSchema(index).eval(trace, dynScope);
                 if (annotate && coversItem(index))
                 {
                     evaluatedItems.set(index);
                 }
                 if (contains != null)
                 {
-                    containsChild = contains.eval(Trace.NONE);
+                    containsChild = contains.eval(Trace.NONE, dynScope);
                 }
                 if (uniqueItems)
                 {
@@ -1847,7 +1969,7 @@ public final class JsonSchemaImpl implements JsonSchema
                 {
                     schema = additionalSchema != null ? additionalSchema : additionalAllowed ? ANY : NONE;
                 }
-                directChild = schema.eval(trace);
+                directChild = schema.eval(trace, dynScope);
                 directChildren = null;
             }
             else
@@ -1884,7 +2006,7 @@ public final class JsonSchemaImpl implements JsonSchema
         {
             if (applicable.size() == 1)
             {
-                directChild = applicable.get(0).eval(trace);
+                directChild = applicable.get(0).eval(trace, dynScope);
                 directChildren = null;
             }
             else
@@ -1899,6 +2021,7 @@ public final class JsonSchemaImpl implements JsonSchema
             JsonParser parser)
         {
             feedOne(refEval, event, parser);
+            feedOne(dynEval, event, parser);
             feedAll(allOfEvals, event, parser);
             feedAll(anyOfEvals, event, parser);
             feedAll(oneOfEvals, event, parser);
@@ -1948,6 +2071,11 @@ public final class JsonSchemaImpl implements JsonSchema
             {
                 valid = false;
                 trace.report("$ref", "instance failed referenced schema", parser);
+            }
+            if (valid && dynEval != null && dynEval.result != Verdict.VALID)
+            {
+                valid = false;
+                trace.report("$dynamicRef", "instance failed dynamically referenced schema", parser);
             }
             if (valid && valueTokens != null)
             {
@@ -2071,6 +2199,7 @@ public final class JsonSchemaImpl implements JsonSchema
         private void mergeAnnotations()
         {
             mergeAnnotation(refEval);
+            mergeAnnotation(dynEval);
             mergeAnnotations(allOfEvals);
             mergeAnnotations(anyOfEvals);
             mergeAnnotations(oneOfEvals);
@@ -2131,7 +2260,7 @@ public final class JsonSchemaImpl implements JsonSchema
             {
                 if (!evaluatedProps.contains(entry.getKey()))
                 {
-                    if (unevaluatedProperties.validateTokens(entry.getValue()))
+                    if (unevaluatedProperties.validateTokens(entry.getValue(), dynScope))
                     {
                         evaluatedProps.add(entry.getKey());
                     }
@@ -2154,7 +2283,7 @@ public final class JsonSchemaImpl implements JsonSchema
             {
                 if (!evaluatedItems.get(index))
                 {
-                    if (unevaluatedItems.validateTokens(itemValues.get(index)))
+                    if (unevaluatedItems.validateTokens(itemValues.get(index), dynScope))
                     {
                         evaluatedItems.set(index);
                     }
@@ -2179,7 +2308,7 @@ public final class JsonSchemaImpl implements JsonSchema
                 result = new Eval[schemas.size()];
                 for (int i = 0; i < schemas.size(); i++)
                 {
-                    result[i] = schemas.get(i).eval(childTrace);
+                    result[i] = schemas.get(i).eval(childTrace, dynScope);
                 }
             }
             return result;
@@ -2195,7 +2324,7 @@ public final class JsonSchemaImpl implements JsonSchema
                 result = new LinkedHashMap<>();
                 for (Map.Entry<String, JsonSchemaImpl> entry : schemas.entrySet())
                 {
-                    result.put(entry.getKey(), entry.getValue().eval(childTrace));
+                    result.put(entry.getKey(), entry.getValue().eval(childTrace, dynScope));
                 }
             }
             return result;
