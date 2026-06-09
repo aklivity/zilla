@@ -1098,6 +1098,11 @@ public final class JsonSchemaImpl implements JsonSchema
                     directInvalid = true;
                     trace.report("type", "expected " + typesText() + " but was object", parser);
                 }
+                else if (constant != null || enums != null)
+                {
+                    directInvalid = true;
+                    trace.report(constant != null ? "const" : "enum", "object not in allowed set", parser);
+                }
                 break;
             case START_ARRAY:
                 array = true;
@@ -1105,6 +1110,11 @@ public final class JsonSchemaImpl implements JsonSchema
                 {
                     directInvalid = true;
                     trace.report("type", "expected " + typesText() + " but was array", parser);
+                }
+                else if (constant != null || enums != null)
+                {
+                    directInvalid = true;
+                    trace.report(constant != null ? "const" : "enum", "array not in allowed set", parser);
                 }
                 break;
             case VALUE_STRING:
@@ -1210,8 +1220,10 @@ public final class JsonSchemaImpl implements JsonSchema
         private void checkNumberReport(
             JsonParser parser)
         {
-            boolean integral = parser.isIntegralNumber();
             BigDecimal value = parser.getBigDecimal();
+            boolean integral = context != null && context.draft != Draft.DRAFT_04
+                ? value.signum() == 0 || value.stripTrailingZeros().scale() <= 0
+                : parser.isIntegralNumber();
             boolean typeOk = types == null ||
                 types.contains(JsonType.NUMBER) ||
                 integral && types.contains(JsonType.INTEGER);

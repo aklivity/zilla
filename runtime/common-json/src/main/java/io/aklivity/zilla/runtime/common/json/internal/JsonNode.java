@@ -128,7 +128,7 @@ final class JsonNode
 
     int integer()
     {
-        return Integer.parseInt(text);
+        return new BigDecimal(text).intValueExact();
     }
 
     private JsonNode(
