@@ -1,0 +1,84 @@
+/*
+ * Copyright 2021-2024 Aklivity Inc
+ *
+ * Licensed under the Aklivity Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ *   https://www.aklivity.io/aklivity-community-license/
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+package io.aklivity.zilla.runtime.common.json;
+
+import java.util.Set;
+import java.util.function.Consumer;
+
+import jakarta.json.stream.JsonParser;
+
+import io.aklivity.zilla.runtime.common.json.internal.JsonSchemaImpl;
+
+/**
+ * A compiled, immutable JSON Schema validating a streaming {@link JsonParser} event stream
+ * without materialising a DOM. Compile once per schema and reuse for the lifetime of the
+ * binding; each {@link #validate(JsonParser)} call creates a per-call evaluator and may be
+ * called repeatedly on the owning worker thread.
+ * <p>
+ * Drafts 04, 06, and 07 are supported; {@link Draft} selects the dialect and is otherwise
+ * auto-detected from a top-level {@code $schema} URI (defaulting to draft-07).
+ * <p>
+ * Diagnostics, when requested via the {@link Consumer} overload, are produced at parity with
+ * leadpony justify's {@code Problem} output ({@code "[line,col][pointer] message"}), with the
+ * failing keyword carried alongside the instance JSON-Pointer.
+ */
+public interface JsonSchema
+{
+    enum Draft
+    {
+        DRAFT_04, DRAFT_06, DRAFT_07, DRAFT_2019_09, DRAFT_2020_12
+    }
+
+    static JsonSchema of(
+        String schema)
+    {
+        return JsonSchemaImpl.of(schema);
+    }
+
+    static JsonSchema of(
+        String schema,
+        JsonRefResolver resolver)
+    {
+        return JsonSchemaImpl.of(schema, resolver);
+    }
+
+    static JsonSchema of(
+        String schema,
+        Draft draft)
+    {
+        return JsonSchemaImpl.of(schema, draft);
+    }
+
+    static JsonSchema of(
+        String schema,
+        JsonRefResolver resolver,
+        Draft draft)
+    {
+        return JsonSchemaImpl.of(schema, resolver, draft);
+    }
+
+    static Set<String> collectRefs(
+        String schema)
+    {
+        return JsonSchemaImpl.collectRefs(schema);
+    }
+
+    boolean validate(
+        JsonParser parser);
+
+    boolean validate(
+        JsonParser parser,
+        Consumer<JsonSchemaDiagnostic> reporter);
+}
