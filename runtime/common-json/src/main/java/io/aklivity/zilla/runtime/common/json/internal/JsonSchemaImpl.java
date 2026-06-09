@@ -49,6 +49,7 @@ import io.aklivity.zilla.runtime.common.json.JsonRefResolver;
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
 import io.aklivity.zilla.runtime.common.json.JsonSchema.Draft;
 import io.aklivity.zilla.runtime.common.json.JsonSchemaDiagnostic;
+import io.aklivity.zilla.runtime.common.json.JsonValidationException;
 
 /**
  * An immutable, compiled JSON Schema that validates an instance by consuming a streaming
@@ -214,6 +215,23 @@ public final class JsonSchemaImpl implements JsonSchema
             verdict = eval.feed(parser.next(), parser);
         }
         return verdict == Verdict.VALID;
+    }
+
+    @Override
+    public JsonParser newParser(
+        boolean throwing,
+        JsonParser parser)
+    {
+        return newParser(throwing, parser, null);
+    }
+
+    @Override
+    public JsonParser newParser(
+        boolean throwing,
+        JsonParser parser,
+        Consumer<JsonSchemaDiagnostic> reporter)
+    {
+        return new ValidatingParser(throwing, parser, reporter);
     }
 
     private JsonSchemaImpl(
@@ -1472,6 +1490,103 @@ public final class JsonSchemaImpl implements JsonSchema
         }
     }
 
+    private final class ValidatingParser implements JsonParser
+    {
+        private final JsonParser delegate;
+        private final boolean throwing;
+        private final Consumer<JsonSchemaDiagnostic> reporter;
+        private final List<JsonSchemaDiagnostic> diagnostics;
+        private final Eval eval;
+
+        private Verdict verdict;
+
+        private ValidatingParser(
+            boolean throwing,
+            JsonParser delegate,
+            Consumer<JsonSchemaDiagnostic> reporter)
+        {
+            this.delegate = delegate;
+            this.throwing = throwing;
+            this.reporter = reporter;
+            this.diagnostics = throwing || reporter != null ? new ArrayList<>() : null;
+            this.eval = diagnostics != null ? eval(new Trace(this::report)) : eval();
+            this.verdict = Verdict.PENDING;
+        }
+
+        @Override
+        public Event next()
+        {
+            Event event = delegate.next();
+            if (verdict == Verdict.PENDING)
+            {
+                verdict = eval.feed(event, this);
+                if (verdict == Verdict.INVALID && throwing)
+                {
+                    throw new JsonValidationException(diagnostics);
+                }
+            }
+            return event;
+        }
+
+        @Override
+        public boolean hasNext()
+        {
+            return delegate.hasNext();
+        }
+
+        @Override
+        public String getString()
+        {
+            return delegate.getString();
+        }
+
+        @Override
+        public boolean isIntegralNumber()
+        {
+            return delegate.isIntegralNumber();
+        }
+
+        @Override
+        public int getInt()
+        {
+            return delegate.getInt();
+        }
+
+        @Override
+        public long getLong()
+        {
+            return delegate.getLong();
+        }
+
+        @Override
+        public BigDecimal getBigDecimal()
+        {
+            return delegate.getBigDecimal();
+        }
+
+        @Override
+        public JsonLocation getLocation()
+        {
+            return delegate.getLocation();
+        }
+
+        @Override
+        public void close()
+        {
+            delegate.close();
+        }
+
+        private void report(
+            JsonSchemaDiagnostic diagnostic)
+        {
+            diagnostics.add(diagnostic);
+            if (reporter != null)
+            {
+                reporter.accept(diagnostic);
+            }
+        }
+    }
+
     private final class Eval
     {
         private final Trace trace;
@@ -1524,14 +1639,18 @@ public final class JsonSchemaImpl implements JsonSchema
             this.dynScope = context != null ? parentScope.push(context.base.toString()) : parentScope;
             this.annotate = context != null && is2019Plus(context.draft());
             this.valueTokens = constantCanon != null || enumCanons != null ? new ArrayList<>() : null;
+            // allOf branches must all match, so a failing branch is a genuine failure and reports
+            // through the shared trace; the remaining combinators select among candidate branches
+            // where a non-matching branch is expected, so they evaluate under Trace.NONE and only
+            // the combine() summary diagnostic surfaces when the combinator as a whole fails.
             this.allOfEvals = evalsOf(allOf, trace);
-            this.anyOfEvals = evalsOf(anyOf, trace);
-            this.oneOfEvals = evalsOf(oneOf, trace);
-            this.notEval = notSchema != null ? notSchema.eval(trace, dynScope) : null;
-            this.ifEval = ifSchema != null ? ifSchema.eval(trace, dynScope) : null;
-            this.thenEval = thenSchema != null ? thenSchema.eval(trace, dynScope) : null;
-            this.elseEval = elseSchema != null ? elseSchema.eval(trace, dynScope) : null;
-            this.dependentSchemaEvals = evalsOfMap(dependentSchemas, trace);
+            this.anyOfEvals = evalsOf(anyOf, Trace.NONE);
+            this.oneOfEvals = evalsOf(oneOf, Trace.NONE);
+            this.notEval = notSchema != null ? notSchema.eval(Trace.NONE, dynScope) : null;
+            this.ifEval = ifSchema != null ? ifSchema.eval(Trace.NONE, dynScope) : null;
+            this.thenEval = thenSchema != null ? thenSchema.eval(Trace.NONE, dynScope) : null;
+            this.elseEval = elseSchema != null ? elseSchema.eval(Trace.NONE, dynScope) : null;
+            this.dependentSchemaEvals = evalsOfMap(dependentSchemas, Trace.NONE);
             this.trackKeys = required != null || dependentRequired != null || dependentSchemaEvals != null;
         }
 
