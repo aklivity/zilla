@@ -15,6 +15,9 @@
  */
 package io.aklivity.zilla.specs.engine.config;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
 import java.util.ArrayList;
@@ -23,6 +26,7 @@ import java.util.Objects;
 import java.util.function.Function;
 
 import jakarta.json.JsonArray;
+import jakarta.json.JsonException;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonPatch;
 import jakarta.json.JsonReader;
@@ -32,16 +36,15 @@ import jakarta.json.stream.JsonParser;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
-import org.leadpony.justify.api.JsonSchema;
-import org.leadpony.justify.api.JsonSchemaReader;
-import org.leadpony.justify.api.JsonValidationService;
-import org.leadpony.justify.api.ProblemHandler;
 
+import io.aklivity.zilla.runtime.common.json.JsonSchema;
+import io.aklivity.zilla.runtime.common.json.JsonSchemaDiagnostic;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 
 public final class ConfigSchemaRule implements TestRule
 {
     private JsonProvider provider;
+    private JsonSchema schema;
 
     private String schemaName = "io/aklivity/zilla/specs/engine/schema/engine.schema.json";
     private List<String> schemaPatchNames = new ArrayList<>();
@@ -100,14 +103,8 @@ public final class ConfigSchemaRule implements TestRule
             schemaObject = schemaPatch.apply(schemaObject);
         }
 
-        JsonParser schemaParser = schemaProvider.createParserFactory(null)
-            .createParser(new StringReader(schemaObject.toString()));
-
-        JsonValidationService service = JsonValidationService.newInstance(YamlJson.provider());
-        JsonSchemaReader reader = service.createSchemaReader(schemaParser);
-        JsonSchema schema = reader.read();
-
-        provider = service.createJsonProvider(schema, parser -> ProblemHandler.throwing());
+        schema = JsonSchema.of(schemaObject.toString());
+        provider = YamlJson.provider();
 
         if (configurationRoot != null)
         {
@@ -127,9 +124,41 @@ public final class ConfigSchemaRule implements TestRule
     public JsonObject validate(
         String configName)
     {
-        InputStream input = findConfig.apply(configName);
-        JsonReader reader = provider.createReader(input);
+        String configText = read(findConfig.apply(configName));
 
-        return reader.readObject();
+        JsonObject config;
+        try (JsonReader reader = provider.createReader(new StringReader(configText)))
+        {
+            config = reader.readObject();
+        }
+
+        List<JsonSchemaDiagnostic> diagnostics = new ArrayList<>();
+        boolean valid;
+        try (JsonParser parser = provider.createParser(new StringReader(configText)))
+        {
+            valid = schema.validate(parser, diagnostics::add);
+        }
+
+        if (!valid)
+        {
+            throw new JsonException(diagnostics.isEmpty()
+                ? "configuration failed schema validation"
+                : diagnostics.get(0).toString());
+        }
+
+        return config;
+    }
+
+    private static String read(
+        InputStream input)
+    {
+        try
+        {
+            return new String(input.readAllBytes(), UTF_8);
+        }
+        catch (IOException ex)
+        {
+            throw new IllegalStateException("Unable to read configuration", ex);
+        }
     }
 }
