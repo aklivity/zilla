@@ -28,6 +28,7 @@ import static jakarta.json.stream.JsonParser.Event.VALUE_TRUE;
 import java.math.BigDecimal;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -120,7 +121,10 @@ public final class JsonSchemaImpl implements JsonSchema
     private final Map<String, JsonSchemaImpl> properties;
     private final Set<String> required;
     private final boolean additionalAllowed;
+    private final boolean hasAdditional;
     private final JsonSchemaImpl additionalSchema;
+    private final JsonSchemaImpl unevaluatedProperties;
+    private final JsonSchemaImpl unevaluatedItems;
     private final int minProperties;
     private final int maxProperties;
     private final Map<Pattern, JsonSchemaImpl> patternProperties;
@@ -280,7 +284,14 @@ public final class JsonSchemaImpl implements JsonSchema
         this.properties = parseProperties(schema.get("properties"), context);
         this.required = parseRequired(schema.get("required"));
         this.additionalAllowed = additionalAllowed;
+        this.hasAdditional = additional != null;
         this.additionalSchema = additionalSchema;
+        this.unevaluatedProperties = schema.has("unevaluatedProperties")
+            ? from(schema.get("unevaluatedProperties"), context)
+            : null;
+        this.unevaluatedItems = schema.has("unevaluatedItems")
+            ? from(schema.get("unevaluatedItems"), context)
+            : null;
         this.minProperties = integer(schema, "minProperties");
         this.maxProperties = integer(schema, "maxProperties");
         this.patternProperties = parsePatternProperties(schema.get("patternProperties"), context);
@@ -327,7 +338,10 @@ public final class JsonSchemaImpl implements JsonSchema
         this.properties = null;
         this.required = null;
         this.additionalAllowed = true;
+        this.hasAdditional = false;
         this.additionalSchema = null;
+        this.unevaluatedProperties = null;
+        this.unevaluatedItems = null;
         this.minProperties = -1;
         this.maxProperties = -1;
         this.patternProperties = null;
@@ -373,7 +387,10 @@ public final class JsonSchemaImpl implements JsonSchema
         this.properties = null;
         this.required = null;
         this.additionalAllowed = true;
+        this.hasAdditional = false;
         this.additionalSchema = null;
+        this.unevaluatedProperties = null;
+        this.unevaluatedItems = null;
         this.minProperties = -1;
         this.maxProperties = -1;
         this.patternProperties = null;
@@ -1139,6 +1156,78 @@ public final class JsonSchemaImpl implements JsonSchema
         }
     }
 
+    private boolean validateTokens(
+        List<Token> tokens)
+    {
+        Eval eval = eval(Trace.NONE);
+        TokenCursor cursor = new TokenCursor();
+        Verdict verdict = Verdict.PENDING;
+        for (Token token : tokens)
+        {
+            cursor.token = token;
+            verdict = eval.feed(token.event, cursor);
+        }
+        return verdict == Verdict.VALID;
+    }
+
+    private static final class TokenCursor implements JsonParser
+    {
+        private Token token;
+
+        @Override
+        public String getString()
+        {
+            return token.text;
+        }
+
+        @Override
+        public boolean isIntegralNumber()
+        {
+            return !token.text.contains(".") && !token.text.contains("e") && !token.text.contains("E");
+        }
+
+        @Override
+        public BigDecimal getBigDecimal()
+        {
+            return new BigDecimal(token.text);
+        }
+
+        @Override
+        public int getInt()
+        {
+            return new BigDecimal(token.text).intValue();
+        }
+
+        @Override
+        public long getLong()
+        {
+            return new BigDecimal(token.text).longValue();
+        }
+
+        @Override
+        public boolean hasNext()
+        {
+            return false;
+        }
+
+        @Override
+        public Event next()
+        {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public JsonLocation getLocation()
+        {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void close()
+        {
+        }
+    }
+
     private static final class Trace
     {
         private static final Trace NONE = new Trace(null);
@@ -1237,6 +1326,7 @@ public final class JsonSchemaImpl implements JsonSchema
         private boolean array;
         private Set<String> seen;
         private int count;
+        private int currentIndex;
         private Eval directChild;
         private int directChildMark;
         private Eval[] directChildren;
@@ -1247,10 +1337,19 @@ public final class JsonSchemaImpl implements JsonSchema
         private final List<Token> valueTokens;
         private Eval refEval;
 
+        private final boolean annotate;
+        private Set<String> evaluatedProps;
+        private BitSet evaluatedItems;
+        private String currentKey;
+        private Map<String, List<Token>> propValues;
+        private List<List<Token>> itemValues;
+        private List<Token> childTokens;
+
         private Eval(
             Trace trace)
         {
             this.trace = trace;
+            this.annotate = context != null && is2019Plus(context.draft());
             this.valueTokens = constantCanon != null || enumCanons != null ? new ArrayList<>() : null;
             this.allOfEvals = evalsOf(allOf, trace);
             this.anyOfEvals = evalsOf(anyOf, trace);
@@ -1338,6 +1437,14 @@ public final class JsonSchemaImpl implements JsonSchema
             case START_OBJECT:
                 object = true;
                 seen = trackKeys ? new HashSet<>() : null;
+                if (annotate)
+                {
+                    evaluatedProps = new HashSet<>();
+                }
+                if (unevaluatedProperties != null)
+                {
+                    propValues = new LinkedHashMap<>();
+                }
                 if (types != null && !types.contains(JsonType.OBJECT))
                 {
                     directInvalid = true;
@@ -1346,6 +1453,14 @@ public final class JsonSchemaImpl implements JsonSchema
                 break;
             case START_ARRAY:
                 array = true;
+                if (annotate)
+                {
+                    evaluatedItems = new BitSet();
+                }
+                if (unevaluatedItems != null)
+                {
+                    itemValues = new ArrayList<>();
+                }
                 if (types != null && !types.contains(JsonType.ARRAY))
                 {
                     directInvalid = true;
@@ -1525,9 +1640,14 @@ public final class JsonSchemaImpl implements JsonSchema
             {
                 String key = parser.getString();
                 count++;
+                currentKey = key;
                 if (seen != null)
                 {
                     seen.add(key);
+                }
+                if (propValues != null)
+                {
+                    childTokens = new ArrayList<>();
                 }
                 if (propertyNames != null && propertyNames.eval(trace).feed(VALUE_STRING, parser) != Verdict.VALID)
                 {
@@ -1575,8 +1695,13 @@ public final class JsonSchemaImpl implements JsonSchema
             {
                 int index = count;
                 count++;
+                currentIndex = index;
                 directChildMark = trace.push(index);
                 directChild = elementSchema(index).eval(trace);
+                if (annotate && coversItem(index))
+                {
+                    evaluatedItems.set(index);
+                }
                 if (contains != null)
                 {
                     containsChild = contains.eval(Trace.NONE);
@@ -1589,8 +1714,19 @@ public final class JsonSchemaImpl implements JsonSchema
                     }
                     uniqueTokens = new ArrayList<>();
                 }
+                if (itemValues != null)
+                {
+                    childTokens = new ArrayList<>();
+                }
                 routeChildren(event, parser);
             }
+        }
+
+        private boolean coversItem(
+            int index)
+        {
+            return items != null ||
+                itemsTuple != null && (index < itemsTuple.size() || additionalItems != null);
         }
 
         private JsonSchemaImpl elementSchema(
@@ -1621,6 +1757,10 @@ public final class JsonSchemaImpl implements JsonSchema
             if (uniqueTokens != null)
             {
                 uniqueTokens.add(new Token(event, tokenText(event, parser)));
+            }
+            if (childTokens != null)
+            {
+                childTokens.add(new Token(event, tokenText(event, parser)));
             }
             boolean complete = false;
             if (directChild != null)
@@ -1658,6 +1798,10 @@ public final class JsonSchemaImpl implements JsonSchema
                     if (verdict == Verdict.VALID)
                     {
                         containsMatched++;
+                        if (annotate)
+                        {
+                            evaluatedItems.set(currentIndex);
+                        }
                     }
                     containsChild = null;
                 }
@@ -1675,6 +1819,18 @@ public final class JsonSchemaImpl implements JsonSchema
                     }
                     uniqueTokens = null;
                 }
+                if (childTokens != null)
+                {
+                    if (propValues != null && currentKey != null)
+                    {
+                        propValues.put(currentKey, childTokens);
+                    }
+                    else if (itemValues != null)
+                    {
+                        itemValues.add(childTokens);
+                    }
+                    childTokens = null;
+                }
             }
         }
 
@@ -1682,9 +1838,11 @@ public final class JsonSchemaImpl implements JsonSchema
             String key)
         {
             directChildMark = trace.push(key);
+            boolean matched;
             if (patternProperties == null)
             {
                 JsonSchemaImpl schema = properties != null ? properties.get(key) : null;
+                matched = schema != null;
                 if (schema == null)
                 {
                     schema = additionalSchema != null ? additionalSchema : additionalAllowed ? ANY : NONE;
@@ -1695,7 +1853,7 @@ public final class JsonSchemaImpl implements JsonSchema
             else
             {
                 List<JsonSchemaImpl> applicable = new ArrayList<>();
-                boolean matched = false;
+                matched = false;
                 if (properties != null && properties.containsKey(key))
                 {
                     applicable.add(properties.get(key));
@@ -1714,6 +1872,10 @@ public final class JsonSchemaImpl implements JsonSchema
                     applicable.add(additionalSchema != null ? additionalSchema : additionalAllowed ? ANY : NONE);
                 }
                 setApplicable(applicable);
+            }
+            if (annotate && (matched || hasAdditional))
+            {
+                evaluatedProps.add(key);
             }
         }
 
@@ -1891,7 +2053,120 @@ public final class JsonSchemaImpl implements JsonSchema
                     }
                 }
             }
+            if (valid && annotate)
+            {
+                mergeAnnotations();
+            }
+            if (valid && propValues != null)
+            {
+                valid = checkUnevaluatedProperties(parser);
+            }
+            if (valid && itemValues != null)
+            {
+                valid = checkUnevaluatedItems(parser);
+            }
             return valid ? Verdict.VALID : Verdict.INVALID;
+        }
+
+        private void mergeAnnotations()
+        {
+            mergeAnnotation(refEval);
+            mergeAnnotations(allOfEvals);
+            mergeAnnotations(anyOfEvals);
+            mergeAnnotations(oneOfEvals);
+            if (ifEval != null && ifEval.result == Verdict.VALID)
+            {
+                mergeAnnotation(ifEval);
+                mergeAnnotation(thenEval);
+            }
+            else if (ifEval != null)
+            {
+                mergeAnnotation(elseEval);
+            }
+            if (dependentSchemaEvals != null && seen != null)
+            {
+                for (Map.Entry<String, Eval> entry : dependentSchemaEvals.entrySet())
+                {
+                    if (seen.contains(entry.getKey()))
+                    {
+                        mergeAnnotation(entry.getValue());
+                    }
+                }
+            }
+        }
+
+        private void mergeAnnotations(
+            Eval[] evals)
+        {
+            if (evals != null)
+            {
+                for (Eval eval : evals)
+                {
+                    mergeAnnotation(eval);
+                }
+            }
+        }
+
+        private void mergeAnnotation(
+            Eval eval)
+        {
+            if (eval != null && eval.result == Verdict.VALID)
+            {
+                if (eval.evaluatedProps != null && evaluatedProps != null)
+                {
+                    evaluatedProps.addAll(eval.evaluatedProps);
+                }
+                if (eval.evaluatedItems != null && evaluatedItems != null)
+                {
+                    evaluatedItems.or(eval.evaluatedItems);
+                }
+            }
+        }
+
+        private boolean checkUnevaluatedProperties(
+            JsonParser parser)
+        {
+            boolean valid = true;
+            for (Map.Entry<String, List<Token>> entry : propValues.entrySet())
+            {
+                if (!evaluatedProps.contains(entry.getKey()))
+                {
+                    if (unevaluatedProperties.validateTokens(entry.getValue()))
+                    {
+                        evaluatedProps.add(entry.getKey());
+                    }
+                    else
+                    {
+                        valid = false;
+                        trace.report("unevaluatedProperties",
+                            "property '" + entry.getKey() + "' failed unevaluatedProperties", parser);
+                    }
+                }
+            }
+            return valid;
+        }
+
+        private boolean checkUnevaluatedItems(
+            JsonParser parser)
+        {
+            boolean valid = true;
+            for (int index = 0; index < itemValues.size(); index++)
+            {
+                if (!evaluatedItems.get(index))
+                {
+                    if (unevaluatedItems.validateTokens(itemValues.get(index)))
+                    {
+                        evaluatedItems.set(index);
+                    }
+                    else
+                    {
+                        valid = false;
+                        trace.report("unevaluatedItems",
+                            "item at index " + index + " failed unevaluatedItems", parser);
+                    }
+                }
+            }
+            return valid;
         }
 
         private Eval[] evalsOf(
