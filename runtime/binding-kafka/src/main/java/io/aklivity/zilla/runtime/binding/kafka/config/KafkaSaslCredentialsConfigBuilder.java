@@ -15,63 +15,54 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.config;
 
-
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 
-public final class KafkaSaslConfigBuilder<T> extends ConfigBuilder<T, KafkaSaslConfigBuilder<T>>
+public final class KafkaSaslCredentialsConfigBuilder<T> extends ConfigBuilder<T, KafkaSaslCredentialsConfigBuilder<T>>
 {
-    private final Function<KafkaSaslConfig, T> mapper;
+    private final Function<KafkaSaslCredentialsConfig, T> mapper;
     private String mechanism;
     private String username;
     private String password;
-    private long guardId;
 
-    KafkaSaslConfigBuilder(
-        Function<KafkaSaslConfig, T> mapper)
+    KafkaSaslCredentialsConfigBuilder(
+        Function<KafkaSaslCredentialsConfig, T> mapper)
     {
         this.mapper = mapper;
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    protected Class<KafkaSaslConfigBuilder<T>> thisType()
+    protected Class<KafkaSaslCredentialsConfigBuilder<T>> thisType()
     {
-        return (Class<KafkaSaslConfigBuilder<T>>) getClass();
+        return (Class<KafkaSaslCredentialsConfigBuilder<T>>) getClass();
     }
 
-    public KafkaSaslConfigBuilder<T> mechanism(
+    public KafkaSaslCredentialsConfigBuilder<T> mechanism(
         String mechanism)
     {
         this.mechanism = mechanism;
         return this;
     }
 
-    public KafkaSaslConfigBuilder<T> username(
+    public KafkaSaslCredentialsConfigBuilder<T> username(
         String username)
     {
         this.username = username;
         return this;
     }
 
-    public KafkaSaslConfigBuilder<T> password(
+    public KafkaSaslCredentialsConfigBuilder<T> password(
         String password)
     {
         this.password = password;
         return this;
     }
 
-    public KafkaSaslConfigBuilder<T> guardId(
-        long guardId)
-    {
-        this.guardId = guardId;
-        return this;
-    }
-
     @Override
     public T build()
     {
-        return mapper.apply(new KafkaSaslConfig(mechanism, username, password, guardId));
+        return mapper.apply(new KafkaSaslCredentialsConfig(mechanism, username, password));
     }
 }

@@ -24,6 +24,7 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
+import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
@@ -55,6 +56,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.sasl.SaslHan
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.sasl.SaslHandshakeResponseFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
 public abstract class KafkaClientSaslHandshaker
 {
@@ -75,6 +77,9 @@ public abstract class KafkaClientSaslHandshaker
     private static final int ERROR_SASL_AUTHENTICATION_FAILED = 58;
     private static final int ERROR_TRANSACTIONAL_ID_AUTHORIZATION_FAILED = 53;
     private static final int ERROR_INVALID_RECORD = 87;
+
+    private static final String IDENTITY_TEMPLATE = "{identity}";
+    private static final String CREDENTIALS_TEMPLATE = "{credentials}";
 
     private static final String CLIENT_KEY = "Client Key";
     private static final String SERVER_KEY = "Server Key";
@@ -120,11 +125,13 @@ public abstract class KafkaClientSaslHandshaker
     private Matcher serverResponseMatcher;
     private byte[] result, ui, prev;
 
+
     private final Map<KafkaServerConfig, String16FW> clientIdsByServer;
 
     protected final KafkaClientIdSupplier clientIdSupplier;
     protected final LongUnaryOperator supplyInitialId;
     protected final LongUnaryOperator supplyReplyId;
+    protected final LongFunction<GuardHandler> supplyGuard;
     protected final MutableDirectBuffer writeBuffer;
 
     public KafkaClientSaslHandshaker(
@@ -134,6 +141,7 @@ public abstract class KafkaClientSaslHandshaker
         this.clientIdSupplier = KafkaClientIdSupplier.instantiate(config);
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
+        this.supplyGuard = context::supplyGuard;
         this.writeBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.nonceSupplier = config.nonceSupplier();
         this.clientIdsByServer = new Object2ObjectHashMap<>();
@@ -163,6 +171,7 @@ public abstract class KafkaClientSaslHandshaker
         byte[] authMessage;
         private LongLongConsumer encodeSaslAuthenticate;
         private KafkaSaslClientDecoder decodeSaslAuthenticate;
+        private long guardSession;
 
         protected KafkaSaslClient(
             List<KafkaServerConfig> servers,
@@ -195,6 +204,15 @@ public abstract class KafkaClientSaslHandshaker
             long traceId,
             long budgetId)
         {
+            if (sasl.guardId != 0L)
+            {
+                final GuardHandler guard = supplyGuard.apply(sasl.guardId);
+                if (guard != null)
+                {
+                    guardSession = guard.reauthorize(traceId, routedId, initialId, null);
+                }
+            }
+
             final MutableDirectBuffer encodeBuffer = writeBuffer;
             final int encodeOffset = DataFW.FIELD_OFFSET_PAYLOAD;
             final int encodeLimit = encodeBuffer.capacity();
@@ -266,8 +284,8 @@ public abstract class KafkaClientSaslHandshaker
 
             encodeProgress = requestHeader.limit();
 
-            final String username = sasl.username;
-            final String password = sasl.password;
+            final String username = resolveUsername();
+            final String password = resolvePassword();
 
             final SaslAuthenticateRequestFW authenticateRequest =
                     saslAuthenticateRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
@@ -324,7 +342,7 @@ public abstract class KafkaClientSaslHandshaker
 
             encodeProgress = requestHeader.limit();
 
-            final String username = sasl.username;
+            final String username = resolveUsername();
             clientNonce = nonceSupplier.get();
 
             int scramBytes = 0;
@@ -380,11 +398,13 @@ public abstract class KafkaClientSaslHandshaker
             {
                 LangUtil.rethrowUnchecked(e);
             }
-            saltedPassword = hi(sasl.password.getBytes(StandardCharsets.US_ASCII),
+            final String password = resolvePassword();
+            final String username = resolveUsername();
+            saltedPassword = hi(password.getBytes(StandardCharsets.US_ASCII),
                     Base64.getDecoder().decode(toBytes(salt)),
                     Integer.parseInt(iterationCount));
             authMessage = toBytes(String.format(AUTH_MESSAGE_FORMAT,
-                    sasl.username, clientNonce, serverNonce, salt, iterationCount, SASL_SCRAM_CHANNEL_RANDOM, serverNonce));
+                    username, clientNonce, serverNonce, salt, iterationCount, SASL_SCRAM_CHANNEL_RANDOM, serverNonce));
 
             int scramBytes = 0;
             scramBuffer.putBytes(scramBytes, SASL_SCRAM_CHANNEL);
@@ -470,6 +490,42 @@ public abstract class KafkaClientSaslHandshaker
             case ERROR_TRANSACTIONAL_ID_AUTHORIZATION_FAILED ->
                 event.transactionalIdAuthorizationFailed(traceId, bindingId, apiKey, apiVersion);
             }
+        }
+
+        private String resolveUsername()
+        {
+            String username = sasl.username;
+            if (sasl.guardId != 0L && IDENTITY_TEMPLATE.equals(username))
+            {
+                final GuardHandler guard = supplyGuard.apply(sasl.guardId);
+                if (guard != null)
+                {
+                    final String identity = guard.identity(guardSession);
+                    if (identity != null)
+                    {
+                        username = identity;
+                    }
+                }
+            }
+            return username;
+        }
+
+        private String resolvePassword()
+        {
+            String password = sasl.password;
+            if (sasl.guardId != 0L && CREDENTIALS_TEMPLATE.equals(password))
+            {
+                final GuardHandler guard = supplyGuard.apply(sasl.guardId);
+                if (guard != null)
+                {
+                    final String credentials = guard.credentials(guardSession);
+                    if (credentials != null)
+                    {
+                        password = credentials;
+                    }
+                }
+            }
+            return password;
         }
 
         protected abstract void doNetworkData(

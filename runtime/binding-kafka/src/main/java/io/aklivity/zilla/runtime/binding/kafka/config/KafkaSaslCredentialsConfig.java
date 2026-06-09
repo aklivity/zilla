@@ -15,50 +15,32 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.config;
 
-
 import java.util.function.Function;
 
-public class KafkaSaslConfig
+public final class KafkaSaslCredentialsConfig
 {
     public final String mechanism;
     public final String username;
     public final String password;
-    public final long guardId;
 
-    public static KafkaSaslConfigBuilder<KafkaSaslConfig> builder()
+    public static KafkaSaslCredentialsConfigBuilder<KafkaSaslCredentialsConfig> builder()
     {
-        return new KafkaSaslConfigBuilder<>(KafkaSaslConfig.class::cast);
+        return new KafkaSaslCredentialsConfigBuilder<>(KafkaSaslCredentialsConfig.class::cast);
     }
 
-    public static <T> KafkaSaslConfigBuilder<T> builder(
-        Function<KafkaSaslConfig, T> mapper)
+    public static <T> KafkaSaslCredentialsConfigBuilder<T> builder(
+        Function<KafkaSaslCredentialsConfig, T> mapper)
     {
-        return new KafkaSaslConfigBuilder<>(mapper);
+        return new KafkaSaslCredentialsConfigBuilder<>(mapper);
     }
 
-    KafkaSaslConfig(
+    KafkaSaslCredentialsConfig(
         String mechanism,
         String username,
         String password)
     {
-        this(mechanism, username, password, 0L);
-    }
-
-    KafkaSaslConfig(
-        String mechanism,
-        String username,
-        String password,
-        long guardId)
-    {
         this.mechanism = mechanism;
         this.username = username;
         this.password = password;
-        this.guardId = guardId;
-    }
-
-    @Override
-    public String toString()
-    {
-        return String.format("%s [username=%s]", mechanism, username);
     }
 }

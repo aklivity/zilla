@@ -74,6 +74,16 @@ public class ClientMetaSaslIT
     }
 
     @Test
+    @Configuration("client.options.authorization.yaml")
+    @Specification({
+        "${app}/topic.partition.info/client",
+        "${net}/topic.partition.info.sasl.plain/server"})
+    public void shouldRequestTopicPartitionInfoWithGuardCredentials() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("client.event.sasl.authentication.failed.yaml")
     @Specification({
         "${app}/sasl.authentication.failed/client",

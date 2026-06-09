@@ -25,6 +25,7 @@ import java.util.function.ToLongFunction;
 
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslCredentialsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaServerConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaDeltaType;
@@ -42,6 +43,7 @@ public final class KafkaBindingConfig
     public final List<KafkaRouteConfig> routes;
     public final ToLongFunction<String> resolveId;
     public final List<KafkaTopicType> topicTypes;
+    public final long guardId;
 
     public KafkaBindingConfig(
         BindingConfig binding,
@@ -55,6 +57,16 @@ public final class KafkaBindingConfig
         this.resolveId = binding.resolveId;
         this.topicTypes = options != null && options.topics != null
             ? options.topics.stream().map(t -> new KafkaTopicType(context, t)).collect(toList()) : Collections.emptyList();
+        this.guardId = resolveGuardId(binding, options);
+    }
+
+    private static long resolveGuardId(
+        BindingConfig binding,
+        KafkaOptionsConfig options)
+    {
+        return options != null && options.authorization != null
+            ? binding.resolveId.applyAsLong(options.authorization.name)
+            : 0L;
     }
 
     public KafkaRouteConfig resolve(
@@ -90,7 +102,25 @@ public final class KafkaBindingConfig
 
     public KafkaSaslConfig sasl()
     {
-        return options != null ? options.sasl : null;
+        KafkaSaslConfig sasl = null;
+        if (options != null)
+        {
+            if (options.sasl != null)
+            {
+                sasl = options.sasl;
+            }
+            else if (options.authorization != null && guardId != 0L)
+            {
+                KafkaSaslCredentialsConfig credentials = options.authorization.credentials;
+                sasl = KafkaSaslConfig.builder()
+                    .mechanism(credentials.mechanism)
+                    .username(credentials.username)
+                    .password(credentials.password)
+                    .guardId(guardId)
+                    .build();
+            }
+        }
+        return sasl;
     }
 
     public List<KafkaServerConfig> servers()

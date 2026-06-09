@@ -32,6 +32,7 @@ public final class KafkaOptionsConfig extends OptionsConfig
     public final List<KafkaTopicConfig> topics;
     public final List<KafkaServerConfig> servers;
     public final KafkaSaslConfig sasl;
+    public final KafkaAuthorizationConfig authorization;
 
     public static KafkaOptionsConfigBuilder<KafkaOptionsConfig> builder()
     {
@@ -48,13 +49,15 @@ public final class KafkaOptionsConfig extends OptionsConfig
         List<String> bootstrap,
         List<KafkaTopicConfig> topics,
         List<KafkaServerConfig> servers,
-        KafkaSaslConfig sasl)
+        KafkaSaslConfig sasl,
+        KafkaAuthorizationConfig authorization)
     {
         super(resolveModels(topics), List.of());
         this.bootstrap = bootstrap;
         this.topics = topics;
         this.servers = servers;
         this.sasl = sasl;
+        this.authorization = authorization;
     }
 
     private static List<ModelConfig> resolveModels(
