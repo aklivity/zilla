@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.common.json;
+package io.aklivity.zilla.runtime.common.json.internal;
 
 import static jakarta.json.stream.JsonParser.Event.END_ARRAY;
 import static jakarta.json.stream.JsonParser.Event.END_OBJECT;
@@ -28,6 +28,9 @@ import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParser.Event;
 
 import org.agrona.concurrent.UnsafeBuffer;
+
+import io.aklivity.zilla.runtime.common.json.DirectBufferInputStreamEx;
+import io.aklivity.zilla.runtime.common.json.StreamingJson;
 
 /**
  * A minimal, provider-free JSON tree parsed with {@link StreamingJson} so that {@code

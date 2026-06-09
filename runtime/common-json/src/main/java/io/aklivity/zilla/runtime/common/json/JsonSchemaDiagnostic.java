@@ -14,80 +14,16 @@
  */
 package io.aklivity.zilla.runtime.common.json;
 
-import java.util.Objects;
-
-public final class JsonSchemaDiagnostic
+public record JsonSchemaDiagnostic(
+    long line,
+    long column,
+    String pointer,
+    String keyword,
+    String message)
 {
-    private final long line;
-    private final long column;
-    private final String pointer;
-    private final String keyword;
-    private final String message;
-
-    public JsonSchemaDiagnostic(
-        long line,
-        long column,
-        String pointer,
-        String keyword,
-        String message)
-    {
-        this.line = line;
-        this.column = column;
-        this.pointer = pointer;
-        this.keyword = keyword;
-        this.message = message;
-    }
-
-    public long line()
-    {
-        return line;
-    }
-
-    public long column()
-    {
-        return column;
-    }
-
-    public String pointer()
-    {
-        return pointer;
-    }
-
-    public String keyword()
-    {
-        return keyword;
-    }
-
-    public String message()
-    {
-        return message;
-    }
-
     @Override
     public String toString()
     {
         return "[" + line + "," + column + "][" + pointer + "] " + message;
-    }
-
-    @Override
-    public boolean equals(
-        Object other)
-    {
-        boolean equal = this == other;
-        if (!equal && other instanceof JsonSchemaDiagnostic that)
-        {
-            equal = line == that.line &&
-                column == that.column &&
-                Objects.equals(pointer, that.pointer) &&
-                Objects.equals(keyword, that.keyword) &&
-                Objects.equals(message, that.message);
-        }
-        return equal;
-    }
-
-    @Override
-    public int hashCode()
-    {
-        return Objects.hash(line, column, pointer, keyword, message);
     }
 }
