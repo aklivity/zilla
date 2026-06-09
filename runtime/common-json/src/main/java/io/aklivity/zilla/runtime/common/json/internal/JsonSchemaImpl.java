@@ -26,6 +26,7 @@ import static jakarta.json.stream.JsonParser.Event.VALUE_STRING;
 import static jakarta.json.stream.JsonParser.Event.VALUE_TRUE;
 
 import java.math.BigDecimal;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -68,10 +69,19 @@ public final class JsonSchemaImpl implements JsonSchema
     private static final JsonSchemaImpl ANY = new JsonSchemaImpl(false);
     private static final JsonSchemaImpl NONE = new JsonSchemaImpl(true);
 
-    private static final JsonRefResolver LOCAL_ONLY = ref ->
-    {
-        throw new UnsupportedOperationException("non-local $ref not resolvable: " + ref);
-    };
+    private static final JsonRefResolver LOCAL_ONLY = ref -> null;
+
+    private static final URI EMPTY_URI = URI.create("");
+
+    private static final List<String> SINGLE_SUBSCHEMAS = List.of(
+        "additionalProperties", "additionalItems", "unevaluatedProperties", "unevaluatedItems",
+        "contains", "propertyNames", "not", "if", "then", "else", "contentSchema");
+
+    private static final List<String> ARRAY_SUBSCHEMAS = List.of(
+        "prefixItems", "allOf", "anyOf", "oneOf");
+
+    private static final List<String> MAP_SUBSCHEMAS = List.of(
+        "properties", "patternProperties", "$defs", "definitions", "dependentSchemas");
 
     private enum JsonType
     {
@@ -149,7 +159,11 @@ public final class JsonSchemaImpl implements JsonSchema
     {
         JsonNode root = JsonNode.parse(schema);
         Draft resolved = draft != null ? draft : detectDraft(root);
-        return from(root, new Context(root, resolver, resolved));
+        Registry registry = new Registry(resolver, resolved);
+        URI rootBase = baseOf(root, EMPTY_URI, resolved);
+        registry.ids.put(rootBase.toString(), root);
+        index(root, EMPTY_URI, registry);
+        return from(root, new Context(registry, rootBase));
     }
 
     public static Set<String> collectRefs(
@@ -213,11 +227,11 @@ public final class JsonSchemaImpl implements JsonSchema
         this.constant = parseConst(schema.get("const"));
         BigDecimal minimumValue = number(schema, "minimum");
         BigDecimal maximumValue = number(schema, "maximum");
-        BigDecimal exclusiveMin = exclusiveBound(schema, "exclusiveMinimum", minimumValue, context.draft);
-        BigDecimal exclusiveMax = exclusiveBound(schema, "exclusiveMaximum", maximumValue, context.draft);
-        boolean minSuppressed = exclusiveMin != null && context.draft == Draft.DRAFT_04 &&
+        BigDecimal exclusiveMin = exclusiveBound(schema, "exclusiveMinimum", minimumValue, context.draft());
+        BigDecimal exclusiveMax = exclusiveBound(schema, "exclusiveMaximum", maximumValue, context.draft());
+        boolean minSuppressed = exclusiveMin != null && context.draft() == Draft.DRAFT_04 &&
             schema.has("exclusiveMinimum") && schema.get("exclusiveMinimum").isTrue();
-        boolean maxSuppressed = exclusiveMax != null && context.draft == Draft.DRAFT_04 &&
+        boolean maxSuppressed = exclusiveMax != null && context.draft() == Draft.DRAFT_04 &&
             schema.has("exclusiveMaximum") && schema.get("exclusiveMaximum").isTrue();
         this.minimum = minSuppressed ? null : minimumValue;
         this.maximum = maxSuppressed ? null : maximumValue;
@@ -501,24 +515,22 @@ public final class JsonSchemaImpl implements JsonSchema
         Context context)
     {
         JsonSchemaImpl result;
-        if (value.isObject() && value.has("$ref"))
+        if (value.isObject())
         {
-            result = new JsonSchemaImpl(value.get("$ref").string(), context);
+            Context scope = context.scope(value);
+            if (value.has("$ref"))
+            {
+                String absolute = scope.resolveRef(value.get("$ref").string());
+                result = new JsonSchemaImpl(absolute, scope);
+            }
+            else
+            {
+                result = new JsonSchemaImpl(value, scope);
+            }
         }
         else
         {
-            switch (value.kind())
-            {
-            case OBJECT:
-                result = new JsonSchemaImpl(value, context);
-                break;
-            case FALSE:
-                result = NONE;
-                break;
-            default:
-                result = ANY;
-                break;
-            }
+            result = value.isFalse() ? NONE : ANY;
         }
         return result;
     }
@@ -845,65 +857,250 @@ public final class JsonSchemaImpl implements JsonSchema
         return value.signum() == 0 ? "0" : value.stripTrailingZeros().toPlainString();
     }
 
-    private static final class Context
+    private static URI baseOf(
+        JsonNode node,
+        URI parentBase,
+        Draft draft)
     {
-        private final JsonNode root;
-        private final JsonRefResolver resolver;
-        private final Map<String, JsonSchemaImpl> cache;
-        private final Draft draft;
+        URI base = parentBase;
+        JsonNode idNode = draft == Draft.DRAFT_04 ? node.get("id") : node.get("$id");
+        if (idNode != null && idNode.isString())
+        {
+            String id = idNode.string();
+            if (!id.isEmpty() && !id.startsWith("#"))
+            {
+                base = stripFragment(parentBase.resolve(id));
+            }
+        }
+        return base;
+    }
 
-        private Context(
-            JsonNode root,
+    private static URI stripFragment(
+        URI uri)
+    {
+        String text = uri.toString();
+        int hash = text.indexOf('#');
+        return hash < 0 ? uri : URI.create(text.substring(0, hash));
+    }
+
+    private static String anchorKey(
+        URI base,
+        String anchor)
+    {
+        return base.toString() + "#" + anchor;
+    }
+
+    private static void index(
+        JsonNode node,
+        URI base,
+        Registry registry)
+    {
+        if (node != null && node.isObject())
+        {
+            URI scope = base;
+            JsonNode idNode = registry.draft == Draft.DRAFT_04 ? node.get("id") : node.get("$id");
+            if (idNode != null && idNode.isString())
+            {
+                String id = idNode.string();
+                if (id.startsWith("#"))
+                {
+                    registry.anchors.put(anchorKey(base, id.substring(1)), node);
+                }
+                else if (!id.isEmpty())
+                {
+                    URI full = base.resolve(id);
+                    scope = stripFragment(full);
+                    registry.ids.put(scope.toString(), node);
+                    if (full.getRawFragment() != null && !full.getRawFragment().isEmpty())
+                    {
+                        registry.anchors.put(anchorKey(scope, full.getRawFragment()), node);
+                    }
+                }
+            }
+            JsonNode anchorNode = node.get("$anchor");
+            if (anchorNode != null && anchorNode.isString())
+            {
+                registry.anchors.put(anchorKey(scope, anchorNode.string()), node);
+            }
+            indexChildren(node, scope, registry);
+        }
+    }
+
+    private static void indexChildren(
+        JsonNode node,
+        URI scope,
+        Registry registry)
+    {
+        for (String keyword : SINGLE_SUBSCHEMAS)
+        {
+            index(node.get(keyword), scope, registry);
+        }
+        JsonNode items = node.get("items");
+        if (items != null && items.isArray())
+        {
+            indexArray(items, scope, registry);
+        }
+        else
+        {
+            index(items, scope, registry);
+        }
+        for (String keyword : ARRAY_SUBSCHEMAS)
+        {
+            indexArray(node.get(keyword), scope, registry);
+        }
+        for (String keyword : MAP_SUBSCHEMAS)
+        {
+            indexMap(node.get(keyword), scope, registry);
+        }
+        index(node.get("dependencies"), scope, registry);
+    }
+
+    private static void indexArray(
+        JsonNode value,
+        URI scope,
+        Registry registry)
+    {
+        if (value != null && value.isArray())
+        {
+            for (JsonNode element : value.elements())
+            {
+                index(element, scope, registry);
+            }
+        }
+    }
+
+    private static void indexMap(
+        JsonNode value,
+        URI scope,
+        Registry registry)
+    {
+        if (value != null && value.isObject())
+        {
+            for (JsonNode member : value.members().values())
+            {
+                index(member, scope, registry);
+            }
+        }
+    }
+
+    private static final class Registry
+    {
+        private final JsonRefResolver resolver;
+        private final Draft draft;
+        private final Map<String, JsonNode> ids;
+        private final Map<String, JsonNode> anchors;
+        private final Map<String, JsonSchemaImpl> cache;
+
+        private Registry(
             JsonRefResolver resolver,
             Draft draft)
         {
-            this.root = root;
             this.resolver = resolver;
-            this.cache = new HashMap<>();
             this.draft = draft;
+            this.ids = new HashMap<>();
+            this.anchors = new HashMap<>();
+            this.cache = new HashMap<>();
+        }
+    }
+
+    private static final class Context
+    {
+        private final Registry registry;
+        private final URI base;
+
+        private Context(
+            Registry registry,
+            URI base)
+        {
+            this.registry = registry;
+            this.base = base;
+        }
+
+        private Draft draft()
+        {
+            return registry.draft;
+        }
+
+        private Context scope(
+            JsonNode node)
+        {
+            URI childBase = baseOf(node, base, registry.draft);
+            return childBase.equals(base) ? this : new Context(registry, childBase);
+        }
+
+        private String resolveRef(
+            String ref)
+        {
+            return base.resolve(ref).toString();
         }
 
         private JsonSchemaImpl resolve(
             String ref)
         {
-            JsonSchemaImpl schema = cache.get(ref);
+            JsonSchemaImpl schema = registry.cache.get(ref);
             if (schema == null)
             {
-                schema = from(target(ref), this);
-                cache.put(ref, schema);
+                int hash = ref.indexOf('#');
+                String uri = hash < 0 ? ref : ref.substring(0, hash);
+                String fragment = hash < 0 ? "" : ref.substring(hash + 1);
+                URI resourceBase = URI.create(uri);
+                JsonNode resource = resource(uri, resourceBase);
+                JsonNode node;
+                if (fragment.isEmpty())
+                {
+                    node = resource;
+                }
+                else if (fragment.startsWith("/"))
+                {
+                    node = pointer(resource, fragment, ref);
+                }
+                else
+                {
+                    node = registry.anchors.get(uri + "#" + fragment);
+                    if (node == null)
+                    {
+                        throw new IllegalArgumentException("unresolved $ref: " + ref);
+                    }
+                }
+                schema = from(node, new Context(registry, resourceBase));
+                registry.cache.put(ref, schema);
             }
             return schema;
         }
 
-        private JsonNode target(
+        private JsonNode resource(
+            String uri,
+            URI resourceBase)
+        {
+            JsonNode resource = registry.ids.get(uri);
+            if (resource == null)
+            {
+                String text = registry.resolver.resolve(uri);
+                if (text == null)
+                {
+                    throw new IllegalArgumentException("unresolved $ref: " + uri);
+                }
+                resource = JsonNode.parse(text);
+                registry.ids.put(uri, resource);
+                index(resource, resourceBase, registry);
+            }
+            return resource;
+        }
+
+        private JsonNode pointer(
+            JsonNode resource,
+            String fragment,
             String ref)
         {
-            JsonNode node;
-            if (ref.startsWith("#"))
+            JsonNode node = resource;
+            for (String segment : fragment.substring(1).split("/", -1))
             {
-                node = root;
-                String pointer = ref.substring(1);
-                if (!pointer.isEmpty())
-                {
-                    for (String segment : pointer.substring(1).split("/", -1))
-                    {
-                        String key = segment.replace("~1", "/").replace("~0", "~");
-                        node = node.isArray() ? node.elements().get(Integer.parseInt(key)) : node.get(key);
-                        if (node == null)
-                        {
-                            throw new IllegalArgumentException("unresolved $ref: " + ref);
-                        }
-                    }
-                }
-            }
-            else
-            {
-                String text = resolver.resolve(ref);
-                if (text == null)
+                String key = segment.replace("~1", "/").replace("~0", "~");
+                node = node.isArray() ? node.elements().get(Integer.parseInt(key)) : node.get(key);
+                if (node == null)
                 {
                     throw new IllegalArgumentException("unresolved $ref: " + ref);
                 }
-                node = JsonNode.parse(text);
             }
             return node;
         }
@@ -1239,7 +1436,7 @@ public final class JsonSchemaImpl implements JsonSchema
             JsonParser parser)
         {
             BigDecimal value = parser.getBigDecimal();
-            boolean integral = context != null && context.draft != Draft.DRAFT_04
+            boolean integral = context != null && context.draft() != Draft.DRAFT_04
                 ? value.signum() == 0 || value.stripTrailingZeros().scale() <= 0
                 : parser.isIntegralNumber();
             boolean typeOk = types == null ||

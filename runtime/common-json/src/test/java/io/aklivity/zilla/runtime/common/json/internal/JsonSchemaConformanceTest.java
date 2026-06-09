@@ -58,7 +58,7 @@ class JsonSchemaConformanceTest
         "multipleOf", "minLength", "maxLength", "pattern", "items", "additionalItems", "contains",
         "uniqueItems", "minItems", "maxItems", "properties", "required", "additionalProperties",
         "minProperties", "maxProperties", "patternProperties", "propertyNames", "dependencies",
-        "allOf", "anyOf", "oneOf", "not", "if-then-else", "boolean_schema"
+        "allOf", "anyOf", "oneOf", "not", "if-then-else", "boolean_schema", "definitions"
     };
 
     private static final String[] DRAFT6_FILES =
@@ -67,7 +67,7 @@ class JsonSchemaConformanceTest
         "multipleOf", "minLength", "maxLength", "pattern", "items", "additionalItems", "contains",
         "uniqueItems", "minItems", "maxItems", "properties", "required", "additionalProperties",
         "minProperties", "maxProperties", "patternProperties", "propertyNames", "dependencies",
-        "allOf", "anyOf", "oneOf", "not", "boolean_schema"
+        "allOf", "anyOf", "oneOf", "not", "boolean_schema", "definitions"
     };
 
     private static final String[] DRAFT4_FILES =
@@ -75,7 +75,7 @@ class JsonSchemaConformanceTest
         "type", "enum", "minimum", "maximum", "multipleOf", "minLength", "maxLength", "pattern",
         "items", "additionalItems", "uniqueItems", "minItems", "maxItems", "properties", "required",
         "additionalProperties", "minProperties", "maxProperties", "patternProperties", "dependencies",
-        "allOf", "anyOf", "oneOf", "not"
+        "allOf", "anyOf", "oneOf", "not", "definitions"
     };
 
     private static final String[] DRAFT2019_FILES =
@@ -150,7 +150,7 @@ class JsonSchemaConformanceTest
         DynamicNode node;
         try
         {
-            JsonSchema compiled = JsonSchema.of(schema, draft);
+            JsonSchema compiled = JsonSchema.of(schema, JsonSchemaConformanceTest::resolveRemote, draft);
             List<DynamicNode> cases = new ArrayList<>();
             for (JsonNode test : group.get("tests").elements())
             {
@@ -284,6 +284,24 @@ class JsonSchemaConformanceTest
             }
         }
         sb.append('"');
+    }
+
+    private static String resolveRemote(
+        String uri)
+    {
+        String resource = null;
+        if (uri.startsWith("http://json-schema.org/") && uri.endsWith("/schema"))
+        {
+            String version = uri.substring("http://json-schema.org/".length(), uri.length() - "/schema".length());
+            resource = ROOT + "metaschema/" + version + ".json";
+        }
+        return resource != null && exists(resource) ? read(resource) : null;
+    }
+
+    private static boolean exists(
+        String resource)
+    {
+        return JsonSchemaConformanceTest.class.getClassLoader().getResource(resource) != null;
     }
 
     private static String read(
