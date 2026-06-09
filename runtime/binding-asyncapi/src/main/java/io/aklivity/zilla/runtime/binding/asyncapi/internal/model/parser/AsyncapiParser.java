@@ -14,11 +14,14 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.model.parser;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.unmodifiableMap;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -33,12 +36,11 @@ import jakarta.json.spi.JsonProvider;
 import jakarta.json.stream.JsonParser;
 
 import org.agrona.collections.Object2ObjectHashMap;
-import org.leadpony.justify.api.JsonSchema;
-import org.leadpony.justify.api.JsonValidationService;
-import org.leadpony.justify.api.ProblemHandler;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiBinding;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
+import io.aklivity.zilla.runtime.common.json.JsonSchema;
+import io.aklivity.zilla.runtime.common.json.JsonSchemaDiagnostic;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 import io.aklivity.zilla.runtime.engine.config.ConfigException;
 
@@ -69,16 +71,17 @@ public class AsyncapiParser
             String asyncApiVersion = detectAsyncApiVersion(asyncapiObject);
 
             JsonProvider provider = YamlJson.provider();
-            JsonValidationService service = JsonValidationService.newInstance(provider);
-            ProblemHandler handler = service.createProblemPrinter(msg -> errors.add(new ConfigException(msg)));
             JsonSchema schema = schemas.get(asyncApiVersion);
 
-            try (JsonParser parser = service.createParser(new StringReader(asyncapiText), schema, handler))
+            List<JsonSchemaDiagnostic> diagnostics = new ArrayList<>();
+            boolean valid;
+            try (JsonParser parser = provider.createParser(new StringReader(asyncapiText)))
             {
-                while (parser.hasNext())
-                {
-                    parser.next();
-                }
+                valid = schema.validate(parser, diagnostics::add);
+            }
+            if (!valid)
+            {
+                diagnostics.forEach(problem -> errors.add(new ConfigException(problem.toString())));
             }
 
             Jsonb jsonb = JsonbBuilder.create();
@@ -104,14 +107,14 @@ public class AsyncapiParser
         String version)
     {
         final String schemaName = String.format("schema/asyncapi.%s.schema.json", version);
-        final InputStream schemaInput =  AsyncapiBinding.class.getResourceAsStream(schemaName);
-
-        return JsonValidationService.newInstance()
-                .createSchemaReaderFactoryBuilder()
-                .withSpecVersionDetection(true)
-                .build()
-                .createSchemaReader(schemaInput)
-                .read();
+        try (InputStream schemaInput = AsyncapiBinding.class.getResourceAsStream(schemaName))
+        {
+            return JsonSchema.of(new String(schemaInput.readAllBytes(), UTF_8));
+        }
+        catch (IOException ex)
+        {
+            throw new RuntimeException("Unable to read AsyncApi schema: " + schemaName, ex);
+        }
     }
 
     private JsonObject readAsyncapiObject(
