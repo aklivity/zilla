@@ -97,8 +97,8 @@ public final class JsonSchemaImpl implements JsonSchema
     private final String ref;
     private final Context context;
     private final Set<JsonType> types;
-    private final List<JsonNode> enums;
-    private final JsonNode constant;
+    private final Set<String> enumCanons;
+    private final String constantCanon;
     private final BigDecimal minimum;
     private final BigDecimal maximum;
     private final BigDecimal exclusiveMinimum;
@@ -246,8 +246,8 @@ public final class JsonSchemaImpl implements JsonSchema
         this.ref = null;
         this.context = context;
         this.types = parseTypes(schema.get("type"));
-        this.enums = parseEnum(schema.get("enum"));
-        this.constant = parseConst(schema.get("const"));
+        this.enumCanons = parseEnumCanons(schema.get("enum"));
+        this.constantCanon = schema.has("const") ? canonicalizeNode(schema.get("const")) : null;
         BigDecimal minimumValue = number(schema, "minimum");
         BigDecimal maximumValue = number(schema, "maximum");
         BigDecimal exclusiveMin = exclusiveBound(schema, "exclusiveMinimum", minimumValue, context.draft());
@@ -300,8 +300,8 @@ public final class JsonSchemaImpl implements JsonSchema
         this.ref = ref;
         this.context = context;
         this.types = null;
-        this.enums = null;
-        this.constant = null;
+        this.enumCanons = null;
+        this.constantCanon = null;
         this.minimum = null;
         this.maximum = null;
         this.exclusiveMinimum = null;
@@ -345,8 +345,8 @@ public final class JsonSchemaImpl implements JsonSchema
         this.ref = null;
         this.context = null;
         this.types = null;
-        this.enums = null;
-        this.constant = null;
+        this.enumCanons = null;
+        this.constantCanon = null;
         this.minimum = null;
         this.maximum = null;
         this.exclusiveMinimum = null;
@@ -412,27 +412,6 @@ public final class JsonSchemaImpl implements JsonSchema
         Trace trace)
     {
         return new Eval(trace);
-    }
-
-    private boolean checkConstEnum(
-        Event event,
-        String text,
-        BigDecimal number)
-    {
-        boolean valid = constant == null || scalarEquals(constant, event, text, number);
-        if (valid && enums != null)
-        {
-            valid = false;
-            for (JsonNode candidate : enums)
-            {
-                if (scalarEquals(candidate, event, text, number))
-                {
-                    valid = true;
-                    break;
-                }
-            }
-        }
-        return valid;
     }
 
     private static Map<Pattern, JsonSchemaImpl> parsePatternProperties(
@@ -506,37 +485,6 @@ public final class JsonSchemaImpl implements JsonSchema
                 }
             }
         }
-    }
-
-    private static boolean scalarEquals(
-        JsonNode expected,
-        Event event,
-        String text,
-        BigDecimal number)
-    {
-        boolean result;
-        switch (expected.kind())
-        {
-        case STRING:
-            result = event == VALUE_STRING && expected.string().equals(text);
-            break;
-        case NUMBER:
-            result = event == VALUE_NUMBER && number != null && number.compareTo(expected.number()) == 0;
-            break;
-        case TRUE:
-            result = event == VALUE_TRUE;
-            break;
-        case FALSE:
-            result = event == VALUE_FALSE;
-            break;
-        case NULL:
-            result = event == VALUE_NULL;
-            break;
-        default:
-            result = false;
-            break;
-        }
-        return result;
     }
 
     private static JsonSchemaImpl from(
@@ -645,35 +593,65 @@ public final class JsonSchemaImpl implements JsonSchema
         return result;
     }
 
-    private static List<JsonNode> parseEnum(
+    private static Set<String> parseEnumCanons(
         JsonNode value)
     {
-        List<JsonNode> result = null;
+        Set<String> result = null;
         if (value != null)
         {
-            result = new ArrayList<>();
+            result = new HashSet<>();
             for (JsonNode candidate : value.elements())
             {
-                result.add(requireScalar(candidate));
+                result.add(canonicalizeNode(candidate));
             }
         }
         return result;
     }
 
-    private static JsonNode parseConst(
-        JsonNode value)
+    private static String canonicalizeNode(
+        JsonNode node)
     {
-        return value != null ? requireScalar(value) : null;
-    }
-
-    private static JsonNode requireScalar(
-        JsonNode value)
-    {
-        if (value.isStructural())
+        String result;
+        switch (node.kind())
         {
-            throw new UnsupportedOperationException("JSON Schema structural enum/const not yet supported");
+        case OBJECT:
+        {
+            List<String> members = new ArrayList<>();
+            for (Map.Entry<String, JsonNode> entry : node.members().entrySet())
+            {
+                members.add(quote(entry.getKey()) + ":" + canonicalizeNode(entry.getValue()));
+            }
+            members.sort(null);
+            result = "{" + String.join(",", members) + "}";
+            break;
         }
-        return value;
+        case ARRAY:
+        {
+            List<String> elements = new ArrayList<>();
+            for (JsonNode element : node.elements())
+            {
+                elements.add(canonicalizeNode(element));
+            }
+            result = "[" + String.join(",", elements) + "]";
+            break;
+        }
+        case STRING:
+            result = quote(node.string());
+            break;
+        case NUMBER:
+            result = normalizeNumber(node.string());
+            break;
+        case TRUE:
+            result = "true";
+            break;
+        case FALSE:
+            result = "false";
+            break;
+        default:
+            result = "null";
+            break;
+        }
+        return result;
     }
 
     private static Map<String, JsonSchemaImpl> parseProperties(
@@ -1254,11 +1232,13 @@ public final class JsonSchemaImpl implements JsonSchema
         private int containsMatched;
         private Set<String> uniqueSeen;
         private List<Token> uniqueTokens;
+        private final List<Token> valueTokens;
 
         private Eval(
             Trace trace)
         {
             this.trace = trace;
+            this.valueTokens = constantCanon != null || enumCanons != null ? new ArrayList<>() : null;
             this.allOfEvals = evalsOf(allOf, trace);
             this.anyOfEvals = evalsOf(anyOf, trace);
             this.oneOfEvals = evalsOf(oneOf, trace);
@@ -1281,6 +1261,10 @@ public final class JsonSchemaImpl implements JsonSchema
             }
             else
             {
+                if (valueTokens != null)
+                {
+                    valueTokens.add(new Token(event, tokenText(event, parser)));
+                }
                 directFeed(event, parser);
                 feedCombinators(event, parser);
                 if (event == START_OBJECT || event == START_ARRAY)
@@ -1342,11 +1326,6 @@ public final class JsonSchemaImpl implements JsonSchema
                     directInvalid = true;
                     trace.report("type", "expected " + typesText() + " but was object", parser);
                 }
-                else if (constant != null || enums != null)
-                {
-                    directInvalid = true;
-                    trace.report(constant != null ? "const" : "enum", "object not in allowed set", parser);
-                }
                 break;
             case START_ARRAY:
                 array = true;
@@ -1354,11 +1333,6 @@ public final class JsonSchemaImpl implements JsonSchema
                 {
                     directInvalid = true;
                     trace.report("type", "expected " + typesText() + " but was array", parser);
-                }
-                else if (constant != null || enums != null)
-                {
-                    directInvalid = true;
-                    trace.report(constant != null ? "const" : "enum", "array not in allowed set", parser);
                 }
                 break;
             case VALUE_STRING:
@@ -1374,22 +1348,12 @@ public final class JsonSchemaImpl implements JsonSchema
                     directInvalid = true;
                     trace.report("type", "expected " + typesText() + " but was boolean", parser);
                 }
-                else if (!checkConstEnum(event, null, null))
-                {
-                    directInvalid = true;
-                    trace.report(constant != null ? "const" : "enum", "boolean not in allowed set", parser);
-                }
                 break;
             case VALUE_NULL:
                 if (types != null && !types.contains(JsonType.NULL))
                 {
                     directInvalid = true;
                     trace.report("type", "expected " + typesText() + " but was null", parser);
-                }
-                else if (!checkConstEnum(VALUE_NULL, null, null))
-                {
-                    directInvalid = true;
-                    trace.report(constant != null ? "const" : "enum", "null not in allowed set", parser);
                 }
                 break;
             default:
@@ -1439,11 +1403,6 @@ public final class JsonSchemaImpl implements JsonSchema
                 directInvalid = true;
                 trace.report("type", "expected " + typesText() + " but was string", parser);
             }
-            else if (!checkConstEnum(VALUE_STRING, value, null))
-            {
-                directInvalid = true;
-                trace.report(constant != null ? "const" : "enum", "string not in allowed set", parser);
-            }
             else if (minLength >= 0 && length < minLength)
             {
                 directInvalid = true;
@@ -1475,11 +1434,6 @@ public final class JsonSchemaImpl implements JsonSchema
             {
                 directInvalid = true;
                 trace.report("type", "expected " + typesText() + " but was number", parser);
-            }
-            else if (!checkConstEnum(VALUE_NUMBER, null, value))
-            {
-                directInvalid = true;
-                trace.report(constant != null ? "const" : "enum", "number not in allowed set", parser);
             }
             else if (minimum != null && value.compareTo(minimum) < 0)
             {
@@ -1810,6 +1764,20 @@ public final class JsonSchemaImpl implements JsonSchema
             JsonParser parser)
         {
             boolean valid = !directInvalid;
+            if (valid && valueTokens != null)
+            {
+                String canon = canonicalize(valueTokens, new int[] {0});
+                if (constantCanon != null && !constantCanon.equals(canon))
+                {
+                    valid = false;
+                    trace.report("const", "value does not equal const", parser);
+                }
+                else if (enumCanons != null && !enumCanons.contains(canon))
+                {
+                    valid = false;
+                    trace.report("enum", "value not in enum", parser);
+                }
+            }
             if (valid && allOfEvals != null)
             {
                 for (Eval eval : allOfEvals)

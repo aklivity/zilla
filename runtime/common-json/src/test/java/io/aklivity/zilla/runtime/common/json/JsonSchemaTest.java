@@ -189,16 +189,23 @@ class JsonSchemaTest
     }
 
     @Test
-    void shouldFailFastForStructuralEnum()
+    void shouldValidateStructuralConst()
     {
-        assertUnsupported("{\"enum\":[{}]}");
-        assertUnsupported("{\"const\":{}}");
+        String schema = "{\"const\":{\"a\":1,\"b\":[2,3]}}";
+        assertTrue(valid(schema, "{\"b\":[2,3],\"a\":1}"));
+        assertFalse(valid(schema, "{\"a\":1,\"b\":[3,2]}"));
+        assertFalse(valid(schema, "{\"a\":1}"));
     }
 
-    private static void assertUnsupported(
-        String schema)
+    @Test
+    void shouldValidateStructuralEnum()
     {
-        assertThrows(UnsupportedOperationException.class, () -> JsonSchema.of(schema));
+        String schema = "{\"enum\":[{\"a\":1},[1,2],\"x\"]}";
+        assertTrue(valid(schema, "{\"a\":1}"));
+        assertTrue(valid(schema, "[1,2]"));
+        assertTrue(valid(schema, "\"x\""));
+        assertFalse(valid(schema, "{\"a\":2}"));
+        assertFalse(valid(schema, "[2,1]"));
     }
 
     private static boolean valid(
