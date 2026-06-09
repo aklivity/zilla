@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.common.yaml.internal.json;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Reader;
@@ -48,18 +50,31 @@ import jakarta.json.stream.JsonParserFactory;
 
 public final class YamlJsonProvider extends JsonProvider
 {
+    private final Map<String, ?> config;
+
+    public YamlJsonProvider()
+    {
+        this(Map.of());
+    }
+
+    public YamlJsonProvider(
+        Map<String, ?> config)
+    {
+        this.config = config == null ? Map.of() : Map.copyOf(config);
+    }
+
     @Override
     public JsonParser createParser(
         Reader reader)
     {
-        return new YamlJsonParser(reader);
+        return new YamlJsonParser(reader, config);
     }
 
     @Override
     public JsonParser createParser(
         InputStream in)
     {
-        return new YamlJsonParser(in);
+        return new YamlJsonParser(in, UTF_8, config);
     }
 
     @Override

@@ -47,6 +47,12 @@ public final class YamlJson
         return ProviderHolder.PROVIDER;
     }
 
+    public static JsonProvider provider(
+        Map<String, ?> config)
+    {
+        return new YamlJsonProvider(config);
+    }
+
     public static JsonParser createParser(
         Reader reader)
     {

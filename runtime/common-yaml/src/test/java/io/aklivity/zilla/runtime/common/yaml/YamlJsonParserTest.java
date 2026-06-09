@@ -1010,6 +1010,17 @@ class YamlJsonParserTest
         assertEquals("server", object.getString("kind"));
     }
 
+    @Test
+    void shouldRejectDuplicateKeysViaConfiguredProvider()
+    {
+        JsonProvider provider = YamlJson.provider(Map.of(YamlConfig.FEATURE_UNIQUE_KEYS, true));
+        assertThrows(JsonParsingException.class, () ->
+            provider.createReader(new StringReader("""
+                name: first
+                name: second
+                """)).readObject());
+    }
+
     private static JsonParser parserFor(
         String text)
     {
