@@ -16,7 +16,6 @@ package io.aklivity.zilla.runtime.common.yaml;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.io.IOException;
 import java.io.StringReader;
@@ -28,7 +27,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Stream;
 
 import jakarta.json.JsonArrayBuilder;
@@ -44,27 +42,17 @@ import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 
 final class YamlConformanceTest
 {
-    private static final String ENABLED_PROPERTY = "zilla.yaml.conformance";
-    private static final String STRICT_PROPERTY = "zilla.yaml.conformance.strict";
     private static final String SUITE_TAG = "data-2022-01-17";
     private static final Path SUITE_DIR = resolveSuite();
     private static final JsonProvider YAML_JSON = YamlJson.provider();
 
-    private static final Set<String> JSON_PROJECTION_GAPS = Set.of();
-    private static final Set<String> INVALID_REJECTION_GAPS = Set.of();
-
     @TestFactory
     Stream<DynamicTest> shouldProjectYamlTestSuiteJsonCases() throws Exception
     {
-        assumeTrue(Boolean.getBoolean(ENABLED_PROPERTY), enableMessage());
-
         return cases()
             .filter(c -> c.has("in.json") && !c.has("error"))
             .map(c -> DynamicTest.dynamicTest(c.displayName(), () ->
             {
-                assumeTrue(isStrict() || !JSON_PROJECTION_GAPS.contains(c.id),
-                    "known common-yaml JSON projection gap");
-
                 List<JsonValue> expected = readJson(c.path.resolve("in.json"));
                 List<JsonValue> actual = readYamlAsJson(c.path.resolve("in.yaml"));
                 assertEquals(expected, actual, c.id);
@@ -74,15 +62,10 @@ final class YamlConformanceTest
     @TestFactory
     Stream<DynamicTest> shouldRejectYamlTestSuiteInvalidCases() throws Exception
     {
-        assumeTrue(Boolean.getBoolean(ENABLED_PROPERTY), enableMessage());
-
         return cases()
             .filter(c -> c.has("error"))
             .map(c -> DynamicTest.dynamicTest(c.displayName(), () ->
             {
-                assumeTrue(isStrict() || !INVALID_REJECTION_GAPS.contains(c.id),
-                    "known common-yaml invalid rejection gap");
-
                 String yaml = Files.readString(c.path.resolve("in.yaml"));
                 assertThrows(RuntimeException.class, () ->
                 {
@@ -328,16 +311,6 @@ final class YamlConformanceTest
         {
             throw new IllegalStateException("Invalid vendored YAML test suite location: " + resource, ex);
         }
-    }
-
-    private static String enableMessage()
-    {
-        return "enable with -D" + ENABLED_PROPERTY + "=true";
-    }
-
-    private static boolean isStrict()
-    {
-        return Boolean.getBoolean(STRICT_PROPERTY);
     }
 
     private static final class Case
