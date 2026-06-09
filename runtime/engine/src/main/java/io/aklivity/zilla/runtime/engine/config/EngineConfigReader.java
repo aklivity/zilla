@@ -26,6 +26,7 @@ import java.net.URL;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 import jakarta.json.JsonArray;
@@ -44,15 +45,18 @@ import org.leadpony.justify.api.JsonSchemaReader;
 import org.leadpony.justify.api.JsonValidationService;
 import org.leadpony.justify.api.ProblemHandler;
 
+import io.aklivity.zilla.runtime.common.yaml.YamlConfig;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 import io.aklivity.zilla.runtime.engine.Engine;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.internal.config.NamespaceAdapter;
-import io.aklivity.zilla.runtime.engine.internal.config.schema.UniquePropertyKeysSchema;
 import io.aklivity.zilla.runtime.engine.resolver.Resolver;
 
 public final class EngineConfigReader
 {
+    private static final JsonProvider VALIDATION_PROVIDER =
+        YamlJson.provider(Map.of(YamlConfig.FEATURE_UNIQUE_KEYS, true));
+
     private final EngineConfiguration config;
     private final ConfigAdapterContext context;
     private final Resolver expressions;
@@ -114,10 +118,10 @@ public final class EngineConfigReader
             JsonParser schemaParser = schemaProvider.createParserFactory(null)
                 .createParser(new StringReader(schemaObject.toString()));
 
-            JsonValidationService service = JsonValidationService.newInstance(YamlJson.provider());
+            JsonValidationService service = JsonValidationService.newInstance(VALIDATION_PROVIDER);
             ProblemHandler handler = service.createProblemPrinter(msg -> errors.add(new ConfigException(msg)));
             JsonSchemaReader validator = service.createSchemaReader(schemaParser);
-            JsonSchema schema = new UniquePropertyKeysSchema(validator.read());
+            JsonSchema schema = validator.read();
 
             JsonProvider provider = service.createJsonProvider(schema, parser -> handler);
             String readable = configText.stripTrailing();
@@ -200,10 +204,10 @@ public final class EngineConfigReader
             final JsonParser schemaParser = schemaProvider.createParserFactory(null)
                 .createParser(new StringReader(annotatedSchemaObject.toString()));
 
-            final JsonValidationService service = JsonValidationService.newInstance(YamlJson.provider());
+            final JsonValidationService service = JsonValidationService.newInstance(VALIDATION_PROVIDER);
             ProblemHandler handler = service.createProblemPrinter(msg -> errors.add(new ConfigException(msg)));
             final JsonSchemaReader validator = service.createSchemaReader(schemaParser);
-            final JsonSchema schema = new UniquePropertyKeysSchema(validator.read());
+            final JsonSchema schema = validator.read();
 
             String readable = configText.stripTrailing();
 
