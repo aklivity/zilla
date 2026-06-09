@@ -1639,14 +1639,18 @@ public final class JsonSchemaImpl implements JsonSchema
             this.dynScope = context != null ? parentScope.push(context.base.toString()) : parentScope;
             this.annotate = context != null && is2019Plus(context.draft());
             this.valueTokens = constantCanon != null || enumCanons != null ? new ArrayList<>() : null;
+            // allOf branches must all match, so a failing branch is a genuine failure and reports
+            // through the shared trace; the remaining combinators select among candidate branches
+            // where a non-matching branch is expected, so they evaluate under Trace.NONE and only
+            // the combine() summary diagnostic surfaces when the combinator as a whole fails.
             this.allOfEvals = evalsOf(allOf, trace);
-            this.anyOfEvals = evalsOf(anyOf, trace);
-            this.oneOfEvals = evalsOf(oneOf, trace);
-            this.notEval = notSchema != null ? notSchema.eval(trace, dynScope) : null;
-            this.ifEval = ifSchema != null ? ifSchema.eval(trace, dynScope) : null;
-            this.thenEval = thenSchema != null ? thenSchema.eval(trace, dynScope) : null;
-            this.elseEval = elseSchema != null ? elseSchema.eval(trace, dynScope) : null;
-            this.dependentSchemaEvals = evalsOfMap(dependentSchemas, trace);
+            this.anyOfEvals = evalsOf(anyOf, Trace.NONE);
+            this.oneOfEvals = evalsOf(oneOf, Trace.NONE);
+            this.notEval = notSchema != null ? notSchema.eval(Trace.NONE, dynScope) : null;
+            this.ifEval = ifSchema != null ? ifSchema.eval(Trace.NONE, dynScope) : null;
+            this.thenEval = thenSchema != null ? thenSchema.eval(Trace.NONE, dynScope) : null;
+            this.elseEval = elseSchema != null ? elseSchema.eval(Trace.NONE, dynScope) : null;
+            this.dependentSchemaEvals = evalsOfMap(dependentSchemas, Trace.NONE);
             this.trackKeys = required != null || dependentRequired != null || dependentSchemaEvals != null;
         }
 
