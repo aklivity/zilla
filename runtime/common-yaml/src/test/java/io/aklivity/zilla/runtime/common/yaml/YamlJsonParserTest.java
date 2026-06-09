@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 
 import jakarta.json.JsonObject;
+import jakarta.json.JsonReader;
 import jakarta.json.JsonReaderFactory;
 import jakarta.json.JsonValue;
 import jakarta.json.spi.JsonProvider;
@@ -955,6 +956,58 @@ class YamlJsonParserTest
         assertThrows(JsonParsingException.class, () -> parserFor("name: \"test\n"));
         assertThrows(JsonParsingException.class, () -> parserFor("values: [1, 2\n"));
         assertThrows(JsonParsingException.class, () -> parserFor("value: \"\\x\"\n"));
+    }
+
+    @Test
+    void shouldAllowDuplicateKeysByDefault()
+    {
+        JsonReader reader = YamlJson.createReader(new StringReader("""
+            name: first
+            name: second
+            """));
+
+        JsonObject object = reader.readObject();
+        assertEquals(1, object.size());
+        assertEquals("second", object.getString("name"));
+    }
+
+    @Test
+    void shouldRejectDuplicateKeysWhenUniqueKeysEnabled()
+    {
+        JsonParserFactory uniqueKeysEnabled = YamlJson.createParserFactory(Map.of(
+            YamlConfig.FEATURE_UNIQUE_KEYS, true));
+        assertThrows(JsonParsingException.class, () ->
+            uniqueKeysEnabled.createParser(new StringReader("""
+                name: first
+                name: second
+                """)));
+    }
+
+    @Test
+    void shouldRejectNestedDuplicateKeysWhenUniqueKeysEnabled()
+    {
+        JsonReaderFactory uniqueKeysEnabled = YamlJson.createReaderFactory(Map.of(
+            YamlConfig.FEATURE_UNIQUE_KEYS, true));
+        assertThrows(JsonParsingException.class, () ->
+            uniqueKeysEnabled.createReader(new StringReader("""
+                parent:
+                  child: 1
+                  child: 2
+                """)));
+    }
+
+    @Test
+    void shouldAcceptUniqueKeysWhenUniqueKeysEnabled()
+    {
+        JsonReaderFactory uniqueKeysEnabled = YamlJson.createReaderFactory(Map.of(
+            YamlConfig.FEATURE_UNIQUE_KEYS, true));
+
+        JsonObject object = uniqueKeysEnabled.createReader(new StringReader("""
+            name: test
+            kind: server
+            """)).readObject();
+        assertEquals("test", object.getString("name"));
+        assertEquals("server", object.getString("kind"));
     }
 
     private static JsonParser parserFor(

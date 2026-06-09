@@ -24,7 +24,9 @@ import java.nio.charset.Charset;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import jakarta.json.JsonArray;
 import jakarta.json.JsonArrayBuilder;
@@ -50,6 +52,7 @@ public final class YamlJsonParser implements JsonParser
     private final Deque<Frame> stack;
     private final String text;
     private final Map<String, ?> config;
+    private final boolean uniqueKeys;
     private YamlJsonLocation end;
     private long documentOffset;
     private YamlJsonEvent current;
@@ -97,6 +100,7 @@ public final class YamlJsonParser implements JsonParser
         this.stack = new ArrayDeque<>();
         this.text = text;
         this.config = jsonAsYamlConfig(config);
+        this.uniqueKeys = Boolean.TRUE.equals(this.config.get(YamlConfig.FEATURE_UNIQUE_KEYS));
         parseDocument(0);
     }
 
@@ -107,6 +111,10 @@ public final class YamlJsonParser implements JsonParser
         {
             YamlDocumentParser.Result result = YamlDocumentParser.parse(text.substring((int) offset), config);
             rejectJsonUnsupported(result.node, offset);
+            if (uniqueKeys)
+            {
+                rejectDuplicateKeys(result.node, offset);
+            }
             this.documentOffset = offset;
             this.end = location(result.end, offset);
             stack.push(new Frame(result.node));
@@ -451,6 +459,33 @@ public final class YamlJsonParser implements JsonParser
             for (YamlNode value : array.values)
             {
                 rejectJsonUnsupported(value, offset);
+            }
+        }
+    }
+
+    private static void rejectDuplicateKeys(
+        YamlNode node,
+        long offset)
+    {
+        if (node instanceof YamlObjectNode object)
+        {
+            Set<String> names = new HashSet<>();
+            for (YamlEntry entry : object.entries)
+            {
+                String name = jsonKeyName(entry);
+                if (!names.add(name))
+                {
+                    throw new JsonParsingException("Duplicate YAML mapping key: " + name,
+                        new YamlJsonLocation(new YamlLocation(entry.line, entry.column, offset + entry.offset)));
+                }
+                rejectDuplicateKeys(entry.value, offset);
+            }
+        }
+        else if (node instanceof YamlArrayNode array)
+        {
+            for (YamlNode value : array.values)
+            {
+                rejectDuplicateKeys(value, offset);
             }
         }
     }
