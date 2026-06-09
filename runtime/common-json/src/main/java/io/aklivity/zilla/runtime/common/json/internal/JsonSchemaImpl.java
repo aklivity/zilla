@@ -95,6 +95,7 @@ public final class JsonSchemaImpl implements JsonSchema
 
     private final boolean deny;
     private final String ref;
+    private final String refApplicator;
     private final Context context;
     private final Set<JsonType> types;
     private final Set<String> enumCanons;
@@ -244,6 +245,9 @@ public final class JsonSchemaImpl implements JsonSchema
 
         this.deny = false;
         this.ref = null;
+        this.refApplicator = is2019Plus(context.draft()) && schema.has("$ref")
+            ? context.resolveRef(schema.get("$ref").string())
+            : null;
         this.context = context;
         this.types = parseTypes(schema.get("type"));
         this.enumCanons = parseEnumCanons(schema.get("enum"));
@@ -298,6 +302,7 @@ public final class JsonSchemaImpl implements JsonSchema
     {
         this.deny = false;
         this.ref = ref;
+        this.refApplicator = null;
         this.context = context;
         this.types = null;
         this.enumCanons = null;
@@ -343,6 +348,7 @@ public final class JsonSchemaImpl implements JsonSchema
     {
         this.deny = deny;
         this.ref = null;
+        this.refApplicator = null;
         this.context = null;
         this.types = null;
         this.enumCanons = null;
@@ -495,7 +501,7 @@ public final class JsonSchemaImpl implements JsonSchema
         if (value.isObject())
         {
             Context scope = context.scope(value);
-            if (value.has("$ref"))
+            if (value.has("$ref") && !is2019Plus(scope.draft()))
             {
                 String absolute = scope.resolveRef(value.get("$ref").string());
                 result = new JsonSchemaImpl(absolute, scope);
@@ -510,6 +516,12 @@ public final class JsonSchemaImpl implements JsonSchema
             result = value.isFalse() ? NONE : ANY;
         }
         return result;
+    }
+
+    private static boolean is2019Plus(
+        Draft draft)
+    {
+        return draft.ordinal() >= Draft.DRAFT_2019_09.ordinal();
     }
 
     private static void collectRefs(
@@ -1233,6 +1245,7 @@ public final class JsonSchemaImpl implements JsonSchema
         private Set<String> uniqueSeen;
         private List<Token> uniqueTokens;
         private final List<Token> valueTokens;
+        private Eval refEval;
 
         private Eval(
             Trace trace)
@@ -1264,6 +1277,10 @@ public final class JsonSchemaImpl implements JsonSchema
                 if (valueTokens != null)
                 {
                     valueTokens.add(new Token(event, tokenText(event, parser)));
+                }
+                if (refApplicator != null && refEval == null)
+                {
+                    refEval = context.resolve(refApplicator).eval(trace);
                 }
                 directFeed(event, parser);
                 feedCombinators(event, parser);
@@ -1719,6 +1736,7 @@ public final class JsonSchemaImpl implements JsonSchema
             Event event,
             JsonParser parser)
         {
+            feedOne(refEval, event, parser);
             feedAll(allOfEvals, event, parser);
             feedAll(anyOfEvals, event, parser);
             feedAll(oneOfEvals, event, parser);
@@ -1764,6 +1782,11 @@ public final class JsonSchemaImpl implements JsonSchema
             JsonParser parser)
         {
             boolean valid = !directInvalid;
+            if (valid && refEval != null && refEval.result != Verdict.VALID)
+            {
+                valid = false;
+                trace.report("$ref", "instance failed referenced schema", parser);
+            }
             if (valid && valueTokens != null)
             {
                 String canon = canonicalize(valueTokens, new int[] {0});

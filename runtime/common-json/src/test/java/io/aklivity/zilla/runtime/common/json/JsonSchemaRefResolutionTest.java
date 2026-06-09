@@ -72,6 +72,26 @@ class JsonSchemaRefResolutionTest
     }
 
     @Test
+    void shouldApplyRefAlongsideSiblingsInDraft2019Plus()
+    {
+        // draft 2019+: $ref no longer suppresses sibling keywords
+        String schema = "{\"$defs\":{\"num\":{\"type\":\"number\"}}," +
+            "\"$ref\":\"#/$defs/num\",\"minimum\":10}";
+        assertTrue(valid(schema, "12", DRAFT_2020_12));
+        assertFalse(valid(schema, "5", DRAFT_2020_12));
+        assertFalse(valid(schema, "\"x\"", DRAFT_2020_12));
+    }
+
+    @Test
+    void shouldIgnoreSiblingsOfRefInDraft07()
+    {
+        // draft-07: $ref ignores siblings, so minimum is not applied
+        String schema = "{\"definitions\":{\"num\":{\"type\":\"number\"}}," +
+            "\"$ref\":\"#/definitions/num\",\"minimum\":10}";
+        assertTrue(valid(schema, "5", JsonSchema.Draft.DRAFT_07));
+    }
+
+    @Test
     void shouldFailWhenRemoteRefUnresolvable()
     {
         JsonSchema schema = JsonSchema.of("{\"$ref\":\"http://nowhere/x\"}", DRAFT_2020_12);
