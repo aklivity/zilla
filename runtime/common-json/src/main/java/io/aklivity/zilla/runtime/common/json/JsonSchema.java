@@ -81,4 +81,31 @@ public interface JsonSchema
     boolean validate(
         JsonParser parser,
         Consumer<JsonSchemaDiagnostic> reporter);
+
+    /**
+     * Wraps {@code parser} in a validating {@link JsonParser} that validates the delegated event
+     * stream against this schema in a single pass as the caller pulls events. This replaces the
+     * justify {@code JsonValidationService.createJsonProvider(schema, throwing).createParser(...)}
+     * approach: the schema is compiled once and the returned parser carries no per-call setup
+     * beyond a fresh evaluator.
+     * <p>
+     * When {@code throwing} is {@code true}, a {@link JsonValidationException} is raised from
+     * {@link JsonParser#next()} as soon as the instance is determined not to conform. When
+     * {@code throwing} is {@code false}, the stream is validated silently and the failure is
+     * observable only via the {@link Consumer} overload.
+     */
+    JsonParser newParser(
+        boolean throwing,
+        JsonParser parser);
+
+    /**
+     * Variant of {@link #newParser(boolean, JsonParser)} that additionally reports each failing
+     * keyword + instance JSON-Pointer + message to {@code reporter} as it is detected, at parity
+     * with {@link #validate(JsonParser, Consumer)}. When {@code throwing} is {@code true} the
+     * reported diagnostics are also carried by the {@link JsonValidationException}.
+     */
+    JsonParser newParser(
+        boolean throwing,
+        JsonParser parser,
+        Consumer<JsonSchemaDiagnostic> reporter);
 }

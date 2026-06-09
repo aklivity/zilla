@@ -49,6 +49,7 @@ import io.aklivity.zilla.runtime.common.json.JsonRefResolver;
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
 import io.aklivity.zilla.runtime.common.json.JsonSchema.Draft;
 import io.aklivity.zilla.runtime.common.json.JsonSchemaDiagnostic;
+import io.aklivity.zilla.runtime.common.json.JsonValidationException;
 
 /**
  * An immutable, compiled JSON Schema that validates an instance by consuming a streaming
@@ -214,6 +215,23 @@ public final class JsonSchemaImpl implements JsonSchema
             verdict = eval.feed(parser.next(), parser);
         }
         return verdict == Verdict.VALID;
+    }
+
+    @Override
+    public JsonParser newParser(
+        boolean throwing,
+        JsonParser parser)
+    {
+        return newParser(throwing, parser, null);
+    }
+
+    @Override
+    public JsonParser newParser(
+        boolean throwing,
+        JsonParser parser,
+        Consumer<JsonSchemaDiagnostic> reporter)
+    {
+        return new ValidatingParser(throwing, parser, reporter);
     }
 
     private JsonSchemaImpl(
@@ -1469,6 +1487,103 @@ public final class JsonSchemaImpl implements JsonSchema
             String segment)
         {
             return segment.replace("~", "~0").replace("/", "~1");
+        }
+    }
+
+    private final class ValidatingParser implements JsonParser
+    {
+        private final JsonParser delegate;
+        private final boolean throwing;
+        private final Consumer<JsonSchemaDiagnostic> reporter;
+        private final List<JsonSchemaDiagnostic> diagnostics;
+        private final Eval eval;
+
+        private Verdict verdict;
+
+        private ValidatingParser(
+            boolean throwing,
+            JsonParser delegate,
+            Consumer<JsonSchemaDiagnostic> reporter)
+        {
+            this.delegate = delegate;
+            this.throwing = throwing;
+            this.reporter = reporter;
+            this.diagnostics = throwing || reporter != null ? new ArrayList<>() : null;
+            this.eval = diagnostics != null ? eval(new Trace(this::report)) : eval();
+            this.verdict = Verdict.PENDING;
+        }
+
+        @Override
+        public Event next()
+        {
+            Event event = delegate.next();
+            if (verdict == Verdict.PENDING)
+            {
+                verdict = eval.feed(event, this);
+                if (verdict == Verdict.INVALID && throwing)
+                {
+                    throw new JsonValidationException(diagnostics);
+                }
+            }
+            return event;
+        }
+
+        @Override
+        public boolean hasNext()
+        {
+            return delegate.hasNext();
+        }
+
+        @Override
+        public String getString()
+        {
+            return delegate.getString();
+        }
+
+        @Override
+        public boolean isIntegralNumber()
+        {
+            return delegate.isIntegralNumber();
+        }
+
+        @Override
+        public int getInt()
+        {
+            return delegate.getInt();
+        }
+
+        @Override
+        public long getLong()
+        {
+            return delegate.getLong();
+        }
+
+        @Override
+        public BigDecimal getBigDecimal()
+        {
+            return delegate.getBigDecimal();
+        }
+
+        @Override
+        public JsonLocation getLocation()
+        {
+            return delegate.getLocation();
+        }
+
+        @Override
+        public void close()
+        {
+            delegate.close();
+        }
+
+        private void report(
+            JsonSchemaDiagnostic diagnostic)
+        {
+            diagnostics.add(diagnostic);
+            if (reporter != null)
+            {
+                reporter.accept(diagnostic);
+            }
         }
     }
 
