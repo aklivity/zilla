@@ -16,14 +16,13 @@ package io.aklivity.zilla.runtime.model.json.internal;
 
 import java.io.InputStream;
 
-import jakarta.json.spi.JsonProvider;
-import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParsingException;
 
 import org.agrona.DirectBuffer;
 import org.agrona.ExpandableDirectByteBuffer;
 import org.agrona.io.DirectBufferInputStream;
 
+import io.aklivity.zilla.runtime.common.json.JsonSchema;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
@@ -35,7 +34,6 @@ public class JsonValidatorHandler extends JsonModelHandler implements ValidatorH
     private final ExpandableDirectByteBuffer buffer;
 
     private int progress;
-    private JsonParser parser;
 
     public JsonValidatorHandler(
         JsonModelConfig config,
@@ -112,18 +110,12 @@ public class JsonValidatorHandler extends JsonModelHandler implements ValidatorH
         int schemaId,
         InputStream in)
     {
-        boolean status = true;
-        JsonProvider provider = supplyProvider(schemaId);
-
-        status &= provider != null;
+        JsonSchema schema = supplySchema(schemaId);
+        boolean status = schema != null;
 
         if (status)
         {
-            parser = provider.createParser(in);
-            while (parser.hasNext())
-            {
-                parser.next();
-            }
+            status = schema.validate(schemaProvider.createParser(in));
         }
         return status;
     }
