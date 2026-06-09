@@ -182,15 +182,36 @@ public final class StreamingJsonParser implements JsonParser
     @Override
     public void skipObject()
     {
-        throw new UnsupportedOperationException("skipObject not yet supported; " +
-            "use event-by-event consumption instead");
+        if (tokenizer.inObjectContext())
+        {
+            skipStructure();
+        }
     }
 
     @Override
     public void skipArray()
     {
-        throw new UnsupportedOperationException("skipArray not yet supported; " +
-            "use event-by-event consumption instead");
+        if (tokenizer.inArrayContext())
+        {
+            skipStructure();
+        }
+    }
+
+    private void skipStructure()
+    {
+        int depth = 1;
+        while (depth > 0 && hasNext())
+        {
+            Event event = next();
+            if (event == Event.START_OBJECT || event == Event.START_ARRAY)
+            {
+                depth++;
+            }
+            else if (event == Event.END_OBJECT || event == Event.END_ARRAY)
+            {
+                depth--;
+            }
+        }
     }
 
     @SuppressWarnings("unchecked")
