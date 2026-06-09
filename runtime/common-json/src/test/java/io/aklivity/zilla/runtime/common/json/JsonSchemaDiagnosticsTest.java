@@ -107,6 +107,76 @@ class JsonSchemaDiagnosticsTest
     }
 
     @Test
+    void shouldNotReportFailingAnyOfBranchWhenAnotherMatches()
+    {
+        List<JsonSchemaDiagnostic> diagnostics = new ArrayList<>();
+        boolean valid = JsonSchema.of("{\"anyOf\":[{\"type\":\"string\"},{\"type\":\"integer\"}]}")
+            .validate(parserFor("5 "), diagnostics::add);
+        assertTrue(valid);
+        assertTrue(diagnostics.isEmpty(), "expected no diagnostics, got " + diagnostics);
+    }
+
+    @Test
+    void shouldNotReportFailingOneOfBranchesWhenExactlyOneMatches()
+    {
+        List<JsonSchemaDiagnostic> diagnostics = new ArrayList<>();
+        boolean valid = JsonSchema.of("{\"oneOf\":[{\"type\":\"string\"},{\"type\":\"integer\"}]}")
+            .validate(parserFor("5 "), diagnostics::add);
+        assertTrue(valid);
+        assertTrue(diagnostics.isEmpty(), "expected no diagnostics, got " + diagnostics);
+    }
+
+    @Test
+    void shouldNotReportFailingNotSubschemaWhenInstanceDiffers()
+    {
+        List<JsonSchemaDiagnostic> diagnostics = new ArrayList<>();
+        boolean valid = JsonSchema.of("{\"not\":{\"type\":\"string\"}}")
+            .validate(parserFor("5 "), diagnostics::add);
+        assertTrue(valid);
+        assertTrue(diagnostics.isEmpty(), "expected no diagnostics, got " + diagnostics);
+    }
+
+    @Test
+    void shouldNotReportFailingIfConditionWhenElseBranchMatches()
+    {
+        List<JsonSchemaDiagnostic> diagnostics = new ArrayList<>();
+        String schema = "{\"if\":{\"type\":\"string\"},\"then\":{\"minLength\":3}," +
+            "\"else\":{\"type\":\"integer\"}}";
+        boolean valid = JsonSchema.of(schema)
+            .validate(parserFor("5 "), diagnostics::add);
+        assertTrue(valid);
+        assertTrue(diagnostics.isEmpty(), "expected no diagnostics, got " + diagnostics);
+    }
+
+    @Test
+    void shouldReportSelectedThenBranchFailureWithoutElseLeak()
+    {
+        List<JsonSchemaDiagnostic> diagnostics = new ArrayList<>();
+        String schema = "{\"if\":{\"type\":\"string\"},\"then\":{\"minLength\":5}," +
+            "\"else\":{\"type\":\"integer\"}}";
+        boolean valid = JsonSchema.of(schema)
+            .validate(parserFor("\"ab\" "), diagnostics::add);
+        assertFalse(valid);
+        assertTrue(diagnostics.stream().anyMatch(d -> "then".equals(d.keyword())),
+            "expected then diagnostic, got " + diagnostics);
+        assertTrue(diagnostics.stream().noneMatch(d -> "type".equals(d.keyword())),
+            "expected no leaked else type diagnostic, got " + diagnostics);
+    }
+
+    @Test
+    void shouldNotReportDependentSchemaWhenTriggerAbsent()
+    {
+        List<JsonSchemaDiagnostic> diagnostics = new ArrayList<>();
+        String schema = "{\"dependentSchemas\":{\"credit_card\":" +
+            "{\"properties\":{\"billing_address\":{\"type\":\"string\"}}," +
+            "\"required\":[\"billing_address\"]}}}";
+        boolean valid = JsonSchema.of(schema)
+            .validate(parserFor("{\"name\":\"x\"} "), diagnostics::add);
+        assertTrue(valid);
+        assertTrue(diagnostics.isEmpty(), "expected no diagnostics, got " + diagnostics);
+    }
+
+    @Test
     void shouldFormatToStringAsLineColPointerMessage()
     {
         List<JsonSchemaDiagnostic> diagnostics = new ArrayList<>();
