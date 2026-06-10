@@ -19,4 +19,7 @@ module io.aklivity.zilla.runtime.common.json
 
     exports io.aklivity.zilla.runtime.common.json;
     exports io.aklivity.zilla.runtime.common.json.json;
+
+    provides jakarta.json.spi.JsonProvider
+        with io.aklivity.zilla.runtime.common.json.internal.json.JsonpProvider;
 }

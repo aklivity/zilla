@@ -59,8 +59,9 @@
       <artifactId>jakarta.json.bind-api</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.eclipse.parsson</groupId>
-      <artifactId>parsson</artifactId>
+      <groupId>io.aklivity.zilla</groupId>
+      <artifactId>common-json</artifactId>
+      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>org.agrona</groupId>
