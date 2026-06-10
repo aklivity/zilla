@@ -124,7 +124,6 @@ public abstract class KafkaClientSaslHandshaker
     private Matcher serverResponseMatcher;
     private byte[] result, ui, prev;
 
-
     private final Map<KafkaServerConfig, String16FW> clientIdsByServer;
 
     protected final KafkaClientIdSupplier clientIdSupplier;
