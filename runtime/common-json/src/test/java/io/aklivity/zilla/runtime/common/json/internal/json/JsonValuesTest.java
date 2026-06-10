@@ -26,9 +26,11 @@ import java.util.List;
 import java.util.Map;
 
 import jakarta.json.JsonArray;
+import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonException;
 import jakarta.json.JsonNumber;
 import jakarta.json.JsonObject;
+import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
 import jakarta.json.stream.JsonLocation;
 import jakarta.json.stream.JsonParser;
@@ -46,6 +48,27 @@ class JsonValuesTest
             .add("c", 3)
             .build();
         assertEquals(List.of("b", "a", "c"), List.copyOf(object.keySet()));
+    }
+
+    @Test
+    void shouldResetObjectBuilderOnBuild()
+    {
+        JsonObjectBuilder builder = JsonValues.objectBuilder();
+        JsonObject first = builder.add("a", 1).build();
+        JsonObject second = builder.add("b", 2).build();
+        assertEquals(List.of("a"), List.copyOf(first.keySet()));
+        assertEquals(List.of("b"), List.copyOf(second.keySet()));
+    }
+
+    @Test
+    void shouldResetArrayBuilderOnBuild()
+    {
+        JsonArrayBuilder builder = JsonValues.arrayBuilder();
+        JsonArray first = builder.add(1).build();
+        JsonArray second = builder.add(2).build();
+        assertEquals(1, first.size());
+        assertEquals(2, second.getInt(0));
+        assertEquals(1, second.size());
     }
 
     @Test

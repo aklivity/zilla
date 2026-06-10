@@ -1001,7 +1001,12 @@ public final class JsonValues
         @Override
         public JsonObject build()
         {
-            return new ObjectValue(values);
+            // Per the jakarta.json contract a builder is reusable: build() returns the object and
+            // resets the builder. ObjectValue copies the entries, so clearing here is safe and
+            // matches the reference provider behavior that callers (e.g. config adapters) rely on.
+            JsonObject result = new ObjectValue(values);
+            values.clear();
+            return result;
         }
     }
 
@@ -1292,7 +1297,10 @@ public final class JsonValues
         @Override
         public JsonArray build()
         {
-            return new ArrayValue(values);
+            // Reset on build per the jakarta.json contract; ArrayValue copies the elements.
+            JsonArray result = new ArrayValue(values);
+            values.clear();
+            return result;
         }
     }
 
