@@ -82,7 +82,12 @@ public final class JsonpReader implements JsonReader
         {
             throw new JsonException("JSON document is empty");
         }
-        return readValue(parser.next());
+        JsonValue value = readValue(parser.next());
+        if (parser.hasNext())
+        {
+            throw new JsonException("Unexpected content after JSON document");
+        }
+        return value;
     }
 
     @Override

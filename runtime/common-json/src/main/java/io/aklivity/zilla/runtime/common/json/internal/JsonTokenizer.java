@@ -166,6 +166,10 @@ public final class JsonTokenizer
     {
         if (state == ParseState.DOC_DONE)
         {
+            if (terminalEof)
+            {
+                enforceEndOfInput(in);
+            }
             return false;
         }
 
@@ -658,6 +662,22 @@ public final class JsonTokenizer
         markValueConsumed();
     }
 
+    // After a complete top-level value on a one-shot stream, only insignificant whitespace may
+    // remain; any further token is invalid per RFC 8259. Chunked frame sources skip this check.
+    private void enforceEndOfInput(
+        InputStream in) throws IOException
+    {
+        try
+        {
+            int c = skipWhitespace(in);
+            throw new JsonParsingException("Unexpected trailing content: " + describe(c), null);
+        }
+        catch (EOFException ex)
+        {
+            // clean end of input
+        }
+    }
+
     private int skipWhitespace(
         InputStream in) throws IOException
     {
@@ -843,6 +863,7 @@ public final class JsonTokenizer
             {
                 if (terminalEof)
                 {
+                    validateNumber();
                     return;
                 }
                 throw new EOFException();
@@ -855,9 +876,74 @@ public final class JsonTokenizer
             else
             {
                 in.reset();
+                validateNumber();
                 return;
             }
         }
+    }
+
+    // RFC 8259 number grammar: -?(0|[1-9][0-9]*)(\.[0-9]+)?([eE][+-]?[0-9]+)?. Only enforced for
+    // readable values, where scratch holds the complete lexeme; filtered-out values are discarded.
+    private void validateNumber()
+    {
+        if (valueReadable)
+        {
+            final int length = scratch.length();
+            int index = 0;
+            boolean valid = length > 0;
+            if (valid && scratch.charAt(index) == '-')
+            {
+                index++;
+            }
+            final int intStart = index;
+            if (index < length && scratch.charAt(index) == '0')
+            {
+                index++;
+            }
+            else
+            {
+                while (index < length && isDigit(scratch.charAt(index)))
+                {
+                    index++;
+                }
+            }
+            valid &= index > intStart;
+            if (valid && index < length && scratch.charAt(index) == '.')
+            {
+                index++;
+                final int fracStart = index;
+                while (index < length && isDigit(scratch.charAt(index)))
+                {
+                    index++;
+                }
+                valid &= index > fracStart;
+            }
+            if (valid && index < length && (scratch.charAt(index) == 'e' || scratch.charAt(index) == 'E'))
+            {
+                index++;
+                if (index < length && (scratch.charAt(index) == '+' || scratch.charAt(index) == '-'))
+                {
+                    index++;
+                }
+                final int expStart = index;
+                while (index < length && isDigit(scratch.charAt(index)))
+                {
+                    index++;
+                }
+                valid &= index > expStart;
+            }
+            valid &= index == length;
+            if (!valid)
+            {
+                throw new JsonParsingException("Invalid JSON number: " + scratch, null);
+            }
+        }
+    }
+
+    private static boolean isDigit(
+        char c)
+    {
+        return c >= '0' && c <= '9';
     }
 
     private int readByte(

@@ -47,38 +47,10 @@ final class JsonTestSuiteConformanceTest
 {
     private static final JsonProvider PROVIDER = Jsonp.provider();
 
-    // Must-reject cases the streaming parser currently accepts, pinned from a baseline run.
-    // Two categories: trailing tokens after a complete value (no end-of-input enforcement) and
-    // lenient number lexing (leading zeros, missing integer/fraction part). Burn this down as the
-    // parser is hardened toward strict RFC 8259 conformance.
-    private static final Set<String> KNOWN_DEVIATIONS = Set.of(
-        "n_array_comma_after_close.json",
-        "n_array_extra_close.json",
-        "n_multidigit_number_then_00.json",
-        "n_number_-01.json",
-        "n_number_-2..json",
-        "n_number_0.e1.json",
-        "n_number_2.e+3.json",
-        "n_number_2.e-3.json",
-        "n_number_2.e3.json",
-        "n_number_neg_int_starting_with_zero.json",
-        "n_number_neg_real_without_int_part.json",
-        "n_number_real_without_fractional_part.json",
-        "n_number_with_leading_zero.json",
-        "n_object_trailing_comment.json",
-        "n_object_trailing_comment_open.json",
-        "n_object_trailing_comment_slash_open.json",
-        "n_object_trailing_comment_slash_open_incomplete.json",
-        "n_object_with_trailing_garbage.json",
-        "n_string_with_trailing_garbage.json",
-        "n_structure_array_trailing_garbage.json",
-        "n_structure_array_with_extra_array_close.json",
-        "n_structure_close_unopened_array.json",
-        "n_structure_double_array.json",
-        "n_structure_number_with_trailing_garbage.json",
-        "n_structure_object_followed_by_closing_object.json",
-        "n_structure_object_with_trailing_garbage.json",
-        "n_structure_trailing_#.json");
+    // Must-reject cases the streaming parser still accepts, pinned from a baseline run. The parser
+    // now enforces end-of-input (no trailing tokens) and strict RFC 8259 number grammar, so this
+    // set is empty; any new deviation or unexpected fix trips the assertion below for review.
+    private static final Set<String> KNOWN_DEVIATIONS = Set.of();
 
     @Test
     void shouldMatchJsonTestSuiteDeviationBaseline() throws Exception
