@@ -24,11 +24,11 @@ import jakarta.json.JsonObject;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParserFactory;
 
-public final class StreamingJsonParserFactory implements JsonParserFactory
+public final class JsonParserFactoryImpl implements JsonParserFactory
 {
     private final Map<String, ?> config;
 
-    public StreamingJsonParserFactory(
+    public JsonParserFactoryImpl(
         Map<String, ?> config)
     {
         this.config = config;
@@ -38,14 +38,14 @@ public final class StreamingJsonParserFactory implements JsonParserFactory
     public JsonParser createParser(
         Reader reader)
     {
-        throw new UnsupportedOperationException("StreamingJsonParserFactory only supports InputStream sources");
+        throw new UnsupportedOperationException("JsonParserFactoryImpl only supports InputStream sources");
     }
 
     @Override
     public JsonParser createParser(
         InputStream in)
     {
-        return new StreamingJsonParser(in, config);
+        return new JsonParserImpl(in, config);
     }
 
     @Override
@@ -53,21 +53,21 @@ public final class StreamingJsonParserFactory implements JsonParserFactory
         InputStream in,
         Charset charset)
     {
-        return new StreamingJsonParser(in, config);
+        return new JsonParserImpl(in, config);
     }
 
     @Override
     public JsonParser createParser(
         JsonObject obj)
     {
-        throw new UnsupportedOperationException("StreamingJsonParserFactory only supports InputStream sources");
+        throw new UnsupportedOperationException("JsonParserFactoryImpl only supports InputStream sources");
     }
 
     @Override
     public JsonParser createParser(
         JsonArray array)
     {
-        throw new UnsupportedOperationException("StreamingJsonParserFactory only supports InputStream sources");
+        throw new UnsupportedOperationException("JsonParserFactoryImpl only supports InputStream sources");
     }
 
     @Override

@@ -45,10 +45,14 @@ import jakarta.json.stream.JsonLocation;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParser.Event;
 
+import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonRefResolver;
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
 import io.aklivity.zilla.runtime.common.json.JsonSchema.Draft;
 import io.aklivity.zilla.runtime.common.json.JsonSchemaDiagnostic;
+import io.aklivity.zilla.runtime.common.json.JsonSink;
+import io.aklivity.zilla.runtime.common.json.JsonSource;
+import io.aklivity.zilla.runtime.common.json.JsonTransform;
 import io.aklivity.zilla.runtime.common.json.JsonValidationException;
 
 /**
@@ -143,6 +147,8 @@ public final class JsonSchemaImpl implements JsonSchema
     private final JsonSchemaImpl thenSchema;
     private final JsonSchemaImpl elseSchema;
 
+    private List<String> retainedPaths;
+
     public static JsonSchema of(
         String schema)
     {
@@ -174,7 +180,12 @@ public final class JsonSchemaImpl implements JsonSchema
         URI rootBase = baseOf(root, EMPTY_URI, resolved);
         registry.ids.put(rootBase.toString(), root);
         index(root, EMPTY_URI, registry);
-        return from(root, new Context(registry, rootBase));
+        JsonSchemaImpl result = from(root, new Context(registry, rootBase));
+        if (result != ANY && result != NONE)
+        {
+            result.retainedPaths = JsonSchemaPaths.retained(schema);
+        }
+        return result;
     }
 
     public static Set<String> collectRefs(
@@ -190,10 +201,11 @@ public final class JsonSchemaImpl implements JsonSchema
         JsonParser parser)
     {
         Eval eval = eval();
+        ParserSource source = new ParserSource(parser);
         Verdict verdict = Verdict.PENDING;
         while (parser.hasNext() && verdict == Verdict.PENDING)
         {
-            verdict = eval.feed(parser.next(), parser);
+            verdict = eval.feed(parser.next(), source);
         }
         return verdict == Verdict.VALID;
     }
@@ -209,10 +221,11 @@ public final class JsonSchemaImpl implements JsonSchema
     {
         Trace trace = new Trace(reporter);
         Eval eval = eval(trace);
+        ParserSource source = new ParserSource(parser);
         Verdict verdict = Verdict.PENDING;
         while (parser.hasNext() && verdict == Verdict.PENDING)
         {
-            verdict = eval.feed(parser.next(), parser);
+            verdict = eval.feed(parser.next(), source);
         }
         return verdict == Verdict.VALID;
     }
@@ -232,6 +245,18 @@ public final class JsonSchemaImpl implements JsonSchema
         Consumer<JsonSchemaDiagnostic> reporter)
     {
         return new ValidatingParser(throwing, parser, reporter);
+    }
+
+    @Override
+    public JsonTransform validator()
+    {
+        return new Validator();
+    }
+
+    @Override
+    public List<String> retainedPaths()
+    {
+        return retainedPaths != null ? retainedPaths : List.of();
     }
 
     private JsonSchemaImpl(
@@ -919,9 +944,44 @@ public final class JsonSchemaImpl implements JsonSchema
 
     private static String tokenText(
         Event event,
-        JsonParser parser)
+        JsonSource parser)
     {
         return event == KEY_NAME || event == VALUE_STRING || event == VALUE_NUMBER ? parser.getString() : null;
+    }
+
+    private static final class ParserSource implements JsonSource
+    {
+        private final JsonParser parser;
+
+        private ParserSource(
+            JsonParser parser)
+        {
+            this.parser = parser;
+        }
+
+        @Override
+        public String getString()
+        {
+            return parser.getString();
+        }
+
+        @Override
+        public BigDecimal getBigDecimal()
+        {
+            return parser.getBigDecimal();
+        }
+
+        @Override
+        public boolean isIntegralNumber()
+        {
+            return parser.isIntegralNumber();
+        }
+
+        @Override
+        public JsonLocation getLocation()
+        {
+            return parser.getLocation();
+        }
     }
 
     private static String canonicalize(
@@ -1356,7 +1416,7 @@ public final class JsonSchemaImpl implements JsonSchema
         return verdict == Verdict.VALID;
     }
 
-    private static final class TokenCursor implements JsonParser
+    private static final class TokenCursor implements JsonSource
     {
         private Token token;
 
@@ -1379,38 +1439,9 @@ public final class JsonSchemaImpl implements JsonSchema
         }
 
         @Override
-        public int getInt()
-        {
-            return new BigDecimal(token.text).intValue();
-        }
-
-        @Override
-        public long getLong()
-        {
-            return new BigDecimal(token.text).longValue();
-        }
-
-        @Override
-        public boolean hasNext()
-        {
-            return false;
-        }
-
-        @Override
-        public Event next()
-        {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
         public JsonLocation getLocation()
         {
             throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public void close()
-        {
         }
     }
 
@@ -1469,7 +1500,7 @@ public final class JsonSchemaImpl implements JsonSchema
         private void report(
             String keyword,
             String message,
-            JsonParser parser)
+            JsonSource parser)
         {
             if (active())
             {
@@ -1497,6 +1528,7 @@ public final class JsonSchemaImpl implements JsonSchema
         private final Consumer<JsonSchemaDiagnostic> reporter;
         private final List<JsonSchemaDiagnostic> diagnostics;
         private final Eval eval;
+        private final ParserSource source;
 
         private Verdict verdict;
 
@@ -1510,6 +1542,7 @@ public final class JsonSchemaImpl implements JsonSchema
             this.reporter = reporter;
             this.diagnostics = throwing || reporter != null ? new ArrayList<>() : null;
             this.eval = diagnostics != null ? eval(new Trace(this::report)) : eval();
+            this.source = new ParserSource(delegate);
             this.verdict = Verdict.PENDING;
         }
 
@@ -1519,7 +1552,7 @@ public final class JsonSchemaImpl implements JsonSchema
             Event event = delegate.next();
             if (verdict == Verdict.PENDING)
             {
-                verdict = eval.feed(event, this);
+                verdict = eval.feed(event, source);
                 if (verdict == Verdict.INVALID && throwing)
                 {
                     throw new JsonValidationException(diagnostics);
@@ -1584,6 +1617,35 @@ public final class JsonSchemaImpl implements JsonSchema
             {
                 reporter.accept(diagnostic);
             }
+        }
+    }
+
+    private final class Validator implements JsonTransform
+    {
+        private Eval eval;
+
+        private Validator()
+        {
+            this.eval = eval();
+        }
+
+        @Override
+        public Status feed(
+            Event event,
+            JsonSource in,
+            JsonSink out)
+        {
+            out.feed(event, in);
+            Verdict verdict = eval.feed(event, in);
+            return verdict == Verdict.VALID
+                ? Status.COMPLETE
+                : verdict == Verdict.INVALID ? Status.REJECTED : Status.PENDING;
+        }
+
+        @Override
+        public void reset()
+        {
+            eval = eval();
         }
     }
 
@@ -1656,7 +1718,7 @@ public final class JsonSchemaImpl implements JsonSchema
 
         private Verdict feed(
             Event event,
-            JsonParser parser)
+            JsonSource parser)
         {
             Verdict verdict;
             if (done)
@@ -1708,7 +1770,7 @@ public final class JsonSchemaImpl implements JsonSchema
 
         private void directFeed(
             Event event,
-            JsonParser parser)
+            JsonSource parser)
         {
             if (JsonSchemaImpl.this != ANY)
             {
@@ -1725,7 +1787,7 @@ public final class JsonSchemaImpl implements JsonSchema
 
         private void onOpen(
             Event event,
-            JsonParser parser)
+            JsonSource parser)
         {
             if (deny)
             {
@@ -1826,7 +1888,7 @@ public final class JsonSchemaImpl implements JsonSchema
         }
 
         private void checkStringReport(
-            JsonParser parser)
+            JsonSource parser)
         {
             String value = parser.getString();
             int length = value.codePointCount(0, value.length());
@@ -1853,7 +1915,7 @@ public final class JsonSchemaImpl implements JsonSchema
         }
 
         private void checkNumberReport(
-            JsonParser parser)
+            JsonSource parser)
         {
             BigDecimal value = parser.getBigDecimal();
             boolean integral = context != null && context.draft() != Draft.DRAFT_04
@@ -1896,7 +1958,7 @@ public final class JsonSchemaImpl implements JsonSchema
 
         private void onInner(
             Event event,
-            JsonParser parser)
+            JsonSource parser)
         {
             if (directChild != null || directChildren != null)
             {
@@ -1914,7 +1976,7 @@ public final class JsonSchemaImpl implements JsonSchema
 
         private void onObjectInner(
             Event event,
-            JsonParser parser)
+            JsonSource parser)
         {
             if (event == END_OBJECT)
             {
@@ -1960,7 +2022,7 @@ public final class JsonSchemaImpl implements JsonSchema
 
         private void onArrayInner(
             Event event,
-            JsonParser parser)
+            JsonSource parser)
         {
             if (event == END_ARRAY)
             {
@@ -2052,7 +2114,7 @@ public final class JsonSchemaImpl implements JsonSchema
 
         private void routeChildren(
             Event event,
-            JsonParser parser)
+            JsonSource parser)
         {
             if (uniqueTokens != null)
             {
@@ -2196,7 +2258,7 @@ public final class JsonSchemaImpl implements JsonSchema
 
         private void feedCombinators(
             Event event,
-            JsonParser parser)
+            JsonSource parser)
         {
             feedOne(refEval, event, parser);
             feedOne(dynEval, event, parser);
@@ -2219,7 +2281,7 @@ public final class JsonSchemaImpl implements JsonSchema
         private void feedAll(
             Eval[] evals,
             Event event,
-            JsonParser parser)
+            JsonSource parser)
         {
             if (evals != null)
             {
@@ -2233,7 +2295,7 @@ public final class JsonSchemaImpl implements JsonSchema
         private void feedOne(
             Eval eval,
             Event event,
-            JsonParser parser)
+            JsonSource parser)
         {
             if (eval != null && !eval.done)
             {
@@ -2242,7 +2304,7 @@ public final class JsonSchemaImpl implements JsonSchema
         }
 
         private Verdict combine(
-            JsonParser parser)
+            JsonSource parser)
         {
             boolean valid = !directInvalid;
             if (valid && refEval != null && refEval.result != Verdict.VALID)
@@ -2431,7 +2493,7 @@ public final class JsonSchemaImpl implements JsonSchema
         }
 
         private boolean checkUnevaluatedProperties(
-            JsonParser parser)
+            JsonSource parser)
         {
             boolean valid = true;
             for (Map.Entry<String, List<Token>> entry : propValues.entrySet())
@@ -2454,7 +2516,7 @@ public final class JsonSchemaImpl implements JsonSchema
         }
 
         private boolean checkUnevaluatedItems(
-            JsonParser parser)
+            JsonSource parser)
         {
             boolean valid = true;
             for (int index = 0; index < itemValues.size(); index++)

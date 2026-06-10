@@ -15,14 +15,26 @@
 package io.aklivity.zilla.runtime.common.json;
 
 import java.io.InputStream;
+import java.util.List;
 import java.util.Map;
 
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParserFactory;
 
-import io.aklivity.zilla.runtime.common.json.internal.StreamingJsonParser;
-import io.aklivity.zilla.runtime.common.json.internal.StreamingJsonParserFactory;
+import io.aklivity.zilla.runtime.common.json.internal.JsonGeneratorImpl;
+import io.aklivity.zilla.runtime.common.json.internal.JsonParserFactoryImpl;
+import io.aklivity.zilla.runtime.common.json.internal.JsonParserImpl;
+import io.aklivity.zilla.runtime.common.json.internal.JsonProjectorImpl;
 
+/**
+ * Entry point for {@code common-json}'s streaming JSON parsing over Agrona buffers.
+ * <p>
+ * {@link #createParser(InputStream)} returns a standard {@link jakarta.json.stream.JsonParser},
+ * so it can be used anywhere a streaming pull parser is expected — including one-shot,
+ * complete-buffer cases that do not need the resumable, slot-fragmented chunked streaming this
+ * parser also supports. It requires no {@code jakarta.json} provider on the classpath;
+ * {@code common-json} ships the implementation.
+ */
 public final class StreamingJson
 {
     /**
@@ -59,10 +71,31 @@ public final class StreamingJson
     {
     }
 
-    public static JsonParser createParser(
+    public static JsonParserEx createParser(
         InputStream in)
     {
-        return new StreamingJsonParser(in, Map.of());
+        return new JsonParserImpl(in, Map.of());
+    }
+
+    /**
+     * Returns an empty {@link JsonParserEx} to be fed via {@link JsonParserEx#wrap(
+     * org.agrona.DirectBuffer, int, int)} (or {@link JsonPipeline#feed(org.agrona.DirectBuffer,
+     * int, int)} when driving a pipeline). Reuse a single instance per worker thread.
+     */
+    public static JsonParserEx createParser()
+    {
+        return new JsonParserImpl(Map.of());
+    }
+
+    /**
+     * Variant of {@link #createParser()} taking parser config (e.g. {@link #PATH_INCLUDES},
+     * {@link #TOKEN_MAX_BYTES}); the returned parser starts empty and is fed via {@link
+     * JsonParserEx#wrap(org.agrona.DirectBuffer, int, int)}.
+     */
+    public static JsonParserEx createParser(
+        Map<String, ?> config)
+    {
+        return new JsonParserImpl(config);
     }
 
     /**
@@ -73,6 +106,40 @@ public final class StreamingJson
     public static JsonParserFactory createParserFactory(
         Map<String, ?> config)
     {
-        return new StreamingJsonParserFactory(config);
+        return new JsonParserFactoryImpl(config);
+    }
+
+    /**
+     * Returns a buffer-backed {@link JsonGeneratorEx} — a standard {@link
+     * jakarta.json.stream.JsonGenerator} extended with the streaming-to-buffer methods. Reuse a
+     * single instance per worker thread, calling {@link JsonGeneratorEx#wrap(
+     * org.agrona.MutableDirectBuffer, int)} before each value. Requires no {@code jakarta.json}
+     * provider on the classpath; {@code common-json} ships the implementation.
+     */
+    public static JsonGeneratorEx createGenerator()
+    {
+        return new JsonGeneratorImpl();
+    }
+
+    /**
+     * Returns a {@link JsonTransform} that prunes a document to the given retained RFC 6901
+     * pointers, forwarding each kept event to the downstream sink supplied at assembly. Add it to a
+     * pipeline via {@link JsonStream#transform(JsonTransform)}. Reuse a single instance per worker
+     * thread; it resets per top-level value.
+     */
+    public static JsonTransform projector(
+        List<String> pointers)
+    {
+        return new JsonProjectorImpl(pointers);
+    }
+
+    /**
+     * Returns a {@link JsonTransform} pruning a document to the paths retained by {@code schema}
+     * (see {@link JsonSchema#retainedPaths()}).
+     */
+    public static JsonTransform projector(
+        JsonSchema schema)
+    {
+        return new JsonProjectorImpl(schema.retainedPaths());
     }
 }

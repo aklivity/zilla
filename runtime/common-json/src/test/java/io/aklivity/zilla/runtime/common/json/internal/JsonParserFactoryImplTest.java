@@ -36,7 +36,7 @@ import org.junit.jupiter.api.Test;
 
 import io.aklivity.zilla.runtime.common.json.StreamingJson;
 
-public class StreamingJsonParserFactoryTest
+public class JsonParserFactoryImplTest
 {
     @Test
     public void shouldCreateParserForInputStreamWithSharedConfig()

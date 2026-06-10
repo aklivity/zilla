@@ -25,7 +25,7 @@ import java.util.Optional;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParsingException;
 
-public final class StreamingJsonTokenizer
+public final class JsonTokenizer
 {
     private enum ParseState
     {
@@ -80,12 +80,12 @@ public final class StreamingJsonTokenizer
     private int resumeUnicodeValue;
     private int resumeLiteralIndex;     // chars matched so far for true/false/null
 
-    public StreamingJsonTokenizer()
+    public JsonTokenizer()
     {
         this(null, null, Integer.MAX_VALUE);
     }
 
-    public StreamingJsonTokenizer(
+    public JsonTokenizer(
         List<String> pathIncludes,
         List<String> pathExcludes,
         int tokenMaxBytes)
@@ -95,13 +95,30 @@ public final class StreamingJsonTokenizer
         this.tokenMaxBytes = tokenMaxBytes;
     }
 
+    public void reset()
+    {
+        stack.clear();
+        scratch.setLength(0);
+        pathDepth = 0;
+        state = ParseState.DOC_START;
+        pendingEvent = null;
+        pendingString = null;
+        streamOffset = 0;
+        valueReadable = true;
+        resumeOp = ResumeOp.NONE;
+        resumeEscape = false;
+        resumeUnicodePending = 0;
+        resumeUnicodeValue = 0;
+        resumeLiteralIndex = 0;
+    }
+
     public static final List<String> INCLUDE_ALL = null;
 
     private static List<String[]> compilePaths(
         List<String> paths)
     {
         return Optional.ofNullable(paths)
-            .map(StreamingJsonTokenizer::compilePathList)
+            .map(JsonTokenizer::compilePathList)
             .orElse(null);
     }
 
@@ -110,7 +127,7 @@ public final class StreamingJsonTokenizer
     {
         return paths.isEmpty()
             ? List.of()
-            : paths.stream().map(StreamingJsonTokenizer::compilePath).toList();
+            : paths.stream().map(JsonTokenizer::compilePath).toList();
     }
 
     private static String[] compilePath(

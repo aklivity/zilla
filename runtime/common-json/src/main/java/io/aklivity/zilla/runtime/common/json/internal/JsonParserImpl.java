@@ -21,24 +21,47 @@ import java.util.List;
 import java.util.Map;
 
 import jakarta.json.stream.JsonLocation;
-import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParsingException;
 
+import org.agrona.DirectBuffer;
+
+import io.aklivity.zilla.runtime.common.json.DirectBufferInputStreamEx;
+import io.aklivity.zilla.runtime.common.json.JsonParserEx;
+import io.aklivity.zilla.runtime.common.json.JsonSource;
+import io.aklivity.zilla.runtime.common.json.JsonStream;
 import io.aklivity.zilla.runtime.common.json.StreamingJson;
 
-public final class StreamingJsonParser implements JsonParser
+public final class JsonParserImpl implements JsonParserEx, JsonSource
 {
     private final InputStream in;
-    private final StreamingJsonTokenizer tokenizer;
-    private final StreamingJsonLocation location;
+    private final DirectBufferInputStreamEx ownedInput;
+    private final JsonTokenizer tokenizer;
+    private final JsonLocationImpl location;
 
-    public StreamingJsonParser(
+    public JsonParserImpl()
+    {
+        this(Map.of());
+    }
+
+    public JsonParserImpl(
+        Map<String, ?> config)
+    {
+        this.ownedInput = new DirectBufferInputStreamEx();
+        this.in = ownedInput;
+        this.tokenizer = new JsonTokenizer(
+            pathList(config, StreamingJson.PATH_INCLUDES),
+            pathList(config, StreamingJson.PATH_EXCLUDES),
+            tokenMaxBytes(config));
+        this.location = new JsonLocationImpl(tokenizer);
+    }
+
+    public JsonParserImpl(
         InputStream in)
     {
         this(in, Map.of());
     }
 
-    public StreamingJsonParser(
+    public JsonParserImpl(
         InputStream in,
         Map<String, ?> config)
     {
@@ -47,11 +70,33 @@ public final class StreamingJsonParser implements JsonParser
             throw new IllegalArgumentException("InputStream must support mark/reset");
         }
         this.in = in;
-        this.tokenizer = new StreamingJsonTokenizer(
+        this.ownedInput = null;
+        this.tokenizer = new JsonTokenizer(
             pathList(config, StreamingJson.PATH_INCLUDES),
             pathList(config, StreamingJson.PATH_EXCLUDES),
             tokenMaxBytes(config));
-        this.location = new StreamingJsonLocation(tokenizer);
+        this.location = new JsonLocationImpl(tokenizer);
+    }
+
+    @Override
+    public JsonStream stream()
+    {
+        return new JsonStreamImpl(this);
+    }
+
+    @Override
+    public JsonParserEx wrap(
+        DirectBuffer buffer,
+        int offset,
+        int length)
+    {
+        ownedInput.wrap(buffer, offset, length);
+        return this;
+    }
+
+    void reset()
+    {
+        tokenizer.reset();
     }
 
     @Override
