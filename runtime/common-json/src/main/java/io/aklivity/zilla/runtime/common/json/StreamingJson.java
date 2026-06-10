@@ -21,10 +21,10 @@ import java.util.Map;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParserFactory;
 
-import io.aklivity.zilla.runtime.common.json.internal.StreamingJsonGenerator;
-import io.aklivity.zilla.runtime.common.json.internal.StreamingJsonParser;
-import io.aklivity.zilla.runtime.common.json.internal.StreamingJsonParserFactory;
-import io.aklivity.zilla.runtime.common.json.internal.StreamingJsonProjector;
+import io.aklivity.zilla.runtime.common.json.internal.JsonGeneratorImpl;
+import io.aklivity.zilla.runtime.common.json.internal.JsonParserFactoryImpl;
+import io.aklivity.zilla.runtime.common.json.internal.JsonParserImpl;
+import io.aklivity.zilla.runtime.common.json.internal.JsonProjectorImpl;
 
 /**
  * Entry point for {@code common-json}'s streaming JSON parsing over Agrona buffers.
@@ -71,10 +71,31 @@ public final class StreamingJson
     {
     }
 
-    public static JsonParser createParser(
+    public static JsonParserEx createParser(
         InputStream in)
     {
-        return new StreamingJsonParser(in, Map.of());
+        return new JsonParserImpl(in, Map.of());
+    }
+
+    /**
+     * Returns an empty {@link JsonParserEx} to be fed via {@link JsonParserEx#wrap(
+     * org.agrona.DirectBuffer, int, int)} (or {@link JsonPipeline#feed(org.agrona.DirectBuffer,
+     * int, int)} when driving a pipeline). Reuse a single instance per worker thread.
+     */
+    public static JsonParserEx createParser()
+    {
+        return new JsonParserImpl(Map.of());
+    }
+
+    /**
+     * Variant of {@link #createParser()} taking parser config (e.g. {@link #PATH_INCLUDES},
+     * {@link #TOKEN_MAX_BYTES}); the returned parser starts empty and is fed via {@link
+     * JsonParserEx#wrap(org.agrona.DirectBuffer, int, int)}.
+     */
+    public static JsonParserEx createParser(
+        Map<String, ?> config)
+    {
+        return new JsonParserImpl(config);
     }
 
     /**
@@ -85,7 +106,7 @@ public final class StreamingJson
     public static JsonParserFactory createParserFactory(
         Map<String, ?> config)
     {
-        return new StreamingJsonParserFactory(config);
+        return new JsonParserFactoryImpl(config);
     }
 
     /**
@@ -97,20 +118,28 @@ public final class StreamingJson
      */
     public static JsonGeneratorEx createGenerator()
     {
-        return new StreamingJsonGenerator();
+        return new JsonGeneratorImpl();
     }
 
     /**
-     * Returns a {@link JsonProjector} that prunes a document to the given retained RFC 6901
-     * pointers, forwarding each kept event to {@code sink} as a stage in a processing chain (e.g.
-     * {@code parser → projector → generator-sink}, where {@code sink} is {@link
-     * JsonEventConsumer#of(JsonGeneratorEx)}). Reuse a single instance per worker thread; it
-     * resets per top-level value.
+     * Returns a {@link JsonTransform} that prunes a document to the given retained RFC 6901
+     * pointers, forwarding each kept event to the downstream sink supplied at assembly. Add it to a
+     * pipeline via {@link JsonStream#transform(JsonTransform)}. Reuse a single instance per worker
+     * thread; it resets per top-level value.
      */
-    public static JsonProjector createProjector(
-        List<String> pointers,
-        JsonEventConsumer sink)
+    public static JsonTransform projector(
+        List<String> pointers)
     {
-        return new StreamingJsonProjector(pointers, sink);
+        return new JsonProjectorImpl(pointers);
+    }
+
+    /**
+     * Returns a {@link JsonTransform} pruning a document to the paths retained by {@code schema}
+     * (see {@link JsonSchema#retainedPaths()}).
+     */
+    public static JsonTransform projector(
+        JsonSchema schema)
+    {
+        return new JsonProjectorImpl(schema.retainedPaths());
     }
 }

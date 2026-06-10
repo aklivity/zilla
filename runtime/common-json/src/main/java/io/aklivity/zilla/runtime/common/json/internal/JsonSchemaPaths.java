@@ -22,7 +22,7 @@ import java.util.Set;
 
 /**
  * Compiles a JSON Schema (draft-07 subset) into the set of RFC 6901 JSON Pointers to retain
- * when projecting an instance with {@code JsonProjector} — the union of the paths
+ * when projecting an instance with the projector transform — the union of the paths
  * declared across all branches of the schema.
  * <p>
  * {@code properties} contribute child pointers; {@code items} (single schema) contributes a

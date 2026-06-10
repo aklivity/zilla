@@ -12,35 +12,25 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.common.json.internal;
+package io.aklivity.zilla.runtime.common.json;
+
+import java.math.BigDecimal;
 
 import jakarta.json.stream.JsonLocation;
 
-final class StreamingJsonLocation implements JsonLocation
+/**
+ * Immutable, read-only view of the value observed at the current event as a {@link JsonStream}
+ * pipeline pumps events through its stages. A {@code JsonSource} exposes only the accessors a stage
+ * needs to read the current scalar (and its location for diagnostics); it has no {@code next()} —
+ * advancing the cursor is the parser's job, not a stage's — so a stage cannot disturb the pump.
+ */
+public interface JsonSource
 {
-    private final StreamingJsonTokenizer tokenizer;
+    String getString();
 
-    StreamingJsonLocation(
-        StreamingJsonTokenizer tokenizer)
-    {
-        this.tokenizer = tokenizer;
-    }
+    BigDecimal getBigDecimal();
 
-    @Override
-    public long getLineNumber()
-    {
-        return -1;
-    }
+    boolean isIntegralNumber();
 
-    @Override
-    public long getColumnNumber()
-    {
-        return -1;
-    }
-
-    @Override
-    public long getStreamOffset()
-    {
-        return tokenizer.streamOffset();
-    }
+    JsonLocation getLocation();
 }

@@ -34,7 +34,7 @@ import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
  * the classpath. The DOM-coupled {@code write} overloads that accept a {@link JsonValue} are
  * unsupported, mirroring the way the parser declines its DOM accessors.
  */
-public final class StreamingJsonGenerator implements JsonGeneratorEx
+public final class JsonGeneratorImpl implements JsonGeneratorEx
 {
     private static final int MAX_DEPTH = 64;
     private static final byte[] HEX = "0123456789abcdef".getBytes();
@@ -49,7 +49,7 @@ public final class StreamingJsonGenerator implements JsonGeneratorEx
     private boolean afterKey;
 
     @Override
-    public StreamingJsonGenerator wrap(
+    public JsonGeneratorImpl wrap(
         MutableDirectBuffer buffer,
         int offset)
     {
@@ -68,7 +68,7 @@ public final class StreamingJsonGenerator implements JsonGeneratorEx
     }
 
     @Override
-    public StreamingJsonGenerator writeStartObject()
+    public JsonGeneratorImpl writeStartObject()
     {
         preValue();
         putByte('{');
@@ -77,7 +77,7 @@ public final class StreamingJsonGenerator implements JsonGeneratorEx
     }
 
     @Override
-    public StreamingJsonGenerator writeStartObject(
+    public JsonGeneratorImpl writeStartObject(
         String name)
     {
         writeKey(name);
@@ -85,7 +85,7 @@ public final class StreamingJsonGenerator implements JsonGeneratorEx
     }
 
     @Override
-    public StreamingJsonGenerator writeStartArray()
+    public JsonGeneratorImpl writeStartArray()
     {
         preValue();
         putByte('[');
@@ -94,7 +94,7 @@ public final class StreamingJsonGenerator implements JsonGeneratorEx
     }
 
     @Override
-    public StreamingJsonGenerator writeStartArray(
+    public JsonGeneratorImpl writeStartArray(
         String name)
     {
         writeKey(name);
@@ -102,7 +102,7 @@ public final class StreamingJsonGenerator implements JsonGeneratorEx
     }
 
     @Override
-    public StreamingJsonGenerator writeKey(
+    public JsonGeneratorImpl writeKey(
         String name)
     {
         if (hasMembers[depth - 1])
@@ -117,7 +117,7 @@ public final class StreamingJsonGenerator implements JsonGeneratorEx
     }
 
     @Override
-    public StreamingJsonGenerator writeEnd()
+    public JsonGeneratorImpl writeEnd()
     {
         depth--;
         putByte(inArray[depth] ? ']' : '}');
@@ -125,7 +125,7 @@ public final class StreamingJsonGenerator implements JsonGeneratorEx
     }
 
     @Override
-    public StreamingJsonGenerator write(
+    public JsonGeneratorImpl write(
         String value)
     {
         preValue();
@@ -134,35 +134,35 @@ public final class StreamingJsonGenerator implements JsonGeneratorEx
     }
 
     @Override
-    public StreamingJsonGenerator write(
+    public JsonGeneratorImpl write(
         BigDecimal value)
     {
         return writeNumber(value.toString());
     }
 
     @Override
-    public StreamingJsonGenerator write(
+    public JsonGeneratorImpl write(
         BigInteger value)
     {
         return writeNumber(value.toString());
     }
 
     @Override
-    public StreamingJsonGenerator write(
+    public JsonGeneratorImpl write(
         int value)
     {
         return writeNumber(Integer.toString(value));
     }
 
     @Override
-    public StreamingJsonGenerator write(
+    public JsonGeneratorImpl write(
         long value)
     {
         return writeNumber(Long.toString(value));
     }
 
     @Override
-    public StreamingJsonGenerator write(
+    public JsonGeneratorImpl write(
         double value)
     {
         if (Double.isNaN(value) || Double.isInfinite(value))
@@ -173,7 +173,7 @@ public final class StreamingJsonGenerator implements JsonGeneratorEx
     }
 
     @Override
-    public StreamingJsonGenerator write(
+    public JsonGeneratorImpl write(
         boolean value)
     {
         preValue();
@@ -182,7 +182,7 @@ public final class StreamingJsonGenerator implements JsonGeneratorEx
     }
 
     @Override
-    public StreamingJsonGenerator writeNull()
+    public JsonGeneratorImpl writeNull()
     {
         preValue();
         writeAscii("null");
@@ -190,7 +190,7 @@ public final class StreamingJsonGenerator implements JsonGeneratorEx
     }
 
     @Override
-    public StreamingJsonGenerator write(
+    public JsonGeneratorImpl write(
         String name,
         String value)
     {
@@ -199,7 +199,7 @@ public final class StreamingJsonGenerator implements JsonGeneratorEx
     }
 
     @Override
-    public StreamingJsonGenerator write(
+    public JsonGeneratorImpl write(
         String name,
         BigInteger value)
     {
@@ -208,7 +208,7 @@ public final class StreamingJsonGenerator implements JsonGeneratorEx
     }
 
     @Override
-    public StreamingJsonGenerator write(
+    public JsonGeneratorImpl write(
         String name,
         BigDecimal value)
     {
@@ -217,7 +217,7 @@ public final class StreamingJsonGenerator implements JsonGeneratorEx
     }
 
     @Override
-    public StreamingJsonGenerator write(
+    public JsonGeneratorImpl write(
         String name,
         int value)
     {
@@ -226,7 +226,7 @@ public final class StreamingJsonGenerator implements JsonGeneratorEx
     }
 
     @Override
-    public StreamingJsonGenerator write(
+    public JsonGeneratorImpl write(
         String name,
         long value)
     {
@@ -235,7 +235,7 @@ public final class StreamingJsonGenerator implements JsonGeneratorEx
     }
 
     @Override
-    public StreamingJsonGenerator write(
+    public JsonGeneratorImpl write(
         String name,
         double value)
     {
@@ -244,7 +244,7 @@ public final class StreamingJsonGenerator implements JsonGeneratorEx
     }
 
     @Override
-    public StreamingJsonGenerator write(
+    public JsonGeneratorImpl write(
         String name,
         boolean value)
     {
@@ -253,7 +253,7 @@ public final class StreamingJsonGenerator implements JsonGeneratorEx
     }
 
     @Override
-    public StreamingJsonGenerator writeNull(
+    public JsonGeneratorImpl writeNull(
         String name)
     {
         writeKey(name);
@@ -261,7 +261,7 @@ public final class StreamingJsonGenerator implements JsonGeneratorEx
     }
 
     @Override
-    public StreamingJsonGenerator write(
+    public JsonGeneratorImpl write(
         JsonValue value)
     {
         throw new UnsupportedOperationException("write(JsonValue) requires a DOM; " +
@@ -269,7 +269,7 @@ public final class StreamingJsonGenerator implements JsonGeneratorEx
     }
 
     @Override
-    public StreamingJsonGenerator write(
+    public JsonGeneratorImpl write(
         String name,
         JsonValue value)
     {
@@ -278,7 +278,7 @@ public final class StreamingJsonGenerator implements JsonGeneratorEx
     }
 
     @Override
-    public StreamingJsonGenerator writeNumber(
+    public JsonGeneratorImpl writeNumber(
         String literal)
     {
         preValue();
@@ -287,7 +287,7 @@ public final class StreamingJsonGenerator implements JsonGeneratorEx
     }
 
     @Override
-    public StreamingJsonGenerator writeRaw(
+    public JsonGeneratorImpl writeRaw(
         DirectBuffer source,
         int index,
         int length)

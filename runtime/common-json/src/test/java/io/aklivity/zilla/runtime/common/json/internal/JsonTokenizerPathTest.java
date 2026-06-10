@@ -33,13 +33,13 @@ import org.junit.jupiter.api.Test;
 
 import io.aklivity.zilla.runtime.common.json.StreamingJson;
 
-public class StreamingJsonTokenizerPathTest
+public class JsonTokenizerPathTest
 {
     @Test
     public void shouldTrackPathThroughObjectsAndArrays() throws IOException
     {
         final String json = "{\"tools\":[{\"name\":\"X\"},{\"name\":\"Y\"}],\"id\":7}";
-        final StreamingJsonTokenizer tokenizer = new StreamingJsonTokenizer();
+        final JsonTokenizer tokenizer = new JsonTokenizer();
         final InputStream in = new BufferedInputStream(
             new ByteArrayInputStream(json.getBytes(UTF_8)));
 
@@ -74,7 +74,7 @@ public class StreamingJsonTokenizerPathTest
     public void shouldExposeFullPathForNestedObject() throws IOException
     {
         final String json = "{\"a\":{\"b\":{\"c\":42}}}";
-        final StreamingJsonTokenizer tokenizer = new StreamingJsonTokenizer();
+        final JsonTokenizer tokenizer = new JsonTokenizer();
         final InputStream in = new BufferedInputStream(
             new ByteArrayInputStream(json.getBytes(UTF_8)));
 
@@ -100,8 +100,8 @@ public class StreamingJsonTokenizerPathTest
         final List<String> excludes = List.of(
             "/tools/-/title");        // excludes win for title
 
-        final StreamingJsonTokenizer tokenizer =
-            new StreamingJsonTokenizer(includes, excludes, 1024);
+        final JsonTokenizer tokenizer =
+            new JsonTokenizer(includes, excludes, 1024);
 
         final String json = "{\"tools\":[{\"name\":\"X\",\"title\":\"T\"},{\"name\":\"Y\"}]}";
         final InputStream in = new BufferedInputStream(
@@ -123,8 +123,8 @@ public class StreamingJsonTokenizerPathTest
         final List<String> includes = List.of(
             "/a~1b/c~0d");            // path of "/a/b" then "c~d"
 
-        final StreamingJsonTokenizer tokenizer =
-            new StreamingJsonTokenizer(includes, List.of(), Integer.MAX_VALUE);
+        final JsonTokenizer tokenizer =
+            new JsonTokenizer(includes, List.of(), Integer.MAX_VALUE);
 
         final String json = "{\"a/b\":{\"c~d\":42}}";
         final InputStream in = new BufferedInputStream(
@@ -146,8 +146,8 @@ public class StreamingJsonTokenizerPathTest
     public void shouldSuppressScratchForNonReadableValues() throws IOException
     {
         final List<String> includes = List.of("/tools/-/name");
-        final StreamingJsonTokenizer tokenizer =
-            new StreamingJsonTokenizer(includes, List.of(), Integer.MAX_VALUE);
+        final JsonTokenizer tokenizer =
+            new JsonTokenizer(includes, List.of(), Integer.MAX_VALUE);
 
         final String json = "{\"tools\":[{\"name\":\"X\",\"description\":\"a quite long description\"}]}";
         final InputStream in = new BufferedInputStream(
@@ -214,8 +214,8 @@ public class StreamingJsonTokenizerPathTest
     public void shouldThrowWhenReadableValueExceedsTokenMaxBytes() throws IOException
     {
         final List<String> includes = List.of("/payload");
-        final StreamingJsonTokenizer tokenizer =
-            new StreamingJsonTokenizer(includes, List.of(), 8);
+        final JsonTokenizer tokenizer =
+            new JsonTokenizer(includes, List.of(), 8);
 
         final String json = "{\"payload\":\"abcdefghijklmnopqrst\"}";
         final InputStream in = new BufferedInputStream(
@@ -234,8 +234,8 @@ public class StreamingJsonTokenizerPathTest
     public void shouldNotThrowWhenExcludedValueExceedsTokenMaxBytes() throws IOException
     {
         final List<String> excludes = List.of("/payload");
-        final StreamingJsonTokenizer tokenizer =
-            new StreamingJsonTokenizer(StreamingJsonTokenizer.INCLUDE_ALL, excludes, 8);
+        final JsonTokenizer tokenizer =
+            new JsonTokenizer(JsonTokenizer.INCLUDE_ALL, excludes, 8);
 
         final String json = "{\"payload\":\"abcdefghijklmnopqrst\",\"id\":1}";
         final InputStream in = new BufferedInputStream(
@@ -256,8 +256,8 @@ public class StreamingJsonTokenizerPathTest
     @Test
     public void shouldHandleEmptyConfigAsLegacyBehavior() throws IOException
     {
-        final StreamingJsonTokenizer tokenizer =
-            new StreamingJsonTokenizer(List.of(), List.of(), Integer.MAX_VALUE);
+        final JsonTokenizer tokenizer =
+            new JsonTokenizer(List.of(), List.of(), Integer.MAX_VALUE);
 
         final String json = "[1,2,3]";
         final InputStream in = new BufferedInputStream(

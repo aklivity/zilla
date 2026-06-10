@@ -29,7 +29,7 @@ import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
 
-import io.aklivity.zilla.runtime.common.json.JsonEventConsumer.Status;
+import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
 class JsonValidatorChainTest
 {
@@ -44,9 +44,11 @@ class JsonValidatorChainTest
     {
         JsonSchema schema = JsonSchema.of(OBJECT_SCHEMA);
         JsonGeneratorEx gen = StreamingJson.createGenerator().wrap(buffer, 0);
-        JsonEventConsumer chain = schema.validator(JsonEventConsumer.of(gen));
+        JsonPipeline pipeline = StreamingJson.createParser().stream()
+            .transform(schema.validator())
+            .into(JsonSink.of(gen));
 
-        Status status = run(chain, parserFor("{\"id\":1,\"name\":\"x\"} "));
+        Status status = run(pipeline, "{\"id\":1,\"name\":\"x\"} ");
 
         assertEquals(Status.COMPLETE, status);
         assertEquals("{\"id\":1,\"name\":\"x\"}", output(gen));
@@ -57,10 +59,12 @@ class JsonValidatorChainTest
     {
         JsonSchema schema = JsonSchema.of(OBJECT_SCHEMA);
         JsonGeneratorEx gen = StreamingJson.createGenerator().wrap(buffer, 0);
-        JsonEventConsumer chain = schema.validator(
-            StreamingJson.createProjector(List.of("/id"), JsonEventConsumer.of(gen)));
+        JsonPipeline pipeline = StreamingJson.createParser().stream()
+            .transform(schema.validator())
+            .transform(StreamingJson.projector(List.of("/id")))
+            .into(JsonSink.of(gen));
 
-        Status status = run(chain, parserFor("{\"id\":1,\"name\":\"x\"} "));
+        Status status = run(pipeline, "{\"id\":1,\"name\":\"x\"} ");
 
         assertEquals(Status.COMPLETE, status);
         assertEquals("{\"id\":1}", output(gen));
@@ -71,10 +75,12 @@ class JsonValidatorChainTest
     {
         JsonSchema schema = JsonSchema.of(OBJECT_SCHEMA);
         JsonGeneratorEx gen = StreamingJson.createGenerator().wrap(buffer, 0);
-        JsonEventConsumer chain = schema.validator(
-            StreamingJson.createProjector(List.of("/id"), JsonEventConsumer.of(gen)));
+        JsonPipeline pipeline = StreamingJson.createParser().stream()
+            .transform(schema.validator())
+            .transform(StreamingJson.projector(List.of("/id")))
+            .into(JsonSink.of(gen));
 
-        Status status = run(chain, parserFor("{\"id\":1} "));
+        Status status = run(pipeline, "{\"id\":1} ");
 
         assertEquals(Status.REJECTED, status);
         assertEquals("{\"id\":1}", output(gen));
@@ -85,9 +91,11 @@ class JsonValidatorChainTest
     {
         JsonSchema schema = JsonSchema.of(OBJECT_SCHEMA);
         JsonGeneratorEx gen = StreamingJson.createGenerator().wrap(buffer, 0);
-        JsonEventConsumer chain = schema.validator(JsonEventConsumer.of(gen));
+        JsonPipeline pipeline = StreamingJson.createParser().stream()
+            .transform(schema.validator())
+            .into(JsonSink.of(gen));
 
-        Status status = run(chain, parserFor("{\"id\":\"x\",\"name\":\"y\"} "));
+        Status status = run(pipeline, "{\"id\":\"x\",\"name\":\"y\"} ");
 
         assertEquals(Status.REJECTED, status);
     }
@@ -97,14 +105,16 @@ class JsonValidatorChainTest
     {
         JsonSchema schema = JsonSchema.of(OBJECT_SCHEMA);
         JsonGeneratorEx gen = StreamingJson.createGenerator().wrap(buffer, 0);
-        JsonEventConsumer chain = schema.validator(JsonEventConsumer.of(gen));
-        JsonParser parser = parserFor("{\"id\":1,\"name\":\"x\"} ");
+        JsonPipeline pipeline = StreamingJson.createParser().stream()
+            .transform(schema.validator())
+            .into(JsonSink.of(gen));
 
-        chain.reset();
-        assertEquals(Status.PENDING, chain.feed(parser.next(), parser));
-        assertEquals(Status.PENDING, chain.feed(parser.next(), parser));
+        byte[] bytes = "{\"id\":1,\"name\":\"x\"} ".getBytes(UTF_8);
+        UnsafeBuffer in = new UnsafeBuffer(bytes);
 
-        Status status = chain.pump(parser);
+        pipeline.reset();
+        assertEquals(Status.PENDING, pipeline.feed(in, 0, 8));
+        Status status = pipeline.feed(in, 8, bytes.length - 8);
 
         assertEquals(Status.COMPLETE, status);
         assertEquals("{\"id\":1,\"name\":\"x\"}", output(gen));
@@ -115,14 +125,31 @@ class JsonValidatorChainTest
     {
         JsonSchema schema = JsonSchema.of(OBJECT_SCHEMA);
         JsonGeneratorEx gen = StreamingJson.createGenerator();
-        JsonEventConsumer chain = schema.validator(JsonEventConsumer.of(gen));
+        JsonPipeline pipeline = StreamingJson.createParser().stream()
+            .transform(schema.validator())
+            .into(JsonSink.of(gen));
 
         gen.wrap(buffer, 0);
-        assertEquals(Status.COMPLETE, run(chain, parserFor("{\"id\":1,\"name\":\"a\"} ")));
+        assertEquals(Status.COMPLETE, run(pipeline, "{\"id\":1,\"name\":\"a\"} "));
         assertEquals("{\"id\":1,\"name\":\"a\"}", output(gen));
 
         gen.wrap(buffer, 0);
-        assertEquals(Status.REJECTED, run(chain, parserFor("{\"id\":2} ")));
+        assertEquals(Status.REJECTED, run(pipeline, "{\"id\":2} "));
+    }
+
+    @Test
+    void shouldForwardThroughDefaultResetTransform()
+    {
+        JsonGeneratorEx gen = StreamingJson.createGenerator().wrap(buffer, 0);
+        JsonTransform passthrough = (evt, in, out) -> out.feed(evt, in);
+        JsonPipeline pipeline = StreamingJson.createParser().stream()
+            .transform(passthrough)
+            .into(JsonSink.of(gen));
+
+        Status status = run(pipeline, "{\"id\":1} ");
+
+        assertEquals(Status.COMPLETE, status);
+        assertEquals("{\"id\":1}", output(gen));
     }
 
     @Test
@@ -178,11 +205,12 @@ class JsonValidatorChainTest
     }
 
     private static Status run(
-        JsonEventConsumer chain,
-        JsonParser parser)
+        JsonPipeline pipeline,
+        String text)
     {
-        chain.reset();
-        return chain.pump(parser);
+        byte[] bytes = text.getBytes(UTF_8);
+        pipeline.reset();
+        return pipeline.feed(new UnsafeBuffer(bytes), 0, bytes.length);
     }
 
     private static JsonParser parserFor(

@@ -19,8 +19,6 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.util.List;
 
-import jakarta.json.stream.JsonParser;
-
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.openjdk.jmh.annotations.Benchmark;
@@ -39,10 +37,9 @@ import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
-import io.aklivity.zilla.runtime.common.json.DirectBufferInputStreamEx;
-import io.aklivity.zilla.runtime.common.json.JsonEventConsumer;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
-import io.aklivity.zilla.runtime.common.json.JsonProjector;
+import io.aklivity.zilla.runtime.common.json.JsonPipeline;
+import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.StreamingJson;
 
 @State(Scope.Benchmark)
@@ -74,15 +71,15 @@ public class JsonProjectorBM
         "\"keep\":{\"id\":99,\"name\":\"retain\",\"extra\":\"drop\"}," +
         "\"drop2\":[0,1,2,3,4,5,6,7,8,9],\"drop3\":{\"a\":\"b\",\"c\":\"d\"}} ";
 
-    private final DirectBufferInputStreamEx inputRO = new DirectBufferInputStreamEx();
     private final MutableDirectBuffer outputBuffer = new UnsafeBuffer(new byte[16 * 1024]);
     private final JsonGeneratorEx generator = StreamingJson.createGenerator();
+    private final JsonSink sink = JsonSink.of(generator);
 
-    private JsonProjector flatProjector;
-    private JsonProjector nestedProjector;
-    private JsonProjector arrayWildcardProjector;
-    private JsonProjector rootIdentityProjector;
-    private JsonProjector mostlySkippedProjector;
+    private JsonPipeline flatPipeline;
+    private JsonPipeline nestedPipeline;
+    private JsonPipeline arrayWildcardPipeline;
+    private JsonPipeline rootIdentityPipeline;
+    private JsonPipeline mostlySkippedPipeline;
 
     private UnsafeBuffer flatBuffer;
     private UnsafeBuffer nestedBuffer;
@@ -99,12 +96,16 @@ public class JsonProjectorBM
     @Setup(Level.Trial)
     public void init()
     {
-        JsonEventConsumer sink = JsonEventConsumer.of(generator);
-        flatProjector = StreamingJson.createProjector(List.of("/id", "/active"), sink);
-        nestedProjector = StreamingJson.createProjector(List.of("/meta/id", "/meta/source"), sink);
-        arrayWildcardProjector = StreamingJson.createProjector(List.of("/items/-/id"), sink);
-        rootIdentityProjector = StreamingJson.createProjector(List.of(""), sink);
-        mostlySkippedProjector = StreamingJson.createProjector(List.of("/keep/id"), sink);
+        flatPipeline = StreamingJson.createParser().stream()
+            .transform(StreamingJson.projector(List.of("/id", "/active"))).into(sink);
+        nestedPipeline = StreamingJson.createParser().stream()
+            .transform(StreamingJson.projector(List.of("/meta/id", "/meta/source"))).into(sink);
+        arrayWildcardPipeline = StreamingJson.createParser().stream()
+            .transform(StreamingJson.projector(List.of("/items/-/id"))).into(sink);
+        rootIdentityPipeline = StreamingJson.createParser().stream()
+            .transform(StreamingJson.projector(List.of(""))).into(sink);
+        mostlySkippedPipeline = StreamingJson.createParser().stream()
+            .transform(StreamingJson.projector(List.of("/keep/id"))).into(sink);
 
         byte[] flatBytes = FLAT_OBJECT.getBytes(UTF_8);
         byte[] nestedBytes = NESTED_OBJECT.getBytes(UTF_8);
@@ -128,50 +129,42 @@ public class JsonProjectorBM
     @Benchmark
     public int projectFlatObject()
     {
-        return project(flatProjector, flatBuffer, flatLength);
+        return project(flatPipeline, flatBuffer, flatLength);
     }
 
     @Benchmark
     public int projectNestedObject()
     {
-        return project(nestedProjector, nestedBuffer, nestedLength);
+        return project(nestedPipeline, nestedBuffer, nestedLength);
     }
 
     @Benchmark
     public int projectArrayWildcard()
     {
-        return project(arrayWildcardProjector, arrayWildcardBuffer, arrayWildcardLength);
+        return project(arrayWildcardPipeline, arrayWildcardBuffer, arrayWildcardLength);
     }
 
     @Benchmark
     public int projectRootIdentity()
     {
-        return project(rootIdentityProjector, rootIdentityBuffer, rootIdentityLength);
+        return project(rootIdentityPipeline, rootIdentityBuffer, rootIdentityLength);
     }
 
     @Benchmark
     public int projectMostlySkipped()
     {
-        return project(mostlySkippedProjector, mostlySkippedBuffer, mostlySkippedLength);
+        return project(mostlySkippedPipeline, mostlySkippedBuffer, mostlySkippedLength);
     }
 
     private int project(
-        JsonProjector projector,
+        JsonPipeline pipeline,
         UnsafeBuffer buffer,
         int length)
     {
         generator.wrap(outputBuffer, 0);
-        projector.reset();
-        projector.pump(parserFor(buffer, length));
+        pipeline.reset();
+        pipeline.feed(buffer, 0, length);
         return generator.length();
-    }
-
-    private JsonParser parserFor(
-        UnsafeBuffer buffer,
-        int length)
-    {
-        inputRO.wrap(buffer, 0, length);
-        return StreamingJson.createParser(inputRO);
     }
 
     public static void main(

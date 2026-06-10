@@ -19,13 +19,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.List;
 
-import jakarta.json.stream.JsonParser;
-
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
 
-import io.aklivity.zilla.runtime.common.json.JsonEventConsumer.Status;
+import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
 class JsonProjectorTest
 {
@@ -109,18 +107,22 @@ class JsonProjectorTest
     }
 
     @Test
-    void shouldProjectByFeedingEventByEvent()
+    void shouldProjectAcrossFramesWithoutReset()
     {
         JsonGeneratorEx gen = StreamingJson.createGenerator();
         MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
         gen.wrap(buffer, 0);
-        JsonProjector projector = StreamingJson.createProjector(List.of("/a", "/c"), JsonEventConsumer.of(gen));
-        JsonParser parser = parserFor("{\"a\":1,\"b\":2,\"c\":3} ");
-        Status status = Status.PENDING;
-        while (status == Status.PENDING && parser.hasNext())
-        {
-            status = projector.feed(parser.next(), parser);
-        }
+        JsonPipeline pipeline = StreamingJson.createParser().stream()
+            .transform(StreamingJson.projector(List.of("/a", "/c")))
+            .into(JsonSink.of(gen));
+
+        byte[] bytes = "{\"a\":1,\"b\":2,\"c\":3} ".getBytes(UTF_8);
+        UnsafeBuffer in = new UnsafeBuffer(bytes);
+
+        pipeline.reset();
+        assertEquals(Status.PENDING, pipeline.feed(in, 0, 7));
+        Status status = pipeline.feed(in, 7, bytes.length - 7);
+
         assertEquals(Status.COMPLETE, status);
         byte[] out = new byte[gen.length()];
         buffer.getBytes(0, out);
@@ -132,18 +134,18 @@ class JsonProjectorTest
     {
         JsonGeneratorEx gen = StreamingJson.createGenerator();
         MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
-        JsonProjector projector = StreamingJson.createProjector(List.of("/x"), JsonEventConsumer.of(gen));
+        JsonPipeline pipeline = StreamingJson.createParser().stream()
+            .transform(StreamingJson.projector(List.of("/x")))
+            .into(JsonSink.of(gen));
 
         gen.wrap(buffer, 0);
-        projector.reset();
-        projector.pump(parserFor("{\"x\":1,\"y\":2} "));
+        feed(pipeline, "{\"x\":1,\"y\":2} ");
         byte[] out1 = new byte[gen.length()];
         buffer.getBytes(0, out1);
         assertEquals("{\"x\":1}", new String(out1, UTF_8));
 
         gen.wrap(buffer, 0);
-        projector.reset();
-        projector.pump(parserFor("{\"x\":\"two\"} "));
+        feed(pipeline, "{\"x\":\"two\"} ");
         byte[] out2 = new byte[gen.length()];
         buffer.getBytes(0, out2);
         assertEquals("{\"x\":\"two\"}", new String(out2, UTF_8));
@@ -168,20 +170,21 @@ class JsonProjectorTest
         JsonGeneratorEx gen = StreamingJson.createGenerator();
         MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
         gen.wrap(buffer, 0);
-        JsonProjector projector = StreamingJson.createProjector(retained, JsonEventConsumer.of(gen));
-        projector.reset();
-        projector.pump(parserFor(input + " "));
+        JsonPipeline pipeline = StreamingJson.createParser().stream()
+            .transform(StreamingJson.projector(retained))
+            .into(JsonSink.of(gen));
+        feed(pipeline, input + " ");
         byte[] out = new byte[gen.length()];
         buffer.getBytes(0, out);
         return new String(out, UTF_8);
     }
 
-    private static JsonParser parserFor(
+    private static Status feed(
+        JsonPipeline pipeline,
         String text)
     {
         byte[] bytes = text.getBytes(UTF_8);
-        DirectBufferInputStreamEx in = new DirectBufferInputStreamEx();
-        in.wrap(new UnsafeBuffer(bytes), 0, bytes.length);
-        return StreamingJson.createParser(in);
+        pipeline.reset();
+        return pipeline.feed(new UnsafeBuffer(bytes), 0, bytes.length);
     }
 }

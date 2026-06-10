@@ -16,21 +16,25 @@ package io.aklivity.zilla.runtime.common.json.internal;
 
 import static jakarta.json.stream.JsonParser.Event.START_ARRAY;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
-import jakarta.json.stream.JsonParser;
+import jakarta.json.stream.JsonLocation;
 import jakarta.json.stream.JsonParser.Event;
 
-import io.aklivity.zilla.runtime.common.json.JsonEventConsumer;
-import io.aklivity.zilla.runtime.common.json.JsonProjector;
+import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
+import io.aklivity.zilla.runtime.common.json.JsonSink;
+import io.aklivity.zilla.runtime.common.json.JsonSource;
+import io.aklivity.zilla.runtime.common.json.JsonTransform;
 
 /**
- * Resumable, event-driven {@link JsonProjector} implementation. See {@link JsonProjector} for the
- * projection contract; this class holds the per-value descent state and forwards kept events to
- * the configured downstream sink.
+ * Resumable, event-driven {@link JsonTransform} that projects a document down to a set of retained
+ * RFC 6901 pointers, forwarding the kept events to the downstream {@code out} sink passed into each
+ * {@link #feed(Event, JsonSource, JsonSink)}. This class holds the per-value descent state only;
+ * the downstream is bound once at assembly and supplied per event.
  */
-public final class StreamingJsonProjector implements JsonProjector
+public final class JsonProjectorImpl implements JsonTransform
 {
     private static final int MAX_DEPTH = 64;
     private static final String WILDCARD = "-";
@@ -41,7 +45,6 @@ public final class StreamingJsonProjector implements JsonProjector
     }
 
     private final List<String[]> retained;
-    private final JsonEventConsumer sink;
 
     private final String[] segments = new String[MAX_DEPTH];
     private final int[] indexes = new int[MAX_DEPTH];
@@ -52,7 +55,7 @@ public final class StreamingJsonProjector implements JsonProjector
     private final int[] frameNextIndex = new int[MAX_DEPTH];
     private final int[] frameDepthAtOpen = new int[MAX_DEPTH];
 
-    private final KeyParser keyParser = new KeyParser();
+    private final KeySource keySource = new KeySource();
 
     private int depth;
     private int containers;
@@ -60,12 +63,10 @@ public final class StreamingJsonProjector implements JsonProjector
     private String pendingKey;
     private boolean rootDone;
 
-    public StreamingJsonProjector(
-        List<String> pointers,
-        JsonEventConsumer sink)
+    public JsonProjectorImpl(
+        List<String> pointers)
     {
         this.retained = compileAll(pointers);
-        this.sink = sink;
     }
 
     @Override
@@ -76,38 +77,38 @@ public final class StreamingJsonProjector implements JsonProjector
         keyDecision = null;
         pendingKey = null;
         rootDone = false;
-        sink.reset();
     }
 
     @Override
     public Status feed(
         Event event,
-        JsonParser parser)
+        JsonSource in,
+        JsonSink out)
     {
         switch (event)
         {
         case KEY_NAME:
-            onKey(parser);
+            onKey(in);
             break;
         case START_OBJECT:
         case START_ARRAY:
-            onStart(event, parser);
+            onStart(event, in, out);
             break;
         case END_OBJECT:
         case END_ARRAY:
-            onEnd(event, parser);
+            onEnd(event, in, out);
             break;
         default:
-            onScalar(event, parser);
+            onScalar(event, in, out);
             break;
         }
         return rootDone ? Status.COMPLETE : Status.PENDING;
     }
 
     private void onKey(
-        JsonParser parser)
+        JsonSource in)
     {
-        String key = parser.getString();
+        String key = in.getString();
         segments[depth] = key;
         indexes[depth] = -1;
         depth++;
@@ -118,26 +119,27 @@ public final class StreamingJsonProjector implements JsonProjector
     }
 
     private void forwardPendingKey(
-        JsonParser parser)
+        JsonSink out)
     {
         if (pendingKey != null)
         {
-            sink.feed(Event.KEY_NAME, keyParser.with(parser, pendingKey));
+            out.feed(Event.KEY_NAME, keySource.with(pendingKey));
             pendingKey = null;
         }
     }
 
     private void onStart(
         Event event,
-        JsonParser parser)
+        JsonSource in,
+        JsonSink out)
     {
         Decision d = enterValue();
         boolean parentEmit = containers == 0 || frameEmit[containers - 1];
         boolean emit = parentEmit && d != Decision.SKIP;
         if (emit)
         {
-            forwardPendingKey(parser);
-            sink.feed(event, parser);
+            forwardPendingKey(out);
+            out.feed(event, in);
         }
         else
         {
@@ -153,12 +155,13 @@ public final class StreamingJsonProjector implements JsonProjector
 
     private void onEnd(
         Event event,
-        JsonParser parser)
+        JsonSource in,
+        JsonSink out)
     {
         containers--;
         if (frameEmit[containers])
         {
-            sink.feed(event, parser);
+            out.feed(event, in);
         }
         if (containers == 0)
         {
@@ -173,15 +176,16 @@ public final class StreamingJsonProjector implements JsonProjector
 
     private void onScalar(
         Event event,
-        JsonParser parser)
+        JsonSource in,
+        JsonSink out)
     {
         Decision d = enterValue();
         boolean parentEmit = containers == 0 || frameEmit[containers - 1];
         boolean emit = parentEmit && d == Decision.KEEP_ALL;
         if (emit)
         {
-            forwardPendingKey(parser);
-            sink.feed(event, parser);
+            forwardPendingKey(out);
+            out.feed(event, in);
         }
         else
         {
@@ -326,35 +330,39 @@ public final class StreamingJsonProjector implements JsonProjector
         return result;
     }
 
-    private static final class KeyParser extends ForwardingJsonParser
+    private static final class KeySource implements JsonSource
     {
-        private JsonParser delegate;
-        private String keyOverride;
+        private String key;
 
-        KeyParser with(
-            JsonParser delegate,
-            String keyOverride)
+        private KeySource with(
+            String key)
         {
-            this.delegate = delegate;
-            this.keyOverride = keyOverride;
+            this.key = key;
             return this;
-        }
-
-        @Override
-        protected JsonParser delegate()
-        {
-            return delegate;
         }
 
         @Override
         public String getString()
         {
-            return keyOverride != null ? keyOverride : delegate.getString();
+            return key;
         }
 
         @Override
-        public void close()
+        public BigDecimal getBigDecimal()
         {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean isIntegralNumber()
+        {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public JsonLocation getLocation()
+        {
+            throw new UnsupportedOperationException();
         }
     }
 }

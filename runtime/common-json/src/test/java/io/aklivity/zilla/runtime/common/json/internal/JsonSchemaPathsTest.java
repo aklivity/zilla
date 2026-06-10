@@ -19,16 +19,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.List;
 
-import jakarta.json.stream.JsonParser;
-
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
 
-import io.aklivity.zilla.runtime.common.json.DirectBufferInputStreamEx;
-import io.aklivity.zilla.runtime.common.json.JsonEventConsumer;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
-import io.aklivity.zilla.runtime.common.json.JsonProjector;
+import io.aklivity.zilla.runtime.common.json.JsonPipeline;
+import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.StreamingJson;
 
 class JsonSchemaPathsTest
@@ -112,13 +109,15 @@ class JsonSchemaPathsTest
         JsonGeneratorEx gen = StreamingJson.createGenerator();
         MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
         gen.wrap(buffer, 0);
-        JsonProjector projector = StreamingJson.createProjector(JsonSchemaPaths.retained(
-            "{\"type\":\"object\",\"properties\":{" +
-            "\"items\":{\"type\":\"array\",\"items\":{\"type\":\"object\"," +
-            "\"properties\":{\"id\":{\"type\":\"integer\"}}}}}}"),
-            JsonEventConsumer.of(gen));
-        projector.reset();
-        projector.pump(parserFor("{\"items\":[{\"id\":1,\"x\":9},{\"id\":2}],\"k\":0} "));
+        JsonPipeline pipeline = StreamingJson.createParser().stream()
+            .transform(StreamingJson.projector(JsonSchemaPaths.retained(
+                "{\"type\":\"object\",\"properties\":{" +
+                "\"items\":{\"type\":\"array\",\"items\":{\"type\":\"object\"," +
+                "\"properties\":{\"id\":{\"type\":\"integer\"}}}}}}")))
+            .into(JsonSink.of(gen));
+        pipeline.reset();
+        byte[] bytes = "{\"items\":[{\"id\":1,\"x\":9},{\"id\":2}],\"k\":0} ".getBytes(UTF_8);
+        pipeline.feed(new UnsafeBuffer(bytes), 0, bytes.length);
         byte[] out = new byte[gen.length()];
         buffer.getBytes(0, out);
         assertEquals("{\"items\":[{\"id\":1},{\"id\":2}]}", new String(out, UTF_8));
@@ -128,14 +127,5 @@ class JsonSchemaPathsTest
         String schema)
     {
         return JsonSchemaPaths.retained(schema);
-    }
-
-    private static JsonParser parserFor(
-        String text)
-    {
-        byte[] bytes = text.getBytes(UTF_8);
-        DirectBufferInputStreamEx in = new DirectBufferInputStreamEx();
-        in.wrap(new UnsafeBuffer(bytes), 0, bytes.length);
-        return StreamingJson.createParser(in);
     }
 }
