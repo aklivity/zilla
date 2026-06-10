@@ -40,12 +40,13 @@
     <scope>provided</scope>
   </dependency>
   <dependency>
-    <groupId>jakarta.json</groupId>
-    <artifactId>jakarta.json-api</artifactId>
+    <groupId>${project.groupId}</groupId>
+    <artifactId>common-json</artifactId>
+    <version>${project.version}</version>
   </dependency>
   <dependency>
-    <groupId>org.leadpony.justify</groupId>
-    <artifactId>justify</artifactId>
+    <groupId>jakarta.json</groupId>
+    <artifactId>jakarta.json-api</artifactId>
   </dependency>
   <dependency>
     <groupId>${project.groupId}</groupId>

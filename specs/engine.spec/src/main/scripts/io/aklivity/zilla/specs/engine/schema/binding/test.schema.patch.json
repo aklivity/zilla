@@ -106,15 +106,15 @@
                                         {
                                             "key":
                                             {
-                                                "type": "String"
+                                                "type": "string"
                                             },
                                             "signer":
                                             {
-                                                "type": "String"
+                                                "type": "string"
                                             },
                                             "trust":
                                             {
-                                                "type": "String"
+                                                "type": "string"
                                             },
                                             "trustcacerts":
                                             {

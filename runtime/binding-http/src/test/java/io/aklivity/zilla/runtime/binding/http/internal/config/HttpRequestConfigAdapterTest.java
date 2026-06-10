@@ -68,7 +68,7 @@ public class HttpRequestConfigAdapterTest
                     "\"query\":" +
                     "{" +
                         "\"index\": \"test\"" +
-                    "}," +
+                    "}" +
                 "}," +
                 "\"content\": \"test\"," +
                 "\"responses\":" +

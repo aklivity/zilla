@@ -61,13 +61,13 @@
                                                         {
                                                             "title": "URL",
                                                             "type": "string",
-                                                            "pattern": "^([a-zA-Z0-9\\\\.-]+)(:(\\\\{[a-zA-Z_]+\\\\}|[0-9]+))?$"
+                                                            "pattern": "^([a-zA-Z0-9\\.-]+)(:(\\{[a-zA-Z_]+\\}|[0-9]+))?$"
                                                         },
                                                         "host":
                                                         {
                                                             "title": "Host",
                                                             "type": "string",
-                                                            "pattern": "^([a-zA-Z0-9\\\\.-]+)(:(\\\\{[a-zA-Z_]+\\\\}|[0-9]+))?$"
+                                                            "pattern": "^([a-zA-Z0-9\\.-]+)(:(\\{[a-zA-Z_]+\\}|[0-9]+))?$"
                                                         },
                                                         "pathname":
                                                         {
