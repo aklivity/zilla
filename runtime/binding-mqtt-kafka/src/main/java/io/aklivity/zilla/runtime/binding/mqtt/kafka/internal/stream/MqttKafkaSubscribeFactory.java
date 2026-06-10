@@ -1595,6 +1595,13 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                             .subscriptionId(subscriptionId).qos(f.qos()).flags(f.flags()).pattern(f.pattern()));
                     }
                 });
+                filters.forEach(f ->
+                {
+                    if (matchesTopicFilter(f.pattern().asString()) && !hasWildcard(f.pattern().asString()))
+                    {
+                        messagesSubscriptionIds.add((int) f.subscriptionId());
+                    }
+                });
 
                 initialSeq = mqtt.initialSeq;
                 initialAck = mqtt.initialAck;
@@ -1728,6 +1735,20 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                                         }
                                     }
                                 });
+                            }
+                        });
+                        filters.forEach(filter ->
+                        {
+                            if (matchesTopicFilter(filter.pattern().asString()) &&
+                                !hasWildcard(filter.pattern().asString()))
+                            {
+                                messagesSubscriptionIds.add((int) filter.subscriptionId());
+                                final DirectBuffer keyBuffer =
+                                    new String16FW(filter.pattern().asString()).value();
+                                f.filtersItem(fi ->
+                                    fi.conditionsItem(ci -> ci.key(k -> k
+                                        .length(keyBuffer.capacity())
+                                        .value(keyBuffer, 0, keyBuffer.capacity()))));
                             }
                         });
                     }))
@@ -2704,6 +2725,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                         p.partitionId(offsetType.value())
                             .partitionOffset(offsetType.value()));
                     filters.forEach(filter ->
+                    {
                         m.filtersItem(f ->
                         {
                             f.conditionsItem(ci -> buildHeaders(ci, filter.pattern().asString()));
@@ -2746,7 +2768,19 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                                             .value(valueBuffer, 0, valueBuffer.capacity())))));
                                 }
                             }
-                        }));
+                        });
+                    });
+                    filters.forEach(filter ->
+                    {
+                        if (!hasWildcard(filter.pattern().asString()))
+                        {
+                            final DirectBuffer keyBuffer = new String16FW(filter.pattern().asString()).value();
+                            m.filtersItem(f ->
+                                f.conditionsItem(ci -> ci.key(k -> k
+                                    .length(keyBuffer.capacity())
+                                    .value(keyBuffer, 0, keyBuffer.capacity()))));
+                        }
+                    });
                     m.evaluation(b -> b.set(KafkaEvaluation.EAGER));
                 })
                 .build();
@@ -2816,6 +2850,12 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         receiver.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
 
         return receiver;
+    }
+
+    private static boolean hasWildcard(
+        String pattern)
+    {
+        return pattern.contains(MQTT_SINGLE_LEVEL_WILDCARD) || pattern.contains(MQTT_MULTI_LEVEL_WILDCARD);
     }
 
     private void buildHeaders(

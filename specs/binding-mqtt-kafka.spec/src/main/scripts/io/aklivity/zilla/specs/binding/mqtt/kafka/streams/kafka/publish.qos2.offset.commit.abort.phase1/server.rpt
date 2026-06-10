@@ -362,7 +362,7 @@ read zilla:begin.ext ${kafka:beginEx()
 
 connected
 
-read advised zilla:flush ${kafka:flushEx()
+read advised zilla:flush ${kafka:matchFlushEx()
                               .typeId(zilla:id("kafka"))
                               .merged()
                                 .produce()
