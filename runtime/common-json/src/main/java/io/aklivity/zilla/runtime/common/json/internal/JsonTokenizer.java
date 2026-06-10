@@ -60,6 +60,7 @@ public final class JsonTokenizer
     private final List<String[]> pathIncludes;
     private final List<String[]> pathExcludes;
     private final int tokenMaxBytes;
+    private final boolean terminalEof;
 
     // path tracking — pre-allocated, no per-event allocation
     private final boolean[] pathInArray = new boolean[MAX_DEPTH];
@@ -90,9 +91,23 @@ public final class JsonTokenizer
         List<String> pathExcludes,
         int tokenMaxBytes)
     {
+        this(pathIncludes, pathExcludes, tokenMaxBytes, false);
+    }
+
+    // terminalEof distinguishes a one-shot stream (EOF is the final delimiter) from the chunked
+    // wrap()/feed model (EOF marks a frame boundary with more bytes possibly still to come). It
+    // only matters for numbers, which unlike strings and the true/false/null literals are not
+    // self-terminating and need a following non-digit byte to know they have ended.
+    public JsonTokenizer(
+        List<String> pathIncludes,
+        List<String> pathExcludes,
+        int tokenMaxBytes,
+        boolean terminalEof)
+    {
         this.pathIncludes = compilePaths(pathIncludes);
         this.pathExcludes = compilePaths(pathExcludes);
         this.tokenMaxBytes = tokenMaxBytes;
+        this.terminalEof = terminalEof;
     }
 
     public void reset()
@@ -826,6 +841,10 @@ public final class JsonTokenizer
             int c = in.read();
             if (c == -1)
             {
+                if (terminalEof)
+                {
+                    return;
+                }
                 throw new EOFException();
             }
             if (c >= '0' && c <= '9' || c == '.' || c == '-' || c == '+' || c == 'e' || c == 'E')

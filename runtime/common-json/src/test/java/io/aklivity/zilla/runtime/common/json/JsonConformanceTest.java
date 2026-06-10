@@ -19,8 +19,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.math.BigDecimal;
 import java.util.stream.Stream;
 
+import jakarta.json.JsonNumber;
 import jakarta.json.JsonValue;
 import jakarta.json.spi.JsonProvider;
 
@@ -74,11 +76,22 @@ final class JsonConformanceTest
         return Stream.of(VALID)
             .map(json -> DynamicTest.dynamicTest(json, () ->
             {
-                JsonValue first = PROVIDER.createReader(new StringReader(json + "\n")).readValue();
+                JsonValue first = PROVIDER.createReader(new StringReader(json)).readValue();
                 StringWriter writer = new StringWriter();
                 PROVIDER.createWriter(writer).write(first);
-                JsonValue second = PROVIDER.createReader(new StringReader(writer.toString() + "\n")).readValue();
+                JsonValue second = PROVIDER.createReader(new StringReader(writer.toString())).readValue();
                 assertEquals(first, second, json);
+            }));
+    }
+
+    @TestFactory
+    Stream<DynamicTest> shouldReadBareTopLevelNumberAtEndOfInput()
+    {
+        return Stream.of("42", "-1", "3.14", "-1.5E-3", "0", "123456789012345")
+            .map(json -> DynamicTest.dynamicTest(json, () ->
+            {
+                JsonValue value = PROVIDER.createReader(new StringReader(json)).readValue();
+                assertEquals(new BigDecimal(json), ((JsonNumber) value).bigDecimalValue(), json);
             }));
     }
 

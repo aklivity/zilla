@@ -85,10 +85,13 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource
         }
         this.in = in;
         this.ownedInput = null;
+        // A DirectBufferInputStreamEx is a resumable frame source whose EOF is a frame boundary;
+        // any other stream is one-shot, so its EOF is the terminal delimiter for a trailing number.
         this.tokenizer = new JsonTokenizer(
             pathList(config, StreamingJson.PATH_INCLUDES),
             pathList(config, StreamingJson.PATH_EXCLUDES),
-            tokenMaxBytes(config));
+            tokenMaxBytes(config),
+            !(in instanceof DirectBufferInputStreamEx));
         this.location = new JsonLocationImpl(tokenizer);
     }
 
