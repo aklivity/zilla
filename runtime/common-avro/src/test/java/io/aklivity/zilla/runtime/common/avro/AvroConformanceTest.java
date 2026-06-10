@@ -22,6 +22,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +31,7 @@ import java.util.Random;
 
 import org.agrona.concurrent.UnsafeBuffer;
 import org.apache.avro.Schema;
+import org.apache.avro.file.DataFileWriter;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericDatumWriter;
@@ -92,6 +95,139 @@ public class AvroConformanceTest
             // block-framing difference (single-element blocks here vs. one block in the reference)
             assertEquals(referenceDecode(reference), referenceDecode(roundTripped), "iteration " + i);
         }
+    }
+
+    @Test
+    public void shouldConformToInteropDatumsFromContainerFile()
+    {
+        Random random = new Random(7L);
+        List<Object> values = new ArrayList<>();
+        for (int i = 0; i < 50; i++)
+        {
+            values.add(randomValue(referenceSchema, random, 4));
+        }
+
+        byte[] container = writeContainer(values);
+        List<byte[]> datums = unwrapContainer(container);
+
+        assertEquals(values.size(), datums.size());
+        for (int i = 0; i < datums.size(); i++)
+        {
+            byte[] datum = datums.get(i);
+            byte[] roundTripped = encode(decode(datum));
+            assertEquals(referenceDecode(datum), referenceDecode(roundTripped), "record " + i);
+        }
+    }
+
+    private byte[] writeContainer(
+        List<Object> values)
+    {
+        byte[] bytes;
+        try
+        {
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            DataFileWriter<Object> writer = new DataFileWriter<>(new GenericDatumWriter<>(referenceSchema));
+            writer.create(referenceSchema, out);
+            for (Object value : values)
+            {
+                writer.append(value);
+                writer.sync();
+            }
+            writer.close();
+            bytes = out.toByteArray();
+        }
+        catch (IOException ex)
+        {
+            throw new AssertionError(ex);
+        }
+        return bytes;
+    }
+
+    /**
+     * Minimal Object Container File reader: verifies the {@code Obj\1} magic, walks the metadata
+     * map to the 16-byte sync marker, then yields each block's raw datum payload. Records are
+     * written one per block ({@link DataFileWriter#sync()} above), so each payload is exactly one
+     * datum in the same single-object binary encoding this codec decodes.
+     */
+    private List<byte[]> unwrapContainer(
+        byte[] ocf)
+    {
+        int[] pos = { 0 };
+
+        byte[] magic = Arrays.copyOfRange(ocf, 0, 4);
+        assertArrayMagic(magic);
+        pos[0] = 4;
+
+        long entries = readLong(ocf, pos);
+        while (entries != 0)
+        {
+            long count = entries < 0 ? -entries : entries;
+            if (entries < 0)
+            {
+                readLong(ocf, pos);
+            }
+            for (long i = 0; i < count; i++)
+            {
+                skipBytes(ocf, pos);
+                skipBytes(ocf, pos);
+            }
+            entries = readLong(ocf, pos);
+        }
+
+        byte[] sync = Arrays.copyOfRange(ocf, pos[0], pos[0] + 16);
+        pos[0] += 16;
+
+        List<byte[]> datums = new ArrayList<>();
+        while (pos[0] < ocf.length)
+        {
+            long objectCount = readLong(ocf, pos);
+            long blockSize = readLong(ocf, pos);
+            byte[] payload = Arrays.copyOfRange(ocf, pos[0], pos[0] + (int) blockSize);
+            pos[0] += (int) blockSize;
+            byte[] blockSync = Arrays.copyOfRange(ocf, pos[0], pos[0] + 16);
+            pos[0] += 16;
+            assertEquals(1L, objectCount, "expected one record per block");
+            assertEquals(Arrays.toString(sync), Arrays.toString(blockSync), "sync marker mismatch");
+            datums.add(payload);
+        }
+        return datums;
+    }
+
+    private static void assertArrayMagic(
+        byte[] magic)
+    {
+        assertEquals(Arrays.toString(new byte[] { 'O', 'b', 'j', 1 }), Arrays.toString(magic), "OCF magic");
+    }
+
+    private static long readLong(
+        byte[] buffer,
+        int[] pos)
+    {
+        long result = 0;
+        int shift = 0;
+        boolean reading = true;
+        while (reading)
+        {
+            int b = buffer[pos[0]++] & 0xff;
+            result |= (long) (b & 0x7f) << shift;
+            if ((b & 0x80) == 0)
+            {
+                reading = false;
+            }
+            else
+            {
+                shift += 7;
+            }
+        }
+        return (result >>> 1) ^ -(result & 1);
+    }
+
+    private static void skipBytes(
+        byte[] buffer,
+        int[] pos)
+    {
+        long length = readLong(buffer, pos);
+        pos[0] += (int) length;
     }
 
     private List<Entry> decode(
