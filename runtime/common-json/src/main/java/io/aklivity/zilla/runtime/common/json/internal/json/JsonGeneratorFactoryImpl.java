@@ -28,25 +28,27 @@ import jakarta.json.stream.JsonGeneratorFactory;
 public final class JsonGeneratorFactoryImpl implements JsonGeneratorFactory
 {
     private final Map<String, ?> config;
+    private final boolean pretty;
 
     public JsonGeneratorFactoryImpl(
         Map<String, ?> config)
     {
         this.config = config == null ? Map.of() : Map.copyOf(config);
+        this.pretty = this.config.containsKey(JsonGenerator.PRETTY_PRINTING);
     }
 
     @Override
     public JsonGenerator createGenerator(
         Writer writer)
     {
-        return new JsonTextGeneratorImpl(writer);
+        return new JsonTextGeneratorImpl(writer, pretty);
     }
 
     @Override
     public JsonGenerator createGenerator(
         OutputStream out)
     {
-        return new JsonTextGeneratorImpl(new OutputStreamWriter(out, UTF_8));
+        return new JsonTextGeneratorImpl(new OutputStreamWriter(out, UTF_8), pretty);
     }
 
     @Override
@@ -54,7 +56,7 @@ public final class JsonGeneratorFactoryImpl implements JsonGeneratorFactory
         OutputStream out,
         Charset charset)
     {
-        return new JsonTextGeneratorImpl(new OutputStreamWriter(out, charset));
+        return new JsonTextGeneratorImpl(new OutputStreamWriter(out, charset), pretty);
     }
 
     @Override

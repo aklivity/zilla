@@ -36,8 +36,11 @@ import jakarta.json.stream.JsonGenerator;
 
 public final class JsonTextGeneratorImpl implements JsonGenerator
 {
+    private static final String INDENT = "    ";
+
     private final Writer writer;
     private final Deque<Context> stack;
+    private final boolean pretty;
     private boolean closed;
     private boolean afterKey;
     private boolean rooted;
@@ -45,14 +48,29 @@ public final class JsonTextGeneratorImpl implements JsonGenerator
     public JsonTextGeneratorImpl(
         Writer writer)
     {
-        this.writer = writer;
-        this.stack = new ArrayDeque<>();
+        this(writer, false);
     }
 
     public JsonTextGeneratorImpl(
         OutputStream out)
     {
         this(new OutputStreamWriter(out, UTF_8));
+    }
+
+    public JsonTextGeneratorImpl(
+        Writer writer,
+        boolean pretty)
+    {
+        this.writer = writer;
+        this.stack = new ArrayDeque<>();
+        this.pretty = pretty;
+    }
+
+    public JsonTextGeneratorImpl(
+        OutputStream out,
+        boolean pretty)
+    {
+        this(new OutputStreamWriter(out, UTF_8), pretty);
     }
 
     @Override
@@ -98,8 +116,16 @@ public final class JsonTextGeneratorImpl implements JsonGenerator
             emit(',');
         }
         context.members = true;
+        if (pretty)
+        {
+            emitNewLine(stack.size());
+        }
         emitString(name);
         emit(':');
+        if (pretty)
+        {
+            emit(' ');
+        }
         afterKey = true;
         return this;
     }
@@ -113,6 +139,10 @@ public final class JsonTextGeneratorImpl implements JsonGenerator
             throw new JsonException("No JSON structure to end");
         }
         Context context = stack.pop();
+        if (pretty && context.members)
+        {
+            emitNewLine(stack.size());
+        }
         emit(context.array ? ']' : '}');
         return this;
     }
@@ -377,6 +407,10 @@ public final class JsonTextGeneratorImpl implements JsonGenerator
                 emit(',');
             }
             context.members = true;
+            if (pretty)
+            {
+                emitNewLine(stack.size());
+            }
         }
     }
 
@@ -426,6 +460,16 @@ public final class JsonTextGeneratorImpl implements JsonGenerator
             }
         }
         emit('"');
+    }
+
+    private void emitNewLine(
+        int depth)
+    {
+        emit('\n');
+        for (int i = 0; i < depth; i++)
+        {
+            emit(INDENT);
+        }
     }
 
     private void emit(
