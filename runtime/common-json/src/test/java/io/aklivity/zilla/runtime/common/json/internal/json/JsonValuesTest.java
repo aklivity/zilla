@@ -51,6 +51,19 @@ class JsonValuesTest
     }
 
     @Test
+    void shouldDiffArrayAppendAsAddAtIndex()
+    {
+        JsonArray source = JsonValues.arrayBuilder().add("a").add("b").build();
+        JsonArray target = JsonValues.arrayBuilder().add("a").add("b").add("c").build();
+        JsonArray patch = JsonValues.diff(source, target).toJsonArray();
+        assertEquals(1, patch.size());
+        JsonObject operation = patch.getJsonObject(0);
+        assertEquals("add", operation.getString("op"));
+        assertEquals("/2", operation.getString("path"));
+        assertEquals("c", operation.getString("value"));
+    }
+
+    @Test
     void shouldResetObjectBuilderOnBuild()
     {
         JsonObjectBuilder builder = JsonValues.objectBuilder();

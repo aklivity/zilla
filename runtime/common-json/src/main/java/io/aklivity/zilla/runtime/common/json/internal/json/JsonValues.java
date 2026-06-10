@@ -329,10 +329,38 @@ public final class JsonValues
                     }
                 }
             }
+            else if (source instanceof JsonArray sourceArray && target instanceof JsonArray targetArray)
+            {
+                diffArray(path, sourceArray, targetArray, builder);
+            }
             else
             {
                 builder.replace(path, target);
             }
+        }
+    }
+
+    // RFC 6902 array diff: recurse over the common prefix, then append the extra tail elements and
+    // remove any surplus source elements from the end so applied indices stay valid. Mirrors the
+    // granular ops the reference provider emits (e.g. a single add at the next index for an append).
+    private static void diffArray(
+        String path,
+        JsonArray source,
+        JsonArray target,
+        PatchBuilder builder)
+    {
+        int common = Math.min(source.size(), target.size());
+        for (int index = 0; index < common; index++)
+        {
+            diff(path + "/" + index, source.get(index), target.get(index), builder);
+        }
+        for (int index = common; index < target.size(); index++)
+        {
+            builder.add(path + "/" + index, target.get(index));
+        }
+        for (int index = source.size() - 1; index >= common; index--)
+        {
+            builder.remove(path + "/" + index);
         }
     }
 
