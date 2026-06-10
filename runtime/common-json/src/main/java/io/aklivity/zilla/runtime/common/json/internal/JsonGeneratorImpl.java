@@ -16,7 +16,11 @@ package io.aklivity.zilla.runtime.common.json.internal;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.Map;
 
+import jakarta.json.JsonArray;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 
 import org.agrona.DirectBuffer;
@@ -264,8 +268,20 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     public JsonGeneratorImpl write(
         JsonValue value)
     {
-        throw new UnsupportedOperationException("write(JsonValue) requires a DOM; " +
-            "drive the generator with the streaming write methods instead");
+        switch (value.getValueType())
+        {
+        case OBJECT -> writeObject(value.asJsonObject());
+        case ARRAY -> writeArray(value.asJsonArray());
+        case STRING -> write(((JsonString) value).getString());
+        case NUMBER -> writeNumber(value.toString());
+        case TRUE -> write(true);
+        case FALSE -> write(false);
+        case NULL -> writeNull();
+        default ->
+        {
+        }
+        }
+        return this;
     }
 
     @Override
@@ -273,8 +289,30 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         String name,
         JsonValue value)
     {
-        throw new UnsupportedOperationException("write(String, JsonValue) requires a DOM; " +
-            "drive the generator with the streaming write methods instead");
+        writeKey(name);
+        return write(value);
+    }
+
+    private void writeObject(
+        JsonObject object)
+    {
+        writeStartObject();
+        for (Map.Entry<String, JsonValue> entry : object.entrySet())
+        {
+            write(entry.getKey(), entry.getValue());
+        }
+        writeEnd();
+    }
+
+    private void writeArray(
+        JsonArray array)
+    {
+        writeStartArray();
+        for (JsonValue element : array)
+        {
+            write(element);
+        }
+        writeEnd();
     }
 
     @Override

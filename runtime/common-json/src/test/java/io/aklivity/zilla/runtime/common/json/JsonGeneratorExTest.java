@@ -115,11 +115,11 @@ class JsonGeneratorExTest
     }
 
     @Test
-    void shouldRejectJsonValueWrites()
+    void shouldWriteJsonValues()
     {
-        assertThrows(UnsupportedOperationException.class, () -> generate(g -> g.write(JsonValue.TRUE)));
-        assertThrows(UnsupportedOperationException.class, () -> generate(g -> g
-            .writeStartObject().write("a", JsonValue.NULL)));
+        assertEquals("true", generate(g -> g.write(JsonValue.TRUE)));
+        assertEquals("{\"a\":null}", generate(g -> g
+            .writeStartObject().write("a", JsonValue.NULL).writeEnd()));
     }
 
     @Test
