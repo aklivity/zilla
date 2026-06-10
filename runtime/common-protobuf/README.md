@@ -36,6 +36,27 @@ int wireLength = toProtobuf.convert("Person", json, offset, length, out, 0);
 A map `field` is modeled exactly as Protobuf represents it on the wire: a repeated reference to a
 synthetic map-entry message (`mapEntry(true)`) with `key` as field 1 and `value` as field 2.
 
+A compiled `google.protobuf.FileDescriptorSet` (e.g. from `protoc --descriptor_set_out`) can be
+turned into a `ProtobufSchema` directly — `descriptor.proto` is itself Protobuf, so it is decoded
+with this library's own wire reader and needs no `protobuf-java`:
+
+```java
+ProtobufSchema schema = StreamingProtobuf.schema(descriptorSet, offset, length);
+```
+
+## Protobuf syntax support
+
+The wire format is identical for proto2 and proto3, so the codec reads and writes both. The
+semantics implemented are **proto3**:
+
+- The JSON mapping is the proto3 JSON mapping.
+- The descriptor model is syntax-agnostic — it carries no `syntax` and simply processes the field
+  set it is given (the `FileDescriptorSet` compiler reads `proto3_optional`, `oneof`, map entries,
+  and the `packed` option).
+
+Proto2-specific behavior is **not** supported: `group` fields are rejected, and extensions,
+`required`-field enforcement, and proto2 explicit field defaults are not modeled.
+
 ## Bounded-buffer contract
 
 Protobuf fields are length-delimited and may arrive in any order, and a repeated field's elements

@@ -14,6 +14,10 @@
  */
 package io.aklivity.zilla.runtime.common.protobuf;
 
+import org.agrona.DirectBuffer;
+
+import io.aklivity.zilla.runtime.common.protobuf.internal.DescriptorSetCompiler;
+
 /**
  * Entry point for streaming Protobuf over Agrona buffers. Compile a {@link ProtobufSchema} once per
  * {@code schemaId} and cache it, then obtain reusable per-worker converters that decode the wire to
@@ -29,6 +33,19 @@ public final class StreamingProtobuf
     public static ProtobufSchema.Builder schema()
     {
         return ProtobufSchema.builder();
+    }
+
+    /**
+     * Compiles a serialized {@code google.protobuf.FileDescriptorSet} (e.g. {@code protoc
+     * --descriptor_set_out}) into a {@link ProtobufSchema}, decoded with this library's own wire
+     * reader so there is no {@code protobuf-java} dependency.
+     */
+    public static ProtobufSchema schema(
+        DirectBuffer fileDescriptorSet,
+        int offset,
+        int length)
+    {
+        return new DescriptorSetCompiler().compile(fileDescriptorSet, offset, length);
     }
 
     public static ProtobufToJson protobufToJson(
