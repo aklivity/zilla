@@ -61,7 +61,7 @@
     <byteman.version>4.0.26</byteman.version>
     <jmock.version>2.6.0</jmock.version>
     <mockito.version>5.23.0</mockito.version>
-    <k3po.version>3.3.0</k3po.version>
+    <k3po.version>3.4.3</k3po.version>
     <jmh.version>1.37</jmh.version>
   </properties>
 
@@ -92,22 +92,17 @@
       <dependency>
         <groupId>jakarta.json.bind</groupId>
         <artifactId>jakarta.json.bind-api</artifactId>
-        <version>2.0.0</version>
+        <version>3.0.1</version>
       </dependency>
       <dependency>
-        <groupId>org.leadpony.joy</groupId>
-        <artifactId>joy-yaml</artifactId>
-        <version>2.1.0</version>
+        <groupId>org.eclipse.parsson</groupId>
+        <artifactId>parsson</artifactId>
+        <version>1.1.7</version>
       </dependency>
       <dependency>
         <groupId>org.eclipse</groupId>
         <artifactId>yasson</artifactId>
-        <version>2.0.3</version>
-      </dependency>
-      <dependency>
-        <groupId>org.leadpony.justify</groupId>
-        <artifactId>justify</artifactId>
-        <version>3.1.0</version>
+        <version>3.0.4</version>
       </dependency>
       <dependency>
         <groupId>junit</groupId>
@@ -148,6 +143,13 @@
         <groupId>org.apache.avro</groupId>
         <artifactId>avro</artifactId>
         <version>1.12.0</version>
+      </dependency>
+      <dependency>
+        <groupId>com.fasterxml.jackson</groupId>
+        <artifactId>jackson-bom</artifactId>
+        <version>2.18.2</version>
+        <type>pom</type>
+        <scope>import</scope>
       </dependency>
       <dependency>
         <groupId>org.junit.jupiter</groupId>
@@ -242,7 +244,7 @@
       <dependency>
         <groupId>org.testcontainers</groupId>
         <artifactId>testcontainers-bom</artifactId>
-        <version>2.0.2</version>
+        <version>2.0.5</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -441,6 +443,13 @@
           <configuration>
             <argLine>@{jacoco.java.option} -Xshare:off -Djdk.attach.allowAttachSelf=true -XX:+StartAttachListener --add-opens java.base/jdk.internal.misc=ALL-UNNAMED --enable-native-access=ALL-UNNAMED -javaagent:${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar</argLine>
           </configuration>
+          <dependencies>
+            <dependency>
+              <groupId>org.mockito</groupId>
+              <artifactId>mockito-core</artifactId>
+              <version>${mockito.version}</version>
+            </dependency>
+          </dependencies>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
@@ -454,6 +463,13 @@
           <configuration>
             <argLine>@{jacoco.java.option} -Xshare:off -Djdk.attach.allowAttachSelf=true -XX:+StartAttachListener --add-opens java.base/jdk.internal.misc=ALL-UNNAMED --enable-native-access=ALL-UNNAMED -javaagent:${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar</argLine>
           </configuration>
+          <dependencies>
+            <dependency>
+              <groupId>org.mockito</groupId>
+              <artifactId>mockito-core</artifactId>
+              <version>${mockito.version}</version>
+            </dependency>
+          </dependencies>
           <executions>
             <execution>
               <goals>

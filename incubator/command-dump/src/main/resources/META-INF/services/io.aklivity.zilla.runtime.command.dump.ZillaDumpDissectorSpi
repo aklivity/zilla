@@ -1,0 +1,10 @@
+io.aklivity.zilla.runtime.command.dump.internal.dissector.AmqpDumpDissector
+io.aklivity.zilla.runtime.command.dump.internal.dissector.FilesystemDumpDissector
+io.aklivity.zilla.runtime.command.dump.internal.dissector.GrpcDumpDissector
+io.aklivity.zilla.runtime.command.dump.internal.dissector.HttpDumpDissector
+io.aklivity.zilla.runtime.command.dump.internal.dissector.KafkaDumpDissector
+io.aklivity.zilla.runtime.command.dump.internal.dissector.MqttDumpDissector
+io.aklivity.zilla.runtime.command.dump.internal.dissector.ProxyDumpDissector
+io.aklivity.zilla.runtime.command.dump.internal.dissector.SseDumpDissector
+io.aklivity.zilla.runtime.command.dump.internal.dissector.TlsDumpDissector
+io.aklivity.zilla.runtime.command.dump.internal.dissector.WsDumpDissector

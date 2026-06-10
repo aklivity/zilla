@@ -58,6 +58,60 @@ public class FetchIT
 
     @Test
     @Specification({
+        "${net}/replica.not.available/client",
+        "${net}/replica.not.available/server"})
+    public void shouldReplicaNotAvailable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/storage.error/client",
+        "${net}/storage.error/server"})
+    public void shouldStorageError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/fenced.leader.epoch/client",
+        "${net}/fenced.leader.epoch/server"})
+    public void shouldFencedLeaderEpoch() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/unknown.leader.epoch/client",
+        "${net}/unknown.leader.epoch/server"})
+    public void shouldUnknownLeaderEpoch() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/offset.not.available/client",
+        "${net}/offset.not.available/server"})
+    public void shouldOffsetNotAvailable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/unknown.topic.id/client",
+        "${net}/unknown.topic.id/server"})
+    public void shouldUnknownTopicId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/partition.incomplete/client",
         "${net}/partition.incomplete/server" })
     public void shouldReceivePartitionIncomplete() throws Exception

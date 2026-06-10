@@ -49,4 +49,13 @@ public class WsAdvisoryApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/client.sent.redirect/client",
+        "${app}/client.sent.redirect/server" })
+    public void shouldReceiveClientSentRedirect() throws Exception
+    {
+        k3po.finish();
+    }
 }

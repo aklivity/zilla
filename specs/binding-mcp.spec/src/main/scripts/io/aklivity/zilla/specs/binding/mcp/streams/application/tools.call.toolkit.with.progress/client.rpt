@@ -20,7 +20,6 @@ connect "zilla://streams/app0"
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .lifecycle()
-                               .sessionId("session-1")
                                .build()
                            .build()}
 
@@ -44,14 +43,15 @@ write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .toolsCall()
                                .sessionId("session-1")
-                               .name("bluesky__get_weather")
+                               .name("get_weather")
+                               .contentLength(94)
                                .build()
                            .build()}
 
 connected
 
 write '{'
-        '"name":"bluesky__get_weather",'
+        '"name":"get_weather",'
         '"arguments":'
         '{'
           '"location": "New York"'
@@ -61,7 +61,6 @@ write '{'
           '"progressToken":"abc123"'
         '}'
       '}'
-write close
 
 read advised zilla:flush ${mcp:matchFlushEx()
                                .typeId(zilla:id("mcp"))
@@ -93,3 +92,5 @@ read '{'
     '}'
 
 read closed
+
+write close

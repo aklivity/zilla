@@ -58,6 +58,24 @@ public class ProduceIT
 
     @Test
     @Specification({
+        "${net}/leader.not.available/client",
+        "${net}/leader.not.available/server"})
+    public void shouldLeaderNotAvailable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/storage.error/client",
+        "${net}/storage.error/server"})
+    public void shouldStorageError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/message.key/client",
         "${net}/message.key/server"})
     public void shouldSendMessageKey() throws Exception
@@ -298,6 +316,24 @@ public class ProduceIT
         "${net}/message.headers.repeated/client",
         "${net}/message.headers.repeated/server"})
     public void shouldSendMessageHeadersRepeated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/message.too.large/client",
+        "${net}/message.too.large/server"})
+    public void shouldRejectMessageTooLarge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/transaction.id.authorization.error/client",
+        "${net}/transaction.id.authorization.error/server"})
+    public void shouldRejectTransactionalIdAuthorizationError() throws Exception
     {
         k3po.finish();
     }

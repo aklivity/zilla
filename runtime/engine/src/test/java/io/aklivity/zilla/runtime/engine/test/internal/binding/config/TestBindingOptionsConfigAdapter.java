@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.binding.config;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -46,6 +47,10 @@ public final class TestBindingOptionsConfigAdapter implements OptionsConfigAdapt
     private static final String CATALOG_NAME = "catalog";
     private static final String AUTHORIZATION_NAME = "authorization";
     private static final String CREDENTIALS_NAME = "credentials";
+    private static final String CALLBACK_NAME = "callback";
+    private static final String CALLBACK_PARAMS_NAME = "callbackParams";
+    private static final String EXPECT_IDENTITY_NAME = "expectIdentity";
+    private static final String EXPECT_CREDENTIALS_NAME = "expectCredentials";
     private static final String ATTRIBUTES_NAME = "attributes";
     private static final String EVENTS_NAME = "events";
     private static final String TIMESTAMP_NAME = "timestamp";
@@ -175,9 +180,9 @@ public final class TestBindingOptionsConfigAdapter implements OptionsConfigAdapt
                         {
                             assertion.add(STORE_VALUE_NAME, a.value);
                         }
-                        if (a.ttl != Long.MAX_VALUE)
+                        if (a.ttl != null)
                         {
-                            assertion.add(STORE_TTL_NAME, a.ttl);
+                            assertion.add(STORE_TTL_NAME, a.ttl.toString());
                         }
                         if (a.hasExpect)
                         {
@@ -209,6 +214,24 @@ public final class TestBindingOptionsConfigAdapter implements OptionsConfigAdapt
             JsonObjectBuilder credentials = Json.createObjectBuilder();
             TestAuthorizationConfig authorization = testOptions.authorization;
             credentials.add(CREDENTIALS_NAME, authorization.credentials);
+            if (authorization.callback != null)
+            {
+                credentials.add(CALLBACK_NAME, authorization.callback);
+            }
+            if (authorization.callbackParams != null && !authorization.callbackParams.isEmpty())
+            {
+                JsonObjectBuilder paramsJson = Json.createObjectBuilder();
+                authorization.callbackParams.forEach(paramsJson::add);
+                credentials.add(CALLBACK_PARAMS_NAME, paramsJson);
+            }
+            if (authorization.expectIdentity != null)
+            {
+                credentials.add(EXPECT_IDENTITY_NAME, authorization.expectIdentity);
+            }
+            if (authorization.expectCredentials != null)
+            {
+                credentials.add(EXPECT_CREDENTIALS_NAME, authorization.expectCredentials);
+            }
             JsonObjectBuilder authorizationJson = Json.createObjectBuilder();
             authorizationJson.add(authorization.name, credentials);
             if (authorization.attributes != null &&
@@ -340,7 +363,7 @@ public final class TestBindingOptionsConfigAdapter implements OptionsConfigAdapt
                                 s.getString(STORE_OP_NAME),
                                 s.getString(STORE_KEY_NAME),
                                 s.getString(STORE_VALUE_NAME, null),
-                                s.containsKey(STORE_TTL_NAME) ? s.getJsonNumber(STORE_TTL_NAME).longValue() : Long.MAX_VALUE,
+                                s.containsKey(STORE_TTL_NAME) ? Duration.parse(s.getString(STORE_TTL_NAME)) : null,
                                 expect,
                                 hasExpect,
                                 s.containsKey(DELAY_NAME) ? s.getJsonNumber(DELAY_NAME).longValue() : 0L));
@@ -360,13 +383,27 @@ public final class TestBindingOptionsConfigAdapter implements OptionsConfigAdapt
                     if (guard.containsKey(CREDENTIALS_NAME))
                     {
                         String credentials = guard.getString(CREDENTIALS_NAME);
+                        String callback = guard.containsKey(CALLBACK_NAME) ? guard.getString(CALLBACK_NAME) : null;
+                        Map<String, String> callbackParams = null;
+                        if (guard.containsKey(CALLBACK_PARAMS_NAME))
+                        {
+                            callbackParams = new HashMap<>();
+                            Map<String, String> sink = callbackParams;
+                            guard.getJsonObject(CALLBACK_PARAMS_NAME)
+                                .forEach((key, value) -> sink.put(key, ((JsonString) value).getString()));
+                        }
+                        String expectIdentity = guard.containsKey(EXPECT_IDENTITY_NAME)
+                            ? guard.getString(EXPECT_IDENTITY_NAME) : null;
+                        String expectCredentials = guard.containsKey(EXPECT_CREDENTIALS_NAME)
+                            ? guard.getString(EXPECT_CREDENTIALS_NAME) : null;
                         Map<String, String> attributes = new HashMap<>();
                         if (guard.containsKey(ATTRIBUTES_NAME))
                         {
                             guard.getJsonObject(ATTRIBUTES_NAME)
                                 .forEach((key, value) -> attributes.put(key, ((JsonString) value).getString()));
                         }
-                        testOptions.authorization(name, credentials, attributes);
+                        testOptions.authorization(name, credentials, callback, callbackParams,
+                            expectIdentity, expectCredentials, attributes);
                     }
                 }
             }

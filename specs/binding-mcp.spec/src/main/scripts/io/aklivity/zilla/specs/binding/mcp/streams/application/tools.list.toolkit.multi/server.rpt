@@ -22,7 +22,6 @@ accepted
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .lifecycle()
-                              .sessionId("session-1")
                               .build()
                           .build()}
 
@@ -31,7 +30,7 @@ connected
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .lifecycle()
-                               .sessionId("session-1")
+                               .sessionId("session-1a")
                                .build()
                            .build()}
 write flush
@@ -41,7 +40,7 @@ accepted
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .toolsList()
-                              .sessionId("session-1")
+                              .sessionId("session-1a")
                               .build()
                           .build()}
 
@@ -49,13 +48,16 @@ connected
 
 write flush
 
-read closed
-
-write '{"tools":[{"name":"get_weather"}]}'
+write '{"tools":'
+        '['
+          '{"name":"get_weather"}'
+        ']'
+      '}'
 write flush
 
 write close
 
+read closed
 
 accept "zilla://streams/app2"
        option zilla:window 8192
@@ -66,7 +68,6 @@ accepted
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .lifecycle()
-                              .sessionId("session-1")
                               .build()
                           .build()}
 
@@ -75,7 +76,7 @@ connected
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .lifecycle()
-                               .sessionId("session-1")
+                               .sessionId("session-1b")
                                .build()
                            .build()}
 write flush
@@ -85,7 +86,7 @@ accepted
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .toolsList()
-                              .sessionId("session-1")
+                              .sessionId("session-1b")
                               .build()
                           .build()}
 
@@ -93,9 +94,13 @@ connected
 
 write flush
 
-read closed
-
-write '{"tools":[{"name":"get_current_time"}]}'
+write '{"tools":'
+        '['
+          '{"name":"get_current_time"}'
+        ']'
+      '}'
 write flush
 
 write close
+
+read closed

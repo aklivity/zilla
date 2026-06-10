@@ -208,7 +208,6 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
     private final BufferPool encodePool;
     private final Signaler signaler;
     private final BindingHandler streamFactory;
-    private final LongFunction<MessageConsumer> supplyReceiver;
     private final LongFunction<KafkaBindingConfig> supplyBinding;
     private final LongFunction<BudgetDebitor> supplyDebitor;
     private final LongFunction<KafkaClientRoute> supplyClientRoute;
@@ -232,7 +231,6 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
         this.decodePool = context.bufferPool();
         this.encodePool = context.bufferPool();
         this.streamFactory = context.streamFactory();
-        this.supplyReceiver = context::supplyReceiver;
         this.supplyBinding = supplyBinding;
         this.supplyDebitor = supplyDebitor;
         this.supplyClientRoute = supplyClientRoute;
@@ -2989,22 +2987,11 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                     doEncodeRequestIfNecessary(traceId, initialBudgetId);
                     break;
                 default:
-                    if (errorCode == ERROR_NOT_LEADER_FOR_PARTITION)
+                    if (KafkaError.of(errorCode).isRetriable())
                     {
-                        final long metaInitialId = clientRoute.metaInitialId;
-                        if (metaInitialId != 0L)
-                        {
-                            final MessageConsumer metaInitial = supplyReceiver.apply(metaInitialId);
-                            // TODO: improve coordination with meta stream
-                            doFlush(metaInitial, originId, routedId, metaInitialId, 0, 0, 0,
-                                    traceId, authorization, 0, EMPTY_OCTETS);
-                        }
+                        clientRoute.metaFlush.accept(traceId);
                     }
-                    else
-                    {
-                        onDecodeResponseErrorCode(traceId, originId, errorCode, topic);
-                    }
-
+                    onDecodeResponseErrorCode(traceId, originId, errorCode, topic);
                     cleanupApplication(traceId, errorCode);
                     doNetworkEnd(traceId, authorization);
                     break;

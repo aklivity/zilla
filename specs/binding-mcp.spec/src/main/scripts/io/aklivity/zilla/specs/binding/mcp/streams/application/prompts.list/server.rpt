@@ -24,7 +24,6 @@ accepted
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .lifecycle()
-                              .sessionId("session-1")
                               .build()
                           .build()}
 
@@ -51,9 +50,9 @@ connected
 
 write flush
 
-read closed
-
 write '{"prompts":[]}'
 write flush
 
 write close
+
+read closed

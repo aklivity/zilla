@@ -74,22 +74,50 @@
                             },
                             "trust":
                             {
-                                "type": "object",
-                                "properties":
-                                {
-                                    "alias":
-                                    {
-                                        "type": "string"
-                                    },
-                                    "entry":
-                                    {
-                                        "type": "string"
-                                    }
-                                },
-                                "required":
+                                "oneOf":
                                 [
-                                    "alias",
-                                    "entry"
+                                    {
+                                        "type": "object",
+                                        "properties":
+                                        {
+                                            "alias":
+                                            {
+                                                "type": "string"
+                                            },
+                                            "entry":
+                                            {
+                                                "type": "string"
+                                            }
+                                        },
+                                        "required":
+                                        [
+                                            "alias",
+                                            "entry"
+                                        ]
+                                    },
+                                    {
+                                        "type": "array",
+                                        "items":
+                                        {
+                                            "type": "object",
+                                            "properties":
+                                            {
+                                                "alias":
+                                                {
+                                                    "type": "string"
+                                                },
+                                                "entry":
+                                                {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required":
+                                            [
+                                                "alias",
+                                                "entry"
+                                            ]
+                                        }
+                                    }
                                 ]
                             }
                         }

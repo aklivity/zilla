@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior;
 
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.ADVISORY_CHALLENGE;
+import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.ADVISORY_REDIRECT;
 import static org.jboss.netty.channel.Channels.fireChannelClosed;
 import static org.jboss.netty.channel.Channels.fireChannelDisconnected;
 import static org.jboss.netty.channel.Channels.fireChannelUnbound;
@@ -119,6 +120,23 @@ public final class ZillaSource implements AutoCloseable
             streamFactory.doChallenge(channel, traceId);
 
             adviseFuture.setSuccess();
+        }
+        else if (value == ADVISORY_REDIRECT)
+        {
+            final long traceId = supplyTraceId.getAsLong();
+
+            streamFactory.doRedirect(channel, traceId);
+
+            adviseFuture.setSuccess();
+            if (channel.setReadAborted())
+            {
+                if (channel.setReadClosed())
+                {
+                    fireChannelDisconnected(channel);
+                    fireChannelUnbound(channel);
+                    fireChannelClosed(channel);
+                }
+            }
         }
         else
         {

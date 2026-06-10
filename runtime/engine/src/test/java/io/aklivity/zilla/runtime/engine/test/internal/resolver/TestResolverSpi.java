@@ -15,10 +15,15 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.resolver;
 
+import java.util.Base64;
+import java.util.Random;
+
 import io.aklivity.zilla.runtime.engine.resolver.ResolverSpi;
 
 public class TestResolverSpi implements ResolverSpi
 {
+    private static final String RANDOM_BASE64_PREFIX = "randomBase64.";
+
     public String resolve(
         String var)
     {
@@ -35,6 +40,13 @@ public class TestResolverSpi implements ResolverSpi
         else if ("EXPRESSION".equals(var))
         {
             result = "${{test.EXPRESSION}}";
+        }
+        else if (var.startsWith(RANDOM_BASE64_PREFIX))
+        {
+            final int length = Integer.parseInt(var.substring(RANDOM_BASE64_PREFIX.length()));
+            final byte[] bytes = new byte[length];
+            new Random(length).nextBytes(bytes);
+            result = Base64.getEncoder().encodeToString(bytes);
         }
 
         return result;

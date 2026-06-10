@@ -552,19 +552,67 @@ class StreamingJsonParserTest
     }
 
     @Test
-    void shouldThrowOnSkipObject()
+    void shouldSkipObject()
     {
-        JsonParser parser = parserFor("{}");
+        JsonParser parser = parserFor("[{\"a\":1,\"b\":{\"c\":2}},3]");
 
-        assertThrows(UnsupportedOperationException.class, parser::skipObject);
+        assertEquals(START_ARRAY, parser.next());
+        assertEquals(START_OBJECT, parser.next());
+        parser.skipObject();
+        assertEquals(VALUE_NUMBER, parser.next());
+        assertEquals("3", parser.getString());
+        assertEquals(END_ARRAY, parser.next());
+        assertFalse(parser.hasNext());
     }
 
     @Test
-    void shouldThrowOnSkipArray()
+    void shouldSkipRemainderOfObject()
     {
-        JsonParser parser = parserFor("[]");
+        JsonParser parser = parserFor("{\"a\":1,\"b\":2}");
 
-        assertThrows(UnsupportedOperationException.class, parser::skipArray);
+        assertEquals(START_OBJECT, parser.next());
+        assertEquals(KEY_NAME, parser.next());
+        assertEquals(VALUE_NUMBER, parser.next());
+        parser.skipObject();
+        assertFalse(parser.hasNext());
+    }
+
+    @Test
+    void shouldSkipArray()
+    {
+        JsonParser parser = parserFor("{\"a\":[1,[2,3],4],\"b\":5}");
+
+        assertEquals(START_OBJECT, parser.next());
+        assertEquals(KEY_NAME, parser.next());
+        assertEquals(START_ARRAY, parser.next());
+        parser.skipArray();
+        assertEquals(KEY_NAME, parser.next());
+        assertEquals("b", parser.getString());
+        assertEquals(VALUE_NUMBER, parser.next());
+        assertEquals("5", parser.getString());
+        assertEquals(END_OBJECT, parser.next());
+    }
+
+    @Test
+    void shouldIgnoreSkipArrayInObjectContext()
+    {
+        JsonParser parser = parserFor("{\"a\":1}");
+
+        assertEquals(START_OBJECT, parser.next());
+        parser.skipArray();
+        assertEquals(KEY_NAME, parser.next());
+        assertEquals("a", parser.getString());
+    }
+
+    @Test
+    void shouldIgnoreSkipObjectInArrayContext()
+    {
+        JsonParser parser = parserFor("[1,2]");
+
+        assertEquals(START_ARRAY, parser.next());
+        parser.skipObject();
+        assertEquals(VALUE_NUMBER, parser.next());
+        assertEquals("1", parser.getString());
     }
 
     @Test

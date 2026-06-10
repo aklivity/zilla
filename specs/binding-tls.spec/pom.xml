@@ -98,8 +98,10 @@
         <configuration>
           <excludes>
             <exclude>**/keys</exclude>
+            <exclude>**/keys2</exclude>
             <exclude>**/trust</exclude>
             <exclude>**/signers</exclude>
+            <exclude>**/signers2</exclude>
             <exclude>**/*.csr</exclude>
             <exclude>**/*.crt</exclude>
             <exclude>**/*.pem</exclude>

@@ -37,6 +37,9 @@ public class AsyncapiViewTest
             info:
               title: Test API
               version: 0.1.0
+              description: |
+                First line.
+                Second line.
             """);
         AsyncapiView view = AsyncapiView.of(model);
 

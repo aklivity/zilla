@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.specs.binding.mcp.internal;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.nio.ByteBuffer;
 import java.util.function.Predicate;
 
@@ -24,16 +26,27 @@ import org.agrona.concurrent.UnsafeBuffer;
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
 import io.aklivity.k3po.runtime.lang.el.Function;
 import io.aklivity.k3po.runtime.lang.el.spi.FunctionMapperSpi;
+import io.aklivity.zilla.specs.binding.mcp.internal.types.McpCapabilities;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.String16FW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpAbortExFW;
+import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpBearerError;
+import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpBearerResetExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpChallengeExFW;
+import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpElicitAction;
+import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpElicitCallbackFlushExFW;
+import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpElicitCompleteFlushExFW;
+import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpElicitCreateChallengeExFW;
+import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpElicitResponseFlushExFW;
+import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpEndExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpFlushExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpLifecycleBeginExFW;
+import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpOutcome;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpProgressFlushExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpPromptsGetBeginExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpPromptsListBeginExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpPromptsListChangedFlushExFW;
+import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpResetExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpResourcesListBeginExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpResourcesListChangedFlushExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpResourcesReadBeginExFW;
@@ -56,6 +69,17 @@ public final class McpFunctions
     public static McpBeginExMatcherBuilder matchBeginEx()
     {
         return new McpBeginExMatcherBuilder();
+    }
+
+    private static int capabilities(
+        String[] names)
+    {
+        int capabilities = 0;
+        for (String name : names)
+        {
+            capabilities |= McpCapabilities.valueOf(name).value();
+        }
+        return capabilities;
     }
 
     public static final class McpBeginExBuilder
@@ -121,6 +145,7 @@ public final class McpFunctions
         {
             private String sessionId;
             private int capabilities;
+            private String authCallback;
 
             public McpLifecycleBeginExBuilder sessionId(
                 String sessionId)
@@ -130,15 +155,22 @@ public final class McpFunctions
             }
 
             public McpLifecycleBeginExBuilder capabilities(
-                int capabilities)
+                String... names)
             {
-                this.capabilities = capabilities;
+                this.capabilities = McpFunctions.capabilities(names);
+                return this;
+            }
+
+            public McpLifecycleBeginExBuilder authCallback(
+                String authCallback)
+            {
+                this.authCallback = authCallback;
                 return this;
             }
 
             public McpBeginExBuilder build()
             {
-                beginExRW.lifecycle(b -> b.sessionId(sessionId).capabilities(capabilities));
+                beginExRW.lifecycle(b -> b.sessionId(sessionId).capabilities(capabilities).authCallback(authCallback));
                 return McpBeginExBuilder.this;
             }
         }
@@ -146,6 +178,7 @@ public final class McpFunctions
         public final class McpToolsListBeginExBuilder
         {
             private String sessionId;
+            private long timeout;
 
             public McpToolsListBeginExBuilder sessionId(
                 String sessionId)
@@ -154,9 +187,16 @@ public final class McpFunctions
                 return this;
             }
 
+            public McpToolsListBeginExBuilder timeout(
+                long timeout)
+            {
+                this.timeout = timeout;
+                return this;
+            }
+
             public McpBeginExBuilder build()
             {
-                beginExRW.toolsList(b -> b.sessionId(sessionId));
+                beginExRW.toolsList(b -> b.sessionId(sessionId).timeout(timeout));
                 return McpBeginExBuilder.this;
             }
         }
@@ -165,6 +205,8 @@ public final class McpFunctions
         {
             private String sessionId;
             private String name;
+            private int contentLength = -1;
+            private long timeout;
 
             public McpToolsCallBeginExBuilder sessionId(
                 String sessionId)
@@ -180,9 +222,23 @@ public final class McpFunctions
                 return this;
             }
 
+            public McpToolsCallBeginExBuilder contentLength(
+                int contentLength)
+            {
+                this.contentLength = contentLength;
+                return this;
+            }
+
+            public McpToolsCallBeginExBuilder timeout(
+                long timeout)
+            {
+                this.timeout = timeout;
+                return this;
+            }
+
             public McpBeginExBuilder build()
             {
-                beginExRW.toolsCall(b -> b.sessionId(sessionId).name(name));
+                beginExRW.toolsCall(b -> b.sessionId(sessionId).name(name).contentLength(contentLength).timeout(timeout));
                 return McpBeginExBuilder.this;
             }
         }
@@ -190,6 +246,7 @@ public final class McpFunctions
         public final class McpPromptsListBeginExBuilder
         {
             private String sessionId;
+            private long timeout;
 
             public McpPromptsListBeginExBuilder sessionId(
                 String sessionId)
@@ -198,9 +255,16 @@ public final class McpFunctions
                 return this;
             }
 
+            public McpPromptsListBeginExBuilder timeout(
+                long timeout)
+            {
+                this.timeout = timeout;
+                return this;
+            }
+
             public McpBeginExBuilder build()
             {
-                beginExRW.promptsList(b -> b.sessionId(sessionId));
+                beginExRW.promptsList(b -> b.sessionId(sessionId).timeout(timeout));
                 return McpBeginExBuilder.this;
             }
         }
@@ -209,6 +273,8 @@ public final class McpFunctions
         {
             private String sessionId;
             private String name;
+            private int contentLength = -1;
+            private long timeout;
 
             public McpPromptsGetBeginExBuilder sessionId(
                 String sessionId)
@@ -224,9 +290,23 @@ public final class McpFunctions
                 return this;
             }
 
+            public McpPromptsGetBeginExBuilder contentLength(
+                int contentLength)
+            {
+                this.contentLength = contentLength;
+                return this;
+            }
+
+            public McpPromptsGetBeginExBuilder timeout(
+                long timeout)
+            {
+                this.timeout = timeout;
+                return this;
+            }
+
             public McpBeginExBuilder build()
             {
-                beginExRW.promptsGet(b -> b.sessionId(sessionId).name(name));
+                beginExRW.promptsGet(b -> b.sessionId(sessionId).name(name).contentLength(contentLength).timeout(timeout));
                 return McpBeginExBuilder.this;
             }
         }
@@ -234,6 +314,7 @@ public final class McpFunctions
         public final class McpResourcesListBeginExBuilder
         {
             private String sessionId;
+            private long timeout;
 
             public McpResourcesListBeginExBuilder sessionId(
                 String sessionId)
@@ -242,9 +323,16 @@ public final class McpFunctions
                 return this;
             }
 
+            public McpResourcesListBeginExBuilder timeout(
+                long timeout)
+            {
+                this.timeout = timeout;
+                return this;
+            }
+
             public McpBeginExBuilder build()
             {
-                beginExRW.resourcesList(b -> b.sessionId(sessionId));
+                beginExRW.resourcesList(b -> b.sessionId(sessionId).timeout(timeout));
                 return McpBeginExBuilder.this;
             }
         }
@@ -253,6 +341,8 @@ public final class McpFunctions
         {
             private String sessionId;
             private String uri;
+            private int contentLength = -1;
+            private long timeout;
 
             public McpResourcesReadBeginExBuilder sessionId(
                 String sessionId)
@@ -268,9 +358,23 @@ public final class McpFunctions
                 return this;
             }
 
+            public McpResourcesReadBeginExBuilder contentLength(
+                int contentLength)
+            {
+                this.contentLength = contentLength;
+                return this;
+            }
+
+            public McpResourcesReadBeginExBuilder timeout(
+                long timeout)
+            {
+                this.timeout = timeout;
+                return this;
+            }
+
             public McpBeginExBuilder build()
             {
-                beginExRW.resourcesRead(b -> b.sessionId(sessionId).uri(uri));
+                beginExRW.resourcesRead(b -> b.sessionId(sessionId).uri(uri).contentLength(contentLength).timeout(timeout));
                 return McpBeginExBuilder.this;
             }
         }
@@ -398,6 +502,7 @@ public final class McpFunctions
         {
             private String16FW sessionId;
             private Integer capabilities;
+            private String16FW authCallback;
 
             public McpLifecycleBeginExMatcherBuilder sessionId(
                 String sessionId)
@@ -407,9 +512,16 @@ public final class McpFunctions
             }
 
             public McpLifecycleBeginExMatcherBuilder capabilities(
-                int capabilities)
+                String... names)
             {
-                this.capabilities = capabilities;
+                this.capabilities = McpFunctions.capabilities(names);
+                return this;
+            }
+
+            public McpLifecycleBeginExMatcherBuilder authCallback(
+                String authCallback)
+            {
+                this.authCallback = new String16FW(authCallback);
                 return this;
             }
 
@@ -422,7 +534,7 @@ public final class McpFunctions
                 McpBeginExFW beginEx)
             {
                 final McpLifecycleBeginExFW lifecycle = beginEx.lifecycle();
-                return matchSessionId(lifecycle) && matchCapabilities(lifecycle);
+                return matchSessionId(lifecycle) && matchCapabilities(lifecycle) && matchAuthCallback(lifecycle);
             }
 
             private boolean matchSessionId(
@@ -436,16 +548,30 @@ public final class McpFunctions
             {
                 return capabilities == null || capabilities == lifecycle.capabilities();
             }
+
+            private boolean matchAuthCallback(
+                McpLifecycleBeginExFW lifecycle)
+            {
+                return authCallback == null || authCallback.equals(lifecycle.authCallback());
+            }
         }
 
         public final class McpToolsListBeginExMatcherBuilder
         {
             private String16FW sessionId;
+            private Long timeout;
 
             public McpToolsListBeginExMatcherBuilder sessionId(
                 String sessionId)
             {
                 this.sessionId = new String16FW(sessionId);
+                return this;
+            }
+
+            public McpToolsListBeginExMatcherBuilder timeout(
+                long timeout)
+            {
+                this.timeout = timeout;
                 return this;
             }
 
@@ -457,7 +583,8 @@ public final class McpFunctions
             private boolean match(
                 McpBeginExFW beginEx)
             {
-                return matchSessionId(beginEx.toolsList());
+                final McpToolsListBeginExFW toolsList = beginEx.toolsList();
+                return matchSessionId(toolsList) && matchTimeout(toolsList);
             }
 
             private boolean matchSessionId(
@@ -465,12 +592,20 @@ public final class McpFunctions
             {
                 return sessionId == null || sessionId.equals(toolsList.sessionId());
             }
+
+            private boolean matchTimeout(
+                McpToolsListBeginExFW toolsList)
+            {
+                return timeout == null || timeout == toolsList.timeout();
+            }
         }
 
         public final class McpToolsCallBeginExMatcherBuilder
         {
             private String16FW sessionId;
             private String16FW name;
+            private Integer contentLength;
+            private Long timeout;
 
             public McpToolsCallBeginExMatcherBuilder sessionId(
                 String sessionId)
@@ -486,6 +621,20 @@ public final class McpFunctions
                 return this;
             }
 
+            public McpToolsCallBeginExMatcherBuilder contentLength(
+                int contentLength)
+            {
+                this.contentLength = contentLength;
+                return this;
+            }
+
+            public McpToolsCallBeginExMatcherBuilder timeout(
+                long timeout)
+            {
+                this.timeout = timeout;
+                return this;
+            }
+
             public McpBeginExMatcherBuilder build()
             {
                 return McpBeginExMatcherBuilder.this;
@@ -495,7 +644,8 @@ public final class McpFunctions
                 McpBeginExFW beginEx)
             {
                 final McpToolsCallBeginExFW toolsCall = beginEx.toolsCall();
-                return matchSessionId(toolsCall) && matchName(toolsCall);
+                return matchSessionId(toolsCall) && matchName(toolsCall) && matchContentLength(toolsCall) &&
+                    matchTimeout(toolsCall);
             }
 
             private boolean matchSessionId(
@@ -509,16 +659,36 @@ public final class McpFunctions
             {
                 return name == null || name.equals(toolsCall.name());
             }
+
+            private boolean matchContentLength(
+                McpToolsCallBeginExFW toolsCall)
+            {
+                return contentLength == null || contentLength == toolsCall.contentLength();
+            }
+
+            private boolean matchTimeout(
+                McpToolsCallBeginExFW toolsCall)
+            {
+                return timeout == null || timeout == toolsCall.timeout();
+            }
         }
 
         public final class McpPromptsListBeginExMatcherBuilder
         {
             private String16FW sessionId;
+            private Long timeout;
 
             public McpPromptsListBeginExMatcherBuilder sessionId(
                 String sessionId)
             {
                 this.sessionId = new String16FW(sessionId);
+                return this;
+            }
+
+            public McpPromptsListBeginExMatcherBuilder timeout(
+                long timeout)
+            {
+                this.timeout = timeout;
                 return this;
             }
 
@@ -530,7 +700,8 @@ public final class McpFunctions
             private boolean match(
                 McpBeginExFW beginEx)
             {
-                return matchSessionId(beginEx.promptsList());
+                final McpPromptsListBeginExFW promptsList = beginEx.promptsList();
+                return matchSessionId(promptsList) && matchTimeout(promptsList);
             }
 
             private boolean matchSessionId(
@@ -538,12 +709,20 @@ public final class McpFunctions
             {
                 return sessionId == null || sessionId.equals(promptsList.sessionId());
             }
+
+            private boolean matchTimeout(
+                McpPromptsListBeginExFW promptsList)
+            {
+                return timeout == null || timeout == promptsList.timeout();
+            }
         }
 
         public final class McpPromptsGetBeginExMatcherBuilder
         {
             private String16FW sessionId;
             private String16FW name;
+            private Integer contentLength;
+            private Long timeout;
 
             public McpPromptsGetBeginExMatcherBuilder sessionId(
                 String sessionId)
@@ -559,6 +738,20 @@ public final class McpFunctions
                 return this;
             }
 
+            public McpPromptsGetBeginExMatcherBuilder contentLength(
+                int contentLength)
+            {
+                this.contentLength = contentLength;
+                return this;
+            }
+
+            public McpPromptsGetBeginExMatcherBuilder timeout(
+                long timeout)
+            {
+                this.timeout = timeout;
+                return this;
+            }
+
             public McpBeginExMatcherBuilder build()
             {
                 return McpBeginExMatcherBuilder.this;
@@ -568,7 +761,8 @@ public final class McpFunctions
                 McpBeginExFW beginEx)
             {
                 final McpPromptsGetBeginExFW promptsGet = beginEx.promptsGet();
-                return matchSessionId(promptsGet) && matchName(promptsGet);
+                return matchSessionId(promptsGet) && matchName(promptsGet) && matchContentLength(promptsGet) &&
+                    matchTimeout(promptsGet);
             }
 
             private boolean matchSessionId(
@@ -582,16 +776,36 @@ public final class McpFunctions
             {
                 return name == null || name.equals(promptsGet.name());
             }
+
+            private boolean matchContentLength(
+                McpPromptsGetBeginExFW promptsGet)
+            {
+                return contentLength == null || contentLength == promptsGet.contentLength();
+            }
+
+            private boolean matchTimeout(
+                McpPromptsGetBeginExFW promptsGet)
+            {
+                return timeout == null || timeout == promptsGet.timeout();
+            }
         }
 
         public final class McpResourcesListBeginExMatcherBuilder
         {
             private String16FW sessionId;
+            private Long timeout;
 
             public McpResourcesListBeginExMatcherBuilder sessionId(
                 String sessionId)
             {
                 this.sessionId = new String16FW(sessionId);
+                return this;
+            }
+
+            public McpResourcesListBeginExMatcherBuilder timeout(
+                long timeout)
+            {
+                this.timeout = timeout;
                 return this;
             }
 
@@ -603,7 +817,8 @@ public final class McpFunctions
             private boolean match(
                 McpBeginExFW beginEx)
             {
-                return matchSessionId(beginEx.resourcesList());
+                final McpResourcesListBeginExFW resourcesList = beginEx.resourcesList();
+                return matchSessionId(resourcesList) && matchTimeout(resourcesList);
             }
 
             private boolean matchSessionId(
@@ -611,12 +826,20 @@ public final class McpFunctions
             {
                 return sessionId == null || sessionId.equals(resourcesList.sessionId());
             }
+
+            private boolean matchTimeout(
+                McpResourcesListBeginExFW resourcesList)
+            {
+                return timeout == null || timeout == resourcesList.timeout();
+            }
         }
 
         public final class McpResourcesReadBeginExMatcherBuilder
         {
             private String16FW sessionId;
             private String16FW uri;
+            private Integer contentLength;
+            private Long timeout;
 
             public McpResourcesReadBeginExMatcherBuilder sessionId(
                 String sessionId)
@@ -632,6 +855,20 @@ public final class McpFunctions
                 return this;
             }
 
+            public McpResourcesReadBeginExMatcherBuilder contentLength(
+                int contentLength)
+            {
+                this.contentLength = contentLength;
+                return this;
+            }
+
+            public McpResourcesReadBeginExMatcherBuilder timeout(
+                long timeout)
+            {
+                this.timeout = timeout;
+                return this;
+            }
+
             public McpBeginExMatcherBuilder build()
             {
                 return McpBeginExMatcherBuilder.this;
@@ -641,7 +878,8 @@ public final class McpFunctions
                 McpBeginExFW beginEx)
             {
                 final McpResourcesReadBeginExFW resourcesRead = beginEx.resourcesRead();
-                return matchSessionId(resourcesRead) && matchUri(resourcesRead);
+                return matchSessionId(resourcesRead) && matchUri(resourcesRead) && matchContentLength(resourcesRead) &&
+                    matchTimeout(resourcesRead);
             }
 
             private boolean matchSessionId(
@@ -654,6 +892,18 @@ public final class McpFunctions
                 McpResourcesReadBeginExFW resourcesRead)
             {
                 return uri == null || uri.equals(resourcesRead.uri());
+            }
+
+            private boolean matchContentLength(
+                McpResourcesReadBeginExFW resourcesRead)
+            {
+                return contentLength == null || contentLength == resourcesRead.contentLength();
+            }
+
+            private boolean matchTimeout(
+                McpResourcesReadBeginExFW resourcesRead)
+            {
+                return timeout == null || timeout == resourcesRead.timeout();
             }
         }
     }
@@ -668,6 +918,18 @@ public final class McpFunctions
     public static McpAbortExMatcherBuilder matchAbortEx()
     {
         return new McpAbortExMatcherBuilder();
+    }
+
+    @Function
+    public static McpEndExBuilder endEx()
+    {
+        return new McpEndExBuilder();
+    }
+
+    @Function
+    public static McpEndExMatcherBuilder matchEndEx()
+    {
+        return new McpEndExMatcherBuilder();
     }
 
     @Function
@@ -727,6 +989,21 @@ public final class McpFunctions
         public McpSuspendFlushExBuilder suspend()
         {
             return new McpSuspendFlushExBuilder();
+        }
+
+        public McpElicitCallbackFlushExBuilder elicitCallback()
+        {
+            return new McpElicitCallbackFlushExBuilder();
+        }
+
+        public McpElicitCompleteFlushExBuilder elicitComplete()
+        {
+            return new McpElicitCompleteFlushExBuilder();
+        }
+
+        public McpElicitResponseFlushExBuilder elicitResponse()
+        {
+            return new McpElicitResponseFlushExBuilder();
         }
 
         public byte[] build()
@@ -880,6 +1157,83 @@ public final class McpFunctions
                 return McpFlushExBuilder.this;
             }
         }
+
+        public final class McpElicitCallbackFlushExBuilder
+        {
+            private String url;
+            private String correlationId;
+
+            public McpElicitCallbackFlushExBuilder url(
+                String url)
+            {
+                this.url = url;
+                return this;
+            }
+
+            public McpElicitCallbackFlushExBuilder correlationId(
+                String correlationId)
+            {
+                this.correlationId = correlationId;
+                return this;
+            }
+
+            public McpFlushExBuilder build()
+            {
+                flushExRW.elicitCallback(b ->
+                {
+                    b.url(url);
+                    if (correlationId != null)
+                    {
+                        b.correlationId(correlationId);
+                    }
+                });
+                return McpFlushExBuilder.this;
+            }
+        }
+
+        public final class McpElicitCompleteFlushExBuilder
+        {
+            private String id;
+
+            public McpElicitCompleteFlushExBuilder id(
+                String id)
+            {
+                this.id = id;
+                return this;
+            }
+
+            public McpFlushExBuilder build()
+            {
+                flushExRW.elicitComplete(b -> b.id(id));
+                return McpFlushExBuilder.this;
+            }
+        }
+
+        public final class McpElicitResponseFlushExBuilder
+        {
+            private String correlationId;
+            private McpElicitAction action;
+
+            public McpElicitResponseFlushExBuilder correlationId(
+                String correlationId)
+            {
+                this.correlationId = correlationId;
+                return this;
+            }
+
+            public McpElicitResponseFlushExBuilder action(
+                String action)
+            {
+                this.action = McpElicitAction.valueOf(action);
+                return this;
+            }
+
+            public McpFlushExBuilder build()
+            {
+                flushExRW.elicitResponse(b -> b.correlationId(correlationId).action(a -> a.set(action)));
+                return McpFlushExBuilder.this;
+            }
+        }
     }
 
     public static final class McpFlushExMatcherBuilder
@@ -942,6 +1296,30 @@ public final class McpFunctions
         {
             this.kind = McpFlushExFW.KIND_SUSPEND;
             final McpSuspendFlushExMatcherBuilder matcher = new McpSuspendFlushExMatcherBuilder();
+            this.caseMatcher = matcher::match;
+            return matcher;
+        }
+
+        public McpElicitCallbackFlushExMatcherBuilder elicitCallback()
+        {
+            this.kind = McpFlushExFW.KIND_ELICIT_CALLBACK;
+            final McpElicitCallbackFlushExMatcherBuilder matcher = new McpElicitCallbackFlushExMatcherBuilder();
+            this.caseMatcher = matcher::match;
+            return matcher;
+        }
+
+        public McpElicitCompleteFlushExMatcherBuilder elicitComplete()
+        {
+            this.kind = McpFlushExFW.KIND_ELICIT_COMPLETE;
+            final McpElicitCompleteFlushExMatcherBuilder matcher = new McpElicitCompleteFlushExMatcherBuilder();
+            this.caseMatcher = matcher::match;
+            return matcher;
+        }
+
+        public McpElicitResponseFlushExMatcherBuilder elicitResponse()
+        {
+            this.kind = McpFlushExFW.KIND_ELICIT_RESPONSE;
+            final McpElicitResponseFlushExMatcherBuilder matcher = new McpElicitResponseFlushExMatcherBuilder();
             this.caseMatcher = matcher::match;
             return matcher;
         }
@@ -1028,7 +1406,7 @@ public final class McpFunctions
             public McpToolsListChangedFlushExMatcherBuilder id(
                 String id)
             {
-                this.id = new String16FW(id);
+                this.id = new String16FW(id, UTF_8);
                 return this;
             }
 
@@ -1057,7 +1435,7 @@ public final class McpFunctions
             public McpPromptsListChangedFlushExMatcherBuilder id(
                 String id)
             {
-                this.id = new String16FW(id);
+                this.id = new String16FW(id, UTF_8);
                 return this;
             }
 
@@ -1086,7 +1464,7 @@ public final class McpFunctions
             public McpResourcesListChangedFlushExMatcherBuilder id(
                 String id)
             {
-                this.id = new String16FW(id);
+                this.id = new String16FW(id, UTF_8);
                 return this;
             }
 
@@ -1223,6 +1601,124 @@ public final class McpFunctions
                 return retry == null || retry == suspend.retry();
             }
         }
+
+        public final class McpElicitCallbackFlushExMatcherBuilder
+        {
+            private String16FW url;
+            private String16FW correlationId;
+
+            public McpElicitCallbackFlushExMatcherBuilder url(
+                String url)
+            {
+                this.url = new String16FW(url);
+                return this;
+            }
+
+            public McpElicitCallbackFlushExMatcherBuilder correlationId(
+                String correlationId)
+            {
+                this.correlationId = new String16FW(correlationId);
+                return this;
+            }
+
+            public McpFlushExMatcherBuilder build()
+            {
+                return McpFlushExMatcherBuilder.this;
+            }
+
+            private boolean match(
+                McpFlushExFW flushEx)
+            {
+                final McpElicitCallbackFlushExFW elicitCallback = flushEx.elicitCallback();
+                return matchUrl(elicitCallback) && matchCorrelationId(elicitCallback);
+            }
+
+            private boolean matchUrl(
+                McpElicitCallbackFlushExFW elicitCallback)
+            {
+                return url == null || url.equals(elicitCallback.url());
+            }
+
+            private boolean matchCorrelationId(
+                McpElicitCallbackFlushExFW elicitCallback)
+            {
+                return correlationId == null || correlationId.equals(elicitCallback.correlationId());
+            }
+        }
+
+        public final class McpElicitCompleteFlushExMatcherBuilder
+        {
+            private String16FW id;
+
+            public McpElicitCompleteFlushExMatcherBuilder id(
+                String id)
+            {
+                this.id = new String16FW(id);
+                return this;
+            }
+
+            public McpFlushExMatcherBuilder build()
+            {
+                return McpFlushExMatcherBuilder.this;
+            }
+
+            private boolean match(
+                McpFlushExFW flushEx)
+            {
+                final McpElicitCompleteFlushExFW elicitComplete = flushEx.elicitComplete();
+                return matchId(elicitComplete);
+            }
+
+            private boolean matchId(
+                McpElicitCompleteFlushExFW elicitComplete)
+            {
+                return id == null || id.equals(elicitComplete.id());
+            }
+        }
+
+        public final class McpElicitResponseFlushExMatcherBuilder
+        {
+            private String16FW correlationId;
+            private McpElicitAction action;
+
+            public McpElicitResponseFlushExMatcherBuilder correlationId(
+                String correlationId)
+            {
+                this.correlationId = new String16FW(correlationId);
+                return this;
+            }
+
+            public McpElicitResponseFlushExMatcherBuilder action(
+                String action)
+            {
+                this.action = McpElicitAction.valueOf(action);
+                return this;
+            }
+
+            public McpFlushExMatcherBuilder build()
+            {
+                return McpFlushExMatcherBuilder.this;
+            }
+
+            private boolean match(
+                McpFlushExFW flushEx)
+            {
+                final McpElicitResponseFlushExFW elicitResponse = flushEx.elicitResponse();
+                return matchCorrelationId(elicitResponse) && matchAction(elicitResponse);
+            }
+
+            private boolean matchCorrelationId(
+                McpElicitResponseFlushExFW elicitResponse)
+            {
+                return correlationId == null || correlationId.equals(elicitResponse.correlationId());
+            }
+
+            private boolean matchAction(
+                McpElicitResponseFlushExFW elicitResponse)
+            {
+                return action == null || action == elicitResponse.action().get();
+            }
+        }
     }
 
     @Function
@@ -1235,6 +1731,18 @@ public final class McpFunctions
     public static McpChallengeExMatcherBuilder matchChallengeEx()
     {
         return new McpChallengeExMatcherBuilder();
+    }
+
+    @Function
+    public static McpResetExBuilder resetEx()
+    {
+        return new McpResetExBuilder();
+    }
+
+    @Function
+    public static McpResetExMatcherBuilder matchResetEx()
+    {
+        return new McpResetExMatcherBuilder();
     }
 
     public static final class McpChallengeExBuilder
@@ -1262,6 +1770,11 @@ public final class McpFunctions
         public McpSuspendedChallengeExBuilder suspended()
         {
             return new McpSuspendedChallengeExBuilder();
+        }
+
+        public McpElicitCreateChallengeExBuilder elicitCreate()
+        {
+            return new McpElicitCreateChallengeExBuilder();
         }
 
         public byte[] build()
@@ -1299,6 +1812,59 @@ public final class McpFunctions
                 return McpChallengeExBuilder.this;
             }
         }
+
+        public final class McpElicitCreateChallengeExBuilder
+        {
+            private String id;
+            private String url;
+            private String message;
+            private String correlationId;
+
+            public McpElicitCreateChallengeExBuilder id(
+                String id)
+            {
+                this.id = id;
+                return this;
+            }
+
+            public McpElicitCreateChallengeExBuilder url(
+                String url)
+            {
+                this.url = url;
+                return this;
+            }
+
+            public McpElicitCreateChallengeExBuilder message(
+                String message)
+            {
+                this.message = message;
+                return this;
+            }
+
+            public McpElicitCreateChallengeExBuilder correlationId(
+                String correlationId)
+            {
+                this.correlationId = correlationId;
+                return this;
+            }
+
+            public McpChallengeExBuilder build()
+            {
+                challengeExRW.elicitCreate(b ->
+                {
+                    b.id(id).url(url);
+                    if (message != null)
+                    {
+                        b.message(message);
+                    }
+                    if (correlationId != null)
+                    {
+                        b.correlationId(correlationId);
+                    }
+                });
+                return McpChallengeExBuilder.this;
+            }
+        }
     }
 
     public static final class McpChallengeExMatcherBuilder
@@ -1329,6 +1895,14 @@ public final class McpFunctions
         {
             this.kind = McpChallengeExFW.KIND_SUSPENDED;
             final McpSuspendedChallengeExMatcherBuilder matcher = new McpSuspendedChallengeExMatcherBuilder();
+            this.caseMatcher = matcher::match;
+            return matcher;
+        }
+
+        public McpElicitCreateChallengeExMatcherBuilder elicitCreate()
+        {
+            this.kind = McpChallengeExFW.KIND_ELICIT_CREATE;
+            final McpElicitCreateChallengeExMatcherBuilder matcher = new McpElicitCreateChallengeExMatcherBuilder();
             this.caseMatcher = matcher::match;
             return matcher;
         }
@@ -1419,6 +1993,294 @@ public final class McpFunctions
                 McpChallengeExFW challengeEx)
             {
                 return challengeEx.kind() == McpChallengeExFW.KIND_SUSPENDED;
+            }
+        }
+
+        public final class McpElicitCreateChallengeExMatcherBuilder
+        {
+            private String16FW id;
+            private String16FW url;
+            private String16FW message;
+            private String16FW correlationId;
+
+            public McpElicitCreateChallengeExMatcherBuilder id(
+                String id)
+            {
+                this.id = new String16FW(id);
+                return this;
+            }
+
+            public McpElicitCreateChallengeExMatcherBuilder url(
+                String url)
+            {
+                this.url = new String16FW(url);
+                return this;
+            }
+
+            public McpElicitCreateChallengeExMatcherBuilder message(
+                String message)
+            {
+                this.message = new String16FW(message);
+                return this;
+            }
+
+            public McpElicitCreateChallengeExMatcherBuilder correlationId(
+                String correlationId)
+            {
+                this.correlationId = new String16FW(correlationId);
+                return this;
+            }
+
+            public McpChallengeExMatcherBuilder build()
+            {
+                return McpChallengeExMatcherBuilder.this;
+            }
+
+            private boolean match(
+                McpChallengeExFW challengeEx)
+            {
+                final McpElicitCreateChallengeExFW elicitCreate = challengeEx.elicitCreate();
+                return matchId(elicitCreate) && matchUrl(elicitCreate) &&
+                    matchMessage(elicitCreate) && matchCorrelationId(elicitCreate);
+            }
+
+            private boolean matchId(
+                McpElicitCreateChallengeExFW elicitCreate)
+            {
+                return id == null || id.equals(elicitCreate.id());
+            }
+
+            private boolean matchUrl(
+                McpElicitCreateChallengeExFW elicitCreate)
+            {
+                return url == null || url.equals(elicitCreate.url());
+            }
+
+            private boolean matchMessage(
+                McpElicitCreateChallengeExFW elicitCreate)
+            {
+                return message == null || message.equals(elicitCreate.message());
+            }
+
+            private boolean matchCorrelationId(
+                McpElicitCreateChallengeExFW elicitCreate)
+            {
+                return correlationId == null || correlationId.equals(elicitCreate.correlationId());
+            }
+        }
+    }
+
+    public static final class McpResetExBuilder
+    {
+        private final MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024]);
+        private final McpResetExFW.Builder resetExRW = new McpResetExFW.Builder();
+
+        private McpResetExBuilder()
+        {
+            resetExRW.wrap(writeBuffer, 0, writeBuffer.capacity());
+        }
+
+        public McpResetExBuilder typeId(
+            int typeId)
+        {
+            resetExRW.typeId(typeId);
+            return this;
+        }
+
+        public McpBearerResetExBuilder bearer()
+        {
+            return new McpBearerResetExBuilder();
+        }
+
+        public byte[] build()
+        {
+            final byte[] array = new byte[resetExRW.limit()];
+            writeBuffer.getBytes(0, array);
+            return array;
+        }
+
+        public final class McpBearerResetExBuilder
+        {
+            private String realm;
+            private String scopes;
+            private String resourceMetadata;
+            private McpBearerError error;
+
+            public McpBearerResetExBuilder realm(
+                String realm)
+            {
+                this.realm = realm;
+                return this;
+            }
+
+            public McpBearerResetExBuilder scopes(
+                String scopes)
+            {
+                this.scopes = scopes;
+                return this;
+            }
+
+            public McpBearerResetExBuilder resourceMetadata(
+                String resourceMetadata)
+            {
+                this.resourceMetadata = resourceMetadata;
+                return this;
+            }
+
+            public McpBearerResetExBuilder error(
+                String error)
+            {
+                this.error = McpBearerError.valueOf(error);
+                return this;
+            }
+
+            public McpResetExBuilder build()
+            {
+                resetExRW.bearer(b -> b.realm(realm).scopes(scopes).resourceMetadata(resourceMetadata).error(s -> s.set(error)));
+                return McpResetExBuilder.this;
+            }
+        }
+    }
+
+    public static final class McpResetExMatcherBuilder
+    {
+        private final DirectBuffer bufferRO = new UnsafeBuffer();
+        private final McpResetExFW resetExRO = new McpResetExFW();
+
+        private Integer typeId;
+        private Integer kind;
+        private Predicate<McpResetExFW> caseMatcher;
+
+        public McpResetExMatcherBuilder typeId(
+            int typeId)
+        {
+            this.typeId = typeId;
+            return this;
+        }
+
+        public McpBearerResetExMatcherBuilder bearer()
+        {
+            this.kind = McpResetExFW.KIND_BEARER;
+            final McpBearerResetExMatcherBuilder matcher = new McpBearerResetExMatcherBuilder();
+            this.caseMatcher = matcher::match;
+            return matcher;
+        }
+
+        public BytesMatcher build()
+        {
+            return typeId != null || kind != null ? this::match : buf -> null;
+        }
+
+        private McpResetExFW match(
+            ByteBuffer byteBuf) throws Exception
+        {
+            if (!byteBuf.hasRemaining())
+            {
+                return null;
+            }
+
+            bufferRO.wrap(byteBuf);
+            final McpResetExFW resetEx = resetExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.capacity());
+
+            if (resetEx != null &&
+                matchTypeId(resetEx) &&
+                matchKind(resetEx) &&
+                matchCase(resetEx))
+            {
+                byteBuf.position(byteBuf.position() + resetEx.sizeof());
+                return resetEx;
+            }
+
+            throw new Exception(resetEx != null ? resetEx.toString() : "null");
+        }
+
+        private boolean matchTypeId(
+            McpResetExFW resetEx)
+        {
+            return typeId == null || typeId == resetEx.typeId();
+        }
+
+        private boolean matchKind(
+            McpResetExFW resetEx)
+        {
+            return kind == null || kind == resetEx.kind();
+        }
+
+        private boolean matchCase(
+            McpResetExFW resetEx)
+        {
+            return caseMatcher == null || caseMatcher.test(resetEx);
+        }
+
+        public final class McpBearerResetExMatcherBuilder
+        {
+            private String16FW realm;
+            private String16FW scopes;
+            private String16FW resourceMetadata;
+            private McpBearerError error;
+
+            public McpBearerResetExMatcherBuilder realm(
+                String realm)
+            {
+                this.realm = new String16FW(realm);
+                return this;
+            }
+
+            public McpBearerResetExMatcherBuilder scopes(
+                String scopes)
+            {
+                this.scopes = new String16FW(scopes);
+                return this;
+            }
+
+            public McpBearerResetExMatcherBuilder resourceMetadata(
+                String resourceMetadata)
+            {
+                this.resourceMetadata = new String16FW(resourceMetadata);
+                return this;
+            }
+
+            public McpBearerResetExMatcherBuilder error(
+                String error)
+            {
+                this.error = McpBearerError.valueOf(error);
+                return this;
+            }
+
+            public McpResetExMatcherBuilder build()
+            {
+                return McpResetExMatcherBuilder.this;
+            }
+
+            private boolean match(
+                McpResetExFW resetEx)
+            {
+                final McpBearerResetExFW bearer = resetEx.bearer();
+                return matchRealm(bearer) && matchScopes(bearer) && matchResourceMetadata(bearer) && matchError(bearer);
+            }
+
+            private boolean matchRealm(
+                McpBearerResetExFW bearer)
+            {
+                return realm == null || realm.equals(bearer.realm());
+            }
+
+            private boolean matchScopes(
+                McpBearerResetExFW bearer)
+            {
+                return scopes == null || scopes.equals(bearer.scopes());
+            }
+
+            private boolean matchResourceMetadata(
+                McpBearerResetExFW bearer)
+            {
+                return resourceMetadata == null || resourceMetadata.equals(bearer.resourceMetadata());
+            }
+
+            private boolean matchError(
+                McpBearerResetExFW bearer)
+            {
+                return error == null || error == bearer.error().get();
             }
         }
     }
@@ -1517,6 +2379,103 @@ public final class McpFunctions
             return reason == null || reason.equals(abortEx.reason());
         }
     }
+
+    public static final class McpEndExBuilder
+    {
+        private final MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[256]);
+        private final McpEndExFW.Builder endExRW = new McpEndExFW.Builder();
+
+        private McpEndExBuilder()
+        {
+            endExRW.wrap(writeBuffer, 0, writeBuffer.capacity());
+        }
+
+        public McpEndExBuilder typeId(
+            int typeId)
+        {
+            endExRW.typeId(typeId);
+            return this;
+        }
+
+        public McpEndExBuilder outcome(
+            String outcome)
+        {
+            final McpOutcome resolved = McpOutcome.valueOf(outcome);
+            endExRW.outcome(o -> o.set(resolved));
+            return this;
+        }
+
+        public byte[] build()
+        {
+            final McpEndExFW endEx = endExRW.build();
+            final byte[] array = new byte[endEx.sizeof()];
+            writeBuffer.getBytes(endEx.offset(), array);
+            return array;
+        }
+    }
+
+    public static final class McpEndExMatcherBuilder
+    {
+        private final DirectBuffer bufferRO = new UnsafeBuffer();
+        private final McpEndExFW endExRO = new McpEndExFW();
+
+        private Integer typeId;
+        private McpOutcome outcome;
+
+        public McpEndExMatcherBuilder typeId(
+            int typeId)
+        {
+            this.typeId = typeId;
+            return this;
+        }
+
+        public McpEndExMatcherBuilder outcome(
+            String outcome)
+        {
+            this.outcome = McpOutcome.valueOf(outcome);
+            return this;
+        }
+
+        public BytesMatcher build()
+        {
+            return typeId != null || outcome != null ? this::match : buf -> null;
+        }
+
+        private McpEndExFW match(
+            ByteBuffer byteBuf) throws Exception
+        {
+            if (!byteBuf.hasRemaining())
+            {
+                return null;
+            }
+
+            bufferRO.wrap(byteBuf);
+            final McpEndExFW endEx = endExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.capacity());
+
+            if (endEx != null &&
+                matchTypeId(endEx) &&
+                matchOutcome(endEx))
+            {
+                byteBuf.position(byteBuf.position() + endEx.sizeof());
+                return endEx;
+            }
+
+            throw new Exception(endEx != null ? endEx.toString() : "null");
+        }
+
+        private boolean matchTypeId(
+            McpEndExFW endEx)
+        {
+            return typeId == null || typeId == endEx.typeId();
+        }
+
+        private boolean matchOutcome(
+            McpEndExFW endEx)
+        {
+            return outcome == null || outcome == endEx.outcome().get();
+        }
+    }
+
 
     public static class Mapper extends FunctionMapperSpi.Reflective
     {

@@ -1,5 +1,66 @@
 # Changelog
 
+## [1.2.4](https://github.com/aklivity/zilla/tree/1.2.4) (2026-05-16)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/1.2.4-rc2...1.2.4)
+
+**Merged pull requests:**
+
+- Refactor Docker image publishing to use build-push-action [\#1771](https://github.com/aklivity/zilla/pull/1771) ([jfallows](https://github.com/jfallows))
+
+## [1.2.4-rc2](https://github.com/aklivity/zilla/tree/1.2.4-rc2) (2026-05-15)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/1.2.3...1.2.4-rc2)
+
+**Closed issues:**
+
+- binding-mcp server: align mcp-session-id worker affinity via REDIRECT [\#1761](https://github.com/aklivity/zilla/issues/1761)
+- `binding-mcp` support elicitation [\#1739](https://github.com/aklivity/zilla/issues/1739)
+
+**Merged pull requests:**
+
+- mcp: session id alignment + redirect handling and configurable attempts [\#1764](https://github.com/aklivity/zilla/pull/1764) ([jfallows](https://github.com/jfallows))
+- Cache Maven repository in release workflow using actions/cache and generated cache key [\#1763](https://github.com/aklivity/zilla/pull/1763) ([jfallows](https://github.com/jfallows))
+- feat\(binding-mcp\): MCP elicitation across server, proxy, and client kinds \(\#1739\) [\#1752](https://github.com/aklivity/zilla/pull/1752) ([jfallows](https://github.com/jfallows))
+- Bump ubuntu from jammy-20260109 to jammy-20260410 in /cloud/docker-image/src/main/docker [\#1727](https://github.com/aklivity/zilla/pull/1727) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump alpine from 3.23.2 to 3.23.4 in /cloud/docker-image/src/main/docker [\#1726](https://github.com/aklivity/zilla/pull/1726) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump actions/upload-artifact from 6 to 7 [\#1644](https://github.com/aklivity/zilla/pull/1644) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump lycheeverse/lychee-action from 2.7.0 to 2.8.0 [\#1643](https://github.com/aklivity/zilla/pull/1643) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump github/codeql-action from 3 to 4 [\#1584](https://github.com/aklivity/zilla/pull/1584) ([dependabot[bot]](https://github.com/apps/dependabot))
+
+## [1.2.3](https://github.com/aklivity/zilla/tree/1.2.3) (2026-05-11)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/1.2.2...1.2.3)
+
+**Merged pull requests:**
+
+- Fix test binding guard auth [\#1762](https://github.com/aklivity/zilla/pull/1762) ([jfallows](https://github.com/jfallows))
+
+## [1.2.2](https://github.com/aklivity/zilla/tree/1.2.2) (2026-05-11)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/1.2.1...1.2.2)
+
+**Closed issues:**
+
+- binding-http: handle REDIRECT and remove `with.affinity` syntax [\#1756](https://github.com/aklivity/zilla/issues/1756)
+- Add RouterFactorySpi for pluggable engine stream factory composition [\#1754](https://github.com/aklivity/zilla/issues/1754)
+- Add REDIRECT control frame to defer affinity routing to sender [\#1753](https://github.com/aklivity/zilla/issues/1753)
+- `binding-http`: per-route affinity extraction [\#1744](https://github.com/aklivity/zilla/issues/1744)
+
+**Merged pull requests:**
+
+- fix\(engine\): await worker/boss onStart before EngineManager registration [\#1760](https://github.com/aklivity/zilla/pull/1760) ([jfallows](https://github.com/jfallows))
+- feat\(command-dump\): add REDIRECT control frame support [\#1759](https://github.com/aklivity/zilla/pull/1759) ([jfallows](https://github.com/jfallows))
+- feat\(binding-http\): handle REDIRECT and remove `with.affinity` syntax [\#1758](https://github.com/aklivity/zilla/pull/1758) ([jfallows](https://github.com/jfallows))
+- feat\(engine\): add RouterFactorySpi for pluggable stream factory composition [\#1757](https://github.com/aklivity/zilla/pull/1757) ([jfallows](https://github.com/jfallows))
+- feat\(engine\): add REDIRECT control frame primitive [\#1755](https://github.com/aklivity/zilla/pull/1755) ([jfallows](https://github.com/jfallows))
+- Update `store-memory` to disable `options` [\#1749](https://github.com/aklivity/zilla/pull/1749) ([ankitk-me](https://github.com/ankitk-me))
+- update binding-mcp schema to disable catalog, vault & guarded [\#1748](https://github.com/aklivity/zilla/pull/1748) ([ankitk-me](https://github.com/ankitk-me))
+- support both Claude Code and Codex via hierarchical `AGENTS.md` [\#1747](https://github.com/aklivity/zilla/pull/1747) ([jfallows](https://github.com/jfallows))
+- feat\(engine, binding-http\): per-route affinity extraction with worker pinning \(\#1744\) [\#1745](https://github.com/aklivity/zilla/pull/1745) ([jfallows](https://github.com/jfallows))
+- feat\(engine\): drive guard preauthorize from test binding; resolveId on GuardConfig [\#1743](https://github.com/aklivity/zilla/pull/1743) ([akrambek](https://github.com/akrambek))
+- feat\(binding-mcp\): SSE response transport \(Streamable HTTP\) [\#1742](https://github.com/aklivity/zilla/pull/1742) ([jfallows](https://github.com/jfallows))
+
 ## [1.2.1](https://github.com/aklivity/zilla/tree/1.2.1) (2026-04-30)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/1.2.0...1.2.1)

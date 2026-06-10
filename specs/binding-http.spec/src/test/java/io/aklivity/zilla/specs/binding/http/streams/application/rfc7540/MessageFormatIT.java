@@ -89,6 +89,24 @@ public class MessageFormatIT
 
     @Test
     @Specification({
+        "${app}/response.with.alt.svc.placeholder/client",
+        "${app}/response.with.alt.svc.placeholder/server" })
+    public void responseWithAltSvcPlaceholder() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/response.with.alt.svc.explicit/client",
+        "${app}/response.with.alt.svc.explicit/server" })
+    public void responseWithAltSvcExplicit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/priority.frame.size.error/client",
         "${app}/priority.frame.size.error/server"
     })

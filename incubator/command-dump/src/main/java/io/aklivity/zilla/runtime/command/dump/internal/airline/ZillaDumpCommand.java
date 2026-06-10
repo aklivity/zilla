@@ -23,14 +23,12 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.agrona.LangUtil.rethrowUnchecked;
 import static org.agrona.concurrent.ringbuffer.RecordDescriptor.HEADER_LENGTH;
 
-import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.WritableByteChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -79,6 +77,7 @@ import io.aklivity.zilla.runtime.command.dump.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.ExtensionFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.FrameFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.RedirectFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.WindowFW;
@@ -216,6 +215,7 @@ public final class ZillaDumpCommand extends ZillaCommand
     private final FlushFW flushRO = new FlushFW();
     private final SignalFW signalRO = new SignalFW();
     private final ChallengeFW challengeRO = new ChallengeFW();
+    private final RedirectFW redirectRO = new RedirectFW();
     private final PcapGlobalHeaderFW.Builder pcapGlobalHeaderRW = new PcapGlobalHeaderFW.Builder();
     private final PcapPacketHeaderFW.Builder pcapPacketHeaderRW = new PcapPacketHeaderFW.Builder();
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
@@ -225,6 +225,7 @@ public final class ZillaDumpCommand extends ZillaCommand
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
     private final FlushFW.Builder flushRW = new FlushFW.Builder();
     private final ChallengeFW.Builder challengeRW = new ChallengeFW.Builder();
+    private final RedirectFW.Builder redirectRW = new RedirectFW.Builder();
     private final IPv6HeaderFW.Builder ipv6HeaderRW = new IPv6HeaderFW.Builder();
     private final IPv6JumboHeaderFW.Builder ipv6JumboHeaderRW = new IPv6JumboHeaderFW.Builder();
     private final TcpHeaderFW.Builder tcpHeaderRW = new TcpHeaderFW.Builder();
@@ -250,10 +251,10 @@ public final class ZillaDumpCommand extends ZillaCommand
         {
             try
             {
-                InputStream is = getClass().getResourceAsStream("zilla.lua");
+                String dissector = ZillaDumpDissectors.assemble();
                 Files.createDirectories(pluginDirectory);
                 Path target = pluginDirectory.resolve("zilla.lua");
-                Files.copy(is, target, StandardCopyOption.REPLACE_EXISTING);
+                Files.writeString(target, dissector);
                 if (verbose)
                 {
                     System.out.printf("Copied Wireshark plugin to the directory: %s%n", pluginDirectory);
@@ -595,6 +596,9 @@ public final class ZillaDumpCommand extends ZillaCommand
             case ChallengeFW.TYPE_ID:
                 onChallenge(challengeRO.wrap(buffer, index, index + length));
                 break;
+            case RedirectFW.TYPE_ID:
+                onRedirect(redirectRO.wrap(buffer, index, index + length));
+                break;
             default:
                 break;
             }
@@ -737,6 +741,21 @@ public final class ZillaDumpCommand extends ZillaCommand
 
                 writeFrame(ChallengeFW.TYPE_ID, worker, offset, newChallenge.originId(), newChallenge.routedId(),
                     newChallenge.streamId(), newChallenge.timestamp(), newChallenge, PSH_ACK);
+            }
+        }
+
+        private void onRedirect(
+            RedirectFW redirect)
+        {
+            if (allowedBinding.test(redirect.routedId()))
+            {
+                int offset = redirect.offset() - HEADER_LENGTH;
+                final RedirectFW newRedirect = redirectRW.wrap(patchBuffer, 0, redirect.sizeof()).set(redirect).build();
+                final ExtensionFW extension = newRedirect.extension().get(extensionRO::tryWrap);
+                patchExtension(patchBuffer, extension, RedirectFW.FIELD_OFFSET_EXTENSION);
+
+                writeFrame(RedirectFW.TYPE_ID, worker, offset, newRedirect.originId(), newRedirect.routedId(),
+                    newRedirect.streamId(), newRedirect.timestamp(), newRedirect, PSH);
             }
         }
 

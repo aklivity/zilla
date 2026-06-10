@@ -15,10 +15,15 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.binding;
 
+import static io.aklivity.zilla.runtime.engine.guard.GuardHandler.NEEDS_PREAUTHORIZE;
+import static io.aklivity.zilla.runtime.engine.guard.GuardHandler.NOT_AUTHORIZED;
 import static io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfigAdapter.DEFAULT_ASSERTION_SCHEMA;
 import static java.util.Collections.emptyList;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyStore;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +33,7 @@ import java.util.function.LongConsumer;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
+import org.agrona.collections.MutableBoolean;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -38,6 +44,7 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
+import io.aklivity.zilla.runtime.engine.guard.GuardHandler.LongCompletionCallback;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
@@ -101,6 +108,10 @@ final class TestBindingFactory implements BindingHandler
     private List<CatalogAssertion> catalogAssertions;
     private GuardHandler guard;
     private String credentials;
+    private String callbackUri;
+    private Map<String, String> callbackParams;
+    private String expectIdentity;
+    private String expectCredentials;
     private Map<String, String> attributes;
     private List<Event> events;
     private int eventIndex;
@@ -108,6 +119,7 @@ final class TestBindingFactory implements BindingHandler
     private VaultAssertion vaultAssertion;
     private StoreHandler store;
     private List<StoreAssertion> storeAssertions;
+    private final Map<String, String> heldLockTokens = new HashMap<>();
     private long authorization;
 
     TestBindingFactory(
@@ -156,6 +168,10 @@ final class TestBindingFactory implements BindingHandler
                 int guardId = context.supplyTypeId(options.authorization.name);
                 this.guard = context.supplyGuard(NamespacedId.id(namespaceId, guardId));
                 this.credentials = options.authorization.credentials;
+                this.callbackUri = options.authorization.callback;
+                this.callbackParams = options.authorization.callbackParams;
+                this.expectIdentity = options.authorization.expectIdentity;
+                this.expectCredentials = options.authorization.expectCredentials;
                 this.attributes = options.authorization.attributes;
             }
 
@@ -175,7 +191,21 @@ final class TestBindingFactory implements BindingHandler
                     options.storeAssertions.get(0).assertions : null;
                 if (this.store != null && this.storeAssertions == null)
                 {
-                    this.store.putIfAbsent("init", "", Long.MAX_VALUE, v -> {});
+                    final Thread dispatchThread = Thread.currentThread();
+                    final MutableBoolean callbackFired = new MutableBoolean();
+                    this.store.putIfAbsent("init", "", null, v ->
+                    {
+                        if (Thread.currentThread() != dispatchThread || callbackFired.value)
+                        {
+                            throw new IllegalStateException("store contract violation");
+                        }
+                        callbackFired.value = true;
+                    });
+                    if (callbackFired.value)
+                    {
+                        // store contract: callback must fire strictly later than the call
+                        throw new IllegalStateException("store contract violation: sync callback");
+                    }
                 }
             }
 
@@ -192,7 +222,6 @@ final class TestBindingFactory implements BindingHandler
                     writer.accept(metric.values[context.index()]);
                 }
             }
-
         }
     }
 
@@ -219,22 +248,51 @@ final class TestBindingFactory implements BindingHandler
         MessageConsumer newStream =  null;
 
         TestBindingConfig binding = bindings.get(routedId);
-        authorization = begin.authorization();
 
-        if (guard != null)
+        if (guard == null)
         {
-            authorization = guard.reauthorize(begin.traceId(), routedId, 0, credentials);
+            authorization = begin.authorization();
+            TestRouteConfig route = binding != null ? binding.resolve(authorization) : null;
+            if (route != null)
+            {
+                newStream = new TestSource(source, originId, routedId, initialId, replyId, route.id)::onMessage;
+            }
         }
-
-        TestRouteConfig route = binding != null ? binding.resolve(authorization) : null;
-
-        if (route != null)
+        else
         {
-            final long resolvedId = route.id;
-            newStream = new TestSource(source, originId, routedId, initialId, replyId, resolvedId)::onMessage;
+            TestSource deferred = new TestSource(source, originId, routedId, initialId, replyId, 0L);
+            newStream = deferred::onMessage;
         }
 
         return newStream;
+    }
+
+    private static String buildCallbackResponse(
+        String callbackUri,
+        String preauthorizeUrl,
+        Map<String, String> additionalParams)
+    {
+        StringBuilder builder = new StringBuilder(callbackUri);
+        boolean hasParams = callbackUri.indexOf('?') >= 0;
+        int q = preauthorizeUrl.indexOf('?');
+        if (q >= 0 && q + 1 < preauthorizeUrl.length())
+        {
+            builder.append(hasParams ? '&' : '?');
+            builder.append(preauthorizeUrl, q + 1, preauthorizeUrl.length());
+            hasParams = true;
+        }
+        if (additionalParams != null)
+        {
+            for (Map.Entry<String, String> entry : additionalParams.entrySet())
+            {
+                builder.append(hasParams ? '&' : '?');
+                builder.append(URLEncoder.encode(entry.getKey(), StandardCharsets.UTF_8));
+                builder.append('=');
+                builder.append(URLEncoder.encode(entry.getValue(), StandardCharsets.UTF_8));
+                hasParams = true;
+            }
+        }
+        return builder.toString();
     }
 
     private final class TestSource
@@ -259,7 +317,9 @@ final class TestBindingFactory implements BindingHandler
         private long replyBud;
         private int replyCap;
 
-        private final TestTarget target;
+        private TestTarget target;
+        private boolean pendingBegin;
+        private long pendingTraceId;
 
         private TestSource(
             MessageConsumer source,
@@ -274,7 +334,112 @@ final class TestBindingFactory implements BindingHandler
             this.routedId = routedId;
             this.initialId = initialId;
             this.replyId = replyId;
+            this.target = resolvedId != 0L ? new TestTarget(routedId, resolvedId) : null;
+        }
+
+        private void doAuthorize(
+            long traceId,
+            long authorization)
+        {
+            if (guard == null)
+            {
+                onAuthorized(traceId, authorization);
+            }
+            else
+            {
+                guard.reauthorize(traceId, routedId, 0, credentials, new LongCompletionCallback()
+                {
+                    @Override
+                    public void completed(
+                        long contextId,
+                        long sessionId)
+                    {
+                        if (sessionId == NEEDS_PREAUTHORIZE && callbackUri != null)
+                        {
+                            doPreauthorizeAndCallback(traceId);
+                        }
+                        else
+                        {
+                            onAuthorized(traceId, sessionId);
+                        }
+                    }
+
+                    @Override
+                    public void failed(
+                        long contextId,
+                        Throwable ex)
+                    {
+                        onAuthorized(traceId, NOT_AUTHORIZED);
+                    }
+                });
+            }
+        }
+
+        private void doPreauthorizeAndCallback(
+            long traceId)
+        {
+            String url = guard.preauthorize(traceId, routedId, 0, callbackUri);
+            if (url == null)
+            {
+                onAuthorized(traceId, NOT_AUTHORIZED);
+                return;
+            }
+
+            String callbackResponse = buildCallbackResponse(callbackUri, url, callbackParams);
+            guard.reauthorize(traceId, routedId, 0, callbackResponse, new LongCompletionCallback()
+            {
+                @Override
+                public void completed(
+                    long contextId,
+                    long sessionId)
+                {
+                    onAuthorized(traceId, sessionId);
+                }
+
+                @Override
+                public void failed(
+                    long contextId,
+                    Throwable ex)
+                {
+                    onAuthorized(traceId, NOT_AUTHORIZED);
+                }
+            });
+        }
+
+        private void onAuthorized(
+            long traceId,
+            long sessionId)
+        {
+            authorization = sessionId;
+
+            TestBindingConfig binding = bindings.get(routedId);
+            TestRouteConfig route = binding != null ? binding.resolve(authorization) : null;
+            if (route != null)
+            {
+                onAuthResolved(traceId, route.id);
+            }
+            else
+            {
+                onAuthRejected(traceId);
+            }
+        }
+
+        private void onAuthResolved(
+            long traceId,
+            long resolvedId)
+        {
             this.target = new TestTarget(routedId, resolvedId);
+            if (pendingBegin)
+            {
+                pendingBegin = false;
+                runInitialBeginBody(pendingTraceId);
+            }
+        }
+
+        private void onAuthRejected(
+            long traceId)
+        {
+            doInitialReset(traceId);
         }
 
         private void onMessage(
@@ -325,6 +490,21 @@ final class TestBindingFactory implements BindingHandler
         {
             long traceId = begin.traceId();
 
+            doAuthorize(traceId, authorization);
+
+            if (target == null)
+            {
+                pendingBegin = true;
+                pendingTraceId = traceId;
+                return;
+            }
+
+            runInitialBeginBody(traceId);
+        }
+
+        private void runInitialBeginBody(
+            long traceId)
+        {
             target.doInitialBegin(traceId);
 
             if (vault != null && vaultAssertion != null)
@@ -428,67 +608,19 @@ final class TestBindingFactory implements BindingHandler
                 }
             }
 
-            if (store != null && storeAssertions != null && !storeAssertions.isEmpty())
+            if (guard != null && expectIdentity != null &&
+                !expectIdentity.equals(guard.identity(authorization)))
             {
-                for (StoreAssertion a : storeAssertions)
-                {
-                    if (a.delay > 0L)
-                    {
-                        try
-                        {
-                            Thread.sleep(a.delay);
-                        }
-                        catch (InterruptedException ex)
-                        {
-                            Thread.currentThread().interrupt();
-                            throw new RuntimeException(ex);
-                        }
-                    }
-                    switch (a.op)
-                    {
-                    case "get":
-                        store.get(a.key, (k, v) ->
-                        {
-                            if (a.hasExpect && !Objects.equals(v, a.expect))
-                            {
-                                doInitialReset(traceId);
-                            }
-                        });
-                        break;
-                    case "put":
-                        store.put(a.key, a.value, a.ttl, v ->
-                        {
-                        });
-                        break;
-                    case "putIfAbsent":
-                        store.putIfAbsent(a.key, a.value, a.ttl, v ->
-                        {
-                            if (a.hasExpect && !Objects.equals(v, a.expect))
-                            {
-                                doInitialReset(traceId);
-                            }
-                        });
-                        break;
-                    case "delete":
-                        store.delete(a.key, v ->
-                        {
-                        });
-                        break;
-                    case "getAndDelete":
-                        store.getAndDelete(a.key, v ->
-                        {
-                            if (a.hasExpect && !Objects.equals(v, a.expect))
-                            {
-                                doInitialReset(traceId);
-                            }
-                        });
-                        break;
-                    default:
-                        doInitialReset(traceId);
-                        break;
-                    }
-                }
+                doInitialReset(traceId);
             }
+
+            if (guard != null && expectCredentials != null &&
+                !expectCredentials.equals(guard.credentials(authorization)))
+            {
+                doInitialReset(traceId);
+            }
+
+            runStoreAssertions(traceId);
 
             while (events != null && eventIndex < events.size())
             {
@@ -496,6 +628,224 @@ final class TestBindingFactory implements BindingHandler
                 event.connected(traceId, routedId, e.timestamp, e.message);
                 eventIndex++;
             }
+        }
+
+        private void runStoreAssertions(
+            long traceId)
+        {
+            if (store == null || storeAssertions == null || storeAssertions.isEmpty())
+            {
+                return;
+            }
+            runStoreAssertion(traceId, 0);
+        }
+
+        private void runStoreAssertion(
+            long traceId,
+            int index)
+        {
+            if (index >= storeAssertions.size())
+            {
+                return;
+            }
+
+            final StoreAssertion a = storeAssertions.get(index);
+
+            if (a.delay > 0L)
+            {
+                try
+                {
+                    Thread.sleep(a.delay);
+                }
+                catch (InterruptedException ex)
+                {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException(ex);
+                }
+            }
+
+            final Thread dispatchThread = Thread.currentThread();
+            // returned guards the contract that the callback fires strictly later than the call;
+            // fired guards against a duplicate callback
+            final MutableBoolean returned = new MutableBoolean();
+            final MutableBoolean fired = new MutableBoolean();
+            // advance only from within the callback so a dependent op (renew/unlock) observes the
+            // token delivered by a prior lock's asynchronous callback
+            final Runnable next = () -> runStoreAssertion(traceId, index + 1);
+
+            switch (a.op)
+            {
+            case "get":
+                store.get(a.key, (k, v) ->
+                {
+                    if (Thread.currentThread() != dispatchThread ||
+                        !returned.value ||
+                        fired.value ||
+                        a.hasExpect && !Objects.equals(v, a.expect))
+                    {
+                        doInitialReset(traceId);
+                    }
+                    fired.value = true;
+                    next.run();
+                });
+                returned.value = true;
+                break;
+            case "put":
+                store.put(a.key, a.value, a.ttl, v ->
+                {
+                    if (Thread.currentThread() != dispatchThread ||
+                        !returned.value ||
+                        fired.value)
+                    {
+                        doInitialReset(traceId);
+                    }
+                    fired.value = true;
+                    next.run();
+                });
+                returned.value = true;
+                break;
+            case "putIfAbsent":
+                store.putIfAbsent(a.key, a.value, a.ttl, v ->
+                {
+                    if (Thread.currentThread() != dispatchThread ||
+                        !returned.value ||
+                        fired.value ||
+                        a.hasExpect && !Objects.equals(v, a.expect))
+                    {
+                        doInitialReset(traceId);
+                    }
+                    fired.value = true;
+                    next.run();
+                });
+                returned.value = true;
+                break;
+            case "delete":
+                store.delete(a.key, v ->
+                {
+                    if (Thread.currentThread() != dispatchThread ||
+                        !returned.value ||
+                        fired.value)
+                    {
+                        doInitialReset(traceId);
+                    }
+                    fired.value = true;
+                    next.run();
+                });
+                returned.value = true;
+                break;
+            case "getAndDelete":
+                store.getAndDelete(a.key, v ->
+                {
+                    if (Thread.currentThread() != dispatchThread ||
+                        !returned.value ||
+                        fired.value ||
+                        a.hasExpect && !Objects.equals(v, a.expect))
+                    {
+                        doInitialReset(traceId);
+                    }
+                    fired.value = true;
+                    next.run();
+                });
+                returned.value = true;
+                break;
+            case "lock":
+                store.lock(a.key, a.ttl, (k, token) ->
+                {
+                    if (Thread.currentThread() != dispatchThread ||
+                        !returned.value ||
+                        fired.value)
+                    {
+                        doInitialReset(traceId);
+                    }
+                    // expect="" → token must be null (lock failed);
+                    // expect=non-empty → token must be non-null (lock succeeded)
+                    if (a.hasExpect)
+                    {
+                        boolean expectAcquired = a.expect != null && !a.expect.isEmpty();
+                        boolean acquired = token != null;
+                        if (expectAcquired != acquired)
+                        {
+                            doInitialReset(traceId);
+                        }
+                    }
+                    if (token != null)
+                    {
+                        heldLockTokens.put(k, token);
+                    }
+                    fired.value = true;
+                    next.run();
+                });
+                returned.value = true;
+                break;
+            case "unlock":
+                store.unlock(a.key, resolveToken(a), v ->
+                {
+                    if (Thread.currentThread() != dispatchThread ||
+                        !returned.value ||
+                        fired.value ||
+                        a.hasExpect && !Objects.equals(v, a.expect))
+                    {
+                        doInitialReset(traceId);
+                    }
+                    if (v != null)
+                    {
+                        heldLockTokens.remove(a.key);
+                    }
+                    fired.value = true;
+                    next.run();
+                });
+                returned.value = true;
+                break;
+            case "renew":
+                store.renew(a.key, resolveToken(a), a.ttl, v ->
+                {
+                    if (Thread.currentThread() != dispatchThread ||
+                        !returned.value ||
+                        fired.value)
+                    {
+                        doInitialReset(traceId);
+                    }
+                    // expect="" or "null" → v must be null (renew failed);
+                    // expect=non-empty → v must be non-null (renew succeeded)
+                    if (a.hasExpect)
+                    {
+                        boolean expectRenewed = a.expect != null && !a.expect.isEmpty() &&
+                            !"null".equals(a.expect);
+                        boolean renewed = v != null;
+                        if (expectRenewed != renewed)
+                        {
+                            doInitialReset(traceId);
+                        }
+                    }
+                    fired.value = true;
+                    next.run();
+                });
+                returned.value = true;
+                break;
+            case "watch":
+                // registration is synchronous; listener fires async on mutations
+                store.watch(a.key, (k, v) ->
+                {
+                    if (Thread.currentThread() != dispatchThread ||
+                        a.hasExpect && !Objects.equals(v, a.expect))
+                    {
+                        doInitialReset(traceId);
+                    }
+                });
+                next.run();
+                break;
+            default:
+                doInitialReset(traceId);
+                next.run();
+                break;
+            }
+        }
+
+        private String resolveToken(
+            StoreAssertion a)
+        {
+            // explicit token via value, otherwise use the most recent token captured by a prior lock
+            return a.value != null && !a.value.isEmpty() ? a.value : heldLockTokens.get(a.key);
         }
 
         private void onInitialData(

@@ -23,6 +23,7 @@ import java.net.InetAddress;
 import java.nio.channels.SelectableChannel;
 import java.nio.file.Path;
 import java.time.Clock;
+import java.time.Instant;
 import java.util.function.IntConsumer;
 import java.util.function.LongConsumer;
 import java.util.function.LongSupplier;
@@ -145,6 +146,22 @@ public class TlsWorker implements EngineContext
         long bindingId)
     {
         return nextInitialId += 2;
+    }
+
+    @Override
+    public long supplyInitialId(
+        long bindingId,
+        int hash)
+    {
+        return supplyInitialId(bindingId);
+    }
+
+    @Override
+    public boolean isLocalIndex(
+        long bindingId,
+        int hash)
+    {
+        return true;
     }
 
     @Override
@@ -626,6 +643,15 @@ public class TlsWorker implements EngineContext
 
         @Override
         public long signalAt(
+            Instant time,
+            int signalId,
+            IntConsumer handler)
+        {
+            return signalAt(time.toEpochMilli(), signalId, handler);
+        }
+
+        @Override
+        public long signalAt(
             long timeMillis,
             long originId,
             long routedId,
@@ -637,6 +663,19 @@ public class TlsWorker implements EngineContext
             signal(originId, routedId, streamId, 0L, 0L,
                 traceId, NO_CANCEL_ID, signalId, contextId);
             return NO_CANCEL_ID;
+        }
+
+        @Override
+        public long signalAt(
+            Instant time,
+            long originId,
+            long routedId,
+            long streamId,
+            long traceId,
+            int signalId,
+            int contextId)
+        {
+            return signalAt(time.toEpochMilli(), originId, routedId, streamId, traceId, signalId, contextId);
         }
 
         @Override

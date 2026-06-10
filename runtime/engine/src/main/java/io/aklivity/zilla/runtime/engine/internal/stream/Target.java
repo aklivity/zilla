@@ -39,6 +39,7 @@ import io.aklivity.zilla.runtime.engine.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.FrameFW;
+import io.aklivity.zilla.runtime.engine.internal.types.stream.RedirectFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.WindowFW;
@@ -242,6 +243,15 @@ public final class Target implements AutoCloseable
             case ChallengeFW.TYPE_ID:
                 handled = streamsBuffer.test(msgTypeId, buffer, index, length);
                 break;
+            case RedirectFW.TYPE_ID:
+                handled = streamsBuffer.test(msgTypeId, buffer, index, length);
+                streams[streamIndex(streamId)].remove(instanceId(streamId));
+                LongHashSet redirectStreamIdSet = streamSets.get(routedId);
+                if (redirectStreamIdSet != null)
+                {
+                    redirectStreamIdSet.remove(streamId);
+                }
+                break;
             default:
                 handled = true;
                 break;
@@ -310,6 +320,16 @@ public final class Target implements AutoCloseable
                 break;
             case ChallengeFW.TYPE_ID:
                 handled = streamsBuffer.test(msgTypeId, buffer, index, length);
+                break;
+            case RedirectFW.TYPE_ID:
+                handled = streamsBuffer.test(msgTypeId, buffer, index, length);
+                streams[streamIndex(streamId)].remove(instanceId(streamId));
+                correlations.remove(streamId);
+                LongHashSet redirectStreamIdSet = streamSets.get(routedId);
+                if (redirectStreamIdSet != null)
+                {
+                    redirectStreamIdSet.remove(streamId);
+                }
                 break;
             default:
                 handled = true;

@@ -20,7 +20,6 @@ connect "zilla://streams/app0"
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .lifecycle()
-                               .sessionId("session-1")
                                .build()
                            .build()}
 
@@ -44,14 +43,29 @@ write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .promptsGet()
                                .sessionId("session-1")
-                               .name("bluesky__weather_prompt")
+                               .name("weather_prompt")
+                               .contentLength(25)
                                .build()
                            .build()}
 
 connected
 
-write '{"name":"bluesky__weather_prompt"}'
-write close
+write '{'
+        '"name":"weather_prompt"'
+      '}'
 
-read  '{"messages":[{"role":"user","content":{"type":"text","text":"What is the weather like today?"}}]}'
+read  '{"messages":'
+        '['
+          '{'
+            '"role":"user",'
+            '"content":'
+            '{'
+              '"type":"text",'
+              '"text":"What is the weather like today?"'
+            '}'
+          '}'
+        ']'
+      '}'
 read closed
+
+write close

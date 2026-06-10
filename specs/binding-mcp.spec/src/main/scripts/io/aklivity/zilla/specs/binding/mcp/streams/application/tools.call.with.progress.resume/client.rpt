@@ -20,7 +20,6 @@ connect "zilla://streams/app0"
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .lifecycle()
-                               .sessionId("session-1")
                                .build()
                            .build()}
 
@@ -45,6 +44,7 @@ write zilla:begin.ext ${mcp:beginEx()
                            .toolsCall()
                                .sessionId("session-1")
                                .name("get_weather")
+                               .contentLength(94)
                                .build()
                            .build()}
 
@@ -61,7 +61,6 @@ write '{'
           '"progressToken":"abc123"'
         '}'
       '}'
-write close
 
 read advised zilla:flush ${mcp:matchFlushEx()
                                .typeId(zilla:id("mcp"))
@@ -86,6 +85,12 @@ read advise zilla:challenge ${mcp:challengeEx()
                                   .suspended()
                                       .build()
                                   .build()}
+
+write advised zilla:challenge ${mcp:matchChallengeEx()
+                                    .typeId(zilla:id("mcp"))
+                                    .suspended()
+                                        .build()
+                                    .build()}
 
 read advise zilla:challenge ${mcp:challengeEx()
                                   .typeId(zilla:id("mcp"))
@@ -114,3 +119,5 @@ read advised zilla:flush ${mcp:matchFlushEx()
 read '{"content":[{"type":"text","text":"Sunny, no umbrella needed"}],"isError":false}'
 
 read closed
+
+write close

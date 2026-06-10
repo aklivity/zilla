@@ -24,7 +24,6 @@ accepted
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .lifecycle()
-                              .sessionId("session-1")
                               .build()
                           .build()}
 
@@ -45,6 +44,7 @@ read zilla:begin.ext ${mcp:matchBeginEx()
                           .toolsCall()
                               .sessionId("session-1")
                               .name("get_weather")
+                              .contentLength(13440)
                               .build()
                           .build()}
 
@@ -53,7 +53,6 @@ connected
 read '{"name":"get_weather","arguments":{"image":"'
 read ${core:randomBase64(10000)}
 read '","location":"New York"},"_meta":{"progressToken":"abc123"}}'
-read closed
 
 write flush
 
@@ -79,3 +78,5 @@ write '{"content":[{"type": "text","text": "ok"}],"isError": false}'
 write flush
 
 write close
+
+read closed

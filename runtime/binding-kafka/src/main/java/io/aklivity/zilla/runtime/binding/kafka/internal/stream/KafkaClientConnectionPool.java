@@ -20,6 +20,7 @@ import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static java.lang.System.currentTimeMillis;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
@@ -42,6 +43,7 @@ import io.aklivity.zilla.runtime.binding.kafka.config.KafkaServerConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.kafka.internal.budget.MergedBudgetCreditor;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfig;
+import io.aklivity.zilla.runtime.binding.kafka.internal.events.KafkaEventContext;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.ProxyAddressInetFW;
@@ -80,6 +82,8 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
     private static final int SIGNAL_STREAM_WINDOW = 0x80000006;
     private static final int SIGNAL_CONNECTION_CLEANUP = 0x80000007;
     private static final int SIGNAL_NEXT_REQUEST = 0x80000008;
+
+    private static final int ERROR_UNSUPPORTED_SASL_MECHANISM = 33;
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -128,6 +132,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
     private final Object2ObjectHashMap<String, KafkaClientConnection> connectionPool;
     private final Long2ObjectHashMap<KafkaClientStream> streamsByInitialId;
     private final long connectionPoolCleanupMillis;
+    private final KafkaEventContext event;
 
     public KafkaClientConnectionPool(
         KafkaConfiguration config,
@@ -152,6 +157,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         this.connectionPool = new Object2ObjectHashMap<>();
         this.streamsByInitialId = new Long2ObjectHashMap<>();
         this.connectionPoolCleanupMillis = config.clientConnectionPoolCleanupMillis();
+        this.event = new KafkaEventContext(context);
     }
 
     private MessageConsumer newStream(
@@ -592,6 +598,15 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         }
 
         @Override
+        public long signalAt(
+            Instant time,
+            int signalId,
+            IntConsumer handler)
+        {
+            return delegate.signalAt(time, signalId, handler);
+        }
+
+        @Override
         public void signalNow(
             long originId,
             long routedId,
@@ -637,6 +652,19 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
 
             KafkaClientStream stream = streamsByInitialId.get(streamId);
             return stream.doStreamSignalAt(traceId, timeMillis, signalId);
+        }
+
+        @Override
+        public long signalAt(
+            Instant time,
+            long originId,
+            long routedId,
+            long streamId,
+            long traceId,
+            int signalId,
+            int contextId)
+        {
+            return signalAt(time.toEpochMilli(), originId, routedId, streamId, traceId, signalId, contextId);
         }
 
         @Override
@@ -1635,6 +1663,11 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
 
             doConnectionAbort(traceId);
 
+            if (server != null)
+            {
+                event.brokerConnectionFailed(traceId, originId, server.host, server.port);
+            }
+
             cleanupStreams(traceId);
         }
 
@@ -1690,6 +1723,11 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             doConnectionReset(traceId);
 
             cleanupBudgetCreditorIfNecessary();
+
+            if (server != null)
+            {
+                event.brokerConnectionFailed(traceId, originId, server.host, server.port);
+            }
 
             cleanupStreams(traceId);
         }
@@ -2020,6 +2058,10 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
                 decoder = decodeSaslAuthenticateResponse;
                 break;
             default:
+                if (ERROR_UNSUPPORTED_SASL_MECHANISM == errorCode)
+                {
+                    event.unsupportedSaslMechanism(traceId, originId, sasl.mechanism);
+                }
                 cleanupConnection(traceId);
                 break;
             }

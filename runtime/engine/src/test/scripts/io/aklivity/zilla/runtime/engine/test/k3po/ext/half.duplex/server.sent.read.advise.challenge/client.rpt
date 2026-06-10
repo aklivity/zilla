@@ -17,6 +17,7 @@
 connect "zilla://streams/server#0"
         option zilla:transmission "half-duplex"
         option zilla:window 8192
-connected
 
 write advised zilla:challenge
+
+connected

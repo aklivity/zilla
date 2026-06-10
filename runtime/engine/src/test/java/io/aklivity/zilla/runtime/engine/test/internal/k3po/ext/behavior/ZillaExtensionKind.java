@@ -25,6 +25,22 @@ public enum ZillaExtensionKind
     ABORT,
     END,
     CHALLENGE(false),
+    REDIRECT(false)
+    {
+        @Override
+        public ChannelBuffer encodeBuffer(
+            ZillaChannel channel)
+        {
+            return channel.writeExtBuffer(this, false);
+        }
+
+        @Override
+        public ChannelBuffer decodeBuffer(
+            ZillaChannel channel)
+        {
+            return channel.writeExtBuffer(this, true);
+        }
+    },
     RESET(false);
 
     private final boolean aligned;

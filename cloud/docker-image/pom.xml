@@ -39,6 +39,12 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
+      <artifactId>common-yaml</artifactId>
+      <version>${project.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
       <artifactId>manager</artifactId>
       <version>${project.version}</version>
       <scope>runtime</scope>
@@ -273,6 +279,12 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
+      <artifactId>guard-identity</artifactId>
+      <version>${project.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
       <artifactId>guard-jwt</artifactId>
       <version>${project.version}</version>
       <scope>runtime</scope>
@@ -316,6 +328,12 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>metrics-grpc</artifactId>
+      <version>${project.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>metrics-mcp</artifactId>
       <version>${project.version}</version>
       <scope>runtime</scope>
     </dependency>
@@ -424,15 +442,6 @@
                 <tags>
                   <tag>${docker.latest.tag}</tag>
                 </tags>
-                <buildx>
-                  <platforms>
-                    <platform>linux/amd64</platform>
-                    <platform>linux/arm64</platform>
-                  </platforms>
-                  <attestations>
-                    <provenance>false</provenance>
-                  </attestations>
-                </buildx>
                 <assemblies>
                   <assembly>
                     <descriptor>assembly.xml</descriptor>
@@ -446,7 +455,6 @@
           <execution>
             <goals>
               <goal>build</goal>
-              <goal>push</goal>
             </goals>
           </execution>
         </executions>
@@ -479,14 +487,6 @@
                     <tags>
                       <tag>alpine</tag>
                     </tags>
-                    <buildx>
-                      <platforms>
-                        <platform>linux/amd64</platform>
-                      </platforms>
-                      <attestations>
-                        <provenance>false</provenance>
-                      </attestations>
-                    </buildx>
                     <assemblies>
                       <assembly>
                         <descriptor>assembly.xml</descriptor>

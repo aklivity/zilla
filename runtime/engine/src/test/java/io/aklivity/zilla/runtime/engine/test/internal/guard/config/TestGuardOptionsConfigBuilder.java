@@ -41,6 +41,7 @@ public final class TestGuardOptionsConfigBuilder<T> extends ConfigBuilder<T, Tes
     private String identity;
     private List<String> roles;
     private Map<String, String> attributes;
+    private String preauthorize;
 
     TestGuardOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
@@ -106,6 +107,13 @@ public final class TestGuardOptionsConfigBuilder<T> extends ConfigBuilder<T, Tes
         return this;
     }
 
+    public TestGuardOptionsConfigBuilder<T> preauthorize(
+        String preauthorize)
+    {
+        this.preauthorize = preauthorize;
+        return this;
+    }
+
     @Override
     public T build()
     {
@@ -115,6 +123,7 @@ public final class TestGuardOptionsConfigBuilder<T> extends ConfigBuilder<T, Tes
             Optional.ofNullable(challenge).orElse(DEFAULT_CHALLENGE_NEVER),
             this.identity != null ? this.identity : DEFAULT_IDENTITY,
             roles,
-            attributes));
+            attributes,
+            preauthorize));
     }
 }

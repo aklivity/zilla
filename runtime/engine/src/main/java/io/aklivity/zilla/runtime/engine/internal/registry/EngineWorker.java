@@ -41,6 +41,7 @@ import static java.lang.System.currentTimeMillis;
 import static java.lang.ThreadLocal.withInitial;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static java.util.stream.Collectors.toMap;
 import static org.agrona.CloseHelper.quietClose;
 import static org.agrona.LangUtil.rethrowUnchecked;
 import static org.agrona.concurrent.AgentRunner.startOnThread;
@@ -50,6 +51,7 @@ import java.nio.channels.SelectableChannel;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.BitSet;
 import java.util.Collection;
 import java.util.Deque;
@@ -59,6 +61,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -110,6 +113,7 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.EngineConfigWriter;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
+import io.aklivity.zilla.runtime.engine.config.RouterConfig;
 import io.aklivity.zilla.runtime.engine.event.EventFormatter;
 import io.aklivity.zilla.runtime.engine.event.EventFormatterFactory;
 import io.aklivity.zilla.runtime.engine.exporter.Exporter;
@@ -143,6 +147,7 @@ import io.aklivity.zilla.runtime.engine.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.FrameFW;
+import io.aklivity.zilla.runtime.engine.internal.types.stream.RedirectFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.WindowFW;
@@ -156,6 +161,8 @@ import io.aklivity.zilla.runtime.engine.model.ModelContext;
 import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
+import io.aklivity.zilla.runtime.engine.router.Router;
+import io.aklivity.zilla.runtime.engine.router.RouterContext;
 import io.aklivity.zilla.runtime.engine.store.Store;
 import io.aklivity.zilla.runtime.engine.store.StoreContext;
 import io.aklivity.zilla.runtime.engine.store.StoreHandler;
@@ -191,6 +198,16 @@ public class EngineWorker implements EngineContext, Agent
     private final Function<String, InetAddress[]> resolveHost;
     private final boolean timestamps;
     private final Object2ObjectHashMap<Metric.Kind, LongIntIntFunction<LongConsumer>> metricWriterSuppliers;
+    private final Collection<Binding> bindings;
+    private final Collection<Exporter> exporters;
+    private final Collection<Guard> guards;
+    private final Collection<Vault> vaults;
+    private final Collection<Catalog> catalogs;
+    private final Collection<Model> models;
+    private final Collection<MetricGroup> metricGroups;
+    private final Collection<Store> stores;
+    private final Collector collector;
+    private final Consumer<NamespaceConfig> process;
     private final Map<String, MetricGroup> metricGroupsByName;
     private final StreamsLayout streamsLayout;
     private final BufferPoolLayout bufferPoolLayout;
@@ -224,9 +241,7 @@ public class EngineWorker implements EngineContext, Agent
     private final EngineSignaler signaler;
     private final Long2ObjectHashMap<MessageConsumer> correlations;
     private final Long2ObjectHashMap<AgentRunner> exportersById;
-    private final Map<String, ModelContext> modelsByType;
 
-    private final EngineRegistry registry;
     private final Deque<Runnable> taskQueue;
     private final LongUnaryOperator affinityMask;
     private final Path configPath;
@@ -248,6 +263,9 @@ public class EngineWorker implements EngineContext, Agent
     private final boolean readonly;
     private final int maxIdleCount;
 
+    private final RouterContext router;
+    private final RouterConfig routerConfig;
+
     private long initialId;
     private long promiseId;
     private long traceId;
@@ -255,10 +273,14 @@ public class EngineWorker implements EngineContext, Agent
     private long authorizedId;
 
     private long lastReadStreamId;
-
     private int idleCount;
-
     private volatile Thread thread;
+
+    private final CountDownLatch started = new CountDownLatch(1);
+
+    private Map<String, ModelContext> modelsByType;
+    private EngineRegistry registry;
+    private BindingHandler streamFactory;
 
     public EngineWorker(
         EngineConfiguration config,
@@ -274,6 +296,8 @@ public class EngineWorker implements EngineContext, Agent
         Collection<Model> models,
         Collection<MetricGroup> metricGroups,
         Collection<Store> stores,
+        Router router,
+        RouterConfig routerConfig,
         Collector collector,
         Supplier<MessageReader> supplyEventReader,
         EventFormatterFactory eventFormatterFactory,
@@ -398,92 +422,21 @@ public class EngineWorker implements EngineContext, Agent
             signaler::executeTaskAt, config.childCleanupLingerMillis());
         this.debitorsByIndex = new Int2ObjectHashMap<DefaultBudgetDebitor>();
 
-        Map<String, BindingContext> bindingsByType = new LinkedHashMap<>();
-        for (Binding binding : bindings)
-        {
-            String type = binding.name();
-            bindingsByType.put(type, binding.supply(this));
-        }
+        this.routerConfig = routerConfig;
+        EngineRouteable routeable = new EngineRouteable(config, this::newStream,
+            this::attachComposite, this::detachComposite);
+        this.router = router.supply(routeable);
 
-        Map<String, ExporterContext> exportersByType = new LinkedHashMap<>();
-        for (Exporter exporter : exporters)
-        {
-            String type = exporter.name();
-            exportersByType.put(type, exporter.supply(this));
-        }
-
-        Map<String, GuardContext> guardsByType = new LinkedHashMap<>();
-        for (Guard guard : guards)
-        {
-            String type = guard.name();
-            guardsByType.put(type, guard.supply(this));
-        }
-
-        Map<String, VaultContext> vaultsByType = new LinkedHashMap<>();
-        for (Vault vault : vaults)
-        {
-            String type = vault.name();
-            Set<String> aliases = vault.aliases();
-
-            VaultContext context = vault.supply(this);
-
-            vaultsByType.put(type, context);
-            for (String alias : aliases)
-            {
-                vaultsByType.put(alias, context);
-            }
-        }
-
-        Map<String, CatalogContext> catalogsByType = new LinkedHashMap<>();
-        for (Catalog catalog : catalogs)
-        {
-            String type = catalog.name();
-            Set<String> aliases = catalog.aliases();
-
-            CatalogContext context = catalog.supply(this);
-
-            catalogsByType.put(type, context);
-            for (String alias : aliases)
-            {
-                catalogsByType.put(alias, context);
-            }
-        }
-
-        Map<String, StoreContext> storesByType = new LinkedHashMap<>();
-        for (Store store : stores)
-        {
-            String type = store.name();
-            storesByType.put(type, store.supply(this));
-        }
-
-        Map<String, ModelContext> modelsByType = new LinkedHashMap<>();
-        for (Model model : models)
-        {
-            String type = model.name();
-            modelsByType.put(type, model.supply(this));
-        }
-        this.modelsByType = modelsByType;
-
-        Map<String, MetricContext> metricsByName = new LinkedHashMap<>();
-        for (MetricGroup metricGroup : metricGroups)
-        {
-            for (String metricName : metricGroup.metricNames())
-            {
-                Metric metric = metricGroup.supply(metricName);
-                metricsByName.put(metricName, metric.supply(this));
-            }
-        }
-
-        this.metricGroupsByName = new Object2ObjectHashMap<>();
-        for (MetricGroup metricGroup : metricGroups)
-        {
-            metricGroupsByName.put(metricGroup.name(), metricGroup);
-        }
-
-        this.registry = new EngineRegistry(
-                bindingsByType::get, guardsByType::get, vaultsByType::get, catalogsByType::get, metricsByName::get,
-                exportersByType::get, storesByType::get, labels::supplyLabelId, this::onExporterAttached,
-                this::onExporterDetached, this::supplyMetricWriter, this::detachStreams, collector, process);
+        this.bindings = bindings;
+        this.exporters = exporters;
+        this.guards = guards;
+        this.vaults = vaults;
+        this.catalogs = catalogs;
+        this.models = models;
+        this.metricGroups = metricGroups;
+        this.stores = stores;
+        this.collector = collector;
+        this.process = process;
 
         this.taskQueue = new ConcurrentLinkedDeque<>();
         this.correlations = new Long2ObjectHashMap<>();
@@ -492,6 +445,13 @@ public class EngineWorker implements EngineContext, Agent
         this.exportersById = new Long2ObjectHashMap<>();
         this.supplyEventReader = supplyEventReader;
         this.eventFormatterFactory = eventFormatterFactory;
+
+        Map<String, MetricGroup> metricGroupsByName = new Object2ObjectHashMap<>();
+        for (MetricGroup metricGroup : metricGroups)
+        {
+            metricGroupsByName.put(metricGroup.name(), metricGroup);
+        }
+        this.metricGroupsByName = metricGroupsByName;
         this.usageMetric = supplyGauge(NO_NAMESPACED_ID, labels.supplyLabelId(EngineWorkersUsageMetric.NAME), 0);
     }
 
@@ -567,6 +527,28 @@ public class EngineWorker implements EngineContext, Agent
 
         return (((long)remoteIndex << 48) & 0x00ff_0000_0000_0000L) |
                (initialId & 0xff00_0000_7fff_ffffL) | 0x0000_0000_0000_0001L;
+    }
+
+    @Override
+    public long supplyInitialId(
+        long bindingId,
+        int hash)
+    {
+        final int remoteIndex = resolveRemoteIndex(bindingId, hash);
+
+        initialId += 2L;
+        initialId &= mask;
+
+        return (((long)remoteIndex << 48) & 0x00ff_0000_0000_0000L) |
+               (initialId & 0xff00_0000_7fff_ffffL) | 0x0000_0000_0000_0001L;
+    }
+
+    @Override
+    public boolean isLocalIndex(
+        long bindingId,
+        int hash)
+    {
+        return localIndex == resolveRemoteIndex(bindingId, hash);
     }
 
     @Override
@@ -754,7 +736,7 @@ public class EngineWorker implements EngineContext, Agent
     @Override
     public BindingHandler streamFactory()
     {
-        return this::newStream;
+        return streamFactory;
     }
 
     @Override
@@ -886,6 +868,16 @@ public class EngineWorker implements EngineContext, Agent
     public void doStart()
     {
         thread = startOnThread(runner, Thread::new);
+
+        try
+        {
+            started.await();
+        }
+        catch (InterruptedException ex)
+        {
+            Thread.currentThread().interrupt();
+            rethrowUnchecked(ex);
+        }
     }
 
     public void doClose()
@@ -897,6 +889,12 @@ public class EngineWorker implements EngineContext, Agent
         }
         finally
         {
+            targetsByIndex.forEach((k, v) -> quietClose(v));
+            quietClose(streamsLayout);
+            quietClose(bufferPoolLayout);
+            debitorsByIndex.forEach((k, v) -> quietClose(v));
+            quietClose(creditor);
+            quietClose(eventWriter);
             thread = null;
         }
     }
@@ -946,6 +944,80 @@ public class EngineWorker implements EngineContext, Agent
     @Override
     public void onStart()
     {
+        try
+        {
+            doInit();
+        }
+        finally
+        {
+            started.countDown();
+        }
+    }
+
+    private void doInit()
+    {
+        this.streamFactory = router.attach(routerConfig);
+
+        Map<String, BindingContext> bindingsByType = bindings.stream()
+            .collect(toMap(Binding::name, b -> b.supply(this), (a, b) -> a, LinkedHashMap::new));
+
+        Map<String, ExporterContext> exportersByType = exporters.stream()
+            .collect(toMap(Exporter::name, e -> e.supply(this), (a, b) -> a, LinkedHashMap::new));
+
+        Map<String, GuardContext> guardsByType = guards.stream()
+            .collect(toMap(Guard::name, g -> g.supply(this), (a, b) -> a, LinkedHashMap::new));
+
+        Map<String, VaultContext> vaultsByType = new LinkedHashMap<>();
+        for (Vault vault : vaults)
+        {
+            String type = vault.name();
+            Set<String> aliases = vault.aliases();
+
+            VaultContext context = vault.supply(this);
+
+            vaultsByType.put(type, context);
+            for (String alias : aliases)
+            {
+                vaultsByType.put(alias, context);
+            }
+        }
+
+        Map<String, CatalogContext> catalogsByType = new LinkedHashMap<>();
+        for (Catalog catalog : catalogs)
+        {
+            String type = catalog.name();
+            Set<String> aliases = catalog.aliases();
+
+            CatalogContext context = catalog.supply(this);
+
+            catalogsByType.put(type, context);
+            for (String alias : aliases)
+            {
+                catalogsByType.put(alias, context);
+            }
+        }
+
+        Map<String, StoreContext> storesByType = stores.stream()
+            .collect(toMap(Store::name, s -> s.supply(this), (a, b) -> a, LinkedHashMap::new));
+
+        this.modelsByType = models.stream()
+            .collect(toMap(Model::name, m -> m.supply(this), (a, b) -> a, LinkedHashMap::new));
+
+        Map<String, MetricContext> metricsByName = new LinkedHashMap<>();
+        for (MetricGroup metricGroup : metricGroups)
+        {
+            for (String metricName : metricGroup.metricNames())
+            {
+                Metric metric = metricGroup.supply(metricName);
+                metricsByName.put(metricName, metric.supply(this));
+            }
+        }
+
+        this.registry = new EngineRegistry(
+                bindingsByType::get, guardsByType::get, vaultsByType::get, catalogsByType::get, metricsByName::get,
+                exportersByType::get, storesByType::get, labels::supplyLabelId, this::onExporterAttached,
+                this::onExporterDetached, this::supplyMetricWriter, this::detachStreams, collector, process);
+
         if (!readonly)
         {
             int workersMetricId = labels.supplyLabelId(EngineWorkersCountMetric.NAME);
@@ -970,6 +1042,8 @@ public class EngineWorker implements EngineContext, Agent
         {
             registry.detachAll();
         }
+
+        router.detach(routerConfig.id);
 
         poller.onClose();
 
@@ -998,14 +1072,6 @@ public class EngineWorker implements EngineContext, Agent
         }
 
         targetsByIndex.forEach((k, v) -> v.detach());
-        targetsByIndex.forEach((k, v) -> quietClose(v));
-
-        quietClose(streamsLayout);
-        quietClose(bufferPoolLayout);
-
-        debitorsByIndex.forEach((k, v) -> quietClose(v));
-        quietClose(creditor);
-        quietClose(eventWriter);
 
         if (acquiredBuffers != 0 || acquiredCreditors != 0 || acquiredDebitors != 0L)
         {
@@ -1454,6 +1520,10 @@ public class EngineWorker implements EngineContext, Agent
                 case ChallengeFW.TYPE_ID:
                     throttle.accept(msgTypeId, buffer, index, length);
                     break;
+                case RedirectFW.TYPE_ID:
+                    throttle.accept(msgTypeId, buffer, index, length);
+                    dispatcher.remove(instanceId);
+                    break;
                 default:
                     break;
                 }
@@ -1645,6 +1715,10 @@ public class EngineWorker implements EngineContext, Agent
                     break;
                 case ChallengeFW.TYPE_ID:
                     throttle.accept(msgTypeId, buffer, index, length);
+                    break;
+                case RedirectFW.TYPE_ID:
+                    throttle.accept(msgTypeId, buffer, index, length);
+                    dispatcher.remove(instanceId);
                     break;
                 default:
                     break;
@@ -2048,6 +2122,26 @@ public class EngineWorker implements EngineContext, Agent
         return remoteIndex;
     }
 
+    private int resolveRemoteIndex(
+        long bindingId,
+        int hash)
+    {
+        final Affinity affinity = supplyAffinity(bindingId);
+        final BitSet mask = affinity.mask;
+        final int cardinality = mask.cardinality();
+
+        assert cardinality != 0;
+
+        // pick the n-th set bit of the mask, where n = floorMod(hash, cardinality)
+        int slot = Math.floorMod(hash, cardinality);
+        int remoteIndex = mask.nextSetBit(0);
+        while (slot-- > 0)
+        {
+            remoteIndex = mask.nextSetBit(remoteIndex + 1);
+        }
+        return remoteIndex;
+    }
+
     private Affinity supplyAffinity(
         long bindingId)
     {
@@ -2136,6 +2230,15 @@ public class EngineWorker implements EngineContext, Agent
 
         @Override
         public long signalAt(
+            Instant time,
+            int signalId,
+            IntConsumer handler)
+        {
+            return signalAt(time.toEpochMilli(), signalId, handler);
+        }
+
+        @Override
+        public long signalAt(
             long timeMillis,
             long originId,
             long routedId,
@@ -2151,6 +2254,19 @@ public class EngineWorker implements EngineContext, Agent
             assert oldTask == null;
             assert timerId >= 0L;
             return timerId;
+        }
+
+        @Override
+        public long signalAt(
+            Instant time,
+            long originId,
+            long routedId,
+            long streamId,
+            long traceId,
+            int signalId,
+            int contextId)
+        {
+            return signalAt(time.toEpochMilli(), originId, routedId, streamId, traceId, signalId, contextId);
         }
 
         @Override

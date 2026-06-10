@@ -14,9 +14,11 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.config;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.unmodifiableMap;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
 import java.util.LinkedList;
@@ -25,19 +27,19 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonReader;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
+import jakarta.json.spi.JsonProvider;
+import jakarta.json.stream.JsonParser;
 
 import org.agrona.collections.Object2ObjectHashMap;
-import org.leadpony.justify.api.JsonSchema;
-import org.leadpony.justify.api.JsonValidationService;
-import org.leadpony.justify.api.ProblemHandler;
 
 import io.aklivity.zilla.runtime.binding.openapi.internal.OpenapiBinding;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.Openapi;
+import io.aklivity.zilla.runtime.common.json.JsonSchema;
+import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 import io.aklivity.zilla.runtime.engine.config.ConfigException;
 
 public class OpenapiParser
@@ -64,13 +66,17 @@ public class OpenapiParser
         {
             String openApiVersion = detectOpenApiVersion(openapiText);
 
-            JsonValidationService service = JsonValidationService.newInstance();
-            ProblemHandler handler = service.createProblemPrinter(msg -> errors.add(new ConfigException(msg)));
+            JsonProvider provider = YamlJson.provider();
             JsonSchema schema = schemas.get(openApiVersion);
 
-            service.createReader(new StringReader(openapiText), schema, handler).read();
+            try (JsonParser parser = provider.createParser(new StringReader(openapiText)))
+            {
+                schema.validate(parser, problem -> errors.add(new ConfigException(problem.toString())));
+            }
 
-            Jsonb jsonb = JsonbBuilder.create();
+            Jsonb jsonb = JsonbBuilder.newBuilder()
+                    .withProvider(provider)
+                    .build();
 
             openapi = jsonb.fromJson(openapiText, Openapi.class);
         }
@@ -93,21 +99,20 @@ public class OpenapiParser
         String version)
     {
         final String schemaName = String.format("schema/openapi.%s.schema.json", version);
-        final InputStream schemaInput = OpenapiBinding.class.getResourceAsStream(schemaName);
-        final boolean detect = !version.startsWith("3.1");
-
-        return JsonValidationService.newInstance()
-                .createSchemaReaderFactoryBuilder()
-                .withSpecVersionDetection(detect)
-                .build()
-                .createSchemaReader(schemaInput)
-                .read();
+        try (InputStream schemaInput = OpenapiBinding.class.getResourceAsStream(schemaName))
+        {
+            return JsonSchema.of(new String(schemaInput.readAllBytes(), UTF_8));
+        }
+        catch (IOException ex)
+        {
+            throw new RuntimeException("Unable to read OpenAPI schema: " + schemaName, ex);
+        }
     }
 
     private String detectOpenApiVersion(
         String openapiText)
     {
-        try (JsonReader reader = Json.createReader(new StringReader(openapiText)))
+        try (JsonReader reader = YamlJson.createReader(new StringReader(openapiText)))
         {
             JsonObject json = reader.readObject();
             if (json.containsKey("openapi"))

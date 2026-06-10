@@ -27,10 +27,12 @@ import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.Z
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.ZillaExtensionKind.DATA;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.ZillaExtensionKind.END;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.ZillaExtensionKind.FLUSH;
+import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.ZillaExtensionKind.REDIRECT;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.ZillaExtensionKind.RESET;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.ZillaTransmission.HALF_DUPLEX;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.ADVISORY_CHALLENGE;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.ADVISORY_FLUSH;
+import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.ADVISORY_REDIRECT;
 import static java.util.Arrays.asList;
 import static org.jboss.netty.buffer.ChannelBuffers.EMPTY_BUFFER;
 import static org.jboss.netty.channel.Channels.fireChannelClosed;
@@ -73,6 +75,7 @@ import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.Chal
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.DataFW;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.EndFW;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.FlushFW;
+import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.RedirectFW;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.util.function.LongObjectBiConsumer;
@@ -88,6 +91,7 @@ final class ZillaTarget implements AutoCloseable
     private final WindowFW windowRO = new WindowFW();
     private final ResetFW resetRO = new ResetFW();
     private final ChallengeFW challengeRO = new ChallengeFW();
+    private final RedirectFW redirectRO = new RedirectFW();
 
     private final OctetsFW octetsRO = new OctetsFW();
 
@@ -95,6 +99,7 @@ final class ZillaTarget implements AutoCloseable
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
     private final ChallengeFW.Builder challengeRW = new ChallengeFW.Builder();
+    private final RedirectFW.Builder redirectRW = new RedirectFW.Builder();
 
     private final int scopeIndex;
     private final Path streamsPath;
@@ -940,6 +945,50 @@ final class ZillaTarget implements AutoCloseable
         streamsBuffer.write(challenge.typeId(), challenge.buffer(), challenge.offset(), challenge.sizeof());
     }
 
+    void doRedirect(
+        final ZillaChannel channel,
+        final long originId,
+        final long routedId,
+        final long streamId,
+        final long sequence,
+        final long acknowledge,
+        final long traceId,
+        final long authorization,
+        final long affinity,
+        final int maximum,
+        final ChannelBuffer beginExt)
+    {
+        final byte[] extensionCopy = roundTripExtCopy(beginExt);
+
+        final RedirectFW redirect = redirectRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .timestamp(channel.timestamp())
+                .traceId(traceId)
+                .authorization(authorization)
+                .affinity(affinity)
+                .extension(p -> p.set(extensionCopy))
+                .build();
+
+        streamsBuffer.write(redirect.typeId(), redirect.buffer(), redirect.offset(), redirect.sizeof());
+    }
+
+    private byte[] roundTripExtCopy(
+        ChannelBuffer ext)
+    {
+        final int writerIndex = ext.writerIndex();
+        final byte[] copy = new byte[writerIndex];
+        if (writerIndex != 0)
+        {
+            ext.getBytes(0, copy, 0, writerIndex);
+        }
+        return copy;
+    }
+
     private final class Throttle
     {
         private final ZillaChannel channel;
@@ -986,8 +1035,42 @@ final class ZillaTarget implements AutoCloseable
                 final ChallengeFW challenge = challengeRO.wrap(buffer, index, index + length);
                 onChallenge(challenge);
                 break;
+            case RedirectFW.TYPE_ID:
+                final RedirectFW redirect = redirectRO.wrap(buffer, index, index + length);
+                onRedirect(redirect);
+                break;
             default:
                 throw new IllegalArgumentException("Unexpected message type: " + msgTypeId);
+            }
+        }
+
+        private void onRedirect(
+            RedirectFW redirect)
+        {
+            final long streamId = redirect.streamId();
+            final long acknowledge = redirect.acknowledge();
+            final long affinity = redirect.affinity();
+
+            channel.targetAck(acknowledge);
+
+            channel.writeExtBuffer(REDIRECT, false).writeLong(affinity);
+
+            unregisterThrottle.accept(streamId);
+            fireOutputAdvised(channel, ADVISORY_REDIRECT);
+
+            if (channel.setWriteAborted())
+            {
+                if (channel.setWriteClosed())
+                {
+                    fireOutputAborted(channel);
+                    fireChannelDisconnected(channel);
+                    fireChannelUnbound(channel);
+                    fireChannelClosed(channel);
+                }
+                else
+                {
+                    fireOutputAborted(channel);
+                }
             }
         }
 

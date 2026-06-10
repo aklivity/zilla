@@ -18,11 +18,15 @@ package io.aklivity.zilla.specs.binding.http.internal;
 import static java.lang.Character.toLowerCase;
 import static java.lang.Character.toUpperCase;
 
+import java.net.URLEncoder;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
@@ -84,6 +88,13 @@ public final class HttpFunctions
     public static HttpChallengeExBuilder challengeEx()
     {
         return new HttpChallengeExBuilder();
+    }
+
+    @Function
+    public static String encodeQuery(
+        String value)
+    {
+        return URLEncoder.encode(value, StandardCharsets.UTF_8).replace("+", "%20");
     }
 
     @Function
@@ -325,6 +336,7 @@ public final class HttpFunctions
         private final HttpBeginExFW beginExRO = new HttpBeginExFW();
 
         private final Map<String, Predicate<String>> headers = new LinkedHashMap<>();
+        private final Set<String> headersMissing = new LinkedHashSet<>();
 
         private Long compositeId;
         private Integer typeId;
@@ -360,6 +372,13 @@ public final class HttpFunctions
             return this;
         }
 
+        public HttpBeginExMatcherBuilder headerMissing(
+            String name)
+        {
+            headersMissing.add(name);
+            return this;
+        }
+
         public BytesMatcher build()
         {
             return typeId != null ? this::match : buf -> null;
@@ -379,7 +398,8 @@ public final class HttpFunctions
             if (beginEx != null &&
                 matchCompositeId(beginEx) &&
                 matchTypeId(beginEx) &&
-                matchHeaders(beginEx))
+                matchHeaders(beginEx) &&
+                matchHeadersMissing(beginEx))
             {
                 byteBuf.position(byteBuf.position() + beginEx.sizeof());
                 return beginEx;
@@ -400,6 +420,15 @@ public final class HttpFunctions
             MutableBoolean match = new MutableBoolean(true);
             headers.forEach((k, v) -> match.value &= beginEx.headers().anyMatch(h -> k.equals(h.name().asString()) &&
                                                                            v.test(h.value().asString())));
+            return match.value;
+        }
+
+        private boolean matchHeadersMissing(
+            HttpBeginExFW beginEx)
+        {
+            MutableBoolean match = new MutableBoolean(true);
+            headersMissing.forEach(name -> match.value &=
+                !beginEx.headers().anyMatch(h -> name.equals(h.name().asString())));
             return match.value;
         }
 

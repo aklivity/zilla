@@ -18,11 +18,11 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
+import jakarta.json.JsonException;
 import jakarta.json.JsonObject;
 
 import org.junit.Rule;
 import org.junit.Test;
-import org.leadpony.justify.api.JsonValidatingException;
 
 import io.aklivity.zilla.specs.engine.config.ConfigSchemaRule;
 
@@ -162,7 +162,7 @@ public class SchemaTest
         assertThat(config, not(nullValue()));
     }
 
-    @Test(expected = JsonValidatingException.class)
+    @Test(expected = JsonException.class)
     public void shouldFailInvalidPath()
     {
         schema.validate("proxy.invalid.path.yaml");

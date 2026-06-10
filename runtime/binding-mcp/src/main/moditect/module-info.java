@@ -19,6 +19,8 @@ module io.aklivity.zilla.runtime.binding.mcp
 
     exports io.aklivity.zilla.runtime.binding.mcp.config;
 
+    opens io.aklivity.zilla.runtime.binding.mcp.internal.codec;
+
     provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
         with io.aklivity.zilla.runtime.binding.mcp.internal.McpBindingFactorySpi;
 

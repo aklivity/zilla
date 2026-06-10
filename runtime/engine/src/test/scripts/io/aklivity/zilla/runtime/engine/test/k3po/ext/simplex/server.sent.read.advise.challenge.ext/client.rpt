@@ -16,6 +16,7 @@
 
 connect "zilla://streams/server#0"
         option zilla:window 8192
-connected
 
 write advised zilla:challenge [0x12 0x34] [0x0c] "Hello, world"
+
+connected

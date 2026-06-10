@@ -14,11 +14,21 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal;
 
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_PROMPTS_LIST;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_LIST;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKERS;
+
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
+import java.security.SecureRandom;
 import java.time.Duration;
+import java.util.HashSet;
+import java.util.HexFormat;
+import java.util.Set;
 import java.util.UUID;
+import java.util.function.IntPredicate;
 import java.util.function.Supplier;
 
 import org.agrona.LangUtil;
@@ -31,19 +41,32 @@ public class McpConfiguration extends Configuration
     private static final ConfigurationDef MCP_CONFIG;
 
     public static final PropertyDef<SessionIdSupplier> MCP_SESSION_ID;
+    public static final PropertyDef<ElicitationIdSupplier> MCP_ELICITATION_ID;
+    public static final PropertyDef<ElicitationIdSupplier> MCP_ELICIT_CORRELATION_ID;
     public static final PropertyDef<String> MCP_SERVER_NAME;
     public static final PropertyDef<String> MCP_SERVER_VERSION;
     public static final PropertyDef<String> MCP_CLIENT_NAME;
     public static final PropertyDef<String> MCP_CLIENT_VERSION;
     public static final PropertyDef<Duration> MCP_INACTIVITY_TIMEOUT;
+    public static final IntPropertyDef MCP_SESSION_ID_ATTEMPTS;
     public static final IntPropertyDef MCP_KEEPALIVE_TOLERANCE;
+    public static final IntPropertyDef MCP_HYDRATE_ATTEMPTS_MAX;
     public static final PropertyDef<Duration> MCP_SSE_KEEPALIVE_INTERVAL;
+    public static final BooleanPropertyDef MCP_ALT_SVC_ENABLED;
+    public static final PropertyDef<Duration> MCP_ALT_SVC_MAX_AGE;
+    public static final PropertyDef<IntPredicate> MCP_HYDRATE_FILTER;
+    public static final PropertyDef<Duration> MCP_LEASE_TTL;
+    public static final PropertyDef<Duration> MCP_LEASE_RETRY;
 
     static
     {
         final ConfigurationDef config = new ConfigurationDef("zilla.binding.mcp");
         MCP_SESSION_ID = config.property(SessionIdSupplier.class, "session.id",
             McpConfiguration::decodeSessionIdSupplier, McpConfiguration::defaultSessionIdSupplier);
+        MCP_ELICITATION_ID = config.property(ElicitationIdSupplier.class, "elicitation.id",
+            McpConfiguration::decodeElicitationIdSupplier, McpConfiguration::defaultElicitationIdSupplier);
+        MCP_ELICIT_CORRELATION_ID = config.property(ElicitationIdSupplier.class, "elicit.correlation.id",
+            McpConfiguration::decodeElicitationIdSupplier, McpConfiguration::defaultElicitCorrelationIdSupplier);
         MCP_SERVER_NAME = config.property(String.class, "server.name", (c, v) -> v,
             McpConfiguration::defaultServerName);
         MCP_SERVER_VERSION = config.property(String.class, "server.version", (c, v) -> v,
@@ -54,9 +77,21 @@ public class McpConfiguration extends Configuration
             McpConfiguration::defaultServerVersion);
         MCP_INACTIVITY_TIMEOUT = config.property(Duration.class, "inactivity.timeout",
             (c, v) -> Duration.parse(v), "PT60S");
+        MCP_SESSION_ID_ATTEMPTS = config.property("session.id.attempts",
+            McpConfiguration::defaultSessionIdAttempts);
         MCP_KEEPALIVE_TOLERANCE = config.property("keepalive.tolerance", 2);
+        MCP_HYDRATE_ATTEMPTS_MAX = config.property("hydrate.attempts.max", 5);
         MCP_SSE_KEEPALIVE_INTERVAL = config.property(Duration.class, "sse.keepalive.interval",
             (c, v) -> Duration.parse(v), "PT15S");
+        MCP_ALT_SVC_ENABLED = config.property("alt.svc.enabled", McpConfiguration::defaultAltSvcEnabled);
+        MCP_ALT_SVC_MAX_AGE = config.property(Duration.class, "alt.svc.max.age",
+            (c, v) -> Duration.parse(v), "PT24H");
+        MCP_HYDRATE_FILTER = config.property(IntPredicate.class, "hydrate.filter",
+            McpConfiguration::decodeHydrateFilter, McpConfiguration::defaultHydrateFilter);
+        MCP_LEASE_TTL = config.property(Duration.class, "lease.ttl",
+            (c, v) -> Duration.parse(v), "PT30S");
+        MCP_LEASE_RETRY = config.property(Duration.class, "lease.retry",
+            (c, v) -> Duration.parse(v), "PT0.1S");
         MCP_CONFIG = config;
     }
 
@@ -74,6 +109,16 @@ public class McpConfiguration extends Configuration
     public Supplier<String> sessionIdSupplier()
     {
         return MCP_SESSION_ID.get(this)::get;
+    }
+
+    public Supplier<String> elicitationIdSupplier()
+    {
+        return MCP_ELICITATION_ID.get(this)::get;
+    }
+
+    public Supplier<String> elicitCorrelationIdSupplier()
+    {
+        return MCP_ELICIT_CORRELATION_ID.get(this)::get;
     }
 
     public String serverName()
@@ -106,13 +151,54 @@ public class McpConfiguration extends Configuration
         return MCP_KEEPALIVE_TOLERANCE.getAsInt(this);
     }
 
+    public int sessionIdAttempts()
+    {
+        return MCP_SESSION_ID_ATTEMPTS.getAsInt(this);
+    }
+
+    public int hydrateAttemptsMax()
+    {
+        return MCP_HYDRATE_ATTEMPTS_MAX.getAsInt(this);
+    }
+
     public Duration sseKeepaliveInterval()
     {
         return MCP_SSE_KEEPALIVE_INTERVAL.get(this);
     }
 
+    public boolean altSvcEnabled()
+    {
+        return MCP_ALT_SVC_ENABLED.getAsBoolean(this);
+    }
+
+    public Duration altSvcMaxAge()
+    {
+        return MCP_ALT_SVC_MAX_AGE.get(this);
+    }
+
+    public IntPredicate hydrateFilter()
+    {
+        return MCP_HYDRATE_FILTER.get(this);
+    }
+
+    public Duration leaseTtl()
+    {
+        return MCP_LEASE_TTL.get(this);
+    }
+
+    public Duration leaseRetry()
+    {
+        return MCP_LEASE_RETRY.get(this);
+    }
+
     @FunctionalInterface
     public interface SessionIdSupplier
+    {
+        String get();
+    }
+
+    @FunctionalInterface
+    public interface ElicitationIdSupplier
     {
         String get();
     }
@@ -168,4 +254,100 @@ public class McpConfiguration extends Configuration
     {
         return UUID.randomUUID().toString();
     }
+
+    private static int defaultSessionIdAttempts(
+        Configuration config)
+    {
+        // 64x the expected reject-sampling tries (~workers), leaving ~e^-64 exhaustion
+        return Math.max(1, ENGINE_WORKERS.getAsInt(config) * 64);
+    }
+
+    private static boolean defaultAltSvcEnabled(
+        Configuration config)
+    {
+        final String hostname = EngineConfiguration.ENGINE_SERVICE_HOSTNAME.get(config);
+        return hostname != null && !hostname.isEmpty();
+    }
+
+    private static ElicitationIdSupplier decodeElicitationIdSupplier(
+        String value)
+    {
+        ElicitationIdSupplier supplier = null;
+
+        try
+        {
+            MethodType signature = MethodType.methodType(String.class);
+            String[] parts = value.split("::");
+            Class<?> ownerClass = Class.forName(parts[0]);
+            String methodName = parts[1];
+            MethodHandle method = MethodHandles.publicLookup().findStatic(ownerClass, methodName, signature);
+            supplier = () ->
+            {
+                String elicitationId = null;
+                try
+                {
+                    elicitationId = (String) method.invoke();
+                }
+                catch (Throwable ex)
+                {
+                    LangUtil.rethrowUnchecked(ex);
+                }
+
+                return elicitationId;
+            };
+        }
+        catch (Throwable ex)
+        {
+            LangUtil.rethrowUnchecked(ex);
+        }
+
+        return supplier;
+    }
+
+    private static IntPredicate decodeHydrateFilter(
+        String value)
+    {
+        final Set<Integer> kinds = new HashSet<>();
+        for (String name : value.split("\\s+"))
+        {
+            switch (name)
+            {
+            case "tools":
+                kinds.add(KIND_TOOLS_LIST);
+                break;
+            case "resources":
+                kinds.add(KIND_RESOURCES_LIST);
+                break;
+            case "prompts":
+                kinds.add(KIND_PROMPTS_LIST);
+                break;
+            default:
+                break;
+            }
+        }
+        return kinds::contains;
+    }
+
+    private static boolean defaultHydrateFilter(
+        int kind)
+    {
+        return true;
+    }
+
+    private static String defaultElicitationIdSupplier()
+    {
+        final byte[] bytes = new byte[4];
+        ELICITATION_ID_RANDOM.nextBytes(bytes);
+        return ELICITATION_ID_HEX.formatHex(bytes);
+    }
+
+    private static String defaultElicitCorrelationIdSupplier()
+    {
+        final byte[] bytes = new byte[4];
+        ELICITATION_ID_RANDOM.nextBytes(bytes);
+        return ELICITATION_ID_HEX.formatHex(bytes);
+    }
+
+    private static final SecureRandom ELICITATION_ID_RANDOM = new SecureRandom();
+    private static final HexFormat ELICITATION_ID_HEX = HexFormat.of();
 }

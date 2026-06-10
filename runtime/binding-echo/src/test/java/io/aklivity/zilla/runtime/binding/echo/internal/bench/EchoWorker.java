@@ -78,6 +78,22 @@ public class EchoWorker implements EngineContext
     }
 
     @Override
+    public long supplyInitialId(
+        long bindingId,
+        int hash)
+    {
+        return 0;
+    }
+
+    @Override
+    public boolean isLocalIndex(
+        long bindingId,
+        int hash)
+    {
+        return true;
+    }
+
+    @Override
     public long supplyReplyId(
         long initialId)
     {

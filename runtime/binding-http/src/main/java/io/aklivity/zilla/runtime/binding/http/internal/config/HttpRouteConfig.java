@@ -29,22 +29,28 @@ import io.aklivity.zilla.runtime.binding.http.config.HttpConditionConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpWithConfig;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 import io.aklivity.zilla.runtime.engine.util.function.LongObjectPredicate;
 
 public final class HttpRouteConfig
 {
+    private static final long NO_AFFINITY = 0L;
+
     public final long id;
 
+    private final EngineContext context;
     private final List<HttpConditionMatcher> when;
     private final HttpWithResolver with;
     private final LongObjectPredicate<UnaryOperator<String>> authorized;
     private final Map<String8FW, String16FW> overrides;
 
     public HttpRouteConfig(
+        EngineContext context,
         RouteConfig route,
         Map<String8FW, String16FW> overrides)
     {
+        this.context = context;
         this.id = route.id;
         this.with = Optional.ofNullable(route.with)
             .map(HttpWithConfig.class::cast)
@@ -66,6 +72,21 @@ public final class HttpRouteConfig
     public long compositeId()
     {
         return with != null ? with.compositeId() : NO_COMPOSITE_ID;
+    }
+
+    public HttpRouteAffinity resolve()
+    {
+        return new HttpRouteAffinity(
+            context.supplyInitialId(id),
+            NO_AFFINITY);
+    }
+
+    public HttpRouteAffinity resolve(
+        long affinity)
+    {
+        return new HttpRouteAffinity(
+            context.supplyInitialId(id, Long.hashCode(affinity)),
+            affinity);
     }
 
     public Map<String8FW, String16FW> overrides()

@@ -26,8 +26,10 @@
                     "type":
                     {
                         "const": "memory"
-                    }
-                }
+                    },
+                    "options": false
+                },
+                "additionalProperties": false
             }
         }
     }

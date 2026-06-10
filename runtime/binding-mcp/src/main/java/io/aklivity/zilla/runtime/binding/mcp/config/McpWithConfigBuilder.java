@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.config;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
@@ -25,7 +23,7 @@ public final class McpWithConfigBuilder<T> extends ConfigBuilder<T, McpWithConfi
 {
     private final Function<WithConfig, T> mapper;
 
-    private Map<String, String> headers;
+    private McpWithCacheConfig cache;
 
     public McpWithConfigBuilder(
         Function<WithConfig, T> mapper)
@@ -33,16 +31,16 @@ public final class McpWithConfigBuilder<T> extends ConfigBuilder<T, McpWithConfi
         this.mapper = mapper;
     }
 
-    public McpWithConfigBuilder<T> header(
-        String name,
-        String value)
+    public McpWithConfigBuilder<T> cache(
+        McpWithCacheConfig cache)
     {
-        if (headers == null)
-        {
-            headers = new LinkedHashMap<>();
-        }
-        headers.put(name, value);
+        this.cache = cache;
         return this;
+    }
+
+    public McpWithCacheConfigBuilder<McpWithConfigBuilder<T>> cache()
+    {
+        return McpWithCacheConfig.builder(this::cache);
     }
 
     @Override
@@ -55,6 +53,6 @@ public final class McpWithConfigBuilder<T> extends ConfigBuilder<T, McpWithConfi
     @Override
     public T build()
     {
-        return mapper.apply(new McpWithConfig(headers));
+        return mapper.apply(new McpWithConfig(cache));
     }
 }

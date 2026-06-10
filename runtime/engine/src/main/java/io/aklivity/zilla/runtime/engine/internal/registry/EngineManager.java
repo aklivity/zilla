@@ -40,7 +40,6 @@ import java.util.function.UnaryOperator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import jakarta.json.Json;
 import jakarta.json.JsonArray;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonPatch;
@@ -50,6 +49,7 @@ import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
 import jakarta.json.spi.JsonProvider;
 
+import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
@@ -278,14 +278,14 @@ public class EngineManager
         String systemYaml = null;
         try
         {
-            JsonObject systemBase = Json.createObjectBuilder()
+            JsonProvider schemaProvider = YamlJson.provider();
+
+            JsonObject systemBase = schemaProvider.createObjectBuilder()
                 .add("name", "sys")
-                .add("bindings", Json.createObjectBuilder())
+                .add("bindings", schemaProvider.createObjectBuilder())
                 .build();
 
             JsonObject systemPatched = systemBase;
-
-            JsonProvider schemaProvider = JsonProvider.provider();
 
             for (URL patch : systemConfigs)
             {
@@ -374,6 +374,7 @@ public class EngineManager
         for (GuardConfig guard : namespace.guards)
         {
             guard.id = resolver.resolve(guard.name);
+            guard.resolveId = resolver::resolve;
             if (guard.store != null)
             {
                 guard.storeId = resolver.resolve(guard.store);

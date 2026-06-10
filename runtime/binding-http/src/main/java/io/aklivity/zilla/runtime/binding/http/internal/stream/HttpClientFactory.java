@@ -37,11 +37,14 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.EnumMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.SortedSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
@@ -176,6 +179,7 @@ public final class HttpClientFactory implements HttpStreamFactory
     private static final String SCHEME = ":scheme";
     private static final String CACHE_CONTROL = "cache-control";
     private static final String8FW HEADER_AUTHORITY = new String8FW(":authority");
+    private static final String8FW HEADER_SCHEME = new String8FW(":scheme");
     private static final String8FW HEADER_USER_AGENT = new String8FW("user-agent");
     private static final String8FW HEADER_CONNECTION = new String8FW("connection");
     private static final String8FW HEADER_CONTENT_LENGTH = new String8FW("content-length");
@@ -408,7 +412,7 @@ public final class HttpClientFactory implements HttpStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        HttpBindingConfig httpBinding = new HttpBindingConfig(binding, supplyValidator);
+        HttpBindingConfig httpBinding = new HttpBindingConfig(context, binding);
         bindings.put(binding.id, httpBinding);
     }
 
@@ -1745,7 +1749,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         {
             if (client.applicationHeadersProcessed.size() < config.maxConcurrentApplicationHeaders())
             {
-                final HttpExchange exchange = client.pool.exchanges.get(streamId);
+                final HttpExchange exchange = client.exchanges.get(streamId);
                 if (HttpState.replyOpening(exchange.state))
                 {
                     client.onDecodeHttp2Trailers(traceId, authorization, http2Headers);
@@ -2034,12 +2038,8 @@ public final class HttpClientFactory implements HttpStreamFactory
     {
         private final long bindingId;
         private final long resolvedId;
-        private final Int2ObjectHashMap<HttpExchange> exchanges;
         private final List<HttpClient> clients;
 
-        private int httpQueueSlot = NO_SLOT;
-        private int httpQueueSlotOffset;
-        private int httpQueueSlotLimit;
         private SortedSet<HttpVersion> versions;
 
         private HttpClientPool(
@@ -2049,7 +2049,6 @@ public final class HttpClientFactory implements HttpStreamFactory
             this.bindingId = bindingId;
             this.resolvedId = resolvedId;
             this.clients = new LinkedList<>();
-            this.exchanges = new Int2ObjectHashMap<>();
         }
 
         public MessageConsumer newStream(
@@ -2063,15 +2062,23 @@ public final class HttpClientFactory implements HttpStreamFactory
             MessageConsumer newStream;
 
             final HttpBeginExFW beginEx = begin.extension().get(beginExRO::tryWrap);
+            final HttpHeaderFW authorityHeader = beginEx != null
+                    ? beginEx.headers().matchFirst(h -> HEADER_AUTHORITY.equals(h.name()))
+                    : null;
+            final String authority = authorityHeader != null ? authorityHeader.value().asString() : null;
+            final HttpHeaderFW schemeHeader = beginEx != null
+                    ? beginEx.headers().matchFirst(h -> HEADER_SCHEME.equals(h.name()))
+                    : null;
+            final String scheme = schemeHeader != null ? schemeHeader.value().asString() : null;
 
-            HttpClient client = supplyClient();
+            HttpClient client = supplyClient(scheme, authority);
             final int queuedRequestLength = HttpQueueEntryFW.FIELD_OFFSET_VALUE_LENGTH + begin.extension().sizeof();
 
             if (client == null || queuedRequestLength > maximumRequestQueueSize)
             {
                 newStream = rejectWithStatusCode(sender, begin, HEADERS_431_REQUEST_TOO_LARGE);
             }
-            else if (queuedRequestLength <= availableSlotSize())
+            else if (queuedRequestLength <= client.availableSlotSize())
             {
                 final HttpPromise promise = client.promises.stream().filter(p -> p.matches(beginEx.headers()))
                         .findFirst().orElse(null);
@@ -2083,7 +2090,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
                 if (promise != null)
                 {
-                    final HttpExchange exchange = exchanges.get(promise.promiseId);
+                    final HttpExchange exchange = client.exchanges.get(promise.promiseId);
                     newStream = exchange::onApplication;
                     client.promises.remove(promise);
                 }
@@ -2092,7 +2099,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                     final int nextStreamId = client.nextStreamId();
                     final HttpExchange exchange = client.newExchange(sender, originId, routedId, initialId, authorization,
                             overrides, nextStreamId);
-                    exchanges.put(nextStreamId, exchange);
+                    client.exchanges.put(nextStreamId, exchange);
                     newStream = exchange::onApplication;
                 }
             }
@@ -2137,80 +2144,29 @@ public final class HttpClientFactory implements HttpStreamFactory
             return newStream;
         }
 
-        private void flushNext()
+        private HttpClient supplyClient(
+            String scheme,
+            String authority)
         {
-            dequeue:
-            while (httpQueueSlotOffset != httpQueueSlotLimit)
-            {
-                final MutableDirectBuffer httpQueueBuffer = bufferPool.buffer(httpQueueSlot);
-                final HttpQueueEntryFW queueEntry = queueEntryRO.wrap(httpQueueBuffer, httpQueueSlotOffset, httpQueueSlotLimit);
-                final int streamId = queueEntry.streamId();
-                final long traceId = queueEntry.traceId();
-                final long authorization = queueEntry.authorization();
-                final HttpExchange httpExchange = exchanges.get(streamId);
-                HttpClient client = null;
-
-                if (httpExchange != null)
-                {
-                    final HttpEncoder encoder = httpExchange.client.encoder;
-                    client = encoder == HttpEncoder.HTTP_2 ||
-                            encoder == HttpEncoder.HTTP_1_1 && httpExchange.client.exchange == null ||
-                            encoder == HttpEncoder.H2C ?
-                            httpExchange.client : supplyClient();
-
-                    if (client != null)
-                    {
-                        httpExchange.doRequestBegin(traceId, authorization, queueEntry.value());
-                    }
-                    else
-                    {
-                        httpExchange.doResponseAbort(traceId, authorization, EMPTY_OCTETS);
-                    }
-                }
-                httpQueueSlotOffset += queueEntry.sizeof();
-
-                if (client != null && client.encoder == HttpEncoder.H2C)
-                {
-                    break dequeue;
-                }
-            }
-
-            cleanupQueueSlotIfNecessary();
-        }
-
-        private void cleanupQueueSlotIfNecessary()
-        {
-            if (httpQueueSlot != NO_SLOT && httpQueueSlotOffset == httpQueueSlotLimit)
-            {
-                bufferPool.release(httpQueueSlot);
-                httpQueueSlot = NO_SLOT;
-                httpQueueSlotOffset = 0;
-                httpQueueSlotLimit = 0;
-            }
-        }
-
-        private void acquireQueueSlotIfNecessary()
-        {
-            if (httpQueueSlot == NO_SLOT)
-            {
-                httpQueueSlot = bufferPool.acquire(resolvedId);
-            }
-        }
-
-        private HttpClient supplyClient()
-        {
-            HttpClient client = clients.stream().filter(
-                c -> !HttpState.replyOpened(c.state) ||
-                c.encoder == HttpEncoder.HTTP_2 ||
-                c.exchange == null && c.encoder == HttpEncoder.HTTP_1_1 ||
-                c.encoder == HttpEncoder.H2C)
+            HttpClient client = clients.stream()
+                .filter(c -> c.canServe(scheme, authority) && c.available(versions))
                 .findFirst()
                 .orElse(null);
 
             if (client == null && clients.size() < maximumConnectionsPerRoute)
             {
                 client = new HttpClient(this);
+                client.scheme = scheme;
+                client.authority = authority;
                 onCreated(client);
+            }
+
+            if (client == null)
+            {
+                client = clients.stream()
+                    .filter(c -> c.canServe(scheme, authority) && c.reusable())
+                    .findFirst()
+                    .orElse(null);
             }
 
             return client;
@@ -2228,11 +2184,6 @@ public final class HttpClientFactory implements HttpStreamFactory
         {
             clients.remove(client);
             assert clients.size() <= maximumConnectionsPerRoute;
-        }
-
-        private int availableSlotSize()
-        {
-            return bufferPool.slotCapacity() - httpQueueSlotLimit;
         }
     }
 
@@ -2297,6 +2248,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         private final LongHashSet applicationHeadersProcessed;
 
         private final List<HttpPromise> promises;
+        private final Int2ObjectHashMap<HttpExchange> exchanges;
         private HttpExchange exchange;
         private LongLongConsumer cleanupHandler;
         private int requestSharedBudget;
@@ -2304,6 +2256,13 @@ public final class HttpClientFactory implements HttpStreamFactory
         private int initialSharedBudget;
         private long requestSharedBudgetIndex = NO_CREDITOR_INDEX;
         private String protocolUpgrade = null;
+        private String scheme;
+        private String authority;
+        private final Set<String> serviceableNames = new HashSet<>();
+
+        private int httpQueueSlot = NO_SLOT;
+        private int httpQueueSlotOffset;
+        private int httpQueueSlotLimit;
 
         private HttpClient(
             HttpClientPool pool)
@@ -2319,6 +2278,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             this.remoteSettings = new Http2Settings();
             this.applicationHeadersProcessed = new LongHashSet();
             this.promises = new ArrayList<>(maximumPushPromiseListSize);
+            this.exchanges = new Int2ObjectHashMap<>();
             this.decodeContext = new HpackContext(localSettings.headerTableSize, false);
             this.encodeContext = new HpackContext(remoteSettings.headerTableSize, true);
             this.encodeHeadersBuffer = new ExpandableArrayBuffer();
@@ -2363,7 +2323,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             if (promises.size() == maximumPushPromiseListSize)
             {
                 final HttpPromise oldPromise = promises.remove(0);
-                final HttpExchange httpExchange = pool.exchanges.remove(oldPromise.promiseId);
+                final HttpExchange httpExchange = exchanges.remove(oldPromise.promiseId);
                 doEncodeHttp2RstStream(traceId, httpExchange.streamId, Http2ErrorCode.CANCEL);
 
             }
@@ -2428,7 +2388,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
                 remoteSharedBudget = encodeMax;
 
-                for (HttpExchange exchange: pool.exchanges.values())
+                for (HttpExchange exchange: exchanges.values())
                 {
                     exchange.remoteBudget += encodeMax;
                     exchange.flushRequestWindow(traceId, 0);
@@ -2445,7 +2405,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                      pool.versions.contains(HTTP_2))
             {
                 this.encoder = HttpEncoder.H2C;
-                for (HttpExchange exchange: pool.exchanges.values())
+                for (HttpExchange exchange: exchanges.values())
                 {
                     exchange.remoteBudget += encodeMax;
                 }
@@ -2453,7 +2413,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
             doNetworkWindow(traceId, 0L, 0, 0);
 
-            pool.flushNext();
+            flushNext();
         }
 
         private void onNetworkData(
@@ -2519,7 +2479,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             }
             else
             {
-                pool.exchanges.forEach((id, exchange) ->
+                exchanges.forEach((id, exchange) ->
                 {
                     if (!HttpState.replyOpening(exchange.state) || decodeSlot == NO_SLOT)
                     {
@@ -2546,7 +2506,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
             cleanupDecodeSlotIfNecessary();
 
-            pool.exchanges.forEach((id, exchange) -> exchange.cleanup(traceId, authorization));
+            exchanges.forEach((id, exchange) -> exchange.cleanup(traceId, authorization));
 
             if (!HttpState.initialClosing(state))
             {
@@ -2566,7 +2526,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             cleanupBudgetCreditorIfNecessary();
             cleanupEncodeSlotIfNecessary();
 
-            pool.exchanges.forEach((id, exchange) -> exchange.cleanup(traceId, authorization));
+            exchanges.forEach((id, exchange) -> exchange.cleanup(traceId, authorization));
 
             if (!HttpState.replyClosing(state))
             {
@@ -2885,7 +2845,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 {
                     state = HttpState.closeReply(state);
 
-                    pool.exchanges.forEach((id, exchange) -> exchange.cleanup(traceId, authorization));
+                    exchanges.forEach((id, exchange) -> exchange.cleanup(traceId, authorization));
 
                     doNetworkEnd(traceId, authorization);
                 }
@@ -2918,30 +2878,38 @@ public final class HttpClientFactory implements HttpStreamFactory
             long authorization,
             HttpBeginExFW beginEx)
         {
-            exchange.resolveResponse(beginEx);
-            boolean valid = exchange.validateResponseHeaders(beginEx);
-            if (valid)
+            if (exchange == null)
             {
-                exchange.doResponseBegin(traceId, authorization, beginEx);
-
-                final HttpHeaderFW connection = beginEx.headers().matchFirst(h -> HEADER_CONNECTION.equals(h.name()));
-                if (connection != null && connectionClose.reset(connection.value().asString()).matches())
-                {
-                    exchange.state = HttpState.closingReply(exchange.state);
-                }
-
-                final HttpHeaderFW status = beginEx.headers().matchFirst(h -> HEADER_STATUS.equals(h.name()));
-                if (status != null &&
-                    encoder == HttpEncoder.HTTP_1_1 &&
-                    STATUS_101.equals(status.value()))
-                {
-                    pool.onUpgradedOrClosed(this);
-                }
+                decoder = decodeHttp11Ignore;
+                cleanupNetwork(traceId, authorization);
             }
             else
             {
-                exchange.onResponseInvalid(traceId, authorization);
-                decoder = decodeHttp11Ignore;
+                exchange.resolveResponse(beginEx);
+                boolean valid = exchange.validateResponseHeaders(beginEx);
+                if (valid)
+                {
+                    exchange.doResponseBegin(traceId, authorization, beginEx);
+
+                    final HttpHeaderFW connection = beginEx.headers().matchFirst(h -> HEADER_CONNECTION.equals(h.name()));
+                    if (connection != null && connectionClose.reset(connection.value().asString()).matches())
+                    {
+                        exchange.state = HttpState.closingReply(exchange.state);
+                    }
+
+                    final HttpHeaderFW status = beginEx.headers().matchFirst(h -> HEADER_STATUS.equals(h.name()));
+                    if (status != null &&
+                        encoder == HttpEncoder.HTTP_1_1 &&
+                        STATUS_101.equals(status.value()))
+                    {
+                        pool.onUpgradedOrClosed(this);
+                    }
+                }
+                else
+                {
+                    exchange.onResponseInvalid(traceId, authorization);
+                    decoder = decodeHttp11Ignore;
+                }
             }
         }
 
@@ -3328,7 +3296,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             Http2RstStreamFW http2RstStream)
         {
             final int streamId = http2RstStream.streamId();
-            final HttpExchange exchange = pool.exchanges.get(streamId);
+            final HttpExchange exchange = exchanges.get(streamId);
 
             if (exchange != null)
             {
@@ -3344,7 +3312,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             final int streamId = http2Priority.streamId();
             final int parentStream = http2Priority.parentStream();
 
-            final HttpExchange exchange = pool.exchanges.get(streamId);
+            final HttpExchange exchange = exchanges.get(streamId);
             if (exchange != null)
             {
                 if (parentStream == streamId)
@@ -3364,7 +3332,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         {
             int progress = 0;
 
-            final HttpExchange exchange = pool.exchanges.get(streamId);
+            final HttpExchange exchange = exchanges.get(streamId);
 
             if (exchange == null)
             {
@@ -3459,7 +3427,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
             if (endHeaders)
             {
-                final HttpExchange exchange = pool.exchanges.get(streamId);
+                final HttpExchange exchange = exchanges.get(streamId);
                 if (exchange != null && HttpState.replyOpening(exchange.state))
                 {
                     onDecodeHttp2Trailers(traceId, authorization, streamId, headersBuffer, 0, headersSlotOffset);
@@ -3505,7 +3473,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             else
             {
                 final Map<String, String> headers = headersDecoder.headers;
-                final HttpExchange exchange = pool.exchanges.get(streamId);
+                final HttpExchange exchange = exchanges.get(streamId);
                 exchange.responseContentLength = headersDecoder.contentLength;
 
                 final HttpBeginExFW beginEx = beginExRW.wrap(extBuffer, 0, extBuffer.capacity())
@@ -3569,7 +3537,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             }
             else
             {
-                final HttpExchange exchange = pool.exchanges.get(streamId);
+                final HttpExchange exchange = exchanges.get(streamId);
 
                 final long promiseId = supplyPromiseId.applyAsLong(exchange.requestId);
                 final MessageConsumer sender = supplySender.apply(promiseId);
@@ -3577,7 +3545,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 final HttpExchange promisedExchange =
                        new HttpExchange(this, sender, exchange.originId, exchange.routedId, promiseId, exchange.sessionId,
                                EMPTY_OVERRIDES, promisedStreamId);
-                pool.exchanges.put(promisedStreamId, promisedExchange);
+                exchanges.put(promisedStreamId, promisedExchange);
 
 
                 addNewPromise(traceId, promisedStreamId, headers);
@@ -3604,7 +3572,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             int offset,
             int limit)
         {
-            final HttpExchange exchange = pool.exchanges.get(streamId);
+            final HttpExchange exchange = exchanges.get(streamId);
             if (exchange != null)
             {
                 final HpackHeaderBlockFW headerBlock = headerBlockRO.wrap(buffer, offset, limit);
@@ -3825,7 +3793,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                     final long remoteInitialCredit = remoteSettings.initialWindowSize - remoteInitialBudget;
                     if (remoteInitialCredit != 0)
                     {
-                        for (HttpExchange stream: pool.exchanges.values())
+                        for (HttpExchange stream: exchanges.values())
                         {
                             final long newRemoteBudget = stream.remoteBudget + remoteInitialCredit;
                             if (newRemoteBudget > MAX_REMOTE_BUDGET)
@@ -3861,7 +3829,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             // initial budget can become negative
             if (localInitialCredit != 0)
             {
-                for (HttpExchange stream: pool.exchanges.values())
+                for (HttpExchange stream: exchanges.values())
                 {
                     stream.localBudget += localInitialCredit;
                     stream.flushResponseWindowUpdate(traceId, authorization);
@@ -3920,7 +3888,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             }
             else
             {
-                final HttpExchange exchange = pool.exchanges.get(streamId);
+                final HttpExchange exchange = exchanges.get(streamId);
                 if (exchange != null)
                 {
                     exchange.onRequestWindowUpdate(traceId, authorization, credit);
@@ -3955,7 +3923,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         {
             final int lastStreamId = http2Goaway.lastStreamId();
 
-            pool.exchanges.entrySet()
+            exchanges.entrySet()
                     .stream()
                     .filter(e -> e.getKey() > lastStreamId)
                     .map(Map.Entry::getValue)
@@ -4327,7 +4295,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                     {
                         cleanupEncodeSlotIfNecessary();
 
-                        if (pool.exchanges.isEmpty() && decoder == decodeHttp2IgnoreAll)
+                        if (exchanges.isEmpty() && decoder == decodeHttp2IgnoreAll)
                         {
                             doNetworkEnd(traceId, authorization);
                         }
@@ -4427,6 +4395,97 @@ public final class HttpClientFactory implements HttpStreamFactory
             return maxClientStreamId;
         }
 
+        private boolean canServe(
+            String scheme,
+            String authority)
+        {
+            return Objects.equals(this.scheme, scheme) &&
+                (Objects.equals(this.authority, authority) ||
+                 encoder == HttpEncoder.HTTP_2 && serviceableNames.contains(authority));
+        }
+
+        private boolean available(
+            SortedSet<HttpVersion> versions)
+        {
+            return encoder == HttpEncoder.HTTP_2 ||
+                encoder == HttpEncoder.H2C ||
+                !HttpState.replyOpened(state) && versions.contains(HTTP_2) ||
+                exchange == null && httpQueueSlotLimit == 0;
+        }
+
+        private boolean reusable()
+        {
+            return !HttpState.replyOpened(state) ||
+                encoder == HttpEncoder.HTTP_2 ||
+                exchange == null && encoder == HttpEncoder.HTTP_1_1 ||
+                encoder == HttpEncoder.H2C;
+        }
+
+        private void flushNext()
+        {
+            dequeue:
+            while (httpQueueSlotOffset != httpQueueSlotLimit)
+            {
+                final MutableDirectBuffer httpQueueBuffer = bufferPool.buffer(httpQueueSlot);
+                final HttpQueueEntryFW queueEntry = queueEntryRO.wrap(httpQueueBuffer, httpQueueSlotOffset, httpQueueSlotLimit);
+                final int streamId = queueEntry.streamId();
+                final long traceId = queueEntry.traceId();
+                final long authorization = queueEntry.authorization();
+                final HttpExchange httpExchange = exchanges.get(streamId);
+                HttpClient client = null;
+
+                if (httpExchange != null)
+                {
+                    final HttpEncoder encoder = httpExchange.client.encoder;
+                    client = encoder == HttpEncoder.HTTP_2 ||
+                            encoder == HttpEncoder.HTTP_1_1 && httpExchange.client.exchange == null ||
+                            encoder == HttpEncoder.H2C ?
+                            httpExchange.client : pool.supplyClient(httpExchange.client.scheme, httpExchange.client.authority);
+
+                    if (client != null)
+                    {
+                        httpExchange.doRequestBegin(traceId, authorization, queueEntry.value());
+                    }
+                    else
+                    {
+                        httpExchange.doResponseAbort(traceId, authorization, EMPTY_OCTETS);
+                    }
+                }
+                httpQueueSlotOffset += queueEntry.sizeof();
+
+                if (client != null && client.encoder == HttpEncoder.H2C)
+                {
+                    break dequeue;
+                }
+            }
+
+            cleanupQueueSlotIfNecessary();
+        }
+
+        private void cleanupQueueSlotIfNecessary()
+        {
+            if (httpQueueSlot != NO_SLOT && httpQueueSlotOffset == httpQueueSlotLimit)
+            {
+                bufferPool.release(httpQueueSlot);
+                httpQueueSlot = NO_SLOT;
+                httpQueueSlotOffset = 0;
+                httpQueueSlotLimit = 0;
+            }
+        }
+
+        private void acquireQueueSlotIfNecessary()
+        {
+            if (httpQueueSlot == NO_SLOT)
+            {
+                httpQueueSlot = bufferPool.acquire(routedId);
+            }
+        }
+
+        private int availableSlotSize()
+        {
+            return bufferPool.slotCapacity() - httpQueueSlotLimit;
+        }
+
         private void cleanup(
             long traceId,
             long authorization,
@@ -4442,7 +4501,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             long authorization)
         {
             int remaining = config.concurrentStreamsCleanup();
-            for (Iterator<HttpExchange> iterator = pool.exchanges.values().iterator();
+            for (Iterator<HttpExchange> iterator = exchanges.values().iterator();
                     iterator.hasNext() && remaining > 0; remaining--)
             {
                 final HttpExchange stream = iterator.next();
@@ -4451,6 +4510,8 @@ public final class HttpClientFactory implements HttpStreamFactory
                     stream.cleanup(traceId, authorization);
                 }
             }
+
+            cleanupQueueSlotIfNecessary();
 
             cleanupHandler.accept(traceId, authorization);
         }
@@ -4676,9 +4737,9 @@ public final class HttpClientFactory implements HttpStreamFactory
                 }
                 else
                 {
-                    client.pool.acquireQueueSlotIfNecessary();
-                    final MutableDirectBuffer httpQueueBuffer = bufferPool.buffer(client.pool.httpQueueSlot);
-                    final int headerSlotLimit = client.pool.httpQueueSlotLimit;
+                    client.acquireQueueSlotIfNecessary();
+                    final MutableDirectBuffer httpQueueBuffer = bufferPool.buffer(client.httpQueueSlot);
+                    final int headerSlotLimit = client.httpQueueSlotLimit;
                     final HttpQueueEntryFW queueEntry = queueEntryRW
                             .wrap(httpQueueBuffer, headerSlotLimit, httpQueueBuffer.capacity())
                             .streamId(streamId)
@@ -4687,7 +4748,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                             .value(beginEx.buffer(), beginEx.offset(), beginEx.sizeof())
                             .build();
 
-                    client.pool.httpQueueSlotLimit += queueEntry.sizeof();
+                    client.httpQueueSlotLimit += queueEntry.sizeof();
                 }
             }
 
@@ -5037,11 +5098,11 @@ public final class HttpClientFactory implements HttpStreamFactory
 
         private void onExchangeClosed()
         {
-            final HttpExchange exchange = this.client.pool.exchanges.remove(streamId);
+            final HttpExchange exchange = this.client.exchanges.remove(streamId);
             if (exchange != null)
             {
                 client.exchange = null;
-                client.pool.flushNext();
+                client.flushNext();
             }
         }
 

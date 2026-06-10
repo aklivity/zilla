@@ -1,0 +1,36 @@
+[
+    {
+        "op": "add",
+        "path": "/$defs/guard/properties/type/enum/-",
+        "value": "identity"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/guard/allOf/-",
+        "value":
+        {
+            "if":
+            {
+               "properties":
+                {
+                    "type":
+                    {
+                        "const": "identity"
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "type":
+                    {
+                        "const": "identity"
+                    },
+                    "options": false
+                },
+                "additionalProperties": false
+            }
+        }
+    }
+]

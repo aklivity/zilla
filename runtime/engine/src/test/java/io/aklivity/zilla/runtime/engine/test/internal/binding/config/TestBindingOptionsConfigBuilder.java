@@ -92,6 +92,32 @@ public final class TestBindingOptionsConfigBuilder<T> extends ConfigBuilder<T, T
         return this;
     }
 
+    public TestBindingOptionsConfigBuilder<T> authorization(
+        String name,
+        String credentials,
+        String callback,
+        Map<String, String> callbackParams,
+        Map<String, String> attributes)
+    {
+        this.authorization = new TestAuthorizationConfig(
+            name, credentials, callback, callbackParams, null, null, attributes);
+        return this;
+    }
+
+    public TestBindingOptionsConfigBuilder<T> authorization(
+        String name,
+        String credentials,
+        String callback,
+        Map<String, String> callbackParams,
+        String expectIdentity,
+        String expectCredentials,
+        Map<String, String> attributes)
+    {
+        this.authorization = new TestAuthorizationConfig(
+            name, credentials, callback, callbackParams, expectIdentity, expectCredentials, attributes);
+        return this;
+    }
+
     public TestBindingOptionsConfigBuilder<T> event(
         long timestamp,
         String message)

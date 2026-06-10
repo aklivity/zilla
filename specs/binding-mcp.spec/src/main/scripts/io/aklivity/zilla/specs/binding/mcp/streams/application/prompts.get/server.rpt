@@ -14,17 +14,18 @@
 #
 
 property serverAddress "zilla://streams/app0"
+property authorization 0L
 
 accept ${serverAddress}
        option zilla:window 8192
        option zilla:transmission "half-duplex"
+       option zilla:authorization ${authorization}
 
 accepted
 
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .lifecycle()
-                              .sessionId("session-1")
                               .build()
                           .build()}
 
@@ -45,13 +46,13 @@ read zilla:begin.ext ${mcp:matchBeginEx()
                           .promptsGet()
                               .sessionId("session-1")
                               .name("weather_prompt")
+                              .contentLength(25)
                               .build()
                           .build()}
 
 connected
 
 read  '{"name":"weather_prompt"}'
-read closed
 
 write flush
 
@@ -59,3 +60,5 @@ write '{"messages":[{"role":"user","content":{"type":"text","text":"What is the 
 write flush
 
 write close
+
+read closed

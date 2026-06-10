@@ -19,10 +19,14 @@ import static io.aklivity.zilla.runtime.engine.test.internal.guard.config.TestGu
 import static io.aklivity.zilla.runtime.engine.test.internal.guard.config.TestGuardOptionsConfigBuilder.DEFAULT_IDENTITY;
 import static io.aklivity.zilla.runtime.engine.test.internal.guard.config.TestGuardOptionsConfigBuilder.DEFAULT_LIFETIME_FOREVER;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.agrona.collections.Long2LongHashMap;
 import org.agrona.collections.MutableLong;
@@ -31,12 +35,16 @@ import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
 public final class TestGuardHandler implements GuardHandler
 {
+    private static final String REDIRECT_URI_PLACEHOLDER = "replace.me";
+    private static final Pattern REDIRECT_URI_PARAM_PATTERN = Pattern.compile("redirect_uri=[^&]*");
+
     private final String credentials;
     private final Duration challenge;
     private final Duration lifetime;
     private final String identity;
     private final List<String> roles;
     private final Map<String, String> attributes;
+    private final String preauthorize;
 
     private final Long2LongHashMap sessions;
     private final MutableLong nextSessionId;
@@ -49,6 +57,7 @@ public final class TestGuardHandler implements GuardHandler
         this.challenge = config.options != null ? config.options.challenge : DEFAULT_CHALLENGE_NEVER;
         this.identity = config.options != null ? config.options.identity : DEFAULT_IDENTITY;
         this.roles = config.options != null ? config.options.roles : null;
+        this.preauthorize = config.options != null ? config.options.preauthorize : null;
         this.sessions = new Long2LongHashMap(-1L);
         this.nextSessionId = new MutableLong(1L);
         this.attributes = config.options != null ? config.options.attributes : null;
@@ -61,18 +70,54 @@ public final class TestGuardHandler implements GuardHandler
         long contextId,
         String credentials)
     {
-        long sessionId = 0L;
+        long sessionId = NOT_AUTHORIZED;
 
         if (this.credentials != null && this.credentials.equals(credentials))
         {
-            long expiresAt = DEFAULT_LIFETIME_FOREVER.equals(lifetime)
-                    ? EXPIRES_NEVER
-                    : Instant.now().toEpochMilli() + lifetime.toMillis();
-
-            sessionId = nextSessionId.value++;
-            sessions.put(sessionId, expiresAt);
+            sessionId = createSession();
+        }
+        else if (preauthorize != null)
+        {
+            if (credentials == null)
+            {
+                sessionId = NEEDS_PREAUTHORIZE;
+            }
+            else if (credentials.contains("code="))
+            {
+                sessionId = createSession();
+            }
         }
 
+        return sessionId;
+    }
+
+    @Override
+    public String preauthorize(
+        long traceId,
+        long bindingId,
+        long contextId,
+        String callback)
+    {
+        String result = preauthorize;
+
+        if (result != null && callback != null && result.contains(REDIRECT_URI_PLACEHOLDER))
+        {
+            final String encodedCallback = URLEncoder.encode(callback, StandardCharsets.UTF_8);
+            result = REDIRECT_URI_PARAM_PATTERN.matcher(result)
+                .replaceFirst(Matcher.quoteReplacement("redirect_uri=" + encodedCallback));
+        }
+
+        return result;
+    }
+
+    private long createSession()
+    {
+        long expiresAt = DEFAULT_LIFETIME_FOREVER.equals(lifetime)
+                ? EXPIRES_NEVER
+                : Instant.now().toEpochMilli() + lifetime.toMillis();
+
+        long sessionId = nextSessionId.value++;
+        sessions.put(sessionId, expiresAt);
         return sessionId;
     }
 

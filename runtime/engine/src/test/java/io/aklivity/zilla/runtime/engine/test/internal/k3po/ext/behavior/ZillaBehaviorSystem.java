@@ -21,9 +21,11 @@ import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.Z
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.ZillaExtensionKind.DATA;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.ZillaExtensionKind.END;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.ZillaExtensionKind.FLUSH;
+import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.ZillaExtensionKind.REDIRECT;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.ZillaExtensionKind.RESET;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.ADVISORY_CHALLENGE;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.ADVISORY_FLUSH;
+import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.ADVISORY_REDIRECT;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.CONFIG_ABORT_EXT;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.CONFIG_BEGIN_EXT;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.CONFIG_DATA_EMPTY;
@@ -145,10 +147,12 @@ public class ZillaBehaviorSystem implements BehaviorSystemSpi
 
         Map<StructuredTypeInfo, ReadAdviseFactory> readAdviseFactories = new LinkedHashMap<>();
         readAdviseFactories.put(ADVISORY_CHALLENGE, ZillaBehaviorSystem::newReadAdviseChallengeHandler);
+        readAdviseFactories.put(ADVISORY_REDIRECT, ZillaBehaviorSystem::newReadAdviseRedirectHandler);
         this.readAdviseFactories = unmodifiableMap(readAdviseFactories);
 
         Map<StructuredTypeInfo, WriteAdvisedFactory> writeAdvisedFactories = new LinkedHashMap<>();
         writeAdvisedFactories.put(ADVISORY_CHALLENGE, ZillaBehaviorSystem::newWriteAdvisedChallengeHandler);
+        writeAdvisedFactories.put(ADVISORY_REDIRECT, ZillaBehaviorSystem::newWriteAdvisedRedirectHandler);
         this.writeAdvisedFactories = unmodifiableMap(writeAdvisedFactories);
 
         Map<StructuredTypeInfo, WriteAdviseFactory> writeAdviseFactories = new LinkedHashMap<>();
@@ -501,6 +505,33 @@ public class ZillaBehaviorSystem implements BehaviorSystemSpi
 
         ChannelDecoder decoder = new ZillaExtensionDecoder(CHALLENGE, type, decoders);
         WriteAdvisedHandler handler = new WriteAdvisedHandler(ADVISORY_CHALLENGE, decoder);
+        handler.setRegionInfo(regionInfo);
+        return handler;
+    }
+
+    private static ReadAdviseHandler newReadAdviseRedirectHandler(
+        AstReadAdviseNode node,
+        Function<AstValue<?>, MessageEncoder> encoderFactory)
+    {
+        StructuredTypeInfo type = node.getType();
+        List<MessageEncoder> encoders = node.getValues().stream().map(encoderFactory).collect(toList());
+
+        ChannelEncoder encoder = new ZillaExtensionEncoder(REDIRECT, type, encoders);
+        ReadAdviseHandler handler = new ReadAdviseHandler(ADVISORY_REDIRECT, encoder);
+        handler.setRegionInfo(node.getRegionInfo());
+        return handler;
+    }
+
+    private static WriteAdvisedHandler newWriteAdvisedRedirectHandler(
+        AstWriteAdvisedNode node,
+        Function<AstValueMatcher, MessageDecoder> decoderFactory)
+    {
+        RegionInfo regionInfo = node.getRegionInfo();
+        StructuredTypeInfo type = node.getType();
+        List<MessageDecoder> decoders = node.getMatchers().stream().map(decoderFactory).collect(toList());
+
+        ChannelDecoder decoder = new ZillaExtensionDecoder(REDIRECT, type, decoders);
+        WriteAdvisedHandler handler = new WriteAdvisedHandler(ADVISORY_REDIRECT, decoder);
         handler.setRegionInfo(regionInfo);
         return handler;
     }

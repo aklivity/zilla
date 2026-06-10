@@ -48,7 +48,7 @@ public class KarapaceOptionsConfigAdapterTest
         String text =
                 "{" +
                     "\"url\": \"http://localhost:8081\"," +
-                    "\"context\": \"default\"," +
+                    "\"context\": \"default\"" +
                 "}";
 
         KarapaceOptionsConfig catalog = jsonb.fromJson(text, KarapaceOptionsConfig.class);

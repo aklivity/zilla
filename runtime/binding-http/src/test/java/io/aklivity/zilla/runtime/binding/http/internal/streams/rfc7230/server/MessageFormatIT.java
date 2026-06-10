@@ -94,6 +94,26 @@ public class MessageFormatIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/response.with.alt.svc.placeholder/client",
+        "${app}/response.with.alt.svc.placeholder/server" })
+    public void responseWithAltSvcPlaceholder() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/response.with.alt.svc.explicit/client",
+        "${app}/response.with.alt.svc.explicit/server" })
+    public void responseWithAltSvcExplicit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/invalid.request.whitespace.after.start.line/client"})
     public void invalidRequestWhitespaceAfterStartLine() throws Exception
     {

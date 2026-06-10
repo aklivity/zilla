@@ -109,6 +109,38 @@ public interface EngineContext
         long bindingId);
 
     /**
+     * Allocates a new initial (inbound) stream id for the given binding, selecting
+     * a deterministic worker by {@code Math.floorMod(hash, mask.cardinality())}
+     * over the binding's affinity mask. Used to pin per-key application streams to
+     * a specific worker so per-worker session state remains valid across requests
+     * for the same logical key.
+     *
+     * @param bindingId  the binding id to associate with the new stream
+     * @param hash       opaque integer hash of the affinity key; same hash yields
+     *                   the same worker for a given binding affinity mask
+     * @return a new unique initial stream id pinned to the worker selected by hash
+     */
+    long supplyInitialId(
+        long bindingId,
+        int hash);
+
+    /**
+     * Returns {@code true} if hash-based affinity for the given binding and {@code hash}
+     * selects this thread, {@code false} otherwise. Equivalent to checking whether
+     * {@link #supplyInitialId(long, int)} with the same arguments would pin a stream to
+     * this thread, but without allocating a stream id. The selection is deterministic:
+     * {@code Math.floorMod(hash, mask.cardinality())} over the binding's affinity mask.
+     *
+     * @param bindingId  the binding id whose affinity mask to consult
+     * @param hash       opaque integer hash; same hash yields the same result for a
+     *                   given binding affinity mask
+     * @return {@code true} if hash maps to this thread; otherwise {@code false}
+     */
+    boolean isLocalIndex(
+        long bindingId,
+        int hash);
+
+    /**
      * Returns the reply (outbound) stream id paired with the given initial stream id.
      *
      * @param initialId  the initial stream id

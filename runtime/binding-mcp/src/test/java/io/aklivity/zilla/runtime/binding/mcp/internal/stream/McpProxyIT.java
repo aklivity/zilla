@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_SESSION_ID_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -40,6 +41,7 @@ public class McpProxyIT
         .directory("target/zilla-itests")
         .countersBufferCapacity(8192)
         .configurationRoot("io/aklivity/zilla/specs/binding/mcp/config")
+        .configure(MCP_SESSION_ID_NAME, "%s::sessionId".formatted(McpProxyIT.class.getName()))
         .external("app1")
         .external("app2")
         .clean();
@@ -50,7 +52,9 @@ public class McpProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Specification({
-        "${app}/lifecycle.initialize/client" })
+        "${app}/lifecycle.initialize/client",
+        "${app}/lifecycle.initialize/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldInitializeLifecycle() throws Exception
     {
         k3po.finish();
@@ -59,7 +63,9 @@ public class McpProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Specification({
-        "${app}/lifecycle.shutdown/client" })
+        "${app}/lifecycle.shutdown/client",
+        "${app}/lifecycle.shutdown/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldShutdownLifecycle() throws Exception
     {
         k3po.finish();
@@ -90,6 +96,17 @@ public class McpProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Specification({
+        "${app}/tools.call.is.error/client",
+        "${app}/tools.call.is.error/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldCallToolIsError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
         "${app}/tools.call.aborted/client",
         "${app}/tools.call.aborted/server" })
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
@@ -101,9 +118,21 @@ public class McpProxyIT
     @Test
     @Configuration("proxy.toolkit.yaml")
     @Specification({
-        "${app}/tools.call.toolkit/client",
+        "${app}/tools.call.toolkit.prefixed/client",
         "${app}/tools.call.toolkit/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldCallToolWithToolkit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.toolkit.filter.yaml")
+    @Specification({
+        "${app}/tools.call.toolkit.reject.unauthorized/client",
+        "${app}/tools.call.toolkit.reject.unauthorized/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldRejectUnauthorizedToolCallWithToolkit() throws Exception
     {
         k3po.finish();
     }
@@ -122,9 +151,21 @@ public class McpProxyIT
     @Test
     @Configuration("proxy.toolkit.yaml")
     @Specification({
-        "${app}/tools.list.toolkit/client",
+        "${app}/tools.list.toolkit.prefixed/client",
         "${app}/tools.list.toolkit/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldListToolsWithToolkit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.toolkit.filter.yaml")
+    @Specification({
+        "${app}/tools.list.toolkit.filtered/client",
+        "${app}/tools.list.toolkit.filtered/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldListToolsFilteredByAllowSet() throws Exception
     {
         k3po.finish();
     }
@@ -132,9 +173,89 @@ public class McpProxyIT
     @Test
     @Configuration("proxy.toolkit.multi.yaml")
     @Specification({
-        "${app}/tools.list.toolkit.multi/client",
+        "${app}/tools.list.toolkit.multi.prefixed/client",
         "${app}/tools.list.toolkit.multi/server" })
     public void shouldListToolsWithToolkitMulti() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.toolkit.multi.yaml")
+    @Specification({
+        "${app}/lifecycle.initialize.skip.bearer.toolkit.multi/client",
+        "${app}/lifecycle.initialize.skip.bearer.toolkit.multi/server" })
+    public void shouldInitializeLifecyclePartialSkippingBearerRejectedToolkitMulti() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.toolkit.multi.yaml")
+    @Specification({
+        "${app}/lifecycle.notify.tools.list.changed.toolkit.multi.prefixed/client",
+        "${app}/lifecycle.notify.tools.list.changed.toolkit.multi/server" })
+    public void shouldNotifyToolsListChangedWithAggregateEventId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.toolkit.multi.yaml")
+    @Specification({
+        "${app}/lifecycle.initialize.partial.toolkit.multi/client",
+        "${app}/lifecycle.initialize.partial.toolkit.multi/server" })
+    public void shouldInitializeLifecyclePartialToolkitMulti() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.toolkit.multi.yaml")
+    @Specification({
+        "${app}/lifecycle.elicit.toolkit.multi/client",
+        "${app}/lifecycle.elicit.toolkit.multi/server" })
+    public void shouldRouteElicitCallbackToToolkit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.toolkit.multi.yaml")
+    @Specification({
+        "${app}/tools.list.partial.toolkit.multi.prefixed/client",
+        "${app}/tools.list.partial.toolkit.multi/server" })
+    public void shouldListToolsWithPartialToolkitMulti() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.toolkit.multi.yaml")
+    @Specification({
+        "${app}/lifecycle.notify.tools.list.changed.after.authorize.toolkit.multi.prefixed/client",
+        "${app}/lifecycle.notify.tools.list.changed.after.authorize.toolkit.multi/server" })
+    public void shouldNotifyToolsListChangedAfterAuthorizeToolkitMulti() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.toolkit.multi.yaml")
+    @Specification({
+        "${app}/lifecycle.events.resume.aggregate.prefixed/client",
+        "${app}/lifecycle.events.resume.aggregate/server" })
+    public void shouldResumeLifecycleEventsAggregate() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.toolkit.multi.yaml")
+    @Specification({
+        "${app}/lifecycle.events.resume.partial.prefixed/client",
+        "${app}/lifecycle.events.resume.partial.prefixed/server" })
+    public void shouldResumeLifecycleEventsPartial() throws Exception
     {
         k3po.finish();
     }
@@ -153,8 +274,9 @@ public class McpProxyIT
     @Test
     @Configuration("proxy.toolkit.yaml")
     @Specification({
-        "${app}/prompts.get.toolkit/client",
+        "${app}/prompts.get.toolkit.prefixed/client",
         "${app}/prompts.get.toolkit/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldGetPromptWithToolkit() throws Exception
     {
         k3po.finish();
@@ -174,8 +296,9 @@ public class McpProxyIT
     @Test
     @Configuration("proxy.toolkit.yaml")
     @Specification({
-        "${app}/prompts.list.toolkit/client",
+        "${app}/prompts.list.toolkit.prefixed/client",
         "${app}/prompts.list.toolkit/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldListPromptsWithToolkit() throws Exception
     {
         k3po.finish();
@@ -184,7 +307,7 @@ public class McpProxyIT
     @Test
     @Configuration("proxy.toolkit.multi.yaml")
     @Specification({
-        "${app}/prompts.list.toolkit.multi/client",
+        "${app}/prompts.list.toolkit.multi.prefixed/client",
         "${app}/prompts.list.toolkit.multi/server" })
     public void shouldListPromptsWithToolkitMulti() throws Exception
     {
@@ -205,8 +328,9 @@ public class McpProxyIT
     @Test
     @Configuration("proxy.toolkit.yaml")
     @Specification({
-        "${app}/resources.read.toolkit/client",
+        "${app}/resources.read.toolkit.prefixed/client",
         "${app}/resources.read.toolkit/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldReadResourceWithToolkit() throws Exception
     {
         k3po.finish();
@@ -226,8 +350,9 @@ public class McpProxyIT
     @Test
     @Configuration("proxy.toolkit.yaml")
     @Specification({
-        "${app}/resources.list.toolkit/client",
+        "${app}/resources.list.toolkit.prefixed/client",
         "${app}/resources.list.toolkit/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldListResourcesWithToolkit() throws Exception
     {
         k3po.finish();
@@ -236,7 +361,7 @@ public class McpProxyIT
     @Test
     @Configuration("proxy.toolkit.multi.yaml")
     @Specification({
-        "${app}/resources.list.toolkit.multi/client",
+        "${app}/resources.list.toolkit.multi.prefixed/client",
         "${app}/resources.list.toolkit.multi/server" })
     public void shouldListResourcesWithToolkitMulti() throws Exception
     {
@@ -367,8 +492,9 @@ public class McpProxyIT
     @Test
     @Configuration("proxy.toolkit.yaml")
     @Specification({
-        "${app}/tools.call.toolkit.with.progress/client",
+        "${app}/tools.call.toolkit.with.progress.prefixed/client",
         "${app}/tools.call.toolkit.with.progress/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldCallToolWithToolkitWithProgress() throws Exception
     {
         k3po.finish();
@@ -438,5 +564,54 @@ public class McpProxyIT
     public void shouldGetPromptWith100kMessageWithProgress() throws Exception
     {
         k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${app}/tools.call.elicit.completed.proxied/client",
+        "${app}/tools.call.elicit.completed.proxied/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldCallToolElicitCompletedProxied() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${app}/lifecycle.elicit.completed/client",
+        "${app}/lifecycle.elicit.completed/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldCompleteLifecycleElicit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${app}/tools.call.elicit.declined.proxied/client",
+        "${app}/tools.call.elicit.declined.proxied/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldCallToolElicitDeclinedProxied() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${app}/tools.call.elicit.timeout.proxied/client",
+        "${app}/tools.call.elicit.timeout.proxied/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldCallToolElicitTimeoutProxied() throws Exception
+    {
+        k3po.finish();
+    }
+
+    public static String sessionId()
+    {
+        return "session-1";
     }
 }

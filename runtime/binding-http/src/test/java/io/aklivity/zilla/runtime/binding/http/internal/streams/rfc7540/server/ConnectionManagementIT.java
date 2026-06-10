@@ -269,6 +269,17 @@ public class ConnectionManagementIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/client.close.during.response/client",
+        "${app}/client.close.during.response/server"
+    })
+    public void shouldResetResponseWhenClientClosesDuringResponse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/server.sent.read.abort.on.open.request/client",
         "${app}/server.sent.read.abort.on.open.request/server"
     })

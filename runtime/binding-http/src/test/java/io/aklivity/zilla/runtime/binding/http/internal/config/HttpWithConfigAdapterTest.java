@@ -26,7 +26,9 @@ import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
 
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpWithConfig;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String16FW;
@@ -34,6 +36,9 @@ import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
 
 public class HttpWithConfigAdapterTest
 {
+    @Rule
+    public final ExpectedException thrown = ExpectedException.none();
+
     private Jsonb jsonb;
 
     @Before

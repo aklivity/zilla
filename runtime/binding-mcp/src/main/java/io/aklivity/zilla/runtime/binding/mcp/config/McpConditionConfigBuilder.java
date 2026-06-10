@@ -26,6 +26,9 @@ public final class McpConditionConfigBuilder<T> extends ConfigBuilder<T, McpCond
 
     private String toolkit;
     private List<String> capability;
+    private List<String> tools;
+    private List<String> prompts;
+    private List<String> resources;
 
     public McpConditionConfigBuilder(
         Function<ConditionConfig, T> mapper)
@@ -47,6 +50,27 @@ public final class McpConditionConfigBuilder<T> extends ConfigBuilder<T, McpCond
         return this;
     }
 
+    public McpConditionConfigBuilder<T> tools(
+        List<String> tools)
+    {
+        this.tools = tools;
+        return this;
+    }
+
+    public McpConditionConfigBuilder<T> prompts(
+        List<String> prompts)
+    {
+        this.prompts = prompts;
+        return this;
+    }
+
+    public McpConditionConfigBuilder<T> resources(
+        List<String> resources)
+    {
+        this.resources = resources;
+        return this;
+    }
+
     @Override
     @SuppressWarnings("unchecked")
     protected Class<McpConditionConfigBuilder<T>> thisType()
@@ -57,6 +81,6 @@ public final class McpConditionConfigBuilder<T> extends ConfigBuilder<T, McpCond
     @Override
     public T build()
     {
-        return mapper.apply(new McpConditionConfig(toolkit, capability));
+        return mapper.apply(new McpConditionConfig(toolkit, capability, tools, prompts, resources));
     }
 }

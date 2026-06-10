@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.CountDownLatch;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
@@ -59,6 +60,7 @@ public class EngineBoss implements EngineController, Agent
     private final Map<String, BindingController> controllersByType;
     private final int maxSelectMillis;
     private final int maxIdleCount;
+    private final CountDownLatch started = new CountDownLatch(1);
 
     private volatile Thread thread;
     private Set<NamespaceConfig> namespaces;
@@ -129,6 +131,22 @@ public class EngineBoss implements EngineController, Agent
     public void doStart()
     {
         thread = startOnThread(runner, Thread::new);
+
+        try
+        {
+            started.await();
+        }
+        catch (InterruptedException ex)
+        {
+            Thread.currentThread().interrupt();
+            rethrowUnchecked(ex);
+        }
+    }
+
+    @Override
+    public void onStart()
+    {
+        started.countDown();
     }
 
     public void doClose()

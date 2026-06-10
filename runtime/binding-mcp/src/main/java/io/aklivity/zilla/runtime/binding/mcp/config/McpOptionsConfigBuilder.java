@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.config;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
@@ -25,7 +23,10 @@ public final class McpOptionsConfigBuilder<T> extends ConfigBuilder<T, McpOption
 {
     private final Function<OptionsConfig, T> mapper;
 
-    private List<McpPromptConfig> prompts;
+    private McpElicitationConfig elicitation;
+    private McpAuthorizationConfig authorization;
+    private McpCacheConfig cache;
+    private String server;
 
     public McpOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
@@ -33,15 +34,46 @@ public final class McpOptionsConfigBuilder<T> extends ConfigBuilder<T, McpOption
         this.mapper = mapper;
     }
 
-    public McpOptionsConfigBuilder<T> prompt(
-        String name,
-        String description)
+    public McpOptionsConfigBuilder<T> elicitation(
+        McpElicitationConfig elicitation)
     {
-        if (prompts == null)
-        {
-            prompts = new ArrayList<>();
-        }
-        prompts.add(new McpPromptConfig(name, description));
+        this.elicitation = elicitation;
+        return this;
+    }
+
+    public McpElicitationConfigBuilder<McpOptionsConfigBuilder<T>> elicitation()
+    {
+        return McpElicitationConfig.builder(this::elicitation);
+    }
+
+    public McpOptionsConfigBuilder<T> authorization(
+        McpAuthorizationConfig authorization)
+    {
+        this.authorization = authorization;
+        return this;
+    }
+
+    public McpAuthorizationConfigBuilder<McpOptionsConfigBuilder<T>> authorization()
+    {
+        return McpAuthorizationConfig.builder(this::authorization);
+    }
+
+    public McpOptionsConfigBuilder<T> cache(
+        McpCacheConfig cache)
+    {
+        this.cache = cache;
+        return this;
+    }
+
+    public McpCacheConfigBuilder<McpOptionsConfigBuilder<T>> cache()
+    {
+        return McpCacheConfig.builder(this::cache);
+    }
+
+    public McpOptionsConfigBuilder<T> server(
+        String server)
+    {
+        this.server = server;
         return this;
     }
 
@@ -55,6 +87,6 @@ public final class McpOptionsConfigBuilder<T> extends ConfigBuilder<T, McpOption
     @Override
     public T build()
     {
-        return mapper.apply(new McpOptionsConfig(prompts));
+        return mapper.apply(new McpOptionsConfig(elicitation, authorization, cache, server));
     }
 }

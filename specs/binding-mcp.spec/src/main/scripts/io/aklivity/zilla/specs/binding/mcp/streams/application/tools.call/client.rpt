@@ -13,14 +13,16 @@
 # specific language governing permissions and limitations under the License.
 #
 
+property authorization 0L
+
 connect "zilla://streams/app0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
+        option zilla:authorization ${authorization}
 
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .lifecycle()
-                               .sessionId("session-1")
                                .build()
                            .build()}
 
@@ -39,12 +41,14 @@ connect await LIFECYCLE_INITIALIZED
         "zilla://streams/app0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
+        option zilla:authorization ${authorization}
 
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .toolsCall()
                                .sessionId("session-1")
                                .name("get_weather")
+                               .contentLength(59)
                                .build()
                            .build()}
 
@@ -57,7 +61,6 @@ write '{'
           '"location": "New York"'
         '}'
       '}'
-write close
 
 read  '{'
         '"content":'
@@ -70,3 +73,5 @@ read  '{'
         '"isError": false'
       '}'
 read closed
+
+write close

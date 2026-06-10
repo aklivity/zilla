@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.engine.internal;
 
 import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_LOCAL_CONFIG_URI_NAME;
+import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_ROUTER_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -65,6 +66,17 @@ public class EngineIT
         "${net}/handshake/client",
         "${app}/handshake/server"})
     public void shouldHandshakeWithEngineLocalConfig() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_ROUTER_NAME, value = "test")
+    @Specification({
+        "${net}/handshake/client",
+        "${app}/handshake/server"})
+    public void shouldHandshakeWithRouter() throws Exception
     {
         k3po.finish();
     }

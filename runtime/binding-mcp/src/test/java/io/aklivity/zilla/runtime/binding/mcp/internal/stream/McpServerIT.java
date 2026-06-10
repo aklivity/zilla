@@ -16,6 +16,8 @@ package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.ENGINE_DETACH_ON_CLOSE_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.ENGINE_SYNTHETIC_ABORT_NAME;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_ALT_SVC_ENABLED_NAME;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_ELICITATION_ID_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_INACTIVITY_TIMEOUT_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_SERVER_NAME_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_SERVER_VERSION_NAME;
@@ -24,6 +26,7 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTes
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -38,6 +41,8 @@ import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 public class McpServerIT
 {
+    private static final String ENGINE_WORKERS_NAME = "zilla.engine.workers";
+
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("net", "io/aklivity/zilla/specs/binding/mcp/streams/network")
         .addScriptRoot("app", "io/aklivity/zilla/specs/binding/mcp/streams/application");
@@ -49,6 +54,7 @@ public class McpServerIT
         .countersBufferCapacity(8192)
         .configurationRoot("io/aklivity/zilla/specs/binding/mcp/config")
         .configure(MCP_SESSION_ID_NAME, "%s::sessionId".formatted(McpServerIT.class.getName()))
+        .configure(MCP_ELICITATION_ID_NAME, "%s::elicitationId".formatted(McpServerIT.class.getName()))
         .configure(MCP_SERVER_NAME_NAME, "zilla")
         .configure(MCP_SERVER_VERSION_NAME, "1.0")
         .external("app0")
@@ -70,7 +76,79 @@ public class McpServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/lifecycle.ping/client"})
+        "${net}/lifecycle.initialize.elicitation.url/client",
+        "${app}/lifecycle.initialize.elicitation.url/server"})
+    public void shouldInitializeLifecycleWithElicitationUrl() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/lifecycle.initialize.elicitation.form/client",
+        "${app}/lifecycle.initialize.elicitation.form/server"})
+    public void shouldInitializeLifecycleWithElicitationForm() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/lifecycle.initialize.negotiate/client",
+        "${app}/lifecycle.initialize/server"})
+    public void shouldNegotiateLifecycleInitializeVersion() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/lifecycle.initialize.reject.bearer/client",
+        "${app}/lifecycle.initialize.reject.bearer/server"})
+    public void shouldRejectLifecycleInitializeWithBearerChallenge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/lifecycle.initialize.reject.bearer.resource.metadata/client",
+        "${app}/lifecycle.initialize.reject.bearer.resource.metadata/server"})
+    public void shouldRejectLifecycleInitializeWithBearerChallengeResourceMetadata() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/tools.call.reject.bearer/client",
+        "${app}/tools.call.reject.bearer/server"})
+    public void shouldRejectToolsCallWithBearerChallenge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/lifecycle.initialize.alt.svc/client",
+        "${app}/lifecycle.initialize.alt.svc/server"})
+    @Configure(name = MCP_ALT_SVC_ENABLED_NAME, value = "true")
+    public void shouldInitializeLifecycleAltSvc() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/lifecycle.ping/client",
+        "${app}/lifecycle.initialize/server"})
     public void shouldPingLifecycle() throws Exception
     {
         k3po.finish();
@@ -112,9 +190,29 @@ public class McpServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/reject.request.method.before.id/client",
-        "${app}/reject.request.method.before.id/server"})
-    public void shouldRejectRequestMethodBeforeId() throws Exception
+        "${net}/lifecycle.initialize.id.last/client",
+        "${app}/lifecycle.initialize/server"})
+    public void shouldInitializeLifecycleWithIdLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/tools.list.id.last/client",
+        "${app}/tools.list/server"})
+    public void shouldListToolsWithIdLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/lifecycle.ping.id.last/client",
+        "${app}/lifecycle.initialize/server"})
+    public void shouldPingLifecycleWithIdLast() throws Exception
     {
         k3po.finish();
     }
@@ -135,6 +233,16 @@ public class McpServerIT
         "${net}/reject.request.params.array/client",
         "${app}/reject.request.params.array/server"})
     public void shouldRejectRequestParamsWithArray() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/reject.tools.call.without.content.length/client",
+        "${app}/reject.tools.call.without.content.length/server"})
+    public void shouldRejectToolsCallWithoutContentLength() throws Exception
     {
         k3po.finish();
     }
@@ -185,6 +293,137 @@ public class McpServerIT
         "${net}/tools.call/client",
         "${app}/tools.call/server"})
     public void shouldCallTool() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.timeout.yaml")
+    @Specification({
+        "${net}/tools.call.timeout/client",
+        "${app}/tools.call.timeout/server"})
+    public void shouldCallToolWithTimeout() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.timeout.yaml")
+    @Specification({
+        "${net}/tools.call/client",
+        "${app}/tools.call.resumable/server"})
+    public void shouldCallToolWithUpstreamResumableFlush() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.timeout.yaml")
+    @Specification({
+        "${net}/tools.call.elicit.completed/client",
+        "${app}/tools.call.elicit.completed/server"})
+    public void shouldCallToolElicitCompleted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.timeout.yaml")
+    @Specification({
+        "${net}/tools.call.elicit.after.result/client",
+        "${app}/tools.call.elicit.after.result/server"})
+    public void shouldCallToolElicitAfterResult() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.timeout.yaml")
+    @Specification({
+        "${net}/tools.call.elicit.deferred/client",
+        "${app}/tools.call.elicit.deferred/server"})
+    public void shouldCallToolElicitDeferred() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Ignore("broker OAuth-callback elicit (context/elicitCallback) pending dedicated broker net scripts; see issue #1810")
+    @Test
+    @Configuration("server.timeout.yaml")
+    @Specification({
+        "${net}/tools.call.elicit.completed/client",
+        "${app}/tools.call.elicit.completed.context/server"})
+    public void shouldCallToolElicitCompletedWithContext() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.timeout.yaml")
+    @Specification({
+        "${net}/lifecycle.elicit.toolkit/client",
+        "${app}/lifecycle.elicit.toolkit/server"})
+    public void shouldRouteLifecycleElicitToolkitCallback() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.timeout.yaml")
+    @Specification({
+        "${net}/lifecycle.elicit.completed/client",
+        "${app}/lifecycle.elicit.completed/server"})
+    public void shouldCompleteLifecycleElicit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.timeout.yaml")
+    @Specification({
+        "${net}/lifecycle.elicit.toolkit.replay/client",
+        "${app}/lifecycle.elicit.toolkit.replay/server"})
+    public void shouldRejectReplayedLifecycleElicitToolkitCallback() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.timeout.yaml")
+    @Specification({
+        "${net}/tools.call.elicit.passthrough/client",
+        "${app}/tools.call.elicit.passthrough/server"})
+    public void shouldCallToolElicitPassthrough() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.timeout.yaml")
+    @Specification({
+        "${net}/tools.call.elicit.declined/client",
+        "${app}/tools.call.elicit.declined/server"})
+    public void shouldCallToolElicitDeclined() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.timeout.yaml")
+    @Specification({
+        "${net}/tools.call.elicit.timeout/client",
+        "${app}/tools.call.elicit.timeout/server"})
+    public void shouldCallToolElicitTimeout() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/tools.call.elicit.reject/client",
+        "${app}/tools.call.elicit.reject/server"})
+    public void shouldRejectToolsCallElicitUrlRequired() throws Exception
     {
         k3po.finish();
     }
@@ -272,6 +511,16 @@ public class McpServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/notifications.cancelled.unknown/client",
+        "${app}/lifecycle.initialize/server"})
+    public void shouldAcceptCancelUnknownRequest() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/prompts.list/client",
         "${app}/prompts.list/server"})
     public void shouldListPrompts() throws Exception
@@ -316,6 +565,46 @@ public class McpServerIT
         "${app}/lifecycle.events.open/server"})
     @Configure(name = MCP_SSE_KEEPALIVE_INTERVAL_NAME, value = "PT30S")
     public void shouldOpenLifecycleEvents() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/lifecycle.suspend.events/client",
+        "${app}/lifecycle.suspend.events/server"})
+    public void shouldSuspendLifecycleEvents() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/lifecycle.events.resume/client",
+        "${app}/lifecycle.events.resume/server"})
+    public void shouldResumeLifecycleEvents() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/lifecycle.events.resume.reject.bearer/client",
+        "${app}/lifecycle.events.resume.reject.bearer/server"})
+    public void shouldRejectLifecycleEventsResumeWithBearerChallenge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/lifecycle.events.resume.reject.bearer.resource.metadata/client",
+        "${app}/lifecycle.events.resume.reject.bearer.resource.metadata/server"})
+    public void shouldRejectLifecycleEventsResumeWithBearerChallengeResourceMetadata() throws Exception
     {
         k3po.finish();
     }
@@ -556,8 +845,32 @@ public class McpServerIT
         k3po.finish();
     }
 
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/reject.auth.callback.unknown.elicitation/client"})
+    public void shouldRejectAuthCallbackUnknownElicitation() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/lifecycle.redirect.session/client"})
+    @Configure(name = ENGINE_WORKERS_NAME, value = "2")
+    public void shouldRedirectLifecycleForRemoteSession() throws Exception
+    {
+        k3po.finish();
+    }
+
     public static String sessionId()
     {
-        return "session-1";
+        return "transport-1";
+    }
+
+    public static String elicitationId()
+    {
+        return "elicit-1";
     }
 }
