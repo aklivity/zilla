@@ -23,7 +23,6 @@ public class KafkaSaslConfig
     public final String mechanism;
     public final String username;
     public final String password;
-    public final long guardId;
 
     public static KafkaSaslConfigBuilder<KafkaSaslConfig> builder()
     {
@@ -41,19 +40,9 @@ public class KafkaSaslConfig
         String username,
         String password)
     {
-        this(mechanism, username, password, 0L);
-    }
-
-    KafkaSaslConfig(
-        String mechanism,
-        String username,
-        String password,
-        long guardId)
-    {
         this.mechanism = mechanism;
         this.username = username;
         this.password = password;
-        this.guardId = guardId;
     }
 
     @Override

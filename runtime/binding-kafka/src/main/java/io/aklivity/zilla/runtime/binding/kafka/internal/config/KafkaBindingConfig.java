@@ -33,6 +33,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
+import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
 public final class KafkaBindingConfig
 {
@@ -43,7 +44,7 @@ public final class KafkaBindingConfig
     public final List<KafkaRouteConfig> routes;
     public final ToLongFunction<String> resolveId;
     public final List<KafkaTopicType> topicTypes;
-    public final long guardId;
+    public final GuardHandler guard;
 
     public KafkaBindingConfig(
         BindingConfig binding,
@@ -57,16 +58,21 @@ public final class KafkaBindingConfig
         this.resolveId = binding.resolveId;
         this.topicTypes = options != null && options.topics != null
             ? options.topics.stream().map(t -> new KafkaTopicType(context, t)).collect(toList()) : Collections.emptyList();
-        this.guardId = resolveGuardId(binding, options);
+        this.guard = resolveGuard(binding, options, context);
     }
 
-    private static long resolveGuardId(
+    private static GuardHandler resolveGuard(
         BindingConfig binding,
-        KafkaOptionsConfig options)
+        KafkaOptionsConfig options,
+        EngineContext context)
     {
-        return options != null && options.authorization != null
-            ? binding.resolveId.applyAsLong(options.authorization.name)
-            : 0L;
+        GuardHandler guard = null;
+        if (options != null && options.authorization != null)
+        {
+            long guardId = binding.resolveId.applyAsLong(options.authorization.name);
+            guard = context.supplyGuard(guardId);
+        }
+        return guard;
     }
 
     public KafkaRouteConfig resolve(
@@ -109,14 +115,13 @@ public final class KafkaBindingConfig
             {
                 sasl = options.sasl;
             }
-            else if (options.authorization != null && guardId != 0L)
+            else if (options.authorization != null && guard != null)
             {
                 KafkaSaslCredentialsConfig credentials = options.authorization.credentials;
                 sasl = KafkaSaslConfig.builder()
                     .mechanism(credentials.mechanism)
                     .username(credentials.username)
                     .password(credentials.password)
-                    .guardId(guardId)
                     .build();
             }
         }

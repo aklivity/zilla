@@ -24,7 +24,6 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
-import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
@@ -131,7 +130,6 @@ public abstract class KafkaClientSaslHandshaker
     protected final KafkaClientIdSupplier clientIdSupplier;
     protected final LongUnaryOperator supplyInitialId;
     protected final LongUnaryOperator supplyReplyId;
-    protected final LongFunction<GuardHandler> supplyGuard;
     protected final MutableDirectBuffer writeBuffer;
 
     public KafkaClientSaslHandshaker(
@@ -141,7 +139,6 @@ public abstract class KafkaClientSaslHandshaker
         this.clientIdSupplier = KafkaClientIdSupplier.instantiate(config);
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
-        this.supplyGuard = context::supplyGuard;
         this.writeBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.nonceSupplier = config.nonceSupplier();
         this.clientIdsByServer = new Object2ObjectHashMap<>();
@@ -172,27 +169,31 @@ public abstract class KafkaClientSaslHandshaker
         private LongLongConsumer encodeSaslAuthenticate;
         private KafkaSaslClientDecoder decodeSaslAuthenticate;
         private long guardSession;
+        private final GuardHandler guard;
 
         protected KafkaSaslClient(
             List<KafkaServerConfig> servers,
             KafkaSaslConfig sasl,
+            GuardHandler guard,
             long originId,
             long routedId)
         {
             this(servers != null && !servers.isEmpty()
                     ? servers.get(random.nextInt(servers.size()))
                     : null,
-                sasl, originId, routedId);
+                sasl, guard, originId, routedId);
         }
 
         protected KafkaSaslClient(
             KafkaServerConfig server,
             KafkaSaslConfig sasl,
+            GuardHandler guard,
             long originId,
             long routedId)
         {
             this.server = server;
             this.sasl = sasl;
+            this.guard = guard;
             this.originId = originId;
             this.routedId = routedId;
             this.clientId = supplyClientId(server);
@@ -204,13 +205,9 @@ public abstract class KafkaClientSaslHandshaker
             long traceId,
             long budgetId)
         {
-            if (sasl.guardId != 0L)
+            if (guard != null)
             {
-                final GuardHandler guard = supplyGuard.apply(sasl.guardId);
-                if (guard != null)
-                {
-                    guardSession = guard.reauthorize(traceId, routedId, initialId, null);
-                }
+                guardSession = guard.reauthorize(traceId, routedId, initialId, null);
             }
 
             final MutableDirectBuffer encodeBuffer = writeBuffer;
@@ -495,16 +492,12 @@ public abstract class KafkaClientSaslHandshaker
         private String resolveUsername()
         {
             String username = sasl.username;
-            if (sasl.guardId != 0L && IDENTITY_TEMPLATE.equals(username))
+            if (guard != null && IDENTITY_TEMPLATE.equals(username))
             {
-                final GuardHandler guard = supplyGuard.apply(sasl.guardId);
-                if (guard != null)
+                final String identity = guard.identity(guardSession);
+                if (identity != null)
                 {
-                    final String identity = guard.identity(guardSession);
-                    if (identity != null)
-                    {
-                        username = identity;
-                    }
+                    username = identity;
                 }
             }
             return username;
@@ -513,16 +506,12 @@ public abstract class KafkaClientSaslHandshaker
         private String resolvePassword()
         {
             String password = sasl.password;
-            if (sasl.guardId != 0L && CREDENTIALS_TEMPLATE.equals(password))
+            if (guard != null && CREDENTIALS_TEMPLATE.equals(password))
             {
-                final GuardHandler guard = supplyGuard.apply(sasl.guardId);
-                if (guard != null)
+                final String credentials = guard.credentials(guardSession);
+                if (credentials != null)
                 {
-                    final String credentials = guard.credentials(guardSession);
-                    if (credentials != null)
-                    {
-                        password = credentials;
-                    }
+                    password = credentials;
                 }
             }
             return password;

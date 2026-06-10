@@ -182,13 +182,16 @@
                                     },
                                     "sasl":
                                     {
-                                        "$ref": "#/$defs/options/binding/kafka/sasl",
-                                        "deprecated": true
+                                        "$ref": "#/$defs/options/binding/kafka/sasl"
                                     },
                                     "authorization":
                                     {
                                         "$ref": "#/$defs/options/binding/kafka/authorization"
                                     }
+                                },
+                                "not":
+                                {
+                                    "required": [ "sasl", "authorization" ]
                                 },
                                 "additionalProperties": false
                             }
