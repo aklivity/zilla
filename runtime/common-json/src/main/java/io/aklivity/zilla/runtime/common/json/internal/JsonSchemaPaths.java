@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.common.json;
+package io.aklivity.zilla.runtime.common.json.internal;
 
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -22,7 +22,7 @@ import java.util.Set;
 
 /**
  * Compiles a JSON Schema (draft-07 subset) into the set of RFC 6901 JSON Pointers to retain
- * when projecting an instance with {@link JsonProjector} — the union of the paths
+ * when projecting an instance with {@code JsonProjector} — the union of the paths
  * declared across all branches of the schema.
  * <p>
  * {@code properties} contribute child pointers; {@code items} (single schema) contributes a
@@ -32,7 +32,7 @@ import java.util.Set;
  * prefix logic descends the ancestors. {@code $ref}, {@code patternProperties} and tuple {@code
  * items} are not yet expanded — a node bearing only those is treated as a retained leaf.
  */
-public final class JsonSchemaPaths
+final class JsonSchemaPaths
 {
     private JsonSchemaPaths()
     {
