@@ -1,0 +1,13 @@
+{
+  "label" : "root",
+  "children" : [ {
+    "label" : "a",
+    "children" : [ ]
+  }, {
+    "label" : "b",
+    "children" : [ {
+      "label" : "b1",
+      "children" : [ ]
+    } ]
+  } ]
+}

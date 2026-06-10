@@ -81,6 +81,11 @@
         <configuration>
           <excludes combine.children="append">
             <exclude>src/**/*.avsc</exclude>
+            <exclude>src/**/*.schema</exclude>
+            <exclude>src/**/*.codec</exclude>
+            <exclude>src/**/*.bin</exclude>
+            <exclude>src/**/*.avro</exclude>
+            <exclude>src/**/*.json</exclude>
           </excludes>
         </configuration>
       </plugin>
