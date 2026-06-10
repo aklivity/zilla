@@ -47,6 +47,7 @@
     <module>catalog-schema-registry</module>
     <module>common</module>
     <module>common-json</module>
+    <module>common-protobuf</module>
     <module>common-yaml</module>
     <module>command</module>
     <module>command-metrics</module>
@@ -222,6 +223,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>common-json</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>common-protobuf</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
