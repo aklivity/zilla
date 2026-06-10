@@ -27,6 +27,7 @@ public final class ProtobufField
     private final String jsonName;
     private final ProtobufType type;
     private final boolean repeated;
+    private final boolean required;
     private final boolean packed;
     private final boolean proto3Optional;
     private final String typeName;
@@ -38,6 +39,7 @@ public final class ProtobufField
         String jsonName,
         ProtobufType type,
         boolean repeated,
+        boolean required,
         boolean packed,
         boolean proto3Optional,
         String typeName,
@@ -48,6 +50,7 @@ public final class ProtobufField
         this.jsonName = jsonName;
         this.type = type;
         this.repeated = repeated;
+        this.required = required;
         this.packed = packed;
         this.proto3Optional = proto3Optional;
         this.typeName = typeName;
@@ -77,6 +80,14 @@ public final class ProtobufField
     public boolean repeated()
     {
         return repeated;
+    }
+
+    /**
+     * A proto2 {@code required} field. proto3 has no required fields, so this is always false there.
+     */
+    public boolean required()
+    {
+        return required;
     }
 
     public boolean packed()
@@ -144,6 +155,7 @@ public final class ProtobufField
         private String jsonName;
         private ProtobufType type;
         private boolean repeated;
+        private boolean required;
         private Boolean packed;
         private boolean proto3Optional;
         private String typeName;
@@ -184,6 +196,13 @@ public final class ProtobufField
             return this;
         }
 
+        public Builder required(
+            boolean required)
+        {
+            this.required = required;
+            return this;
+        }
+
         public Builder packed(
             boolean packed)
         {
@@ -218,7 +237,7 @@ public final class ProtobufField
             Objects.requireNonNull(type, "field type");
             String resolvedJsonName = jsonName != null ? jsonName : toJsonName(name);
             boolean resolvedPacked = packed != null ? packed : repeated && type.packable();
-            return new ProtobufField(number, name, resolvedJsonName, type, repeated, resolvedPacked,
+            return new ProtobufField(number, name, resolvedJsonName, type, repeated, required, resolvedPacked,
                 proto3Optional, typeName, oneofName);
         }
     }

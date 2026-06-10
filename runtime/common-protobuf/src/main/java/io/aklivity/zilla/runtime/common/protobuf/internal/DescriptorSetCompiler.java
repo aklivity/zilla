@@ -37,6 +37,7 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
  */
 public final class DescriptorSetCompiler
 {
+    private static final int LABEL_REQUIRED = 2;
     private static final int LABEL_REPEATED = 3;
 
     public ProtobufSchema compile(
@@ -242,6 +243,7 @@ public final class DescriptorSetCompiler
             .name(name)
             .type(ProtobufType.ofNumber(typeNumber))
             .repeated(label == LABEL_REPEATED)
+            .required(label == LABEL_REQUIRED)
             .proto3Optional(proto3Optional);
         if (jsonName != null)
         {

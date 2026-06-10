@@ -54,8 +54,30 @@ semantics implemented are **proto3**:
   set it is given (the `FileDescriptorSet` compiler reads `proto3_optional`, `oneof`, map entries,
   and the `packed` option).
 
-Proto2-specific behavior is **not** supported: `group` fields are rejected, and extensions,
-`required`-field enforcement, and proto2 explicit field defaults are not modeled.
+proto2 wire features supported: **groups** (decoded, canonicalized, and skipped) and the
+`required` label (represented on the model). Not yet supported: extensions, `required`-field
+enforcement, and proto2 explicit field defaults.
+
+## Binary round-trip canonicalization and conformance
+
+`StreamingProtobuf.canonicalizer(schema)` re-serializes a message to a canonical wire encoding
+(known fields ascending by number, scalars minimally re-encoded, repeated scalars packed, nested
+messages length-delimited, proto2 groups delimited). Two valid encodings of the same logical
+message canonicalize to identical bytes — the comparison a binary round-trip conformance check
+needs. It is format-neutral and touches no JSON.
+
+`ProtobufBinaryConformanceTest` replays a vendored corpus of `(input, expected-canonical)` cases
+through the canonicalizer, honoring a `failure_list.txt` of known gaps. The corpus is seeded with a
+few hand-crafted cases; the full corpus is captured offline from the protobuf conformance runner —
+see `src/test/conformance/README.md`.
+
+## A note on JSON
+
+Per the module boundary, the protobuf ↔ JSON mapping belongs in `model-protobuf` (which depends on
+both `common-protobuf` and `common-json`), not here. The `ProtobufToJson` / `JsonToProtobuf`
+converters currently in this module are transitional and are slated to move to `model-protobuf`,
+at which point `common-protobuf` drops its `common-json` dependency and exposes only the
+format-neutral wire codec, descriptor model, and canonicalizer.
 
 ## Bounded-buffer contract
 

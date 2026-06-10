@@ -60,6 +60,16 @@ public final class StreamingProtobuf
         return new JsonToProtobuf(schema);
     }
 
+    /**
+     * A reusable per-worker canonicalizer that re-serializes a message to canonical wire form, the
+     * reference operation for binary round-trip conformance.
+     */
+    public static ProtobufCanonicalizer canonicalizer(
+        ProtobufSchema schema)
+    {
+        return new ProtobufCanonicalizer(schema);
+    }
+
     private StreamingProtobuf()
     {
     }

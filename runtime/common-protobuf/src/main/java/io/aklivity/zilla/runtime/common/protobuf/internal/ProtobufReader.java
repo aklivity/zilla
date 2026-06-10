@@ -163,6 +163,55 @@ public final class ProtobufReader
         }
     }
 
+    public void skipField(
+        int number,
+        ProtobufWireType wireType)
+    {
+        if (wireType == ProtobufWireType.SGROUP)
+        {
+            skipGroup(number);
+        }
+        else
+        {
+            skipField(wireType);
+        }
+    }
+
+    /**
+     * Skips a proto2 group body, leaving the cursor just past the matching {@code EGROUP} tag, and
+     * returns the offset of that {@code EGROUP} tag (i.e. the end of the group body). Nested groups
+     * are handled recursively; an unterminated or mismatched group is rejected.
+     */
+    public int skipGroup(
+        int number)
+    {
+        int end = -1;
+        while (end < 0)
+        {
+            if (offset >= limit)
+            {
+                throw new ProtobufException("unterminated group " + number);
+            }
+            int tagOffset = offset;
+            int tag = readVarint32();
+            int fieldNumber = tag >>> 3;
+            ProtobufWireType wireType = ProtobufWireType.of(tag & 0x7);
+            if (wireType == ProtobufWireType.EGROUP)
+            {
+                if (fieldNumber != number)
+                {
+                    throw new ProtobufException("mismatched group end " + fieldNumber + " for " + number);
+                }
+                end = tagOffset;
+            }
+            else
+            {
+                skipField(fieldNumber, wireType);
+            }
+        }
+        return end;
+    }
+
     private void require(
         int length)
     {

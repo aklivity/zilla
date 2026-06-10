@@ -315,6 +315,7 @@
               <exclude>src/conf/**</exclude>
               <exclude>src/**/*.btm</exclude>
               <exclude>src/**/gen/*</exclude>
+              <exclude>src/**/conformance/**</exclude>
             </excludes>
             <mapping>
               <g4>SLASHSTAR_STYLE</g4>

@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.common.protobuf;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +31,7 @@ public final class ProtobufMessage
     private final String name;
     private final boolean mapEntry;
     private final List<ProtobufField> fields;
+    private final List<ProtobufField> sortedFields;
     private final Map<Integer, ProtobufField> fieldByNumber;
     private final Map<String, ProtobufField> fieldByJsonName;
 
@@ -41,6 +43,10 @@ public final class ProtobufMessage
         this.name = name;
         this.mapEntry = mapEntry;
         this.fields = Collections.unmodifiableList(fields);
+
+        List<ProtobufField> sorted = new ArrayList<>(fields);
+        sorted.sort(Comparator.comparingInt(ProtobufField::number));
+        this.sortedFields = Collections.unmodifiableList(sorted);
 
         Map<Integer, ProtobufField> byNumber = new LinkedHashMap<>();
         Map<String, ProtobufField> byJsonName = new LinkedHashMap<>();
@@ -67,6 +73,14 @@ public final class ProtobufMessage
     public List<ProtobufField> fields()
     {
         return fields;
+    }
+
+    /**
+     * Fields in ascending field-number order, as required for canonical wire serialization.
+     */
+    public List<ProtobufField> sortedFields()
+    {
+        return sortedFields;
     }
 
     public ProtobufField field(
