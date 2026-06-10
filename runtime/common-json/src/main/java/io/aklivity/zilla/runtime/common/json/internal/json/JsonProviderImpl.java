@@ -50,16 +50,16 @@ import jakarta.json.stream.JsonParserFactory;
 import io.aklivity.zilla.runtime.common.json.internal.JsonParserFactoryImpl;
 import io.aklivity.zilla.runtime.common.json.internal.JsonParserImpl;
 
-public final class JsonpProvider extends JsonProvider
+public final class JsonProviderImpl extends JsonProvider
 {
     private final Map<String, ?> config;
 
-    public JsonpProvider()
+    public JsonProviderImpl()
     {
         this(Map.of());
     }
 
-    public JsonpProvider(
+    public JsonProviderImpl(
         Map<String, ?> config)
     {
         this.config = config == null ? Map.of() : Map.copyOf(config);
@@ -90,63 +90,63 @@ public final class JsonpProvider extends JsonProvider
     public JsonGenerator createGenerator(
         Writer writer)
     {
-        return new JsonTextGenerator(writer);
+        return new JsonTextGeneratorImpl(writer);
     }
 
     @Override
     public JsonGenerator createGenerator(
         OutputStream out)
     {
-        return new JsonTextGenerator(out);
+        return new JsonTextGeneratorImpl(out);
     }
 
     @Override
     public JsonGeneratorFactory createGeneratorFactory(
         Map<String, ?> config)
     {
-        return new JsonpGeneratorFactory(config);
+        return new JsonGeneratorFactoryImpl(config);
     }
 
     @Override
     public JsonReader createReader(
         Reader reader)
     {
-        return new JsonpReader(createParser(reader));
+        return new JsonReaderImpl(createParser(reader));
     }
 
     @Override
     public JsonReader createReader(
         InputStream in)
     {
-        return new JsonpReader(createParser(in));
+        return new JsonReaderImpl(createParser(in));
     }
 
     @Override
     public JsonWriter createWriter(
         Writer writer)
     {
-        return new JsonpWriter(createGenerator(writer));
+        return new JsonWriterImpl(createGenerator(writer));
     }
 
     @Override
     public JsonWriter createWriter(
         OutputStream out)
     {
-        return new JsonpWriter(createGenerator(out));
+        return new JsonWriterImpl(createGenerator(out));
     }
 
     @Override
     public JsonWriterFactory createWriterFactory(
         Map<String, ?> config)
     {
-        return new JsonpWriterFactory(config);
+        return new JsonWriterFactoryImpl(config);
     }
 
     @Override
     public JsonReaderFactory createReaderFactory(
         Map<String, ?> config)
     {
-        return new JsonpReaderFactory(config);
+        return new JsonReaderFactoryImpl(config);
     }
 
     @Override

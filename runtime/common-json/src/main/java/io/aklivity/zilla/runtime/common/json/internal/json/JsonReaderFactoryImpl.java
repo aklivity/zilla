@@ -28,11 +28,11 @@ import jakarta.json.stream.JsonParser;
 
 import io.aklivity.zilla.runtime.common.json.internal.JsonParserImpl;
 
-public final class JsonpReaderFactory implements JsonReaderFactory
+public final class JsonReaderFactoryImpl implements JsonReaderFactory
 {
     private final Map<String, ?> config;
 
-    public JsonpReaderFactory(
+    public JsonReaderFactoryImpl(
         Map<String, ?> config)
     {
         this.config = config == null ? Map.of() : Map.copyOf(config);
@@ -42,7 +42,7 @@ public final class JsonpReaderFactory implements JsonReaderFactory
     public JsonReader createReader(
         Reader reader)
     {
-        return new JsonpReader(parser(ReaderInputStream.from(reader)));
+        return new JsonReaderImpl(parser(ReaderInputStream.from(reader)));
     }
 
     @Override
@@ -57,7 +57,7 @@ public final class JsonpReaderFactory implements JsonReaderFactory
         InputStream in,
         Charset charset)
     {
-        return new JsonpReader(parser(marked(in)));
+        return new JsonReaderImpl(parser(marked(in)));
     }
 
     @Override

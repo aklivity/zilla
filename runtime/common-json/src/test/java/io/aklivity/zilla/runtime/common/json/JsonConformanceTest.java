@@ -29,11 +29,9 @@ import jakarta.json.spi.JsonProvider;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.TestFactory;
 
-import io.aklivity.zilla.runtime.common.json.json.Jsonp;
-
 final class JsonConformanceTest
 {
-    private static final JsonProvider PROVIDER = Jsonp.provider();
+    private static final JsonProvider PROVIDER = JsonProvider.provider();
 
     private static final String[] VALID =
     {

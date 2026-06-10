@@ -17,49 +17,48 @@ package io.aklivity.zilla.runtime.common.json.internal.json;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.util.Map;
 
-import jakarta.json.stream.JsonGenerator;
-import jakarta.json.stream.JsonGeneratorFactory;
+import jakarta.json.JsonWriter;
+import jakarta.json.JsonWriterFactory;
 
-public final class JsonpGeneratorFactory implements JsonGeneratorFactory
+public final class JsonWriterFactoryImpl implements JsonWriterFactory
 {
-    private final Map<String, ?> config;
+    private final JsonGeneratorFactoryImpl generators;
 
-    public JsonpGeneratorFactory(
+    public JsonWriterFactoryImpl(
         Map<String, ?> config)
     {
-        this.config = config == null ? Map.of() : Map.copyOf(config);
+        this.generators = new JsonGeneratorFactoryImpl(config);
     }
 
     @Override
-    public JsonGenerator createGenerator(
+    public JsonWriter createWriter(
         Writer writer)
     {
-        return new JsonTextGenerator(writer);
+        return new JsonWriterImpl(generators.createGenerator(writer));
     }
 
     @Override
-    public JsonGenerator createGenerator(
+    public JsonWriter createWriter(
         OutputStream out)
     {
-        return new JsonTextGenerator(new OutputStreamWriter(out, UTF_8));
+        return createWriter(out, UTF_8);
     }
 
     @Override
-    public JsonGenerator createGenerator(
+    public JsonWriter createWriter(
         OutputStream out,
         Charset charset)
     {
-        return new JsonTextGenerator(new OutputStreamWriter(out, charset));
+        return new JsonWriterImpl(generators.createGenerator(out, charset));
     }
 
     @Override
     public Map<String, ?> getConfigInUse()
     {
-        return config;
+        return generators.getConfigInUse();
     }
 }

@@ -29,8 +29,6 @@ import jakarta.json.spi.JsonProvider;
 
 import org.junit.jupiter.api.Test;
 
-import io.aklivity.zilla.runtime.common.json.json.Jsonp;
-
 /**
  * Drives the vendored JSON Parsing Test Suite (nst/JSONTestSuite, see the {@code jsontestsuite}
  * resource directory). File-name prefixes follow the suite convention: {@code y_} must be
@@ -45,7 +43,7 @@ import io.aklivity.zilla.runtime.common.json.json.Jsonp;
  */
 final class JsonTestSuiteConformanceTest
 {
-    private static final JsonProvider PROVIDER = Jsonp.provider();
+    private static final JsonProvider PROVIDER = JsonProvider.provider();
 
     // Must-reject cases the streaming parser still accepts, pinned from a baseline run. The parser
     // now enforces end-of-input (no trailing tokens) and strict RFC 8259 number grammar, so this

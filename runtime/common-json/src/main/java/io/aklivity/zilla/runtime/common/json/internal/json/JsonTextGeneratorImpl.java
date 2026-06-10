@@ -34,7 +34,7 @@ import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 import jakarta.json.stream.JsonGenerator;
 
-public final class JsonTextGenerator implements JsonGenerator
+public final class JsonTextGeneratorImpl implements JsonGenerator
 {
     private final Writer writer;
     private final Deque<Context> stack;
@@ -42,14 +42,14 @@ public final class JsonTextGenerator implements JsonGenerator
     private boolean afterKey;
     private boolean rooted;
 
-    public JsonTextGenerator(
+    public JsonTextGeneratorImpl(
         Writer writer)
     {
         this.writer = writer;
         this.stack = new ArrayDeque<>();
     }
 
-    public JsonTextGenerator(
+    public JsonTextGeneratorImpl(
         OutputStream out)
     {
         this(new OutputStreamWriter(out, UTF_8));

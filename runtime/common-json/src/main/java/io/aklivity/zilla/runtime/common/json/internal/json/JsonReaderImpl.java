@@ -26,12 +26,12 @@ import jakarta.json.JsonStructure;
 import jakarta.json.JsonValue;
 import jakarta.json.stream.JsonParser;
 
-public final class JsonpReader implements JsonReader
+public final class JsonReaderImpl implements JsonReader
 {
     private final JsonParser parser;
     private boolean read;
 
-    public JsonpReader(
+    public JsonReaderImpl(
         JsonParser parser)
     {
         this.parser = parser;

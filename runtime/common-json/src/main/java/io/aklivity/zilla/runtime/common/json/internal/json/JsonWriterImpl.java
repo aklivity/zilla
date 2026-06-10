@@ -21,11 +21,11 @@ import jakarta.json.JsonValue;
 import jakarta.json.JsonWriter;
 import jakarta.json.stream.JsonGenerator;
 
-public final class JsonpWriter implements JsonWriter
+public final class JsonWriterImpl implements JsonWriter
 {
     private final JsonGenerator generator;
 
-    public JsonpWriter(
+    public JsonWriterImpl(
         JsonGenerator generator)
     {
         this.generator = generator;

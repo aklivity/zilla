@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.common.json;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -33,6 +34,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import jakarta.json.Json;
 import jakarta.json.JsonArray;
 import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonBuilderFactory;
@@ -54,14 +56,16 @@ import jakarta.json.stream.JsonParserFactory;
 
 import org.junit.jupiter.api.Test;
 
-import io.aklivity.zilla.runtime.common.json.json.Jsonp;
+import io.aklivity.zilla.runtime.common.json.internal.json.JsonProviderImpl;
 
 class JsonpProviderTest
 {
     @Test
     void shouldOverrideJsonProviderAbstractMethods()
     {
-        Class<? extends JsonProvider> providerType = Jsonp.provider().getClass();
+        JsonProvider provider = JsonProvider.provider();
+        assertInstanceOf(JsonProviderImpl.class, provider);
+        Class<? extends JsonProvider> providerType = provider.getClass();
 
         for (Method method : JsonProvider.class.getMethods())
         {
@@ -75,7 +79,7 @@ class JsonpProviderTest
     @Test
     void shouldCreateParsersReadersGeneratorsAndWriters()
     {
-        JsonProvider provider = Jsonp.provider();
+        JsonProvider provider = JsonProvider.provider();
 
         JsonParserFactory parserFactory = provider.createParserFactory(Map.of("parser", "value"));
         assertEquals(Map.of("parser", "value"), parserFactory.getConfigInUse());
@@ -126,34 +130,34 @@ class JsonpProviderTest
         provider.createWriter(writtenValue).write(JsonValue.TRUE);
         assertEquals("true", writtenValue.toString(UTF_8));
 
-        JsonObject directObject = Jsonp.createReader(new StringReader("{\"name\":\"direct\"}")).readObject();
+        JsonObject directObject = Json.createReader(new StringReader("{\"name\":\"direct\"}")).readObject();
         assertEquals("direct", directObject.getString("name"));
 
-        assertEquals(Map.of("reader", "static"), Jsonp.createReaderFactory(Map.of("reader", "static")).getConfigInUse());
-        assertEquals(Map.of("writer", "static"), Jsonp.createWriterFactory(Map.of("writer", "static")).getConfigInUse());
+        assertEquals(Map.of("reader", "static"), Json.createReaderFactory(Map.of("reader", "static")).getConfigInUse());
+        assertEquals(Map.of("writer", "static"), Json.createWriterFactory(Map.of("writer", "static")).getConfigInUse());
 
         StringWriter directWriter = new StringWriter();
-        Jsonp.createWriter(directWriter).writeObject(directObject);
+        Json.createWriter(directWriter).writeObject(directObject);
         assertEquals("{\"name\":\"direct\"}", directWriter.toString());
 
-        try (JsonParser parser = Jsonp.createParser(new ByteArrayInputStream("{\"k\":1}".getBytes(UTF_8))))
+        try (JsonParser parser = Json.createParser(new ByteArrayInputStream("{\"k\":1}".getBytes(UTF_8))))
         {
             assertEquals(JsonParser.Event.START_OBJECT, parser.next());
         }
 
         StringWriter direct = new StringWriter();
-        Jsonp.createGenerator(direct).writeStartArray().write(1).writeEnd().close();
+        Json.createGenerator(direct).writeStartArray().write(1).writeEnd().close();
         assertEquals("[1]", direct.toString());
 
         ByteArrayOutputStream directStream = new ByteArrayOutputStream();
-        Jsonp.createGenerator(directStream).write("x").close();
+        Json.createGenerator(directStream).write("x").close();
         assertEquals("\"x\"", directStream.toString(UTF_8));
     }
 
     @Test
     void shouldRoundTripDocument()
     {
-        JsonProvider provider = Jsonp.provider();
+        JsonProvider provider = JsonProvider.provider();
         String json = "{\"name\":\"test\",\"items\":[\"one\",2,true,null],\"nested\":{\"enabled\":false}}";
 
         JsonObject object = provider.createReader(new StringReader(json)).readObject();
@@ -165,7 +169,7 @@ class JsonpProviderTest
     @Test
     void shouldBuildAndStreamObjects()
     {
-        JsonProvider provider = Jsonp.provider();
+        JsonProvider provider = JsonProvider.provider();
 
         JsonObject object = provider.createObjectBuilder()
             .add("name", "test")
@@ -222,10 +226,10 @@ class JsonpProviderTest
         Map<String, Object> mutable = new HashMap<>();
         mutable.put("configured", true);
 
-        JsonParserFactory parserFactory = Jsonp.createParserFactory(mutable);
-        JsonReaderFactory readerFactory = Jsonp.createReaderFactory(mutable);
-        JsonGeneratorFactory generatorFactory = Jsonp.createGeneratorFactory(mutable);
-        JsonWriterFactory writerFactory = Jsonp.createWriterFactory(mutable);
+        JsonParserFactory parserFactory = Json.createParserFactory(mutable);
+        JsonReaderFactory readerFactory = Json.createReaderFactory(mutable);
+        JsonGeneratorFactory generatorFactory = Json.createGeneratorFactory(mutable);
+        JsonWriterFactory writerFactory = Json.createWriterFactory(mutable);
 
         mutable.put("configured", false);
 
@@ -236,16 +240,16 @@ class JsonpProviderTest
         assertThrows(UnsupportedOperationException.class,
             () -> ((Map<String, Object>) generatorFactory.getConfigInUse()).put("changed", true));
 
-        assertTrue(Jsonp.createReaderFactory(null).getConfigInUse().isEmpty());
-        assertTrue(Jsonp.createGeneratorFactory(null).getConfigInUse().isEmpty());
-        assertTrue(Jsonp.createWriterFactory(null).getConfigInUse().isEmpty());
-        assertTrue(Jsonp.provider(null).createBuilderFactory(null).getConfigInUse().isEmpty());
+        assertTrue(Json.createReaderFactory(null).getConfigInUse().isEmpty());
+        assertTrue(Json.createGeneratorFactory(null).getConfigInUse().isEmpty());
+        assertTrue(Json.createWriterFactory(null).getConfigInUse().isEmpty());
+        assertTrue(Json.createBuilderFactory(null).getConfigInUse().isEmpty());
     }
 
     @Test
     void shouldProvideJsonModelApisWithoutExternalProvider()
     {
-        JsonProvider provider = Jsonp.provider();
+        JsonProvider provider = JsonProvider.provider();
         JsonBuilderFactory builderFactory = provider.createBuilderFactory(Map.of("builder", "value"));
         assertEquals(Map.of("builder", "value"), builderFactory.getConfigInUse());
 

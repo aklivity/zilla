@@ -28,13 +28,13 @@ import java.util.Map;
 
 import jakarta.json.JsonArray;
 import jakarta.json.JsonObject;
+import jakarta.json.spi.JsonProvider;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParserFactory;
 
 import org.junit.jupiter.api.Test;
 
 import io.aklivity.zilla.runtime.common.json.StreamingJson;
-import io.aklivity.zilla.runtime.common.json.json.Jsonp;
 
 public class JsonParserFactoryImplTest
 {
@@ -99,7 +99,7 @@ public class JsonParserFactoryImplTest
     public void shouldCreateParserForJsonObjectSource()
     {
         final JsonParserFactory factory = StreamingJson.createParserFactory(Map.of());
-        final JsonObject object = Jsonp.provider().createObjectBuilder().add("a", 1).build();
+        final JsonObject object = JsonProvider.provider().createObjectBuilder().add("a", 1).build();
         try (JsonParser parser = factory.createParser(object))
         {
             assertEquals(JsonParser.Event.START_OBJECT, parser.next());
@@ -112,7 +112,7 @@ public class JsonParserFactoryImplTest
     public void shouldCreateParserForJsonArraySource()
     {
         final JsonParserFactory factory = StreamingJson.createParserFactory(Map.of());
-        final JsonArray array = Jsonp.provider().createArrayBuilder().add(1).add(2).build();
+        final JsonArray array = JsonProvider.provider().createArrayBuilder().add(1).add(2).build();
         try (JsonParser parser = factory.createParser(array))
         {
             assertEquals(JsonParser.Event.START_ARRAY, parser.next());
