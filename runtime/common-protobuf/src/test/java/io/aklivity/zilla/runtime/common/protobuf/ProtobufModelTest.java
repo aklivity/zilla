@@ -41,8 +41,6 @@ public class ProtobufModelTest
         assertTrue(ProtobufType.INT32.packable());
         assertFalse(ProtobufType.STRING.packable());
         assertFalse(ProtobufType.MESSAGE.packable());
-        assertTrue(ProtobufType.INT64.jsonAsString());
-        assertFalse(ProtobufType.INT32.jsonAsString());
         assertTrue(ProtobufType.SINT32.zigzag());
         assertTrue(ProtobufType.UINT64.unsigned());
         assertFalse(ProtobufType.INT64.unsigned());

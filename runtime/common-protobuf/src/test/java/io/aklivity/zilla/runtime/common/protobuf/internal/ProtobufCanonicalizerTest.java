@@ -39,10 +39,12 @@ public class ProtobufCanonicalizerTest
     private final ProtobufSchema schema = newSchema();
 
     @Test
-    public void shouldNormalizeOrderPackAndDropUnknown()
+    public void shouldNormalizeOrderPackAndRetainUnknown()
     {
         byte[] input = wire(w ->
         {
+            w.writeTag(99, ProtobufWireType.VARINT);
+            w.writeVarint64(7);
             w.writeTag(2, ProtobufWireType.VARINT);
             w.writeVarint64(5);
             w.writeTag(1, ProtobufWireType.LEN);
@@ -51,8 +53,6 @@ public class ProtobufCanonicalizerTest
             w.writeVarint64(1);
             w.writeTag(3, ProtobufWireType.VARINT);
             w.writeVarint64(2);
-            w.writeTag(99, ProtobufWireType.VARINT);
-            w.writeVarint64(7);
         });
 
         byte[] expected = wire(w ->
@@ -63,6 +63,8 @@ public class ProtobufCanonicalizerTest
             w.writeVarint64(5);
             w.writeTag(3, ProtobufWireType.LEN);
             w.writeBytes(new byte[]{1, 2});
+            w.writeTag(99, ProtobufWireType.VARINT);
+            w.writeVarint64(7);
         });
 
         assertArrayEquals(expected, canonicalize("M", input));
@@ -163,6 +165,31 @@ public class ProtobufCanonicalizerTest
     public void shouldRejectUnknownMessage()
     {
         assertThrows(ProtobufException.class, () -> canonicalize("Nope", new byte[0]));
+    }
+
+    @Test
+    public void shouldRejectTruncatedVarint()
+    {
+        assertThrows(ProtobufException.class, () -> canonicalize("M", new byte[]{(byte) 0x10, (byte) 0x80}));
+    }
+
+    @Test
+    public void shouldRejectTruncatedLengthDelimited()
+    {
+        assertThrows(ProtobufException.class,
+            () -> canonicalize("M", new byte[]{(byte) 0x0a, (byte) 0x05, 'h', 'i'}));
+    }
+
+    @Test
+    public void shouldRejectUnterminatedGroup()
+    {
+        assertThrows(ProtobufException.class, () -> canonicalize("M", new byte[]{(byte) 0x2b}));
+    }
+
+    @Test
+    public void shouldRejectMismatchedGroupEnd()
+    {
+        assertThrows(ProtobufException.class, () -> canonicalize("M", new byte[]{(byte) 0x2b, (byte) 0x34}));
     }
 
     private byte[] canonicalize(

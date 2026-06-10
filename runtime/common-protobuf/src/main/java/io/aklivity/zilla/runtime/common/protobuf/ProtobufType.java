@@ -86,16 +86,6 @@ public enum ProtobufType
         return wireType != LEN && wireType != SGROUP && this != GROUP && this != MESSAGE;
     }
 
-    /**
-     * The proto3 JSON mapping renders 64-bit integers as strings to survive JSON's 53-bit
-     * mantissa, so this reports whether a value of this type is quoted in JSON.
-     */
-    public boolean jsonAsString()
-    {
-        return this == INT64 || this == UINT64 || this == FIXED64 || this == SFIXED64 ||
-            this == SINT64;
-    }
-
     public boolean zigzag()
     {
         return this == SINT32 || this == SINT64;

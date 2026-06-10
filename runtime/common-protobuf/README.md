@@ -1,14 +1,13 @@
 # common-protobuf
 
-A format-native, provider-free streaming Protobuf library for the hot path: descriptor-based
-decode and encode over Agrona `DirectBuffer`s, with protobuf ↔ JSON transcoding that composes with
-[`common-json`](../common-json). Peer to `common-json`; reused by the `model-protobuf` converter.
+A format-native, provider-free Protobuf wire library for the hot path: descriptor-based decode and
+canonical re-encode over Agrona `DirectBuffer`s. It owns the Protobuf wire side only and has **no
+JSON dependency**.
 
-This library owns the Protobuf side only. It validates against a native Protobuf descriptor model
-and exposes its own format-specific API — it is not a repurposing of the JSON validator. When
-converting protobuf ↔ JSON it decodes/encodes the wire with `common-protobuf` and drives the
-`common-json` buffer-backed generator/parser for the JSON side. It takes no dependency on a shared
-cross-format validator or event model.
+The protobuf ↔ JSON mapping is **not** here — it is composed in `model-protobuf`, which depends on
+both `common-protobuf` (this wire layer) and [`common-json`](../common-json) (the JSON side). This
+mirrors how the Avro ↔ JSON bridge lives in `model-avro`, keeping each `common-*` library
+single-format and free of cross-format dependencies.
 
 ## Descriptor model
 
@@ -25,12 +24,6 @@ ProtobufSchema schema = StreamingProtobuf.schema()
         .field(ProtobufField.builder().number(2).name("id").type(ProtobufType.INT32).build())
         .build())
     .build();
-
-ProtobufToJson toJson = StreamingProtobuf.protobufToJson(schema);
-int jsonLength = toJson.convert("Person", wire, offset, length, out, 0);
-
-JsonToProtobuf toProtobuf = StreamingProtobuf.jsonToProtobuf(schema);
-int wireLength = toProtobuf.convert("Person", json, offset, length, out, 0);
 ```
 
 A map `field` is modeled exactly as Protobuf represents it on the wire: a repeated reference to a
@@ -47,87 +40,43 @@ ProtobufSchema schema = StreamingProtobuf.schema(descriptorSet, offset, length);
 ## Protobuf syntax support
 
 The wire format is identical for proto2 and proto3, so the codec reads and writes both. The
-semantics implemented are **proto3**:
+descriptor model is syntax-agnostic — it carries no `syntax` and simply processes the field set it
+is given (the `FileDescriptorSet` compiler reads `proto3_optional`, `oneof`, map entries, the
+`packed` option, and the proto2 `required` label).
 
-- The JSON mapping is the proto3 JSON mapping.
-- The descriptor model is syntax-agnostic — it carries no `syntax` and simply processes the field
-  set it is given (the `FileDescriptorSet` compiler reads `proto3_optional`, `oneof`, map entries,
-  and the `packed` option).
+proto2 wire features supported: **groups** (decoded, canonicalized, and skipped) and the `required`
+label (represented on the model). Not yet supported: extensions, `required`-field enforcement, and
+proto2 explicit field defaults.
 
-proto2 wire features supported: **groups** (decoded, canonicalized, and skipped) and the
-`required` label (represented on the model). Not yet supported: extensions, `required`-field
-enforcement, and proto2 explicit field defaults.
+## Binary round-trip canonicalization
 
-## Binary round-trip canonicalization and conformance
+`StreamingProtobuf.canonicalizer(schema)` re-serializes a message to a canonical wire encoding:
 
-`StreamingProtobuf.canonicalizer(schema)` re-serializes a message to a canonical wire encoding
-(known fields ascending by number, scalars minimally re-encoded, repeated scalars packed, nested
-messages length-delimited, proto2 groups delimited). Two valid encodings of the same logical
-message canonicalize to identical bytes — the comparison a binary round-trip conformance check
-needs. It is format-neutral and touches no JSON.
+- known fields ascending by number, scalars minimally re-encoded, repeated scalars packed,
+- nested messages length-delimited, proto2 groups delimited, map entries in encounter order,
+- **unknown (non-descriptor) fields retained** — passed through verbatim (tag and value, groups
+  included) and merged into the ascending field-number ordering.
 
-`ProtobufBinaryConformanceTest` replays a vendored corpus of `(input, expected-canonical)` cases
-through the canonicalizer, honoring a `failure_list.txt` of known gaps. The corpus is seeded with a
-few hand-crafted cases; the full corpus is captured offline from the protobuf conformance runner —
-see `src/test/conformance/README.md`.
+Two valid encodings of the same logical message canonicalize to identical bytes — the comparison a
+binary round-trip conformance check needs. The operation is format-neutral and touches no JSON.
 
-## A note on JSON
-
-Per the module boundary, the protobuf ↔ JSON mapping belongs in `model-protobuf` (which depends on
-both `common-protobuf` and `common-json`), not here. The `ProtobufToJson` / `JsonToProtobuf`
-converters currently in this module are transitional and are slated to move to `model-protobuf`,
-at which point `common-protobuf` drops its `common-json` dependency and exposes only the
-format-neutral wire codec, descriptor model, and canonicalizer.
-
-## Bounded-buffer contract
+### Bounded-buffer contract
 
 Protobuf fields are length-delimited and may arrive in any order, and a repeated field's elements
-may be interleaved with other fields — which complicates a strictly forward-streaming decode under
-a no-full-document-buffer goal, unlike JSON's clean forward streaming.
+may be interleaved — which complicates strictly forward-streaming under a no-full-document-buffer
+goal. `common-protobuf` resolves this with a **bounded-buffer contract**: it operates on a single,
+fully-buffered message (the engine delivers the reassembled payload). Processing is bounded by the
+message size, and for nested messages by nesting depth (each length-delimited nested message is
+staged in per-depth scratch since its length is known only once its body is built). No unbounded
+document is buffered. Truncated or overlong varints, lengths that run past the message, and
+unterminated or mismatched groups are rejected with a `ProtobufException`.
 
-`common-protobuf` resolves this with a **documented bounded-buffer contract**: a converter operates
-on a single, fully-buffered message. The engine delivers the reassembled payload, so:
+## Conformance
 
-- **Decode** is a single bounded pass over the message bytes. To emit JSON — where each member
-  appears once with its array elements contiguous — fields are emitted in descriptor declaration
-  order by re-scanning the message region once per field. The only bound is the size of the
-  message handed in; nothing beyond it is buffered.
-- **Encode** stages each length-delimited nested message in a per-depth scratch buffer (its length
-  is unknown until its body is built, and JSON is forward-only), then splices it with its length
-  into the parent. Staging is bounded by message nesting depth.
-
-Neither direction buffers an unbounded document. Truncated or overlong varints, lengths that run
-past the message, and wire types incompatible with the descriptor are rejected with a
-`ProtobufException`.
-
-## proto3 JSON mapping
-
-| Protobuf | JSON |
-| --- | --- |
-| `int32`, `sint32`, `sfixed32` | number |
-| `uint32`, `fixed32` | number (unsigned) |
-| `int64`, `uint64`, `sint64`, `fixed64`, `sfixed64` | string (to survive JSON's 53-bit mantissa) |
-| `float`, `double` | number; `"NaN"`, `"Infinity"`, `"-Infinity"` |
-| `bool` | `true` / `false` |
-| `string` | string |
-| `bytes` | base64 string (standard, padded) |
-| `enum` | value name, or its number when unknown |
-| `message` | object |
-| repeated | array (packed and unpacked scalars accepted on decode) |
-| map | object (integral and bool keys rendered as strings) |
-| `oneof` | only the set member appears |
-
-Field names use the proto3 JSON name (lowerCamelCase) on output; both the JSON name and the
-original proto field name are accepted on input. Unknown JSON members are dropped on encode;
-unknown wire fields are skipped on decode.
-
-### Well-known types
-
-`google.protobuf` well-known types follow their proto3 JSON forms: `Timestamp` (RFC 3339 string),
-`Duration` (seconds string with `s`), the scalar wrappers (`Int32Value`, `StringValue`, … → their
-underlying value), `FieldMask` (comma-joined camelCase paths), `Struct` / `Value` / `ListValue`
-(arbitrary JSON), and `Empty` (`{}`). `google.protobuf.Any` requires a type registry and is not yet
-supported.
+`ProtobufBinaryConformanceTest` replays a vendored corpus of `(input, expected-canonical)` cases
+through the canonicalizer, honoring a `failure_list.txt` of known gaps. The corpus is seeded with
+hand-crafted cases (reorder, pack, proto2 group, unknown-field retention, empty); the full corpus
+is captured offline from the protobuf conformance runner — see `src/test/conformance/README.md`.
 
 ## Run performance benchmarks
 

@@ -15,8 +15,6 @@
 module io.aklivity.zilla.runtime.common.protobuf
 {
     requires transitive org.agrona;
-    requires transitive jakarta.json;
-    requires transitive io.aklivity.zilla.runtime.common.json;
 
     exports io.aklivity.zilla.runtime.common.protobuf;
 }

@@ -34,15 +34,6 @@
       <artifactId>agrona</artifactId>
     </dependency>
     <dependency>
-      <groupId>jakarta.json</groupId>
-      <artifactId>jakarta.json-api</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>common-json</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-engine</artifactId>
       <scope>test</scope>
@@ -134,8 +125,6 @@
           <artifactSet>
             <includes>
               <include>org.agrona:agrona</include>
-              <include>jakarta.json:jakarta.json-api</include>
-              <include>io.aklivity.zilla:common-json</include>
               <include>org.openjdk.jmh:jmh-core</include>
               <include>net.sf.jopt-simple:jopt-simple</include>
               <include>org.apache.commons:commons-math3</include>

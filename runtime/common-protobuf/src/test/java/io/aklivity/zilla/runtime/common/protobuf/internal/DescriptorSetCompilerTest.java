@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.common.protobuf.internal;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -27,9 +28,8 @@ import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
 
-import io.aklivity.zilla.runtime.common.protobuf.JsonToProtobuf;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufCanonicalizer;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSchema;
-import io.aklivity.zilla.runtime.common.protobuf.ProtobufToJson;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
 import io.aklivity.zilla.runtime.common.protobuf.StreamingProtobuf;
 
@@ -59,24 +59,36 @@ public class DescriptorSetCompilerTest
     }
 
     @Test
-    public void shouldRoundTripThroughCompiledSchema()
+    public void shouldCanonicalizeThroughCompiledSchema()
     {
         byte[] descriptorSet = personDescriptorSet();
         MutableDirectBuffer descriptors = new UnsafeBuffer(descriptorSet);
         ProtobufSchema schema = StreamingProtobuf.schema(descriptors, 0, descriptorSet.length);
 
-        String json = "{\"name\":\"Neo\",\"id\":1,\"emails\":[\"a\",\"b\"],\"home\":{\"city\":\"Zion\"},\"color\":\"GREEN\"}";
+        byte[] address = encode(g ->
+        {
+            g.writeTag(1, ProtobufWireType.LEN);
+            g.writeBytes("Zion".getBytes(UTF_8));
+        });
+        byte[] input = encode(w ->
+        {
+            w.writeTag(2, ProtobufWireType.VARINT);
+            w.writeVarint64(1);
+            w.writeTag(1, ProtobufWireType.LEN);
+            w.writeBytes("Neo".getBytes(UTF_8));
+            w.writeTag(3, ProtobufWireType.LEN);
+            w.writeBytes("a".getBytes(UTF_8));
+            w.writeTag(3, ProtobufWireType.LEN);
+            w.writeBytes("b".getBytes(UTF_8));
+            w.writeTag(4, ProtobufWireType.LEN);
+            w.writeBytes(address);
+            w.writeTag(5, ProtobufWireType.VARINT);
+            w.writeVarint64(1);
+        });
 
-        MutableDirectBuffer wire = new UnsafeBuffer(new byte[4096]);
-        byte[] jsonBytes = json.getBytes(UTF_8);
-        JsonToProtobuf encoder = StreamingProtobuf.jsonToProtobuf(schema);
-        int wireLength = encoder.convert("test.Person", new UnsafeBuffer(jsonBytes), 0, jsonBytes.length, wire, 0);
-
-        MutableDirectBuffer out = new UnsafeBuffer(new byte[4096]);
-        ProtobufToJson decoder = StreamingProtobuf.protobufToJson(schema);
-        int jsonLength = decoder.convert("test.Person", wire, 0, wireLength, out, 0);
-
-        assertEquals(json, out.getStringWithoutLengthUtf8(0, jsonLength));
+        byte[] once = canonicalize(schema, "test.Person", input);
+        byte[] twice = canonicalize(schema, "test.Person", once);
+        assertArrayEquals(once, twice);
     }
 
     @Test
@@ -91,17 +103,43 @@ public class DescriptorSetCompilerTest
         assertTrue(schema.message("test.Box").field(3).packed());
         assertTrue(schema.message("test.Box").field(5).proto3Optional());
 
-        String json = "{\"s\":\"hi\",\"nums\":[1,2,3],\"labels\":{\"k\":7},\"note\":\"n\"}";
-        MutableDirectBuffer wire = new UnsafeBuffer(new byte[4096]);
-        byte[] jsonBytes = json.getBytes(UTF_8);
-        JsonToProtobuf encoder = StreamingProtobuf.jsonToProtobuf(schema);
-        int wireLength = encoder.convert("test.Box", new UnsafeBuffer(jsonBytes), 0, jsonBytes.length, wire, 0);
+        byte[] entry = encode(e ->
+        {
+            e.writeTag(1, ProtobufWireType.LEN);
+            e.writeBytes("k".getBytes(UTF_8));
+            e.writeTag(2, ProtobufWireType.VARINT);
+            e.writeVarint64(7);
+        });
+        byte[] input = encode(w ->
+        {
+            w.writeTag(1, ProtobufWireType.LEN);
+            w.writeBytes("hi".getBytes(UTF_8));
+            w.writeTag(3, ProtobufWireType.VARINT);
+            w.writeVarint64(1);
+            w.writeTag(3, ProtobufWireType.VARINT);
+            w.writeVarint64(2);
+            w.writeTag(4, ProtobufWireType.LEN);
+            w.writeBytes(entry);
+            w.writeTag(5, ProtobufWireType.LEN);
+            w.writeBytes("n".getBytes(UTF_8));
+        });
 
+        byte[] once = canonicalize(schema, "test.Box", input);
+        byte[] twice = canonicalize(schema, "test.Box", once);
+        assertArrayEquals(once, twice);
+    }
+
+    private static byte[] canonicalize(
+        ProtobufSchema schema,
+        String messageName,
+        byte[] input)
+    {
         MutableDirectBuffer out = new UnsafeBuffer(new byte[4096]);
-        ProtobufToJson decoder = StreamingProtobuf.protobufToJson(schema);
-        int jsonLength = decoder.convert("test.Box", wire, 0, wireLength, out, 0);
-
-        assertEquals(json, out.getStringWithoutLengthUtf8(0, jsonLength));
+        ProtobufCanonicalizer canonicalizer = StreamingProtobuf.canonicalizer(schema);
+        int length = canonicalizer.canonicalize(messageName, new UnsafeBuffer(input), 0, input.length, out, 0);
+        byte[] result = new byte[length];
+        out.getBytes(0, result);
+        return result;
     }
 
     private static byte[] boxDescriptorSet()

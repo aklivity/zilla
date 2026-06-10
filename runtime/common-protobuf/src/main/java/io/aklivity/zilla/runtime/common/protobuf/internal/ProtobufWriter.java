@@ -125,4 +125,17 @@ public final class ProtobufWriter
         buffer.putBytes(offset, source);
         offset += source.length;
     }
+
+    /**
+     * Copies {@code length} bytes from {@code source} verbatim — no length prefix — used to pass an
+     * unknown field through unchanged, tag and value together.
+     */
+    public void writeRaw(
+        DirectBuffer source,
+        int index,
+        int length)
+    {
+        buffer.putBytes(offset, source, index, length);
+        offset += length;
+    }
 }

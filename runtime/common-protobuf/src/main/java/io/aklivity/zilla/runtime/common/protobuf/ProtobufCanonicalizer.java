@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.common.protobuf;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.agrona.DirectBuffer;
@@ -31,8 +32,9 @@ import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufWriter;
  * order. Two distinct valid encodings of the same logical message canonicalize to identical bytes,
  * which is the comparison a binary round-trip conformance check needs.
  * <p>
- * This is format-neutral — it touches no JSON. Unknown (non-descriptor) fields are dropped; cases
- * that require unknown-field retention belong on the conformance failure list until supported.
+ * This is format-neutral — it touches no JSON. Unknown (non-descriptor) fields are retained: each
+ * is passed through verbatim (tag and value, groups included) and merged into the ascending
+ * field-number ordering alongside known fields, so binary round-trip retention cases hold.
  */
 public final class ProtobufCanonicalizer
 {
@@ -74,9 +76,21 @@ public final class ProtobufCanonicalizer
         ProtobufWriter writer,
         int depth)
     {
-        for (ProtobufField field : message.sortedFields())
+        int previous = -1;
+        for (int number : fieldNumbers(buffer, offset, length))
         {
-            if (field.repeated() && isMap(field))
+            if (number == previous)
+            {
+                continue;
+            }
+            previous = number;
+
+            ProtobufField field = message.field(number);
+            if (field == null)
+            {
+                writeUnknown(number, buffer, offset, length, writer);
+            }
+            else if (field.repeated() && isMap(field))
             {
                 writeMap(field, buffer, offset, length, writer, depth);
             }
@@ -87,6 +101,62 @@ public final class ProtobufCanonicalizer
             else
             {
                 writeSingular(field, buffer, offset, length, writer, depth);
+            }
+        }
+    }
+
+    private List<Integer> fieldNumbers(
+        DirectBuffer buffer,
+        int offset,
+        int length)
+    {
+        List<Integer> numbers = new ArrayList<>();
+        ProtobufReader reader = new ProtobufReader().wrap(buffer, offset, length);
+        while (reader.hasRemaining())
+        {
+            int tag = reader.readVarint32();
+            int number = tag >>> 3;
+            ProtobufWireType wireType = ProtobufWireType.of(tag & 0x7);
+            numbers.add(number);
+            reader.skipField(number, wireType);
+        }
+        Collections.sort(numbers);
+        return numbers;
+    }
+
+    private void writeUnknown(
+        int number,
+        DirectBuffer buffer,
+        int offset,
+        int length,
+        ProtobufWriter writer)
+    {
+        ProtobufReader reader = new ProtobufReader().wrap(buffer, offset, length);
+        while (reader.hasRemaining())
+        {
+            int tagOffset = reader.offset();
+            int tag = reader.readVarint32();
+            int fieldNumber = tag >>> 3;
+            ProtobufWireType wireType = ProtobufWireType.of(tag & 0x7);
+            if (fieldNumber == number)
+            {
+                if (wireType == ProtobufWireType.SGROUP)
+                {
+                    reader.skipGroup(number);
+                }
+                else if (wireType == ProtobufWireType.LEN)
+                {
+                    reader.skip(reader.readLength());
+                }
+                else
+                {
+                    reader.skipField(wireType);
+                }
+                writer.writeRaw(buffer, tagOffset, reader.offset() - tagOffset);
+            }
+            else
+            {
+                reader.skipField(fieldNumber, wireType);
             }
         }
     }

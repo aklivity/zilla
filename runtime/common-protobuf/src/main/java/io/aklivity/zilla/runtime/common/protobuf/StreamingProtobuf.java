@@ -20,13 +20,15 @@ import io.aklivity.zilla.runtime.common.protobuf.internal.DescriptorSetCompiler;
 
 /**
  * Entry point for streaming Protobuf over Agrona buffers. Compile a {@link ProtobufSchema} once per
- * {@code schemaId} and cache it, then obtain reusable per-worker converters that decode the wire to
- * its proto3 JSON mapping and encode JSON back to the wire, composing with {@code common-json}.
+ * {@code schemaId} and cache it, then obtain a reusable per-worker {@link ProtobufCanonicalizer}.
  * <p>
- * Bounded-buffer contract: a converter operates on a single, fully-buffered message — the engine
- * delivers the reassembled payload — so the decode is a single bounded pass over the message bytes
- * and the encode stages nested messages in per-depth scratch bounded by message nesting. Neither
- * direction buffers an unbounded document.
+ * This is the format-neutral wire layer only; it has no JSON dependency. The protobuf ↔ JSON
+ * mapping is composed in {@code model-protobuf}, which depends on both {@code common-protobuf} and
+ * {@code common-json}.
+ * <p>
+ * Bounded-buffer contract: operations run on a single, fully-buffered message — the engine delivers
+ * the reassembled payload — so processing is bounded by the message size (and, for nested messages,
+ * by nesting depth). No unbounded document is buffered.
  */
 public final class StreamingProtobuf
 {
@@ -46,18 +48,6 @@ public final class StreamingProtobuf
         int length)
     {
         return new DescriptorSetCompiler().compile(fileDescriptorSet, offset, length);
-    }
-
-    public static ProtobufToJson protobufToJson(
-        ProtobufSchema schema)
-    {
-        return new ProtobufToJson(schema);
-    }
-
-    public static JsonToProtobuf jsonToProtobuf(
-        ProtobufSchema schema)
-    {
-        return new JsonToProtobuf(schema);
     }
 
     /**

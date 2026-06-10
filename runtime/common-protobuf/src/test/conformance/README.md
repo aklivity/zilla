@@ -54,7 +54,8 @@ needed once the full corpus is captured.
 ## Failure list
 
 Cases that `ProtobufCanonicalizer` does not yet satisfy go in `failure_list.txt` and are skipped.
-The canonicalizer currently drops unknown (non-descriptor) fields, so unknown-field-retention cases
-belong there until preserved. The list is the explicit ledger of partial support: the suite is
-complete (every captured case is replayed), and gaps are enumerated rather than hidden. When a
-listed case starts passing, remove it — keeping the ledger honest as coverage grows.
+Unknown (non-descriptor) fields are retained (verbatim passthrough), so unknown-field-retention
+cases pass; remaining gaps (e.g. extensions, proto2 `required` enforcement) belong on the list
+until supported. The list is the explicit ledger of partial support: the suite is complete (every
+captured case is replayed), and gaps are enumerated rather than hidden. When a listed case starts
+passing, remove it — keeping the ledger honest as coverage grows.

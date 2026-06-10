@@ -2,3 +2,4 @@ reorder	conformance.TestMessage
 pack	conformance.TestMessage
 group	conformance.TestMessage
 empty	conformance.TestMessage
+unknown	conformance.TestMessage
