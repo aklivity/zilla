@@ -16,5 +16,4 @@
 open module io.aklivity.zilla.specs.binding.kafka
 {
     requires transitive io.aklivity.zilla.specs.binding.proxy;
-    requires transitive io.aklivity.zilla.specs.engine;
 }
