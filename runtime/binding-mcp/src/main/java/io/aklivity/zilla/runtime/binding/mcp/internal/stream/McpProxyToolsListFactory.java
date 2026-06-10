@@ -17,28 +17,31 @@ package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
 
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.function.LongFunction;
 
-import org.agrona.DirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpBindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.stream.cache.McpProxyCache;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 
 final class McpProxyToolsListFactory extends McpProxyListFactory
 {
-    private final DirectBuffer prelude =
-        new UnsafeBuffer("{\"tools\":[".getBytes(StandardCharsets.UTF_8));
+    private static final List<String> TOOLS_LIST_ITEM_JSON_PATH_INCLUDES = List.of("/tools/-/name");
+
+    private final DirectBufferEx prelude =
+        new UnsafeBufferEx("{\"tools\":[".getBytes(StandardCharsets.UTF_8));
 
     McpProxyToolsListFactory(
         McpConfiguration config,
         EngineContext context,
         LongFunction<McpBindingConfig> supplyBinding)
     {
-        super(config, context, supplyBinding, McpBeginExFW.KIND_TOOLS_LIST);
+        super(config, context, supplyBinding, McpBeginExFW.KIND_TOOLS_LIST, TOOLS_LIST_ITEM_JSON_PATH_INCLUDES);
     }
 
     @Override
@@ -65,7 +68,7 @@ final class McpProxyToolsListFactory extends McpProxyListFactory
     }
 
     @Override
-    protected DirectBuffer listReplyOpenPrelude()
+    protected DirectBufferEx listReplyOpenPrelude()
     {
         return prelude;
     }

@@ -26,14 +26,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
+
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class McpAggregateEventIdTest
 {
-    private final MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
+    private final MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[1024]);
 
     @Test
     public void shouldComputeSinglePrefixWhenSingleToolkit()
