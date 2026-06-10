@@ -200,9 +200,27 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/tools.call.resumable/client",
+        "${app}/tools.call.resumable/server"})
+    public void shouldCallToolWithUpstreamResumableFlush() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/tools.call/client",
         "${app}/tools.call/server"})
     public void shouldCallTool() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/tools.call.is.error/client",
+        "${app}/tools.call.is.error/server"})
+    public void shouldCallToolIsError() throws Exception
     {
         k3po.finish();
     }
@@ -533,6 +551,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/tools.call.elicit.after.result/client",
+        "${app}/tools.call.elicit.after.result/server"})
+    public void shouldCallToolElicitAfterResult() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/tools.call.elicit.completed.context/client",
         "${app}/tools.call.elicit.completed.context/server"})
     public void shouldCallToolElicitCompletedWithContext() throws Exception
@@ -545,6 +572,15 @@ public class ApplicationIT
         "${app}/lifecycle.elicit.toolkit/client",
         "${app}/lifecycle.elicit.toolkit/server"})
     public void shouldRouteLifecycleElicitToolkitCallback() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/lifecycle.elicit.completed/client",
+        "${app}/lifecycle.elicit.completed/server"})
+    public void shouldCompleteLifecycleElicit() throws Exception
     {
         k3po.finish();
     }

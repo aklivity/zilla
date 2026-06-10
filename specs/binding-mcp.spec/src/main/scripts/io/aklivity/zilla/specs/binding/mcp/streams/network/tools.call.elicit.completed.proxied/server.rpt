@@ -100,27 +100,28 @@ write flush
 write 'id: 2:1\n'
 write 'data: {'
         '"jsonrpc":"2.0",'
+        '"id":3,'
         '"method":"elicitation/create",'
         '"params":'
         '{'
           '"mode":"url",'
           '"elicitationId":"elicit-1",'
-          '"url":"https://server.example.com/authorize?state=transport-1.elicit-1.7f3a9b1c&redirect_uri='
-         ${http:encodeQuery("https://localhost:8080/mcp/auth/callback")}
-         '"'
+          '"url":"https://server.example.com/authorize?state=7f3a9b1c",'
+          '"message":"Open the link to authorize access."'
         '}'
       '}\n'
 write '\n'
 write flush
+write notify ELICIT_CREATED
 
-write 'id: 2:1\n'
+write await ELICIT_RESPONDED
+
 write 'data: {'
         '"jsonrpc":"2.0",'
-        '"method":"elicitation/complete",'
+        '"method":"notifications/elicitation/complete",'
         '"params":'
         '{'
-          '"elicitationId":"elicit-1",'
-          '"status":"completed"'
+          '"elicitationId":"elicit-1"'
         '}'
       '}\n'
 write '\n'
@@ -145,3 +146,28 @@ write '\n'
 write flush
 
 write close
+
+accepted
+
+read await ELICIT_CREATED
+
+read zilla:begin.ext ${http:matchBeginEx()
+                           .typeId(zilla:id("http"))
+                           .header(":method", "POST")
+                           .header(":path", "/mcp")
+                           .header("mcp-session-id", "transport-1")
+                           .build()}
+
+connected
+
+read '{"jsonrpc":"2.0","id":3,"result":{"action":"accept"}}'
+read closed
+
+write zilla:begin.ext ${http:beginEx()
+                            .typeId(zilla:id("http"))
+                            .header(":status", "202")
+                            .build()}
+write flush
+
+write close
+write notify ELICIT_RESPONDED

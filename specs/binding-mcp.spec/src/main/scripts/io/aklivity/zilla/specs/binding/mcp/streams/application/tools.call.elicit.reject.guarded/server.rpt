@@ -24,6 +24,7 @@ accepted
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .lifecycle()
+                              .authCallback("http://localhost:8080/mcp/auth/callback")
                               .build()
                           .build()}
 

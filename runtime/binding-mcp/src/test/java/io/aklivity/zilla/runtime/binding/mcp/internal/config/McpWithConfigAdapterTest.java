@@ -41,32 +41,6 @@ public class McpWithConfigAdapterTest
     }
 
     @Test
-    public void shouldReadWithHeaders()
-    {
-        String text = "{\"headers\":{\"x-custom\":\"value\"}}";
-
-        McpWithConfig with = jsonb.fromJson(text, McpWithConfig.class);
-
-        assertThat(with, not(nullValue()));
-        assertThat(with.headers, not(nullValue()));
-        assertThat(with.headers.get("x-custom"), equalTo("value"));
-        assertThat(with.cache, nullValue());
-    }
-
-    @Test
-    public void shouldWriteWithHeaders()
-    {
-        McpWithConfig with = McpWithConfig.builder()
-                .header("x-custom", "value")
-                .build();
-
-        String text = jsonb.toJson(with);
-
-        assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"headers\":{\"x-custom\":\"value\"}}"));
-    }
-
-    @Test
     public void shouldReadWithCacheCredentials()
     {
         String text = "{\"cache\":{\"credentials\":\"{token}\"}}";

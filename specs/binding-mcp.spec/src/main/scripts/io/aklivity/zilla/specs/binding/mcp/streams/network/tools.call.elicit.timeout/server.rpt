@@ -113,39 +113,15 @@ write 'data: {'
 write '\n'
 write flush
 
-write 'id: 2:1\n'
 write 'data: {'
         '"jsonrpc":"2.0",'
-        '"method":"elicitation/complete",'
+        '"method":"notifications/elicitation/complete",'
         '"params":'
         '{'
-          '"elicitationId":"elicit-1",'
-          '"status":"cancelled"'
+          '"elicitationId":"elicit-1"'
         '}'
       '}\n'
 write '\n'
 write flush
 
-write 'data: {'
-        '"jsonrpc":"2.0",'
-        '"id":2,'
-        '"error":'
-        '{'
-          '"code":-32042,'
-          '"message":"URL elicitation required",'
-          '"data":'
-          '['
-            '{'
-              '"mode":"url",'
-              '"url":"https://server.example.com/authorize?state=transport-1.elicit-1.7f3a9b1c&redirect_uri='
-             ${http:encodeQuery("https://localhost:8080/mcp/auth/callback")}
-             '",'
-              '"elicitationId":"elicit-1"'
-            '}'
-          ']'
-        '}'
-      '}\n'
-write '\n'
-write flush
-
-write close
+write abort

@@ -85,7 +85,7 @@ public class TcpConditionConfigAdapterTest
                 "{" +
                     "\"cidr\": \"127.0.0.0/24\"," +
                     "\"authority\": \"*.example.net\"," +
-                    "\"port\": 12345-12346" +
+                    "\"port\": \"12345-12346\"" +
                 "}";
 
         TcpConditionConfig condition = jsonb.fromJson(text, TcpConditionConfig.class);

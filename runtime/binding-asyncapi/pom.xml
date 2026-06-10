@@ -48,6 +48,20 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>common-json</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>common-yaml</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.eclipse.parsson</groupId>
+      <artifactId>parsson</artifactId>
+    </dependency>
+    <dependency>
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>binding-http</artifactId>
       <scope>provided</scope>
@@ -131,11 +145,6 @@
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>model-protobuf</artifactId>
       <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.fasterxml.jackson.dataformat</groupId>
-      <artifactId>jackson-dataformat-yaml</artifactId>
-      <version>2.16.1</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>

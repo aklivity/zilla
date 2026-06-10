@@ -16,7 +16,7 @@ module io.aklivity.zilla.runtime.model.json
 {
     requires io.aklivity.zilla.runtime.engine;
 
-    requires org.leadpony.justify;
+    requires io.aklivity.zilla.runtime.common.json;
 
     exports io.aklivity.zilla.runtime.model.json.config;
 

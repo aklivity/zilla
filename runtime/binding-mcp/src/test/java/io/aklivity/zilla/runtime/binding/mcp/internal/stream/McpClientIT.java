@@ -18,6 +18,8 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTes
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.ENGINE_SYNTHETIC_ABORT_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_CLIENT_NAME_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_CLIENT_VERSION_NAME;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_ELICITATION_ID_NAME;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_ELICIT_CORRELATION_ID_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_INACTIVITY_TIMEOUT_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_SESSION_ID_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -51,6 +53,8 @@ public class McpClientIT
         .configure(MCP_CLIENT_NAME_NAME, "test")
         .configure(MCP_CLIENT_VERSION_NAME, "1.0")
         .configure(MCP_SESSION_ID_NAME, "%s::sessionId".formatted(McpClientIT.class.getName()))
+        .configure(MCP_ELICITATION_ID_NAME, "%s::elicitationId".formatted(McpClientIT.class.getName()))
+        .configure(MCP_ELICIT_CORRELATION_ID_NAME, "%s::elicitCorrelationId".formatted(McpClientIT.class.getName()))
         .external("net0")
         .clean();
 
@@ -278,6 +282,16 @@ public class McpClientIT
         "${app}/tools.call/client",
         "${net}/tools.call/server"})
     public void shouldCallTool() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/tools.call.is.error/client",
+        "${net}/tools.call.is.error/server"})
+    public void shouldCallToolIsError() throws Exception
     {
         k3po.finish();
     }
@@ -700,5 +714,15 @@ public class McpClientIT
     public static String sessionId()
     {
         return "session-1";
+    }
+
+    public static String elicitationId()
+    {
+        return "elicit-1";
+    }
+
+    public static String elicitCorrelationId()
+    {
+        return "3";
     }
 }

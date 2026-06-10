@@ -115,12 +115,11 @@ write zilla:begin.ext ${http:beginEx()
 
 connected
 
+write close
+
 read zilla:begin.ext ${http:matchBeginEx()
                            .typeId(zilla:id("http"))
                            .header(":status", "200")
                            .header("content-type", "text/event-stream")
                            .header("mcp-session-id", "transport-1")
                            .build()}
-
-write close
-read closed

@@ -19,10 +19,6 @@ bindings:
   app0:
     type: mcp
     kind: client
-    routes:
-      - exit: net0
-        with:
-          headers:
-            :scheme: http
-            :authority: localhost
-            :path: /mcp
+    options:
+      server: http://localhost:8080/mcp
+    exit: net0

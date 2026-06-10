@@ -1,0 +1,72 @@
+[
+  {
+    "op": "add",
+    "path": "/$defs/telemetry/metrics/items/enum/-",
+    "value": "mcp.initialize"
+  },
+  {
+    "op": "add",
+    "path": "/$defs/telemetry/metrics/items/enum/-",
+    "value": "mcp.initialize.duration"
+  },
+  {
+    "op": "add",
+    "path": "/$defs/telemetry/metrics/items/enum/-",
+    "value": "mcp.tools.list"
+  },
+  {
+    "op": "add",
+    "path": "/$defs/telemetry/metrics/items/enum/-",
+    "value": "mcp.tools.list.duration"
+  },
+  {
+    "op": "add",
+    "path": "/$defs/telemetry/metrics/items/enum/-",
+    "value": "mcp.tools.call"
+  },
+  {
+    "op": "add",
+    "path": "/$defs/telemetry/metrics/items/enum/-",
+    "value": "mcp.tools.call.duration"
+  },
+  {
+    "op": "add",
+    "path": "/$defs/telemetry/metrics/items/enum/-",
+    "value": "mcp.resources.list"
+  },
+  {
+    "op": "add",
+    "path": "/$defs/telemetry/metrics/items/enum/-",
+    "value": "mcp.resources.list.duration"
+  },
+  {
+    "op": "add",
+    "path": "/$defs/telemetry/metrics/items/enum/-",
+    "value": "mcp.resources.read"
+  },
+  {
+    "op": "add",
+    "path": "/$defs/telemetry/metrics/items/enum/-",
+    "value": "mcp.resources.read.duration"
+  },
+  {
+    "op": "add",
+    "path": "/$defs/telemetry/metrics/items/enum/-",
+    "value": "mcp.prompts.list"
+  },
+  {
+    "op": "add",
+    "path": "/$defs/telemetry/metrics/items/enum/-",
+    "value": "mcp.prompts.list.duration"
+  },
+  {
+    "op": "add",
+    "path": "/$defs/telemetry/metrics/items/enum/-",
+    "value": "mcp.prompts.get"
+  },
+  {
+    "op": "add",
+    "path": "/$defs/telemetry/metrics/items/enum/-",
+    "value": "mcp.prompts.get.duration"
+  }
+]

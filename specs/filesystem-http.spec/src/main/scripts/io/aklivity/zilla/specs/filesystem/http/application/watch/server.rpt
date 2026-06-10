@@ -20,7 +20,7 @@ connected
 read http:method "GET"
 read closed
 
-write await REGISTERED
+write await REGISTERED_INITIAL
 write http:status "200" "OK"
 write http:content-length
 write http:header "Etag" "AAAAAAA"
@@ -35,7 +35,7 @@ read http:header "If-None-Match" "AAAAAAA"
 read http:header "Prefer" "wait=86400"
 read closed
 
-write await MODIFIED
+write await RECEIVED_UPDATE
 write http:status "200" "OK"
 write http:content-length
 write http:header "Etag" "BBBBBBB"

@@ -48,7 +48,7 @@ public class ApicurioOptionsConfigAdapterTest
         String text =
                 "{" +
                     "\"url\": \"http://localhost:8081\"," +
-                    "\"group-id\": \"default\"," +
+                    "\"group-id\": \"default\"" +
                 "}";
 
         ApicurioOptionsConfig catalog = jsonb.fromJson(text, ApicurioOptionsConfig.class);

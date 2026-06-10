@@ -47,6 +47,7 @@
     <module>catalog-schema-registry</module>
     <module>common</module>
     <module>common-json</module>
+    <module>common-yaml</module>
     <module>command</module>
     <module>command-metrics</module>
     <module>command-start</module>
@@ -60,6 +61,7 @@
     <module>guard-jwt</module>
     <module>metrics-grpc</module>
     <module>metrics-http</module>
+    <module>metrics-mcp</module>
     <module>metrics-stream</module>
     <module>model-avro</module>
     <module>model-core</module>
@@ -224,6 +226,11 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
+        <artifactId>common-yaml</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
         <artifactId>command</artifactId>
         <version>${project.version}</version>
       </dependency>
@@ -285,6 +292,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>metrics-http</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>metrics-mcp</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

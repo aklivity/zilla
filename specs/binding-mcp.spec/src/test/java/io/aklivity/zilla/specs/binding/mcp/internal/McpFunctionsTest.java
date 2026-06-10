@@ -31,8 +31,10 @@ import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpAbortExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpBearerError;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpChallengeExFW;
-import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpElicitStatus;
+import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpElicitAction;
+import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpEndExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpFlushExFW;
+import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpOutcome;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpResetExFW;
 
 public class McpFunctionsTest
@@ -462,6 +464,82 @@ public class McpFunctionsTest
     }
 
     @Test
+    public void shouldGenerateEndEx()
+    {
+        byte[] bytes = McpFunctions.endEx()
+            .typeId(0)
+            .outcome("ERROR")
+            .build();
+
+        assertNotNull(bytes);
+    }
+
+    @Test
+    public void shouldMatchEndEx() throws Exception
+    {
+        BytesMatcher matcher = McpFunctions.matchEndEx()
+            .typeId(0)
+            .outcome("ERROR")
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new McpEndExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .outcome(o -> o.set(McpOutcome.ERROR))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchEndExByTypeIdOnly() throws Exception
+    {
+        BytesMatcher matcher = McpFunctions.matchEndEx()
+            .typeId(0)
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new McpEndExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .outcome(o -> o.set(McpOutcome.OK))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldReturnNullWhenEndExMatcherIsEmpty() throws Exception
+    {
+        BytesMatcher matcher = McpFunctions.matchEndEx()
+            .build();
+
+        assertNull(matcher.match(ByteBuffer.allocate(0)));
+    }
+
+    @Test(expected = Exception.class)
+    public void shouldFailWhenEndExOutcomeMismatch() throws Exception
+    {
+        BytesMatcher matcher = McpFunctions.matchEndEx()
+            .typeId(0)
+            .outcome("OK")
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new McpEndExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .outcome(o -> o.set(McpOutcome.ERROR))
+            .build();
+
+        matcher.match(byteBuf);
+    }
+
+    @Test
     public void shouldWrapAndReadAbortEx()
     {
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
@@ -856,14 +934,15 @@ public class McpFunctionsTest
     }
 
     @Test
-    public void shouldGenerateElicitCreateChallengeExWithContext()
+    public void shouldGenerateElicitCreateChallengeExWithCorrelationId()
     {
         byte[] bytes = McpFunctions.challengeEx()
             .typeId(0)
             .elicitCreate()
                 .id("elicit-1")
                 .url("https://server.example.com/authorize?state=7f3a9b1c")
-                .context("a1b2c3")
+                .message("Open the link to authorize access.")
+                .correlationId("3")
                 .build()
             .build();
 
@@ -871,14 +950,15 @@ public class McpFunctionsTest
     }
 
     @Test
-    public void shouldMatchElicitCreateChallengeExWithContext() throws Exception
+    public void shouldMatchElicitCreateChallengeExWithCorrelationId() throws Exception
     {
         BytesMatcher matcher = McpFunctions.matchChallengeEx()
             .typeId(0)
             .elicitCreate()
                 .id("elicit-1")
                 .url("https://server.example.com/authorize?state=7f3a9b1c")
-                .context("a1b2c3")
+                .message("Open the link to authorize access.")
+                .correlationId("3")
                 .build()
             .build();
 
@@ -890,19 +970,20 @@ public class McpFunctionsTest
             .elicitCreate(b -> b
                 .id("elicit-1")
                 .url("https://server.example.com/authorize?state=7f3a9b1c")
-                .context("a1b2c3"))
+                .message("Open the link to authorize access.")
+                .correlationId("3"))
             .build();
 
         assertNotNull(matcher.match(byteBuf));
     }
 
     @Test(expected = Exception.class)
-    public void shouldFailWhenElicitCreateChallengeContextMismatch() throws Exception
+    public void shouldFailWhenElicitCreateChallengeMessageMismatch() throws Exception
     {
         BytesMatcher matcher = McpFunctions.matchChallengeEx()
             .typeId(0)
             .elicitCreate()
-                .context("expected")
+                .message("expected")
                 .build()
             .build();
 
@@ -914,7 +995,139 @@ public class McpFunctionsTest
             .elicitCreate(b -> b
                 .id("elicit-1")
                 .url("https://server.example.com/authorize?state=7f3a9b1c")
-                .context("actual"))
+                .message("actual"))
+            .build();
+
+        matcher.match(byteBuf);
+    }
+
+    @Test(expected = Exception.class)
+    public void shouldFailWhenElicitCreateChallengeCorrelationIdMismatch() throws Exception
+    {
+        BytesMatcher matcher = McpFunctions.matchChallengeEx()
+            .typeId(0)
+            .elicitCreate()
+                .correlationId("3")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new McpChallengeExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .elicitCreate(b -> b
+                .id("elicit-1")
+                .url("https://server.example.com/authorize?state=7f3a9b1c")
+                .correlationId("4"))
+            .build();
+
+        matcher.match(byteBuf);
+    }
+
+    @Test
+    public void shouldGenerateElicitResponseFlushEx()
+    {
+        byte[] bytes = McpFunctions.flushEx()
+            .typeId(0)
+            .elicitResponse()
+                .correlationId("3")
+                .action("ACCEPT")
+                .build()
+            .build();
+
+        assertNotNull(bytes);
+    }
+
+    @Test
+    public void shouldMatchElicitResponseFlushEx() throws Exception
+    {
+        BytesMatcher matcher = McpFunctions.matchFlushEx()
+            .typeId(0)
+            .elicitResponse()
+                .correlationId("3")
+                .action("ACCEPT")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new McpFlushExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .elicitResponse(b -> b
+                .correlationId("3")
+                .action(a -> a.set(McpElicitAction.ACCEPT)))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchElicitResponseFlushExWhenEmpty() throws Exception
+    {
+        BytesMatcher matcher = McpFunctions.matchFlushEx()
+            .typeId(0)
+            .elicitResponse()
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new McpFlushExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .elicitResponse(b -> b
+                .correlationId("3")
+                .action(a -> a.set(McpElicitAction.ACCEPT)))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test(expected = Exception.class)
+    public void shouldFailWhenElicitResponseCorrelationIdMismatch() throws Exception
+    {
+        BytesMatcher matcher = McpFunctions.matchFlushEx()
+            .typeId(0)
+            .elicitResponse()
+                .correlationId("3")
+                .action("ACCEPT")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new McpFlushExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .elicitResponse(b -> b
+                .correlationId("4")
+                .action(a -> a.set(McpElicitAction.ACCEPT)))
+            .build();
+
+        matcher.match(byteBuf);
+    }
+
+    @Test(expected = Exception.class)
+    public void shouldFailWhenElicitResponseActionMismatch() throws Exception
+    {
+        BytesMatcher matcher = McpFunctions.matchFlushEx()
+            .typeId(0)
+            .elicitResponse()
+                .correlationId("3")
+                .action("ACCEPT")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new McpFlushExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .elicitResponse(b -> b
+                .correlationId("3")
+                .action(a -> a.set(McpElicitAction.DECLINE)))
             .build();
 
         matcher.match(byteBuf);
@@ -956,13 +1169,13 @@ public class McpFunctionsTest
     }
 
     @Test
-    public void shouldGenerateElicitCallbackFlushExWithContext()
+    public void shouldGenerateElicitCallbackFlushExWithCorrelationId()
     {
         byte[] bytes = McpFunctions.flushEx()
             .typeId(0)
             .elicitCallback()
                 .url("https://zilla.example/mcp/auth/callback?code=xyz&state=7f3a9b1c")
-                .context("a1b2c3")
+                .correlationId("3")
                 .build()
             .build();
 
@@ -970,13 +1183,13 @@ public class McpFunctionsTest
     }
 
     @Test
-    public void shouldMatchElicitCallbackFlushExWithContext() throws Exception
+    public void shouldMatchElicitCallbackFlushExWithCorrelationId() throws Exception
     {
         BytesMatcher matcher = McpFunctions.matchFlushEx()
             .typeId(0)
             .elicitCallback()
                 .url("https://zilla.example/mcp/auth/callback?code=xyz&state=7f3a9b1c")
-                .context("a1b2c3")
+                .correlationId("3")
                 .build()
             .build();
 
@@ -987,19 +1200,19 @@ public class McpFunctionsTest
             .typeId(0)
             .elicitCallback(b -> b
                 .url("https://zilla.example/mcp/auth/callback?code=xyz&state=7f3a9b1c")
-                .context("a1b2c3"))
+                .correlationId("3"))
             .build();
 
         assertNotNull(matcher.match(byteBuf));
     }
 
     @Test(expected = Exception.class)
-    public void shouldFailWhenElicitCallbackFlushContextMismatch() throws Exception
+    public void shouldFailWhenElicitCallbackFlushCorrelationIdMismatch() throws Exception
     {
         BytesMatcher matcher = McpFunctions.matchFlushEx()
             .typeId(0)
             .elicitCallback()
-                .context("expected")
+                .correlationId("expected")
                 .build()
             .build();
 
@@ -1010,7 +1223,7 @@ public class McpFunctionsTest
             .typeId(0)
             .elicitCallback(b -> b
                 .url("https://zilla.example/mcp/auth/callback?code=xyz&state=7f3a9b1c")
-                .context("actual"))
+                .correlationId("actual"))
             .build();
 
         matcher.match(byteBuf);
@@ -1023,7 +1236,6 @@ public class McpFunctionsTest
             .typeId(0)
             .elicitComplete()
                 .id("elicit-1")
-                .status("COMPLETED")
                 .build()
             .build();
 
@@ -1037,7 +1249,6 @@ public class McpFunctionsTest
             .typeId(0)
             .elicitComplete()
                 .id("elicit-1")
-                .status("COMPLETED")
                 .build()
             .build();
 
@@ -1047,8 +1258,7 @@ public class McpFunctionsTest
             .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .elicitComplete(b -> b
-                .id("elicit-1")
-                .status(s -> s.set(McpElicitStatus.COMPLETED)))
+                .id("elicit-1"))
             .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -1069,32 +1279,7 @@ public class McpFunctionsTest
             .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .elicitComplete(b -> b
-                .id("elicit-1")
-                .status(s -> s.set(McpElicitStatus.COMPLETED)))
-            .build();
-
-        matcher.match(byteBuf);
-    }
-
-    @Test(expected = Exception.class)
-    public void shouldFailWhenElicitCompleteStatusMismatch() throws Exception
-    {
-        BytesMatcher matcher = McpFunctions.matchFlushEx()
-            .typeId(0)
-            .elicitComplete()
-                .id("elicit-1")
-                .status("COMPLETED")
-                .build()
-            .build();
-
-        ByteBuffer byteBuf = ByteBuffer.allocate(256);
-
-        new McpFlushExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
-            .typeId(0)
-            .elicitComplete(b -> b
-                .id("elicit-1")
-                .status(s -> s.set(McpElicitStatus.DECLINED)))
+                .id("elicit-1"))
             .build();
 
         matcher.match(byteBuf);

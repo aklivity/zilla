@@ -53,7 +53,7 @@ public class MqttKafkaOptionsConfigAdapterTest
                 "{" +
                     "\"sessions\":\"sessions\"," +
                     "\"messages\":\"messages\"," +
-                    "\"retained\":\"retained\"," +
+                    "\"retained\":\"retained\"" +
                 "}," +
                 "\"clients\":" +
                 "[" +

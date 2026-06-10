@@ -189,23 +189,40 @@ class JsonSchemaTest
     }
 
     @Test
-    void shouldFailFastForUnsupportedKeywords()
+    void shouldValidateStructuralConst()
     {
-        assertUnsupported("{\"dependentRequired\":{}}");
-        assertUnsupported("{\"dependentSchemas\":{}}");
+        String schema = "{\"const\":{\"a\":1,\"b\":[2,3]}}";
+        assertTrue(valid(schema, "{\"b\":[2,3],\"a\":1}"));
+        assertFalse(valid(schema, "{\"a\":1,\"b\":[3,2]}"));
+        assertFalse(valid(schema, "{\"a\":1}"));
     }
 
     @Test
-    void shouldFailFastForStructuralEnum()
+    void shouldTranslateEcmaUnicodePropertyPattern()
     {
-        assertUnsupported("{\"enum\":[{}]}");
-        assertUnsupported("{\"const\":{}}");
+        assertTrue(valid("{\"pattern\":\"^\\\\p{Letter}+$\"}", "\"abc\""));
+        assertFalse(valid("{\"pattern\":\"^\\\\p{Letter}+$\"}", "\"123\""));
+        assertTrue(valid("{\"pattern\":\"^\\\\p{Number}+$\"}", "\"42\""));
     }
 
-    private static void assertUnsupported(
-        String schema)
+    @Test
+    void shouldTreatFormatAsAnnotationNotAssertion()
     {
-        assertThrows(UnsupportedOperationException.class, () -> JsonSchema.of(schema));
+        String schema = "{\"type\":\"string\",\"format\":\"email\"}";
+        assertTrue(valid(schema, "\"not-an-email\""));
+        assertTrue(valid(schema, "\"a@b.com\""));
+        assertFalse(valid(schema, "5"));
+    }
+
+    @Test
+    void shouldValidateStructuralEnum()
+    {
+        String schema = "{\"enum\":[{\"a\":1},[1,2],\"x\"]}";
+        assertTrue(valid(schema, "{\"a\":1}"));
+        assertTrue(valid(schema, "[1,2]"));
+        assertTrue(valid(schema, "\"x\""));
+        assertFalse(valid(schema, "{\"a\":2}"));
+        assertFalse(valid(schema, "[2,1]"));
     }
 
     private static boolean valid(

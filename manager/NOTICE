@@ -18,6 +18,7 @@ This project includes:
   Apache Commons Lang under Apache License, Version 2.0
   Apache HttpClient under Apache License, Version 2.0
   Apache HttpCore under Apache License, Version 2.0
+  Eclipse Parsson under Eclipse Public License 2.0 or GNU General Public License, version 2 with the GNU Classpath Exception
   error-prone annotations under Apache 2.0
   Gson under Apache-2.0
   Jakarta Dependency Injection under The Apache Software License, Version 2.0
@@ -25,7 +26,6 @@ This project includes:
   javax.annotation API under CDDL + GPLv2 with classpath exception
   javax.inject under The Apache Software License, Version 2.0
   JSON-B API under Eclipse Public License 2.0 or GNU General Public License, version 2 with the GNU Classpath Exception
-  JSON-P Default Provider under Eclipse Public License 2.0 or GNU General Public License, version 2 with the GNU Classpath Exception
   Maven Artifact under Apache-2.0
   Maven Artifact Resolver API under Apache-2.0
   Maven Artifact Resolver Connector Basic under Apache-2.0
@@ -45,7 +45,6 @@ This project includes:
   Maven Settings Builder under Apache-2.0
   org.eclipse.sisu.inject under Eclipse Public License, Version 1.0
   org.eclipse.sisu.plexus under Eclipse Public License, Version 1.0
-  org.eclipse.yasson under Eclipse Public License v. 2.0 or Eclipse Distribution License v. 1.0
   Plexus :: Component Annotations under Apache License, Version 2.0
   Plexus Cipher: encryption/decryption Component under Apache License, Version 2.0
   Plexus Classworlds under Apache License, Version 2.0
@@ -55,6 +54,7 @@ This project includes:
   Plexus XML Utilities under Apache License, Version 2.0
   Sisu-Inject-Plexus : legacy wrapper under Eclipse Public License, Version 1.0
   SLF4J API Module under MIT
+  Yasson under Eclipse Public License v. 2.0 or Eclipse Distribution License v. 1.0
 
 
 This project also includes code under copyright of the following entities:

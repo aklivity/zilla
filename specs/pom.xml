@@ -52,6 +52,7 @@
     <module>metrics-stream.spec</module>
     <module>metrics-http.spec</module>
     <module>metrics-grpc.spec</module>
+    <module>metrics-mcp.spec</module>
     <module>model-avro.spec</module>
     <module>model-core.spec</module>
     <module>model-json.spec</module>

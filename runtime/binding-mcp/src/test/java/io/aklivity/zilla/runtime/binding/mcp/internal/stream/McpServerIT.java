@@ -26,6 +26,7 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTes
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -40,6 +41,8 @@ import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 public class McpServerIT
 {
+    private static final String ENGINE_WORKERS_NAME = "zilla.engine.workers";
+
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("net", "io/aklivity/zilla/specs/binding/mcp/streams/network")
         .addScriptRoot("app", "io/aklivity/zilla/specs/binding/mcp/streams/application");
@@ -307,6 +310,16 @@ public class McpServerIT
     @Test
     @Configuration("server.timeout.yaml")
     @Specification({
+        "${net}/tools.call/client",
+        "${app}/tools.call.resumable/server"})
+    public void shouldCallToolWithUpstreamResumableFlush() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.timeout.yaml")
+    @Specification({
         "${net}/tools.call.elicit.completed/client",
         "${app}/tools.call.elicit.completed/server"})
     public void shouldCallToolElicitCompleted() throws Exception
@@ -314,6 +327,27 @@ public class McpServerIT
         k3po.finish();
     }
 
+    @Test
+    @Configuration("server.timeout.yaml")
+    @Specification({
+        "${net}/tools.call.elicit.after.result/client",
+        "${app}/tools.call.elicit.after.result/server"})
+    public void shouldCallToolElicitAfterResult() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.timeout.yaml")
+    @Specification({
+        "${net}/tools.call.elicit.deferred/client",
+        "${app}/tools.call.elicit.deferred/server"})
+    public void shouldCallToolElicitDeferred() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Ignore("broker OAuth-callback elicit (context/elicitCallback) pending dedicated broker net scripts; see issue #1810")
     @Test
     @Configuration("server.timeout.yaml")
     @Specification({
@@ -330,6 +364,16 @@ public class McpServerIT
         "${net}/lifecycle.elicit.toolkit/client",
         "${app}/lifecycle.elicit.toolkit/server"})
     public void shouldRouteLifecycleElicitToolkitCallback() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.timeout.yaml")
+    @Specification({
+        "${net}/lifecycle.elicit.completed/client",
+        "${app}/lifecycle.elicit.completed/server"})
+    public void shouldCompleteLifecycleElicit() throws Exception
     {
         k3po.finish();
     }
@@ -467,6 +511,16 @@ public class McpServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/notifications.cancelled.unknown/client",
+        "${app}/lifecycle.initialize/server"})
+    public void shouldAcceptCancelUnknownRequest() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/prompts.list/client",
         "${app}/prompts.list/server"})
     public void shouldListPrompts() throws Exception
@@ -511,6 +565,26 @@ public class McpServerIT
         "${app}/lifecycle.events.open/server"})
     @Configure(name = MCP_SSE_KEEPALIVE_INTERVAL_NAME, value = "PT30S")
     public void shouldOpenLifecycleEvents() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/lifecycle.suspend.events/client",
+        "${app}/lifecycle.suspend.events/server"})
+    public void shouldSuspendLifecycleEvents() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/lifecycle.events.resume/client",
+        "${app}/lifecycle.events.resume/server"})
+    public void shouldResumeLifecycleEvents() throws Exception
     {
         k3po.finish();
     }
@@ -776,6 +850,16 @@ public class McpServerIT
     @Specification({
         "${net}/reject.auth.callback.unknown.elicitation/client"})
     public void shouldRejectAuthCallbackUnknownElicitation() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/lifecycle.redirect.session/client"})
+    @Configure(name = ENGINE_WORKERS_NAME, value = "2")
+    public void shouldRedirectLifecycleForRemoteSession() throws Exception
     {
         k3po.finish();
     }

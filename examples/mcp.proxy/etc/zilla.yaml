@@ -1,0 +1,94 @@
+---
+name: example
+stores:
+  cache:
+    type: memory
+bindings:
+  north_tcp_server:
+    type: tcp
+    kind: server
+    options:
+      host: 0.0.0.0
+      port:
+        - 7114
+    routes:
+      - when:
+          - port: 7114
+        exit: north_http_server
+  north_http_server:
+    type: http
+    kind: server
+    options:
+      access-control:
+        policy: cross-origin
+    routes:
+      - when:
+          - headers:
+              :scheme: http
+              :path: /mcp
+        exit: north_mcp_server
+  north_mcp_server:
+    type: mcp
+    kind: server
+    exit: north_mcp_proxy
+    telemetry:
+      metrics:
+        - mcp.*
+      attributes:
+        method: ${mcp.method}
+        tool: ${mcp.tool}
+        outcome: ${mcp.outcome}
+  north_mcp_proxy:
+    type: mcp
+    kind: proxy
+    options:
+      cache:
+        store: cache
+        ttl: PT5M
+    routes:
+      - exit: south_mcp_client_everything
+        when:
+          - toolkit: everything
+            capability: [tools, prompts, resources]
+      - exit: south_mcp_client_urlelicit
+        when:
+          - toolkit: urlelicit
+            capability: [tools]
+  south_mcp_client_everything:
+    type: mcp
+    kind: client
+    options:
+      server: http://everything:3001/mcp
+    exit: sys:http_client
+  south_mcp_client_urlelicit:
+    type: mcp
+    kind: client
+    options:
+      server: http://urlelicit:3003/mcp
+    exit: sys:http_client
+telemetry:
+  metrics:
+    - mcp.initialize
+    - mcp.initialize.duration
+    - mcp.tools.list
+    - mcp.tools.list.duration
+    - mcp.tools.call
+    - mcp.tools.call.duration
+    - mcp.prompts.list
+    - mcp.prompts.list.duration
+    - mcp.prompts.get
+    - mcp.prompts.get.duration
+    - mcp.resources.list
+    - mcp.resources.list.duration
+    - mcp.resources.read
+    - mcp.resources.read.duration
+  exporters:
+    stdout_logs_exporter:
+      type: stdout
+    prometheus_exporter:
+      type: prometheus
+      options:
+        endpoints:
+          - scheme: http
+            port: 7190
+            path: /metrics

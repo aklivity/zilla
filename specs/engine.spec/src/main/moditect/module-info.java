@@ -17,6 +17,8 @@ open module io.aklivity.zilla.specs.engine
 {
     requires transitive org.agrona;
 
+    requires io.aklivity.zilla.runtime.common.json;
+    requires io.aklivity.zilla.runtime.common.yaml;
     requires k3po.lang;
     requires junit;
 }

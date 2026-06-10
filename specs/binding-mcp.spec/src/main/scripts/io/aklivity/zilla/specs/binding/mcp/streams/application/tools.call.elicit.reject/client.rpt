@@ -52,8 +52,8 @@ write zilla:begin.ext ${mcp:beginEx()
 write advised zilla:challenge ${mcp:matchChallengeEx()
                                     .typeId(zilla:id("mcp"))
                                     .elicitCreate()
-                                        .id("1")
-                                        .url("https://server.example.com/authorize?state=7f3a9b1c&redirect_uri=%s".formatted(http:encodeQuery("https://replace.me/callback")))
+                                        .id("elicit-1")
+                                        .url("https://server.example.com/authorize?state=7f3a9b1c&redirect_uri=%s".formatted(http:encodeQuery("https://localhost:8080/mcp/auth/callback")))
                                         .build()
                                     .build()}
 

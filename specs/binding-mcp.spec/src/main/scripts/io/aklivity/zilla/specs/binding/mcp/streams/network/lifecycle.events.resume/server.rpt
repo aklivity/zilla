@@ -85,14 +85,16 @@ read zilla:begin.ext ${http:matchBeginEx()
 
 connected
 
-read closed
-
 write zilla:begin.ext ${http:beginEx()
                             .typeId(zilla:id("http"))
                             .header(":status", "200")
                             .header("content-type", "text/event-stream")
                             .header("mcp-session-id", "transport-1")
                             .build()}
+write flush
+
+write 'retry: 60000\n'
+write '\n'
 write flush
 
 write close

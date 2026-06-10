@@ -14,24 +14,19 @@
  */
 package io.aklivity.zilla.runtime.model.json.internal;
 
-import java.io.StringReader;
 import java.util.HashMap;
 import java.util.Map;
 
 import jakarta.json.spi.JsonProvider;
 import jakarta.json.stream.JsonParser;
-import jakarta.json.stream.JsonParserFactory;
 
 import org.agrona.DirectBuffer;
 import org.agrona.collections.Int2ObjectCache;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.agrona.io.DirectBufferInputStream;
-import org.leadpony.justify.api.JsonSchema;
-import org.leadpony.justify.api.JsonSchemaReader;
-import org.leadpony.justify.api.JsonValidatingException;
-import org.leadpony.justify.api.JsonValidationService;
-import org.leadpony.justify.api.ProblemHandler;
 
+import io.aklivity.zilla.runtime.common.json.JsonSchema;
+import io.aklivity.zilla.runtime.common.json.JsonValidationException;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
@@ -50,11 +45,9 @@ public abstract class JsonModelHandler
     protected final JsonModelEventContext event;
     protected final Map<String, OctetsFW> extracted;
 
+    protected final JsonProvider schemaProvider;
+
     private final Int2ObjectCache<JsonSchema> schemas;
-    private final Int2ObjectCache<JsonProvider> providers;
-    private final JsonProvider schemaProvider;
-    private final JsonValidationService service;
-    private final JsonParserFactory factory;
 
     private JsonParser parser;
     private DirectBufferInputStream in;
@@ -64,8 +57,6 @@ public abstract class JsonModelHandler
         EngineContext context)
     {
         this.schemaProvider = JsonProvider.provider();
-        this.service = JsonValidationService.newInstance();
-        this.factory = schemaProvider.createParserFactory(null);
         CatalogedConfig cataloged = config.cataloged.get(0);
         this.catalog = cataloged.schemas.size() != 0 ? cataloged.schemas.get(0) : null;
         this.handler = context.supplyCatalog(cataloged.id);
@@ -73,7 +64,6 @@ public abstract class JsonModelHandler
                 ? catalog.subject
                 : config.subject;
         this.schemas = new Int2ObjectCache<>(1, 1024, i -> {});
-        this.providers = new Int2ObjectCache<>(1, 1024, i -> {});
         this.in = new DirectBufferInputStream();
         this.event = new JsonModelEventContext(context);
         this.extracted = new HashMap<>();
@@ -90,8 +80,8 @@ public abstract class JsonModelHandler
         boolean status = true;
         try
         {
-            JsonProvider provider = supplyProvider(schemaId);
-            status &= provider != null;
+            JsonSchema schema = supplySchema(schemaId);
+            status &= schema != null;
             if (status)
             {
                 for (OctetsFW value: extracted.values())
@@ -99,7 +89,7 @@ public abstract class JsonModelHandler
                     value.wrap(EMPTY_BUFFER, 0, 0);
                 }
                 in.wrap(buffer, index, length);
-                parser = provider.createParser(in);
+                parser = schema.newParser(true, schemaProvider.createParser(in));
                 OctetsFW valueBytes = null;
                 while (parser.hasNext())
                 {
@@ -139,7 +129,7 @@ public abstract class JsonModelHandler
                 }
             }
         }
-        catch (JsonValidatingException ex)
+        catch (JsonValidationException ex)
         {
             status = false;
             event.validationFailure(traceId, bindingId, ex.getMessage());
@@ -176,13 +166,7 @@ public abstract class JsonModelHandler
         return length;
     }
 
-    protected JsonProvider supplyProvider(
-        int schemaId)
-    {
-        return providers.computeIfAbsent(schemaId, this::createProvider);
-    }
-
-    private JsonSchema supplySchema(
+    protected JsonSchema supplySchema(
         int schemaId)
     {
         return schemas.computeIfAbsent(schemaId, this::resolveSchema);
@@ -195,23 +179,9 @@ public abstract class JsonModelHandler
         String schemaText = handler.resolve(schemaId);
         if (schemaText != null)
         {
-            JsonParser schemaParser = factory.createParser(new StringReader(schemaText));
-            JsonSchemaReader reader = service.createSchemaReader(schemaParser);
-            schema = reader.read();
+            schema = JsonSchema.of(schemaText);
         }
 
         return schema;
-    }
-
-    private JsonProvider createProvider(
-        int schemaId)
-    {
-        JsonSchema schema = supplySchema(schemaId);
-        JsonProvider provider = null;
-        if (schema != null)
-        {
-            provider = service.createJsonProvider(schema, parser -> ProblemHandler.throwing());
-        }
-        return provider;
     }
 }

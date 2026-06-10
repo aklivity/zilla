@@ -19,15 +19,14 @@ import static jakarta.json.stream.JsonGenerator.PRETTY_PRINTING;
 import static java.util.Collections.singletonMap;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
-import java.io.IOException;
 import java.io.InputStream;
-import java.io.Reader;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.net.URL;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 import jakarta.json.JsonArray;
@@ -41,19 +40,20 @@ import jakarta.json.spi.JsonProvider;
 import jakarta.json.stream.JsonParser;
 
 import org.agrona.collections.IntArrayList;
-import org.leadpony.justify.api.JsonSchema;
-import org.leadpony.justify.api.JsonSchemaReader;
-import org.leadpony.justify.api.JsonValidationService;
-import org.leadpony.justify.api.ProblemHandler;
 
+import io.aklivity.zilla.runtime.common.json.JsonSchema;
+import io.aklivity.zilla.runtime.common.yaml.YamlConfig;
+import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 import io.aklivity.zilla.runtime.engine.Engine;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.internal.config.NamespaceAdapter;
-import io.aklivity.zilla.runtime.engine.internal.config.schema.UniquePropertyKeysSchema;
 import io.aklivity.zilla.runtime.engine.resolver.Resolver;
 
 public final class EngineConfigReader
 {
+    private static final JsonProvider CONFIG_PROVIDER =
+        YamlJson.provider(Map.of(YamlConfig.FEATURE_UNIQUE_KEYS, true));
+
     private final EngineConfiguration config;
     private final ConfigAdapterContext context;
     private final Resolver expressions;
@@ -86,7 +86,7 @@ public final class EngineConfigReader
         {
             InputStream schemaInput = Engine.class.getResourceAsStream("internal/schema/engine.schema.json");
 
-            JsonProvider schemaProvider = JsonProvider.provider();
+            JsonProvider schemaProvider = YamlJson.provider();
             JsonReader schemaReader = schemaProvider.createReader(schemaInput);
             JsonObject schemaObject = schemaReader.readObject();
 
@@ -105,62 +105,34 @@ public final class EngineConfigReader
                 logSchema(schemaObject);
             }
 
-            if (!validateAnnotatedSchema(schemaObject, schemaProvider, errors, configText))
+            if (!validateAnnotatedSchema(schemaObject, errors, configText))
             {
                 break read;
             }
 
             configText = expressions.resolve(configText);
-
-            JsonParser schemaParser = schemaProvider.createParserFactory(null)
-                .createParser(new StringReader(schemaObject.toString()));
-
-            JsonValidationService service = JsonValidationService.newInstance();
-            ProblemHandler handler = service.createProblemPrinter(msg -> errors.add(new ConfigException(msg)));
-            JsonSchemaReader validator = service.createSchemaReader(schemaParser);
-            JsonSchema schema = new UniquePropertyKeysSchema(validator.read());
-
-            JsonProvider provider = service.createJsonProvider(schema, parser -> handler);
             String readable = configText.stripTrailing();
 
-            IntArrayList configsAt = new IntArrayList();
-            for (int configAt = 0; configAt < readable.length(); )
+            JsonSchema schema = JsonSchema.of(schemaObject.toString());
+
+            IntArrayList configsAt = validateDocuments(readable, schema, errors);
+            if (!errors.isEmpty())
             {
-                configsAt.addInt(configAt);
-
-                Reader reader = new StringReader(readable);
-                reader.skip(configAt);
-
-                try (JsonParser parser = service.createParser(reader, schema, handler))
-                {
-                    while (parser.hasNext())
-                    {
-                        parser.next();
-                    }
-
-                    configAt += (int) parser.getLocation().getStreamOffset();
-                }
-
-                if (!errors.isEmpty())
-                {
-                    break read;
-                }
+                break read;
             }
 
             JsonbConfig config = new JsonbConfig()
                 .withAdapters(new NamespaceAdapter(context));
             Jsonb jsonb = JsonbBuilder.newBuilder()
-                .withProvider(provider)
+                .withProvider(CONFIG_PROVIDER)
                 .withConfig(config)
                 .build();
 
-            Reader reader = new StringReader(readable);
             EngineConfigBuilder<EngineConfig> builder = EngineConfig.builder();
             for (int configAt : configsAt)
             {
-                reader.reset();
-                reader.skip(configAt);
-                NamespaceConfig namespace = jsonb.fromJson(reader, NamespaceConfig.class);
+                NamespaceConfig namespace = jsonb.fromJson(
+                    new StringReader(readable.substring(configAt)), NamespaceConfig.class);
                 namespace.configAt = configAt;
                 builder.namespace(namespace);
 
@@ -190,7 +162,7 @@ public final class EngineConfigReader
         JsonObject schemaObject)
     {
         final StringWriter out = new StringWriter();
-        JsonProvider.provider()
+        YamlJson.provider()
             .createGeneratorFactory(singletonMap(PRETTY_PRINTING, true))
             .createGenerator(out)
             .write(schemaObject)
@@ -202,13 +174,11 @@ public final class EngineConfigReader
 
     private boolean validateAnnotatedSchema(
         JsonObject schemaObject,
-        JsonProvider schemaProvider,
         List<Exception> errors,
         String configText)
     {
         boolean valid = false;
 
-        validate:
         try
         {
             final EngineConfigAnnotator annotator = new EngineConfigAnnotator();
@@ -219,48 +189,101 @@ public final class EngineConfigReader
                 logSchema(annotatedSchemaObject);
             }
 
-            final JsonParser schemaParser = schemaProvider.createParserFactory(null)
-                .createParser(new StringReader(annotatedSchemaObject.toString()));
-
-            final JsonValidationService service = JsonValidationService.newInstance();
-            ProblemHandler handler = service.createProblemPrinter(msg -> errors.add(new ConfigException(msg)));
-            final JsonSchemaReader validator = service.createSchemaReader(schemaParser);
-            final JsonSchema schema = new UniquePropertyKeysSchema(validator.read());
+            final JsonSchema schema = JsonSchema.of(annotatedSchemaObject.toString());
 
             String readable = configText.stripTrailing();
 
-            IntArrayList configsAt = new IntArrayList();
-            for (int configAt = 0; configAt < readable.length(); )
-            {
-                configsAt.addInt(configAt);
+            validateDocuments(readable, schema, errors);
 
-                Reader reader = new StringReader(readable);
-                reader.skip(configAt);
-
-                try (JsonParser parser = service.createParser(reader, schema, handler))
-                {
-                    while (parser.hasNext())
-                    {
-                        parser.next();
-                    }
-
-                    configAt += (int) parser.getLocation().getStreamOffset();
-                }
-
-                if (!errors.isEmpty())
-                {
-                    break validate;
-                }
-            }
-
-            valid = true;
+            valid = errors.isEmpty();
         }
-        catch (IOException ex)
+        catch (Exception ex)
         {
             errors.add(ex);
         }
 
         return valid;
+    }
 
+    private IntArrayList validateDocuments(
+        String readable,
+        JsonSchema schema,
+        List<Exception> errors)
+    {
+        IntArrayList documentsAt = documentOffsets(readable);
+
+        for (int index = 0; index < documentsAt.size(); index++)
+        {
+            int documentAt = documentsAt.getInt(index);
+            try (JsonParser parser = CONFIG_PROVIDER.createParser(new StringReader(readable.substring(documentAt))))
+            {
+                schema.validate(parser, problem -> errors.add(new ConfigException(problem.toString())));
+            }
+        }
+
+        return documentsAt;
+    }
+
+    private IntArrayList documentOffsets(
+        String readable)
+    {
+        IntArrayList documentsAt = new IntArrayList();
+
+        if (!readable.isEmpty())
+        {
+            documentsAt.addInt(0);
+        }
+
+        try (JsonParser parser = CONFIG_PROVIDER.createParser(new StringReader(readable)))
+        {
+            int depth = 0;
+            int documentAt = 0;
+            while (parser.hasNext())
+            {
+                JsonParser.Event event = parser.next();
+                switch (event)
+                {
+                case START_OBJECT, START_ARRAY ->
+                    depth++;
+                case END_OBJECT, END_ARRAY ->
+                {
+                    depth--;
+                    if (depth == 0)
+                    {
+                        documentAt = nextDocumentAt(parser, documentsAt, documentAt);
+                    }
+                }
+                case VALUE_STRING, VALUE_NUMBER, VALUE_TRUE, VALUE_FALSE, VALUE_NULL ->
+                {
+                    if (depth == 0)
+                    {
+                        documentAt = nextDocumentAt(parser, documentsAt, documentAt);
+                    }
+                }
+                default ->
+                {
+                }
+                }
+            }
+        }
+
+        return documentsAt;
+    }
+
+    private int nextDocumentAt(
+        JsonParser parser,
+        IntArrayList documentsAt,
+        int documentAt)
+    {
+        int nextDocumentAt = (int) parser.getLocation().getStreamOffset();
+        if (nextDocumentAt <= documentAt)
+        {
+            throw new ConfigException("YAML parser did not advance to next document");
+        }
+        if (parser.hasNext())
+        {
+            documentsAt.addInt(nextDocumentAt);
+        }
+        return nextDocumentAt;
     }
 }

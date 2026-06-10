@@ -84,7 +84,7 @@ public class TlsConditionConfigAdapterTest
                 "{" +
                     "\"authority\": \"example.net\"," +
                     "\"alpn\": \"echo\"," +
-                    "\"port\": 8080-8081" +
+                    "\"port\": \"8080-8081\"" +
                 "}";
 
         TlsConditionConfig condition = jsonb.fromJson(text, TlsConditionConfig.class);

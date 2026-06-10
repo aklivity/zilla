@@ -47,15 +47,15 @@ module io.aklivity.zilla.runtime.engine
 
     requires transitive jakarta.json;
     requires transitive jakarta.json.bind;
+    requires org.eclipse.parsson;
     requires transitive org.agrona;
-    requires org.leadpony.justify;
-    requires com.fasterxml.jackson.dataformat.yaml;
-    requires com.fasterxml.jackson.databind;
     requires jdk.management;
     requires jdk.unsupported;
     requires java.management;
     requires java.net.http;
     requires io.aklivity.zilla.runtime.common;
+    requires io.aklivity.zilla.runtime.common.json;
+    requires io.aklivity.zilla.runtime.common.yaml;
 
     provides io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi
         with io.aklivity.zilla.runtime.engine.internal.event.EngineEventFormatterFactory;

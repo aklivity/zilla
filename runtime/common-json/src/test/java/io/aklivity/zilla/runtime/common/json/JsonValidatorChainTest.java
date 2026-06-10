@@ -24,7 +24,6 @@ import java.util.Map;
 
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParser.Event;
-import jakarta.json.stream.JsonParsingException;
 
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -127,10 +126,10 @@ class JsonValidatorChainTest
     }
 
     @Test
-    void shouldPullValidDocumentThroughValidatingParser()
+    void shouldPullValidDocumentThroughNewParser()
     {
         JsonSchema schema = JsonSchema.of(OBJECT_SCHEMA);
-        JsonParser parser = schema.validatingParser(parserFor("{\"id\":1,\"name\":\"x\"} "));
+        JsonParser parser = schema.newParser(true, parserFor("{\"id\":1,\"name\":\"x\"} "));
 
         int events = 0;
         while (parser.hasNext())
@@ -143,12 +142,12 @@ class JsonValidatorChainTest
     }
 
     @Test
-    void shouldThrowFromValidatingParserOnInvalid()
+    void shouldThrowFromNewParserOnInvalid()
     {
         JsonSchema schema = JsonSchema.of(OBJECT_SCHEMA);
-        JsonParser parser = schema.validatingParser(parserFor("{\"id\":\"x\",\"name\":\"y\"} "));
+        JsonParser parser = schema.newParser(true, parserFor("{\"id\":\"x\",\"name\":\"y\"} "));
 
-        assertThrows(JsonParsingException.class, () ->
+        assertThrows(JsonValidationException.class, () ->
         {
             while (parser.hasNext())
             {
@@ -158,12 +157,11 @@ class JsonValidatorChainTest
     }
 
     @Test
-    void shouldValidateEachValueFromValidatingParserFactory()
+    void shouldValidateValueFromNewParser()
     {
         JsonSchema schema = JsonSchema.of("{\"type\":\"integer\",\"minimum\":0}");
-        JsonParser parser = schema
-            .validatingParserFactory(StreamingJson.createParserFactory(Map.of()))
-            .createParser(streamFor("7 "));
+        JsonParser parser = schema.newParser(true,
+            StreamingJson.createParserFactory(Map.of()).createParser(streamFor("7 ")));
 
         Event event = parser.next();
 
