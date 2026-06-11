@@ -14,43 +14,45 @@
  */
 package io.aklivity.zilla.runtime.common.json;
 
-import java.io.InputStream;
-
 import org.agrona.DirectBuffer;
+import org.agrona.io.DirectBufferInputStream;
 
-public final class DirectBufferInputStreamEx extends InputStream
+public final class DirectBufferInputStreamEx extends DirectBufferInputStream
 {
-    private DirectBuffer buffer;
-    private int offset;
-    private int length;
-    private int position;
+    private DirectBuffer wrapBuffer;
+    private int wrapOffset;
+    private int wrapLength;
     private int markPosition;
 
+    @Override
     public void wrap(
         DirectBuffer buffer,
         int offset,
         int length)
     {
-        this.buffer = buffer;
-        this.offset = offset;
-        this.length = length;
-        this.position = 0;
+        super.wrap(buffer, offset, length);
+        this.wrapBuffer = buffer;
+        this.wrapOffset = offset;
+        this.wrapLength = length;
         this.markPosition = 0;
     }
 
-    public int offset()
-    {
-        return offset;
-    }
-
-    public int length()
-    {
-        return length;
-    }
-
+    @Override
     public DirectBuffer buffer()
     {
-        return buffer;
+        return wrapBuffer;
+    }
+
+    @Override
+    public int offset()
+    {
+        return wrapOffset;
+    }
+
+    @Override
+    public int length()
+    {
+        return wrapLength;
     }
 
     @Override
@@ -63,61 +65,12 @@ public final class DirectBufferInputStreamEx extends InputStream
     public void mark(
         int readlimit)
     {
-        markPosition = position;
+        markPosition = wrapLength - available();
     }
 
     @Override
     public void reset()
     {
-        position = markPosition;
-    }
-
-    @Override
-    public int available()
-    {
-        return length - position;
-    }
-
-    @Override
-    public long skip(
-        long n)
-    {
-        final int skipped = (int) Math.min(n, length - position);
-        position += skipped;
-        return skipped;
-    }
-
-    @Override
-    public int read()
-    {
-        int value = -1;
-        if (position < length)
-        {
-            value = buffer.getByte(offset + position) & 0xff;
-            position++;
-        }
-        return value;
-    }
-
-    @Override
-    public int read(
-        byte[] dst,
-        int dstOffset,
-        int dstLength)
-    {
-        int bytesRead = -1;
-        final int available = length - position;
-        if (available > 0)
-        {
-            bytesRead = Math.min(dstLength, available);
-            buffer.getBytes(offset + position, dst, dstOffset, bytesRead);
-            position += bytesRead;
-        }
-        return bytesRead;
-    }
-
-    @Override
-    public void close()
-    {
+        super.wrap(wrapBuffer, wrapOffset + markPosition, wrapLength - markPosition);
     }
 }
