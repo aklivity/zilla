@@ -103,6 +103,12 @@ public class AvroEncoderTest
         }
 
         @Override
+        public String getKey()
+        {
+            return "";
+        }
+
+        @Override
         public DirectBuffer buffer()
         {
             return empty;

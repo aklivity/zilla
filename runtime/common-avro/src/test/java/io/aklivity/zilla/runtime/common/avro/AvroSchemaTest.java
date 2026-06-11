@@ -169,6 +169,24 @@ public class AvroSchemaTest
     }
 
     @Test
+    public void shouldReadMapKeysViaGetKey()
+    {
+        List<String> keys = new ArrayList<>();
+        AvroSink sink = (control, source, event) ->
+        {
+            if (event == AvroEvent.MAP_KEY)
+            {
+                keys.add(source.getKey());
+            }
+            return Status.PENDING;
+        };
+        // one block, count 1 (0x02), key "a" (0x02 'a'), value 7 (0x0e), terminator 0x00
+        assertEquals(COMPLETE, decode("{\"type\":\"map\",\"values\":\"long\"}",
+            new byte[] { 0x02, 0x02, 0x61, 0x0e, 0x00 }, sink));
+        assertEquals(List.of("a"), keys);
+    }
+
+    @Test
     public void shouldRejectMalformedSchemaDocument()
     {
         assertThrows(AvroValidationException.class, () -> StreamingAvro.schema("{ this is not json"));

@@ -44,6 +44,12 @@ public interface AvroSource
      */
     String getField();
 
+    /**
+     * Valid only on a {@link AvroEvent#MAP_KEY} event; the map entry key decoded as UTF-8. The
+     * zero-copy key bytes are also available via the {@link #buffer()} accessors.
+     */
+    String getKey();
+
     DirectBuffer buffer();
 
     int offset();

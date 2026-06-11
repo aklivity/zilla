@@ -168,9 +168,7 @@ final class AvroCursor implements AvroSource
         String value = string;
         if (value == null && length > 0)
         {
-            byte[] dst = new byte[length];
-            buffer.getBytes(offset, dst);
-            value = new String(dst, UTF_8);
+            value = decode();
         }
         return value;
     }
@@ -179,6 +177,19 @@ final class AvroCursor implements AvroSource
     public String getField()
     {
         return field;
+    }
+
+    @Override
+    public String getKey()
+    {
+        return length > 0 ? decode() : null;
+    }
+
+    private String decode()
+    {
+        byte[] dst = new byte[length];
+        buffer.getBytes(offset, dst);
+        return new String(dst, UTF_8);
     }
 
     @Override
