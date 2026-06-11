@@ -14,16 +14,12 @@
  */
 package io.aklivity.zilla.runtime.common.avro.internal;
 
-import static io.aklivity.zilla.runtime.common.avro.AvroEvent.END_ARRAY;
-import static io.aklivity.zilla.runtime.common.avro.AvroEvent.END_MAP;
 import static java.nio.ByteOrder.LITTLE_ENDIAN;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 
 import io.aklivity.zilla.runtime.common.avro.AvroEncoder;
-import io.aklivity.zilla.runtime.common.avro.AvroEvent;
-import io.aklivity.zilla.runtime.common.avro.AvroSource;
 import io.aklivity.zilla.runtime.common.avro.AvroValidationException;
 
 public final class AvroEncoderImpl implements AvroEncoder
@@ -61,12 +57,203 @@ public final class AvroEncoderImpl implements AvroEncoder
     }
 
     @Override
-    public void writeSegment(
-        DirectBuffer source,
+    public int length()
+    {
+        return limit - base;
+    }
+
+    @Override
+    public void startRecord()
+    {
+        beginValue();
+        expect(AvroKind.RECORD);
+        require(stateStack[depth - 1] == 0, "unexpected record start");
+        stateStack[depth - 1] = 1;
+    }
+
+    @Override
+    public void endRecord()
+    {
+        AvroNode node = nodeStack[depth - 1];
+        require(node.kind == AvroKind.RECORD && stateStack[depth - 1] == node.fieldNames.length + 1,
+            "unexpected record end");
+        pop();
+    }
+
+    @Override
+    public void startArray()
+    {
+        beginValue();
+        expect(AvroKind.ARRAY);
+        require(stateStack[depth - 1] == 0, "unexpected array start");
+        stateStack[depth - 1] = 1;
+    }
+
+    @Override
+    public void endArray()
+    {
+        require(nodeStack[depth - 1].kind == AvroKind.ARRAY && stateStack[depth - 1] == 1, "unexpected array end");
+        writeVarint(0);
+        pop();
+    }
+
+    @Override
+    public void startMap()
+    {
+        beginValue();
+        expect(AvroKind.MAP);
+        require(stateStack[depth - 1] == 0, "unexpected map start");
+        stateStack[depth - 1] = 1;
+    }
+
+    @Override
+    public void endMap()
+    {
+        require(nodeStack[depth - 1].kind == AvroKind.MAP && stateStack[depth - 1] == 1, "unexpected map end");
+        writeVarint(0);
+        pop();
+    }
+
+    @Override
+    public void mapKey(
+        DirectBuffer buffer,
         int offset,
         int length)
     {
-        buffer.putBytes(limit, source, offset, length);
+        AvroNode node = nodeStack[depth - 1];
+        require(node.kind == AvroKind.MAP && stateStack[depth - 1] == 1, "unexpected map key");
+        writeVarint(zigzag(1));
+        writeBytes(buffer, offset, length);
+        push(node.children[0]);
+    }
+
+    @Override
+    public void unionBranch(
+        int index)
+    {
+        beginValue();
+        AvroNode node = expect(AvroKind.UNION);
+        require(index >= 0 && index < node.children.length, "union branch out of range");
+        writeVarint(zigzag(index));
+        nodeStack[depth - 1] = node.children[index];
+        stateStack[depth - 1] = 0;
+    }
+
+    @Override
+    public void encodeNull()
+    {
+        beginValue();
+        expect(AvroKind.NULL);
+        pop();
+    }
+
+    @Override
+    public void encodeBoolean(
+        boolean value)
+    {
+        beginValue();
+        expect(AvroKind.BOOLEAN);
+        buffer.putByte(limit, (byte) (value ? 1 : 0));
+        limit++;
+        pop();
+    }
+
+    @Override
+    public void encodeInt(
+        int value)
+    {
+        beginValue();
+        expect(AvroKind.INT);
+        writeVarint(zigzag(value));
+        pop();
+    }
+
+    @Override
+    public void encodeLong(
+        long value)
+    {
+        beginValue();
+        expect(AvroKind.LONG);
+        writeVarint(zigzag(value));
+        pop();
+    }
+
+    @Override
+    public void encodeFloat(
+        float value)
+    {
+        beginValue();
+        expect(AvroKind.FLOAT);
+        buffer.putFloat(limit, value, LITTLE_ENDIAN);
+        limit += Float.BYTES;
+        pop();
+    }
+
+    @Override
+    public void encodeDouble(
+        double value)
+    {
+        beginValue();
+        expect(AvroKind.DOUBLE);
+        buffer.putDouble(limit, value, LITTLE_ENDIAN);
+        limit += Double.BYTES;
+        pop();
+    }
+
+    @Override
+    public void encodeString(
+        DirectBuffer buffer,
+        int offset,
+        int length)
+    {
+        beginValue();
+        expect(AvroKind.STRING);
+        writeBytes(buffer, offset, length);
+        pop();
+    }
+
+    @Override
+    public void encodeBytes(
+        DirectBuffer buffer,
+        int offset,
+        int length)
+    {
+        beginValue();
+        expect(AvroKind.BYTES);
+        writeBytes(buffer, offset, length);
+        pop();
+    }
+
+    @Override
+    public void encodeFixed(
+        DirectBuffer buffer,
+        int offset,
+        int length)
+    {
+        beginValue();
+        expect(AvroKind.FIXED);
+        this.buffer.putBytes(limit, buffer, offset, length);
+        limit += length;
+        pop();
+    }
+
+    @Override
+    public void encodeEnum(
+        int index)
+    {
+        beginValue();
+        expect(AvroKind.ENUM);
+        writeVarint(zigzag(index));
+        pop();
+    }
+
+    @Override
+    public void writeSegment(
+        DirectBuffer buffer,
+        int offset,
+        int length)
+    {
+        this.buffer.putBytes(limit, buffer, offset, length);
         limit += length;
     }
 
@@ -77,179 +264,47 @@ public final class AvroEncoderImpl implements AvroEncoder
         push(root);
     }
 
-    @Override
-    public void encode(
-        AvroEvent event,
-        AvroSource in)
+    private void beginValue()
     {
-        boolean consumed = false;
-        while (!consumed)
+        require(depth > 0, "unexpected value after message complete");
+        boolean resolved = false;
+        while (!resolved)
         {
-            if (depth == 0)
+            int frame = depth - 1;
+            AvroNode node = nodeStack[frame];
+            if (node.kind == AvroKind.ARRAY && stateStack[frame] == 1)
             {
-                throw new AvroValidationException("unexpected event after value complete: " + event);
+                writeVarint(zigzag(1));
+                push(node.children[0]);
             }
-
-            final int frame = depth - 1;
-            final AvroNode node = nodeStack[frame];
-            final int state = stateStack[frame];
-
-            switch (node.kind)
+            else if (node.kind == AvroKind.RECORD && stateStack[frame] >= 1 && stateStack[frame] <= node.fieldNames.length)
             {
-            case NULL:
-                require(event == AvroEvent.NULL, event);
-                pop();
-                consumed = true;
-                break;
-            case BOOLEAN:
-                require(event == AvroEvent.BOOLEAN, event);
-                buffer.putByte(limit, (byte) (in.getBoolean() ? 1 : 0));
-                limit++;
-                pop();
-                consumed = true;
-                break;
-            case INT:
-                require(event == AvroEvent.INT, event);
-                writeVarint(zigzag(in.getInt()));
-                pop();
-                consumed = true;
-                break;
-            case LONG:
-                require(event == AvroEvent.LONG, event);
-                writeVarint(zigzag(in.getLong()));
-                pop();
-                consumed = true;
-                break;
-            case FLOAT:
-                require(event == AvroEvent.FLOAT, event);
-                buffer.putFloat(limit, in.getFloat(), LITTLE_ENDIAN);
-                limit += Float.BYTES;
-                pop();
-                consumed = true;
-                break;
-            case DOUBLE:
-                require(event == AvroEvent.DOUBLE, event);
-                buffer.putDouble(limit, in.getDouble(), LITTLE_ENDIAN);
-                limit += Double.BYTES;
-                pop();
-                consumed = true;
-                break;
-            case BYTES:
-                require(event == AvroEvent.BYTES, event);
-                writeBytes(in);
-                pop();
-                consumed = true;
-                break;
-            case STRING:
-                require(event == AvroEvent.STRING, event);
-                writeBytes(in);
-                pop();
-                consumed = true;
-                break;
-            case FIXED:
-                require(event == AvroEvent.FIXED, event);
-                DirectBuffer fixed = in.getSegment();
-                buffer.putBytes(limit, fixed, 0, fixed.capacity());
-                limit += fixed.capacity();
-                pop();
-                consumed = true;
-                break;
-            case ENUM:
-                require(event == AvroEvent.ENUM, event);
-                writeVarint(zigzag(in.getInt()));
-                pop();
-                consumed = true;
-                break;
-            case RECORD:
-                if (state == 0)
-                {
-                    require(event == AvroEvent.START_RECORD, event);
-                    stateStack[frame] = 1;
-                    consumed = true;
-                }
-                else if (state <= node.fieldNames.length)
-                {
-                    require(event == AvroEvent.FIELD_NAME, event);
-                    stateStack[frame] = state + 1;
-                    push(node.children[state - 1]);
-                    consumed = true;
-                }
-                else
-                {
-                    require(event == AvroEvent.END_RECORD, event);
-                    pop();
-                    consumed = true;
-                }
-                break;
-            case ARRAY:
-                if (state == 0)
-                {
-                    require(event == AvroEvent.START_ARRAY, event);
-                    stateStack[frame] = 1;
-                    consumed = true;
-                }
-                else if (event == END_ARRAY)
-                {
-                    writeVarint(0);
-                    pop();
-                    consumed = true;
-                }
-                else
-                {
-                    writeVarint(zigzag(1));
-                    push(node.children[0]);
-                }
-                break;
-            case MAP:
-                if (state == 0)
-                {
-                    require(event == AvroEvent.START_MAP, event);
-                    stateStack[frame] = 1;
-                    consumed = true;
-                }
-                else if (event == END_MAP)
-                {
-                    writeVarint(0);
-                    pop();
-                    consumed = true;
-                }
-                else
-                {
-                    require(event == AvroEvent.MAP_KEY, event);
-                    writeVarint(zigzag(1));
-                    writeBytes(in);
-                    push(node.children[0]);
-                    consumed = true;
-                }
-                break;
-            case UNION:
-                require(event == AvroEvent.UNION_BRANCH, event);
-                int index = in.getInt();
-                require(index >= 0 && index < node.children.length, event);
-                writeVarint(zigzag(index));
-                nodeStack[frame] = node.children[index];
-                stateStack[frame] = 0;
-                consumed = true;
-                break;
-            default:
-                throw new AvroValidationException("unexpected schema kind: " + node.kind);
+                int index = stateStack[frame] - 1;
+                stateStack[frame]++;
+                push(node.children[index]);
+            }
+            else
+            {
+                resolved = true;
             }
         }
     }
 
-    @Override
-    public int length()
+    private AvroNode expect(
+        AvroKind kind)
     {
-        return limit - base;
+        AvroNode node = nodeStack[depth - 1];
+        require(node.kind == kind, "expected " + node.kind + " but was " + kind);
+        return node;
     }
 
     private void writeBytes(
-        AvroSource in)
+        DirectBuffer source,
+        int offset,
+        int length)
     {
-        DirectBuffer value = in.getSegment();
-        int length = value.capacity();
         writeVarint(zigzag(length));
-        buffer.putBytes(limit, value, 0, length);
+        buffer.putBytes(limit, source, offset, length);
         limit += length;
     }
 
@@ -269,11 +324,11 @@ public final class AvroEncoderImpl implements AvroEncoder
 
     private void require(
         boolean condition,
-        AvroEvent event)
+        String message)
     {
         if (!condition)
         {
-            throw new AvroValidationException("event does not match schema: " + event);
+            throw new AvroValidationException(message);
         }
     }
 

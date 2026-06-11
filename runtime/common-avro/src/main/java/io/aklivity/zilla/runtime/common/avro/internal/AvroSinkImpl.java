@@ -27,10 +27,12 @@ import io.aklivity.zilla.runtime.common.avro.AvroSink;
 import io.aklivity.zilla.runtime.common.avro.AvroSource;
 
 /**
- * Terminal {@link AvroSink} that materializes each fed event into a write on the wrapped
- * {@link AvroEncoder}. Reaches {@link Status#COMPLETE} when the current top-level datum closes at
- * depth zero. In {@link Delivery#SEGMENTABLE} mode it requests verbatim segment delivery on
- * {@link AvroEvent#START_MESSAGE} and appends each segment slice raw.
+ * Terminal {@link AvroSink} that adapts the decoded {@link AvroEvent} stream to typed calls on the
+ * wrapped {@link AvroEncoder}, reading each value from the {@link AvroSource}. Field names carry no
+ * wire information for Avro, so {@code FIELD_NAME} is skipped; the encoder advances positionally.
+ * Reaches {@link Status#COMPLETE} when the current top-level message closes at depth zero. In
+ * {@link Delivery#SEGMENTABLE} mode it requests verbatim segment delivery on {@link AvroEvent#START_MESSAGE}
+ * and appends each segment slice raw.
  */
 public final class AvroSinkImpl implements AvroSink
 {
@@ -68,25 +70,79 @@ public final class AvroSinkImpl implements AvroSink
                 control.segmentable();
             }
             break;
-        case END_MESSAGE:
-            break;
         case START_RECORD:
-        case START_ARRAY:
-        case START_MAP:
-            encoder.encode(event, source);
+            encoder.startRecord();
             depth++;
             break;
         case END_RECORD:
-        case END_ARRAY:
-        case END_MAP:
-            encoder.encode(event, source);
-            depth--;
-            status = depth == 0 ? COMPLETE : PENDING;
+            encoder.endRecord();
+            status = close();
             break;
-        case FIELD_NAME:
+        case START_ARRAY:
+            encoder.startArray();
+            depth++;
+            break;
+        case END_ARRAY:
+            encoder.endArray();
+            status = close();
+            break;
+        case START_MAP:
+            encoder.startMap();
+            depth++;
+            break;
+        case END_MAP:
+            encoder.endMap();
+            status = close();
+            break;
         case MAP_KEY:
+            segment = source.getSegment();
+            encoder.mapKey(segment, 0, segment.capacity());
+            break;
         case UNION_BRANCH:
-            encoder.encode(event, source);
+            encoder.unionBranch(source.getInt());
+            break;
+        case NULL:
+            encoder.encodeNull();
+            status = scalar();
+            break;
+        case BOOLEAN:
+            encoder.encodeBoolean(source.getBoolean());
+            status = scalar();
+            break;
+        case INT:
+            encoder.encodeInt(source.getInt());
+            status = scalar();
+            break;
+        case LONG:
+            encoder.encodeLong(source.getLong());
+            status = scalar();
+            break;
+        case FLOAT:
+            encoder.encodeFloat(source.getFloat());
+            status = scalar();
+            break;
+        case DOUBLE:
+            encoder.encodeDouble(source.getDouble());
+            status = scalar();
+            break;
+        case STRING:
+            segment = source.getSegment();
+            encoder.encodeString(segment, 0, segment.capacity());
+            status = scalar();
+            break;
+        case BYTES:
+            segment = source.getSegment();
+            encoder.encodeBytes(segment, 0, segment.capacity());
+            status = scalar();
+            break;
+        case FIXED:
+            segment = source.getSegment();
+            encoder.encodeFixed(segment, 0, segment.capacity());
+            status = scalar();
+            break;
+        case ENUM:
+            encoder.encodeEnum(source.getInt());
+            status = scalar();
             break;
         case START_SEGMENT:
         case CONTINUE_SEGMENT:
@@ -96,11 +152,9 @@ public final class AvroSinkImpl implements AvroSink
         case END_SEGMENT:
             segment = source.getSegment();
             encoder.writeSegment(segment, 0, segment.capacity());
-            status = depth == 0 ? COMPLETE : PENDING;
+            status = scalar();
             break;
         default:
-            encoder.encode(event, source);
-            status = depth == 0 ? COMPLETE : PENDING;
             break;
         }
         return status;
@@ -110,5 +164,16 @@ public final class AvroSinkImpl implements AvroSink
     public void reset()
     {
         depth = 0;
+    }
+
+    private Status close()
+    {
+        depth--;
+        return depth == 0 ? COMPLETE : PENDING;
+    }
+
+    private Status scalar()
+    {
+        return depth == 0 ? COMPLETE : PENDING;
     }
 }
