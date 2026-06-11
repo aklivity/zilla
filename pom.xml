@@ -95,11 +95,6 @@
         <version>3.0.1</version>
       </dependency>
       <dependency>
-        <groupId>org.eclipse.parsson</groupId>
-        <artifactId>parsson</artifactId>
-        <version>1.1.7</version>
-      </dependency>
-      <dependency>
         <groupId>org.eclipse</groupId>
         <artifactId>yasson</artifactId>
         <version>3.0.4</version>

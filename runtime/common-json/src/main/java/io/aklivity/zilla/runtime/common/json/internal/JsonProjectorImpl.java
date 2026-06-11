@@ -14,15 +14,16 @@
  */
 package io.aklivity.zilla.runtime.common.json.internal;
 
-import static jakarta.json.stream.JsonParser.Event.START_ARRAY;
-
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
 import jakarta.json.stream.JsonLocation;
-import jakarta.json.stream.JsonParser.Event;
 
+import org.agrona.DirectBuffer;
+
+import io.aklivity.zilla.runtime.common.json.JsonController;
+import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonSource;
@@ -30,9 +31,9 @@ import io.aklivity.zilla.runtime.common.json.JsonTransform;
 
 /**
  * Resumable, event-driven {@link JsonTransform} that projects a document down to a set of retained
- * RFC 6901 pointers, forwarding the kept events to the downstream {@code out} sink passed into each
- * {@link #feed(Event, JsonSource, JsonSink)}. This class holds the per-value descent state only;
- * the downstream is bound once at assembly and supplied per event.
+ * RFC 6901 pointers, forwarding the kept events to the downstream {@code sink} passed into each
+ * {@link #feed(JsonController, JsonSource, JsonEvent, JsonSink)}. This class holds the per-value descent
+ * state only; the downstream is bound once at assembly and supplied per event.
  */
 public final class JsonProjectorImpl implements JsonTransform
 {
@@ -46,7 +47,10 @@ public final class JsonProjectorImpl implements JsonTransform
 
     private final List<String[]> retained;
 
-    private final String[] segments = new String[MAX_DEPTH];
+    // Per-depth reused key buffers — an object-key segment is captured here char-by-char (no String);
+    // segmentIsKey distinguishes an object key from an array index at this depth.
+    private final StringBuilder[] segmentKeys = new StringBuilder[MAX_DEPTH];
+    private final boolean[] segmentIsKey = new boolean[MAX_DEPTH];
     private final int[] indexes = new int[MAX_DEPTH];
 
     private final boolean[] frameInArray = new boolean[MAX_DEPTH];
@@ -57,16 +61,30 @@ public final class JsonProjectorImpl implements JsonTransform
 
     private final KeySource keySource = new KeySource();
 
+    private final JsonController downstreamControl = this::onDownstreamSegmentable;
+
     private int depth;
     private int containers;
     private Decision keyDecision;
     private String pendingKey;
     private boolean rootDone;
+    private boolean downstreamDemand;
+    private SegMode segMode = SegMode.NONE;
+    private JsonEvent deferredStart;
+
+    private enum SegMode
+    {
+        NONE, AWAITING, FORWARDING
+    }
 
     public JsonProjectorImpl(
         List<String> pointers)
     {
         this.retained = compileAll(pointers);
+        for (int i = 0; i < MAX_DEPTH; i++)
+        {
+            segmentKeys[i] = new StringBuilder();
+        }
     }
 
     @Override
@@ -77,75 +95,100 @@ public final class JsonProjectorImpl implements JsonTransform
         keyDecision = null;
         pendingKey = null;
         rootDone = false;
+        downstreamDemand = false;
+        segMode = SegMode.NONE;
+        deferredStart = null;
+    }
+
+    private void onDownstreamSegmentable()
+    {
+        downstreamDemand = true;
     }
 
     @Override
     public Status feed(
-        Event event,
-        JsonSource in,
-        JsonSink out)
+        JsonController control,
+        JsonSource source,
+        JsonEvent event,
+        JsonSink sink)
     {
-        switch (event)
+        if (segMode == SegMode.AWAITING)
         {
-        case KEY_NAME:
-            onKey(in);
-            break;
-        case START_OBJECT:
-        case START_ARRAY:
-            onStart(event, in, out);
-            break;
-        case END_OBJECT:
-        case END_ARRAY:
-            onEnd(event, in, out);
-            break;
-        default:
-            onScalar(event, in, out);
-            break;
+            onAwaiting(control, source, event, sink);
+        }
+        else if (segMode == SegMode.FORWARDING)
+        {
+            onForwarding(source, event, sink);
+        }
+        else
+        {
+            route(control, source, event, sink);
         }
         return rootDone ? Status.COMPLETE : Status.PENDING;
     }
 
-    private void onKey(
-        JsonSource in)
+    private void route(
+        JsonController control,
+        JsonSource source,
+        JsonEvent event,
+        JsonSink sink)
     {
-        String key = in.getString();
-        segments[depth] = key;
+        switch (event)
+        {
+        case START_DOCUMENT:
+        case END_DOCUMENT:
+            sink.feed(downstreamControl, source, event);
+            break;
+        case KEY_NAME:
+            onKey(source);
+            break;
+        case START_OBJECT:
+        case START_ARRAY:
+            onStart(control, source, event, sink);
+            break;
+        case END_OBJECT:
+        case END_ARRAY:
+            onEnd(source, event, sink);
+            break;
+        default:
+            onScalar(source, event, sink);
+            break;
+        }
+    }
+
+    private void onKey(
+        JsonSource source)
+    {
+        StringBuilder key = segmentKeys[depth];
+        key.setLength(0);
+        key.append(source.getKey());
+        segmentIsKey[depth] = true;
         indexes[depth] = -1;
         depth++;
         boolean parentKeepAll = containers > 0 && frameKeepAll[containers - 1];
         Decision d = parentKeepAll ? Decision.KEEP_ALL : decide();
         keyDecision = d;
-        pendingKey = key;
+        // Only a key whose value will be emitted is forwarded, so only then is a String materialized;
+        // SKIP keys (the majority) are matched by chars above and never allocate.
+        pendingKey = d == Decision.SKIP ? null : source.getString();
     }
 
     private void forwardPendingKey(
-        JsonSink out)
+        JsonSink sink)
     {
         if (pendingKey != null)
         {
-            out.feed(Event.KEY_NAME, keySource.with(pendingKey));
+            sink.feed(downstreamControl, keySource.with(pendingKey), JsonEvent.KEY_NAME);
             pendingKey = null;
         }
     }
 
-    private void onStart(
-        Event event,
-        JsonSource in,
-        JsonSink out)
+    private void pushFrame(
+        JsonEvent event,
+        boolean emit,
+        Decision d)
     {
-        Decision d = enterValue();
-        boolean parentEmit = containers == 0 || frameEmit[containers - 1];
-        boolean emit = parentEmit && d != Decision.SKIP;
-        if (emit)
-        {
-            forwardPendingKey(out);
-            out.feed(event, in);
-        }
-        else
-        {
-            pendingKey = null;
-        }
-        frameInArray[containers] = event == START_ARRAY;
+        frameInArray[containers] = event == JsonEvent.START_ARRAY;
         frameEmit[containers] = emit;
         frameKeepAll[containers] = d == Decision.KEEP_ALL;
         frameNextIndex[containers] = 0;
@@ -153,15 +196,86 @@ public final class JsonProjectorImpl implements JsonTransform
         containers++;
     }
 
+    private void onStart(
+        JsonController control,
+        JsonSource source,
+        JsonEvent event,
+        JsonSink sink)
+    {
+        Decision d = enterValue();
+        boolean parentEmit = containers == 0 || frameEmit[containers - 1];
+        boolean emit = parentEmit && d != Decision.SKIP;
+        if (emit && d == Decision.KEEP_ALL && downstreamDemand)
+        {
+            forwardPendingKey(sink);
+            control.segmentable();
+            segMode = SegMode.AWAITING;
+            deferredStart = event;
+        }
+        else if (emit)
+        {
+            forwardPendingKey(sink);
+            sink.feed(downstreamControl, source, event);
+            pushFrame(event, true, d);
+        }
+        else
+        {
+            pendingKey = null;
+            pushFrame(event, false, d);
+        }
+    }
+
+    private void onAwaiting(
+        JsonController control,
+        JsonSource source,
+        JsonEvent event,
+        JsonSink sink)
+    {
+        if (event == JsonEvent.START_SEGMENT)
+        {
+            segMode = SegMode.FORWARDING;
+            deferredStart = null;
+            sink.feed(downstreamControl, source, event);
+        }
+        else
+        {
+            segMode = SegMode.NONE;
+            sink.feed(downstreamControl, source, deferredStart);
+            pushFrame(deferredStart, true, Decision.KEEP_ALL);
+            deferredStart = null;
+            route(control, source, event, sink);
+        }
+    }
+
+    private void onForwarding(
+        JsonSource source,
+        JsonEvent event,
+        JsonSink sink)
+    {
+        sink.feed(downstreamControl, source, event);
+        if (event == JsonEvent.END_SEGMENT)
+        {
+            segMode = SegMode.NONE;
+            if (containers == 0)
+            {
+                rootDone = true;
+            }
+            else
+            {
+                depth--;
+            }
+        }
+    }
+
     private void onEnd(
-        Event event,
-        JsonSource in,
-        JsonSink out)
+        JsonSource source,
+        JsonEvent event,
+        JsonSink sink)
     {
         containers--;
         if (frameEmit[containers])
         {
-            out.feed(event, in);
+            sink.feed(downstreamControl, source, event);
         }
         if (containers == 0)
         {
@@ -175,17 +289,17 @@ public final class JsonProjectorImpl implements JsonTransform
     }
 
     private void onScalar(
-        Event event,
-        JsonSource in,
-        JsonSink out)
+        JsonSource source,
+        JsonEvent event,
+        JsonSink sink)
     {
         Decision d = enterValue();
         boolean parentEmit = containers == 0 || frameEmit[containers - 1];
         boolean emit = parentEmit && d == Decision.KEEP_ALL;
         if (emit)
         {
-            forwardPendingKey(out);
-            out.feed(event, in);
+            forwardPendingKey(sink);
+            sink.feed(downstreamControl, source, event);
         }
         else
         {
@@ -213,7 +327,7 @@ public final class JsonProjectorImpl implements JsonTransform
             int parent = containers - 1;
             if (frameInArray[parent])
             {
-                segments[depth] = null;
+                segmentIsKey[depth] = false;
                 indexes[depth] = frameNextIndex[parent];
                 frameNextIndex[parent] = frameNextIndex[parent] + 1;
                 depth++;
@@ -270,10 +384,21 @@ public final class JsonProjectorImpl implements JsonTransform
         String pointerSegment,
         int pathIndex)
     {
-        String pathSegment = segments[pathIndex];
-        return pathSegment == null
-            ? WILDCARD.equals(pointerSegment) || matchesIndex(pointerSegment, indexes[pathIndex])
-            : pointerSegment.equals(pathSegment);
+        return segmentIsKey[pathIndex]
+            ? charsEqual(pointerSegment, segmentKeys[pathIndex])
+            : WILDCARD.equals(pointerSegment) || matchesIndex(pointerSegment, indexes[pathIndex]);
+    }
+
+    private static boolean charsEqual(
+        String pointerSegment,
+        CharSequence key)
+    {
+        boolean matches = pointerSegment.length() == key.length();
+        for (int i = 0; matches && i < pointerSegment.length(); i++)
+        {
+            matches = pointerSegment.charAt(i) == key.charAt(i);
+        }
+        return matches;
     }
 
     private static boolean matchesIndex(
@@ -348,6 +473,12 @@ public final class JsonProjectorImpl implements JsonTransform
         }
 
         @Override
+        public CharSequence getKey()
+        {
+            return key;
+        }
+
+        @Override
         public BigDecimal getBigDecimal()
         {
             throw new UnsupportedOperationException();
@@ -361,6 +492,12 @@ public final class JsonProjectorImpl implements JsonTransform
 
         @Override
         public JsonLocation getLocation()
+        {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public DirectBuffer getSegment()
         {
             throw new UnsupportedOperationException();
         }

@@ -40,26 +40,31 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
+import io.aklivity.zilla.runtime.common.json.JsonSink.Delivery;
 import io.aklivity.zilla.runtime.common.json.StreamingJson;
 
+/**
+ * Compares the {@code common-json} streaming pipeline, parser through generator, under structured
+ * delivery (the kept subtree is re-rendered token-by-token and normalized) versus segmented delivery
+ * (the kept subtree is copied verbatim via {@code writeRaw}). Each segmented benchmark is paired with
+ * a structured benchmark over the same input and projection so throughput and (under {@code -prof gc})
+ * allocation can be compared directly. The scalar-leaf case has no segmented counterpart because a
+ * scalar value is never segmented — it is the control where the two modes coincide.
+ */
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.Throughput)
 @Fork(3)
 @Warmup(iterations = 10, time = 1, timeUnit = SECONDS)
 @Measurement(iterations = 5, time = 1, timeUnit = SECONDS)
 @OutputTimeUnit(SECONDS)
-public class JsonProjectorBM
+public class JsonPipelineBM
 {
     private static final String FLAT_OBJECT =
         "{\"id\":42,\"name\":\"zilla\",\"active\":true,\"secret\":\"drop\",\"version\":1} ";
 
     private static final String NESTED_OBJECT =
-        "{\"meta\":{\"id\":7,\"source\":\"sensor\",\"trace\":\"drop\"}," +
+        "{\"meta\":{\"id\":7,\"source\":\"sensor\",\"trace\":\"keep-me\",\"tags\":[\"a\",\"b\",\"c\"]}," +
         "\"body\":{\"payload\":\"large\",\"headers\":{\"a\":1,\"b\":2}},\"ignored\":true} ";
-
-    private static final String ARRAY_WILDCARD =
-        "{\"items\":[{\"id\":0,\"name\":\"a\",\"drop\":10},{\"id\":1,\"name\":\"b\",\"drop\":11}," +
-        "{\"id\":2,\"name\":\"c\",\"drop\":12},{\"id\":3,\"name\":\"d\",\"drop\":13}],\"cursor\":\"next\"} ";
 
     private static final String ROOT_IDENTITY =
         "{ \"id\" : 42, \"items\" : [ { \"id\" : 1, \"name\" : \"a\" }, " +
@@ -68,95 +73,112 @@ public class JsonProjectorBM
     private static final String MOSTLY_SKIPPED =
         "{\"drop0\":[{\"a\":1,\"b\":2,\"c\":3},{\"a\":4,\"b\":5,\"c\":6}," +
         "{\"a\":7,\"b\":8,\"c\":9}],\"drop1\":{\"nested\":{\"x\":1,\"y\":2,\"z\":[1,2,3,4]}}," +
-        "\"keep\":{\"id\":99,\"name\":\"retain\",\"extra\":\"drop\"}," +
+        "\"keep\":{\"id\":99,\"name\":\"retain\",\"extra\":\"more-text-here\",\"nested\":{\"p\":1,\"q\":2}}," +
         "\"drop2\":[0,1,2,3,4,5,6,7,8,9],\"drop3\":{\"a\":\"b\",\"c\":\"d\"}} ";
 
     private final MutableDirectBuffer outputBuffer = new UnsafeBuffer(new byte[16 * 1024]);
     private final JsonGeneratorEx generator = StreamingJson.createGenerator();
-    private final JsonSink sink = JsonSink.of(generator);
+    private final JsonSink structuredSink = JsonSink.of(generator);
+    private final JsonSink segmentableSink = JsonSink.of(generator, Delivery.SEGMENTABLE);
 
-    private JsonPipeline flatPipeline;
-    private JsonPipeline nestedPipeline;
-    private JsonPipeline arrayWildcardPipeline;
-    private JsonPipeline rootIdentityPipeline;
-    private JsonPipeline mostlySkippedPipeline;
+    private JsonPipeline scalarLeavesPipeline;
+    private JsonPipeline keptContainerStructuredPipeline;
+    private JsonPipeline keptContainerSegmentedPipeline;
+    private JsonPipeline rootIdentityStructuredPipeline;
+    private JsonPipeline rootIdentitySegmentedPipeline;
+    private JsonPipeline mostlySkippedStructuredPipeline;
+    private JsonPipeline mostlySkippedSegmentedPipeline;
 
     private UnsafeBuffer flatBuffer;
     private UnsafeBuffer nestedBuffer;
-    private UnsafeBuffer arrayWildcardBuffer;
     private UnsafeBuffer rootIdentityBuffer;
     private UnsafeBuffer mostlySkippedBuffer;
 
     private int flatLength;
     private int nestedLength;
-    private int arrayWildcardLength;
     private int rootIdentityLength;
     private int mostlySkippedLength;
 
     @Setup(Level.Trial)
     public void init()
     {
-        flatPipeline = StreamingJson.createParser().stream()
-            .transform(StreamingJson.projector(List.of("/id", "/active"))).into(sink);
-        nestedPipeline = StreamingJson.createParser().stream()
-            .transform(StreamingJson.projector(List.of("/meta/id", "/meta/source"))).into(sink);
-        arrayWildcardPipeline = StreamingJson.createParser().stream()
-            .transform(StreamingJson.projector(List.of("/items/-/id"))).into(sink);
-        rootIdentityPipeline = StreamingJson.createParser().stream()
-            .transform(StreamingJson.projector(List.of(""))).into(sink);
-        mostlySkippedPipeline = StreamingJson.createParser().stream()
-            .transform(StreamingJson.projector(List.of("/keep/id"))).into(sink);
+        scalarLeavesPipeline = StreamingJson.createParser().stream()
+            .transform(StreamingJson.projector(List.of("/id", "/active"))).into(structuredSink);
+
+        keptContainerStructuredPipeline = StreamingJson.createParser().stream()
+            .transform(StreamingJson.projector(List.of("/meta"))).into(structuredSink);
+        keptContainerSegmentedPipeline = StreamingJson.createParser().stream()
+            .transform(StreamingJson.projector(List.of("/meta"))).into(segmentableSink);
+
+        rootIdentityStructuredPipeline = StreamingJson.createParser().stream()
+            .transform(StreamingJson.projector(List.of(""))).into(structuredSink);
+        rootIdentitySegmentedPipeline = StreamingJson.createParser().stream()
+            .transform(StreamingJson.projector(List.of(""))).into(segmentableSink);
+
+        mostlySkippedStructuredPipeline = StreamingJson.createParser().stream()
+            .transform(StreamingJson.projector(List.of("/keep"))).into(structuredSink);
+        mostlySkippedSegmentedPipeline = StreamingJson.createParser().stream()
+            .transform(StreamingJson.projector(List.of("/keep"))).into(segmentableSink);
 
         byte[] flatBytes = FLAT_OBJECT.getBytes(UTF_8);
         byte[] nestedBytes = NESTED_OBJECT.getBytes(UTF_8);
-        byte[] arrayWildcardBytes = ARRAY_WILDCARD.getBytes(UTF_8);
         byte[] rootIdentityBytes = ROOT_IDENTITY.getBytes(UTF_8);
         byte[] mostlySkippedBytes = MOSTLY_SKIPPED.getBytes(UTF_8);
 
         flatBuffer = new UnsafeBuffer(flatBytes);
         nestedBuffer = new UnsafeBuffer(nestedBytes);
-        arrayWildcardBuffer = new UnsafeBuffer(arrayWildcardBytes);
         rootIdentityBuffer = new UnsafeBuffer(rootIdentityBytes);
         mostlySkippedBuffer = new UnsafeBuffer(mostlySkippedBytes);
 
         flatLength = flatBytes.length;
         nestedLength = nestedBytes.length;
-        arrayWildcardLength = arrayWildcardBytes.length;
         rootIdentityLength = rootIdentityBytes.length;
         mostlySkippedLength = mostlySkippedBytes.length;
     }
 
     @Benchmark
-    public int projectFlatObject()
+    public int projectScalarLeaves()
     {
-        return project(flatPipeline, flatBuffer, flatLength);
+        return run(scalarLeavesPipeline, flatBuffer, flatLength);
     }
 
     @Benchmark
-    public int projectNestedObject()
+    public int keptContainerStructured()
     {
-        return project(nestedPipeline, nestedBuffer, nestedLength);
+        return run(keptContainerStructuredPipeline, nestedBuffer, nestedLength);
     }
 
     @Benchmark
-    public int projectArrayWildcard()
+    public int keptContainerSegmented()
     {
-        return project(arrayWildcardPipeline, arrayWildcardBuffer, arrayWildcardLength);
+        return run(keptContainerSegmentedPipeline, nestedBuffer, nestedLength);
     }
 
     @Benchmark
-    public int projectRootIdentity()
+    public int rootIdentityStructured()
     {
-        return project(rootIdentityPipeline, rootIdentityBuffer, rootIdentityLength);
+        return run(rootIdentityStructuredPipeline, rootIdentityBuffer, rootIdentityLength);
     }
 
     @Benchmark
-    public int projectMostlySkipped()
+    public int rootIdentitySegmented()
     {
-        return project(mostlySkippedPipeline, mostlySkippedBuffer, mostlySkippedLength);
+        return run(rootIdentitySegmentedPipeline, rootIdentityBuffer, rootIdentityLength);
     }
 
-    private int project(
+    @Benchmark
+    public int mostlySkippedStructured()
+    {
+        return run(mostlySkippedStructuredPipeline, mostlySkippedBuffer, mostlySkippedLength);
+    }
+
+    @Benchmark
+    public int mostlySkippedSegmented()
+    {
+        return run(mostlySkippedSegmentedPipeline, mostlySkippedBuffer, mostlySkippedLength);
+    }
+
+    private int run(
         JsonPipeline pipeline,
         UnsafeBuffer buffer,
         int length)
@@ -171,8 +193,9 @@ public class JsonProjectorBM
         String[] args) throws RunnerException
     {
         Options opt = new OptionsBuilder()
-            .include(JsonProjectorBM.class.getSimpleName())
-            .forks(0)
+            .include(JsonPipelineBM.class.getSimpleName())
+            .addProfiler("gc")
+            .forks(1)
             .build();
 
         new Runner(opt).run();

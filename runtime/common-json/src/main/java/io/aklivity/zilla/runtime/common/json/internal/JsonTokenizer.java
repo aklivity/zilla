@@ -59,17 +59,25 @@ public final class JsonTokenizer
     private final StringBuilder scratch = new StringBuilder();
     private final List<String[]> pathIncludes;
     private final List<String[]> pathExcludes;
+    private final boolean pathFiltering;
     private final int tokenMaxBytes;
+    private final boolean terminalEof;
 
     // path tracking — pre-allocated, no per-event allocation
     private final boolean[] pathInArray = new boolean[MAX_DEPTH];
+    // pathKey holds the key String only when path filtering is configured (the filter compares keys
+    // eagerly); pathKeyChars mirrors it allocation-free for currentPath() in the deferred (no-filter)
+    // mode, where keys are not materialized into Strings.
     private final String[] pathKey = new String[MAX_DEPTH];
+    private final StringBuilder[] pathKeyChars = new StringBuilder[MAX_DEPTH];
+    private final boolean[] pathKeySet = new boolean[MAX_DEPTH];
     private final int[] pathIndex = new int[MAX_DEPTH];
     private int pathDepth;
 
     private ParseState state = ParseState.DOC_START;
     private JsonParser.Event pendingEvent;
     private String pendingString;
+    private boolean valuePending;
     private long streamOffset;
     private boolean valueReadable = true;
 
@@ -90,9 +98,28 @@ public final class JsonTokenizer
         List<String> pathExcludes,
         int tokenMaxBytes)
     {
+        this(pathIncludes, pathExcludes, tokenMaxBytes, false);
+    }
+
+    // terminalEof distinguishes a one-shot stream (EOF is the final delimiter) from the chunked
+    // wrap()/feed model (EOF marks a frame boundary with more bytes possibly still to come). It
+    // only matters for numbers, which unlike strings and the true/false/null literals are not
+    // self-terminating and need a following non-digit byte to know they have ended.
+    public JsonTokenizer(
+        List<String> pathIncludes,
+        List<String> pathExcludes,
+        int tokenMaxBytes,
+        boolean terminalEof)
+    {
         this.pathIncludes = compilePaths(pathIncludes);
         this.pathExcludes = compilePaths(pathExcludes);
+        this.pathFiltering = this.pathIncludes != null || this.pathExcludes != null;
         this.tokenMaxBytes = tokenMaxBytes;
+        this.terminalEof = terminalEof;
+        for (int i = 0; i < MAX_DEPTH; i++)
+        {
+            pathKeyChars[i] = new StringBuilder();
+        }
     }
 
     public void reset()
@@ -103,6 +130,7 @@ public final class JsonTokenizer
         state = ParseState.DOC_START;
         pendingEvent = null;
         pendingString = null;
+        valuePending = false;
         streamOffset = 0;
         valueReadable = true;
         resumeOp = ResumeOp.NONE;
@@ -151,11 +179,16 @@ public final class JsonTokenizer
     {
         if (state == ParseState.DOC_DONE)
         {
+            if (terminalEof)
+            {
+                enforceEndOfInput(in);
+            }
             return false;
         }
 
         pendingEvent = null;
         pendingString = null;
+        valuePending = false;
 
         while (pendingEvent == null && state != ParseState.DOC_DONE)
         {
@@ -213,12 +246,30 @@ public final class JsonTokenizer
 
     public String stringValue()
     {
+        if (valuePending)
+        {
+            pendingString = takeScratch();
+            valuePending = false;
+        }
         return pendingString;
+    }
+
+    // Non-allocating key view, valid while positioned on a deferred KEY_NAME (the unescaped key chars
+    // are still in scratch because nobody has materialized them yet). Lets a downstream stage copy or
+    // compare the key without a String; returns the materialized value if it was already taken.
+    public CharSequence key()
+    {
+        return valuePending ? scratch : pendingString;
     }
 
     public long streamOffset()
     {
         return streamOffset;
+    }
+
+    public boolean done()
+    {
+        return state == ParseState.DOC_DONE;
     }
 
     public boolean inObjectContext()
@@ -253,6 +304,10 @@ public final class JsonTokenizer
             else if (pathKey[i] != null)
             {
                 path.append(pathKey[i].replace("~", "~0").replace("/", "~1"));
+            }
+            else if (pathKeySet[i])
+            {
+                path.append(pathKeyChars[i].toString().replace("~", "~0").replace("/", "~1"));
             }
         }
         return path.toString();
@@ -302,6 +357,7 @@ public final class JsonTokenizer
         }
         pathInArray[pathDepth] = inArray;
         pathKey[pathDepth] = null;
+        pathKeySet[pathDepth] = false;
         pathIndex[pathDepth] = 0;
         pathDepth++;
     }
@@ -310,6 +366,7 @@ public final class JsonTokenizer
     {
         pathDepth--;
         pathKey[pathDepth] = null;
+        pathKeySet[pathDepth] = false;
     }
 
     private void markValueConsumed()
@@ -365,21 +422,21 @@ public final class JsonTokenizer
         case KEY_STRING:
             continueStringContent(in);
             pendingEvent = JsonParser.Event.KEY_NAME;
-            pendingString = takeScratch();
+            captureKey();
             resumeOp = ResumeOp.NONE;
             state = ParseState.OBJ_AFTER_KEY;
             break;
         case VALUE_STRING:
             continueStringContent(in);
             pendingEvent = JsonParser.Event.VALUE_STRING;
-            pendingString = valueReadable ? takeScratch() : null;
+            captureValue(valueReadable);
             resumeOp = ResumeOp.NONE;
             afterValueConsumed();
             break;
         case VALUE_NUMBER:
             continueNumberContent(in);
             pendingEvent = JsonParser.Event.VALUE_NUMBER;
-            pendingString = valueReadable ? takeScratch() : null;
+            captureValue(valueReadable);
             resumeOp = ResumeOp.NONE;
             afterValueConsumed();
             break;
@@ -404,6 +461,13 @@ public final class JsonTokenizer
         default:
             throw new IllegalStateException("Unexpected resumeOp: " + resumeOp);
         }
+    }
+
+    private void captureValue(
+        boolean readable)
+    {
+        valuePending = readable;
+        pendingString = null;
     }
 
     private String takeScratch()
@@ -509,7 +573,7 @@ public final class JsonTokenizer
             resumeOp = ResumeOp.VALUE_STRING;
             continueStringContent(in);
             pendingEvent = JsonParser.Event.VALUE_STRING;
-            pendingString = valueReadable ? takeScratch() : null;
+            captureValue(valueReadable);
             resumeOp = ResumeOp.NONE;
             afterValueConsumed();
             break;
@@ -548,7 +612,7 @@ public final class JsonTokenizer
                 resumeOp = ResumeOp.VALUE_NUMBER;
                 continueNumberContent(in);
                 pendingEvent = JsonParser.Event.VALUE_NUMBER;
-                pendingString = valueReadable ? takeScratch() : null;
+                captureValue(valueReadable);
                 resumeOp = ResumeOp.NONE;
                 afterValueConsumed();
             }
@@ -575,12 +639,37 @@ public final class JsonTokenizer
         resumeOp = ResumeOp.KEY_STRING;
         continueStringContent(in);
         pendingEvent = JsonParser.Event.KEY_NAME;
-        pendingString = takeScratch();
+        captureKey();
         resumeOp = ResumeOp.NONE;
         state = ParseState.OBJ_AFTER_KEY;
-        if (pathDepth > 0 && !pathInArray[pathDepth - 1])
+    }
+
+    // Keys are normally deferred (left in scratch, materialized lazily by stringValue()), so a key
+    // that is never read by a downstream stage allocates no String. When the tokenizer is itself
+    // configured with a path filter it must compare keys eagerly via pathKey[], so in that mode the
+    // key is materialized up front and the per-depth pathKey slot is set.
+    private void captureKey()
+    {
+        if (pathFiltering)
         {
-            pathKey[pathDepth - 1] = pendingString;
+            pendingString = takeScratch();
+            valuePending = false;
+            if (pathDepth > 0 && !pathInArray[pathDepth - 1])
+            {
+                pathKey[pathDepth - 1] = pendingString;
+            }
+        }
+        else
+        {
+            valuePending = true;
+            pendingString = null;
+            if (pathDepth > 0 && !pathInArray[pathDepth - 1])
+            {
+                final StringBuilder keyChars = pathKeyChars[pathDepth - 1];
+                keyChars.setLength(0);
+                keyChars.append(scratch);
+                pathKeySet[pathDepth - 1] = true;
+            }
         }
     }
 
@@ -641,6 +730,22 @@ public final class JsonTokenizer
             state = stack.pop();
         }
         markValueConsumed();
+    }
+
+    // After a complete top-level value on a one-shot stream, only insignificant whitespace may
+    // remain; any further token is invalid per RFC 8259. Chunked frame sources skip this check.
+    private void enforceEndOfInput(
+        InputStream in) throws IOException
+    {
+        try
+        {
+            int c = skipWhitespace(in);
+            throw new JsonParsingException("Unexpected trailing content: " + describe(c), null);
+        }
+        catch (EOFException ex)
+        {
+            // clean end of input
+        }
     }
 
     private int skipWhitespace(
@@ -826,6 +931,11 @@ public final class JsonTokenizer
             int c = in.read();
             if (c == -1)
             {
+                if (terminalEof)
+                {
+                    validateNumber();
+                    return;
+                }
                 throw new EOFException();
             }
             if (c >= '0' && c <= '9' || c == '.' || c == '-' || c == '+' || c == 'e' || c == 'E')
@@ -836,9 +946,74 @@ public final class JsonTokenizer
             else
             {
                 in.reset();
+                validateNumber();
                 return;
             }
         }
+    }
+
+    // RFC 8259 number grammar: -?(0|[1-9][0-9]*)(\.[0-9]+)?([eE][+-]?[0-9]+)?. Only enforced for
+    // readable values, where scratch holds the complete lexeme; filtered-out values are discarded.
+    private void validateNumber()
+    {
+        if (valueReadable)
+        {
+            final int length = scratch.length();
+            int index = 0;
+            boolean valid = length > 0;
+            if (valid && scratch.charAt(index) == '-')
+            {
+                index++;
+            }
+            final int intStart = index;
+            if (index < length && scratch.charAt(index) == '0')
+            {
+                index++;
+            }
+            else
+            {
+                while (index < length && isDigit(scratch.charAt(index)))
+                {
+                    index++;
+                }
+            }
+            valid &= index > intStart;
+            if (valid && index < length && scratch.charAt(index) == '.')
+            {
+                index++;
+                final int fracStart = index;
+                while (index < length && isDigit(scratch.charAt(index)))
+                {
+                    index++;
+                }
+                valid &= index > fracStart;
+            }
+            if (valid && index < length && (scratch.charAt(index) == 'e' || scratch.charAt(index) == 'E'))
+            {
+                index++;
+                if (index < length && (scratch.charAt(index) == '+' || scratch.charAt(index) == '-'))
+                {
+                    index++;
+                }
+                final int expStart = index;
+                while (index < length && isDigit(scratch.charAt(index)))
+                {
+                    index++;
+                }
+                valid &= index > expStart;
+            }
+            valid &= index == length;
+            if (!valid)
+            {
+                throw new JsonParsingException("Invalid JSON number: " + scratch, null);
+            }
+        }
+    }
+
+    private static boolean isDigit(
+        char c)
+    {
+        return c >= '0' && c <= '9';
     }
 
     private int readByte(

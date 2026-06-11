@@ -18,6 +18,8 @@ import java.math.BigDecimal;
 
 import jakarta.json.stream.JsonLocation;
 
+import org.agrona.DirectBuffer;
+
 /**
  * Immutable, read-only view of the value observed at the current event as a {@link JsonStream}
  * pipeline pumps events through its stages. A {@code JsonSource} exposes only the accessors a stage
@@ -28,9 +30,18 @@ public interface JsonSource
 {
     String getString();
 
+    // valid only on a key event; non-owning, on-stack char view of the current key
+    CharSequence getKey();
+
     BigDecimal getBigDecimal();
 
     boolean isIntegralNumber();
 
     JsonLocation getLocation();
+
+    /**
+     * Valid only when the current event is {@link JsonEvent#segmented()}; non-owning view of the
+     * current contiguous slice, valid on-stack only.
+     */
+    DirectBuffer getSegment();
 }

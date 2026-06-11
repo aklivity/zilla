@@ -35,6 +35,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
 
+import jakarta.json.JsonArray;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonValue;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParsingException;
 
@@ -504,51 +507,89 @@ class StreamingJsonParserTest
     }
 
     @Test
-    void shouldThrowOnGetObject()
+    void shouldBuildObjectFromGetObject()
     {
-        JsonParser parser = parserFor("{}");
+        JsonParser parser = parserFor("{\"a\":1,\"b\":[2,3]}");
 
-        assertThrows(UnsupportedOperationException.class, parser::getObject);
+        assertEquals(START_OBJECT, parser.next());
+        JsonObject object = parser.getObject();
+        assertEquals(1, object.getInt("a"));
+        assertEquals(2, object.getJsonArray("b").getInt(0));
+        assertFalse(parser.hasNext());
     }
 
     @Test
-    void shouldThrowOnGetArray()
+    void shouldBuildArrayFromGetArray()
     {
-        JsonParser parser = parserFor("[]");
+        JsonParser parser = parserFor("[1,\"two\",true,null]");
 
-        assertThrows(UnsupportedOperationException.class, parser::getArray);
+        assertEquals(START_ARRAY, parser.next());
+        JsonArray array = parser.getArray();
+        assertEquals(1, array.getInt(0));
+        assertEquals("two", array.getString(1));
+        assertEquals(JsonValue.TRUE, array.get(2));
+        assertEquals(JsonValue.NULL, array.get(3));
     }
 
     @Test
-    void shouldThrowOnGetValue()
+    void shouldBuildScalarFromGetValue()
+    {
+        JsonParser parser = parserFor("42\n");
+
+        assertEquals(VALUE_NUMBER, parser.next());
+        assertEquals(JsonValue.ValueType.NUMBER, parser.getValue().getValueType());
+    }
+
+    @Test
+    void shouldThrowOnGetValueBeforeNext()
     {
         JsonParser parser = parserFor("1");
 
-        assertThrows(UnsupportedOperationException.class, parser::getValue);
+        assertThrows(IllegalStateException.class, parser::getValue);
     }
 
     @Test
-    void shouldThrowOnGetObjectStream()
+    void shouldStreamObjectEntries()
     {
-        JsonParser parser = parserFor("{}");
+        JsonParser parser = parserFor("{\"a\":1,\"b\":2,\"c\":3}");
 
-        assertThrows(UnsupportedOperationException.class, parser::getObjectStream);
+        assertEquals(START_OBJECT, parser.next());
+        assertEquals(3, parser.getObjectStream().count());
     }
 
     @Test
-    void shouldThrowOnGetArrayStream()
+    void shouldStreamArrayElements()
+    {
+        JsonParser parser = parserFor("[1,2,3,4]");
+
+        assertEquals(START_ARRAY, parser.next());
+        assertEquals(4, parser.getArrayStream().count());
+    }
+
+    @Test
+    void shouldStreamTopLevelValues()
+    {
+        JsonParser parser = parserFor("[1,2]");
+
+        assertEquals(1, parser.getValueStream().count());
+    }
+
+    @Test
+    void shouldThrowOnGetObjectWhenNotPositioned()
     {
         JsonParser parser = parserFor("[]");
 
-        assertThrows(UnsupportedOperationException.class, parser::getArrayStream);
+        assertEquals(START_ARRAY, parser.next());
+        assertThrows(IllegalStateException.class, parser::getObject);
     }
 
     @Test
-    void shouldThrowOnGetValueStream()
+    void shouldThrowOnGetArrayWhenNotPositioned()
     {
-        JsonParser parser = parserFor("1");
+        JsonParser parser = parserFor("{}");
 
-        assertThrows(UnsupportedOperationException.class, parser::getValueStream);
+        assertEquals(START_OBJECT, parser.next());
+        assertThrows(IllegalStateException.class, parser::getArray);
     }
 
     @Test

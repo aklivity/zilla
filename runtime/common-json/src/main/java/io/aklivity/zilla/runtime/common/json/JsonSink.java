@@ -14,22 +14,33 @@
  */
 package io.aklivity.zilla.runtime.common.json;
 
-import jakarta.json.stream.JsonParser.Event;
-
 import io.aklivity.zilla.runtime.common.json.internal.JsonSinkImpl;
 
 /**
- * The consume end of a {@link JsonStream} pipeline. Each {@link #feed(Event, JsonSource)} delivers one
- * event (with {@code in} positioned to read its scalar) and returns whether the current top-level value
- * has reached a terminal {@link JsonPipeline.Status}. A terminal sink materializes events into a buffer;
- * the downstream of a {@link JsonTransform} is also a {@code JsonSink}. Third parties may implement this
- * contract to consume the projected event stream.
+ * The consume end of a {@link JsonStream} pipeline. Each {@link #feed(JsonController, JsonSource, JsonEvent)}
+ * delivers one event (with {@code source} positioned to read its scalar, or its bytes when the event is
+ * {@link JsonEvent#segmented()}) and returns whether the current top-level value has reached a terminal
+ * {@link JsonPipeline.Status}. {@code control} steers the immediate upstream. A terminal sink materializes
+ * events into a buffer; the downstream of a {@link JsonTransform} is also a {@code JsonSink}. Third parties
+ * may implement this contract to consume the projected event stream.
  */
 public interface JsonSink
 {
+    /**
+     * Delivery mode a terminal sink requests. {@link #STRUCTURED} consumes structured events and
+     * renders normalized output; {@link #SEGMENTABLE} opts in to verbatim segment delivery for kept
+     * values (best-effort, demand-gated) by calling {@link JsonController#segmentable()}.
+     */
+    enum Delivery
+    {
+        STRUCTURED,
+        SEGMENTABLE
+    }
+
     JsonPipeline.Status feed(
-        Event evt,
-        JsonSource in);
+        JsonController control,
+        JsonSource source,
+        JsonEvent event);
 
     default void reset()
     {
@@ -43,5 +54,17 @@ public interface JsonSink
         JsonGeneratorEx generator)
     {
         return new JsonSinkImpl(generator);
+    }
+
+    /**
+     * A terminal sink with the given {@link Delivery} mode: {@link Delivery#SEGMENTABLE} opts in to
+     * verbatim segment delivery for kept values; {@link Delivery#STRUCTURED} renders normalized
+     * structured output. The supplied generator must already be wrapped over its target buffer.
+     */
+    static JsonSink of(
+        JsonGeneratorEx generator,
+        Delivery delivery)
+    {
+        return new JsonSinkImpl(generator, delivery);
     }
 }

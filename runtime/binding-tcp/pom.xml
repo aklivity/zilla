@@ -249,9 +249,9 @@
               <include>org.agrona:agrona</include>
               <include>io.aklivity.zilla:engine</include>
               <include>io.aklivity.zilla:common-yaml</include>
+              <include>io.aklivity.zilla:common-json</include>
               <include>jakarta.json:jakarta.json-api</include>
               <include>jakarta.json.bind:jakarta.json.bind-api</include>
-              <include>org.eclipse.parsson:parsson</include>
               <include>org.eclipse:yasson</include>
               <include>org.openjdk.jmh:jmh-core</include>
               <include>net.sf.jopt-simple:jopt-simple</include>

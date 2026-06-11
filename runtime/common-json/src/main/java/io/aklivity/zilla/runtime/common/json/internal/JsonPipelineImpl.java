@@ -53,9 +53,9 @@ public final class JsonPipelineImpl implements JsonPipeline
     {
         parser.wrap(buffer, offset, length);
         Status status = Status.PENDING;
-        while (status == Status.PENDING && parser.hasNext())
+        while (status == Status.PENDING && parser.hasNextEvent())
         {
-            status = root.feed(parser.next(), parser);
+            status = root.feed(parser, parser, parser.nextEvent());
         }
         return status;
     }
