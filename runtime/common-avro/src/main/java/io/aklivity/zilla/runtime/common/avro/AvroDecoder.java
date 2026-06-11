@@ -14,12 +14,27 @@
  */
 package io.aklivity.zilla.runtime.common.avro;
 
+import org.agrona.DirectBuffer;
+
 /**
- * The schema-bound Avro decode driver. Obtain one from {@link AvroSchema#decoder()} and call
- * {@link #stream()} to begin a pipeline description; the driver is encapsulated thereafter — the
- * resulting {@link AvroPipeline} feeds it bytes per frame. Not thread-safe; reuse one per thread.
+ * A schema-bound Avro pull parser. Feed each frame's bytes with {@link #wrap(DirectBuffer, int, int)},
+ * then drive the parse with {@link #hasNextEvent()} / {@link #nextEvent()}, reading the current value
+ * through the {@link AvroSource} accessors this parser exposes. A datum is framed by
+ * {@link AvroEvent#START_MESSAGE} and {@link AvroEvent#END_MESSAGE}; {@link #hasNextEvent()} returns
+ * {@code false} when the buffered bytes are exhausted, so feed more and continue. Malformed binary
+ * throws {@link AvroValidationException}. {@link #stream()} begins a composable pipeline that drives
+ * this parser internally. Not thread-safe; reuse one per thread.
  */
-public interface AvroDecoder
+public interface AvroDecoder extends AvroSource
 {
+    void wrap(
+        DirectBuffer buffer,
+        int offset,
+        int length);
+
+    boolean hasNextEvent();
+
+    AvroEvent nextEvent();
+
     AvroStream stream();
 }

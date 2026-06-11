@@ -14,28 +14,40 @@
  */
 package io.aklivity.zilla.runtime.common.avro.internal;
 
+import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.COMPLETE;
+import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.PENDING;
+import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.REJECTED;
+
 import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.common.avro.AvroPipeline;
 import io.aklivity.zilla.runtime.common.avro.AvroSink;
+import io.aklivity.zilla.runtime.common.avro.AvroValidationException;
 
+/**
+ * Backs {@link AvroPipeline}: pulls events from the bound {@link AvroDecoderImpl} and pushes each
+ * through the root {@link AvroSink}, passing the decoder itself as both the immutable source view and
+ * the control handle. The status is whatever the sink reports; if the sink never completes but the
+ * decoder reaches the end of the message, the datum is {@code COMPLETE}; malformed binary aborts with
+ * {@code REJECTED}.
+ */
 final class AvroPipelineImpl implements AvroPipeline
 {
-    private final AvroDecoderImpl driver;
+    private final AvroDecoderImpl decoder;
     private final AvroSink root;
 
     AvroPipelineImpl(
-        AvroDecoderImpl driver,
+        AvroDecoderImpl decoder,
         AvroSink root)
     {
-        this.driver = driver;
+        this.decoder = decoder;
         this.root = root;
     }
 
     @Override
     public void reset()
     {
-        driver.reset();
+        decoder.reset();
         root.reset();
     }
 
@@ -45,6 +57,23 @@ final class AvroPipelineImpl implements AvroPipeline
         int offset,
         int length)
     {
-        return driver.feed(buffer, offset, length);
+        decoder.wrap(buffer, offset, length);
+        Status status = PENDING;
+        try
+        {
+            while (status == PENDING && decoder.hasNextEvent())
+            {
+                status = root.feed(decoder, decoder, decoder.nextEvent());
+            }
+        }
+        catch (AvroValidationException ex)
+        {
+            status = REJECTED;
+        }
+        if (status == PENDING && decoder.complete())
+        {
+            status = COMPLETE;
+        }
+        return status;
     }
 }

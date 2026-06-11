@@ -55,7 +55,6 @@ final class AvroStreamImpl implements AvroStream
         {
             head = new BoundSink(transforms.get(i), head);
         }
-        driver.bind(head);
         return new AvroPipelineImpl(driver, head);
     }
 

@@ -38,29 +38,21 @@ import static io.aklivity.zilla.runtime.common.avro.AvroEvent.START_RECORD;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.START_SEGMENT;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.STRING;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.UNION_BRANCH;
-import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.COMPLETE;
-import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.PENDING;
-import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.REJECTED;
 import static java.nio.ByteOrder.LITTLE_ENDIAN;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 import org.agrona.DirectBuffer;
 import org.agrona.ExpandableArrayBuffer;
 import org.agrona.MutableDirectBuffer;
+import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.common.avro.AvroController;
 import io.aklivity.zilla.runtime.common.avro.AvroDecoder;
 import io.aklivity.zilla.runtime.common.avro.AvroEvent;
-import io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status;
-import io.aklivity.zilla.runtime.common.avro.AvroSink;
+import io.aklivity.zilla.runtime.common.avro.AvroLocation;
 import io.aklivity.zilla.runtime.common.avro.AvroStream;
+import io.aklivity.zilla.runtime.common.avro.AvroValidationException;
 
-/**
- * The schema-bound decode driver: walks the compiled schema in lockstep with the buffer, emitting an
- * {@link AvroEvent} stream (framed by {@code START_MESSAGE}/{@code END_MESSAGE}) to the bound root
- * {@link AvroSink}, resuming across fragmented {@link #feed} calls. Implements {@link AvroController}:
- * a downstream stage may opt the current datum into verbatim segment delivery, in which case the value
- * is scanned (still validating) without structured emission and delivered as raw segment chunks.
- */
 final class AvroDecoderImpl implements AvroDecoder, AvroController
 {
     private static final int READ_OK = 0;
@@ -68,13 +60,14 @@ final class AvroDecoderImpl implements AvroDecoder, AvroController
     private static final int READ_MALFORMED = 2;
 
     private static final int STEP_CONTINUE = 0;
-    private static final int STEP_PENDING = 1;
-    private static final int STEP_REJECTED = 2;
-    private static final int STEP_COMPLETE = 3;
+    private static final int STEP_EVENT = 1;
+    private static final int STEP_UNDERFLOW = 2;
+    private static final int STEP_REJECTED = 3;
 
     private enum Phase
     {
         NEW,
+        ROUTE,
         BODY,
         SEGMENT,
         END,
@@ -82,10 +75,10 @@ final class AvroDecoderImpl implements AvroDecoder, AvroController
     }
 
     private final AvroNode root;
-    private final AvroSourceImpl cursor;
-    private AvroSink sink;
-
     private final MutableDirectBuffer work;
+    private final UnsafeBuffer segmentView;
+    private final AvroLocationImpl location;
+
     private int workLimit;
     private int pos;
 
@@ -101,16 +94,32 @@ final class AvroDecoderImpl implements AvroDecoder, AvroController
     private boolean segmentRequested;
     private boolean segmenting;
     private boolean segmentStarted;
+    private boolean segmentPendingEnd;
+
+    private AvroEvent pending;
+    private boolean done;
+
+    private int valueOffset;
+    private int valueLength;
+    private boolean booleanValue;
+    private int intValue;
+    private long longValue;
+    private float floatValue;
+    private double doubleValue;
+    private String string;
+    private String field;
 
     AvroDecoderImpl(
         AvroNode root)
     {
         this.root = root;
-        this.cursor = new AvroSourceImpl();
         this.work = new ExpandableArrayBuffer();
+        this.segmentView = new UnsafeBuffer(0, 0);
+        this.location = new AvroLocationImpl();
         this.nodeStack = new AvroNode[16];
         this.stateStack = new int[16];
         this.countStack = new long[16];
+        reset();
     }
 
     @Override
@@ -119,10 +128,42 @@ final class AvroDecoderImpl implements AvroDecoder, AvroController
         return new AvroStreamImpl(this);
     }
 
-    void bind(
-        AvroSink sink)
+    @Override
+    public void wrap(
+        DirectBuffer buffer,
+        int offset,
+        int length)
     {
-        this.sink = sink;
+        if (pos > 0)
+        {
+            int remaining = workLimit - pos;
+            if (remaining > 0)
+            {
+                work.putBytes(0, work, pos, remaining);
+            }
+            workLimit = remaining;
+            pos = 0;
+        }
+        work.putBytes(workLimit, buffer, offset, length);
+        workLimit += length;
+    }
+
+    @Override
+    public boolean hasNextEvent()
+    {
+        if (pending == null && !done)
+        {
+            advance();
+        }
+        return pending != null;
+    }
+
+    @Override
+    public AvroEvent nextEvent()
+    {
+        AvroEvent event = pending;
+        pending = null;
+        return event;
     }
 
     @Override
@@ -137,36 +178,36 @@ final class AvroDecoderImpl implements AvroDecoder, AvroController
         workLimit = 0;
         pos = 0;
         phase = Phase.NEW;
+        pending = null;
+        done = false;
         segmentRequested = false;
         segmenting = false;
         segmentStarted = false;
+        segmentPendingEnd = false;
         push(root);
     }
 
-    Status feed(
-        DirectBuffer buffer,
-        int offset,
-        int length)
+    boolean complete()
     {
-        work.putBytes(workLimit, buffer, offset, length);
-        workLimit += length;
-        pos = 0;
+        return done;
+    }
 
-        Status status = PENDING;
-        boolean running = true;
-        while (running)
+    private void advance()
+    {
+        boolean producing = true;
+        while (producing)
         {
-            cursor.locate(depth, pos);
             switch (phase)
             {
             case NEW:
-                int started = emit(START_MESSAGE);
-                if (started == STEP_REJECTED)
-                {
-                    status = REJECTED;
-                    running = false;
-                }
-                else if (segmentRequested)
+                location.locate(depth, pos);
+                clearValue();
+                pending = START_MESSAGE;
+                phase = Phase.ROUTE;
+                producing = false;
+                break;
+            case ROUTE:
+                if (segmentRequested)
                 {
                     phase = Phase.SEGMENT;
                     segmenting = true;
@@ -184,103 +225,97 @@ final class AvroDecoderImpl implements AvroDecoder, AvroController
                 }
                 else
                 {
+                    location.locate(depth, pos);
                     int step = step(nodeStack[depth - 1]);
-                    if (step == STEP_PENDING)
+                    if (step == STEP_EVENT || step == STEP_UNDERFLOW)
                     {
-                        status = PENDING;
-                        running = false;
+                        producing = false;
                     }
                     else if (step == STEP_REJECTED)
                     {
-                        status = REJECTED;
-                        running = false;
-                    }
-                    else if (step == STEP_COMPLETE)
-                    {
-                        status = COMPLETE;
-                        running = false;
-                        phase = Phase.DONE;
+                        throw new AvroValidationException("malformed Avro binary");
                     }
                 }
                 break;
             case SEGMENT:
-                int scanStart = pos;
-                int scan = STEP_CONTINUE;
-                while (scan == STEP_CONTINUE && depth > 0)
+                location.locate(depth, pos);
+                int segment = segmentStep();
+                if (segment == STEP_EVENT || segment == STEP_UNDERFLOW)
                 {
-                    scan = step(nodeStack[depth - 1]);
+                    producing = false;
                 }
-                if (scan == STEP_REJECTED)
+                else if (segment == STEP_REJECTED)
                 {
-                    status = REJECTED;
-                    running = false;
-                }
-                else if (depth == 0)
-                {
-                    status = emitSegmentDone(scanStart);
-                    running = false;
-                    phase = Phase.DONE;
-                }
-                else
-                {
-                    cursor.setSegment(work, scanStart, pos - scanStart);
-                    int chunk = emitSegment(segmentStarted ? CONTINUE_SEGMENT : START_SEGMENT);
-                    segmentStarted = true;
-                    status = chunk == STEP_REJECTED ? REJECTED : PENDING;
-                    running = false;
+                    throw new AvroValidationException("malformed Avro binary");
                 }
                 break;
             case END:
-                int ended = emit(END_MESSAGE);
-                status = ended == STEP_REJECTED ? REJECTED : COMPLETE;
-                running = false;
+                location.locate(depth, pos);
+                clearValue();
+                pending = END_MESSAGE;
                 phase = Phase.DONE;
+                producing = false;
                 break;
             default:
-                running = false;
+                done = true;
+                producing = false;
                 break;
             }
         }
+    }
 
-        if (status == PENDING)
+    private int segmentStep()
+    {
+        int result;
+        if (segmentPendingEnd)
         {
-            compact();
+            segmentPendingEnd = false;
+            setSegment(pos, 0);
+            pending = END_SEGMENT;
+            phase = Phase.END;
+            result = STEP_EVENT;
         }
         else
         {
-            workLimit = 0;
-        }
-
-        return status;
-    }
-
-    private Status emitSegmentDone(
-        int scanStart)
-    {
-        Status status;
-        if (!segmentStarted)
-        {
-            cursor.setSegment(work, scanStart, pos - scanStart);
-            int begin = emitSegment(START_SEGMENT);
-            segmentStarted = true;
-            if (begin == STEP_REJECTED)
+            int scanStart = pos;
+            int scan = STEP_CONTINUE;
+            while (scan == STEP_CONTINUE && depth > 0)
             {
-                status = REJECTED;
+                scan = step(nodeStack[depth - 1]);
+            }
+            if (scan == STEP_REJECTED)
+            {
+                result = STEP_REJECTED;
+            }
+            else if (depth == 0)
+            {
+                setSegment(scanStart, pos - scanStart);
+                if (segmentStarted)
+                {
+                    pending = END_SEGMENT;
+                    phase = Phase.END;
+                }
+                else
+                {
+                    segmentStarted = true;
+                    segmentPendingEnd = true;
+                    pending = START_SEGMENT;
+                }
+                result = STEP_EVENT;
+            }
+            else if (pos > scanStart)
+            {
+                setSegment(scanStart, pos - scanStart);
+                pending = segmentStarted ? CONTINUE_SEGMENT : START_SEGMENT;
+                segmentStarted = true;
+                result = STEP_EVENT;
             }
             else
             {
-                cursor.setSegment(work, pos, 0);
-                int end = emitSegment(END_SEGMENT);
-                status = end == STEP_REJECTED ? REJECTED : COMPLETE;
+                result = STEP_UNDERFLOW;
             }
         }
-        else
-        {
-            cursor.setSegment(work, scanStart, pos - scanStart);
-            int end = emitSegment(END_SEGMENT);
-            status = end == STEP_REJECTED ? REJECTED : COMPLETE;
-        }
-        return status;
+        return result;
     }
 
     private int step(
@@ -337,13 +372,9 @@ final class AvroDecoderImpl implements AvroDecoder, AvroController
     private int stepLeaf(
         AvroEvent event)
     {
-        cursor.clear();
-        int result = emit(event);
-        if (result == STEP_CONTINUE)
-        {
-            pop();
-        }
-        return result;
+        clearValue();
+        pop();
+        return produced(event);
     }
 
     private int stepBoolean()
@@ -351,7 +382,7 @@ final class AvroDecoderImpl implements AvroDecoder, AvroController
         int result;
         if (pos >= workLimit)
         {
-            result = STEP_PENDING;
+            result = STEP_UNDERFLOW;
         }
         else
         {
@@ -363,12 +394,10 @@ final class AvroDecoderImpl implements AvroDecoder, AvroController
             else
             {
                 pos++;
-                cursor.setBoolean(b != 0);
-                result = emit(BOOLEAN);
-                if (result == STEP_CONTINUE)
-                {
-                    pop();
-                }
+                booleanValue = b != 0;
+                clearValue();
+                pop();
+                result = produced(BOOLEAN);
             }
         }
         return result;
@@ -379,25 +408,29 @@ final class AvroDecoderImpl implements AvroDecoder, AvroController
     {
         boolean isInt = node.kind == AvroKind.INT;
         int read = readVarint(pos, isInt ? 5 : 10);
-        int result = toStep(read);
+        int result;
         if (read == READ_OK)
         {
             pos = scratchNext;
             long decoded = zigzag(scratchValue);
+            AvroEvent event;
             if (isInt)
             {
-                cursor.setInt((int) decoded);
-                result = emit(INT);
+                intValue = (int) decoded;
+                event = INT;
             }
             else
             {
-                cursor.setLong(decoded);
-                result = emit(LONG);
+                longValue = decoded;
+                event = LONG;
             }
-            if (result == STEP_CONTINUE)
-            {
-                pop();
-            }
+            clearValue();
+            pop();
+            result = produced(event);
+        }
+        else
+        {
+            result = read == READ_UNDERFLOW ? STEP_UNDERFLOW : STEP_REJECTED;
         }
         return result;
     }
@@ -407,17 +440,15 @@ final class AvroDecoderImpl implements AvroDecoder, AvroController
         int result;
         if (pos + Float.BYTES > workLimit)
         {
-            result = STEP_PENDING;
+            result = STEP_UNDERFLOW;
         }
         else
         {
-            cursor.setFloat(work.getFloat(pos, LITTLE_ENDIAN));
+            floatValue = work.getFloat(pos, LITTLE_ENDIAN);
             pos += Float.BYTES;
-            result = emit(FLOAT);
-            if (result == STEP_CONTINUE)
-            {
-                pop();
-            }
+            clearValue();
+            pop();
+            result = produced(FLOAT);
         }
         return result;
     }
@@ -427,17 +458,15 @@ final class AvroDecoderImpl implements AvroDecoder, AvroController
         int result;
         if (pos + Double.BYTES > workLimit)
         {
-            result = STEP_PENDING;
+            result = STEP_UNDERFLOW;
         }
         else
         {
-            cursor.setDouble(work.getDouble(pos, LITTLE_ENDIAN));
+            doubleValue = work.getDouble(pos, LITTLE_ENDIAN);
             pos += Double.BYTES;
-            result = emit(DOUBLE);
-            if (result == STEP_CONTINUE)
-            {
-                pop();
-            }
+            clearValue();
+            pop();
+            result = produced(DOUBLE);
         }
         return result;
     }
@@ -446,40 +475,30 @@ final class AvroDecoderImpl implements AvroDecoder, AvroController
         AvroNode node)
     {
         int read = readVarint(pos, 10);
-        int result = toStep(read);
+        int result;
         if (read == READ_OK)
         {
-            result = readPayload(zigzag(scratchValue), scratchNext);
-            if (result == STEP_CONTINUE)
+            long length = zigzag(scratchValue);
+            int dataStart = scratchNext;
+            if (length < 0 || length > Integer.MAX_VALUE)
             {
-                result = emit(node.kind == AvroKind.STRING ? STRING : BYTES);
-                if (result == STEP_CONTINUE)
-                {
-                    pop();
-                }
+                result = STEP_REJECTED;
             }
-        }
-        return result;
-    }
-
-    private int readPayload(
-        long length,
-        int dataStart)
-    {
-        int result;
-        if (length < 0 || length > Integer.MAX_VALUE)
-        {
-            result = STEP_REJECTED;
-        }
-        else if (dataStart + length > workLimit)
-        {
-            result = STEP_PENDING;
+            else if (dataStart + length > workLimit)
+            {
+                result = STEP_UNDERFLOW;
+            }
+            else
+            {
+                setValueBytes(dataStart, (int) length);
+                pos = dataStart + (int) length;
+                pop();
+                result = produced(node.kind == AvroKind.STRING ? STRING : BYTES);
+            }
         }
         else
         {
-            cursor.setBytes(work, dataStart, (int) length);
-            pos = dataStart + (int) length;
-            result = STEP_CONTINUE;
+            result = read == READ_UNDERFLOW ? STEP_UNDERFLOW : STEP_REJECTED;
         }
         return result;
     }
@@ -490,17 +509,14 @@ final class AvroDecoderImpl implements AvroDecoder, AvroController
         int result;
         if (pos + node.size > workLimit)
         {
-            result = STEP_PENDING;
+            result = STEP_UNDERFLOW;
         }
         else
         {
-            cursor.setBytes(work, pos, node.size);
+            setValueBytes(pos, node.size);
             pos += node.size;
-            result = emit(FIXED);
-            if (result == STEP_CONTINUE)
-            {
-                pop();
-            }
+            pop();
+            result = produced(FIXED);
         }
         return result;
     }
@@ -509,7 +525,7 @@ final class AvroDecoderImpl implements AvroDecoder, AvroController
         AvroNode node)
     {
         int read = readVarint(pos, 5);
-        int result = toStep(read);
+        int result;
         if (read == READ_OK)
         {
             long index = zigzag(scratchValue);
@@ -520,13 +536,16 @@ final class AvroDecoderImpl implements AvroDecoder, AvroController
             else
             {
                 pos = scratchNext;
-                cursor.setEnum((int) index, node.symbols[(int) index]);
-                result = emit(ENUM);
-                if (result == STEP_CONTINUE)
-                {
-                    pop();
-                }
+                intValue = (int) index;
+                string = node.symbols[(int) index];
+                valueLength = 0;
+                pop();
+                result = produced(ENUM);
             }
+        }
+        else
+        {
+            result = read == READ_UNDERFLOW ? STEP_UNDERFLOW : STEP_REJECTED;
         }
         return result;
     }
@@ -539,32 +558,25 @@ final class AvroDecoderImpl implements AvroDecoder, AvroController
         int result;
         if (state == 0)
         {
-            cursor.clear();
-            result = emit(START_RECORD);
-            if (result == STEP_CONTINUE)
-            {
-                stateStack[frame] = 1;
-            }
+            stateStack[frame] = 1;
+            clearValue();
+            result = produced(START_RECORD);
         }
         else if (state <= node.fieldNames.length)
         {
             int index = state - 1;
-            cursor.setName(node.fieldNames[index]);
-            result = emit(FIELD_NAME);
-            if (result == STEP_CONTINUE)
-            {
-                stateStack[frame] = state + 1;
-                push(node.children[index]);
-            }
+            stateStack[frame] = state + 1;
+            field = node.fieldNames[index];
+            string = null;
+            valueLength = 0;
+            result = produced(FIELD_NAME);
+            push(node.children[index]);
         }
         else
         {
-            cursor.clear();
-            result = emit(END_RECORD);
-            if (result == STEP_CONTINUE)
-            {
-                pop();
-            }
+            pop();
+            clearValue();
+            result = produced(END_RECORD);
         }
         return result;
     }
@@ -574,15 +586,12 @@ final class AvroDecoderImpl implements AvroDecoder, AvroController
     {
         int frame = depth - 1;
         int state = stateStack[frame];
-        int result = STEP_CONTINUE;
+        int result;
         if (state == 0)
         {
-            cursor.clear();
-            result = emit(START_ARRAY);
-            if (result == STEP_CONTINUE)
-            {
-                stateStack[frame] = 1;
-            }
+            stateStack[frame] = 1;
+            clearValue();
+            result = produced(START_ARRAY);
         }
         else if (state == 1)
         {
@@ -592,10 +601,12 @@ final class AvroDecoderImpl implements AvroDecoder, AvroController
         {
             countStack[frame]--;
             push(node.children[0]);
+            result = STEP_CONTINUE;
         }
         else
         {
             stateStack[frame] = 1;
+            result = STEP_CONTINUE;
         }
         return result;
     }
@@ -608,12 +619,9 @@ final class AvroDecoderImpl implements AvroDecoder, AvroController
         int result;
         if (state == 0)
         {
-            cursor.clear();
-            result = emit(START_MAP);
-            if (result == STEP_CONTINUE)
-            {
-                stateStack[frame] = 1;
-            }
+            stateStack[frame] = 1;
+            clearValue();
+            result = produced(START_MAP);
         }
         else if (state == 1)
         {
@@ -640,18 +648,29 @@ final class AvroDecoderImpl implements AvroDecoder, AvroController
         if (countStack[frame] > 0)
         {
             int read = readVarint(pos, 10);
-            result = toStep(read);
             if (read == READ_OK)
             {
-                result = readPayload(zigzag(scratchValue), scratchNext);
-                if (result == STEP_CONTINUE)
+                long length = zigzag(scratchValue);
+                int dataStart = scratchNext;
+                if (length < 0 || length > Integer.MAX_VALUE)
                 {
-                    result = emit(MAP_KEY);
-                    if (result == STEP_CONTINUE)
-                    {
-                        stateStack[frame] = 3;
-                    }
+                    result = STEP_REJECTED;
                 }
+                else if (dataStart + length > workLimit)
+                {
+                    result = STEP_UNDERFLOW;
+                }
+                else
+                {
+                    setValueBytes(dataStart, (int) length);
+                    pos = dataStart + (int) length;
+                    stateStack[frame] = 3;
+                    result = produced(MAP_KEY);
+                }
+            }
+            else
+            {
+                result = read == READ_UNDERFLOW ? STEP_UNDERFLOW : STEP_REJECTED;
             }
         }
         else
@@ -667,24 +686,26 @@ final class AvroDecoderImpl implements AvroDecoder, AvroController
         AvroEvent endEvent)
     {
         int read = readBlockHeader(pos);
-        int result = toStep(read);
+        int result;
         if (read == READ_OK)
         {
             pos = scratchNext;
             if (scratchValue == 0)
             {
-                cursor.clear();
-                result = emit(endEvent);
-                if (result == STEP_CONTINUE)
-                {
-                    pop();
-                }
+                pop();
+                clearValue();
+                result = produced(endEvent);
             }
             else
             {
                 countStack[frame] = scratchValue;
                 stateStack[frame] = 2;
+                result = STEP_CONTINUE;
             }
+        }
+        else
+        {
+            result = read == READ_UNDERFLOW ? STEP_UNDERFLOW : STEP_REJECTED;
         }
         return result;
     }
@@ -698,7 +719,6 @@ final class AvroDecoderImpl implements AvroDecoder, AvroController
         if (state == 0)
         {
             int read = readVarint(pos, 10);
-            result = toStep(read);
             if (read == READ_OK)
             {
                 long index = zigzag(scratchValue);
@@ -709,14 +729,16 @@ final class AvroDecoderImpl implements AvroDecoder, AvroController
                 else
                 {
                     pos = scratchNext;
-                    cursor.setInt((int) index);
-                    result = emit(UNION_BRANCH);
-                    if (result == STEP_CONTINUE)
-                    {
-                        stateStack[frame] = 1;
-                        push(node.children[(int) index]);
-                    }
+                    intValue = (int) index;
+                    clearValue();
+                    stateStack[frame] = 1;
+                    result = produced(UNION_BRANCH);
+                    push(node.children[(int) index]);
                 }
+            }
+            else
+            {
+                result = read == READ_UNDERFLOW ? STEP_UNDERFLOW : STEP_REJECTED;
             }
         }
         else
@@ -727,7 +749,7 @@ final class AvroDecoderImpl implements AvroDecoder, AvroController
         return result;
     }
 
-    private int emit(
+    private int produced(
         AvroEvent event)
     {
         int result;
@@ -737,50 +759,106 @@ final class AvroDecoderImpl implements AvroDecoder, AvroController
         }
         else
         {
-            result = mapStatus(sink.feed(this, cursor, event));
+            pending = event;
+            result = STEP_EVENT;
         }
         return result;
     }
 
-    private int emitSegment(
-        AvroEvent event)
+    private void setValueBytes(
+        int offset,
+        int length)
     {
-        return mapStatus(sink.feed(this, cursor, event));
+        this.valueOffset = offset;
+        this.valueLength = length;
+        this.string = null;
     }
 
-    private static int mapStatus(
-        Status status)
+    private void setSegment(
+        int offset,
+        int length)
     {
-        return status == REJECTED ? STEP_REJECTED : status == COMPLETE ? STEP_COMPLETE : STEP_CONTINUE;
+        this.valueOffset = offset;
+        this.valueLength = length;
     }
 
-    private static int toStep(
-        int read)
+    private void clearValue()
     {
-        int step;
-        switch (read)
+        this.string = null;
+        this.valueLength = 0;
+    }
+
+    @Override
+    public boolean getBoolean()
+    {
+        return booleanValue;
+    }
+
+    @Override
+    public int getInt()
+    {
+        return intValue;
+    }
+
+    @Override
+    public long getLong()
+    {
+        return longValue;
+    }
+
+    @Override
+    public float getFloat()
+    {
+        return floatValue;
+    }
+
+    @Override
+    public double getDouble()
+    {
+        return doubleValue;
+    }
+
+    @Override
+    public String getString()
+    {
+        String value = string;
+        if (value == null && valueLength > 0)
         {
-        case READ_UNDERFLOW:
-            step = STEP_PENDING;
-            break;
-        case READ_MALFORMED:
-            step = STEP_REJECTED;
-            break;
-        default:
-            step = STEP_CONTINUE;
-            break;
+            value = decode();
         }
-        return step;
+        return value;
     }
 
-    private void compact()
+    @Override
+    public String getField()
     {
-        int remaining = workLimit - pos;
-        if (pos > 0 && remaining > 0)
-        {
-            work.putBytes(0, work, pos, remaining);
-        }
-        workLimit = remaining;
+        return field;
+    }
+
+    @Override
+    public String getKey()
+    {
+        return valueLength > 0 ? decode() : null;
+    }
+
+    @Override
+    public DirectBuffer getSegment()
+    {
+        segmentView.wrap(work, valueOffset, valueLength);
+        return segmentView;
+    }
+
+    @Override
+    public AvroLocation getLocation()
+    {
+        return location;
+    }
+
+    private String decode()
+    {
+        byte[] dst = new byte[valueLength];
+        work.getBytes(valueOffset, dst);
+        return new String(dst, UTF_8);
     }
 
     private int readVarint(
