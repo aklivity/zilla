@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.common.protobuf;
 
 import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufDiscardSink;
+import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufWireSink;
 
 /**
  * The consume end of a {@link ProtobufStream} pipeline. Each {@link #feed(ProtobufController, ProtobufSource,
@@ -42,5 +43,21 @@ public interface ProtobufSink
     static ProtobufSink discard()
     {
         return new ProtobufDiscardSink();
+    }
+
+    /**
+     * A terminal sink that writes the event stream out as Protobuf wire through {@code generator},
+     * encoded against the message named {@code messageName} in {@code schema}, mapping each event's
+     * field by name into the target message. When {@code schema} is the read schema this re-encodes;
+     * when it differs this transforms (fields absent in the target are dropped). The generator must
+     * already be wrapped over its output buffer; read {@link ProtobufGenerator#length()} after the
+     * pipeline reports {@link ProtobufPipeline.Status#COMPLETE}.
+     */
+    static ProtobufSink of(
+        ProtobufGenerator generator,
+        ProtobufSchema schema,
+        String messageName)
+    {
+        return new ProtobufWireSink(generator, schema, messageName);
     }
 }

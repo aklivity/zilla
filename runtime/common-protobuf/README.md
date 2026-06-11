@@ -85,6 +85,24 @@ ProtobufPipeline.Status status = pipeline.feed(buffer, offset, length);  // PEND
 - **`schema.validator(messageName)`** returns a `ProtobufTransform` that forwards every event and
   adds descriptor-level semantic validation (proto2 `required`-field presence), reporting at the
   message boundary so callers abort on `REJECTED` (emit-then-abort).
+- **`ProtobufSink.of(generator, schema, messageName)`** (peer of `JsonSink.of(generator, …)`) writes
+  the event stream back out as wire through a buffer-backed `StreamingProtobuf.generator()`, encoded
+  against the target message. Because protobuf needs field numbers and types to write, binding the
+  sink to a target schema gives **schema transformation**: read with one schema, re-emit with another,
+  mapping fields by name (fields absent in the target are dropped, including their subtrees). With the
+  read schema it is a straight re-encode; with an evolved schema it renames/renumbers fields:
+
+  ```java
+  ProtobufGenerator generator = StreamingProtobuf.generator().wrap(out, 0);
+  ProtobufPipeline pipeline = StreamingProtobuf.parser(readSchema, "Person")
+      .transform(readSchema.validator("Person"))
+      .into(ProtobufSink.of(generator, writeSchema, "PersonV2"));
+  pipeline.reset();
+  if (pipeline.feed(in, off, len) == ProtobufPipeline.Status.COMPLETE)
+  {
+      int length = generator.length();   // PersonV2 wire bytes in out
+  }
+  ```
 - **Segment delivery** mirrors `common-json` #1870: a stage calls `ProtobufController.segmentable()`
   on a composite `FIELD` to receive that value as `START_SEGMENT`/`END_SEGMENT` raw wire bytes
   (`ProtobufSource.buffer()`/`offset()`/`length()`) instead of expanding it into structured events.

@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.common.protobuf;
 import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.common.protobuf.internal.DescriptorSetCompiler;
+import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufGeneratorImpl;
 import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufStreamImpl;
 
 /**
@@ -71,6 +72,15 @@ public final class StreamingProtobuf
         String messageName)
     {
         return new ProtobufStreamImpl(schema, messageName);
+    }
+
+    /**
+     * A reusable per-worker buffer-backed wire generator, the output edge for a wire-writing
+     * {@link ProtobufSink#of(ProtobufGenerator, ProtobufSchema, String)}.
+     */
+    public static ProtobufGenerator generator()
+    {
+        return new ProtobufGeneratorImpl();
     }
 
     private StreamingProtobuf()
