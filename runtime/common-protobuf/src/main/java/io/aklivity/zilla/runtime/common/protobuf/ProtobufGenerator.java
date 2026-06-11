@@ -34,7 +34,24 @@ public interface ProtobufGenerator
         MutableDirectBuffer buffer,
         int offset);
 
+    /**
+     * Wraps {@code buffer} with a hard byte {@code limit} (rather than the buffer's full capacity) — the
+     * bound a chunking driver watches via {@link #remaining()} to decide when to drain and continue. The
+     * two-argument {@link #wrap(MutableDirectBuffer, int)} is equivalent with {@code limit} set to the
+     * remaining capacity.
+     */
+    ProtobufGenerator wrap(
+        MutableDirectBuffer buffer,
+        int offset,
+        int limit);
+
     int length();
+
+    /**
+     * Bytes that may still be written before reaching the {@code limit} set at {@link #wrap}. A driver
+     * checks this at a field boundary to decide whether to suspend (drain) before the next write.
+     */
+    int remaining();
 
     ProtobufGenerator writeInt32(
         int field,
@@ -128,9 +145,20 @@ public interface ProtobufGenerator
         int length);
 
     /**
-     * Ends the nested message opened by the most recent {@link #startMessage(int, int)} — the
-     * write-side mirror of a {@link ProtobufEvent#END_MESSAGE} event. The body written must match the
-     * declared length.
+     * Begins a length-delimited nested message on {@code field} whose body length is not known up front:
+     * the tag is written and a fixed-width length slot is reserved, to be filled in place by the matching
+     * {@link #endMessage()} once the body is complete (no back-patch shift). This is the form a chunking
+     * driver uses — on a drain boundary it closes every open level with {@link #endMessage()}, then on
+     * resume reopens each with this call against a fresh buffer, and the decoder merges the resulting
+     * records.
+     */
+    ProtobufGenerator startMessage(
+        int field);
+
+    /**
+     * Ends the nested message opened by the most recent {@code startMessage} — the write-side mirror of a
+     * {@link ProtobufEvent#END_MESSAGE} event. For {@link #startMessage(int, int)} the body must match the
+     * declared length; for {@link #startMessage(int)} the reserved slot is filled with the body length.
      */
     ProtobufGenerator endMessage();
 

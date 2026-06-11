@@ -138,4 +138,40 @@ public final class ProtobufWriter
         buffer.putBytes(offset, source, index, length);
         offset += length;
     }
+
+    /**
+     * Advances the cursor by {@code length} bytes without writing, returning the absolute offset of the
+     * reserved region — used to hold a fixed-width length slot that {@link #putPaddedVarint} fills later.
+     */
+    public int reserve(
+        int length)
+    {
+        int at = offset;
+        offset += length;
+        return at;
+    }
+
+    /**
+     * Patches a fixed {@code width}-byte varint of {@code value} at absolute offset {@code at} without
+     * moving the cursor. The encoding is non-minimal when {@code value} would fit in fewer bytes (the
+     * leading bytes carry the continuation bit), which is what lets a reserved length slot be filled in
+     * place — no body shift. {@code value} must fit in {@code width * 7} bits.
+     */
+    public void putPaddedVarint(
+        int at,
+        int value,
+        int width)
+    {
+        long remaining = value & 0xffffffffL;
+        for (int i = 0; i < width; i++)
+        {
+            int b = (int) (remaining & 0x7f);
+            if (i < width - 1)
+            {
+                b |= 0x80;
+            }
+            buffer.putByte(at + i, (byte) b);
+            remaining >>>= 7;
+        }
+    }
 }

@@ -34,18 +34,23 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
 public final class ProtobufGeneratorImpl implements ProtobufGenerator
 {
     private static final int GROUP_LEVEL = -1;
+    private static final int PADDED_LEVEL = -2;
 
     private final ProtobufWriter writer;
 
     private int[] ends;
     private int[] groupFields;
+    private int[] slots;
     private int depth;
+    private int limit;
+    private int slotWidth;
 
     public ProtobufGeneratorImpl()
     {
         this.writer = new ProtobufWriter();
         this.ends = new int[8];
         this.groupFields = new int[8];
+        this.slots = new int[8];
     }
 
     @Override
@@ -53,7 +58,18 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
         MutableDirectBuffer buffer,
         int offset)
     {
+        return wrap(buffer, offset, buffer.capacity() - offset);
+    }
+
+    @Override
+    public ProtobufGenerator wrap(
+        MutableDirectBuffer buffer,
+        int offset,
+        int limit)
+    {
         depth = 0;
+        this.limit = limit;
+        this.slotWidth = varintSize(limit);
         writer.wrap(buffer, offset);
         return this;
     }
@@ -62,6 +78,12 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
     public int length()
     {
         return writer.length();
+    }
+
+    @Override
+    public int remaining()
+    {
+        return limit - writer.length();
     }
 
     @Override
@@ -261,18 +283,40 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
     }
 
     @Override
+    public ProtobufGenerator startMessage(
+        int field)
+    {
+        writer.writeTag(field, ProtobufWireType.LEN);
+        int slot = writer.reserve(slotWidth);
+        push();
+        ends[depth] = PADDED_LEVEL;
+        slots[depth] = slot;
+        return this;
+    }
+
+    @Override
     public ProtobufGenerator endMessage()
     {
         if (ends[depth] == GROUP_LEVEL)
         {
             throw new ProtobufException("open group, expected endGroup");
         }
-        int expected = ends[depth];
-        depth--;
-        if (writer.length() != expected)
+        else if (ends[depth] == PADDED_LEVEL)
         {
-            throw new ProtobufException("message body length mismatch: expected " + expected +
-                " but wrote " + writer.length());
+            int slot = slots[depth];
+            int bodyLength = writer.offset() - (slot + slotWidth);
+            depth--;
+            writer.putPaddedVarint(slot, bodyLength, slotWidth);
+        }
+        else
+        {
+            int expected = ends[depth];
+            depth--;
+            if (writer.length() != expected)
+            {
+                throw new ProtobufException("message body length mismatch: expected " + expected +
+                    " but wrote " + writer.length());
+            }
         }
         return this;
     }
@@ -308,7 +352,21 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
         {
             ends = Arrays.copyOf(ends, ends.length * 2);
             groupFields = Arrays.copyOf(groupFields, groupFields.length * 2);
+            slots = Arrays.copyOf(slots, slots.length * 2);
         }
+    }
+
+    private static int varintSize(
+        int value)
+    {
+        long remaining = value & 0xffffffffL;
+        int size = 1;
+        while (remaining >= 0x80L)
+        {
+            remaining >>>= 7;
+            size++;
+        }
+        return size;
     }
 
     @Override
