@@ -155,7 +155,7 @@ final class AvroParserImpl implements AvroParser, AvroSource, AvroController
     }
 
     @Override
-    public boolean hasNextEvent()
+    public boolean hasNext()
     {
         if (pending == null && !done)
         {

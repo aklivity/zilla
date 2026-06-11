@@ -61,7 +61,7 @@ final class AvroPipelineImpl implements AvroPipeline
         Status status = PENDING;
         try
         {
-            while (status == PENDING && decoder.hasNextEvent())
+            while (status == PENDING && decoder.hasNext())
             {
                 status = root.feed(decoder, decoder, decoder.nextEvent());
             }

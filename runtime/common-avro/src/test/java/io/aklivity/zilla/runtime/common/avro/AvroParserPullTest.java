@@ -43,7 +43,7 @@ public class AvroParserPullTest
         decoder.wrap(new UnsafeBuffer(new byte[] { 0x02, 0x04, 0x68, 0x69 }), 0, 4);
 
         List<AvroEvent> events = new ArrayList<>();
-        while (decoder.hasNextEvent())
+        while (decoder.hasNext())
         {
             events.add(decoder.nextEvent());
         }
@@ -63,15 +63,15 @@ public class AvroParserPullTest
         one.putByte(0, (byte) 0x80);
         decoder.wrap(one, 0, 1);
         // START_MESSAGE is available, but the INT value is not yet
-        assertEquals(true, decoder.hasNextEvent());
+        assertEquals(true, decoder.hasNext());
         assertEquals(START_MESSAGE, decoder.nextEvent());
-        assertEquals(false, decoder.hasNextEvent());
+        assertEquals(false, decoder.hasNext());
 
         one.putByte(0, (byte) 0x01);
         decoder.wrap(one, 0, 1);
 
         List<AvroEvent> events = new ArrayList<>();
-        while (decoder.hasNextEvent())
+        while (decoder.hasNext())
         {
             events.add(decoder.nextEvent());
         }
