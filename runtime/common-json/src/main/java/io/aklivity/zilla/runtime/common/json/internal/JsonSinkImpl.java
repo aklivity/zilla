@@ -14,11 +14,14 @@
  */
 package io.aklivity.zilla.runtime.common.json.internal;
 
-import jakarta.json.stream.JsonParser.Event;
+import org.agrona.DirectBuffer;
 
+import io.aklivity.zilla.runtime.common.json.JsonController;
+import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
+import io.aklivity.zilla.runtime.common.json.JsonSink.Delivery;
 import io.aklivity.zilla.runtime.common.json.JsonSource;
 
 /**
@@ -29,24 +32,35 @@ import io.aklivity.zilla.runtime.common.json.JsonSource;
 public final class JsonSinkImpl implements JsonSink
 {
     private final JsonGeneratorEx generator;
+    private final Delivery delivery;
     private int depth;
 
     public JsonSinkImpl(
         JsonGeneratorEx generator)
     {
+        this(generator, Delivery.STRUCTURED);
+    }
+
+    public JsonSinkImpl(
+        JsonGeneratorEx generator,
+        Delivery delivery)
+    {
         this.generator = generator;
+        this.delivery = delivery;
     }
 
     @Override
     public Status feed(
-        Event evt,
-        JsonSource in)
+        JsonController control,
+        JsonSource source,
+        JsonEvent event)
     {
         Status status = Status.PENDING;
-        switch (evt)
+        DirectBuffer segment;
+        switch (event)
         {
         case KEY_NAME:
-            generator.writeKey(in.getString());
+            generator.writeKey(source.getString());
             break;
         case START_OBJECT:
             generator.writeStartObject();
@@ -66,11 +80,11 @@ public final class JsonSinkImpl implements JsonSink
             }
             break;
         case VALUE_STRING:
-            generator.write(in.getString());
+            generator.write(source.getString());
             status = scalarStatus();
             break;
         case VALUE_NUMBER:
-            generator.writeNumber(in.getString());
+            generator.writeNumber(source.getString());
             status = scalarStatus();
             break;
         case VALUE_TRUE:
@@ -84,6 +98,27 @@ public final class JsonSinkImpl implements JsonSink
         case VALUE_NULL:
             generator.writeNull();
             status = scalarStatus();
+            break;
+        case START_SEGMENT:
+            segment = source.getSegment();
+            generator.writeRaw(segment, 0, segment.capacity());
+            break;
+        case CONTINUE_SEGMENT:
+            segment = source.getSegment();
+            generator.writeRawContinue(segment, 0, segment.capacity());
+            break;
+        case END_SEGMENT:
+            segment = source.getSegment();
+            generator.writeRawContinue(segment, 0, segment.capacity());
+            status = scalarStatus();
+            break;
+        case START_DOCUMENT:
+            if (delivery == Delivery.SEGMENTABLE)
+            {
+                control.segmentable();
+            }
+            break;
+        case END_DOCUMENT:
             break;
         default:
             break;

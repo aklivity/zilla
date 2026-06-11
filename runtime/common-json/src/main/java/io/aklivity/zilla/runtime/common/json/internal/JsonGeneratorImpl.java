@@ -337,6 +337,17 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     }
 
     @Override
+    public JsonGeneratorImpl writeRawContinue(
+        DirectBuffer source,
+        int index,
+        int length)
+    {
+        buffer.putBytes(limit, source, index, length);
+        limit += length;
+        return this;
+    }
+
+    @Override
     public void flush()
     {
     }

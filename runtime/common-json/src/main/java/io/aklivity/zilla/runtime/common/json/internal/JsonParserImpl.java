@@ -35,22 +35,50 @@ import jakarta.json.stream.JsonLocation;
 import jakarta.json.stream.JsonParsingException;
 
 import org.agrona.DirectBuffer;
+import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.common.json.DirectBufferInputStreamEx;
+import io.aklivity.zilla.runtime.common.json.JsonController;
+import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.json.JsonSource;
 import io.aklivity.zilla.runtime.common.json.JsonStream;
 import io.aklivity.zilla.runtime.common.json.StreamingJson;
 import io.aklivity.zilla.runtime.common.json.internal.json.JsonValues;
 
-public final class JsonParserImpl implements JsonParserEx, JsonSource
+public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonController
 {
     private final InputStream in;
     private final DirectBufferInputStreamEx ownedInput;
     private final JsonTokenizer tokenizer;
     private final JsonLocationImpl location;
+    private final UnsafeBuffer segmentView = new UnsafeBuffer(0, 0);
 
     private Event currentEvent;
+    private JsonEvent lastEvent;
+    private DocState docState = DocState.NOT_STARTED;
+    private SegmentState segmentState = SegmentState.NONE;
+    private long frameBaseStreamOffset;
+    private long segmentStartOffset;
+    private int segmentSliceOffset;
+    private int segmentSliceLength;
+    private int segmentDepth;
+    private boolean armNextValue;
+
+    private enum SegmentState
+    {
+        NONE,
+        PENDING_START,
+        SCANNING,
+        DONE_PENDING_END
+    }
+
+    private enum DocState
+    {
+        NOT_STARTED,
+        STARTED,
+        ENDED
+    }
 
     public JsonParserImpl()
     {
@@ -107,6 +135,7 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource
         int offset,
         int length)
     {
+        frameBaseStreamOffset = tokenizer.streamOffset();
         ownedInput.wrap(buffer, offset, length);
         return this;
     }
@@ -114,29 +143,59 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource
     void reset()
     {
         tokenizer.reset();
+        segmentState = SegmentState.NONE;
+        segmentDepth = 0;
+        armNextValue = false;
+        lastEvent = null;
+        docState = DocState.NOT_STARTED;
     }
 
     @Override
     public boolean hasNext()
     {
+        boolean result;
+        if (segmentState == SegmentState.PENDING_START || segmentState == SegmentState.DONE_PENDING_END)
+        {
+            result = true;
+        }
+        else
+        {
+            result = tokenizerHasNext();
+        }
+        return result;
+    }
+
+    private boolean tokenizerHasNext()
+    {
+        boolean result;
         if (tokenizer.event() != null)
         {
-            return true;
+            result = true;
         }
-        try
+        else
         {
-            return tokenizer.advance(in);
+            try
+            {
+                result = tokenizer.advance(in);
+            }
+            catch (IOException ex)
+            {
+                throw new JsonParsingException(ex.getMessage(), ex, location);
+            }
         }
-        catch (IOException ex)
-        {
-            throw new JsonParsingException(ex.getMessage(), ex, location);
-        }
+        return result;
+    }
+
+    private int bufferOffset(
+        long streamOffset)
+    {
+        return ownedInput.offset() + (int)(streamOffset - frameBaseStreamOffset);
     }
 
     @Override
     public Event next()
     {
-        if (tokenizer.event() == null && !hasNext())
+        if (tokenizer.event() == null && !tokenizerHasNext())
         {
             throw new JsonParsingException("No more events", location);
         }
@@ -152,6 +211,158 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource
         return currentEvent;
     }
 
+    public JsonEvent nextEvent()
+    {
+        JsonEvent event;
+        if (docState == DocState.NOT_STARTED)
+        {
+            docState = DocState.STARTED;
+            lastEvent = JsonEvent.START_DOCUMENT;
+            event = JsonEvent.START_DOCUMENT;
+        }
+        else if (segmentState == SegmentState.NONE && !tokenizerHasNext() && tokenizer.done())
+        {
+            docState = DocState.ENDED;
+            event = JsonEvent.END_DOCUMENT;
+        }
+        else
+        {
+            event = nextToken();
+        }
+        return event;
+    }
+
+    public boolean hasNextEvent()
+    {
+        boolean result;
+        if (docState == DocState.NOT_STARTED)
+        {
+            result = true;
+        }
+        else if (docState == DocState.ENDED)
+        {
+            result = false;
+        }
+        else if (segmentState == SegmentState.PENDING_START || segmentState == SegmentState.DONE_PENDING_END)
+        {
+            result = true;
+        }
+        else if (tokenizerHasNext())
+        {
+            result = true;
+        }
+        else
+        {
+            result = tokenizer.done();
+        }
+        return result;
+    }
+
+    private JsonEvent nextToken()
+    {
+        JsonEvent event;
+        switch (segmentState)
+        {
+        case PENDING_START:
+            event = scanSegment(bufferOffset(segmentStartOffset), JsonEvent.START_SEGMENT);
+            break;
+        case SCANNING:
+            event = scanSegment(ownedInput.offset(), JsonEvent.CONTINUE_SEGMENT);
+            break;
+        case DONE_PENDING_END:
+            segmentSliceOffset = ownedInput.offset();
+            segmentSliceLength = 0;
+            segmentState = SegmentState.NONE;
+            event = JsonEvent.END_SEGMENT;
+            break;
+        default:
+            lastEvent = JsonEvent.of(next());
+            if (armNextValue)
+            {
+                armNextValue = false;
+                if (lastEvent == JsonEvent.START_OBJECT || lastEvent == JsonEvent.START_ARRAY)
+                {
+                    segmentStartOffset = tokenizer.streamOffset() - 1;
+                    segmentDepth = 1;
+                    segmentState = SegmentState.PENDING_START;
+                    event = scanSegment(bufferOffset(segmentStartOffset), JsonEvent.START_SEGMENT);
+                }
+                else
+                {
+                    event = lastEvent;
+                }
+            }
+            else
+            {
+                event = lastEvent;
+            }
+            break;
+        }
+        return event;
+    }
+
+    private JsonEvent scanSegment(
+        int sliceStart,
+        JsonEvent frameEndEvent)
+    {
+        JsonEvent event = null;
+        while (event == null)
+        {
+            if (!tokenizerHasNext())
+            {
+                segmentSliceOffset = sliceStart;
+                segmentSliceLength = ownedInput.offset() + ownedInput.length() - sliceStart;
+                segmentState = SegmentState.SCANNING;
+                event = frameEndEvent;
+            }
+            else
+            {
+                Event token = next();
+                if (token == Event.START_OBJECT || token == Event.START_ARRAY)
+                {
+                    segmentDepth++;
+                }
+                else if (token == Event.END_OBJECT || token == Event.END_ARRAY)
+                {
+                    segmentDepth--;
+                }
+
+                if (segmentDepth == 0)
+                {
+                    final int sliceEnd = bufferOffset(tokenizer.streamOffset());
+                    segmentSliceOffset = sliceStart;
+                    segmentSliceLength = sliceEnd - sliceStart;
+                    if (frameEndEvent == JsonEvent.START_SEGMENT)
+                    {
+                        segmentState = SegmentState.DONE_PENDING_END;
+                        event = JsonEvent.START_SEGMENT;
+                    }
+                    else
+                    {
+                        segmentState = SegmentState.NONE;
+                        event = JsonEvent.END_SEGMENT;
+                    }
+                }
+            }
+        }
+        return event;
+    }
+
+    @Override
+    public void segmentable()
+    {
+        if (lastEvent == JsonEvent.START_OBJECT || lastEvent == JsonEvent.START_ARRAY)
+        {
+            segmentStartOffset = tokenizer.streamOffset() - 1;
+            segmentState = SegmentState.PENDING_START;
+            segmentDepth = 1;
+        }
+        else if (lastEvent == JsonEvent.START_DOCUMENT)
+        {
+            armNextValue = true;
+        }
+    }
+
     @Override
     public String getString()
     {
@@ -162,6 +373,12 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource
                 "StreamingJson.PATH_INCLUDES (or remove from PATH_EXCLUDES)");
         }
         return value;
+    }
+
+    @Override
+    public CharSequence getKey()
+    {
+        return tokenizer.key();
     }
 
     @Override
@@ -205,6 +422,13 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource
     public JsonLocation getLocation()
     {
         return location;
+    }
+
+    @Override
+    public DirectBuffer getSegment()
+    {
+        segmentView.wrap(ownedInput.buffer(), segmentSliceOffset, segmentSliceLength);
+        return segmentView;
     }
 
     @Override

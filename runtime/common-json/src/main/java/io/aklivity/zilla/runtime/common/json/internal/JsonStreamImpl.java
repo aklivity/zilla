@@ -17,8 +17,8 @@ package io.aklivity.zilla.runtime.common.json.internal;
 import java.util.ArrayList;
 import java.util.List;
 
-import jakarta.json.stream.JsonParser.Event;
-
+import io.aklivity.zilla.runtime.common.json.JsonController;
+import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
@@ -79,10 +79,11 @@ public final class JsonStreamImpl implements JsonStream
 
         @Override
         public Status feed(
-            Event evt,
-            JsonSource in)
+            JsonController control,
+            JsonSource source,
+            JsonEvent event)
         {
-            return transform.feed(evt, in, downstream);
+            return transform.feed(control, source, event, downstream);
         }
 
         @Override
