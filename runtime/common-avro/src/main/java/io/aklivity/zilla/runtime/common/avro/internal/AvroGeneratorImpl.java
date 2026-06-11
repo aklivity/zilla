@@ -21,6 +21,7 @@ import org.agrona.MutableDirectBuffer;
 
 import io.aklivity.zilla.runtime.common.avro.AvroGenerator;
 import io.aklivity.zilla.runtime.common.avro.AvroKind;
+import io.aklivity.zilla.runtime.common.avro.AvroSchema;
 import io.aklivity.zilla.runtime.common.avro.AvroValidationException;
 
 public final class AvroGeneratorImpl implements AvroGenerator
@@ -35,11 +36,11 @@ public final class AvroGeneratorImpl implements AvroGenerator
     private int limit;
 
     public AvroGeneratorImpl(
-        AvroNode root,
+        AvroSchema schema,
         MutableDirectBuffer buffer,
         int offset)
     {
-        this.root = root;
+        this.root = (AvroNode) schema.type();
         this.buffer = buffer;
         this.base = offset;
         this.nodeStack = new AvroNode[16];

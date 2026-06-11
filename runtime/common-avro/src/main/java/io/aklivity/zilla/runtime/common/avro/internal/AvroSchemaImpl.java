@@ -14,12 +14,8 @@
  */
 package io.aklivity.zilla.runtime.common.avro.internal;
 
-import org.agrona.MutableDirectBuffer;
-
 import io.aklivity.zilla.runtime.common.avro.AvroController;
 import io.aklivity.zilla.runtime.common.avro.AvroEvent;
-import io.aklivity.zilla.runtime.common.avro.AvroGenerator;
-import io.aklivity.zilla.runtime.common.avro.AvroParser;
 import io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status;
 import io.aklivity.zilla.runtime.common.avro.AvroSchema;
 import io.aklivity.zilla.runtime.common.avro.AvroSink;
@@ -35,18 +31,6 @@ public final class AvroSchemaImpl implements AvroSchema
         String schema)
     {
         this.root = AvroSchemaCompiler.compile(schema);
-    }
-
-    public AvroParser parser()
-    {
-        return new AvroParserImpl(root);
-    }
-
-    public AvroGenerator generator(
-        MutableDirectBuffer buffer,
-        int offset)
-    {
-        return new AvroGeneratorImpl(root, buffer, offset);
     }
 
     @Override

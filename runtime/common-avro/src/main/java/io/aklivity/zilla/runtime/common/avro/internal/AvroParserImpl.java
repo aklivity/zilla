@@ -51,6 +51,7 @@ import io.aklivity.zilla.runtime.common.avro.AvroEvent;
 import io.aklivity.zilla.runtime.common.avro.AvroKind;
 import io.aklivity.zilla.runtime.common.avro.AvroLocation;
 import io.aklivity.zilla.runtime.common.avro.AvroParser;
+import io.aklivity.zilla.runtime.common.avro.AvroSchema;
 import io.aklivity.zilla.runtime.common.avro.AvroSource;
 import io.aklivity.zilla.runtime.common.avro.AvroStream;
 import io.aklivity.zilla.runtime.common.avro.AvroType;
@@ -61,7 +62,7 @@ import io.aklivity.zilla.runtime.common.avro.AvroValidationException;
  * it and the {@link AvroController} steering segment delivery. The interfaces stay distinct; this one
  * class provides all three so the pipeline can hand the same instance to a sink as source and control.
  */
-final class AvroParserImpl implements AvroParser, AvroSource, AvroController
+public final class AvroParserImpl implements AvroParser, AvroSource, AvroController
 {
     private static final int READ_OK = 0;
     private static final int READ_UNDERFLOW = 1;
@@ -118,10 +119,10 @@ final class AvroParserImpl implements AvroParser, AvroSource, AvroController
     private String field;
     private AvroNode cursorType;
 
-    AvroParserImpl(
-        AvroNode root)
+    public AvroParserImpl(
+        AvroSchema schema)
     {
-        this.root = root;
+        this.root = (AvroNode) schema.type();
         this.work = new ExpandableArrayBuffer();
         this.segmentView = new UnsafeBuffer(0, 0);
         this.location = new AvroLocationImpl();
