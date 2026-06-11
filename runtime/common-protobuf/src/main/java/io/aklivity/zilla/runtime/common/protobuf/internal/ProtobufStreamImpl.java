@@ -18,27 +18,23 @@ import java.util.ArrayList;
 import java.util.List;
 
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline;
-import io.aklivity.zilla.runtime.common.protobuf.ProtobufSchema;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSink;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufStream;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufTransform;
 
 /**
- * The stateless {@link ProtobufStream} description: a descriptor-bound driver plus an ordered list of
- * stages, assembled into a {@link ProtobufPipeline} by {@link #into(ProtobufSink)}.
+ * The stateless {@link ProtobufStream} description: the pull cursor that pumps it plus an ordered list
+ * of stages, assembled into a {@link ProtobufPipeline} by {@link #into(ProtobufSink)}.
  */
 public final class ProtobufStreamImpl implements ProtobufStream
 {
-    private final ProtobufSchema schema;
-    private final String messageName;
+    private final ProtobufParserImpl parser;
     private final List<ProtobufTransform> transforms;
 
     public ProtobufStreamImpl(
-        ProtobufSchema schema,
-        String messageName)
+        ProtobufParserImpl parser)
     {
-        this.schema = schema;
-        this.messageName = messageName;
+        this.parser = parser;
         this.transforms = new ArrayList<>();
     }
 
@@ -54,6 +50,6 @@ public final class ProtobufStreamImpl implements ProtobufStream
     public ProtobufPipeline into(
         ProtobufSink sink)
     {
-        return new ProtobufPipelineImpl(schema, messageName, transforms, sink);
+        return new ProtobufPipelineImpl(parser, transforms, sink);
     }
 }

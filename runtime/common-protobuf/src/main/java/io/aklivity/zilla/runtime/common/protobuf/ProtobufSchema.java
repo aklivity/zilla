@@ -15,13 +15,12 @@
 package io.aklivity.zilla.runtime.common.protobuf;
 
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufDiscardSinkImpl;
-import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufPipelineImpl;
+import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufParserImpl;
 import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufValidatorImpl;
 
 /**
@@ -101,8 +100,10 @@ public final class ProtobufSchema
         int offset,
         int length)
     {
-        ProtobufPipeline pipeline = new ProtobufPipelineImpl(this, messageName,
-            List.of(new ProtobufValidatorImpl(this, messageName)), new ProtobufDiscardSinkImpl());
+        ProtobufPipeline pipeline = new ProtobufParserImpl(this, messageName)
+            .stream()
+            .transform(new ProtobufValidatorImpl(this, messageName))
+            .into(new ProtobufDiscardSinkImpl());
         pipeline.reset();
         return pipeline.feed(buffer, offset, length) == ProtobufPipeline.Status.COMPLETE;
     }

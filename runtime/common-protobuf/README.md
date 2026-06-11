@@ -59,26 +59,52 @@ proto2 explicit field defaults.
 Two valid encodings of the same logical message canonicalize to identical bytes — the comparison a
 binary round-trip conformance check needs.
 
-## Streaming validator pipeline
+## Parsing — pull cursor
 
-A composable streaming pipeline decodes a message against the descriptor into a typed event stream
-and validates as it reads:
+`Protobuf.parser(schema, message)` is a pull cursor: `wrap` a fully-buffered message, then loop
+`hasNextEvent()` / `nextEvent()`, reading each value through the parser's own accessors. It emits
+`START_MESSAGE`/`END_MESSAGE`, `FIELD` (positions `field()`) then `VALUE` for a scalar, and a nested
+`START_MESSAGE`…`END_MESSAGE` for a composite — rejecting malformed wire and wire-type/declared-type
+mismatches as it reads. `START_MESSAGE` carries the whole message slice via
+`buffer()`/`offset()`/`length()`, so a copy knows the length up front.
 
 ```java
-ProtobufPipeline pipeline = Protobuf.parser(schema, "Person").stream()
-    .transform(schema.validator("Person"))
-    .into(ProtobufSink.discard());
-pipeline.reset();
-ProtobufPipeline.Status status = pipeline.feed(buffer, offset, length);  // PENDING / COMPLETE / REJECTED
+ProtobufParser parser = Protobuf.parser(schema, "Person").wrap(buffer, offset, length);
+while (parser.hasNextEvent())
+{
+    switch (parser.nextEvent())
+    {
+    case FIELD: int number = parser.field().number(); break;
+    case VALUE: long value = parser.longValue(); break;
+    default: break;
+    }
+}
 ```
 
-- **`Protobuf.parser(schema, message)`** is the driver; **`stream()`** begins a pipeline,
-  **`ProtobufStream`** appends stages (`transform`) and terminates (`into`), yielding the runnable
-  **`ProtobufPipeline`** (`reset` / `feed` / `Status`).
-- The descriptor-bound driver emits **`ProtobufEvent`**s — `START_MESSAGE`/`END_MESSAGE`, `FIELD`
-  (positions `ProtobufSource.field()`) then `VALUE` for a scalar or a nested message — rejecting
-  malformed wire and wire-type/declared-type mismatches as it reads.
-- **`ProtobufSource`** is the per-event read-only value view (typed scalar accessors + raw slice).
+A schema-free cursor (`Protobuf.parser()`, no schema) tokenizes the wire into generic `FIELD`/`VALUE`
+pairs carrying `fieldNumber()` and `wireType()` (see Schema-free mode below).
+
+## Streaming pipeline
+
+`stream()` layers a composable push pipeline over the same cursor: it pumps the parser and feeds each
+event through an ordered chain of `ProtobufTransform` stages to a terminal `ProtobufSink`.
+
+```java
+ProtobufGenerator generator = Protobuf.generator().wrap(out, 0);
+ProtobufPipeline pipeline = Protobuf.parser(readSchema, "Person").stream()
+    .transform(readSchema.validator("Person"))
+    .into(ProtobufSink.of(generator, writeSchema, "PersonV2"));
+pipeline.reset();
+if (pipeline.feed(in, off, len) == ProtobufPipeline.Status.COMPLETE)  // PENDING / COMPLETE / REJECTED
+{
+    int length = generator.length();   // PersonV2 wire bytes in out
+}
+```
+
+- **`stream()`** begins the pipeline; **`ProtobufStream`** appends stages (`transform`) and terminates
+  (`into`), yielding the runnable **`ProtobufPipeline`** (`reset` / `feed` / `Status`).
+- **`ProtobufSource`** is the per-event read-only value view handed to a stage — the parser's typed
+  accessors without the cursor advance, so a stage cannot disturb the pump.
 - **`ProtobufTransform`** is an intermediate stage (`feed(control, source, event, sink)`);
   **`ProtobufSink`** is the terminal (`feed(control, source, event)`).
 - **`schema.validator(messageName)`** returns a `ProtobufTransform` that forwards every event and
@@ -89,20 +115,8 @@ ProtobufPipeline.Status status = pipeline.feed(buffer, offset, length);  // PEND
   through a buffer-backed `Protobuf.generator()`, encoded against the target message. Because
   protobuf needs field numbers and types to write, binding the sink to a target schema gives
   **schema transformation**: read with one schema, re-emit with another, mapping fields by name
-  (fields absent in the target are dropped, including their subtrees). With the read schema it is a
-  straight re-encode; with an evolved schema it renames/renumbers fields:
-
-  ```java
-  ProtobufGenerator generator = Protobuf.generator().wrap(out, 0);
-  ProtobufPipeline pipeline = Protobuf.parser(readSchema, "Person").stream()
-      .transform(readSchema.validator("Person"))
-      .into(ProtobufSink.of(generator, writeSchema, "PersonV2"));
-  pipeline.reset();
-  if (pipeline.feed(in, off, len) == ProtobufPipeline.Status.COMPLETE)
-  {
-      int length = generator.length();   // PersonV2 wire bytes in out
-  }
-  ```
+  (fields absent in the target are dropped, including their subtrees) — a straight re-encode with the
+  read schema, a rename/renumber with an evolved one (as above).
 - **Segment delivery**: a stage calls `ProtobufController.segmentable()` on a composite `FIELD` to
   receive that value as `START_SEGMENT`/`END_SEGMENT` raw wire bytes
   (`ProtobufSource.buffer()`/`offset()`/`length()`) instead of expanding it into structured events —
