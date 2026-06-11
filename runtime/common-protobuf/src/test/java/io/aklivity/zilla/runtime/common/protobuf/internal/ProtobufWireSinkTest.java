@@ -144,7 +144,7 @@ public class ProtobufWireSinkTest
     {
         MutableDirectBuffer out = new UnsafeBuffer(new byte[4096]);
         ProtobufGenerator generator = StreamingProtobuf.generator().wrap(out, 0);
-        ProtobufPipeline pipeline = StreamingProtobuf.parser(schema, readMessage)
+        ProtobufPipeline pipeline = StreamingProtobuf.parser(schema, readMessage).stream()
             .into(ProtobufSink.of(generator, schema, writeMessage));
         pipeline.reset();
 

@@ -66,7 +66,7 @@ Mirroring `common-json`'s `JsonPipeline`, a composable streaming pipeline decode
 the descriptor into a typed event stream and validates as it reads:
 
 ```java
-ProtobufPipeline pipeline = StreamingProtobuf.parser(schema, "Person")
+ProtobufPipeline pipeline = StreamingProtobuf.parser(schema, "Person").stream()
     .transform(schema.validator("Person"))
     .into(ProtobufSink.discard());
 pipeline.reset();
@@ -94,7 +94,7 @@ ProtobufPipeline.Status status = pipeline.feed(buffer, offset, length);  // PEND
 
   ```java
   ProtobufGenerator generator = StreamingProtobuf.generator().wrap(out, 0);
-  ProtobufPipeline pipeline = StreamingProtobuf.parser(readSchema, "Person")
+  ProtobufPipeline pipeline = StreamingProtobuf.parser(readSchema, "Person").stream()
       .transform(readSchema.validator("Person"))
       .into(ProtobufSink.of(generator, writeSchema, "PersonV2"));
   pipeline.reset();
@@ -122,7 +122,7 @@ number with no schema:
 ProtobufGenerator generator = StreamingProtobuf.generator().wrap(out, 0);
 ProtobufTransform redact = (control, source, event, sink) ->
     source.fieldNumber() == SSN ? ProtobufPipeline.Status.PENDING : sink.feed(control, source, event);
-StreamingProtobuf.parser().transform(redact).into(ProtobufSink.of(generator));
+StreamingProtobuf.parser().stream().transform(redact).into(ProtobufSink.of(generator));
 ```
 
 ### Bounded-buffer contract

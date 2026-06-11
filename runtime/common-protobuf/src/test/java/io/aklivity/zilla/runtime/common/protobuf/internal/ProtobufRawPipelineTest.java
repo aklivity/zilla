@@ -55,7 +55,7 @@ public class ProtobufRawPipelineTest
         });
 
         Capture sink = new Capture();
-        ProtobufPipeline pipeline = StreamingProtobuf.parser().into(sink);
+        ProtobufPipeline pipeline = StreamingProtobuf.parser().stream().into(sink);
         pipeline.reset();
 
         assertEquals(Status.COMPLETE, feed(pipeline, message));
@@ -133,7 +133,7 @@ public class ProtobufRawPipelineTest
     {
         MutableDirectBuffer out = new UnsafeBuffer(new byte[4096]);
         ProtobufGenerator generator = StreamingProtobuf.generator().wrap(out, 0);
-        ProtobufStream stream = StreamingProtobuf.parser();
+        ProtobufStream stream = StreamingProtobuf.parser().stream();
         if (transform != null)
         {
             stream = stream.transform(transform);

@@ -18,7 +18,7 @@ import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.common.protobuf.internal.DescriptorSetCompiler;
 import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufGeneratorImpl;
-import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufStreamImpl;
+import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufParserImpl;
 
 /**
  * Entry point for streaming Protobuf over Agrona buffers. Compile a {@link ProtobufSchema} once per
@@ -63,28 +63,28 @@ public final class StreamingProtobuf
     }
 
     /**
-     * Begins a streaming pipeline that decodes the message named {@code messageName} against
-     * {@code schema} into a typed event stream. Append stages with {@link ProtobufStream#transform}
-     * (e.g. {@link ProtobufSchema#validator(String)}) and terminate with {@link ProtobufStream#into}.
+     * A schema-bound parser that decodes the message named {@code messageName} against {@code schema}
+     * into a typed event stream. Call {@link ProtobufParser#stream()} to begin a pipeline, append
+     * stages with {@link ProtobufStream#transform} (e.g. {@link ProtobufSchema#validator(String)}),
+     * and terminate with {@link ProtobufStream#into}.
      */
-    public static ProtobufStream parser(
+    public static ProtobufParser parser(
         ProtobufSchema schema,
         String messageName)
     {
-        return new ProtobufStreamImpl(schema, messageName);
+        return new ProtobufParserImpl(schema, messageName);
     }
 
     /**
-     * Begins a schema-free streaming pipeline that tokenizes the wire into generic events — a
-     * {@link ProtobufEvent#FIELD} per wire field (carrying {@link ProtobufSource#fieldNumber()} and
-     * {@link ProtobufSource#wireType()}) and a {@link ProtobufEvent#VALUE} carrying the raw value
-     * slice. Length-delimited values are opaque bytes (no message-vs-string interpretation) and there
-     * is no recursion; suitable for generic structural transforms (keep/drop/redact by field number)
-     * and lossless copy, where typed decode is not needed.
+     * A schema-free parser that tokenizes the wire into generic events — a {@link ProtobufEvent#FIELD}
+     * per wire field (carrying {@link ProtobufSource#fieldNumber()} and {@link ProtobufSource#wireType()})
+     * and a {@link ProtobufEvent#VALUE} carrying the raw value slice. Length-delimited values are opaque
+     * bytes (no message-vs-string interpretation) and there is no recursion; suitable for generic
+     * structural transforms (keep/drop/redact by field number) and lossless copy.
      */
-    public static ProtobufStream parser()
+    public static ProtobufParser parser()
     {
-        return new ProtobufStreamImpl(null, null);
+        return new ProtobufParserImpl(null, null);
     }
 
     /**
