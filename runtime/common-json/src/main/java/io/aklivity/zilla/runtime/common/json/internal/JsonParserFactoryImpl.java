@@ -14,15 +14,22 @@
  */
 package io.aklivity.zilla.runtime.common.json.internal;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.nio.charset.Charset;
 import java.util.Map;
 
 import jakarta.json.JsonArray;
+import jakarta.json.JsonException;
 import jakarta.json.JsonObject;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParserFactory;
+
+import io.aklivity.zilla.runtime.common.json.internal.json.JsonValues;
 
 public final class JsonParserFactoryImpl implements JsonParserFactory
 {
@@ -38,7 +45,7 @@ public final class JsonParserFactoryImpl implements JsonParserFactory
     public JsonParser createParser(
         Reader reader)
     {
-        throw new UnsupportedOperationException("JsonParserFactoryImpl only supports InputStream sources");
+        return new JsonParserImpl(readAll(reader), config);
     }
 
     @Override
@@ -60,14 +67,33 @@ public final class JsonParserFactoryImpl implements JsonParserFactory
     public JsonParser createParser(
         JsonObject obj)
     {
-        throw new UnsupportedOperationException("JsonParserFactoryImpl only supports InputStream sources");
+        return JsonValues.parser(obj);
     }
 
     @Override
     public JsonParser createParser(
         JsonArray array)
     {
-        throw new UnsupportedOperationException("JsonParserFactoryImpl only supports InputStream sources");
+        return JsonValues.parser(array);
+    }
+
+    private static InputStream readAll(
+        Reader reader)
+    {
+        StringBuilder builder = new StringBuilder();
+        char[] chunk = new char[1024];
+        try
+        {
+            for (int read = reader.read(chunk); read != -1; read = reader.read(chunk))
+            {
+                builder.append(chunk, 0, read);
+            }
+        }
+        catch (IOException ex)
+        {
+            throw new JsonException(ex.getMessage(), ex);
+        }
+        return new ByteArrayInputStream(builder.toString().getBytes(UTF_8));
     }
 
     @Override

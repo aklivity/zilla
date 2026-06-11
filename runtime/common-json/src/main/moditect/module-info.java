@@ -18,4 +18,7 @@ module io.aklivity.zilla.runtime.common.json
     requires transitive org.agrona;
 
     exports io.aklivity.zilla.runtime.common.json;
+
+    provides jakarta.json.spi.JsonProvider
+        with io.aklivity.zilla.runtime.common.json.internal.json.JsonProviderImpl;
 }

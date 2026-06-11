@@ -17,9 +17,20 @@ package io.aklivity.zilla.runtime.common.json.internal;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.util.AbstractMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Spliterator;
+import java.util.Spliterators;
+import java.util.function.Consumer;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
+import jakarta.json.JsonArray;
+import jakarta.json.JsonArrayBuilder;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonObjectBuilder;
+import jakarta.json.JsonValue;
 import jakarta.json.stream.JsonLocation;
 import jakarta.json.stream.JsonParsingException;
 
@@ -30,6 +41,7 @@ import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.json.JsonSource;
 import io.aklivity.zilla.runtime.common.json.JsonStream;
 import io.aklivity.zilla.runtime.common.json.StreamingJson;
+import io.aklivity.zilla.runtime.common.json.internal.json.JsonValues;
 
 public final class JsonParserImpl implements JsonParserEx, JsonSource
 {
@@ -37,6 +49,8 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource
     private final DirectBufferInputStreamEx ownedInput;
     private final JsonTokenizer tokenizer;
     private final JsonLocationImpl location;
+
+    private Event currentEvent;
 
     public JsonParserImpl()
     {
@@ -71,10 +85,13 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource
         }
         this.in = in;
         this.ownedInput = null;
+        // A DirectBufferInputStreamEx is a resumable frame source whose EOF is a frame boundary;
+        // any other stream is one-shot, so its EOF is the terminal delimiter for a trailing number.
         this.tokenizer = new JsonTokenizer(
             pathList(config, StreamingJson.PATH_INCLUDES),
             pathList(config, StreamingJson.PATH_EXCLUDES),
-            tokenMaxBytes(config));
+            tokenMaxBytes(config),
+            !(in instanceof DirectBufferInputStreamEx));
         this.location = new JsonLocationImpl(tokenizer);
     }
 
@@ -125,7 +142,14 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource
         }
         Event e = tokenizer.event();
         tokenizer.clearEvent();
+        currentEvent = e;
         return e;
+    }
+
+    @Override
+    public Event currentEvent()
+    {
+        return currentEvent;
     }
 
     @Override
@@ -189,39 +213,91 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource
     }
 
     @Override
-    public jakarta.json.JsonObject getObject()
+    public JsonValue getValue()
     {
-        throw new UnsupportedOperationException("getObject not yet supported");
+        if (currentEvent == null)
+        {
+            throw new IllegalStateException("Parser is not positioned on a value");
+        }
+        return switch (currentEvent)
+        {
+        case START_OBJECT -> getObject();
+        case START_ARRAY -> getArray();
+        case VALUE_STRING, KEY_NAME -> JsonValues.string(getString());
+        case VALUE_NUMBER -> JsonValues.number(getBigDecimal());
+        case VALUE_TRUE -> JsonValue.TRUE;
+        case VALUE_FALSE -> JsonValue.FALSE;
+        case VALUE_NULL -> JsonValue.NULL;
+        default -> throw new IllegalStateException("Parser is not positioned on a value: " + currentEvent);
+        };
     }
 
     @Override
-    public jakarta.json.JsonValue getValue()
+    public JsonObject getObject()
     {
-        throw new UnsupportedOperationException("getValue not yet supported");
+        if (currentEvent != Event.START_OBJECT)
+        {
+            throw new IllegalStateException("Parser is not positioned on START_OBJECT");
+        }
+
+        JsonObjectBuilder object = JsonValues.objectBuilder();
+        Event event = next();
+        while (event != Event.END_OBJECT)
+        {
+            if (event != Event.KEY_NAME)
+            {
+                throw new JsonParsingException("Expected object key", location);
+            }
+            String key = getString();
+            next();
+            object.add(key, getValue());
+            event = next();
+        }
+        return object.build();
     }
 
     @Override
-    public jakarta.json.JsonArray getArray()
+    public JsonArray getArray()
     {
-        throw new UnsupportedOperationException("getArray not yet supported");
+        if (currentEvent != Event.START_ARRAY)
+        {
+            throw new IllegalStateException("Parser is not positioned on START_ARRAY");
+        }
+
+        JsonArrayBuilder array = JsonValues.arrayBuilder();
+        Event event = next();
+        while (event != Event.END_ARRAY)
+        {
+            array.add(getValue());
+            event = next();
+        }
+        return array.build();
     }
 
     @Override
-    public java.util.stream.Stream<jakarta.json.JsonValue> getArrayStream()
+    public Stream<JsonValue> getArrayStream()
     {
-        throw new UnsupportedOperationException("getArrayStream not yet supported");
+        if (currentEvent != Event.START_ARRAY)
+        {
+            throw new IllegalStateException("Parser is not positioned on START_ARRAY");
+        }
+        return StreamSupport.stream(new ArrayElementSpliterator(), false);
     }
 
     @Override
-    public java.util.stream.Stream<java.util.Map.Entry<String, jakarta.json.JsonValue>> getObjectStream()
+    public Stream<Map.Entry<String, JsonValue>> getObjectStream()
     {
-        throw new UnsupportedOperationException("getObjectStream not yet supported");
+        if (currentEvent != Event.START_OBJECT)
+        {
+            throw new IllegalStateException("Parser is not positioned on START_OBJECT");
+        }
+        return StreamSupport.stream(new ObjectEntrySpliterator(), false);
     }
 
     @Override
-    public java.util.stream.Stream<jakarta.json.JsonValue> getValueStream()
+    public Stream<JsonValue> getValueStream()
     {
-        throw new UnsupportedOperationException("getValueStream not yet supported");
+        return StreamSupport.stream(new TopLevelValueSpliterator(), false);
     }
 
     @Override
@@ -256,6 +332,72 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource
             {
                 depth--;
             }
+        }
+    }
+
+    private final class ArrayElementSpliterator extends Spliterators.AbstractSpliterator<JsonValue>
+    {
+        private ArrayElementSpliterator()
+        {
+            super(Long.MAX_VALUE, Spliterator.ORDERED);
+        }
+
+        @Override
+        public boolean tryAdvance(
+            Consumer<? super JsonValue> action)
+        {
+            boolean advanced = false;
+            if (next() != Event.END_ARRAY)
+            {
+                action.accept(getValue());
+                advanced = true;
+            }
+            return advanced;
+        }
+    }
+
+    private final class ObjectEntrySpliterator extends Spliterators.AbstractSpliterator<Map.Entry<String, JsonValue>>
+    {
+        private ObjectEntrySpliterator()
+        {
+            super(Long.MAX_VALUE, Spliterator.ORDERED);
+        }
+
+        @Override
+        public boolean tryAdvance(
+            Consumer<? super Map.Entry<String, JsonValue>> action)
+        {
+            boolean advanced = false;
+            if (next() != Event.END_OBJECT)
+            {
+                String key = getString();
+                next();
+                action.accept(new AbstractMap.SimpleImmutableEntry<>(key, getValue()));
+                advanced = true;
+            }
+            return advanced;
+        }
+    }
+
+    private final class TopLevelValueSpliterator extends Spliterators.AbstractSpliterator<JsonValue>
+    {
+        private TopLevelValueSpliterator()
+        {
+            super(Long.MAX_VALUE, Spliterator.ORDERED);
+        }
+
+        @Override
+        public boolean tryAdvance(
+            Consumer<? super JsonValue> action)
+        {
+            boolean advanced = false;
+            if (hasNext())
+            {
+                next();
+                action.accept(getValue());
+                advanced = true;
+            }
+            return advanced;
         }
     }
 

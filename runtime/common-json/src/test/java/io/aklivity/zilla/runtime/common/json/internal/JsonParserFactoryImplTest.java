@@ -18,7 +18,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
@@ -29,6 +28,7 @@ import java.util.Map;
 
 import jakarta.json.JsonArray;
 import jakarta.json.JsonObject;
+import jakarta.json.spi.JsonProvider;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParserFactory;
 
@@ -84,24 +84,40 @@ public class JsonParserFactoryImplTest
     }
 
     @Test
-    public void shouldThrowForReaderSource()
+    public void shouldCreateParserForReaderSource()
     {
         final JsonParserFactory factory = StreamingJson.createParserFactory(Map.of());
-        assertThrows(UnsupportedOperationException.class,
-            () -> factory.createParser(new StringReader("{}")));
+        try (JsonParser parser = factory.createParser(new StringReader("{\"a\":1}")))
+        {
+            assertEquals(JsonParser.Event.START_OBJECT, parser.next());
+            assertEquals(JsonParser.Event.KEY_NAME, parser.next());
+            assertEquals("a", parser.getString());
+        }
     }
 
     @Test
-    public void shouldThrowForJsonObjectSource()
+    public void shouldCreateParserForJsonObjectSource()
     {
         final JsonParserFactory factory = StreamingJson.createParserFactory(Map.of());
-        assertThrows(UnsupportedOperationException.class, () -> factory.createParser((JsonObject) null));
+        final JsonObject object = JsonProvider.provider().createObjectBuilder().add("a", 1).build();
+        try (JsonParser parser = factory.createParser(object))
+        {
+            assertEquals(JsonParser.Event.START_OBJECT, parser.next());
+            assertEquals(JsonParser.Event.KEY_NAME, parser.next());
+            assertEquals("a", parser.getString());
+        }
     }
 
     @Test
-    public void shouldThrowForJsonArraySource()
+    public void shouldCreateParserForJsonArraySource()
     {
         final JsonParserFactory factory = StreamingJson.createParserFactory(Map.of());
-        assertThrows(UnsupportedOperationException.class, () -> factory.createParser((JsonArray) null));
+        final JsonArray array = JsonProvider.provider().createArrayBuilder().add(1).add(2).build();
+        try (JsonParser parser = factory.createParser(array))
+        {
+            assertEquals(JsonParser.Event.START_ARRAY, parser.next());
+            assertEquals(JsonParser.Event.VALUE_NUMBER, parser.next());
+            assertEquals("1", parser.getString());
+        }
     }
 }
