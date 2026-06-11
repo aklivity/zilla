@@ -14,8 +14,8 @@
  */
 package io.aklivity.zilla.runtime.common.json.internal;
 
-import jakarta.json.stream.JsonParser.Event;
-
+import io.aklivity.zilla.runtime.common.json.JsonController;
+import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
@@ -39,14 +39,15 @@ public final class JsonSinkImpl implements JsonSink
 
     @Override
     public Status feed(
-        Event evt,
-        JsonSource in)
+        JsonController control,
+        JsonSource source,
+        JsonEvent event)
     {
         Status status = Status.PENDING;
-        switch (evt)
+        switch (event)
         {
         case KEY_NAME:
-            generator.writeKey(in.getString());
+            generator.writeKey(source.getString());
             break;
         case START_OBJECT:
             generator.writeStartObject();
@@ -66,11 +67,11 @@ public final class JsonSinkImpl implements JsonSink
             }
             break;
         case VALUE_STRING:
-            generator.write(in.getString());
+            generator.write(source.getString());
             status = scalarStatus();
             break;
         case VALUE_NUMBER:
-            generator.writeNumber(in.getString());
+            generator.writeNumber(source.getString());
             status = scalarStatus();
             break;
         case VALUE_TRUE:

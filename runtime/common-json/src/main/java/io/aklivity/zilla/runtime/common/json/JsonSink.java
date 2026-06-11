@@ -14,22 +14,22 @@
  */
 package io.aklivity.zilla.runtime.common.json;
 
-import jakarta.json.stream.JsonParser.Event;
-
 import io.aklivity.zilla.runtime.common.json.internal.JsonSinkImpl;
 
 /**
- * The consume end of a {@link JsonStream} pipeline. Each {@link #feed(Event, JsonSource)} delivers one
- * event (with {@code in} positioned to read its scalar) and returns whether the current top-level value
- * has reached a terminal {@link JsonPipeline.Status}. A terminal sink materializes events into a buffer;
- * the downstream of a {@link JsonTransform} is also a {@code JsonSink}. Third parties may implement this
- * contract to consume the projected event stream.
+ * The consume end of a {@link JsonStream} pipeline. Each {@link #feed(JsonController, JsonSource, JsonEvent)}
+ * delivers one event (with {@code source} positioned to read its scalar, or its bytes when the event is
+ * {@link JsonEvent#segmented()}) and returns whether the current top-level value has reached a terminal
+ * {@link JsonPipeline.Status}. {@code control} steers the immediate upstream. A terminal sink materializes
+ * events into a buffer; the downstream of a {@link JsonTransform} is also a {@code JsonSink}. Third parties
+ * may implement this contract to consume the projected event stream.
  */
 public interface JsonSink
 {
     JsonPipeline.Status feed(
-        Event evt,
-        JsonSource in);
+        JsonController control,
+        JsonSource source,
+        JsonEvent event);
 
     default void reset()
     {

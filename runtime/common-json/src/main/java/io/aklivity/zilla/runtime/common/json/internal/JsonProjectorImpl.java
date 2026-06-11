@@ -14,15 +14,14 @@
  */
 package io.aklivity.zilla.runtime.common.json.internal;
 
-import static jakarta.json.stream.JsonParser.Event.START_ARRAY;
-
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
 import jakarta.json.stream.JsonLocation;
-import jakarta.json.stream.JsonParser.Event;
 
+import io.aklivity.zilla.runtime.common.json.JsonController;
+import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonSource;
@@ -30,9 +29,9 @@ import io.aklivity.zilla.runtime.common.json.JsonTransform;
 
 /**
  * Resumable, event-driven {@link JsonTransform} that projects a document down to a set of retained
- * RFC 6901 pointers, forwarding the kept events to the downstream {@code out} sink passed into each
- * {@link #feed(Event, JsonSource, JsonSink)}. This class holds the per-value descent state only;
- * the downstream is bound once at assembly and supplied per event.
+ * RFC 6901 pointers, forwarding the kept events to the downstream {@code sink} passed into each
+ * {@link #feed(JsonController, JsonSource, JsonEvent, JsonSink)}. This class holds the per-value descent
+ * state only; the downstream is bound once at assembly and supplied per event.
  */
 public final class JsonProjectorImpl implements JsonTransform
 {
@@ -81,34 +80,35 @@ public final class JsonProjectorImpl implements JsonTransform
 
     @Override
     public Status feed(
-        Event event,
-        JsonSource in,
-        JsonSink out)
+        JsonController control,
+        JsonSource source,
+        JsonEvent event,
+        JsonSink sink)
     {
         switch (event)
         {
         case KEY_NAME:
-            onKey(in);
+            onKey(source);
             break;
         case START_OBJECT:
         case START_ARRAY:
-            onStart(event, in, out);
+            onStart(control, source, event, sink);
             break;
         case END_OBJECT:
         case END_ARRAY:
-            onEnd(event, in, out);
+            onEnd(control, source, event, sink);
             break;
         default:
-            onScalar(event, in, out);
+            onScalar(control, source, event, sink);
             break;
         }
         return rootDone ? Status.COMPLETE : Status.PENDING;
     }
 
     private void onKey(
-        JsonSource in)
+        JsonSource source)
     {
-        String key = in.getString();
+        String key = source.getString();
         segments[depth] = key;
         indexes[depth] = -1;
         depth++;
@@ -119,33 +119,35 @@ public final class JsonProjectorImpl implements JsonTransform
     }
 
     private void forwardPendingKey(
-        JsonSink out)
+        JsonController control,
+        JsonSink sink)
     {
         if (pendingKey != null)
         {
-            out.feed(Event.KEY_NAME, keySource.with(pendingKey));
+            sink.feed(control, keySource.with(pendingKey), JsonEvent.KEY_NAME);
             pendingKey = null;
         }
     }
 
     private void onStart(
-        Event event,
-        JsonSource in,
-        JsonSink out)
+        JsonController control,
+        JsonSource source,
+        JsonEvent event,
+        JsonSink sink)
     {
         Decision d = enterValue();
         boolean parentEmit = containers == 0 || frameEmit[containers - 1];
         boolean emit = parentEmit && d != Decision.SKIP;
         if (emit)
         {
-            forwardPendingKey(out);
-            out.feed(event, in);
+            forwardPendingKey(control, sink);
+            sink.feed(control, source, event);
         }
         else
         {
             pendingKey = null;
         }
-        frameInArray[containers] = event == START_ARRAY;
+        frameInArray[containers] = event == JsonEvent.START_ARRAY;
         frameEmit[containers] = emit;
         frameKeepAll[containers] = d == Decision.KEEP_ALL;
         frameNextIndex[containers] = 0;
@@ -154,14 +156,15 @@ public final class JsonProjectorImpl implements JsonTransform
     }
 
     private void onEnd(
-        Event event,
-        JsonSource in,
-        JsonSink out)
+        JsonController control,
+        JsonSource source,
+        JsonEvent event,
+        JsonSink sink)
     {
         containers--;
         if (frameEmit[containers])
         {
-            out.feed(event, in);
+            sink.feed(control, source, event);
         }
         if (containers == 0)
         {
@@ -175,17 +178,18 @@ public final class JsonProjectorImpl implements JsonTransform
     }
 
     private void onScalar(
-        Event event,
-        JsonSource in,
-        JsonSink out)
+        JsonController control,
+        JsonSource source,
+        JsonEvent event,
+        JsonSink sink)
     {
         Decision d = enterValue();
         boolean parentEmit = containers == 0 || frameEmit[containers - 1];
         boolean emit = parentEmit && d == Decision.KEEP_ALL;
         if (emit)
         {
-            forwardPendingKey(out);
-            out.feed(event, in);
+            forwardPendingKey(control, sink);
+            sink.feed(control, source, event);
         }
         else
         {

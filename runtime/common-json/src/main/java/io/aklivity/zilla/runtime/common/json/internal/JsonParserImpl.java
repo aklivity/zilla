@@ -37,13 +37,15 @@ import jakarta.json.stream.JsonParsingException;
 import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.common.json.DirectBufferInputStreamEx;
+import io.aklivity.zilla.runtime.common.json.JsonController;
+import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.json.JsonSource;
 import io.aklivity.zilla.runtime.common.json.JsonStream;
 import io.aklivity.zilla.runtime.common.json.StreamingJson;
 import io.aklivity.zilla.runtime.common.json.internal.json.JsonValues;
 
-public final class JsonParserImpl implements JsonParserEx, JsonSource
+public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonController
 {
     private final InputStream in;
     private final DirectBufferInputStreamEx ownedInput;
@@ -150,6 +152,16 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource
     public Event currentEvent()
     {
         return currentEvent;
+    }
+
+    public JsonEvent nextEvent()
+    {
+        return JsonEvent.of(next());
+    }
+
+    @Override
+    public void segmentable()
+    {
     }
 
     @Override
