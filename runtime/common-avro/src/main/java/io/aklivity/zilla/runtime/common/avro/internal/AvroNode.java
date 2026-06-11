@@ -17,16 +17,18 @@ package io.aklivity.zilla.runtime.common.avro.internal;
 import java.util.ArrayList;
 import java.util.List;
 
+import jakarta.json.JsonValue;
+
 import io.aklivity.zilla.runtime.common.avro.AvroField;
 import io.aklivity.zilla.runtime.common.avro.AvroKind;
 import io.aklivity.zilla.runtime.common.avro.AvroType;
 
 /**
  * A node in a compiled Avro schema, and the package's {@link AvroType} implementation. Immutable once
- * compiled and freely shared across pipelines. The {@code children} array holds record field types,
- * union branch types, the array element type (single entry), or the map value type (single entry),
- * depending on {@link #kind}. The {@link AvroType} accessors build their views per call and are meant
- * for off-the-hot-path inspection.
+ * compiled and freely shared across pipelines. The {@code fieldNames} and {@code children} arrays are the
+ * hot-path record-field view (name + type, by position); the parallel {@code fieldAliases} and
+ * {@code fieldDefaults} carry the resolution metadata consulted only by {@link #fields()}. The
+ * {@link AvroType} accessors build their views per call and are meant for off-the-hot-path inspection.
  */
 final class AvroNode implements AvroType
 {
@@ -39,6 +41,9 @@ final class AvroNode implements AvroType
     final String logicalType;
     final int precision;
     final int scale;
+    final String[] aliases;
+    final String[][] fieldAliases;
+    final JsonValue[] fieldDefaults;
 
     private AvroNode(
         AvroKind kind,
@@ -49,7 +54,10 @@ final class AvroNode implements AvroType
         int size,
         String logicalType,
         int precision,
-        int scale)
+        int scale,
+        String[] aliases,
+        String[][] fieldAliases,
+        JsonValue[] fieldDefaults)
     {
         this.kind = kind;
         this.name = name;
@@ -60,6 +68,9 @@ final class AvroNode implements AvroType
         this.logicalType = logicalType;
         this.precision = precision;
         this.scale = scale;
+        this.aliases = aliases;
+        this.fieldAliases = fieldAliases;
+        this.fieldDefaults = fieldDefaults;
     }
 
     @Override
@@ -93,6 +104,12 @@ final class AvroNode implements AvroType
     }
 
     @Override
+    public List<String> aliases()
+    {
+        return aliases == null ? List.of() : List.of(aliases);
+    }
+
+    @Override
     public List<AvroField> fields()
     {
         List<AvroField> result = List.of();
@@ -101,7 +118,7 @@ final class AvroNode implements AvroType
             List<AvroField> fields = new ArrayList<>(fieldNames.length);
             for (int i = 0; i < fieldNames.length; i++)
             {
-                fields.add(new AvroFieldImpl(fieldNames[i], children[i]));
+                fields.add(new AvroFieldImpl(fieldNames[i], children[i], fieldAliases[i], fieldDefaults[i]));
             }
             result = List.copyOf(fields);
         }
@@ -154,40 +171,47 @@ final class AvroNode implements AvroType
         int precision,
         int scale)
     {
-        return new AvroNode(kind, null, null, null, null, 0, logicalType, precision, scale);
+        return new AvroNode(kind, null, null, null, null, 0, logicalType, precision, scale, null, null, null);
     }
 
     static AvroNode ofRecord(
         String name,
         String[] fieldNames,
-        AvroNode[] fieldTypes)
+        AvroNode[] fieldTypes,
+        String[] aliases,
+        String[][] fieldAliases,
+        JsonValue[] fieldDefaults)
     {
-        return new AvroNode(AvroKind.RECORD, name, fieldNames, fieldTypes, null, 0, null, 0, 0);
+        return new AvroNode(AvroKind.RECORD, name, fieldNames, fieldTypes, null, 0, null, 0, 0,
+            aliases, fieldAliases, fieldDefaults);
     }
 
     static AvroNode ofArray(
         AvroNode elementType)
     {
-        return new AvroNode(AvroKind.ARRAY, null, null, new AvroNode[] { elementType }, null, 0, null, 0, 0);
+        return new AvroNode(AvroKind.ARRAY, null, null, new AvroNode[] { elementType }, null, 0, null, 0, 0,
+            null, null, null);
     }
 
     static AvroNode ofMap(
         AvroNode valueType)
     {
-        return new AvroNode(AvroKind.MAP, null, null, new AvroNode[] { valueType }, null, 0, null, 0, 0);
+        return new AvroNode(AvroKind.MAP, null, null, new AvroNode[] { valueType }, null, 0, null, 0, 0,
+            null, null, null);
     }
 
     static AvroNode ofUnion(
         AvroNode[] branches)
     {
-        return new AvroNode(AvroKind.UNION, null, null, branches, null, 0, null, 0, 0);
+        return new AvroNode(AvroKind.UNION, null, null, branches, null, 0, null, 0, 0, null, null, null);
     }
 
     static AvroNode ofEnum(
         String name,
-        String[] symbols)
+        String[] symbols,
+        String[] aliases)
     {
-        return new AvroNode(AvroKind.ENUM, name, null, null, symbols, 0, null, 0, 0);
+        return new AvroNode(AvroKind.ENUM, name, null, null, symbols, 0, null, 0, 0, aliases, null, null);
     }
 
     static AvroNode ofFixed(
@@ -195,8 +219,10 @@ final class AvroNode implements AvroType
         int size,
         String logicalType,
         int precision,
-        int scale)
+        int scale,
+        String[] aliases)
     {
-        return new AvroNode(AvroKind.FIXED, name, null, null, null, size, logicalType, precision, scale);
+        return new AvroNode(AvroKind.FIXED, name, null, null, null, size, logicalType, precision, scale,
+            aliases, null, null);
     }
 }

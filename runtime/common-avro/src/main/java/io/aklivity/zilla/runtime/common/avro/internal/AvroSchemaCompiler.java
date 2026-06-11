@@ -105,20 +105,21 @@ final class AvroSchemaCompiler
             : null;
         int precision = object.containsKey("precision") ? object.getInt("precision") : 0;
         int scale = object.containsKey("scale") ? object.getInt("scale") : 0;
+        String[] aliases = object.containsKey("aliases") ? toStringArray(object.getJsonArray("aliases")) : null;
 
         AvroNode node;
         switch (type)
         {
         case "record":
-            node = parseRecord(object, namespace);
+            node = parseRecord(object, namespace, aliases);
             break;
         case "enum":
             node = register(object, namespace,
-                AvroNode.ofEnum(object.getString("name"), toStringArray(object.getJsonArray("symbols"))));
+                AvroNode.ofEnum(object.getString("name"), toStringArray(object.getJsonArray("symbols")), aliases));
             break;
         case "fixed":
             node = register(object, namespace,
-                AvroNode.ofFixed(object.getString("name"), object.getInt("size"), logicalType, precision, scale));
+                AvroNode.ofFixed(object.getString("name"), object.getInt("size"), logicalType, precision, scale, aliases));
             break;
         case "array":
             node = AvroNode.ofArray(parse(object.get("items"), namespace));
@@ -135,18 +136,25 @@ final class AvroSchemaCompiler
 
     private AvroNode parseRecord(
         JsonObject object,
-        String namespace)
+        String namespace,
+        String[] aliases)
     {
         List<JsonValue> fields = object.getJsonArray("fields");
-        String[] fieldNames = new String[fields.size()];
-        AvroNode[] fieldTypes = new AvroNode[fields.size()];
-        AvroNode record = AvroNode.ofRecord(object.getString("name"), fieldNames, fieldTypes);
+        int count = fields.size();
+        String[] fieldNames = new String[count];
+        AvroNode[] fieldTypes = new AvroNode[count];
+        String[][] fieldAliases = new String[count][];
+        JsonValue[] fieldDefaults = new JsonValue[count];
+        AvroNode record = AvroNode.ofRecord(object.getString("name"), fieldNames, fieldTypes,
+            aliases, fieldAliases, fieldDefaults);
         register(object, namespace, record);
-        for (int i = 0; i < fields.size(); i++)
+        for (int i = 0; i < count; i++)
         {
             JsonObject field = fields.get(i).asJsonObject();
             fieldNames[i] = field.getString("name");
             fieldTypes[i] = parse(field.get("type"), namespace);
+            fieldAliases[i] = field.containsKey("aliases") ? toStringArray(field.getJsonArray("aliases")) : null;
+            fieldDefaults[i] = field.containsKey("default") ? field.get("default") : null;
         }
         return record;
     }

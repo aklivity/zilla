@@ -14,13 +14,29 @@
  */
 package io.aklivity.zilla.runtime.common.avro;
 
+import java.util.List;
+
+import jakarta.json.JsonValue;
+
 /**
- * An immutable record field descriptor: its declared name and {@link AvroType}. Obtained from
- * {@link AvroType#fields()}.
+ * An immutable record field descriptor: its declared name, {@link AvroType}, aliases, and default value.
+ * Obtained from {@link AvroType#fields()}.
  */
 public interface AvroField
 {
     String name();
 
     AvroType type();
+
+    /**
+     * The field aliases, for rename-tolerant schema resolution; empty if none are declared.
+     */
+    List<String> aliases();
+
+    /**
+     * The field's default as a JSON value, used to populate the field during schema resolution when a
+     * writer omitted it. {@code null} when no default is declared; {@link JsonValue#NULL} for an explicit
+     * null default (distinguishing the two).
+     */
+    JsonValue defaultValue();
 }

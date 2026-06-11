@@ -21,6 +21,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 
+import jakarta.json.JsonNumber;
+import jakarta.json.JsonString;
+import jakarta.json.JsonValue;
+
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
 
@@ -128,6 +132,35 @@ public class AvroTypeTest
         assertTrue(type.fields().isEmpty());
         assertTrue(type.branches().isEmpty());
         assertTrue(type.symbols().isEmpty());
+        assertTrue(type.aliases().isEmpty());
+    }
+
+    @Test
+    public void shouldInspectAliasesAndDefaults()
+    {
+        AvroType type = Avro.schema("""
+            {"type":"record","name":"R","aliases":["ns.OldR"],"fields":[
+            {"name":"id","type":"int","default":0,"aliases":["identifier"]},
+            {"name":"name","type":"string","default":"anon"},
+            {"name":"opt","type":["null","string"],"default":null},
+            {"name":"extra","type":"int"}]}""").type();
+
+        assertEquals(List.of("ns.OldR"), type.aliases());
+
+        List<AvroField> fields = type.fields();
+        AvroField id = fields.get(0);
+        assertEquals(List.of("identifier"), id.aliases());
+        assertEquals(0, ((JsonNumber) id.defaultValue()).intValue());
+
+        AvroField name = fields.get(1);
+        assertTrue(name.aliases().isEmpty());
+        assertEquals("anon", ((JsonString) name.defaultValue()).getString());
+
+        // explicit null default is JsonValue.NULL, distinct from no default
+        assertEquals(JsonValue.NULL, fields.get(2).defaultValue());
+
+        // no default declared
+        assertNull(fields.get(3).defaultValue());
     }
 
     @Test

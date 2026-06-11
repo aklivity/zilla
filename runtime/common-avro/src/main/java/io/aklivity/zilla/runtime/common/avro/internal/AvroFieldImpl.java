@@ -14,6 +14,10 @@
  */
 package io.aklivity.zilla.runtime.common.avro.internal;
 
+import java.util.List;
+
+import jakarta.json.JsonValue;
+
 import io.aklivity.zilla.runtime.common.avro.AvroField;
 import io.aklivity.zilla.runtime.common.avro.AvroType;
 
@@ -21,13 +25,19 @@ final class AvroFieldImpl implements AvroField
 {
     private final String name;
     private final AvroNode type;
+    private final String[] aliases;
+    private final JsonValue defaultValue;
 
     AvroFieldImpl(
         String name,
-        AvroNode type)
+        AvroNode type,
+        String[] aliases,
+        JsonValue defaultValue)
     {
         this.name = name;
         this.type = type;
+        this.aliases = aliases;
+        this.defaultValue = defaultValue;
     }
 
     @Override
@@ -40,5 +50,17 @@ final class AvroFieldImpl implements AvroField
     public AvroType type()
     {
         return type;
+    }
+
+    @Override
+    public List<String> aliases()
+    {
+        return aliases == null ? List.of() : List.of(aliases);
+    }
+
+    @Override
+    public JsonValue defaultValue()
+    {
+        return defaultValue;
     }
 }

@@ -56,6 +56,12 @@ public interface AvroType
     int scale();
 
     /**
+     * The aliases of a named type ({@link AvroKind#RECORD}, {@link AvroKind#ENUM}, {@link AvroKind#FIXED}),
+     * for rename-tolerant schema resolution; empty otherwise.
+     */
+    List<String> aliases();
+
+    /**
      * The fields of a {@link AvroKind#RECORD}, in declaration (and wire) order; empty otherwise.
      */
     List<AvroField> fields();
