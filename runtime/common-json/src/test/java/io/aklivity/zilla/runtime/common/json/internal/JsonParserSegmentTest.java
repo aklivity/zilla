@@ -125,6 +125,33 @@ public class JsonParserSegmentTest
         assertEquals("42", parser.getString());
     }
 
+    @Test
+    public void shouldSegmentWholeDocumentAtDocumentStart()
+    {
+        final JsonParserImpl parser = new JsonParserImpl();
+        wrap(parser, "{ \"a\" : 1 } ");
+
+        assertEquals(JsonEvent.START_DOCUMENT, parser.nextEvent());
+        parser.segmentable();
+        assertEquals(JsonEvent.START_SEGMENT, parser.nextEvent());
+        assertEquals("{ \"a\" : 1 }", segment(parser));
+        assertEquals(JsonEvent.END_SEGMENT, parser.nextEvent());
+        assertEquals(JsonEvent.END_DOCUMENT, parser.nextEvent());
+    }
+
+    @Test
+    public void shouldNotSegmentScalarDocumentAtDocumentStart()
+    {
+        final JsonParserImpl parser = new JsonParserImpl();
+        wrap(parser, "42 ");
+
+        assertEquals(JsonEvent.START_DOCUMENT, parser.nextEvent());
+        parser.segmentable();
+        assertEquals(JsonEvent.VALUE_NUMBER, parser.nextEvent());
+        assertEquals("42", parser.getString());
+        assertEquals(JsonEvent.END_DOCUMENT, parser.nextEvent());
+    }
+
     private static void wrap(
         JsonParserImpl parser,
         String json)

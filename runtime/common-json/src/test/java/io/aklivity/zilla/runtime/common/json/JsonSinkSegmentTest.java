@@ -71,6 +71,25 @@ class JsonSinkSegmentTest
     }
 
     @Test
+    void shouldSegmentWholeDocumentWithBareSegmentableSink()
+    {
+        JsonGeneratorEx gen = StreamingJson.createGenerator();
+        MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
+        gen.wrap(buffer, 0);
+        JsonPipeline pipeline = StreamingJson.createParser().stream()
+            .into(JsonSink.of(gen, JsonSink.Delivery.SEGMENTABLE));
+
+        byte[] bytes = "{ \"a\" : [1, 2], \"b\" : 3 } ".getBytes(UTF_8);
+        pipeline.reset();
+        Status status = pipeline.feed(new UnsafeBuffer(bytes), 0, bytes.length);
+
+        assertEquals(Status.COMPLETE, status);
+        byte[] out = new byte[gen.length()];
+        buffer.getBytes(0, out);
+        assertEquals("{ \"a\" : [1, 2], \"b\" : 3 }", new String(out, UTF_8));
+    }
+
+    @Test
     void shouldWriteSegmentedArrayVerbatim()
     {
         JsonGeneratorEx gen = StreamingJson.createGenerator();

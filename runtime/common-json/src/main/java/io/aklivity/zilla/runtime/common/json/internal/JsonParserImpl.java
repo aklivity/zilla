@@ -63,6 +63,7 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
     private int segmentSliceOffset;
     private int segmentSliceLength;
     private int segmentDepth;
+    private boolean armNextValue;
 
     private enum SegmentState
     {
@@ -144,6 +145,7 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
         tokenizer.reset();
         segmentState = SegmentState.NONE;
         segmentDepth = 0;
+        armNextValue = false;
         lastEvent = null;
         docState = DocState.NOT_STARTED;
     }
@@ -215,6 +217,7 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
         if (docState == DocState.NOT_STARTED)
         {
             docState = DocState.STARTED;
+            lastEvent = JsonEvent.START_DOCUMENT;
             event = JsonEvent.START_DOCUMENT;
         }
         else if (segmentState == SegmentState.NONE && !tokenizerHasNext() && tokenizer.done())
@@ -274,7 +277,25 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
             break;
         default:
             lastEvent = JsonEvent.of(next());
-            event = lastEvent;
+            if (armNextValue)
+            {
+                armNextValue = false;
+                if (lastEvent == JsonEvent.START_OBJECT || lastEvent == JsonEvent.START_ARRAY)
+                {
+                    segmentStartOffset = tokenizer.streamOffset() - 1;
+                    segmentDepth = 1;
+                    segmentState = SegmentState.PENDING_START;
+                    event = scanSegment(bufferOffset(segmentStartOffset), JsonEvent.START_SEGMENT);
+                }
+                else
+                {
+                    event = lastEvent;
+                }
+            }
+            else
+            {
+                event = lastEvent;
+            }
             break;
         }
         return event;
@@ -335,6 +356,10 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
             segmentStartOffset = tokenizer.streamOffset() - 1;
             segmentState = SegmentState.PENDING_START;
             segmentDepth = 1;
+        }
+        else if (lastEvent == JsonEvent.START_DOCUMENT)
+        {
+            armNextValue = true;
         }
     }
 
