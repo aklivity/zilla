@@ -35,7 +35,7 @@ import io.aklivity.zilla.runtime.common.avro.AvroValues.Recorder;
 
 public class AvroSchemaTest
 {
-    private Status decode(
+    private Status parse(
         String schemaText,
         byte[] binary,
         AvroSink sink)
@@ -86,10 +86,10 @@ public class AvroSchemaTest
     }
 
     @Test
-    public void shouldDecodeArrayWithNegativeBlockCount()
+    public void shouldParseArrayWithNegativeBlockCount()
     {
         // block count -2 (0x03), block size (0x04), items 1 (0x02) and 2 (0x04), terminator 0x00
-        List<AvroEvent> events = AvroValues.decode(
+        List<AvroEvent> events = AvroValues.parse(
             Avro.schema("{\"type\":\"array\",\"items\":\"int\"}"),
             new byte[] { 0x03, 0x04, 0x02, 0x04, 0x00 });
         assertEquals(List.of(START_ARRAY, INT, INT, END_ARRAY), events);
@@ -107,7 +107,7 @@ public class AvroSchemaTest
             }
             return Status.PENDING;
         };
-        assertEquals(COMPLETE, decode("\"string\"", new byte[] { 0x06, 0x66, 0x6f, 0x6f }, sink));
+        assertEquals(COMPLETE, parse("\"string\"", new byte[] { 0x06, 0x66, 0x6f, 0x6f }, sink));
         assertEquals("foo", captured[0]);
     }
 
@@ -126,12 +126,12 @@ public class AvroSchemaTest
             }
             return Status.PENDING;
         };
-        assertEquals(COMPLETE, decode("\"bytes\"", new byte[] { 0x04, (byte) 0xff, 0x01 }, sink));
+        assertEquals(COMPLETE, parse("\"bytes\"", new byte[] { 0x04, (byte) 0xff, 0x01 }, sink));
         assertArrayEquals(new byte[] { (byte) 0xff, 0x01 }, captured[0]);
     }
 
     @Test
-    public void shouldDecodeStringUtf8Multibyte()
+    public void shouldParseStringUtf8Multibyte()
     {
         byte[] euro = "€".getBytes(UTF_8);
         byte[] binary = new byte[1 + euro.length];
@@ -146,7 +146,7 @@ public class AvroSchemaTest
             }
             return Status.PENDING;
         };
-        assertEquals(COMPLETE, decode("\"string\"", binary, sink));
+        assertEquals(COMPLETE, parse("\"string\"", binary, sink));
         assertEquals("€", captured[0]);
     }
 
@@ -162,7 +162,7 @@ public class AvroSchemaTest
             }
             return Status.PENDING;
         };
-        assertEquals(COMPLETE, decode("""
+        assertEquals(COMPLETE, parse("""
             {"type":"record","name":"R","fields":[
             {"name":"id","type":"int"},
             {"name":"name","type":"string"}]}""",
@@ -183,7 +183,7 @@ public class AvroSchemaTest
             return Status.PENDING;
         };
         // one block, count 1 (0x02), key "a" (0x02 'a'), value 7 (0x0e), terminator 0x00
-        assertEquals(COMPLETE, decode("{\"type\":\"map\",\"values\":\"long\"}",
+        assertEquals(COMPLETE, parse("{\"type\":\"map\",\"values\":\"long\"}",
             new byte[] { 0x02, 0x02, 0x61, 0x0e, 0x00 }, sink));
         assertEquals(List.of("a"), keys);
     }
@@ -204,7 +204,7 @@ public class AvroSchemaTest
             return Status.PENDING;
         };
         // record { id:int=1 (0x02), name:string="hi" (0x04 'h' 'i') }; name begins at byte 1, depth 2
-        assertEquals(COMPLETE, decode("""
+        assertEquals(COMPLETE, parse("""
             {"type":"record","name":"R","fields":[
             {"name":"id","type":"int"},
             {"name":"name","type":"string"}]}""",

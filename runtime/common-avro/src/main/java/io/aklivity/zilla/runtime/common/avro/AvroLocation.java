@@ -16,7 +16,7 @@ package io.aklivity.zilla.runtime.common.avro;
 
 /**
  * The position of the current event within the datum, for diagnostics. Avro binary has no line or
- * column, so a location reports the decode nesting {@link #depth()} (the number of open
+ * column, so a location reports the parse nesting {@link #depth()} (the number of open
  * record/array/map/value frames) and the byte {@link #position()} from the start of the datum.
  */
 public interface AvroLocation

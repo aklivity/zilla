@@ -57,7 +57,7 @@ public final class AvroSchemaImpl implements AvroSchema
     }
 
     /**
-     * The streaming validator stage. Avro validation is intrinsic to decode — the driver walks the
+     * The streaming validator stage. Avro validation is intrinsic to parsing — the driver walks the
      * schema and aborts (REJECTED) on the first malformed byte before any event reaches this stage —
      * so the validator forwards the event stream unchanged, passing {@code control} through to its
      * downstream (non-mediating). Composed before a sink it validates-then-converts; composed before a

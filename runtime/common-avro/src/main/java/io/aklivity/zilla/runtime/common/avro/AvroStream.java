@@ -15,8 +15,8 @@
 package io.aklivity.zilla.runtime.common.avro;
 
 /**
- * A description of a {@code common-avro} pipeline — the schema-bound decode driver (from
- * {@link AvroSchema#decode()}) plus an ordered list of {@link AvroTransform} stages. Append stages with
+ * A description of a {@code common-avro} pipeline — the schema-bound parse driver (from
+ * {@link AvroSchema#parser()}) plus an ordered list of {@link AvroTransform} stages. Append stages with
  * {@link #transform(AvroTransform)} (left-to-right, in data-flow order); terminate with
  * {@link #into(AvroSink)} to obtain the runnable, resumable {@link AvroPipeline}. An {@code AvroStream}
  * carries no state and is not itself runnable.

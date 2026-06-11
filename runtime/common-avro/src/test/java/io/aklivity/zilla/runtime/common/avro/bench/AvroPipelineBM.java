@@ -56,11 +56,11 @@ import io.aklivity.zilla.runtime.common.avro.AvroSink.Delivery;
 import io.aklivity.zilla.runtime.common.avro.AvroSource;
 
 /**
- * Compares the {@code common-avro} streaming pipeline, decoder through encoder, across decode-only
- * (events to a no-op sink), structured transcode (decode -> validate -> re-encode, block framing
+ * Compares the {@code common-avro} streaming pipeline, parser through generator, across parse-only
+ * (events to a no-op sink), structured transcode (parse -> validate -> re-generate, block framing
  * normalized) and segmented transcode (the datum copied verbatim). Each transcode benchmark is paired
  * so throughput and (under {@code -prof gc}) per-op allocation can be compared directly; the
- * decode-only case is the control. Input datums are produced once by the reference Apache Avro library
+ * parse-only case is the control. Input datums are produced once by the reference Apache Avro library
  * in {@link #init()}; only the {@code common-avro} pipeline is measured.
  */
 @State(Scope.Benchmark)
@@ -88,13 +88,13 @@ public class AvroPipelineBM
 
     private final MutableDirectBuffer outputBuffer = new UnsafeBuffer(new byte[16 * 1024]);
 
-    private AvroGenerator flatEncoder;
-    private AvroGenerator nestedEncoder;
+    private AvroGenerator flatGenerator;
+    private AvroGenerator nestedGenerator;
 
-    private AvroPipeline flatDecode;
+    private AvroPipeline flatParse;
     private AvroPipeline flatStructured;
     private AvroPipeline flatSegmented;
-    private AvroPipeline nestedDecode;
+    private AvroPipeline nestedParse;
     private AvroPipeline nestedStructured;
     private AvroPipeline nestedSegmented;
 
@@ -110,18 +110,18 @@ public class AvroPipelineBM
         AvroSchema nestedSchema = Avro.schema(NESTED);
         AvroSink noop = new NoopSink();
 
-        flatEncoder = flatSchema.generator(outputBuffer, 0);
-        nestedEncoder = nestedSchema.generator(outputBuffer, 0);
+        flatGenerator = flatSchema.generator(outputBuffer, 0);
+        nestedGenerator = nestedSchema.generator(outputBuffer, 0);
 
-        flatDecode = flatSchema.parser().stream().into(noop);
+        flatParse = flatSchema.parser().stream().into(noop);
         flatStructured = flatSchema.parser().stream()
-            .transform(flatSchema.validator()).into(AvroSink.of(flatEncoder));
-        flatSegmented = flatSchema.parser().stream().into(AvroSink.of(flatEncoder, Delivery.SEGMENTABLE));
+            .transform(flatSchema.validator()).into(AvroSink.of(flatGenerator));
+        flatSegmented = flatSchema.parser().stream().into(AvroSink.of(flatGenerator, Delivery.SEGMENTABLE));
 
-        nestedDecode = nestedSchema.parser().stream().into(noop);
+        nestedParse = nestedSchema.parser().stream().into(noop);
         nestedStructured = nestedSchema.parser().stream()
-            .transform(nestedSchema.validator()).into(AvroSink.of(nestedEncoder));
-        nestedSegmented = nestedSchema.parser().stream().into(AvroSink.of(nestedEncoder, Delivery.SEGMENTABLE));
+            .transform(nestedSchema.validator()).into(AvroSink.of(nestedGenerator));
+        nestedSegmented = nestedSchema.parser().stream().into(AvroSink.of(nestedGenerator, Delivery.SEGMENTABLE));
 
         byte[] flatBytes = referenceEncode(FLAT, flatValue());
         byte[] nestedBytes = referenceEncode(NESTED, nestedValue());
@@ -133,42 +133,42 @@ public class AvroPipelineBM
     }
 
     @Benchmark
-    public int flatDecode()
+    public int flatParse()
     {
-        return decode(flatDecode, flatBuffer, flatLength);
+        return parse(flatParse, flatBuffer, flatLength);
     }
 
     @Benchmark
     public int flatStructured()
     {
-        return transcode(flatStructured, flatEncoder, flatBuffer, flatLength);
+        return transcode(flatStructured, flatGenerator, flatBuffer, flatLength);
     }
 
     @Benchmark
     public int flatSegmented()
     {
-        return transcode(flatSegmented, flatEncoder, flatBuffer, flatLength);
+        return transcode(flatSegmented, flatGenerator, flatBuffer, flatLength);
     }
 
     @Benchmark
-    public int nestedDecode()
+    public int nestedParse()
     {
-        return decode(nestedDecode, nestedBuffer, nestedLength);
+        return parse(nestedParse, nestedBuffer, nestedLength);
     }
 
     @Benchmark
     public int nestedStructured()
     {
-        return transcode(nestedStructured, nestedEncoder, nestedBuffer, nestedLength);
+        return transcode(nestedStructured, nestedGenerator, nestedBuffer, nestedLength);
     }
 
     @Benchmark
     public int nestedSegmented()
     {
-        return transcode(nestedSegmented, nestedEncoder, nestedBuffer, nestedLength);
+        return transcode(nestedSegmented, nestedGenerator, nestedBuffer, nestedLength);
     }
 
-    private int decode(
+    private int parse(
         AvroPipeline pipeline,
         UnsafeBuffer buffer,
         int length)
@@ -180,14 +180,14 @@ public class AvroPipelineBM
 
     private int transcode(
         AvroPipeline pipeline,
-        AvroGenerator encoder,
+        AvroGenerator generator,
         UnsafeBuffer buffer,
         int length)
     {
-        encoder.wrap(outputBuffer, 0);
+        generator.wrap(outputBuffer, 0);
         pipeline.reset();
         pipeline.feed(buffer, 0, length);
-        return encoder.length();
+        return generator.length();
     }
 
     private static Object flatValue()

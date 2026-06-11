@@ -15,8 +15,8 @@
 package io.aklivity.zilla.runtime.common.avro;
 
 /**
- * Thrown when Avro binary cannot be decoded against its schema, or an event stream cannot be
- * encoded to valid Avro binary — for example a truncated variable-length integer, an out-of-range
+ * Thrown when Avro binary cannot be parsed against its schema, or an event stream cannot be
+ * written as valid Avro binary — for example a truncated variable-length integer, an out-of-range
  * union branch or enum ordinal, or a negative block count.
  */
 public class AvroValidationException extends RuntimeException

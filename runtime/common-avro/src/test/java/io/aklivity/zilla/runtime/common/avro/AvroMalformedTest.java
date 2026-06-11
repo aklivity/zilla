@@ -21,7 +21,7 @@ import org.junit.jupiter.api.Test;
 
 public class AvroMalformedTest
 {
-    private AvroPipeline.Status decode(
+    private AvroPipeline.Status parse(
         String schemaText,
         byte[] binary)
     {
@@ -31,7 +31,7 @@ public class AvroMalformedTest
     @Test
     public void shouldRejectEnumOrdinalOutOfRange()
     {
-        assertEquals(REJECTED, decode(
+        assertEquals(REJECTED, parse(
             "{\"type\":\"enum\",\"name\":\"Suit\",\"symbols\":[\"SPADES\",\"HEARTS\"]}",
             new byte[] { 0x0a }));
     }
@@ -39,19 +39,19 @@ public class AvroMalformedTest
     @Test
     public void shouldRejectUnionBranchOutOfRange()
     {
-        assertEquals(REJECTED, decode("[\"null\",\"string\"]", new byte[] { 0x12 }));
+        assertEquals(REJECTED, parse("[\"null\",\"string\"]", new byte[] { 0x12 }));
     }
 
     @Test
     public void shouldRejectNegativeStringLength()
     {
-        assertEquals(REJECTED, decode("\"string\"", new byte[] { 0x01 }));
+        assertEquals(REJECTED, parse("\"string\"", new byte[] { 0x01 }));
     }
 
     @Test
     public void shouldRejectOverlongVarint()
     {
-        assertEquals(REJECTED, decode("\"int\"",
+        assertEquals(REJECTED, parse("\"int\"",
             new byte[] { (byte) 0x80, (byte) 0x80, (byte) 0x80, (byte) 0x80, (byte) 0x80, 0x01 }));
     }
 }

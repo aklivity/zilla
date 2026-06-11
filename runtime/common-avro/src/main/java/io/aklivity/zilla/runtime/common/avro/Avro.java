@@ -17,11 +17,11 @@ package io.aklivity.zilla.runtime.common.avro;
 import io.aklivity.zilla.runtime.common.avro.internal.AvroSchemaImpl;
 
 /**
- * Entry point for {@code common-avro}'s streaming Avro decode and encode over Agrona buffers.
+ * Entry point for {@code common-avro}'s streaming Avro parse and generate over Agrona buffers.
  * <p>
  * {@link #schema(String)} compiles an Avro schema document once (off the hot path) into an
  * immutable {@link AvroSchema} that callers cache per their own schema identifier. From a schema,
- * {@link AvroSchema#decoder(AvroSink)} and {@link AvroSchema#encoder(org.agrona.MutableDirectBuffer,
+ * {@link AvroSchema#parser()} and {@link AvroSchema#generator(org.agrona.MutableDirectBuffer,
  * int)} create resumable, zero-per-message-allocation pipelines. It requires no Avro library on the
  * classpath; {@code common-avro} ships its own format-native codec.
  */

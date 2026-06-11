@@ -34,18 +34,18 @@ public class AvroParserPullTest
     @Test
     public void shouldPullEventsDirectly()
     {
-        AvroParser decoder = Avro.schema("""
+        AvroParser parser = Avro.schema("""
             {"type":"record","name":"R","fields":[
             {"name":"id","type":"int"},
             {"name":"name","type":"string"}]}""").parser();
 
         // id=1 (0x02), name="hi" (0x04 'h' 'i')
-        decoder.wrap(new UnsafeBuffer(new byte[] { 0x02, 0x04, 0x68, 0x69 }), 0, 4);
+        parser.wrap(new UnsafeBuffer(new byte[] { 0x02, 0x04, 0x68, 0x69 }), 0, 4);
 
         List<AvroEvent> events = new ArrayList<>();
-        while (decoder.hasNext())
+        while (parser.hasNext())
         {
-            events.add(decoder.nextEvent());
+            events.add(parser.nextEvent());
         }
 
         assertEquals(
@@ -56,24 +56,24 @@ public class AvroParserPullTest
     @Test
     public void shouldPullAcrossFrames()
     {
-        AvroParser decoder = Avro.schema("\"int\"").parser();
+        AvroParser parser = Avro.schema("\"int\"").parser();
         UnsafeBuffer one = new UnsafeBuffer(new byte[1]);
 
         // multi-byte varint 64 -> 0x80 0x01, fed one byte at a time
         one.putByte(0, (byte) 0x80);
-        decoder.wrap(one, 0, 1);
+        parser.wrap(one, 0, 1);
         // START_MESSAGE is available, but the INT value is not yet
-        assertEquals(true, decoder.hasNext());
-        assertEquals(START_MESSAGE, decoder.nextEvent());
-        assertEquals(false, decoder.hasNext());
+        assertEquals(true, parser.hasNext());
+        assertEquals(START_MESSAGE, parser.nextEvent());
+        assertEquals(false, parser.hasNext());
 
         one.putByte(0, (byte) 0x01);
-        decoder.wrap(one, 0, 1);
+        parser.wrap(one, 0, 1);
 
         List<AvroEvent> events = new ArrayList<>();
-        while (decoder.hasNext())
+        while (parser.hasNext())
         {
-            events.add(decoder.nextEvent());
+            events.add(parser.nextEvent());
         }
         assertEquals(List.of(INT, END_MESSAGE), events);
     }

@@ -22,7 +22,7 @@ import org.agrona.DirectBuffer;
  * {@link AvroEvent#START_MESSAGE} and {@link AvroEvent#END_MESSAGE}; {@link #hasNext()} returns
  * {@code false} when the buffered bytes are exhausted, so feed more and continue. Malformed binary
  * throws {@link AvroValidationException}. Within a pipeline, the value at each event is read through an
- * {@link AvroSource} layered over the decoder; {@link #stream()} begins such a pipeline. Not
+ * {@link AvroSource} layered over the parser; {@link #stream()} begins such a pipeline. Not
  * thread-safe; reuse one per thread.
  */
 public interface AvroParser

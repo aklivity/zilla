@@ -29,7 +29,7 @@ public interface AvroSink
 {
     /**
      * Delivery mode a terminal sink requests. {@link #STRUCTURED} consumes structured events and
-     * re-encodes; {@link #SEGMENTABLE} opts in to verbatim segment delivery (best-effort) by calling
+     * re-generates; {@link #SEGMENTABLE} opts in to verbatim segment delivery (best-effort) by calling
      * {@link AvroController#segmentable()} on {@link AvroEvent#START_MESSAGE}.
      */
     enum Delivery
@@ -48,24 +48,24 @@ public interface AvroSink
     }
 
     /**
-     * A terminal sink that materializes each fed event into the corresponding write on {@code encoder}.
-     * The supplied encoder must already be wrapped over its target buffer.
+     * A terminal sink that materializes each fed event into the corresponding write on {@code generator}.
+     * The supplied generator must already be wrapped over its target buffer.
      */
     static AvroSink of(
-        AvroGenerator encoder)
+        AvroGenerator generator)
     {
-        return new AvroSinkImpl(encoder);
+        return new AvroSinkImpl(generator);
     }
 
     /**
      * A terminal sink with the given {@link Delivery} mode: {@link Delivery#SEGMENTABLE} opts in to
-     * verbatim segment delivery; {@link Delivery#STRUCTURED} re-encodes structured events. The supplied
-     * encoder must already be wrapped over its target buffer.
+     * verbatim segment delivery; {@link Delivery#STRUCTURED} re-generates structured events. The supplied
+     * generator must already be wrapped over its target buffer.
      */
     static AvroSink of(
-        AvroGenerator encoder,
+        AvroGenerator generator,
         Delivery delivery)
     {
-        return new AvroSinkImpl(encoder, delivery);
+        return new AvroSinkImpl(generator, delivery);
     }
 }

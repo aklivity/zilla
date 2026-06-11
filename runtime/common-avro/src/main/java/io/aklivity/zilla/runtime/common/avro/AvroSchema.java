@@ -18,21 +18,21 @@ import org.agrona.MutableDirectBuffer;
 
 /**
  * A compiled, immutable Avro schema model. Compiling parses the Avro schema document once (off the hot
- * path) into a structure that drives streaming decode and encode; callers cache one instance per schema,
+ * path) into a structure that drives streaming parse and generate; callers cache one instance per schema,
  * keyed by their own schema identifier. The compiled schema is immutable and may back many pipelines,
  * but the pipelines it produces are not thread-safe.
  */
 public interface AvroSchema
 {
     /**
-     * Creates the schema-bound decode {@link AvroParser}; call {@link AvroParser#stream()} to begin a
+     * Creates the schema-bound {@link AvroParser}; call {@link AvroParser#stream()} to begin a
      * pipeline description, append {@link AvroTransform} stages, and terminate with
      * {@link AvroStream#into(AvroSink)}.
      */
     AvroParser parser();
 
     /**
-     * A streaming validator stage that forwards the decoded event stream while the driver validates
+     * A streaming validator stage that forwards the parsed event stream while the driver validates
      * against this schema as it reads (emit-then-abort). Compose it before a sink to validate-then-convert,
      * or before a discarding sink to validate only.
      */

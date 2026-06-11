@@ -27,7 +27,7 @@ import io.aklivity.zilla.runtime.common.avro.AvroSink;
 import io.aklivity.zilla.runtime.common.avro.AvroSource;
 
 /**
- * Terminal {@link AvroSink} that adapts the decoded {@link AvroEvent} stream to typed calls on the
+ * Terminal {@link AvroSink} that adapts the parsed {@link AvroEvent} stream to typed calls on the
  * wrapped {@link AvroGenerator}, reading each value from the {@link AvroSource}. Field names carry no
  * wire information for Avro, so {@code FIELD_NAME} is skipped; the generator advances positionally.
  * Reaches {@link Status#COMPLETE} when the current top-level message closes at depth zero. In

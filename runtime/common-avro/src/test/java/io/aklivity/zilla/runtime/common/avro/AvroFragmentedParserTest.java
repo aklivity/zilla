@@ -27,9 +27,9 @@ import org.junit.jupiter.api.Test;
 import io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status;
 import io.aklivity.zilla.runtime.common.avro.AvroValues.Recorder;
 
-public class AvroFragmentedDecoderTest
+public class AvroFragmentedParserTest
 {
-    private List<AvroEvent> decodeByteByByte(
+    private List<AvroEvent> parseByteByByte(
         AvroSchema schema,
         byte[] binary)
     {
@@ -54,23 +54,23 @@ public class AvroFragmentedDecoderTest
         AvroSchema schema = Avro.schema(schemaText);
         Recorder whole = AvroValues.record(schema, binary);
         assertEquals(COMPLETE, whole.status);
-        assertEquals(whole.events, decodeByteByByte(schema, binary));
+        assertEquals(whole.events, parseByteByByte(schema, binary));
     }
 
     @Test
-    public void shouldDecodeMultiByteIntAcrossFrames()
+    public void shouldParseMultiByteIntAcrossFrames()
     {
         assertSameFragmentedAsWhole("\"int\"", new byte[] { (byte) 0x80, 0x01 });
     }
 
     @Test
-    public void shouldDecodeStringAcrossFrames()
+    public void shouldParseStringAcrossFrames()
     {
         assertSameFragmentedAsWhole("\"string\"", new byte[] { 0x06, 0x66, 0x6f, 0x6f });
     }
 
     @Test
-    public void shouldDecodeRecordAcrossFrames()
+    public void shouldParseRecordAcrossFrames()
     {
         assertSameFragmentedAsWhole("""
             {"type":"record","name":"R","fields":[
@@ -80,7 +80,7 @@ public class AvroFragmentedDecoderTest
     }
 
     @Test
-    public void shouldDecodeArrayAcrossFrames()
+    public void shouldParseArrayAcrossFrames()
     {
         assertSameFragmentedAsWhole(
             "{\"type\":\"array\",\"items\":\"int\"}",
@@ -88,7 +88,7 @@ public class AvroFragmentedDecoderTest
     }
 
     @Test
-    public void shouldDecodeMapAcrossFrames()
+    public void shouldParseMapAcrossFrames()
     {
         assertSameFragmentedAsWhole(
             "{\"type\":\"map\",\"values\":\"long\"}",
@@ -96,7 +96,7 @@ public class AvroFragmentedDecoderTest
     }
 
     @Test
-    public void shouldDecodeDoubleAcrossFrames()
+    public void shouldParseDoubleAcrossFrames()
     {
         UnsafeBuffer encoded = new UnsafeBuffer(new byte[8]);
         encoded.putDouble(0, 2.25d, ByteOrder.LITTLE_ENDIAN);
@@ -106,7 +106,7 @@ public class AvroFragmentedDecoderTest
     }
 
     @Test
-    public void shouldDecodeSegmentedAcrossFrames()
+    public void shouldParseSegmentedAcrossFrames()
     {
         // a verbatim segment run spanning frames must reproduce the input exactly
         AvroSchema schema = Avro.schema("""
@@ -116,8 +116,8 @@ public class AvroFragmentedDecoderTest
         byte[] binary = new byte[] { (byte) 0x80, 0x01, 0x08, 0x77, 0x78, 0x79, 0x7a };
 
         UnsafeBuffer out = new UnsafeBuffer(new byte[64]);
-        AvroGenerator encoder = schema.generator(out, 0);
-        AvroPipeline pipeline = schema.parser().stream().into(AvroSink.of(encoder, AvroSink.Delivery.SEGMENTABLE));
+        AvroGenerator generator = schema.generator(out, 0);
+        AvroPipeline pipeline = schema.parser().stream().into(AvroSink.of(generator, AvroSink.Delivery.SEGMENTABLE));
         pipeline.reset();
         UnsafeBuffer one = new UnsafeBuffer(new byte[1]);
         Status status = Status.PENDING;
@@ -127,7 +127,7 @@ public class AvroFragmentedDecoderTest
             status = pipeline.feed(one, 0, 1);
         }
         assertEquals(COMPLETE, status);
-        byte[] result = new byte[encoder.length()];
+        byte[] result = new byte[generator.length()];
         out.getBytes(0, result);
         assertArrayEquals(binary, result);
     }
