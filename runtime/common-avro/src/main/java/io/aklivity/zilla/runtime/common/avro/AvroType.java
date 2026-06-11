@@ -43,6 +43,19 @@ public interface AvroType
     String logicalType();
 
     /**
+     * The total number of significant digits of a {@code decimal} logical type; {@code 0} otherwise.
+     * Required, with {@link #scale()}, to interpret the unscaled integer a {@link AvroKind#BYTES} or
+     * {@link AvroKind#FIXED} decimal carries on the wire.
+     */
+    int precision();
+
+    /**
+     * The number of digits to the right of the decimal point of a {@code decimal} logical type;
+     * {@code 0} otherwise (which is also the Avro default scale).
+     */
+    int scale();
+
+    /**
      * The fields of a {@link AvroKind#RECORD}, in declaration (and wire) order; empty otherwise.
      */
     List<AvroField> fields();

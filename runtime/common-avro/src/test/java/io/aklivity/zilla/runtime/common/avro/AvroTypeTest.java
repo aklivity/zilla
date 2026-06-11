@@ -93,6 +93,27 @@ public class AvroTypeTest
     }
 
     @Test
+    public void shouldInspectDecimalOnBytes()
+    {
+        AvroType type = Avro.schema(
+            "{\"type\":\"bytes\",\"logicalType\":\"decimal\",\"precision\":9,\"scale\":2}").type();
+        assertEquals(AvroKind.BYTES, type.kind());
+        assertEquals("decimal", type.logicalType());
+        assertEquals(9, type.precision());
+        assertEquals(2, type.scale());
+    }
+
+    @Test
+    public void shouldInspectDecimalOnFixed()
+    {
+        AvroType type = Avro.schema(
+            "{\"type\":\"fixed\",\"name\":\"Money\",\"size\":8,\"logicalType\":\"decimal\",\"precision\":18,\"scale\":4}").type();
+        assertEquals(AvroKind.FIXED, type.kind());
+        assertEquals(18, type.precision());
+        assertEquals(4, type.scale());
+    }
+
+    @Test
     public void shouldInspectPrimitiveWithEmptyAccessors()
     {
         AvroType type = Avro.schema("\"int\"").type();
@@ -102,6 +123,8 @@ public class AvroTypeTest
         assertNull(type.items());
         assertNull(type.values());
         assertEquals(0, type.size());
+        assertEquals(0, type.precision());
+        assertEquals(0, type.scale());
         assertTrue(type.fields().isEmpty());
         assertTrue(type.branches().isEmpty());
         assertTrue(type.symbols().isEmpty());

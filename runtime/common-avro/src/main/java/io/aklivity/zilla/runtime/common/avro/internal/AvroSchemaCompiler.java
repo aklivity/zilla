@@ -103,6 +103,8 @@ final class AvroSchemaCompiler
         String logicalType = object.containsKey("logicalType")
             ? object.getString("logicalType")
             : null;
+        int precision = object.containsKey("precision") ? object.getInt("precision") : 0;
+        int scale = object.containsKey("scale") ? object.getInt("scale") : 0;
 
         AvroNode node;
         switch (type)
@@ -116,7 +118,7 @@ final class AvroSchemaCompiler
             break;
         case "fixed":
             node = register(object, namespace,
-                AvroNode.ofFixed(object.getString("name"), object.getInt("size"), logicalType));
+                AvroNode.ofFixed(object.getString("name"), object.getInt("size"), logicalType, precision, scale));
             break;
         case "array":
             node = AvroNode.ofArray(parse(object.get("items"), namespace));
@@ -125,7 +127,7 @@ final class AvroSchemaCompiler
             node = AvroNode.ofMap(parse(object.get("values"), namespace));
             break;
         default:
-            node = primitive(type, logicalType);
+            node = primitive(type, logicalType, precision, scale);
             break;
         }
         return node;
@@ -174,7 +176,7 @@ final class AvroSchemaCompiler
         }
         if (node == null)
         {
-            node = primitive(name, null);
+            node = primitive(name, null, 0, 0);
         }
         if (node == null)
         {
@@ -185,34 +187,36 @@ final class AvroSchemaCompiler
 
     private static AvroNode primitive(
         String type,
-        String logicalType)
+        String logicalType,
+        int precision,
+        int scale)
     {
         AvroNode node;
         switch (type)
         {
         case "null":
-            node = AvroNode.ofPrimitive(AvroKind.NULL, logicalType);
+            node = AvroNode.ofPrimitive(AvroKind.NULL, logicalType, precision, scale);
             break;
         case "boolean":
-            node = AvroNode.ofPrimitive(AvroKind.BOOLEAN, logicalType);
+            node = AvroNode.ofPrimitive(AvroKind.BOOLEAN, logicalType, precision, scale);
             break;
         case "int":
-            node = AvroNode.ofPrimitive(AvroKind.INT, logicalType);
+            node = AvroNode.ofPrimitive(AvroKind.INT, logicalType, precision, scale);
             break;
         case "long":
-            node = AvroNode.ofPrimitive(AvroKind.LONG, logicalType);
+            node = AvroNode.ofPrimitive(AvroKind.LONG, logicalType, precision, scale);
             break;
         case "float":
-            node = AvroNode.ofPrimitive(AvroKind.FLOAT, logicalType);
+            node = AvroNode.ofPrimitive(AvroKind.FLOAT, logicalType, precision, scale);
             break;
         case "double":
-            node = AvroNode.ofPrimitive(AvroKind.DOUBLE, logicalType);
+            node = AvroNode.ofPrimitive(AvroKind.DOUBLE, logicalType, precision, scale);
             break;
         case "bytes":
-            node = AvroNode.ofPrimitive(AvroKind.BYTES, logicalType);
+            node = AvroNode.ofPrimitive(AvroKind.BYTES, logicalType, precision, scale);
             break;
         case "string":
-            node = AvroNode.ofPrimitive(AvroKind.STRING, logicalType);
+            node = AvroNode.ofPrimitive(AvroKind.STRING, logicalType, precision, scale);
             break;
         default:
             node = null;

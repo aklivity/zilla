@@ -37,6 +37,8 @@ final class AvroNode implements AvroType
     final String[] symbols;
     final int size;
     final String logicalType;
+    final int precision;
+    final int scale;
 
     private AvroNode(
         AvroKind kind,
@@ -45,7 +47,9 @@ final class AvroNode implements AvroType
         AvroNode[] children,
         String[] symbols,
         int size,
-        String logicalType)
+        String logicalType,
+        int precision,
+        int scale)
     {
         this.kind = kind;
         this.name = name;
@@ -54,6 +58,8 @@ final class AvroNode implements AvroType
         this.symbols = symbols;
         this.size = size;
         this.logicalType = logicalType;
+        this.precision = precision;
+        this.scale = scale;
     }
 
     @Override
@@ -72,6 +78,18 @@ final class AvroNode implements AvroType
     public String logicalType()
     {
         return logicalType;
+    }
+
+    @Override
+    public int precision()
+    {
+        return precision;
+    }
+
+    @Override
+    public int scale()
+    {
+        return scale;
     }
 
     @Override
@@ -132,9 +150,11 @@ final class AvroNode implements AvroType
 
     static AvroNode ofPrimitive(
         AvroKind kind,
-        String logicalType)
+        String logicalType,
+        int precision,
+        int scale)
     {
-        return new AvroNode(kind, null, null, null, null, 0, logicalType);
+        return new AvroNode(kind, null, null, null, null, 0, logicalType, precision, scale);
     }
 
     static AvroNode ofRecord(
@@ -142,39 +162,41 @@ final class AvroNode implements AvroType
         String[] fieldNames,
         AvroNode[] fieldTypes)
     {
-        return new AvroNode(AvroKind.RECORD, name, fieldNames, fieldTypes, null, 0, null);
+        return new AvroNode(AvroKind.RECORD, name, fieldNames, fieldTypes, null, 0, null, 0, 0);
     }
 
     static AvroNode ofArray(
         AvroNode elementType)
     {
-        return new AvroNode(AvroKind.ARRAY, null, null, new AvroNode[] { elementType }, null, 0, null);
+        return new AvroNode(AvroKind.ARRAY, null, null, new AvroNode[] { elementType }, null, 0, null, 0, 0);
     }
 
     static AvroNode ofMap(
         AvroNode valueType)
     {
-        return new AvroNode(AvroKind.MAP, null, null, new AvroNode[] { valueType }, null, 0, null);
+        return new AvroNode(AvroKind.MAP, null, null, new AvroNode[] { valueType }, null, 0, null, 0, 0);
     }
 
     static AvroNode ofUnion(
         AvroNode[] branches)
     {
-        return new AvroNode(AvroKind.UNION, null, null, branches, null, 0, null);
+        return new AvroNode(AvroKind.UNION, null, null, branches, null, 0, null, 0, 0);
     }
 
     static AvroNode ofEnum(
         String name,
         String[] symbols)
     {
-        return new AvroNode(AvroKind.ENUM, name, null, null, symbols, 0, null);
+        return new AvroNode(AvroKind.ENUM, name, null, null, symbols, 0, null, 0, 0);
     }
 
     static AvroNode ofFixed(
         String name,
         int size,
-        String logicalType)
+        String logicalType,
+        int precision,
+        int scale)
     {
-        return new AvroNode(AvroKind.FIXED, name, null, null, null, size, logicalType);
+        return new AvroNode(AvroKind.FIXED, name, null, null, null, size, logicalType, precision, scale);
     }
 }
