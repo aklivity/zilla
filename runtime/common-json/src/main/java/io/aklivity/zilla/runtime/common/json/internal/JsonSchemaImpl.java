@@ -1638,6 +1638,10 @@ public final class JsonSchemaImpl implements JsonSchema
 
     private final class Validator implements JsonTransform
     {
+        private final JsonController decline = () ->
+        {
+        };
+
         private Eval eval;
 
         private Validator()
@@ -1652,7 +1656,7 @@ public final class JsonSchemaImpl implements JsonSchema
             JsonEvent event,
             JsonSink sink)
         {
-            sink.feed(control, source, event);
+            sink.feed(decline, source, event);
             Status status;
             if (event.segmented() || event == JsonEvent.START_DOCUMENT || event == JsonEvent.END_DOCUMENT)
             {

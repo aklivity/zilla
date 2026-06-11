@@ -44,4 +44,16 @@ public interface JsonSink
     {
         return new JsonSinkImpl(generator);
     }
+
+    /**
+     * A terminal sink that, when {@code segmentable} is {@code true}, explicitly opts in to receiving
+     * each kept value as a segment by calling {@link JsonController#segmentable()} at the start of the
+     * document. The supplied generator must already be wrapped over its target buffer.
+     */
+    static JsonSink of(
+        JsonGeneratorEx generator,
+        boolean segmentable)
+    {
+        return new JsonSinkImpl(generator, segmentable);
+    }
 }

@@ -31,12 +31,21 @@ import io.aklivity.zilla.runtime.common.json.JsonSource;
 public final class JsonSinkImpl implements JsonSink
 {
     private final JsonGeneratorEx generator;
+    private final boolean segmentable;
     private int depth;
 
     public JsonSinkImpl(
         JsonGeneratorEx generator)
     {
+        this(generator, false);
+    }
+
+    public JsonSinkImpl(
+        JsonGeneratorEx generator,
+        boolean segmentable)
+    {
         this.generator = generator;
+        this.segmentable = segmentable;
     }
 
     @Override
@@ -90,14 +99,25 @@ public final class JsonSinkImpl implements JsonSink
             status = scalarStatus();
             break;
         case START_SEGMENT:
-        case CONTINUE_SEGMENT:
             segment = source.getSegment();
             generator.writeRaw(segment, 0, segment.capacity());
             break;
+        case CONTINUE_SEGMENT:
+            segment = source.getSegment();
+            generator.writeRawContinue(segment, 0, segment.capacity());
+            break;
         case END_SEGMENT:
             segment = source.getSegment();
-            generator.writeRaw(segment, 0, segment.capacity());
+            generator.writeRawContinue(segment, 0, segment.capacity());
             status = scalarStatus();
+            break;
+        case START_DOCUMENT:
+            if (segmentable)
+            {
+                control.segmentable();
+            }
+            break;
+        case END_DOCUMENT:
             break;
         default:
             break;

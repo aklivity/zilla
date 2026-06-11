@@ -58,11 +58,21 @@ public final class JsonProjectorImpl implements JsonTransform
 
     private final KeySource keySource = new KeySource();
 
+    private final JsonController downstreamControl = this::onDownstreamSegmentable;
+
     private int depth;
     private int containers;
     private Decision keyDecision;
     private String pendingKey;
     private boolean rootDone;
+    private boolean downstreamDemand;
+    private SegMode segMode = SegMode.NONE;
+    private JsonEvent deferredStart;
+
+    private enum SegMode
+    {
+        NONE, AWAITING, FORWARDING
+    }
 
     public JsonProjectorImpl(
         List<String> pointers)
@@ -78,6 +88,14 @@ public final class JsonProjectorImpl implements JsonTransform
         keyDecision = null;
         pendingKey = null;
         rootDone = false;
+        downstreamDemand = false;
+        segMode = SegMode.NONE;
+        deferredStart = null;
+    }
+
+    private void onDownstreamSegmentable()
+    {
+        downstreamDemand = true;
     }
 
     @Override
@@ -87,8 +105,33 @@ public final class JsonProjectorImpl implements JsonTransform
         JsonEvent event,
         JsonSink sink)
     {
+        if (segMode == SegMode.AWAITING)
+        {
+            onAwaiting(control, source, event, sink);
+        }
+        else if (segMode == SegMode.FORWARDING)
+        {
+            onForwarding(source, event, sink);
+        }
+        else
+        {
+            route(control, source, event, sink);
+        }
+        return rootDone ? Status.COMPLETE : Status.PENDING;
+    }
+
+    private void route(
+        JsonController control,
+        JsonSource source,
+        JsonEvent event,
+        JsonSink sink)
+    {
         switch (event)
         {
+        case START_DOCUMENT:
+        case END_DOCUMENT:
+            sink.feed(downstreamControl, source, event);
+            break;
         case KEY_NAME:
             onKey(source);
             break;
@@ -98,17 +141,12 @@ public final class JsonProjectorImpl implements JsonTransform
             break;
         case END_OBJECT:
         case END_ARRAY:
-            onEnd(control, source, event, sink);
-            break;
-        case START_DOCUMENT:
-        case END_DOCUMENT:
-            sink.feed(control, source, event);
+            onEnd(source, event, sink);
             break;
         default:
-            onScalar(control, source, event, sink);
+            onScalar(source, event, sink);
             break;
         }
-        return rootDone ? Status.COMPLETE : Status.PENDING;
     }
 
     private void onKey(
@@ -125,14 +163,26 @@ public final class JsonProjectorImpl implements JsonTransform
     }
 
     private void forwardPendingKey(
-        JsonController control,
         JsonSink sink)
     {
         if (pendingKey != null)
         {
-            sink.feed(control, keySource.with(pendingKey), JsonEvent.KEY_NAME);
+            sink.feed(downstreamControl, keySource.with(pendingKey), JsonEvent.KEY_NAME);
             pendingKey = null;
         }
+    }
+
+    private void pushFrame(
+        JsonEvent event,
+        boolean emit,
+        Decision d)
+    {
+        frameInArray[containers] = event == JsonEvent.START_ARRAY;
+        frameEmit[containers] = emit;
+        frameKeepAll[containers] = d == Decision.KEEP_ALL;
+        frameNextIndex[containers] = 0;
+        frameDepthAtOpen[containers] = depth;
+        containers++;
     }
 
     private void onStart(
@@ -144,25 +194,69 @@ public final class JsonProjectorImpl implements JsonTransform
         Decision d = enterValue();
         boolean parentEmit = containers == 0 || frameEmit[containers - 1];
         boolean emit = parentEmit && d != Decision.SKIP;
-        if (emit)
+        if (emit && d == Decision.KEEP_ALL && downstreamDemand)
         {
-            forwardPendingKey(control, sink);
-            sink.feed(control, source, event);
+            forwardPendingKey(sink);
+            control.segmentable();
+            segMode = SegMode.AWAITING;
+            deferredStart = event;
+        }
+        else if (emit)
+        {
+            forwardPendingKey(sink);
+            sink.feed(downstreamControl, source, event);
+            pushFrame(event, true, d);
         }
         else
         {
             pendingKey = null;
+            pushFrame(event, false, d);
         }
-        frameInArray[containers] = event == JsonEvent.START_ARRAY;
-        frameEmit[containers] = emit;
-        frameKeepAll[containers] = d == Decision.KEEP_ALL;
-        frameNextIndex[containers] = 0;
-        frameDepthAtOpen[containers] = depth;
-        containers++;
+    }
+
+    private void onAwaiting(
+        JsonController control,
+        JsonSource source,
+        JsonEvent event,
+        JsonSink sink)
+    {
+        if (event == JsonEvent.START_SEGMENT)
+        {
+            segMode = SegMode.FORWARDING;
+            deferredStart = null;
+            sink.feed(downstreamControl, source, event);
+        }
+        else
+        {
+            segMode = SegMode.NONE;
+            sink.feed(downstreamControl, source, deferredStart);
+            pushFrame(deferredStart, true, Decision.KEEP_ALL);
+            deferredStart = null;
+            route(control, source, event, sink);
+        }
+    }
+
+    private void onForwarding(
+        JsonSource source,
+        JsonEvent event,
+        JsonSink sink)
+    {
+        sink.feed(downstreamControl, source, event);
+        if (event == JsonEvent.END_SEGMENT)
+        {
+            segMode = SegMode.NONE;
+            if (containers == 0)
+            {
+                rootDone = true;
+            }
+            else
+            {
+                depth--;
+            }
+        }
     }
 
     private void onEnd(
-        JsonController control,
         JsonSource source,
         JsonEvent event,
         JsonSink sink)
@@ -170,7 +264,7 @@ public final class JsonProjectorImpl implements JsonTransform
         containers--;
         if (frameEmit[containers])
         {
-            sink.feed(control, source, event);
+            sink.feed(downstreamControl, source, event);
         }
         if (containers == 0)
         {
@@ -184,7 +278,6 @@ public final class JsonProjectorImpl implements JsonTransform
     }
 
     private void onScalar(
-        JsonController control,
         JsonSource source,
         JsonEvent event,
         JsonSink sink)
@@ -194,8 +287,8 @@ public final class JsonProjectorImpl implements JsonTransform
         boolean emit = parentEmit && d == Decision.KEEP_ALL;
         if (emit)
         {
-            forwardPendingKey(control, sink);
-            sink.feed(control, source, event);
+            forwardPendingKey(sink);
+            sink.feed(downstreamControl, source, event);
         }
         else
         {
