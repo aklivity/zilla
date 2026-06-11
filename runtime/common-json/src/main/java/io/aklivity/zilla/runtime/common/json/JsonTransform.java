@@ -14,22 +14,23 @@
  */
 package io.aklivity.zilla.runtime.common.json;
 
-import jakarta.json.stream.JsonParser.Event;
-
 /**
  * An intermediate stage in a {@link JsonStream} pipeline that transforms the event stream — forwarding,
- * dropping, or substituting events — before they reach the next stage. Each {@link #feed(Event,
- * JsonSource, JsonSink)} consumes one event and forwards what it keeps to {@code out} (the downstream
- * sink, bound once at assembly), optionally substituting a value by feeding {@code out} a different
- * {@link JsonSource}. Stages compose left-to-right via {@link JsonStream#transform(JsonTransform)}.
- * Third parties may implement this contract (e.g. field masking or encryption).
+ * dropping, or substituting events — before they reach the next stage. Each
+ * {@link #feed(JsonController, JsonSource, JsonEvent, JsonSink)} consumes one event and forwards what it
+ * keeps to {@code sink} (the downstream, bound once at assembly), optionally substituting a value by
+ * feeding {@code sink} a different {@link JsonSource}. A mediating stage supplies its own
+ * {@link JsonController} to {@code sink}; a non-mediating stage passes {@code control} through. Stages
+ * compose left-to-right via {@link JsonStream#transform(JsonTransform)}. Third parties may implement this
+ * contract (e.g. field masking or encryption).
  */
 public interface JsonTransform
 {
     JsonPipeline.Status feed(
-        Event evt,
-        JsonSource in,
-        JsonSink out);
+        JsonController control,
+        JsonSource source,
+        JsonEvent event,
+        JsonSink sink);
 
     default void reset()
     {

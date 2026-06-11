@@ -45,6 +45,10 @@ import jakarta.json.stream.JsonLocation;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParser.Event;
 
+import org.agrona.DirectBuffer;
+
+import io.aklivity.zilla.runtime.common.json.JsonController;
+import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonRefResolver;
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
@@ -982,6 +986,18 @@ public final class JsonSchemaImpl implements JsonSchema
         {
             return parser.getLocation();
         }
+
+        @Override
+        public CharSequence getKey()
+        {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public DirectBuffer getSegment()
+        {
+            throw new UnsupportedOperationException();
+        }
     }
 
     private static String canonicalize(
@@ -1443,6 +1459,18 @@ public final class JsonSchemaImpl implements JsonSchema
         {
             throw new UnsupportedOperationException();
         }
+
+        @Override
+        public CharSequence getKey()
+        {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public DirectBuffer getSegment()
+        {
+            throw new UnsupportedOperationException();
+        }
     }
 
     private static final class Trace
@@ -1622,6 +1650,10 @@ public final class JsonSchemaImpl implements JsonSchema
 
     private final class Validator implements JsonTransform
     {
+        private final JsonController decline = () ->
+        {
+        };
+
         private Eval eval;
 
         private Validator()
@@ -1631,15 +1663,25 @@ public final class JsonSchemaImpl implements JsonSchema
 
         @Override
         public Status feed(
-            Event event,
-            JsonSource in,
-            JsonSink out)
+            JsonController control,
+            JsonSource source,
+            JsonEvent event,
+            JsonSink sink)
         {
-            out.feed(event, in);
-            Verdict verdict = eval.feed(event, in);
-            return verdict == Verdict.VALID
-                ? Status.COMPLETE
-                : verdict == Verdict.INVALID ? Status.REJECTED : Status.PENDING;
+            sink.feed(decline, source, event);
+            Status status;
+            if (event.segmented() || event == JsonEvent.START_DOCUMENT || event == JsonEvent.END_DOCUMENT)
+            {
+                status = Status.PENDING;
+            }
+            else
+            {
+                Verdict verdict = eval.feed(toEvent(event), source);
+                status = verdict == Verdict.VALID
+                    ? Status.COMPLETE
+                    : verdict == Verdict.INVALID ? Status.REJECTED : Status.PENDING;
+            }
+            return status;
         }
 
         @Override
@@ -1647,6 +1689,25 @@ public final class JsonSchemaImpl implements JsonSchema
         {
             eval = eval();
         }
+    }
+
+    private static Event toEvent(
+        JsonEvent event)
+    {
+        return switch (event)
+        {
+        case START_OBJECT -> Event.START_OBJECT;
+        case END_OBJECT -> Event.END_OBJECT;
+        case START_ARRAY -> Event.START_ARRAY;
+        case END_ARRAY -> Event.END_ARRAY;
+        case KEY_NAME -> Event.KEY_NAME;
+        case VALUE_STRING -> Event.VALUE_STRING;
+        case VALUE_NUMBER -> Event.VALUE_NUMBER;
+        case VALUE_TRUE -> Event.VALUE_TRUE;
+        case VALUE_FALSE -> Event.VALUE_FALSE;
+        case VALUE_NULL -> Event.VALUE_NULL;
+        default -> throw new IllegalArgumentException("not a structured event: " + event);
+        };
     }
 
     private final class Eval

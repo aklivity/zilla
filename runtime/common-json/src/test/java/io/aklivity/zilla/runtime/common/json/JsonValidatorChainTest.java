@@ -141,7 +141,7 @@ class JsonValidatorChainTest
     void shouldForwardThroughDefaultResetTransform()
     {
         JsonGeneratorEx gen = StreamingJson.createGenerator().wrap(buffer, 0);
-        JsonTransform passthrough = (evt, in, out) -> out.feed(evt, in);
+        JsonTransform passthrough = (control, source, event, sink) -> sink.feed(control, source, event);
         JsonPipeline pipeline = StreamingJson.createParser().stream()
             .transform(passthrough)
             .into(JsonSink.of(gen));

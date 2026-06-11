@@ -58,10 +58,6 @@
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>org.eclipse.parsson</groupId>
-      <artifactId>parsson</artifactId>
-    </dependency>
-    <dependency>
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>binding-http</artifactId>
       <scope>provided</scope>

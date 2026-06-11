@@ -37,7 +37,6 @@ module io.aklivity.zilla.runtime.binding.asyncapi
     requires io.aklivity.zilla.runtime.model.protobuf;
     requires io.aklivity.zilla.runtime.common;
     requires io.aklivity.zilla.runtime.common.json;
-    requires org.eclipse.parsson;
 
     opens io.aklivity.zilla.runtime.binding.asyncapi.internal.model;
     opens io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings;
