@@ -214,7 +214,7 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline, ProtobufCon
             throw new ProtobufException("message nesting exceeds " + MAX_DEPTH);
         }
 
-        Status status = deliver(ProtobufEvent.START_MESSAGE, null, buffer, 0, 0);
+        Status status = deliver(ProtobufEvent.START_MESSAGE, null, buffer, offset, length);
         ProtobufReader reader = reader(depth).wrap(buffer, offset, length);
         while (status != Status.REJECTED && reader.hasRemaining())
         {
@@ -334,7 +334,7 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline, ProtobufCon
         source.field = field;
         source.fieldNumber = field != null ? field.number() : -1;
         source.wireType = field != null ? field.type().wireType() : null;
-        if (event.segmented())
+        if (event.segmented() || event == ProtobufEvent.START_MESSAGE)
         {
             source.buffer = buffer;
             source.offset = offset;

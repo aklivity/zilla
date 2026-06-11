@@ -112,20 +112,22 @@ ProtobufPipeline.Status status = pipeline.feed(buffer, offset, length);  // PEND
 
 `Protobuf.generator()` is a buffer-backed wire writer: each `writeXxx(field, value)` emits one
 field's tag and value, typed by the Protobuf type since the wire is not self-describing about
-signedness/zig-zag/fixed width. `startMessage(field)` / `endMessage()` stream a nested message
-incrementally (the length is back-patched), `writeMessage` length-prefixes a pre-encoded nested
-message, and `writeRaw` splices bytes verbatim.
+signedness/zig-zag/fixed width. Nested messages are **length-first**: `startMessage(field, length)`
+writes the tag and length prefix immediately and the body then streams straight to the output — no
+buffering, no back-patch — closed by `endMessage()`. `writeMessage` length-prefixes a pre-encoded
+nested message, and `writeRaw` splices bytes verbatim.
 
 ```java
 ProtobufGenerator generator = Protobuf.generator().wrap(out, 0);
 generator.writeInt32(1, id).writeString(2, name)
-    .startMessage(3).writeString(1, city).endMessage();
+    .startMessage(3, addressLength).writeString(1, city).endMessage();
 int length = generator.length();
 ```
 
 `startMessage`/`endMessage` are the write-side mirror of the parser's `START_MESSAGE`/`END_MESSAGE`
-events (and `writeXxx` of `FIELD`+`VALUE`), so a stage can copy or transform a message by driving the
-generator straight from `ProtobufParser` events.
+events — `START_MESSAGE` carries the message length via `ProtobufSource.length()` — so a stage copies
+or transforms a message by driving the generator straight from `ProtobufParser` events, forwarding
+(or adjusting) that length so the generator always writes it up front, in a single pass.
 
 ### Schema-free mode
 

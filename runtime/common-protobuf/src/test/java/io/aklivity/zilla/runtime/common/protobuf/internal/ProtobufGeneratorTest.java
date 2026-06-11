@@ -88,7 +88,7 @@ public class ProtobufGeneratorTest
 
         MutableDirectBuffer streamedOut = new UnsafeBuffer(new byte[128]);
         ProtobufGenerator streamed = Protobuf.generator().wrap(streamedOut, 0);
-        streamed.writeInt32(1, 7).startMessage(2).writeInt32(1, 9).endMessage();
+        streamed.writeInt32(1, 7).startMessage(2, nestedLength).writeInt32(1, 9).endMessage();
         byte[] actual = bytes(streamedOut, streamed.length());
 
         assertArrayEquals(expected, actual);
@@ -97,6 +97,7 @@ public class ProtobufGeneratorTest
     @Test
     public void shouldReproduceWireFromParserEvents()
     {
+        int nestedLength = Protobuf.generator().wrap(new UnsafeBuffer(new byte[16]), 0).writeInt32(1, 9).length();
         MutableDirectBuffer in = new UnsafeBuffer(new byte[256]);
         ProtobufGenerator source = Protobuf.generator().wrap(in, 0);
         source
@@ -109,7 +110,7 @@ public class ProtobufGeneratorTest
             .writeString(7, "hi")
             .writeBytes(8, new byte[]{1, 2, 3})
             .writeEnum(9, 1)
-            .startMessage(10).writeInt32(1, 9).endMessage();
+            .startMessage(10, nestedLength).writeInt32(1, 9).endMessage();
         byte[] input = bytes(in, source.length());
 
         MutableDirectBuffer out = new UnsafeBuffer(new byte[256]);
@@ -255,7 +256,7 @@ public class ProtobufGeneratorTest
                 depth++;
                 if (depth > 1)
                 {
-                    generator.startMessage(pending.number());
+                    generator.startMessage(pending.number(), source.length());
                 }
                 break;
             case FIELD:

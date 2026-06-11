@@ -15,42 +15,33 @@
 package io.aklivity.zilla.runtime.common.protobuf.internal;
 
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 
 import org.agrona.DirectBuffer;
-import org.agrona.ExpandableArrayBuffer;
 import org.agrona.MutableDirectBuffer;
 
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufException;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufGenerator;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
 
 /**
- * Buffer-backed {@link ProtobufGenerator}. The root writer (index 0) targets the caller's output
- * buffer; {@link #startMessage(int)} pushes a pooled scratch writer for the nested body and
- * {@link #endMessage()} pops it, back-patching the length into the parent. Scratch writers and
- * buffers are pooled by depth and reused across {@link #wrap(MutableDirectBuffer, int)}, so nesting
- * allocates nothing after warmup. The root writer is also lent (via {@link #writer()}) to the wire
- * sinks for their low-level encoding.
+ * Buffer-backed {@link ProtobufGenerator} over a single writer — no scratch, no back-patch.
+ * {@link #startMessage(int, int)} writes the tag and length prefix immediately (the body length is
+ * known up front), then the body streams straight to the output; {@link #endMessage()} verifies the
+ * body matched the declared length. The single writer is also lent (via {@link #writer()}) to the
+ * wire sinks.
  */
 public final class ProtobufGeneratorImpl implements ProtobufGenerator
 {
-    private final List<ProtobufWriter> writers;
-    private final List<ExpandableArrayBuffer> buffers;
+    private final ProtobufWriter writer;
 
-    private int[] messageFields;
+    private int[] ends;
     private int depth;
-    private ProtobufWriter current;
 
     public ProtobufGeneratorImpl()
     {
-        this.writers = new ArrayList<>();
-        this.buffers = new ArrayList<>();
-        this.writers.add(new ProtobufWriter());
-        this.buffers.add(null);
-        this.messageFields = new int[8];
-        this.current = writers.get(0);
+        this.writer = new ProtobufWriter();
+        this.ends = new int[8];
     }
 
     @Override
@@ -59,14 +50,14 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
         int offset)
     {
         depth = 0;
-        current = writers.get(0).wrap(buffer, offset);
+        writer.wrap(buffer, offset);
         return this;
     }
 
     @Override
     public int length()
     {
-        return writers.get(0).length();
+        return writer.length();
     }
 
     @Override
@@ -74,8 +65,8 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
         int field,
         int value)
     {
-        current.writeTag(field, ProtobufWireType.VARINT);
-        current.writeVarint64(value);
+        writer.writeTag(field, ProtobufWireType.VARINT);
+        writer.writeVarint64(value);
         return this;
     }
 
@@ -84,8 +75,8 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
         int field,
         long value)
     {
-        current.writeTag(field, ProtobufWireType.VARINT);
-        current.writeVarint64(value);
+        writer.writeTag(field, ProtobufWireType.VARINT);
+        writer.writeVarint64(value);
         return this;
     }
 
@@ -94,8 +85,8 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
         int field,
         int value)
     {
-        current.writeTag(field, ProtobufWireType.VARINT);
-        current.writeVarint64(value & 0xffffffffL);
+        writer.writeTag(field, ProtobufWireType.VARINT);
+        writer.writeVarint64(value & 0xffffffffL);
         return this;
     }
 
@@ -104,8 +95,8 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
         int field,
         long value)
     {
-        current.writeTag(field, ProtobufWireType.VARINT);
-        current.writeVarint64(value);
+        writer.writeTag(field, ProtobufWireType.VARINT);
+        writer.writeVarint64(value);
         return this;
     }
 
@@ -114,8 +105,8 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
         int field,
         int value)
     {
-        current.writeTag(field, ProtobufWireType.VARINT);
-        current.writeZigzag32(value);
+        writer.writeTag(field, ProtobufWireType.VARINT);
+        writer.writeZigzag32(value);
         return this;
     }
 
@@ -124,8 +115,8 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
         int field,
         long value)
     {
-        current.writeTag(field, ProtobufWireType.VARINT);
-        current.writeZigzag64(value);
+        writer.writeTag(field, ProtobufWireType.VARINT);
+        writer.writeZigzag64(value);
         return this;
     }
 
@@ -134,8 +125,8 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
         int field,
         int value)
     {
-        current.writeTag(field, ProtobufWireType.I32);
-        current.writeFixed32(value);
+        writer.writeTag(field, ProtobufWireType.I32);
+        writer.writeFixed32(value);
         return this;
     }
 
@@ -144,8 +135,8 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
         int field,
         long value)
     {
-        current.writeTag(field, ProtobufWireType.I64);
-        current.writeFixed64(value);
+        writer.writeTag(field, ProtobufWireType.I64);
+        writer.writeFixed64(value);
         return this;
     }
 
@@ -154,8 +145,8 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
         int field,
         int value)
     {
-        current.writeTag(field, ProtobufWireType.I32);
-        current.writeFixed32(value);
+        writer.writeTag(field, ProtobufWireType.I32);
+        writer.writeFixed32(value);
         return this;
     }
 
@@ -164,8 +155,8 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
         int field,
         long value)
     {
-        current.writeTag(field, ProtobufWireType.I64);
-        current.writeFixed64(value);
+        writer.writeTag(field, ProtobufWireType.I64);
+        writer.writeFixed64(value);
         return this;
     }
 
@@ -174,8 +165,8 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
         int field,
         float value)
     {
-        current.writeTag(field, ProtobufWireType.I32);
-        current.writeFixed32(Float.floatToIntBits(value));
+        writer.writeTag(field, ProtobufWireType.I32);
+        writer.writeFixed32(Float.floatToIntBits(value));
         return this;
     }
 
@@ -184,8 +175,8 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
         int field,
         double value)
     {
-        current.writeTag(field, ProtobufWireType.I64);
-        current.writeFixed64(Double.doubleToLongBits(value));
+        writer.writeTag(field, ProtobufWireType.I64);
+        writer.writeFixed64(Double.doubleToLongBits(value));
         return this;
     }
 
@@ -194,8 +185,8 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
         int field,
         boolean value)
     {
-        current.writeTag(field, ProtobufWireType.VARINT);
-        current.writeVarint64(value ? 1L : 0L);
+        writer.writeTag(field, ProtobufWireType.VARINT);
+        writer.writeVarint64(value ? 1L : 0L);
         return this;
     }
 
@@ -204,8 +195,8 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
         int field,
         int number)
     {
-        current.writeTag(field, ProtobufWireType.VARINT);
-        current.writeVarint64(number);
+        writer.writeTag(field, ProtobufWireType.VARINT);
+        writer.writeVarint64(number);
         return this;
     }
 
@@ -214,8 +205,8 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
         int field,
         String value)
     {
-        current.writeTag(field, ProtobufWireType.LEN);
-        current.writeBytes(value.getBytes(StandardCharsets.UTF_8));
+        writer.writeTag(field, ProtobufWireType.LEN);
+        writer.writeBytes(value.getBytes(StandardCharsets.UTF_8));
         return this;
     }
 
@@ -224,8 +215,8 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
         int field,
         byte[] value)
     {
-        current.writeTag(field, ProtobufWireType.LEN);
-        current.writeBytes(value);
+        writer.writeTag(field, ProtobufWireType.LEN);
+        writer.writeBytes(value);
         return this;
     }
 
@@ -236,8 +227,8 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
         int offset,
         int length)
     {
-        current.writeTag(field, ProtobufWireType.LEN);
-        current.writeBytes(value, offset, length);
+        writer.writeTag(field, ProtobufWireType.LEN);
+        writer.writeBytes(value, offset, length);
         return this;
     }
 
@@ -248,40 +239,37 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
         int offset,
         int length)
     {
-        current.writeTag(field, ProtobufWireType.LEN);
-        current.writeBytes(message, offset, length);
+        writer.writeTag(field, ProtobufWireType.LEN);
+        writer.writeBytes(message, offset, length);
         return this;
     }
 
     @Override
     public ProtobufGenerator startMessage(
-        int field)
+        int field,
+        int length)
     {
+        writer.writeTag(field, ProtobufWireType.LEN);
+        writer.writeVarint32(length);
         depth++;
-        while (writers.size() <= depth)
+        if (depth >= ends.length)
         {
-            writers.add(new ProtobufWriter());
-            buffers.add(new ExpandableArrayBuffer());
+            ends = Arrays.copyOf(ends, ends.length * 2);
         }
-        if (depth >= messageFields.length)
-        {
-            messageFields = Arrays.copyOf(messageFields, messageFields.length * 2);
-        }
-        messageFields[depth] = field;
-        current = writers.get(depth).wrap(buffers.get(depth), 0);
+        ends[depth] = writer.length() + length;
         return this;
     }
 
     @Override
     public ProtobufGenerator endMessage()
     {
-        ProtobufWriter child = current;
-        ExpandableArrayBuffer childBuffer = buffers.get(depth);
-        int field = messageFields[depth];
+        int expected = ends[depth];
         depth--;
-        current = writers.get(depth);
-        current.writeTag(field, ProtobufWireType.LEN);
-        current.writeBytes(childBuffer, 0, child.length());
+        if (writer.length() != expected)
+        {
+            throw new ProtobufException("message body length mismatch: expected " + expected +
+                " but wrote " + writer.length());
+        }
         return this;
     }
 
@@ -291,12 +279,12 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
         int offset,
         int length)
     {
-        current.writeRaw(source, offset, length);
+        writer.writeRaw(source, offset, length);
         return this;
     }
 
     ProtobufWriter writer()
     {
-        return writers.get(0);
+        return writer;
     }
 }
