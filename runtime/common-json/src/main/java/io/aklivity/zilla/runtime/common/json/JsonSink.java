@@ -26,6 +26,17 @@ import io.aklivity.zilla.runtime.common.json.internal.JsonSinkImpl;
  */
 public interface JsonSink
 {
+    /**
+     * Delivery mode a terminal sink requests. {@link #STRUCTURED} consumes structured events and
+     * renders normalized output; {@link #SEGMENTABLE} opts in to verbatim segment delivery for kept
+     * values (best-effort, demand-gated) by calling {@link JsonController#segmentable()}.
+     */
+    enum Delivery
+    {
+        STRUCTURED,
+        SEGMENTABLE
+    }
+
     JsonPipeline.Status feed(
         JsonController control,
         JsonSource source,
@@ -46,14 +57,14 @@ public interface JsonSink
     }
 
     /**
-     * A terminal sink that, when {@code segmentable} is {@code true}, explicitly opts in to receiving
-     * each kept value as a segment by calling {@link JsonController#segmentable()} at the start of the
-     * document. The supplied generator must already be wrapped over its target buffer.
+     * A terminal sink with the given {@link Delivery} mode: {@link Delivery#SEGMENTABLE} opts in to
+     * verbatim segment delivery for kept values; {@link Delivery#STRUCTURED} renders normalized
+     * structured output. The supplied generator must already be wrapped over its target buffer.
      */
     static JsonSink of(
         JsonGeneratorEx generator,
-        boolean segmentable)
+        Delivery delivery)
     {
-        return new JsonSinkImpl(generator, segmentable);
+        return new JsonSinkImpl(generator, delivery);
     }
 }

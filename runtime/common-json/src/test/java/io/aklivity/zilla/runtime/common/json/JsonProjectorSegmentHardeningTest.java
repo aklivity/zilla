@@ -35,7 +35,7 @@ class JsonProjectorSegmentHardeningTest
         JsonGeneratorEx gen = StreamingJson.createGenerator().wrap(buffer, 0);
         JsonPipeline pipeline = StreamingJson.createParser().stream()
             .transform(StreamingJson.projector(List.of("/a")))
-            .into(JsonSink.of(gen, true));
+            .into(JsonSink.of(gen, JsonSink.Delivery.SEGMENTABLE));
 
         Status status = run(pipeline, "{\"a\":{ \"b\" : { \"c\" : [1, {\"d\": 2}] } },\"z\":9} ");
 
@@ -49,7 +49,7 @@ class JsonProjectorSegmentHardeningTest
         JsonGeneratorEx gen = StreamingJson.createGenerator();
         JsonPipeline pipeline = StreamingJson.createParser().stream()
             .transform(StreamingJson.projector(List.of("/x")))
-            .into(JsonSink.of(gen, true));
+            .into(JsonSink.of(gen, JsonSink.Delivery.SEGMENTABLE));
 
         gen.wrap(buffer, 0);
         run(pipeline, "{\"x\":{ \"v\" : 1 },\"y\":2} ");

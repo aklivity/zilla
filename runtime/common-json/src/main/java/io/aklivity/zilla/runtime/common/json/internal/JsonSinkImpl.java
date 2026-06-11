@@ -21,6 +21,7 @@ import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
+import io.aklivity.zilla.runtime.common.json.JsonSink.Delivery;
 import io.aklivity.zilla.runtime.common.json.JsonSource;
 
 /**
@@ -31,21 +32,21 @@ import io.aklivity.zilla.runtime.common.json.JsonSource;
 public final class JsonSinkImpl implements JsonSink
 {
     private final JsonGeneratorEx generator;
-    private final boolean segmentable;
+    private final Delivery delivery;
     private int depth;
 
     public JsonSinkImpl(
         JsonGeneratorEx generator)
     {
-        this(generator, false);
+        this(generator, Delivery.STRUCTURED);
     }
 
     public JsonSinkImpl(
         JsonGeneratorEx generator,
-        boolean segmentable)
+        Delivery delivery)
     {
         this.generator = generator;
-        this.segmentable = segmentable;
+        this.delivery = delivery;
     }
 
     @Override
@@ -112,7 +113,7 @@ public final class JsonSinkImpl implements JsonSink
             status = scalarStatus();
             break;
         case START_DOCUMENT:
-            if (segmentable)
+            if (delivery == Delivery.SEGMENTABLE)
             {
                 control.segmentable();
             }
