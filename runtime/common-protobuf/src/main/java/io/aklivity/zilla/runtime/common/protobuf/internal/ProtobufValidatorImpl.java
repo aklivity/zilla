@@ -35,7 +35,7 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufTransform;
  * presence per message scope — and reports failure at the message boundary, after the events are
  * forwarded, so callers abort on {@link ProtobufPipeline.Status#REJECTED} (emit-then-abort).
  */
-public final class ProtobufValidator implements ProtobufTransform
+public final class ProtobufValidatorImpl implements ProtobufTransform
 {
     private final ProtobufSchema schema;
     private final String messageName;
@@ -43,7 +43,7 @@ public final class ProtobufValidator implements ProtobufTransform
 
     private ProtobufField pendingField;
 
-    public ProtobufValidator(
+    public ProtobufValidatorImpl(
         ProtobufSchema schema,
         String messageName)
     {

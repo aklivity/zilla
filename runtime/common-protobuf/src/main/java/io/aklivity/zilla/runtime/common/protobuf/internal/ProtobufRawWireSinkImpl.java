@@ -28,13 +28,13 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
  * slice verbatim. Composed with the schema-free parser it is a lossless structural copy; a transform
  * between them can keep/drop/redact fields by number with no schema.
  */
-public final class ProtobufRawWireSink implements ProtobufSink
+public final class ProtobufRawWireSinkImpl implements ProtobufSink
 {
     private final ProtobufWriter writer;
 
     private int depth;
 
-    public ProtobufRawWireSink(
+    public ProtobufRawWireSinkImpl(
         ProtobufGenerator generator)
     {
         this.writer = ((ProtobufGeneratorImpl) generator).writer();

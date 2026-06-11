@@ -25,7 +25,7 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufSource;
  * {@link ProtobufPipeline.Status#COMPLETE} when the root message ends. The verdict of a pure
  * validation pipeline is the returned {@link ProtobufPipeline.Status}.
  */
-public final class ProtobufDiscardSink implements ProtobufSink
+public final class ProtobufDiscardSinkImpl implements ProtobufSink
 {
     private int depth;
 

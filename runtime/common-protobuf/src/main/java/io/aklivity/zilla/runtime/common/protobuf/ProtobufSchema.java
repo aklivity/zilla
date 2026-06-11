@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.common.protobuf;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufValidator;
+import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufValidatorImpl;
 
 /**
  * A compiled, immutable Protobuf model: a registry of {@link ProtobufMessage} and
@@ -80,7 +80,7 @@ public final class ProtobufSchema
     public ProtobufTransform validator(
         String messageName)
     {
-        return new ProtobufValidator(this, messageName);
+        return new ProtobufValidatorImpl(this, messageName);
     }
 
     public static Builder builder()

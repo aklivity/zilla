@@ -40,7 +40,7 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
  * schema transformation. Fields absent in the target are dropped (with their subtrees); nested
  * messages are length-prefixed via per-depth scratch.
  */
-public final class ProtobufWireSink implements ProtobufSink
+public final class ProtobufWireSinkImpl implements ProtobufSink
 {
     private final ProtobufSchema schema;
     private final String messageName;
@@ -51,7 +51,7 @@ public final class ProtobufWireSink implements ProtobufSink
 
     private ProtobufField pending;
 
-    public ProtobufWireSink(
+    public ProtobufWireSinkImpl(
         ProtobufGenerator generator,
         ProtobufSchema schema,
         String messageName)

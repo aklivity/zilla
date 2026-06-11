@@ -14,9 +14,9 @@
  */
 package io.aklivity.zilla.runtime.common.protobuf;
 
-import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufDiscardSink;
-import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufRawWireSink;
-import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufWireSink;
+import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufDiscardSinkImpl;
+import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufRawWireSinkImpl;
+import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufWireSinkImpl;
 
 /**
  * The consume end of a {@link ProtobufStream} pipeline. Each {@link #feed(ProtobufController, ProtobufSource,
@@ -43,7 +43,7 @@ public interface ProtobufSink
      */
     static ProtobufSink discard()
     {
-        return new ProtobufDiscardSink();
+        return new ProtobufDiscardSinkImpl();
     }
 
     /**
@@ -59,7 +59,7 @@ public interface ProtobufSink
         ProtobufSchema schema,
         String messageName)
     {
-        return new ProtobufWireSink(generator, schema, messageName);
+        return new ProtobufWireSinkImpl(generator, schema, messageName);
     }
 
     /**
@@ -71,6 +71,6 @@ public interface ProtobufSink
     static ProtobufSink of(
         ProtobufGenerator generator)
     {
-        return new ProtobufRawWireSink(generator);
+        return new ProtobufRawWireSinkImpl(generator);
     }
 }
