@@ -15,14 +15,19 @@
 package io.aklivity.zilla.runtime.common.avro;
 
 /**
- * The vocabulary of events produced by an {@link AvroDecodePipeline} and consumed by an
- * {@link AvroEncodePipeline}, mirroring the structure of the compiled Avro schema as it is
- * walked in lockstep with the binary. Each event is delivered with an {@link AvroSource}
- * positioned to read the corresponding scalar (for value events) or name (for
- * {@link #FIELD_NAME} / {@link #MAP_KEY}).
+ * The event currency of an {@link AvroStream} pipeline: the Avro-native structured events produced by
+ * walking the compiled schema in lockstep with the binary, plus document framing
+ * ({@link #START_DOCUMENT} / {@link #END_DOCUMENT}) and segment framing ({@link #START_SEGMENT} /
+ * {@link #CONTINUE_SEGMENT} / {@link #END_SEGMENT}). A segment run delivers one complete value as raw
+ * Avro bytes rather than as structured events, for verbatim passthrough; {@link #segmented()}
+ * distinguishes those events.
  */
 public enum AvroEvent
 {
+    /** start of a top-level datum; structured (or segment) events follow until {@link #END_DOCUMENT} */
+    START_DOCUMENT,
+    /** end of a top-level datum */
+    END_DOCUMENT,
     /** start of a record; field events follow until {@link #RECORD_END} */
     RECORD_START,
     /** end of a record */
@@ -60,5 +65,16 @@ public enum AvroEvent
     /** an Avro {@code fixed}, readable via the zero-copy {@link AvroSource} buffer accessors */
     FIXED,
     /** an Avro {@code enum} symbol, readable via {@link AvroSource#getString()} */
-    ENUM
+    ENUM,
+    /** start of a verbatim segment run; the raw slice is readable via {@link AvroSource#getSegment()} */
+    START_SEGMENT,
+    /** a continuation of a verbatim segment run spanning more than one frame */
+    CONTINUE_SEGMENT,
+    /** the final slice of a verbatim segment run */
+    END_SEGMENT;
+
+    public boolean segmented()
+    {
+        return this == START_SEGMENT || this == CONTINUE_SEGMENT || this == END_SEGMENT;
+    }
 }

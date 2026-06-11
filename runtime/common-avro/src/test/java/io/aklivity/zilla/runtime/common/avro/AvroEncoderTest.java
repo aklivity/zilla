@@ -14,46 +14,116 @@
  */
 package io.aklivity.zilla.runtime.common.avro;
 
+import static io.aklivity.zilla.runtime.common.avro.AvroValues.NO_CONTROL;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
-
-import io.aklivity.zilla.runtime.common.avro.AvroValues.Replay;
 
 public class AvroEncoderTest
 {
     private final UnsafeBuffer out = new UnsafeBuffer(new byte[64]);
-    private final Replay replay = new Replay();
+    private final AvroSource zero = new ZeroSource();
 
-    private AvroEncodePipeline encoder(
+    private AvroSink sink(
         String schemaText)
     {
-        AvroEncodePipeline encoder = StreamingAvro.schema(schemaText).encoder(out, 0);
-        encoder.reset();
-        return encoder;
+        AvroSchema schema = StreamingAvro.schema(schemaText);
+        return AvroSink.of(schema.generator(out, 0));
     }
 
     @Test
     public void shouldRejectMismatchedScalarEvent()
     {
-        AvroEncodePipeline encoder = encoder("\"int\"");
-        assertThrows(AvroValidationException.class, () -> encoder.feed(AvroEvent.BOOLEAN, replay));
+        AvroSink sink = sink("\"int\"");
+        assertThrows(AvroValidationException.class, () -> sink.feed(NO_CONTROL, zero, AvroEvent.BOOLEAN));
     }
 
     @Test
     public void shouldRejectEventAfterValueComplete()
     {
-        AvroEncodePipeline encoder = encoder("\"int\"");
-        encoder.feed(AvroEvent.INT, replay);
-        assertThrows(AvroValidationException.class, () -> encoder.feed(AvroEvent.INT, replay));
+        AvroSink sink = sink("\"int\"");
+        sink.feed(NO_CONTROL, zero, AvroEvent.INT);
+        assertThrows(AvroValidationException.class, () -> sink.feed(NO_CONTROL, zero, AvroEvent.INT));
     }
 
     @Test
     public void shouldRejectUnexpectedRecordStart()
     {
-        AvroEncodePipeline encoder = encoder(
+        AvroSink sink = sink(
             "{\"type\":\"record\",\"name\":\"R\",\"fields\":[{\"name\":\"id\",\"type\":\"int\"}]}");
-        assertThrows(AvroValidationException.class, () -> encoder.feed(AvroEvent.INT, replay));
+        assertThrows(AvroValidationException.class, () -> sink.feed(NO_CONTROL, zero, AvroEvent.INT));
+    }
+
+    private static final class ZeroSource implements AvroSource
+    {
+        private final UnsafeBuffer empty = new UnsafeBuffer(new byte[0]);
+
+        @Override
+        public boolean getBoolean()
+        {
+            return false;
+        }
+
+        @Override
+        public int getInt()
+        {
+            return 0;
+        }
+
+        @Override
+        public long getLong()
+        {
+            return 0L;
+        }
+
+        @Override
+        public float getFloat()
+        {
+            return 0f;
+        }
+
+        @Override
+        public double getDouble()
+        {
+            return 0d;
+        }
+
+        @Override
+        public String getString()
+        {
+            return "";
+        }
+
+        @Override
+        public DirectBuffer buffer()
+        {
+            return empty;
+        }
+
+        @Override
+        public int offset()
+        {
+            return 0;
+        }
+
+        @Override
+        public int length()
+        {
+            return 0;
+        }
+
+        @Override
+        public DirectBuffer getSegment()
+        {
+            return empty;
+        }
+
+        @Override
+        public long position()
+        {
+            return 0L;
+        }
     }
 }

@@ -14,40 +14,44 @@
  */
 package io.aklivity.zilla.runtime.common.avro.internal;
 
-import org.agrona.MutableDirectBuffer;
+import java.util.ArrayList;
+import java.util.List;
 
-import io.aklivity.zilla.runtime.common.avro.AvroGeneratorEx;
-import io.aklivity.zilla.runtime.common.avro.AvroSchema;
+import io.aklivity.zilla.runtime.common.avro.AvroPipeline;
+import io.aklivity.zilla.runtime.common.avro.AvroSink;
 import io.aklivity.zilla.runtime.common.avro.AvroStream;
 import io.aklivity.zilla.runtime.common.avro.AvroTransform;
 
-public final class AvroSchemaImpl implements AvroSchema
+final class AvroStreamImpl implements AvroStream
 {
     private final AvroNode root;
+    private final List<AvroTransform> transforms;
 
-    public AvroSchemaImpl(
-        String schema)
+    AvroStreamImpl(
+        AvroNode root)
     {
-        this.root = AvroSchemaCompiler.compile(schema);
+        this.root = root;
+        this.transforms = new ArrayList<>();
     }
 
     @Override
-    public AvroStream decode()
+    public AvroStream transform(
+        AvroTransform transform)
     {
-        return new AvroStreamImpl(root);
+        transforms.add(transform);
+        return this;
     }
 
     @Override
-    public AvroTransform validator()
+    public AvroPipeline into(
+        AvroSink sink)
     {
-        return new AvroValidatorTransform();
-    }
-
-    @Override
-    public AvroGeneratorEx generator(
-        MutableDirectBuffer buffer,
-        int offset)
-    {
-        return new AvroGeneratorImpl(root, buffer, offset);
+        AvroSink head = sink;
+        for (int i = transforms.size() - 1; i >= 0; i--)
+        {
+            head = new AvroSinkAdapter(transforms.get(i), head);
+        }
+        AvroDecodeDriver driver = new AvroDecodeDriver(root, head);
+        return new AvroPipelineImpl(driver, head);
     }
 }

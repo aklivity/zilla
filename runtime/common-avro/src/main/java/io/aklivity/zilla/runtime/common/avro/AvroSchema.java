@@ -17,25 +17,32 @@ package io.aklivity.zilla.runtime.common.avro;
 import org.agrona.MutableDirectBuffer;
 
 /**
- * A compiled, immutable Avro schema model. Compiling parses the Avro schema document once (off the
- * hot path) into a structure that drives streaming decode and encode; callers cache one instance
- * per schema, keyed by their own schema identifier. A single instance may back many concurrent
- * pipelines on the same worker thread, but the pipelines it produces are not thread-safe.
+ * A compiled, immutable Avro schema model. Compiling parses the Avro schema document once (off the hot
+ * path) into a structure that drives streaming decode and encode; callers cache one instance per schema,
+ * keyed by their own schema identifier. A single instance may back many pipelines on the same worker
+ * thread, but the pipelines it produces are not thread-safe.
  */
 public interface AvroSchema
 {
     /**
-     * Creates a decode pipeline that reads Avro binary against this schema and emits the decoded
-     * {@link AvroEvent} stream to {@code sink}.
+     * Begins a decode pipeline description: the schema-bound driver that reads Avro binary and emits the
+     * {@link AvroEvent} stream. Append {@link AvroTransform} stages and terminate with
+     * {@link AvroStream#into(AvroSink)}.
      */
-    AvroDecodePipeline decoder(
-        AvroSink sink);
+    AvroStream decode();
 
     /**
-     * Creates an encode pipeline that consumes an {@link AvroEvent} stream and writes Avro binary
-     * into {@code buffer} starting at {@code offset}.
+     * A streaming validator stage that forwards the decoded event stream while the driver validates
+     * against this schema as it reads (emit-then-abort). Compose it before a sink to validate-then-convert,
+     * or before a discarding sink to validate only.
      */
-    AvroEncodePipeline encoder(
+    AvroTransform validator();
+
+    /**
+     * Creates a generator that writes Avro binary into {@code buffer} starting at {@code offset}; pair it
+     * with {@link AvroSink#of(AvroGeneratorEx)} to terminate a pipeline.
+     */
+    AvroGeneratorEx generator(
         MutableDirectBuffer buffer,
         int offset);
 }

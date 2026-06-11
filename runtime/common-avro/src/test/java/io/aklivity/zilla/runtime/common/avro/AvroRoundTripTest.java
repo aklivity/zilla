@@ -14,50 +14,23 @@
  */
 package io.aklivity.zilla.runtime.common.avro;
 
-import static io.aklivity.zilla.runtime.common.avro.AvroDecodePipeline.Status.COMPLETE;
+import static io.aklivity.zilla.runtime.common.avro.AvroSink.Delivery.SEGMENTABLE;
+import static io.aklivity.zilla.runtime.common.avro.AvroSink.Delivery.STRUCTURED;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.util.List;
-
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
-
-import io.aklivity.zilla.runtime.common.avro.AvroValues.Entry;
-import io.aklivity.zilla.runtime.common.avro.AvroValues.Recorder;
-import io.aklivity.zilla.runtime.common.avro.AvroValues.Replay;
 
 public class AvroRoundTripTest
 {
-    private final Recorder recorder = new Recorder();
-    private final Replay replay = new Replay();
-
     private void assertRoundTrip(
         String schemaText,
         byte[] original)
     {
         AvroSchema schema = StreamingAvro.schema(schemaText);
-
-        AvroDecodePipeline decoder = schema.decoder(recorder);
-        recorder.reset();
-        decoder.reset();
-        UnsafeBuffer in = new UnsafeBuffer(original);
-        assertEquals(COMPLETE, decoder.feed(in, 0, original.length));
-
-        List<Entry> entries = List.copyOf(recorder.entries());
-
-        UnsafeBuffer out = new UnsafeBuffer(new byte[Math.max(16, original.length * 2)]);
-        AvroEncodePipeline encoder = schema.encoder(out, 0);
-        encoder.reset();
-        for (Entry entry : entries)
-        {
-            replay.wrap(entry);
-            encoder.feed(entry.event, replay);
-        }
-
-        byte[] reencoded = new byte[encoder.length()];
-        out.getBytes(0, reencoded);
-        assertArrayEquals(original, reencoded);
+        // structured decode -> re-encode reproduces the single-element-block form
+        assertArrayEquals(original, AvroValues.transcode(schema, original, STRUCTURED));
+        // verbatim segment passthrough reproduces the input bytes exactly
+        assertArrayEquals(original, AvroValues.transcode(schema, original, SEGMENTABLE));
     }
 
     @Test
@@ -68,6 +41,7 @@ public class AvroRoundTripTest
         assertRoundTrip("\"boolean\"", new byte[] { 0x01 });
         assertRoundTrip("\"string\"", new byte[] { 0x06, 0x66, 0x6f, 0x6f });
         assertRoundTrip("\"bytes\"", new byte[] { 0x04, (byte) 0xff, 0x00 });
+        assertRoundTrip("\"null\"", new byte[] {});
     }
 
     @Test
@@ -117,7 +91,6 @@ public class AvroRoundTripTest
     @Test
     public void shouldRoundTripArrayViaSingleElementBlocks()
     {
-        // encoder emits one element per block: count 1 (0x02), item, ... terminator 0x00
         assertRoundTrip(
             "{\"type\":\"array\",\"items\":\"int\"}",
             new byte[] { 0x02, 0x02, 0x02, 0x04, 0x00 });

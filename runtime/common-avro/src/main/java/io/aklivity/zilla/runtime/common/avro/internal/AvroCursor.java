@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.common.avro.internal;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import org.agrona.DirectBuffer;
+import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.common.avro.AvroSource;
 
@@ -29,6 +30,8 @@ import io.aklivity.zilla.runtime.common.avro.AvroSource;
  */
 final class AvroCursor implements AvroSource
 {
+    private final UnsafeBuffer segmentView = new UnsafeBuffer(0, 0);
+
     private DirectBuffer buffer;
     private int offset;
     private int length;
@@ -107,6 +110,14 @@ final class AvroCursor implements AvroSource
         this.length = 0;
     }
 
+    void setSegment(
+        DirectBuffer buffer,
+        int offset,
+        int length)
+    {
+        this.segmentView.wrap(buffer, offset, length);
+    }
+
     void clear()
     {
         this.string = null;
@@ -178,6 +189,12 @@ final class AvroCursor implements AvroSource
     public int length()
     {
         return length;
+    }
+
+    @Override
+    public DirectBuffer getSegment()
+    {
+        return segmentView;
     }
 
     @Override

@@ -14,14 +14,14 @@
  */
 package io.aklivity.zilla.runtime.common.avro.internal;
 
-import static io.aklivity.zilla.runtime.common.avro.AvroDecodePipeline.Status.COMPLETE;
-import static io.aklivity.zilla.runtime.common.avro.AvroDecodePipeline.Status.PENDING;
-import static io.aklivity.zilla.runtime.common.avro.AvroDecodePipeline.Status.REJECTED;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.ARRAY_END;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.ARRAY_START;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.BOOLEAN;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.BYTES;
+import static io.aklivity.zilla.runtime.common.avro.AvroEvent.CONTINUE_SEGMENT;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.DOUBLE;
+import static io.aklivity.zilla.runtime.common.avro.AvroEvent.END_DOCUMENT;
+import static io.aklivity.zilla.runtime.common.avro.AvroEvent.END_SEGMENT;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.ENUM;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.FIELD_NAME;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.FIXED;
@@ -34,19 +34,32 @@ import static io.aklivity.zilla.runtime.common.avro.AvroEvent.MAP_START;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.NULL;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.RECORD_END;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.RECORD_START;
+import static io.aklivity.zilla.runtime.common.avro.AvroEvent.START_DOCUMENT;
+import static io.aklivity.zilla.runtime.common.avro.AvroEvent.START_SEGMENT;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.STRING;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.UNION_BRANCH;
+import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.COMPLETE;
+import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.PENDING;
+import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.REJECTED;
 import static java.nio.ByteOrder.LITTLE_ENDIAN;
 
 import org.agrona.DirectBuffer;
 import org.agrona.ExpandableArrayBuffer;
 import org.agrona.MutableDirectBuffer;
 
-import io.aklivity.zilla.runtime.common.avro.AvroDecodePipeline;
+import io.aklivity.zilla.runtime.common.avro.AvroController;
 import io.aklivity.zilla.runtime.common.avro.AvroEvent;
+import io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status;
 import io.aklivity.zilla.runtime.common.avro.AvroSink;
 
-final class AvroDecoder implements AvroDecodePipeline
+/**
+ * The schema-bound decode driver: walks the compiled schema in lockstep with the buffer, emitting an
+ * {@link AvroEvent} stream (framed by {@code START_DOCUMENT}/{@code END_DOCUMENT}) to the bound root
+ * {@link AvroSink}, resuming across fragmented {@link #feed} calls. Implements {@link AvroController}:
+ * a downstream stage may opt the current datum into verbatim segment delivery, in which case the value
+ * is scanned (still validating) without structured emission and delivered as raw segment chunks.
+ */
+final class AvroDecodeDriver implements AvroController
 {
     private static final int READ_OK = 0;
     private static final int READ_UNDERFLOW = 1;
@@ -55,6 +68,16 @@ final class AvroDecoder implements AvroDecodePipeline
     private static final int STEP_CONTINUE = 0;
     private static final int STEP_PENDING = 1;
     private static final int STEP_REJECTED = 2;
+    private static final int STEP_COMPLETE = 3;
+
+    private enum Phase
+    {
+        NEW,
+        BODY,
+        SEGMENT,
+        END,
+        DONE
+    }
 
     private final AvroNode root;
     private final AvroSink sink;
@@ -72,7 +95,12 @@ final class AvroDecoder implements AvroDecodePipeline
     private long scratchValue;
     private int scratchNext;
 
-    AvroDecoder(
+    private Phase phase;
+    private boolean segmentRequested;
+    private boolean segmenting;
+    private boolean segmentStarted;
+
+    AvroDecodeDriver(
         AvroNode root,
         AvroSink sink)
     {
@@ -86,16 +114,24 @@ final class AvroDecoder implements AvroDecodePipeline
     }
 
     @Override
-    public void reset()
+    public void segmentable()
+    {
+        segmentRequested = true;
+    }
+
+    void reset()
     {
         depth = 0;
         workLimit = 0;
+        pos = 0;
+        phase = Phase.NEW;
+        segmentRequested = false;
+        segmenting = false;
+        segmentStarted = false;
         push(root);
-        sink.reset();
     }
 
-    @Override
-    public Status feed(
+    Status feed(
         DirectBuffer buffer,
         int offset,
         int length)
@@ -104,21 +140,92 @@ final class AvroDecoder implements AvroDecodePipeline
         workLimit += length;
         pos = 0;
 
-        Status status = COMPLETE;
+        Status status = PENDING;
         boolean running = true;
-        while (running && depth > 0)
+        while (running)
         {
-            cursor.position(pos);
-            int step = step(nodeStack[depth - 1]);
-            if (step == STEP_PENDING)
+            switch (phase)
             {
-                status = PENDING;
+            case NEW:
+                int started = emit(START_DOCUMENT);
+                if (started == STEP_REJECTED)
+                {
+                    status = REJECTED;
+                    running = false;
+                }
+                else if (segmentRequested)
+                {
+                    phase = Phase.SEGMENT;
+                    segmenting = true;
+                    segmentStarted = false;
+                }
+                else
+                {
+                    phase = Phase.BODY;
+                }
+                break;
+            case BODY:
+                if (depth == 0)
+                {
+                    phase = Phase.END;
+                }
+                else
+                {
+                    int step = step(nodeStack[depth - 1]);
+                    if (step == STEP_PENDING)
+                    {
+                        status = PENDING;
+                        running = false;
+                    }
+                    else if (step == STEP_REJECTED)
+                    {
+                        status = REJECTED;
+                        running = false;
+                    }
+                    else if (step == STEP_COMPLETE)
+                    {
+                        status = COMPLETE;
+                        running = false;
+                        phase = Phase.DONE;
+                    }
+                }
+                break;
+            case SEGMENT:
+                int scanStart = pos;
+                int scan = STEP_CONTINUE;
+                while (scan == STEP_CONTINUE && depth > 0)
+                {
+                    scan = step(nodeStack[depth - 1]);
+                }
+                if (scan == STEP_REJECTED)
+                {
+                    status = REJECTED;
+                    running = false;
+                }
+                else if (depth == 0)
+                {
+                    status = emitSegmentDone(scanStart);
+                    running = false;
+                    phase = Phase.DONE;
+                }
+                else
+                {
+                    cursor.setSegment(work, scanStart, pos - scanStart);
+                    int chunk = emitSegment(segmentStarted ? CONTINUE_SEGMENT : START_SEGMENT);
+                    segmentStarted = true;
+                    status = chunk == STEP_REJECTED ? REJECTED : PENDING;
+                    running = false;
+                }
+                break;
+            case END:
+                int ended = emit(END_DOCUMENT);
+                status = ended == STEP_REJECTED ? REJECTED : COMPLETE;
                 running = false;
-            }
-            else if (step == STEP_REJECTED)
-            {
-                status = REJECTED;
+                phase = Phase.DONE;
+                break;
+            default:
                 running = false;
+                break;
             }
         }
 
@@ -131,6 +238,35 @@ final class AvroDecoder implements AvroDecodePipeline
             workLimit = 0;
         }
 
+        return status;
+    }
+
+    private Status emitSegmentDone(
+        int scanStart)
+    {
+        Status status;
+        if (!segmentStarted)
+        {
+            cursor.setSegment(work, scanStart, pos - scanStart);
+            int begin = emitSegment(START_SEGMENT);
+            segmentStarted = true;
+            if (begin == STEP_REJECTED)
+            {
+                status = REJECTED;
+            }
+            else
+            {
+                cursor.setSegment(work, pos, 0);
+                int end = emitSegment(END_SEGMENT);
+                status = end == STEP_REJECTED ? REJECTED : COMPLETE;
+            }
+        }
+        else
+        {
+            cursor.setSegment(work, scanStart, pos - scanStart);
+            int end = emitSegment(END_SEGMENT);
+            status = end == STEP_REJECTED ? REJECTED : COMPLETE;
+        }
         return status;
     }
 
@@ -581,7 +717,28 @@ final class AvroDecoder implements AvroDecodePipeline
     private int emit(
         AvroEvent event)
     {
-        return sink.feed(event, cursor) == REJECTED ? STEP_REJECTED : STEP_CONTINUE;
+        int result;
+        if (segmenting)
+        {
+            result = STEP_CONTINUE;
+        }
+        else
+        {
+            result = mapStatus(sink.feed(this, cursor, event));
+        }
+        return result;
+    }
+
+    private int emitSegment(
+        AvroEvent event)
+    {
+        return mapStatus(sink.feed(this, cursor, event));
+    }
+
+    private static int mapStatus(
+        Status status)
+    {
+        return status == REJECTED ? STEP_REJECTED : status == COMPLETE ? STEP_COMPLETE : STEP_CONTINUE;
     }
 
     private static int toStep(

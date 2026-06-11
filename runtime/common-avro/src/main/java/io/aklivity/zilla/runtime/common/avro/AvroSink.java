@@ -14,21 +14,58 @@
  */
 package io.aklivity.zilla.runtime.common.avro;
 
+import io.aklivity.zilla.runtime.common.avro.internal.AvroSinkImpl;
+
 /**
- * The consume end of an {@link AvroDecodePipeline}. Each {@link #feed(AvroEvent, AvroSource)}
- * delivers one decoded event (with {@code in} positioned to read its scalar) and returns whether
- * the current top-level value has reached a terminal {@link AvroDecodePipeline.Status}. Third
- * parties may implement this contract to consume the decoded event stream — for example, the
- * {@code model-avro} {@code AvroJson} bridge drives a {@code common-json} generator from these
- * events.
+ * The consume end of an {@link AvroStream} pipeline. Each {@link #feed(AvroController, AvroSource,
+ * AvroEvent)} delivers one event (with {@code source} positioned to read its scalar, or its bytes when
+ * the event is {@link AvroEvent#segmented()}) and returns whether the current top-level datum has
+ * reached a terminal {@link AvroPipeline.Status}. {@code control} steers the immediate upstream. A
+ * terminal sink materializes events into a buffer; the downstream of an {@link AvroTransform} is also
+ * an {@code AvroSink}. Third parties may implement this contract to consume the event stream — for
+ * example, the {@code model-avro} {@code AvroJson} bridge drives a {@code common-json} generator.
  */
 public interface AvroSink
 {
-    AvroDecodePipeline.Status feed(
-        AvroEvent event,
-        AvroSource in);
+    /**
+     * Delivery mode a terminal sink requests. {@link #STRUCTURED} consumes structured events and
+     * re-encodes; {@link #SEGMENTABLE} opts in to verbatim segment delivery (best-effort) by calling
+     * {@link AvroController#segmentable()} on {@link AvroEvent#START_DOCUMENT}.
+     */
+    enum Delivery
+    {
+        STRUCTURED,
+        SEGMENTABLE
+    }
+
+    AvroPipeline.Status feed(
+        AvroController control,
+        AvroSource source,
+        AvroEvent event);
 
     default void reset()
     {
+    }
+
+    /**
+     * A terminal sink that materializes each fed event into the corresponding write on {@code generator}.
+     * The supplied generator must already be wrapped over its target buffer.
+     */
+    static AvroSink of(
+        AvroGeneratorEx generator)
+    {
+        return new AvroSinkImpl(generator);
+    }
+
+    /**
+     * A terminal sink with the given {@link Delivery} mode: {@link Delivery#SEGMENTABLE} opts in to
+     * verbatim segment delivery; {@link Delivery#STRUCTURED} re-encodes structured events. The supplied
+     * generator must already be wrapped over its target buffer.
+     */
+    static AvroSink of(
+        AvroGeneratorEx generator,
+        Delivery delivery)
+    {
+        return new AvroSinkImpl(generator, delivery);
     }
 }

@@ -18,19 +18,19 @@ import static io.aklivity.zilla.runtime.common.avro.AvroEvent.ARRAY_END;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.MAP_END;
 import static java.nio.ByteOrder.LITTLE_ENDIAN;
 
+import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 
-import io.aklivity.zilla.runtime.common.avro.AvroEncodePipeline;
 import io.aklivity.zilla.runtime.common.avro.AvroEvent;
 import io.aklivity.zilla.runtime.common.avro.AvroSource;
 import io.aklivity.zilla.runtime.common.avro.AvroValidationException;
 
-final class AvroEncoder implements AvroEncodePipeline
+final class AvroEncoder
 {
     private final AvroNode root;
-    private final MutableDirectBuffer buffer;
-    private final int base;
 
+    private MutableDirectBuffer buffer;
+    private int base;
     private AvroNode[] nodeStack;
     private int[] stateStack;
     private int depth;
@@ -48,16 +48,32 @@ final class AvroEncoder implements AvroEncodePipeline
         this.stateStack = new int[16];
     }
 
-    @Override
-    public void reset()
+    void wrap(
+        MutableDirectBuffer buffer,
+        int offset)
+    {
+        this.buffer = buffer;
+        this.base = offset;
+        reset();
+    }
+
+    void writeRaw(
+        DirectBuffer source,
+        int offset,
+        int length)
+    {
+        buffer.putBytes(limit, source, offset, length);
+        limit += length;
+    }
+
+    void reset()
     {
         depth = 0;
         limit = base;
         push(root);
     }
 
-    @Override
-    public void feed(
+    void feed(
         AvroEvent event,
         AvroSource in)
     {
@@ -215,8 +231,7 @@ final class AvroEncoder implements AvroEncodePipeline
         }
     }
 
-    @Override
-    public int length()
+    int length()
     {
         return limit - base;
     }

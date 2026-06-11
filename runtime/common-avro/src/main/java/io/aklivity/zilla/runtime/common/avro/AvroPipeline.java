@@ -17,21 +17,21 @@ package io.aklivity.zilla.runtime.common.avro;
 import org.agrona.DirectBuffer;
 
 /**
- * A runnable, resumable Avro decode pipeline: Avro binary in, {@link AvroEvent} stream out to an
- * {@link AvroSink}, validating against the compiled {@link AvroSchema} as it reads. Reuse a single
- * instance per worker thread: call {@link #reset()} once per top-level value, then
- * {@link #feed(DirectBuffer, int, int)} per frame, resuming a value left {@link Status#PENDING} by
- * an earlier frame. No full-document buffering; zero per-message allocation; abort on failure.
+ * A runnable, resumable {@code common-avro} pipeline assembled from an {@link AvroStream} description
+ * terminated with an {@link AvroSink}. Reuse a single instance per worker thread: call {@link #reset()}
+ * once per top-level datum, then {@link #feed(DirectBuffer, int, int)} per frame, resuming a datum left
+ * {@link Status#PENDING} by an earlier frame. No full-document buffering; zero per-message allocation;
+ * abort on failure.
  */
-public interface AvroDecodePipeline
+public interface AvroPipeline
 {
     enum Status
     {
-        /** the current top-level value is still in progress; feed more bytes to continue */
+        /** the current top-level datum is still in progress; feed more bytes to continue */
         PENDING,
-        /** the current top-level value finished and was accepted */
+        /** the current top-level datum finished and was accepted */
         COMPLETE,
-        /** the current top-level value violated the schema; the output must be abandoned */
+        /** the current top-level datum was rejected; the output must be abandoned */
         REJECTED
     }
 

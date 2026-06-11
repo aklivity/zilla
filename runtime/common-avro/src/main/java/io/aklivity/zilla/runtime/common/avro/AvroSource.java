@@ -18,11 +18,11 @@ import org.agrona.DirectBuffer;
 
 /**
  * Immutable, read-only view of the value observed at the current {@link AvroEvent} as an
- * {@link AvroDecodePipeline} pumps events to its {@link AvroSink}. An {@code AvroSource} exposes
- * only the typed accessor that matches the current event; it has no cursor-advancing method, so a
- * consumer cannot disturb the pump. The buffer accessors for {@link AvroEvent#BYTES} and
- * {@link AvroEvent#FIXED} expose the value in place for zero-copy reads and are valid only for the
- * duration of the {@link AvroSink#feed(AvroEvent, AvroSource)} call.
+ * {@link AvroStream} pipeline pumps events through its stages. An {@code AvroSource} exposes only the
+ * typed accessor that matches the current event; it has no cursor-advancing method, so a stage cannot
+ * disturb the pump. The buffer accessors for {@link AvroEvent#BYTES} / {@link AvroEvent#FIXED} and the
+ * {@link #getSegment()} view for segmented events expose the value in place for zero-copy reads, valid
+ * only for the duration of the {@code feed} call.
  */
 public interface AvroSource
 {
@@ -45,7 +45,13 @@ public interface AvroSource
     int length();
 
     /**
-     * @return the byte position of the current event within the value, for diagnostics
+     * Valid only when the current event is {@link AvroEvent#segmented()}; non-owning view of the
+     * current contiguous raw Avro slice, valid on-stack only.
+     */
+    DirectBuffer getSegment();
+
+    /**
+     * @return the byte position of the current event within the datum, for diagnostics
      */
     long position();
 }

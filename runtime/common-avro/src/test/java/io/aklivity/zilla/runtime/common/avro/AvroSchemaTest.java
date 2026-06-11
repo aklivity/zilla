@@ -14,116 +14,137 @@
  */
 package io.aklivity.zilla.runtime.common.avro;
 
-import static io.aklivity.zilla.runtime.common.avro.AvroDecodePipeline.Status.COMPLETE;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.ARRAY_END;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.ARRAY_START;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.INT;
+import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.COMPLETE;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
 
+import io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status;
 import io.aklivity.zilla.runtime.common.avro.AvroValues.Recorder;
 
 public class AvroSchemaTest
 {
-    private final Recorder recorder = new Recorder();
-
-    private AvroDecodePipeline.Status decode(
-        AvroSchema schema,
-        AvroSink sink,
-        byte[] binary)
+    private Status decode(
+        String schemaText,
+        byte[] binary,
+        AvroSink sink)
     {
-        AvroDecodePipeline decoder = schema.decoder(sink);
-        decoder.reset();
-        UnsafeBuffer buffer = new UnsafeBuffer(binary);
-        return decoder.feed(buffer, 0, binary.length);
+        AvroPipeline pipeline = StreamingAvro.schema(schemaText).decode().into(sink);
+        pipeline.reset();
+        return pipeline.feed(new UnsafeBuffer(binary), 0, binary.length);
     }
 
     @Test
     public void shouldCompileLogicalTypeOnLong()
     {
-        AvroSchema schema = StreamingAvro.schema("{\"type\":\"long\",\"logicalType\":\"timestamp-millis\"}");
-        assertEquals(COMPLETE, decode(schema, recorder, new byte[] { 0x02 }));
-        assertEquals(1L, recorder.entries().get(0).longValue);
+        Recorder recorder = AvroValues.record(
+            StreamingAvro.schema("{\"type\":\"long\",\"logicalType\":\"timestamp-millis\"}"),
+            new byte[] { 0x02 });
+        assertEquals(COMPLETE, recorder.status);
+        assertEquals(1L, recorder.entries.get(0).longValue);
     }
 
     @Test
     public void shouldCompileLogicalTypeOnBytes()
     {
-        AvroSchema schema = StreamingAvro.schema("{\"type\":\"bytes\",\"logicalType\":\"decimal\"}");
-        assertEquals(COMPLETE, decode(schema, recorder, new byte[] { 0x02, 0x07 }));
+        Recorder recorder = AvroValues.record(
+            StreamingAvro.schema("{\"type\":\"bytes\",\"logicalType\":\"decimal\"}"),
+            new byte[] { 0x02, 0x07 });
+        assertEquals(COMPLETE, recorder.status);
     }
 
     @Test
     public void shouldCompileLogicalTypeOnFixed()
     {
-        AvroSchema schema = StreamingAvro.schema(
-            "{\"type\":\"fixed\",\"name\":\"Dec\",\"size\":2,\"logicalType\":\"decimal\"}");
-        assertEquals(COMPLETE, decode(schema, recorder, new byte[] { 0x01, 0x02 }));
+        Recorder recorder = AvroValues.record(
+            StreamingAvro.schema("{\"type\":\"fixed\",\"name\":\"Dec\",\"size\":2,\"logicalType\":\"decimal\"}"),
+            new byte[] { 0x01, 0x02 });
+        assertEquals(COMPLETE, recorder.status);
     }
 
     @Test
     public void shouldResolveNamedTypeReference()
     {
-        AvroSchema schema = StreamingAvro.schema(
-            "{\"type\":\"record\",\"name\":\"Pair\",\"namespace\":\"ns\",\"fields\":[" +
-                "{\"name\":\"a\",\"type\":{\"type\":\"enum\",\"name\":\"E\",\"symbols\":[\"X\",\"Y\"]}}," +
-                "{\"name\":\"b\",\"type\":\"E\"}]}");
-        // a=1 (0x02), b=0 (0x00)
-        assertEquals(COMPLETE, decode(schema, recorder, new byte[] { 0x02, 0x00 }));
+        Recorder recorder = AvroValues.record(
+            StreamingAvro.schema(
+                "{\"type\":\"record\",\"name\":\"Pair\",\"namespace\":\"ns\",\"fields\":[" +
+                    "{\"name\":\"a\",\"type\":{\"type\":\"enum\",\"name\":\"E\",\"symbols\":[\"X\",\"Y\"]}}," +
+                    "{\"name\":\"b\",\"type\":\"E\"}]}"),
+            new byte[] { 0x02, 0x00 });
+        assertEquals(COMPLETE, recorder.status);
     }
 
     @Test
     public void shouldDecodeArrayWithNegativeBlockCount()
     {
-        AvroSchema schema = StreamingAvro.schema("{\"type\":\"array\",\"items\":\"int\"}");
-        // block count -2 (0x03), block size 2 bytes (0x04), items 1 (0x02) and 2 (0x04), terminator 0x00
-        byte[] bytes = new byte[] { 0x03, 0x04, 0x02, 0x04, 0x00 };
-        List<AvroEvent> events = new ArrayList<>();
-        AvroSink sink = (event, in) ->
-        {
-            events.add(event);
-            return AvroDecodePipeline.Status.PENDING;
-        };
-        assertEquals(COMPLETE, decode(schema, sink, bytes));
+        // block count -2 (0x03), block size (0x04), items 1 (0x02) and 2 (0x04), terminator 0x00
+        List<AvroEvent> events = AvroValues.decode(
+            StreamingAvro.schema("{\"type\":\"array\",\"items\":\"int\"}"),
+            new byte[] { 0x03, 0x04, 0x02, 0x04, 0x00 });
         assertEquals(List.of(ARRAY_START, INT, INT, ARRAY_END), events);
     }
 
     @Test
     public void shouldReadStringValueViaGetString()
     {
-        AvroSchema schema = StreamingAvro.schema("\"string\"");
         String[] captured = new String[1];
-        AvroSink sink = (event, in) ->
+        AvroSink sink = (control, source, event) ->
         {
-            captured[0] = in.getString();
-            return AvroDecodePipeline.Status.PENDING;
+            if (event == AvroEvent.STRING)
+            {
+                captured[0] = source.getString();
+            }
+            return Status.PENDING;
         };
-        assertEquals(COMPLETE, decode(schema, sink, new byte[] { 0x06, 0x66, 0x6f, 0x6f }));
+        assertEquals(COMPLETE, decode("\"string\"", new byte[] { 0x06, 0x66, 0x6f, 0x6f }, sink));
         assertEquals("foo", captured[0]);
     }
 
     @Test
     public void shouldExposeBytesView()
     {
-        AvroSchema schema = StreamingAvro.schema("\"bytes\"");
         byte[][] captured = new byte[1][];
-        AvroSink sink = (event, in) ->
+        AvroSink sink = (control, source, event) ->
         {
-            byte[] dst = new byte[in.length()];
-            in.buffer().getBytes(in.offset(), dst);
-            captured[0] = dst;
-            return AvroDecodePipeline.Status.PENDING;
+            if (event == AvroEvent.BYTES)
+            {
+                byte[] dst = new byte[source.length()];
+                source.buffer().getBytes(source.offset(), dst);
+                captured[0] = dst;
+            }
+            return Status.PENDING;
         };
-        assertEquals(COMPLETE, decode(schema, sink, new byte[] { 0x04, (byte) 0xff, 0x01 }));
+        assertEquals(COMPLETE, decode("\"bytes\"", new byte[] { 0x04, (byte) 0xff, 0x01 }, sink));
         assertArrayEquals(new byte[] { (byte) 0xff, 0x01 }, captured[0]);
+    }
+
+    @Test
+    public void shouldDecodeStringUtf8Multibyte()
+    {
+        byte[] euro = "€".getBytes(UTF_8);
+        byte[] binary = new byte[1 + euro.length];
+        binary[0] = (byte) (euro.length << 1);
+        System.arraycopy(euro, 0, binary, 1, euro.length);
+        String[] captured = new String[1];
+        AvroSink sink = (control, source, event) ->
+        {
+            if (event == AvroEvent.STRING)
+            {
+                captured[0] = source.getString();
+            }
+            return Status.PENDING;
+        };
+        assertEquals(COMPLETE, decode("\"string\"", binary, sink));
+        assertEquals("€", captured[0]);
     }
 
     @Test
@@ -136,23 +157,5 @@ public class AvroSchemaTest
     public void shouldRejectUnexpectedSchemaNode()
     {
         assertThrows(AvroValidationException.class, () -> StreamingAvro.schema("123"));
-    }
-
-    @Test
-    public void shouldDecodeStringUtf8Multibyte()
-    {
-        AvroSchema schema = StreamingAvro.schema("\"string\"");
-        byte[] euro = "€".getBytes(UTF_8);
-        byte[] bytes = new byte[1 + euro.length];
-        bytes[0] = (byte) (euro.length << 1);
-        System.arraycopy(euro, 0, bytes, 1, euro.length);
-        String[] captured = new String[1];
-        AvroSink sink = (event, in) ->
-        {
-            captured[0] = in.getString();
-            return AvroDecodePipeline.Status.PENDING;
-        };
-        assertEquals(COMPLETE, decode(schema, sink, bytes));
-        assertEquals("€", captured[0]);
     }
 }

@@ -14,50 +14,37 @@
  */
 package io.aklivity.zilla.runtime.common.avro;
 
-import static io.aklivity.zilla.runtime.common.avro.AvroDecodePipeline.Status.COMPLETE;
-import static io.aklivity.zilla.runtime.common.avro.AvroDecodePipeline.Status.PENDING;
+import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.COMPLETE;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.nio.ByteOrder;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
 
+import io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status;
 import io.aklivity.zilla.runtime.common.avro.AvroValues.Recorder;
 
 public class AvroFragmentedDecoderTest
 {
-    private final Recorder recorder = new Recorder();
-
-    private List<AvroEvent> decodeWhole(
-        AvroSchema schema,
-        byte[] binary)
-    {
-        AvroDecodePipeline decoder = schema.decoder(recorder);
-        recorder.reset();
-        decoder.reset();
-        UnsafeBuffer buffer = new UnsafeBuffer(binary);
-        assertEquals(COMPLETE, decoder.feed(buffer, 0, binary.length));
-        return recorder.entries().stream().map(e -> e.event).collect(Collectors.toList());
-    }
-
     private List<AvroEvent> decodeByteByByte(
         AvroSchema schema,
         byte[] binary)
     {
-        AvroDecodePipeline decoder = schema.decoder(recorder);
-        recorder.reset();
-        decoder.reset();
+        Recorder recorder = new Recorder();
+        AvroPipeline pipeline = schema.decode().into(recorder);
+        pipeline.reset();
         UnsafeBuffer one = new UnsafeBuffer(new byte[1]);
-        AvroDecodePipeline.Status status = binary.length == 0 ? decoder.feed(one, 0, 0) : PENDING;
+        Status status = binary.length == 0 ? pipeline.feed(one, 0, 0) : Status.PENDING;
         for (int i = 0; i < binary.length; i++)
         {
             one.putByte(0, binary[i]);
-            status = decoder.feed(one, 0, 1);
+            status = pipeline.feed(one, 0, 1);
         }
         assertEquals(COMPLETE, status);
-        return recorder.entries().stream().map(e -> e.event).collect(Collectors.toList());
+        return recorder.events;
     }
 
     private void assertSameFragmentedAsWhole(
@@ -65,9 +52,9 @@ public class AvroFragmentedDecoderTest
         byte[] binary)
     {
         AvroSchema schema = StreamingAvro.schema(schemaText);
-        List<AvroEvent> whole = decodeWhole(schema, binary);
-        List<AvroEvent> fragmented = decodeByteByByte(schema, binary);
-        assertEquals(whole, fragmented);
+        Recorder whole = AvroValues.record(schema, binary);
+        assertEquals(COMPLETE, whole.status);
+        assertEquals(whole.events, decodeByteByByte(schema, binary));
     }
 
     @Test
@@ -112,9 +99,36 @@ public class AvroFragmentedDecoderTest
     public void shouldDecodeDoubleAcrossFrames()
     {
         UnsafeBuffer encoded = new UnsafeBuffer(new byte[8]);
-        encoded.putDouble(0, 2.25d, java.nio.ByteOrder.LITTLE_ENDIAN);
+        encoded.putDouble(0, 2.25d, ByteOrder.LITTLE_ENDIAN);
         byte[] bytes = new byte[8];
         encoded.getBytes(0, bytes);
         assertSameFragmentedAsWhole("\"double\"", bytes);
+    }
+
+    @Test
+    public void shouldDecodeSegmentedAcrossFrames()
+    {
+        // a verbatim segment run spanning frames must reproduce the input exactly
+        AvroSchema schema = StreamingAvro.schema(
+            "{\"type\":\"record\",\"name\":\"R\",\"fields\":[" +
+                "{\"name\":\"id\",\"type\":\"int\"}," +
+                "{\"name\":\"name\",\"type\":\"string\"}]}");
+        byte[] binary = new byte[] { (byte) 0x80, 0x01, 0x08, 0x77, 0x78, 0x79, 0x7a };
+
+        UnsafeBuffer out = new UnsafeBuffer(new byte[64]);
+        AvroGeneratorEx generator = schema.generator(out, 0);
+        AvroPipeline pipeline = schema.decode().into(AvroSink.of(generator, AvroSink.Delivery.SEGMENTABLE));
+        pipeline.reset();
+        UnsafeBuffer one = new UnsafeBuffer(new byte[1]);
+        Status status = Status.PENDING;
+        for (int i = 0; i < binary.length; i++)
+        {
+            one.putByte(0, binary[i]);
+            status = pipeline.feed(one, 0, 1);
+        }
+        assertEquals(COMPLETE, status);
+        byte[] result = new byte[generator.length()];
+        out.getBytes(0, result);
+        assertArrayEquals(binary, result);
     }
 }

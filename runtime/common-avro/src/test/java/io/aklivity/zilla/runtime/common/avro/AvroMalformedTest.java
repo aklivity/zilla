@@ -14,62 +14,44 @@
  */
 package io.aklivity.zilla.runtime.common.avro;
 
-import static io.aklivity.zilla.runtime.common.avro.AvroDecodePipeline.Status.REJECTED;
+import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.REJECTED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
-
-import io.aklivity.zilla.runtime.common.avro.AvroValues.Recorder;
 
 public class AvroMalformedTest
 {
-    private final Recorder recorder = new Recorder();
-
-    private AvroDecodePipeline.Status decode(
+    private AvroPipeline.Status decode(
         String schemaText,
         byte[] binary)
     {
-        AvroSchema schema = StreamingAvro.schema(schemaText);
-        AvroDecodePipeline decoder = schema.decoder(recorder);
-        recorder.reset();
-        decoder.reset();
-        UnsafeBuffer buffer = new UnsafeBuffer(binary);
-        return decoder.feed(buffer, 0, binary.length);
+        return AvroValues.record(StreamingAvro.schema(schemaText), binary).status;
     }
 
     @Test
     public void shouldRejectEnumOrdinalOutOfRange()
     {
-        // enum has 2 symbols; index 5 (0x0a) is out of range
-        AvroDecodePipeline.Status status = decode(
+        assertEquals(REJECTED, decode(
             "{\"type\":\"enum\",\"name\":\"Suit\",\"symbols\":[\"SPADES\",\"HEARTS\"]}",
-            new byte[] { 0x0a });
-        assertEquals(REJECTED, status);
+            new byte[] { 0x0a }));
     }
 
     @Test
     public void shouldRejectUnionBranchOutOfRange()
     {
-        // union has 2 branches; index 9 (0x12) is out of range
-        AvroDecodePipeline.Status status = decode("[\"null\",\"string\"]", new byte[] { 0x12 });
-        assertEquals(REJECTED, status);
+        assertEquals(REJECTED, decode("[\"null\",\"string\"]", new byte[] { 0x12 }));
     }
 
     @Test
     public void shouldRejectNegativeStringLength()
     {
-        // zig-zag of -1 is encoded as 0x01; a negative length is malformed
-        AvroDecodePipeline.Status status = decode("\"string\"", new byte[] { 0x01 });
-        assertEquals(REJECTED, status);
+        assertEquals(REJECTED, decode("\"string\"", new byte[] { 0x01 }));
     }
 
     @Test
     public void shouldRejectOverlongVarint()
     {
-        // more than 5 continuation bytes for an int is malformed
-        AvroDecodePipeline.Status status = decode("\"int\"",
-            new byte[] { (byte) 0x80, (byte) 0x80, (byte) 0x80, (byte) 0x80, (byte) 0x80, 0x01 });
-        assertEquals(REJECTED, status);
+        assertEquals(REJECTED, decode("\"int\"",
+            new byte[] { (byte) 0x80, (byte) 0x80, (byte) 0x80, (byte) 0x80, (byte) 0x80, 0x01 }));
     }
 }

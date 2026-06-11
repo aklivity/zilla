@@ -17,19 +17,67 @@ package io.aklivity.zilla.runtime.common.avro;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.agrona.DirectBuffer;
+import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
+import io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status;
+import io.aklivity.zilla.runtime.common.avro.AvroSink.Delivery;
+
 /**
- * Test-only helpers (allocation is fine in test scope): a recording {@link AvroSink} that snapshots
- * every decoded event, and a replay {@link AvroSource} that feeds those snapshots back into an
- * {@link AvroEncodePipeline}. Together they let a test assert a decoded event stream and round-trip
- * it back to Avro binary.
+ * Test-only helpers (allocation is fine in test scope) for driving {@code common-avro} pipelines: a
+ * recording {@link AvroSink} that captures the structured event stream (framing skipped) and a transcode
+ * helper that decodes a datum straight into a generator-backed sink. A no-op {@link AvroController}
+ * suffices for hand-fed sinks.
  */
 public final class AvroValues
 {
+    public static final AvroController NO_CONTROL = () ->
+    {
+    };
+
     private AvroValues()
     {
+    }
+
+    public static List<AvroEvent> decode(
+        AvroSchema schema,
+        byte[] binary)
+    {
+        Recorder recorder = new Recorder();
+        AvroPipeline pipeline = schema.decode().into(recorder);
+        pipeline.reset();
+        recorder.status = pipeline.feed(new UnsafeBuffer(binary), 0, binary.length);
+        return recorder.events;
+    }
+
+    public static Recorder record(
+        AvroSchema schema,
+        byte[] binary)
+    {
+        Recorder recorder = new Recorder();
+        AvroPipeline pipeline = schema.decode().into(recorder);
+        pipeline.reset();
+        recorder.status = pipeline.feed(new UnsafeBuffer(binary), 0, binary.length);
+        return recorder;
+    }
+
+    public static byte[] transcode(
+        AvroSchema schema,
+        byte[] binary,
+        Delivery delivery)
+    {
+        MutableDirectBuffer out = new UnsafeBuffer(new byte[Math.max(64, binary.length * 4)]);
+        AvroGeneratorEx generator = schema.generator(out, 0);
+        AvroPipeline pipeline = schema.decode().transform(schema.validator()).into(AvroSink.of(generator, delivery));
+        pipeline.reset();
+        Status status = pipeline.feed(new UnsafeBuffer(binary), 0, binary.length);
+        if (status != Status.COMPLETE)
+        {
+            throw new AssertionError("decode did not complete: " + status);
+        }
+        byte[] bytes = new byte[generator.length()];
+        out.getBytes(0, bytes);
+        return bytes;
     }
 
     public static final class Entry
@@ -48,77 +96,18 @@ public final class AvroValues
             AvroSource in)
         {
             this.event = event;
-            switch (event)
-            {
-            case BOOLEAN:
-                this.booleanValue = in.getBoolean();
-                this.intValue = 0;
-                this.longValue = 0L;
-                this.floatValue = 0f;
-                this.doubleValue = 0d;
-                this.bytes = null;
-                this.string = null;
-                break;
-            case INT:
-            case ENUM:
-            case UNION_BRANCH:
-                this.booleanValue = false;
-                this.intValue = in.getInt();
-                this.longValue = 0L;
-                this.floatValue = 0f;
-                this.doubleValue = 0d;
-                this.bytes = null;
-                this.string = event == AvroEvent.ENUM ? in.getString() : null;
-                break;
-            case LONG:
-                this.booleanValue = false;
-                this.intValue = 0;
-                this.longValue = in.getLong();
-                this.floatValue = 0f;
-                this.doubleValue = 0d;
-                this.bytes = null;
-                this.string = null;
-                break;
-            case FLOAT:
-                this.booleanValue = false;
-                this.intValue = 0;
-                this.longValue = 0L;
-                this.floatValue = in.getFloat();
-                this.doubleValue = 0d;
-                this.bytes = null;
-                this.string = null;
-                break;
-            case DOUBLE:
-                this.booleanValue = false;
-                this.intValue = 0;
-                this.longValue = 0L;
-                this.floatValue = 0f;
-                this.doubleValue = in.getDouble();
-                this.bytes = null;
-                this.string = null;
-                break;
-            case STRING:
-            case BYTES:
-            case FIXED:
-            case MAP_KEY:
-                this.booleanValue = false;
-                this.intValue = 0;
-                this.longValue = 0L;
-                this.floatValue = 0f;
-                this.doubleValue = 0d;
-                this.bytes = copy(in);
-                this.string = null;
-                break;
-            default:
-                this.booleanValue = false;
-                this.intValue = 0;
-                this.longValue = 0L;
-                this.floatValue = 0f;
-                this.doubleValue = 0d;
-                this.bytes = null;
-                this.string = null;
-                break;
-            }
+            this.booleanValue = event == AvroEvent.BOOLEAN && in.getBoolean();
+            this.intValue = event == AvroEvent.INT || event == AvroEvent.ENUM || event == AvroEvent.UNION_BRANCH
+                ? in.getInt()
+                : 0;
+            this.longValue = event == AvroEvent.LONG ? in.getLong() : 0L;
+            this.floatValue = event == AvroEvent.FLOAT ? in.getFloat() : 0f;
+            this.doubleValue = event == AvroEvent.DOUBLE ? in.getDouble() : 0d;
+            this.string = event == AvroEvent.ENUM ? in.getString() : null;
+            this.bytes = event == AvroEvent.STRING || event == AvroEvent.BYTES ||
+                event == AvroEvent.FIXED || event == AvroEvent.MAP_KEY
+                ? copy(in)
+                : null;
         }
 
         private static byte[] copy(
@@ -132,102 +121,30 @@ public final class AvroValues
 
     public static final class Recorder implements AvroSink
     {
-        private final List<Entry> entries = new ArrayList<>();
-
-        public List<Entry> entries()
-        {
-            return entries;
-        }
+        public final List<AvroEvent> events = new ArrayList<>();
+        public final List<Entry> entries = new ArrayList<>();
+        public Status status;
 
         @Override
-        public AvroDecodePipeline.Status feed(
-            AvroEvent event,
-            AvroSource in)
+        public Status feed(
+            AvroController control,
+            AvroSource source,
+            AvroEvent event)
         {
-            entries.add(new Entry(event, in));
-            return AvroDecodePipeline.Status.PENDING;
+            if (event != AvroEvent.START_DOCUMENT && event != AvroEvent.END_DOCUMENT && !event.segmented())
+            {
+                events.add(event);
+                entries.add(new Entry(event, source));
+            }
+            return Status.PENDING;
         }
 
         @Override
         public void reset()
         {
+            events.clear();
             entries.clear();
-        }
-    }
-
-    public static final class Replay implements AvroSource
-    {
-        private final UnsafeBuffer view = new UnsafeBuffer(0, 0);
-        private Entry entry;
-
-        public void wrap(
-            Entry entry)
-        {
-            this.entry = entry;
-            if (entry.bytes != null)
-            {
-                view.wrap(entry.bytes);
-            }
-        }
-
-        @Override
-        public boolean getBoolean()
-        {
-            return entry != null && entry.booleanValue;
-        }
-
-        @Override
-        public int getInt()
-        {
-            return entry != null ? entry.intValue : 0;
-        }
-
-        @Override
-        public long getLong()
-        {
-            return entry != null ? entry.longValue : 0L;
-        }
-
-        @Override
-        public float getFloat()
-        {
-            return entry != null ? entry.floatValue : 0f;
-        }
-
-        @Override
-        public double getDouble()
-        {
-            return entry != null ? entry.doubleValue : 0d;
-        }
-
-        @Override
-        public String getString()
-        {
-            return entry != null ? entry.string : null;
-        }
-
-        @Override
-        public DirectBuffer buffer()
-        {
-            return view;
-        }
-
-        @Override
-        public int offset()
-        {
-            return 0;
-        }
-
-        @Override
-        public int length()
-        {
-            return entry != null && entry.bytes != null ? entry.bytes.length : 0;
-        }
-
-        @Override
-        public long position()
-        {
-            return 0L;
+            status = null;
         }
     }
 }
