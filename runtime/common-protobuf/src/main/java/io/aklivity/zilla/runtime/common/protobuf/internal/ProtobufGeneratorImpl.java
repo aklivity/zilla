@@ -28,7 +28,7 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
 
 /**
  * Buffer-backed {@link ProtobufGenerator}. The root writer (index 0) targets the caller's output
- * buffer; {@link #beginMessage(int)} pushes a pooled scratch writer for the nested body and
+ * buffer; {@link #startMessage(int)} pushes a pooled scratch writer for the nested body and
  * {@link #endMessage()} pops it, back-patching the length into the parent. Scratch writers and
  * buffers are pooled by depth and reused across {@link #wrap(MutableDirectBuffer, int)}, so nesting
  * allocates nothing after warmup. The root writer is also lent (via {@link #writer()}) to the wire
@@ -254,7 +254,7 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
     }
 
     @Override
-    public ProtobufGenerator beginMessage(
+    public ProtobufGenerator startMessage(
         int field)
     {
         depth++;

@@ -21,6 +21,10 @@ package io.aklivity.zilla.runtime.common.protobuf;
  * scalar or a nested {@code START_MESSAGE}…{@code END_MESSAGE} for a composite. Segment framing
  * ({@link #START_SEGMENT} / {@link #CONTINUE_SEGMENT} / {@link #END_SEGMENT}) delivers a composite
  * value as raw wire bytes rather than as structured events; {@link #segmented()} distinguishes those.
+ * <p>
+ * There is no document frame: the bounded-buffer contract is exactly one fully-buffered message per
+ * {@link ProtobufPipeline#feed}, so the root {@link #START_MESSAGE} / {@link #END_MESSAGE} is the
+ * top-level boundary.
  */
 public enum ProtobufEvent
 {

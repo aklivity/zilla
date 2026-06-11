@@ -88,7 +88,7 @@ public class ProtobufGeneratorTest
 
         MutableDirectBuffer streamedOut = new UnsafeBuffer(new byte[128]);
         ProtobufGenerator streamed = Protobuf.generator().wrap(streamedOut, 0);
-        streamed.writeInt32(1, 7).beginMessage(2).writeInt32(1, 9).endMessage();
+        streamed.writeInt32(1, 7).startMessage(2).writeInt32(1, 9).endMessage();
         byte[] actual = bytes(streamedOut, streamed.length());
 
         assertArrayEquals(expected, actual);
@@ -109,7 +109,7 @@ public class ProtobufGeneratorTest
             .writeString(7, "hi")
             .writeBytes(8, new byte[]{1, 2, 3})
             .writeEnum(9, 1)
-            .beginMessage(10).writeInt32(1, 9).endMessage();
+            .startMessage(10).writeInt32(1, 9).endMessage();
         byte[] input = bytes(in, source.length());
 
         MutableDirectBuffer out = new UnsafeBuffer(new byte[256]);
@@ -255,7 +255,7 @@ public class ProtobufGeneratorTest
                 depth++;
                 if (depth > 1)
                 {
-                    generator.beginMessage(pending.number());
+                    generator.startMessage(pending.number());
                 }
                 break;
             case FIELD:

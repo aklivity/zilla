@@ -118,15 +118,15 @@ public interface ProtobufGenerator
 
     /**
      * Begins a length-delimited nested message on {@code field}, written incrementally: subsequent
-     * {@code writeXxx} / {@code beginMessage} calls target the nested body until the matching
+     * {@code writeXxx} / {@code startMessage} calls target the nested body until the matching
      * {@link #endMessage()}, which back-patches the length. This is the write-side mirror of a
      * {@link ProtobufEvent#START_MESSAGE} event from a parser; pair each with {@link #endMessage()}.
      */
-    ProtobufGenerator beginMessage(
+    ProtobufGenerator startMessage(
         int field);
 
     /**
-     * Ends the nested message opened by the most recent {@link #beginMessage(int)}, splicing its body
+     * Ends the nested message opened by the most recent {@link #startMessage(int)}, splicing its body
      * with its length into the enclosing message — the write-side mirror of a
      * {@link ProtobufEvent#END_MESSAGE} event.
      */
