@@ -77,6 +77,7 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
+import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
 public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker implements BindingHandler
 {
@@ -232,7 +233,8 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
                     topicName,
                     configs,
                     binding.servers(),
-                    sasl)::onApplication;
+                    sasl,
+                    binding.guard)::onApplication;
         }
 
         return newStream;
@@ -671,7 +673,8 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
             String topic,
             List<String> configs,
             List<KafkaServerConfig> servers,
-            KafkaSaslConfig sasl)
+            KafkaSaslConfig sasl,
+            GuardHandler guard)
         {
             this.application = application;
             this.originId = originId;
@@ -679,7 +682,7 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.affinity = affinity;
-            this.client = new KafkaDescribeClient(routedId, resolvedId, topic, configs, servers, sasl);
+            this.client = new KafkaDescribeClient(routedId, resolvedId, topic, configs, servers, sasl, guard);
         }
 
         private void onApplication(
@@ -987,9 +990,10 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
                 String topic,
                 List<String> configs,
                 List<KafkaServerConfig> servers,
-                KafkaSaslConfig sasl)
+                KafkaSaslConfig sasl,
+                GuardHandler guard)
             {
-                super(servers, sasl, originId, routedId);
+                super(servers, sasl, guard, originId, routedId);
                 this.topic = requireNonNull(topic);
                 this.configs = new LinkedHashMap<>(configs.size());
                 configs.forEach(c -> this.configs.put(c, null));

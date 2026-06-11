@@ -183,7 +183,15 @@
                                     "sasl":
                                     {
                                         "$ref": "#/$defs/options/binding/kafka/sasl"
+                                    },
+                                    "authorization":
+                                    {
+                                        "$ref": "#/$defs/options/binding/kafka/authorization"
                                     }
+                                },
+                                "not":
+                                {
+                                    "required": [ "sasl", "authorization" ]
                                 },
                                 "additionalProperties": false
                             }
@@ -198,9 +206,55 @@
         "path": "/$defs/options/binding/kafka",
         "value":
         {
+            "authorization":
+            {
+                "title": "Authorizations",
+                "type": "object",
+                "patternProperties":
+                {
+                    "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                    {
+                        "title": "Authorization",
+                        "type": "object",
+                        "properties":
+                        {
+                            "credentials":
+                            {
+                                "title": "Credentials",
+                                "type": "object",
+                                "properties":
+                                {
+                                    "mechanism":
+                                    {
+                                        "title": "Mechanism",
+                                        "type": "string",
+                                        "enum": [ "plain", "scram-sha-1", "scram-sha-256", "scram-sha-512" ]
+                                    },
+                                    "username":
+                                    {
+                                        "title": "Username",
+                                        "type": "string"
+                                    },
+                                    "password":
+                                    {
+                                        "title": "Password",
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [ "mechanism", "username", "password" ],
+                                "additionalProperties": false
+                            }
+                        },
+                        "required": [ "credentials" ],
+                        "additionalProperties": false
+                    }
+                },
+                "maxProperties": 1
+            },
             "sasl":
             {
                 "title": "SASL",
+                "deprecated": true,
                 "type": "object",
                 "properties":
                 {
