@@ -132,10 +132,10 @@ public class AvroDecoderTest
     @Test
     public void shouldDecodeRecord()
     {
-        List<AvroEvent> events = decode(
-            "{\"type\":\"record\",\"name\":\"R\",\"fields\":[" +
-                "{\"name\":\"id\",\"type\":\"int\"}," +
-                "{\"name\":\"name\",\"type\":\"string\"}]}",
+        List<AvroEvent> events = decode("""
+            {"type":"record","name":"R","fields":[
+            {"name":"id","type":"int"},
+            {"name":"name","type":"string"}]}""",
             new byte[] { 0x02, 0x04, 0x68, 0x69 }).events;
         assertEquals(List.of(RECORD_START, FIELD_NAME, INT, FIELD_NAME, STRING, RECORD_END), events);
     }

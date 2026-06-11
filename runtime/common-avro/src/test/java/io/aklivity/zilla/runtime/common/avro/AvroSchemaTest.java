@@ -77,10 +77,10 @@ public class AvroSchemaTest
     public void shouldResolveNamedTypeReference()
     {
         Recorder recorder = AvroValues.record(
-            Avro.schema(
-                "{\"type\":\"record\",\"name\":\"Pair\",\"namespace\":\"ns\",\"fields\":[" +
-                    "{\"name\":\"a\",\"type\":{\"type\":\"enum\",\"name\":\"E\",\"symbols\":[\"X\",\"Y\"]}}," +
-                    "{\"name\":\"b\",\"type\":\"E\"}]}"),
+            Avro.schema("""
+                {"type":"record","name":"Pair","namespace":"ns","fields":[
+                {"name":"a","type":{"type":"enum","name":"E","symbols":["X","Y"]}},
+                {"name":"b","type":"E"}]}"""),
             new byte[] { 0x02, 0x00 });
         assertEquals(COMPLETE, recorder.status);
     }
@@ -162,10 +162,10 @@ public class AvroSchemaTest
             }
             return Status.PENDING;
         };
-        assertEquals(COMPLETE, decode(
-            "{\"type\":\"record\",\"name\":\"R\",\"fields\":[" +
-                "{\"name\":\"id\",\"type\":\"int\"}," +
-                "{\"name\":\"name\",\"type\":\"string\"}]}",
+        assertEquals(COMPLETE, decode("""
+            {"type":"record","name":"R","fields":[
+            {"name":"id","type":"int"},
+            {"name":"name","type":"string"}]}""",
             new byte[] { 0x02, 0x04, 0x68, 0x69 }, sink));
         assertEquals(List.of("id", "name"), fields);
     }
@@ -204,10 +204,10 @@ public class AvroSchemaTest
             return Status.PENDING;
         };
         // record { id:int=1 (0x02), name:string="hi" (0x04 'h' 'i') }; name begins at byte 1, depth 2
-        assertEquals(COMPLETE, decode(
-            "{\"type\":\"record\",\"name\":\"R\",\"fields\":[" +
-                "{\"name\":\"id\",\"type\":\"int\"}," +
-                "{\"name\":\"name\",\"type\":\"string\"}]}",
+        assertEquals(COMPLETE, decode("""
+            {"type":"record","name":"R","fields":[
+            {"name":"id","type":"int"},
+            {"name":"name","type":"string"}]}""",
             new byte[] { 0x02, 0x04, 0x68, 0x69 }, sink));
         assertEquals(2, depth[0]);
         assertEquals(1L, position[0]);

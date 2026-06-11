@@ -72,10 +72,10 @@ public class AvroFragmentedDecoderTest
     @Test
     public void shouldDecodeRecordAcrossFrames()
     {
-        assertSameFragmentedAsWhole(
-            "{\"type\":\"record\",\"name\":\"R\",\"fields\":[" +
-                "{\"name\":\"id\",\"type\":\"int\"}," +
-                "{\"name\":\"name\",\"type\":\"string\"}]}",
+        assertSameFragmentedAsWhole("""
+            {"type":"record","name":"R","fields":[
+            {"name":"id","type":"int"},
+            {"name":"name","type":"string"}]}""",
             new byte[] { 0x02, 0x04, 0x68, 0x69 });
     }
 
@@ -109,10 +109,10 @@ public class AvroFragmentedDecoderTest
     public void shouldDecodeSegmentedAcrossFrames()
     {
         // a verbatim segment run spanning frames must reproduce the input exactly
-        AvroSchema schema = Avro.schema(
-            "{\"type\":\"record\",\"name\":\"R\",\"fields\":[" +
-                "{\"name\":\"id\",\"type\":\"int\"}," +
-                "{\"name\":\"name\",\"type\":\"string\"}]}");
+        AvroSchema schema = Avro.schema("""
+            {"type":"record","name":"R","fields":[
+            {"name":"id","type":"int"},
+            {"name":"name","type":"string"}]}""");
         byte[] binary = new byte[] { (byte) 0x80, 0x01, 0x08, 0x77, 0x78, 0x79, 0x7a };
 
         UnsafeBuffer out = new UnsafeBuffer(new byte[64]);

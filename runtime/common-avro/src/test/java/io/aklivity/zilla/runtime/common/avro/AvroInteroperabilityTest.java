@@ -66,16 +66,16 @@ public class AvroInteroperabilityTest
 
     private void writePrimitives() throws IOException
     {
-        Schema schema = new Schema.Parser().parse(
-            "{\"type\":\"record\",\"name\":\"Primitives\",\"fields\":[" +
-                "{\"name\":\"intField\",\"type\":\"int\"}," +
-                "{\"name\":\"longField\",\"type\":\"long\"}," +
-                "{\"name\":\"stringField\",\"type\":\"string\"}," +
-                "{\"name\":\"boolField\",\"type\":\"boolean\"}," +
-                "{\"name\":\"floatField\",\"type\":\"float\"}," +
-                "{\"name\":\"doubleField\",\"type\":\"double\"}," +
-                "{\"name\":\"bytesField\",\"type\":\"bytes\"}," +
-                "{\"name\":\"nullField\",\"type\":\"null\"}]}");
+        Schema schema = new Schema.Parser().parse("""
+            {"type":"record","name":"Primitives","fields":[
+            {"name":"intField","type":"int"},
+            {"name":"longField","type":"long"},
+            {"name":"stringField","type":"string"},
+            {"name":"boolField","type":"boolean"},
+            {"name":"floatField","type":"float"},
+            {"name":"doubleField","type":"double"},
+            {"name":"bytesField","type":"bytes"},
+            {"name":"nullField","type":"null"}]}""");
         GenericData.Record record = new GenericData.Record(schema);
         record.put("intField", 42);
         record.put("longField", 9_999_999_999L);
@@ -125,10 +125,10 @@ public class AvroInteroperabilityTest
 
     private void writeRecursive() throws IOException
     {
-        Schema schema = new Schema.Parser().parse(
-            "{\"type\":\"record\",\"name\":\"Node\",\"fields\":[" +
-                "{\"name\":\"label\",\"type\":\"string\"}," +
-                "{\"name\":\"children\",\"type\":{\"type\":\"array\",\"items\":\"Node\"}}]}");
+        Schema schema = new Schema.Parser().parse("""
+            {"type":"record","name":"Node","fields":[
+            {"name":"label","type":"string"},
+            {"name":"children","type":{"type":"array","items":"Node"}}]}""");
         write("recursive", schema, node(schema, "root", node(schema, "a"), node(schema, "b", node(schema, "b1"))));
     }
 

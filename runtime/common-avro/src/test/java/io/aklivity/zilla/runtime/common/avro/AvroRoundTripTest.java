@@ -55,21 +55,21 @@ public class AvroRoundTripTest
     @Test
     public void shouldRoundTripRecord()
     {
-        assertRoundTrip(
-            "{\"type\":\"record\",\"name\":\"R\",\"fields\":[" +
-                "{\"name\":\"id\",\"type\":\"int\"}," +
-                "{\"name\":\"name\",\"type\":\"string\"}]}",
+        assertRoundTrip("""
+            {"type":"record","name":"R","fields":[
+            {"name":"id","type":"int"},
+            {"name":"name","type":"string"}]}""",
             new byte[] { 0x02, 0x04, 0x68, 0x69 });
     }
 
     @Test
     public void shouldRoundTripNestedRecord()
     {
-        assertRoundTrip(
-            "{\"type\":\"record\",\"name\":\"Outer\",\"fields\":[" +
-                "{\"name\":\"inner\",\"type\":{\"type\":\"record\",\"name\":\"Inner\",\"fields\":[" +
-                "{\"name\":\"v\",\"type\":\"long\"}]}}," +
-                "{\"name\":\"tag\",\"type\":\"string\"}]}",
+        assertRoundTrip("""
+            {"type":"record","name":"Outer","fields":[
+            {"name":"inner","type":{"type":"record","name":"Inner","fields":[
+            {"name":"v","type":"long"}]}},
+            {"name":"tag","type":"string"}]}""",
             new byte[] { 0x0e, 0x02, 0x7a });
     }
 
