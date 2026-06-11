@@ -21,11 +21,11 @@ import io.aklivity.zilla.runtime.common.avro.AvroSink;
 
 final class AvroPipelineImpl implements AvroPipeline
 {
-    private final AvroDecodeDriver driver;
+    private final AvroDecoderImpl driver;
     private final AvroSink root;
 
     AvroPipelineImpl(
-        AvroDecodeDriver driver,
+        AvroDecoderImpl driver,
         AvroSink root)
     {
         this.driver = driver;

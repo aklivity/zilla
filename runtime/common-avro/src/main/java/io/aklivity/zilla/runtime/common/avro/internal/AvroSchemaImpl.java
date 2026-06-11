@@ -16,9 +16,14 @@ package io.aklivity.zilla.runtime.common.avro.internal;
 
 import org.agrona.MutableDirectBuffer;
 
+import io.aklivity.zilla.runtime.common.avro.AvroController;
 import io.aklivity.zilla.runtime.common.avro.AvroDecoder;
 import io.aklivity.zilla.runtime.common.avro.AvroEncoder;
+import io.aklivity.zilla.runtime.common.avro.AvroEvent;
+import io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status;
 import io.aklivity.zilla.runtime.common.avro.AvroSchema;
+import io.aklivity.zilla.runtime.common.avro.AvroSink;
+import io.aklivity.zilla.runtime.common.avro.AvroSource;
 import io.aklivity.zilla.runtime.common.avro.AvroTransform;
 
 public final class AvroSchemaImpl implements AvroSchema
@@ -34,13 +39,13 @@ public final class AvroSchemaImpl implements AvroSchema
     @Override
     public AvroDecoder decoder()
     {
-        return new AvroDecodeDriver(root);
+        return new AvroDecoderImpl(root);
     }
 
     @Override
     public AvroTransform validator()
     {
-        return new AvroValidatorTransform();
+        return new Validator();
     }
 
     @Override
@@ -49,5 +54,25 @@ public final class AvroSchemaImpl implements AvroSchema
         int offset)
     {
         return new AvroEncoderImpl(root, buffer, offset);
+    }
+
+    /**
+     * The streaming validator stage. Avro validation is intrinsic to decode — the driver walks the
+     * schema and aborts (REJECTED) on the first malformed byte before any event reaches this stage —
+     * so the validator forwards the event stream unchanged, passing {@code control} through to its
+     * downstream (non-mediating). Composed before a sink it validates-then-converts; composed before a
+     * discarding sink it validates only.
+     */
+    private static final class Validator implements AvroTransform
+    {
+        @Override
+        public Status feed(
+            AvroController control,
+            AvroSource source,
+            AvroEvent event,
+            AvroSink sink)
+        {
+            return sink.feed(control, source, event);
+        }
     }
 }

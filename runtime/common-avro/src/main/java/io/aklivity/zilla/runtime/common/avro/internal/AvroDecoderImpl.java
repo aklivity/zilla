@@ -61,7 +61,7 @@ import io.aklivity.zilla.runtime.common.avro.AvroStream;
  * a downstream stage may opt the current datum into verbatim segment delivery, in which case the value
  * is scanned (still validating) without structured emission and delivered as raw segment chunks.
  */
-final class AvroDecodeDriver implements AvroDecoder, AvroController
+final class AvroDecoderImpl implements AvroDecoder, AvroController
 {
     private static final int READ_OK = 0;
     private static final int READ_UNDERFLOW = 1;
@@ -82,7 +82,7 @@ final class AvroDecodeDriver implements AvroDecoder, AvroController
     }
 
     private final AvroNode root;
-    private final AvroCursor cursor;
+    private final AvroSourceImpl cursor;
     private AvroSink sink;
 
     private final MutableDirectBuffer work;
@@ -102,11 +102,11 @@ final class AvroDecodeDriver implements AvroDecoder, AvroController
     private boolean segmenting;
     private boolean segmentStarted;
 
-    AvroDecodeDriver(
+    AvroDecoderImpl(
         AvroNode root)
     {
         this.root = root;
-        this.cursor = new AvroCursor();
+        this.cursor = new AvroSourceImpl();
         this.work = new ExpandableArrayBuffer();
         this.nodeStack = new AvroNode[16];
         this.stateStack = new int[16];

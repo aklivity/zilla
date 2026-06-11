@@ -28,7 +28,7 @@ import io.aklivity.zilla.runtime.common.avro.AvroSource;
  * strings (enum symbols, field names) are returned without allocation; {@link #getString()} for a
  * data-driven {@code STRING} decodes UTF-8 on demand.
  */
-final class AvroCursor implements AvroSource
+final class AvroSourceImpl implements AvroSource
 {
     private final UnsafeBuffer segmentView = new UnsafeBuffer(0, 0);
 
