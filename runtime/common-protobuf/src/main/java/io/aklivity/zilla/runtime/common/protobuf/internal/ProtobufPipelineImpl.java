@@ -79,24 +79,108 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline, ProtobufCon
         int offset,
         int length)
     {
-        ProtobufMessage message = schema.message(messageName);
         Status status;
-        if (message == null)
+        try
+        {
+            if (schema == null)
+            {
+                status = emitRaw(buffer, offset, length);
+            }
+            else
+            {
+                ProtobufMessage message = schema.message(messageName);
+                status = message == null ? Status.REJECTED : emitMessage(message, buffer, offset, length, 0);
+            }
+        }
+        catch (ProtobufException ex)
         {
             status = Status.REJECTED;
         }
-        else
+        return status;
+    }
+
+    private Status emitRaw(
+        DirectBuffer buffer,
+        int offset,
+        int length)
+    {
+        Status status = emitRawEvent(ProtobufEvent.START_MESSAGE, -1, null);
+        ProtobufReader reader = new ProtobufReader().wrap(buffer, offset, length);
+        while (status != Status.REJECTED && reader.hasRemaining())
         {
-            try
+            int tag = reader.readVarint32();
+            int number = tag >>> 3;
+            ProtobufWireType wireType = ProtobufWireType.of(tag & 0x7);
+            status = emitRawEvent(ProtobufEvent.FIELD, number, wireType);
+            if (status != Status.REJECTED)
             {
-                status = emitMessage(message, buffer, offset, length, 0);
-            }
-            catch (ProtobufException ex)
-            {
-                status = Status.REJECTED;
+                decodeRaw(reader, number, wireType);
+                status = emitRawEvent(ProtobufEvent.VALUE, number, wireType);
             }
         }
+        if (status != Status.REJECTED)
+        {
+            status = emitRawEvent(ProtobufEvent.END_MESSAGE, -1, null);
+        }
         return status;
+    }
+
+    private Status emitRawEvent(
+        ProtobufEvent event,
+        int number,
+        ProtobufWireType wireType)
+    {
+        source.field = null;
+        source.fieldNumber = number;
+        source.wireType = wireType;
+        return head.feed(this, source, event);
+    }
+
+    private void decodeRaw(
+        ProtobufReader reader,
+        int number,
+        ProtobufWireType wireType)
+    {
+        int start = reader.offset();
+        switch (wireType)
+        {
+        case VARINT:
+            source.longValue = reader.readVarint64();
+            slice(reader.buffer(), start, reader.offset() - start);
+            break;
+        case I64:
+            source.longValue = reader.readFixed64();
+            slice(reader.buffer(), start, 8);
+            break;
+        case I32:
+            source.longValue = reader.readFixed32() & 0xffffffffL;
+            slice(reader.buffer(), start, 4);
+            break;
+        case LEN:
+            int len = reader.readLength();
+            source.longValue = len;
+            slice(reader.buffer(), reader.offset(), len);
+            reader.skip(len);
+            break;
+        case SGROUP:
+            int bodyStart = reader.offset();
+            int bodyEnd = reader.skipGroup(number);
+            source.longValue = 0;
+            slice(reader.buffer(), bodyStart, bodyEnd - bodyStart);
+            break;
+        default:
+            throw new ProtobufException("unexpected wire type " + wireType);
+        }
+    }
+
+    private void slice(
+        DirectBuffer buffer,
+        int offset,
+        int length)
+    {
+        source.buffer = buffer;
+        source.offset = offset;
+        source.length = length;
     }
 
     @Override
@@ -235,6 +319,8 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline, ProtobufCon
         int length)
     {
         source.field = field;
+        source.fieldNumber = field != null ? field.number() : -1;
+        source.wireType = field != null ? field.type().wireType() : null;
         if (event.segmented())
         {
             source.buffer = buffer;
@@ -346,6 +432,8 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline, ProtobufCon
     private static final class SourceView implements ProtobufSource
     {
         private ProtobufField field;
+        private int fieldNumber;
+        private ProtobufWireType wireType;
         private long longValue;
         private double doubleValue;
         private float floatValue;
@@ -357,6 +445,18 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline, ProtobufCon
         public ProtobufField field()
         {
             return field;
+        }
+
+        @Override
+        public int fieldNumber()
+        {
+            return fieldNumber;
+        }
+
+        @Override
+        public ProtobufWireType wireType()
+        {
+            return wireType;
         }
 
         @Override

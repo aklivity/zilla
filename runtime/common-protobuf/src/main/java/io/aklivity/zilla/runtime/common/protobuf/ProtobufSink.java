@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.common.protobuf;
 
 import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufDiscardSink;
+import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufRawWireSink;
 import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufWireSink;
 
 /**
@@ -59,5 +60,17 @@ public interface ProtobufSink
         String messageName)
     {
         return new ProtobufWireSink(generator, schema, messageName);
+    }
+
+    /**
+     * A schema-free terminal sink that writes the generic event stream back out as wire through
+     * {@code generator}, by field number and wire type, splicing each raw value verbatim. Composed
+     * with {@code StreamingProtobuf.parser()} it is a lossless structural copy; place a transform
+     * before it to keep/drop/redact fields by number with no schema.
+     */
+    static ProtobufSink of(
+        ProtobufGenerator generator)
+    {
+        return new ProtobufRawWireSink(generator);
     }
 }

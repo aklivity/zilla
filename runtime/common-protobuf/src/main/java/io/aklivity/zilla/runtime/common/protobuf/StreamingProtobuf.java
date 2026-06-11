@@ -75,6 +75,19 @@ public final class StreamingProtobuf
     }
 
     /**
+     * Begins a schema-free streaming pipeline that tokenizes the wire into generic events — a
+     * {@link ProtobufEvent#FIELD} per wire field (carrying {@link ProtobufSource#fieldNumber()} and
+     * {@link ProtobufSource#wireType()}) and a {@link ProtobufEvent#VALUE} carrying the raw value
+     * slice. Length-delimited values are opaque bytes (no message-vs-string interpretation) and there
+     * is no recursion; suitable for generic structural transforms (keep/drop/redact by field number)
+     * and lossless copy, where typed decode is not needed.
+     */
+    public static ProtobufStream parser()
+    {
+        return new ProtobufStreamImpl(null, null);
+    }
+
+    /**
      * A reusable per-worker buffer-backed wire generator, the output edge for a wire-writing
      * {@link ProtobufSink#of(ProtobufGenerator, ProtobufSchema, String)}.
      */

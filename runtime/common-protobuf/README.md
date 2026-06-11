@@ -107,6 +107,24 @@ ProtobufPipeline.Status status = pipeline.feed(buffer, offset, length);  // PEND
   on a composite `FIELD` to receive that value as `START_SEGMENT`/`END_SEGMENT` raw wire bytes
   (`ProtobufSource.buffer()`/`offset()`/`length()`) instead of expanding it into structured events.
 
+### Schema-free mode
+
+The wire is self-describing enough to tokenize without a schema, so `StreamingProtobuf.parser()`
+(no schema) drives a schema-free pipeline: a `FIELD` event per wire field carrying
+`ProtobufSource.fieldNumber()` and `wireType()`, then a `VALUE` carrying the raw value slice.
+Length-delimited values are opaque bytes (no message-vs-string interpretation) and there is no
+recursion — typed values, names, and the JSON mapping all require a schema. It is suited to generic
+structural work: `ProtobufSink.of(generator)` writes the generic stream back out verbatim (a
+lossless structural copy), and a `ProtobufTransform` between them can keep/drop/redact fields by
+number with no schema:
+
+```java
+ProtobufGenerator generator = StreamingProtobuf.generator().wrap(out, 0);
+ProtobufTransform redact = (control, source, event, sink) ->
+    source.fieldNumber() == SSN ? ProtobufPipeline.Status.PENDING : sink.feed(control, source, event);
+StreamingProtobuf.parser().transform(redact).into(ProtobufSink.of(generator));
+```
+
 ### Bounded-buffer contract
 
 Protobuf fields are length-delimited and may arrive in any order, and a repeated field's elements

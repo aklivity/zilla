@@ -27,9 +27,22 @@ public interface ProtobufSource
 {
     /**
      * The field of the current {@link ProtobufEvent#FIELD} / {@link ProtobufEvent#VALUE} or composite,
-     * or {@code null} at message and segment boundaries.
+     * or {@code null} at message and segment boundaries — and always {@code null} in the schema-free
+     * mode, where {@link #fieldNumber()} and {@link #wireType()} carry the wire identity instead.
      */
     ProtobufField field();
+
+    /**
+     * The wire field number of the current field, or {@code -1} at message boundaries. Available in
+     * both the schema-driven and schema-free modes.
+     */
+    int fieldNumber();
+
+    /**
+     * The wire type of the current field, or {@code null} at message boundaries. Available in both
+     * the schema-driven and schema-free modes.
+     */
+    ProtobufWireType wireType();
 
     /**
      * The scalar as a 64-bit integer — for the varint, zigzag, and fixed integer types, {@code bool}
