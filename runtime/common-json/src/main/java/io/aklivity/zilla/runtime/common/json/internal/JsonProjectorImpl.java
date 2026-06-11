@@ -47,7 +47,10 @@ public final class JsonProjectorImpl implements JsonTransform
 
     private final List<String[]> retained;
 
-    private final String[] segments = new String[MAX_DEPTH];
+    // Per-depth reused key buffers — an object-key segment is captured here char-by-char (no String);
+    // segmentIsKey distinguishes an object key from an array index at this depth.
+    private final StringBuilder[] segmentKeys = new StringBuilder[MAX_DEPTH];
+    private final boolean[] segmentIsKey = new boolean[MAX_DEPTH];
     private final int[] indexes = new int[MAX_DEPTH];
 
     private final boolean[] frameInArray = new boolean[MAX_DEPTH];
@@ -78,6 +81,10 @@ public final class JsonProjectorImpl implements JsonTransform
         List<String> pointers)
     {
         this.retained = compileAll(pointers);
+        for (int i = 0; i < MAX_DEPTH; i++)
+        {
+            segmentKeys[i] = new StringBuilder();
+        }
     }
 
     @Override
@@ -152,14 +159,18 @@ public final class JsonProjectorImpl implements JsonTransform
     private void onKey(
         JsonSource source)
     {
-        String key = source.getString();
-        segments[depth] = key;
+        StringBuilder key = segmentKeys[depth];
+        key.setLength(0);
+        key.append(source.getKey());
+        segmentIsKey[depth] = true;
         indexes[depth] = -1;
         depth++;
         boolean parentKeepAll = containers > 0 && frameKeepAll[containers - 1];
         Decision d = parentKeepAll ? Decision.KEEP_ALL : decide();
         keyDecision = d;
-        pendingKey = key;
+        // Only a key whose value will be emitted is forwarded, so only then is a String materialized;
+        // SKIP keys (the majority) are matched by chars above and never allocate.
+        pendingKey = d == Decision.SKIP ? null : source.getString();
     }
 
     private void forwardPendingKey(
@@ -316,7 +327,7 @@ public final class JsonProjectorImpl implements JsonTransform
             int parent = containers - 1;
             if (frameInArray[parent])
             {
-                segments[depth] = null;
+                segmentIsKey[depth] = false;
                 indexes[depth] = frameNextIndex[parent];
                 frameNextIndex[parent] = frameNextIndex[parent] + 1;
                 depth++;
@@ -373,10 +384,21 @@ public final class JsonProjectorImpl implements JsonTransform
         String pointerSegment,
         int pathIndex)
     {
-        String pathSegment = segments[pathIndex];
-        return pathSegment == null
-            ? WILDCARD.equals(pointerSegment) || matchesIndex(pointerSegment, indexes[pathIndex])
-            : pointerSegment.equals(pathSegment);
+        return segmentIsKey[pathIndex]
+            ? charsEqual(pointerSegment, segmentKeys[pathIndex])
+            : WILDCARD.equals(pointerSegment) || matchesIndex(pointerSegment, indexes[pathIndex]);
+    }
+
+    private static boolean charsEqual(
+        String pointerSegment,
+        CharSequence key)
+    {
+        boolean matches = pointerSegment.length() == key.length();
+        for (int i = 0; matches && i < pointerSegment.length(); i++)
+        {
+            matches = pointerSegment.charAt(i) == key.charAt(i);
+        }
+        return matches;
     }
 
     private static boolean matchesIndex(
@@ -446,6 +468,12 @@ public final class JsonProjectorImpl implements JsonTransform
 
         @Override
         public String getString()
+        {
+            return key;
+        }
+
+        @Override
+        public CharSequence getKey()
         {
             return key;
         }

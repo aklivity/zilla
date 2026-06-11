@@ -376,6 +376,12 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
     }
 
     @Override
+    public CharSequence getKey()
+    {
+        return tokenizer.key();
+    }
+
+    @Override
     public boolean isIntegralNumber()
     {
         String v = tokenizer.stringValue();
