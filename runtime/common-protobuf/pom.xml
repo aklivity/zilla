@@ -44,6 +44,20 @@
       <scope>test</scope>
     </dependency>
     <dependency>
+      <!-- testcontainers 2.0.5 needs a recent commons-lang3 SystemProperties; override transitive 3.12.0 -->
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-lang3</artifactId>
+      <version>3.18.0</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <!-- testcontainers 2.0.5 needs commons-io FileTimes (2.12+); override transitive 2.11.0 -->
+      <groupId>commons-io</groupId>
+      <artifactId>commons-io</artifactId>
+      <version>2.18.0</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>org.openjdk.jmh</groupId>
       <artifactId>jmh-core</artifactId>
       <scope>test</scope>

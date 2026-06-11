@@ -50,6 +50,8 @@ public class ProtobufConformanceIT
     @Test
     public void shouldPassBinaryConformanceSuite() throws Exception
     {
+        assumeTrue(Boolean.getBoolean("zilla.conformance"),
+            "set -Dzilla.conformance=true to run the protobuf conformance suite (builds a runner image)");
         assumeTrue(DockerClientFactory.instance().isDockerAvailable(), "Docker is required");
 
         ImageFromDockerfile image = new ImageFromDockerfile("zilla/common-protobuf-conformance", false)

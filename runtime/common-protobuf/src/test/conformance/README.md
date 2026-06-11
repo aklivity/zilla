@@ -21,8 +21,9 @@ length-prefixed `ConformanceRequest` / `ConformanceResponse` protobufs. Our test
 
 ## Image and runtime injection
 
-`Dockerfile` builds a pinned image: a JDK base with the native `conformance_test_runner`, `protoc`,
-and a baked `descriptors.bin` of the conformance test messages. It changes only with
+`Dockerfile` builds a pinned image on a single JDK base (Ubuntu-based, so one registry pull): the
+native `conformance_test_runner` and `protoc` are installed on top, the same JDK runs the testee,
+and a `descriptors.bin` of the conformance test messages is baked in. It changes only with
 `PROTOBUF_VERSION`, so publish it to a registry and let CI pull it rather than rebuild the runner.
 
 `ProtobufConformanceIT` copies the testee classpath — `target/classes`, `target/test-classes`, and
@@ -35,7 +36,15 @@ conformance_test_runner --enforce_recommended --failure_list /conformance/failur
 ```
 
 Because the testee is injected at runtime, iterating on `common-protobuf` never rebuilds the image.
-The IT is skipped where Docker is unavailable.
+
+The suite is **opt-in**: it builds the runner image from source (network + a multi-minute compile),
+so it does not run on every `mvn verify`. Enable it explicitly in a dedicated job:
+
+```
+./mvnw verify -pl runtime/common-protobuf -Dzilla.conformance=true
+```
+
+Without that property — or where Docker is unavailable — the IT is skipped.
 
 ## Failure list
 
