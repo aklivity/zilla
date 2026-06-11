@@ -38,8 +38,8 @@
       <artifactId>jakarta.json-api</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.eclipse.parsson</groupId>
-      <artifactId>parsson</artifactId>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>common-json</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
