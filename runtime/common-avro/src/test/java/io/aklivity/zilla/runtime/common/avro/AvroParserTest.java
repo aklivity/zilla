@@ -46,7 +46,7 @@ import io.aklivity.zilla.runtime.common.avro.AvroValues.Recorder;
 
 public class AvroParserTest
 {
-    private Recorder decode(
+    private Recorder parse(
         String schemaText,
         byte[] binary)
     {
@@ -56,83 +56,83 @@ public class AvroParserTest
     }
 
     @Test
-    public void shouldDecodeInt()
+    public void shouldParseInt()
     {
-        Entry entry = decode("\"int\"", new byte[] { 0x02 }).entries.get(0);
+        Entry entry = parse("\"int\"", new byte[] { 0x02 }).entries.get(0);
         assertEquals(INT, entry.event);
         assertEquals(1, entry.intValue);
     }
 
     @Test
-    public void shouldDecodeNegativeInt()
+    public void shouldParseNegativeInt()
     {
-        assertEquals(-64, decode("\"int\"", new byte[] { 0x7f }).entries.get(0).intValue);
+        assertEquals(-64, parse("\"int\"", new byte[] { 0x7f }).entries.get(0).intValue);
     }
 
     @Test
-    public void shouldDecodeMultiByteInt()
+    public void shouldParseMultiByteInt()
     {
-        assertEquals(64, decode("\"int\"", new byte[] { (byte) 0x80, 0x01 }).entries.get(0).intValue);
+        assertEquals(64, parse("\"int\"", new byte[] { (byte) 0x80, 0x01 }).entries.get(0).intValue);
     }
 
     @Test
-    public void shouldDecodeLong()
+    public void shouldParseLong()
     {
-        Entry entry = decode("\"long\"", new byte[] { 0x02 }).entries.get(0);
+        Entry entry = parse("\"long\"", new byte[] { 0x02 }).entries.get(0);
         assertEquals(LONG, entry.event);
         assertEquals(1L, entry.longValue);
     }
 
     @Test
-    public void shouldDecodeBoolean()
+    public void shouldParseBoolean()
     {
-        Entry entry = decode("\"boolean\"", new byte[] { 0x01 }).entries.get(0);
+        Entry entry = parse("\"boolean\"", new byte[] { 0x01 }).entries.get(0);
         assertEquals(BOOLEAN, entry.event);
         assertEquals(true, entry.booleanValue);
     }
 
     @Test
-    public void shouldDecodeNull()
+    public void shouldParseNull()
     {
-        assertEquals(NULL, decode("\"null\"", new byte[] {}).entries.get(0).event);
+        assertEquals(NULL, parse("\"null\"", new byte[] {}).entries.get(0).event);
     }
 
     @Test
-    public void shouldDecodeFloat()
+    public void shouldParseFloat()
     {
         UnsafeBuffer encoded = new UnsafeBuffer(new byte[4]);
         encoded.putFloat(0, 1.5f, ByteOrder.LITTLE_ENDIAN);
         byte[] bytes = new byte[4];
         encoded.getBytes(0, bytes);
-        Entry entry = decode("\"float\"", bytes).entries.get(0);
+        Entry entry = parse("\"float\"", bytes).entries.get(0);
         assertEquals(FLOAT, entry.event);
         assertEquals(1.5f, entry.floatValue, 0.0f);
     }
 
     @Test
-    public void shouldDecodeDouble()
+    public void shouldParseDouble()
     {
         UnsafeBuffer encoded = new UnsafeBuffer(new byte[8]);
         encoded.putDouble(0, 2.25d, ByteOrder.LITTLE_ENDIAN);
         byte[] bytes = new byte[8];
         encoded.getBytes(0, bytes);
-        Entry entry = decode("\"double\"", bytes).entries.get(0);
+        Entry entry = parse("\"double\"", bytes).entries.get(0);
         assertEquals(DOUBLE, entry.event);
         assertEquals(2.25d, entry.doubleValue, 0.0d);
     }
 
     @Test
-    public void shouldDecodeString()
+    public void shouldParseString()
     {
-        Entry entry = decode("\"string\"", new byte[] { 0x06, 0x66, 0x6f, 0x6f }).entries.get(0);
+        Entry entry = parse("\"string\"", new byte[] { 0x06, 0x66, 0x6f, 0x6f }).entries.get(0);
         assertEquals(STRING, entry.event);
         assertEquals("foo", new String(entry.bytes, UTF_8));
     }
 
     @Test
-    public void shouldDecodeRecord()
+    public void shouldParseRecord()
     {
-        List<AvroEvent> events = decode("""
+        List<AvroEvent> events = parse("""
             {"type":"record","name":"R","fields":[
             {"name":"id","type":"int"},
             {"name":"name","type":"string"}]}""",
@@ -141,18 +141,18 @@ public class AvroParserTest
     }
 
     @Test
-    public void shouldDecodeArray()
+    public void shouldParseArray()
     {
-        List<AvroEvent> events = decode(
+        List<AvroEvent> events = parse(
             "{\"type\":\"array\",\"items\":\"int\"}",
             new byte[] { 0x04, 0x02, 0x04, 0x00 }).events;
         assertEquals(List.of(START_ARRAY, INT, INT, END_ARRAY), events);
     }
 
     @Test
-    public void shouldDecodeMap()
+    public void shouldParseMap()
     {
-        Recorder recorder = decode(
+        Recorder recorder = parse(
             "{\"type\":\"map\",\"values\":\"long\"}",
             new byte[] { 0x02, 0x02, 0x61, 0x0e, 0x00 });
         assertEquals(List.of(START_MAP, MAP_KEY, LONG, END_MAP), recorder.events);
@@ -160,9 +160,9 @@ public class AvroParserTest
     }
 
     @Test
-    public void shouldDecodeEnum()
+    public void shouldParseEnum()
     {
-        Entry entry = decode(
+        Entry entry = parse(
             "{\"type\":\"enum\",\"name\":\"Suit\",\"symbols\":[\"SPADES\",\"HEARTS\"]}",
             new byte[] { 0x02 }).entries.get(0);
         assertEquals(ENUM, entry.event);
@@ -171,17 +171,17 @@ public class AvroParserTest
     }
 
     @Test
-    public void shouldDecodeUnionNull()
+    public void shouldParseUnionNull()
     {
-        Recorder recorder = decode("[\"null\",\"string\"]", new byte[] { 0x00 });
+        Recorder recorder = parse("[\"null\",\"string\"]", new byte[] { 0x00 });
         assertEquals(List.of(UNION_BRANCH, NULL), recorder.events);
         assertEquals(0, recorder.entries.get(0).intValue);
     }
 
     @Test
-    public void shouldDecodeUnionString()
+    public void shouldParseUnionString()
     {
-        Recorder recorder = decode("[\"null\",\"string\"]", new byte[] { 0x02, 0x02, 0x78 });
+        Recorder recorder = parse("[\"null\",\"string\"]", new byte[] { 0x02, 0x02, 0x78 });
         assertEquals(List.of(UNION_BRANCH, STRING), recorder.events);
         assertEquals(1, recorder.entries.get(0).intValue);
     }
