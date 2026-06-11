@@ -153,7 +153,7 @@ public class ProtobufPipelineTest
         pipeline.reset();
 
         assertEquals(Status.COMPLETE, feed(pipeline, message));
-        assertEquals(List.of("{", "F5", "{", "F1", "V9", "}", "}"), sink.events);
+        assertEquals(List.of("{", "F5", "(", "F1", "V9", ")", "}"), sink.events);
     }
 
     @Test
@@ -489,6 +489,14 @@ public class ProtobufPipelineTest
                 {
                     status = ProtobufPipeline.Status.COMPLETE;
                 }
+                break;
+            case START_GROUP:
+                events.add("(");
+                depth++;
+                break;
+            case END_GROUP:
+                events.add(")");
+                depth--;
                 break;
             case FIELD:
                 ProtobufField field = source.field();

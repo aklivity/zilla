@@ -33,15 +33,19 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
  */
 public final class ProtobufGeneratorImpl implements ProtobufGenerator
 {
+    private static final int GROUP_LEVEL = -1;
+
     private final ProtobufWriter writer;
 
     private int[] ends;
+    private int[] groupFields;
     private int depth;
 
     public ProtobufGeneratorImpl()
     {
         this.writer = new ProtobufWriter();
         this.ends = new int[8];
+        this.groupFields = new int[8];
     }
 
     @Override
@@ -251,11 +255,7 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
     {
         writer.writeTag(field, ProtobufWireType.LEN);
         writer.writeVarint32(length);
-        depth++;
-        if (depth >= ends.length)
-        {
-            ends = Arrays.copyOf(ends, ends.length * 2);
-        }
+        push();
         ends[depth] = writer.length() + length;
         return this;
     }
@@ -263,6 +263,10 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
     @Override
     public ProtobufGenerator endMessage()
     {
+        if (ends[depth] == GROUP_LEVEL)
+        {
+            throw new ProtobufException("open group, expected endGroup");
+        }
         int expected = ends[depth];
         depth--;
         if (writer.length() != expected)
@@ -271,6 +275,40 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
                 " but wrote " + writer.length());
         }
         return this;
+    }
+
+    @Override
+    public ProtobufGenerator startGroup(
+        int field)
+    {
+        writer.writeTag(field, ProtobufWireType.SGROUP);
+        push();
+        ends[depth] = GROUP_LEVEL;
+        groupFields[depth] = field;
+        return this;
+    }
+
+    @Override
+    public ProtobufGenerator endGroup()
+    {
+        if (ends[depth] != GROUP_LEVEL)
+        {
+            throw new ProtobufException("open message, expected endMessage");
+        }
+        int field = groupFields[depth];
+        depth--;
+        writer.writeTag(field, ProtobufWireType.EGROUP);
+        return this;
+    }
+
+    private void push()
+    {
+        depth++;
+        if (depth >= ends.length)
+        {
+            ends = Arrays.copyOf(ends, ends.length * 2);
+            groupFields = Arrays.copyOf(groupFields, groupFields.length * 2);
+        }
     }
 
     @Override

@@ -135,6 +135,21 @@ public interface ProtobufGenerator
     ProtobufGenerator endMessage();
 
     /**
+     * Begins a proto2 group on {@code field} by writing its start-group tag — the write-side mirror of a
+     * {@link ProtobufEvent#START_GROUP} event. A group carries no length prefix, so the body streams
+     * straight to the output and is closed by {@link #endGroup()}; nothing is written up front beyond the
+     * tag, which makes it the framing of choice when the body length is not known in advance.
+     */
+    ProtobufGenerator startGroup(
+        int field);
+
+    /**
+     * Ends the group opened by the most recent {@link #startGroup(int)} by writing its end-group tag —
+     * the write-side mirror of an {@link ProtobufEvent#END_GROUP} event.
+     */
+    ProtobufGenerator endGroup();
+
+    /**
      * Splices {@code length} bytes from {@code source} verbatim — tag and value already encoded — used
      * to pass a field through unchanged.
      */

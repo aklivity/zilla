@@ -237,6 +237,7 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource,
         Frame frame = frame(0);
         frame.reader.wrap(inputBuffer, inputOffset, inputLength);
         frame.message = root;
+        frame.group = false;
         frame.packedLimit = -1;
         boundary();
         slice(inputBuffer, inputOffset, inputLength);
@@ -381,27 +382,30 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource,
             {
                 throw new ProtobufException("unresolved message type " + compositeField.typeName());
             }
+            boolean group = compositeField.type() == ProtobufType.GROUP;
             phase = PHASE_NONE;
             Frame frame = frame(depth);
             frame.reader.wrap(inputBuffer, regionOffset, regionLength);
             frame.message = nested;
+            frame.group = group;
             frame.packedLimit = -1;
             boundary();
             slice(inputBuffer, regionOffset, regionLength);
-            event = ProtobufEvent.START_MESSAGE;
+            event = group ? ProtobufEvent.START_GROUP : ProtobufEvent.START_MESSAGE;
         }
         return event;
     }
 
     private ProtobufEvent endFrame()
     {
+        boolean group = frames.get(depth).group;
         boundary();
         depth--;
         if (depth < 0)
         {
             done = true;
         }
-        return ProtobufEvent.END_MESSAGE;
+        return group ? ProtobufEvent.END_GROUP : ProtobufEvent.END_MESSAGE;
     }
 
     private void decodeScalar(
@@ -539,6 +543,7 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource,
     {
         private final ProtobufReader reader = new ProtobufReader();
         private ProtobufMessage message;
+        private boolean group;
         private int packedLimit;
         private ProtobufField packedField;
     }

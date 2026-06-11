@@ -76,6 +76,9 @@ public final class ProtobufWireSinkImpl implements ProtobufSink
         case START_MESSAGE:
             onStartMessage();
             break;
+        case START_GROUP:
+            onStartGroup();
+            break;
         case FIELD:
             ProtobufField mapped = mapField(source.field());
             pending = mapped;
@@ -89,6 +92,9 @@ public final class ProtobufWireSinkImpl implements ProtobufSink
             break;
         case END_MESSAGE:
             status = onEndMessage();
+            break;
+        case END_GROUP:
+            onEndGroup();
             break;
         default:
             break;
@@ -143,6 +149,32 @@ public final class ProtobufWireSinkImpl implements ProtobufSink
         }
         depth--;
         return status;
+    }
+
+    private void onStartGroup()
+    {
+        depth++;
+        Scope scope = scope(depth);
+        Scope parent = scope(depth - 1);
+        if (parent.writer == null || pending == null || !pending.composite())
+        {
+            scope.set(null, null, null, null);
+        }
+        else
+        {
+            parent.writer.writeTag(pending.number(), ProtobufWireType.SGROUP);
+            scope.setGroup(schema.resolveMessage(pending), parent.writer, pending);
+        }
+    }
+
+    private void onEndGroup()
+    {
+        Scope scope = scope(depth);
+        if (scope.writer != null && scope.field != null)
+        {
+            scope.writer.writeTag(scope.field.number(), ProtobufWireType.EGROUP);
+        }
+        depth--;
     }
 
     private ProtobufField mapField(
@@ -252,6 +284,17 @@ public final class ProtobufWireSinkImpl implements ProtobufSink
             this.writer = writer;
             this.field = field;
             this.buffer = buffer;
+        }
+
+        private void setGroup(
+            ProtobufMessage message,
+            ProtobufWriter writer,
+            ProtobufField field)
+        {
+            this.message = message;
+            this.writer = writer;
+            this.field = field;
+            this.buffer = null;
         }
     }
 }

@@ -137,6 +137,22 @@ public class ProtobufWireSinkTest
         assertArrayEquals(expected, transform("P", "P2", message));
     }
 
+    @Test
+    public void shouldReencodeGroup()
+    {
+        byte[] message = wire(w ->
+        {
+            w.writeTag(1, ProtobufWireType.LEN);
+            w.writeBytes("neo".getBytes(UTF_8));
+            w.writeTag(5, ProtobufWireType.SGROUP);
+            w.writeTag(1, ProtobufWireType.VARINT);
+            w.writeVarint64(9);
+            w.writeTag(5, ProtobufWireType.EGROUP);
+        });
+
+        assertArrayEquals(message, transform("P", "P", message));
+    }
+
     private byte[] transform(
         String readMessage,
         String writeMessage,
@@ -176,11 +192,15 @@ public class ProtobufWireSinkTest
             .message(ProtobufMessage.builder("Addr2")
                 .field(ProtobufField.builder().number(9).name("city").type(ProtobufType.STRING).build())
                 .build())
+            .message(ProtobufMessage.builder("Grp")
+                .field(ProtobufField.builder().number(1).name("x").type(ProtobufType.INT32).build())
+                .build())
             .message(ProtobufMessage.builder("P")
                 .field(ProtobufField.builder().number(1).name("name").type(ProtobufType.STRING).build())
                 .field(ProtobufField.builder().number(2).name("id").type(ProtobufType.INT32).build())
                 .field(ProtobufField.builder().number(3).name("extra").type(ProtobufType.INT32).build())
                 .field(ProtobufField.builder().number(4).name("home").type(ProtobufType.MESSAGE).typeName("Addr").build())
+                .field(ProtobufField.builder().number(5).name("grp").type(ProtobufType.GROUP).typeName("Grp").build())
                 .build())
             .message(ProtobufMessage.builder("P2")
                 .field(ProtobufField.builder().number(7).name("name").type(ProtobufType.STRING).build())

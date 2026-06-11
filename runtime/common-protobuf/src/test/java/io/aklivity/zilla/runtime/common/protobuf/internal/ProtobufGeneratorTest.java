@@ -76,6 +76,24 @@ public class ProtobufGeneratorTest
     }
 
     @Test
+    public void shouldGenerateGroupDecodableAgainstSchema()
+    {
+        MutableDirectBuffer out = new UnsafeBuffer(new byte[64]);
+        ProtobufGenerator generator = Protobuf.generator().wrap(out, 0);
+        generator
+            .writeInt32(1, -5)
+            .startGroup(11).writeInt32(1, 9).endGroup();
+
+        Capture sink = new Capture();
+        ProtobufPipeline pipeline = Protobuf.parser(schema, "All").stream().into(sink);
+        pipeline.reset();
+        ProtobufPipeline.Status status = pipeline.feed(out, 0, generator.length());
+
+        assertEquals(ProtobufPipeline.Status.COMPLETE, status);
+        assertEquals(List.of("{", "F1", "V-5", "F11", "(", "F1", "V9", ")", "}"), sink.events);
+    }
+
+    @Test
     public void shouldStreamNestedMessageMatchingPreEncoded()
     {
         MutableDirectBuffer nested = new UnsafeBuffer(new byte[64]);
@@ -148,6 +166,7 @@ public class ProtobufGeneratorTest
                 .field(field(8, "by", ProtobufType.BYTES))
                 .field(ProtobufField.builder().number(9).name("e").type(ProtobufType.ENUM).typeName("Color").build())
                 .field(ProtobufField.builder().number(10).name("m").type(ProtobufType.MESSAGE).typeName("M").build())
+                .field(ProtobufField.builder().number(11).name("g").type(ProtobufType.GROUP).typeName("M").build())
                 .build())
             .build();
     }
@@ -185,6 +204,14 @@ public class ProtobufGeneratorTest
                 {
                     status = ProtobufPipeline.Status.COMPLETE;
                 }
+                break;
+            case START_GROUP:
+                events.add("(");
+                depth++;
+                break;
+            case END_GROUP:
+                events.add(")");
+                depth--;
                 break;
             case FIELD:
                 events.add("F" + source.field().number());

@@ -18,7 +18,9 @@ package io.aklivity.zilla.runtime.common.protobuf;
  * The event currency of a {@link ProtobufStream} pipeline. Structured events frame a message
  * ({@link #START_MESSAGE} / {@link #END_MESSAGE}) and deliver one occurrence of a field as a
  * {@link #FIELD} (which positions {@link ProtobufSource#field()}) followed by a {@link #VALUE} for a
- * scalar or a nested {@code START_MESSAGE}…{@code END_MESSAGE} for a composite. Segment framing
+ * scalar or a nested {@code START_MESSAGE}…{@code END_MESSAGE} for a composite. A proto2 group is framed
+ * by {@link #START_GROUP} / {@link #END_GROUP} instead — the same structured body, but delimited on the
+ * wire by start/end-group tags rather than a length prefix. Segment framing
  * ({@link #START_SEGMENT} / {@link #CONTINUE_SEGMENT} / {@link #END_SEGMENT}) delivers a composite
  * value as raw wire bytes rather than as structured events; {@link #segmented()} distinguishes those.
  * <p>
@@ -30,6 +32,8 @@ public enum ProtobufEvent
 {
     START_MESSAGE,
     END_MESSAGE,
+    START_GROUP,
+    END_GROUP,
     FIELD,
     VALUE,
     START_SEGMENT,

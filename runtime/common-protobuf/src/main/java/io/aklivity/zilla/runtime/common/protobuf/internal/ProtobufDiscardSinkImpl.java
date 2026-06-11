@@ -36,11 +36,11 @@ public final class ProtobufDiscardSinkImpl implements ProtobufSink
         ProtobufEvent event)
     {
         ProtobufPipeline.Status status = ProtobufPipeline.Status.PENDING;
-        if (event == ProtobufEvent.START_MESSAGE)
+        if (event == ProtobufEvent.START_MESSAGE || event == ProtobufEvent.START_GROUP)
         {
             depth++;
         }
-        else if (event == ProtobufEvent.END_MESSAGE)
+        else if (event == ProtobufEvent.END_MESSAGE || event == ProtobufEvent.END_GROUP)
         {
             depth--;
             if (depth == 0)

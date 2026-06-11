@@ -65,6 +65,7 @@ public final class ProtobufValidatorImpl implements ProtobufTransform
         switch (event)
         {
         case START_MESSAGE:
+        case START_GROUP:
             depth++;
             ProtobufMessage message = depth == 0
                 ? schema.message(messageName)
@@ -76,6 +77,7 @@ public final class ProtobufValidatorImpl implements ProtobufTransform
             scope(depth).see(source.field().number());
             break;
         case END_MESSAGE:
+        case END_GROUP:
             if (status != ProtobufPipeline.Status.REJECTED && !scope(depth).satisfied())
             {
                 status = ProtobufPipeline.Status.REJECTED;

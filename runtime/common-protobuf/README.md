@@ -43,9 +43,11 @@ descriptor model is syntax-agnostic — it carries no `syntax` and simply proces
 is given (the `FileDescriptorSet` compiler reads `proto3_optional`, `oneof`, map entries, the
 `packed` option, and the proto2 `required` label).
 
-proto2 wire features supported: **groups** (decoded, canonicalized, and skipped) and the `required`
-label (represented on the model). Not yet supported: extensions, `required`-field enforcement, and
-proto2 explicit field defaults.
+proto2 wire features supported: **groups** — decoded, canonicalized, skipped, surfaced as distinct
+`START_GROUP`/`END_GROUP` events, and written via `startGroup`/`endGroup` — and the `required` label
+(represented on the model). Because a group is delimited by start/end-group tags rather than a length
+prefix, it is the framing of choice when a body length is not known up front. Not yet supported:
+extensions, `required`-field enforcement, and proto2 explicit field defaults.
 
 ## Binary round-trip canonicalization
 
@@ -64,9 +66,10 @@ binary round-trip conformance check needs.
 `Protobuf.parser(schema, message)` is a pull cursor: `wrap` a fully-buffered message, then loop
 `hasNext()` / `nextEvent()`, reading each value through the parser's own accessors. It emits
 `START_MESSAGE`/`END_MESSAGE`, `FIELD` (positions `field()`) then `VALUE` for a scalar, and a nested
-`START_MESSAGE`…`END_MESSAGE` for a composite — rejecting malformed wire and wire-type/declared-type
-mismatches as it reads. `START_MESSAGE` carries the whole message slice via
-`buffer()`/`offset()`/`length()`, so a copy knows the length up front.
+`START_MESSAGE`…`END_MESSAGE` for a length-delimited message (or `START_GROUP`…`END_GROUP` for a
+proto2 group) for a composite — rejecting malformed wire and wire-type/declared-type mismatches as it
+reads. `START_MESSAGE` carries the whole message slice via `buffer()`/`offset()`/`length()`, so a copy
+knows the length up front.
 
 ```java
 ProtobufParser parser = Protobuf.parser(schema, "Person").wrap(buffer, offset, length);
@@ -128,8 +131,10 @@ if (pipeline.feed(in, off, len) == ProtobufPipeline.Status.COMPLETE)  // PENDING
 field's tag and value, typed by the Protobuf type since the wire is not self-describing about
 signedness/zig-zag/fixed width. Nested messages are **length-first**: `startMessage(field, length)`
 writes the tag and length prefix immediately and the body then streams straight to the output — no
-buffering, no back-patch — closed by `endMessage()`. `writeMessage` length-prefixes a pre-encoded
-nested message, and `writeRaw` splices bytes verbatim.
+buffering, no back-patch — closed by `endMessage()`. A proto2 group is the length-free alternative:
+`startGroup(field)` writes only the start-group tag, the body streams, and `endGroup()` writes the
+end-group tag — no length to know up front. `writeMessage` length-prefixes a pre-encoded nested
+message, and `writeRaw` splices bytes verbatim.
 
 ```java
 ProtobufGenerator generator = Protobuf.generator().wrap(out, 0);
