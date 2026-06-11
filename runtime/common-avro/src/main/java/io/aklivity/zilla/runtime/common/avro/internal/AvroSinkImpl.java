@@ -21,31 +21,31 @@ import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.common.avro.AvroController;
 import io.aklivity.zilla.runtime.common.avro.AvroEvent;
-import io.aklivity.zilla.runtime.common.avro.AvroGeneratorEx;
+import io.aklivity.zilla.runtime.common.avro.AvroGenerator;
 import io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status;
 import io.aklivity.zilla.runtime.common.avro.AvroSink;
 import io.aklivity.zilla.runtime.common.avro.AvroSource;
 
 /**
  * Terminal {@link AvroSink} that materializes each fed event into a write on the wrapped
- * {@link AvroGeneratorEx}. Reaches {@link Status#COMPLETE} when the current top-level datum closes at
+ * {@link AvroGenerator}. Reaches {@link Status#COMPLETE} when the current top-level datum closes at
  * depth zero. In {@link Delivery#SEGMENTABLE} mode it requests verbatim segment delivery on
  * {@link AvroEvent#START_DOCUMENT} and appends each segment slice raw.
  */
 public final class AvroSinkImpl implements AvroSink
 {
-    private final AvroGeneratorEx generator;
+    private final AvroGenerator generator;
     private final Delivery delivery;
     private int depth;
 
     public AvroSinkImpl(
-        AvroGeneratorEx generator)
+        AvroGenerator generator)
     {
         this(generator, Delivery.STRUCTURED);
     }
 
     public AvroSinkImpl(
-        AvroGeneratorEx generator,
+        AvroGenerator generator,
         Delivery delivery)
     {
         this.generator = generator;

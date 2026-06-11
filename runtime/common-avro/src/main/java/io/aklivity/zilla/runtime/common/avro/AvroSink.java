@@ -52,7 +52,7 @@ public interface AvroSink
      * The supplied generator must already be wrapped over its target buffer.
      */
     static AvroSink of(
-        AvroGeneratorEx generator)
+        AvroGenerator generator)
     {
         return new AvroSinkImpl(generator);
     }
@@ -63,7 +63,7 @@ public interface AvroSink
      * generator must already be wrapped over its target buffer.
      */
     static AvroSink of(
-        AvroGeneratorEx generator,
+        AvroGenerator generator,
         Delivery delivery)
     {
         return new AvroSinkImpl(generator, delivery);

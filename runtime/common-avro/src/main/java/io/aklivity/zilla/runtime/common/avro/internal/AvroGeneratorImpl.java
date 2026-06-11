@@ -18,10 +18,10 @@ import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 
 import io.aklivity.zilla.runtime.common.avro.AvroEvent;
-import io.aklivity.zilla.runtime.common.avro.AvroGeneratorEx;
+import io.aklivity.zilla.runtime.common.avro.AvroGenerator;
 import io.aklivity.zilla.runtime.common.avro.AvroSource;
 
-public final class AvroGeneratorImpl implements AvroGeneratorEx
+public final class AvroGeneratorImpl implements AvroGenerator
 {
     private final AvroEncoder encoder;
 

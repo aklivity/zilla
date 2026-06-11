@@ -40,9 +40,9 @@ public interface AvroSchema
 
     /**
      * Creates a generator that writes Avro binary into {@code buffer} starting at {@code offset}; pair it
-     * with {@link AvroSink#of(AvroGeneratorEx)} to terminate a pipeline.
+     * with {@link AvroSink#of(AvroGenerator)} to terminate a pipeline.
      */
-    AvroGeneratorEx generator(
+    AvroGenerator generator(
         MutableDirectBuffer buffer,
         int offset);
 }

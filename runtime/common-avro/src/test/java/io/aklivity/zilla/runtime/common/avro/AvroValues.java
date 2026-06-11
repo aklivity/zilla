@@ -67,7 +67,7 @@ public final class AvroValues
         Delivery delivery)
     {
         MutableDirectBuffer out = new UnsafeBuffer(new byte[Math.max(64, binary.length * 4)]);
-        AvroGeneratorEx generator = schema.generator(out, 0);
+        AvroGenerator generator = schema.generator(out, 0);
         AvroPipeline pipeline = schema.decoder().stream().transform(schema.validator()).into(AvroSink.of(generator, delivery));
         pipeline.reset();
         Status status = pipeline.feed(new UnsafeBuffer(binary), 0, binary.length);

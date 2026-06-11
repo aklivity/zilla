@@ -116,7 +116,7 @@ public class AvroFragmentedDecoderTest
         byte[] binary = new byte[] { (byte) 0x80, 0x01, 0x08, 0x77, 0x78, 0x79, 0x7a };
 
         UnsafeBuffer out = new UnsafeBuffer(new byte[64]);
-        AvroGeneratorEx generator = schema.generator(out, 0);
+        AvroGenerator generator = schema.generator(out, 0);
         AvroPipeline pipeline = schema.decoder().stream().into(AvroSink.of(generator, AvroSink.Delivery.SEGMENTABLE));
         pipeline.reset();
         UnsafeBuffer one = new UnsafeBuffer(new byte[1]);
