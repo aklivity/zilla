@@ -18,14 +18,14 @@ import org.agrona.DirectBuffer;
 
 /**
  * A schema-bound Avro pull parser. Feed each frame's bytes with {@link #wrap(DirectBuffer, int, int)},
- * then drive the parse with {@link #hasNextEvent()} / {@link #nextEvent()}, reading the current value
- * through the {@link AvroSource} accessors this parser exposes. A datum is framed by
+ * then drive the parse with {@link #hasNextEvent()} / {@link #nextEvent()}. A datum is framed by
  * {@link AvroEvent#START_MESSAGE} and {@link AvroEvent#END_MESSAGE}; {@link #hasNextEvent()} returns
  * {@code false} when the buffered bytes are exhausted, so feed more and continue. Malformed binary
- * throws {@link AvroValidationException}. {@link #stream()} begins a composable pipeline that drives
- * this parser internally. Not thread-safe; reuse one per thread.
+ * throws {@link AvroValidationException}. Within a pipeline, the value at each event is read through an
+ * {@link AvroSource} layered over the decoder; {@link #stream()} begins such a pipeline. Not
+ * thread-safe; reuse one per thread.
  */
-public interface AvroDecoder extends AvroSource
+public interface AvroDecoder
 {
     void wrap(
         DirectBuffer buffer,

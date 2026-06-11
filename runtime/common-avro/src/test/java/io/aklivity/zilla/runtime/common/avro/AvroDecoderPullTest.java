@@ -21,7 +21,6 @@ import static io.aklivity.zilla.runtime.common.avro.AvroEvent.INT;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.START_MESSAGE;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.START_RECORD;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.STRING;
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.ArrayList;
@@ -33,7 +32,7 @@ import org.junit.jupiter.api.Test;
 public class AvroDecoderPullTest
 {
     @Test
-    public void shouldPullRecordEventsDirectly()
+    public void shouldPullEventsDirectly()
     {
         AvroDecoder decoder = Avro.schema("""
             {"type":"record","name":"R","fields":[
@@ -44,62 +43,38 @@ public class AvroDecoderPullTest
         decoder.wrap(new UnsafeBuffer(new byte[] { 0x02, 0x04, 0x68, 0x69 }), 0, 4);
 
         List<AvroEvent> events = new ArrayList<>();
-        List<String> fields = new ArrayList<>();
-        int id = 0;
-        String name = null;
         while (decoder.hasNextEvent())
         {
-            AvroEvent event = decoder.nextEvent();
-            events.add(event);
-            switch (event)
-            {
-            case FIELD_NAME:
-                fields.add(decoder.getField());
-                break;
-            case INT:
-                id = decoder.getInt();
-                break;
-            case STRING:
-                name = decoder.getSegment() == null ? null : new String(toBytes(decoder), UTF_8);
-                break;
-            default:
-                break;
-            }
+            events.add(decoder.nextEvent());
         }
 
-        assertEquals(List.of(START_MESSAGE, START_RECORD, FIELD_NAME, INT, FIELD_NAME, STRING, END_RECORD, END_MESSAGE),
+        assertEquals(
+            List.of(START_MESSAGE, START_RECORD, FIELD_NAME, INT, FIELD_NAME, STRING, END_RECORD, END_MESSAGE),
             events);
-        assertEquals(List.of("id", "name"), fields);
-        assertEquals(1, id);
-        assertEquals("hi", name);
     }
 
     @Test
-    public void shouldReportLocationWhilePulling()
+    public void shouldPullAcrossFrames()
     {
         AvroDecoder decoder = Avro.schema("\"int\"").decoder();
-        decoder.wrap(new UnsafeBuffer(new byte[] { (byte) 0x80, 0x01 }), 0, 2);
+        UnsafeBuffer one = new UnsafeBuffer(new byte[1]);
 
-        long position = -1L;
-        int depth = -1;
+        // multi-byte varint 64 -> 0x80 0x01, fed one byte at a time
+        one.putByte(0, (byte) 0x80);
+        decoder.wrap(one, 0, 1);
+        // START_MESSAGE is available, but the INT value is not yet
+        assertEquals(true, decoder.hasNextEvent());
+        assertEquals(START_MESSAGE, decoder.nextEvent());
+        assertEquals(false, decoder.hasNextEvent());
+
+        one.putByte(0, (byte) 0x01);
+        decoder.wrap(one, 0, 1);
+
+        List<AvroEvent> events = new ArrayList<>();
         while (decoder.hasNextEvent())
         {
-            if (decoder.nextEvent() == INT)
-            {
-                position = decoder.getLocation().position();
-                depth = decoder.getLocation().depth();
-                assertEquals(64, decoder.getInt());
-            }
+            events.add(decoder.nextEvent());
         }
-        assertEquals(0L, position);
-        assertEquals(1, depth);
-    }
-
-    private static byte[] toBytes(
-        AvroDecoder decoder)
-    {
-        byte[] dst = new byte[decoder.getSegment().capacity()];
-        decoder.getSegment().getBytes(0, dst);
-        return dst;
+        assertEquals(List.of(INT, END_MESSAGE), events);
     }
 }

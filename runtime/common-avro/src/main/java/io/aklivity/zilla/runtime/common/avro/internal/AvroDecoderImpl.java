@@ -50,10 +50,16 @@ import io.aklivity.zilla.runtime.common.avro.AvroController;
 import io.aklivity.zilla.runtime.common.avro.AvroDecoder;
 import io.aklivity.zilla.runtime.common.avro.AvroEvent;
 import io.aklivity.zilla.runtime.common.avro.AvroLocation;
+import io.aklivity.zilla.runtime.common.avro.AvroSource;
 import io.aklivity.zilla.runtime.common.avro.AvroStream;
 import io.aklivity.zilla.runtime.common.avro.AvroValidationException;
 
-final class AvroDecoderImpl implements AvroDecoder, AvroController
+/**
+ * The pull parser ({@link AvroDecoder}) that is also the {@link AvroSource} the pipeline layers over
+ * it and the {@link AvroController} steering segment delivery. The interfaces stay distinct; this one
+ * class provides all three so the pipeline can hand the same instance to a sink as source and control.
+ */
+final class AvroDecoderImpl implements AvroDecoder, AvroSource, AvroController
 {
     private static final int READ_OK = 0;
     private static final int READ_UNDERFLOW = 1;
