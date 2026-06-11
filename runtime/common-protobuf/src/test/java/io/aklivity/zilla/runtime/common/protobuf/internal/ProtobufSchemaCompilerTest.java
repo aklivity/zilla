@@ -33,7 +33,7 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufCanonicalizer;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSchema;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
 
-public class DescriptorSetCompilerTest
+public class ProtobufSchemaCompilerTest
 {
     private static final int LABEL_OPTIONAL = 1;
     private static final int LABEL_REPEATED = 3;

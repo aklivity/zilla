@@ -35,7 +35,7 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
  * references (leading-dot fully-qualified in the descriptor) are normalized to the dotless full
  * names this model keys on.
  */
-public final class DescriptorSetCompiler
+public final class ProtobufSchemaCompiler
 {
     private static final int LABEL_REQUIRED = 2;
     private static final int LABEL_REPEATED = 3;

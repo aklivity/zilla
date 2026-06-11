@@ -16,9 +16,9 @@ package io.aklivity.zilla.runtime.common.protobuf;
 
 import org.agrona.DirectBuffer;
 
-import io.aklivity.zilla.runtime.common.protobuf.internal.DescriptorSetCompiler;
 import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufGeneratorImpl;
 import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufParserImpl;
+import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufSchemaCompiler;
 
 /**
  * Entry point for streaming Protobuf over Agrona buffers. Compile a {@link ProtobufSchema} once per
@@ -48,7 +48,7 @@ public final class Protobuf
         int offset,
         int length)
     {
-        return new DescriptorSetCompiler().compile(fileDescriptorSet, offset, length);
+        return new ProtobufSchemaCompiler().compile(fileDescriptorSet, offset, length);
     }
 
     /**

@@ -43,7 +43,7 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
  * fits choice is made at the root from the input length, so an observer only sees the chunked form when
  * a message is genuinely too large to buffer.
  */
-public final class ProtobufWireSinkImpl implements ProtobufSink
+public final class ProtobufTypedSinkImpl implements ProtobufSink
 {
     private static final int HEADROOM = 16;
 
@@ -60,7 +60,7 @@ public final class ProtobufWireSinkImpl implements ProtobufSink
     private boolean chunked;
     private boolean reopen;
 
-    public ProtobufWireSinkImpl(
+    public ProtobufTypedSinkImpl(
         ProtobufGenerator generator,
         ProtobufSchema schema,
         String messageName)

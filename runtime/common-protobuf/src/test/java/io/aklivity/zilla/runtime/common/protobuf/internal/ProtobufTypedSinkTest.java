@@ -36,7 +36,7 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufSink;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufType;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
 
-public class ProtobufWireSinkTest
+public class ProtobufTypedSinkTest
 {
     private final ProtobufSchema schema = newSchema();
 
