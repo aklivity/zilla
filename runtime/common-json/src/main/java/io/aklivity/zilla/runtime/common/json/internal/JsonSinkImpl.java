@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.common.json.internal;
 
+import org.agrona.DirectBuffer;
+
 import io.aklivity.zilla.runtime.common.json.JsonController;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
@@ -44,6 +46,7 @@ public final class JsonSinkImpl implements JsonSink
         JsonEvent event)
     {
         Status status = Status.PENDING;
+        DirectBuffer segment;
         switch (event)
         {
         case KEY_NAME:
@@ -84,6 +87,16 @@ public final class JsonSinkImpl implements JsonSink
             break;
         case VALUE_NULL:
             generator.writeNull();
+            status = scalarStatus();
+            break;
+        case START_SEGMENT:
+        case CONTINUE_SEGMENT:
+            segment = source.getSegment();
+            generator.writeRaw(segment, 0, segment.capacity());
+            break;
+        case END_SEGMENT:
+            segment = source.getSegment();
+            generator.writeRaw(segment, 0, segment.capacity());
             status = scalarStatus();
             break;
         default:
