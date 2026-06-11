@@ -35,6 +35,8 @@ import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.TestFactory;
 
+import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufCanonicalizer;
+
 /**
  * Replays a vendored binary round-trip conformance corpus: for each case, the {@code .in} payload
  * is canonicalized and compared to its {@code .expected} canonical encoding. Cases named in
@@ -68,7 +70,7 @@ public class ProtobufBinaryConformanceTest
         byte[] expected = readBytes(ROOT + "cases/" + name + ".expected");
 
         MutableDirectBuffer out = new UnsafeBuffer(new byte[Math.max(64, expected.length * 2 + 16)]);
-        ProtobufCanonicalizer canonicalizer = Protobuf.canonicalizer(schema);
+        ProtobufCanonicalizer canonicalizer = new ProtobufCanonicalizer(schema);
         int length = canonicalizer.canonicalize(messageName, new UnsafeBuffer(input), 0, input.length, out, 0);
 
         byte[] actual = new byte[length];

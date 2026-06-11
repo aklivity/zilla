@@ -39,7 +39,6 @@ import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 import io.aklivity.zilla.runtime.common.protobuf.Protobuf;
-import io.aklivity.zilla.runtime.common.protobuf.ProtobufCanonicalizer;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufField;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufGenerator;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufMessage;
@@ -48,6 +47,7 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufSchema;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSink;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufType;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
+import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufCanonicalizer;
 import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufDiscardSinkImpl;
 import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufWriter;
 
@@ -69,7 +69,7 @@ public class ProtobufPipelineBM
 
     private final ProtobufSchema schema = newSchema();
     private final ProtobufGenerator generator = Protobuf.generator();
-    private final ProtobufCanonicalizer canonicalizer = Protobuf.canonicalizer(schema);
+    private final ProtobufCanonicalizer canonicalizer = new ProtobufCanonicalizer(schema);
 
     private ProtobufPipeline validatePipeline;
     private ProtobufPipeline transformPipeline;

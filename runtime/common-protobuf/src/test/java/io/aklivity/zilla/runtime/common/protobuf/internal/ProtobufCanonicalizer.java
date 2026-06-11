@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.common.protobuf;
+package io.aklivity.zilla.runtime.common.protobuf.internal;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -22,8 +22,12 @@ import org.agrona.DirectBuffer;
 import org.agrona.ExpandableArrayBuffer;
 import org.agrona.MutableDirectBuffer;
 
-import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufReader;
-import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufWriter;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufException;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufField;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufMessage;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufSchema;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufType;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
 
 /**
  * Re-serializes a fully-buffered Protobuf message against a {@link ProtobufSchema} into a canonical
@@ -50,7 +54,7 @@ public final class ProtobufCanonicalizer
     private final List<ProtobufReader> readers;
     private final List<int[]> numberBuffers;
 
-    ProtobufCanonicalizer(
+    public ProtobufCanonicalizer(
         ProtobufSchema schema)
     {
         this.schema = schema;

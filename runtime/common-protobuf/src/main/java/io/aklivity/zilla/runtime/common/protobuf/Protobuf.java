@@ -22,7 +22,8 @@ import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufSchemaCompiler
 
 /**
  * Entry point for streaming Protobuf over Agrona buffers. Compile a {@link ProtobufSchema} once per
- * {@code schemaId} and cache it, then obtain a reusable per-worker {@link ProtobufCanonicalizer}.
+ * {@code schemaId} and cache it, then obtain a reusable per-worker {@link ProtobufParser} or
+ * {@link ProtobufGenerator}.
  * <p>
  * This is the format-neutral wire layer only; it has no JSON dependency. The protobuf ↔ JSON
  * mapping is owned by the {@code model-protobuf} converter, not this library.
@@ -49,16 +50,6 @@ public final class Protobuf
         int length)
     {
         return new ProtobufSchemaCompiler().compile(fileDescriptorSet, offset, length);
-    }
-
-    /**
-     * A reusable per-worker canonicalizer that re-serializes a message to canonical wire form, the
-     * reference operation for binary round-trip conformance.
-     */
-    public static ProtobufCanonicalizer canonicalizer(
-        ProtobufSchema schema)
-    {
-        return new ProtobufCanonicalizer(schema);
     }
 
     /**

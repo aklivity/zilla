@@ -1,8 +1,8 @@
 # common-protobuf
 
-A format-native, provider-free Protobuf wire library for the hot path: descriptor-based decode and
-canonical re-encode over Agrona `DirectBuffer`s. It owns the Protobuf wire side only and has **no
-JSON dependency**.
+A format-native, provider-free Protobuf wire library for the hot path: a descriptor-bound streaming
+parser and generator over Agrona `DirectBuffer`s, composable into validating, transforming pipelines.
+It owns the Protobuf wire side only and has **no JSON dependency**.
 
 The protobuf ↔ JSON mapping is **not** here — it is owned by the `model-protobuf` converter, which
 composes this wire layer with a JSON layer. Keeping that mapping out lets `common-protobuf` stay
@@ -43,23 +43,11 @@ descriptor model is syntax-agnostic — it carries no `syntax` and simply proces
 is given (the `FileDescriptorSet` compiler reads `proto3_optional`, `oneof`, map entries, the
 `packed` option, and the proto2 `required` label).
 
-proto2 wire features supported: **groups** — decoded, canonicalized, skipped, surfaced as distinct
+proto2 wire features supported: **groups** — decoded, skipped, surfaced as distinct
 `START_GROUP`/`END_GROUP` events, and written via `startGroup`/`endGroup` — and the `required` label
 (represented on the model). Because a group is delimited by start/end-group tags rather than a length
 prefix, it is the framing of choice when a body length is not known up front. Not yet supported:
 extensions, `required`-field enforcement, and proto2 explicit field defaults.
-
-## Binary round-trip canonicalization
-
-`Protobuf.canonicalizer(schema)` re-serializes a message to a canonical wire encoding:
-
-- known fields ascending by number, scalars minimally re-encoded, repeated scalars packed,
-- nested messages length-delimited, proto2 groups delimited, map entries in encounter order,
-- **unknown (non-descriptor) fields retained** — passed through verbatim (tag and value, groups
-  included) and merged into the ascending field-number ordering.
-
-Two valid encodings of the same logical message canonicalize to identical bytes — the comparison a
-binary round-trip conformance check needs.
 
 ## Parsing — pull cursor
 

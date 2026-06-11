@@ -25,7 +25,6 @@ import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.common.protobuf.Protobuf;
-import io.aklivity.zilla.runtime.common.protobuf.ProtobufCanonicalizer;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufException;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSchema;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
@@ -66,7 +65,7 @@ public final class ConformanceTestee
         ProtobufSchema schema)
     {
         this.schema = schema;
-        this.canonicalizer = Protobuf.canonicalizer(schema);
+        this.canonicalizer = new ProtobufCanonicalizer(schema);
         this.canonical = new UnsafeBuffer(new byte[1 << 20]);
         this.response = new UnsafeBuffer(new byte[1 << 20]);
     }

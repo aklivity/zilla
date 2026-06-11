@@ -29,7 +29,6 @@ import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
 
 import io.aklivity.zilla.runtime.common.protobuf.Protobuf;
-import io.aklivity.zilla.runtime.common.protobuf.ProtobufCanonicalizer;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSchema;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
 
@@ -135,7 +134,7 @@ public class ProtobufSchemaCompilerTest
         byte[] input)
     {
         MutableDirectBuffer out = new UnsafeBuffer(new byte[4096]);
-        ProtobufCanonicalizer canonicalizer = Protobuf.canonicalizer(schema);
+        ProtobufCanonicalizer canonicalizer = new ProtobufCanonicalizer(schema);
         int length = canonicalizer.canonicalize(messageName, new UnsafeBuffer(input), 0, input.length, out, 0);
         byte[] result = new byte[length];
         out.getBytes(0, result);
