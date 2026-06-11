@@ -23,7 +23,7 @@ import io.aklivity.zilla.runtime.common.avro.AvroLocation;
 import io.aklivity.zilla.runtime.common.avro.AvroSource;
 
 /**
- * Mutable {@link AvroSource} reused across events on a worker thread. The decoder positions it before
+ * Mutable {@link AvroSource} reused across events on a single thread. The decoder positions it before
  * each {@code feed} to its sink; the {@link #getSegment()} view for {@code BYTES}/{@code FIXED} and
  * segment events borrows the decoder work buffer and is valid only for the duration of that call.
  * Schema-supplied strings (enum symbols, field names) are returned without allocation;

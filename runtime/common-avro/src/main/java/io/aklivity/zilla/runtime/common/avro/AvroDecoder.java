@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.common.avro;
 /**
  * The schema-bound Avro decode driver. Obtain one from {@link AvroSchema#decoder()} and call
  * {@link #stream()} to begin a pipeline description; the driver is encapsulated thereafter — the
- * resulting {@link AvroPipeline} feeds it bytes per frame. Reuse a single instance per worker thread.
+ * resulting {@link AvroPipeline} feeds it bytes per frame. Not thread-safe; reuse one per thread.
  */
 public interface AvroDecoder
 {

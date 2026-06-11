@@ -18,7 +18,7 @@ import org.agrona.DirectBuffer;
 
 /**
  * A runnable, resumable {@code common-avro} pipeline assembled from an {@link AvroStream} description
- * terminated with an {@link AvroSink}. Reuse a single instance per worker thread: call {@link #reset()}
+ * terminated with an {@link AvroSink}. Reuse a single instance per thread: call {@link #reset()}
  * once per top-level datum, then {@link #feed(DirectBuffer, int, int)} per frame, resuming a datum left
  * {@link Status#PENDING} by an earlier frame. No full-document buffering; zero per-message allocation;
  * abort on failure.

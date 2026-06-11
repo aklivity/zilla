@@ -19,8 +19,8 @@ import org.agrona.MutableDirectBuffer;
 /**
  * A compiled, immutable Avro schema model. Compiling parses the Avro schema document once (off the hot
  * path) into a structure that drives streaming decode and encode; callers cache one instance per schema,
- * keyed by their own schema identifier. A single instance may back many pipelines on the same worker
- * thread, but the pipelines it produces are not thread-safe.
+ * keyed by their own schema identifier. The compiled schema is immutable and may back many pipelines,
+ * but the pipelines it produces are not thread-safe.
  */
 public interface AvroSchema
 {

@@ -21,7 +21,7 @@ import org.agrona.MutableDirectBuffer;
  * A buffer-backed Avro binary writer driven by an {@link AvroSink}. {@link #wrap(MutableDirectBuffer,
  * int)} targets the output buffer; {@link #encode(AvroEvent, AvroSource)} writes one structured event;
  * {@link #writeSegment(DirectBuffer, int, int)} appends a verbatim raw slice; {@link #length()} reports
- * the bytes written for the current datum. Reuse a single instance per worker thread.
+ * the bytes written for the current datum. Not thread-safe; reuse one per thread.
  */
 public interface AvroEncoder
 {

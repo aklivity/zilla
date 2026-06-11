@@ -15,7 +15,7 @@
 package io.aklivity.zilla.runtime.common.avro.internal;
 
 /**
- * A node in a compiled Avro schema. Immutable once compiled; shared across pipelines on a worker.
+ * A node in a compiled Avro schema. Immutable once compiled and freely shared across pipelines.
  * The {@code children} array holds record field types, union branch types, the array element type
  * (single entry), or the map value type (single entry), depending on {@link #kind}.
  */
