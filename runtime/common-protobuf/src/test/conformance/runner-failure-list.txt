@@ -1,0 +1,11 @@
+# Failure list for the native conformance_test_runner (ProtobufConformanceIT).
+#
+# One conformance test name per line; listed cases are allowed to fail (xfail) so the run still
+# passes. This is the explicit ledger of partial support — the runner exercises its full generated
+# case set, and gaps are enumerated here rather than hidden.
+#
+# The common-protobuf testee handles the binary category only; it returns "skipped" for JSON/text
+# formats (that mapping is owned by model-protobuf), so those are reported as skipped rather than
+# failed. Binary cases that common-protobuf does not yet satisfy (e.g. extensions, proto2 required
+# field enforcement) should be added here, by their exact runner-reported names, after the first
+# real run reveals them. When a listed case starts passing, remove it.
