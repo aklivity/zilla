@@ -295,7 +295,10 @@ public final class AvroGeneratorImpl implements AvroGenerator
         AvroKind kind)
     {
         AvroNode node = nodeStack[depth - 1];
-        require(node.kind == kind, "expected " + node.kind + " but was " + kind);
+        if (node.kind != kind)
+        {
+            throw new AvroValidationException("expected " + node.kind + " but was " + kind);
+        }
         return node;
     }
 
