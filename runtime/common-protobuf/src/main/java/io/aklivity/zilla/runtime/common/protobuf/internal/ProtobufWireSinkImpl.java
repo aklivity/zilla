@@ -70,7 +70,7 @@ public final class ProtobufWireSinkImpl implements ProtobufSink
         ProtobufSource source,
         ProtobufEvent event)
     {
-        ProtobufPipeline.Status status = ProtobufPipeline.Status.PENDING;
+        ProtobufPipeline.Status status = ProtobufPipeline.Status.RESUMABLE;
         switch (event)
         {
         case START_MESSAGE:
@@ -136,7 +136,7 @@ public final class ProtobufWireSinkImpl implements ProtobufSink
     private ProtobufPipeline.Status onEndMessage()
     {
         Scope scope = scope(depth);
-        ProtobufPipeline.Status status = ProtobufPipeline.Status.PENDING;
+        ProtobufPipeline.Status status = ProtobufPipeline.Status.RESUMABLE;
         if (depth == 0)
         {
             status = ProtobufPipeline.Status.COMPLETE;

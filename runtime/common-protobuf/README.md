@@ -98,7 +98,7 @@ ProtobufPipeline pipeline = Protobuf.parser(readSchema, "Person").stream()
     .transform(readSchema.validator("Person"))
     .into(ProtobufSink.of(generator, writeSchema, "PersonV2"));
 pipeline.reset();
-if (pipeline.feed(in, off, len) == ProtobufPipeline.Status.COMPLETE)  // PENDING / COMPLETE / REJECTED
+if (pipeline.feed(in, off, len) == ProtobufPipeline.Status.COMPLETE)  // COMPLETE / SUSPENDED / REJECTED
 {
     int length = generator.length();   // PersonV2 wire bytes in out
 }
@@ -161,7 +161,7 @@ can keep/drop/redact fields by number with no schema:
 ```java
 ProtobufGenerator generator = Protobuf.generator().wrap(out, 0);
 ProtobufTransform redact = (control, source, event, sink) ->
-    source.fieldNumber() == SSN ? ProtobufPipeline.Status.PENDING : sink.feed(control, source, event);
+    source.fieldNumber() == SSN ? ProtobufPipeline.Status.RESUMABLE : sink.feed(control, source, event);
 Protobuf.parser().stream().transform(redact).into(ProtobufSink.of(generator));
 ```
 

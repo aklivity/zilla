@@ -121,7 +121,7 @@ public class ProtobufRawPipelineTest
 
         ProtobufTransform redact = (control, source, event, sink) ->
             (event == ProtobufEvent.FIELD || event == ProtobufEvent.VALUE) && source.fieldNumber() == 2
-                ? Status.PENDING
+                ? Status.RESUMABLE
                 : sink.feed(control, source, event);
 
         assertArrayEquals(expected, copy(message, redact));
@@ -177,7 +177,7 @@ public class ProtobufRawPipelineTest
             ProtobufSource source,
             ProtobufEvent event)
         {
-            ProtobufPipeline.Status status = ProtobufPipeline.Status.PENDING;
+            ProtobufPipeline.Status status = ProtobufPipeline.Status.RESUMABLE;
             switch (event)
             {
             case START_MESSAGE:

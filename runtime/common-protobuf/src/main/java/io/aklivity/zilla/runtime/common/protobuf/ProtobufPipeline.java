@@ -20,14 +20,20 @@ import org.agrona.DirectBuffer;
  * A runnable {@code common-protobuf} pipeline assembled from a {@link ProtobufStream} description
  * terminated with a {@link ProtobufSink}. Reuse a single instance per worker thread: call
  * {@link #reset()} once per message, then {@link #feed(DirectBuffer, int, int)} with the fully
- * buffered message (the bounded-buffer contract — the driver decodes the message in one pass).
+ * buffered message (the bounded-buffer contract).
+ * <p>
+ * Output is bounded by the generator's limit: when it fills, {@code feed} returns {@link Status#SUSPENDED}
+ * with a complete, drainable region in the output buffer; the caller drains it, resets the generator, and
+ * calls {@code feed} again to resume the in-flight message from where it paused.
  */
 public interface ProtobufPipeline
 {
     enum Status
     {
-        /** the message is still in progress; feed the remaining bytes to continue */
-        PENDING,
+        /** the message is in progress and can continue immediately — an internal sink-to-pump signal */
+        RESUMABLE,
+        /** the bounded output filled: drain the buffer, reset the generator, then {@link #feed} again to resume */
+        SUSPENDED,
         /** the message finished and was accepted */
         COMPLETE,
         /** the message was rejected; the output must be abandoned */

@@ -190,7 +190,7 @@ public class ProtobufGeneratorTest
             ProtobufSource source,
             ProtobufEvent event)
         {
-            ProtobufPipeline.Status status = ProtobufPipeline.Status.PENDING;
+            ProtobufPipeline.Status status = ProtobufPipeline.Status.RESUMABLE;
             switch (event)
             {
             case START_MESSAGE:
@@ -276,7 +276,7 @@ public class ProtobufGeneratorTest
             ProtobufSource source,
             ProtobufEvent event)
         {
-            ProtobufPipeline.Status status = ProtobufPipeline.Status.PENDING;
+            ProtobufPipeline.Status status = ProtobufPipeline.Status.RESUMABLE;
             switch (event)
             {
             case START_MESSAGE:

@@ -37,6 +37,8 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
     private final ProtobufParserImpl parser;
     private final ProtobufSink head;
 
+    private boolean suspended;
+
     public ProtobufPipelineImpl(
         ProtobufParserImpl parser,
         List<ProtobufTransform> transforms,
@@ -56,6 +58,7 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
     public void reset()
     {
         head.reset();
+        suspended = false;
     }
 
     @Override
@@ -64,14 +67,18 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
         int offset,
         int length)
     {
-        Status status = Status.PENDING;
+        Status status = Status.RESUMABLE;
         try
         {
-            parser.wrap(buffer, offset, length);
-            while (status == Status.PENDING && parser.hasNext())
+            if (!suspended)
+            {
+                parser.wrap(buffer, offset, length);
+            }
+            while (status == Status.RESUMABLE && parser.hasNext())
             {
                 status = head.feed(parser, parser, parser.nextEvent());
             }
+            suspended = status == Status.SUSPENDED;
         }
         catch (ProtobufException ex)
         {
