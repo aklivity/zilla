@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.common.protobuf;
 
-import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufDiscardSinkImpl;
 import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufRawWireSinkImpl;
 import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufWireSinkImpl;
 
@@ -34,16 +33,6 @@ public interface ProtobufSink
 
     default void reset()
     {
-    }
-
-    /**
-     * A terminal sink that consumes (and discards) the event stream, reaching
-     * {@link ProtobufPipeline.Status#COMPLETE} at the end of the message. Useful as the terminal of a
-     * pure validation pipeline, where the verdict is the pipeline {@link ProtobufPipeline.Status}.
-     */
-    static ProtobufSink discard()
-    {
-        return new ProtobufDiscardSinkImpl();
     }
 
     /**

@@ -15,8 +15,13 @@
 package io.aklivity.zilla.runtime.common.protobuf;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
+import org.agrona.DirectBuffer;
+
+import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufDiscardSinkImpl;
+import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufPipelineImpl;
 import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufValidatorImpl;
 
 /**
@@ -81,6 +86,25 @@ public final class ProtobufSchema
         String messageName)
     {
         return new ProtobufValidatorImpl(this, messageName);
+    }
+
+    /**
+     * One-shot validation of a fully-buffered message named {@code messageName} against this schema:
+     * returns {@code true} when the wire decodes structurally and every proto2 {@code required} field
+     * is present. A convenience over the pipeline (it builds a per-call validating pipeline); for
+     * repeated validation on the hot path, build a pipeline once with {@link #validator(String)} and
+     * reuse it.
+     */
+    public boolean validate(
+        String messageName,
+        DirectBuffer buffer,
+        int offset,
+        int length)
+    {
+        ProtobufPipeline pipeline = new ProtobufPipelineImpl(this, messageName,
+            List.of(new ProtobufValidatorImpl(this, messageName)), new ProtobufDiscardSinkImpl());
+        pipeline.reset();
+        return pipeline.feed(buffer, offset, length) == ProtobufPipeline.Status.COMPLETE;
     }
 
     public static Builder builder()

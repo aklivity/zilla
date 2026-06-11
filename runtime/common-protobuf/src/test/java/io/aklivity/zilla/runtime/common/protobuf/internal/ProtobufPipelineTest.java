@@ -17,6 +17,8 @@ package io.aklivity.zilla.runtime.common.protobuf.internal;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -57,7 +59,7 @@ public class ProtobufPipelineTest
 
         ProtobufPipeline pipeline = StreamingProtobuf.parser(schema, "P").stream()
             .transform(schema.validator("P"))
-            .into(ProtobufSink.discard());
+            .into(new ProtobufDiscardSinkImpl());
         pipeline.reset();
 
         assertEquals(Status.COMPLETE, feed(pipeline, message));
@@ -178,7 +180,7 @@ public class ProtobufPipelineTest
     {
         ProtobufPipeline pipeline = StreamingProtobuf.parser(schema, "P").stream()
             .transform(schema.validator("P"))
-            .into(ProtobufSink.discard());
+            .into(new ProtobufDiscardSinkImpl());
         pipeline.reset();
 
         assertEquals(Status.REJECTED, feed(pipeline, new byte[]{(byte) 0x10, (byte) 0x80}));
@@ -187,7 +189,7 @@ public class ProtobufPipelineTest
     @Test
     public void shouldRejectUnknownRootMessage()
     {
-        ProtobufPipeline pipeline = StreamingProtobuf.parser(schema, "Nope").stream().into(ProtobufSink.discard());
+        ProtobufPipeline pipeline = StreamingProtobuf.parser(schema, "Nope").stream().into(new ProtobufDiscardSinkImpl());
         pipeline.reset();
 
         assertEquals(Status.REJECTED, feed(pipeline, new byte[0]));
@@ -204,7 +206,7 @@ public class ProtobufPipelineTest
 
         ProtobufPipeline pipeline = StreamingProtobuf.parser(schema, "R").stream()
             .transform(schema.validator("R"))
-            .into(ProtobufSink.discard());
+            .into(new ProtobufDiscardSinkImpl());
         pipeline.reset();
 
         assertEquals(Status.COMPLETE, feed(pipeline, message));
@@ -221,7 +223,7 @@ public class ProtobufPipelineTest
 
         ProtobufPipeline pipeline = StreamingProtobuf.parser(schema, "R").stream()
             .transform(schema.validator("R"))
-            .into(ProtobufSink.discard());
+            .into(new ProtobufDiscardSinkImpl());
         pipeline.reset();
 
         assertEquals(Status.REJECTED, feed(pipeline, message));
@@ -238,7 +240,7 @@ public class ProtobufPipelineTest
 
         ProtobufPipeline pipeline = StreamingProtobuf.parser(schema, "P").stream()
             .transform(schema.validator("P"))
-            .into(ProtobufSink.discard());
+            .into(new ProtobufDiscardSinkImpl());
 
         pipeline.reset();
         assertEquals(Status.COMPLETE, feed(pipeline, message));
@@ -301,7 +303,7 @@ public class ProtobufPipelineTest
         ProtobufTransform passthrough = (control, source, event, sink) -> sink.feed(control, source, event);
         ProtobufPipeline pipeline = StreamingProtobuf.parser(schema, "P").stream()
             .transform(passthrough)
-            .into(ProtobufSink.discard());
+            .into(new ProtobufDiscardSinkImpl());
         pipeline.reset();
 
         byte[] message = wire(w ->
@@ -320,7 +322,7 @@ public class ProtobufPipelineTest
             w.writeTag(2, ProtobufWireType.LEN);
             w.writeBytes("oops".getBytes(UTF_8));
         });
-        ProtobufPipeline pipeline = StreamingProtobuf.parser(schema, "P").stream().into(ProtobufSink.discard());
+        ProtobufPipeline pipeline = StreamingProtobuf.parser(schema, "P").stream().into(new ProtobufDiscardSinkImpl());
         pipeline.reset();
         assertEquals(Status.REJECTED, feed(pipeline, message));
     }
@@ -333,7 +335,7 @@ public class ProtobufPipelineTest
             w.writeTag(4, ProtobufWireType.VARINT);
             w.writeVarint64(1);
         });
-        ProtobufPipeline pipeline = StreamingProtobuf.parser(schema, "P").stream().into(ProtobufSink.discard());
+        ProtobufPipeline pipeline = StreamingProtobuf.parser(schema, "P").stream().into(new ProtobufDiscardSinkImpl());
         pipeline.reset();
         assertEquals(Status.REJECTED, feed(pipeline, message));
     }
@@ -346,9 +348,54 @@ public class ProtobufPipelineTest
             w.writeTag(5, ProtobufWireType.LEN);
             w.writeBytes("oops".getBytes(UTF_8));
         });
-        ProtobufPipeline pipeline = StreamingProtobuf.parser(schema, "P").stream().into(ProtobufSink.discard());
+        ProtobufPipeline pipeline = StreamingProtobuf.parser(schema, "P").stream().into(new ProtobufDiscardSinkImpl());
         pipeline.reset();
         assertEquals(Status.REJECTED, feed(pipeline, message));
+    }
+
+    @Test
+    public void shouldValidateValidMessage()
+    {
+        byte[] message = wire(w ->
+        {
+            w.writeTag(2, ProtobufWireType.VARINT);
+            w.writeVarint64(5);
+        });
+        assertTrue(schema.validate("P", new UnsafeBuffer(message), 0, message.length));
+    }
+
+    @Test
+    public void shouldValidateRejectMalformedMessage()
+    {
+        assertFalse(schema.validate("P", new UnsafeBuffer(new byte[]{(byte) 0x10, (byte) 0x80}), 0, 2));
+    }
+
+    @Test
+    public void shouldValidateRejectUnknownMessage()
+    {
+        assertFalse(schema.validate("Nope", new UnsafeBuffer(new byte[0]), 0, 0));
+    }
+
+    @Test
+    public void shouldValidateAcceptRequiredPresent()
+    {
+        byte[] message = wire(w ->
+        {
+            w.writeTag(1, ProtobufWireType.LEN);
+            w.writeBytes("x".getBytes(UTF_8));
+        });
+        assertTrue(schema.validate("R", new UnsafeBuffer(message), 0, message.length));
+    }
+
+    @Test
+    public void shouldValidateRejectRequiredMissing()
+    {
+        byte[] message = wire(w ->
+        {
+            w.writeTag(2, ProtobufWireType.VARINT);
+            w.writeVarint64(4);
+        });
+        assertFalse(schema.validate("R", new UnsafeBuffer(message), 0, message.length));
     }
 
     private static Status feed(

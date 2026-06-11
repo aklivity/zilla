@@ -48,6 +48,7 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufSink;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufType;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
 import io.aklivity.zilla.runtime.common.protobuf.StreamingProtobuf;
+import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufDiscardSinkImpl;
 import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufWriter;
 
 /**
@@ -84,7 +85,7 @@ public class ProtobufPipelineBM
     {
         validatePipeline = StreamingProtobuf.parser(schema, "Record").stream()
             .transform(schema.validator("Record"))
-            .into(ProtobufSink.discard());
+            .into(new ProtobufDiscardSinkImpl());
 
         transformPipeline = StreamingProtobuf.parser(schema, "Record").stream()
             .into(ProtobufSink.of(generator, schema, "RecordV2"));
