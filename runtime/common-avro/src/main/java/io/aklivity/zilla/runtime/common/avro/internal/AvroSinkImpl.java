@@ -20,37 +20,37 @@ import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.PENDING;
 import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.common.avro.AvroController;
-import io.aklivity.zilla.runtime.common.avro.AvroEncoder;
 import io.aklivity.zilla.runtime.common.avro.AvroEvent;
+import io.aklivity.zilla.runtime.common.avro.AvroGenerator;
 import io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status;
 import io.aklivity.zilla.runtime.common.avro.AvroSink;
 import io.aklivity.zilla.runtime.common.avro.AvroSource;
 
 /**
  * Terminal {@link AvroSink} that adapts the decoded {@link AvroEvent} stream to typed calls on the
- * wrapped {@link AvroEncoder}, reading each value from the {@link AvroSource}. Field names carry no
- * wire information for Avro, so {@code FIELD_NAME} is skipped; the encoder advances positionally.
+ * wrapped {@link AvroGenerator}, reading each value from the {@link AvroSource}. Field names carry no
+ * wire information for Avro, so {@code FIELD_NAME} is skipped; the generator advances positionally.
  * Reaches {@link Status#COMPLETE} when the current top-level message closes at depth zero. In
  * {@link Delivery#SEGMENTABLE} mode it requests verbatim segment delivery on {@link AvroEvent#START_MESSAGE}
  * and appends each segment slice raw.
  */
 public final class AvroSinkImpl implements AvroSink
 {
-    private final AvroEncoder encoder;
+    private final AvroGenerator generator;
     private final Delivery delivery;
     private int depth;
 
     public AvroSinkImpl(
-        AvroEncoder encoder)
+        AvroGenerator generator)
     {
-        this(encoder, Delivery.STRUCTURED);
+        this(generator, Delivery.STRUCTURED);
     }
 
     public AvroSinkImpl(
-        AvroEncoder encoder,
+        AvroGenerator generator,
         Delivery delivery)
     {
-        this.encoder = encoder;
+        this.generator = generator;
         this.delivery = delivery;
     }
 
@@ -71,87 +71,81 @@ public final class AvroSinkImpl implements AvroSink
             }
             break;
         case START_RECORD:
-            encoder.startRecord();
+            generator.writeStartRecord();
+            depth++;
+            break;
+        case START_ARRAY:
+            generator.writeStartArray();
+            depth++;
+            break;
+        case START_MAP:
+            generator.writeStartMap();
             depth++;
             break;
         case END_RECORD:
-            encoder.endRecord();
-            status = close();
-            break;
-        case START_ARRAY:
-            encoder.startArray();
-            depth++;
-            break;
         case END_ARRAY:
-            encoder.endArray();
-            status = close();
-            break;
-        case START_MAP:
-            encoder.startMap();
-            depth++;
-            break;
         case END_MAP:
-            encoder.endMap();
+            generator.writeEnd();
             status = close();
             break;
         case MAP_KEY:
             segment = source.getSegment();
-            encoder.mapKey(segment, 0, segment.capacity());
+            generator.writeKey(segment, 0, segment.capacity());
             break;
         case UNION_BRANCH:
-            encoder.unionBranch(source.getInt());
+            generator.writeIndex(source.getInt());
             break;
         case NULL:
-            encoder.encodeNull();
+            generator.writeNull();
             status = scalar();
             break;
         case BOOLEAN:
-            encoder.encodeBoolean(source.getBoolean());
+            generator.writeBoolean(source.getBoolean());
             status = scalar();
             break;
         case INT:
-            encoder.encodeInt(source.getInt());
+            generator.writeInt(source.getInt());
             status = scalar();
             break;
         case LONG:
-            encoder.encodeLong(source.getLong());
+            generator.writeLong(source.getLong());
             status = scalar();
             break;
         case FLOAT:
-            encoder.encodeFloat(source.getFloat());
+            generator.writeFloat(source.getFloat());
             status = scalar();
             break;
         case DOUBLE:
-            encoder.encodeDouble(source.getDouble());
+            generator.writeDouble(source.getDouble());
             status = scalar();
             break;
         case STRING:
             segment = source.getSegment();
-            encoder.encodeString(segment, 0, segment.capacity());
+            generator.writeString(segment, 0, segment.capacity());
             status = scalar();
             break;
         case BYTES:
             segment = source.getSegment();
-            encoder.encodeBytes(segment, 0, segment.capacity());
+            generator.writeBytes(segment, 0, segment.capacity());
             status = scalar();
             break;
         case FIXED:
             segment = source.getSegment();
-            encoder.encodeFixed(segment, 0, segment.capacity());
+            generator.writeFixed(segment, 0, segment.capacity());
             status = scalar();
             break;
         case ENUM:
-            encoder.encodeEnum(source.getInt());
+            generator.writeEnum(source.getInt());
             status = scalar();
             break;
         case START_SEGMENT:
         case CONTINUE_SEGMENT:
             segment = source.getSegment();
-            encoder.writeSegment(segment, 0, segment.capacity());
+            generator.writeRaw(segment, 0, segment.capacity());
             break;
         case END_SEGMENT:
             segment = source.getSegment();
-            encoder.writeSegment(segment, 0, segment.capacity());
+            generator.writeRaw(segment, 0, segment.capacity());
             status = scalar();
             break;
         default:

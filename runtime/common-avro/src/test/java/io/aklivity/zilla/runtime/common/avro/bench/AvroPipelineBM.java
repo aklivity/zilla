@@ -46,8 +46,8 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 import io.aklivity.zilla.runtime.common.avro.Avro;
 import io.aklivity.zilla.runtime.common.avro.AvroController;
-import io.aklivity.zilla.runtime.common.avro.AvroEncoder;
 import io.aklivity.zilla.runtime.common.avro.AvroEvent;
+import io.aklivity.zilla.runtime.common.avro.AvroGenerator;
 import io.aklivity.zilla.runtime.common.avro.AvroPipeline;
 import io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status;
 import io.aklivity.zilla.runtime.common.avro.AvroSchema;
@@ -88,8 +88,8 @@ public class AvroPipelineBM
 
     private final MutableDirectBuffer outputBuffer = new UnsafeBuffer(new byte[16 * 1024]);
 
-    private AvroEncoder flatEncoder;
-    private AvroEncoder nestedEncoder;
+    private AvroGenerator flatEncoder;
+    private AvroGenerator nestedEncoder;
 
     private AvroPipeline flatDecode;
     private AvroPipeline flatStructured;
@@ -110,18 +110,18 @@ public class AvroPipelineBM
         AvroSchema nestedSchema = Avro.schema(NESTED);
         AvroSink noop = new NoopSink();
 
-        flatEncoder = flatSchema.encoder(outputBuffer, 0);
-        nestedEncoder = nestedSchema.encoder(outputBuffer, 0);
+        flatEncoder = flatSchema.generator(outputBuffer, 0);
+        nestedEncoder = nestedSchema.generator(outputBuffer, 0);
 
-        flatDecode = flatSchema.decoder().stream().into(noop);
-        flatStructured = flatSchema.decoder().stream()
+        flatDecode = flatSchema.parser().stream().into(noop);
+        flatStructured = flatSchema.parser().stream()
             .transform(flatSchema.validator()).into(AvroSink.of(flatEncoder));
-        flatSegmented = flatSchema.decoder().stream().into(AvroSink.of(flatEncoder, Delivery.SEGMENTABLE));
+        flatSegmented = flatSchema.parser().stream().into(AvroSink.of(flatEncoder, Delivery.SEGMENTABLE));
 
-        nestedDecode = nestedSchema.decoder().stream().into(noop);
-        nestedStructured = nestedSchema.decoder().stream()
+        nestedDecode = nestedSchema.parser().stream().into(noop);
+        nestedStructured = nestedSchema.parser().stream()
             .transform(nestedSchema.validator()).into(AvroSink.of(nestedEncoder));
-        nestedSegmented = nestedSchema.decoder().stream().into(AvroSink.of(nestedEncoder, Delivery.SEGMENTABLE));
+        nestedSegmented = nestedSchema.parser().stream().into(AvroSink.of(nestedEncoder, Delivery.SEGMENTABLE));
 
         byte[] flatBytes = referenceEncode(FLAT, flatValue());
         byte[] nestedBytes = referenceEncode(NESTED, nestedValue());
@@ -180,7 +180,7 @@ public class AvroPipelineBM
 
     private int transcode(
         AvroPipeline pipeline,
-        AvroEncoder encoder,
+        AvroGenerator encoder,
         UnsafeBuffer buffer,
         int length)
     {

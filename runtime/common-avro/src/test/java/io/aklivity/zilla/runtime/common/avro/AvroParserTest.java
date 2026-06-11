@@ -44,7 +44,7 @@ import org.junit.jupiter.api.Test;
 import io.aklivity.zilla.runtime.common.avro.AvroValues.Entry;
 import io.aklivity.zilla.runtime.common.avro.AvroValues.Recorder;
 
-public class AvroDecoderTest
+public class AvroParserTest
 {
     private Recorder decode(
         String schemaText,

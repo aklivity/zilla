@@ -52,7 +52,7 @@ public interface AvroSink
      * The supplied encoder must already be wrapped over its target buffer.
      */
     static AvroSink of(
-        AvroEncoder encoder)
+        AvroGenerator encoder)
     {
         return new AvroSinkImpl(encoder);
     }
@@ -63,7 +63,7 @@ public interface AvroSink
      * encoder must already be wrapped over its target buffer.
      */
     static AvroSink of(
-        AvroEncoder encoder,
+        AvroGenerator encoder,
         Delivery delivery)
     {
         return new AvroSinkImpl(encoder, delivery);

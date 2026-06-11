@@ -25,11 +25,11 @@ import org.agrona.MutableDirectBuffer;
 public interface AvroSchema
 {
     /**
-     * Creates the schema-bound decode {@link AvroDecoder}; call {@link AvroDecoder#stream()} to begin a
+     * Creates the schema-bound decode {@link AvroParser}; call {@link AvroParser#stream()} to begin a
      * pipeline description, append {@link AvroTransform} stages, and terminate with
      * {@link AvroStream#into(AvroSink)}.
      */
-    AvroDecoder decoder();
+    AvroParser parser();
 
     /**
      * A streaming validator stage that forwards the decoded event stream while the driver validates
@@ -39,10 +39,10 @@ public interface AvroSchema
     AvroTransform validator();
 
     /**
-     * Creates a encoder that writes Avro binary into {@code buffer} starting at {@code offset}; pair it
-     * with {@link AvroSink#of(AvroEncoder)} to terminate a pipeline.
+     * Creates a generator that writes Avro binary into {@code buffer} starting at {@code offset}; pair it
+     * with {@link AvroSink#of(AvroGenerator)} to terminate a pipeline.
      */
-    AvroEncoder encoder(
+    AvroGenerator generator(
         MutableDirectBuffer buffer,
         int offset);
 }

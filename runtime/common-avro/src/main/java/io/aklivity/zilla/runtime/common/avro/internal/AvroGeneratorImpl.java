@@ -19,10 +19,10 @@ import static java.nio.ByteOrder.LITTLE_ENDIAN;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 
-import io.aklivity.zilla.runtime.common.avro.AvroEncoder;
+import io.aklivity.zilla.runtime.common.avro.AvroGenerator;
 import io.aklivity.zilla.runtime.common.avro.AvroValidationException;
 
-public final class AvroEncoderImpl implements AvroEncoder
+public final class AvroGeneratorImpl implements AvroGenerator
 {
     private final AvroNode root;
 
@@ -33,7 +33,7 @@ public final class AvroEncoderImpl implements AvroEncoder
     private int depth;
     private int limit;
 
-    public AvroEncoderImpl(
+    public AvroGeneratorImpl(
         AvroNode root,
         MutableDirectBuffer buffer,
         int offset)
@@ -63,7 +63,7 @@ public final class AvroEncoderImpl implements AvroEncoder
     }
 
     @Override
-    public void startRecord()
+    public void writeStartRecord()
     {
         beginValue();
         expect(AvroKind.RECORD);
@@ -72,16 +72,7 @@ public final class AvroEncoderImpl implements AvroEncoder
     }
 
     @Override
-    public void endRecord()
-    {
-        AvroNode node = nodeStack[depth - 1];
-        require(node.kind == AvroKind.RECORD && stateStack[depth - 1] == node.fieldNames.length + 1,
-            "unexpected record end");
-        pop();
-    }
-
-    @Override
-    public void startArray()
+    public void writeStartArray()
     {
         beginValue();
         expect(AvroKind.ARRAY);
@@ -90,15 +81,7 @@ public final class AvroEncoderImpl implements AvroEncoder
     }
 
     @Override
-    public void endArray()
-    {
-        require(nodeStack[depth - 1].kind == AvroKind.ARRAY && stateStack[depth - 1] == 1, "unexpected array end");
-        writeVarint(0);
-        pop();
-    }
-
-    @Override
-    public void startMap()
+    public void writeStartMap()
     {
         beginValue();
         expect(AvroKind.MAP);
@@ -107,15 +90,31 @@ public final class AvroEncoderImpl implements AvroEncoder
     }
 
     @Override
-    public void endMap()
+    public void writeEnd()
     {
-        require(nodeStack[depth - 1].kind == AvroKind.MAP && stateStack[depth - 1] == 1, "unexpected map end");
-        writeVarint(0);
+        AvroNode node = nodeStack[depth - 1];
+        switch (node.kind)
+        {
+        case RECORD:
+            require(stateStack[depth - 1] == node.fieldNames.length + 1, "unexpected record end");
+            break;
+        case ARRAY:
+            require(stateStack[depth - 1] == 1, "unexpected array end");
+            writeVarint(0);
+            break;
+        case MAP:
+            require(stateStack[depth - 1] == 1, "unexpected map end");
+            writeVarint(0);
+            break;
+        default:
+            require(false, "unexpected end");
+            break;
+        }
         pop();
     }
 
     @Override
-    public void mapKey(
+    public void writeKey(
         DirectBuffer buffer,
         int offset,
         int length)
@@ -123,12 +122,12 @@ public final class AvroEncoderImpl implements AvroEncoder
         AvroNode node = nodeStack[depth - 1];
         require(node.kind == AvroKind.MAP && stateStack[depth - 1] == 1, "unexpected map key");
         writeVarint(zigzag(1));
-        writeBytes(buffer, offset, length);
+        writeLengthPrefixed(buffer, offset, length);
         push(node.children[0]);
     }
 
     @Override
-    public void unionBranch(
+    public void writeIndex(
         int index)
     {
         beginValue();
@@ -140,7 +139,7 @@ public final class AvroEncoderImpl implements AvroEncoder
     }
 
     @Override
-    public void encodeNull()
+    public void writeNull()
     {
         beginValue();
         expect(AvroKind.NULL);
@@ -148,7 +147,7 @@ public final class AvroEncoderImpl implements AvroEncoder
     }
 
     @Override
-    public void encodeBoolean(
+    public void writeBoolean(
         boolean value)
     {
         beginValue();
@@ -159,7 +158,7 @@ public final class AvroEncoderImpl implements AvroEncoder
     }
 
     @Override
-    public void encodeInt(
+    public void writeInt(
         int value)
     {
         beginValue();
@@ -169,7 +168,7 @@ public final class AvroEncoderImpl implements AvroEncoder
     }
 
     @Override
-    public void encodeLong(
+    public void writeLong(
         long value)
     {
         beginValue();
@@ -179,7 +178,7 @@ public final class AvroEncoderImpl implements AvroEncoder
     }
 
     @Override
-    public void encodeFloat(
+    public void writeFloat(
         float value)
     {
         beginValue();
@@ -190,7 +189,7 @@ public final class AvroEncoderImpl implements AvroEncoder
     }
 
     @Override
-    public void encodeDouble(
+    public void writeDouble(
         double value)
     {
         beginValue();
@@ -201,31 +200,31 @@ public final class AvroEncoderImpl implements AvroEncoder
     }
 
     @Override
-    public void encodeString(
+    public void writeString(
         DirectBuffer buffer,
         int offset,
         int length)
     {
         beginValue();
         expect(AvroKind.STRING);
-        writeBytes(buffer, offset, length);
+        writeLengthPrefixed(buffer, offset, length);
         pop();
     }
 
     @Override
-    public void encodeBytes(
+    public void writeBytes(
         DirectBuffer buffer,
         int offset,
         int length)
     {
         beginValue();
         expect(AvroKind.BYTES);
-        writeBytes(buffer, offset, length);
+        writeLengthPrefixed(buffer, offset, length);
         pop();
     }
 
     @Override
-    public void encodeFixed(
+    public void writeFixed(
         DirectBuffer buffer,
         int offset,
         int length)
@@ -238,7 +237,7 @@ public final class AvroEncoderImpl implements AvroEncoder
     }
 
     @Override
-    public void encodeEnum(
+    public void writeEnum(
         int index)
     {
         beginValue();
@@ -248,7 +247,7 @@ public final class AvroEncoderImpl implements AvroEncoder
     }
 
     @Override
-    public void writeSegment(
+    public void writeRaw(
         DirectBuffer buffer,
         int offset,
         int length)
@@ -298,7 +297,7 @@ public final class AvroEncoderImpl implements AvroEncoder
         return node;
     }
 
-    private void writeBytes(
+    private void writeLengthPrefixed(
         DirectBuffer source,
         int offset,
         int length)

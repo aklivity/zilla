@@ -29,15 +29,15 @@ import java.util.List;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
 
-public class AvroDecoderPullTest
+public class AvroParserPullTest
 {
     @Test
     public void shouldPullEventsDirectly()
     {
-        AvroDecoder decoder = Avro.schema("""
+        AvroParser decoder = Avro.schema("""
             {"type":"record","name":"R","fields":[
             {"name":"id","type":"int"},
-            {"name":"name","type":"string"}]}""").decoder();
+            {"name":"name","type":"string"}]}""").parser();
 
         // id=1 (0x02), name="hi" (0x04 'h' 'i')
         decoder.wrap(new UnsafeBuffer(new byte[] { 0x02, 0x04, 0x68, 0x69 }), 0, 4);
@@ -56,7 +56,7 @@ public class AvroDecoderPullTest
     @Test
     public void shouldPullAcrossFrames()
     {
-        AvroDecoder decoder = Avro.schema("\"int\"").decoder();
+        AvroParser decoder = Avro.schema("\"int\"").parser();
         UnsafeBuffer one = new UnsafeBuffer(new byte[1]);
 
         // multi-byte varint 64 -> 0x80 0x01, fed one byte at a time

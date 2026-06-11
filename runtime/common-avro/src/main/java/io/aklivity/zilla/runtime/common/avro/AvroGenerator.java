@@ -19,14 +19,14 @@ import org.agrona.MutableDirectBuffer;
 
 /**
  * A schema-bound Avro binary writer. Call the typed methods in schema order to write one message; the
- * encoder validates each call against the schema and writes the Avro binary encoding, framing arrays
+ * generator validates each call against the schema and writes the Avro binary encoding, framing arrays
  * and maps as single-element blocks so values can be written without buffering. Records are positional
  * — field values are written in declaration order with no field names on the wire.
  * {@link #wrap(MutableDirectBuffer, int)} targets the output buffer and resets; {@link #length()}
- * reports the bytes written for the current message; {@link #writeSegment} appends a raw slice verbatim.
+ * reports the bytes written for the current message; {@link #writeRaw} appends a raw slice verbatim.
  * Not thread-safe; reuse one per thread.
  */
-public interface AvroEncoder
+public interface AvroGenerator
 {
     void wrap(
         MutableDirectBuffer buffer,
@@ -34,62 +34,58 @@ public interface AvroEncoder
 
     int length();
 
-    void startRecord();
+    void writeStartRecord();
 
-    void endRecord();
+    void writeStartArray();
 
-    void startArray();
+    void writeStartMap();
 
-    void endArray();
+    void writeEnd();
 
-    void startMap();
-
-    void endMap();
-
-    void mapKey(
+    void writeKey(
         DirectBuffer buffer,
         int offset,
         int length);
 
-    void unionBranch(
+    void writeIndex(
         int index);
 
-    void encodeNull();
+    void writeNull();
 
-    void encodeBoolean(
+    void writeBoolean(
         boolean value);
 
-    void encodeInt(
+    void writeInt(
         int value);
 
-    void encodeLong(
+    void writeLong(
         long value);
 
-    void encodeFloat(
+    void writeFloat(
         float value);
 
-    void encodeDouble(
+    void writeDouble(
         double value);
 
-    void encodeString(
+    void writeString(
         DirectBuffer buffer,
         int offset,
         int length);
 
-    void encodeBytes(
+    void writeBytes(
         DirectBuffer buffer,
         int offset,
         int length);
 
-    void encodeFixed(
+    void writeFixed(
         DirectBuffer buffer,
         int offset,
         int length);
 
-    void encodeEnum(
+    void writeEnum(
         int index);
 
-    void writeSegment(
+    void writeRaw(
         DirectBuffer buffer,
         int offset,
         int length);

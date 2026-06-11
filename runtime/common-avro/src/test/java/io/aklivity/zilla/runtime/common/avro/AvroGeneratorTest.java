@@ -21,7 +21,7 @@ import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
 
-public class AvroEncoderTest
+public class AvroGeneratorTest
 {
     private final UnsafeBuffer out = new UnsafeBuffer(new byte[64]);
     private final AvroSource zero = new ZeroSource();
@@ -30,7 +30,7 @@ public class AvroEncoderTest
         String schemaText)
     {
         AvroSchema schema = Avro.schema(schemaText);
-        return AvroSink.of(schema.encoder(out, 0));
+        return AvroSink.of(schema.generator(out, 0));
     }
 
     @Test

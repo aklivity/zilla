@@ -25,7 +25,7 @@ import org.agrona.DirectBuffer;
  * {@link AvroSource} layered over the decoder; {@link #stream()} begins such a pipeline. Not
  * thread-safe; reuse one per thread.
  */
-public interface AvroDecoder
+public interface AvroParser
 {
     void wrap(
         DirectBuffer buffer,

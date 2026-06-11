@@ -25,7 +25,7 @@ import io.aklivity.zilla.runtime.common.avro.AvroSink;
 import io.aklivity.zilla.runtime.common.avro.AvroValidationException;
 
 /**
- * Backs {@link AvroPipeline}: pulls events from the bound {@link AvroDecoderImpl} and pushes each
+ * Backs {@link AvroPipeline}: pulls events from the bound {@link AvroParserImpl} and pushes each
  * through the root {@link AvroSink}, passing the decoder itself as both the immutable source view and
  * the control handle. The status is whatever the sink reports; if the sink never completes but the
  * decoder reaches the end of the message, the datum is {@code COMPLETE}; malformed binary aborts with
@@ -33,11 +33,11 @@ import io.aklivity.zilla.runtime.common.avro.AvroValidationException;
  */
 final class AvroPipelineImpl implements AvroPipeline
 {
-    private final AvroDecoderImpl decoder;
+    private final AvroParserImpl decoder;
     private final AvroSink root;
 
     AvroPipelineImpl(
-        AvroDecoderImpl decoder,
+        AvroParserImpl decoder,
         AvroSink root)
     {
         this.decoder = decoder;

@@ -34,7 +34,7 @@ public class AvroFragmentedDecoderTest
         byte[] binary)
     {
         Recorder recorder = new Recorder();
-        AvroPipeline pipeline = schema.decoder().stream().into(recorder);
+        AvroPipeline pipeline = schema.parser().stream().into(recorder);
         pipeline.reset();
         UnsafeBuffer one = new UnsafeBuffer(new byte[1]);
         Status status = binary.length == 0 ? pipeline.feed(one, 0, 0) : Status.PENDING;
@@ -116,8 +116,8 @@ public class AvroFragmentedDecoderTest
         byte[] binary = new byte[] { (byte) 0x80, 0x01, 0x08, 0x77, 0x78, 0x79, 0x7a };
 
         UnsafeBuffer out = new UnsafeBuffer(new byte[64]);
-        AvroEncoder encoder = schema.encoder(out, 0);
-        AvroPipeline pipeline = schema.decoder().stream().into(AvroSink.of(encoder, AvroSink.Delivery.SEGMENTABLE));
+        AvroGenerator encoder = schema.generator(out, 0);
+        AvroPipeline pipeline = schema.parser().stream().into(AvroSink.of(encoder, AvroSink.Delivery.SEGMENTABLE));
         pipeline.reset();
         UnsafeBuffer one = new UnsafeBuffer(new byte[1]);
         Status status = Status.PENDING;
