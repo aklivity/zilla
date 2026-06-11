@@ -32,6 +32,7 @@ public final class ProtobufMessage
     private final boolean mapEntry;
     private final List<ProtobufField> fields;
     private final List<ProtobufField> sortedFields;
+    private final List<ProtobufField> requiredFields;
     private final Map<Integer, ProtobufField> fieldByNumber;
     private final Map<String, ProtobufField> fieldByJsonName;
 
@@ -47,6 +48,16 @@ public final class ProtobufMessage
         List<ProtobufField> sorted = new ArrayList<>(fields);
         sorted.sort(Comparator.comparingInt(ProtobufField::number));
         this.sortedFields = Collections.unmodifiableList(sorted);
+
+        List<ProtobufField> required = new ArrayList<>();
+        for (ProtobufField field : fields)
+        {
+            if (field.required())
+            {
+                required.add(field);
+            }
+        }
+        this.requiredFields = Collections.unmodifiableList(required);
 
         Map<Integer, ProtobufField> byNumber = new LinkedHashMap<>();
         Map<String, ProtobufField> byJsonName = new LinkedHashMap<>();
@@ -81,6 +92,14 @@ public final class ProtobufMessage
     public List<ProtobufField> sortedFields()
     {
         return sortedFields;
+    }
+
+    /**
+     * The proto2 {@code required} fields, in declaration order — empty for proto3 messages.
+     */
+    public List<ProtobufField> requiredFields()
+    {
+        return requiredFields;
     }
 
     public ProtobufField field(

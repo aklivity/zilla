@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.common.protobuf;
 import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.common.protobuf.internal.DescriptorSetCompiler;
+import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufStreamImpl;
 
 /**
  * Entry point for streaming Protobuf over Agrona buffers. Compile a {@link ProtobufSchema} once per
@@ -58,6 +59,18 @@ public final class StreamingProtobuf
         ProtobufSchema schema)
     {
         return new ProtobufCanonicalizer(schema);
+    }
+
+    /**
+     * Begins a streaming pipeline that decodes the message named {@code messageName} against
+     * {@code schema} into a typed event stream. Append stages with {@link ProtobufStream#transform}
+     * (e.g. {@link ProtobufSchema#validator(String)}) and terminate with {@link ProtobufStream#into}.
+     */
+    public static ProtobufStream parser(
+        ProtobufSchema schema,
+        String messageName)
+    {
+        return new ProtobufStreamImpl(schema, messageName);
     }
 
     private StreamingProtobuf()

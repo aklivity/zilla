@@ -60,6 +60,35 @@ proto2 explicit field defaults.
 Two valid encodings of the same logical message canonicalize to identical bytes — the comparison a
 binary round-trip conformance check needs. The operation is format-neutral and touches no JSON.
 
+## Streaming validator pipeline
+
+Mirroring `common-json`'s `JsonPipeline`, a composable streaming pipeline decodes a message against
+the descriptor into a typed event stream and validates as it reads:
+
+```java
+ProtobufPipeline pipeline = StreamingProtobuf.parser(schema, "Person")
+    .transform(schema.validator("Person"))
+    .into(ProtobufSink.discard());
+pipeline.reset();
+ProtobufPipeline.Status status = pipeline.feed(buffer, offset, length);  // PENDING / COMPLETE / REJECTED
+```
+
+- **`ProtobufStream`** (`transform`/`into`) → **`ProtobufPipeline`** (`reset`/`feed`/`Status`), peer to
+  `JsonStream`/`JsonPipeline`.
+- The descriptor-bound driver emits **`ProtobufEvent`**s — `START_MESSAGE`/`END_MESSAGE`, `FIELD`
+  (positions `ProtobufSource.field()`) then `VALUE` for a scalar or a nested message — rejecting
+  malformed wire and wire-type/declared-type mismatches as it reads.
+- **`ProtobufSource`** is the per-event read-only value view (typed scalar accessors + raw slice).
+- **`ProtobufTransform`** is an intermediate stage (`feed(control, source, event, sink)`);
+  **`ProtobufSink`** is the terminal (`feed(control, source, event)`), with `ProtobufSink.discard()`
+  for a pure validation pipeline whose verdict is the returned `Status`.
+- **`schema.validator(messageName)`** returns a `ProtobufTransform` that forwards every event and
+  adds descriptor-level semantic validation (proto2 `required`-field presence), reporting at the
+  message boundary so callers abort on `REJECTED` (emit-then-abort).
+- **Segment delivery** mirrors `common-json` #1870: a stage calls `ProtobufController.segmentable()`
+  on a composite `FIELD` to receive that value as `START_SEGMENT`/`END_SEGMENT` raw wire bytes
+  (`ProtobufSource.buffer()`/`offset()`/`length()`) instead of expanding it into structured events.
+
 ### Bounded-buffer contract
 
 Protobuf fields are length-delimited and may arrive in any order, and a repeated field's elements

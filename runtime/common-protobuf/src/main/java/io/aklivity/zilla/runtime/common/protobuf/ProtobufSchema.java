@@ -17,6 +17,8 @@ package io.aklivity.zilla.runtime.common.protobuf;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufValidator;
+
 /**
  * A compiled, immutable Protobuf model: a registry of {@link ProtobufMessage} and
  * {@link ProtobufEnum} descriptors keyed by full name. Build one per {@code schemaId} and cache
@@ -67,6 +69,18 @@ public final class ProtobufSchema
             throw new ProtobufException("unresolved enum type " + field.typeName());
         }
         return enumeration;
+    }
+
+    /**
+     * A streaming {@link ProtobufTransform} that validates the event stream of the message named
+     * {@code messageName} against this schema while forwarding every event unchanged. Its
+     * {@link ProtobufPipeline.Status} carries the verdict — {@link ProtobufPipeline.Status#REJECTED}
+     * (emit-then-abort) when a proto2 {@code required} field is missing.
+     */
+    public ProtobufTransform validator(
+        String messageName)
+    {
+        return new ProtobufValidator(this, messageName);
     }
 
     public static Builder builder()
