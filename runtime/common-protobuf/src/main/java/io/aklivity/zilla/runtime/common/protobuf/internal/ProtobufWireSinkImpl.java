@@ -14,9 +14,7 @@
  */
 package io.aklivity.zilla.runtime.common.protobuf.internal;
 
-import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Deque;
 import java.util.List;
 
 import org.agrona.ExpandableArrayBuffer;
@@ -47,8 +45,9 @@ public final class ProtobufWireSinkImpl implements ProtobufSink
     private final ProtobufWriter root;
     private final List<ExpandableArrayBuffer> scratch;
     private final List<ProtobufWriter> writers;
-    private final Deque<Scope> scopes;
+    private final List<Scope> scopes;
 
+    private int depth;
     private ProtobufField pending;
 
     public ProtobufWireSinkImpl(
@@ -61,7 +60,8 @@ public final class ProtobufWireSinkImpl implements ProtobufSink
         this.root = ((ProtobufGeneratorImpl) generator).writer();
         this.scratch = new ArrayList<>();
         this.writers = new ArrayList<>();
-        this.scopes = new ArrayDeque<>();
+        this.scopes = new ArrayList<>();
+        this.depth = -1;
     }
 
     @Override
@@ -81,7 +81,7 @@ public final class ProtobufWireSinkImpl implements ProtobufSink
             pending = mapped;
             break;
         case VALUE:
-            Scope value = scopes.peek();
+            Scope value = scopes.get(depth);
             if (value.writer != null && pending != null)
             {
                 writeScalar(pending, source, value.writer);
@@ -99,55 +99,67 @@ public final class ProtobufWireSinkImpl implements ProtobufSink
     @Override
     public void reset()
     {
-        scopes.clear();
+        depth = -1;
         pending = null;
     }
 
     private void onStartMessage()
     {
-        if (scopes.isEmpty())
+        depth++;
+        Scope scope = scope(depth);
+        if (depth == 0)
         {
-            scopes.push(new Scope(schema.message(messageName), root, null, null));
+            scope.set(schema.message(messageName), root, null, null);
         }
         else
         {
-            Scope parent = scopes.peek();
+            Scope parent = scope(depth - 1);
             if (parent.writer == null || pending == null || !pending.composite())
             {
-                scopes.push(new Scope(null, null, null, null));
+                scope.set(null, null, null, null);
             }
             else
             {
-                int depth = scopes.size();
                 ExpandableArrayBuffer buffer = scratch(depth);
                 ProtobufWriter writer = acquire(depth).wrap(buffer, 0);
-                scopes.push(new Scope(schema.resolveMessage(pending), writer, pending, buffer));
+                scope.set(schema.resolveMessage(pending), writer, pending, buffer);
             }
         }
     }
 
     private ProtobufPipeline.Status onEndMessage()
     {
-        Scope scope = scopes.pop();
+        Scope scope = scope(depth);
         ProtobufPipeline.Status status = ProtobufPipeline.Status.PENDING;
-        if (scopes.isEmpty())
+        if (depth == 0)
         {
             status = ProtobufPipeline.Status.COMPLETE;
         }
         else if (scope.writer != null && scope.field != null)
         {
-            ProtobufWriter parent = scopes.peek().writer;
+            ProtobufWriter parent = scope(depth - 1).writer;
             parent.writeTag(scope.field.number(), ProtobufWireType.LEN);
             parent.writeBytes(scope.buffer, 0, scope.writer.length());
         }
+        depth--;
         return status;
     }
 
     private ProtobufField mapField(
         ProtobufField field)
     {
-        Scope scope = scopes.peek();
+        Scope scope = scope(depth);
         return scope.writer != null && scope.message != null ? scope.message.field(field.name()) : null;
+    }
+
+    private Scope scope(
+        int depth)
+    {
+        while (scopes.size() <= depth)
+        {
+            scopes.add(new Scope());
+        }
+        return scopes.get(depth);
     }
 
     private void writeScalar(
@@ -225,12 +237,12 @@ public final class ProtobufWireSinkImpl implements ProtobufSink
 
     private static final class Scope
     {
-        private final ProtobufMessage message;
-        private final ProtobufWriter writer;
-        private final ProtobufField field;
-        private final ExpandableArrayBuffer buffer;
+        private ProtobufMessage message;
+        private ProtobufWriter writer;
+        private ProtobufField field;
+        private ExpandableArrayBuffer buffer;
 
-        private Scope(
+        private void set(
             ProtobufMessage message,
             ProtobufWriter writer,
             ProtobufField field,

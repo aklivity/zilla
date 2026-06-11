@@ -14,8 +14,8 @@
  */
 package io.aklivity.zilla.runtime.common.protobuf.internal;
 
-import java.util.ArrayDeque;
-import java.util.Deque;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufController;
@@ -39,8 +39,9 @@ public final class ProtobufValidatorImpl implements ProtobufTransform
 {
     private final ProtobufSchema schema;
     private final String messageName;
-    private final Deque<Scope> scopes;
+    private final List<Scope> scopes;
 
+    private int depth;
     private ProtobufField pendingField;
 
     public ProtobufValidatorImpl(
@@ -49,7 +50,8 @@ public final class ProtobufValidatorImpl implements ProtobufTransform
     {
         this.schema = schema;
         this.messageName = messageName;
-        this.scopes = new ArrayDeque<>();
+        this.scopes = new ArrayList<>();
+        this.depth = -1;
     }
 
     @Override
@@ -63,21 +65,22 @@ public final class ProtobufValidatorImpl implements ProtobufTransform
         switch (event)
         {
         case START_MESSAGE:
-            ProtobufMessage message = scopes.isEmpty()
+            depth++;
+            ProtobufMessage message = depth == 0
                 ? schema.message(messageName)
                 : schema.resolveMessage(pendingField);
-            scopes.push(new Scope(message));
+            scope(depth).reset(message);
             break;
         case FIELD:
             pendingField = source.field();
-            scopes.peek().see(source.field().number());
+            scope(depth).see(source.field().number());
             break;
         case END_MESSAGE:
-            Scope scope = scopes.pop();
-            if (status != ProtobufPipeline.Status.REJECTED && !scope.satisfied())
+            if (status != ProtobufPipeline.Status.REJECTED && !scope(depth).satisfied())
             {
                 status = ProtobufPipeline.Status.REJECTED;
             }
+            depth--;
             break;
         default:
             break;
@@ -88,26 +91,42 @@ public final class ProtobufValidatorImpl implements ProtobufTransform
     @Override
     public void reset()
     {
-        scopes.clear();
+        depth = -1;
         pendingField = null;
+    }
+
+    private Scope scope(
+        int depth)
+    {
+        while (scopes.size() <= depth)
+        {
+            scopes.add(new Scope());
+        }
+        return scopes.get(depth);
     }
 
     private static final class Scope
     {
-        private final List<ProtobufField> required;
-        private final boolean[] seen;
+        private List<ProtobufField> required;
+        private boolean[] seen;
+        private int count;
 
-        private Scope(
+        private void reset(
             ProtobufMessage message)
         {
-            this.required = message.requiredFields();
-            this.seen = new boolean[required.size()];
+            required = message.requiredFields();
+            count = required.size();
+            if (seen == null || seen.length < count)
+            {
+                seen = new boolean[Math.max(count, 4)];
+            }
+            Arrays.fill(seen, 0, count, false);
         }
 
         private void see(
             int number)
         {
-            for (int i = 0; i < required.size(); i++)
+            for (int i = 0; i < count; i++)
             {
                 if (required.get(i).number() == number)
                 {
@@ -119,9 +138,9 @@ public final class ProtobufValidatorImpl implements ProtobufTransform
         private boolean satisfied()
         {
             boolean satisfied = true;
-            for (boolean present : seen)
+            for (int i = 0; i < count; i++)
             {
-                satisfied &= present;
+                satisfied &= seen[i];
             }
             return satisfied;
         }

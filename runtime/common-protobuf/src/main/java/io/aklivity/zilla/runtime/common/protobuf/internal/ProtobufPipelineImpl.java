@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.common.protobuf.internal;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.agrona.DirectBuffer;
@@ -45,6 +46,7 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline, ProtobufCon
     private final String messageName;
     private final ProtobufSink head;
     private final SourceView source;
+    private final List<ProtobufReader> readers;
 
     private boolean armed;
 
@@ -57,6 +59,7 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline, ProtobufCon
         this.schema = schema;
         this.messageName = messageName;
         this.source = new SourceView();
+        this.readers = new ArrayList<>();
 
         ProtobufSink chain = sink;
         for (int i = transforms.size() - 1; i >= 0; i--)
@@ -105,7 +108,7 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline, ProtobufCon
         int length)
     {
         Status status = emitRawEvent(ProtobufEvent.START_MESSAGE, -1, null);
-        ProtobufReader reader = new ProtobufReader().wrap(buffer, offset, length);
+        ProtobufReader reader = reader(0).wrap(buffer, offset, length);
         while (status != Status.REJECTED && reader.hasRemaining())
         {
             int tag = reader.readVarint32();
@@ -183,6 +186,16 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline, ProtobufCon
         source.length = length;
     }
 
+    private ProtobufReader reader(
+        int depth)
+    {
+        while (readers.size() <= depth)
+        {
+            readers.add(new ProtobufReader());
+        }
+        return readers.get(depth);
+    }
+
     @Override
     public void segmentable()
     {
@@ -202,7 +215,7 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline, ProtobufCon
         }
 
         Status status = deliver(ProtobufEvent.START_MESSAGE, null, buffer, 0, 0);
-        ProtobufReader reader = new ProtobufReader().wrap(buffer, offset, length);
+        ProtobufReader reader = reader(depth).wrap(buffer, offset, length);
         while (status != Status.REJECTED && reader.hasRemaining())
         {
             int tag = reader.readVarint32();

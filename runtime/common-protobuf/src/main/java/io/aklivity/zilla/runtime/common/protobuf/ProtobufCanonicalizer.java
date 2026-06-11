@@ -15,7 +15,7 @@
 package io.aklivity.zilla.runtime.common.protobuf;
 
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.List;
 
 import org.agrona.DirectBuffer;
@@ -35,19 +35,31 @@ import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufWriter;
  * This is format-neutral — it touches no JSON. Unknown (non-descriptor) fields are retained: each
  * is passed through verbatim (tag and value, groups included) and merged into the ascending
  * field-number ordering alongside known fields, so binary round-trip retention cases hold.
+ * <p>
+ * Reuse a single instance per worker thread: scan readers, scratch buffers, and the field-number
+ * working set are pooled by message-nesting depth, so after warmup canonicalize allocates nothing
+ * on the hot path.
  */
 public final class ProtobufCanonicalizer
 {
     private final ProtobufSchema schema;
+    private final ProtobufWriter rootWriter;
+    private final ProtobufReader scalarReader;
     private final List<ExpandableArrayBuffer> scratch;
     private final List<ProtobufWriter> writers;
+    private final List<ProtobufReader> readers;
+    private final List<int[]> numberBuffers;
 
     ProtobufCanonicalizer(
         ProtobufSchema schema)
     {
         this.schema = schema;
+        this.rootWriter = new ProtobufWriter();
+        this.scalarReader = new ProtobufReader();
         this.scratch = new ArrayList<>();
         this.writers = new ArrayList<>();
+        this.readers = new ArrayList<>();
+        this.numberBuffers = new ArrayList<>();
     }
 
     public int canonicalize(
@@ -63,7 +75,7 @@ public final class ProtobufCanonicalizer
         {
             throw new ProtobufException("unknown message " + messageName);
         }
-        ProtobufWriter writer = new ProtobufWriter().wrap(out, outOffset);
+        ProtobufWriter writer = rootWriter.wrap(out, outOffset);
         writeBody(message, in, offset, length, writer, 0);
         return writer.length();
     }
@@ -76,9 +88,12 @@ public final class ProtobufCanonicalizer
         ProtobufWriter writer,
         int depth)
     {
+        int count = collectNumbers(buffer, offset, length, depth);
+        int[] numbers = numbers(depth);
         int previous = -1;
-        for (int number : fieldNumbers(buffer, offset, length))
+        for (int i = 0; i < count; i++)
         {
+            int number = numbers[i];
             if (number == previous)
             {
                 continue;
@@ -88,7 +103,7 @@ public final class ProtobufCanonicalizer
             ProtobufField field = message.field(number);
             if (field == null)
             {
-                writeUnknown(number, buffer, offset, length, writer);
+                writeUnknown(number, buffer, offset, length, writer, depth);
             }
             else if (field.repeated() && isMap(field))
             {
@@ -105,23 +120,25 @@ public final class ProtobufCanonicalizer
         }
     }
 
-    private List<Integer> fieldNumbers(
+    private int collectNumbers(
         DirectBuffer buffer,
         int offset,
-        int length)
+        int length,
+        int depth)
     {
-        List<Integer> numbers = new ArrayList<>();
-        ProtobufReader reader = new ProtobufReader().wrap(buffer, offset, length);
+        ProtobufReader reader = reader(depth).wrap(buffer, offset, length);
+        int count = 0;
         while (reader.hasRemaining())
         {
             int tag = reader.readVarint32();
             int number = tag >>> 3;
             ProtobufWireType wireType = ProtobufWireType.of(tag & 0x7);
-            numbers.add(number);
+            int[] target = ensureNumbers(depth, count + 1);
+            target[count++] = number;
             reader.skipField(number, wireType);
         }
-        Collections.sort(numbers);
-        return numbers;
+        Arrays.sort(numbers(depth), 0, count);
+        return count;
     }
 
     private void writeUnknown(
@@ -129,9 +146,10 @@ public final class ProtobufCanonicalizer
         DirectBuffer buffer,
         int offset,
         int length,
-        ProtobufWriter writer)
+        ProtobufWriter writer,
+        int depth)
     {
-        ProtobufReader reader = new ProtobufReader().wrap(buffer, offset, length);
+        ProtobufReader reader = reader(depth).wrap(buffer, offset, length);
         while (reader.hasRemaining())
         {
             int tagOffset = reader.offset();
@@ -169,9 +187,8 @@ public final class ProtobufCanonicalizer
         ProtobufWriter writer,
         int depth)
     {
-        ProtobufReader reader = new ProtobufReader().wrap(buffer, offset, length);
-        int valueOffset = -1;
-        int valueLength = 0;
+        ProtobufReader reader = reader(depth).wrap(buffer, offset, length);
+        long region = -1;
         while (reader.hasRemaining())
         {
             int tag = reader.readVarint32();
@@ -179,9 +196,7 @@ public final class ProtobufCanonicalizer
             ProtobufWireType wireType = ProtobufWireType.of(tag & 0x7);
             if (number == field.number())
             {
-                int[] region = readRegion(field, reader, number, wireType);
-                valueOffset = region[0];
-                valueLength = region[1];
+                region = readRegion(field, reader, number, wireType);
             }
             else
             {
@@ -189,9 +204,9 @@ public final class ProtobufCanonicalizer
             }
         }
 
-        if (valueOffset >= 0)
+        if (region >= 0)
         {
-            writeValue(field, buffer, valueOffset, valueLength, writer, depth);
+            writeValue(field, buffer, (int) (region >>> 32), (int) region, writer, depth);
         }
     }
 
@@ -206,7 +221,7 @@ public final class ProtobufCanonicalizer
         if (field.type().packable())
         {
             ProtobufWriter block = acquire(depth).wrap(scratch(depth), 0);
-            ProtobufReader reader = new ProtobufReader().wrap(buffer, offset, length);
+            ProtobufReader reader = reader(depth).wrap(buffer, offset, length);
             while (reader.hasRemaining())
             {
                 int tag = reader.readVarint32();
@@ -241,7 +256,7 @@ public final class ProtobufCanonicalizer
         }
         else
         {
-            ProtobufReader reader = new ProtobufReader().wrap(buffer, offset, length);
+            ProtobufReader reader = reader(depth).wrap(buffer, offset, length);
             while (reader.hasRemaining())
             {
                 int tag = reader.readVarint32();
@@ -249,8 +264,8 @@ public final class ProtobufCanonicalizer
                 ProtobufWireType wireType = ProtobufWireType.of(tag & 0x7);
                 if (number == field.number())
                 {
-                    int[] region = readRegion(field, reader, number, wireType);
-                    writeValue(field, buffer, region[0], region[1], writer, depth);
+                    long region = readRegion(field, reader, number, wireType);
+                    writeValue(field, buffer, (int) (region >>> 32), (int) region, writer, depth);
                 }
                 else
                 {
@@ -269,7 +284,7 @@ public final class ProtobufCanonicalizer
         int depth)
     {
         ProtobufMessage entry = schema.resolveMessage(field);
-        ProtobufReader reader = new ProtobufReader().wrap(buffer, offset, length);
+        ProtobufReader reader = reader(depth).wrap(buffer, offset, length);
         while (reader.hasRemaining())
         {
             int tag = reader.readVarint32();
@@ -319,12 +334,11 @@ public final class ProtobufCanonicalizer
         else
         {
             writer.writeTag(field.number(), field.type().wireType());
-            ProtobufReader reader = new ProtobufReader().wrap(buffer, offset, length);
-            copyScalar(field, reader, writer);
+            copyScalar(field, scalarReader.wrap(buffer, offset, length), writer);
         }
     }
 
-    private int[] readRegion(
+    private long readRegion(
         ProtobufField field,
         ProtobufReader reader,
         int number,
@@ -356,7 +370,7 @@ public final class ProtobufCanonicalizer
             }
             regionLength = reader.offset() - regionOffset;
         }
-        return new int[]{regionOffset, regionLength};
+        return (long) regionOffset << 32 | regionLength & 0xffffffffL;
     }
 
     private void copyScalar(
@@ -429,5 +443,40 @@ public final class ProtobufCanonicalizer
             writers.add(new ProtobufWriter());
         }
         return writers.get(depth);
+    }
+
+    private ProtobufReader reader(
+        int depth)
+    {
+        while (readers.size() <= depth)
+        {
+            readers.add(new ProtobufReader());
+        }
+        return readers.get(depth);
+    }
+
+    private int[] numbers(
+        int depth)
+    {
+        while (numberBuffers.size() <= depth)
+        {
+            numberBuffers.add(new int[16]);
+        }
+        return numberBuffers.get(depth);
+    }
+
+    private int[] ensureNumbers(
+        int depth,
+        int capacity)
+    {
+        int[] current = numbers(depth);
+        if (current.length < capacity)
+        {
+            int[] grown = new int[Math.max(capacity, current.length * 2)];
+            System.arraycopy(current, 0, grown, 0, current.length);
+            numberBuffers.set(depth, grown);
+            current = grown;
+        }
+        return current;
     }
 }
