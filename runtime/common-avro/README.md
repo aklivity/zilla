@@ -2,8 +2,8 @@
 
 Format-native streaming Avro for the hot path: streaming decode/encode and
 Avro-schema validation over Agrona `DirectBuffer`, with no full-document
-buffering and no per-message allocation. Peer to `common-json`; the two
-compose only in the `model-avro` converter, neither depends on the other.
+buffering and no per-message allocation. Owns the Avro side only; the
+`model-avro` converter composes it for avro ↔ JSON conversion.
 
 ## Run performance benchmarks
 
