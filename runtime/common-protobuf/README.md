@@ -125,6 +125,34 @@ if (pipeline.feed(in, off, len) == ProtobufPipeline.Status.COMPLETE)  // COMPLET
   (`ProtobufSource.buffer()`/`offset()`/`length()`) instead of expanding it into structured events —
   preserving the nested bytes verbatim.
 
+### Bounded output and streaming
+
+`Protobuf.generator().wrap(out, 0, limit)` bounds the output. While the transformed message fits the
+limit it is encoded minimally (nested messages length-prefixed via per-depth scratch — canonical, the
+output an observer expects). When it does not fit, the wire sink switches to a chunking encode: it
+closes every open nested message at a field boundary, reports the buffer drainable with
+`SUSPENDED`, and on the resumed `feed` reopens each level against a fresh buffer (nested messages then
+use the generator's padded length slots). The independent records reassemble by protobuf
+message-merge semantics, so a too-large message streams without ever buffering more than `limit`. The
+fits-vs-stream choice is made at the root from the input length, so the chunked (non-canonical) form
+is only ever observed for messages too large to buffer.
+
+```java
+ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, limit);
+ProtobufPipeline pipeline = Protobuf.parser(readSchema, "Person").stream()
+    .into(ProtobufSink.of(generator, writeSchema, "PersonV2"));
+pipeline.reset();
+
+ProtobufPipeline.Status status = pipeline.feed(in, off, len);
+while (status == ProtobufPipeline.Status.SUSPENDED)   // output full
+{
+    emitDataFrame(out, 0, generator.length());        // drain — flow-controlled
+    generator.wrap(out, 0, limit);                    // reset output (fresh or recycled buffer)
+    status = pipeline.feed(in, off, len);             // resume the in-flight message
+}
+// COMPLETE: emit the final generator.length() bytes
+```
+
 ### Writing wire directly
 
 `Protobuf.generator()` is a buffer-backed wire writer: each `writeXxx(field, value)` emits one

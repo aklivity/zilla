@@ -32,7 +32,9 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufField;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufGenerator;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufMessage;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufParser;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSchema;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufSink;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufType;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
 
@@ -80,6 +82,54 @@ public class ProtobufChunkingTest
         assertEquals("neo", person.name);
         assertEquals("123 Main Street", person.street);
         assertEquals("Zion", person.city);
+    }
+
+    @Test
+    public void shouldChunkViaPipelineSinkWhenStreaming()
+    {
+        byte[] address = wire(w ->
+        {
+            w.writeTag(1, ProtobufWireType.LEN);
+            w.writeBytes("123 Main Street".getBytes(UTF_8));
+            w.writeTag(2, ProtobufWireType.LEN);
+            w.writeBytes("Springfield USA".getBytes(UTF_8));
+        });
+        byte[] input = wire(w ->
+        {
+            w.writeTag(1, ProtobufWireType.LEN);
+            w.writeBytes("neo".getBytes(UTF_8));
+            w.writeTag(2, ProtobufWireType.LEN);
+            w.writeBytes(address);
+        });
+
+        int limit = 35;
+        MutableDirectBuffer out = new UnsafeBuffer(new byte[256]);
+        ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, limit);
+        ProtobufPipeline pipeline = Protobuf.parser(schema, "Person").stream()
+            .into(ProtobufSink.of(generator, schema, "Person"));
+        pipeline.reset();
+
+        List<byte[]> chunks = new ArrayList<>();
+        ProtobufPipeline.Status status = pipeline.feed(new UnsafeBuffer(input), 0, input.length);
+        while (status == ProtobufPipeline.Status.SUSPENDED)
+        {
+            chunks.add(bytes(out, generator.length()));
+            generator.wrap(out, 0, limit);
+            status = pipeline.feed(new UnsafeBuffer(input), 0, input.length);
+        }
+        assertEquals(ProtobufPipeline.Status.COMPLETE, status);
+        chunks.add(bytes(out, generator.length()));
+
+        assertTrue(chunks.size() >= 2, "expected the nested message to be split across chunks");
+        for (byte[] chunk : chunks)
+        {
+            assertTrue(chunk.length <= limit, "chunk exceeded the generator limit");
+        }
+
+        Person person = decodeMerged(concat(chunks));
+        assertEquals("neo", person.name);
+        assertEquals("123 Main Street", person.street);
+        assertEquals("Springfield USA", person.city);
     }
 
     // Identity Person -> Person transform driving a bounded generator, flushing a chunk whenever the

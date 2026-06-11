@@ -33,15 +33,23 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
 
 /**
  * A terminal sink that writes the event stream back out as Protobuf wire against a target schema,
- * mapping each event's field by name into the target message. When the target schema is the read
- * schema this is a straight re-encode; when it differs (renamed/renumbered/dropped fields) this is a
- * schema transformation. Fields absent in the target are dropped (with their subtrees); nested
- * messages are length-prefixed via per-depth scratch.
+ * mapping each event's field by name into the target message (fields absent in the target are dropped
+ * with their subtrees). When the whole message fits the generator's limit it is encoded minimally —
+ * nested messages length-prefixed via per-depth scratch (canonical). When it does not fit, the sink
+ * switches to a chunking encode: nested messages use the generator's padded length slots, and at a
+ * field boundary where the output nears its limit every open level is closed, the buffer is reported
+ * drainable via {@link ProtobufPipeline.Status#SUSPENDED}, and on the resumed feed each level is
+ * reopened against the fresh buffer — the resulting records reassemble by message-merge semantics. The
+ * fits choice is made at the root from the input length, so an observer only sees the chunked form when
+ * a message is genuinely too large to buffer.
  */
 public final class ProtobufWireSinkImpl implements ProtobufSink
 {
+    private static final int HEADROOM = 16;
+
     private final ProtobufSchema schema;
     private final String messageName;
+    private final ProtobufGenerator generator;
     private final ProtobufWriter root;
     private final List<ExpandableArrayBuffer> scratch;
     private final List<ProtobufWriter> writers;
@@ -49,6 +57,8 @@ public final class ProtobufWireSinkImpl implements ProtobufSink
 
     private int depth;
     private ProtobufField pending;
+    private boolean chunked;
+    private boolean reopen;
 
     public ProtobufWireSinkImpl(
         ProtobufGenerator generator,
@@ -57,6 +67,7 @@ public final class ProtobufWireSinkImpl implements ProtobufSink
     {
         this.schema = schema;
         this.messageName = messageName;
+        this.generator = generator;
         this.root = ((ProtobufGeneratorImpl) generator).writer();
         this.scratch = new ArrayList<>();
         this.writers = new ArrayList<>();
@@ -70,18 +81,23 @@ public final class ProtobufWireSinkImpl implements ProtobufSink
         ProtobufSource source,
         ProtobufEvent event)
     {
+        if (reopen)
+        {
+            reopen();
+            reopen = false;
+        }
+
         ProtobufPipeline.Status status = ProtobufPipeline.Status.RESUMABLE;
         switch (event)
         {
         case START_MESSAGE:
-            onStartMessage();
+            onStartMessage(source);
             break;
         case START_GROUP:
             onStartGroup();
             break;
         case FIELD:
-            ProtobufField mapped = mapField(source.field());
-            pending = mapped;
+            pending = mapField(source.field());
             break;
         case VALUE:
             Scope value = scopes.get(depth);
@@ -99,6 +115,14 @@ public final class ProtobufWireSinkImpl implements ProtobufSink
         default:
             break;
         }
+
+        if (chunked && status == ProtobufPipeline.Status.RESUMABLE && depth >= 0 &&
+            generator.length() > 0 && generator.remaining() < HEADROOM)
+        {
+            closeAll();
+            reopen = true;
+            status = ProtobufPipeline.Status.SUSPENDED;
+        }
         return status;
     }
 
@@ -107,14 +131,18 @@ public final class ProtobufWireSinkImpl implements ProtobufSink
     {
         depth = -1;
         pending = null;
+        chunked = false;
+        reopen = false;
     }
 
-    private void onStartMessage()
+    private void onStartMessage(
+        ProtobufSource source)
     {
         depth++;
         Scope scope = scope(depth);
         if (depth == 0)
         {
+            chunked = source.length() > generator.remaining();
             scope.set(schema.message(messageName), root, null, null);
         }
         else
@@ -123,6 +151,11 @@ public final class ProtobufWireSinkImpl implements ProtobufSink
             if (parent.writer == null || pending == null || !pending.composite())
             {
                 scope.set(null, null, null, null);
+            }
+            else if (chunked)
+            {
+                generator.startMessage(pending.number());
+                scope.set(schema.resolveMessage(pending), root, pending, null);
             }
             else
             {
@@ -143,9 +176,16 @@ public final class ProtobufWireSinkImpl implements ProtobufSink
         }
         else if (scope.writer != null && scope.field != null)
         {
-            ProtobufWriter parent = scope(depth - 1).writer;
-            parent.writeTag(scope.field.number(), ProtobufWireType.LEN);
-            parent.writeBytes(scope.buffer, 0, scope.writer.length());
+            if (chunked)
+            {
+                generator.endMessage();
+            }
+            else
+            {
+                ProtobufWriter parent = scope(depth - 1).writer;
+                parent.writeTag(scope.field.number(), ProtobufWireType.LEN);
+                parent.writeBytes(scope.buffer, 0, scope.writer.length());
+            }
         }
         depth--;
         return status;
@@ -160,6 +200,11 @@ public final class ProtobufWireSinkImpl implements ProtobufSink
         {
             scope.set(null, null, null, null);
         }
+        else if (chunked)
+        {
+            generator.startGroup(pending.number());
+            scope.setGroup(schema.resolveMessage(pending), root, pending);
+        }
         else
         {
             parent.writer.writeTag(pending.number(), ProtobufWireType.SGROUP);
@@ -172,9 +217,58 @@ public final class ProtobufWireSinkImpl implements ProtobufSink
         Scope scope = scope(depth);
         if (scope.writer != null && scope.field != null)
         {
-            scope.writer.writeTag(scope.field.number(), ProtobufWireType.EGROUP);
+            if (chunked)
+            {
+                generator.endGroup();
+            }
+            else
+            {
+                scope.writer.writeTag(scope.field.number(), ProtobufWireType.EGROUP);
+            }
         }
         depth--;
+    }
+
+    // Closes every open level in the chunked encode (innermost first) so the buffer is a complete,
+    // drainable chunk; the scopes stay open so reopen() can re-emit their headers after the drain.
+    private void closeAll()
+    {
+        for (int d = depth; d >= 1; d--)
+        {
+            Scope scope = scopes.get(d);
+            if (scope.writer != null && scope.field != null)
+            {
+                if (scope.group)
+                {
+                    generator.endGroup();
+                }
+                else
+                {
+                    generator.endMessage();
+                }
+            }
+        }
+    }
+
+    // Re-emits each still-open level's header (outermost first) into the freshly wrapped buffer so the
+    // next chunk carries its own record for that field.
+    private void reopen()
+    {
+        for (int d = 1; d <= depth; d++)
+        {
+            Scope scope = scopes.get(d);
+            if (scope.writer != null && scope.field != null)
+            {
+                if (scope.group)
+                {
+                    generator.startGroup(scope.field.number());
+                }
+                else
+                {
+                    generator.startMessage(scope.field.number());
+                }
+            }
+        }
     }
 
     private ProtobufField mapField(
@@ -273,6 +367,7 @@ public final class ProtobufWireSinkImpl implements ProtobufSink
         private ProtobufWriter writer;
         private ProtobufField field;
         private ExpandableArrayBuffer buffer;
+        private boolean group;
 
         private void set(
             ProtobufMessage message,
@@ -284,6 +379,7 @@ public final class ProtobufWireSinkImpl implements ProtobufSink
             this.writer = writer;
             this.field = field;
             this.buffer = buffer;
+            this.group = false;
         }
 
         private void setGroup(
@@ -295,6 +391,7 @@ public final class ProtobufWireSinkImpl implements ProtobufSink
             this.writer = writer;
             this.field = field;
             this.buffer = null;
+            this.group = true;
         }
     }
 }
