@@ -23,7 +23,7 @@ import io.aklivity.zilla.runtime.common.avro.internal.AvroSinkImpl;
  * reached a terminal {@link AvroPipeline.Status}. {@code control} steers the immediate upstream. A
  * terminal sink materializes events into a buffer; the downstream of an {@link AvroTransform} is also
  * an {@code AvroSink}. Third parties may implement this contract to consume the event stream — for
- * example, the {@code model-avro} {@code AvroJson} bridge drives a {@code common-json} encoder.
+ * example, the {@code model-avro} {@code AvroJson} bridge drives the JSON side from these events.
  */
 public interface AvroSink
 {

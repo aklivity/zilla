@@ -15,10 +15,9 @@
 package io.aklivity.zilla.runtime.common.avro;
 
 /**
- * The schema-bound Avro decode driver, peer to {@code common-json}'s {@code JsonParserEx}. Obtain one
- * from {@link AvroSchema#decoder()} and call {@link #stream()} to begin a pipeline description; the
- * parser is encapsulated thereafter — the resulting {@link AvroPipeline} feeds it bytes per frame.
- * Reuse a single instance per worker thread.
+ * The schema-bound Avro decode driver. Obtain one from {@link AvroSchema#decoder()} and call
+ * {@link #stream()} to begin a pipeline description; the driver is encapsulated thereafter — the
+ * resulting {@link AvroPipeline} feeds it bytes per frame. Reuse a single instance per worker thread.
  */
 public interface AvroDecoder
 {
