@@ -23,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.agrona.concurrent.UnsafeBuffer;
@@ -145,6 +146,26 @@ public class AvroSchemaTest
         };
         assertEquals(COMPLETE, decode("\"string\"", binary, sink));
         assertEquals("€", captured[0]);
+    }
+
+    @Test
+    public void shouldReadRecordFieldNamesViaGetField()
+    {
+        List<String> fields = new ArrayList<>();
+        AvroSink sink = (control, source, event) ->
+        {
+            if (event == AvroEvent.FIELD_NAME)
+            {
+                fields.add(source.getField());
+            }
+            return Status.PENDING;
+        };
+        assertEquals(COMPLETE, decode(
+            "{\"type\":\"record\",\"name\":\"R\",\"fields\":[" +
+                "{\"name\":\"id\",\"type\":\"int\"}," +
+                "{\"name\":\"name\",\"type\":\"string\"}]}",
+            new byte[] { 0x02, 0x04, 0x68, 0x69 }, sink));
+        assertEquals(List.of("id", "name"), fields);
     }
 
     @Test

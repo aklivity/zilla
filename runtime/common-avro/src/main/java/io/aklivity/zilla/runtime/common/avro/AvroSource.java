@@ -38,6 +38,12 @@ public interface AvroSource
 
     String getString();
 
+    /**
+     * Valid only on a {@link AvroEvent#FIELD_NAME} event; the record field name from the schema
+     * (a cached string, no per-message allocation).
+     */
+    String getField();
+
     DirectBuffer buffer();
 
     int offset();

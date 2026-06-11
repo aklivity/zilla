@@ -41,6 +41,7 @@ final class AvroCursor implements AvroSource
     private float floatValue;
     private double doubleValue;
     private String string;
+    private String field;
     private long position;
 
     void setBoolean(
@@ -106,7 +107,8 @@ final class AvroCursor implements AvroSource
     void setName(
         String name)
     {
-        this.string = name;
+        this.field = name;
+        this.string = null;
         this.length = 0;
     }
 
@@ -171,6 +173,12 @@ final class AvroCursor implements AvroSource
             value = new String(dst, UTF_8);
         }
         return value;
+    }
+
+    @Override
+    public String getField()
+    {
+        return field;
     }
 
     @Override
