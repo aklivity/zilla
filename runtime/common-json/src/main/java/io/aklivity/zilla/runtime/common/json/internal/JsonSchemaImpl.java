@@ -1653,10 +1653,19 @@ public final class JsonSchemaImpl implements JsonSchema
             JsonSink sink)
         {
             sink.feed(control, source, event);
-            Verdict verdict = eval.feed(toEvent(event), source);
-            return verdict == Verdict.VALID
-                ? Status.COMPLETE
-                : verdict == Verdict.INVALID ? Status.REJECTED : Status.PENDING;
+            Status status;
+            if (event.segmented() || event == JsonEvent.START_DOCUMENT || event == JsonEvent.END_DOCUMENT)
+            {
+                status = Status.PENDING;
+            }
+            else
+            {
+                Verdict verdict = eval.feed(toEvent(event), source);
+                status = verdict == Verdict.VALID
+                    ? Status.COMPLETE
+                    : verdict == Verdict.INVALID ? Status.REJECTED : Status.PENDING;
+            }
+            return status;
         }
 
         @Override

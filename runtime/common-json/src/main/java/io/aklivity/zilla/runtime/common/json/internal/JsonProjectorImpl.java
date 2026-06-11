@@ -100,6 +100,10 @@ public final class JsonProjectorImpl implements JsonTransform
         case END_ARRAY:
             onEnd(control, source, event, sink);
             break;
+        case START_DOCUMENT:
+        case END_DOCUMENT:
+            sink.feed(control, source, event);
+            break;
         default:
             onScalar(control, source, event, sink);
             break;

@@ -56,6 +56,7 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
 
     private Event currentEvent;
     private JsonEvent lastEvent;
+    private DocState docState = DocState.NOT_STARTED;
     private SegmentState segmentState = SegmentState.NONE;
     private long frameBaseStreamOffset;
     private long segmentStartOffset;
@@ -69,6 +70,13 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
         PENDING_START,
         SCANNING,
         DONE_PENDING_END
+    }
+
+    private enum DocState
+    {
+        NOT_STARTED,
+        STARTED,
+        ENDED
     }
 
     public JsonParserImpl()
@@ -137,6 +145,7 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
         segmentState = SegmentState.NONE;
         segmentDepth = 0;
         lastEvent = null;
+        docState = DocState.NOT_STARTED;
     }
 
     @Override
@@ -201,6 +210,52 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
     }
 
     public JsonEvent nextEvent()
+    {
+        JsonEvent event;
+        if (docState == DocState.NOT_STARTED)
+        {
+            docState = DocState.STARTED;
+            event = JsonEvent.START_DOCUMENT;
+        }
+        else if (segmentState == SegmentState.NONE && !tokenizerHasNext() && tokenizer.done())
+        {
+            docState = DocState.ENDED;
+            event = JsonEvent.END_DOCUMENT;
+        }
+        else
+        {
+            event = nextToken();
+        }
+        return event;
+    }
+
+    public boolean hasNextEvent()
+    {
+        boolean result;
+        if (docState == DocState.NOT_STARTED)
+        {
+            result = true;
+        }
+        else if (docState == DocState.ENDED)
+        {
+            result = false;
+        }
+        else if (segmentState == SegmentState.PENDING_START || segmentState == SegmentState.DONE_PENDING_END)
+        {
+            result = true;
+        }
+        else if (tokenizerHasNext())
+        {
+            result = true;
+        }
+        else
+        {
+            result = tokenizer.done();
+        }
+        return result;
+    }
+
+    private JsonEvent nextToken()
     {
         JsonEvent event;
         switch (segmentState)

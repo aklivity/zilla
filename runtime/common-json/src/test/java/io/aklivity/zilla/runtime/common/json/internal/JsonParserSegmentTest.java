@@ -32,6 +32,7 @@ public class JsonParserSegmentTest
         final JsonParserImpl parser = new JsonParserImpl();
         wrap(parser, "{\"a\":1} ");
 
+        assertEquals(JsonEvent.START_DOCUMENT, parser.nextEvent());
         assertEquals(JsonEvent.START_OBJECT, parser.nextEvent());
         parser.segmentable();
         assertEquals(JsonEvent.START_SEGMENT, parser.nextEvent());
@@ -46,6 +47,7 @@ public class JsonParserSegmentTest
         final JsonParserImpl parser = new JsonParserImpl();
         wrap(parser, "{\"a\":\"}{\"} ");
 
+        assertEquals(JsonEvent.START_DOCUMENT, parser.nextEvent());
         assertEquals(JsonEvent.START_OBJECT, parser.nextEvent());
         parser.segmentable();
         assertEquals(JsonEvent.START_SEGMENT, parser.nextEvent());
@@ -59,6 +61,7 @@ public class JsonParserSegmentTest
         final JsonParserImpl parser = new JsonParserImpl();
         wrap(parser, "[1,2,3] ");
 
+        assertEquals(JsonEvent.START_DOCUMENT, parser.nextEvent());
         assertEquals(JsonEvent.START_ARRAY, parser.nextEvent());
         parser.segmentable();
         assertEquals(JsonEvent.START_SEGMENT, parser.nextEvent());
@@ -72,6 +75,7 @@ public class JsonParserSegmentTest
         final JsonParserImpl parser = new JsonParserImpl();
         wrap(parser, "{\"a\":{\"x\":1},\"b\":2} ");
 
+        assertEquals(JsonEvent.START_DOCUMENT, parser.nextEvent());
         assertEquals(JsonEvent.START_OBJECT, parser.nextEvent());
         assertEquals(JsonEvent.KEY_NAME, parser.nextEvent());
         assertEquals("a", parser.getString());
@@ -93,6 +97,7 @@ public class JsonParserSegmentTest
         final JsonParserImpl parser = new JsonParserImpl();
 
         wrap(parser, "{\"a\":1,");
+        assertEquals(JsonEvent.START_DOCUMENT, parser.nextEvent());
         assertEquals(JsonEvent.START_OBJECT, parser.nextEvent());
         parser.segmentable();
         assertEquals(JsonEvent.START_SEGMENT, parser.nextEvent());
@@ -114,6 +119,7 @@ public class JsonParserSegmentTest
         final JsonParserImpl parser = new JsonParserImpl();
         wrap(parser, "42 ");
 
+        assertEquals(JsonEvent.START_DOCUMENT, parser.nextEvent());
         assertEquals(JsonEvent.VALUE_NUMBER, parser.nextEvent());
         parser.segmentable();
         assertEquals("42", parser.getString());

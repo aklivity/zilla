@@ -240,6 +240,11 @@ public final class JsonTokenizer
         return streamOffset;
     }
 
+    public boolean done()
+    {
+        return state == ParseState.DOC_DONE;
+    }
+
     public boolean inObjectContext()
     {
         return pathDepth > 0 && !pathInArray[pathDepth - 1];
