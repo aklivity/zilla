@@ -30,7 +30,7 @@ public interface AvroSink
     /**
      * Delivery mode a terminal sink requests. {@link #STRUCTURED} consumes structured events and
      * re-encodes; {@link #SEGMENTABLE} opts in to verbatim segment delivery (best-effort) by calling
-     * {@link AvroController#segmentable()} on {@link AvroEvent#START_DOCUMENT}.
+     * {@link AvroController#segmentable()} on {@link AvroEvent#START_MESSAGE}.
      */
     enum Delivery
     {

@@ -16,7 +16,7 @@ package io.aklivity.zilla.runtime.common.avro;
 
 /**
  * The per-edge control handle an {@link AvroStream} stage uses to steer its immediate upstream. A
- * stage calls {@link #segmentable()} on {@link AvroEvent#START_DOCUMENT} to opt in to receiving the
+ * stage calls {@link #segmentable()} on {@link AvroEvent#START_MESSAGE} to opt in to receiving the
  * current datum as a verbatim segment run rather than as structured events. Best-effort: the upstream
  * may honor it (subsequent events satisfy {@link AvroEvent#segmented()}) or decline (structured events
  * follow); the caller determines which by observing the events that follow. A mediating

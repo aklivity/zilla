@@ -14,13 +14,14 @@
  */
 package io.aklivity.zilla.runtime.common.avro.internal;
 
-import static io.aklivity.zilla.runtime.common.avro.AvroEvent.ARRAY_END;
-import static io.aklivity.zilla.runtime.common.avro.AvroEvent.ARRAY_START;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.BOOLEAN;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.BYTES;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.CONTINUE_SEGMENT;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.DOUBLE;
-import static io.aklivity.zilla.runtime.common.avro.AvroEvent.END_DOCUMENT;
+import static io.aklivity.zilla.runtime.common.avro.AvroEvent.END_ARRAY;
+import static io.aklivity.zilla.runtime.common.avro.AvroEvent.END_MAP;
+import static io.aklivity.zilla.runtime.common.avro.AvroEvent.END_MESSAGE;
+import static io.aklivity.zilla.runtime.common.avro.AvroEvent.END_RECORD;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.END_SEGMENT;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.ENUM;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.FIELD_NAME;
@@ -28,13 +29,12 @@ import static io.aklivity.zilla.runtime.common.avro.AvroEvent.FIXED;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.FLOAT;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.INT;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.LONG;
-import static io.aklivity.zilla.runtime.common.avro.AvroEvent.MAP_END;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.MAP_KEY;
-import static io.aklivity.zilla.runtime.common.avro.AvroEvent.MAP_START;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.NULL;
-import static io.aklivity.zilla.runtime.common.avro.AvroEvent.RECORD_END;
-import static io.aklivity.zilla.runtime.common.avro.AvroEvent.RECORD_START;
-import static io.aklivity.zilla.runtime.common.avro.AvroEvent.START_DOCUMENT;
+import static io.aklivity.zilla.runtime.common.avro.AvroEvent.START_ARRAY;
+import static io.aklivity.zilla.runtime.common.avro.AvroEvent.START_MAP;
+import static io.aklivity.zilla.runtime.common.avro.AvroEvent.START_MESSAGE;
+import static io.aklivity.zilla.runtime.common.avro.AvroEvent.START_RECORD;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.START_SEGMENT;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.STRING;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.UNION_BRANCH;
@@ -56,7 +56,7 @@ import io.aklivity.zilla.runtime.common.avro.AvroStream;
 
 /**
  * The schema-bound decode driver: walks the compiled schema in lockstep with the buffer, emitting an
- * {@link AvroEvent} stream (framed by {@code START_DOCUMENT}/{@code END_DOCUMENT}) to the bound root
+ * {@link AvroEvent} stream (framed by {@code START_MESSAGE}/{@code END_MESSAGE}) to the bound root
  * {@link AvroSink}, resuming across fragmented {@link #feed} calls. Implements {@link AvroController}:
  * a downstream stage may opt the current datum into verbatim segment delivery, in which case the value
  * is scanned (still validating) without structured emission and delivered as raw segment chunks.
@@ -160,7 +160,7 @@ final class AvroDecoderImpl implements AvroDecoder, AvroController
             switch (phase)
             {
             case NEW:
-                int started = emit(START_DOCUMENT);
+                int started = emit(START_MESSAGE);
                 if (started == STEP_REJECTED)
                 {
                     status = REJECTED;
@@ -231,7 +231,7 @@ final class AvroDecoderImpl implements AvroDecoder, AvroController
                 }
                 break;
             case END:
-                int ended = emit(END_DOCUMENT);
+                int ended = emit(END_MESSAGE);
                 status = ended == STEP_REJECTED ? REJECTED : COMPLETE;
                 running = false;
                 phase = Phase.DONE;
@@ -540,7 +540,7 @@ final class AvroDecoderImpl implements AvroDecoder, AvroController
         if (state == 0)
         {
             cursor.clear();
-            result = emit(RECORD_START);
+            result = emit(START_RECORD);
             if (result == STEP_CONTINUE)
             {
                 stateStack[frame] = 1;
@@ -560,7 +560,7 @@ final class AvroDecoderImpl implements AvroDecoder, AvroController
         else
         {
             cursor.clear();
-            result = emit(RECORD_END);
+            result = emit(END_RECORD);
             if (result == STEP_CONTINUE)
             {
                 pop();
@@ -578,7 +578,7 @@ final class AvroDecoderImpl implements AvroDecoder, AvroController
         if (state == 0)
         {
             cursor.clear();
-            result = emit(ARRAY_START);
+            result = emit(START_ARRAY);
             if (result == STEP_CONTINUE)
             {
                 stateStack[frame] = 1;
@@ -586,7 +586,7 @@ final class AvroDecoderImpl implements AvroDecoder, AvroController
         }
         else if (state == 1)
         {
-            result = stepBlockHeader(frame, ARRAY_END);
+            result = stepBlockHeader(frame, END_ARRAY);
         }
         else if (countStack[frame] > 0)
         {
@@ -609,7 +609,7 @@ final class AvroDecoderImpl implements AvroDecoder, AvroController
         if (state == 0)
         {
             cursor.clear();
-            result = emit(MAP_START);
+            result = emit(START_MAP);
             if (result == STEP_CONTINUE)
             {
                 stateStack[frame] = 1;
@@ -617,7 +617,7 @@ final class AvroDecoderImpl implements AvroDecoder, AvroController
         }
         else if (state == 1)
         {
-            result = stepBlockHeader(frame, MAP_END);
+            result = stepBlockHeader(frame, END_MAP);
         }
         else if (state == 2)
         {

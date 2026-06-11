@@ -30,7 +30,7 @@ import io.aklivity.zilla.runtime.common.avro.AvroSource;
  * Terminal {@link AvroSink} that materializes each fed event into a write on the wrapped
  * {@link AvroEncoder}. Reaches {@link Status#COMPLETE} when the current top-level datum closes at
  * depth zero. In {@link Delivery#SEGMENTABLE} mode it requests verbatim segment delivery on
- * {@link AvroEvent#START_DOCUMENT} and appends each segment slice raw.
+ * {@link AvroEvent#START_MESSAGE} and appends each segment slice raw.
  */
 public final class AvroSinkImpl implements AvroSink
 {
@@ -62,23 +62,23 @@ public final class AvroSinkImpl implements AvroSink
         DirectBuffer segment;
         switch (event)
         {
-        case START_DOCUMENT:
+        case START_MESSAGE:
             if (delivery == Delivery.SEGMENTABLE)
             {
                 control.segmentable();
             }
             break;
-        case END_DOCUMENT:
+        case END_MESSAGE:
             break;
-        case RECORD_START:
-        case ARRAY_START:
-        case MAP_START:
+        case START_RECORD:
+        case START_ARRAY:
+        case START_MAP:
             encoder.encode(event, source);
             depth++;
             break;
-        case RECORD_END:
-        case ARRAY_END:
-        case MAP_END:
+        case END_RECORD:
+        case END_ARRAY:
+        case END_MAP:
             encoder.encode(event, source);
             depth--;
             status = depth == 0 ? COMPLETE : PENDING;

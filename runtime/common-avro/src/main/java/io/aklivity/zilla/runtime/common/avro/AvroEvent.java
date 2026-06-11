@@ -17,31 +17,31 @@ package io.aklivity.zilla.runtime.common.avro;
 /**
  * The event currency of an {@link AvroStream} pipeline: the Avro-native structured events produced by
  * walking the compiled schema in lockstep with the binary, plus document framing
- * ({@link #START_DOCUMENT} / {@link #END_DOCUMENT}) and segment framing ({@link #START_SEGMENT} /
+ * ({@link #START_MESSAGE} / {@link #END_MESSAGE}) and segment framing ({@link #START_SEGMENT} /
  * {@link #CONTINUE_SEGMENT} / {@link #END_SEGMENT}). A segment run delivers one complete value as raw
  * Avro bytes rather than as structured events, for verbatim passthrough; {@link #segmented()}
  * distinguishes those events.
  */
 public enum AvroEvent
 {
-    /** start of a top-level datum; structured (or segment) events follow until {@link #END_DOCUMENT} */
-    START_DOCUMENT,
+    /** start of a top-level datum; structured (or segment) events follow until {@link #END_MESSAGE} */
+    START_MESSAGE,
     /** end of a top-level datum */
-    END_DOCUMENT,
-    /** start of a record; field events follow until {@link #RECORD_END} */
-    RECORD_START,
+    END_MESSAGE,
+    /** start of a record; field events follow until {@link #END_RECORD} */
+    START_RECORD,
     /** end of a record */
-    RECORD_END,
+    END_RECORD,
     /** the name of the next record field; the field's value event follows */
     FIELD_NAME,
-    /** start of an array; element value events follow until {@link #ARRAY_END} */
-    ARRAY_START,
+    /** start of an array; element value events follow until {@link #END_ARRAY} */
+    START_ARRAY,
     /** end of an array */
-    ARRAY_END,
-    /** start of a map; alternating {@link #MAP_KEY} and value events follow until {@link #MAP_END} */
-    MAP_START,
+    END_ARRAY,
+    /** start of a map; alternating {@link #MAP_KEY} and value events follow until {@link #END_MAP} */
+    START_MAP,
     /** end of a map */
-    MAP_END,
+    END_MAP,
     /** the key of the next map entry; the entry's value event follows */
     MAP_KEY,
     /** the selected branch index of a union; the branch's value event follows */

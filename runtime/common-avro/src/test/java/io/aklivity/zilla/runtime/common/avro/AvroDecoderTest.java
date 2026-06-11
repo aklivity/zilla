@@ -14,21 +14,21 @@
  */
 package io.aklivity.zilla.runtime.common.avro;
 
-import static io.aklivity.zilla.runtime.common.avro.AvroEvent.ARRAY_END;
-import static io.aklivity.zilla.runtime.common.avro.AvroEvent.ARRAY_START;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.BOOLEAN;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.DOUBLE;
+import static io.aklivity.zilla.runtime.common.avro.AvroEvent.END_ARRAY;
+import static io.aklivity.zilla.runtime.common.avro.AvroEvent.END_MAP;
+import static io.aklivity.zilla.runtime.common.avro.AvroEvent.END_RECORD;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.ENUM;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.FIELD_NAME;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.FLOAT;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.INT;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.LONG;
-import static io.aklivity.zilla.runtime.common.avro.AvroEvent.MAP_END;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.MAP_KEY;
-import static io.aklivity.zilla.runtime.common.avro.AvroEvent.MAP_START;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.NULL;
-import static io.aklivity.zilla.runtime.common.avro.AvroEvent.RECORD_END;
-import static io.aklivity.zilla.runtime.common.avro.AvroEvent.RECORD_START;
+import static io.aklivity.zilla.runtime.common.avro.AvroEvent.START_ARRAY;
+import static io.aklivity.zilla.runtime.common.avro.AvroEvent.START_MAP;
+import static io.aklivity.zilla.runtime.common.avro.AvroEvent.START_RECORD;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.STRING;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.UNION_BRANCH;
 import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.COMPLETE;
@@ -137,7 +137,7 @@ public class AvroDecoderTest
             {"name":"id","type":"int"},
             {"name":"name","type":"string"}]}""",
             new byte[] { 0x02, 0x04, 0x68, 0x69 }).events;
-        assertEquals(List.of(RECORD_START, FIELD_NAME, INT, FIELD_NAME, STRING, RECORD_END), events);
+        assertEquals(List.of(START_RECORD, FIELD_NAME, INT, FIELD_NAME, STRING, END_RECORD), events);
     }
 
     @Test
@@ -146,7 +146,7 @@ public class AvroDecoderTest
         List<AvroEvent> events = decode(
             "{\"type\":\"array\",\"items\":\"int\"}",
             new byte[] { 0x04, 0x02, 0x04, 0x00 }).events;
-        assertEquals(List.of(ARRAY_START, INT, INT, ARRAY_END), events);
+        assertEquals(List.of(START_ARRAY, INT, INT, END_ARRAY), events);
     }
 
     @Test
@@ -155,7 +155,7 @@ public class AvroDecoderTest
         Recorder recorder = decode(
             "{\"type\":\"map\",\"values\":\"long\"}",
             new byte[] { 0x02, 0x02, 0x61, 0x0e, 0x00 });
-        assertEquals(List.of(MAP_START, MAP_KEY, LONG, MAP_END), recorder.events);
+        assertEquals(List.of(START_MAP, MAP_KEY, LONG, END_MAP), recorder.events);
         assertEquals(7L, recorder.entries.get(2).longValue);
     }
 

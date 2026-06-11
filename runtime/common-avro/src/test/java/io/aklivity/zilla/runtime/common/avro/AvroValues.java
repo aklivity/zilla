@@ -133,7 +133,7 @@ public final class AvroValues
             AvroSource source,
             AvroEvent event)
         {
-            if (event != AvroEvent.START_DOCUMENT && event != AvroEvent.END_DOCUMENT && !event.segmented())
+            if (event != AvroEvent.START_MESSAGE && event != AvroEvent.END_MESSAGE && !event.segmented())
             {
                 events.add(event);
                 entries.add(new Entry(event, source));

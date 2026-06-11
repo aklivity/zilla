@@ -14,9 +14,9 @@
  */
 package io.aklivity.zilla.runtime.common.avro;
 
-import static io.aklivity.zilla.runtime.common.avro.AvroEvent.ARRAY_END;
-import static io.aklivity.zilla.runtime.common.avro.AvroEvent.ARRAY_START;
+import static io.aklivity.zilla.runtime.common.avro.AvroEvent.END_ARRAY;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.INT;
+import static io.aklivity.zilla.runtime.common.avro.AvroEvent.START_ARRAY;
 import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.COMPLETE;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -92,7 +92,7 @@ public class AvroSchemaTest
         List<AvroEvent> events = AvroValues.decode(
             Avro.schema("{\"type\":\"array\",\"items\":\"int\"}"),
             new byte[] { 0x03, 0x04, 0x02, 0x04, 0x00 });
-        assertEquals(List.of(ARRAY_START, INT, INT, ARRAY_END), events);
+        assertEquals(List.of(START_ARRAY, INT, INT, END_ARRAY), events);
     }
 
     @Test

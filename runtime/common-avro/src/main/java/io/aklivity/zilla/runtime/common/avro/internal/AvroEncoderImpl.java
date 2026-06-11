@@ -14,8 +14,8 @@
  */
 package io.aklivity.zilla.runtime.common.avro.internal;
 
-import static io.aklivity.zilla.runtime.common.avro.AvroEvent.ARRAY_END;
-import static io.aklivity.zilla.runtime.common.avro.AvroEvent.MAP_END;
+import static io.aklivity.zilla.runtime.common.avro.AvroEvent.END_ARRAY;
+import static io.aklivity.zilla.runtime.common.avro.AvroEvent.END_MAP;
 import static java.nio.ByteOrder.LITTLE_ENDIAN;
 
 import org.agrona.DirectBuffer;
@@ -163,7 +163,7 @@ public final class AvroEncoderImpl implements AvroEncoder
             case RECORD:
                 if (state == 0)
                 {
-                    require(event == AvroEvent.RECORD_START, event);
+                    require(event == AvroEvent.START_RECORD, event);
                     stateStack[frame] = 1;
                     consumed = true;
                 }
@@ -176,7 +176,7 @@ public final class AvroEncoderImpl implements AvroEncoder
                 }
                 else
                 {
-                    require(event == AvroEvent.RECORD_END, event);
+                    require(event == AvroEvent.END_RECORD, event);
                     pop();
                     consumed = true;
                 }
@@ -184,11 +184,11 @@ public final class AvroEncoderImpl implements AvroEncoder
             case ARRAY:
                 if (state == 0)
                 {
-                    require(event == AvroEvent.ARRAY_START, event);
+                    require(event == AvroEvent.START_ARRAY, event);
                     stateStack[frame] = 1;
                     consumed = true;
                 }
-                else if (event == ARRAY_END)
+                else if (event == END_ARRAY)
                 {
                     writeVarint(0);
                     pop();
@@ -203,11 +203,11 @@ public final class AvroEncoderImpl implements AvroEncoder
             case MAP:
                 if (state == 0)
                 {
-                    require(event == AvroEvent.MAP_START, event);
+                    require(event == AvroEvent.START_MAP, event);
                     stateStack[frame] = 1;
                     consumed = true;
                 }
-                else if (event == MAP_END)
+                else if (event == END_MAP)
                 {
                     writeVarint(0);
                     pop();
