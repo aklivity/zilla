@@ -71,6 +71,7 @@ public final class JsonTokenizer
     private ParseState state = ParseState.DOC_START;
     private JsonParser.Event pendingEvent;
     private String pendingString;
+    private boolean valuePending;
     private long streamOffset;
     private boolean valueReadable = true;
 
@@ -118,6 +119,7 @@ public final class JsonTokenizer
         state = ParseState.DOC_START;
         pendingEvent = null;
         pendingString = null;
+        valuePending = false;
         streamOffset = 0;
         valueReadable = true;
         resumeOp = ResumeOp.NONE;
@@ -175,6 +177,7 @@ public final class JsonTokenizer
 
         pendingEvent = null;
         pendingString = null;
+        valuePending = false;
 
         while (pendingEvent == null && state != ParseState.DOC_DONE)
         {
@@ -232,6 +235,11 @@ public final class JsonTokenizer
 
     public String stringValue()
     {
+        if (valuePending)
+        {
+            pendingString = takeScratch();
+            valuePending = false;
+        }
         return pendingString;
     }
 
@@ -396,14 +404,14 @@ public final class JsonTokenizer
         case VALUE_STRING:
             continueStringContent(in);
             pendingEvent = JsonParser.Event.VALUE_STRING;
-            pendingString = valueReadable ? takeScratch() : null;
+            captureValue(valueReadable);
             resumeOp = ResumeOp.NONE;
             afterValueConsumed();
             break;
         case VALUE_NUMBER:
             continueNumberContent(in);
             pendingEvent = JsonParser.Event.VALUE_NUMBER;
-            pendingString = valueReadable ? takeScratch() : null;
+            captureValue(valueReadable);
             resumeOp = ResumeOp.NONE;
             afterValueConsumed();
             break;
@@ -428,6 +436,13 @@ public final class JsonTokenizer
         default:
             throw new IllegalStateException("Unexpected resumeOp: " + resumeOp);
         }
+    }
+
+    private void captureValue(
+        boolean readable)
+    {
+        valuePending = readable;
+        pendingString = null;
     }
 
     private String takeScratch()
@@ -533,7 +548,7 @@ public final class JsonTokenizer
             resumeOp = ResumeOp.VALUE_STRING;
             continueStringContent(in);
             pendingEvent = JsonParser.Event.VALUE_STRING;
-            pendingString = valueReadable ? takeScratch() : null;
+            captureValue(valueReadable);
             resumeOp = ResumeOp.NONE;
             afterValueConsumed();
             break;
@@ -572,7 +587,7 @@ public final class JsonTokenizer
                 resumeOp = ResumeOp.VALUE_NUMBER;
                 continueNumberContent(in);
                 pendingEvent = JsonParser.Event.VALUE_NUMBER;
-                pendingString = valueReadable ? takeScratch() : null;
+                captureValue(valueReadable);
                 resumeOp = ResumeOp.NONE;
                 afterValueConsumed();
             }
