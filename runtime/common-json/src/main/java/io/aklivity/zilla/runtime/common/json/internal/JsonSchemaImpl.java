@@ -988,6 +988,12 @@ public final class JsonSchemaImpl implements JsonSchema
         }
 
         @Override
+        public CharSequence getKey()
+        {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
         public DirectBuffer getSegment()
         {
             throw new UnsupportedOperationException();
@@ -1450,6 +1456,12 @@ public final class JsonSchemaImpl implements JsonSchema
 
         @Override
         public JsonLocation getLocation()
+        {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public CharSequence getKey()
         {
             throw new UnsupportedOperationException();
         }

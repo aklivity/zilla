@@ -30,15 +30,8 @@ public interface JsonSource
 {
     String getString();
 
-    /**
-     * Valid only when the current event is a key; non-owning char view of the current (unescaped)
-     * key, valid on-stack only — read or copy it before the next event. Avoids materializing a
-     * {@code String} for keys that are matched but not forwarded.
-     */
-    default CharSequence getKey()
-    {
-        throw new UnsupportedOperationException();
-    }
+    // valid only on a key event; non-owning, on-stack char view of the current key
+    CharSequence getKey();
 
     BigDecimal getBigDecimal();
 
