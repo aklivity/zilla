@@ -14,13 +14,19 @@
  */
 package io.aklivity.zilla.runtime.common.protobuf;
 
+import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 
 /**
- * A buffer-backed Protobuf wire generator — the output edge a {@link ProtobufSink#of(ProtobufGenerator,
- * ProtobufSchema, String)} sink writes through, peer to {@code common-json}'s buffer-backed generator.
+ * A buffer-backed Protobuf wire generator — peer to {@code common-json}'s buffer-backed generator.
  * Reuse a single instance per worker thread; {@link #wrap(MutableDirectBuffer, int)} retargets it and
  * {@link #length()} reports the bytes written since.
+ * <p>
+ * Each {@code writeXxx(field, value)} emits one field — its tag (the field number paired with the wire
+ * type implied by the method) followed by the value — chosen by the Protobuf type, since the wire is
+ * not self-describing about signedness, zig-zag, or fixed width. {@code writeMessage} length-prefixes a
+ * pre-encoded nested message and {@code writeRaw} splices bytes verbatim. All writers return {@code this}
+ * to chain.
  */
 public interface ProtobufGenerator
 {
@@ -29,4 +35,93 @@ public interface ProtobufGenerator
         int offset);
 
     int length();
+
+    ProtobufGenerator writeInt32(
+        int field,
+        int value);
+
+    ProtobufGenerator writeInt64(
+        int field,
+        long value);
+
+    ProtobufGenerator writeUInt32(
+        int field,
+        int value);
+
+    ProtobufGenerator writeUInt64(
+        int field,
+        long value);
+
+    ProtobufGenerator writeSInt32(
+        int field,
+        int value);
+
+    ProtobufGenerator writeSInt64(
+        int field,
+        long value);
+
+    ProtobufGenerator writeFixed32(
+        int field,
+        int value);
+
+    ProtobufGenerator writeFixed64(
+        int field,
+        long value);
+
+    ProtobufGenerator writeSFixed32(
+        int field,
+        int value);
+
+    ProtobufGenerator writeSFixed64(
+        int field,
+        long value);
+
+    ProtobufGenerator writeFloat(
+        int field,
+        float value);
+
+    ProtobufGenerator writeDouble(
+        int field,
+        double value);
+
+    ProtobufGenerator writeBool(
+        int field,
+        boolean value);
+
+    ProtobufGenerator writeEnum(
+        int field,
+        int number);
+
+    ProtobufGenerator writeString(
+        int field,
+        String value);
+
+    ProtobufGenerator writeBytes(
+        int field,
+        byte[] value);
+
+    ProtobufGenerator writeBytes(
+        int field,
+        DirectBuffer value,
+        int offset,
+        int length);
+
+    /**
+     * Writes {@code field} as a length-delimited message whose body is the pre-encoded bytes in
+     * {@code message[offset, offset+length)}.
+     */
+    ProtobufGenerator writeMessage(
+        int field,
+        DirectBuffer message,
+        int offset,
+        int length);
+
+    /**
+     * Splices {@code length} bytes from {@code source} verbatim — tag and value already encoded — used
+     * to pass a field through unchanged.
+     */
+    ProtobufGenerator writeRaw(
+        DirectBuffer source,
+        int offset,
+        int length);
 }

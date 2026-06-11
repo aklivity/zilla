@@ -107,6 +107,19 @@ ProtobufPipeline.Status status = pipeline.feed(buffer, offset, length);  // PEND
   on a composite `FIELD` to receive that value as `START_SEGMENT`/`END_SEGMENT` raw wire bytes
   (`ProtobufSource.buffer()`/`offset()`/`length()`) instead of expanding it into structured events.
 
+### Writing wire directly
+
+`Protobuf.generator()` is also a usable buffer-backed wire writer (peer to `common-json`'s
+generator): each `writeXxx(field, value)` emits one field's tag and value, typed by the Protobuf
+type since the wire is not self-describing about signedness/zig-zag/fixed width. `writeMessage`
+length-prefixes a pre-encoded nested message and `writeRaw` splices bytes verbatim.
+
+```java
+ProtobufGenerator generator = Protobuf.generator().wrap(out, 0);
+generator.writeInt32(1, id).writeString(2, name).writeMessage(3, addr, 0, addrLength);
+int length = generator.length();
+```
+
 ### Schema-free mode
 
 The wire is self-describing enough to tokenize without a schema, so `Protobuf.parser()`
