@@ -17,8 +17,8 @@ package io.aklivity.zilla.runtime.common.avro.internal;
 import org.agrona.MutableDirectBuffer;
 
 import io.aklivity.zilla.runtime.common.avro.AvroGeneratorEx;
+import io.aklivity.zilla.runtime.common.avro.AvroParser;
 import io.aklivity.zilla.runtime.common.avro.AvroSchema;
-import io.aklivity.zilla.runtime.common.avro.AvroStream;
 import io.aklivity.zilla.runtime.common.avro.AvroTransform;
 
 public final class AvroSchemaImpl implements AvroSchema
@@ -32,9 +32,9 @@ public final class AvroSchemaImpl implements AvroSchema
     }
 
     @Override
-    public AvroStream decode()
+    public AvroParser decoder()
     {
-        return new AvroStreamImpl(root);
+        return new AvroDecodeDriver(root);
     }
 
     @Override

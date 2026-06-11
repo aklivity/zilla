@@ -49,8 +49,10 @@ import org.agrona.MutableDirectBuffer;
 
 import io.aklivity.zilla.runtime.common.avro.AvroController;
 import io.aklivity.zilla.runtime.common.avro.AvroEvent;
+import io.aklivity.zilla.runtime.common.avro.AvroParser;
 import io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status;
 import io.aklivity.zilla.runtime.common.avro.AvroSink;
+import io.aklivity.zilla.runtime.common.avro.AvroStream;
 
 /**
  * The schema-bound decode driver: walks the compiled schema in lockstep with the buffer, emitting an
@@ -59,7 +61,7 @@ import io.aklivity.zilla.runtime.common.avro.AvroSink;
  * a downstream stage may opt the current datum into verbatim segment delivery, in which case the value
  * is scanned (still validating) without structured emission and delivered as raw segment chunks.
  */
-final class AvroDecodeDriver implements AvroController
+final class AvroDecodeDriver implements AvroParser, AvroController
 {
     private static final int READ_OK = 0;
     private static final int READ_UNDERFLOW = 1;
@@ -80,8 +82,8 @@ final class AvroDecodeDriver implements AvroController
     }
 
     private final AvroNode root;
-    private final AvroSink sink;
     private final AvroCursor cursor;
+    private AvroSink sink;
 
     private final MutableDirectBuffer work;
     private int workLimit;
@@ -101,16 +103,26 @@ final class AvroDecodeDriver implements AvroController
     private boolean segmentStarted;
 
     AvroDecodeDriver(
-        AvroNode root,
-        AvroSink sink)
+        AvroNode root)
     {
         this.root = root;
-        this.sink = sink;
         this.cursor = new AvroCursor();
         this.work = new ExpandableArrayBuffer();
         this.nodeStack = new AvroNode[16];
         this.stateStack = new int[16];
         this.countStack = new long[16];
+    }
+
+    @Override
+    public AvroStream stream()
+    {
+        return new AvroStreamImpl(this);
+    }
+
+    void bind(
+        AvroSink sink)
+    {
+        this.sink = sink;
     }
 
     @Override

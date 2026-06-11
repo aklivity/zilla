@@ -24,13 +24,13 @@ import io.aklivity.zilla.runtime.common.avro.AvroTransform;
 
 final class AvroStreamImpl implements AvroStream
 {
-    private final AvroNode root;
+    private final AvroDecodeDriver driver;
     private final List<AvroTransform> transforms;
 
     AvroStreamImpl(
-        AvroNode root)
+        AvroDecodeDriver driver)
     {
-        this.root = root;
+        this.driver = driver;
         this.transforms = new ArrayList<>();
     }
 
@@ -51,7 +51,7 @@ final class AvroStreamImpl implements AvroStream
         {
             head = new AvroSinkAdapter(transforms.get(i), head);
         }
-        AvroDecodeDriver driver = new AvroDecodeDriver(root, head);
+        driver.bind(head);
         return new AvroPipelineImpl(driver, head);
     }
 }
