@@ -19,18 +19,20 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
+import io.aklivity.zilla.runtime.common.avro.AvroLocation;
 import io.aklivity.zilla.runtime.common.avro.AvroSource;
 
 /**
- * Mutable {@link AvroSource} reused across events on a worker thread. The decoder positions it
- * before each {@code feed} to its sink; the bytes view for {@code STRING}/{@code BYTES}/{@code FIXED}
- * borrows the decoder work buffer and is valid only for the duration of that call. Schema-supplied
- * strings (enum symbols, field names) are returned without allocation; {@link #getString()} for a
- * data-driven {@code STRING} decodes UTF-8 on demand.
+ * Mutable {@link AvroSource} reused across events on a worker thread. The decoder positions it before
+ * each {@code feed} to its sink; the {@link #getSegment()} view for {@code BYTES}/{@code FIXED} and
+ * segment events borrows the decoder work buffer and is valid only for the duration of that call.
+ * Schema-supplied strings (enum symbols, field names) are returned without allocation;
+ * {@link #getString()} / {@link #getKey()} decode data-driven UTF-8 on demand.
  */
 final class AvroSourceImpl implements AvroSource
 {
     private final UnsafeBuffer segmentView = new UnsafeBuffer(0, 0);
+    private final AvroLocationImpl location = new AvroLocationImpl();
 
     private DirectBuffer buffer;
     private int offset;
@@ -42,7 +44,6 @@ final class AvroSourceImpl implements AvroSource
     private double doubleValue;
     private String string;
     private String field;
-    private long position;
 
     void setBoolean(
         boolean value)
@@ -117,7 +118,9 @@ final class AvroSourceImpl implements AvroSource
         int offset,
         int length)
     {
-        this.segmentView.wrap(buffer, offset, length);
+        this.buffer = buffer;
+        this.offset = offset;
+        this.length = length;
     }
 
     void clear()
@@ -126,10 +129,11 @@ final class AvroSourceImpl implements AvroSource
         this.length = 0;
     }
 
-    void position(
+    void locate(
+        int depth,
         long position)
     {
-        this.position = position;
+        location.locate(depth, position);
     }
 
     @Override
@@ -185,40 +189,23 @@ final class AvroSourceImpl implements AvroSource
         return length > 0 ? decode() : null;
     }
 
+    @Override
+    public DirectBuffer getSegment()
+    {
+        segmentView.wrap(buffer, offset, length);
+        return segmentView;
+    }
+
+    @Override
+    public AvroLocation getLocation()
+    {
+        return location;
+    }
+
     private String decode()
     {
         byte[] dst = new byte[length];
         buffer.getBytes(offset, dst);
         return new String(dst, UTF_8);
-    }
-
-    @Override
-    public DirectBuffer buffer()
-    {
-        return buffer;
-    }
-
-    @Override
-    public int offset()
-    {
-        return offset;
-    }
-
-    @Override
-    public int length()
-    {
-        return length;
-    }
-
-    @Override
-    public DirectBuffer getSegment()
-    {
-        return segmentView;
-    }
-
-    @Override
-    public long position()
-    {
-        return position;
     }
 }

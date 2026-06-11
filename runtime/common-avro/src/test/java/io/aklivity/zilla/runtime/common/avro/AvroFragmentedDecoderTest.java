@@ -51,7 +51,7 @@ public class AvroFragmentedDecoderTest
         String schemaText,
         byte[] binary)
     {
-        AvroSchema schema = StreamingAvro.schema(schemaText);
+        AvroSchema schema = Avro.schema(schemaText);
         Recorder whole = AvroValues.record(schema, binary);
         assertEquals(COMPLETE, whole.status);
         assertEquals(whole.events, decodeByteByByte(schema, binary));
@@ -109,7 +109,7 @@ public class AvroFragmentedDecoderTest
     public void shouldDecodeSegmentedAcrossFrames()
     {
         // a verbatim segment run spanning frames must reproduce the input exactly
-        AvroSchema schema = StreamingAvro.schema(
+        AvroSchema schema = Avro.schema(
             "{\"type\":\"record\",\"name\":\"R\",\"fields\":[" +
                 "{\"name\":\"id\",\"type\":\"int\"}," +
                 "{\"name\":\"name\",\"type\":\"string\"}]}");

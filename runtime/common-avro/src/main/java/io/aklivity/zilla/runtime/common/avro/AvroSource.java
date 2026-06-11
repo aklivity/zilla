@@ -46,24 +46,18 @@ public interface AvroSource
 
     /**
      * Valid only on a {@link AvroEvent#MAP_KEY} event; the map entry key decoded as UTF-8. The
-     * zero-copy key bytes are also available via the {@link #buffer()} accessors.
+     * zero-copy key bytes are also available via {@link #getSegment()}.
      */
     String getKey();
 
-    DirectBuffer buffer();
-
-    int offset();
-
-    int length();
-
     /**
-     * Valid only when the current event is {@link AvroEvent#segmented()}; non-owning view of the
-     * current contiguous raw Avro slice, valid on-stack only.
+     * Non-owning, on-stack view of the current contiguous raw Avro bytes — valid on
+     * {@link AvroEvent#BYTES} and {@link AvroEvent#FIXED} value events and on segment events.
      */
     DirectBuffer getSegment();
 
     /**
-     * @return the byte position of the current event within the datum, for diagnostics
+     * @return the location of the current event within the datum, for diagnostics
      */
-    long position();
+    AvroLocation getLocation();
 }

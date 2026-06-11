@@ -25,9 +25,9 @@ import io.aklivity.zilla.runtime.common.avro.internal.AvroSchemaImpl;
  * int)} create resumable, zero-per-message-allocation pipelines. It requires no Avro library on the
  * classpath; {@code common-avro} ships its own format-native codec.
  */
-public final class StreamingAvro
+public final class Avro
 {
-    private StreamingAvro()
+    private Avro()
     {
     }
 

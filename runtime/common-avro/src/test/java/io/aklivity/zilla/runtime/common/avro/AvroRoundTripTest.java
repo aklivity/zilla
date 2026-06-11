@@ -26,7 +26,7 @@ public class AvroRoundTripTest
         String schemaText,
         byte[] original)
     {
-        AvroSchema schema = StreamingAvro.schema(schemaText);
+        AvroSchema schema = Avro.schema(schemaText);
         // structured decode -> re-encode reproduces the single-element-block form
         assertArrayEquals(original, AvroValues.transcode(schema, original, STRUCTURED));
         // verbatim segment passthrough reproduces the input bytes exactly

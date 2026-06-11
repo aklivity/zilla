@@ -156,6 +156,7 @@ final class AvroDecoderImpl implements AvroDecoder, AvroController
         boolean running = true;
         while (running)
         {
+            cursor.locate(depth, pos);
             switch (phase)
             {
             case NEW:

@@ -25,7 +25,7 @@ public class AvroMalformedTest
         String schemaText,
         byte[] binary)
     {
-        return AvroValues.record(StreamingAvro.schema(schemaText), binary).status;
+        return AvroValues.record(Avro.schema(schemaText), binary).status;
     }
 
     @Test

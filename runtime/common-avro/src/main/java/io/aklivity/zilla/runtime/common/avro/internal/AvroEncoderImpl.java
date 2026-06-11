@@ -148,8 +148,9 @@ public final class AvroEncoderImpl implements AvroEncoder
                 break;
             case FIXED:
                 require(event == AvroEvent.FIXED, event);
-                buffer.putBytes(limit, in.buffer(), in.offset(), in.length());
-                limit += in.length();
+                DirectBuffer fixed = in.getSegment();
+                buffer.putBytes(limit, fixed, 0, fixed.capacity());
+                limit += fixed.capacity();
                 pop();
                 consumed = true;
                 break;
@@ -245,9 +246,10 @@ public final class AvroEncoderImpl implements AvroEncoder
     private void writeBytes(
         AvroSource in)
     {
-        int length = in.length();
+        DirectBuffer value = in.getSegment();
+        int length = value.capacity();
         writeVarint(zigzag(length));
-        buffer.putBytes(limit, in.buffer(), in.offset(), length);
+        buffer.putBytes(limit, value, 0, length);
         limit += length;
     }
 

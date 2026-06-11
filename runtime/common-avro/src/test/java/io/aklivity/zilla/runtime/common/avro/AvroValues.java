@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.common.avro;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
@@ -113,8 +114,9 @@ public final class AvroValues
         private static byte[] copy(
             AvroSource in)
         {
-            byte[] dst = new byte[in.length()];
-            in.buffer().getBytes(in.offset(), dst);
+            DirectBuffer segment = in.getSegment();
+            byte[] dst = new byte[segment.capacity()];
+            segment.getBytes(0, dst);
             return dst;
         }
     }

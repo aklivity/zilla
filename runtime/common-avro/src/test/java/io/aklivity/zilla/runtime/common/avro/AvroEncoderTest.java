@@ -29,7 +29,7 @@ public class AvroEncoderTest
     private AvroSink sink(
         String schemaText)
     {
-        AvroSchema schema = StreamingAvro.schema(schemaText);
+        AvroSchema schema = Avro.schema(schemaText);
         return AvroSink.of(schema.encoder(out, 0));
     }
 
@@ -59,6 +59,20 @@ public class AvroEncoderTest
     private static final class ZeroSource implements AvroSource
     {
         private final UnsafeBuffer empty = new UnsafeBuffer(new byte[0]);
+        private final AvroLocation location = new AvroLocation()
+        {
+            @Override
+            public int depth()
+            {
+                return 0;
+            }
+
+            @Override
+            public long position()
+            {
+                return 0L;
+            }
+        };
 
         @Override
         public boolean getBoolean()
@@ -109,33 +123,15 @@ public class AvroEncoderTest
         }
 
         @Override
-        public DirectBuffer buffer()
-        {
-            return empty;
-        }
-
-        @Override
-        public int offset()
-        {
-            return 0;
-        }
-
-        @Override
-        public int length()
-        {
-            return 0;
-        }
-
-        @Override
         public DirectBuffer getSegment()
         {
             return empty;
         }
 
         @Override
-        public long position()
+        public AvroLocation getLocation()
         {
-            return 0L;
+            return location;
         }
     }
 }

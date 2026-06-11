@@ -75,7 +75,7 @@ public class AvroConformanceTest
             byte[] datum = resourceBytes("conformance/" + scenario + "/datum.bin");
 
             Schema reference = new Schema.Parser().parse(schemaText);
-            AvroSchema schema = StreamingAvro.schema(schemaText);
+            AvroSchema schema = Avro.schema(schemaText);
 
             assertEquals(referenceDecode(reference, datum),
                 referenceDecode(reference, AvroValues.transcode(schema, datum, STRUCTURED)), scenario);
@@ -88,7 +88,7 @@ public class AvroConformanceTest
     {
         String schemaText = resource("interop.avsc");
         Schema reference = new Schema.Parser().parse(schemaText);
-        AvroSchema schema = StreamingAvro.schema(schemaText);
+        AvroSchema schema = Avro.schema(schemaText);
 
         Random random = new Random(42L);
         for (int i = 0; i < 500; i++)

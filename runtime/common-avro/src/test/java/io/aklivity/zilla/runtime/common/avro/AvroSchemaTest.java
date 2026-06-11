@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
 
@@ -39,7 +40,7 @@ public class AvroSchemaTest
         byte[] binary,
         AvroSink sink)
     {
-        AvroPipeline pipeline = StreamingAvro.schema(schemaText).decoder().stream().into(sink);
+        AvroPipeline pipeline = Avro.schema(schemaText).decoder().stream().into(sink);
         pipeline.reset();
         return pipeline.feed(new UnsafeBuffer(binary), 0, binary.length);
     }
@@ -48,7 +49,7 @@ public class AvroSchemaTest
     public void shouldCompileLogicalTypeOnLong()
     {
         Recorder recorder = AvroValues.record(
-            StreamingAvro.schema("{\"type\":\"long\",\"logicalType\":\"timestamp-millis\"}"),
+            Avro.schema("{\"type\":\"long\",\"logicalType\":\"timestamp-millis\"}"),
             new byte[] { 0x02 });
         assertEquals(COMPLETE, recorder.status);
         assertEquals(1L, recorder.entries.get(0).longValue);
@@ -58,7 +59,7 @@ public class AvroSchemaTest
     public void shouldCompileLogicalTypeOnBytes()
     {
         Recorder recorder = AvroValues.record(
-            StreamingAvro.schema("{\"type\":\"bytes\",\"logicalType\":\"decimal\"}"),
+            Avro.schema("{\"type\":\"bytes\",\"logicalType\":\"decimal\"}"),
             new byte[] { 0x02, 0x07 });
         assertEquals(COMPLETE, recorder.status);
     }
@@ -67,7 +68,7 @@ public class AvroSchemaTest
     public void shouldCompileLogicalTypeOnFixed()
     {
         Recorder recorder = AvroValues.record(
-            StreamingAvro.schema("{\"type\":\"fixed\",\"name\":\"Dec\",\"size\":2,\"logicalType\":\"decimal\"}"),
+            Avro.schema("{\"type\":\"fixed\",\"name\":\"Dec\",\"size\":2,\"logicalType\":\"decimal\"}"),
             new byte[] { 0x01, 0x02 });
         assertEquals(COMPLETE, recorder.status);
     }
@@ -76,7 +77,7 @@ public class AvroSchemaTest
     public void shouldResolveNamedTypeReference()
     {
         Recorder recorder = AvroValues.record(
-            StreamingAvro.schema(
+            Avro.schema(
                 "{\"type\":\"record\",\"name\":\"Pair\",\"namespace\":\"ns\",\"fields\":[" +
                     "{\"name\":\"a\",\"type\":{\"type\":\"enum\",\"name\":\"E\",\"symbols\":[\"X\",\"Y\"]}}," +
                     "{\"name\":\"b\",\"type\":\"E\"}]}"),
@@ -89,7 +90,7 @@ public class AvroSchemaTest
     {
         // block count -2 (0x03), block size (0x04), items 1 (0x02) and 2 (0x04), terminator 0x00
         List<AvroEvent> events = AvroValues.decode(
-            StreamingAvro.schema("{\"type\":\"array\",\"items\":\"int\"}"),
+            Avro.schema("{\"type\":\"array\",\"items\":\"int\"}"),
             new byte[] { 0x03, 0x04, 0x02, 0x04, 0x00 });
         assertEquals(List.of(ARRAY_START, INT, INT, ARRAY_END), events);
     }
@@ -118,8 +119,9 @@ public class AvroSchemaTest
         {
             if (event == AvroEvent.BYTES)
             {
-                byte[] dst = new byte[source.length()];
-                source.buffer().getBytes(source.offset(), dst);
+                DirectBuffer segment = source.getSegment();
+                byte[] dst = new byte[segment.capacity()];
+                segment.getBytes(0, dst);
                 captured[0] = dst;
             }
             return Status.PENDING;
@@ -187,14 +189,39 @@ public class AvroSchemaTest
     }
 
     @Test
+    public void shouldReportLocation()
+    {
+        int[] depth = { -1 };
+        long[] position = { -1L };
+        AvroSink sink = (control, source, event) ->
+        {
+            if (event == AvroEvent.STRING)
+            {
+                AvroLocation location = source.getLocation();
+                depth[0] = location.depth();
+                position[0] = location.position();
+            }
+            return Status.PENDING;
+        };
+        // record { id:int=1 (0x02), name:string="hi" (0x04 'h' 'i') }; name begins at byte 1, depth 2
+        assertEquals(COMPLETE, decode(
+            "{\"type\":\"record\",\"name\":\"R\",\"fields\":[" +
+                "{\"name\":\"id\",\"type\":\"int\"}," +
+                "{\"name\":\"name\",\"type\":\"string\"}]}",
+            new byte[] { 0x02, 0x04, 0x68, 0x69 }, sink));
+        assertEquals(2, depth[0]);
+        assertEquals(1L, position[0]);
+    }
+
+    @Test
     public void shouldRejectMalformedSchemaDocument()
     {
-        assertThrows(AvroValidationException.class, () -> StreamingAvro.schema("{ this is not json"));
+        assertThrows(AvroValidationException.class, () -> Avro.schema("{ this is not json"));
     }
 
     @Test
     public void shouldRejectUnexpectedSchemaNode()
     {
-        assertThrows(AvroValidationException.class, () -> StreamingAvro.schema("123"));
+        assertThrows(AvroValidationException.class, () -> Avro.schema("123"));
     }
 }

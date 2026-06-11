@@ -50,7 +50,7 @@ public class AvroDecoderTest
         String schemaText,
         byte[] binary)
     {
-        Recorder recorder = AvroValues.record(StreamingAvro.schema(schemaText), binary);
+        Recorder recorder = AvroValues.record(Avro.schema(schemaText), binary);
         assertEquals(COMPLETE, recorder.status);
         return recorder;
     }
