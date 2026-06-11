@@ -15,9 +15,9 @@
 package io.aklivity.zilla.runtime.common.protobuf;
 
 /**
- * The driver of a {@code common-protobuf} pipeline — peer to {@code common-json}'s parser. A
- * schema-bound parser ({@link Protobuf#parser(ProtobufSchema, String)}) decodes a message
- * into a typed event stream; a schema-free parser ({@link Protobuf#parser()}) tokenizes the
+ * The driver of a {@code common-protobuf} pipeline. A schema-bound parser
+ * ({@link Protobuf#parser(ProtobufSchema, String)}) decodes a message into a typed event stream;
+ * a schema-free parser ({@link Protobuf#parser()}) tokenizes the
  * wire into generic events. Reuse a single instance per worker thread; {@link #stream()} begins a
  * pipeline pumped by this parser, to which stages are appended with {@link ProtobufStream#transform}
  * and which is terminated with {@link ProtobufStream#into}.

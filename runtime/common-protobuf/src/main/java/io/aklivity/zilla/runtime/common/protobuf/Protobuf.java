@@ -25,8 +25,7 @@ import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufParserImpl;
  * {@code schemaId} and cache it, then obtain a reusable per-worker {@link ProtobufCanonicalizer}.
  * <p>
  * This is the format-neutral wire layer only; it has no JSON dependency. The protobuf ↔ JSON
- * mapping is composed in {@code model-protobuf}, which depends on both {@code common-protobuf} and
- * {@code common-json}.
+ * mapping is owned by the {@code model-protobuf} converter, not this library.
  * <p>
  * Bounded-buffer contract: operations run on a single, fully-buffered message — the engine delivers
  * the reassembled payload — so processing is bounded by the message size (and, for nested messages,

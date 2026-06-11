@@ -18,9 +18,9 @@ import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 
 /**
- * A buffer-backed Protobuf wire generator — peer to {@code common-json}'s buffer-backed generator.
- * Reuse a single instance per worker thread; {@link #wrap(MutableDirectBuffer, int)} retargets it and
- * {@link #length()} reports the bytes written since.
+ * A buffer-backed Protobuf wire generator. Reuse a single instance per worker thread;
+ * {@link #wrap(MutableDirectBuffer, int)} retargets it and {@link #length()} reports the bytes
+ * written since.
  * <p>
  * Each {@code writeXxx(field, value)} emits one field — its tag (the field number paired with the wire
  * type implied by the method) followed by the value — chosen by the Protobuf type, since the wire is
@@ -115,6 +115,22 @@ public interface ProtobufGenerator
         DirectBuffer message,
         int offset,
         int length);
+
+    /**
+     * Begins a length-delimited nested message on {@code field}, written incrementally: subsequent
+     * {@code writeXxx} / {@code beginMessage} calls target the nested body until the matching
+     * {@link #endMessage()}, which back-patches the length. This is the write-side mirror of a
+     * {@link ProtobufEvent#START_MESSAGE} event from a parser; pair each with {@link #endMessage()}.
+     */
+    ProtobufGenerator beginMessage(
+        int field);
+
+    /**
+     * Ends the nested message opened by the most recent {@link #beginMessage(int)}, splicing its body
+     * with its length into the enclosing message — the write-side mirror of a
+     * {@link ProtobufEvent#END_MESSAGE} event.
+     */
+    ProtobufGenerator endMessage();
 
     /**
      * Splices {@code length} bytes from {@code source} verbatim — tag and value already encoded — used

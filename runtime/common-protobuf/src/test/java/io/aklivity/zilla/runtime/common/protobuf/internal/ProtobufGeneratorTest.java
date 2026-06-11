@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.common.protobuf.internal;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.ArrayList;
@@ -72,6 +73,61 @@ public class ProtobufGeneratorTest
             "F1", "V-5", "F2", "V-6", "F3", "V4000000000", "F4", "V7", "F5", "V1.5",
             "F6", "V1", "F7", "Vhi", "F8", "Vb3", "F9", "V1", "F10", "{", "F1", "V9", "}",
             "}"), sink.events);
+    }
+
+    @Test
+    public void shouldStreamNestedMessageMatchingPreEncoded()
+    {
+        MutableDirectBuffer nested = new UnsafeBuffer(new byte[64]);
+        int nestedLength = Protobuf.generator().wrap(nested, 0).writeInt32(1, 9).length();
+
+        MutableDirectBuffer preEncodedOut = new UnsafeBuffer(new byte[128]);
+        ProtobufGenerator preEncoded = Protobuf.generator().wrap(preEncodedOut, 0);
+        preEncoded.writeInt32(1, 7).writeMessage(2, nested, 0, nestedLength);
+        byte[] expected = bytes(preEncodedOut, preEncoded.length());
+
+        MutableDirectBuffer streamedOut = new UnsafeBuffer(new byte[128]);
+        ProtobufGenerator streamed = Protobuf.generator().wrap(streamedOut, 0);
+        streamed.writeInt32(1, 7).beginMessage(2).writeInt32(1, 9).endMessage();
+        byte[] actual = bytes(streamedOut, streamed.length());
+
+        assertArrayEquals(expected, actual);
+    }
+
+    @Test
+    public void shouldReproduceWireFromParserEvents()
+    {
+        MutableDirectBuffer in = new UnsafeBuffer(new byte[256]);
+        ProtobufGenerator source = Protobuf.generator().wrap(in, 0);
+        source
+            .writeInt32(1, -5)
+            .writeSInt32(2, -6)
+            .writeUInt32(3, (int) 4000000000L)
+            .writeFixed32(4, 7)
+            .writeDouble(5, 1.5)
+            .writeBool(6, true)
+            .writeString(7, "hi")
+            .writeBytes(8, new byte[]{1, 2, 3})
+            .writeEnum(9, 1)
+            .beginMessage(10).writeInt32(1, 9).endMessage();
+        byte[] input = bytes(in, source.length());
+
+        MutableDirectBuffer out = new UnsafeBuffer(new byte[256]);
+        ProtobufGenerator generator = Protobuf.generator().wrap(out, 0);
+        ProtobufPipeline pipeline = Protobuf.parser(schema, "All").stream().into(new Mirror(generator));
+        pipeline.reset();
+
+        assertEquals(ProtobufPipeline.Status.COMPLETE, pipeline.feed(in, 0, input.length));
+        assertArrayEquals(input, bytes(out, generator.length()));
+    }
+
+    private static byte[] bytes(
+        MutableDirectBuffer buffer,
+        int length)
+    {
+        byte[] result = new byte[length];
+        buffer.getBytes(0, result);
+        return result;
     }
 
     private static ProtobufSchema newSchema()
@@ -171,6 +227,127 @@ public class ProtobufGeneratorTest
                 break;
             }
             return value;
+        }
+    }
+
+    private static final class Mirror implements ProtobufSink
+    {
+        private final ProtobufGenerator generator;
+        private int depth;
+        private ProtobufField pending;
+
+        private Mirror(
+            ProtobufGenerator generator)
+        {
+            this.generator = generator;
+        }
+
+        @Override
+        public ProtobufPipeline.Status feed(
+            ProtobufController control,
+            ProtobufSource source,
+            ProtobufEvent event)
+        {
+            ProtobufPipeline.Status status = ProtobufPipeline.Status.PENDING;
+            switch (event)
+            {
+            case START_MESSAGE:
+                depth++;
+                if (depth > 1)
+                {
+                    generator.beginMessage(pending.number());
+                }
+                break;
+            case FIELD:
+                pending = source.field();
+                break;
+            case VALUE:
+                writeValue(source);
+                break;
+            case END_MESSAGE:
+                if (depth > 1)
+                {
+                    generator.endMessage();
+                }
+                depth--;
+                if (depth == 0)
+                {
+                    status = ProtobufPipeline.Status.COMPLETE;
+                }
+                break;
+            default:
+                break;
+            }
+            return status;
+        }
+
+        @Override
+        public void reset()
+        {
+            depth = 0;
+            pending = null;
+        }
+
+        private void writeValue(
+            ProtobufSource source)
+        {
+            ProtobufField field = source.field();
+            int number = field.number();
+            switch (field.type())
+            {
+            case INT32:
+                generator.writeInt32(number, (int) source.longValue());
+                break;
+            case INT64:
+                generator.writeInt64(number, source.longValue());
+                break;
+            case UINT32:
+                generator.writeUInt32(number, (int) source.longValue());
+                break;
+            case UINT64:
+                generator.writeUInt64(number, source.longValue());
+                break;
+            case SINT32:
+                generator.writeSInt32(number, (int) source.longValue());
+                break;
+            case SINT64:
+                generator.writeSInt64(number, source.longValue());
+                break;
+            case FIXED32:
+                generator.writeFixed32(number, (int) source.longValue());
+                break;
+            case FIXED64:
+                generator.writeFixed64(number, source.longValue());
+                break;
+            case SFIXED32:
+                generator.writeSFixed32(number, (int) source.longValue());
+                break;
+            case SFIXED64:
+                generator.writeSFixed64(number, source.longValue());
+                break;
+            case FLOAT:
+                generator.writeFloat(number, source.floatValue());
+                break;
+            case DOUBLE:
+                generator.writeDouble(number, source.doubleValue());
+                break;
+            case BOOL:
+                generator.writeBool(number, source.longValue() != 0L);
+                break;
+            case ENUM:
+                generator.writeEnum(number, (int) source.longValue());
+                break;
+            case STRING:
+                byte[] text = new byte[source.length()];
+                source.buffer().getBytes(source.offset(), text);
+                generator.writeString(number, new String(text, UTF_8));
+                break;
+            case BYTES:
+                generator.writeBytes(number, source.buffer(), source.offset(), source.length());
+                break;
+            default:
+                break;
+            }
         }
     }
 }
