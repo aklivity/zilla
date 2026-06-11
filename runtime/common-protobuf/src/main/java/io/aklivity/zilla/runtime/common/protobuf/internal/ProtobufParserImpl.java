@@ -33,7 +33,7 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
 
 /**
  * The pull cursor that decodes a fully-buffered message one {@link ProtobufEvent} at a time. It is the
- * pipeline primitive: a caller drives it directly with {@link #wrap}, {@link #hasNextEvent} and
+ * pipeline primitive: a caller drives it directly with {@link #wrap}, {@link #hasNext} and
  * {@link #nextEvent}, reading the current value through the inherited {@link ProtobufSource} accessors;
  * {@link #stream()} layers the push pipeline over the same cursor. A single instance also serves as the
  * {@link ProtobufController} for the stages it pumps, so {@link #segmentable()} arms the next composite
@@ -116,7 +116,7 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource,
     }
 
     @Override
-    public boolean hasNextEvent()
+    public boolean hasNext()
     {
         return !done;
     }

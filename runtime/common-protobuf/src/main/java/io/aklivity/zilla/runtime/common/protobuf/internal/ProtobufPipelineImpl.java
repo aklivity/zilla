@@ -68,7 +68,7 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
         try
         {
             parser.wrap(buffer, offset, length);
-            while (status == Status.PENDING && parser.hasNextEvent())
+            while (status == Status.PENDING && parser.hasNext())
             {
                 status = head.feed(parser, parser, parser.nextEvent());
             }

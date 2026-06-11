@@ -23,7 +23,7 @@ import org.agrona.DirectBuffer;
  * single instance per worker thread.
  * <p>
  * It can be driven directly: {@link #wrap} borrows a fully-buffered message, then a
- * {@link #hasNextEvent()} / {@link #nextEvent()} loop pulls one {@link ProtobufEvent} at a time, with
+ * {@link #hasNext()} / {@link #nextEvent()} loop pulls one {@link ProtobufEvent} at a time, with
  * the current field and value read through this parser's accessors ({@link #field()},
  * {@link #longValue()}, {@link #buffer()}, …) — the same surface a {@link ProtobufSource} exposes to a
  * pipeline stage, but cursor-bearing. {@link #stream()} layers the push pipeline over the same cursor;
@@ -43,7 +43,7 @@ public interface ProtobufParser
     /**
      * {@code true} until the root {@link ProtobufEvent#END_MESSAGE} has been pulled.
      */
-    boolean hasNextEvent();
+    boolean hasNext();
 
     /**
      * Advances the cursor and returns the next event; the accessors then read the value it positions.

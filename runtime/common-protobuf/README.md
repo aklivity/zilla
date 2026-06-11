@@ -62,7 +62,7 @@ binary round-trip conformance check needs.
 ## Parsing — pull cursor
 
 `Protobuf.parser(schema, message)` is a pull cursor: `wrap` a fully-buffered message, then loop
-`hasNextEvent()` / `nextEvent()`, reading each value through the parser's own accessors. It emits
+`hasNext()` / `nextEvent()`, reading each value through the parser's own accessors. It emits
 `START_MESSAGE`/`END_MESSAGE`, `FIELD` (positions `field()`) then `VALUE` for a scalar, and a nested
 `START_MESSAGE`…`END_MESSAGE` for a composite — rejecting malformed wire and wire-type/declared-type
 mismatches as it reads. `START_MESSAGE` carries the whole message slice via
@@ -70,7 +70,7 @@ mismatches as it reads. `START_MESSAGE` carries the whole message slice via
 
 ```java
 ProtobufParser parser = Protobuf.parser(schema, "Person").wrap(buffer, offset, length);
-while (parser.hasNextEvent())
+while (parser.hasNext())
 {
     switch (parser.nextEvent())
     {

@@ -66,7 +66,7 @@ public class ProtobufParserTest
         String rootName = null;
         String nestedName = null;
         int depth = 0;
-        while (parser.hasNextEvent())
+        while (parser.hasNext())
         {
             ProtobufEvent event = parser.nextEvent();
             switch (event)
@@ -142,7 +142,7 @@ public class ProtobufParserTest
         ProtobufParser parser = Protobuf.parser().wrap(new UnsafeBuffer(message), 0, message.length);
 
         List<String> events = new ArrayList<>();
-        while (parser.hasNextEvent())
+        while (parser.hasNext())
         {
             ProtobufEvent event = parser.nextEvent();
             switch (event)
@@ -198,7 +198,7 @@ public class ProtobufParserTest
     {
         parser.wrap(new UnsafeBuffer(message), 0, message.length);
         int events = 0;
-        while (parser.hasNextEvent())
+        while (parser.hasNext())
         {
             parser.nextEvent();
             events++;
