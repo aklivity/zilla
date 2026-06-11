@@ -12,9 +12,14 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.common.avro.internal;
+package io.aklivity.zilla.runtime.common.avro;
 
-enum AvroKind
+/**
+ * The kind of an {@link AvroType} — the Avro type categories, discriminating the accessors that carry
+ * meaning for a given type (for example {@link AvroType#fields()} for {@link #RECORD},
+ * {@link AvroType#symbols()} for {@link #ENUM}, {@link AvroType#branches()} for {@link #UNION}).
+ */
+public enum AvroKind
 {
     NULL,
     BOOLEAN,

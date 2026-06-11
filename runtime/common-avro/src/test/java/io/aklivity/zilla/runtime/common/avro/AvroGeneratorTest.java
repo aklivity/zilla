@@ -30,7 +30,7 @@ public class AvroGeneratorTest
         String schemaText)
     {
         AvroSchema schema = Avro.schema(schemaText);
-        return AvroSink.of(schema.generator(out, 0));
+        return AvroSink.of(Avro.generator(schema, out, 0));
     }
 
     @Test
@@ -126,6 +126,12 @@ public class AvroGeneratorTest
         public DirectBuffer getSegment()
         {
             return empty;
+        }
+
+        @Override
+        public AvroType type()
+        {
+            return null;
         }
 
         @Override

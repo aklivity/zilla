@@ -48,10 +48,12 @@ import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.common.avro.AvroController;
 import io.aklivity.zilla.runtime.common.avro.AvroEvent;
+import io.aklivity.zilla.runtime.common.avro.AvroKind;
 import io.aklivity.zilla.runtime.common.avro.AvroLocation;
 import io.aklivity.zilla.runtime.common.avro.AvroParser;
 import io.aklivity.zilla.runtime.common.avro.AvroSource;
 import io.aklivity.zilla.runtime.common.avro.AvroStream;
+import io.aklivity.zilla.runtime.common.avro.AvroType;
 import io.aklivity.zilla.runtime.common.avro.AvroValidationException;
 
 /**
@@ -114,6 +116,7 @@ final class AvroParserImpl implements AvroParser, AvroSource, AvroController
     private double doubleValue;
     private String string;
     private String field;
+    private AvroNode cursorType;
 
     AvroParserImpl(
         AvroNode root)
@@ -173,6 +176,12 @@ final class AvroParserImpl implements AvroParser, AvroSource, AvroController
     }
 
     @Override
+    public AvroType type()
+    {
+        return cursorType;
+    }
+
+    @Override
     public void segmentable()
     {
         segmentRequested = true;
@@ -185,6 +194,7 @@ final class AvroParserImpl implements AvroParser, AvroSource, AvroController
         pos = 0;
         phase = Phase.NEW;
         pending = null;
+        cursorType = null;
         done = false;
         segmentRequested = false;
         segmenting = false;
@@ -208,6 +218,7 @@ final class AvroParserImpl implements AvroParser, AvroSource, AvroController
             case NEW:
                 location.locate(depth, pos);
                 clearValue();
+                cursorType = root;
                 pending = START_MESSAGE;
                 phase = Phase.ROUTE;
                 producing = false;
@@ -258,6 +269,7 @@ final class AvroParserImpl implements AvroParser, AvroSource, AvroController
             case END:
                 location.locate(depth, pos);
                 clearValue();
+                cursorType = null;
                 pending = END_MESSAGE;
                 phase = Phase.DONE;
                 producing = false;
@@ -321,6 +333,7 @@ final class AvroParserImpl implements AvroParser, AvroSource, AvroController
                 result = STEP_UNDERFLOW;
             }
         }
+        cursorType = null;
         return result;
     }
 
@@ -328,6 +341,7 @@ final class AvroParserImpl implements AvroParser, AvroSource, AvroController
         AvroNode node)
     {
         int result;
+        cursorType = node;
         switch (node.kind)
         {
         case NULL:
@@ -573,6 +587,7 @@ final class AvroParserImpl implements AvroParser, AvroSource, AvroController
             int index = state - 1;
             stateStack[frame] = state + 1;
             field = node.fieldNames[index];
+            cursorType = node.children[index];
             string = null;
             valueLength = 0;
             result = produced(FIELD_NAME);
@@ -670,6 +685,7 @@ final class AvroParserImpl implements AvroParser, AvroSource, AvroController
                 {
                     setValueBytes(dataStart, (int) length);
                     pos = dataStart + (int) length;
+                    cursorType = nodeStack[frame].children[0];
                     stateStack[frame] = 3;
                     result = produced(MAP_KEY);
                 }
@@ -736,6 +752,7 @@ final class AvroParserImpl implements AvroParser, AvroSource, AvroController
                 {
                     pos = scratchNext;
                     intValue = (int) index;
+                    cursorType = node.children[(int) index];
                     clearValue();
                     stateStack[frame] = 1;
                     result = produced(UNION_BRANCH);

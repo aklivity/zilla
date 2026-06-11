@@ -25,6 +25,7 @@ import io.aklivity.zilla.runtime.common.avro.AvroSchema;
 import io.aklivity.zilla.runtime.common.avro.AvroSink;
 import io.aklivity.zilla.runtime.common.avro.AvroSource;
 import io.aklivity.zilla.runtime.common.avro.AvroTransform;
+import io.aklivity.zilla.runtime.common.avro.AvroType;
 
 public final class AvroSchemaImpl implements AvroSchema
 {
@@ -36,10 +37,16 @@ public final class AvroSchemaImpl implements AvroSchema
         this.root = AvroSchemaCompiler.compile(schema);
     }
 
-    @Override
     public AvroParser parser()
     {
         return new AvroParserImpl(root);
+    }
+
+    public AvroGenerator generator(
+        MutableDirectBuffer buffer,
+        int offset)
+    {
+        return new AvroGeneratorImpl(root, buffer, offset);
     }
 
     @Override
@@ -49,11 +56,9 @@ public final class AvroSchemaImpl implements AvroSchema
     }
 
     @Override
-    public AvroGenerator generator(
-        MutableDirectBuffer buffer,
-        int offset)
+    public AvroType type()
     {
-        return new AvroGeneratorImpl(root, buffer, offset);
+        return root;
     }
 
     /**

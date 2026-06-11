@@ -57,6 +57,15 @@ public interface AvroSource
     DirectBuffer getSegment();
 
     /**
+     * The {@link AvroType} of the value or composite at the current event — the record at
+     * {@link AvroEvent#START_RECORD}, the selected branch at {@link AvroEvent#UNION_BRANCH}, the field
+     * type at {@link AvroEvent#FIELD_NAME}, the scalar at a value event; {@code null} at
+     * {@link AvroEvent#END_MESSAGE} and on segment events. A stage reads it (then walks the type graph)
+     * to recover the named-type, union-branch, and logical-type detail the typed event stream omits.
+     */
+    AvroType type();
+
+    /**
      * @return the location of the current event within the datum, for diagnostics
      */
     AvroLocation getLocation();

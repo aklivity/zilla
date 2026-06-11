@@ -20,6 +20,7 @@ import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 
 import io.aklivity.zilla.runtime.common.avro.AvroGenerator;
+import io.aklivity.zilla.runtime.common.avro.AvroKind;
 import io.aklivity.zilla.runtime.common.avro.AvroValidationException;
 
 public final class AvroGeneratorImpl implements AvroGenerator

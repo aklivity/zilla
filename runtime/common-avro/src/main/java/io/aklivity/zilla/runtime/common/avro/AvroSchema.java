@@ -14,23 +14,15 @@
  */
 package io.aklivity.zilla.runtime.common.avro;
 
-import org.agrona.MutableDirectBuffer;
-
 /**
  * A compiled, immutable Avro schema model. Compiling parses the Avro schema document once (off the hot
  * path) into a structure that drives streaming parse and generate; callers cache one instance per schema,
- * keyed by their own schema identifier. The compiled schema is immutable and may back many pipelines,
- * but the pipelines it produces are not thread-safe.
+ * keyed by their own schema identifier. Obtain a parser or generator from {@link Avro#parser(AvroSchema)}
+ * and {@link Avro#generator(AvroSchema, org.agrona.MutableDirectBuffer, int)}. The compiled schema is
+ * immutable and may back many pipelines, but the pipelines it produces are not thread-safe.
  */
 public interface AvroSchema
 {
-    /**
-     * Creates the schema-bound {@link AvroParser}; call {@link AvroParser#stream()} to begin a
-     * pipeline description, append {@link AvroTransform} stages, and terminate with
-     * {@link AvroStream#into(AvroSink)}.
-     */
-    AvroParser parser();
-
     /**
      * A streaming validator stage that forwards the parsed event stream while the driver validates
      * against this schema as it reads (emit-then-abort). Compose it before a sink to validate-then-convert,
@@ -39,10 +31,8 @@ public interface AvroSchema
     AvroTransform validator();
 
     /**
-     * Creates a generator that writes Avro binary into {@code buffer} starting at {@code offset}; pair it
-     * with {@link AvroSink#of(AvroGenerator)} to terminate a pipeline.
+     * The root {@link AvroType} of this schema, for inspecting its structure (fields, branches, symbols,
+     * logical types) off the hot path. Navigable by reference, so a recursive schema is a cyclic graph.
      */
-    AvroGenerator generator(
-        MutableDirectBuffer buffer,
-        int offset);
+    AvroType type();
 }

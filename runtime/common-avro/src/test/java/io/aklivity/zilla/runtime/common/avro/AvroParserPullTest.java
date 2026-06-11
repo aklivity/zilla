@@ -34,10 +34,10 @@ public class AvroParserPullTest
     @Test
     public void shouldPullEventsDirectly()
     {
-        AvroParser parser = Avro.schema("""
+        AvroParser parser = Avro.parser(Avro.schema("""
             {"type":"record","name":"R","fields":[
             {"name":"id","type":"int"},
-            {"name":"name","type":"string"}]}""").parser();
+            {"name":"name","type":"string"}]}"""));
 
         // id=1 (0x02), name="hi" (0x04 'h' 'i')
         parser.wrap(new UnsafeBuffer(new byte[] { 0x02, 0x04, 0x68, 0x69 }), 0, 4);
@@ -56,7 +56,7 @@ public class AvroParserPullTest
     @Test
     public void shouldPullAcrossFrames()
     {
-        AvroParser parser = Avro.schema("\"int\"").parser();
+        AvroParser parser = Avro.parser(Avro.schema("\"int\""));
         UnsafeBuffer one = new UnsafeBuffer(new byte[1]);
 
         // multi-byte varint 64 -> 0x80 0x01, fed one byte at a time

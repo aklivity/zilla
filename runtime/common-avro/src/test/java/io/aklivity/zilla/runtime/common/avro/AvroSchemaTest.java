@@ -40,7 +40,7 @@ public class AvroSchemaTest
         byte[] binary,
         AvroSink sink)
     {
-        AvroPipeline pipeline = Avro.schema(schemaText).parser().stream().into(sink);
+        AvroPipeline pipeline = Avro.parser(Avro.schema(schemaText)).stream().into(sink);
         pipeline.reset();
         return pipeline.feed(new UnsafeBuffer(binary), 0, binary.length);
     }

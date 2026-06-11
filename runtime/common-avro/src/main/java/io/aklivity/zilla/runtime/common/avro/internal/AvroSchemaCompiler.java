@@ -27,6 +27,7 @@ import jakarta.json.JsonReader;
 import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 
+import io.aklivity.zilla.runtime.common.avro.AvroKind;
 import io.aklivity.zilla.runtime.common.avro.AvroValidationException;
 
 /**
@@ -110,10 +111,12 @@ final class AvroSchemaCompiler
             node = parseRecord(object, namespace);
             break;
         case "enum":
-            node = register(object, namespace, AvroNode.ofEnum(toStringArray(object.getJsonArray("symbols"))));
+            node = register(object, namespace,
+                AvroNode.ofEnum(object.getString("name"), toStringArray(object.getJsonArray("symbols"))));
             break;
         case "fixed":
-            node = register(object, namespace, AvroNode.ofFixed(object.getInt("size"), logicalType));
+            node = register(object, namespace,
+                AvroNode.ofFixed(object.getString("name"), object.getInt("size"), logicalType));
             break;
         case "array":
             node = AvroNode.ofArray(parse(object.get("items"), namespace));
@@ -135,7 +138,7 @@ final class AvroSchemaCompiler
         List<JsonValue> fields = object.getJsonArray("fields");
         String[] fieldNames = new String[fields.size()];
         AvroNode[] fieldTypes = new AvroNode[fields.size()];
-        AvroNode record = AvroNode.ofRecord(fieldNames, fieldTypes);
+        AvroNode record = AvroNode.ofRecord(object.getString("name"), fieldNames, fieldTypes);
         register(object, namespace, record);
         for (int i = 0; i < fields.size(); i++)
         {

@@ -36,5 +36,14 @@ public interface AvroParser
 
     AvroEvent nextEvent();
 
+    /**
+     * The {@link AvroType} of the value or composite at the current event — the record at
+     * {@link AvroEvent#START_RECORD}, the selected branch at {@link AvroEvent#UNION_BRANCH}, the field
+     * type at {@link AvroEvent#FIELD_NAME}, the scalar at a value event; {@code null} before the first
+     * event, at {@link AvroEvent#END_MESSAGE}, and on segment events. The same view an
+     * {@link AvroSource} exposes to a pipeline stage.
+     */
+    AvroType type();
+
     AvroStream stream();
 }

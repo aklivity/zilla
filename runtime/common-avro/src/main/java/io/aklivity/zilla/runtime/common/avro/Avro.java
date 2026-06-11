@@ -14,16 +14,18 @@
  */
 package io.aklivity.zilla.runtime.common.avro;
 
+import org.agrona.MutableDirectBuffer;
+
 import io.aklivity.zilla.runtime.common.avro.internal.AvroSchemaImpl;
 
 /**
  * Entry point for {@code common-avro}'s streaming Avro parse and generate over Agrona buffers.
  * <p>
- * {@link #schema(String)} compiles an Avro schema document once (off the hot path) into an
- * immutable {@link AvroSchema} that callers cache per their own schema identifier. From a schema,
- * {@link AvroSchema#parser()} and {@link AvroSchema#generator(org.agrona.MutableDirectBuffer,
- * int)} create resumable, zero-per-message-allocation pipelines. It requires no Avro library on the
- * classpath; {@code common-avro} ships its own format-native codec.
+ * {@link #schema(String)} compiles an Avro schema document once (off the hot path) into an immutable
+ * {@link AvroSchema} that callers cache per their own schema identifier. {@link #parser(AvroSchema)} and
+ * {@link #generator(AvroSchema, MutableDirectBuffer, int)} then create resumable,
+ * zero-per-message-allocation pipelines against it. It requires no Avro library on the classpath;
+ * {@code common-avro} ships its own format-native codec.
  */
 public final class Avro
 {
@@ -41,5 +43,27 @@ public final class Avro
         String schema)
     {
         return new AvroSchemaImpl(schema);
+    }
+
+    /**
+     * Creates a schema-bound {@link AvroParser}; call {@link AvroParser#stream()} to begin a pipeline
+     * description, append {@link AvroTransform} stages, and terminate with {@link AvroStream#into(AvroSink)}.
+     */
+    public static AvroParser parser(
+        AvroSchema schema)
+    {
+        return ((AvroSchemaImpl) schema).parser();
+    }
+
+    /**
+     * Creates an {@link AvroGenerator} that writes Avro binary into {@code buffer} starting at
+     * {@code offset}; pair it with {@link AvroSink#of(AvroGenerator)} to terminate a pipeline.
+     */
+    public static AvroGenerator generator(
+        AvroSchema schema,
+        MutableDirectBuffer buffer,
+        int offset)
+    {
+        return ((AvroSchemaImpl) schema).generator(buffer, offset);
     }
 }
