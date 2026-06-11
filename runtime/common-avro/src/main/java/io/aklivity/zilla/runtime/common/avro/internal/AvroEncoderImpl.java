@@ -17,20 +17,20 @@ package io.aklivity.zilla.runtime.common.avro.internal;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 
+import io.aklivity.zilla.runtime.common.avro.AvroEncoder;
 import io.aklivity.zilla.runtime.common.avro.AvroEvent;
-import io.aklivity.zilla.runtime.common.avro.AvroGenerator;
 import io.aklivity.zilla.runtime.common.avro.AvroSource;
 
-public final class AvroGeneratorImpl implements AvroGenerator
+public final class AvroEncoderImpl implements AvroEncoder
 {
-    private final AvroEncoder encoder;
+    private final AvroBinaryEncoder encoder;
 
-    public AvroGeneratorImpl(
+    public AvroEncoderImpl(
         AvroNode root,
         MutableDirectBuffer buffer,
         int offset)
     {
-        this.encoder = new AvroEncoder(root, buffer, offset);
+        this.encoder = new AvroBinaryEncoder(root, buffer, offset);
         this.encoder.reset();
     }
 

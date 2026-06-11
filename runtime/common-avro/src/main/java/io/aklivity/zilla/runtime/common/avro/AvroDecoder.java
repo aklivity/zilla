@@ -20,7 +20,7 @@ package io.aklivity.zilla.runtime.common.avro;
  * parser is encapsulated thereafter — the resulting {@link AvroPipeline} feeds it bytes per frame.
  * Reuse a single instance per worker thread.
  */
-public interface AvroParser
+public interface AvroDecoder
 {
     AvroStream stream();
 }

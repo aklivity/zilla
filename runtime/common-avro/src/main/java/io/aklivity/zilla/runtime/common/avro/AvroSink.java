@@ -23,7 +23,7 @@ import io.aklivity.zilla.runtime.common.avro.internal.AvroSinkImpl;
  * reached a terminal {@link AvroPipeline.Status}. {@code control} steers the immediate upstream. A
  * terminal sink materializes events into a buffer; the downstream of an {@link AvroTransform} is also
  * an {@code AvroSink}. Third parties may implement this contract to consume the event stream — for
- * example, the {@code model-avro} {@code AvroJson} bridge drives a {@code common-json} generator.
+ * example, the {@code model-avro} {@code AvroJson} bridge drives a {@code common-json} encoder.
  */
 public interface AvroSink
 {
@@ -48,24 +48,24 @@ public interface AvroSink
     }
 
     /**
-     * A terminal sink that materializes each fed event into the corresponding write on {@code generator}.
-     * The supplied generator must already be wrapped over its target buffer.
+     * A terminal sink that materializes each fed event into the corresponding write on {@code encoder}.
+     * The supplied encoder must already be wrapped over its target buffer.
      */
     static AvroSink of(
-        AvroGenerator generator)
+        AvroEncoder encoder)
     {
-        return new AvroSinkImpl(generator);
+        return new AvroSinkImpl(encoder);
     }
 
     /**
      * A terminal sink with the given {@link Delivery} mode: {@link Delivery#SEGMENTABLE} opts in to
      * verbatim segment delivery; {@link Delivery#STRUCTURED} re-encodes structured events. The supplied
-     * generator must already be wrapped over its target buffer.
+     * encoder must already be wrapped over its target buffer.
      */
     static AvroSink of(
-        AvroGenerator generator,
+        AvroEncoder encoder,
         Delivery delivery)
     {
-        return new AvroSinkImpl(generator, delivery);
+        return new AvroSinkImpl(encoder, delivery);
     }
 }

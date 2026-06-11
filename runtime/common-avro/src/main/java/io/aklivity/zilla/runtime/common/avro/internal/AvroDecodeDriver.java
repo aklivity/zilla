@@ -48,8 +48,8 @@ import org.agrona.ExpandableArrayBuffer;
 import org.agrona.MutableDirectBuffer;
 
 import io.aklivity.zilla.runtime.common.avro.AvroController;
+import io.aklivity.zilla.runtime.common.avro.AvroDecoder;
 import io.aklivity.zilla.runtime.common.avro.AvroEvent;
-import io.aklivity.zilla.runtime.common.avro.AvroParser;
 import io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status;
 import io.aklivity.zilla.runtime.common.avro.AvroSink;
 import io.aklivity.zilla.runtime.common.avro.AvroStream;
@@ -61,7 +61,7 @@ import io.aklivity.zilla.runtime.common.avro.AvroStream;
  * a downstream stage may opt the current datum into verbatim segment delivery, in which case the value
  * is scanned (still validating) without structured emission and delivered as raw segment chunks.
  */
-final class AvroDecodeDriver implements AvroParser, AvroController
+final class AvroDecodeDriver implements AvroDecoder, AvroController
 {
     private static final int READ_OK = 0;
     private static final int READ_UNDERFLOW = 1;

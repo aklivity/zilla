@@ -23,7 +23,7 @@ import org.agrona.MutableDirectBuffer;
  * {@link #writeSegment(DirectBuffer, int, int)} appends a verbatim raw slice; {@link #length()} reports
  * the bytes written for the current datum. Reuse a single instance per worker thread.
  */
-public interface AvroGenerator
+public interface AvroEncoder
 {
     void wrap(
         MutableDirectBuffer buffer,

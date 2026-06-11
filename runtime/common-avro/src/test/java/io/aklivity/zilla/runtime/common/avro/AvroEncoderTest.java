@@ -30,7 +30,7 @@ public class AvroEncoderTest
         String schemaText)
     {
         AvroSchema schema = StreamingAvro.schema(schemaText);
-        return AvroSink.of(schema.generator(out, 0));
+        return AvroSink.of(schema.encoder(out, 0));
     }
 
     @Test

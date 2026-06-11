@@ -20,35 +20,35 @@ import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.PENDING;
 import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.common.avro.AvroController;
+import io.aklivity.zilla.runtime.common.avro.AvroEncoder;
 import io.aklivity.zilla.runtime.common.avro.AvroEvent;
-import io.aklivity.zilla.runtime.common.avro.AvroGenerator;
 import io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status;
 import io.aklivity.zilla.runtime.common.avro.AvroSink;
 import io.aklivity.zilla.runtime.common.avro.AvroSource;
 
 /**
  * Terminal {@link AvroSink} that materializes each fed event into a write on the wrapped
- * {@link AvroGenerator}. Reaches {@link Status#COMPLETE} when the current top-level datum closes at
+ * {@link AvroEncoder}. Reaches {@link Status#COMPLETE} when the current top-level datum closes at
  * depth zero. In {@link Delivery#SEGMENTABLE} mode it requests verbatim segment delivery on
  * {@link AvroEvent#START_DOCUMENT} and appends each segment slice raw.
  */
 public final class AvroSinkImpl implements AvroSink
 {
-    private final AvroGenerator generator;
+    private final AvroEncoder encoder;
     private final Delivery delivery;
     private int depth;
 
     public AvroSinkImpl(
-        AvroGenerator generator)
+        AvroEncoder encoder)
     {
-        this(generator, Delivery.STRUCTURED);
+        this(encoder, Delivery.STRUCTURED);
     }
 
     public AvroSinkImpl(
-        AvroGenerator generator,
+        AvroEncoder encoder,
         Delivery delivery)
     {
-        this.generator = generator;
+        this.encoder = encoder;
         this.delivery = delivery;
     }
 
@@ -73,33 +73,33 @@ public final class AvroSinkImpl implements AvroSink
         case RECORD_START:
         case ARRAY_START:
         case MAP_START:
-            generator.encode(event, source);
+            encoder.encode(event, source);
             depth++;
             break;
         case RECORD_END:
         case ARRAY_END:
         case MAP_END:
-            generator.encode(event, source);
+            encoder.encode(event, source);
             depth--;
             status = depth == 0 ? COMPLETE : PENDING;
             break;
         case FIELD_NAME:
         case MAP_KEY:
         case UNION_BRANCH:
-            generator.encode(event, source);
+            encoder.encode(event, source);
             break;
         case START_SEGMENT:
         case CONTINUE_SEGMENT:
             segment = source.getSegment();
-            generator.writeSegment(segment, 0, segment.capacity());
+            encoder.writeSegment(segment, 0, segment.capacity());
             break;
         case END_SEGMENT:
             segment = source.getSegment();
-            generator.writeSegment(segment, 0, segment.capacity());
+            encoder.writeSegment(segment, 0, segment.capacity());
             status = depth == 0 ? COMPLETE : PENDING;
             break;
         default:
-            generator.encode(event, source);
+            encoder.encode(event, source);
             status = depth == 0 ? COMPLETE : PENDING;
             break;
         }

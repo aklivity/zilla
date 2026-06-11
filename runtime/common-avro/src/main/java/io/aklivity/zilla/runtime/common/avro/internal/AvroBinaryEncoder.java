@@ -25,7 +25,7 @@ import io.aklivity.zilla.runtime.common.avro.AvroEvent;
 import io.aklivity.zilla.runtime.common.avro.AvroSource;
 import io.aklivity.zilla.runtime.common.avro.AvroValidationException;
 
-final class AvroEncoder
+final class AvroBinaryEncoder
 {
     private final AvroNode root;
 
@@ -36,7 +36,7 @@ final class AvroEncoder
     private int depth;
     private int limit;
 
-    AvroEncoder(
+    AvroBinaryEncoder(
         AvroNode root,
         MutableDirectBuffer buffer,
         int offset)

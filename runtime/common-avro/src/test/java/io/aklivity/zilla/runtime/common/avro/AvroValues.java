@@ -26,7 +26,7 @@ import io.aklivity.zilla.runtime.common.avro.AvroSink.Delivery;
 /**
  * Test-only helpers (allocation is fine in test scope) for driving {@code common-avro} pipelines: a
  * recording {@link AvroSink} that captures the structured event stream (framing skipped) and a transcode
- * helper that decodes a datum straight into a generator-backed sink. A no-op {@link AvroController}
+ * helper that decodes a datum straight into a encoder-backed sink. A no-op {@link AvroController}
  * suffices for hand-fed sinks.
  */
 public final class AvroValues
@@ -67,15 +67,15 @@ public final class AvroValues
         Delivery delivery)
     {
         MutableDirectBuffer out = new UnsafeBuffer(new byte[Math.max(64, binary.length * 4)]);
-        AvroGenerator generator = schema.generator(out, 0);
-        AvroPipeline pipeline = schema.decoder().stream().transform(schema.validator()).into(AvroSink.of(generator, delivery));
+        AvroEncoder encoder = schema.encoder(out, 0);
+        AvroPipeline pipeline = schema.decoder().stream().transform(schema.validator()).into(AvroSink.of(encoder, delivery));
         pipeline.reset();
         Status status = pipeline.feed(new UnsafeBuffer(binary), 0, binary.length);
         if (status != Status.COMPLETE)
         {
             throw new AssertionError("decode did not complete: " + status);
         }
-        byte[] bytes = new byte[generator.length()];
+        byte[] bytes = new byte[encoder.length()];
         out.getBytes(0, bytes);
         return bytes;
     }
