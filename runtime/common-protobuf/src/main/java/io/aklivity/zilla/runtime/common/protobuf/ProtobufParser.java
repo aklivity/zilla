@@ -65,6 +65,12 @@ public interface ProtobufParser
     ProtobufField field();
 
     /**
+     * The message descriptor at the current depth — set at {@link ProtobufEvent#START_MESSAGE} and
+     * valid through that message's scope; {@code null} in the schema-free mode and outside any message.
+     */
+    ProtobufMessage message();
+
+    /**
      * The wire field number of the current field, or {@code -1} at message boundaries.
      */
     int fieldNumber();

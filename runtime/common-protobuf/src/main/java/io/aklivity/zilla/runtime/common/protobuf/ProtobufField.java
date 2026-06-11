@@ -33,6 +33,9 @@ public final class ProtobufField
     private final String typeName;
     private final String oneofName;
 
+    private ProtobufMessage message;
+    private ProtobufEnum enumeration;
+
     private ProtobufField(
         int number,
         String name,
@@ -113,6 +116,38 @@ public final class ProtobufField
     public boolean composite()
     {
         return type == ProtobufType.MESSAGE || type == ProtobufType.GROUP;
+    }
+
+    /**
+     * The nested message descriptor a composite (message or group) field references, linked when the
+     * owning message is assembled into a {@link ProtobufSchema}. {@code null} for scalar and enum fields,
+     * and for a field not (yet) part of a built schema. Lets a consumer walk the descriptor graph
+     * directly — {@code message().field(n).message()} — without a name lookup against the schema.
+     */
+    public ProtobufMessage message()
+    {
+        return message;
+    }
+
+    /**
+     * The enum descriptor an {@code enum} field references, linked when the owning message is assembled
+     * into a {@link ProtobufSchema}; {@code null} otherwise.
+     */
+    public ProtobufEnum enumeration()
+    {
+        return enumeration;
+    }
+
+    void resolve(
+        ProtobufMessage message)
+    {
+        this.message = message;
+    }
+
+    void resolve(
+        ProtobufEnum enumeration)
+    {
+        this.enumeration = enumeration;
     }
 
     /**

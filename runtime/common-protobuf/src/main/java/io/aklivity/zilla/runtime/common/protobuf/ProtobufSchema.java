@@ -140,7 +140,23 @@ public final class ProtobufSchema
 
         public ProtobufSchema build()
         {
-            return new ProtobufSchema(Map.copyOf(messages), Map.copyOf(enums));
+            Map<String, ProtobufMessage> resolvedMessages = Map.copyOf(messages);
+            Map<String, ProtobufEnum> resolvedEnums = Map.copyOf(enums);
+            for (ProtobufMessage message : resolvedMessages.values())
+            {
+                for (ProtobufField field : message.fields())
+                {
+                    if (field.composite())
+                    {
+                        field.resolve(resolvedMessages.get(field.typeName()));
+                    }
+                    else if (field.type() == ProtobufType.ENUM)
+                    {
+                        field.resolve(resolvedEnums.get(field.typeName()));
+                    }
+                }
+            }
+            return new ProtobufSchema(resolvedMessages, resolvedEnums);
         }
     }
 }

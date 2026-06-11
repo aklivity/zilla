@@ -189,6 +189,30 @@ public class ProtobufModelTest
     }
 
     @Test
+    public void shouldLinkCompositeAndEnumFieldsOnBuild()
+    {
+        ProtobufSchema schema = Protobuf.schema()
+            .enumeration(ProtobufEnum.builder("Color").value("RED", 0).build())
+            .message(ProtobufMessage.builder("Address")
+                .field(ProtobufField.builder().number(1).name("city").type(ProtobufType.STRING).build())
+                .build())
+            .message(ProtobufMessage.builder("Person")
+                .field(ProtobufField.builder().number(1).name("home").type(ProtobufType.MESSAGE).typeName("Address").build())
+                .field(ProtobufField.builder().number(2).name("color").type(ProtobufType.ENUM).typeName("Color").build())
+                .field(ProtobufField.builder().number(3).name("count").type(ProtobufType.INT32).build())
+                .build())
+            .build();
+
+        ProtobufMessage person = schema.message("Person");
+        assertEquals("Address", person.field(1).message().name());
+        assertNull(person.field(1).enumeration());
+        assertEquals("Color", person.field(2).enumeration().name());
+        assertNull(person.field(2).message());
+        assertNull(person.field(3).message());
+        assertNull(person.field(3).enumeration());
+    }
+
+    @Test
     public void shouldCarryExceptionCause()
     {
         Throwable cause = new IllegalStateException("boom");

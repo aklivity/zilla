@@ -33,6 +33,14 @@ public interface ProtobufSource
     ProtobufField field();
 
     /**
+     * The message descriptor at the current depth — set at {@link ProtobufEvent#START_MESSAGE} and
+     * valid through that message's scope; {@code null} in the schema-free mode and outside any message.
+     * A stage reads it (then walks the descriptor graph via {@link ProtobufField#message()}) to reason
+     * about the current message without a separate schema reference.
+     */
+    ProtobufMessage message();
+
+    /**
      * The wire field number of the current field, or {@code -1} at message boundaries. Available in
      * both the schema-driven and schema-free modes.
      */

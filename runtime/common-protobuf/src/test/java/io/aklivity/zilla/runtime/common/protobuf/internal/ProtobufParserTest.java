@@ -63,6 +63,8 @@ public class ProtobufParserTest
         List<String> events = new ArrayList<>();
         int rootLength = -1;
         int nestedLength = -1;
+        String rootName = null;
+        String nestedName = null;
         int depth = 0;
         while (parser.hasNextEvent())
         {
@@ -74,10 +76,12 @@ public class ProtobufParserTest
                 if (depth == 0)
                 {
                     rootLength = parser.length();
+                    rootName = parser.message().name();
                 }
                 else
                 {
                     nestedLength = parser.length();
+                    nestedName = parser.message().name();
                 }
                 depth++;
                 break;
@@ -99,6 +103,29 @@ public class ProtobufParserTest
         assertEquals(List.of("{", "F1", "Vneo", "F2", "V7", "F4", "{", "F1", "VZion", "}", "}"), events);
         assertEquals(message.length, rootLength);
         assertEquals(home.length, nestedLength);
+        assertEquals("P", rootName);
+        assertEquals("Addr", nestedName);
+    }
+
+    @Test
+    public void shouldRejectUnresolvedNestedMessage()
+    {
+        ProtobufSchema broken = Protobuf.schema()
+            .message(ProtobufMessage.builder("P")
+                .field(ProtobufField.builder().number(4).name("home").type(ProtobufType.MESSAGE).typeName("Missing").build())
+                .build())
+            .build();
+        byte[] message = wire(w ->
+        {
+            w.writeTag(4, ProtobufWireType.LEN);
+            w.writeBytes(new byte[]{0});
+        });
+
+        ProtobufParser parser = Protobuf.parser(broken, "P").wrap(new UnsafeBuffer(message), 0, message.length);
+        parser.nextEvent();
+        parser.nextEvent();
+
+        assertThrows(ProtobufException.class, parser::nextEvent);
     }
 
     @Test

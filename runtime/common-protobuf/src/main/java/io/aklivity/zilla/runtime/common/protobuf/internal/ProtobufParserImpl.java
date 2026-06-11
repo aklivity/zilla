@@ -173,6 +173,12 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource,
     }
 
     @Override
+    public ProtobufMessage message()
+    {
+        return depth >= 0 ? frames.get(depth).message : null;
+    }
+
+    @Override
     public int fieldNumber()
     {
         return fieldNumber;
@@ -370,10 +376,15 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource,
             {
                 throw new ProtobufException("message nesting exceeds " + MAX_DEPTH);
             }
+            ProtobufMessage nested = compositeField.message();
+            if (nested == null)
+            {
+                throw new ProtobufException("unresolved message type " + compositeField.typeName());
+            }
             phase = PHASE_NONE;
             Frame frame = frame(depth);
             frame.reader.wrap(inputBuffer, regionOffset, regionLength);
-            frame.message = schema.resolveMessage(compositeField);
+            frame.message = nested;
             frame.packedLimit = -1;
             boundary();
             slice(inputBuffer, regionOffset, regionLength);
