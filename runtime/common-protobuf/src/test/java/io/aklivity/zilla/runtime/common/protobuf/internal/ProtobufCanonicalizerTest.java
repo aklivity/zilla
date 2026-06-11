@@ -25,6 +25,7 @@ import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
 
+import io.aklivity.zilla.runtime.common.protobuf.Protobuf;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufCanonicalizer;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufException;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufField;
@@ -32,7 +33,6 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufMessage;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSchema;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufType;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
-import io.aklivity.zilla.runtime.common.protobuf.StreamingProtobuf;
 
 public class ProtobufCanonicalizerTest
 {
@@ -197,7 +197,7 @@ public class ProtobufCanonicalizerTest
         byte[] input)
     {
         MutableDirectBuffer out = new UnsafeBuffer(new byte[256]);
-        ProtobufCanonicalizer canonicalizer = StreamingProtobuf.canonicalizer(schema);
+        ProtobufCanonicalizer canonicalizer = Protobuf.canonicalizer(schema);
         int length = canonicalizer.canonicalize(messageName, new UnsafeBuffer(input), 0, input.length, out, 0);
         byte[] result = new byte[length];
         out.getBytes(0, result);
@@ -217,7 +217,7 @@ public class ProtobufCanonicalizerTest
 
     private static ProtobufSchema newSchema()
     {
-        return StreamingProtobuf.schema()
+        return Protobuf.schema()
             .message(ProtobufMessage.builder("Child")
                 .field(ProtobufField.builder().number(1).name("x").type(ProtobufType.INT32).build())
                 .build())

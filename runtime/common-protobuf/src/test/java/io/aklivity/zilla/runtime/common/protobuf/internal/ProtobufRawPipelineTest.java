@@ -27,6 +27,7 @@ import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
 
+import io.aklivity.zilla.runtime.common.protobuf.Protobuf;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufController;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufEvent;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufGenerator;
@@ -37,7 +38,6 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufSource;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufStream;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufTransform;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
-import io.aklivity.zilla.runtime.common.protobuf.StreamingProtobuf;
 
 public class ProtobufRawPipelineTest
 {
@@ -55,7 +55,7 @@ public class ProtobufRawPipelineTest
         });
 
         Capture sink = new Capture();
-        ProtobufPipeline pipeline = StreamingProtobuf.parser().stream().into(sink);
+        ProtobufPipeline pipeline = Protobuf.parser().stream().into(sink);
         pipeline.reset();
 
         assertEquals(Status.COMPLETE, feed(pipeline, message));
@@ -132,8 +132,8 @@ public class ProtobufRawPipelineTest
         ProtobufTransform transform)
     {
         MutableDirectBuffer out = new UnsafeBuffer(new byte[4096]);
-        ProtobufGenerator generator = StreamingProtobuf.generator().wrap(out, 0);
-        ProtobufStream stream = StreamingProtobuf.parser().stream();
+        ProtobufGenerator generator = Protobuf.generator().wrap(out, 0);
+        ProtobufStream stream = Protobuf.parser().stream();
         if (transform != null)
         {
             stream = stream.transform(transform);

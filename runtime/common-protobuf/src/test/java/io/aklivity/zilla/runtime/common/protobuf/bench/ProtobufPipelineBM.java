@@ -38,6 +38,7 @@ import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
+import io.aklivity.zilla.runtime.common.protobuf.Protobuf;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufCanonicalizer;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufField;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufGenerator;
@@ -47,7 +48,6 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufSchema;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSink;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufType;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
-import io.aklivity.zilla.runtime.common.protobuf.StreamingProtobuf;
 import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufDiscardSinkImpl;
 import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufWriter;
 
@@ -68,8 +68,8 @@ public class ProtobufPipelineBM
     private final MutableDirectBuffer outputBuffer = new UnsafeBuffer(new byte[16 * 1024]);
 
     private final ProtobufSchema schema = newSchema();
-    private final ProtobufGenerator generator = StreamingProtobuf.generator();
-    private final ProtobufCanonicalizer canonicalizer = StreamingProtobuf.canonicalizer(schema);
+    private final ProtobufGenerator generator = Protobuf.generator();
+    private final ProtobufCanonicalizer canonicalizer = Protobuf.canonicalizer(schema);
 
     private ProtobufPipeline validatePipeline;
     private ProtobufPipeline transformPipeline;
@@ -83,14 +83,14 @@ public class ProtobufPipelineBM
     @Setup(Level.Trial)
     public void init()
     {
-        validatePipeline = StreamingProtobuf.parser(schema, "Record").stream()
+        validatePipeline = Protobuf.parser(schema, "Record").stream()
             .transform(schema.validator("Record"))
             .into(new ProtobufDiscardSinkImpl());
 
-        transformPipeline = StreamingProtobuf.parser(schema, "Record").stream()
+        transformPipeline = Protobuf.parser(schema, "Record").stream()
             .into(ProtobufSink.of(generator, schema, "RecordV2"));
 
-        rawCopyPipeline = StreamingProtobuf.parser().stream()
+        rawCopyPipeline = Protobuf.parser().stream()
             .into(ProtobufSink.of(generator));
 
         byte[] meta = wire(w ->
@@ -198,7 +198,7 @@ public class ProtobufPipelineBM
 
     private static ProtobufSchema newSchema()
     {
-        return StreamingProtobuf.schema()
+        return Protobuf.schema()
             .message(ProtobufMessage.builder("Meta")
                 .field(ProtobufField.builder().number(1).name("source").type(ProtobufType.STRING).build())
                 .field(ProtobufField.builder().number(2).name("seq").type(ProtobufType.INT64).build())

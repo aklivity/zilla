@@ -18,7 +18,7 @@ builders (`ProtobufSchema.Builder`, `ProtobufMessage.Builder`, `ProtobufField.Bu
 `.proto` compilation.
 
 ```java
-ProtobufSchema schema = StreamingProtobuf.schema()
+ProtobufSchema schema = Protobuf.schema()
     .message(ProtobufMessage.builder("Person")
         .field(ProtobufField.builder().number(1).name("name").type(ProtobufType.STRING).build())
         .field(ProtobufField.builder().number(2).name("id").type(ProtobufType.INT32).build())
@@ -34,7 +34,7 @@ turned into a `ProtobufSchema` directly — `descriptor.proto` is itself Protobu
 with this library's own wire reader and needs no `protobuf-java`:
 
 ```java
-ProtobufSchema schema = StreamingProtobuf.schema(descriptorSet, offset, length);
+ProtobufSchema schema = Protobuf.schema(descriptorSet, offset, length);
 ```
 
 ## Protobuf syntax support
@@ -50,7 +50,7 @@ proto2 explicit field defaults.
 
 ## Binary round-trip canonicalization
 
-`StreamingProtobuf.canonicalizer(schema)` re-serializes a message to a canonical wire encoding:
+`Protobuf.canonicalizer(schema)` re-serializes a message to a canonical wire encoding:
 
 - known fields ascending by number, scalars minimally re-encoded, repeated scalars packed,
 - nested messages length-delimited, proto2 groups delimited, map entries in encounter order,
@@ -66,7 +66,7 @@ Mirroring `common-json`'s `JsonPipeline`, a composable streaming pipeline decode
 the descriptor into a typed event stream and validates as it reads:
 
 ```java
-ProtobufPipeline pipeline = StreamingProtobuf.parser(schema, "Person").stream()
+ProtobufPipeline pipeline = Protobuf.parser(schema, "Person").stream()
     .transform(schema.validator("Person"))
     .into(ProtobufSink.discard());
 pipeline.reset();
@@ -86,15 +86,15 @@ ProtobufPipeline.Status status = pipeline.feed(buffer, offset, length);  // PEND
   adds descriptor-level semantic validation (proto2 `required`-field presence), reporting at the
   message boundary so callers abort on `REJECTED` (emit-then-abort).
 - **`ProtobufSink.of(generator, schema, messageName)`** (peer of `JsonSink.of(generator, …)`) writes
-  the event stream back out as wire through a buffer-backed `StreamingProtobuf.generator()`, encoded
+  the event stream back out as wire through a buffer-backed `Protobuf.generator()`, encoded
   against the target message. Because protobuf needs field numbers and types to write, binding the
   sink to a target schema gives **schema transformation**: read with one schema, re-emit with another,
   mapping fields by name (fields absent in the target are dropped, including their subtrees). With the
   read schema it is a straight re-encode; with an evolved schema it renames/renumbers fields:
 
   ```java
-  ProtobufGenerator generator = StreamingProtobuf.generator().wrap(out, 0);
-  ProtobufPipeline pipeline = StreamingProtobuf.parser(readSchema, "Person").stream()
+  ProtobufGenerator generator = Protobuf.generator().wrap(out, 0);
+  ProtobufPipeline pipeline = Protobuf.parser(readSchema, "Person").stream()
       .transform(readSchema.validator("Person"))
       .into(ProtobufSink.of(generator, writeSchema, "PersonV2"));
   pipeline.reset();
@@ -109,7 +109,7 @@ ProtobufPipeline.Status status = pipeline.feed(buffer, offset, length);  // PEND
 
 ### Schema-free mode
 
-The wire is self-describing enough to tokenize without a schema, so `StreamingProtobuf.parser()`
+The wire is self-describing enough to tokenize without a schema, so `Protobuf.parser()`
 (no schema) drives a schema-free pipeline: a `FIELD` event per wire field carrying
 `ProtobufSource.fieldNumber()` and `wireType()`, then a `VALUE` carrying the raw value slice.
 Length-delimited values are opaque bytes (no message-vs-string interpretation) and there is no
@@ -119,10 +119,10 @@ lossless structural copy), and a `ProtobufTransform` between them can keep/drop/
 number with no schema:
 
 ```java
-ProtobufGenerator generator = StreamingProtobuf.generator().wrap(out, 0);
+ProtobufGenerator generator = Protobuf.generator().wrap(out, 0);
 ProtobufTransform redact = (control, source, event, sink) ->
     source.fieldNumber() == SSN ? ProtobufPipeline.Status.PENDING : sink.feed(control, source, event);
-StreamingProtobuf.parser().stream().transform(redact).into(ProtobufSink.of(generator));
+Protobuf.parser().stream().transform(redact).into(ProtobufSink.of(generator));
 ```
 
 ### Bounded-buffer contract

@@ -25,6 +25,7 @@ import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
 
+import io.aklivity.zilla.runtime.common.protobuf.Protobuf;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufField;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufGenerator;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufMessage;
@@ -34,7 +35,6 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufSchema;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSink;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufType;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
-import io.aklivity.zilla.runtime.common.protobuf.StreamingProtobuf;
 
 public class ProtobufWireSinkTest
 {
@@ -143,8 +143,8 @@ public class ProtobufWireSinkTest
         byte[] message)
     {
         MutableDirectBuffer out = new UnsafeBuffer(new byte[4096]);
-        ProtobufGenerator generator = StreamingProtobuf.generator().wrap(out, 0);
-        ProtobufPipeline pipeline = StreamingProtobuf.parser(schema, readMessage).stream()
+        ProtobufGenerator generator = Protobuf.generator().wrap(out, 0);
+        ProtobufPipeline pipeline = Protobuf.parser(schema, readMessage).stream()
             .into(ProtobufSink.of(generator, schema, writeMessage));
         pipeline.reset();
 
@@ -169,7 +169,7 @@ public class ProtobufWireSinkTest
 
     private static ProtobufSchema newSchema()
     {
-        return StreamingProtobuf.schema()
+        return Protobuf.schema()
             .message(ProtobufMessage.builder("Addr")
                 .field(ProtobufField.builder().number(1).name("city").type(ProtobufType.STRING).build())
                 .build())

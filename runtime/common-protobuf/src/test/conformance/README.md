@@ -13,7 +13,7 @@ length-prefixed `ConformanceRequest` / `ConformanceResponse` protobufs. Our test
 - It reads/writes the conformance frames with `common-protobuf`'s own reader and writer (the
   conformance messages are themselves Protobuf — more dogfooding), no `protobuf-java`.
 - For the binary category (`protobuf_payload` in, `PROTOBUF` out) it canonicalizes against the
-  schema compiled from the conformance `FileDescriptorSet` (via `StreamingProtobuf.schema(...)`).
+  schema compiled from the conformance `FileDescriptorSet` (via `Protobuf.schema(...)`).
 - JSON/text formats return `skipped` — that mapping is owned by `model-protobuf`. Malformed input
   returns `parse_error`.
 

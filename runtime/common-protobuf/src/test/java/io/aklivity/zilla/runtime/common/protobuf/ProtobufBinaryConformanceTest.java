@@ -68,7 +68,7 @@ public class ProtobufBinaryConformanceTest
         byte[] expected = readBytes(ROOT + "cases/" + name + ".expected");
 
         MutableDirectBuffer out = new UnsafeBuffer(new byte[Math.max(64, expected.length * 2 + 16)]);
-        ProtobufCanonicalizer canonicalizer = StreamingProtobuf.canonicalizer(schema);
+        ProtobufCanonicalizer canonicalizer = Protobuf.canonicalizer(schema);
         int length = canonicalizer.canonicalize(messageName, new UnsafeBuffer(input), 0, input.length, out, 0);
 
         byte[] actual = new byte[length];
@@ -145,7 +145,7 @@ public class ProtobufBinaryConformanceTest
 
     private static ProtobufSchema newSchema()
     {
-        return StreamingProtobuf.schema()
+        return Protobuf.schema()
             .message(ProtobufMessage.builder("conformance.TestMessage.G")
                 .field(ProtobufField.builder().number(1).name("x").type(ProtobufType.INT32).build())
                 .build())

@@ -25,15 +25,15 @@ import org.agrona.ExpandableArrayBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
 
+import io.aklivity.zilla.runtime.common.protobuf.Protobuf;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufField;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufMessage;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufType;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
-import io.aklivity.zilla.runtime.common.protobuf.StreamingProtobuf;
 
 public class ConformanceTesteeTest
 {
-    private final ConformanceTestee testee = new ConformanceTestee(StreamingProtobuf.schema()
+    private final ConformanceTestee testee = new ConformanceTestee(Protobuf.schema()
         .message(ProtobufMessage.builder("conformance.TestMessage")
             .field(ProtobufField.builder().number(1).name("a").type(ProtobufType.STRING).build())
             .field(ProtobufField.builder().number(2).name("b").type(ProtobufType.INT32).build())

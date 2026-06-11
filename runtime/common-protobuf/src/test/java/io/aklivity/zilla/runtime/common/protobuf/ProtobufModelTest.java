@@ -162,7 +162,7 @@ public class ProtobufModelTest
         ProtobufField scalarField = ProtobufField.builder()
             .number(3).name("count").type(ProtobufType.INT32).build();
 
-        ProtobufSchema schema = StreamingProtobuf.schema()
+        ProtobufSchema schema = Protobuf.schema()
             .message(address)
             .enumeration(color)
             .build();
@@ -178,7 +178,7 @@ public class ProtobufModelTest
     @Test
     public void shouldRejectUnresolvedReferences()
     {
-        ProtobufSchema schema = StreamingProtobuf.schema().build();
+        ProtobufSchema schema = Protobuf.schema().build();
         ProtobufField messageField = ProtobufField.builder()
             .number(1).name("home").type(ProtobufType.MESSAGE).typeName("Nope").build();
         ProtobufField enumField = ProtobufField.builder()

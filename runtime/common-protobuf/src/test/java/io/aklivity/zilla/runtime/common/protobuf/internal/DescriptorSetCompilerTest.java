@@ -28,10 +28,10 @@ import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
 
+import io.aklivity.zilla.runtime.common.protobuf.Protobuf;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufCanonicalizer;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSchema;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
-import io.aklivity.zilla.runtime.common.protobuf.StreamingProtobuf;
 
 public class DescriptorSetCompilerTest
 {
@@ -48,7 +48,7 @@ public class DescriptorSetCompilerTest
         byte[] descriptorSet = personDescriptorSet();
         MutableDirectBuffer buffer = new UnsafeBuffer(descriptorSet);
 
-        ProtobufSchema schema = StreamingProtobuf.schema(buffer, 0, descriptorSet.length);
+        ProtobufSchema schema = Protobuf.schema(buffer, 0, descriptorSet.length);
 
         assertNotNull(schema.message("test.Person"));
         assertNotNull(schema.message("test.Person.Address"));
@@ -63,7 +63,7 @@ public class DescriptorSetCompilerTest
     {
         byte[] descriptorSet = personDescriptorSet();
         MutableDirectBuffer descriptors = new UnsafeBuffer(descriptorSet);
-        ProtobufSchema schema = StreamingProtobuf.schema(descriptors, 0, descriptorSet.length);
+        ProtobufSchema schema = Protobuf.schema(descriptors, 0, descriptorSet.length);
 
         byte[] address = encode(g ->
         {
@@ -96,7 +96,7 @@ public class DescriptorSetCompilerTest
     {
         byte[] descriptorSet = boxDescriptorSet();
         MutableDirectBuffer descriptors = new UnsafeBuffer(descriptorSet);
-        ProtobufSchema schema = StreamingProtobuf.schema(descriptors, 0, descriptorSet.length);
+        ProtobufSchema schema = Protobuf.schema(descriptors, 0, descriptorSet.length);
 
         assertTrue(schema.message("test.Box.LabelsEntry").mapEntry());
         assertEquals("kind", schema.message("test.Box").field(1).oneofName());
@@ -135,7 +135,7 @@ public class DescriptorSetCompilerTest
         byte[] input)
     {
         MutableDirectBuffer out = new UnsafeBuffer(new byte[4096]);
-        ProtobufCanonicalizer canonicalizer = StreamingProtobuf.canonicalizer(schema);
+        ProtobufCanonicalizer canonicalizer = Protobuf.canonicalizer(schema);
         int length = canonicalizer.canonicalize(messageName, new UnsafeBuffer(input), 0, input.length, out, 0);
         byte[] result = new byte[length];
         out.getBytes(0, result);

@@ -32,7 +32,7 @@ import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufParserImpl;
  * the reassembled payload — so processing is bounded by the message size (and, for nested messages,
  * by nesting depth). No unbounded document is buffered.
  */
-public final class StreamingProtobuf
+public final class Protobuf
 {
     public static ProtobufSchema.Builder schema()
     {
@@ -96,7 +96,7 @@ public final class StreamingProtobuf
         return new ProtobufGeneratorImpl();
     }
 
-    private StreamingProtobuf()
+    private Protobuf()
     {
     }
 }

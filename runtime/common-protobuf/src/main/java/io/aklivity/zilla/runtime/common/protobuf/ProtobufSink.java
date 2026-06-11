@@ -54,7 +54,7 @@ public interface ProtobufSink
     /**
      * A schema-free terminal sink that writes the generic event stream back out as wire through
      * {@code generator}, by field number and wire type, splicing each raw value verbatim. Composed
-     * with {@code StreamingProtobuf.parser()} it is a lossless structural copy; place a transform
+     * with {@code Protobuf.parser()} it is a lossless structural copy; place a transform
      * before it to keep/drop/redact fields by number with no schema.
      */
     static ProtobufSink of(
