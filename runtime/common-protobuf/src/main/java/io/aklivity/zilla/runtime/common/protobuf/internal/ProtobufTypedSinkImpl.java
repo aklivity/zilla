@@ -29,19 +29,18 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSchema;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSink;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSource;
-import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
 
 /**
  * A terminal sink that writes the event stream back out as Protobuf wire against a target schema,
  * mapping each event's field by name into the target message (fields absent in the target are dropped
- * with their subtrees). When the whole message fits the generator's limit it is encoded minimally —
- * nested messages length-prefixed via per-depth scratch (canonical). When it does not fit, the sink
- * switches to a chunking encode: nested messages use the generator's padded length slots, and at a
- * field boundary where the output nears its limit every open level is closed, the buffer is reported
- * drainable via {@link ProtobufPipeline.Status#SUSPENDED}, and on the resumed feed each level is
- * reopened against the fresh buffer — the resulting records reassemble by message-merge semantics. The
- * fits choice is made at the root from the input length, so an observer only sees the chunked form when
- * a message is genuinely too large to buffer.
+ * with their subtrees). It drives the public {@link ProtobufGenerator} API only. When the whole message
+ * fits the generator's limit it is encoded minimally — each nested message body is built in a scratch
+ * generator and emitted with {@link ProtobufGenerator#writeMessage} (minimal length, canonical). When
+ * it does not fit, the sink switches to a chunking encode: nested messages use the generator's padded
+ * {@link ProtobufGenerator#startMessage(int)}; at a field boundary near the limit every open level is
+ * closed, the buffer is reported drainable with {@link ProtobufPipeline.Status#SUSPENDED}, and on the
+ * resumed feed each level is reopened against the fresh buffer. The fits-vs-stream choice is made at the
+ * root from the input length, so the chunked (non-canonical) form is only observed when forced.
  */
 public final class ProtobufTypedSinkImpl implements ProtobufSink
 {
@@ -50,9 +49,8 @@ public final class ProtobufTypedSinkImpl implements ProtobufSink
     private final ProtobufSchema schema;
     private final String messageName;
     private final ProtobufGenerator generator;
-    private final ProtobufWriter root;
     private final List<ExpandableArrayBuffer> scratch;
-    private final List<ProtobufWriter> writers;
+    private final List<ProtobufGenerator> generators;
     private final List<Scope> scopes;
 
     private int depth;
@@ -68,9 +66,8 @@ public final class ProtobufTypedSinkImpl implements ProtobufSink
         this.schema = schema;
         this.messageName = messageName;
         this.generator = generator;
-        this.root = ((ProtobufGeneratorImpl) generator).writer();
         this.scratch = new ArrayList<>();
-        this.writers = new ArrayList<>();
+        this.generators = new ArrayList<>();
         this.scopes = new ArrayList<>();
         this.depth = -1;
     }
@@ -101,9 +98,9 @@ public final class ProtobufTypedSinkImpl implements ProtobufSink
             break;
         case VALUE:
             Scope value = scopes.get(depth);
-            if (value.writer != null && pending != null)
+            if (value.gen != null && pending != null)
             {
-                writeScalar(pending, source, value.writer);
+                writeScalar(pending, source, value.gen);
             }
             break;
         case END_MESSAGE:
@@ -143,25 +140,25 @@ public final class ProtobufTypedSinkImpl implements ProtobufSink
         if (depth == 0)
         {
             chunked = source.length() > generator.remaining();
-            scope.set(schema.message(messageName), root, null, null);
+            scope.set(schema.message(messageName), generator, null, false, null);
         }
         else
         {
             Scope parent = scope(depth - 1);
-            if (parent.writer == null || pending == null || !pending.composite())
+            if (parent.gen == null || pending == null || !pending.composite())
             {
-                scope.set(null, null, null, null);
+                scope.set(null, null, null, false, null);
             }
             else if (chunked)
             {
                 generator.startMessage(pending.number());
-                scope.set(schema.resolveMessage(pending), root, pending, null);
+                scope.set(schema.resolveMessage(pending), generator, pending, false, null);
             }
             else
             {
                 ExpandableArrayBuffer buffer = scratch(depth);
-                ProtobufWriter writer = acquire(depth).wrap(buffer, 0);
-                scope.set(schema.resolveMessage(pending), writer, pending, buffer);
+                ProtobufGenerator nested = acquire(depth).wrap(buffer, 0);
+                scope.set(schema.resolveMessage(pending), nested, pending, false, buffer);
             }
         }
     }
@@ -174,7 +171,7 @@ public final class ProtobufTypedSinkImpl implements ProtobufSink
         {
             status = ProtobufPipeline.Status.COMPLETE;
         }
-        else if (scope.writer != null && scope.field != null)
+        else if (scope.gen != null && scope.field != null)
         {
             if (chunked)
             {
@@ -182,9 +179,7 @@ public final class ProtobufTypedSinkImpl implements ProtobufSink
             }
             else
             {
-                ProtobufWriter parent = scope(depth - 1).writer;
-                parent.writeTag(scope.field.number(), ProtobufWireType.LEN);
-                parent.writeBytes(scope.buffer, 0, scope.writer.length());
+                scope(depth - 1).gen.writeMessage(scope.field.number(), scope.buffer, 0, scope.gen.length());
             }
         }
         depth--;
@@ -196,35 +191,23 @@ public final class ProtobufTypedSinkImpl implements ProtobufSink
         depth++;
         Scope scope = scope(depth);
         Scope parent = scope(depth - 1);
-        if (parent.writer == null || pending == null || !pending.composite())
+        if (parent.gen == null || pending == null || !pending.composite())
         {
-            scope.set(null, null, null, null);
-        }
-        else if (chunked)
-        {
-            generator.startGroup(pending.number());
-            scope.setGroup(schema.resolveMessage(pending), root, pending);
+            scope.set(null, null, null, false, null);
         }
         else
         {
-            parent.writer.writeTag(pending.number(), ProtobufWireType.SGROUP);
-            scope.setGroup(schema.resolveMessage(pending), parent.writer, pending);
+            parent.gen.startGroup(pending.number());
+            scope.set(schema.resolveMessage(pending), parent.gen, pending, true, null);
         }
     }
 
     private void onEndGroup()
     {
         Scope scope = scope(depth);
-        if (scope.writer != null && scope.field != null)
+        if (scope.gen != null && scope.field != null)
         {
-            if (chunked)
-            {
-                generator.endGroup();
-            }
-            else
-            {
-                scope.writer.writeTag(scope.field.number(), ProtobufWireType.EGROUP);
-            }
+            scope.gen.endGroup();
         }
         depth--;
     }
@@ -236,7 +219,7 @@ public final class ProtobufTypedSinkImpl implements ProtobufSink
         for (int d = depth; d >= 1; d--)
         {
             Scope scope = scopes.get(d);
-            if (scope.writer != null && scope.field != null)
+            if (scope.gen != null && scope.field != null)
             {
                 if (scope.group)
                 {
@@ -257,7 +240,7 @@ public final class ProtobufTypedSinkImpl implements ProtobufSink
         for (int d = 1; d <= depth; d++)
         {
             Scope scope = scopes.get(d);
-            if (scope.writer != null && scope.field != null)
+            if (scope.gen != null && scope.field != null)
             {
                 if (scope.group)
                 {
@@ -275,7 +258,7 @@ public final class ProtobufTypedSinkImpl implements ProtobufSink
         ProtobufField field)
     {
         Scope scope = scope(depth);
-        return scope.writer != null && scope.message != null ? scope.message.field(field.name()) : null;
+        return scope.gen != null && scope.message != null ? scope.message.field(field.name()) : null;
     }
 
     private Scope scope(
@@ -291,52 +274,56 @@ public final class ProtobufTypedSinkImpl implements ProtobufSink
     private void writeScalar(
         ProtobufField field,
         ProtobufSource source,
-        ProtobufWriter writer)
+        ProtobufGenerator gen)
     {
+        int number = field.number();
         switch (field.type())
         {
         case INT32:
+            gen.writeInt32(number, (int) source.longValue());
+            break;
         case INT64:
-        case UINT64:
-        case BOOL:
-        case ENUM:
-            writer.writeTag(field.number(), ProtobufWireType.VARINT);
-            writer.writeVarint64(source.longValue());
+            gen.writeInt64(number, source.longValue());
             break;
         case UINT32:
-            writer.writeTag(field.number(), ProtobufWireType.VARINT);
-            writer.writeVarint64(source.longValue() & 0xffffffffL);
+            gen.writeUInt32(number, (int) source.longValue());
+            break;
+        case UINT64:
+            gen.writeUInt64(number, source.longValue());
             break;
         case SINT32:
-            writer.writeTag(field.number(), ProtobufWireType.VARINT);
-            writer.writeZigzag32((int) source.longValue());
+            gen.writeSInt32(number, (int) source.longValue());
             break;
         case SINT64:
-            writer.writeTag(field.number(), ProtobufWireType.VARINT);
-            writer.writeZigzag64(source.longValue());
+            gen.writeSInt64(number, source.longValue());
             break;
         case FIXED32:
-        case SFIXED32:
-            writer.writeTag(field.number(), ProtobufWireType.I32);
-            writer.writeFixed32((int) source.longValue());
+            gen.writeFixed32(number, (int) source.longValue());
             break;
         case FIXED64:
-        case SFIXED64:
-            writer.writeTag(field.number(), ProtobufWireType.I64);
-            writer.writeFixed64(source.longValue());
+            gen.writeFixed64(number, source.longValue());
             break;
-        case DOUBLE:
-            writer.writeTag(field.number(), ProtobufWireType.I64);
-            writer.writeFixed64(Double.doubleToLongBits(source.doubleValue()));
+        case SFIXED32:
+            gen.writeSFixed32(number, (int) source.longValue());
+            break;
+        case SFIXED64:
+            gen.writeSFixed64(number, source.longValue());
             break;
         case FLOAT:
-            writer.writeTag(field.number(), ProtobufWireType.I32);
-            writer.writeFixed32(Float.floatToIntBits(source.floatValue()));
+            gen.writeFloat(number, source.floatValue());
+            break;
+        case DOUBLE:
+            gen.writeDouble(number, source.doubleValue());
+            break;
+        case BOOL:
+            gen.writeBool(number, source.longValue() != 0L);
+            break;
+        case ENUM:
+            gen.writeEnum(number, (int) source.longValue());
             break;
         case STRING:
         case BYTES:
-            writer.writeTag(field.number(), ProtobufWireType.LEN);
-            writer.writeBytes(source.buffer(), source.offset(), source.length());
+            gen.writeBytes(number, source.buffer(), source.offset(), source.length());
             break;
         default:
             throw new ProtobufException("unsupported scalar type " + field.type());
@@ -350,48 +337,37 @@ public final class ProtobufTypedSinkImpl implements ProtobufSink
         return scratch.get(depth);
     }
 
-    private ProtobufWriter acquire(
+    private ProtobufGenerator acquire(
         int depth)
     {
         while (scratch.size() <= depth)
         {
             scratch.add(new ExpandableArrayBuffer());
-            writers.add(new ProtobufWriter());
+            generators.add(new ProtobufGeneratorImpl());
         }
-        return writers.get(depth);
+        return generators.get(depth);
     }
 
     private static final class Scope
     {
         private ProtobufMessage message;
-        private ProtobufWriter writer;
+        private ProtobufGenerator gen;
         private ProtobufField field;
         private ExpandableArrayBuffer buffer;
         private boolean group;
 
         private void set(
             ProtobufMessage message,
-            ProtobufWriter writer,
+            ProtobufGenerator gen,
             ProtobufField field,
+            boolean group,
             ExpandableArrayBuffer buffer)
         {
             this.message = message;
-            this.writer = writer;
+            this.gen = gen;
             this.field = field;
+            this.group = group;
             this.buffer = buffer;
-            this.group = false;
-        }
-
-        private void setGroup(
-            ProtobufMessage message,
-            ProtobufWriter writer,
-            ProtobufField field)
-        {
-            this.message = message;
-            this.writer = writer;
-            this.field = field;
-            this.buffer = null;
-            this.group = true;
         }
     }
 }
