@@ -66,7 +66,7 @@ public class ProtobufGeneratorTest
             .writeMessage(10, nested, 0, nestedLength);
 
         Capture sink = new Capture();
-        ProtobufPipeline pipeline = Protobuf.parser(schema, "All").stream().into(sink);
+        ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, "All")).into(sink);
         pipeline.reset();
         ProtobufPipeline.Status status = pipeline.feed(out, 0, generator.length());
 
@@ -87,7 +87,7 @@ public class ProtobufGeneratorTest
             .startGroup(11).writeInt32(1, 9).endGroup();
 
         Capture sink = new Capture();
-        ProtobufPipeline pipeline = Protobuf.parser(schema, "All").stream().into(sink);
+        ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, "All")).into(sink);
         pipeline.reset();
         ProtobufPipeline.Status status = pipeline.feed(out, 0, generator.length());
 
@@ -135,7 +135,7 @@ public class ProtobufGeneratorTest
 
         MutableDirectBuffer out = new UnsafeBuffer(new byte[256]);
         ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, out.capacity());
-        ProtobufPipeline pipeline = Protobuf.parser(schema, "All").stream().into(new Mirror(generator));
+        ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, "All")).into(new Mirror(generator));
         pipeline.reset();
 
         assertEquals(ProtobufPipeline.Status.COMPLETED, pipeline.feed(in, 0, input.length));
@@ -157,7 +157,7 @@ public class ProtobufGeneratorTest
         generator.startMessage(10, 200).writeInt32(1, 9).endMessage();
 
         Capture sink = new Capture();
-        ProtobufPipeline pipeline = Protobuf.parser(schema, "All").stream().into(sink);
+        ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, "All")).into(sink);
         pipeline.reset();
 
         assertEquals(ProtobufPipeline.Status.COMPLETED, pipeline.feed(out, 0, generator.length()));

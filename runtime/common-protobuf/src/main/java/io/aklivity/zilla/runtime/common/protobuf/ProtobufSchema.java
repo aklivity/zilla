@@ -21,6 +21,7 @@ import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufDiscardSinkImpl;
 import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufParserImpl;
+import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufStreamImpl;
 import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufValidatorImpl;
 
 /**
@@ -100,8 +101,7 @@ public final class ProtobufSchema
         int offset,
         int length)
     {
-        ProtobufPipeline pipeline = new ProtobufParserImpl(this, messageName)
-            .stream()
+        ProtobufPipeline pipeline = new ProtobufStreamImpl(new ProtobufParserImpl(this, messageName))
             .transform(new ProtobufValidatorImpl(this, messageName))
             .into(new ProtobufDiscardSinkImpl());
         pipeline.reset();

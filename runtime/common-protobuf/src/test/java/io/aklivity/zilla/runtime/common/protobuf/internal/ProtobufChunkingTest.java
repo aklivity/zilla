@@ -126,7 +126,7 @@ public class ProtobufChunkingTest
         int limit = 48;
         MutableDirectBuffer out = new UnsafeBuffer(new byte[1024]);
         ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, limit);
-        ProtobufPipeline pipeline = Protobuf.parser(grouped, "Record").stream()
+        ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(grouped, "Record"))
             .into(ProtobufSink.of(generator, grouped, "Record"));
         pipeline.reset();
 
@@ -219,7 +219,7 @@ public class ProtobufChunkingTest
             events.add(event);
             return sink.feed(control, source, event);
         };
-        ProtobufPipeline pipeline = Protobuf.parser(schema, "Person").stream()
+        ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, "Person"))
             .transform(recorder)
             .into(ProtobufSink.of(generator, schema, "Person"));
         pipeline.reset();
@@ -241,7 +241,7 @@ public class ProtobufChunkingTest
     {
         MutableDirectBuffer out = new UnsafeBuffer(new byte[1024]);
         ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, limit);
-        ProtobufPipeline pipeline = Protobuf.parser(schema, "Person").stream()
+        ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, "Person"))
             .into(ProtobufSink.of(generator, schema, "Person"));
         pipeline.reset();
 

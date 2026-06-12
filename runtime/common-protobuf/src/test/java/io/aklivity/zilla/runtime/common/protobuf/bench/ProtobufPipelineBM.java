@@ -83,14 +83,14 @@ public class ProtobufPipelineBM
     @Setup(Level.Trial)
     public void init()
     {
-        validatePipeline = Protobuf.parser(schema, "Record").stream()
+        validatePipeline = Protobuf.stream(Protobuf.parser(schema, "Record"))
             .transform(schema.validator("Record"))
             .into(new ProtobufDiscardSinkImpl());
 
-        transformPipeline = Protobuf.parser(schema, "Record").stream()
+        transformPipeline = Protobuf.stream(Protobuf.parser(schema, "Record"))
             .into(ProtobufSink.of(generator, schema, "RecordV2"));
 
-        rawCopyPipeline = Protobuf.parser().stream()
+        rawCopyPipeline = Protobuf.stream(Protobuf.parser())
             .into(ProtobufSink.of(generator));
 
         byte[] meta = wire(w ->

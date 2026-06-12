@@ -19,6 +19,7 @@ import org.agrona.DirectBuffer;
 import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufGeneratorImpl;
 import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufParserImpl;
 import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufSchemaCompiler;
+import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufStreamImpl;
 
 /**
  * Entry point for streaming Protobuf over Agrona buffers. Compile a {@link ProtobufSchema} once per
@@ -54,7 +55,7 @@ public final class Protobuf
 
     /**
      * A schema-bound parser that decodes the message named {@code messageName} against {@code schema}
-     * into a typed event stream. Call {@link ProtobufParser#stream()} to begin a pipeline, append
+     * into a typed event stream. Pass it to {@link #stream(ProtobufParser)} to begin a pipeline, append
      * stages with {@link ProtobufStream#transform} (e.g. {@link ProtobufSchema#validator(String)}),
      * and terminate with {@link ProtobufStream#into}.
      */
@@ -75,6 +76,18 @@ public final class Protobuf
     public static ProtobufParser parser()
     {
         return new ProtobufParserImpl(null, null);
+    }
+
+    /**
+     * Begins a push pipeline pumped by {@code parser}: append stages with {@link ProtobufStream#transform}
+     * and terminate with {@link ProtobufStream#into}. The {@code parser} (from {@link #parser(ProtobufSchema,
+     * String)} or {@link #parser()}) supplies the events; stages see a non-advancing {@link ProtobufSource}
+     * view of each.
+     */
+    public static ProtobufStream stream(
+        ProtobufParser parser)
+    {
+        return new ProtobufStreamImpl((ProtobufParserImpl) parser);
     }
 
     /**

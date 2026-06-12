@@ -57,7 +57,7 @@ public class ProtobufPipelineTest
             w.writeVarint64(5);
         });
 
-        ProtobufPipeline pipeline = Protobuf.parser(schema, "P").stream()
+        ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, "P"))
             .transform(schema.validator("P"))
             .into(new ProtobufDiscardSinkImpl());
         pipeline.reset();
@@ -84,7 +84,7 @@ public class ProtobufPipelineTest
         });
 
         Capture sink = new Capture(false);
-        ProtobufPipeline pipeline = Protobuf.parser(schema, "P").stream().into(sink);
+        ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, "P")).into(sink);
         pipeline.reset();
 
         assertEquals(Status.COMPLETED, feed(pipeline, message));
@@ -106,7 +106,7 @@ public class ProtobufPipelineTest
         });
 
         Capture sink = new Capture(true);
-        ProtobufPipeline pipeline = Protobuf.parser(schema, "P").stream().into(sink);
+        ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, "P")).into(sink);
         pipeline.reset();
 
         assertEquals(Status.COMPLETED, feed(pipeline, message));
@@ -130,7 +130,7 @@ public class ProtobufPipelineTest
         });
 
         Capture sink = new Capture(false);
-        ProtobufPipeline pipeline = Protobuf.parser(schema, "P").stream().into(sink);
+        ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, "P")).into(sink);
         pipeline.reset();
 
         assertEquals(Status.COMPLETED, feed(pipeline, message));
@@ -149,7 +149,7 @@ public class ProtobufPipelineTest
         });
 
         Capture sink = new Capture(false);
-        ProtobufPipeline pipeline = Protobuf.parser(schema, "P").stream().into(sink);
+        ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, "P")).into(sink);
         pipeline.reset();
 
         assertEquals(Status.COMPLETED, feed(pipeline, message));
@@ -168,7 +168,7 @@ public class ProtobufPipelineTest
         });
 
         Capture sink = new Capture(false);
-        ProtobufPipeline pipeline = Protobuf.parser(schema, "P").stream().into(sink);
+        ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, "P")).into(sink);
         pipeline.reset();
 
         assertEquals(Status.COMPLETED, feed(pipeline, message));
@@ -178,7 +178,7 @@ public class ProtobufPipelineTest
     @Test
     public void shouldRejectMalformed()
     {
-        ProtobufPipeline pipeline = Protobuf.parser(schema, "P").stream()
+        ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, "P"))
             .transform(schema.validator("P"))
             .into(new ProtobufDiscardSinkImpl());
         pipeline.reset();
@@ -189,7 +189,7 @@ public class ProtobufPipelineTest
     @Test
     public void shouldRejectUnknownRootMessage()
     {
-        ProtobufPipeline pipeline = Protobuf.parser(schema, "Nope").stream().into(new ProtobufDiscardSinkImpl());
+        ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, "Nope")).into(new ProtobufDiscardSinkImpl());
         pipeline.reset();
 
         assertEquals(Status.REJECTED, feed(pipeline, new byte[0]));
@@ -204,7 +204,7 @@ public class ProtobufPipelineTest
             w.writeBytes("x".getBytes(UTF_8));
         });
 
-        ProtobufPipeline pipeline = Protobuf.parser(schema, "R").stream()
+        ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, "R"))
             .transform(schema.validator("R"))
             .into(new ProtobufDiscardSinkImpl());
         pipeline.reset();
@@ -221,7 +221,7 @@ public class ProtobufPipelineTest
             w.writeVarint64(4);
         });
 
-        ProtobufPipeline pipeline = Protobuf.parser(schema, "R").stream()
+        ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, "R"))
             .transform(schema.validator("R"))
             .into(new ProtobufDiscardSinkImpl());
         pipeline.reset();
@@ -238,7 +238,7 @@ public class ProtobufPipelineTest
             w.writeVarint64(1);
         });
 
-        ProtobufPipeline pipeline = Protobuf.parser(schema, "P").stream()
+        ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, "P"))
             .transform(schema.validator("P"))
             .into(new ProtobufDiscardSinkImpl());
 
@@ -286,7 +286,7 @@ public class ProtobufPipelineTest
         });
 
         Capture sink = new Capture(false);
-        ProtobufPipeline pipeline = Protobuf.parser(schema, "S").stream().into(sink);
+        ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, "S")).into(sink);
         pipeline.reset();
 
         assertEquals(Status.COMPLETED, feed(pipeline, message));
@@ -301,7 +301,7 @@ public class ProtobufPipelineTest
     public void shouldForwardThroughDefaultResetTransform()
     {
         ProtobufTransform passthrough = (control, source, event, sink) -> sink.feed(control, source, event);
-        ProtobufPipeline pipeline = Protobuf.parser(schema, "P").stream()
+        ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, "P"))
             .transform(passthrough)
             .into(new ProtobufDiscardSinkImpl());
         pipeline.reset();
@@ -322,7 +322,7 @@ public class ProtobufPipelineTest
             w.writeTag(2, ProtobufWireType.LEN);
             w.writeBytes("oops".getBytes(UTF_8));
         });
-        ProtobufPipeline pipeline = Protobuf.parser(schema, "P").stream().into(new ProtobufDiscardSinkImpl());
+        ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, "P")).into(new ProtobufDiscardSinkImpl());
         pipeline.reset();
         assertEquals(Status.REJECTED, feed(pipeline, message));
     }
@@ -335,7 +335,7 @@ public class ProtobufPipelineTest
             w.writeTag(4, ProtobufWireType.VARINT);
             w.writeVarint64(1);
         });
-        ProtobufPipeline pipeline = Protobuf.parser(schema, "P").stream().into(new ProtobufDiscardSinkImpl());
+        ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, "P")).into(new ProtobufDiscardSinkImpl());
         pipeline.reset();
         assertEquals(Status.REJECTED, feed(pipeline, message));
     }
@@ -348,7 +348,7 @@ public class ProtobufPipelineTest
             w.writeTag(5, ProtobufWireType.LEN);
             w.writeBytes("oops".getBytes(UTF_8));
         });
-        ProtobufPipeline pipeline = Protobuf.parser(schema, "P").stream().into(new ProtobufDiscardSinkImpl());
+        ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, "P")).into(new ProtobufDiscardSinkImpl());
         pipeline.reset();
         assertEquals(Status.REJECTED, feed(pipeline, message));
     }

@@ -160,7 +160,7 @@ public class ProtobufTypedSinkTest
     {
         MutableDirectBuffer out = new UnsafeBuffer(new byte[4096]);
         ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, out.capacity());
-        ProtobufPipeline pipeline = Protobuf.parser(schema, readMessage).stream()
+        ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, readMessage))
             .into(ProtobufSink.of(generator, schema, writeMessage));
         pipeline.reset();
 

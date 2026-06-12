@@ -77,12 +77,12 @@ pairs carrying `fieldNumber()` and `wireType()` (see Schema-free mode below).
 
 ## Streaming pipeline
 
-`stream()` layers a composable push pipeline over the same cursor: it pumps the parser and feeds each
-event through an ordered chain of `ProtobufTransform` stages to a terminal `ProtobufSink`.
+`Protobuf.stream(parser)` layers a composable push pipeline over the same cursor: it pumps the parser
+and feeds each event through an ordered chain of `ProtobufTransform` stages to a terminal `ProtobufSink`.
 
 ```java
 ProtobufGenerator generator = Protobuf.generator().wrap(out, 0);
-ProtobufPipeline pipeline = Protobuf.parser(readSchema, "Person").stream()
+ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(readSchema, "Person"))
     .transform(readSchema.validator("Person"))
     .into(ProtobufSink.of(generator, writeSchema, "PersonV2"));
 pipeline.reset();
@@ -92,8 +92,8 @@ if (pipeline.feed(in, off, len) == ProtobufPipeline.Status.COMPLETED)  // COMPLE
 }
 ```
 
-- **`stream()`** begins the pipeline; **`ProtobufStream`** appends stages (`transform`) and terminates
-  (`into`), yielding the runnable **`ProtobufPipeline`** (`reset` / `feed` / `Status`).
+- **`Protobuf.stream(parser)`** begins the pipeline; **`ProtobufStream`** appends stages (`transform`) and
+  terminates (`into`), yielding the runnable **`ProtobufPipeline`** (`reset` / `feed` / `Status`).
 - **`ProtobufSource`** is the per-event read-only value view handed to a stage — the parser's typed
   accessors without the cursor advance, so a stage cannot disturb the pump.
 - **`ProtobufTransform`** is an intermediate stage (`feed(control, source, event, sink)`);
@@ -140,7 +140,7 @@ is known when it starts** (the parser supplies it via `source.length()`).
 
 ```java
 ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, limit);
-ProtobufPipeline pipeline = Protobuf.parser(readSchema, "Person").stream()
+ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(readSchema, "Person"))
     .into(ProtobufSink.of(generator, writeSchema, "PersonV2"));
 pipeline.reset();
 
@@ -196,7 +196,7 @@ can keep/drop/redact fields by number with no schema:
 ProtobufGenerator generator = Protobuf.generator().wrap(out, 0);
 ProtobufTransform redact = (control, source, event, sink) ->
     source.fieldNumber() == SSN ? ProtobufPipeline.Status.ADVANCED : sink.feed(control, source, event);
-Protobuf.parser().stream().transform(redact).into(ProtobufSink.of(generator));
+Protobuf.stream(Protobuf.parser()).transform(redact).into(ProtobufSink.of(generator));
 ```
 
 ### Bounded-buffer contract

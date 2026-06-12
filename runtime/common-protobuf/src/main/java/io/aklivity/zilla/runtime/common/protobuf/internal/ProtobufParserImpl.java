@@ -27,7 +27,6 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufMessage;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufParser;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSchema;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSource;
-import io.aklivity.zilla.runtime.common.protobuf.ProtobufStream;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufType;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
 
@@ -90,12 +89,6 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource,
         this.schema = schema;
         this.messageName = messageName;
         this.frames = new ArrayList<>();
-    }
-
-    @Override
-    public ProtobufStream stream()
-    {
-        return new ProtobufStreamImpl(this);
     }
 
     @Override

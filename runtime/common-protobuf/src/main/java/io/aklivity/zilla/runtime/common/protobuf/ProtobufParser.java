@@ -26,8 +26,8 @@ import org.agrona.DirectBuffer;
  * {@link #hasNext()} / {@link #nextEvent()} loop pulls one {@link ProtobufEvent} at a time, with
  * the current field and value read through this parser's accessors ({@link #field()},
  * {@link #longValue()}, {@link #buffer()}, …) — the same surface a {@link ProtobufSource} exposes to a
- * pipeline stage, but cursor-bearing. {@link #stream()} layers the push pipeline over the same cursor;
- * stages there receive a non-advancing {@link ProtobufSource} view instead.
+ * pipeline stage, but cursor-bearing. {@link Protobuf#stream(ProtobufParser)} layers the push pipeline
+ * over the same cursor; stages there receive a non-advancing {@link ProtobufSource} view instead.
  */
 public interface ProtobufParser
 {
@@ -50,12 +50,6 @@ public interface ProtobufParser
      * Malformed wire and wire-type/declared-type mismatches raise a {@link ProtobufException}.
      */
     ProtobufEvent nextEvent();
-
-    /**
-     * Begins a push pipeline pumped by this parser; append stages with {@link ProtobufStream#transform}
-     * and terminate with {@link ProtobufStream#into}.
-     */
-    ProtobufStream stream();
 
     /**
      * The field of the current {@link ProtobufEvent#FIELD} / {@link ProtobufEvent#VALUE} or composite,
