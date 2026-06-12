@@ -37,16 +37,37 @@ public interface JsonGeneratorEx extends JsonGenerator
 {
     /**
      * (Re)targets the generator at {@code buffer} starting at {@code offset}, resetting all
-     * context. Reuse a single instance per worker thread across values.
+     * structural context and binding the limit to the buffer's full capacity. Reuse a single
+     * instance per worker thread across values.
      */
     JsonGeneratorEx wrap(
         MutableDirectBuffer buffer,
         int offset);
 
     /**
-     * Reports the number of bytes written since the last {@link #wrap(MutableDirectBuffer, int)}.
+     * Re-targets the generator at {@code buffer} starting at {@code offset} with a hard byte
+     * {@code limit} (rather than the buffer's full capacity), the bound a chunking driver watches via
+     * {@link #remaining()} to decide when to drain and resume. Unlike {@link #wrap(MutableDirectBuffer,
+     * int)}, the structural context (open object/array depth and pending separators) is preserved, so a
+     * value paused by {@link JsonPipeline.Status#SUSPENDED} continues across the drain as one
+     * uninterrupted serialization. The two-argument {@link #wrap(MutableDirectBuffer, int)} is
+     * equivalent with {@code limit} set to the buffer capacity and the context reset.
+     */
+    JsonGeneratorEx wrap(
+        MutableDirectBuffer buffer,
+        int offset,
+        int limit);
+
+    /**
+     * Reports the number of bytes written since the last {@link #wrap}.
      */
     int length();
+
+    /**
+     * Bytes that may still be written before reaching the {@code limit} set at {@link #wrap}. A driver
+     * checks this at an event boundary to decide whether to suspend (drain) before the next write.
+     */
+    int remaining();
 
     /**
      * Emits a numeric literal verbatim, preserving the exact source lexeme (e.g. {@code -2.5e3})

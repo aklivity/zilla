@@ -30,6 +30,8 @@ public final class JsonPipelineImpl implements JsonPipeline
     private final JsonParserImpl parser;
     private final JsonSink root;
 
+    private boolean suspended;
+
     public JsonPipelineImpl(
         JsonParserImpl parser,
         JsonSink root)
@@ -43,6 +45,7 @@ public final class JsonPipelineImpl implements JsonPipeline
     {
         parser.reset();
         root.reset();
+        suspended = false;
     }
 
     @Override
@@ -51,12 +54,16 @@ public final class JsonPipelineImpl implements JsonPipeline
         int offset,
         int length)
     {
-        parser.wrap(buffer, offset, length);
-        Status status = Status.PENDING;
-        while (status == Status.PENDING && parser.hasNextEvent())
+        if (!suspended)
+        {
+            parser.wrap(buffer, offset, length);
+        }
+        Status status = Status.RESUMABLE;
+        while (status == Status.RESUMABLE && parser.hasNextEvent())
         {
             status = root.feed(parser, parser, parser.nextEvent());
         }
+        suspended = status == Status.SUSPENDED;
         return status;
     }
 }

@@ -113,7 +113,7 @@ class JsonValidatorChainTest
         UnsafeBuffer in = new UnsafeBuffer(bytes);
 
         pipeline.reset();
-        assertEquals(Status.PENDING, pipeline.feed(in, 0, 8));
+        assertEquals(Status.RESUMABLE, pipeline.feed(in, 0, 8));
         Status status = pipeline.feed(in, 8, bytes.length - 8);
 
         assertEquals(Status.COMPLETE, status);

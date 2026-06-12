@@ -48,6 +48,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
 
     private MutableDirectBuffer buffer;
     private int offset;
+    private int progress;
     private int limit;
     private int depth;
     private boolean afterKey;
@@ -59,16 +60,36 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     {
         this.buffer = buffer;
         this.offset = offset;
-        this.limit = offset;
+        this.progress = offset;
+        this.limit = buffer.capacity();
         this.depth = 0;
         this.afterKey = false;
         return this;
     }
 
     @Override
+    public JsonGeneratorImpl wrap(
+        MutableDirectBuffer buffer,
+        int offset,
+        int limit)
+    {
+        this.buffer = buffer;
+        this.offset = offset;
+        this.progress = offset;
+        this.limit = limit;
+        return this;
+    }
+
+    @Override
     public int length()
     {
-        return limit - offset;
+        return progress - offset;
+    }
+
+    @Override
+    public int remaining()
+    {
+        return limit - progress;
     }
 
     @Override
@@ -331,8 +352,8 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         int length)
     {
         preValue();
-        buffer.putBytes(limit, source, index, length);
-        limit += length;
+        buffer.putBytes(progress, source, index, length);
+        progress += length;
         return this;
     }
 
@@ -342,8 +363,8 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         int index,
         int length)
     {
-        buffer.putBytes(limit, source, index, length);
-        limit += length;
+        buffer.putBytes(progress, source, index, length);
+        progress += length;
         return this;
     }
 
@@ -487,7 +508,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     private void putByte(
         int value)
     {
-        buffer.putByte(limit, (byte) value);
-        limit++;
+        buffer.putByte(progress, (byte) value);
+        progress++;
     }
 }

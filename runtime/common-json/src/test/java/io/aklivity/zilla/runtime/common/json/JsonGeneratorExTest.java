@@ -172,6 +172,43 @@ class JsonGeneratorExTest
     }
 
     @Test
+    void shouldReportRemainingWithinBound()
+    {
+        MutableDirectBuffer buffer = new UnsafeBuffer(new byte[64]);
+        JsonGeneratorEx generator = StreamingJson.createGenerator().wrap(buffer, 0, 16);
+        assertEquals(16, generator.remaining());
+        generator.writeStartArray().writeNumber("1");
+        assertEquals(2, generator.length());
+        assertEquals(14, generator.remaining());
+    }
+
+    @Test
+    void shouldPreserveContextAcrossBoundedRewrap()
+    {
+        MutableDirectBuffer first = new UnsafeBuffer(new byte[32]);
+        MutableDirectBuffer second = new UnsafeBuffer(new byte[32]);
+        JsonGeneratorEx generator = StreamingJson.createGenerator();
+
+        generator.wrap(first, 0, 32).writeStartArray().writeNumber("1");
+        String chunk1 = drain(generator, first);
+
+        generator.wrap(second, 0, 32).writeNumber("2").writeEnd();
+        String chunk2 = drain(generator, second);
+
+        assertEquals("[1,2]", chunk1 + chunk2);
+    }
+
+    @Test
+    void shouldResetContextOnTwoArgWrap()
+    {
+        MutableDirectBuffer buffer = new UnsafeBuffer(new byte[64]);
+        JsonGeneratorEx generator = StreamingJson.createGenerator();
+        generator.wrap(buffer, 0).writeStartArray().writeNumber("1");
+        generator.wrap(buffer, 0).writeStartObject().writeEnd();
+        assertEquals("{}", drain(generator, buffer));
+    }
+
+    @Test
     void shouldWriteAtNonZeroOffset()
     {
         MutableDirectBuffer buffer = new UnsafeBuffer(new byte[64]);
@@ -188,6 +225,13 @@ class JsonGeneratorExTest
         MutableDirectBuffer buffer = new UnsafeBuffer(new byte[512]);
         JsonGeneratorEx generator = StreamingJson.createGenerator().wrap(buffer, 0);
         writer.accept(generator);
+        return drain(generator, buffer);
+    }
+
+    private static String drain(
+        JsonGeneratorEx generator,
+        MutableDirectBuffer buffer)
+    {
         byte[] out = new byte[generator.length()];
         buffer.getBytes(0, out);
         return new String(out, UTF_8);

@@ -20,14 +20,21 @@ import org.agrona.DirectBuffer;
  * A runnable, resumable {@code common-json} pipeline assembled from a {@link JsonStream} description
  * terminated with a {@link JsonSink}. Reuse a single instance per worker thread: call {@link #reset()}
  * once per top-level value, then {@link #feed(DirectBuffer, int, int)} per frame, resuming a value left
- * {@link Status#PENDING} by an earlier frame.
+ * {@link Status#RESUMABLE} by an earlier frame.
+ * <p>
+ * Output is bounded by the terminal generator's limit: when it fills at an event boundary,
+ * {@code feed} returns {@link Status#SUSPENDED} with a complete, drainable region in the output buffer;
+ * the caller drains it, re-targets the generator at a fresh region (preserving its structural context),
+ * and calls {@code feed} again with the same frame to resume the in-flight value from where it paused.
  */
 public interface JsonPipeline
 {
     enum Status
     {
         /** the current top-level value is still in progress; feed more bytes to continue */
-        PENDING,
+        RESUMABLE,
+        /** the bounded output filled: drain the buffer, re-target the generator, then {@link #feed} again to resume */
+        SUSPENDED,
         /** the current top-level value finished and was accepted */
         COMPLETE,
         /** the current top-level value was rejected; the output must be abandoned */

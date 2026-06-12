@@ -31,6 +31,8 @@ import io.aklivity.zilla.runtime.common.json.JsonSource;
  */
 public final class JsonSinkImpl implements JsonSink
 {
+    private static final int HEADROOM = 16;
+
     private final JsonGeneratorEx generator;
     private final Delivery delivery;
     private int depth;
@@ -55,7 +57,7 @@ public final class JsonSinkImpl implements JsonSink
         JsonSource source,
         JsonEvent event)
     {
-        Status status = Status.PENDING;
+        Status status = Status.RESUMABLE;
         DirectBuffer segment;
         switch (event)
         {
@@ -123,6 +125,11 @@ public final class JsonSinkImpl implements JsonSink
         default:
             break;
         }
+
+        if (status == Status.RESUMABLE && generator.length() > 0 && generator.remaining() < HEADROOM)
+        {
+            status = Status.SUSPENDED;
+        }
         return status;
     }
 
@@ -134,6 +141,6 @@ public final class JsonSinkImpl implements JsonSink
 
     private Status scalarStatus()
     {
-        return depth == 0 ? Status.COMPLETE : Status.PENDING;
+        return depth == 0 ? Status.COMPLETE : Status.RESUMABLE;
     }
 }

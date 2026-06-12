@@ -36,7 +36,7 @@ class JsonSinkSegmentTest
             JsonEvent event,
             JsonSink sink)
         {
-            Status status = Status.PENDING;
+            Status status = Status.RESUMABLE;
             if (!armed && (event == JsonEvent.START_OBJECT || event == JsonEvent.START_ARRAY))
             {
                 armed = true;
@@ -143,7 +143,7 @@ class JsonSinkSegmentTest
         byte[] second = "\"b\":2} ".getBytes(UTF_8);
 
         pipeline.reset();
-        assertEquals(Status.PENDING, pipeline.feed(new UnsafeBuffer(first), 0, first.length));
+        assertEquals(Status.RESUMABLE, pipeline.feed(new UnsafeBuffer(first), 0, first.length));
         Status status = pipeline.feed(new UnsafeBuffer(second), 0, second.length);
 
         assertEquals(Status.COMPLETE, status);
