@@ -51,6 +51,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     private int progress;
     private int limit;
     private int depth;
+    private int deferred;
     private boolean afterKey;
 
     @Override
@@ -77,6 +78,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     public void reset()
     {
         this.depth = 0;
+        this.deferred = 0;
         this.afterKey = false;
     }
 
@@ -361,6 +363,20 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         assert progress + length <= limit;
         buffer.putBytes(progress, source, index, length);
         progress += length;
+        return this;
+    }
+
+    @Override
+    public JsonGeneratorImpl writeSegment(
+        DirectBuffer source,
+        int index,
+        int length,
+        int deferred)
+    {
+        assert progress + length <= limit;
+        buffer.putBytes(progress, source, index, length);
+        progress += length;
+        this.deferred = deferred;
         return this;
     }
 

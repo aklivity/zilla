@@ -32,6 +32,19 @@ public interface JsonTransform
         JsonEvent event,
         JsonSink sink);
 
+    /**
+     * Continues output this stage left in flight by a prior {@link JsonPipeline.Status#SUSPENDED} —
+     * a value it was emitting to {@code sink} across chunks — before the next event is fed. Returns
+     * {@link JsonPipeline.Status#SUSPENDED} if the bounded output filled again, or {@link
+     * JsonPipeline.Status#RESUMABLE} when this stage has nothing more to emit. The {@code resume()}
+     * cascade drains the downstream first, so a stage that only forwards events keeps the default.
+     */
+    default JsonPipeline.Status resume(
+        JsonSink sink)
+    {
+        return JsonPipeline.Status.RESUMABLE;
+    }
+
     default void reset()
     {
     }

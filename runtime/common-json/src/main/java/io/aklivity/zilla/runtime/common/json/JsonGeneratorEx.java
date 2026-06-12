@@ -94,6 +94,20 @@ public interface JsonGeneratorEx extends JsonGenerator
         int index,
         int length);
 
+    /**
+     * Appends {@code length} content bytes of a value verbatim within the usable region {@code [offset,
+     * limit)}, with no re-encoding and no structural separator (the value's leading separator is emitted
+     * once, before its first segment). {@code deferred} reports how many bytes of this value remain to be
+     * written after these {@code length} bytes; a driver fragments a value larger than {@link #remaining()}
+     * by writing what fits, leaving {@code deferred > 0}, draining, then continuing on resume until
+     * {@code deferred} reaches zero.
+     */
+    JsonGeneratorEx writeSegment(
+        DirectBuffer source,
+        int index,
+        int length,
+        int deferred);
+
     @Override
     JsonGeneratorEx writeStartObject();
 

@@ -29,6 +29,7 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
+import io.aklivity.zilla.runtime.common.json.JsonTransform;
 import io.aklivity.zilla.runtime.common.json.StreamingJson;
 
 class JsonPipelineChunkingTest
@@ -82,6 +83,35 @@ class JsonPipelineChunkingTest
             .into(JsonSink.of(generator));
 
         String json = "{\"k0\":0,\"k1\":1,\"k2\":2,\"k3\":3,\"k4\":4,\"k5\":5,\"k6\":6,\"k7\":7,\"k8\":8,\"k9\":9}";
+        assertEquals(json, chunked(pipeline, generator, output, json));
+    }
+
+    @Test
+    void shouldFragmentValueLargerThanBound()
+    {
+        JsonGeneratorEx generator = StreamingJson.createGenerator();
+        MutableDirectBuffer output = new UnsafeBuffer(new byte[256]);
+        JsonPipeline pipeline = StreamingJson.createParser().stream()
+            .into(JsonSink.of(generator, JsonSink.Delivery.SEGMENTABLE));
+
+        // one top-level array whose verbatim form far exceeds BOUND, delivered as a single segment that
+        // must be fragmented across many chunks
+        String json = "[\"aaaaaaaa\",\"bbbbbbbb\",\"cccccccc\",\"dddddddd\",\"eeeeeeee\",\"ffffffff\"]";
+        assertEquals(json, chunked(pipeline, generator, output, json));
+    }
+
+    @Test
+    void shouldFragmentValueThroughForwardingTransform()
+    {
+        JsonGeneratorEx generator = StreamingJson.createGenerator();
+        MutableDirectBuffer output = new UnsafeBuffer(new byte[256]);
+        JsonTransform passthrough = (control, source, event, sink) -> sink.feed(control, source, event);
+        JsonPipeline pipeline = StreamingJson.createParser().stream()
+            .transform(passthrough)
+            .into(JsonSink.of(generator, JsonSink.Delivery.SEGMENTABLE));
+
+        // the resume cascade must continue the in-flight fragment through the transform stage
+        String json = "[\"aaaaaaaa\",\"bbbbbbbb\",\"cccccccc\",\"dddddddd\",\"eeeeeeee\",\"ffffffff\"]";
         assertEquals(json, chunked(pipeline, generator, output, json));
     }
 

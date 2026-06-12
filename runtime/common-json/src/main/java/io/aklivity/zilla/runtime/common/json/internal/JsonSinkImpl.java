@@ -36,6 +36,9 @@ public final class JsonSinkImpl implements JsonSink
     private final JsonGeneratorEx generator;
     private final Delivery delivery;
     private int depth;
+    private int segmentWritten;
+    private DirectBuffer pendingSegment;
+    private JsonEvent pendingSegmentEvent;
 
     public JsonSinkImpl(
         JsonGeneratorEx generator)
@@ -103,16 +106,14 @@ public final class JsonSinkImpl implements JsonSink
             break;
         case START_SEGMENT:
             segment = source.getSegment();
-            generator.writeRaw(segment, 0, segment.capacity());
+            // emit the value's leading separator once, before its first content byte
+            generator.writeRaw(segment, 0, 0);
+            status = writeChunk(segment, event);
             break;
         case CONTINUE_SEGMENT:
-            segment = source.getSegment();
-            generator.writeRawContinue(segment, 0, segment.capacity());
-            break;
         case END_SEGMENT:
             segment = source.getSegment();
-            generator.writeRawContinue(segment, 0, segment.capacity());
-            status = scalarStatus();
+            status = writeChunk(segment, event);
             break;
         case START_DOCUMENT:
             if (delivery == Delivery.SEGMENTABLE)
@@ -126,18 +127,66 @@ public final class JsonSinkImpl implements JsonSink
             break;
         }
 
-        if (status == Status.RESUMABLE && generator.length() > 0 && generator.remaining() < HEADROOM)
-        {
-            status = Status.SUSPENDED;
-        }
-        return status;
+        return boundary(status);
+    }
+
+    @Override
+    public Status resume()
+    {
+        Status status = pendingSegment != null ? writeChunk(pendingSegment, pendingSegmentEvent) : Status.RESUMABLE;
+        return boundary(status);
     }
 
     @Override
     public void reset()
     {
         depth = 0;
+        segmentWritten = 0;
+        pendingSegment = null;
+        pendingSegmentEvent = null;
         generator.reset();
+    }
+
+    // Writes as much of the current segment slice as the bounded output allows, deferring the rest: when
+    // the slice does not fit it stashes the remainder and reports SUSPENDED so the driver drains and a
+    // later resume() continues from segmentWritten; once the slice is fully written the value boundary is
+    // reached.
+    private Status writeChunk(
+        DirectBuffer segment,
+        JsonEvent event)
+    {
+        int sliceLength = segment.capacity();
+        int length = Math.min(sliceLength - segmentWritten, generator.remaining());
+        int deferred = sliceLength - segmentWritten - length;
+        generator.writeSegment(segment, segmentWritten, length, deferred);
+        segmentWritten += length;
+        Status status;
+        if (deferred > 0)
+        {
+            pendingSegment = segment;
+            pendingSegmentEvent = event;
+            status = Status.SUSPENDED;
+        }
+        else
+        {
+            segmentWritten = 0;
+            pendingSegment = null;
+            status = event == JsonEvent.END_SEGMENT ? scalarStatus() : Status.RESUMABLE;
+        }
+        return status;
+    }
+
+    // Suspends at an event boundary once the bounded output nears its limit, so the next event's write
+    // starts against a freshly drained buffer.
+    private Status boundary(
+        Status status)
+    {
+        Status result = status;
+        if (status == Status.RESUMABLE && generator.length() > 0 && generator.remaining() < HEADROOM)
+        {
+            result = Status.SUSPENDED;
+        }
+        return result;
     }
 
     private Status scalarStatus()

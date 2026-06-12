@@ -59,7 +59,11 @@ public final class JsonPipelineImpl implements JsonPipeline
         Status status = Status.RESUMABLE;
         try
         {
-            if (!suspended)
+            if (suspended)
+            {
+                status = root.resume();
+            }
+            else
             {
                 parser.wrap(buffer, offset, length);
             }

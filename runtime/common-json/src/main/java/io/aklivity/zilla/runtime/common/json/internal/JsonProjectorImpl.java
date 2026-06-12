@@ -131,13 +131,13 @@ public final class JsonProjectorImpl implements JsonTransform
         {
             status = Status.REJECTED;
         }
-        else if (rootDone)
-        {
-            status = Status.COMPLETE;
-        }
         else if (downstream == Status.SUSPENDED)
         {
             status = Status.SUSPENDED;
+        }
+        else if (rootDone)
+        {
+            status = Status.COMPLETE;
         }
         else
         {
