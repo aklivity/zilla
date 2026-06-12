@@ -91,6 +91,7 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
+import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
 public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker implements BindingHandler
 {
@@ -295,7 +296,8 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                     initialOffset,
                     isolation,
                     server,
-                    sasl)::onApplication;
+                    sasl,
+                    binding.guard)::onApplication;
             }
         }
 
@@ -1760,7 +1762,8 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
             long initialOffset,
             KafkaIsolation isolation,
             KafkaServerConfig server,
-            KafkaSaslConfig sasl)
+            KafkaSaslConfig sasl,
+            GuardHandler guard)
         {
             this.application = application;
             this.originId = originId;
@@ -1770,7 +1773,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
             this.leaderId = leaderId;
             this.clientRoute = supplyClientRoute.apply(resolvedId);
             this.client = new KafkaFetchClient(routedId, resolvedId, topic, partitionId,
-                    initialOffset, latestOffset, isolation, server, sasl);
+                    initialOffset, latestOffset, isolation, server, sasl, guard);
         }
 
         private int replyBudget()
@@ -2232,9 +2235,10 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                 long latestOffset,
                 KafkaIsolation isolation,
                 KafkaServerConfig server,
-                KafkaSaslConfig sasl)
+                KafkaSaslConfig sasl,
+                GuardHandler guard)
             {
-                super(server, sasl, originId, routedId);
+                super(server, sasl, guard, originId, routedId);
                 this.stream = KafkaFetchStream.this;
                 this.topic = requireNonNull(topic);
                 this.topicPartitions = clientRoute.supplyPartitions(topic);

@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.common.json.internal;
 
+import jakarta.json.stream.JsonParsingException;
+
 import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
@@ -30,6 +32,8 @@ public final class JsonPipelineImpl implements JsonPipeline
     private final JsonParserImpl parser;
     private final JsonSink root;
 
+    private boolean suspended;
+
     public JsonPipelineImpl(
         JsonParserImpl parser,
         JsonSink root)
@@ -43,20 +47,43 @@ public final class JsonPipelineImpl implements JsonPipeline
     {
         parser.reset();
         root.reset();
+        suspended = false;
     }
 
     @Override
     public Status feed(
         DirectBuffer buffer,
         int offset,
-        int length)
+        int length,
+        boolean last)
     {
-        parser.wrap(buffer, offset, length);
-        Status status = Status.PENDING;
-        while (status == Status.PENDING && parser.hasNextEvent())
+        Status status = Status.ADVANCED;
+        try
         {
-            status = root.feed(parser, parser, parser.nextEvent());
+            if (suspended)
+            {
+                status = root.resume(parser, parser);
+            }
+            else
+            {
+                parser.wrap(buffer, offset, length, last);
+            }
+            while (status == Status.ADVANCED && parser.hasNextEvent())
+            {
+                status = root.feed(parser, parser, parser.nextEvent());
+            }
+            if (status == Status.ADVANCED)
+            {
+                // the window was consumed before the value completed: more input is needed, unless this was
+                // the final window, in which case the value is truncated
+                status = last ? Status.REJECTED : Status.STARVED;
+            }
         }
+        catch (JsonParsingException ex)
+        {
+            status = Status.REJECTED;
+        }
+        suspended = status == Status.SUSPENDED;
         return status;
     }
 }

@@ -43,14 +43,14 @@ class JsonValidatorChainTest
     void shouldForwardFullStreamWhenValid()
     {
         JsonSchema schema = JsonSchema.of(OBJECT_SCHEMA);
-        JsonGeneratorEx gen = StreamingJson.createGenerator().wrap(buffer, 0);
-        JsonPipeline pipeline = StreamingJson.createParser().stream()
+        JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(schema.validator())
             .into(JsonSink.of(gen));
 
         Status status = run(pipeline, "{\"id\":1,\"name\":\"x\"} ");
 
-        assertEquals(Status.COMPLETE, status);
+        assertEquals(Status.COMPLETED, status);
         assertEquals("{\"id\":1,\"name\":\"x\"}", output(gen));
     }
 
@@ -58,15 +58,15 @@ class JsonValidatorChainTest
     void shouldValidateFullStreamWhileProjectingSubset()
     {
         JsonSchema schema = JsonSchema.of(OBJECT_SCHEMA);
-        JsonGeneratorEx gen = StreamingJson.createGenerator().wrap(buffer, 0);
-        JsonPipeline pipeline = StreamingJson.createParser().stream()
+        JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(schema.validator())
-            .transform(StreamingJson.projector(List.of("/id")))
+            .transform(JsonEx.projector(List.of("/id")))
             .into(JsonSink.of(gen));
 
         Status status = run(pipeline, "{\"id\":1,\"name\":\"x\"} ");
 
-        assertEquals(Status.COMPLETE, status);
+        assertEquals(Status.COMPLETED, status);
         assertEquals("{\"id\":1}", output(gen));
     }
 
@@ -74,10 +74,10 @@ class JsonValidatorChainTest
     void shouldRejectMissingRequiredAfterEmitting()
     {
         JsonSchema schema = JsonSchema.of(OBJECT_SCHEMA);
-        JsonGeneratorEx gen = StreamingJson.createGenerator().wrap(buffer, 0);
-        JsonPipeline pipeline = StreamingJson.createParser().stream()
+        JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(schema.validator())
-            .transform(StreamingJson.projector(List.of("/id")))
+            .transform(JsonEx.projector(List.of("/id")))
             .into(JsonSink.of(gen));
 
         Status status = run(pipeline, "{\"id\":1} ");
@@ -90,8 +90,8 @@ class JsonValidatorChainTest
     void shouldRejectTypeViolation()
     {
         JsonSchema schema = JsonSchema.of(OBJECT_SCHEMA);
-        JsonGeneratorEx gen = StreamingJson.createGenerator().wrap(buffer, 0);
-        JsonPipeline pipeline = StreamingJson.createParser().stream()
+        JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(schema.validator())
             .into(JsonSink.of(gen));
 
@@ -104,8 +104,8 @@ class JsonValidatorChainTest
     void shouldResumeMidValueWithoutReset()
     {
         JsonSchema schema = JsonSchema.of(OBJECT_SCHEMA);
-        JsonGeneratorEx gen = StreamingJson.createGenerator().wrap(buffer, 0);
-        JsonPipeline pipeline = StreamingJson.createParser().stream()
+        JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(schema.validator())
             .into(JsonSink.of(gen));
 
@@ -113,10 +113,10 @@ class JsonValidatorChainTest
         UnsafeBuffer in = new UnsafeBuffer(bytes);
 
         pipeline.reset();
-        assertEquals(Status.PENDING, pipeline.feed(in, 0, 8));
+        assertEquals(Status.STARVED, pipeline.feed(in, 0, 8, false));
         Status status = pipeline.feed(in, 8, bytes.length - 8);
 
-        assertEquals(Status.COMPLETE, status);
+        assertEquals(Status.COMPLETED, status);
         assertEquals("{\"id\":1,\"name\":\"x\"}", output(gen));
     }
 
@@ -124,31 +124,31 @@ class JsonValidatorChainTest
     void shouldReuseChainAcrossValues()
     {
         JsonSchema schema = JsonSchema.of(OBJECT_SCHEMA);
-        JsonGeneratorEx gen = StreamingJson.createGenerator();
-        JsonPipeline pipeline = StreamingJson.createParser().stream()
+        JsonGeneratorEx gen = JsonEx.createGenerator();
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(schema.validator())
             .into(JsonSink.of(gen));
 
-        gen.wrap(buffer, 0);
-        assertEquals(Status.COMPLETE, run(pipeline, "{\"id\":1,\"name\":\"a\"} "));
+        gen.wrap(buffer, 0, buffer.capacity());
+        assertEquals(Status.COMPLETED, run(pipeline, "{\"id\":1,\"name\":\"a\"} "));
         assertEquals("{\"id\":1,\"name\":\"a\"}", output(gen));
 
-        gen.wrap(buffer, 0);
+        gen.wrap(buffer, 0, buffer.capacity());
         assertEquals(Status.REJECTED, run(pipeline, "{\"id\":2} "));
     }
 
     @Test
     void shouldForwardThroughDefaultResetTransform()
     {
-        JsonGeneratorEx gen = StreamingJson.createGenerator().wrap(buffer, 0);
+        JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
         JsonTransform passthrough = (control, source, event, sink) -> sink.feed(control, source, event);
-        JsonPipeline pipeline = StreamingJson.createParser().stream()
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(passthrough)
             .into(JsonSink.of(gen));
 
         Status status = run(pipeline, "{\"id\":1} ");
 
-        assertEquals(Status.COMPLETE, status);
+        assertEquals(Status.COMPLETED, status);
         assertEquals("{\"id\":1}", output(gen));
     }
 
@@ -188,7 +188,7 @@ class JsonValidatorChainTest
     {
         JsonSchema schema = JsonSchema.of("{\"type\":\"integer\",\"minimum\":0}");
         JsonParser parser = schema.newParser(true,
-            StreamingJson.createParserFactory(Map.of()).createParser(streamFor("7 ")));
+            JsonEx.createParserFactory(Map.of()).createParser(streamFor("7 ")));
 
         Event event = parser.next();
 
@@ -216,7 +216,7 @@ class JsonValidatorChainTest
     private static JsonParser parserFor(
         String text)
     {
-        return StreamingJson.createParser(streamFor(text));
+        return JsonEx.createParser(streamFor(text));
     }
 
     private static InputStream streamFor(

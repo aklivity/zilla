@@ -61,7 +61,7 @@ public final class JsonTokenizer
     private final List<String[]> pathExcludes;
     private final boolean pathFiltering;
     private final int tokenMaxBytes;
-    private final boolean terminalEof;
+    private boolean terminalEof;
 
     // path tracking — pre-allocated, no per-event allocation
     private final boolean[] pathInArray = new boolean[MAX_DEPTH];
@@ -79,7 +79,12 @@ public final class JsonTokenizer
     private String pendingString;
     private boolean valuePending;
     private long streamOffset;
+    private long valueStreamStart;
+    private long valueStreamEnd;
     private boolean valueReadable = true;
+    // set while a segment scan is in progress: a value-string is then streamed across frames as raw
+    // bytes (no rewind to require it whole-in-frame, no decoded retention) rather than buffered whole.
+    private boolean segmenting;
 
     // scalar resume state (valid when resumeOp != NONE)
     private ResumeOp resumeOp = ResumeOp.NONE;
@@ -133,11 +138,29 @@ public final class JsonTokenizer
         valuePending = false;
         streamOffset = 0;
         valueReadable = true;
+        segmenting = false;
         resumeOp = ResumeOp.NONE;
         resumeEscape = false;
         resumeUnicodePending = 0;
         resumeUnicodeValue = 0;
         resumeLiteralIndex = 0;
+    }
+
+    // Tracks whether a segment scan is in progress so a value-string spanning frames is streamed as raw
+    // bytes instead of rewound (which would require it whole in one frame) or retained whole in scratch.
+    void segmenting(
+        boolean segmenting)
+    {
+        this.segmenting = segmenting;
+    }
+
+    // Set per input window: when true this window's EOF is the terminal delimiter (one-shot or final
+    // window), so a trailing scalar completes at EOF and an incomplete value is rejected; when false EOF
+    // is a frame boundary with more bytes still to come.
+    void terminal(
+        boolean terminalEof)
+    {
+        this.terminalEof = terminalEof;
     }
 
     public static final List<String> INCLUDE_ALL = null;
@@ -216,8 +239,11 @@ public final class JsonTokenizer
                 {
                     return true;
                 }
+                // While segmenting, a value-string spanning the frame is not rewound — its resume state
+                // is kept so the next frame continues it and the raw bytes stream as segments.
                 final boolean midReadableScalarScan =
-                    (resumeOp == ResumeOp.VALUE_STRING || resumeOp == ResumeOp.VALUE_NUMBER) && valueReadable;
+                    (resumeOp == ResumeOp.VALUE_STRING || resumeOp == ResumeOp.VALUE_NUMBER) &&
+                    valueReadable && !segmenting;
                 if (midReadableScalarScan)
                 {
                     in.reset();
@@ -254,10 +280,11 @@ public final class JsonTokenizer
         return pendingString;
     }
 
-    // Non-allocating key view, valid while positioned on a deferred KEY_NAME (the unescaped key chars
-    // are still in scratch because nobody has materialized them yet). Lets a downstream stage copy or
-    // compare the key without a String; returns the materialized value if it was already taken.
-    public CharSequence key()
+    // Non-allocating view of the current string token (a deferred KEY_NAME or a readable VALUE_STRING),
+    // valid while the unescaped chars are still in scratch because nobody has materialized them yet. Lets
+    // a downstream stage copy or compare the chars without a String; returns the materialized value if it
+    // was already taken.
+    public CharSequence stringView()
     {
         return valuePending ? scratch : pendingString;
     }
@@ -265,6 +292,20 @@ public final class JsonTokenizer
     public long streamOffset()
     {
         return streamOffset;
+    }
+
+    // Stream-offset span of the most recent readable scalar token (a VALUE_STRING including its
+    // surrounding quotes, or a VALUE_NUMBER lexeme). The EOF rewind for a readable scalar guarantees the
+    // whole token is contiguous in one frame, so this span maps to a single contiguous slice the sink can
+    // splice or fragment.
+    public long valueStreamStart()
+    {
+        return valueStreamStart;
+    }
+
+    public long valueStreamEnd()
+    {
+        return valueStreamEnd;
     }
 
     public boolean done()
@@ -567,11 +608,13 @@ public final class JsonTokenizer
             pushPath(true);
             break;
         case '"':
+            valueStreamStart = streamOffset - 1;
             scratch.setLength(0);
             resumeEscape = false;
             resumeUnicodePending = 0;
             resumeOp = ResumeOp.VALUE_STRING;
             continueStringContent(in);
+            valueStreamEnd = streamOffset;
             pendingEvent = JsonParser.Event.VALUE_STRING;
             captureValue(valueReadable);
             resumeOp = ResumeOp.NONE;
@@ -604,6 +647,7 @@ public final class JsonTokenizer
         default:
             if (c == '-' || c >= '0' && c <= '9')
             {
+                valueStreamStart = streamOffset - 1;
                 scratch.setLength(0);
                 if (valueReadable)
                 {
@@ -611,6 +655,7 @@ public final class JsonTokenizer
                 }
                 resumeOp = ResumeOp.VALUE_NUMBER;
                 continueNumberContent(in);
+                valueStreamEnd = streamOffset;
                 pendingEvent = JsonParser.Event.VALUE_NUMBER;
                 captureValue(valueReadable);
                 resumeOp = ResumeOp.NONE;
@@ -852,7 +897,7 @@ public final class JsonTokenizer
     private void appendScratch(
         char c)
     {
-        if (valueReadable)
+        if (valueReadable && !streamingValue())
         {
             scratch.append(c);
         }
@@ -861,10 +906,17 @@ public final class JsonTokenizer
     private void appendCodePointScratch(
         int codePoint)
     {
-        if (valueReadable)
+        if (valueReadable && !streamingValue())
         {
             scratch.appendCodePoint(codePoint);
         }
+    }
+
+    // A value-string being streamed as raw segment bytes is not retained in scratch; keys and numbers
+    // still retain (keys for path matching, numbers for grammar validation).
+    private boolean streamingValue()
+    {
+        return segmenting && resumeOp == ResumeOp.VALUE_STRING;
     }
 
     private int decodeUtf8(

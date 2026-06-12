@@ -42,6 +42,8 @@ public final class KafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi,
     private static final String SASL_MECHANISM_NAME = "mechanism";
     private static final String SASL_PLAIN_USERNAME_NAME = "username";
     private static final String SASL_PLAIN_PASSWORD_NAME = "password";
+    private static final String AUTHORIZATION_NAME = "authorization";
+    private static final String AUTHORIZATION_CREDENTIALS_NAME = "credentials";
 
     private final KafkaTopicConfigAdapter topic = new KafkaTopicConfigAdapter();
 
@@ -103,6 +105,22 @@ public final class KafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi,
             object.add(SASL_NAME, sasl);
         }
 
+        if (kafkaOptions.authorization != null)
+        {
+            JsonObjectBuilder credentials = Json.createObjectBuilder();
+            credentials.add(SASL_MECHANISM_NAME, kafkaOptions.authorization.credentials.mechanism);
+            credentials.add(SASL_PLAIN_USERNAME_NAME, kafkaOptions.authorization.credentials.username);
+            credentials.add(SASL_PLAIN_PASSWORD_NAME, kafkaOptions.authorization.credentials.password);
+
+            JsonObjectBuilder authorization = Json.createObjectBuilder();
+            authorization.add(AUTHORIZATION_CREDENTIALS_NAME, credentials);
+
+            JsonObjectBuilder authorizations = Json.createObjectBuilder();
+            authorizations.add(kafkaOptions.authorization.name, authorization);
+
+            object.add(AUTHORIZATION_NAME, authorizations);
+        }
+
         return object.build();
     }
 
@@ -149,6 +167,22 @@ public final class KafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi,
                 .mechanism(sasl.getString(SASL_MECHANISM_NAME))
                 .username(sasl.getString(SASL_PLAIN_USERNAME_NAME))
                 .password(sasl.getString(SASL_PLAIN_PASSWORD_NAME))
+                .build();
+        }
+
+        if (object.containsKey(AUTHORIZATION_NAME))
+        {
+            JsonObject authorizations = object.getJsonObject(AUTHORIZATION_NAME);
+            String guardName = authorizations.keySet().iterator().next();
+            JsonObject authorization = authorizations.getJsonObject(guardName);
+            JsonObject credentials = authorization.getJsonObject(AUTHORIZATION_CREDENTIALS_NAME);
+            options.authorization()
+                .name(guardName)
+                .credentials()
+                    .mechanism(credentials.getString(SASL_MECHANISM_NAME))
+                    .username(credentials.getString(SASL_PLAIN_USERNAME_NAME))
+                    .password(credentials.getString(SASL_PLAIN_PASSWORD_NAME))
+                    .build()
                 .build();
         }
 

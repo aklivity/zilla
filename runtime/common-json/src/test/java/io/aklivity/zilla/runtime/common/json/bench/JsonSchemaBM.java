@@ -37,8 +37,8 @@ import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 import io.aklivity.zilla.runtime.common.json.DirectBufferInputStreamEx;
+import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
-import io.aklivity.zilla.runtime.common.json.StreamingJson;
 
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.Throughput)
@@ -193,7 +193,7 @@ public class JsonSchemaBM
         int length)
     {
         inputRO.wrap(buffer, 0, length);
-        return StreamingJson.createParser(inputRO);
+        return JsonEx.createParser(inputRO);
     }
 
     public static void main(

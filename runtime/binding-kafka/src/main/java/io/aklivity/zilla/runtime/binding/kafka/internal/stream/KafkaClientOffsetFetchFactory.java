@@ -69,6 +69,7 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
+import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
 public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshaker implements BindingHandler
 {
@@ -225,7 +226,8 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
                     topic,
                     partitions,
                     server,
-                    sasl)::onApplication;
+                    sasl,
+                    binding.guard)::onApplication;
         }
 
         return newStream;
@@ -791,7 +793,8 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
             String topic,
             IntHashSet partitions,
             KafkaServerConfig server,
-            KafkaSaslConfig sasl)
+            KafkaSaslConfig sasl,
+            GuardHandler guard)
         {
             this.application = application;
             this.originId = originId;
@@ -800,7 +803,7 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.affinity = affinity;
             this.client = new KafkaOffsetFetchClient(this, routedId, resolvedId, groupId,
-                topic, partitions, server, sasl);
+                topic, partitions, server, sasl, guard);
         }
 
         private void onApplication(
@@ -1099,9 +1102,10 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
             String topic,
             IntHashSet partitions,
             KafkaServerConfig server,
-            KafkaSaslConfig sasl)
+            KafkaSaslConfig sasl,
+            GuardHandler guard)
         {
-            super(server, sasl, originId, routedId);
+            super(server, sasl, guard, originId, routedId);
             this.delegate = delegate;
             this.groupId = requireNonNull(groupId);
             this.topic = topic;

@@ -268,4 +268,69 @@ public class KafkaOptionsConfigAdapterTest
         assertThat(text, equalTo("{\"bootstrap\":[\"test\"],\"topics\":[{\"name\":\"test\",\"value\":\"test\"," +
             "\"transforms\":{\"extract-headers\":{\"correlation-id\":\"${message.value.correlationId}\"}}}]}"));
     }
+
+    @Test
+    public void shouldReadAuthorizationOptions()
+    {
+        String text = """
+                {
+                    "authorization":
+                    {
+                        "guard0":
+                        {
+                            "credentials":
+                            {
+                                "mechanism": "scram-sha-512",
+                                "username": "{identity}",
+                                "password": "{credentials}"
+                            }
+                        }
+                    }
+                }""";
+
+        KafkaOptionsConfig options = jsonb.fromJson(text, KafkaOptionsConfig.class);
+
+        assertThat(options, not(nullValue()));
+        assertThat(options.authorization, not(nullValue()));
+        assertThat(options.authorization.name, equalTo("guard0"));
+        assertThat(options.authorization.credentials.mechanism, equalTo("scram-sha-512"));
+        assertThat(options.authorization.credentials.username, equalTo("{identity}"));
+        assertThat(options.authorization.credentials.password, equalTo("{credentials}"));
+    }
+
+    @Test
+    public void shouldWriteAuthorizationOptions()
+    {
+        KafkaOptionsConfig options = KafkaOptionsConfig.builder()
+            .authorization()
+                .name("guard0")
+                .credentials()
+                    .mechanism("scram-sha-512")
+                    .username("{identity}")
+                    .password("{credentials}")
+                    .build()
+                .build()
+            .build();
+
+        String expected = """
+                {
+                    "authorization":
+                    {
+                        "guard0":
+                        {
+                            "credentials":
+                            {
+                                "mechanism":"scram-sha-512",
+                                "username":"{identity}",
+                                "password":"{credentials}"
+                            }
+                        }
+                    }
+                }""".replaceAll("\\s*\\n\\s*", "");
+
+        String text = jsonb.toJson(options);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo(expected));
+    }
 }

@@ -139,6 +139,6 @@ class JsonSchemaValidatingParserTest
         byte[] bytes = text.getBytes(UTF_8);
         DirectBufferInputStreamEx in = new DirectBufferInputStreamEx();
         in.wrap(new UnsafeBuffer(bytes), 0, bytes.length);
-        return StreamingJson.createParser(in);
+        return JsonEx.createParser(in);
     }
 }

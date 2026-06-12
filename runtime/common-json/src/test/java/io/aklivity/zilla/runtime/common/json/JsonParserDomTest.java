@@ -141,6 +141,6 @@ class JsonParserDomTest
     private static JsonParser parserFor(
         String json)
     {
-        return StreamingJson.createParser(new ByteArrayInputStream(json.getBytes(UTF_8)));
+        return JsonEx.createParser(new ByteArrayInputStream(json.getBytes(UTF_8)));
     }
 }

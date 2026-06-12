@@ -36,7 +36,7 @@ class JsonSinkSegmentTest
             JsonEvent event,
             JsonSink sink)
         {
-            Status status = Status.PENDING;
+            Status status = Status.ADVANCED;
             if (!armed && (event == JsonEvent.START_OBJECT || event == JsonEvent.START_ARRAY))
             {
                 armed = true;
@@ -53,10 +53,10 @@ class JsonSinkSegmentTest
     @Test
     void shouldWriteSegmentedObjectVerbatim()
     {
-        JsonGeneratorEx gen = StreamingJson.createGenerator();
+        JsonGeneratorEx gen = JsonEx.createGenerator();
         MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
-        gen.wrap(buffer, 0);
-        JsonPipeline pipeline = StreamingJson.createParser().stream()
+        gen.wrap(buffer, 0, buffer.capacity());
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(segmentRoot)
             .into(JsonSink.of(gen));
 
@@ -64,7 +64,7 @@ class JsonSinkSegmentTest
         pipeline.reset();
         Status status = pipeline.feed(new UnsafeBuffer(bytes), 0, bytes.length);
 
-        assertEquals(Status.COMPLETE, status);
+        assertEquals(Status.COMPLETED, status);
         byte[] out = new byte[gen.length()];
         buffer.getBytes(0, out);
         assertEquals("{ \"a\" : 1 }", new String(out, UTF_8));
@@ -73,17 +73,17 @@ class JsonSinkSegmentTest
     @Test
     void shouldSegmentWholeDocumentWithBareSegmentableSink()
     {
-        JsonGeneratorEx gen = StreamingJson.createGenerator();
+        JsonGeneratorEx gen = JsonEx.createGenerator();
         MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
-        gen.wrap(buffer, 0);
-        JsonPipeline pipeline = StreamingJson.createParser().stream()
+        gen.wrap(buffer, 0, buffer.capacity());
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .into(JsonSink.of(gen, JsonSink.Delivery.SEGMENTABLE));
 
         byte[] bytes = "{ \"a\" : [1, 2], \"b\" : 3 } ".getBytes(UTF_8);
         pipeline.reset();
         Status status = pipeline.feed(new UnsafeBuffer(bytes), 0, bytes.length);
 
-        assertEquals(Status.COMPLETE, status);
+        assertEquals(Status.COMPLETED, status);
         byte[] out = new byte[gen.length()];
         buffer.getBytes(0, out);
         assertEquals("{ \"a\" : [1, 2], \"b\" : 3 }", new String(out, UTF_8));
@@ -92,10 +92,10 @@ class JsonSinkSegmentTest
     @Test
     void shouldWriteSegmentedArrayVerbatim()
     {
-        JsonGeneratorEx gen = StreamingJson.createGenerator();
+        JsonGeneratorEx gen = JsonEx.createGenerator();
         MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
-        gen.wrap(buffer, 0);
-        JsonPipeline pipeline = StreamingJson.createParser().stream()
+        gen.wrap(buffer, 0, buffer.capacity());
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(segmentRoot)
             .into(JsonSink.of(gen));
 
@@ -103,7 +103,7 @@ class JsonSinkSegmentTest
         pipeline.reset();
         Status status = pipeline.feed(new UnsafeBuffer(bytes), 0, bytes.length);
 
-        assertEquals(Status.COMPLETE, status);
+        assertEquals(Status.COMPLETED, status);
         byte[] out = new byte[gen.length()];
         buffer.getBytes(0, out);
         assertEquals("[ 1, 2 ]", new String(out, UTF_8));
@@ -112,10 +112,10 @@ class JsonSinkSegmentTest
     @Test
     void shouldWriteSegmentedNestedWhitespaceVerbatim()
     {
-        JsonGeneratorEx gen = StreamingJson.createGenerator();
+        JsonGeneratorEx gen = JsonEx.createGenerator();
         MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
-        gen.wrap(buffer, 0);
-        JsonPipeline pipeline = StreamingJson.createParser().stream()
+        gen.wrap(buffer, 0, buffer.capacity());
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(segmentRoot)
             .into(JsonSink.of(gen));
 
@@ -123,7 +123,7 @@ class JsonSinkSegmentTest
         pipeline.reset();
         Status status = pipeline.feed(new UnsafeBuffer(bytes), 0, bytes.length);
 
-        assertEquals(Status.COMPLETE, status);
+        assertEquals(Status.COMPLETED, status);
         byte[] out = new byte[gen.length()];
         buffer.getBytes(0, out);
         assertEquals("{ \"x\" : [1 ,2] }", new String(out, UTF_8));
@@ -132,10 +132,10 @@ class JsonSinkSegmentTest
     @Test
     void shouldCompleteAcrossFrames()
     {
-        JsonGeneratorEx gen = StreamingJson.createGenerator();
+        JsonGeneratorEx gen = JsonEx.createGenerator();
         MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
-        gen.wrap(buffer, 0);
-        JsonPipeline pipeline = StreamingJson.createParser().stream()
+        gen.wrap(buffer, 0, buffer.capacity());
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(segmentRoot)
             .into(JsonSink.of(gen));
 
@@ -143,10 +143,10 @@ class JsonSinkSegmentTest
         byte[] second = "\"b\":2} ".getBytes(UTF_8);
 
         pipeline.reset();
-        assertEquals(Status.PENDING, pipeline.feed(new UnsafeBuffer(first), 0, first.length));
+        assertEquals(Status.STARVED, pipeline.feed(new UnsafeBuffer(first), 0, first.length, false));
         Status status = pipeline.feed(new UnsafeBuffer(second), 0, second.length);
 
-        assertEquals(Status.COMPLETE, status);
+        assertEquals(Status.COMPLETED, status);
         byte[] out = new byte[gen.length()];
         buffer.getBytes(0, out);
         assertEquals("{\"a\":1,\"b\":2}", new String(out, UTF_8));

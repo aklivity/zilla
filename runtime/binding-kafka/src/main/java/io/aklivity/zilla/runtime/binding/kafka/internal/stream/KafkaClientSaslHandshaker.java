@@ -55,6 +55,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.sasl.SaslHan
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.sasl.SaslHandshakeResponseFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
 public abstract class KafkaClientSaslHandshaker
 {
@@ -75,6 +76,9 @@ public abstract class KafkaClientSaslHandshaker
     private static final int ERROR_SASL_AUTHENTICATION_FAILED = 58;
     private static final int ERROR_TRANSACTIONAL_ID_AUTHORIZATION_FAILED = 53;
     private static final int ERROR_INVALID_RECORD = 87;
+
+    private static final String IDENTITY_TEMPLATE = "{identity}";
+    private static final String CREDENTIALS_TEMPLATE = "{credentials}";
 
     private static final String CLIENT_KEY = "Client Key";
     private static final String SERVER_KEY = "Server Key";
@@ -163,27 +167,32 @@ public abstract class KafkaClientSaslHandshaker
         byte[] authMessage;
         private LongLongConsumer encodeSaslAuthenticate;
         private KafkaSaslClientDecoder decodeSaslAuthenticate;
+        private long guardSession;
+        private final GuardHandler guard;
 
         protected KafkaSaslClient(
             List<KafkaServerConfig> servers,
             KafkaSaslConfig sasl,
+            GuardHandler guard,
             long originId,
             long routedId)
         {
             this(servers != null && !servers.isEmpty()
                     ? servers.get(random.nextInt(servers.size()))
                     : null,
-                sasl, originId, routedId);
+                sasl, guard, originId, routedId);
         }
 
         protected KafkaSaslClient(
             KafkaServerConfig server,
             KafkaSaslConfig sasl,
+            GuardHandler guard,
             long originId,
             long routedId)
         {
             this.server = server;
             this.sasl = sasl;
+            this.guard = guard;
             this.originId = originId;
             this.routedId = routedId;
             this.clientId = supplyClientId(server);
@@ -195,6 +204,11 @@ public abstract class KafkaClientSaslHandshaker
             long traceId,
             long budgetId)
         {
+            if (guard != null)
+            {
+                guardSession = guard.reauthorize(traceId, routedId, initialId, null);
+            }
+
             final MutableDirectBuffer encodeBuffer = writeBuffer;
             final int encodeOffset = DataFW.FIELD_OFFSET_PAYLOAD;
             final int encodeLimit = encodeBuffer.capacity();
@@ -266,8 +280,8 @@ public abstract class KafkaClientSaslHandshaker
 
             encodeProgress = requestHeader.limit();
 
-            final String username = sasl.username;
-            final String password = sasl.password;
+            final String username = resolveUsername();
+            final String password = resolvePassword();
 
             final SaslAuthenticateRequestFW authenticateRequest =
                     saslAuthenticateRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
@@ -324,7 +338,7 @@ public abstract class KafkaClientSaslHandshaker
 
             encodeProgress = requestHeader.limit();
 
-            final String username = sasl.username;
+            final String username = resolveUsername();
             clientNonce = nonceSupplier.get();
 
             int scramBytes = 0;
@@ -380,11 +394,13 @@ public abstract class KafkaClientSaslHandshaker
             {
                 LangUtil.rethrowUnchecked(e);
             }
-            saltedPassword = hi(sasl.password.getBytes(StandardCharsets.US_ASCII),
+            final String password = resolvePassword();
+            final String username = resolveUsername();
+            saltedPassword = hi(password.getBytes(StandardCharsets.US_ASCII),
                     Base64.getDecoder().decode(toBytes(salt)),
                     Integer.parseInt(iterationCount));
             authMessage = toBytes(String.format(AUTH_MESSAGE_FORMAT,
-                    sasl.username, clientNonce, serverNonce, salt, iterationCount, SASL_SCRAM_CHANNEL_RANDOM, serverNonce));
+                    username, clientNonce, serverNonce, salt, iterationCount, SASL_SCRAM_CHANNEL_RANDOM, serverNonce));
 
             int scramBytes = 0;
             scramBuffer.putBytes(scramBytes, SASL_SCRAM_CHANNEL);
@@ -470,6 +486,34 @@ public abstract class KafkaClientSaslHandshaker
             case ERROR_TRANSACTIONAL_ID_AUTHORIZATION_FAILED ->
                 event.transactionalIdAuthorizationFailed(traceId, bindingId, apiKey, apiVersion);
             }
+        }
+
+        private String resolveUsername()
+        {
+            String username = sasl.username;
+            if (guard != null && IDENTITY_TEMPLATE.equals(username))
+            {
+                final String identity = guard.identity(guardSession);
+                if (identity != null)
+                {
+                    username = identity;
+                }
+            }
+            return username;
+        }
+
+        private String resolvePassword()
+        {
+            String password = sasl.password;
+            if (guard != null && CREDENTIALS_TEMPLATE.equals(password))
+            {
+                final String credentials = guard.credentials(guardSession);
+                if (credentials != null)
+                {
+                    password = credentials;
+                }
+            }
+            return password;
         }
 
         protected abstract void doNetworkData(
