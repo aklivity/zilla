@@ -40,10 +40,11 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
 
 /**
  * Drives a hand-coded {@code parser + generator} transform loop (no pipeline) that, on a bounded
- * generator, suspends at a field boundary when the output fills: it closes every open nested message
- * with {@code endMessage}, flushes the chunk, re-wraps a fresh buffer, and reopens each level with
- * {@code startMessage(field)}. The chunks are independent, mergeable records; concatenated and decoded
- * they reassemble (by protobuf message-merge semantics) into the original message.
+ * generator, drains at a field boundary when the output fills: it calls {@code flush()} to close the
+ * open levels into a chunk and re-wraps a fresh buffer, with the generator reopening the levels itself.
+ * The chunks are independent, mergeable records; concatenated and decoded they reassemble (by protobuf
+ * message-merge semantics) into the original message. A pipeline-driven variant exercises the same
+ * generator through the wire sink and the {@code SUSPENDED} loop.
  */
 public class ProtobufChunkingTest
 {
@@ -132,8 +133,9 @@ public class ProtobufChunkingTest
         assertEquals("Springfield USA", person.city);
     }
 
-    // Identity Person -> Person transform driving a bounded generator, flushing a chunk whenever the
-    // output nears its limit at a field boundary: close-all open levels, flush, re-wrap, reopen-all.
+    // Identity Person -> Person transform driving a bounded generator: when the output nears its limit
+    // at a field boundary it flushes a drainable chunk and re-wraps (the generator reopens the open
+    // levels itself), so the loop holds no chunking state of its own.
     private List<byte[]> transformChunked(
         byte[] input,
         int limit)
@@ -143,7 +145,6 @@ public class ProtobufChunkingTest
         ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, limit);
 
         List<byte[]> chunks = new ArrayList<>();
-        List<Integer> open = new ArrayList<>();
         ProtobufField pending = null;
         int depth = 0;
 
@@ -151,16 +152,9 @@ public class ProtobufChunkingTest
         {
             if (depth >= 1 && generator.length() > 0 && generator.remaining() < HEADROOM)
             {
-                for (int i = open.size() - 1; i >= 0; i--)
-                {
-                    generator.endMessage();
-                }
+                generator.flush();
                 chunks.add(bytes(out, generator.length()));
                 generator.wrap(out, 0, limit);
-                for (int i = 0; i < open.size(); i++)
-                {
-                    generator.startMessage(open.get(i));
-                }
             }
 
             switch (parser.nextEvent())
@@ -168,8 +162,7 @@ public class ProtobufChunkingTest
             case START_MESSAGE:
                 if (depth > 0)
                 {
-                    generator.startMessage(pending.number());
-                    open.add(pending.number());
+                    generator.startMessage(pending.number(), parser.length());
                 }
                 depth++;
                 break;
@@ -178,7 +171,6 @@ public class ProtobufChunkingTest
                 if (depth > 0)
                 {
                     generator.endMessage();
-                    open.remove(open.size() - 1);
                 }
                 break;
             case FIELD:

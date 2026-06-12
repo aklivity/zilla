@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.common.protobuf.internal;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,6 +29,7 @@ import org.junit.jupiter.api.Test;
 import io.aklivity.zilla.runtime.common.protobuf.Protobuf;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufController;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufEvent;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufException;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufField;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufGenerator;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufMessage;
@@ -45,12 +47,12 @@ public class ProtobufGeneratorTest
     public void shouldGenerateWireDecodableAgainstSchema()
     {
         MutableDirectBuffer nested = new UnsafeBuffer(new byte[64]);
-        ProtobufGenerator inner = Protobuf.generator().wrap(nested, 0);
+        ProtobufGenerator inner = Protobuf.generator().wrap(nested, 0, nested.capacity());
         inner.writeInt32(1, 9);
         int nestedLength = inner.length();
 
         MutableDirectBuffer out = new UnsafeBuffer(new byte[256]);
-        ProtobufGenerator generator = Protobuf.generator().wrap(out, 0);
+        ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, out.capacity());
         generator
             .writeInt32(1, -5)
             .writeSInt32(2, -6)
@@ -79,7 +81,7 @@ public class ProtobufGeneratorTest
     public void shouldGenerateGroupDecodableAgainstSchema()
     {
         MutableDirectBuffer out = new UnsafeBuffer(new byte[64]);
-        ProtobufGenerator generator = Protobuf.generator().wrap(out, 0);
+        ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, out.capacity());
         generator
             .writeInt32(1, -5)
             .startGroup(11).writeInt32(1, 9).endGroup();
@@ -97,15 +99,15 @@ public class ProtobufGeneratorTest
     public void shouldStreamNestedMessageMatchingPreEncoded()
     {
         MutableDirectBuffer nested = new UnsafeBuffer(new byte[64]);
-        int nestedLength = Protobuf.generator().wrap(nested, 0).writeInt32(1, 9).length();
+        int nestedLength = Protobuf.generator().wrap(nested, 0, nested.capacity()).writeInt32(1, 9).length();
 
         MutableDirectBuffer preEncodedOut = new UnsafeBuffer(new byte[128]);
-        ProtobufGenerator preEncoded = Protobuf.generator().wrap(preEncodedOut, 0);
+        ProtobufGenerator preEncoded = Protobuf.generator().wrap(preEncodedOut, 0, preEncodedOut.capacity());
         preEncoded.writeInt32(1, 7).writeMessage(2, nested, 0, nestedLength);
         byte[] expected = bytes(preEncodedOut, preEncoded.length());
 
         MutableDirectBuffer streamedOut = new UnsafeBuffer(new byte[128]);
-        ProtobufGenerator streamed = Protobuf.generator().wrap(streamedOut, 0);
+        ProtobufGenerator streamed = Protobuf.generator().wrap(streamedOut, 0, streamedOut.capacity());
         streamed.writeInt32(1, 7).startMessage(2, nestedLength).writeInt32(1, 9).endMessage();
         byte[] actual = bytes(streamedOut, streamed.length());
 
@@ -115,9 +117,9 @@ public class ProtobufGeneratorTest
     @Test
     public void shouldReproduceWireFromParserEvents()
     {
-        int nestedLength = Protobuf.generator().wrap(new UnsafeBuffer(new byte[16]), 0).writeInt32(1, 9).length();
+        int nestedLength = Protobuf.generator().wrap(new UnsafeBuffer(new byte[16]), 0, 16).writeInt32(1, 9).length();
         MutableDirectBuffer in = new UnsafeBuffer(new byte[256]);
-        ProtobufGenerator source = Protobuf.generator().wrap(in, 0);
+        ProtobufGenerator source = Protobuf.generator().wrap(in, 0, in.capacity());
         source
             .writeInt32(1, -5)
             .writeSInt32(2, -6)
@@ -132,12 +134,44 @@ public class ProtobufGeneratorTest
         byte[] input = bytes(in, source.length());
 
         MutableDirectBuffer out = new UnsafeBuffer(new byte[256]);
-        ProtobufGenerator generator = Protobuf.generator().wrap(out, 0);
+        ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, out.capacity());
         ProtobufPipeline pipeline = Protobuf.parser(schema, "All").stream().into(new Mirror(generator));
         pipeline.reset();
 
         assertEquals(ProtobufPipeline.Status.COMPLETE, pipeline.feed(in, 0, input.length));
         assertArrayEquals(input, bytes(out, generator.length()));
+    }
+
+    @Test
+    public void shouldRejectLimitExceedingCapacity()
+    {
+        MutableDirectBuffer out = new UnsafeBuffer(new byte[16]);
+        assertThrows(IllegalArgumentException.class, () -> Protobuf.generator().wrap(out, 0, 17));
+    }
+
+    @Test
+    public void shouldPadNestedLengthWhenBodySmallerThanOptimistic()
+    {
+        MutableDirectBuffer out = new UnsafeBuffer(new byte[256]);
+        ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, out.capacity());
+        generator.startMessage(10, 200).writeInt32(1, 9).endMessage();
+
+        Capture sink = new Capture();
+        ProtobufPipeline pipeline = Protobuf.parser(schema, "All").stream().into(sink);
+        pipeline.reset();
+
+        assertEquals(ProtobufPipeline.Status.COMPLETE, pipeline.feed(out, 0, generator.length()));
+        assertEquals(List.of("{", "F10", "{", "F1", "V9", "}", "}"), sink.events);
+    }
+
+    @Test
+    public void shouldRejectNestedBodyExceedingOptimisticWidth()
+    {
+        MutableDirectBuffer out = new UnsafeBuffer(new byte[512]);
+        ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, out.capacity());
+        generator.startMessage(10, 1).writeBytes(1, new byte[200]);
+
+        assertThrows(ProtobufException.class, generator::endMessage);
     }
 
     private static byte[] bytes(

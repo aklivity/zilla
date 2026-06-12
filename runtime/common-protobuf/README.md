@@ -115,15 +115,16 @@ if (pipeline.feed(in, off, len) == ProtobufPipeline.Status.COMPLETE)  // COMPLET
 
 ### Bounded output and streaming
 
-`Protobuf.generator().wrap(out, 0, limit)` bounds the output. While the transformed message fits the
-limit it is encoded minimally (nested messages length-prefixed via per-depth scratch — canonical, the
-output an observer expects). When it does not fit, the wire sink switches to a chunking encode: it
-closes every open nested message at a field boundary, reports the buffer drainable with
-`SUSPENDED`, and on the resumed `feed` reopens each level against a fresh buffer (nested messages then
-use the generator's padded length slots). The independent records reassemble by protobuf
-message-merge semantics, so a too-large message streams without ever buffering more than `limit`. The
-fits-vs-stream choice is made at the root from the input length, so the chunked (non-canonical) form
-is only ever observed for messages too large to buffer.
+`Protobuf.generator().wrap(out, 0, limit)` bounds the output (`limit` must fit the buffer capacity).
+A nested message reserves a length slot sized to an optimistic estimate — the wire sink passes the
+input length `source.length()` — and `endMessage` fills it with the actual length: minimal (canonical)
+when the estimate's varint width was right, padded within it when the body came out smaller, never
+shifted. So a message that fits encodes as one canonical record. When the output nears `limit`, the
+sink calls `generator.flush()` (closing the open levels into a drainable chunk) and returns
+`SUSPENDED`; the caller drains, re-wraps the generator — which reopens the open levels against the
+fresh buffer — and resumes. The per-field records reassemble by protobuf message-merge semantics, so a
+too-large message streams without ever buffering more than `limit`, and the chunked (non-canonical)
+form is only observed when forced.
 
 ```java
 ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, limit);
@@ -145,24 +146,27 @@ while (status == ProtobufPipeline.Status.SUSPENDED)   // output full
 
 `Protobuf.generator()` is a buffer-backed wire writer: each `writeXxx(field, value)` emits one
 field's tag and value, typed by the Protobuf type since the wire is not self-describing about
-signedness/zig-zag/fixed width. Nested messages are **length-first**: `startMessage(field, length)`
-writes the tag and length prefix immediately and the body then streams straight to the output — no
-buffering, no back-patch — closed by `endMessage()`. A proto2 group is the length-free alternative:
-`startGroup(field)` writes only the start-group tag, the body streams, and `endGroup()` writes the
-end-group tag — no length to know up front. `writeMessage` length-prefixes a pre-encoded nested
+signedness/zig-zag/fixed width. Nested messages take an **optimistic length**:
+`startMessage(field, length)` reserves a length slot sized to `length` (pass the expected size, or a
+deliberately long value to widen the slot for a body that may grow), the body streams straight to the
+output, and `endMessage()` fills the slot with the actual length — minimal when the width matched,
+padded within the reserved width otherwise, never shifted (it throws if the body outgrows the reserved
+width). A proto2 group is the length-free alternative: `startGroup(field)` writes only the start-group
+tag, the body streams, and `endGroup()` writes the end-group tag — no length to know up front.
+`writeMessage` length-prefixes a pre-encoded nested
 message, and `writeRaw` splices bytes verbatim.
 
 ```java
-ProtobufGenerator generator = Protobuf.generator().wrap(out, 0);
+ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, out.capacity());
 generator.writeInt32(1, id).writeString(2, name)
-    .startMessage(3, addressLength).writeString(1, city).endMessage();
+    .startMessage(3, addressEstimate).writeString(1, city).endMessage();
 int length = generator.length();
 ```
 
 `startMessage`/`endMessage` are the write-side mirror of the parser's `START_MESSAGE`/`END_MESSAGE`
-events — `START_MESSAGE` carries the message length via `ProtobufSource.length()` — so a stage copies
-or transforms a message by driving the generator straight from `ProtobufParser` events, forwarding
-(or adjusting) that length so the generator always writes it up front, in a single pass.
+events — `START_MESSAGE` carries the source length via `ProtobufSource.length()`, which a stage passes
+straight through as the optimistic estimate — so a stage copies or transforms a message by driving the
+generator directly from `ProtobufParser` events, in a single pass with no scratch.
 
 ### Schema-free mode
 

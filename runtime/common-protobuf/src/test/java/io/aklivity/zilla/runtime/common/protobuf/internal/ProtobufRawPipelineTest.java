@@ -132,7 +132,7 @@ public class ProtobufRawPipelineTest
         ProtobufTransform transform)
     {
         MutableDirectBuffer out = new UnsafeBuffer(new byte[4096]);
-        ProtobufGenerator generator = Protobuf.generator().wrap(out, 0);
+        ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, out.capacity());
         ProtobufStream stream = Protobuf.parser().stream();
         if (transform != null)
         {

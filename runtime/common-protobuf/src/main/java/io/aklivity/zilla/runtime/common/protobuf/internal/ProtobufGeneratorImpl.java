@@ -25,40 +25,35 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufGenerator;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
 
 /**
- * Buffer-backed {@link ProtobufGenerator} over a single writer — no scratch, no back-patch.
- * {@link #startMessage(int, int)} writes the tag and length prefix immediately (the body length is
- * known up front), then the body streams straight to the output; {@link #endMessage()} verifies the
- * body matched the declared length. The single writer is also lent (via {@link #writer()}) to the
- * wire sinks.
+ * Buffer-backed {@link ProtobufGenerator}. Nested messages reserve a length slot sized to an optimistic
+ * estimate ({@link #startMessage(int, int)}), stream their body straight to the output, and fill the slot
+ * on {@link #endMessage()} — minimal when the estimate's varint width was right, padded within it
+ * otherwise, never shifted. {@link #flush()} closes the open levels into a drainable chunk and a following
+ * {@link #wrap(MutableDirectBuffer, int, int)} reopens them, so a message larger than the buffer streams
+ * as merge-able records.
  */
 public final class ProtobufGeneratorImpl implements ProtobufGenerator
 {
-    private static final int GROUP_LEVEL = -1;
-    private static final int PADDED_LEVEL = -2;
+    private static final int KIND_MESSAGE = 0;
+    private static final int KIND_GROUP = 1;
 
     private final ProtobufWriter writer;
 
-    private int[] ends;
-    private int[] groupFields;
+    private int[] fields;
+    private int[] kinds;
     private int[] slots;
+    private int[] widths;
     private int depth;
     private int limit;
-    private int slotWidth;
+    private boolean flushed;
 
     public ProtobufGeneratorImpl()
     {
         this.writer = new ProtobufWriter();
-        this.ends = new int[8];
-        this.groupFields = new int[8];
+        this.fields = new int[8];
+        this.kinds = new int[8];
         this.slots = new int[8];
-    }
-
-    @Override
-    public ProtobufGenerator wrap(
-        MutableDirectBuffer buffer,
-        int offset)
-    {
-        return wrap(buffer, offset, buffer.capacity() - offset);
+        this.widths = new int[8];
     }
 
     @Override
@@ -67,10 +62,25 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
         int offset,
         int limit)
     {
-        depth = 0;
+        if (limit > buffer.capacity() - offset)
+        {
+            throw new IllegalArgumentException("limit " + limit + " exceeds capacity " +
+                (buffer.capacity() - offset));
+        }
         this.limit = limit;
-        this.slotWidth = varintSize(limit);
         writer.wrap(buffer, offset);
+        if (flushed)
+        {
+            flushed = false;
+            for (int i = 0; i < depth; i++)
+            {
+                reopen(i);
+            }
+        }
+        else
+        {
+            depth = 0;
+        }
         return this;
     }
 
@@ -276,48 +286,22 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
         int length)
     {
         writer.writeTag(field, ProtobufWireType.LEN);
-        writer.writeVarint32(length);
-        push();
-        ends[depth] = writer.length() + length;
-        return this;
-    }
-
-    @Override
-    public ProtobufGenerator startMessage(
-        int field)
-    {
-        writer.writeTag(field, ProtobufWireType.LEN);
-        int slot = writer.reserve(slotWidth);
-        push();
-        ends[depth] = PADDED_LEVEL;
-        slots[depth] = slot;
+        int width = varintSize(length);
+        int slot = writer.reserve(width);
+        push(field, KIND_MESSAGE, slot, width);
         return this;
     }
 
     @Override
     public ProtobufGenerator endMessage()
     {
-        if (ends[depth] == GROUP_LEVEL)
+        int level = depth - 1;
+        if (kinds[level] != KIND_MESSAGE)
         {
             throw new ProtobufException("open group, expected endGroup");
         }
-        else if (ends[depth] == PADDED_LEVEL)
-        {
-            int slot = slots[depth];
-            int bodyLength = writer.offset() - (slot + slotWidth);
-            depth--;
-            writer.putPaddedVarint(slot, bodyLength, slotWidth);
-        }
-        else
-        {
-            int expected = ends[depth];
-            depth--;
-            if (writer.length() != expected)
-            {
-                throw new ProtobufException("message body length mismatch: expected " + expected +
-                    " but wrote " + writer.length());
-            }
-        }
+        fillMessage(level);
+        depth--;
         return this;
     }
 
@@ -326,34 +310,95 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
         int field)
     {
         writer.writeTag(field, ProtobufWireType.SGROUP);
-        push();
-        ends[depth] = GROUP_LEVEL;
-        groupFields[depth] = field;
+        push(field, KIND_GROUP, 0, 0);
         return this;
     }
 
     @Override
     public ProtobufGenerator endGroup()
     {
-        if (ends[depth] != GROUP_LEVEL)
+        int level = depth - 1;
+        if (kinds[level] != KIND_GROUP)
         {
             throw new ProtobufException("open message, expected endMessage");
         }
-        int field = groupFields[depth];
+        writer.writeTag(fields[level], ProtobufWireType.EGROUP);
         depth--;
-        writer.writeTag(field, ProtobufWireType.EGROUP);
         return this;
     }
 
-    private void push()
+    @Override
+    public ProtobufGenerator writeRaw(
+        DirectBuffer source,
+        int offset,
+        int length)
     {
-        depth++;
-        if (depth >= ends.length)
+        writer.writeRaw(source, offset, length);
+        return this;
+    }
+
+    @Override
+    public ProtobufGenerator flush()
+    {
+        for (int level = depth - 1; level >= 0; level--)
         {
-            ends = Arrays.copyOf(ends, ends.length * 2);
-            groupFields = Arrays.copyOf(groupFields, groupFields.length * 2);
-            slots = Arrays.copyOf(slots, slots.length * 2);
+            if (kinds[level] == KIND_MESSAGE)
+            {
+                fillMessage(level);
+            }
+            else
+            {
+                writer.writeTag(fields[level], ProtobufWireType.EGROUP);
+            }
         }
+        flushed = true;
+        return this;
+    }
+
+    private void fillMessage(
+        int level)
+    {
+        int bodyLength = writer.offset() - (slots[level] + widths[level]);
+        if (varintSize(bodyLength) > widths[level])
+        {
+            throw new ProtobufException("nested message body " + bodyLength +
+                " exceeds reserved length width " + widths[level]);
+        }
+        writer.putPaddedVarint(slots[level], bodyLength, widths[level]);
+    }
+
+    private void reopen(
+        int level)
+    {
+        if (kinds[level] == KIND_MESSAGE)
+        {
+            writer.writeTag(fields[level], ProtobufWireType.LEN);
+            slots[level] = writer.reserve(widths[level]);
+        }
+        else
+        {
+            writer.writeTag(fields[level], ProtobufWireType.SGROUP);
+        }
+    }
+
+    private void push(
+        int field,
+        int kind,
+        int slot,
+        int width)
+    {
+        if (depth >= fields.length)
+        {
+            fields = Arrays.copyOf(fields, fields.length * 2);
+            kinds = Arrays.copyOf(kinds, kinds.length * 2);
+            slots = Arrays.copyOf(slots, slots.length * 2);
+            widths = Arrays.copyOf(widths, widths.length * 2);
+        }
+        fields[depth] = field;
+        kinds[depth] = kind;
+        slots[depth] = slot;
+        widths[depth] = width;
+        depth++;
     }
 
     private static int varintSize(
@@ -369,16 +414,7 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
         return size;
     }
 
-    @Override
-    public ProtobufGenerator writeRaw(
-        DirectBuffer source,
-        int offset,
-        int length)
-    {
-        writer.writeRaw(source, offset, length);
-        return this;
-    }
-
+    // lent to the untyped sink, which splices raw values by wire type with no public equivalent
     ProtobufWriter writer()
     {
         return writer;
