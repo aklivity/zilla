@@ -21,6 +21,7 @@ import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.SUSPENDE
 
 import org.agrona.DirectBuffer;
 
+import io.aklivity.zilla.runtime.common.avro.AvroEvent;
 import io.aklivity.zilla.runtime.common.avro.AvroPipeline;
 import io.aklivity.zilla.runtime.common.avro.AvroSink;
 import io.aklivity.zilla.runtime.common.avro.AvroValidationException;
@@ -39,6 +40,7 @@ final class AvroPipelineImpl implements AvroPipeline
     private final AvroSink root;
 
     private boolean suspended;
+    private AvroEvent pending;
 
     AvroPipelineImpl(
         AvroParserImpl parser,
@@ -54,6 +56,7 @@ final class AvroPipelineImpl implements AvroPipeline
         parser.reset();
         root.reset();
         suspended = false;
+        pending = null;
     }
 
     @Override
@@ -69,9 +72,22 @@ final class AvroPipelineImpl implements AvroPipeline
             {
                 parser.wrap(buffer, offset, length);
             }
+            if (pending != null)
+            {
+                status = root.feed(parser, parser, pending);
+                if (status != SUSPENDED)
+                {
+                    pending = null;
+                }
+            }
             while (status == RESUMABLE && parser.hasNext())
             {
-                status = root.feed(parser, parser, parser.nextEvent());
+                AvroEvent event = parser.nextEvent();
+                status = root.feed(parser, parser, event);
+                if (status == SUSPENDED)
+                {
+                    pending = event;
+                }
             }
             if (status == RESUMABLE && parser.complete())
             {

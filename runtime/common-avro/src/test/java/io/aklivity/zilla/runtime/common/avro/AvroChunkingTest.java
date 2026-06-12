@@ -72,20 +72,59 @@ public class AvroChunkingTest
     }
 
     @Test
-    public void shouldRejectValueExceedingLimit()
+    public void shouldRejectNonSplittableValueExceedingLimit()
     {
-        AvroSchema schema = Avro.schema("\"string\"");
+        AvroSchema schema = Avro.schema("\"double\"");
         MutableDirectBuffer out = new UnsafeBuffer(new byte[64]);
         AvroGenerator generator = Avro.generator(schema, out, 0);
         generator.wrap(out, 0, 4);
         AvroPipeline pipeline = Avro.parser(schema).stream().into(AvroSink.of(generator));
         pipeline.reset();
-        // a 10-byte string (0x14 length prefix) cannot fit the 4-byte usable region, so it must not
-        // be written past the limit — the datum is rejected instead
-        byte[] datum = new byte[11];
-        datum[0] = 0x14;
+        // a double is 8 bytes and cannot be split, so it does not fit the 4-byte limit even in a fresh
+        // buffer — rather than write past the limit, the datum is rejected
+        byte[] datum = new byte[8];
         Status status = pipeline.feed(new UnsafeBuffer(datum), 0, datum.length);
         assertEquals(REJECTED, status);
+    }
+
+    @Test
+    public void shouldStreamStringLargerThanLimitAcrossSuspends()
+    {
+        AvroSchema schema = Avro.schema("\"string\"");
+        // a 40-byte string value: 0x50 length prefix (zigzag 40) then 40 payload bytes
+        byte[] datum = new byte[41];
+        datum[0] = 0x50;
+        for (int i = 0; i < 40; i++)
+        {
+            datum[i + 1] = (byte) ('a' + i % 26);
+        }
+        byte[] whole = AvroValues.transcode(schema, datum, STRUCTURED);
+
+        int limit = 8;
+        MutableDirectBuffer out = new UnsafeBuffer(new byte[256]);
+        AvroGenerator generator = Avro.generator(schema, out, 0);
+        AvroPipeline pipeline = Avro.parser(schema).stream().into(AvroSink.of(generator));
+        generator.wrap(out, 0, limit);
+        pipeline.reset();
+
+        List<byte[]> chunks = new ArrayList<>();
+        UnsafeBuffer in = new UnsafeBuffer(datum);
+        Status status = pipeline.feed(in, 0, datum.length);
+        while (status == SUSPENDED)
+        {
+            chunks.add(drain(out, generator.length()));
+            generator.wrap(out, 0, limit);
+            status = pipeline.feed(in, 0, datum.length);
+        }
+        assertEquals(COMPLETE, status);
+        chunks.add(drain(out, generator.length()));
+
+        assertTrue(chunks.size() >= 2, "expected the value to be split across chunks");
+        for (byte[] chunk : chunks)
+        {
+            assertTrue(chunk.length <= limit, "chunk exceeded the generator limit");
+        }
+        assertArrayEquals(whole, concat(chunks));
     }
 
     @Test

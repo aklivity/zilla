@@ -102,4 +102,25 @@ public interface AvroGenerator
         DirectBuffer buffer,
         int offset,
         int length);
+
+    /**
+     * Writes up to {@code length} payload bytes of a length-delimited value ({@link AvroKind#STRING},
+     * {@link AvroKind#BYTES}, {@link AvroKind#FIXED}) from {@code source}, streaming it across chunks.
+     * {@code deferred} is the payload bytes still to come in later calls; on the first call the total
+     * ({@code length + deferred}) determines the length prefix, written immediately. Copies only what
+     * fits within the bound and returns the bytes actually written; the caller advances by that, and
+     * when the output fills it drains and calls again. Pair with {@link #flush()} once the whole value
+     * has been written.
+     */
+    int writeSegment(
+        DirectBuffer source,
+        int offset,
+        int length,
+        int deferred);
+
+    /**
+     * Finalizes the length-delimited value streamed via {@link #writeSegment}, requiring that all of its
+     * declared bytes were written.
+     */
+    void flush();
 }

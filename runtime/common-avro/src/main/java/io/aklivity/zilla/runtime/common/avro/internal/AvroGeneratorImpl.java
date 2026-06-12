@@ -35,6 +35,7 @@ public final class AvroGeneratorImpl implements AvroGenerator
     private int[] stateStack;
     private int depth;
     private int progress;
+    private int segmentRemaining;
 
     public AvroGeneratorImpl(
         AvroSchema schema)
@@ -278,6 +279,42 @@ public final class AvroGeneratorImpl implements AvroGenerator
         requireRoom(length);
         this.buffer.putBytes(progress, buffer, offset, length);
         progress += length;
+    }
+
+    @Override
+    public int writeSegment(
+        DirectBuffer source,
+        int offset,
+        int length,
+        int deferred)
+    {
+        if (segmentRemaining == 0)
+        {
+            beginValue();
+            AvroNode node = nodeStack[depth - 1];
+            require(node.kind == AvroKind.STRING || node.kind == AvroKind.BYTES || node.kind == AvroKind.FIXED,
+                "unexpected segment");
+            if (node.kind != AvroKind.FIXED)
+            {
+                writeVarint(zigzag(length + deferred));
+            }
+            segmentRemaining = length + deferred;
+        }
+        int count = Math.min(length, bound - progress);
+        if (count > 0)
+        {
+            buffer.putBytes(progress, source, offset, count);
+            progress += count;
+            segmentRemaining -= count;
+        }
+        return count;
+    }
+
+    @Override
+    public void flush()
+    {
+        require(segmentRemaining == 0, "incomplete segment");
+        pop();
     }
 
     private void beginValue()
