@@ -30,12 +30,6 @@ import org.agrona.DirectBuffer;
 public interface JsonParserEx extends JsonParser
 {
     /**
-     * Begins a pipeline pumped by this parser; append stages with {@link JsonStream#transform} and
-     * terminate with {@link JsonStream#into}.
-     */
-    JsonStream stream();
-
-    /**
      * Borrows {@code buffer} as the input for the next pump, starting at {@code offset} for {@code length}
      * bytes. The buffer is read in place for the duration of the pump; resume state carried in the parser
      * bridges values that span frames.

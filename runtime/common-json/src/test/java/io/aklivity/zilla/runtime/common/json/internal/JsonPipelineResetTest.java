@@ -38,7 +38,7 @@ class JsonPipelineResetTest
     {
         JsonGeneratorEx generator = StreamingJson.createGenerator();
         MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
-        JsonPipeline pipeline = StreamingJson.createParser().stream()
+        JsonPipeline pipeline = StreamingJson.stream(StreamingJson.createParser())
             .into(JsonSink.of(generator));
 
         generator.wrap(buffer, 0, buffer.capacity());

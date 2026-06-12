@@ -33,7 +33,7 @@ class JsonProjectorSegmentHardeningTest
     void shouldSegmentDeeplyNestedKeptSubtreeAsSingleVerbatimValue()
     {
         JsonGeneratorEx gen = StreamingJson.createGenerator().wrap(buffer, 0, buffer.capacity());
-        JsonPipeline pipeline = StreamingJson.createParser().stream()
+        JsonPipeline pipeline = StreamingJson.stream(StreamingJson.createParser())
             .transform(StreamingJson.projector(List.of("/a")))
             .into(JsonSink.of(gen, JsonSink.Delivery.SEGMENTABLE));
 
@@ -47,7 +47,7 @@ class JsonProjectorSegmentHardeningTest
     void shouldResetForReuseAcrossSegmentedValues()
     {
         JsonGeneratorEx gen = StreamingJson.createGenerator();
-        JsonPipeline pipeline = StreamingJson.createParser().stream()
+        JsonPipeline pipeline = StreamingJson.stream(StreamingJson.createParser())
             .transform(StreamingJson.projector(List.of("/x")))
             .into(JsonSink.of(gen, JsonSink.Delivery.SEGMENTABLE));
 
@@ -64,7 +64,7 @@ class JsonProjectorSegmentHardeningTest
     void shouldNormalizeNestedWhenNotOptedIn()
     {
         JsonGeneratorEx gen = StreamingJson.createGenerator().wrap(buffer, 0, buffer.capacity());
-        JsonPipeline pipeline = StreamingJson.createParser().stream()
+        JsonPipeline pipeline = StreamingJson.stream(StreamingJson.createParser())
             .transform(StreamingJson.projector(List.of("/a")))
             .into(JsonSink.of(gen));
 

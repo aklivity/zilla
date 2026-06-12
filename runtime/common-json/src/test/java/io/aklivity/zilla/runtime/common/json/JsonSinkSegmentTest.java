@@ -56,7 +56,7 @@ class JsonSinkSegmentTest
         JsonGeneratorEx gen = StreamingJson.createGenerator();
         MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
         gen.wrap(buffer, 0, buffer.capacity());
-        JsonPipeline pipeline = StreamingJson.createParser().stream()
+        JsonPipeline pipeline = StreamingJson.stream(StreamingJson.createParser())
             .transform(segmentRoot)
             .into(JsonSink.of(gen));
 
@@ -76,7 +76,7 @@ class JsonSinkSegmentTest
         JsonGeneratorEx gen = StreamingJson.createGenerator();
         MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
         gen.wrap(buffer, 0, buffer.capacity());
-        JsonPipeline pipeline = StreamingJson.createParser().stream()
+        JsonPipeline pipeline = StreamingJson.stream(StreamingJson.createParser())
             .into(JsonSink.of(gen, JsonSink.Delivery.SEGMENTABLE));
 
         byte[] bytes = "{ \"a\" : [1, 2], \"b\" : 3 } ".getBytes(UTF_8);
@@ -95,7 +95,7 @@ class JsonSinkSegmentTest
         JsonGeneratorEx gen = StreamingJson.createGenerator();
         MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
         gen.wrap(buffer, 0, buffer.capacity());
-        JsonPipeline pipeline = StreamingJson.createParser().stream()
+        JsonPipeline pipeline = StreamingJson.stream(StreamingJson.createParser())
             .transform(segmentRoot)
             .into(JsonSink.of(gen));
 
@@ -115,7 +115,7 @@ class JsonSinkSegmentTest
         JsonGeneratorEx gen = StreamingJson.createGenerator();
         MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
         gen.wrap(buffer, 0, buffer.capacity());
-        JsonPipeline pipeline = StreamingJson.createParser().stream()
+        JsonPipeline pipeline = StreamingJson.stream(StreamingJson.createParser())
             .transform(segmentRoot)
             .into(JsonSink.of(gen));
 
@@ -135,7 +135,7 @@ class JsonSinkSegmentTest
         JsonGeneratorEx gen = StreamingJson.createGenerator();
         MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
         gen.wrap(buffer, 0, buffer.capacity());
-        JsonPipeline pipeline = StreamingJson.createParser().stream()
+        JsonPipeline pipeline = StreamingJson.stream(StreamingJson.createParser())
             .transform(segmentRoot)
             .into(JsonSink.of(gen));
 

@@ -33,7 +33,7 @@ class JsonProjectorSegmentTest
     void shouldSegmentKeptSubtreeWhenSinkOptsIn()
     {
         JsonGeneratorEx gen = StreamingJson.createGenerator().wrap(buffer, 0, buffer.capacity());
-        JsonPipeline pipeline = StreamingJson.createParser().stream()
+        JsonPipeline pipeline = StreamingJson.stream(StreamingJson.createParser())
             .transform(StreamingJson.projector(List.of("/a")))
             .into(JsonSink.of(gen, JsonSink.Delivery.SEGMENTABLE));
 
@@ -47,7 +47,7 @@ class JsonProjectorSegmentTest
     void shouldNormalizeWhenSinkDoesNotOptIn()
     {
         JsonGeneratorEx gen = StreamingJson.createGenerator().wrap(buffer, 0, buffer.capacity());
-        JsonPipeline pipeline = StreamingJson.createParser().stream()
+        JsonPipeline pipeline = StreamingJson.stream(StreamingJson.createParser())
             .transform(StreamingJson.projector(List.of("/a")))
             .into(JsonSink.of(gen));
 
@@ -61,7 +61,7 @@ class JsonProjectorSegmentTest
     void shouldSegmentRootIdentityWhenSinkOptsIn()
     {
         JsonGeneratorEx gen = StreamingJson.createGenerator().wrap(buffer, 0, buffer.capacity());
-        JsonPipeline pipeline = StreamingJson.createParser().stream()
+        JsonPipeline pipeline = StreamingJson.stream(StreamingJson.createParser())
             .transform(StreamingJson.projector(List.of("")))
             .into(JsonSink.of(gen, JsonSink.Delivery.SEGMENTABLE));
 
@@ -78,7 +78,7 @@ class JsonProjectorSegmentTest
         JsonTransform decliner = (control, source, event, sink) -> sink.feed(() ->
         {
         }, source, event);
-        JsonPipeline pipeline = StreamingJson.createParser().stream()
+        JsonPipeline pipeline = StreamingJson.stream(StreamingJson.createParser())
             .transform(decliner)
             .transform(StreamingJson.projector(List.of("/a")))
             .into(JsonSink.of(gen, JsonSink.Delivery.SEGMENTABLE));
@@ -93,7 +93,7 @@ class JsonProjectorSegmentTest
     void shouldHandleArrayElementSegment()
     {
         JsonGeneratorEx gen = StreamingJson.createGenerator().wrap(buffer, 0, buffer.capacity());
-        JsonPipeline pipeline = StreamingJson.createParser().stream()
+        JsonPipeline pipeline = StreamingJson.stream(StreamingJson.createParser())
             .transform(StreamingJson.projector(List.of("/items/0")))
             .into(JsonSink.of(gen, JsonSink.Delivery.SEGMENTABLE));
 

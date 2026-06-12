@@ -42,7 +42,6 @@ import io.aklivity.zilla.runtime.common.json.JsonController;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.json.JsonSource;
-import io.aklivity.zilla.runtime.common.json.JsonStream;
 import io.aklivity.zilla.runtime.common.json.StreamingJson;
 import io.aklivity.zilla.runtime.common.json.internal.json.JsonValues;
 
@@ -121,12 +120,6 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
             tokenMaxBytes(config),
             !(in instanceof DirectBufferInputStreamEx));
         this.location = new JsonLocationImpl(tokenizer);
-    }
-
-    @Override
-    public JsonStream stream()
-    {
-        return new JsonStreamImpl(this);
     }
 
     @Override

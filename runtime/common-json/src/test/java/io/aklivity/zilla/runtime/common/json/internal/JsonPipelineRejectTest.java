@@ -36,7 +36,7 @@ class JsonPipelineRejectTest
     {
         JsonGeneratorEx generator = StreamingJson.createGenerator();
         MutableDirectBuffer output = new UnsafeBuffer(new byte[128]);
-        JsonPipeline pipeline = StreamingJson.createParser().stream()
+        JsonPipeline pipeline = StreamingJson.stream(StreamingJson.createParser())
             .into(JsonSink.of(generator));
 
         byte[] bytes = "[1 2]".getBytes(UTF_8);

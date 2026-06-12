@@ -31,12 +31,12 @@ while (parser.hasNext())
 
 ## Streaming pipeline
 
-`stream()` layers a composable push pipeline over the same cursor: it pumps the parser and feeds each
-event through an ordered chain of `JsonTransform` stages to a terminal `JsonSink`.
+`StreamingJson.stream(parser)` layers a composable push pipeline over the same cursor: it pumps the
+parser and feeds each event through an ordered chain of `JsonTransform` stages to a terminal `JsonSink`.
 
 ```java
 JsonGeneratorEx generator = StreamingJson.createGenerator().wrap(out, 0, out.capacity());
-JsonPipeline pipeline = StreamingJson.createParser().stream()
+JsonPipeline pipeline = StreamingJson.stream(StreamingJson.createParser())
     .transform(StreamingJson.projector(List.of("/id", "/name")))
     .into(JsonSink.of(generator));
 pipeline.reset();
@@ -46,8 +46,8 @@ if (pipeline.feed(in, off, len) == JsonPipeline.Status.COMPLETED)   // ADVANCED 
 }
 ```
 
-- **`stream()`** begins the pipeline; **`JsonStream`** appends stages (`transform`) and terminates
-  (`into`), yielding the runnable **`JsonPipeline`** (`reset` / `feed` / `Status`).
+- **`StreamingJson.stream(parser)`** begins the pipeline; **`JsonStream`** appends stages (`transform`)
+  and terminates (`into`), yielding the runnable **`JsonPipeline`** (`reset` / `feed` / `Status`).
 - **`JsonSource`** is the per-event read-only value view handed to a stage — the parser's accessors
   without the cursor advance, so a stage cannot disturb the pump.
 - **`JsonTransform`** is an intermediate stage (`feed(control, source, event, sink)`); **`JsonSink`**
@@ -93,7 +93,7 @@ value.
 
 ```java
 JsonGeneratorEx generator = StreamingJson.createGenerator().wrap(out, 0, limit);
-JsonPipeline pipeline = StreamingJson.createParser().stream()
+JsonPipeline pipeline = StreamingJson.stream(StreamingJson.createParser())
     .into(JsonSink.of(generator));
 pipeline.reset();
 

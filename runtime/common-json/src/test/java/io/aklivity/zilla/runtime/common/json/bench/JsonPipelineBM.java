@@ -102,22 +102,22 @@ public class JsonPipelineBM
     @Setup(Level.Trial)
     public void init()
     {
-        scalarLeavesPipeline = StreamingJson.createParser().stream()
+        scalarLeavesPipeline = StreamingJson.stream(StreamingJson.createParser())
             .transform(StreamingJson.projector(List.of("/id", "/active"))).into(structuredSink);
 
-        keptContainerStructuredPipeline = StreamingJson.createParser().stream()
+        keptContainerStructuredPipeline = StreamingJson.stream(StreamingJson.createParser())
             .transform(StreamingJson.projector(List.of("/meta"))).into(structuredSink);
-        keptContainerSegmentedPipeline = StreamingJson.createParser().stream()
+        keptContainerSegmentedPipeline = StreamingJson.stream(StreamingJson.createParser())
             .transform(StreamingJson.projector(List.of("/meta"))).into(segmentableSink);
 
-        rootIdentityStructuredPipeline = StreamingJson.createParser().stream()
+        rootIdentityStructuredPipeline = StreamingJson.stream(StreamingJson.createParser())
             .transform(StreamingJson.projector(List.of(""))).into(structuredSink);
-        rootIdentitySegmentedPipeline = StreamingJson.createParser().stream()
+        rootIdentitySegmentedPipeline = StreamingJson.stream(StreamingJson.createParser())
             .transform(StreamingJson.projector(List.of(""))).into(segmentableSink);
 
-        mostlySkippedStructuredPipeline = StreamingJson.createParser().stream()
+        mostlySkippedStructuredPipeline = StreamingJson.stream(StreamingJson.createParser())
             .transform(StreamingJson.projector(List.of("/keep"))).into(structuredSink);
-        mostlySkippedSegmentedPipeline = StreamingJson.createParser().stream()
+        mostlySkippedSegmentedPipeline = StreamingJson.stream(StreamingJson.createParser())
             .transform(StreamingJson.projector(List.of("/keep"))).into(segmentableSink);
 
         byte[] flatBytes = FLAT_OBJECT.getBytes(UTF_8);
