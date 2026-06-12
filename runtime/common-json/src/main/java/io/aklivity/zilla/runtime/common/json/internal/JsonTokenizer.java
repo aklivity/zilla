@@ -271,10 +271,11 @@ public final class JsonTokenizer
         return pendingString;
     }
 
-    // Non-allocating key view, valid while positioned on a deferred KEY_NAME (the unescaped key chars
-    // are still in scratch because nobody has materialized them yet). Lets a downstream stage copy or
-    // compare the key without a String; returns the materialized value if it was already taken.
-    public CharSequence key()
+    // Non-allocating view of the current string token (a deferred KEY_NAME or a readable VALUE_STRING),
+    // valid while the unescaped chars are still in scratch because nobody has materialized them yet. Lets
+    // a downstream stage copy or compare the chars without a String; returns the materialized value if it
+    // was already taken.
+    public CharSequence stringView()
     {
         return valuePending ? scratch : pendingString;
     }

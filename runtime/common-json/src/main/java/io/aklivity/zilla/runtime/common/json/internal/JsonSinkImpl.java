@@ -89,7 +89,7 @@ public final class JsonSinkImpl implements JsonSink
             if (!valueStarted && segment.capacity() < generator.remaining())
             {
                 // fits: re-encode normalized (a re-encode is never longer than the raw token)
-                generator.write(source.getString());
+                generator.write(source.getStringView());
                 status = scalarStatus();
             }
             else
@@ -104,7 +104,7 @@ public final class JsonSinkImpl implements JsonSink
             }
             break;
         case VALUE_NUMBER:
-            generator.writeNumber(source.getString());
+            generator.writeNumber(source.getStringView());
             status = scalarStatus();
             break;
         case VALUE_TRUE:

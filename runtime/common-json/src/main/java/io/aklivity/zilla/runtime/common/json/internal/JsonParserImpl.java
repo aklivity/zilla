@@ -372,7 +372,13 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
     @Override
     public CharSequence getKey()
     {
-        return tokenizer.key();
+        return tokenizer.stringView();
+    }
+
+    @Override
+    public CharSequence getStringView()
+    {
+        return tokenizer.stringView();
     }
 
     @Override

@@ -76,6 +76,14 @@ public interface JsonGeneratorEx extends JsonGenerator
         String literal);
 
     /**
+     * Emits a numeric literal from a {@code CharSequence} verbatim without first materializing a
+     * {@link String}, letting a streaming caller forward a non-owning char view of the lexeme.
+     * Semantics match {@link #writeNumber(String)}.
+     */
+    JsonGeneratorEx writeNumber(
+        CharSequence literal);
+
+    /**
      * Splices a pre-encoded JSON value from {@code source} verbatim as the next value, with no
      * re-encoding.
      */
@@ -141,6 +149,14 @@ public interface JsonGeneratorEx extends JsonGenerator
     @Override
     JsonGeneratorEx write(
         String value);
+
+    /**
+     * Writes a string value from a {@code CharSequence} without first materializing a {@link String},
+     * the value-side counterpart to {@link #writeKey(CharSequence)}. Semantics match
+     * {@link #write(String)}; the chars are escaped and encoded as they are read.
+     */
+    JsonGeneratorEx write(
+        CharSequence value);
 
     @Override
     JsonGeneratorEx write(

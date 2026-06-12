@@ -156,6 +156,13 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     public JsonGeneratorImpl write(
         String value)
     {
+        return write((CharSequence) value);
+    }
+
+    @Override
+    public JsonGeneratorImpl write(
+        CharSequence value)
+    {
         preValue();
         writeString(value);
         return this;
@@ -343,6 +350,13 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     public JsonGeneratorImpl writeNumber(
         String literal)
     {
+        return writeNumber((CharSequence) literal);
+    }
+
+    @Override
+    public JsonGeneratorImpl writeNumber(
+        CharSequence literal)
+    {
         preValue();
         writeAscii(literal);
         return this;
@@ -516,7 +530,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     }
 
     private void writeAscii(
-        String value)
+        CharSequence value)
     {
         for (int index = 0; index < value.length(); index++)
         {
