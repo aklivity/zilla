@@ -158,6 +158,59 @@ public class AvroValueStreamingTest
         assertArrayEquals(datum, concat(output));
     }
 
+    @Test
+    public void shouldReportSegmentDeferredUnboundedUntilFinal()
+    {
+        AvroSchema schema = Avro.schema("\"string\"");
+        byte[] datum = encode("\"string\"", "a".repeat(40));
+
+        List<Integer> deferreds = new ArrayList<>();
+        AvroSink collector = new AvroSink()
+        {
+            @Override
+            public Status feed(
+                AvroController control,
+                AvroSource source,
+                AvroEvent event)
+            {
+                Status status = Status.ADVANCED;
+                if (event == AvroEvent.START_MESSAGE)
+                {
+                    control.segmentable();
+                }
+                else if (event == AvroEvent.SEGMENT)
+                {
+                    deferreds.add(source.deferredBytes());
+                }
+                else if (event == AvroEvent.END_MESSAGE)
+                {
+                    status = Status.COMPLETED;
+                }
+                return status;
+            }
+        };
+
+        AvroPipeline pipeline = Avro.stream(Avro.parser(schema)).into(collector);
+        pipeline.reset();
+        UnsafeBuffer buffer = new UnsafeBuffer(datum);
+        Status status = pipeline.feed(buffer, 0, 0);
+        int consumed = (int) pipeline.position();
+        int guard = datum.length * 2 + 8;
+        while (status != COMPLETED && status != REJECTED && guard-- > 0)
+        {
+            status = pipeline.feed(buffer, consumed, Math.min(8, datum.length - consumed));
+            consumed = (int) pipeline.position();
+        }
+        assertEquals(COMPLETED, status);
+
+        assertTrue(deferreds.size() >= 2, "expected the datum to span multiple segments");
+        for (int i = 0; i < deferreds.size() - 1; i++)
+        {
+            assertEquals(AvroSource.UNBOUNDED, deferreds.get(i).intValue());
+        }
+        assertEquals(0, deferreds.get(deferreds.size() - 1).intValue());
+    }
+
     private static Status feedWindowed(
         AvroPipeline pipeline,
         byte[] datum,

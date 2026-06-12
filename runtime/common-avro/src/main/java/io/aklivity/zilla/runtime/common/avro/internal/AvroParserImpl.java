@@ -47,6 +47,7 @@ import io.aklivity.zilla.runtime.common.avro.AvroKind;
 import io.aklivity.zilla.runtime.common.avro.AvroLocation;
 import io.aklivity.zilla.runtime.common.avro.AvroParser;
 import io.aklivity.zilla.runtime.common.avro.AvroSchema;
+import io.aklivity.zilla.runtime.common.avro.AvroSource;
 import io.aklivity.zilla.runtime.common.avro.AvroType;
 import io.aklivity.zilla.runtime.common.avro.AvroValidationException;
 
@@ -106,6 +107,7 @@ public final class AvroParserImpl implements AvroParser
     private int valueOffset;
     private int valueLength;
     private int valueRemaining;
+    private int deferred;
     private boolean valueStreaming;
     private boolean booleanValue;
     private int intValue;
@@ -184,6 +186,7 @@ public final class AvroParserImpl implements AvroParser
         cursorType = null;
         done = false;
         valueRemaining = 0;
+        deferred = 0;
         valueStreaming = false;
         segmenting = false;
         push(root);
@@ -281,28 +284,26 @@ public final class AvroParserImpl implements AvroParser
         {
             result = STEP_REJECTED;
         }
+        else if (depth == 0)
+        {
+            // the whole datum is consumed: the final SEGMENT (deferredBytes 0) ends the run, then END
+            setSegment(scanStart, pos - scanStart);
+            deferred = 0;
+            pending = SEGMENT;
+            phase = Phase.END;
+            result = STEP_EVENT;
+        }
+        else if (pos > scanStart)
+        {
+            // more of the datum to come, total unknown
+            setSegment(scanStart, pos - scanStart);
+            deferred = AvroSource.UNBOUNDED;
+            pending = SEGMENT;
+            result = STEP_EVENT;
+        }
         else
         {
-            // the whole datum reaching depth 0 ends the run; END_MESSAGE (not a terminal segment event)
-            // bounds it, so the final SEGMENT carries the trailing bytes and the next advance emits END
-            if (depth == 0)
-            {
-                phase = Phase.END;
-            }
-            if (pos > scanStart)
-            {
-                setSegment(scanStart, pos - scanStart);
-                pending = SEGMENT;
-                result = STEP_EVENT;
-            }
-            else if (depth == 0)
-            {
-                result = STEP_CONTINUE;
-            }
-            else
-            {
-                result = STEP_UNDERFLOW;
-            }
+            result = STEP_UNDERFLOW;
         }
         cursorType = null;
         return result;
@@ -313,6 +314,7 @@ public final class AvroParserImpl implements AvroParser
     {
         int result;
         cursorType = node;
+        deferred = 0;
         switch (node.kind)
         {
         case NULL:
@@ -535,6 +537,7 @@ public final class AvroParserImpl implements AvroParser
                 setValueBytes(pos, chunk);
                 pos += chunk;
                 valueRemaining -= chunk;
+                deferred = valueRemaining;
                 if (valueRemaining == 0)
                 {
                     valueStreaming = false;
@@ -879,6 +882,7 @@ public final class AvroParserImpl implements AvroParser
     {
         this.string = null;
         this.valueLength = 0;
+        this.deferred = 0;
     }
 
     @Override
@@ -944,7 +948,7 @@ public final class AvroParserImpl implements AvroParser
     @Override
     public int deferredBytes()
     {
-        return valueRemaining;
+        return deferred;
     }
 
     @Override

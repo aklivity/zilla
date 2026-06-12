@@ -82,8 +82,9 @@ public enum AvroEvent
     ENUM,
     /**
      * a slice of the datum delivered as raw Avro bytes for verbatim passthrough, readable via
-     * {@link AvroSource#getSegment()}. The whole datum arrives as a run of {@code SEGMENT} events between
-     * {@link #START_MESSAGE} and {@link #END_MESSAGE}; the message framing bounds the run.
+     * {@link AvroSource#getSegment()}. The whole datum arrives as a run of {@code SEGMENT} events whose
+     * total length is not known up front: a non-final event reports {@link AvroSource#UNBOUNDED} from
+     * {@link AvroSource#deferredBytes()}, the final event reports {@code 0}.
      */
     SEGMENT;
 

@@ -26,6 +26,9 @@ import org.agrona.DirectBuffer;
  */
 public interface AvroSource
 {
+    /** {@link #deferredBytes()} sentinel for an unbounded run whose remaining length is not known. */
+    int UNBOUNDED = -1;
+
     boolean getBoolean();
 
     int getInt();
@@ -62,9 +65,11 @@ public interface AvroSource
     DirectBuffer getSegment();
 
     /**
-     * On a {@link AvroEvent#STRING} / {@link AvroEvent#BYTES} / {@link AvroEvent#FIXED} value, the payload
-     * bytes still to come in later events of that same value; {@code 0} on the final (or only) chunk.
-     * {@code 0} for every other event.
+     * The bytes still to come in later events of the run the current event belongs to, {@code 0} on its
+     * final (or only) event. On a {@link AvroEvent#STRING} / {@link AvroEvent#BYTES} / {@link AvroEvent#FIXED}
+     * value this is the exact remaining payload; on a {@link AvroEvent#SEGMENT} of a verbatim run, whose
+     * total is not known up front, a non-final event reports {@link #UNBOUNDED}. {@code 0} for every other
+     * event.
      */
     int deferredBytes();
 

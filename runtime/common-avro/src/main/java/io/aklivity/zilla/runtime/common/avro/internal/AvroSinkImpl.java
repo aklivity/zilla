@@ -196,12 +196,11 @@ public final class AvroSinkImpl implements AvroSink
             {
                 segment = source.getSegment();
                 generator.writeRaw(segment, 0, segment.capacity());
+                if (source.deferredBytes() == 0)
+                {
+                    status = scalar();
+                }
             }
-            break;
-        case END_MESSAGE:
-            // a segmented datum is raw bytes only, so it completes here; a structured datum has already
-            // completed on its top-level value or record close and never reaches this
-            status = scalar();
             break;
         default:
             break;
