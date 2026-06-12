@@ -199,6 +199,16 @@ class JsonGeneratorExTest
     }
 
     @Test
+    void shouldNotWriteBeyondLimit()
+    {
+        MutableDirectBuffer buffer = new UnsafeBuffer(new byte[64]);
+        JsonGeneratorEx generator = StreamingJson.createGenerator().wrap(buffer, 0, 4);
+        // "[1,2" fills the usable region [0,4) exactly; the next write must not spill past the limit
+        assertThrows(AssertionError.class, () -> generator
+            .writeStartArray().writeNumber("1").writeNumber("2").writeNumber("3"));
+    }
+
+    @Test
     void shouldClearContextOnReset()
     {
         MutableDirectBuffer buffer = new UnsafeBuffer(new byte[64]);

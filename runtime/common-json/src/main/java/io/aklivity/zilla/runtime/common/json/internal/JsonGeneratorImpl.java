@@ -346,6 +346,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         int length)
     {
         preValue();
+        assert progress + length <= limit;
         buffer.putBytes(progress, source, index, length);
         progress += length;
         return this;
@@ -357,6 +358,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         int index,
         int length)
     {
+        assert progress + length <= limit;
         buffer.putBytes(progress, source, index, length);
         progress += length;
         return this;
@@ -502,6 +504,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     private void putByte(
         int value)
     {
+        assert progress < limit;
         buffer.putByte(progress, (byte) value);
         progress++;
     }
