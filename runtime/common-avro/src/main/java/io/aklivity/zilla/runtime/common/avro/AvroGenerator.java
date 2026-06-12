@@ -32,7 +32,24 @@ public interface AvroGenerator
         MutableDirectBuffer buffer,
         int offset);
 
+    /**
+     * Wraps {@code buffer} with a hard byte {@code limit} (rather than the buffer's full capacity) — the
+     * bound a chunking driver watches via {@link #remaining()} to decide when to drain and continue. The
+     * two-argument {@link #wrap(MutableDirectBuffer, int)} is equivalent with {@code limit} set to the
+     * remaining capacity.
+     */
+    void wrap(
+        MutableDirectBuffer buffer,
+        int offset,
+        int limit);
+
     int length();
+
+    /**
+     * Bytes that may still be written before reaching the {@code limit} set at {@link #wrap}. A driver
+     * checks this at a value boundary to decide whether to suspend (drain) before the next write.
+     */
+    int remaining();
 
     void writeStartRecord();
 

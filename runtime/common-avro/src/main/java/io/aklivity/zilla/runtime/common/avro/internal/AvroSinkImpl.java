@@ -15,7 +15,8 @@
 package io.aklivity.zilla.runtime.common.avro.internal;
 
 import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.COMPLETE;
-import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.PENDING;
+import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.RESUMABLE;
+import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.SUSPENDED;
 
 import org.agrona.DirectBuffer;
 
@@ -33,9 +34,17 @@ import io.aklivity.zilla.runtime.common.avro.AvroSource;
  * Reaches {@link Status#COMPLETE} when the current top-level message closes at depth zero. In
  * {@link Delivery#SEGMENTABLE} mode it requests verbatim segment delivery on {@link AvroEvent#START_MESSAGE}
  * and appends each segment slice raw.
+ * <p>
+ * Output is bounded: after writing each value it returns {@link Status#SUSPENDED} once the generator's
+ * {@link AvroGenerator#remaining()} drops below {@link #HEADROOM}. Avro wire is unframed (a datum is a
+ * flat byte concatenation), so the bytes written so far are always a valid prefix; the caller drains
+ * them, re-wraps the generator over a fresh buffer, and resumes — no level reopen or merge needed. A
+ * single value larger than the output limit cannot be split and is written whole.
  */
 public final class AvroSinkImpl implements AvroSink
 {
+    private static final int HEADROOM = 16;
+
     private final AvroGenerator generator;
     private final Delivery delivery;
     private int depth;
@@ -60,7 +69,7 @@ public final class AvroSinkImpl implements AvroSink
         AvroSource source,
         AvroEvent event)
     {
-        Status status = PENDING;
+        Status status = RESUMABLE;
         DirectBuffer segment;
         switch (event)
         {
@@ -73,14 +82,17 @@ public final class AvroSinkImpl implements AvroSink
         case START_RECORD:
             generator.writeStartRecord();
             depth++;
+            status = more();
             break;
         case START_ARRAY:
             generator.writeStartArray();
             depth++;
+            status = more();
             break;
         case START_MAP:
             generator.writeStartMap();
             depth++;
+            status = more();
             break;
         case END_RECORD:
         case END_ARRAY:
@@ -91,9 +103,11 @@ public final class AvroSinkImpl implements AvroSink
         case MAP_KEY:
             segment = source.getSegment();
             generator.writeKey(segment, 0, segment.capacity());
+            status = more();
             break;
         case UNION_BRANCH:
             generator.writeIndex(source.getInt());
+            status = more();
             break;
         case NULL:
             generator.writeNull();
@@ -142,6 +156,7 @@ public final class AvroSinkImpl implements AvroSink
         case CONTINUE_SEGMENT:
             segment = source.getSegment();
             generator.writeRaw(segment, 0, segment.capacity());
+            status = more();
             break;
         case END_SEGMENT:
             segment = source.getSegment();
@@ -163,11 +178,16 @@ public final class AvroSinkImpl implements AvroSink
     private Status close()
     {
         depth--;
-        return depth == 0 ? COMPLETE : PENDING;
+        return depth == 0 ? COMPLETE : more();
     }
 
     private Status scalar()
     {
-        return depth == 0 ? COMPLETE : PENDING;
+        return depth == 0 ? COMPLETE : more();
+    }
+
+    private Status more()
+    {
+        return generator.length() > 0 && generator.remaining() < HEADROOM ? SUSPENDED : RESUMABLE;
     }
 }

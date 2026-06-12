@@ -15,8 +15,9 @@
 package io.aklivity.zilla.runtime.common.avro.internal;
 
 import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.COMPLETE;
-import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.PENDING;
 import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.REJECTED;
+import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.RESUMABLE;
+import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.SUSPENDED;
 
 import org.agrona.DirectBuffer;
 
@@ -29,12 +30,15 @@ import io.aklivity.zilla.runtime.common.avro.AvroValidationException;
  * through the root {@link AvroSink}, passing the parser itself as both the immutable source view and
  * the control handle. The status is whatever the sink reports; if the sink never completes but the
  * parser reaches the end of the message, the datum is {@code COMPLETE}; malformed binary aborts with
- * {@code REJECTED}.
+ * {@code REJECTED}. On {@code SUSPENDED} (bounded output full) the parser keeps its position, so a
+ * resume {@code feed} continues from where it paused — its buffer arguments are ignored.
  */
 final class AvroPipelineImpl implements AvroPipeline
 {
     private final AvroParserImpl parser;
     private final AvroSink root;
+
+    private boolean suspended;
 
     AvroPipelineImpl(
         AvroParserImpl parser,
@@ -49,6 +53,7 @@ final class AvroPipelineImpl implements AvroPipeline
     {
         parser.reset();
         root.reset();
+        suspended = false;
     }
 
     @Override
@@ -57,23 +62,27 @@ final class AvroPipelineImpl implements AvroPipeline
         int offset,
         int length)
     {
-        parser.wrap(buffer, offset, length);
-        Status status = PENDING;
+        Status status = RESUMABLE;
         try
         {
-            while (status == PENDING && parser.hasNext())
+            if (!suspended)
+            {
+                parser.wrap(buffer, offset, length);
+            }
+            while (status == RESUMABLE && parser.hasNext())
             {
                 status = root.feed(parser, parser, parser.nextEvent());
+            }
+            if (status == RESUMABLE && parser.complete())
+            {
+                status = COMPLETE;
             }
         }
         catch (AvroValidationException ex)
         {
             status = REJECTED;
         }
-        if (status == PENDING && parser.complete())
-        {
-            status = COMPLETE;
-        }
+        suspended = status == SUSPENDED;
         return status;
     }
 }

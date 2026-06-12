@@ -30,10 +30,11 @@ public final class AvroGeneratorImpl implements AvroGenerator
 
     private MutableDirectBuffer buffer;
     private int base;
+    private int bound;
     private AvroNode[] nodeStack;
     private int[] stateStack;
     private int depth;
-    private int limit;
+    private int progress;
 
     public AvroGeneratorImpl(
         AvroSchema schema,
@@ -41,11 +42,10 @@ public final class AvroGeneratorImpl implements AvroGenerator
         int offset)
     {
         this.root = (AvroNode) schema.type();
-        this.buffer = buffer;
-        this.base = offset;
         this.nodeStack = new AvroNode[16];
         this.stateStack = new int[16];
-        reset();
+        this.depth = 0;
+        retarget(buffer, offset, buffer.capacity());
     }
 
     @Override
@@ -53,15 +53,28 @@ public final class AvroGeneratorImpl implements AvroGenerator
         MutableDirectBuffer buffer,
         int offset)
     {
-        this.buffer = buffer;
-        this.base = offset;
-        reset();
+        retarget(buffer, offset, buffer.capacity());
+    }
+
+    @Override
+    public void wrap(
+        MutableDirectBuffer buffer,
+        int offset,
+        int limit)
+    {
+        retarget(buffer, offset, offset + limit);
     }
 
     @Override
     public int length()
     {
-        return limit - base;
+        return progress - base;
+    }
+
+    @Override
+    public int remaining()
+    {
+        return bound - progress;
     }
 
     @Override
@@ -154,8 +167,8 @@ public final class AvroGeneratorImpl implements AvroGenerator
     {
         beginValue();
         expect(AvroKind.BOOLEAN);
-        buffer.putByte(limit, (byte) (value ? 1 : 0));
-        limit++;
+        buffer.putByte(progress, (byte) (value ? 1 : 0));
+        progress++;
         pop();
     }
 
@@ -185,8 +198,8 @@ public final class AvroGeneratorImpl implements AvroGenerator
     {
         beginValue();
         expect(AvroKind.FLOAT);
-        buffer.putFloat(limit, value, LITTLE_ENDIAN);
-        limit += Float.BYTES;
+        buffer.putFloat(progress, value, LITTLE_ENDIAN);
+        progress += Float.BYTES;
         pop();
     }
 
@@ -196,8 +209,8 @@ public final class AvroGeneratorImpl implements AvroGenerator
     {
         beginValue();
         expect(AvroKind.DOUBLE);
-        buffer.putDouble(limit, value, LITTLE_ENDIAN);
-        limit += Double.BYTES;
+        buffer.putDouble(progress, value, LITTLE_ENDIAN);
+        progress += Double.BYTES;
         pop();
     }
 
@@ -233,8 +246,8 @@ public final class AvroGeneratorImpl implements AvroGenerator
     {
         beginValue();
         expect(AvroKind.FIXED);
-        this.buffer.putBytes(limit, buffer, offset, length);
-        limit += length;
+        this.buffer.putBytes(progress, buffer, offset, length);
+        progress += length;
         pop();
     }
 
@@ -254,15 +267,26 @@ public final class AvroGeneratorImpl implements AvroGenerator
         int offset,
         int length)
     {
-        this.buffer.putBytes(limit, buffer, offset, length);
-        limit += length;
+        this.buffer.putBytes(progress, buffer, offset, length);
+        progress += length;
     }
 
-    private void reset()
+    private void retarget(
+        MutableDirectBuffer buffer,
+        int offset,
+        int bound)
     {
-        depth = 0;
-        limit = base;
-        push(root);
+        this.buffer = buffer;
+        this.base = offset;
+        this.bound = bound;
+        this.progress = offset;
+        // depth > 0 means a datum is mid-flight (a resume after a bounded-output drain): keep the
+        // schema-walk stack so writing continues from the current field. Avro is unframed, so the
+        // drained bytes are a valid prefix and no level needs reopening — only the buffer is retargeted.
+        if (depth == 0)
+        {
+            push(root);
+        }
     }
 
     private void beginValue()
@@ -308,8 +332,8 @@ public final class AvroGeneratorImpl implements AvroGenerator
         int length)
     {
         writeVarint(zigzag(length));
-        buffer.putBytes(limit, source, offset, length);
-        limit += length;
+        buffer.putBytes(progress, source, offset, length);
+        progress += length;
     }
 
     private void writeVarint(
@@ -318,12 +342,12 @@ public final class AvroGeneratorImpl implements AvroGenerator
         long u = value;
         while ((u & ~0x7fL) != 0)
         {
-            buffer.putByte(limit, (byte) ((u & 0x7f) | 0x80));
-            limit++;
+            buffer.putByte(progress, (byte) ((u & 0x7f) | 0x80));
+            progress++;
             u >>>= 7;
         }
-        buffer.putByte(limit, (byte) (u & 0x7f));
-        limit++;
+        buffer.putByte(progress, (byte) (u & 0x7f));
+        progress++;
     }
 
     private void require(

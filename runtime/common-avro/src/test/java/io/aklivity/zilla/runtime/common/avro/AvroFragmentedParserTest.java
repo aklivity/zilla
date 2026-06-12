@@ -37,7 +37,7 @@ public class AvroFragmentedParserTest
         AvroPipeline pipeline = Avro.parser(schema).stream().into(recorder);
         pipeline.reset();
         UnsafeBuffer one = new UnsafeBuffer(new byte[1]);
-        Status status = binary.length == 0 ? pipeline.feed(one, 0, 0) : Status.PENDING;
+        Status status = binary.length == 0 ? pipeline.feed(one, 0, 0) : Status.RESUMABLE;
         for (int i = 0; i < binary.length; i++)
         {
             one.putByte(0, binary[i]);
@@ -120,7 +120,7 @@ public class AvroFragmentedParserTest
         AvroPipeline pipeline = Avro.parser(schema).stream().into(AvroSink.of(generator, AvroSink.Delivery.SEGMENTABLE));
         pipeline.reset();
         UnsafeBuffer one = new UnsafeBuffer(new byte[1]);
-        Status status = Status.PENDING;
+        Status status = Status.RESUMABLE;
         for (int i = 0; i < binary.length; i++)
         {
             one.putByte(0, binary[i]);

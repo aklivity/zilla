@@ -138,7 +138,7 @@ public final class AvroValues
                 events.add(event);
                 entries.add(new Entry(event, source));
             }
-            return Status.PENDING;
+            return Status.RESUMABLE;
         }
 
         @Override
