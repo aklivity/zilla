@@ -1,0 +1,49 @@
+/*
+ * Copyright 2021-2024 Aklivity Inc
+ *
+ * Licensed under the Aklivity Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ *   https://www.aklivity.io/aklivity-community-license/
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+package io.aklivity.zilla.runtime.common.json.internal;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import org.agrona.MutableDirectBuffer;
+import org.agrona.concurrent.UnsafeBuffer;
+import org.junit.jupiter.api.Test;
+
+import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
+import io.aklivity.zilla.runtime.common.json.JsonPipeline;
+import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
+import io.aklivity.zilla.runtime.common.json.JsonSink;
+import io.aklivity.zilla.runtime.common.json.StreamingJson;
+
+class JsonPipelineRejectTest
+{
+    // Malformed JSON is a rejection of the value, surfaced as the terminal REJECTED status rather than
+    // an exception escaping feed() — mirroring how the protobuf pipeline maps a decode failure.
+    @Test
+    void shouldRejectMalformedJson()
+    {
+        JsonGeneratorEx generator = StreamingJson.createGenerator();
+        MutableDirectBuffer output = new UnsafeBuffer(new byte[128]);
+        JsonPipeline pipeline = StreamingJson.createParser().stream()
+            .into(JsonSink.of(generator));
+
+        byte[] bytes = "[1 2]".getBytes(UTF_8);
+        generator.wrap(output, 0, output.capacity());
+        pipeline.reset();
+        Status status = pipeline.feed(new UnsafeBuffer(bytes), 0, bytes.length);
+
+        assertEquals(Status.REJECTED, status);
+    }
+}

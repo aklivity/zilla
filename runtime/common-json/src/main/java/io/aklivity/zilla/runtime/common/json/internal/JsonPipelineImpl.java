@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.common.json.internal;
 
+import jakarta.json.stream.JsonParsingException;
+
 import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
@@ -54,14 +56,21 @@ public final class JsonPipelineImpl implements JsonPipeline
         int offset,
         int length)
     {
-        if (!suspended)
-        {
-            parser.wrap(buffer, offset, length);
-        }
         Status status = Status.RESUMABLE;
-        while (status == Status.RESUMABLE && parser.hasNextEvent())
+        try
         {
-            status = root.feed(parser, parser, parser.nextEvent());
+            if (!suspended)
+            {
+                parser.wrap(buffer, offset, length);
+            }
+            while (status == Status.RESUMABLE && parser.hasNextEvent())
+            {
+                status = root.feed(parser, parser, parser.nextEvent());
+            }
+        }
+        catch (JsonParsingException ex)
+        {
+            status = Status.REJECTED;
         }
         suspended = status == Status.SUSPENDED;
         return status;

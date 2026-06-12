@@ -27,6 +27,7 @@ import org.junit.jupiter.api.Test;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
+import io.aklivity.zilla.runtime.common.json.JsonSchema;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.StreamingJson;
 
@@ -68,6 +69,19 @@ class JsonPipelineChunkingTest
             .into(JsonSink.of(generator));
 
         String json = "{\"id\":1,\"items\":[10,11,12,13,14,15,16,17,18,19],\"ok\":true}";
+        assertEquals(json, chunked(pipeline, generator, output, json));
+    }
+
+    @Test
+    void shouldChunkThroughValidatorTransform()
+    {
+        JsonGeneratorEx generator = StreamingJson.createGenerator();
+        MutableDirectBuffer output = new UnsafeBuffer(new byte[128]);
+        JsonPipeline pipeline = StreamingJson.createParser().stream()
+            .transform(JsonSchema.of("{\"type\":\"object\"}").validator())
+            .into(JsonSink.of(generator));
+
+        String json = "{\"k0\":0,\"k1\":1,\"k2\":2,\"k3\":3,\"k4\":4,\"k5\":5,\"k6\":6,\"k7\":7,\"k8\":8,\"k9\":9}";
         assertEquals(json, chunked(pipeline, generator, output, json));
     }
 
