@@ -119,8 +119,7 @@ class JsonPipelineChunkingTest
         List<Boolean> deferred = new ArrayList<>();
         JsonTransform probe = (control, source, event, sink) ->
         {
-            if (event == JsonEvent.START_SEGMENT || event == JsonEvent.CONTINUE_SEGMENT ||
-                event == JsonEvent.END_SEGMENT)
+            if (event == JsonEvent.SEGMENT)
             {
                 deferred.add(source.deferredBytes());
             }

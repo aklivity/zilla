@@ -62,8 +62,9 @@ if (pipeline.feed(in, off, len) == JsonPipeline.Status.COMPLETED)   // ADVANCED 
   parser and throws on the first violation.
 - **`JsonSink.of(generator)`** renders the event stream as normalized, compact JSON.
   **`JsonSink.of(generator, Delivery.SEGMENTABLE)`** opts a kept value in to verbatim delivery: it
-  arrives as `START_SEGMENT`/`CONTINUE_SEGMENT`/`END_SEGMENT` raw byte slices spliced unchanged,
-  preserving the original bytes (and any insignificant whitespace) rather than re-rendering.
+  arrives as `SEGMENT` raw byte slices (one per fragment, `deferredBytes()` true on all but the last)
+  spliced unchanged, preserving the original bytes (and any insignificant whitespace) rather than
+  re-rendering.
 
 ### Four-state status
 

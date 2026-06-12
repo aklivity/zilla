@@ -40,11 +40,9 @@ class JsonEventTest
     }
 
     @Test
-    void shouldFlagSegmentEventsAsSegmented()
+    void shouldFlagSegmentEventAsSegmented()
     {
-        assertTrue(JsonEvent.START_SEGMENT.segmented());
-        assertTrue(JsonEvent.CONTINUE_SEGMENT.segmented());
-        assertTrue(JsonEvent.END_SEGMENT.segmented());
+        assertTrue(JsonEvent.SEGMENT.segmented());
     }
 
     @Test

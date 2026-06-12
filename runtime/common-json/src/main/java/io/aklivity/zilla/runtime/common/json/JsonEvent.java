@@ -19,9 +19,10 @@ import jakarta.json.stream.JsonParser.Event;
 /**
  * The event currency of a {@link JsonStream} pipeline. A superset of the structured events of
  * {@code jakarta.json.stream.JsonParser.Event} (which cannot be extended) plus document framing
- * ({@link #START_DOCUMENT} / {@link #END_DOCUMENT}) and segment framing ({@link #START_SEGMENT} /
- * {@link #CONTINUE_SEGMENT} / {@link #END_SEGMENT}). A segment run delivers one complete value as
- * raw bytes rather than as structured events; {@link #segmented()} distinguishes those events.
+ * ({@link #START_DOCUMENT} / {@link #END_DOCUMENT}) and a single {@link #SEGMENT} event. A segment run
+ * delivers one complete value as raw bytes rather than as structured events, one {@link #SEGMENT} per
+ * fragment; {@link JsonSource#deferredBytes()} is {@code true} on every fragment but the last.
+ * {@link #segmented()} distinguishes the segment event.
  */
 public enum JsonEvent
 {
@@ -37,13 +38,11 @@ public enum JsonEvent
     VALUE_TRUE,
     VALUE_FALSE,
     VALUE_NULL,
-    START_SEGMENT,
-    CONTINUE_SEGMENT,
-    END_SEGMENT;
+    SEGMENT;
 
     public boolean segmented()
     {
-        return this == START_SEGMENT || this == CONTINUE_SEGMENT || this == END_SEGMENT;
+        return this == SEGMENT;
     }
 
     public static JsonEvent of(

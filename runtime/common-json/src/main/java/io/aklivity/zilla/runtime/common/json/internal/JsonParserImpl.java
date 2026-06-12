@@ -68,8 +68,7 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
     {
         NONE,
         PENDING_START,
-        SCANNING,
-        DONE_PENDING_END
+        SCANNING
     }
 
     private enum DocState
@@ -147,7 +146,7 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
     public boolean hasNext()
     {
         boolean result;
-        if (segmentState == SegmentState.PENDING_START || segmentState == SegmentState.DONE_PENDING_END)
+        if (segmentState == SegmentState.PENDING_START)
         {
             result = true;
         }
@@ -236,7 +235,7 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
         {
             result = false;
         }
-        else if (segmentState == SegmentState.PENDING_START || segmentState == SegmentState.DONE_PENDING_END)
+        else if (segmentState == SegmentState.PENDING_START)
         {
             result = true;
         }
@@ -257,16 +256,10 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
         switch (segmentState)
         {
         case PENDING_START:
-            event = scanSegment(bufferOffset(segmentStartOffset), JsonEvent.START_SEGMENT);
+            event = scanSegment(bufferOffset(segmentStartOffset));
             break;
         case SCANNING:
-            event = scanSegment(ownedInput.offset(), JsonEvent.CONTINUE_SEGMENT);
-            break;
-        case DONE_PENDING_END:
-            segmentSliceOffset = ownedInput.offset();
-            segmentSliceLength = 0;
-            segmentState = SegmentState.NONE;
-            event = JsonEvent.END_SEGMENT;
+            event = scanSegment(ownedInput.offset());
             break;
         default:
             lastEvent = JsonEvent.of(next());
@@ -284,7 +277,7 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
                     segmentDepth = 1;
                     segmentState = SegmentState.PENDING_START;
                     tokenizer.segmenting(true);
-                    event = scanSegment(bufferOffset(segmentStartOffset), JsonEvent.START_SEGMENT);
+                    event = scanSegment(bufferOffset(segmentStartOffset));
                 }
                 else
                 {
@@ -300,9 +293,11 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
         return event;
     }
 
+    // Scans the segmented value's raw bytes, emitting one SEGMENT per fragment: when the frame is
+    // exhausted before the value closes it suspends as SCANNING (more fragments follow, deferredBytes
+    // true); when structural depth returns to zero the value is complete (deferredBytes false).
     private JsonEvent scanSegment(
-        int sliceStart,
-        JsonEvent frameEndEvent)
+        int sliceStart)
     {
         JsonEvent event = null;
         while (event == null)
@@ -312,7 +307,7 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
                 segmentSliceOffset = sliceStart;
                 segmentSliceLength = ownedInput.offset() + ownedInput.length() - sliceStart;
                 segmentState = SegmentState.SCANNING;
-                event = frameEndEvent;
+                event = JsonEvent.SEGMENT;
             }
             else
             {
@@ -332,16 +327,8 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
                     final int sliceEnd = bufferOffset(tokenizer.streamOffset());
                     segmentSliceOffset = sliceStart;
                     segmentSliceLength = sliceEnd - sliceStart;
-                    if (frameEndEvent == JsonEvent.START_SEGMENT)
-                    {
-                        segmentState = SegmentState.DONE_PENDING_END;
-                        event = JsonEvent.START_SEGMENT;
-                    }
-                    else
-                    {
-                        segmentState = SegmentState.NONE;
-                        event = JsonEvent.END_SEGMENT;
-                    }
+                    segmentState = SegmentState.NONE;
+                    event = JsonEvent.SEGMENT;
                 }
             }
         }

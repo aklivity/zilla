@@ -37,7 +37,8 @@ public final class JsonSinkImpl implements JsonSink
     private final Delivery delivery;
     private int depth;
     private int segmentWritten;
-    private JsonEvent pendingSegmentEvent;
+    private boolean valueStarted;
+    private boolean pendingSegment;
 
     public JsonSinkImpl(
         JsonGeneratorEx generator)
@@ -85,7 +86,7 @@ public final class JsonSinkImpl implements JsonSink
             break;
         case VALUE_STRING:
             segment = source.getSegment();
-            if (segmentWritten == 0 && segment.capacity() < generator.remaining())
+            if (!valueStarted && segment.capacity() < generator.remaining())
             {
                 // fits: re-encode normalized (a re-encode is never longer than the raw token)
                 generator.write(source.getString());
@@ -94,11 +95,12 @@ public final class JsonSinkImpl implements JsonSink
             else
             {
                 // too large for the bound: splice the raw token bytes verbatim, fragmenting across chunks
-                if (segmentWritten == 0)
+                if (!valueStarted)
                 {
                     generator.writeRaw(segment, 0, 0);
+                    valueStarted = true;
                 }
-                status = writeChunk(segment, event);
+                status = writeChunk(segment, source);
             }
             break;
         case VALUE_NUMBER:
@@ -117,16 +119,15 @@ public final class JsonSinkImpl implements JsonSink
             generator.writeNull();
             status = scalarStatus();
             break;
-        case START_SEGMENT:
+        case SEGMENT:
             segment = source.getSegment();
             // emit the value's leading separator once, before its first content byte
-            generator.writeRaw(segment, 0, 0);
-            status = writeChunk(segment, event);
-            break;
-        case CONTINUE_SEGMENT:
-        case END_SEGMENT:
-            segment = source.getSegment();
-            status = writeChunk(segment, event);
+            if (!valueStarted)
+            {
+                generator.writeRaw(segment, 0, 0);
+                valueStarted = true;
+            }
+            status = writeChunk(segment, source);
             break;
         case START_DOCUMENT:
             if (delivery == Delivery.SEGMENTABLE)
@@ -148,9 +149,7 @@ public final class JsonSinkImpl implements JsonSink
         JsonController control,
         JsonSource source)
     {
-        Status status = pendingSegmentEvent != null
-            ? writeChunk(source.getSegment(), pendingSegmentEvent)
-            : Status.ADVANCED;
+        Status status = pendingSegment ? writeChunk(source.getSegment(), source) : Status.ADVANCED;
         return boundary(status);
     }
 
@@ -159,36 +158,43 @@ public final class JsonSinkImpl implements JsonSink
     {
         depth = 0;
         segmentWritten = 0;
-        pendingSegmentEvent = null;
+        valueStarted = false;
+        pendingSegment = false;
         generator.reset();
     }
 
     // Writes as much of the current segment slice as the bounded output allows, deferring the rest: when
-    // the slice does not fit it stashes the remainder and reports SUSPENDED so the driver drains and a
-    // later resume() continues from segmentWritten; once the slice is fully written the value boundary is
-    // reached.
+    // the slice does not fit it stashes the remainder (pendingSegment) and reports SUSPENDED so the driver
+    // drains and a later resume() continues from segmentWritten. Once the slice is fully written the value
+    // continues (more fragments follow, source.deferredBytes()) or completes (the value boundary).
     private Status writeChunk(
         DirectBuffer segment,
-        JsonEvent event)
+        JsonSource source)
     {
         int sliceLength = segment.capacity();
         int length = Math.min(sliceLength - segmentWritten, generator.remaining());
-        int deferred = sliceLength - segmentWritten - length;
-        generator.writeSegment(segment, segmentWritten, length, deferred);
+        int outputDeferred = sliceLength - segmentWritten - length;
+        generator.writeSegment(segment, segmentWritten, length, outputDeferred);
         segmentWritten += length;
         Status status;
-        if (deferred > 0)
+        if (outputDeferred > 0)
         {
-            pendingSegmentEvent = event;
+            pendingSegment = true;
             status = Status.SUSPENDED;
         }
         else
         {
             segmentWritten = 0;
-            pendingSegmentEvent = null;
-            status = event == JsonEvent.END_SEGMENT || event == JsonEvent.VALUE_STRING
-                ? scalarStatus()
-                : Status.ADVANCED;
+            pendingSegment = false;
+            if (source.deferredBytes())
+            {
+                status = Status.ADVANCED;
+            }
+            else
+            {
+                valueStarted = false;
+                status = scalarStatus();
+            }
         }
         return status;
     }

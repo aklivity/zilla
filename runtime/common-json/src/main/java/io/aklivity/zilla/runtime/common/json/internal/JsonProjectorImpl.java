@@ -277,11 +277,15 @@ public final class JsonProjectorImpl implements JsonTransform
         JsonEvent event,
         JsonSink sink)
     {
-        if (event == JsonEvent.START_SEGMENT)
+        if (event == JsonEvent.SEGMENT)
         {
             segMode = SegMode.FORWARDING;
             deferredStart = null;
             forward(sink, source, event);
+            if (!source.deferredBytes())
+            {
+                finishSegment();
+            }
         }
         else
         {
@@ -299,17 +303,22 @@ public final class JsonProjectorImpl implements JsonTransform
         JsonSink sink)
     {
         forward(sink, source, event);
-        if (event == JsonEvent.END_SEGMENT)
+        if (!source.deferredBytes())
         {
-            segMode = SegMode.NONE;
-            if (containers == 0)
-            {
-                rootDone = true;
-            }
-            else
-            {
-                depth--;
-            }
+            finishSegment();
+        }
+    }
+
+    private void finishSegment()
+    {
+        segMode = SegMode.NONE;
+        if (containers == 0)
+        {
+            rootDone = true;
+        }
+        else
+        {
+            depth--;
         }
     }
 
