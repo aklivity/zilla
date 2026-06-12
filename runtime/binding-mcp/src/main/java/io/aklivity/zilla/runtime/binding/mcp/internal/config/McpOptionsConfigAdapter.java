@@ -20,6 +20,7 @@ import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonString;
+import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.binding.mcp.config.McpCacheConfig;
@@ -29,6 +30,8 @@ import io.aklivity.zilla.runtime.binding.mcp.config.McpElicitationConfigBuilder;
 import io.aklivity.zilla.runtime.binding.mcp.config.McpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mcp.config.McpOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpBinding;
+import io.aklivity.zilla.runtime.engine.config.ModelConfig;
+import io.aklivity.zilla.runtime.engine.config.ModelConfigAdapter;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
@@ -49,6 +52,10 @@ public final class McpOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
     private static final String CACHE_AUTHORIZATION_CREDENTIALS_NAME = "credentials";
 
     private static final String SERVER_NAME = "server";
+
+    private static final String TOOLS_NAME = "tools";
+
+    private final ModelConfigAdapter model = new ModelConfigAdapter();
 
     @Override
     public Kind kind()
@@ -124,6 +131,12 @@ public final class McpOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
             object.add(SERVER_NAME, mcpOptions.server);
         }
 
+        if (mcpOptions.tools != null)
+        {
+            model.adaptType(mcpOptions.tools.model);
+            object.add(TOOLS_NAME, model.adaptToJson(mcpOptions.tools));
+        }
+
         return object.build();
     }
 
@@ -196,6 +209,13 @@ public final class McpOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
         if (object.containsKey(SERVER_NAME))
         {
             builder.server(object.getString(SERVER_NAME));
+        }
+
+        if (object.containsKey(TOOLS_NAME))
+        {
+            JsonValue tools = object.get(TOOLS_NAME);
+            ModelConfig toolsModel = model.adaptFromJson(tools);
+            builder.tools(toolsModel);
         }
 
         return builder.build();

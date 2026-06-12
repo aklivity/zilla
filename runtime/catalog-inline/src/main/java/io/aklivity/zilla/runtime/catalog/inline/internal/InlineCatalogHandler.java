@@ -25,17 +25,43 @@ import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 
 public class InlineCatalogHandler implements CatalogHandler
 {
+    private static final String VERSION_LATEST = "latest";
+
     private final Map<Integer, String> schemas;
     private final Map<String, Integer> schemaIds;
+    private final Map<Integer, Integer> references;
     private final CRC32C crc32c;
 
     public InlineCatalogHandler(
         InlineOptionsConfig config)
     {
         this.schemas = new HashMap<>();
-        this.schemaIds =  new HashMap<>();
+        this.schemaIds = new HashMap<>();
+        this.references = new HashMap<>();
         this.crc32c = new CRC32C();
         registerSchema(config.subjects);
+    }
+
+    @Override
+    public int register(
+        String subject,
+        String schema)
+    {
+        return register(subject, VERSION_LATEST, schema);
+    }
+
+    @Override
+    public int[] unregister(
+        String subject)
+    {
+        Integer schemaId = schemaIds.remove(subject + VERSION_LATEST);
+        int[] removed = new int[0];
+        if (schemaId != null)
+        {
+            release(schemaId);
+            removed = new int[] { schemaId };
+        }
+        return removed;
     }
 
     @Override
@@ -54,6 +80,45 @@ public class InlineCatalogHandler implements CatalogHandler
         return schemaIds.getOrDefault(key, NO_SCHEMA_ID);
     }
 
+    private int register(
+        String subject,
+        String version,
+        String schema)
+    {
+        int schemaId = generateCRC32C(schema);
+        String key = subject + version;
+        Integer current = schemaIds.get(key);
+        if (current == null || current.intValue() != schemaId)
+        {
+            if (current != null)
+            {
+                release(current);
+            }
+            schemaIds.put(key, schemaId);
+            schemas.putIfAbsent(schemaId, schema);
+            references.merge(schemaId, 1, Integer::sum);
+        }
+        return schemaId;
+    }
+
+    private void release(
+        int schemaId)
+    {
+        Integer count = references.get(schemaId);
+        if (count != null)
+        {
+            if (count.intValue() <= 1)
+            {
+                references.remove(schemaId);
+                schemas.remove(schemaId);
+            }
+            else
+            {
+                references.put(schemaId, count - 1);
+            }
+        }
+    }
+
     private int generateCRC32C(
         String schema)
     {
@@ -70,10 +135,7 @@ public class InlineCatalogHandler implements CatalogHandler
         {
             for (InlineSchemaConfig config : configs)
             {
-                String schema = config.schema;
-                int schemaId = generateCRC32C(schema);
-                schemas.put(schemaId, schema);
-                schemaIds.put(config.subject + config.version, schemaId);
+                register(config.subject, config.version, config.schema);
             }
         }
     }
