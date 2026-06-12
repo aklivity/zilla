@@ -1,0 +1,16 @@
+---
+name: test
+catalogs:
+  tools_schema:
+    type: inline
+bindings:
+  net0:
+    type: mcp
+    kind: server
+    options:
+      tools:
+        model: json
+        catalog:
+          tools_schema:
+            - strategy: tool
+    exit: app0
