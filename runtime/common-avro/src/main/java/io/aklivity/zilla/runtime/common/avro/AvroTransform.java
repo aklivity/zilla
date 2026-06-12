@@ -33,16 +33,16 @@ public interface AvroTransform
 
     /**
      * Resumes the downstream after a {@link AvroPipeline.Status#SUSPENDED} return, once the caller has
-     * drained the bounded output. The default forwards to {@code downstream}, so a stage that merely
-     * forwards events never re-sees them on resume; a stage that fans out or buffers overrides this to
-     * continue its own emission before forwarding.
+     * drained the bounded output. The default forwards to {@code sink}, so a stage that merely forwards
+     * events never re-sees them on resume; a stage that fans out or buffers overrides this to continue
+     * its own emission before forwarding.
      */
     default AvroPipeline.Status resume(
         AvroController control,
         AvroSource source,
-        AvroSink downstream)
+        AvroSink sink)
     {
-        return downstream.resume(control, source);
+        return sink.resume(control, source);
     }
 
     default void reset()
