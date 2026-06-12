@@ -94,6 +94,104 @@ public class ProtobufChunkingTest
         assertEquals("Springfield", person.city);
     }
 
+    @Test
+    public void shouldFragmentLeafInsideGroupSpanningChunks()
+    {
+        ProtobufSchema grouped = Protobuf.schema()
+            .message(ProtobufMessage.builder("Grp")
+                .field(ProtobufField.builder().number(1).name("blob").type(ProtobufType.STRING).build())
+                .field(ProtobufField.builder().number(2).name("label").type(ProtobufType.STRING).build())
+                .build())
+            .message(ProtobufMessage.builder("Record")
+                .field(ProtobufField.builder().number(1).name("note").type(ProtobufType.STRING).build())
+                .field(ProtobufField.builder().number(2).name("grp").type(ProtobufType.GROUP).typeName("Grp").build())
+                .build())
+            .build();
+
+        String blob = "z".repeat(300);
+        byte[] input = wire(w ->
+        {
+            w.writeTag(1, ProtobufWireType.LEN);
+            w.writeBytes("hi".getBytes(UTF_8));
+            w.writeTag(2, ProtobufWireType.SGROUP);
+            w.writeTag(1, ProtobufWireType.LEN);
+            w.writeBytes(blob.getBytes(UTF_8));
+            w.writeTag(2, ProtobufWireType.LEN);
+            w.writeBytes("end".getBytes(UTF_8));
+            w.writeTag(2, ProtobufWireType.EGROUP);
+        });
+
+        int limit = 48;
+        MutableDirectBuffer out = new UnsafeBuffer(new byte[1024]);
+        ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, limit);
+        ProtobufPipeline pipeline = Protobuf.parser(grouped, "Record").stream()
+            .into(ProtobufSink.of(generator, grouped, "Record"));
+        pipeline.reset();
+
+        List<byte[]> chunks = new ArrayList<>();
+        UnsafeBuffer buffer = new UnsafeBuffer(input);
+        ProtobufPipeline.Status status = pipeline.feed(buffer, 0, input.length);
+        while (status == ProtobufPipeline.Status.SUSPENDED)
+        {
+            assertTrue(generator.length() <= limit, "chunk exceeded the generator limit");
+            chunks.add(bytes(out, generator.length()));
+            generator.wrap(out, 0, limit);
+            status = pipeline.feed(buffer, 0, input.length);
+        }
+        assertEquals(ProtobufPipeline.Status.COMPLETE, status);
+        chunks.add(bytes(out, generator.length()));
+
+        // decode the concatenated stream, merging the repeated group occurrences as the wire merges them
+        ProtobufParser parser = Protobuf.parser(grouped, "Record")
+            .wrap(new UnsafeBuffer(concat(chunks)), 0, concat(chunks).length);
+        String note = null;
+        String decodedBlob = null;
+        String label = null;
+        ProtobufField pending = null;
+        int depth = 0;
+        while (parser.hasNext())
+        {
+            switch (parser.nextEvent())
+            {
+            case START_MESSAGE:
+            case START_GROUP:
+                depth++;
+                break;
+            case END_MESSAGE:
+            case END_GROUP:
+                depth--;
+                break;
+            case FIELD:
+                pending = parser.field();
+                break;
+            case VALUE:
+                byte[] value = new byte[parser.length()];
+                parser.buffer().getBytes(parser.offset(), value);
+                String text = new String(value, UTF_8);
+                if (depth == 1 && pending.number() == 1)
+                {
+                    note = text;
+                }
+                else if (depth == 2 && pending.number() == 1)
+                {
+                    decodedBlob = text;
+                }
+                else if (depth == 2 && pending.number() == 2)
+                {
+                    label = text;
+                }
+                break;
+            default:
+                break;
+            }
+        }
+
+        assertTrue(chunks.size() >= 5, "expected the group's value to be fragmented across many chunks");
+        assertEquals("hi", note);
+        assertEquals(blob, decodedBlob);
+        assertEquals("end", label);
+    }
+
     private List<byte[]> chunk(
         byte[] input,
         int limit)

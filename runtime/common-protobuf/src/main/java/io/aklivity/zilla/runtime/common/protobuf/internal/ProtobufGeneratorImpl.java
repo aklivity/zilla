@@ -102,7 +102,7 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
     @Override
     public int remaining()
     {
-        return limit - writer.length() - reopenCost();
+        return limit - writer.length() - reopenCost() - closeCost();
     }
 
     @Override
@@ -325,7 +325,26 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
         }
         writer.writeRaw(value, offset, length);
         segmentRemaining -= length;
+        if (segmentRemaining == 0)
+        {
+            completeSegment();
+        }
         return this;
+    }
+
+    private void completeSegment()
+    {
+        // emit the EGROUPs deferred while the value fragmented, innermost first, right after its bytes —
+        // the enclosing message lengths already counted them at flush
+        for (int level = depth - 1; level >= 0; level--)
+        {
+            if (kinds[level] == KIND_GROUP && !committed[level])
+            {
+                writer.writeTag(fields[level], ProtobufWireType.EGROUP);
+                committed[level] = true;
+                needsReopen = true;
+            }
+        }
     }
 
     @Override
@@ -397,6 +416,10 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
     @Override
     public ProtobufGenerator flush()
     {
+        // a record closes at the value being fragmented, so each message length counts the deferred value
+        // bytes plus the end-tags of the open groups inside it (those EGROUPs are emitted when the value
+        // completes; a group with no in-flight value is end-tagged here and closes its own record)
+        int trailing = segmentRemaining;
         for (int level = depth - 1; level >= 0; level--)
         {
             if (committed[level])
@@ -405,24 +428,27 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
             }
             if (kinds[level] == KIND_GROUP)
             {
-                if (segmentRemaining > 0)
+                if (segmentRemaining == 0)
                 {
-                    throw new ProtobufException("group cannot enclose a fragmented value across a chunk");
+                    writer.writeTag(fields[level], ProtobufWireType.EGROUP);
+                    committed[level] = true;
                 }
-                writer.writeTag(fields[level], ProtobufWireType.EGROUP);
+                else
+                {
+                    trailing += varintSize((long) fields[level] << 3);
+                }
             }
             else
             {
-                // a record closes at the value being fragmented, so its body includes the deferred bytes
-                int body = writer.offset() - (slots[level] + widths[level]) + segmentRemaining;
+                int body = writer.offset() - (slots[level] + widths[level]) + trailing;
                 if (varintSize(body) > widths[level])
                 {
                     throw new ProtobufException("nested message body " + body +
                         " exceeds reserved length width " + widths[level]);
                 }
                 writer.putPaddedVarint(slots[level], body, widths[level]);
+                committed[level] = true;
             }
-            committed[level] = true;
         }
         needsReopen = depth > 0;
         flushed = true;
@@ -478,6 +504,21 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
                         ? varintSize((long) fields[level] << 3) + widths[level]
                         : varintSize((long) fields[level] << 3);
                 }
+            }
+        }
+        return cost;
+    }
+
+    // bytes held free for the end-tags of open groups not yet closed, so a flush or the value's completion
+    // can always emit them within the limit
+    private int closeCost()
+    {
+        int cost = 0;
+        for (int level = 0; level < depth; level++)
+        {
+            if (kinds[level] == KIND_GROUP && !committed[level])
+            {
+                cost += varintSize((long) fields[level] << 3);
             }
         }
         return cost;
