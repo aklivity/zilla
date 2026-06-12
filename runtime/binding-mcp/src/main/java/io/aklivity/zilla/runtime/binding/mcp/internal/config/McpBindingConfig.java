@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.binding.mcp.internal.config;
 
 import static io.aklivity.zilla.runtime.binding.mcp.config.McpElicitationConfig.DEFAULT_CALLBACK_PATH;
+import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -23,8 +24,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.mcp.config.McpOptionsConfig;
@@ -34,8 +37,13 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
+import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
+import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
+import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
 public final class McpBindingConfig
 {
@@ -61,6 +69,10 @@ public final class McpBindingConfig
     private final String serverScheme;
     private final String serverAuthority;
     private final String serverPath;
+    private final CatalogHandler toolsCatalog;
+    private final ModelConfig toolsModel;
+    private final Function<ModelConfig, ValidatorHandler> supplyValidator;
+    private final Int2ObjectHashMap<ValidatorHandler> validatorsBySchemaId;
 
     public McpBindingConfig(
         BindingConfig binding,
@@ -119,6 +131,61 @@ public final class McpBindingConfig
         this.serverScheme = server != null ? server.getScheme() : null;
         this.serverAuthority = server != null ? authorityOf(server) : null;
         this.serverPath = server != null ? pathOf(server) : null;
+
+        this.toolsModel = Optional.ofNullable(options)
+            .map(o -> o.tools)
+            .orElse(null);
+        this.toolsCatalog = toolsModel != null && !toolsModel.cataloged.isEmpty()
+            ? context.supplyCatalog(toolsModel.cataloged.get(0).id)
+            : null;
+        this.supplyValidator = context::supplyValidator;
+        this.validatorsBySchemaId = new Int2ObjectHashMap<>();
+    }
+
+    public boolean validatesTools()
+    {
+        return toolsCatalog != null;
+    }
+
+    public int registerToolSchema(
+        String subject,
+        String schema)
+    {
+        return toolsCatalog != null ? toolsCatalog.register(subject, schema) : NO_SCHEMA_ID;
+    }
+
+    public void unregisterToolSchema(
+        String subject)
+    {
+        if (toolsCatalog != null)
+        {
+            toolsCatalog.unregister(subject);
+        }
+    }
+
+    public ValidatorHandler resolveToolValidator(
+        int schemaId)
+    {
+        return toolsCatalog != null && schemaId != NO_SCHEMA_ID
+            ? validatorsBySchemaId.computeIfAbsent(schemaId, this::newToolValidator)
+            : null;
+    }
+
+    private ValidatorHandler newToolValidator(
+        int schemaId)
+    {
+        final CatalogedConfig template = toolsModel.cataloged.get(0);
+        final CatalogedConfig cataloged = CatalogedConfig.builder()
+            .name(template.name)
+            .schema()
+                .id(schemaId)
+                .build()
+            .build();
+        cataloged.id = template.id;
+        final ModelConfig model = JsonModelConfig.builder()
+            .catalog(cataloged)
+            .build();
+        return supplyValidator.apply(model);
     }
 
     public void injectHeaders(
