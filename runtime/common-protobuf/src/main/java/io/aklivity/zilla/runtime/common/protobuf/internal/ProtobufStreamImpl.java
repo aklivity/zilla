@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.common.protobuf.internal;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufParser;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSink;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufStream;
@@ -28,11 +29,11 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufTransform;
  */
 public final class ProtobufStreamImpl implements ProtobufStream
 {
-    private final ProtobufParserImpl parser;
+    private final ProtobufParser parser;
     private final List<ProtobufTransform> transforms;
 
     public ProtobufStreamImpl(
-        ProtobufParserImpl parser)
+        ProtobufParser parser)
     {
         this.parser = parser;
         this.transforms = new ArrayList<>();

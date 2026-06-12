@@ -21,34 +21,40 @@ import org.agrona.DirectBuffer;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufController;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufEvent;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufException;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufField;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufMessage;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufParser;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSink;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSource;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufTransform;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
 
 /**
- * The runnable pipeline: a thin pump that re-targets the {@link ProtobufParserImpl} cursor at the frame
- * buffer and feeds each pulled {@link ProtobufEvent} through the stage chain to the terminal sink. The
- * parser is both the {@link ProtobufSource} read by stages and the {@link ProtobufController} they
- * steer, so it is passed as both ends of each {@link ProtobufSink#feed} call.
+ * The runnable pipeline: a thin pump that re-targets the {@link ProtobufParser} cursor at the frame
+ * buffer and feeds each pulled {@link ProtobufEvent} through the stage chain to the terminal sink. It
+ * owns the per-edge handles the stages receive — a {@link ProtobufSource} view that delegates to the
+ * parser's accessors (without exposing the cursor, so a stage cannot disturb the pump) and a
+ * {@link ProtobufController} that records segment requests — leaving the parser as a pure cursor.
  */
 public final class ProtobufPipelineImpl implements ProtobufPipeline
 {
-    private final ProtobufParserImpl parser;
+    private final ProtobufParser parser;
+    private final Source source;
     private final Control control;
     private final ProtobufSink head;
 
     private boolean suspended;
 
     public ProtobufPipelineImpl(
-        ProtobufParserImpl parser,
+        ProtobufParser parser,
         List<ProtobufTransform> transforms,
         ProtobufSink sink)
     {
         this.parser = parser;
-        // the head edge's control handle records a stage's segment request, which the pump turns into the
-        // SEGMENTED mode it passes to the parser — so the parser itself holds no segmentation state
+        // the per-edge handles the stages see: a read-only source view of the parser, and a control handle
+        // that records a stage's segment request which the pump turns into the SEGMENTED mode on the next pull
+        this.source = new Source(parser);
         this.control = new Control();
 
         ProtobufSink chain = sink;
@@ -78,7 +84,7 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
             if (suspended)
             {
                 // continue the suspended work without replaying the event through the stages
-                status = head.resume(control, parser);
+                status = head.resume(control, source);
             }
             else
             {
@@ -86,7 +92,7 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
             }
             while (status == Status.ADVANCED && parser.hasNext())
             {
-                status = head.feed(control, parser, parser.nextEvent(control.mode()));
+                status = head.feed(control, source, parser.nextEvent(control.mode()));
             }
             suspended = status == Status.SUSPENDED;
         }
@@ -132,6 +138,79 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
         {
             transform.reset();
             downstream.reset();
+        }
+    }
+
+    // the read-only view handed to stages: the parser's accessors without its cursor, so a stage reads the
+    // current value but cannot advance the pump
+    private static final class Source implements ProtobufSource
+    {
+        private final ProtobufParser parser;
+
+        private Source(
+            ProtobufParser parser)
+        {
+            this.parser = parser;
+        }
+
+        @Override
+        public ProtobufField field()
+        {
+            return parser.field();
+        }
+
+        @Override
+        public ProtobufMessage message()
+        {
+            return parser.message();
+        }
+
+        @Override
+        public int fieldNumber()
+        {
+            return parser.fieldNumber();
+        }
+
+        @Override
+        public ProtobufWireType wireType()
+        {
+            return parser.wireType();
+        }
+
+        @Override
+        public long longValue()
+        {
+            return parser.longValue();
+        }
+
+        @Override
+        public double doubleValue()
+        {
+            return parser.doubleValue();
+        }
+
+        @Override
+        public float floatValue()
+        {
+            return parser.floatValue();
+        }
+
+        @Override
+        public DirectBuffer buffer()
+        {
+            return parser.buffer();
+        }
+
+        @Override
+        public int offset()
+        {
+            return parser.offset();
+        }
+
+        @Override
+        public int length()
+        {
+            return parser.length();
         }
     }
 

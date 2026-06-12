@@ -87,7 +87,7 @@ public final class Protobuf
     public static ProtobufStream stream(
         ProtobufParser parser)
     {
-        return new ProtobufStreamImpl((ProtobufParserImpl) parser);
+        return new ProtobufStreamImpl(parser);
     }
 
     /**
