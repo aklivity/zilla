@@ -119,13 +119,13 @@ records `deferred` — how many bytes of the value remain — and the sink retur
 it continues from where it paused until `deferred` reaches zero. A value of any size streams this way
 through the segment path, never buffered in full.
 
-Resumption is a **per-stage cascade**, not an event replay: `JsonSink.resume()` and
-`JsonTransform.resume(downstream)` continue any in-flight fragment before the next event is pulled.
-`JsonTransform.resume(downstream)` defaults to `downstream.resume()`, so a stage that only forwards
-events ignores it entirely; a stage that itself emits a value across chunks (substituting or expanding
-output) overrides `resume(downstream)` to continue its own emission, draining the downstream first.
-This keeps the transform contract simple — no stage has to be suspend/resume aware unless it originates
-`SUSPENDED`.
+Resumption is a **per-stage cascade**, not an event replay: `JsonSink.resume(control, source)` and
+`JsonTransform.resume(control, source, sink)` continue any in-flight fragment before the next event is
+pulled, with the same `control` and `source` context as `feed`. `JsonTransform.resume(control, source,
+sink)` defaults to `sink.resume(control, source)`, so a stage that only forwards events ignores it
+entirely; a stage that itself emits a value across chunks (substituting or expanding output) overrides
+it to continue its own emission, draining the downstream first. This keeps the transform contract
+simple — no stage has to be suspend/resume aware unless it originates `SUSPENDED`.
 
 ### Writing JSON directly
 

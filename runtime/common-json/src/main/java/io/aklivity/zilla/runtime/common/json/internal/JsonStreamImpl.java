@@ -87,9 +87,11 @@ public final class JsonStreamImpl implements JsonStream
         }
 
         @Override
-        public Status resume()
+        public Status resume(
+            JsonController control,
+            JsonSource source)
         {
-            return transform.resume(downstream);
+            return transform.resume(control, source, downstream);
         }
 
         @Override

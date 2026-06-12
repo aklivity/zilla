@@ -61,7 +61,7 @@ public final class JsonPipelineImpl implements JsonPipeline
         {
             if (suspended)
             {
-                status = root.resume();
+                status = root.resume(parser, parser);
             }
             else
             {

@@ -37,7 +37,6 @@ public final class JsonSinkImpl implements JsonSink
     private final Delivery delivery;
     private int depth;
     private int segmentWritten;
-    private DirectBuffer pendingSegment;
     private JsonEvent pendingSegmentEvent;
 
     public JsonSinkImpl(
@@ -131,9 +130,13 @@ public final class JsonSinkImpl implements JsonSink
     }
 
     @Override
-    public Status resume()
+    public Status resume(
+        JsonController control,
+        JsonSource source)
     {
-        Status status = pendingSegment != null ? writeChunk(pendingSegment, pendingSegmentEvent) : Status.RESUMABLE;
+        Status status = pendingSegmentEvent != null
+            ? writeChunk(source.getSegment(), pendingSegmentEvent)
+            : Status.RESUMABLE;
         return boundary(status);
     }
 
@@ -142,7 +145,6 @@ public final class JsonSinkImpl implements JsonSink
     {
         depth = 0;
         segmentWritten = 0;
-        pendingSegment = null;
         pendingSegmentEvent = null;
         generator.reset();
     }
@@ -163,14 +165,13 @@ public final class JsonSinkImpl implements JsonSink
         Status status;
         if (deferred > 0)
         {
-            pendingSegment = segment;
             pendingSegmentEvent = event;
             status = Status.SUSPENDED;
         }
         else
         {
             segmentWritten = 0;
-            pendingSegment = null;
+            pendingSegmentEvent = null;
             status = event == JsonEvent.END_SEGMENT ? scalarStatus() : Status.RESUMABLE;
         }
         return status;
