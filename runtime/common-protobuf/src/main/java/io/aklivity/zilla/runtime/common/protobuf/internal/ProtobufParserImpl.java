@@ -51,7 +51,6 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
     private static final int PHASE_SCALAR_VALUE = 1;
     private static final int PHASE_RAW_VALUE = 2;
     private static final int PHASE_COMPOSITE = 3;
-    private static final int PHASE_SEGMENT_END = 4;
 
     private final ProtobufSchema schema;
     private final String messageName;
@@ -79,6 +78,7 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
     private DirectBuffer buffer;
     private int offset;
     private int length;
+    private int deferred;
 
     public ProtobufParserImpl(
         ProtobufSchema schema,
@@ -102,6 +102,7 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
         this.done = false;
         this.depth = -1;
         this.phase = PHASE_NONE;
+        this.deferred = 0;
         return this;
     }
 
@@ -137,11 +138,6 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
                 break;
             case PHASE_COMPOSITE:
                 event = resolveComposite(mode);
-                break;
-            case PHASE_SEGMENT_END:
-                phase = PHASE_NONE;
-                slice(inputBuffer, regionOffset, regionLength);
-                event = ProtobufEvent.END_SEGMENT;
                 break;
             default:
                 event = advance();
@@ -209,6 +205,12 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
     public int length()
     {
         return length;
+    }
+
+    @Override
+    public int bytesDeferred()
+    {
+        return deferred;
     }
 
     private ProtobufEvent startRoot()
@@ -347,12 +349,12 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
         ProtobufEvent event;
         if (mode == Mode.SEGMENTED)
         {
-            phase = PHASE_SEGMENT_END;
+            phase = PHASE_NONE;
             field = compositeField;
             fieldNumber = compositeField.number();
             wireType = compositeField.type().wireType();
             slice(inputBuffer, regionOffset, regionLength);
-            event = ProtobufEvent.START_SEGMENT;
+            event = ProtobufEvent.SEGMENT;
         }
         else
         {

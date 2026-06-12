@@ -110,7 +110,7 @@ public class ProtobufPipelineTest
         pipeline.reset();
 
         assertEquals(Status.COMPLETED, feed(pipeline, message));
-        assertEquals(List.of("{", "F4", "START_SEGMENT", "END_SEGMENT", "}"), sink.events);
+        assertEquals(List.of("{", "F4", "SEGMENT", "}"), sink.events);
         assertArrayEquals(home, sink.segment);
     }
 
@@ -509,16 +509,10 @@ public class ProtobufPipelineTest
             case VALUE:
                 events.add("V" + value(source));
                 break;
-            case START_SEGMENT:
-                events.add("START_SEGMENT");
+            case SEGMENT:
+                events.add("SEGMENT");
                 segment = new byte[source.length()];
                 source.buffer().getBytes(source.offset(), segment);
-                break;
-            case END_SEGMENT:
-                events.add("END_SEGMENT");
-                break;
-            case CONTINUE_SEGMENT:
-                events.add("CONTINUE_SEGMENT");
                 break;
             default:
                 break;

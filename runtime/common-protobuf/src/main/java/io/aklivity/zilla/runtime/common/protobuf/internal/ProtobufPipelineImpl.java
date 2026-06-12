@@ -212,6 +212,12 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
         {
             return parser.length();
         }
+
+        @Override
+        public int bytesDeferred()
+        {
+            return parser.bytesDeferred();
+        }
     }
 
     // the head edge's controller: a stage's segmentable() request becomes a one-shot SEGMENTED mode that the

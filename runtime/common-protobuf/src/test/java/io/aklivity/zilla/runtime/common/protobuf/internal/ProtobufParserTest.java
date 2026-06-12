@@ -151,20 +151,17 @@ public class ProtobufParserTest
             case VALUE:
                 events.add("V" + scalar(parser));
                 break;
-            case START_SEGMENT:
-                events.add("S");
+            case SEGMENT:
+                events.add("S" + parser.bytesDeferred());
                 segment = new byte[parser.length()];
                 parser.buffer().getBytes(parser.offset(), segment);
-                break;
-            case END_SEGMENT:
-                events.add("E");
                 break;
             default:
                 break;
             }
         }
 
-        assertEquals(List.of("{", "F1", "Vneo", "F4", "S", "E", "}"), events);
+        assertEquals(List.of("{", "F1", "Vneo", "F4", "S0", "}"), events);
         assertArrayEquals(home, segment);
     }
 

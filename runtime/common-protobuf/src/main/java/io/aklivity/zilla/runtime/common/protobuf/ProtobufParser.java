@@ -117,4 +117,10 @@ public interface ProtobufParser
     int offset();
 
     int length();
+
+    /**
+     * For a {@link ProtobufEvent#SEGMENT}, the number of bytes of the value still to come after this
+     * slice — {@code 0} on the last (or only) piece, and {@code 0} for every non-segment event.
+     */
+    int bytesDeferred();
 }

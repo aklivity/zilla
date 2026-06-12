@@ -71,4 +71,12 @@ public interface ProtobufSource
     int offset();
 
     int length();
+
+    /**
+     * For a {@link ProtobufEvent#SEGMENT}, the number of bytes of the value still to come after this
+     * slice — {@code 0} on the last (or only) piece, and {@code 0} for every non-segment event. A value
+     * larger than the input window arrives as repeated {@code SEGMENT}s with a decreasing
+     * {@code bytesDeferred()}, mirroring the generator's {@code writeSegment(..., deferred)}.
+     */
+    int bytesDeferred();
 }

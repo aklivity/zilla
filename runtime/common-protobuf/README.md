@@ -73,7 +73,8 @@ while (parser.hasNext())
 ```
 
 `nextEvent()` defaults to `STRUCTURED`; pass `Mode.SEGMENTED` to `nextEvent(mode)` at a composite `FIELD`
-to receive that value as a raw `START_SEGMENT`…`END_SEGMENT` byte pair instead of recursing into it.
+to receive that value as a raw `SEGMENT` (its bytes via `buffer()`/`offset()`/`length()`) instead of
+recursing into it.
 
 A schema-free cursor (`Protobuf.parser()`, no schema) tokenizes the wire into generic `FIELD`/`VALUE`
 pairs carrying `fieldNumber()` and `wireType()` (see Schema-free mode below).
@@ -112,8 +113,9 @@ if (pipeline.feed(in, off, len) == ProtobufPipeline.Status.COMPLETED)  // COMPLE
   (fields absent in the target are dropped, including their subtrees) — a straight re-encode with the
   read schema, a rename/renumber with an evolved one (as above).
 - **Segment delivery**: a stage calls `ProtobufController.segmentable()` on a composite `FIELD` to
-  receive that value as `START_SEGMENT`/`END_SEGMENT` raw wire bytes
-  (`ProtobufSource.buffer()`/`offset()`/`length()`) instead of expanding it into structured events —
+  receive that value as a raw `SEGMENT` of wire bytes
+  (`ProtobufSource.buffer()`/`offset()`/`length()`, with `bytesDeferred()` for a value spanning windows)
+  instead of expanding it into structured events —
   preserving the nested bytes verbatim.
 
 ### Bounded output and streaming
