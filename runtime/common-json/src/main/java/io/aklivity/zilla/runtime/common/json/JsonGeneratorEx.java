@@ -126,6 +126,15 @@ public interface JsonGeneratorEx extends JsonGenerator
     JsonGeneratorEx writeKey(
         String name);
 
+    /**
+     * Writes an object key from a {@code CharSequence} without first materializing a {@link String},
+     * letting a streaming caller forward a non-owning char view (e.g. a key still buffered upstream)
+     * straight to the wire. Semantics match {@link #writeKey(String)}; the chars are escaped and
+     * encoded as they are read.
+     */
+    JsonGeneratorEx writeKey(
+        CharSequence name);
+
     @Override
     JsonGeneratorEx writeEnd();
 

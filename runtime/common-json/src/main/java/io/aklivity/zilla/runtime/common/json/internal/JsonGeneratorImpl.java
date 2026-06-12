@@ -126,6 +126,13 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     public JsonGeneratorImpl writeKey(
         String name)
     {
+        return writeKey((CharSequence) name);
+    }
+
+    @Override
+    public JsonGeneratorImpl writeKey(
+        CharSequence name)
+    {
         if (hasMembers[depth - 1])
         {
             putByte(',');
@@ -416,14 +423,14 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     }
 
     private void writeString(
-        String value)
+        CharSequence value)
     {
         putByte('"');
         int index = 0;
         int length = value.length();
         while (index < length)
         {
-            int codePoint = value.codePointAt(index);
+            int codePoint = Character.codePointAt(value, index);
             index += Character.charCount(codePoint);
             switch (codePoint)
             {

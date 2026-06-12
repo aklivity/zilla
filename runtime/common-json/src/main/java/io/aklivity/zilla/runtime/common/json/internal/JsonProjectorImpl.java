@@ -66,7 +66,7 @@ public final class JsonProjectorImpl implements JsonTransform
     private int depth;
     private int containers;
     private Decision keyDecision;
-    private String pendingKey;
+    private CharSequence pendingKey;
     private boolean rootDone;
     private boolean downstreamDemand;
     private Status downstream;
@@ -214,9 +214,9 @@ public final class JsonProjectorImpl implements JsonTransform
         boolean parentKeepAll = containers > 0 && frameKeepAll[containers - 1];
         Decision d = parentKeepAll ? Decision.KEEP_ALL : decide();
         keyDecision = d;
-        // Only a key whose value will be emitted is forwarded, so only then is a String materialized;
-        // SKIP keys (the majority) are matched by chars above and never allocate.
-        pendingKey = d == Decision.SKIP ? null : source.getString();
+        // A forwarded key reuses the char view already buffered above for path matching, so no key
+        // ever materializes a String — neither the SKIP majority nor the KEEP keys carried downstream.
+        pendingKey = d == Decision.SKIP ? null : key;
     }
 
     private void forwardPendingKey(
@@ -512,10 +512,10 @@ public final class JsonProjectorImpl implements JsonTransform
 
     private static final class KeySource implements JsonSource
     {
-        private String key;
+        private CharSequence key;
 
         private KeySource with(
-            String key)
+            CharSequence key)
         {
             this.key = key;
             return this;
@@ -524,7 +524,7 @@ public final class JsonProjectorImpl implements JsonTransform
         @Override
         public String getString()
         {
-            return key;
+            return key == null ? null : key.toString();
         }
 
         @Override
