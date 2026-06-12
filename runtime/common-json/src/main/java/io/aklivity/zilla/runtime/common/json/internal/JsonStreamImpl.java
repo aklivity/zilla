@@ -89,12 +89,7 @@ public final class JsonStreamImpl implements JsonStream
         @Override
         public Status resume()
         {
-            Status status = downstream.resume();
-            if (status == Status.RESUMABLE)
-            {
-                status = transform.resume(downstream);
-            }
-            return status;
+            return transform.resume(downstream);
         }
 
         @Override

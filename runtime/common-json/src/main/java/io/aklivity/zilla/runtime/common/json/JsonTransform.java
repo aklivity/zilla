@@ -33,16 +33,17 @@ public interface JsonTransform
         JsonSink sink);
 
     /**
-     * Continues output this stage left in flight by a prior {@link JsonPipeline.Status#SUSPENDED} —
-     * a value it was emitting to {@code sink} across chunks — before the next event is fed. Returns
-     * {@link JsonPipeline.Status#SUSPENDED} if the bounded output filled again, or {@link
-     * JsonPipeline.Status#RESUMABLE} when this stage has nothing more to emit. The {@code resume()}
-     * cascade drains the downstream first, so a stage that only forwards events keeps the default.
+     * Continues output left in flight by a prior {@link JsonPipeline.Status#SUSPENDED} before the next
+     * event is fed. The default forwards to {@code sink.resume()}, draining whatever is pending
+     * downstream — sufficient for a stage that only forwards events. A stage that itself emits a value
+     * across chunks (substituting or expanding output) overrides this to continue its own emission,
+     * draining the downstream first. Returns {@link JsonPipeline.Status#SUSPENDED} if the bounded output
+     * filled again, or {@link JsonPipeline.Status#RESUMABLE} when nothing remains pending.
      */
     default JsonPipeline.Status resume(
         JsonSink sink)
     {
-        return JsonPipeline.Status.RESUMABLE;
+        return sink.resume();
     }
 
     default void reset()
