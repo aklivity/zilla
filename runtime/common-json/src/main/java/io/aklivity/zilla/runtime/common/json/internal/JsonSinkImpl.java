@@ -85,27 +85,17 @@ public final class JsonSinkImpl implements JsonSink
             }
             break;
         case VALUE_STRING:
-            segment = source.getSegment();
-            if (!valueStarted && segment.capacity() < generator.remaining())
-            {
-                // fits: re-encode normalized (a re-encode is never longer than the raw token)
-                generator.write(source.getStringView());
-                status = scalarStatus();
-            }
-            else
-            {
-                // too large for the bound: splice the raw token bytes verbatim, fragmenting across chunks
-                if (!valueStarted)
-                {
-                    generator.writeRaw(segment, 0, 0);
-                    valueStarted = true;
-                }
-                status = writeChunk(segment, source);
-            }
-            break;
         case VALUE_NUMBER:
-            generator.writeNumber(source.getStringView());
-            status = scalarStatus();
+        case SEGMENT:
+            // splice the kept leaf's raw token bytes verbatim, fragmenting across chunks; the value's
+            // leading separator is emitted once, before its first content byte
+            segment = source.getSegment();
+            if (!valueStarted)
+            {
+                generator.writeRaw(segment, 0, 0);
+                valueStarted = true;
+            }
+            status = writeChunk(segment, source);
             break;
         case VALUE_TRUE:
             generator.write(true);
@@ -118,16 +108,6 @@ public final class JsonSinkImpl implements JsonSink
         case VALUE_NULL:
             generator.writeNull();
             status = scalarStatus();
-            break;
-        case SEGMENT:
-            segment = source.getSegment();
-            // emit the value's leading separator once, before its first content byte
-            if (!valueStarted)
-            {
-                generator.writeRaw(segment, 0, 0);
-                valueStarted = true;
-            }
-            status = writeChunk(segment, source);
             break;
         case START_DOCUMENT:
             if (delivery == Delivery.SEGMENTABLE)

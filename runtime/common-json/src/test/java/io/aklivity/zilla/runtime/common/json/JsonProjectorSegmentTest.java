@@ -58,6 +58,36 @@ class JsonProjectorSegmentTest
     }
 
     @Test
+    void shouldPreserveLeafStringEscapesVerbatimWhenStructured()
+    {
+        JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(JsonEx.projector(List.of("")))
+            .into(JsonSink.of(gen));
+
+        // structured delivery normalizes structure (whitespace) but preserves each leaf value's bytes,
+        // so the original A escape survives rather than collapsing to A
+        Status status = run(pipeline, "{ \"a\" : \"x\\u0041y\" } ");
+
+        assertEquals(Status.COMPLETED, status);
+        assertEquals("{\"a\":\"x\\u0041y\"}", output(gen));
+    }
+
+    @Test
+    void shouldPreserveLeafNumberFormVerbatimWhenStructured()
+    {
+        JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(JsonEx.projector(List.of("")))
+            .into(JsonSink.of(gen));
+
+        Status status = run(pipeline, "{ \"a\" : 1.0e2 } ");
+
+        assertEquals(Status.COMPLETED, status);
+        assertEquals("{\"a\":1.0e2}", output(gen));
+    }
+
+    @Test
     void shouldSegmentRootIdentityWhenSinkOptsIn()
     {
         JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());

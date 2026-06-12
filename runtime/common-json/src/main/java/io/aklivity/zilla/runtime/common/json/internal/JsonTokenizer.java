@@ -285,9 +285,10 @@ public final class JsonTokenizer
         return streamOffset;
     }
 
-    // Stream-offset span of the most recent VALUE_STRING token, including its surrounding quotes. The
-    // EOF rewind for a readable scalar guarantees the whole token is contiguous in one frame, so this
-    // span maps to a single contiguous slice the sink can splice or fragment.
+    // Stream-offset span of the most recent readable scalar token (a VALUE_STRING including its
+    // surrounding quotes, or a VALUE_NUMBER lexeme). The EOF rewind for a readable scalar guarantees the
+    // whole token is contiguous in one frame, so this span maps to a single contiguous slice the sink can
+    // splice or fragment.
     public long valueStreamStart()
     {
         return valueStreamStart;
@@ -637,6 +638,7 @@ public final class JsonTokenizer
         default:
             if (c == '-' || c >= '0' && c <= '9')
             {
+                valueStreamStart = streamOffset - 1;
                 scratch.setLength(0);
                 if (valueReadable)
                 {
@@ -644,6 +646,7 @@ public final class JsonTokenizer
                 }
                 resumeOp = ResumeOp.VALUE_NUMBER;
                 continueNumberContent(in);
+                valueStreamEnd = streamOffset;
                 pendingEvent = JsonParser.Event.VALUE_NUMBER;
                 captureValue(valueReadable);
                 resumeOp = ResumeOp.NONE;

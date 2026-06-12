@@ -263,7 +263,7 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
             break;
         default:
             lastEvent = JsonEvent.of(next());
-            if (lastEvent == JsonEvent.VALUE_STRING)
+            if (lastEvent == JsonEvent.VALUE_STRING || lastEvent == JsonEvent.VALUE_NUMBER)
             {
                 segmentSliceOffset = bufferOffset(tokenizer.valueStreamStart());
                 segmentSliceLength = (int) (tokenizer.valueStreamEnd() - tokenizer.valueStreamStart());
@@ -371,12 +371,6 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
 
     @Override
     public CharSequence getKey()
-    {
-        return tokenizer.stringView();
-    }
-
-    @Override
-    public CharSequence getStringView()
     {
         return tokenizer.stringView();
     }

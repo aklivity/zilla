@@ -30,18 +30,6 @@ public interface JsonSource
 {
     String getString();
 
-    /**
-     * Valid only on a {@code VALUE_STRING} or {@code VALUE_NUMBER} event; non-owning, on-stack char
-     * view of the current scalar's chars, letting a stage that consumes them immediately (e.g.
-     * re-encoding to a sink) avoid the {@link #getString()} allocation. The default materializes via
-     * {@link #getString()}; a streaming source overrides it to return a view backed by its own buffer,
-     * valid only for the duration of the current call.
-     */
-    default CharSequence getStringView()
-    {
-        return getString();
-    }
-
     // valid only on a key event; non-owning, on-stack char view of the current key
     CharSequence getKey();
 
