@@ -88,6 +88,46 @@ public class AvroChunkingTest
     }
 
     @Test
+    public void shouldFeedEachEventOnceThroughTransformDespiteSuspends()
+    {
+        AvroSchema schema = Avro.schema("\"string\"");
+        byte[] datum = new byte[41];
+        datum[0] = 0x50;
+        for (int i = 0; i < 40; i++)
+        {
+            datum[i + 1] = (byte) ('a' + i % 26);
+        }
+
+        int[] feeds = { 0 };
+        AvroTransform counting = (control, source, event, sink) ->
+        {
+            feeds[0]++;
+            return sink.feed(control, source, event);
+        };
+
+        int limit = 8;
+        MutableDirectBuffer out = new UnsafeBuffer(new byte[256]);
+        AvroGenerator generator = Avro.generator(schema, out, 0);
+        AvroPipeline pipeline = Avro.parser(schema).stream().transform(counting).into(AvroSink.of(generator));
+        generator.wrap(out, 0, limit);
+        pipeline.reset();
+
+        UnsafeBuffer in = new UnsafeBuffer(datum);
+        Status status = pipeline.feed(in, 0, datum.length);
+        while (status == SUSPENDED)
+        {
+            generator.wrap(out, 0, limit);
+            status = pipeline.feed(in, 0, datum.length);
+        }
+        assertEquals(COMPLETE, status);
+
+        // a suspended value resumes through the sink, not by replaying events, so the transform sees
+        // START_MESSAGE and STRING once each (the datum completes on the value, before END_MESSAGE) —
+        // not the STRING re-fed once per chunk as event replay would
+        assertEquals(2, feeds[0]);
+    }
+
+    @Test
     public void shouldStreamStringLargerThanLimitAcrossSuspends()
     {
         AvroSchema schema = Avro.schema("\"string\"");

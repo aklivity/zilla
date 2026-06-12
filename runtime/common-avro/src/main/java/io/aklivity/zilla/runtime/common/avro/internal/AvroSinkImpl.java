@@ -48,6 +48,7 @@ public final class AvroSinkImpl implements AvroSink
     private int depth;
     private int valueOffset;
     private boolean valueStarted;
+    private AvroEvent pending;
 
     public AvroSinkImpl(
         AvroGenerator generator)
@@ -210,7 +211,16 @@ public final class AvroSinkImpl implements AvroSink
         default:
             break;
         }
+        pending = status == SUSPENDED ? event : null;
         return status;
+    }
+
+    @Override
+    public Status resume(
+        AvroController control,
+        AvroSource source)
+    {
+        return feed(control, source, pending);
     }
 
     @Override
@@ -219,6 +229,7 @@ public final class AvroSinkImpl implements AvroSink
         depth = 0;
         valueOffset = 0;
         valueStarted = false;
+        pending = null;
     }
 
     private Status writeValue(

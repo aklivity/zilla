@@ -43,6 +43,20 @@ public interface AvroSink
         AvroSource source,
         AvroEvent event);
 
+    /**
+     * Continues the value in flight when the previous {@link #feed} returned
+     * {@link AvroPipeline.Status#SUSPENDED}, after the caller has drained and re-wrapped the output. The
+     * default does nothing (a sink that never suspends never sees this); a sink that returns
+     * {@code SUSPENDED} overrides it to resume from where it paused, reading remaining bytes from
+     * {@code source}.
+     */
+    default AvroPipeline.Status resume(
+        AvroController control,
+        AvroSource source)
+    {
+        return AvroPipeline.Status.RESUMABLE;
+    }
+
     default void reset()
     {
     }
