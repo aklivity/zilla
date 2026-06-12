@@ -35,6 +35,7 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufTransform;
 public final class ProtobufPipelineImpl implements ProtobufPipeline
 {
     private final ProtobufParserImpl parser;
+    private final ProtobufController control;
     private final ProtobufSink head;
 
     private boolean suspended;
@@ -45,6 +46,8 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
         ProtobufSink sink)
     {
         this.parser = parser;
+        // the head edge's control handle steers the parser (the upstream) without the parser being a controller
+        this.control = parser::segmentable;
 
         ProtobufSink chain = sink;
         for (int i = transforms.size() - 1; i >= 0; i--)
@@ -73,7 +76,7 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
             if (suspended)
             {
                 // continue the suspended work without replaying the event through the stages
-                status = head.resume(parser, parser);
+                status = head.resume(control, parser);
             }
             else
             {
@@ -81,7 +84,7 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
             }
             while (status == Status.ADVANCED && parser.hasNext())
             {
-                status = head.feed(parser, parser, parser.nextEvent());
+                status = head.feed(control, parser, parser.nextEvent());
             }
             suspended = status == Status.SUSPENDED;
         }

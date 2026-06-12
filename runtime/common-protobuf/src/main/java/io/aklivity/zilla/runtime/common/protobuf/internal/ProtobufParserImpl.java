@@ -19,7 +19,6 @@ import java.util.List;
 
 import org.agrona.DirectBuffer;
 
-import io.aklivity.zilla.runtime.common.protobuf.ProtobufController;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufEvent;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufException;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufField;
@@ -33,10 +32,10 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
 /**
  * The pull cursor that decodes a fully-buffered message one {@link ProtobufEvent} at a time. It is the
  * pipeline primitive: a caller drives it directly with {@link #wrap}, {@link #hasNext} and
- * {@link #nextEvent}, reading the current value through the inherited {@link ProtobufSource} accessors;
- * {@link #stream()} layers the push pipeline over the same cursor. A single instance also serves as the
- * {@link ProtobufController} for the stages it pumps, so {@link #segmentable()} arms the next composite
- * field for verbatim segment delivery.
+ * {@link #nextEvent}, reading the current value through the {@link ProtobufSource} accessors it
+ * implements. {@code Protobuf.stream} layers the push pipeline over the same cursor and steers it through
+ * a controller that calls {@link #segmentable()} to arm the next composite field for verbatim segment
+ * delivery.
  * <p>
  * Schema-bound it emits {@code START_MESSAGE}/{@code END_MESSAGE}, {@code FIELD} then {@code VALUE} for
  * a scalar, and a nested {@code START_MESSAGE}…{@code END_MESSAGE} for a composite; schema-free it
@@ -44,7 +43,7 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
  * machine over an explicit per-depth frame stack rather than the Java call stack, so each call yields
  * exactly one event.
  */
-public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource, ProtobufController
+public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
 {
     private static final int MAX_DEPTH = 64;
 
@@ -153,8 +152,8 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource,
         return event;
     }
 
-    @Override
-    public void segmentable()
+    // the arm hook the pipeline's ProtobufController delegates to; deliver the next composite as a segment
+    void segmentable()
     {
         armed = true;
     }
