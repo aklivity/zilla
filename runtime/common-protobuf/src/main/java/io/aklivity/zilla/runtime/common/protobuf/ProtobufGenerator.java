@@ -204,6 +204,21 @@ public interface ProtobufGenerator
         int length);
 
     /**
+     * Writes {@code field} with the given {@code wireType} from a raw value slice — the write-side mirror
+     * of a schema-free {@link ProtobufEvent#VALUE} event, where {@link ProtobufSource#wireType()} and the
+     * slice ({@link ProtobufSource#buffer()}/{@link ProtobufSource#offset()}/{@link ProtobufSource#length()})
+     * stand in for a typed value. The tag is written, then the slice: a {@code LEN} value is re-length-prefixed,
+     * a group ({@code SGROUP}) is wrapped in start/end-group tags around the body, and a varint or fixed value
+     * is spliced verbatim (preserving its exact encoding). Used for a lossless schema-free copy.
+     */
+    ProtobufGenerator writeValue(
+        int field,
+        ProtobufWireType wireType,
+        DirectBuffer value,
+        int offset,
+        int length);
+
+    /**
      * Closes the current chunk's records so it can be drained: each open message's slot is filled with the
      * body present in this record plus the bytes still deferred by an in-flight {@link #writeSegment}, and
      * each open group is end-tagged. The records are reopened lazily — re-emitted on the next field write —

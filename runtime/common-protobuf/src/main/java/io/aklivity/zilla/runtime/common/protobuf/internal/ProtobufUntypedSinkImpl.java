@@ -20,7 +20,6 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufGenerator;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSink;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSource;
-import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
 
 /**
  * A terminal sink for the schema-free pipeline: writes each generic event back out as wire by its
@@ -30,14 +29,14 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
  */
 public final class ProtobufUntypedSinkImpl implements ProtobufSink
 {
-    private final ProtobufWriter writer;
+    private final ProtobufGenerator generator;
 
     private int depth;
 
     public ProtobufUntypedSinkImpl(
         ProtobufGenerator generator)
     {
-        this.writer = ((ProtobufGeneratorImpl) generator).writer();
+        this.generator = generator;
     }
 
     @Override
@@ -60,7 +59,8 @@ public final class ProtobufUntypedSinkImpl implements ProtobufSink
             }
             break;
         case VALUE:
-            write(source);
+            generator.writeValue(source.fieldNumber(), source.wireType(),
+                source.buffer(), source.offset(), source.length());
             break;
         default:
             break;
@@ -72,28 +72,5 @@ public final class ProtobufUntypedSinkImpl implements ProtobufSink
     public void reset()
     {
         depth = 0;
-    }
-
-    private void write(
-        ProtobufSource source)
-    {
-        int number = source.fieldNumber();
-        ProtobufWireType wireType = source.wireType();
-        switch (wireType)
-        {
-        case LEN:
-            writer.writeTag(number, ProtobufWireType.LEN);
-            writer.writeBytes(source.buffer(), source.offset(), source.length());
-            break;
-        case SGROUP:
-            writer.writeTag(number, ProtobufWireType.SGROUP);
-            writer.writeRaw(source.buffer(), source.offset(), source.length());
-            writer.writeTag(number, ProtobufWireType.EGROUP);
-            break;
-        default:
-            writer.writeTag(number, wireType);
-            writer.writeRaw(source.buffer(), source.offset(), source.length());
-            break;
-        }
     }
 }

@@ -414,6 +414,34 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
     }
 
     @Override
+    public ProtobufGenerator writeValue(
+        int field,
+        ProtobufWireType wireType,
+        DirectBuffer value,
+        int offset,
+        int length)
+    {
+        reopen();
+        switch (wireType)
+        {
+        case LEN:
+            writer.writeTag(field, ProtobufWireType.LEN);
+            writer.writeBytes(value, offset, length);
+            break;
+        case SGROUP:
+            writer.writeTag(field, ProtobufWireType.SGROUP);
+            writer.writeRaw(value, offset, length);
+            writer.writeTag(field, ProtobufWireType.EGROUP);
+            break;
+        default:
+            writer.writeTag(field, wireType);
+            writer.writeRaw(value, offset, length);
+            break;
+        }
+        return this;
+    }
+
+    @Override
     public ProtobufGenerator flush()
     {
         // a record closes at the value being fragmented, so each message length counts the deferred value
@@ -557,11 +585,5 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
             size++;
         }
         return size;
-    }
-
-    // lent to the untyped sink, which splices raw values by wire type with no public equivalent
-    ProtobufWriter writer()
-    {
-        return writer;
     }
 }
