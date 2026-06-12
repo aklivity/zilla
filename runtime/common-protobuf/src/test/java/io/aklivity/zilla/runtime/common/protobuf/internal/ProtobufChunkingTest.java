@@ -209,8 +209,8 @@ public class ProtobufChunkingTest
                 pending = parser.field();
                 break;
             case VALUE:
-                byte[] value = new byte[parser.length()];
-                parser.buffer().getBytes(parser.offset(), value);
+                byte[] value = new byte[parser.segment().capacity()];
+                parser.segment().getBytes(0, value);
                 String text = new String(value, UTF_8);
                 if (depth == 1 && pending.number() == 1)
                 {
@@ -335,8 +335,8 @@ public class ProtobufChunkingTest
                 pending = parser.field();
                 break;
             case VALUE:
-                byte[] value = new byte[parser.length()];
-                parser.buffer().getBytes(parser.offset(), value);
+                byte[] value = new byte[parser.segment().capacity()];
+                parser.segment().getBytes(0, value);
                 String text = new String(value, UTF_8);
                 if (depth == 1 && pending.number() == 1)
                 {
@@ -433,8 +433,8 @@ public class ProtobufChunkingTest
                 number = parser.field().number();
                 break;
             case VALUE:
-                byte[] value = new byte[parser.length()];
-                parser.buffer().getBytes(parser.offset(), value);
+                byte[] value = new byte[parser.segment().capacity()];
+                parser.segment().getBytes(0, value);
                 values[number] = new String(value, UTF_8);
                 break;
             default:

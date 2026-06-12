@@ -56,7 +56,7 @@ extensions, `required`-field enforcement, and proto2 explicit field defaults.
 `START_MESSAGE`/`END_MESSAGE`, `FIELD` (positions `field()`) then `VALUE` for a scalar, and a nested
 `START_MESSAGE`…`END_MESSAGE` for a length-delimited message (or `START_GROUP`…`END_GROUP` for a
 proto2 group) for a composite — rejecting malformed wire and wire-type/declared-type mismatches as it
-reads. `START_MESSAGE` carries the whole message slice via `buffer()`/`offset()`/`length()`, so a copy
+reads. `START_MESSAGE` carries the whole message slice via `segment()`, so a copy
 knows the length up front.
 
 ```java
@@ -73,7 +73,7 @@ while (parser.hasNext())
 ```
 
 `nextEvent()` defaults to `STRUCTURED`; pass `Mode.SEGMENTED` to `nextEvent(mode)` at a composite `FIELD`
-to receive that value as a raw `SEGMENT` (its bytes via `buffer()`/`offset()`/`length()`) instead of
+to receive that value as a raw `SEGMENT` (its bytes via `segment()`) instead of
 recursing into it.
 
 A schema-free cursor (`Protobuf.parser()`, no schema) tokenizes the wire into generic `FIELD`/`VALUE`
@@ -114,7 +114,7 @@ if (pipeline.feed(in, off, len) == ProtobufPipeline.Status.COMPLETED)  // COMPLE
   read schema, a rename/renumber with an evolved one (as above).
 - **Segment delivery**: a stage calls `ProtobufController.segmentable()` on a composite `FIELD` to
   receive that value as a raw `SEGMENT` of wire bytes
-  (`ProtobufSource.buffer()`/`offset()`/`length()`, with `bytesDeferred()` for a value spanning windows)
+  (`ProtobufSource.segment()`, with `deferredBytes()` for a value spanning windows)
   instead of expanding it into structured events —
   preserving the nested bytes verbatim.
 
@@ -171,7 +171,7 @@ for (boolean done = false; !done; )
 ```
 
 Leaf values stream too: a `string`/`bytes` value larger than the input window arrives as repeated
-`VALUE` events, each carrying the bytes still to come in `ProtobufSource.bytesDeferred()` (a `string` is
+`VALUE` events, each carrying the bytes still to come in `ProtobufSource.deferredBytes()` (a `string` is
 split only on UTF-8 code-point boundaries, `bytes` at the raw window edge), and the wire sink forwards
 each chunk straight through the generator's `writeSegment` — so a multi-megabyte value flows
 in-window → out-window with nothing buffered but the current slice. Proto2 groups straddle windows as

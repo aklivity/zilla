@@ -721,8 +721,8 @@ public class ProtobufPipelineTest
             }
             else if (event == ProtobufEvent.VALUE && field != null && field.number() == 1)
             {
-                byte[] bytes = new byte[parser.length()];
-                parser.buffer().getBytes(parser.offset(), bytes);
+                byte[] bytes = new byte[parser.segment().capacity()];
+                parser.segment().getBytes(0, bytes);
                 name = new String(bytes, UTF_8);
             }
         }
@@ -1003,10 +1003,10 @@ public class ProtobufPipelineTest
                     (valueField.type() == ProtobufType.STRING || valueField.type() == ProtobufType.BYTES))
                 {
                     // a string/bytes value may arrive in chunks; reassemble before recording
-                    byte[] chunk = new byte[source.length()];
-                    source.buffer().getBytes(source.offset(), chunk);
+                    byte[] chunk = new byte[source.segment().capacity()];
+                    source.segment().getBytes(0, chunk);
                     valueBytes.writeBytes(chunk);
-                    if (source.bytesDeferred() == 0)
+                    if (source.deferredBytes() == 0)
                     {
                         events.add(valueField.type() == ProtobufType.STRING
                             ? "V" + valueBytes.toString(UTF_8)
@@ -1021,8 +1021,8 @@ public class ProtobufPipelineTest
                 break;
             case SEGMENT:
                 events.add("SEGMENT");
-                segment = new byte[source.length()];
-                source.buffer().getBytes(source.offset(), segment);
+                segment = new byte[source.segment().capacity()];
+                source.segment().getBytes(0, segment);
                 break;
             default:
                 break;
@@ -1047,12 +1047,12 @@ public class ProtobufPipelineTest
             switch (field.type())
             {
             case STRING:
-                byte[] text = new byte[source.length()];
-                source.buffer().getBytes(source.offset(), text);
+                byte[] text = new byte[source.segment().capacity()];
+                source.segment().getBytes(0, text);
                 value = new String(text, UTF_8);
                 break;
             case BYTES:
-                value = "b" + source.length();
+                value = "b" + source.segment().capacity();
                 break;
             case DOUBLE:
                 value = Double.toString(source.doubleValue());

@@ -164,7 +164,7 @@ public interface ProtobufGenerator
      * only sizes the slot — pass the expected size (e.g. the source message length), or a deliberately
      * long value to widen the slot for a body that may grow. The write-side mirror of a
      * {@link ProtobufEvent#START_MESSAGE} event, which carries the source length via
-     * {@link ProtobufSource#length()}.
+     * {@link ProtobufSource#segment()}.
      */
     ProtobufGenerator startMessage(
         int field,
@@ -206,7 +206,7 @@ public interface ProtobufGenerator
     /**
      * Writes {@code field} with the given {@code wireType} from a raw value slice — the write-side mirror
      * of a schema-free {@link ProtobufEvent#VALUE} event, where {@link ProtobufSource#wireType()} and the
-     * slice ({@link ProtobufSource#buffer()}/{@link ProtobufSource#offset()}/{@link ProtobufSource#length()})
+     * slice ({@link ProtobufSource#segment()})
      * stand in for a typed value. The tag is written, then the slice: a {@code LEN} value is re-length-prefixed,
      * a group ({@code SGROUP}) is wrapped in start/end-group tags around the body, and a varint or fixed value
      * is spliced verbatim (preserving its exact encoding). Used for a lossless schema-free copy.

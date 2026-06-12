@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.common.protobuf.internal;
 
+import org.agrona.DirectBuffer;
+
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufController;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufEvent;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufException;
@@ -29,7 +31,7 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
  * slice verbatim. Composed with the schema-free parser it is a lossless structural copy; a transform
  * between them can keep/drop/redact fields by number with no schema.
  * <p>
- * A length-delimited value may arrive in pieces (chunked input, {@link ProtobufSource#bytesDeferred()}
+ * A length-delimited value may arrive in pieces (chunked input, {@link ProtobufSource#deferredBytes()}
  * {@code > 0}) and may exceed the bounded output, so it streams through {@link ProtobufGenerator#writeSegment}
  * — its total-length prefix written once, its body across chunks — mirroring the typed sink.
  */
@@ -115,8 +117,8 @@ public final class ProtobufUntypedSinkImpl implements ProtobufSink
         }
         else
         {
-            generator.writeValue(source.fieldNumber(), source.wireType(),
-                source.buffer(), source.offset(), source.length());
+            DirectBuffer segment = source.segment();
+            generator.writeValue(source.fieldNumber(), source.wireType(), segment, 0, segment.capacity());
             status = ProtobufPipeline.Status.ADVANCED;
         }
         return status;
@@ -126,8 +128,9 @@ public final class ProtobufUntypedSinkImpl implements ProtobufSink
         ProtobufSource source)
     {
         int number = source.fieldNumber();
-        int length = source.length();
-        int deferred = source.bytesDeferred();
+        DirectBuffer segment = source.segment();
+        int length = segment.capacity();
+        int deferred = source.deferredBytes();
         int remaining = generator.remaining();
         if (valueWritten == 0)
         {
@@ -135,7 +138,7 @@ public final class ProtobufUntypedSinkImpl implements ProtobufSink
             valueTotal = length + deferred;
         }
         int chunkRemaining = valueTotal - deferred - valueWritten;
-        int sourceOffset = source.offset() + length - chunkRemaining;
+        int segmentOffset = length - chunkRemaining;
         int header = valueWritten == 0 ? tagSize(number) + varintSize(valueTotal) : 0;
         ProtobufPipeline.Status status;
         if (valueWritten == 0 && header + 1 > remaining && generator.length() > 0)
@@ -150,7 +153,7 @@ public final class ProtobufUntypedSinkImpl implements ProtobufSink
         else
         {
             int now = Math.min(remaining - header, chunkRemaining);
-            generator.writeSegment(number, source.buffer(), sourceOffset, now, valueTotal - valueWritten - now);
+            generator.writeSegment(number, segment, segmentOffset, now, valueTotal - valueWritten - now);
             valueWritten += now;
             if (now < chunkRemaining)
             {

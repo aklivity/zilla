@@ -197,7 +197,7 @@ public class ProtobufRawPipelineTest
                 break;
             case VALUE:
                 events.add(source.wireType() == ProtobufWireType.LEN
-                    ? "L" + source.length()
+                    ? "L" + source.segment().capacity()
                     : "V" + source.longValue());
                 break;
             default:

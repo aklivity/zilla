@@ -63,22 +63,19 @@ public interface ProtobufSource
     float floatValue();
 
     /**
-     * Non-owning view of the bytes of a {@code string} / {@code bytes} scalar, or of the current
-     * segment slice; valid on-stack only. Use with {@link #offset()} and {@link #length()}.
+     * Non-owning view of the bytes of a {@code string} / {@code bytes} scalar, of the current value
+     * chunk, of the current segment slice, or of the whole message at a {@link ProtobufEvent#START_MESSAGE};
+     * its {@code [0, capacity())} is the slice. Valid on-stack only.
      */
-    DirectBuffer buffer();
-
-    int offset();
-
-    int length();
+    DirectBuffer segment();
 
     /**
      * The number of bytes of the current value still to come after this slice — {@code 0} on the last
      * (or only) piece, and {@code 0} for every event that is not a value piece. A length-delimited value
-     * larger than the input window arrives as repeated pieces with a decreasing {@code bytesDeferred()},
+     * larger than the input window arrives as repeated pieces with a decreasing {@code deferredBytes()},
      * mirroring the generator's {@code writeSegment(..., deferred)}: a leaf {@code string}/{@code bytes}
      * scalar streams as repeated {@link ProtobufEvent#VALUE}s, a raw composite as repeated
      * {@link ProtobufEvent#SEGMENT}s.
      */
-    int bytesDeferred();
+    int deferredBytes();
 }

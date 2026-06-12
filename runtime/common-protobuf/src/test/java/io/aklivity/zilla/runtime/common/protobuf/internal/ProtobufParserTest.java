@@ -80,12 +80,12 @@ public class ProtobufParserTest
                 events.add("{");
                 if (depth == 0)
                 {
-                    rootLength = parser.length();
+                    rootLength = parser.segment().capacity();
                     rootName = parser.message().name();
                 }
                 else
                 {
-                    nestedLength = parser.length();
+                    nestedLength = parser.segment().capacity();
                     nestedName = parser.message().name();
                 }
                 depth++;
@@ -156,9 +156,9 @@ public class ProtobufParserTest
                 events.add("V" + scalar(parser));
                 break;
             case SEGMENT:
-                events.add("S" + parser.bytesDeferred());
-                segment = new byte[parser.length()];
-                parser.buffer().getBytes(parser.offset(), segment);
+                events.add("S" + parser.deferredBytes());
+                segment = new byte[parser.segment().capacity()];
+                parser.segment().getBytes(0, segment);
                 break;
             default:
                 break;
@@ -220,7 +220,7 @@ public class ProtobufParserTest
                 break;
             case VALUE:
                 events.add(parser.wireType() == ProtobufWireType.LEN
-                    ? "L" + parser.length()
+                    ? "L" + parser.segment().capacity()
                     : "V" + parser.longValue());
                 break;
             default:
@@ -363,9 +363,9 @@ public class ProtobufParserTest
             events.add("F" + parser.field().number());
             break;
         case VALUE:
-            // a value may arrive in chunks (bytesDeferred > 0); reassemble before recording
+            // a value may arrive in chunks (deferredBytes > 0); reassemble before recording
             pending.append(scalar(parser));
-            if (parser.bytesDeferred() == 0)
+            if (parser.deferredBytes() == 0)
             {
                 events.add("V" + pending);
                 pending.setLength(0);
@@ -392,7 +392,7 @@ public class ProtobufParserTest
         {
             if (event == ProtobufEvent.VALUE)
             {
-                deferreds.add(parser.bytesDeferred());
+                deferreds.add(parser.deferredBytes());
                 appendValue(parser, value);
             }
         });
@@ -402,7 +402,7 @@ public class ProtobufParserTest
         assertEquals(0, (int) deferreds.get(deferreds.size() - 1));
         for (int i = 1; i < deferreds.size(); i++)
         {
-            assertTrue(deferreds.get(i) < deferreds.get(i - 1), "bytesDeferred must strictly decrease");
+            assertTrue(deferreds.get(i) < deferreds.get(i - 1), "deferredBytes must strictly decrease");
         }
     }
 
@@ -423,8 +423,8 @@ public class ProtobufParserTest
         {
             if (event == ProtobufEvent.VALUE)
             {
-                byte[] chunk = new byte[parser.length()];
-                parser.buffer().getBytes(parser.offset(), chunk);
+                byte[] chunk = new byte[parser.segment().capacity()];
+                parser.segment().getBytes(0, chunk);
                 chunks.add(chunk);
                 value.writeBytes(chunk);
             }
@@ -460,7 +460,7 @@ public class ProtobufParserTest
         {
             if (event == ProtobufEvent.VALUE)
             {
-                deferreds.add(parser.bytesDeferred());
+                deferreds.add(parser.deferredBytes());
                 appendValue(parser, value);
             }
         });
@@ -474,8 +474,8 @@ public class ProtobufParserTest
         ProtobufParser parser,
         ByteArrayOutputStream sink)
     {
-        byte[] chunk = new byte[parser.length()];
-        parser.buffer().getBytes(parser.offset(), chunk);
+        byte[] chunk = new byte[parser.segment().capacity()];
+        parser.segment().getBytes(0, chunk);
         sink.writeBytes(chunk);
     }
 
@@ -560,8 +560,8 @@ public class ProtobufParserTest
         switch (field.type())
         {
         case STRING:
-            byte[] text = new byte[parser.length()];
-            parser.buffer().getBytes(parser.offset(), text);
+            byte[] text = new byte[parser.segment().capacity()];
+            parser.segment().getBytes(0, text);
             value = new String(text, UTF_8);
             break;
         default:

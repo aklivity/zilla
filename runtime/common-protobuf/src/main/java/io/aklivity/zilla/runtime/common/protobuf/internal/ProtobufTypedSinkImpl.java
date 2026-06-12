@@ -17,6 +17,8 @@ package io.aklivity.zilla.runtime.common.protobuf.internal;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.agrona.DirectBuffer;
+
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufController;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufEvent;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufException;
@@ -141,7 +143,7 @@ public final class ProtobufTypedSinkImpl implements ProtobufSink
         boolean root = depth < 0;
         boolean nested = !root && scope(depth).active && pending != null && pending.composite();
         ProtobufPipeline.Status status = nested
-            ? reserve(tagSize(pending.number()) + varintSize(source.length()))
+            ? reserve(tagSize(pending.number()) + varintSize(source.segment().capacity()))
             : ProtobufPipeline.Status.ADVANCED;
         if (status == ProtobufPipeline.Status.ADVANCED)
         {
@@ -157,7 +159,7 @@ public final class ProtobufTypedSinkImpl implements ProtobufSink
             }
             else
             {
-                generator.startMessage(pending.number(), source.length());
+                generator.startMessage(pending.number(), source.segment().capacity());
                 scope.set(schema.resolveMessage(pending), true);
             }
         }
@@ -205,14 +207,15 @@ public final class ProtobufTypedSinkImpl implements ProtobufSink
         ProtobufSource source)
     {
         int number = field.number();
-        int length = source.length();
-        int deferred = source.bytesDeferred();
+        DirectBuffer segment = source.segment();
+        int length = segment.capacity();
+        int deferred = source.deferredBytes();
         int remaining = generator.remaining();
         ProtobufPipeline.Status status;
         if (valueWritten == 0 && deferred == 0 && tagSize(number) + varintSize(length) + length <= remaining)
         {
             // whole value present and it fits — write it in one piece
-            generator.writeBytes(number, source.buffer(), source.offset(), length);
+            generator.writeBytes(number, segment, 0, length);
             status = ProtobufPipeline.Status.ADVANCED;
         }
         else if (valueWritten == 0 && deferred == 0 && generator.length() > 0)
@@ -242,7 +245,7 @@ public final class ProtobufTypedSinkImpl implements ProtobufSink
             valueTotal = length + deferred;
         }
         int chunkRemaining = valueTotal - deferred - valueWritten;
-        int sourceOffset = source.offset() + length - chunkRemaining;
+        int segmentOffset = length - chunkRemaining;
         int header = valueWritten == 0 ? tagSize(number) + varintSize(valueTotal) : 0;
         ProtobufPipeline.Status status;
         if (valueWritten == 0 && header + 1 > remaining && generator.length() > 0)
@@ -258,7 +261,7 @@ public final class ProtobufTypedSinkImpl implements ProtobufSink
         else
         {
             int now = Math.min(remaining - header, chunkRemaining);
-            generator.writeSegment(number, source.buffer(), sourceOffset, now, valueTotal - valueWritten - now);
+            generator.writeSegment(number, source.segment(), segmentOffset, now, valueTotal - valueWritten - now);
             valueWritten += now;
             if (now < chunkRemaining)
             {

@@ -219,27 +219,15 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
         }
 
         @Override
-        public DirectBuffer buffer()
+        public DirectBuffer segment()
         {
-            return parser.buffer();
+            return parser.segment();
         }
 
         @Override
-        public int offset()
+        public int deferredBytes()
         {
-            return parser.offset();
-        }
-
-        @Override
-        public int length()
-        {
-            return parser.length();
-        }
-
-        @Override
-        public int bytesDeferred()
-        {
-            return parser.bytesDeferred();
+            return parser.deferredBytes();
         }
     }
 

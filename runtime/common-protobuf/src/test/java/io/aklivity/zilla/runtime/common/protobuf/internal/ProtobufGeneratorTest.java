@@ -274,12 +274,12 @@ public class ProtobufGeneratorTest
             switch (field.type())
             {
             case STRING:
-                byte[] text = new byte[source.length()];
-                source.buffer().getBytes(source.offset(), text);
+                byte[] text = new byte[source.segment().capacity()];
+                source.segment().getBytes(0, text);
                 value = new String(text, UTF_8);
                 break;
             case BYTES:
-                value = "b" + source.length();
+                value = "b" + source.segment().capacity();
                 break;
             case DOUBLE:
                 value = Double.toString(source.doubleValue());
@@ -317,7 +317,7 @@ public class ProtobufGeneratorTest
                 depth++;
                 if (depth > 1)
                 {
-                    generator.startMessage(pending.number(), source.length());
+                    generator.startMessage(pending.number(), source.segment().capacity());
                 }
                 break;
             case FIELD:
@@ -400,12 +400,12 @@ public class ProtobufGeneratorTest
                 generator.writeEnum(number, (int) source.longValue());
                 break;
             case STRING:
-                byte[] text = new byte[source.length()];
-                source.buffer().getBytes(source.offset(), text);
+                byte[] text = new byte[source.segment().capacity()];
+                source.segment().getBytes(0, text);
                 generator.writeString(number, new String(text, UTF_8));
                 break;
             case BYTES:
-                generator.writeBytes(number, source.buffer(), source.offset(), source.length());
+                generator.writeBytes(number, source.segment(), 0, source.segment().capacity());
                 break;
             default:
                 break;

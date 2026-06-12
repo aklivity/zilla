@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.agrona.DirectBuffer;
+import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufEvent;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufException;
@@ -79,9 +80,7 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
     private long longValue;
     private double doubleValue;
     private float floatValue;
-    private DirectBuffer buffer;
-    private int offset;
-    private int length;
+    private final UnsafeBuffer segment = new UnsafeBuffer(new byte[0]);
     private int deferred;
     private int leafRemaining;
     private boolean leafString;
@@ -219,25 +218,13 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
     }
 
     @Override
-    public DirectBuffer buffer()
+    public DirectBuffer segment()
     {
-        return buffer;
+        return segment;
     }
 
     @Override
-    public int offset()
-    {
-        return offset;
-    }
-
-    @Override
-    public int length()
-    {
-        return length;
-    }
-
-    @Override
-    public int bytesDeferred()
+    public int deferredBytes()
     {
         return deferred;
     }
@@ -569,7 +556,7 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
         ProtobufEvent event;
         if (mode == Mode.SEGMENTED)
         {
-            event = segment();
+            event = resolveSegment();
         }
         else
         {
@@ -598,7 +585,7 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
         return event;
     }
 
-    private ProtobufEvent segment()
+    private ProtobufEvent resolveSegment()
     {
         int length = regionLength;
         if (length < 0)
@@ -794,9 +781,7 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
         int offset,
         int length)
     {
-        this.buffer = buffer;
-        this.offset = offset;
-        this.length = length;
+        segment.wrap(buffer, offset, length);
     }
 
     private Frame frame(

@@ -23,7 +23,7 @@ package io.aklivity.zilla.runtime.common.protobuf;
  * wire by start/end-group tags rather than a length prefix. A {@link #SEGMENT} delivers a composite value
  * as raw wire bytes rather than as structured events; {@link #segmented()} distinguishes it.
  * <p>
- * {@link ProtobufSource#bytesDeferred()} carries how much of a value is still to come. A length-delimited
+ * {@link ProtobufSource#deferredBytes()} carries how much of a value is still to come. A length-delimited
  * value larger than the input window streams in pieces, each piece reporting the bytes still deferred and
  * the last (or only) piece reporting {@code 0}: a chunked leaf {@code string}/{@code bytes} scalar arrives
  * as repeated {@code VALUE}s (a {@code string} split on code-point boundaries, {@code bytes} at the raw

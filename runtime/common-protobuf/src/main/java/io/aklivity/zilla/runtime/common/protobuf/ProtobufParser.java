@@ -25,7 +25,7 @@ import org.agrona.DirectBuffer;
  * It can be driven directly: {@link #wrap} borrows a fully-buffered message, then a
  * {@link #hasNext()} / {@link #nextEvent()} loop pulls one {@link ProtobufEvent} at a time, with
  * the current field and value read through this parser's accessors ({@link #field()},
- * {@link #longValue()}, {@link #buffer()}, …) — the same surface a {@link ProtobufSource} exposes to a
+ * {@link #longValue()}, {@link #segment()}, …) — the same surface a {@link ProtobufSource} exposes to a
  * pipeline stage, but cursor-bearing. {@link Protobuf#stream(ProtobufParser)} layers the push pipeline
  * over the same cursor; stages there receive a non-advancing {@link ProtobufSource} view instead.
  */
@@ -34,7 +34,7 @@ public interface ProtobufParser
     /**
      * How {@link #nextEvent(Mode)} descends into a composite field: {@code STRUCTURED} recurses into its
      * nested events, {@code SEGMENTED} delivers it as raw segment bytes (a {@link ProtobufEvent#segmented()}
-     * START/END pair, read via {@link #buffer()}/{@link #offset()}/{@link #length()}). The mode is consulted
+     * START/END pair, read via {@link #segment()}). The mode is consulted
      * only at a composite field; for every other event it is ignored.
      */
     enum Mode
@@ -151,20 +151,16 @@ public interface ProtobufParser
     float floatValue();
 
     /**
-     * Non-owning view of the bytes of a {@code string} / {@code bytes} scalar, of the current segment
-     * slice, or of the whole message at a {@link ProtobufEvent#START_MESSAGE}; valid on-stack only.
-     * Use with {@link #offset()} and {@link #length()}.
+     * Non-owning view of the bytes of a {@code string} / {@code bytes} scalar, of the current value
+     * chunk, of the current segment slice, or of the whole message at a {@link ProtobufEvent#START_MESSAGE};
+     * its {@code [0, capacity())} is the slice. Valid on-stack only.
      */
-    DirectBuffer buffer();
-
-    int offset();
-
-    int length();
+    DirectBuffer segment();
 
     /**
      * For a chunked value — a leaf {@code string}/{@code bytes} {@link ProtobufEvent#VALUE} or a
      * {@link ProtobufEvent#SEGMENT} — the number of bytes of the value still to come after this slice;
      * {@code 0} on the last (or only) piece, and {@code 0} for every other event.
      */
-    int bytesDeferred();
+    int deferredBytes();
 }
