@@ -105,7 +105,7 @@ public class AvroSchemaTest
             {
                 captured[0] = source.getString();
             }
-            return Status.ADVANCED;
+            return event == AvroEvent.END_MESSAGE ? Status.COMPLETED : Status.ADVANCED;
         };
         assertEquals(COMPLETED, parse("\"string\"", new byte[] { 0x06, 0x66, 0x6f, 0x6f }, sink));
         assertEquals("foo", captured[0]);
@@ -124,7 +124,7 @@ public class AvroSchemaTest
                 segment.getBytes(0, dst);
                 captured[0] = dst;
             }
-            return Status.ADVANCED;
+            return event == AvroEvent.END_MESSAGE ? Status.COMPLETED : Status.ADVANCED;
         };
         assertEquals(COMPLETED, parse("\"bytes\"", new byte[] { 0x04, (byte) 0xff, 0x01 }, sink));
         assertArrayEquals(new byte[] { (byte) 0xff, 0x01 }, captured[0]);
@@ -144,7 +144,7 @@ public class AvroSchemaTest
             {
                 captured[0] = source.getString();
             }
-            return Status.ADVANCED;
+            return event == AvroEvent.END_MESSAGE ? Status.COMPLETED : Status.ADVANCED;
         };
         assertEquals(COMPLETED, parse("\"string\"", binary, sink));
         assertEquals("€", captured[0]);
@@ -160,7 +160,7 @@ public class AvroSchemaTest
             {
                 fields.add(source.getField());
             }
-            return Status.ADVANCED;
+            return event == AvroEvent.END_MESSAGE ? Status.COMPLETED : Status.ADVANCED;
         };
         assertEquals(COMPLETED, parse("""
             {"type":"record","name":"R","fields":[
@@ -180,7 +180,7 @@ public class AvroSchemaTest
             {
                 keys.add(source.getKey());
             }
-            return Status.ADVANCED;
+            return event == AvroEvent.END_MESSAGE ? Status.COMPLETED : Status.ADVANCED;
         };
         // one block, count 1 (0x02), key "a" (0x02 'a'), value 7 (0x0e), terminator 0x00
         assertEquals(COMPLETED, parse("{\"type\":\"map\",\"values\":\"long\"}",
@@ -201,7 +201,7 @@ public class AvroSchemaTest
                 depth[0] = location.depth();
                 position[0] = location.position();
             }
-            return Status.ADVANCED;
+            return event == AvroEvent.END_MESSAGE ? Status.COMPLETED : Status.ADVANCED;
         };
         // record { id:int=1 (0x02), name:string="hi" (0x04 'h' 'i') }; name begins at byte 1, depth 2
         assertEquals(COMPLETED, parse("""

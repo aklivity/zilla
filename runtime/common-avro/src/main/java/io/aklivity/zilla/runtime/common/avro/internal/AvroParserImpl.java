@@ -201,12 +201,6 @@ public final class AvroParserImpl implements AvroParser
         push(root);
     }
 
-    @Override
-    public boolean complete()
-    {
-        return done;
-    }
-
     private void advance(
         AvroParser.Mode mode)
     {

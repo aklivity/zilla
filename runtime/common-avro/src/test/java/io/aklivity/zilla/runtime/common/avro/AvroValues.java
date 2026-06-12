@@ -140,7 +140,7 @@ public final class AvroValues
                 events.add(event);
                 entries.add(new Entry(event, source));
             }
-            return Status.ADVANCED;
+            return event == AvroEvent.END_MESSAGE ? Status.COMPLETED : Status.ADVANCED;
         }
 
         @Override

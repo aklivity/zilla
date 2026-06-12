@@ -15,7 +15,6 @@
 package io.aklivity.zilla.runtime.common.avro.internal;
 
 import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.ADVANCED;
-import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.COMPLETED;
 import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.REJECTED;
 import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.SUSPENDED;
 
@@ -38,10 +37,9 @@ import io.aklivity.zilla.runtime.common.avro.AvroValidationException;
  * accessors (without exposing the cursor, so a stage cannot disturb the pump) and an
  * {@link AvroController} that forwards a stage's segment request — leaving the parser a pure cursor.
  * <p>
- * The status is whatever the sink reports; if the sink never completes but the parser reaches the end
- * of the message, the datum is {@code COMPLETED}; malformed binary aborts with {@code REJECTED}. On
- * {@code SUSPENDED} (bounded output full) the parser keeps its position, so a resume {@code feed}
- * continues from where it paused — its buffer arguments are ignored.
+ * The status is whatever the sink reports — completion is the sink's to signal; malformed binary aborts
+ * with {@code REJECTED}. On {@code SUSPENDED} (bounded output full) the parser keeps its position, so a
+ * resume {@code feed} continues from where it paused — its buffer arguments are ignored.
  */
 final class AvroPipelineImpl implements AvroPipeline
 {
@@ -95,10 +93,6 @@ final class AvroPipelineImpl implements AvroPipeline
                     break;
                 }
                 status = root.feed(control, source, event);
-            }
-            if (status == ADVANCED && parser.complete())
-            {
-                status = COMPLETED;
             }
         }
         catch (AvroValidationException ex)

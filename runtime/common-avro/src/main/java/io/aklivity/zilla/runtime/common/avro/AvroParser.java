@@ -78,12 +78,6 @@ public interface AvroParser
     AvroEvent nextEvent(
         Mode mode);
 
-    /**
-     * {@code true} once the root {@link AvroEvent#END_MESSAGE} has been pulled — the datum is fully
-     * consumed.
-     */
-    boolean complete();
-
     boolean getBoolean();
 
     int getInt();
