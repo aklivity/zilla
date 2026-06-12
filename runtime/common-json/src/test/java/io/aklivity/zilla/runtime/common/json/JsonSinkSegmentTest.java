@@ -143,7 +143,7 @@ class JsonSinkSegmentTest
         byte[] second = "\"b\":2} ".getBytes(UTF_8);
 
         pipeline.reset();
-        assertEquals(Status.ADVANCED, pipeline.feed(new UnsafeBuffer(first), 0, first.length));
+        assertEquals(Status.STARVED, pipeline.feed(new UnsafeBuffer(first), 0, first.length, false));
         Status status = pipeline.feed(new UnsafeBuffer(second), 0, second.length);
 
         assertEquals(Status.COMPLETED, status);

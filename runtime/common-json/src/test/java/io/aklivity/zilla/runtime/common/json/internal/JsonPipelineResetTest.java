@@ -43,7 +43,7 @@ class JsonPipelineResetTest
 
         generator.wrap(buffer, 0, buffer.capacity());
         pipeline.reset();
-        assertEquals(Status.ADVANCED, pipeline.feed(new UnsafeBuffer("[1,".getBytes(UTF_8)), 0, 3));
+        assertEquals(Status.STARVED, pipeline.feed(new UnsafeBuffer("[1,".getBytes(UTF_8)), 0, 3, false));
 
         pipeline.reset();
         generator.wrap(buffer, 0, buffer.capacity());

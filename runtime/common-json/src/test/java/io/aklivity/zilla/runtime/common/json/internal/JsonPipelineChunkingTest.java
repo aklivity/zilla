@@ -102,7 +102,7 @@ class JsonPipelineChunkingTest
         // a single string value split mid-token across two input frames (larger than the input window)
         byte[] f1 = "{\"data\":\"aaaaaaaaaa".getBytes(UTF_8);
         byte[] f2 = "bbbbbbbbbb\"} ".getBytes(UTF_8);
-        assertEquals(Status.ADVANCED, pipeline.feed(new UnsafeBuffer(f1), 0, f1.length));
+        assertEquals(Status.STARVED, pipeline.feed(new UnsafeBuffer(f1), 0, f1.length, false));
         Status status = pipeline.feed(new UnsafeBuffer(f2), 0, f2.length);
 
         assertEquals(Status.COMPLETED, status);
@@ -131,7 +131,7 @@ class JsonPipelineChunkingTest
         generator.wrap(output, 0, output.capacity());
         pipeline.reset();
 
-        pipeline.feed(new UnsafeBuffer("{\"data\":\"aaaaaaaaaa".getBytes(UTF_8)), 0, 19);
+        pipeline.feed(new UnsafeBuffer("{\"data\":\"aaaaaaaaaa".getBytes(UTF_8)), 0, 19, false);
         pipeline.feed(new UnsafeBuffer("bbbbbbbbbb\"} ".getBytes(UTF_8)), 0, 13);
 
         // first fragment is mid-stream (more deferred); the closing fragment completes the value

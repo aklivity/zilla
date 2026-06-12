@@ -31,20 +31,43 @@ public interface JsonPipeline
 {
     enum Status
     {
-        /** the pump advanced through all available input mid-value; feed the next frame to continue */
+        /** an event was consumed; the pump advances to the next — an internal sink-to-pump signal */
         ADVANCED,
         /** the bounded output filled: drain the buffer, re-target the generator, then {@link #feed} again to resume */
         SUSPENDED,
+        /** the input window was consumed mid-value: {@link #feed} the next window (input back-pressure) */
+        STARVED,
         /** the current top-level value finished and was accepted */
         COMPLETED,
-        /** the current top-level value was rejected; the output must be abandoned */
+        /** the current top-level value was rejected (malformed or truncated); the output must be abandoned */
         REJECTED
     }
 
     void reset();
 
+    /**
+     * Feeds a whole value in one shot (equivalent to {@link #feed(DirectBuffer, int, int, boolean)} with
+     * {@code last == true}), for callers that reassemble the value before feeding it.
+     */
+    default Status feed(
+        DirectBuffer buffer,
+        int offset,
+        int length)
+    {
+        return feed(buffer, offset, length, true);
+    }
+
+    /**
+     * Feeds one input window; {@code last} marks the final window. Returns {@link Status#STARVED} when the
+     * window is consumed before the value completes (input back-pressure — feed the next window),
+     * {@link Status#SUSPENDED} when the bounded output fills (output back-pressure — drain and re-feed the
+     * same window), {@link Status#COMPLETED} on a clean value end, or {@link Status#REJECTED} on malformed
+     * or truncated input. {@code STARVED} is returned only when {@code last == false}; an incomplete value
+     * under {@code last == true} yields {@code REJECTED}.
+     */
     Status feed(
         DirectBuffer buffer,
         int offset,
-        int length);
+        int length,
+        boolean last);
 }

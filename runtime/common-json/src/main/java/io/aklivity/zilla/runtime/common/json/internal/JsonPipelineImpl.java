@@ -54,7 +54,8 @@ public final class JsonPipelineImpl implements JsonPipeline
     public Status feed(
         DirectBuffer buffer,
         int offset,
-        int length)
+        int length,
+        boolean last)
     {
         Status status = Status.ADVANCED;
         try
@@ -65,11 +66,17 @@ public final class JsonPipelineImpl implements JsonPipeline
             }
             else
             {
-                parser.wrap(buffer, offset, length);
+                parser.wrap(buffer, offset, length, last);
             }
             while (status == Status.ADVANCED && parser.hasNextEvent())
             {
                 status = root.feed(parser, parser, parser.nextEvent());
+            }
+            if (status == Status.ADVANCED)
+            {
+                // the window was consumed before the value completed: more input is needed, unless this was
+                // the final window, in which case the value is truncated
+                status = last ? Status.REJECTED : Status.STARVED;
             }
         }
         catch (JsonParsingException ex)

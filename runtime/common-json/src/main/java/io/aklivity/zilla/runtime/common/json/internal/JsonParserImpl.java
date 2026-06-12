@@ -132,6 +132,19 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
         return this;
     }
 
+    // Wraps the next input window of a chunked feed; last == true marks the final window, so its EOF is the
+    // terminal delimiter (completing a trailing scalar, rejecting a truncated value) rather than a frame
+    // boundary with more bytes to come.
+    public JsonParserEx wrap(
+        DirectBuffer buffer,
+        int offset,
+        int length,
+        boolean last)
+    {
+        tokenizer.terminal(last);
+        return wrap(buffer, offset, length);
+    }
+
     void reset()
     {
         tokenizer.reset();

@@ -61,7 +61,7 @@ public final class JsonTokenizer
     private final List<String[]> pathExcludes;
     private final boolean pathFiltering;
     private final int tokenMaxBytes;
-    private final boolean terminalEof;
+    private boolean terminalEof;
 
     // path tracking — pre-allocated, no per-event allocation
     private final boolean[] pathInArray = new boolean[MAX_DEPTH];
@@ -152,6 +152,15 @@ public final class JsonTokenizer
         boolean segmenting)
     {
         this.segmenting = segmenting;
+    }
+
+    // Set per input window: when true this window's EOF is the terminal delimiter (one-shot or final
+    // window), so a trailing scalar completes at EOF and an incomplete value is rejected; when false EOF
+    // is a frame boundary with more bytes still to come.
+    void terminal(
+        boolean terminalEof)
+    {
+        this.terminalEof = terminalEof;
     }
 
     public static final List<String> INCLUDE_ALL = null;

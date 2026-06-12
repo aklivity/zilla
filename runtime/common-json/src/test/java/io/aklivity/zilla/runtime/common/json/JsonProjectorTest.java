@@ -120,7 +120,7 @@ class JsonProjectorTest
         UnsafeBuffer in = new UnsafeBuffer(bytes);
 
         pipeline.reset();
-        assertEquals(Status.ADVANCED, pipeline.feed(in, 0, 7));
+        assertEquals(Status.STARVED, pipeline.feed(in, 0, 7, false));
         Status status = pipeline.feed(in, 7, bytes.length - 7);
 
         assertEquals(Status.COMPLETED, status);
