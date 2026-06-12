@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.common.avro.internal;
 
 import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.ADVANCED;
 import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.REJECTED;
+import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.STARVED;
 import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.SUSPENDED;
 
 import org.agrona.DirectBuffer;
@@ -100,6 +101,12 @@ final class AvroPipelineImpl implements AvroPipeline
                     break;
                 }
                 status = root.feed(control, source, event);
+            }
+            if (status == ADVANCED)
+            {
+                // the input window was consumed without completing the datum (last == false, else the
+                // parser would have thrown for truncation) — the pipeline needs the next window
+                status = STARVED;
             }
         }
         catch (AvroValidationException ex)

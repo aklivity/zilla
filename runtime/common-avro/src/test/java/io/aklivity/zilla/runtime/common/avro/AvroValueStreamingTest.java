@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.common.avro;
 
 import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.COMPLETED;
 import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.REJECTED;
+import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.STARVED;
 import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.SUSPENDED;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -211,6 +212,20 @@ public class AvroValueStreamingTest
             assertEquals(AvroSource.UNBOUNDED, deferreds.get(i).intValue());
         }
         assertEquals(0, deferreds.get(deferreds.size() - 1).intValue());
+    }
+
+    @Test
+    public void shouldReportStarvedWhenWindowConsumedMidDatum()
+    {
+        AvroSchema schema = Avro.schema("\"string\"");
+        byte[] datum = encode("\"string\"", "a".repeat(40));
+
+        AvroPipeline pipeline = Avro.stream(Avro.parser(schema)).into(new Collector());
+        pipeline.reset();
+        // a partial window with more input to follow (last == false) — starved, not truncated
+        Status status = pipeline.feed(new UnsafeBuffer(datum), 0, 10, false);
+
+        assertEquals(STARVED, status);
     }
 
     @Test
