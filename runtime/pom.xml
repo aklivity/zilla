@@ -46,6 +46,7 @@
     <module>catalog-karapace</module>
     <module>catalog-schema-registry</module>
     <module>common</module>
+    <module>common-avro</module>
     <module>common-json</module>
     <module>common-yaml</module>
     <module>command</module>
@@ -217,6 +218,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>common</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>common-avro</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
