@@ -29,10 +29,10 @@ import org.agrona.MutableDirectBuffer;
 public interface AvroGenerator
 {
     /**
-     * Targets {@code buffer} starting at {@code offset} with a hard byte {@code limit} — the bound a
-     * chunking driver watches via {@link #remaining()} to decide when to drain and continue. Pass the
-     * buffer's remaining capacity for unbounded output; {@code offset + limit} must not exceed the
-     * buffer's capacity.
+     * Targets {@code buffer} starting at {@code offset}, bounding writes at the absolute position
+     * {@code limit} — the bound a chunking driver watches via {@link #remaining()} to decide when to
+     * drain and continue. Pass {@code buffer.capacity()} for the whole buffer; {@code limit} must not
+     * exceed the capacity.
      */
     AvroGenerator wrap(
         MutableDirectBuffer buffer,

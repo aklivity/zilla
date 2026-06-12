@@ -37,15 +37,12 @@ public final class AvroGeneratorImpl implements AvroGenerator
     private int progress;
 
     public AvroGeneratorImpl(
-        AvroSchema schema,
-        MutableDirectBuffer buffer,
-        int offset)
+        AvroSchema schema)
     {
         this.root = (AvroNode) schema.type();
         this.nodeStack = new AvroNode[16];
         this.stateStack = new int[16];
         this.depth = 0;
-        wrap(buffer, offset, buffer.capacity() - offset);
     }
 
     @Override
@@ -54,14 +51,13 @@ public final class AvroGeneratorImpl implements AvroGenerator
         int offset,
         int limit)
     {
-        int bound = offset + limit;
-        if (bound > buffer.capacity())
+        if (limit > buffer.capacity())
         {
             throw new IllegalArgumentException("limit exceeds buffer capacity");
         }
         this.buffer = buffer;
         this.base = offset;
-        this.bound = bound;
+        this.bound = limit;
         this.progress = offset;
         // depth > 0 means a datum is mid-flight (a resume after a bounded-output drain): keep the
         // schema-walk stack so writing continues from the current field. Avro is unframed, so the

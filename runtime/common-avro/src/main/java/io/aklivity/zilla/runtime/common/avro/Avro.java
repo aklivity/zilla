@@ -66,6 +66,6 @@ public final class Avro
         MutableDirectBuffer buffer,
         int offset)
     {
-        return new AvroGeneratorImpl(schema, buffer, offset);
+        return new AvroGeneratorImpl(schema).wrap(buffer, offset, buffer.capacity());
     }
 }
