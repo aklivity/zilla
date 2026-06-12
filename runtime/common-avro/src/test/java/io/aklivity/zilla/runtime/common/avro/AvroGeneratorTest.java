@@ -129,6 +129,12 @@ public class AvroGeneratorTest
         }
 
         @Override
+        public int deferredBytes()
+        {
+            return 0;
+        }
+
+        @Override
         public AvroType type()
         {
             return null;

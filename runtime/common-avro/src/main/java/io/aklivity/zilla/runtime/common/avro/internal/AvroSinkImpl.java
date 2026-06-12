@@ -244,11 +244,17 @@ public final class AvroSinkImpl implements AvroSink
         {
             DirectBuffer segment = source.getSegment();
             int total = segment.capacity();
-            valueOffset += generator.writeSegment(segment, valueOffset, total - valueOffset, 0);
+            int deferred = source.deferredBytes();
+            valueOffset += generator.writeSegment(segment, valueOffset, total - valueOffset, deferred);
             valueStarted = true;
             if (valueOffset < total)
             {
                 status = SUSPENDED;
+            }
+            else if (deferred > 0)
+            {
+                valueOffset = 0;
+                status = ADVANCED;
             }
             else
             {

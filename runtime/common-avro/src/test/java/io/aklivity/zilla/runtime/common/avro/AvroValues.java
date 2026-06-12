@@ -135,7 +135,10 @@ public final class AvroValues
             AvroSource source,
             AvroEvent event)
         {
-            if (event != AvroEvent.START_MESSAGE && event != AvroEvent.END_MESSAGE && !event.segmented())
+            // a value streamed across the window arrives as several chunks; coalesce by recording only the
+            // final chunk (deferredBytes() == 0), so a fragmented parse yields the same events as a whole one
+            boolean pendingChunk = source.deferredBytes() > 0;
+            if (event != AvroEvent.START_MESSAGE && event != AvroEvent.END_MESSAGE && !event.segmented() && !pendingChunk)
             {
                 events.add(event);
                 entries.add(new Entry(event, source));

@@ -109,6 +109,8 @@ public final class AvroParserImpl implements AvroParser
 
     private int valueOffset;
     private int valueLength;
+    private int valueRemaining;
+    private boolean valueStreaming;
     private boolean booleanValue;
     private int intValue;
     private long longValue;
@@ -185,6 +187,8 @@ public final class AvroParserImpl implements AvroParser
         pending = null;
         cursorType = null;
         done = false;
+        valueRemaining = 0;
+        valueStreaming = false;
         segmenting = false;
         segmentStarted = false;
         segmentPendingEnd = false;
@@ -483,31 +487,33 @@ public final class AvroParserImpl implements AvroParser
     private int stepBytes(
         AvroNode node)
     {
-        int read = readVarint(pos, 10);
         int result;
-        if (read == READ_OK)
+        if (valueStreaming)
         {
-            long length = zigzag(scratchValue);
-            int dataStart = scratchNext;
-            if (length < 0 || length > Integer.MAX_VALUE)
-            {
-                result = STEP_REJECTED;
-            }
-            else if (dataStart + length > limit)
-            {
-                result = STEP_UNDERFLOW;
-            }
-            else
-            {
-                setValueBytes(dataStart, (int) length);
-                pos = dataStart + (int) length;
-                pop();
-                result = produced(node.kind == AvroKind.STRING ? STRING : BYTES);
-            }
+            result = emitValueChunk(node);
         }
         else
         {
-            result = read == READ_UNDERFLOW ? STEP_UNDERFLOW : STEP_REJECTED;
+            int read = readVarint(pos, 10);
+            if (read == READ_OK)
+            {
+                long length = zigzag(scratchValue);
+                if (length < 0 || length > Integer.MAX_VALUE)
+                {
+                    result = STEP_REJECTED;
+                }
+                else
+                {
+                    pos = scratchNext;
+                    valueRemaining = (int) length;
+                    valueStreaming = true;
+                    result = emitValueChunk(node);
+                }
+            }
+            else
+            {
+                result = read == READ_UNDERFLOW ? STEP_UNDERFLOW : STEP_REJECTED;
+            }
         }
         return result;
     }
@@ -515,19 +521,116 @@ public final class AvroParserImpl implements AvroParser
     private int stepFixed(
         AvroNode node)
     {
+        if (!valueStreaming)
+        {
+            valueRemaining = node.size;
+            valueStreaming = true;
+        }
+        return emitValueChunk(node);
+    }
+
+    // emit the next chunk of a length-delimited value: the bytes available now (trimmed to a UTF-8 char
+    // boundary for a non-final string chunk, so getString() never splits a character), with the remaining
+    // payload count exposed via deferredBytes(); a value that fits the window is a single chunk
+    private int emitValueChunk(
+        AvroNode node)
+    {
         int result;
-        if (pos + node.size > limit)
+        int available = limit - pos;
+        if (available <= 0 && valueRemaining > 0)
         {
             result = STEP_UNDERFLOW;
         }
         else
         {
-            setValueBytes(pos, node.size);
-            pos += node.size;
-            pop();
-            result = produced(FIXED);
+            int chunk = Math.min(available, valueRemaining);
+            if (chunk < valueRemaining && !segmenting && node.kind == AvroKind.STRING)
+            {
+                chunk = utf8Boundary(pos, chunk);
+            }
+            if (chunk == 0 && valueRemaining > 0)
+            {
+                result = STEP_UNDERFLOW;
+            }
+            else
+            {
+                setValueBytes(pos, chunk);
+                pos += chunk;
+                valueRemaining -= chunk;
+                if (valueRemaining == 0)
+                {
+                    valueStreaming = false;
+                    pop();
+                }
+                result = produced(valueEvent(node));
+            }
         }
         return result;
+    }
+
+    private int utf8Boundary(
+        int start,
+        int length)
+    {
+        int end = start + length;
+        int p = end;
+        while (p > start && (buffer.getByte(p - 1) & 0xc0) == 0x80)
+        {
+            p--;
+        }
+        if (p > start)
+        {
+            int lead = buffer.getByte(p - 1) & 0xff;
+            int need = utf8Length(lead);
+            p = (p - 1) + need <= end ? end : p - 1;
+        }
+        return p - start;
+    }
+
+    private static int utf8Length(
+        int lead)
+    {
+        int length;
+        if ((lead & 0x80) == 0)
+        {
+            length = 1;
+        }
+        else if ((lead & 0xe0) == 0xc0)
+        {
+            length = 2;
+        }
+        else if ((lead & 0xf0) == 0xe0)
+        {
+            length = 3;
+        }
+        else if ((lead & 0xf8) == 0xf0)
+        {
+            length = 4;
+        }
+        else
+        {
+            length = 1;
+        }
+        return length;
+    }
+
+    private static AvroEvent valueEvent(
+        AvroNode node)
+    {
+        AvroEvent event;
+        switch (node.kind)
+        {
+        case STRING:
+            event = STRING;
+            break;
+        case BYTES:
+            event = BYTES;
+            break;
+        default:
+            event = FIXED;
+            break;
+        }
+        return event;
     }
 
     private int stepEnum(
@@ -858,6 +961,12 @@ public final class AvroParserImpl implements AvroParser
     {
         segmentView.wrap(buffer, valueOffset, valueLength);
         return segmentView;
+    }
+
+    @Override
+    public int deferredBytes()
+    {
+        return valueRemaining;
     }
 
     @Override

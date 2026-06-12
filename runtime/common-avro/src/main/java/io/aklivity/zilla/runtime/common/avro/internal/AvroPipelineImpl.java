@@ -176,6 +176,12 @@ final class AvroPipelineImpl implements AvroPipeline
         }
 
         @Override
+        public int deferredBytes()
+        {
+            return parser.deferredBytes();
+        }
+
+        @Override
         public AvroType type()
         {
             return parser.type();

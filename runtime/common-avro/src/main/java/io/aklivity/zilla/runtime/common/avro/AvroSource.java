@@ -36,6 +36,11 @@ public interface AvroSource
 
     double getDouble();
 
+    /**
+     * The text of the current {@link AvroEvent#STRING} (or {@link AvroEvent#ENUM} symbol). For a value
+     * streamed across chunks each call returns the current chunk's text, always ending on a UTF-8 character
+     * boundary; concatenated across the run they form the whole string.
+     */
     String getString();
 
     /**
@@ -51,10 +56,17 @@ public interface AvroSource
     String getKey();
 
     /**
-     * Non-owning, on-stack view of the current contiguous raw Avro bytes — valid on
-     * {@link AvroEvent#BYTES} and {@link AvroEvent#FIXED} value events and on segment events.
+     * Non-owning, on-stack view of the current contiguous raw Avro bytes — valid on {@link AvroEvent#BYTES}
+     * and {@link AvroEvent#FIXED} value events (the chunk available now) and on segment events.
      */
     DirectBuffer getSegment();
+
+    /**
+     * On a {@link AvroEvent#STRING} / {@link AvroEvent#BYTES} / {@link AvroEvent#FIXED} value, the payload
+     * bytes still to come in later events of that same value; {@code 0} on the final (or only) chunk.
+     * {@code 0} for every other event.
+     */
+    int deferredBytes();
 
     /**
      * The {@link AvroType} of the value or composite at the current event — the record at

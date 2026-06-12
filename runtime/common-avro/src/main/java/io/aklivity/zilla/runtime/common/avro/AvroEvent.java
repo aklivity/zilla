@@ -58,11 +58,26 @@ public enum AvroEvent
     FLOAT,
     /** an Avro {@code double}, readable via {@link AvroSource#getDouble()} */
     DOUBLE,
-    /** an Avro {@code string}, readable via {@link AvroSource#getString()} */
+    /**
+     * an Avro {@code string}, readable via {@link AvroSource#getString()}. A value larger than the input
+     * window arrives over several {@code STRING} events, each the chunk available now (on a UTF-8 char
+     * boundary), with {@link AvroSource#deferredBytes()} bytes still to come; {@code deferredBytes() == 0}
+     * marks the final (or only) chunk.
+     */
     STRING,
-    /** Avro {@code bytes}, readable via the zero-copy {@link AvroSource} buffer accessors */
+    /**
+     * Avro {@code bytes}, readable via the zero-copy {@link AvroSource} buffer accessors. A value larger
+     * than the input window arrives over several {@code BYTES} events, each the chunk available now, with
+     * {@link AvroSource#deferredBytes()} bytes still to come; {@code deferredBytes() == 0} marks the final
+     * (or only) chunk.
+     */
     BYTES,
-    /** an Avro {@code fixed}, readable via the zero-copy {@link AvroSource} buffer accessors */
+    /**
+     * an Avro {@code fixed}, readable via the zero-copy {@link AvroSource} buffer accessors. A value larger
+     * than the input window arrives over several {@code FIXED} events, each the chunk available now, with
+     * {@link AvroSource#deferredBytes()} bytes still to come; {@code deferredBytes() == 0} marks the final
+     * (or only) chunk.
+     */
     FIXED,
     /** an Avro {@code enum} symbol, readable via {@link AvroSource#getString()} */
     ENUM,
