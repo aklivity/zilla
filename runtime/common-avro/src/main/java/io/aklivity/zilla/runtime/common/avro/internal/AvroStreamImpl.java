@@ -26,12 +26,12 @@ import io.aklivity.zilla.runtime.common.avro.AvroSource;
 import io.aklivity.zilla.runtime.common.avro.AvroStream;
 import io.aklivity.zilla.runtime.common.avro.AvroTransform;
 
-final class AvroStreamImpl implements AvroStream
+public final class AvroStreamImpl implements AvroStream
 {
     private final AvroParserImpl driver;
     private final List<AvroTransform> transforms;
 
-    AvroStreamImpl(
+    public AvroStreamImpl(
         AvroParserImpl driver)
     {
         this.driver = driver;

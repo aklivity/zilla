@@ -32,7 +32,7 @@ public class AvroBoundedParserTest
     public void shouldRejectDatumExceedingWorkLimit()
     {
         AvroSchema schema = Avro.schema("\"bytes\"");
-        AvroPipeline pipeline = Avro.parser(schema, Map.of(Avro.WORK_MAX_BYTES, 8)).stream().into(new Recorder());
+        AvroPipeline pipeline = Avro.stream(Avro.parser(schema, Map.of(Avro.WORK_MAX_BYTES, 8))).into(new Recorder());
         pipeline.reset();
 
         // bytes length prefix claims 100 (0xC8 0x01) but the value never completes, so the parser
@@ -52,7 +52,7 @@ public class AvroBoundedParserTest
     public void shouldUseDefaultWorkLimitWhenConfigAbsent()
     {
         AvroSchema schema = Avro.schema("\"int\"");
-        AvroPipeline pipeline = Avro.parser(schema, Map.of()).stream().into(new Recorder());
+        AvroPipeline pipeline = Avro.stream(Avro.parser(schema, Map.of())).into(new Recorder());
         pipeline.reset();
         Status status = pipeline.feed(new UnsafeBuffer(new byte[] { 0x02 }), 0, 1);
         assertEquals(COMPLETED, status);

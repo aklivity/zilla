@@ -21,6 +21,7 @@ import org.agrona.MutableDirectBuffer;
 import io.aklivity.zilla.runtime.common.avro.internal.AvroGeneratorImpl;
 import io.aklivity.zilla.runtime.common.avro.internal.AvroParserImpl;
 import io.aklivity.zilla.runtime.common.avro.internal.AvroSchemaImpl;
+import io.aklivity.zilla.runtime.common.avro.internal.AvroStreamImpl;
 
 /**
  * Entry point for {@code common-avro}'s streaming Avro parse and generate over Agrona buffers.
@@ -59,13 +60,24 @@ public final class Avro
     }
 
     /**
-     * Creates a schema-bound {@link AvroParser}; call {@link AvroParser#stream()} to begin a pipeline
-     * description, append {@link AvroTransform} stages, and terminate with {@link AvroStream#into(AvroSink)}.
+     * Creates a schema-bound {@link AvroParser}; pass it to {@link #stream(AvroParser)} to begin a
+     * pipeline description, append {@link AvroTransform} stages, and terminate with
+     * {@link AvroStream#into(AvroSink)}.
      */
     public static AvroParser parser(
         AvroSchema schema)
     {
         return new AvroParserImpl(schema, WORK_MAX_BYTES_DEFAULT);
+    }
+
+    /**
+     * Begins a push pipeline pumped by {@code parser}: append stages with
+     * {@link AvroStream#transform(AvroTransform)} and terminate with {@link AvroStream#into(AvroSink)}.
+     */
+    public static AvroStream stream(
+        AvroParser parser)
+    {
+        return new AvroStreamImpl((AvroParserImpl) parser);
     }
 
     /**

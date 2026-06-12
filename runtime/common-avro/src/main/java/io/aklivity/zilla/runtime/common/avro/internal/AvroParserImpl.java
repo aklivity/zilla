@@ -53,7 +53,6 @@ import io.aklivity.zilla.runtime.common.avro.AvroLocation;
 import io.aklivity.zilla.runtime.common.avro.AvroParser;
 import io.aklivity.zilla.runtime.common.avro.AvroSchema;
 import io.aklivity.zilla.runtime.common.avro.AvroSource;
-import io.aklivity.zilla.runtime.common.avro.AvroStream;
 import io.aklivity.zilla.runtime.common.avro.AvroType;
 import io.aklivity.zilla.runtime.common.avro.AvroValidationException;
 
@@ -133,12 +132,6 @@ public final class AvroParserImpl implements AvroParser, AvroSource, AvroControl
         this.stateStack = new int[16];
         this.countStack = new long[16];
         reset();
-    }
-
-    @Override
-    public AvroStream stream()
-    {
-        return new AvroStreamImpl(this);
     }
 
     @Override

@@ -113,15 +113,15 @@ public class AvroPipelineBM
         flatGenerator = Avro.generator(flatSchema, outputBuffer, 0);
         nestedGenerator = Avro.generator(nestedSchema, outputBuffer, 0);
 
-        flatParse = Avro.parser(flatSchema).stream().into(noop);
-        flatStructured = Avro.parser(flatSchema).stream()
+        flatParse = Avro.stream(Avro.parser(flatSchema)).into(noop);
+        flatStructured = Avro.stream(Avro.parser(flatSchema))
             .transform(flatSchema.validator()).into(AvroSink.of(flatGenerator));
-        flatSegmented = Avro.parser(flatSchema).stream().into(AvroSink.of(flatGenerator, Delivery.SEGMENTABLE));
+        flatSegmented = Avro.stream(Avro.parser(flatSchema)).into(AvroSink.of(flatGenerator, Delivery.SEGMENTABLE));
 
-        nestedParse = Avro.parser(nestedSchema).stream().into(noop);
-        nestedStructured = Avro.parser(nestedSchema).stream()
+        nestedParse = Avro.stream(Avro.parser(nestedSchema)).into(noop);
+        nestedStructured = Avro.stream(Avro.parser(nestedSchema))
             .transform(nestedSchema.validator()).into(AvroSink.of(nestedGenerator));
-        nestedSegmented = Avro.parser(nestedSchema).stream().into(AvroSink.of(nestedGenerator, Delivery.SEGMENTABLE));
+        nestedSegmented = Avro.stream(Avro.parser(nestedSchema)).into(AvroSink.of(nestedGenerator, Delivery.SEGMENTABLE));
 
         byte[] flatBytes = referenceEncode(FLAT, flatValue());
         byte[] nestedBytes = referenceEncode(NESTED, nestedValue());

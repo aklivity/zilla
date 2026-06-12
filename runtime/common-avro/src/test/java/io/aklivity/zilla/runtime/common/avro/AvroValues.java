@@ -45,7 +45,7 @@ public final class AvroValues
         byte[] binary)
     {
         Recorder recorder = new Recorder();
-        AvroPipeline pipeline = Avro.parser(schema).stream().into(recorder);
+        AvroPipeline pipeline = Avro.stream(Avro.parser(schema)).into(recorder);
         pipeline.reset();
         recorder.status = pipeline.feed(new UnsafeBuffer(binary), 0, binary.length);
         return recorder.events;
@@ -56,7 +56,7 @@ public final class AvroValues
         byte[] binary)
     {
         Recorder recorder = new Recorder();
-        AvroPipeline pipeline = Avro.parser(schema).stream().into(recorder);
+        AvroPipeline pipeline = Avro.stream(Avro.parser(schema)).into(recorder);
         pipeline.reset();
         recorder.status = pipeline.feed(new UnsafeBuffer(binary), 0, binary.length);
         return recorder;
@@ -69,7 +69,9 @@ public final class AvroValues
     {
         MutableDirectBuffer out = new UnsafeBuffer(new byte[Math.max(64, binary.length * 4)]);
         AvroGenerator generator = Avro.generator(schema, out, 0);
-        AvroPipeline pipeline = Avro.parser(schema).stream().transform(schema.validator()).into(AvroSink.of(generator, delivery));
+        AvroPipeline pipeline = Avro.stream(Avro.parser(schema))
+            .transform(schema.validator())
+            .into(AvroSink.of(generator, delivery));
         pipeline.reset();
         Status status = pipeline.feed(new UnsafeBuffer(binary), 0, binary.length);
         if (status != Status.COMPLETED)

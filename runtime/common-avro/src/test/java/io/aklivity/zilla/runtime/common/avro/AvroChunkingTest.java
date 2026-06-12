@@ -78,7 +78,7 @@ public class AvroChunkingTest
         MutableDirectBuffer out = new UnsafeBuffer(new byte[64]);
         AvroGenerator generator = Avro.generator(schema, out, 0);
         generator.wrap(out, 0, 4);
-        AvroPipeline pipeline = Avro.parser(schema).stream().into(AvroSink.of(generator));
+        AvroPipeline pipeline = Avro.stream(Avro.parser(schema)).into(AvroSink.of(generator));
         pipeline.reset();
         // a double is 8 bytes and cannot be split, so it does not fit the 4-byte limit even in a fresh
         // buffer — rather than write past the limit, the datum is rejected
@@ -108,7 +108,7 @@ public class AvroChunkingTest
         int limit = 8;
         MutableDirectBuffer out = new UnsafeBuffer(new byte[256]);
         AvroGenerator generator = Avro.generator(schema, out, 0);
-        AvroPipeline pipeline = Avro.parser(schema).stream().transform(counting).into(AvroSink.of(generator));
+        AvroPipeline pipeline = Avro.stream(Avro.parser(schema)).transform(counting).into(AvroSink.of(generator));
         generator.wrap(out, 0, limit);
         pipeline.reset();
 
@@ -143,7 +143,7 @@ public class AvroChunkingTest
         int limit = 8;
         MutableDirectBuffer out = new UnsafeBuffer(new byte[256]);
         AvroGenerator generator = Avro.generator(schema, out, 0);
-        AvroPipeline pipeline = Avro.parser(schema).stream().into(AvroSink.of(generator));
+        AvroPipeline pipeline = Avro.stream(Avro.parser(schema)).into(AvroSink.of(generator));
         generator.wrap(out, 0, limit);
         pipeline.reset();
 
@@ -179,7 +179,7 @@ public class AvroChunkingTest
         int limit = 24;
         MutableDirectBuffer out = new UnsafeBuffer(new byte[256]);
         AvroGenerator generator = Avro.generator(schema, out, 0);
-        AvroPipeline pipeline = Avro.parser(schema).stream().into(AvroSink.of(generator));
+        AvroPipeline pipeline = Avro.stream(Avro.parser(schema)).into(AvroSink.of(generator));
 
         generator.wrap(out, 0, limit);
         pipeline.reset();
