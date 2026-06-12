@@ -116,22 +116,23 @@ if (pipeline.feed(in, off, len) == ProtobufPipeline.Status.COMPLETE)  // COMPLET
 ### Bounded output and streaming
 
 `Protobuf.generator().wrap(out, 0, limit)` bounds the output (`limit` must fit the buffer capacity).
-A nested message reserves a length slot sized to an optimistic estimate — the wire sink passes the
-input length `source.length()` — and `endMessage` fills it with the actual length: minimal (canonical)
-when the estimate's varint width was right, padded within it when the body came out smaller, never
-shifted. So a message that fits encodes as one canonical record. When the output nears `limit`, the
-sink calls `generator.flush()` (closing the open levels into a drainable chunk) and returns
-`SUSPENDED`; the caller drains, re-wraps the generator — which reopens the open levels against the
-fresh buffer — and resumes. The per-field records reassemble by protobuf message-merge semantics, so a
-too-large message streams without ever buffering more than `limit`, and the chunked (non-canonical)
-form is only observed when forced.
+`limit` is a **hard bound** — the usable buffer is exactly `[offset, limit)` and nothing beyond it
+exists; any write that would cross `limit` raises a `ProtobufException`. A nested message reserves a
+length slot sized to an optimistic estimate — the wire sink passes the input length `source.length()`
+— and `endMessage` fills it with the actual length: minimal (canonical) when the estimate's varint
+width was right, padded within it when the body came out smaller, never shifted. So a message that fits
+encodes as one canonical record. When the **next field will not fit** under `limit`, the sink calls
+`generator.flush()` (closing the open levels into a drainable chunk) and returns `SUSPENDED` with that
+field still unwritten; the caller drains, re-wraps the generator — which reopens the open levels against
+the fresh buffer — and resumes, and the pump replays the same field against the now-empty buffer. The
+per-field records reassemble by protobuf message-merge semantics, so a too-large message streams without
+ever buffering more than `limit`, and the chunked (non-canonical) form is only observed when forced.
 
-`limit` is a **soft flush threshold**, not a hard cap: it marks where the generator prefers to break
-between fields, while the buffer capacity is the **hard bound**. A single length-delimited leaf value
-(`string`/`bytes`/a pre-encoded `writeMessage`) cannot be split across chunks — it is written whole,
-overshooting `limit` up to the buffer capacity, and the enclosing message merge-chunks around it. So
-the buffer must be sized to hold the largest single leaf value, even when that value exceeds `limit`;
-a leaf that would overflow the buffer capacity is a hard error, not a flush point.
+Because the break is between fields, a single length-delimited leaf value (`string`/`bytes`/a
+pre-encoded `writeMessage`) cannot be split across chunks — scalars merge last-wins, not by
+concatenation. A leaf that fits a freshly drained buffer streams as its own chunk; a leaf too large to
+fit `[offset, limit)` even when empty is **rejected** (the flush frees nothing, so the replay raises a
+`ProtobufException`). Size the buffer to hold the largest single leaf value.
 
 ```java
 ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, limit);

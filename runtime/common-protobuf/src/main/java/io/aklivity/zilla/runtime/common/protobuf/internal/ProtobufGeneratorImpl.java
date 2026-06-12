@@ -68,7 +68,7 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
                 (buffer.capacity() - offset));
         }
         this.limit = limit;
-        writer.wrap(buffer, offset);
+        writer.wrap(buffer, offset, offset + limit);
         if (flushed)
         {
             flushed = false;

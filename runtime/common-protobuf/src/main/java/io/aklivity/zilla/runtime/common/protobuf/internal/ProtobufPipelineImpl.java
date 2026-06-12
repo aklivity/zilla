@@ -38,6 +38,7 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
     private final ProtobufSink head;
 
     private boolean suspended;
+    private ProtobufEvent pending;
 
     public ProtobufPipelineImpl(
         ProtobufParserImpl parser,
@@ -70,13 +71,19 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
         Status status = Status.RESUMABLE;
         try
         {
-            if (!suspended)
+            if (suspended)
+            {
+                // replay the event that previously suspended, now against a drained generator
+                status = head.feed(parser, parser, pending);
+            }
+            else
             {
                 parser.wrap(buffer, offset, length);
             }
             while (status == Status.RESUMABLE && parser.hasNext())
             {
-                status = head.feed(parser, parser, parser.nextEvent());
+                pending = parser.nextEvent();
+                status = head.feed(parser, parser, pending);
             }
             suspended = status == Status.SUSPENDED;
         }

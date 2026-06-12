@@ -19,25 +19,39 @@ import java.nio.ByteOrder;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufException;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
 
 /**
  * A reusable encode cursor over a {@link MutableDirectBuffer}. All writes advance the cursor;
- * {@link #length()} reports the bytes written since {@link #wrap(MutableDirectBuffer, int)}.
+ * {@link #length()} reports the bytes written since {@link #wrap(MutableDirectBuffer, int)}. The usable
+ * region is {@code [offset, limit)} — a write that would cross {@code limit} throws a
+ * {@link ProtobufException}, so {@code limit} is a hard bound, never overshot. The two-argument
+ * {@link #wrap(MutableDirectBuffer, int)} leaves the cursor unbounded (suited to an expandable buffer).
  */
 public final class ProtobufWriter
 {
     private MutableDirectBuffer buffer;
     private int start;
     private int offset;
+    private int limit;
 
     public ProtobufWriter wrap(
         MutableDirectBuffer buffer,
         int offset)
     {
+        return wrap(buffer, offset, Integer.MAX_VALUE);
+    }
+
+    public ProtobufWriter wrap(
+        MutableDirectBuffer buffer,
+        int offset,
+        int limit)
+    {
         this.buffer = buffer;
         this.start = offset;
         this.offset = offset;
+        this.limit = limit;
         return this;
     }
 
@@ -69,6 +83,7 @@ public final class ProtobufWriter
     {
         while (true)
         {
+            ensure(1);
             if ((value & ~0x7fL) == 0)
             {
                 buffer.putByte(offset++, (byte) value);
@@ -97,6 +112,7 @@ public final class ProtobufWriter
     public void writeFixed32(
         int value)
     {
+        ensure(4);
         buffer.putInt(offset, value, ByteOrder.LITTLE_ENDIAN);
         offset += 4;
     }
@@ -104,6 +120,7 @@ public final class ProtobufWriter
     public void writeFixed64(
         long value)
     {
+        ensure(8);
         buffer.putLong(offset, value, ByteOrder.LITTLE_ENDIAN);
         offset += 8;
     }
@@ -114,6 +131,7 @@ public final class ProtobufWriter
         int length)
     {
         writeVarint32(length);
+        ensure(length);
         buffer.putBytes(offset, source, index, length);
         offset += length;
     }
@@ -122,6 +140,7 @@ public final class ProtobufWriter
         byte[] source)
     {
         writeVarint32(source.length);
+        ensure(source.length);
         buffer.putBytes(offset, source);
         offset += source.length;
     }
@@ -135,6 +154,7 @@ public final class ProtobufWriter
         int index,
         int length)
     {
+        ensure(length);
         buffer.putBytes(offset, source, index, length);
         offset += length;
     }
@@ -146,9 +166,19 @@ public final class ProtobufWriter
     public int reserve(
         int length)
     {
+        ensure(length);
         int at = offset;
         offset += length;
         return at;
+    }
+
+    private void ensure(
+        int additional)
+    {
+        if (offset + additional > limit)
+        {
+            throw new ProtobufException("output exceeds limit by " + (offset + additional - limit) + " bytes");
+        }
     }
 
     /**
