@@ -32,30 +32,30 @@ class JsonProjectorSegmentHardeningTest
     @Test
     void shouldSegmentDeeplyNestedKeptSubtreeAsSingleVerbatimValue()
     {
-        JsonGeneratorEx gen = StreamingJson.createGenerator().wrap(buffer, 0);
-        JsonPipeline pipeline = StreamingJson.createParser().stream()
-            .transform(StreamingJson.projector(List.of("/a")))
+        JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(JsonEx.projector(List.of("/a")))
             .into(JsonSink.of(gen, JsonSink.Delivery.SEGMENTABLE));
 
         Status status = run(pipeline, "{\"a\":{ \"b\" : { \"c\" : [1, {\"d\": 2}] } },\"z\":9} ");
 
-        assertEquals(Status.COMPLETE, status);
+        assertEquals(Status.COMPLETED, status);
         assertEquals("{\"a\":{ \"b\" : { \"c\" : [1, {\"d\": 2}] } }}", output(gen));
     }
 
     @Test
     void shouldResetForReuseAcrossSegmentedValues()
     {
-        JsonGeneratorEx gen = StreamingJson.createGenerator();
-        JsonPipeline pipeline = StreamingJson.createParser().stream()
-            .transform(StreamingJson.projector(List.of("/x")))
+        JsonGeneratorEx gen = JsonEx.createGenerator();
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(JsonEx.projector(List.of("/x")))
             .into(JsonSink.of(gen, JsonSink.Delivery.SEGMENTABLE));
 
-        gen.wrap(buffer, 0);
+        gen.wrap(buffer, 0, buffer.capacity());
         run(pipeline, "{\"x\":{ \"v\" : 1 },\"y\":2} ");
         assertEquals("{\"x\":{ \"v\" : 1 }}", output(gen));
 
-        gen.wrap(buffer, 0);
+        gen.wrap(buffer, 0, buffer.capacity());
         run(pipeline, "{\"x\":[9 ,8]} ");
         assertEquals("{\"x\":[9 ,8]}", output(gen));
     }
@@ -63,14 +63,14 @@ class JsonProjectorSegmentHardeningTest
     @Test
     void shouldNormalizeNestedWhenNotOptedIn()
     {
-        JsonGeneratorEx gen = StreamingJson.createGenerator().wrap(buffer, 0);
-        JsonPipeline pipeline = StreamingJson.createParser().stream()
-            .transform(StreamingJson.projector(List.of("/a")))
+        JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(JsonEx.projector(List.of("/a")))
             .into(JsonSink.of(gen));
 
         Status status = run(pipeline, "{\"a\":{ \"b\" : { \"c\" : [1, {\"d\": 2}] } },\"z\":9} ");
 
-        assertEquals(Status.COMPLETE, status);
+        assertEquals(Status.COMPLETED, status);
         assertEquals("{\"a\":{\"b\":{\"c\":[1,{\"d\":2}]}}}", output(gen));
     }
 

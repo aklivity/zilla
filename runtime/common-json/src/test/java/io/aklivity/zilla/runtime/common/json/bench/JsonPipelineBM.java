@@ -37,11 +37,11 @@ import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
+import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonSink.Delivery;
-import io.aklivity.zilla.runtime.common.json.StreamingJson;
 
 /**
  * Compares the {@code common-json} streaming pipeline, parser through generator, under structured
@@ -77,7 +77,7 @@ public class JsonPipelineBM
         "\"drop2\":[0,1,2,3,4,5,6,7,8,9],\"drop3\":{\"a\":\"b\",\"c\":\"d\"}} ";
 
     private final MutableDirectBuffer outputBuffer = new UnsafeBuffer(new byte[16 * 1024]);
-    private final JsonGeneratorEx generator = StreamingJson.createGenerator();
+    private final JsonGeneratorEx generator = JsonEx.createGenerator();
     private final JsonSink structuredSink = JsonSink.of(generator);
     private final JsonSink segmentableSink = JsonSink.of(generator, Delivery.SEGMENTABLE);
 
@@ -102,23 +102,23 @@ public class JsonPipelineBM
     @Setup(Level.Trial)
     public void init()
     {
-        scalarLeavesPipeline = StreamingJson.createParser().stream()
-            .transform(StreamingJson.projector(List.of("/id", "/active"))).into(structuredSink);
+        scalarLeavesPipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(JsonEx.projector(List.of("/id", "/active"))).into(structuredSink);
 
-        keptContainerStructuredPipeline = StreamingJson.createParser().stream()
-            .transform(StreamingJson.projector(List.of("/meta"))).into(structuredSink);
-        keptContainerSegmentedPipeline = StreamingJson.createParser().stream()
-            .transform(StreamingJson.projector(List.of("/meta"))).into(segmentableSink);
+        keptContainerStructuredPipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(JsonEx.projector(List.of("/meta"))).into(structuredSink);
+        keptContainerSegmentedPipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(JsonEx.projector(List.of("/meta"))).into(segmentableSink);
 
-        rootIdentityStructuredPipeline = StreamingJson.createParser().stream()
-            .transform(StreamingJson.projector(List.of(""))).into(structuredSink);
-        rootIdentitySegmentedPipeline = StreamingJson.createParser().stream()
-            .transform(StreamingJson.projector(List.of(""))).into(segmentableSink);
+        rootIdentityStructuredPipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(JsonEx.projector(List.of(""))).into(structuredSink);
+        rootIdentitySegmentedPipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(JsonEx.projector(List.of(""))).into(segmentableSink);
 
-        mostlySkippedStructuredPipeline = StreamingJson.createParser().stream()
-            .transform(StreamingJson.projector(List.of("/keep"))).into(structuredSink);
-        mostlySkippedSegmentedPipeline = StreamingJson.createParser().stream()
-            .transform(StreamingJson.projector(List.of("/keep"))).into(segmentableSink);
+        mostlySkippedStructuredPipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(JsonEx.projector(List.of("/keep"))).into(structuredSink);
+        mostlySkippedSegmentedPipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(JsonEx.projector(List.of("/keep"))).into(segmentableSink);
 
         byte[] flatBytes = FLAT_OBJECT.getBytes(UTF_8);
         byte[] nestedBytes = NESTED_OBJECT.getBytes(UTF_8);
@@ -183,7 +183,7 @@ public class JsonPipelineBM
         UnsafeBuffer buffer,
         int length)
     {
-        generator.wrap(outputBuffer, 0);
+        generator.wrap(outputBuffer, 0, outputBuffer.capacity());
         pipeline.reset();
         pipeline.feed(buffer, 0, length);
         return generator.length();

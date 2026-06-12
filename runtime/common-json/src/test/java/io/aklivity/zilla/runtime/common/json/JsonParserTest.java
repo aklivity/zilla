@@ -44,7 +44,7 @@ import jakarta.json.stream.JsonParsingException;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
 
-class StreamingJsonParserTest
+class JsonParserTest
 {
     @Test
     void shouldParseFlatObject()
@@ -146,7 +146,7 @@ class StreamingJsonParserTest
             UnsafeBuffer buffer = new UnsafeBuffer(full);
 
             in.wrap(buffer, 0, split);
-            JsonParser parser = StreamingJson.createParser(in);
+            JsonParser parser = JsonEx.createParser(in);
             while (parser.hasNext())
             {
                 parser.next();
@@ -169,7 +169,7 @@ class StreamingJsonParserTest
         UnsafeBuffer buffer = new UnsafeBuffer(full);
         DirectBufferInputStreamEx in = new DirectBufferInputStreamEx();
         in.wrap(buffer, 0, 1);
-        JsonParser parser = StreamingJson.createParser(in);
+        JsonParser parser = JsonEx.createParser(in);
 
         int events = 0;
         for (int i = 1; i <= full.length; i++)
@@ -469,7 +469,7 @@ class StreamingJsonParserTest
             }
         };
 
-        assertThrows(IllegalArgumentException.class, () -> StreamingJson.createParser(in));
+        assertThrows(IllegalArgumentException.class, () -> JsonEx.createParser(in));
     }
 
     @Test
@@ -501,7 +501,7 @@ class StreamingJsonParserTest
             }
         };
 
-        JsonParser parser = StreamingJson.createParser(in);
+        JsonParser parser = JsonEx.createParser(in);
         JsonParsingException ex = assertThrows(JsonParsingException.class, parser::hasNext);
         assertNotNull(ex.getCause());
     }
@@ -682,7 +682,7 @@ class StreamingJsonParserTest
             UnsafeBuffer buffer = new UnsafeBuffer(full);
             DirectBufferInputStreamEx in = new DirectBufferInputStreamEx();
             in.wrap(buffer, 0, split);
-            JsonParser parser = StreamingJson.createParser(in);
+            JsonParser parser = JsonEx.createParser(in);
             while (parser.hasNext())
             {
                 parser.next();
@@ -705,7 +705,7 @@ class StreamingJsonParserTest
             UnsafeBuffer buffer = new UnsafeBuffer(full);
             DirectBufferInputStreamEx in = new DirectBufferInputStreamEx();
             in.wrap(buffer, 0, split);
-            JsonParser parser = StreamingJson.createParser(in);
+            JsonParser parser = JsonEx.createParser(in);
             while (parser.hasNext())
             {
                 parser.next();
@@ -738,6 +738,6 @@ class StreamingJsonParserTest
     {
         DirectBufferInputStreamEx in = new DirectBufferInputStreamEx();
         in.wrap(new UnsafeBuffer(bytes), 0, bytes.length);
-        return StreamingJson.createParser(in);
+        return JsonEx.createParser(in);
     }
 }

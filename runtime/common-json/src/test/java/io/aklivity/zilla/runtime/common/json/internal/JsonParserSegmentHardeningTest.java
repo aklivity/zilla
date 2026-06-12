@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.common.json.internal;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -35,21 +36,24 @@ public class JsonParserSegmentHardeningTest
         assertEquals(JsonEvent.START_DOCUMENT, parser.nextEvent());
         assertEquals(JsonEvent.START_OBJECT, parser.nextEvent());
         parser.segmentable();
-        assertEquals(JsonEvent.START_SEGMENT, parser.nextEvent());
+        assertEquals(JsonEvent.SEGMENT, parser.nextEvent());
         final String first = segment(parser);
         assertEquals("{\"a\":1,", first);
+        assertTrue(parser.deferredBytes());
         assertFalse(parser.hasNextEvent());
 
         wrap(parser, "\"b\":2,");
-        assertEquals(JsonEvent.CONTINUE_SEGMENT, parser.nextEvent());
+        assertEquals(JsonEvent.SEGMENT, parser.nextEvent());
         final String second = segment(parser);
         assertEquals("\"b\":2,", second);
+        assertTrue(parser.deferredBytes());
         assertFalse(parser.hasNextEvent());
 
         wrap(parser, "\"c\":3} ");
-        assertEquals(JsonEvent.END_SEGMENT, parser.nextEvent());
+        assertEquals(JsonEvent.SEGMENT, parser.nextEvent());
         final String third = segment(parser);
         assertEquals("\"c\":3}", third);
+        assertFalse(parser.deferredBytes());
         assertEquals(JsonEvent.END_DOCUMENT, parser.nextEvent());
 
         assertEquals("{\"a\":1,\"b\":2,\"c\":3}", first + second + third);
@@ -64,9 +68,9 @@ public class JsonParserSegmentHardeningTest
         assertEquals(JsonEvent.START_DOCUMENT, parser.nextEvent());
         assertEquals(JsonEvent.START_OBJECT, parser.nextEvent());
         parser.segmentable();
-        assertEquals(JsonEvent.START_SEGMENT, parser.nextEvent());
+        assertEquals(JsonEvent.SEGMENT, parser.nextEvent());
         assertEquals("{}", segment(parser));
-        assertEquals(JsonEvent.END_SEGMENT, parser.nextEvent());
+        assertFalse(parser.deferredBytes());
         assertEquals(JsonEvent.END_DOCUMENT, parser.nextEvent());
     }
 
@@ -79,9 +83,9 @@ public class JsonParserSegmentHardeningTest
         assertEquals(JsonEvent.START_DOCUMENT, parser.nextEvent());
         assertEquals(JsonEvent.START_ARRAY, parser.nextEvent());
         parser.segmentable();
-        assertEquals(JsonEvent.START_SEGMENT, parser.nextEvent());
+        assertEquals(JsonEvent.SEGMENT, parser.nextEvent());
         assertEquals("[]", segment(parser));
-        assertEquals(JsonEvent.END_SEGMENT, parser.nextEvent());
+        assertFalse(parser.deferredBytes());
         assertEquals(JsonEvent.END_DOCUMENT, parser.nextEvent());
     }
 
@@ -94,9 +98,9 @@ public class JsonParserSegmentHardeningTest
         assertEquals(JsonEvent.START_DOCUMENT, parser.nextEvent());
         assertEquals(JsonEvent.START_OBJECT, parser.nextEvent());
         parser.segmentable();
-        assertEquals(JsonEvent.START_SEGMENT, parser.nextEvent());
+        assertEquals(JsonEvent.SEGMENT, parser.nextEvent());
         assertEquals("{\"a\":1}", segment(parser));
-        assertEquals(JsonEvent.END_SEGMENT, parser.nextEvent());
+        assertFalse(parser.deferredBytes());
         assertEquals(JsonEvent.END_DOCUMENT, parser.nextEvent());
 
         parser.reset();
@@ -121,8 +125,9 @@ public class JsonParserSegmentHardeningTest
         assertEquals(JsonEvent.START_DOCUMENT, parser.nextEvent());
         assertEquals(JsonEvent.START_OBJECT, parser.nextEvent());
         parser.segmentable();
-        assertEquals(JsonEvent.START_SEGMENT, parser.nextEvent());
+        assertEquals(JsonEvent.SEGMENT, parser.nextEvent());
         assertEquals("{\"a\":1,", segment(parser));
+        assertTrue(parser.deferredBytes());
         assertFalse(parser.hasNextEvent());
 
         parser.reset();

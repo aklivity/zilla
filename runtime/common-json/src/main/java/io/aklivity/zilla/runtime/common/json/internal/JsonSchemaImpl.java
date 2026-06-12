@@ -998,6 +998,12 @@ public final class JsonSchemaImpl implements JsonSchema
         {
             throw new UnsupportedOperationException();
         }
+
+        @Override
+        public boolean deferredBytes()
+        {
+            return false;
+        }
     }
 
     private static String canonicalize(
@@ -1471,6 +1477,12 @@ public final class JsonSchemaImpl implements JsonSchema
         {
             throw new UnsupportedOperationException();
         }
+
+        @Override
+        public boolean deferredBytes()
+        {
+            return false;
+        }
     }
 
     private static final class Trace
@@ -1668,18 +1680,28 @@ public final class JsonSchemaImpl implements JsonSchema
             JsonEvent event,
             JsonSink sink)
         {
-            sink.feed(decline, source, event);
+            Status downstream = sink.feed(decline, source, event);
             Status status;
             if (event.segmented() || event == JsonEvent.START_DOCUMENT || event == JsonEvent.END_DOCUMENT)
             {
-                status = Status.PENDING;
+                status = downstream == Status.REJECTED ? Status.REJECTED
+                    : downstream == Status.SUSPENDED ? Status.SUSPENDED : Status.ADVANCED;
             }
             else
             {
                 Verdict verdict = eval.feed(toEvent(event), source);
-                status = verdict == Verdict.VALID
-                    ? Status.COMPLETE
-                    : verdict == Verdict.INVALID ? Status.REJECTED : Status.PENDING;
+                if (downstream == Status.REJECTED || verdict == Verdict.INVALID)
+                {
+                    status = Status.REJECTED;
+                }
+                else if (verdict == Verdict.VALID)
+                {
+                    status = Status.COMPLETED;
+                }
+                else
+                {
+                    status = downstream == Status.SUSPENDED ? Status.SUSPENDED : Status.ADVANCED;
+                }
             }
             return status;
         }

@@ -61,8 +61,7 @@ public class JsonParserDocumentTest
         assertEquals(JsonEvent.START_DOCUMENT, parser.nextEvent());
         assertEquals(JsonEvent.START_OBJECT, parser.nextEvent());
         parser.segmentable();
-        assertEquals(JsonEvent.START_SEGMENT, parser.nextEvent());
-        assertEquals(JsonEvent.END_SEGMENT, parser.nextEvent());
+        assertEquals(JsonEvent.SEGMENT, parser.nextEvent());
         assertEquals(JsonEvent.END_DOCUMENT, parser.nextEvent());
         assertFalse(parser.hasNextEvent());
     }

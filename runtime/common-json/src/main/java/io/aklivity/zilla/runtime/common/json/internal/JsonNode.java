@@ -30,10 +30,10 @@ import jakarta.json.stream.JsonParser.Event;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.common.json.DirectBufferInputStreamEx;
-import io.aklivity.zilla.runtime.common.json.StreamingJson;
+import io.aklivity.zilla.runtime.common.json.JsonEx;
 
 /**
- * A minimal, provider-free JSON tree parsed with {@link StreamingJson} so that {@code
+ * A minimal, provider-free JSON tree parsed with {@link JsonEx} so that {@code
  * common-json} can read a schema document using its own parser, without depending on a
  * {@code jakarta.json} provider. Used at schema-compile time only.
  */
@@ -55,7 +55,7 @@ final class JsonNode
         byte[] bytes = (json + " ").getBytes(UTF_8);
         DirectBufferInputStreamEx in = new DirectBufferInputStreamEx();
         in.wrap(new UnsafeBuffer(bytes), 0, bytes.length);
-        JsonParser parser = StreamingJson.createParser(in);
+        JsonParser parser = JsonEx.createParser(in);
         return read(parser, parser.next());
     }
 

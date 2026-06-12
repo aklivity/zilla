@@ -109,21 +109,21 @@ class JsonProjectorTest
     @Test
     void shouldProjectAcrossFramesWithoutReset()
     {
-        JsonGeneratorEx gen = StreamingJson.createGenerator();
+        JsonGeneratorEx gen = JsonEx.createGenerator();
         MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
-        gen.wrap(buffer, 0);
-        JsonPipeline pipeline = StreamingJson.createParser().stream()
-            .transform(StreamingJson.projector(List.of("/a", "/c")))
+        gen.wrap(buffer, 0, buffer.capacity());
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(JsonEx.projector(List.of("/a", "/c")))
             .into(JsonSink.of(gen));
 
         byte[] bytes = "{\"a\":1,\"b\":2,\"c\":3} ".getBytes(UTF_8);
         UnsafeBuffer in = new UnsafeBuffer(bytes);
 
         pipeline.reset();
-        assertEquals(Status.PENDING, pipeline.feed(in, 0, 7));
+        assertEquals(Status.STARVED, pipeline.feed(in, 0, 7, false));
         Status status = pipeline.feed(in, 7, bytes.length - 7);
 
-        assertEquals(Status.COMPLETE, status);
+        assertEquals(Status.COMPLETED, status);
         byte[] out = new byte[gen.length()];
         buffer.getBytes(0, out);
         assertEquals("{\"a\":1,\"c\":3}", new String(out, UTF_8));
@@ -132,19 +132,19 @@ class JsonProjectorTest
     @Test
     void shouldResetForReuseAcrossValues()
     {
-        JsonGeneratorEx gen = StreamingJson.createGenerator();
+        JsonGeneratorEx gen = JsonEx.createGenerator();
         MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
-        JsonPipeline pipeline = StreamingJson.createParser().stream()
-            .transform(StreamingJson.projector(List.of("/x")))
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(JsonEx.projector(List.of("/x")))
             .into(JsonSink.of(gen));
 
-        gen.wrap(buffer, 0);
+        gen.wrap(buffer, 0, buffer.capacity());
         feed(pipeline, "{\"x\":1,\"y\":2} ");
         byte[] out1 = new byte[gen.length()];
         buffer.getBytes(0, out1);
         assertEquals("{\"x\":1}", new String(out1, UTF_8));
 
-        gen.wrap(buffer, 0);
+        gen.wrap(buffer, 0, buffer.capacity());
         feed(pipeline, "{\"x\":\"two\"} ");
         byte[] out2 = new byte[gen.length()];
         buffer.getBytes(0, out2);
@@ -167,11 +167,11 @@ class JsonProjectorTest
         List<String> retained,
         String input)
     {
-        JsonGeneratorEx gen = StreamingJson.createGenerator();
+        JsonGeneratorEx gen = JsonEx.createGenerator();
         MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
-        gen.wrap(buffer, 0);
-        JsonPipeline pipeline = StreamingJson.createParser().stream()
-            .transform(StreamingJson.projector(retained))
+        gen.wrap(buffer, 0, buffer.capacity());
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(JsonEx.projector(retained))
             .into(JsonSink.of(gen));
         feed(pipeline, input + " ");
         byte[] out = new byte[gen.length()];

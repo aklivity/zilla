@@ -30,6 +30,7 @@ public final class KafkaOptionsConfigBuilder<T> extends ConfigBuilder<T, KafkaOp
     private List<KafkaTopicConfig> topics;
     private List<KafkaServerConfig> servers;
     private KafkaSaslConfig sasl;
+    private KafkaAuthorizationConfig authorization;
 
     KafkaOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
@@ -91,6 +92,18 @@ public final class KafkaOptionsConfigBuilder<T> extends ConfigBuilder<T, KafkaOp
         return KafkaSaslConfig.builder(this::sasl);
     }
 
+    public KafkaOptionsConfigBuilder<T> authorization(
+        KafkaAuthorizationConfig authorization)
+    {
+        this.authorization = authorization;
+        return this;
+    }
+
+    public KafkaAuthorizationConfigBuilder<KafkaOptionsConfigBuilder<T>> authorization()
+    {
+        return KafkaAuthorizationConfig.builder(this::authorization);
+    }
+
     public KafkaOptionsConfigBuilder<T> server(
         KafkaServerConfig server)
     {
@@ -106,6 +119,6 @@ public final class KafkaOptionsConfigBuilder<T> extends ConfigBuilder<T, KafkaOp
     @Override
     public T build()
     {
-        return mapper.apply(new KafkaOptionsConfig(bootstrap, topics, servers, sasl));
+        return mapper.apply(new KafkaOptionsConfig(bootstrap, topics, servers, sasl, authorization));
     }
 }

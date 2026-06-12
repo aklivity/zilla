@@ -28,7 +28,7 @@ import org.agrona.MutableDirectBuffer;
  * {@code jakarta.json.stream} contract lacks. This is the {@code *Ex} pattern for going beyond
  * JSON-P: a sub-interface of the standard type adding the extra methods a streaming, buffer-
  * backed caller needs, implemented internally by {@code JsonGeneratorImpl} and obtained via
- * {@link StreamingJson#createGenerator()}.
+ * {@link JsonEx#createGenerator()}.
  * <p>
  * Every inherited {@link JsonGenerator} method is redeclared with a covariant {@code
  * JsonGeneratorEx} return so the standard write methods chain fluently alongside the extensions.
@@ -36,17 +36,37 @@ import org.agrona.MutableDirectBuffer;
 public interface JsonGeneratorEx extends JsonGenerator
 {
     /**
-     * (Re)targets the generator at {@code buffer} starting at {@code offset}, resetting all
-     * context. Reuse a single instance per worker thread across values.
+     * Re-targets the generator at {@code buffer} starting at {@code offset} with a hard byte
+     * {@code limit}, the bound a chunking driver watches via {@link #remaining()} to decide when to
+     * drain and resume; {@code limit} must be supported by the buffer capacity. Structural context
+     * (open object/array depth and pending separators) is preserved, so a value paused by
+     * {@link JsonPipeline.Status#SUSPENDED} continues across the drain as one uninterrupted
+     * serialization. For an unbounded value pass the buffer's capacity as {@code limit}. Reuse a
+     * single instance per worker thread across values.
      */
     JsonGeneratorEx wrap(
         MutableDirectBuffer buffer,
-        int offset);
+        int offset,
+        int limit);
 
     /**
-     * Reports the number of bytes written since the last {@link #wrap(MutableDirectBuffer, int)}.
+     * Clears the structural context (open object/array depth and pending separators) without
+     * re-targeting the buffer, readying the instance for a fresh top-level value. Reuse across pooled
+     * callers calls this — via the pipeline's {@code reset()} cascade — so an instance returned mid-value
+     * does not leak open structure into the next value.
+     */
+    void reset();
+
+    /**
+     * Reports the number of bytes written since the last {@link #wrap}.
      */
     int length();
+
+    /**
+     * Bytes that may still be written before reaching the {@code limit} set at {@link #wrap}. A driver
+     * checks this at an event boundary to decide whether to suspend (drain) before the next write.
+     */
+    int remaining();
 
     /**
      * Emits a numeric literal verbatim, preserving the exact source lexeme (e.g. {@code -2.5e3})
@@ -54,6 +74,14 @@ public interface JsonGeneratorEx extends JsonGenerator
      */
     JsonGeneratorEx writeNumber(
         String literal);
+
+    /**
+     * Emits a numeric literal from a {@code CharSequence} verbatim without first materializing a
+     * {@link String}, letting a streaming caller forward a non-owning char view of the lexeme.
+     * Semantics match {@link #writeNumber(String)}.
+     */
+    JsonGeneratorEx writeNumber(
+        CharSequence literal);
 
     /**
      * Splices a pre-encoded JSON value from {@code source} verbatim as the next value, with no
@@ -74,6 +102,20 @@ public interface JsonGeneratorEx extends JsonGenerator
         int index,
         int length);
 
+    /**
+     * Appends {@code length} content bytes of a value verbatim within the usable region {@code [offset,
+     * limit)}, with no re-encoding and no structural separator (the value's leading separator is emitted
+     * once, before its first segment). {@code deferred} reports how many bytes of this value remain to be
+     * written after these {@code length} bytes; a driver fragments a value larger than {@link #remaining()}
+     * by writing what fits, leaving {@code deferred > 0}, draining, then continuing on resume until
+     * {@code deferred} reaches zero.
+     */
+    JsonGeneratorEx writeSegment(
+        DirectBuffer source,
+        int index,
+        int length,
+        int deferred);
+
     @Override
     JsonGeneratorEx writeStartObject();
 
@@ -92,12 +134,29 @@ public interface JsonGeneratorEx extends JsonGenerator
     JsonGeneratorEx writeKey(
         String name);
 
+    /**
+     * Writes an object key from a {@code CharSequence} without first materializing a {@link String},
+     * letting a streaming caller forward a non-owning char view (e.g. a key still buffered upstream)
+     * straight to the wire. Semantics match {@link #writeKey(String)}; the chars are escaped and
+     * encoded as they are read.
+     */
+    JsonGeneratorEx writeKey(
+        CharSequence name);
+
     @Override
     JsonGeneratorEx writeEnd();
 
     @Override
     JsonGeneratorEx write(
         String value);
+
+    /**
+     * Writes a string value from a {@code CharSequence} without first materializing a {@link String},
+     * the value-side counterpart to {@link #writeKey(CharSequence)}. Semantics match
+     * {@link #write(String)}; the chars are escaped and encoded as they are read.
+     */
+    JsonGeneratorEx write(
+        CharSequence value);
 
     @Override
     JsonGeneratorEx write(
