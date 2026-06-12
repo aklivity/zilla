@@ -38,7 +38,6 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
     private final ProtobufSink head;
 
     private boolean suspended;
-    private ProtobufEvent pending;
 
     public ProtobufPipelineImpl(
         ProtobufParserImpl parser,
@@ -73,8 +72,8 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
         {
             if (suspended)
             {
-                // replay the event that previously suspended, now against a drained generator
-                status = head.feed(parser, parser, pending);
+                // continue the suspended work without replaying the event through the stages
+                status = head.resume(parser, parser);
             }
             else
             {
@@ -82,8 +81,7 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
             }
             while (status == Status.RESUMABLE && parser.hasNext())
             {
-                pending = parser.nextEvent();
-                status = head.feed(parser, parser, pending);
+                status = head.feed(parser, parser, parser.nextEvent());
             }
             suspended = status == Status.SUSPENDED;
         }
@@ -114,6 +112,14 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
             ProtobufEvent event)
         {
             return transform.feed(control, source, event, downstream);
+        }
+
+        @Override
+        public Status resume(
+            ProtobufController control,
+            ProtobufSource source)
+        {
+            return transform.resume(control, source, downstream);
         }
 
         @Override

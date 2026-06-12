@@ -28,6 +28,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
 
 import io.aklivity.zilla.runtime.common.protobuf.Protobuf;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufEvent;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufField;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufGenerator;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufMessage;
@@ -35,6 +36,7 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufParser;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSchema;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSink;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufTransform;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufType;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
 
@@ -190,6 +192,47 @@ public class ProtobufChunkingTest
         assertEquals("hi", note);
         assertEquals(blob, decodedBlob);
         assertEquals("end", label);
+    }
+
+    @Test
+    public void shouldFeedEachEventOnceThroughTransformAcrossSuspends()
+    {
+        byte[] input = person("neo", "x".repeat(200), "Zion");
+
+        // a transform must see the same event sequence regardless of suspends: resume continues at the
+        // sink without replaying the event through the stages, so no event is delivered twice
+        List<ProtobufEvent> whole = recordEvents(input, 4096);
+        List<ProtobufEvent> bounded = recordEvents(input, 40);
+
+        assertEquals(whole, bounded);
+    }
+
+    private List<ProtobufEvent> recordEvents(
+        byte[] input,
+        int limit)
+    {
+        MutableDirectBuffer out = new UnsafeBuffer(new byte[4096]);
+        ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, limit);
+        List<ProtobufEvent> events = new ArrayList<>();
+        ProtobufTransform recorder = (control, source, event, sink) ->
+        {
+            events.add(event);
+            return sink.feed(control, source, event);
+        };
+        ProtobufPipeline pipeline = Protobuf.parser(schema, "Person").stream()
+            .transform(recorder)
+            .into(ProtobufSink.of(generator, schema, "Person"));
+        pipeline.reset();
+
+        UnsafeBuffer buffer = new UnsafeBuffer(input);
+        ProtobufPipeline.Status status = pipeline.feed(buffer, 0, input.length);
+        while (status == ProtobufPipeline.Status.SUSPENDED)
+        {
+            generator.wrap(out, 0, limit);
+            status = pipeline.feed(buffer, 0, input.length);
+        }
+        assertEquals(ProtobufPipeline.Status.COMPLETE, status);
+        return events;
     }
 
     private List<byte[]> chunk(

@@ -31,6 +31,20 @@ public interface ProtobufSink
         ProtobufSource source,
         ProtobufEvent event);
 
+    /**
+     * Continues the work left unfinished when a prior {@link #feed} returned
+     * {@link ProtobufPipeline.Status#SUSPENDED} — the pipeline calls this on resume instead of replaying
+     * the event, so the events are not re-processed by the rest of the pipeline. The default has nothing
+     * pending and reports {@link ProtobufPipeline.Status#RESUMABLE}; a bounded sink overrides it to resume
+     * writing the in-flight field, and {@code source} stays positioned on the suspended event.
+     */
+    default ProtobufPipeline.Status resume(
+        ProtobufController control,
+        ProtobufSource source)
+    {
+        return ProtobufPipeline.Status.RESUMABLE;
+    }
+
     default void reset()
     {
     }

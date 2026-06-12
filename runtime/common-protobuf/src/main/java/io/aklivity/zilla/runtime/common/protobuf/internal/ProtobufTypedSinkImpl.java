@@ -55,6 +55,7 @@ public final class ProtobufTypedSinkImpl implements ProtobufSink
     private int depth;
     private ProtobufField pending;
     private int valueWritten;
+    private ProtobufEvent suspended;
 
     public ProtobufTypedSinkImpl(
         ProtobufGenerator generator,
@@ -71,6 +72,37 @@ public final class ProtobufTypedSinkImpl implements ProtobufSink
     @Override
     public ProtobufPipeline.Status feed(
         ProtobufController control,
+        ProtobufSource source,
+        ProtobufEvent event)
+    {
+        ProtobufPipeline.Status status = dispatch(source, event);
+        if (status == ProtobufPipeline.Status.SUSPENDED)
+        {
+            suspended = event;
+        }
+        return status;
+    }
+
+    @Override
+    public ProtobufPipeline.Status resume(
+        ProtobufController control,
+        ProtobufSource source)
+    {
+        // re-run the event that did not fit; the field/value position is held in pending and valueWritten,
+        // so this continues a fragmented value or retries a whole field against the freshly drained buffer
+        return dispatch(source, suspended);
+    }
+
+    @Override
+    public void reset()
+    {
+        depth = -1;
+        pending = null;
+        valueWritten = 0;
+        suspended = null;
+    }
+
+    private ProtobufPipeline.Status dispatch(
         ProtobufSource source,
         ProtobufEvent event)
     {
@@ -99,14 +131,6 @@ public final class ProtobufTypedSinkImpl implements ProtobufSink
             break;
         }
         return status;
-    }
-
-    @Override
-    public void reset()
-    {
-        depth = -1;
-        pending = null;
-        valueWritten = 0;
     }
 
     private ProtobufPipeline.Status onStartMessage(
