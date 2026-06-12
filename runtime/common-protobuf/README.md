@@ -126,33 +126,43 @@ out:
 
 - **Output — `SUSPENDED`** (the generator filled): drain the output, reset the generator, and call
   `feed` again with the **same** input window to resume the in-flight message from where it paused.
-- **Input — `STARVED`** (the input window was consumed before the message completed): call `feed`
-  again with the **next** input window. End of input is signalled by the caller via the `last` flag on
-  `feed(buffer, offset, length, last)`; pass `last == true` only on the final window. The three-argument
-  `feed(buffer, offset, length)` is the whole-buffer shorthand (`last == true`) and never returns
-  `STARVED`.
+- **Input — `STARVED`** (the input window was consumed before the message completed): retain the
+  unconsumed tail and call `feed` again with it prepended to the **next** window. End of input is
+  signalled by the caller via the `last` flag on `feed(buffer, offset, length, last)`; pass
+  `last == true` only on the final window. The three-argument `feed(buffer, offset, length)` is the
+  whole-buffer shorthand (`last == true`) and never returns `STARVED`.
 
 `STARVED` is returned only when `last == false`; under `last == true` a clean message end yields
 `COMPLETED` and an incomplete one (a primitive, length-prefix, or nested message that runs past the
-bytes) yields `REJECTED`. The parser keeps the partial trailing unit (a split tag/varint/length/fixed,
-or a leaf value being reassembled) as a small internal carry, so the caller just feeds successive
-windows and need not align them to message boundaries.
+bytes) yields `REJECTED`.
+
+The pipeline holds **no input buffer of its own** — it never copies or retains input. Instead it reports
+`position()`, the number of input bytes committed so far (always at a whole-unit boundary). On `STARVED`,
+everything at or after `position()` is the unconsumed tail; the caller retains those bytes — typically in
+the reassembly slot it already owns — and re-presents them, contiguous with the next window, on the
+following `feed`. Because the unknown-field skip and large leaf values both stream, that retained tail is
+only ever a partial primitive or a partial UTF-8 code point — a handful of bytes.
 
 ```java
 pipeline.reset();
+long committed = 0;                                  // absolute position of slot[0]
 for (boolean done = false; !done; )
 {
-    Window in = nextWindow();                       // bytes + final-flag
-    Status status = pipeline.feed(in.buffer(), in.offset(), in.length(), in.last());
-    while (status == Status.SUSPENDED)              // output full
+    appendToSlot(nextWindowBytes());                 // grow the reassembly slot with new input
+    Status status = pipeline.feed(slot, 0, slotLength, finalWindow);
+    while (status == Status.SUSPENDED)               // output full
     {
-        emitDataFrame(out, 0, generator.length());  // drain — flow-controlled
-        generator.wrap(out, 0, limit);              // reset output (fresh or recycled buffer)
-        status = pipeline.feed(in.buffer(), in.offset(), in.length(), in.last());
+        emitDataFrame(out, 0, generator.length());   // drain — flow-controlled
+        generator.wrap(out, 0, limit);               // reset output (fresh or recycled buffer)
+        status = pipeline.feed(slot, 0, slotLength, finalWindow);
     }
     switch (status)
     {
-    case STARVED: break;                            // feed the next input window
+    case STARVED:
+        int consumed = (int) (pipeline.position() - committed);
+        compactSlot(consumed);                        // drop committed bytes, keep the tail at the front
+        committed = pipeline.position();
+        break;
     case COMPLETED: emitDataFrame(out, 0, generator.length()); done = true; break;
     case REJECTED: abort(); done = true; break;
     default: break;
@@ -265,11 +275,13 @@ engine delivers the reassembled payload) or as successive input windows (the str
 *Two back-pressure axes* above), without buffering the whole document either way. Processing is bounded
 by the message structure — the parser decodes over a per-depth frame stack whose scope ends are tracked
 by a swap-safe position counter rather than the refillable byte limit, so a frame survives a window
-swap — plus the current primitive (a split tag/varint/length/fixed, or a partial UTF-8 code point, is
-carried internally, at most a few bytes, until it completes). Leaf `string`/`bytes` values stream in
-window-sized pieces rather than being reassembled whole. The generator streams its output bounded by
-`limit`, fragmenting any value too large rather than buffering it. No unbounded document is buffered. Truncated or overlong varints, lengths that run past
-the message under `last`, and unterminated or mismatched groups are rejected with a `ProtobufException`.
+swap. Leaf `string`/`bytes` values and unknown-field skips both stream in window-sized pieces rather
+than being reassembled whole, and the cursor itself **never copies or retains input** — it reports
+`position()` and leaves any unconsumed tail (only ever a partial primitive or a partial UTF-8 code
+point) for the caller to retain and re-present (see *Two back-pressure axes* above). The generator
+streams its output bounded by `limit`, fragmenting any value too large rather than buffering it. No
+unbounded document is buffered. Truncated or overlong varints, lengths that run past the message under
+`last`, and unterminated or mismatched groups are rejected with a `ProtobufException`.
 
 ## Conformance
 

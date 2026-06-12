@@ -17,8 +17,6 @@ package io.aklivity.zilla.runtime.common.protobuf.internal;
 import java.nio.ByteOrder;
 
 import org.agrona.DirectBuffer;
-import org.agrona.ExpandableArrayBuffer;
-import org.agrona.MutableDirectBuffer;
 
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufException;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
@@ -31,15 +29,14 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
  * {@link #position()} counter. A read that would cross {@link #limit()} resolves by the {@code last} flag:
  * when {@code last} (the whole-buffer contract) it raises a {@link ProtobufException} — truncated input is
  * rejected — otherwise it sets {@link #starved()} and returns without reading out of bounds, so the caller
- * can {@link #rewind()} to the last {@link #mark()}, {@link #stash()} the partial unit, and continue from
- * the next window via {@link #resume}. The stashed carry is prepended to that window so a primitive split
- * across the boundary decodes from one contiguous region.
+ * can {@link #rewind()} to the last {@link #mark()} (a committed unit boundary) and report starvation.
+ * <p>
+ * The cursor never copies or retains bytes: it reads directly from the window it is given. Whatever the
+ * driver has not yet consumed (everything at or after {@link #position()}) is the driver's to retain and
+ * re-present, contiguous with the next window, on {@link #resume}.
  */
 public final class ProtobufReader
 {
-    private final MutableDirectBuffer combined = new ExpandableArrayBuffer();
-    private final MutableDirectBuffer pending = new ExpandableArrayBuffer();
-
     private DirectBuffer buffer;
     private int base;
     private long positionBase;
@@ -48,7 +45,6 @@ public final class ProtobufReader
     private int mark;
     private boolean last;
     private boolean starved;
-    private int pendingLength;
 
     public ProtobufReader wrap(
         DirectBuffer buffer,
@@ -72,7 +68,6 @@ public final class ProtobufReader
         this.mark = offset;
         this.last = last;
         this.starved = false;
-        this.pendingLength = 0;
         return this;
     }
 
@@ -82,26 +77,15 @@ public final class ProtobufReader
         int length,
         boolean last)
     {
+        // the driver re-presents everything not yet consumed at the front of this window, so the cursor
+        // simply continues from its committed position against the new, contiguous bytes
         long position = position();
-        if (pendingLength > 0)
-        {
-            combined.putBytes(0, pending, 0, pendingLength);
-            combined.putBytes(pendingLength, buffer, offset, length);
-            this.buffer = combined;
-            this.base = 0;
-            this.offset = 0;
-            this.limit = pendingLength + length;
-            this.pendingLength = 0;
-        }
-        else
-        {
-            this.buffer = buffer;
-            this.base = offset;
-            this.offset = offset;
-            this.limit = offset + length;
-        }
+        this.buffer = buffer;
+        this.base = offset;
         this.positionBase = position;
-        this.mark = this.offset;
+        this.offset = offset;
+        this.limit = offset + length;
+        this.mark = offset;
         this.last = last;
         this.starved = false;
         return this;
@@ -151,15 +135,6 @@ public final class ProtobufReader
     public void rewind()
     {
         this.offset = mark;
-    }
-
-    public void stash()
-    {
-        pendingLength = limit - mark;
-        if (pendingLength > 0)
-        {
-            pending.putBytes(0, buffer, mark, pendingLength);
-        }
     }
 
     public int readVarint32()

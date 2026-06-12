@@ -86,6 +86,15 @@ public interface ProtobufParser
     boolean hasNext();
 
     /**
+     * The number of input bytes committed since {@link #wrap} — always at a whole-unit boundary, never
+     * mid-primitive, mid-code-point, or mid-skip. When {@link #nextEvent(Mode)} returns {@code null}
+     * (starvation), everything at or after this position is the unconsumed tail: the driver retains those
+     * bytes and re-presents them, contiguous with the next window, via {@link #resume}. The cursor itself
+     * never copies or buffers input.
+     */
+    long position();
+
+    /**
      * Advances the cursor and returns the next event in {@link Mode#STRUCTURED} mode.
      */
     default ProtobufEvent nextEvent()

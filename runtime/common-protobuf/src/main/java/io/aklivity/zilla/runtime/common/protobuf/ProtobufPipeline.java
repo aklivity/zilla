@@ -76,6 +76,15 @@ public interface ProtobufPipeline
     void reset();
 
     /**
+     * The number of input bytes committed since the message began — always at a whole-unit boundary. On
+     * {@link Status#STARVED} everything at or after this position is the unconsumed tail: the caller
+     * retains it (typically in its own reassembly slot) and re-presents it, contiguous with the next
+     * window, on the following {@link #feed}. The pipeline holds no input buffer of its own. The value is
+     * unspecified after {@link Status#SUSPENDED} (re-feed the same window) and need not be consulted then.
+     */
+    long position();
+
+    /**
      * Feeds a whole message in one shot (equivalent to {@link #feed(DirectBuffer, int, int, boolean)} with
      * {@code last == true}), preserving the bounded-buffer contract for callers that reassemble first.
      */

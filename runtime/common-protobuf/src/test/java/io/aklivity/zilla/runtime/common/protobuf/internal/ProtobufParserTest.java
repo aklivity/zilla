@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -272,31 +273,62 @@ public class ProtobufParserTest
         List<String> whole = drain(Protobuf.parser(schema, "P").wrap(new UnsafeBuffer(message), 0, message.length));
 
         ProtobufParser parser = Protobuf.parser(schema, "P");
-        UnsafeBuffer buffer = new UnsafeBuffer(message);
         List<String> events = new ArrayList<>();
         StringBuilder pending = new StringBuilder();
-        boolean sawNull = false;
-        int offset = 0;
+        boolean[] sawNull = {false};
         int window = 2;
-        parser.wrap(buffer, offset, Math.min(window, message.length), window >= message.length);
-        while (parser.hasNext())
+        byte[] retained = new byte[0];
+        long committed = 0;
+        int offset = 0;
+        boolean started = false;
+        boolean done = false;
+        while (!done)
         {
-            ProtobufEvent event = parser.nextEvent();
-            if (event == null)
+            int take = Math.min(window, message.length - offset);
+            byte[] feed = new byte[retained.length + take];
+            System.arraycopy(retained, 0, feed, 0, retained.length);
+            System.arraycopy(message, offset, feed, retained.length, take);
+            offset += take;
+            boolean last = offset >= message.length;
+            UnsafeBuffer buffer = new UnsafeBuffer(feed);
+            if (started)
             {
-                sawNull = true;
-                offset += window;
-                int length = Math.min(window, message.length - offset);
-                boolean last = offset + length >= message.length;
-                parser.resume(buffer, offset, length, last);
+                parser.resume(buffer, 0, feed.length, last);
             }
             else
             {
-                record(parser, events, pending, event);
+                parser.wrap(buffer, 0, feed.length, last);
+                started = true;
+            }
+
+            boolean starved = false;
+            while (parser.hasNext() && !starved)
+            {
+                ProtobufEvent event = parser.nextEvent();
+                if (event == null)
+                {
+                    sawNull[0] = true;
+                    starved = true;
+                }
+                else
+                {
+                    record(parser, events, pending, event);
+                }
+            }
+
+            if (parser.hasNext())
+            {
+                int consumed = (int) (parser.position() - committed);
+                retained = Arrays.copyOfRange(feed, consumed, feed.length);
+                committed = parser.position();
+            }
+            else
+            {
+                done = true;
             }
         }
 
-        assertTrue(sawNull);
+        assertTrue(sawNull[0]);
         // chunked across 2-byte windows, the events match the whole-buffer stream once value chunks are reassembled
         assertEquals(whole, events);
     }
@@ -447,28 +479,61 @@ public class ProtobufParserTest
         sink.writeBytes(chunk);
     }
 
+    // drives the parser window-by-window the way a real caller does: on starvation it retains the
+    // unconsumed tail (everything at or after position()) and re-presents it contiguous with the next window
     private static void driveWindows(
         ProtobufParser parser,
         byte[] message,
         int window,
         BiConsumer<ProtobufParser, ProtobufEvent> consumer)
     {
-        UnsafeBuffer buffer = new UnsafeBuffer(message);
+        byte[] retained = new byte[0];
+        long committed = 0;
         int offset = 0;
-        int length = Math.min(window, message.length);
-        parser.wrap(buffer, offset, length, offset + length >= message.length);
-        while (parser.hasNext())
+        boolean started = false;
+        boolean done = false;
+        while (!done)
         {
-            ProtobufEvent event = parser.nextEvent();
-            if (event == null)
+            int take = Math.min(window, message.length - offset);
+            byte[] feed = new byte[retained.length + take];
+            System.arraycopy(retained, 0, feed, 0, retained.length);
+            System.arraycopy(message, offset, feed, retained.length, take);
+            offset += take;
+            boolean last = offset >= message.length;
+            UnsafeBuffer buffer = new UnsafeBuffer(feed);
+            if (started)
             {
-                offset += length;
-                length = Math.min(window, message.length - offset);
-                parser.resume(buffer, offset, length, offset + length >= message.length);
+                parser.resume(buffer, 0, feed.length, last);
             }
             else
             {
-                consumer.accept(parser, event);
+                parser.wrap(buffer, 0, feed.length, last);
+                started = true;
+            }
+
+            boolean starved = false;
+            while (parser.hasNext() && !starved)
+            {
+                ProtobufEvent event = parser.nextEvent();
+                if (event == null)
+                {
+                    starved = true;
+                }
+                else
+                {
+                    consumer.accept(parser, event);
+                }
+            }
+
+            if (parser.hasNext())
+            {
+                int consumed = (int) (parser.position() - committed);
+                retained = Arrays.copyOfRange(feed, consumed, feed.length);
+                committed = parser.position();
+            }
+            else
+            {
+                done = true;
             }
         }
     }

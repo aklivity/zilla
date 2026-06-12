@@ -75,6 +75,12 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
     }
 
     @Override
+    public long position()
+    {
+        return parser.position();
+    }
+
+    @Override
     public Status feed(
         DirectBuffer buffer,
         int offset,

@@ -85,6 +85,7 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
     private int deferred;
     private int leafRemaining;
     private boolean leafString;
+    private int skipRemaining;
 
     public ProtobufParserImpl(
         ProtobufSchema schema,
@@ -110,6 +111,7 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
         this.phase = PHASE_NONE;
         this.deferred = 0;
         this.leafRemaining = -1;
+        this.skipRemaining = 0;
         return this;
     }
 
@@ -128,6 +130,12 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
     public boolean hasNext()
     {
         return !done;
+    }
+
+    @Override
+    public long position()
+    {
+        return reader.position();
     }
 
     @Override
@@ -321,8 +329,8 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
 
     private ProtobufEvent starve()
     {
+        // leave the partial unit unconsumed at the committed position; the driver retains and re-presents it
         reader.rewind();
-        reader.stash();
         return null;
     }
 
@@ -352,7 +360,27 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
         while (event == null && !starving)
         {
             Frame frame = frames.get(depth);
-            if (frame.packedEnd >= 0L && reader.position() < frame.packedEnd)
+            if (skipRemaining > 0)
+            {
+                // discard an unknown length-delimited field a window at a time, committing as we go
+                int available = reader.available();
+                if (skipRemaining <= available)
+                {
+                    reader.skip(skipRemaining);
+                    skipRemaining = 0;
+                }
+                else if (reader.last())
+                {
+                    throw new ProtobufException("truncated field");
+                }
+                else
+                {
+                    reader.skip(available);
+                    skipRemaining -= available;
+                    starving = true;
+                }
+            }
+            else if (frame.packedEnd >= 0L && reader.position() < frame.packedEnd)
             {
                 field = frame.packedField;
                 fieldNumber = field.number();
@@ -392,7 +420,6 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
                 if (reader.starved())
                 {
                     reader.rewind();
-                    reader.stash();
                     starving = true;
                 }
             }
@@ -447,7 +474,21 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
         ProtobufEvent event;
         ProtobufReader reader = this.reader;
         ProtobufField fld = frame.message.field(number);
-        if (fld == null)
+        if (fld == null && wt == ProtobufWireType.LEN)
+        {
+            // unknown length-delimited field: read its length, then stream-discard the body across windows
+            int len = reader.readVarint32();
+            if (!reader.starved())
+            {
+                if (len < 0)
+                {
+                    throw new ProtobufException("negative length " + len);
+                }
+                skipRemaining = len;
+            }
+            event = null;
+        }
+        else if (fld == null)
         {
             reader.skipField(number, wt);
             event = null;
