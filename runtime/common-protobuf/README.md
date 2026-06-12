@@ -126,6 +126,13 @@ fresh buffer — and resumes. The per-field records reassemble by protobuf messa
 too-large message streams without ever buffering more than `limit`, and the chunked (non-canonical)
 form is only observed when forced.
 
+`limit` is a **soft flush threshold**, not a hard cap: it marks where the generator prefers to break
+between fields, while the buffer capacity is the **hard bound**. A single length-delimited leaf value
+(`string`/`bytes`/a pre-encoded `writeMessage`) cannot be split across chunks — it is written whole,
+overshooting `limit` up to the buffer capacity, and the enclosing message merge-chunks around it. So
+the buffer must be sized to hold the largest single leaf value, even when that value exceeds `limit`;
+a leaf that would overflow the buffer capacity is a hard error, not a flush point.
+
 ```java
 ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, limit);
 ProtobufPipeline pipeline = Protobuf.parser(readSchema, "Person").stream()

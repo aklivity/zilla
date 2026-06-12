@@ -86,6 +86,49 @@ public class ProtobufChunkingTest
     }
 
     @Test
+    public void shouldStreamLeafLargerThanLimit()
+    {
+        String street = "x".repeat(200);
+        byte[] address = wire(w ->
+        {
+            w.writeTag(1, ProtobufWireType.LEN);
+            w.writeBytes(street.getBytes(UTF_8));
+            w.writeTag(2, ProtobufWireType.LEN);
+            w.writeBytes("Zion".getBytes(UTF_8));
+        });
+        byte[] input = wire(w ->
+        {
+            w.writeTag(1, ProtobufWireType.LEN);
+            w.writeBytes("neo".getBytes(UTF_8));
+            w.writeTag(2, ProtobufWireType.LEN);
+            w.writeBytes(address);
+        });
+
+        int limit = 40;
+        MutableDirectBuffer out = new UnsafeBuffer(new byte[1024]);
+        ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, limit);
+        ProtobufPipeline pipeline = Protobuf.parser(schema, "Person").stream()
+            .into(ProtobufSink.of(generator, schema, "Person"));
+        pipeline.reset();
+
+        List<byte[]> chunks = new ArrayList<>();
+        ProtobufPipeline.Status status = pipeline.feed(new UnsafeBuffer(input), 0, input.length);
+        while (status == ProtobufPipeline.Status.SUSPENDED)
+        {
+            chunks.add(bytes(out, generator.length()));
+            generator.wrap(out, 0, limit);
+            status = pipeline.feed(new UnsafeBuffer(input), 0, input.length);
+        }
+        assertEquals(ProtobufPipeline.Status.COMPLETE, status);
+        chunks.add(bytes(out, generator.length()));
+
+        Person person = decodeMerged(concat(chunks));
+        assertEquals("neo", person.name);
+        assertEquals(street, person.street);
+        assertEquals("Zion", person.city);
+    }
+
+    @Test
     public void shouldChunkViaPipelineSinkWhenStreaming()
     {
         byte[] address = wire(w ->
