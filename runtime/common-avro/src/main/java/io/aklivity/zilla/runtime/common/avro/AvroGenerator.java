@@ -34,7 +34,7 @@ public interface AvroGenerator
      * buffer's remaining capacity for unbounded output; {@code offset + limit} must not exceed the
      * buffer's capacity.
      */
-    void wrap(
+    AvroGenerator wrap(
         MutableDirectBuffer buffer,
         int offset,
         int limit);

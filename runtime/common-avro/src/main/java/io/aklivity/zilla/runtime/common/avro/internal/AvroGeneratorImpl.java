@@ -45,16 +45,32 @@ public final class AvroGeneratorImpl implements AvroGenerator
         this.nodeStack = new AvroNode[16];
         this.stateStack = new int[16];
         this.depth = 0;
-        retarget(buffer, offset, buffer.capacity());
+        wrap(buffer, offset, buffer.capacity() - offset);
     }
 
     @Override
-    public void wrap(
+    public AvroGenerator wrap(
         MutableDirectBuffer buffer,
         int offset,
         int limit)
     {
-        retarget(buffer, offset, offset + limit);
+        int bound = offset + limit;
+        if (bound > buffer.capacity())
+        {
+            throw new IllegalArgumentException("limit exceeds buffer capacity");
+        }
+        this.buffer = buffer;
+        this.base = offset;
+        this.bound = bound;
+        this.progress = offset;
+        // depth > 0 means a datum is mid-flight (a resume after a bounded-output drain): keep the
+        // schema-walk stack so writing continues from the current field. Avro is unframed, so the
+        // drained bytes are a valid prefix and no level needs reopening — only the buffer is retargeted.
+        if (depth == 0)
+        {
+            push(root);
+        }
+        return this;
     }
 
     @Override
@@ -261,28 +277,6 @@ public final class AvroGeneratorImpl implements AvroGenerator
     {
         this.buffer.putBytes(progress, buffer, offset, length);
         progress += length;
-    }
-
-    private void retarget(
-        MutableDirectBuffer buffer,
-        int offset,
-        int bound)
-    {
-        if (bound > buffer.capacity())
-        {
-            throw new IllegalArgumentException("limit exceeds buffer capacity");
-        }
-        this.buffer = buffer;
-        this.base = offset;
-        this.bound = bound;
-        this.progress = offset;
-        // depth > 0 means a datum is mid-flight (a resume after a bounded-output drain): keep the
-        // schema-walk stack so writing continues from the current field. Avro is unframed, so the
-        // drained bytes are a valid prefix and no level needs reopening — only the buffer is retargeted.
-        if (depth == 0)
-        {
-            push(root);
-        }
     }
 
     private void beginValue()
