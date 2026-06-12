@@ -31,17 +31,22 @@ import org.agrona.MutableDirectBuffer;
  * Nested messages use an optimistic length: {@link #startMessage(int, int)} reserves a length slot sized
  * to the supplied estimate, the body streams straight to the output, and {@link #endMessage()} fills the
  * slot with the actual length — minimal (canonical) when the estimate's varint width was right, padded
- * within that width otherwise (never shifted). When the output reaches its limit, {@link #flush()} closes
- * the open levels so the buffer is a drainable chunk; a subsequent {@link #wrap(MutableDirectBuffer, int,
- * int)} reopens them, and the resulting records reassemble by message-merge semantics.
+ * within that width otherwise (never shifted).
+ * <p>
+ * Output is one logical byte stream split into flow-control chunks that the consumer concatenates. When
+ * the buffer fills, {@link #flush()} fills each open message's slot with its full declared length and the
+ * caller drains and re-{@link #wrap(MutableDirectBuffer, int, int) wraps}, leaving the levels open so the
+ * body continues into the next chunk. A length-delimited value larger than the buffer fragments across
+ * chunks via {@link #writeSegment}.
  */
 public interface ProtobufGenerator
 {
     /**
      * Retargets the generator at {@code buffer} from {@code offset} with a hard byte {@code limit} that
      * {@link #remaining()} tracks; {@code limit} must not exceed {@code buffer.capacity() - offset}. When
-     * levels are open from a preceding {@link #flush()}, they are reopened against the fresh buffer so a
-     * chunked message continues; otherwise the generator starts a fresh message.
+     * levels are open from a preceding {@link #flush()}, they stay open against the fresh buffer — nothing
+     * is re-emitted — so a chunked message and any in-flight {@link #writeSegment} continue; otherwise the
+     * generator starts a fresh message.
      */
     ProtobufGenerator wrap(
         MutableDirectBuffer buffer,
@@ -52,7 +57,7 @@ public interface ProtobufGenerator
 
     /**
      * Bytes that may still be written before reaching the {@code limit} set at {@link #wrap}. A driver
-     * checks this at a field boundary to decide whether to {@link #flush()} (drain) before the next write.
+     * checks this before a write to decide whether the field fits or the value must be fragmented or drained.
      */
     int remaining();
 
@@ -137,6 +142,22 @@ public interface ProtobufGenerator
         int length);
 
     /**
+     * Writes part of a length-delimited {@code field} whose total body length is {@code length + deferred}.
+     * The first call (when no segment is open) emits the tag and the total length prefix, then writes the
+     * {@code length} bytes at {@code value[offset, offset+length)}; subsequent calls write further body
+     * bytes only, with {@code deferred} counting the bytes still to come after this call. So a value larger
+     * than the buffer is written across chunks — drain after a call that leaves {@code deferred > 0}, re-wrap
+     * (the open levels and segment persist), and continue. The total is known up front, so the length prefix
+     * is correct in the concatenated stream even though the body arrives in pieces.
+     */
+    ProtobufGenerator writeSegment(
+        int field,
+        DirectBuffer value,
+        int offset,
+        int length,
+        int deferred);
+
+    /**
      * Begins a length-delimited nested message on {@code field} with an optimistic body {@code length}:
      * the tag is written and a length slot sized to {@code varintWidth(length)} is reserved, then the body
      * streams straight to the output (no scratch) until the matching {@link #endMessage()}. {@code length}
@@ -183,12 +204,14 @@ public interface ProtobufGenerator
         int length);
 
     /**
-     * Closes every open nested level so {@code [wrapOffset, wrapOffset + length())} is a complete,
-     * decodable chunk — message slots are filled with their partial body lengths, groups are end-tagged.
-     * The open levels are remembered; after the caller drains the chunk and calls
-     * {@link #wrap(MutableDirectBuffer, int, int)} again, each is reopened against the fresh buffer so the
-     * message continues, and the per-field records merge on decode. Used by a bounded driver to drain when
-     * {@link #remaining()} runs low.
+     * Closes the current chunk's records so it can be drained: each open message's slot is filled with the
+     * body present in this record plus the bytes still deferred by an in-flight {@link #writeSegment}, and
+     * each open group is end-tagged. The records are reopened lazily — re-emitted on the next field write —
+     * so the levels stay logically open across the drain; after the caller drains
+     * {@code [wrapOffset, wrapOffset + length())} and calls {@link #wrap(MutableDirectBuffer, int, int)}
+     * again, writing resumes where it left off and the per-record fragments merge on decode. Used by a
+     * bounded driver before draining when the next write will not fit. A group may not enclose a value being
+     * fragmented across a chunk (it cannot be end-tagged mid-value); attempting it throws.
      */
     ProtobufGenerator flush();
 }

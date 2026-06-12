@@ -27,29 +27,26 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSchema;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSink;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSource;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
 
 /**
  * A terminal sink that writes the event stream back out as Protobuf wire against a target schema,
  * mapping each event's field by name into the target message (fields absent in the target are dropped
- * with their subtrees). It drives the public {@link ProtobufGenerator} API: a nested message opens with
- * {@code startMessage(field, source.length())} — the input length as the optimistic slot estimate — so
- * the body streams straight to the output and {@link ProtobufGenerator#endMessage()} fills the length
- * (canonical when the width matches, padded when smaller).
+ * with their subtrees). Output is one logical byte stream split into flow-control chunks the consumer
+ * concatenates before parsing, so the per-record fragments of a too-large message merge on decode.
  * <p>
- * The generator's {@code limit} is a hard bound — the usable buffer is exactly {@code [offset, limit)}.
- * Before each field write the sink checks that the field fits; when it would not, it calls
- * {@link ProtobufGenerator#flush()} (closing the open levels into a drainable chunk) and returns
- * {@link ProtobufPipeline.Status#SUSPENDED}, leaving the field unwritten. The caller drains, re-wraps the
- * generator (which reopens the open levels), and resumes — the pump replays the same event against the
- * fresh buffer. So a message that fits encodes as one canonical record and one too large to buffer
- * streams as merge-able records. A single length-delimited value too large to fit even a fresh buffer
- * cannot be split (scalars merge last-wins, not by concatenation), so it is rejected: a flush that frees
- * nothing ({@code awaitingDrain} still set on the retry) raises a {@link ProtobufException}.
+ * Before each write the sink checks the field fits the hard limit. A field that does not fit yet drains:
+ * the sink calls {@link ProtobufGenerator#flush()} (closing the open message records with their lengths)
+ * and returns {@link ProtobufPipeline.Status#SUSPENDED}, leaving the field unwritten; the caller drains
+ * and re-wraps, and the pump replays the event against the fresh buffer, where the generator reopens the
+ * records. A length-delimited value larger than a whole chunk cannot be deferred to a fresh buffer, so it
+ * is fragmented mid-byte via {@link ProtobufGenerator#writeSegment} — its length prefix written once and
+ * its body streamed across chunks, the enclosing records carrying the deferred remainder until it is
+ * fully written. {@code valueWritten} tracks how much of the in-flight value has been emitted so a
+ * replayed {@code VALUE} event resumes where it left off.
  */
 public final class ProtobufTypedSinkImpl implements ProtobufSink
 {
-    private static final int VARINT_MAX = 10;
-
     private final ProtobufSchema schema;
     private final String messageName;
     private final ProtobufGenerator generator;
@@ -57,9 +54,7 @@ public final class ProtobufTypedSinkImpl implements ProtobufSink
 
     private int depth;
     private ProtobufField pending;
-    private boolean awaitingDrain;
-    // sum of the end-tag widths of the currently open groups, kept free so a flush can always close them
-    private int closeReserve;
+    private int valueWritten;
 
     public ProtobufTypedSinkImpl(
         ProtobufGenerator generator,
@@ -111,8 +106,7 @@ public final class ProtobufTypedSinkImpl implements ProtobufSink
     {
         depth = -1;
         pending = null;
-        awaitingDrain = false;
-        closeReserve = 0;
+        valueWritten = 0;
     }
 
     private ProtobufPipeline.Status onStartMessage(
@@ -129,18 +123,122 @@ public final class ProtobufTypedSinkImpl implements ProtobufSink
             Scope scope = scope(depth);
             if (root)
             {
-                scope.set(schema.message(messageName), true, 0);
+                scope.set(schema.message(messageName), true);
             }
             else if (!nested)
             {
-                scope.set(null, false, 0);
+                scope.set(null, false);
             }
             else
             {
                 generator.startMessage(pending.number(), source.length());
-                scope.set(schema.resolveMessage(pending), true, 0);
-                awaitingDrain = false;
+                scope.set(schema.resolveMessage(pending), true);
             }
+        }
+        return status;
+    }
+
+    private ProtobufPipeline.Status onStartGroup()
+    {
+        boolean nested = scope(depth).active && pending != null && pending.composite();
+        ProtobufPipeline.Status status = nested
+            ? reserve(tagSize(pending.number()))
+            : ProtobufPipeline.Status.RESUMABLE;
+        if (status == ProtobufPipeline.Status.RESUMABLE)
+        {
+            depth++;
+            Scope scope = scope(depth);
+            if (!nested)
+            {
+                scope.set(null, false);
+            }
+            else
+            {
+                generator.startGroup(pending.number());
+                scope.set(schema.resolveMessage(pending), true);
+            }
+        }
+        return status;
+    }
+
+    private ProtobufPipeline.Status onValue(
+        ProtobufSource source)
+    {
+        ProtobufPipeline.Status status = ProtobufPipeline.Status.RESUMABLE;
+        if (scope(depth).active && pending != null)
+        {
+            status = pending.type().wireType() == ProtobufWireType.LEN
+                ? onValueLength(pending, source)
+                : onValueScalar(pending, source);
+        }
+        return status;
+    }
+
+    private ProtobufPipeline.Status onValueLength(
+        ProtobufField field,
+        ProtobufSource source)
+    {
+        int number = field.number();
+        int valueLength = source.length();
+        ProtobufPipeline.Status status;
+        if (valueWritten == 0)
+        {
+            int full = tagSize(number) + varintSize(valueLength) + valueLength;
+            int remaining = generator.remaining();
+            if (full <= remaining)
+            {
+                generator.writeBytes(number, source.buffer(), source.offset(), valueLength);
+                status = ProtobufPipeline.Status.RESUMABLE;
+            }
+            else if (generator.length() > 0)
+            {
+                // break at this field boundary; on a fresh buffer the whole value may fit
+                generator.flush();
+                status = ProtobufPipeline.Status.SUSPENDED;
+            }
+            else
+            {
+                // a fresh buffer still cannot hold the value whole, so fragment it mid-byte
+                int header = tagSize(number) + varintSize(valueLength);
+                int now = remaining - header;
+                if (now < 1)
+                {
+                    throw new ProtobufException("value header exceeds output limit");
+                }
+                generator.writeSegment(number, source.buffer(), source.offset(), now, valueLength - now);
+                valueWritten = now;
+                generator.flush();
+                status = ProtobufPipeline.Status.SUSPENDED;
+            }
+        }
+        else
+        {
+            int remainder = valueLength - valueWritten;
+            int now = Math.min(generator.remaining(), remainder);
+            generator.writeSegment(number, source.buffer(), source.offset() + valueWritten, now, remainder - now);
+            valueWritten += now;
+            if (valueWritten < valueLength)
+            {
+                generator.flush();
+                status = ProtobufPipeline.Status.SUSPENDED;
+            }
+            else
+            {
+                valueWritten = 0;
+                status = ProtobufPipeline.Status.RESUMABLE;
+            }
+        }
+        return status;
+    }
+
+    private ProtobufPipeline.Status onValueScalar(
+        ProtobufField field,
+        ProtobufSource source)
+    {
+        ProtobufPipeline.Status status = reserve(tagSize(field.number()) + scalarSize(field));
+        if (status == ProtobufPipeline.Status.RESUMABLE)
+        {
+            writeScalar(field, source);
         }
         return status;
     }
@@ -161,124 +259,35 @@ public final class ProtobufTypedSinkImpl implements ProtobufSink
         return status;
     }
 
-    private ProtobufPipeline.Status onStartGroup()
-    {
-        boolean nested = scope(depth).active && pending != null && pending.composite();
-        int tag = nested ? tagSize(pending.number()) : 0;
-        // reserve the start tag plus this group's own end tag, so it can always be closed within limit
-        ProtobufPipeline.Status status = nested ? reserve(tag + tag) : ProtobufPipeline.Status.RESUMABLE;
-        if (status == ProtobufPipeline.Status.RESUMABLE)
-        {
-            depth++;
-            Scope scope = scope(depth);
-            if (!nested)
-            {
-                scope.set(null, false, 0);
-            }
-            else
-            {
-                generator.startGroup(pending.number());
-                scope.set(schema.resolveMessage(pending), true, tag);
-                closeReserve += tag;
-                awaitingDrain = false;
-            }
-        }
-        return status;
-    }
-
-    private ProtobufPipeline.Status onValue(
-        ProtobufSource source)
-    {
-        ProtobufPipeline.Status status = ProtobufPipeline.Status.RESUMABLE;
-        if (scope(depth).active && pending != null)
-        {
-            status = reserve(need(pending, source));
-            if (status == ProtobufPipeline.Status.RESUMABLE)
-            {
-                writeScalar(pending, source);
-                awaitingDrain = false;
-            }
-        }
-        return status;
-    }
-
-    // flush-and-suspend when the next field plus the open groups' end-tags will not fit the hard limit;
-    // reject when even a freshly drained buffer cannot hold it (awaitingDrain still set on the replay
-    // means the preceding flush freed nothing, so the value can never fit).
-    private ProtobufPipeline.Status reserve(
-        int need)
-    {
-        ProtobufPipeline.Status status = ProtobufPipeline.Status.RESUMABLE;
-        if (depth >= 0 && generator.remaining() < need + closeReserve)
-        {
-            if (awaitingDrain)
-            {
-                throw new ProtobufException("value of " + need + " bytes exceeds output limit");
-            }
-            generator.flush();
-            awaitingDrain = true;
-            status = ProtobufPipeline.Status.SUSPENDED;
-        }
-        return status;
-    }
-
-    private static int need(
-        ProtobufField field,
-        ProtobufSource source)
-    {
-        int tag = tagSize(field.number());
-        int need;
-        switch (field.type())
-        {
-        case STRING:
-        case BYTES:
-            need = tag + varintSize(source.length()) + source.length();
-            break;
-        case FIXED32:
-        case SFIXED32:
-        case FLOAT:
-            need = tag + 4;
-            break;
-        case FIXED64:
-        case SFIXED64:
-        case DOUBLE:
-            need = tag + 8;
-            break;
-        default:
-            need = tag + VARINT_MAX;
-            break;
-        }
-        return need;
-    }
-
-    private static int tagSize(
-        int number)
-    {
-        return varintSize((long) number << 3);
-    }
-
-    private static int varintSize(
-        long value)
-    {
-        long remaining = value;
-        int size = 1;
-        while ((remaining & ~0x7fL) != 0)
-        {
-            remaining >>>= 7;
-            size++;
-        }
-        return size;
-    }
-
     private void onEndGroup()
     {
         Scope scope = scope(depth);
         if (scope.active)
         {
-            closeReserve -= scope.closeCost;
             generator.endGroup();
         }
         depth--;
+    }
+
+    // flush-and-suspend when the next field will not fit; reject when even a freshly drained buffer cannot
+    // hold it (nothing written yet, so the flush would free nothing)
+    private ProtobufPipeline.Status reserve(
+        int need)
+    {
+        ProtobufPipeline.Status status = ProtobufPipeline.Status.RESUMABLE;
+        if (need > generator.remaining())
+        {
+            if (generator.length() > 0)
+            {
+                generator.flush();
+                status = ProtobufPipeline.Status.SUSPENDED;
+            }
+            else
+            {
+                throw new ProtobufException("value of " + need + " bytes exceeds output limit");
+            }
+        }
+        return status;
     }
 
     private ProtobufField mapField(
@@ -347,29 +356,64 @@ public final class ProtobufTypedSinkImpl implements ProtobufSink
         case ENUM:
             generator.writeEnum(number, (int) source.longValue());
             break;
-        case STRING:
-        case BYTES:
-            generator.writeBytes(number, source.buffer(), source.offset(), source.length());
-            break;
         default:
             throw new ProtobufException("unsupported scalar type " + field.type());
         }
+    }
+
+    private static int scalarSize(
+        ProtobufField field)
+    {
+        int size;
+        switch (field.type())
+        {
+        case FIXED32:
+        case SFIXED32:
+        case FLOAT:
+            size = 4;
+            break;
+        case FIXED64:
+        case SFIXED64:
+        case DOUBLE:
+            size = 8;
+            break;
+        default:
+            size = 10;
+            break;
+        }
+        return size;
+    }
+
+    private static int tagSize(
+        int number)
+    {
+        return varintSize((long) number << 3);
+    }
+
+    private static int varintSize(
+        long value)
+    {
+        long remaining = value & 0xffffffffL;
+        int size = 1;
+        while (remaining >= 0x80L)
+        {
+            remaining >>>= 7;
+            size++;
+        }
+        return size;
     }
 
     private static final class Scope
     {
         private ProtobufMessage message;
         private boolean active;
-        private int closeCost;
 
         private void set(
             ProtobufMessage message,
-            boolean active,
-            int closeCost)
+            boolean active)
         {
             this.message = message;
             this.active = active;
-            this.closeCost = closeCost;
         }
     }
 }

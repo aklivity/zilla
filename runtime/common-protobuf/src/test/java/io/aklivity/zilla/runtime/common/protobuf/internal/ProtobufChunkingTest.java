@@ -39,242 +39,90 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufType;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
 
 /**
- * Drives a hand-coded {@code parser + generator} transform loop (no pipeline) that, on a bounded
- * generator, drains at a field boundary when the output fills: it calls {@code flush()} to close the
- * open levels into a chunk and re-wraps a fresh buffer, with the generator reopening the levels itself.
- * The chunks are independent, mergeable records; concatenated and decoded they reassemble (by protobuf
- * message-merge semantics) into the original message. A pipeline-driven variant exercises the same
- * generator through the wire sink and the {@code SUSPENDED} loop.
+ * Drives the streaming sink against a hard, undersized output limit so a single logical message is
+ * emitted as several flow-control chunks. The chunks are byte-wise fragments of one stream: concatenated
+ * and decoded, the per-record fragments merge (by protobuf message-merge semantics) back into the original
+ * message. A nested message that simply does not fit splits at field boundaries (closing and reopening the
+ * record per chunk); a length-delimited value larger than a whole chunk is fragmented mid-byte and streamed
+ * across chunks, never buffered in full.
  */
 public class ProtobufChunkingTest
 {
-    private static final int HEADROOM = 20;
-
     private final ProtobufSchema schema = newSchema();
 
     @Test
-    public void shouldChunkNestedMessageAcrossSuspends()
+    public void shouldChunkNestedMessageAcrossChunks()
     {
-        byte[] address = wire(w ->
-        {
-            w.writeTag(1, ProtobufWireType.LEN);
-            w.writeBytes("123 Main Street".getBytes(UTF_8));
-            w.writeTag(2, ProtobufWireType.LEN);
-            w.writeBytes("Zion".getBytes(UTF_8));
-        });
-        byte[] input = wire(w ->
-        {
-            w.writeTag(1, ProtobufWireType.LEN);
-            w.writeBytes("neo".getBytes(UTF_8));
-            w.writeTag(2, ProtobufWireType.LEN);
-            w.writeBytes(address);
-        });
+        byte[] input = person("neo", "123 Main Street", "Zion");
 
-        int limit = 40;
-        List<byte[]> chunks = transformChunked(input, limit);
+        List<byte[]> chunks = chunk(input, 20);
 
         assertTrue(chunks.size() >= 2, "expected the nested message to be split across chunks");
-        for (byte[] chunk : chunks)
-        {
-            assertTrue(chunk.length <= limit, "chunk exceeded the generator limit");
-        }
-
-        Person person = decodeMerged(concat(chunks));
+        Person person = decode(concat(chunks));
         assertEquals("neo", person.name);
         assertEquals("123 Main Street", person.street);
         assertEquals("Zion", person.city);
     }
 
     @Test
-    public void shouldRejectLeafLargerThanLimit()
+    public void shouldFragmentLeafLargerThanChunk()
     {
         String street = "x".repeat(200);
-        byte[] address = wire(w ->
-        {
-            w.writeTag(1, ProtobufWireType.LEN);
-            w.writeBytes(street.getBytes(UTF_8));
-            w.writeTag(2, ProtobufWireType.LEN);
-            w.writeBytes("Zion".getBytes(UTF_8));
-        });
-        byte[] input = wire(w ->
-        {
-            w.writeTag(1, ProtobufWireType.LEN);
-            w.writeBytes("neo".getBytes(UTF_8));
-            w.writeTag(2, ProtobufWireType.LEN);
-            w.writeBytes(address);
-        });
+        byte[] input = person("neo", street, "Zion");
 
-        // limit is a hard bound; a length-delimited leaf wider than the buffer cannot be split across
-        // chunks (scalars merge last-wins, not by concatenation), so it is rejected, not streamed.
-        int limit = 40;
-        MutableDirectBuffer out = new UnsafeBuffer(new byte[1024]);
-        ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, limit);
-        ProtobufPipeline pipeline = Protobuf.parser(schema, "Person").stream()
-            .into(ProtobufSink.of(generator, schema, "Person"));
-        pipeline.reset();
+        List<byte[]> chunks = chunk(input, 40);
 
-        ProtobufPipeline.Status status = pipeline.feed(new UnsafeBuffer(input), 0, input.length);
-        while (status == ProtobufPipeline.Status.SUSPENDED)
-        {
-            generator.wrap(out, 0, limit);
-            status = pipeline.feed(new UnsafeBuffer(input), 0, input.length);
-        }
-        assertEquals(ProtobufPipeline.Status.REJECTED, status);
-    }
-
-    @Test
-    public void shouldStreamLeafUpToLimit()
-    {
-        // a leaf that fits a fresh buffer streams as its own chunk even when the message overall does not
-        String street = "x".repeat(24);
-        byte[] address = wire(w ->
-        {
-            w.writeTag(1, ProtobufWireType.LEN);
-            w.writeBytes(street.getBytes(UTF_8));
-            w.writeTag(2, ProtobufWireType.LEN);
-            w.writeBytes("Zion".getBytes(UTF_8));
-        });
-        byte[] input = wire(w ->
-        {
-            w.writeTag(1, ProtobufWireType.LEN);
-            w.writeBytes("neo".getBytes(UTF_8));
-            w.writeTag(2, ProtobufWireType.LEN);
-            w.writeBytes(address);
-        });
-
-        int limit = 40;
-        MutableDirectBuffer out = new UnsafeBuffer(new byte[1024]);
-        ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, limit);
-        ProtobufPipeline pipeline = Protobuf.parser(schema, "Person").stream()
-            .into(ProtobufSink.of(generator, schema, "Person"));
-        pipeline.reset();
-
-        List<byte[]> chunks = new ArrayList<>();
-        ProtobufPipeline.Status status = pipeline.feed(new UnsafeBuffer(input), 0, input.length);
-        while (status == ProtobufPipeline.Status.SUSPENDED)
-        {
-            chunks.add(bytes(out, generator.length()));
-            assertTrue(generator.length() <= limit, "chunk exceeded the generator limit");
-            generator.wrap(out, 0, limit);
-            status = pipeline.feed(new UnsafeBuffer(input), 0, input.length);
-        }
-        assertEquals(ProtobufPipeline.Status.COMPLETE, status);
-        chunks.add(bytes(out, generator.length()));
-        assertTrue(generator.length() <= limit, "chunk exceeded the generator limit");
-
-        Person person = decodeMerged(concat(chunks));
+        assertTrue(chunks.size() >= 5, "expected the long value to be fragmented across many chunks");
+        Person person = decode(concat(chunks));
         assertEquals("neo", person.name);
         assertEquals(street, person.street);
         assertEquals("Zion", person.city);
     }
 
     @Test
-    public void shouldChunkViaPipelineSinkWhenStreaming()
+    public void shouldFragmentLeafLargerThanWholeBuffer()
     {
-        byte[] address = wire(w ->
-        {
-            w.writeTag(1, ProtobufWireType.LEN);
-            w.writeBytes("123 Main Street".getBytes(UTF_8));
-            w.writeTag(2, ProtobufWireType.LEN);
-            w.writeBytes("Springfield USA".getBytes(UTF_8));
-        });
-        byte[] input = wire(w ->
-        {
-            w.writeTag(1, ProtobufWireType.LEN);
-            w.writeBytes("neo".getBytes(UTF_8));
-            w.writeTag(2, ProtobufWireType.LEN);
-            w.writeBytes(address);
-        });
+        String street = "y".repeat(500);
+        byte[] input = person("neo", street, "Springfield");
 
-        int limit = 35;
-        MutableDirectBuffer out = new UnsafeBuffer(new byte[256]);
+        // the buffer (64) is far smaller than the value (500) — it can only ever hold a slice of it
+        List<byte[]> chunks = chunk(input, 64);
+
+        Person person = decode(concat(chunks));
+        assertEquals("neo", person.name);
+        assertEquals(street, person.street);
+        assertEquals("Springfield", person.city);
+    }
+
+    private List<byte[]> chunk(
+        byte[] input,
+        int limit)
+    {
+        MutableDirectBuffer out = new UnsafeBuffer(new byte[1024]);
         ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, limit);
         ProtobufPipeline pipeline = Protobuf.parser(schema, "Person").stream()
             .into(ProtobufSink.of(generator, schema, "Person"));
         pipeline.reset();
 
         List<byte[]> chunks = new ArrayList<>();
-        ProtobufPipeline.Status status = pipeline.feed(new UnsafeBuffer(input), 0, input.length);
+        UnsafeBuffer buffer = new UnsafeBuffer(input);
+        ProtobufPipeline.Status status = pipeline.feed(buffer, 0, input.length);
         while (status == ProtobufPipeline.Status.SUSPENDED)
         {
+            assertTrue(generator.length() <= limit, "chunk exceeded the generator limit");
             chunks.add(bytes(out, generator.length()));
             generator.wrap(out, 0, limit);
-            status = pipeline.feed(new UnsafeBuffer(input), 0, input.length);
+            status = pipeline.feed(buffer, 0, input.length);
         }
         assertEquals(ProtobufPipeline.Status.COMPLETE, status);
-        chunks.add(bytes(out, generator.length()));
-
-        assertTrue(chunks.size() >= 2, "expected the nested message to be split across chunks");
-        for (byte[] chunk : chunks)
-        {
-            assertTrue(chunk.length <= limit, "chunk exceeded the generator limit");
-        }
-
-        Person person = decodeMerged(concat(chunks));
-        assertEquals("neo", person.name);
-        assertEquals("123 Main Street", person.street);
-        assertEquals("Springfield USA", person.city);
-    }
-
-    // Identity Person -> Person transform driving a bounded generator: when the output nears its limit
-    // at a field boundary it flushes a drainable chunk and re-wraps (the generator reopens the open
-    // levels itself), so the loop holds no chunking state of its own.
-    private List<byte[]> transformChunked(
-        byte[] input,
-        int limit)
-    {
-        ProtobufParser parser = Protobuf.parser(schema, "Person").wrap(new UnsafeBuffer(input), 0, input.length);
-        MutableDirectBuffer out = new UnsafeBuffer(new byte[256]);
-        ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, limit);
-
-        List<byte[]> chunks = new ArrayList<>();
-        ProtobufField pending = null;
-        int depth = 0;
-
-        while (parser.hasNext())
-        {
-            if (depth >= 1 && generator.length() > 0 && generator.remaining() < HEADROOM)
-            {
-                generator.flush();
-                chunks.add(bytes(out, generator.length()));
-                generator.wrap(out, 0, limit);
-            }
-
-            switch (parser.nextEvent())
-            {
-            case START_MESSAGE:
-                if (depth > 0)
-                {
-                    generator.startMessage(pending.number(), parser.length());
-                }
-                depth++;
-                break;
-            case END_MESSAGE:
-                depth--;
-                if (depth > 0)
-                {
-                    generator.endMessage();
-                }
-                break;
-            case FIELD:
-                pending = parser.field();
-                break;
-            case VALUE:
-                byte[] value = new byte[parser.length()];
-                parser.buffer().getBytes(parser.offset(), value);
-                generator.writeString(pending.number(), new String(value, UTF_8));
-                break;
-            default:
-                break;
-            }
-        }
+        assertTrue(generator.length() <= limit, "chunk exceeded the generator limit");
         chunks.add(bytes(out, generator.length()));
         return chunks;
     }
 
-    // Decodes the concatenated chunks, merging the repeated home (field 2) occurrences as a singular
-    // message field decoder would, to reconstruct the original logical Person.
-    private Person decodeMerged(
+    // Decodes the concatenated chunks, assigning each scalar to the original logical Person — the repeated
+    // home (field 2) occurrences write into the same fields, as a message-merge decoder would coalesce them.
+    private Person decode(
         byte[] message)
     {
         ProtobufParser parser = Protobuf.parser(schema, "Person").wrap(new UnsafeBuffer(message), 0, message.length);
@@ -316,6 +164,27 @@ public class ProtobufChunkingTest
             }
         }
         return person;
+    }
+
+    private byte[] person(
+        String name,
+        String street,
+        String city)
+    {
+        byte[] address = wire(w ->
+        {
+            w.writeTag(1, ProtobufWireType.LEN);
+            w.writeBytes(street.getBytes(UTF_8));
+            w.writeTag(2, ProtobufWireType.LEN);
+            w.writeBytes(city.getBytes(UTF_8));
+        });
+        return wire(w ->
+        {
+            w.writeTag(1, ProtobufWireType.LEN);
+            w.writeBytes(name.getBytes(UTF_8));
+            w.writeTag(2, ProtobufWireType.LEN);
+            w.writeBytes(address);
+        });
     }
 
     private static byte[] concat(

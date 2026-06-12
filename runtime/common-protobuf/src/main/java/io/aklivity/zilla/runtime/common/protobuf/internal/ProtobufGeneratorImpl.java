@@ -25,12 +25,17 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufGenerator;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
 
 /**
- * Buffer-backed {@link ProtobufGenerator}. Nested messages reserve a length slot sized to an optimistic
- * estimate ({@link #startMessage(int, int)}), stream their body straight to the output, and fill the slot
- * on {@link #endMessage()} — minimal when the estimate's varint width was right, padded within it
- * otherwise, never shifted. {@link #flush()} closes the open levels into a drainable chunk and a following
- * {@link #wrap(MutableDirectBuffer, int, int)} reopens them, so a message larger than the buffer streams
- * as merge-able records.
+ * Buffer-backed {@link ProtobufGenerator}. Output is one logical byte stream split into flow-control
+ * chunks that the consumer concatenates before parsing — so repeated records of the same message merge.
+ * <p>
+ * {@link #startMessage(int, int)} reserves a length slot sized to an upper bound; the actual length is
+ * computed later. When the buffer fills, {@link #flush()} closes each open message record by filling its
+ * slot with the body present plus the bytes still deferred by an in-flight {@link #writeSegment}, then the
+ * caller drains and re-{@link #wrap(MutableDirectBuffer, int, int) wraps}. The open messages are reopened
+ * lazily — re-emitted as fresh records on the next field — so the per-record fragments merge on decode. A
+ * value larger than a whole chunk fragments mid-byte via {@link #writeSegment}: its length prefix (the
+ * known total) is written once and its body streams as raw continuation bytes across chunks, the enclosing
+ * records carrying that total via their deferred count until it is fully written.
  */
 public final class ProtobufGeneratorImpl implements ProtobufGenerator
 {
@@ -43,8 +48,11 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
     private int[] kinds;
     private int[] slots;
     private int[] widths;
+    private boolean[] committed;
     private int depth;
     private int limit;
+    private int segmentRemaining;
+    private boolean needsReopen;
     private boolean flushed;
 
     public ProtobufGeneratorImpl()
@@ -54,6 +62,7 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
         this.kinds = new int[8];
         this.slots = new int[8];
         this.widths = new int[8];
+        this.committed = new boolean[8];
     }
 
     @Override
@@ -71,15 +80,15 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
         writer.wrap(buffer, offset, offset + limit);
         if (flushed)
         {
+            // continuation: the committed levels stay open (reopened lazily on the next field) and any
+            // in-flight segment keeps streaming — nothing is re-emitted here
             flushed = false;
-            for (int i = 0; i < depth; i++)
-            {
-                reopen(i);
-            }
         }
         else
         {
             depth = 0;
+            segmentRemaining = 0;
+            needsReopen = false;
         }
         return this;
     }
@@ -93,7 +102,7 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
     @Override
     public int remaining()
     {
-        return limit - writer.length();
+        return limit - writer.length() - reopenCost();
     }
 
     @Override
@@ -101,6 +110,7 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
         int field,
         int value)
     {
+        reopen();
         writer.writeTag(field, ProtobufWireType.VARINT);
         writer.writeVarint64(value);
         return this;
@@ -111,6 +121,7 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
         int field,
         long value)
     {
+        reopen();
         writer.writeTag(field, ProtobufWireType.VARINT);
         writer.writeVarint64(value);
         return this;
@@ -121,6 +132,7 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
         int field,
         int value)
     {
+        reopen();
         writer.writeTag(field, ProtobufWireType.VARINT);
         writer.writeVarint64(value & 0xffffffffL);
         return this;
@@ -131,6 +143,7 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
         int field,
         long value)
     {
+        reopen();
         writer.writeTag(field, ProtobufWireType.VARINT);
         writer.writeVarint64(value);
         return this;
@@ -141,6 +154,7 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
         int field,
         int value)
     {
+        reopen();
         writer.writeTag(field, ProtobufWireType.VARINT);
         writer.writeZigzag32(value);
         return this;
@@ -151,6 +165,7 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
         int field,
         long value)
     {
+        reopen();
         writer.writeTag(field, ProtobufWireType.VARINT);
         writer.writeZigzag64(value);
         return this;
@@ -161,6 +176,7 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
         int field,
         int value)
     {
+        reopen();
         writer.writeTag(field, ProtobufWireType.I32);
         writer.writeFixed32(value);
         return this;
@@ -171,6 +187,7 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
         int field,
         long value)
     {
+        reopen();
         writer.writeTag(field, ProtobufWireType.I64);
         writer.writeFixed64(value);
         return this;
@@ -181,6 +198,7 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
         int field,
         int value)
     {
+        reopen();
         writer.writeTag(field, ProtobufWireType.I32);
         writer.writeFixed32(value);
         return this;
@@ -191,6 +209,7 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
         int field,
         long value)
     {
+        reopen();
         writer.writeTag(field, ProtobufWireType.I64);
         writer.writeFixed64(value);
         return this;
@@ -201,6 +220,7 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
         int field,
         float value)
     {
+        reopen();
         writer.writeTag(field, ProtobufWireType.I32);
         writer.writeFixed32(Float.floatToIntBits(value));
         return this;
@@ -211,6 +231,7 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
         int field,
         double value)
     {
+        reopen();
         writer.writeTag(field, ProtobufWireType.I64);
         writer.writeFixed64(Double.doubleToLongBits(value));
         return this;
@@ -221,6 +242,7 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
         int field,
         boolean value)
     {
+        reopen();
         writer.writeTag(field, ProtobufWireType.VARINT);
         writer.writeVarint64(value ? 1L : 0L);
         return this;
@@ -231,6 +253,7 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
         int field,
         int number)
     {
+        reopen();
         writer.writeTag(field, ProtobufWireType.VARINT);
         writer.writeVarint64(number);
         return this;
@@ -241,6 +264,7 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
         int field,
         String value)
     {
+        reopen();
         writer.writeTag(field, ProtobufWireType.LEN);
         writer.writeBytes(value.getBytes(StandardCharsets.UTF_8));
         return this;
@@ -251,6 +275,7 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
         int field,
         byte[] value)
     {
+        reopen();
         writer.writeTag(field, ProtobufWireType.LEN);
         writer.writeBytes(value);
         return this;
@@ -263,6 +288,7 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
         int offset,
         int length)
     {
+        reopen();
         writer.writeTag(field, ProtobufWireType.LEN);
         writer.writeBytes(value, offset, length);
         return this;
@@ -275,8 +301,30 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
         int offset,
         int length)
     {
+        reopen();
         writer.writeTag(field, ProtobufWireType.LEN);
         writer.writeBytes(message, offset, length);
+        return this;
+    }
+
+    @Override
+    public ProtobufGenerator writeSegment(
+        int field,
+        DirectBuffer value,
+        int offset,
+        int length,
+        int deferred)
+    {
+        if (segmentRemaining == 0)
+        {
+            reopen();
+            writer.writeTag(field, ProtobufWireType.LEN);
+            int total = length + deferred;
+            writer.writeVarint32(total);
+            segmentRemaining = total;
+        }
+        writer.writeRaw(value, offset, length);
+        segmentRemaining -= length;
         return this;
     }
 
@@ -285,6 +333,7 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
         int field,
         int length)
     {
+        reopen();
         writer.writeTag(field, ProtobufWireType.LEN);
         int width = varintSize(length);
         int slot = writer.reserve(width);
@@ -300,7 +349,10 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
         {
             throw new ProtobufException("open group, expected endGroup");
         }
-        fillMessage(level);
+        if (!committed[level])
+        {
+            fillMessage(level);
+        }
         depth--;
         return this;
     }
@@ -309,6 +361,7 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
     public ProtobufGenerator startGroup(
         int field)
     {
+        reopen();
         writer.writeTag(field, ProtobufWireType.SGROUP);
         push(field, KIND_GROUP, 0, 0);
         return this;
@@ -322,7 +375,10 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
         {
             throw new ProtobufException("open message, expected endMessage");
         }
-        writer.writeTag(fields[level], ProtobufWireType.EGROUP);
+        if (!committed[level])
+        {
+            writer.writeTag(fields[level], ProtobufWireType.EGROUP);
+        }
         depth--;
         return this;
     }
@@ -333,6 +389,7 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
         int offset,
         int length)
     {
+        reopen();
         writer.writeRaw(source, offset, length);
         return this;
     }
@@ -342,17 +399,58 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
     {
         for (int level = depth - 1; level >= 0; level--)
         {
-            if (kinds[level] == KIND_MESSAGE)
+            if (committed[level])
             {
-                fillMessage(level);
+                continue;
+            }
+            if (kinds[level] == KIND_GROUP)
+            {
+                if (segmentRemaining > 0)
+                {
+                    throw new ProtobufException("group cannot enclose a fragmented value across a chunk");
+                }
+                writer.writeTag(fields[level], ProtobufWireType.EGROUP);
             }
             else
             {
-                writer.writeTag(fields[level], ProtobufWireType.EGROUP);
+                // a record closes at the value being fragmented, so its body includes the deferred bytes
+                int body = writer.offset() - (slots[level] + widths[level]) + segmentRemaining;
+                if (varintSize(body) > widths[level])
+                {
+                    throw new ProtobufException("nested message body " + body +
+                        " exceeds reserved length width " + widths[level]);
+                }
+                writer.putPaddedVarint(slots[level], body, widths[level]);
             }
+            committed[level] = true;
         }
+        needsReopen = depth > 0;
         flushed = true;
         return this;
+    }
+
+    private void reopen()
+    {
+        if (needsReopen && segmentRemaining == 0)
+        {
+            for (int level = 0; level < depth; level++)
+            {
+                if (committed[level])
+                {
+                    if (kinds[level] == KIND_MESSAGE)
+                    {
+                        writer.writeTag(fields[level], ProtobufWireType.LEN);
+                        slots[level] = writer.reserve(widths[level]);
+                    }
+                    else
+                    {
+                        writer.writeTag(fields[level], ProtobufWireType.SGROUP);
+                    }
+                    committed[level] = false;
+                }
+            }
+            needsReopen = false;
+        }
     }
 
     private void fillMessage(
@@ -367,18 +465,22 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
         writer.putPaddedVarint(slots[level], bodyLength, widths[level]);
     }
 
-    private void reopen(
-        int level)
+    private int reopenCost()
     {
-        if (kinds[level] == KIND_MESSAGE)
+        int cost = 0;
+        if (needsReopen && segmentRemaining == 0)
         {
-            writer.writeTag(fields[level], ProtobufWireType.LEN);
-            slots[level] = writer.reserve(widths[level]);
+            for (int level = 0; level < depth; level++)
+            {
+                if (committed[level])
+                {
+                    cost += kinds[level] == KIND_MESSAGE
+                        ? varintSize((long) fields[level] << 3) + widths[level]
+                        : varintSize((long) fields[level] << 3);
+                }
+            }
         }
-        else
-        {
-            writer.writeTag(fields[level], ProtobufWireType.SGROUP);
-        }
+        return cost;
     }
 
     private void push(
@@ -393,16 +495,18 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
             kinds = Arrays.copyOf(kinds, kinds.length * 2);
             slots = Arrays.copyOf(slots, slots.length * 2);
             widths = Arrays.copyOf(widths, widths.length * 2);
+            committed = Arrays.copyOf(committed, committed.length * 2);
         }
         fields[depth] = field;
         kinds[depth] = kind;
         slots[depth] = slot;
         widths[depth] = width;
+        committed[depth] = false;
         depth++;
     }
 
     private static int varintSize(
-        int value)
+        long value)
     {
         long remaining = value & 0xffffffffL;
         int size = 1;

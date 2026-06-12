@@ -117,22 +117,26 @@ if (pipeline.feed(in, off, len) == ProtobufPipeline.Status.COMPLETE)  // COMPLET
 
 `Protobuf.generator().wrap(out, 0, limit)` bounds the output (`limit` must fit the buffer capacity).
 `limit` is a **hard bound** — the usable buffer is exactly `[offset, limit)` and nothing beyond it
-exists; any write that would cross `limit` raises a `ProtobufException`. A nested message reserves a
-length slot sized to an optimistic estimate — the wire sink passes the input length `source.length()`
-— and `endMessage` fills it with the actual length: minimal (canonical) when the estimate's varint
-width was right, padded within it when the body came out smaller, never shifted. So a message that fits
-encodes as one canonical record. When the **next field will not fit** under `limit`, the sink calls
-`generator.flush()` (closing the open levels into a drainable chunk) and returns `SUSPENDED` with that
-field still unwritten; the caller drains, re-wraps the generator — which reopens the open levels against
-the fresh buffer — and resumes, and the pump replays the same field against the now-empty buffer. The
-per-field records reassemble by protobuf message-merge semantics, so a too-large message streams without
-ever buffering more than `limit`, and the chunked (non-canonical) form is only observed when forced.
+exists; any write that would cross `limit` raises a `ProtobufException`. The output is **one logical
+byte stream split into flow-control chunks that the consumer concatenates before parsing**, so the
+per-record fragments of a too-large message merge on decode (concatenating repeated serializations of a
+message type and parsing once *is* protobuf message-merge, recursively).
 
-Because the break is between fields, a single length-delimited leaf value (`string`/`bytes`/a
-pre-encoded `writeMessage`) cannot be split across chunks — scalars merge last-wins, not by
-concatenation. A leaf that fits a freshly drained buffer streams as its own chunk; a leaf too large to
-fit `[offset, limit)` even when empty is **rejected** (the flush frees nothing, so the replay raises a
-`ProtobufException`). Size the buffer to hold the largest single leaf value.
+`startMessage(field, length)` reserves a length slot sized to an **upper bound** — the wire sink passes
+the input length `source.length()` — and the actual length is computed later. When the **next field will
+not fit** under `limit`, the sink calls `generator.flush()` and returns `SUSPENDED` with that field
+unwritten: `flush()` fills each open message's slot with the body present (plus any bytes still deferred
+by an in-flight value, see below), so the drained chunk's records are complete. The caller drains,
+re-wraps, and resumes; the pump replays the field, and the generator **reopens** the records lazily as
+fresh records on the next write. A message that fits a chunk back-patches its slot with its exact length
+on `endMessage` (canonical); a message spanning chunks reassembles from its per-chunk records on decode.
+
+A length-delimited value larger than a whole chunk **cannot** be deferred to a fresh buffer, so it is
+**fragmented mid-byte** via `writeSegment`: its length prefix (the known total) is written once, then its
+body streams as raw continuation bytes across as many chunks as needed, never buffered in full. The
+enclosing records carry the value's deferred remainder in their lengths until it is fully written, then
+close and reopen for the fields that follow. So a value of any size streams, provided its **total length
+is known when it starts** (the parser supplies it via `source.length()`).
 
 ```java
 ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, limit);
@@ -154,15 +158,17 @@ while (status == ProtobufPipeline.Status.SUSPENDED)   // output full
 
 `Protobuf.generator()` is a buffer-backed wire writer: each `writeXxx(field, value)` emits one
 field's tag and value, typed by the Protobuf type since the wire is not self-describing about
-signedness/zig-zag/fixed width. Nested messages take an **optimistic length**:
+signedness/zig-zag/fixed width. Nested messages take an **upper-bound length**:
 `startMessage(field, length)` reserves a length slot sized to `length` (pass the expected size, or a
 deliberately long value to widen the slot for a body that may grow), the body streams straight to the
 output, and `endMessage()` fills the slot with the actual length — minimal when the width matched,
 padded within the reserved width otherwise, never shifted (it throws if the body outgrows the reserved
 width). A proto2 group is the length-free alternative: `startGroup(field)` writes only the start-group
 tag, the body streams, and `endGroup()` writes the end-group tag — no length to know up front.
-`writeMessage` length-prefixes a pre-encoded nested
-message, and `writeRaw` splices bytes verbatim.
+`writeMessage` length-prefixes a pre-encoded nested message, and `writeRaw` splices bytes verbatim.
+`writeSegment(field, value, offset, length, deferred)` writes part of a length-delimited value whose
+total is `length + deferred`: the first call emits the tag and total-length prefix then `length` bytes,
+later calls append further body bytes — so a value too large for the buffer streams across chunks.
 
 ```java
 ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, out.capacity());
