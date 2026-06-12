@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.common.avro;
 
 import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.COMPLETE;
+import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.REJECTED;
 import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.SUSPENDED;
 import static io.aklivity.zilla.runtime.common.avro.AvroSink.Delivery.STRUCTURED;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -68,6 +69,23 @@ public class AvroChunkingTest
         MutableDirectBuffer out = new UnsafeBuffer(new byte[16]);
         AvroGenerator generator = Avro.generator(Avro.schema("\"int\""), out, 0);
         assertThrows(IllegalArgumentException.class, () -> generator.wrap(out, 0, out.capacity() + 1));
+    }
+
+    @Test
+    public void shouldRejectValueExceedingLimit()
+    {
+        AvroSchema schema = Avro.schema("\"string\"");
+        MutableDirectBuffer out = new UnsafeBuffer(new byte[64]);
+        AvroGenerator generator = Avro.generator(schema, out, 0);
+        generator.wrap(out, 0, 4);
+        AvroPipeline pipeline = Avro.parser(schema).stream().into(AvroSink.of(generator));
+        pipeline.reset();
+        // a 10-byte string (0x14 length prefix) cannot fit the 4-byte usable region, so it must not
+        // be written past the limit — the datum is rejected instead
+        byte[] datum = new byte[11];
+        datum[0] = 0x14;
+        Status status = pipeline.feed(new UnsafeBuffer(datum), 0, datum.length);
+        assertEquals(REJECTED, status);
     }
 
     @Test

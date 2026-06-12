@@ -171,6 +171,7 @@ public final class AvroGeneratorImpl implements AvroGenerator
     {
         beginValue();
         expect(AvroKind.BOOLEAN);
+        requireRoom(1);
         buffer.putByte(progress, (byte) (value ? 1 : 0));
         progress++;
         pop();
@@ -202,6 +203,7 @@ public final class AvroGeneratorImpl implements AvroGenerator
     {
         beginValue();
         expect(AvroKind.FLOAT);
+        requireRoom(Float.BYTES);
         buffer.putFloat(progress, value, LITTLE_ENDIAN);
         progress += Float.BYTES;
         pop();
@@ -213,6 +215,7 @@ public final class AvroGeneratorImpl implements AvroGenerator
     {
         beginValue();
         expect(AvroKind.DOUBLE);
+        requireRoom(Double.BYTES);
         buffer.putDouble(progress, value, LITTLE_ENDIAN);
         progress += Double.BYTES;
         pop();
@@ -250,6 +253,7 @@ public final class AvroGeneratorImpl implements AvroGenerator
     {
         beginValue();
         expect(AvroKind.FIXED);
+        requireRoom(length);
         this.buffer.putBytes(progress, buffer, offset, length);
         progress += length;
         pop();
@@ -271,6 +275,7 @@ public final class AvroGeneratorImpl implements AvroGenerator
         int offset,
         int length)
     {
+        requireRoom(length);
         this.buffer.putBytes(progress, buffer, offset, length);
         progress += length;
     }
@@ -318,6 +323,7 @@ public final class AvroGeneratorImpl implements AvroGenerator
         int length)
     {
         writeVarint(zigzag(length));
+        requireRoom(length);
         buffer.putBytes(progress, source, offset, length);
         progress += length;
     }
@@ -328,12 +334,23 @@ public final class AvroGeneratorImpl implements AvroGenerator
         long u = value;
         while ((u & ~0x7fL) != 0)
         {
+            requireRoom(1);
             buffer.putByte(progress, (byte) ((u & 0x7f) | 0x80));
             progress++;
             u >>>= 7;
         }
+        requireRoom(1);
         buffer.putByte(progress, (byte) (u & 0x7f));
         progress++;
+    }
+
+    private void requireRoom(
+        int count)
+    {
+        if (progress + count > bound)
+        {
+            throw new AvroValidationException("output exceeds limit");
+        }
     }
 
     private void require(
