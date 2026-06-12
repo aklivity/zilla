@@ -46,7 +46,7 @@ public final class ProtobufUntypedSinkImpl implements ProtobufSink
         ProtobufSource source,
         ProtobufEvent event)
     {
-        ProtobufPipeline.Status status = ProtobufPipeline.Status.RESUMABLE;
+        ProtobufPipeline.Status status = ProtobufPipeline.Status.ADVANCED;
         switch (event)
         {
         case START_MESSAGE:
@@ -56,7 +56,7 @@ public final class ProtobufUntypedSinkImpl implements ProtobufSink
             depth--;
             if (depth == 0)
             {
-                status = ProtobufPipeline.Status.COMPLETE;
+                status = ProtobufPipeline.Status.COMPLETED;
             }
             break;
         case VALUE:

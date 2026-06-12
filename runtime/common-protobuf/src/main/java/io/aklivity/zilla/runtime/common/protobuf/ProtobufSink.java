@@ -35,14 +35,14 @@ public interface ProtobufSink
      * Continues the work left unfinished when a prior {@link #feed} returned
      * {@link ProtobufPipeline.Status#SUSPENDED} — the pipeline calls this on resume instead of replaying
      * the event, so the events are not re-processed by the rest of the pipeline. The default has nothing
-     * pending and reports {@link ProtobufPipeline.Status#RESUMABLE}; a bounded sink overrides it to resume
+     * pending and reports {@link ProtobufPipeline.Status#ADVANCED}; a bounded sink overrides it to resume
      * writing the in-flight field, and {@code source} stays positioned on the suspended event.
      */
     default ProtobufPipeline.Status resume(
         ProtobufController control,
         ProtobufSource source)
     {
-        return ProtobufPipeline.Status.RESUMABLE;
+        return ProtobufPipeline.Status.ADVANCED;
     }
 
     default void reset()
@@ -55,7 +55,7 @@ public interface ProtobufSink
      * field by name into the target message. When {@code schema} is the read schema this re-encodes;
      * when it differs this transforms (fields absent in the target are dropped). The generator must
      * already be wrapped over its output buffer; read {@link ProtobufGenerator#length()} after the
-     * pipeline reports {@link ProtobufPipeline.Status#COMPLETE}.
+     * pipeline reports {@link ProtobufPipeline.Status#COMPLETED}.
      */
     static ProtobufSink of(
         ProtobufGenerator generator,

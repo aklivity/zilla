@@ -165,7 +165,7 @@ public class ProtobufTypedSinkTest
         pipeline.reset();
 
         Status status = pipeline.feed(new UnsafeBuffer(message), 0, message.length);
-        assertEquals(Status.COMPLETE, status);
+        assertEquals(Status.COMPLETED, status);
 
         byte[] result = new byte[generator.length()];
         out.getBytes(0, result);

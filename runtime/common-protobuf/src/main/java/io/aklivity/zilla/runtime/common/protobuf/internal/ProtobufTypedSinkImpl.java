@@ -106,7 +106,7 @@ public final class ProtobufTypedSinkImpl implements ProtobufSink
         ProtobufSource source,
         ProtobufEvent event)
     {
-        ProtobufPipeline.Status status = ProtobufPipeline.Status.RESUMABLE;
+        ProtobufPipeline.Status status = ProtobufPipeline.Status.ADVANCED;
         switch (event)
         {
         case START_MESSAGE:
@@ -140,8 +140,8 @@ public final class ProtobufTypedSinkImpl implements ProtobufSink
         boolean nested = !root && scope(depth).active && pending != null && pending.composite();
         ProtobufPipeline.Status status = nested
             ? reserve(tagSize(pending.number()) + varintSize(source.length()))
-            : ProtobufPipeline.Status.RESUMABLE;
-        if (status == ProtobufPipeline.Status.RESUMABLE)
+            : ProtobufPipeline.Status.ADVANCED;
+        if (status == ProtobufPipeline.Status.ADVANCED)
         {
             depth++;
             Scope scope = scope(depth);
@@ -167,8 +167,8 @@ public final class ProtobufTypedSinkImpl implements ProtobufSink
         boolean nested = scope(depth).active && pending != null && pending.composite();
         ProtobufPipeline.Status status = nested
             ? reserve(tagSize(pending.number()))
-            : ProtobufPipeline.Status.RESUMABLE;
-        if (status == ProtobufPipeline.Status.RESUMABLE)
+            : ProtobufPipeline.Status.ADVANCED;
+        if (status == ProtobufPipeline.Status.ADVANCED)
         {
             depth++;
             Scope scope = scope(depth);
@@ -188,7 +188,7 @@ public final class ProtobufTypedSinkImpl implements ProtobufSink
     private ProtobufPipeline.Status onValue(
         ProtobufSource source)
     {
-        ProtobufPipeline.Status status = ProtobufPipeline.Status.RESUMABLE;
+        ProtobufPipeline.Status status = ProtobufPipeline.Status.ADVANCED;
         if (scope(depth).active && pending != null)
         {
             status = pending.type().wireType() == ProtobufWireType.LEN
@@ -212,7 +212,7 @@ public final class ProtobufTypedSinkImpl implements ProtobufSink
             if (full <= remaining)
             {
                 generator.writeBytes(number, source.buffer(), source.offset(), valueLength);
-                status = ProtobufPipeline.Status.RESUMABLE;
+                status = ProtobufPipeline.Status.ADVANCED;
             }
             else if (generator.length() > 0)
             {
@@ -249,7 +249,7 @@ public final class ProtobufTypedSinkImpl implements ProtobufSink
             else
             {
                 valueWritten = 0;
-                status = ProtobufPipeline.Status.RESUMABLE;
+                status = ProtobufPipeline.Status.ADVANCED;
             }
         }
         return status;
@@ -260,7 +260,7 @@ public final class ProtobufTypedSinkImpl implements ProtobufSink
         ProtobufSource source)
     {
         ProtobufPipeline.Status status = reserve(tagSize(field.number()) + scalarSize(field));
-        if (status == ProtobufPipeline.Status.RESUMABLE)
+        if (status == ProtobufPipeline.Status.ADVANCED)
         {
             writeScalar(field, source);
         }
@@ -270,10 +270,10 @@ public final class ProtobufTypedSinkImpl implements ProtobufSink
     private ProtobufPipeline.Status onEndMessage()
     {
         Scope scope = scope(depth);
-        ProtobufPipeline.Status status = ProtobufPipeline.Status.RESUMABLE;
+        ProtobufPipeline.Status status = ProtobufPipeline.Status.ADVANCED;
         if (depth == 0)
         {
-            status = ProtobufPipeline.Status.COMPLETE;
+            status = ProtobufPipeline.Status.COMPLETED;
         }
         else if (scope.active)
         {
@@ -298,7 +298,7 @@ public final class ProtobufTypedSinkImpl implements ProtobufSink
     private ProtobufPipeline.Status reserve(
         int need)
     {
-        ProtobufPipeline.Status status = ProtobufPipeline.Status.RESUMABLE;
+        ProtobufPipeline.Status status = ProtobufPipeline.Status.ADVANCED;
         if (need > generator.remaining())
         {
             if (generator.length() > 0)

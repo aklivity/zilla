@@ -70,7 +70,7 @@ public class ProtobufGeneratorTest
         pipeline.reset();
         ProtobufPipeline.Status status = pipeline.feed(out, 0, generator.length());
 
-        assertEquals(ProtobufPipeline.Status.COMPLETE, status);
+        assertEquals(ProtobufPipeline.Status.COMPLETED, status);
         assertEquals(List.of("{",
             "F1", "V-5", "F2", "V-6", "F3", "V4000000000", "F4", "V7", "F5", "V1.5",
             "F6", "V1", "F7", "Vhi", "F8", "Vb3", "F9", "V1", "F10", "{", "F1", "V9", "}",
@@ -91,7 +91,7 @@ public class ProtobufGeneratorTest
         pipeline.reset();
         ProtobufPipeline.Status status = pipeline.feed(out, 0, generator.length());
 
-        assertEquals(ProtobufPipeline.Status.COMPLETE, status);
+        assertEquals(ProtobufPipeline.Status.COMPLETED, status);
         assertEquals(List.of("{", "F1", "V-5", "F11", "(", "F1", "V9", ")", "}"), sink.events);
     }
 
@@ -138,7 +138,7 @@ public class ProtobufGeneratorTest
         ProtobufPipeline pipeline = Protobuf.parser(schema, "All").stream().into(new Mirror(generator));
         pipeline.reset();
 
-        assertEquals(ProtobufPipeline.Status.COMPLETE, pipeline.feed(in, 0, input.length));
+        assertEquals(ProtobufPipeline.Status.COMPLETED, pipeline.feed(in, 0, input.length));
         assertArrayEquals(input, bytes(out, generator.length()));
     }
 
@@ -160,7 +160,7 @@ public class ProtobufGeneratorTest
         ProtobufPipeline pipeline = Protobuf.parser(schema, "All").stream().into(sink);
         pipeline.reset();
 
-        assertEquals(ProtobufPipeline.Status.COMPLETE, pipeline.feed(out, 0, generator.length()));
+        assertEquals(ProtobufPipeline.Status.COMPLETED, pipeline.feed(out, 0, generator.length()));
         assertEquals(List.of("{", "F10", "{", "F1", "V9", "}", "}"), sink.events);
     }
 
@@ -224,7 +224,7 @@ public class ProtobufGeneratorTest
             ProtobufSource source,
             ProtobufEvent event)
         {
-            ProtobufPipeline.Status status = ProtobufPipeline.Status.RESUMABLE;
+            ProtobufPipeline.Status status = ProtobufPipeline.Status.ADVANCED;
             switch (event)
             {
             case START_MESSAGE:
@@ -236,7 +236,7 @@ public class ProtobufGeneratorTest
                 depth--;
                 if (depth == 0)
                 {
-                    status = ProtobufPipeline.Status.COMPLETE;
+                    status = ProtobufPipeline.Status.COMPLETED;
                 }
                 break;
             case START_GROUP:
@@ -310,7 +310,7 @@ public class ProtobufGeneratorTest
             ProtobufSource source,
             ProtobufEvent event)
         {
-            ProtobufPipeline.Status status = ProtobufPipeline.Status.RESUMABLE;
+            ProtobufPipeline.Status status = ProtobufPipeline.Status.ADVANCED;
             switch (event)
             {
             case START_MESSAGE:
@@ -334,7 +334,7 @@ public class ProtobufGeneratorTest
                 depth--;
                 if (depth == 0)
                 {
-                    status = ProtobufPipeline.Status.COMPLETE;
+                    status = ProtobufPipeline.Status.COMPLETED;
                 }
                 break;
             default:

@@ -58,7 +58,7 @@ public class ProtobufRawPipelineTest
         ProtobufPipeline pipeline = Protobuf.parser().stream().into(sink);
         pipeline.reset();
 
-        assertEquals(Status.COMPLETE, feed(pipeline, message));
+        assertEquals(Status.COMPLETED, feed(pipeline, message));
         assertEquals(List.of("{", "F1:VARINT", "V5", "F2:LEN", "L2", "F3:I32", "V7", "}"), sink.events);
     }
 
@@ -121,7 +121,7 @@ public class ProtobufRawPipelineTest
 
         ProtobufTransform redact = (control, source, event, sink) ->
             (event == ProtobufEvent.FIELD || event == ProtobufEvent.VALUE) && source.fieldNumber() == 2
-                ? Status.RESUMABLE
+                ? Status.ADVANCED
                 : sink.feed(control, source, event);
 
         assertArrayEquals(expected, copy(message, redact));
@@ -141,7 +141,7 @@ public class ProtobufRawPipelineTest
         ProtobufPipeline pipeline = stream.into(ProtobufSink.of(generator));
         pipeline.reset();
 
-        assertEquals(Status.COMPLETE, feed(pipeline, message));
+        assertEquals(Status.COMPLETED, feed(pipeline, message));
 
         byte[] result = new byte[generator.length()];
         out.getBytes(0, result);
@@ -177,7 +177,7 @@ public class ProtobufRawPipelineTest
             ProtobufSource source,
             ProtobufEvent event)
         {
-            ProtobufPipeline.Status status = ProtobufPipeline.Status.RESUMABLE;
+            ProtobufPipeline.Status status = ProtobufPipeline.Status.ADVANCED;
             switch (event)
             {
             case START_MESSAGE:
@@ -189,7 +189,7 @@ public class ProtobufRawPipelineTest
                 depth--;
                 if (depth == 0)
                 {
-                    status = ProtobufPipeline.Status.COMPLETE;
+                    status = ProtobufPipeline.Status.COMPLETED;
                 }
                 break;
             case FIELD:

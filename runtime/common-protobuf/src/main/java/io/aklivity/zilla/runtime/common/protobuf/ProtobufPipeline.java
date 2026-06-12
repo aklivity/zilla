@@ -30,12 +30,12 @@ public interface ProtobufPipeline
 {
     enum Status
     {
-        /** the message is in progress and can continue immediately — an internal sink-to-pump signal */
-        RESUMABLE,
+        /** the event was consumed; the pump advances to the next — an internal sink-to-pump signal */
+        ADVANCED,
         /** the bounded output filled: drain the buffer, reset the generator, then {@link #feed} again to resume */
         SUSPENDED,
         /** the message finished and was accepted */
-        COMPLETE,
+        COMPLETED,
         /** the message was rejected; the output must be abandoned */
         REJECTED
     }

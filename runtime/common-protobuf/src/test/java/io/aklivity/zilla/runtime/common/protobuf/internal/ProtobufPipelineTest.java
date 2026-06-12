@@ -62,7 +62,7 @@ public class ProtobufPipelineTest
             .into(new ProtobufDiscardSinkImpl());
         pipeline.reset();
 
-        assertEquals(Status.COMPLETE, feed(pipeline, message));
+        assertEquals(Status.COMPLETED, feed(pipeline, message));
     }
 
     @Test
@@ -87,7 +87,7 @@ public class ProtobufPipelineTest
         ProtobufPipeline pipeline = Protobuf.parser(schema, "P").stream().into(sink);
         pipeline.reset();
 
-        assertEquals(Status.COMPLETE, feed(pipeline, message));
+        assertEquals(Status.COMPLETED, feed(pipeline, message));
         assertEquals(List.of("{", "F1", "Vneo", "F2", "V7", "F4", "{", "F1", "VZion", "}", "}"), sink.events);
     }
 
@@ -109,7 +109,7 @@ public class ProtobufPipelineTest
         ProtobufPipeline pipeline = Protobuf.parser(schema, "P").stream().into(sink);
         pipeline.reset();
 
-        assertEquals(Status.COMPLETE, feed(pipeline, message));
+        assertEquals(Status.COMPLETED, feed(pipeline, message));
         assertEquals(List.of("{", "F4", "START_SEGMENT", "END_SEGMENT", "}"), sink.events);
         assertArrayEquals(home, sink.segment);
     }
@@ -133,7 +133,7 @@ public class ProtobufPipelineTest
         ProtobufPipeline pipeline = Protobuf.parser(schema, "P").stream().into(sink);
         pipeline.reset();
 
-        assertEquals(Status.COMPLETE, feed(pipeline, message));
+        assertEquals(Status.COMPLETED, feed(pipeline, message));
         assertEquals(List.of("{", "F3", "V1", "F3", "V2", "F3", "V3", "}"), sink.events);
     }
 
@@ -152,7 +152,7 @@ public class ProtobufPipelineTest
         ProtobufPipeline pipeline = Protobuf.parser(schema, "P").stream().into(sink);
         pipeline.reset();
 
-        assertEquals(Status.COMPLETE, feed(pipeline, message));
+        assertEquals(Status.COMPLETED, feed(pipeline, message));
         assertEquals(List.of("{", "F5", "(", "F1", "V9", ")", "}"), sink.events);
     }
 
@@ -171,7 +171,7 @@ public class ProtobufPipelineTest
         ProtobufPipeline pipeline = Protobuf.parser(schema, "P").stream().into(sink);
         pipeline.reset();
 
-        assertEquals(Status.COMPLETE, feed(pipeline, message));
+        assertEquals(Status.COMPLETED, feed(pipeline, message));
         assertEquals(List.of("{", "F2", "V1", "}"), sink.events);
     }
 
@@ -209,7 +209,7 @@ public class ProtobufPipelineTest
             .into(new ProtobufDiscardSinkImpl());
         pipeline.reset();
 
-        assertEquals(Status.COMPLETE, feed(pipeline, message));
+        assertEquals(Status.COMPLETED, feed(pipeline, message));
     }
 
     @Test
@@ -243,9 +243,9 @@ public class ProtobufPipelineTest
             .into(new ProtobufDiscardSinkImpl());
 
         pipeline.reset();
-        assertEquals(Status.COMPLETE, feed(pipeline, message));
+        assertEquals(Status.COMPLETED, feed(pipeline, message));
         pipeline.reset();
-        assertEquals(Status.COMPLETE, feed(pipeline, message));
+        assertEquals(Status.COMPLETED, feed(pipeline, message));
     }
 
     @Test
@@ -289,7 +289,7 @@ public class ProtobufPipelineTest
         ProtobufPipeline pipeline = Protobuf.parser(schema, "S").stream().into(sink);
         pipeline.reset();
 
-        assertEquals(Status.COMPLETE, feed(pipeline, message));
+        assertEquals(Status.COMPLETED, feed(pipeline, message));
         assertEquals(List.of("{",
             "F1", "V-5", "F2", "V-6", "F3", "V7", "F4", "V8", "F5", "V-8",
             "F6", "V9", "F7", "V10", "F8", "V-11", "F9", "V12", "F10", "V-13",
@@ -311,7 +311,7 @@ public class ProtobufPipelineTest
             w.writeTag(2, ProtobufWireType.VARINT);
             w.writeVarint64(1);
         });
-        assertEquals(Status.COMPLETE, feed(pipeline, message));
+        assertEquals(Status.COMPLETED, feed(pipeline, message));
     }
 
     @Test
@@ -475,7 +475,7 @@ public class ProtobufPipelineTest
             ProtobufSource source,
             ProtobufEvent event)
         {
-            ProtobufPipeline.Status status = ProtobufPipeline.Status.RESUMABLE;
+            ProtobufPipeline.Status status = ProtobufPipeline.Status.ADVANCED;
             switch (event)
             {
             case START_MESSAGE:
@@ -487,7 +487,7 @@ public class ProtobufPipelineTest
                 depth--;
                 if (depth == 0)
                 {
-                    status = ProtobufPipeline.Status.COMPLETE;
+                    status = ProtobufPipeline.Status.COMPLETED;
                 }
                 break;
             case START_GROUP:

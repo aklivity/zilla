@@ -86,7 +86,7 @@ ProtobufPipeline pipeline = Protobuf.parser(readSchema, "Person").stream()
     .transform(readSchema.validator("Person"))
     .into(ProtobufSink.of(generator, writeSchema, "PersonV2"));
 pipeline.reset();
-if (pipeline.feed(in, off, len) == ProtobufPipeline.Status.COMPLETE)  // COMPLETE / SUSPENDED / REJECTED
+if (pipeline.feed(in, off, len) == ProtobufPipeline.Status.COMPLETED)  // COMPLETED / SUSPENDED / REJECTED
 {
     int length = generator.length();   // PersonV2 wire bytes in out
 }
@@ -151,7 +151,7 @@ while (status == ProtobufPipeline.Status.SUSPENDED)   // output full
     generator.wrap(out, 0, limit);                    // reset output (fresh or recycled buffer)
     status = pipeline.feed(in, off, len);             // resume the in-flight message
 }
-// COMPLETE: emit the final generator.length() bytes
+// COMPLETED: emit the final generator.length() bytes
 ```
 
 ### Writing wire directly
@@ -195,7 +195,7 @@ can keep/drop/redact fields by number with no schema:
 ```java
 ProtobufGenerator generator = Protobuf.generator().wrap(out, 0);
 ProtobufTransform redact = (control, source, event, sink) ->
-    source.fieldNumber() == SSN ? ProtobufPipeline.Status.RESUMABLE : sink.feed(control, source, event);
+    source.fieldNumber() == SSN ? ProtobufPipeline.Status.ADVANCED : sink.feed(control, source, event);
 Protobuf.parser().stream().transform(redact).into(ProtobufSink.of(generator));
 ```
 

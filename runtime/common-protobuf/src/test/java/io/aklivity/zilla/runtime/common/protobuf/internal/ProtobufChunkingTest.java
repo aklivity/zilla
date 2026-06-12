@@ -140,7 +140,7 @@ public class ProtobufChunkingTest
             generator.wrap(out, 0, limit);
             status = pipeline.feed(buffer, 0, input.length);
         }
-        assertEquals(ProtobufPipeline.Status.COMPLETE, status);
+        assertEquals(ProtobufPipeline.Status.COMPLETED, status);
         chunks.add(bytes(out, generator.length()));
 
         // decode the concatenated stream, merging the repeated group occurrences as the wire merges them
@@ -231,7 +231,7 @@ public class ProtobufChunkingTest
             generator.wrap(out, 0, limit);
             status = pipeline.feed(buffer, 0, input.length);
         }
-        assertEquals(ProtobufPipeline.Status.COMPLETE, status);
+        assertEquals(ProtobufPipeline.Status.COMPLETED, status);
         return events;
     }
 
@@ -255,7 +255,7 @@ public class ProtobufChunkingTest
             generator.wrap(out, 0, limit);
             status = pipeline.feed(buffer, 0, input.length);
         }
-        assertEquals(ProtobufPipeline.Status.COMPLETE, status);
+        assertEquals(ProtobufPipeline.Status.COMPLETED, status);
         assertTrue(generator.length() <= limit, "chunk exceeded the generator limit");
         chunks.add(bytes(out, generator.length()));
         return chunks;

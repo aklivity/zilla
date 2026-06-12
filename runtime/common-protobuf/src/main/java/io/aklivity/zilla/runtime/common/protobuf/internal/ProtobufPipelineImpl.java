@@ -67,7 +67,7 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
         int offset,
         int length)
     {
-        Status status = Status.RESUMABLE;
+        Status status = Status.ADVANCED;
         try
         {
             if (suspended)
@@ -79,7 +79,7 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
             {
                 parser.wrap(buffer, offset, length);
             }
-            while (status == Status.RESUMABLE && parser.hasNext())
+            while (status == Status.ADVANCED && parser.hasNext())
             {
                 status = head.feed(parser, parser, parser.nextEvent());
             }

@@ -22,7 +22,7 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufSource;
 
 /**
  * A terminal sink that consumes and discards the event stream, reaching
- * {@link ProtobufPipeline.Status#COMPLETE} when the root message ends. The verdict of a pure
+ * {@link ProtobufPipeline.Status#COMPLETED} when the root message ends. The verdict of a pure
  * validation pipeline is the returned {@link ProtobufPipeline.Status}.
  */
 public final class ProtobufDiscardSinkImpl implements ProtobufSink
@@ -35,7 +35,7 @@ public final class ProtobufDiscardSinkImpl implements ProtobufSink
         ProtobufSource source,
         ProtobufEvent event)
     {
-        ProtobufPipeline.Status status = ProtobufPipeline.Status.RESUMABLE;
+        ProtobufPipeline.Status status = ProtobufPipeline.Status.ADVANCED;
         if (event == ProtobufEvent.START_MESSAGE || event == ProtobufEvent.START_GROUP)
         {
             depth++;
@@ -45,7 +45,7 @@ public final class ProtobufDiscardSinkImpl implements ProtobufSink
             depth--;
             if (depth == 0)
             {
-                status = ProtobufPipeline.Status.COMPLETE;
+                status = ProtobufPipeline.Status.COMPLETED;
             }
         }
         return status;
