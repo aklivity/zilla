@@ -87,6 +87,7 @@ public final class AvroParserImpl implements AvroParser, AvroSource, AvroControl
     private final MutableDirectBuffer work;
     private final UnsafeBuffer segmentView;
     private final AvroLocationImpl location;
+    private final int maxWorkBytes;
 
     private int workLimit;
     private int pos;
@@ -120,9 +121,11 @@ public final class AvroParserImpl implements AvroParser, AvroSource, AvroControl
     private AvroNode cursorType;
 
     public AvroParserImpl(
-        AvroSchema schema)
+        AvroSchema schema,
+        int maxWorkBytes)
     {
         this.root = (AvroNode) schema.type();
+        this.maxWorkBytes = maxWorkBytes;
         this.work = new ExpandableArrayBuffer();
         this.segmentView = new UnsafeBuffer(0, 0);
         this.location = new AvroLocationImpl();
@@ -153,6 +156,10 @@ public final class AvroParserImpl implements AvroParser, AvroSource, AvroControl
             }
             workLimit = remaining;
             pos = 0;
+        }
+        if (workLimit + length > maxWorkBytes)
+        {
+            throw new AvroValidationException("datum exceeds max " + maxWorkBytes + " bytes");
         }
         work.putBytes(workLimit, buffer, offset, length);
         workLimit += length;
