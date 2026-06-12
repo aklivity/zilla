@@ -84,8 +84,22 @@ public final class JsonSinkImpl implements JsonSink
             }
             break;
         case VALUE_STRING:
-            generator.write(source.getString());
-            status = scalarStatus();
+            segment = source.getSegment();
+            if (segmentWritten == 0 && segment.capacity() < generator.remaining())
+            {
+                // fits: re-encode normalized (a re-encode is never longer than the raw token)
+                generator.write(source.getString());
+                status = scalarStatus();
+            }
+            else
+            {
+                // too large for the bound: splice the raw token bytes verbatim, fragmenting across chunks
+                if (segmentWritten == 0)
+                {
+                    generator.writeRaw(segment, 0, 0);
+                }
+                status = writeChunk(segment, event);
+            }
             break;
         case VALUE_NUMBER:
             generator.writeNumber(source.getString());
@@ -172,7 +186,9 @@ public final class JsonSinkImpl implements JsonSink
         {
             segmentWritten = 0;
             pendingSegmentEvent = null;
-            status = event == JsonEvent.END_SEGMENT ? scalarStatus() : Status.ADVANCED;
+            status = event == JsonEvent.END_SEGMENT || event == JsonEvent.VALUE_STRING
+                ? scalarStatus()
+                : Status.ADVANCED;
         }
         return status;
     }

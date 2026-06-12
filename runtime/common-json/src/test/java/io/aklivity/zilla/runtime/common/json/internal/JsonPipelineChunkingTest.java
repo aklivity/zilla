@@ -87,6 +87,19 @@ class JsonPipelineChunkingTest
     }
 
     @Test
+    void shouldFragmentLargeStringValueStructured()
+    {
+        JsonGeneratorEx generator = StreamingJson.createGenerator();
+        MutableDirectBuffer output = new UnsafeBuffer(new byte[256]);
+        JsonPipeline pipeline = StreamingJson.createParser().stream()
+            .into(JsonSink.of(generator));
+
+        // a single string property value far larger than BOUND, in structured delivery
+        String json = "{\"data\":\"" + "x".repeat(96) + "\"}";
+        assertEquals(json, chunked(pipeline, generator, output, json));
+    }
+
+    @Test
     void shouldFragmentValueLargerThanBound()
     {
         JsonGeneratorEx generator = StreamingJson.createGenerator();

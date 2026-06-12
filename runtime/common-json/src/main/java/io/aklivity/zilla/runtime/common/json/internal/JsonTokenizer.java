@@ -79,6 +79,8 @@ public final class JsonTokenizer
     private String pendingString;
     private boolean valuePending;
     private long streamOffset;
+    private long valueStreamStart;
+    private long valueStreamEnd;
     private boolean valueReadable = true;
 
     // scalar resume state (valid when resumeOp != NONE)
@@ -265,6 +267,19 @@ public final class JsonTokenizer
     public long streamOffset()
     {
         return streamOffset;
+    }
+
+    // Stream-offset span of the most recent VALUE_STRING token, including its surrounding quotes. The
+    // EOF rewind for a readable scalar guarantees the whole token is contiguous in one frame, so this
+    // span maps to a single contiguous slice the sink can splice or fragment.
+    public long valueStreamStart()
+    {
+        return valueStreamStart;
+    }
+
+    public long valueStreamEnd()
+    {
+        return valueStreamEnd;
     }
 
     public boolean done()
@@ -567,11 +582,13 @@ public final class JsonTokenizer
             pushPath(true);
             break;
         case '"':
+            valueStreamStart = streamOffset - 1;
             scratch.setLength(0);
             resumeEscape = false;
             resumeUnicodePending = 0;
             resumeOp = ResumeOp.VALUE_STRING;
             continueStringContent(in);
+            valueStreamEnd = streamOffset;
             pendingEvent = JsonParser.Event.VALUE_STRING;
             captureValue(valueReadable);
             resumeOp = ResumeOp.NONE;

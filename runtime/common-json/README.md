@@ -116,8 +116,15 @@ open structure — does not leak that structure into the next checkout.
 A value whose verbatim form exceeds `remaining()` is **fragmented mid-byte** rather than overrunning
 the bound. `generator.writeSegment(source, index, length, deferred)` appends the bytes that fit and
 records `deferred` — how many bytes of the value remain — and the sink returns `SUSPENDED`; on resume
-it continues from where it paused until `deferred` reaches zero. A value of any size streams this way
-through the segment path, never buffered in full.
+it continues from where it paused until `deferred` reaches zero. A value of any size streams this way,
+never buffered in full.
+
+This covers both a verbatim container subtree (`SEGMENTABLE` delivery) and a **scalar string value**.
+A string value larger than the bound is read as its raw token bytes — the parser exposes the token
+slice via `JsonSource.getSegment()`, contiguous because a readable scalar is only emitted once whole in
+one frame — and spliced across chunks; a string that fits is still re-encoded normalized (a re-encode is
+never longer than the raw token, so the fit check is safe). So a giant `{"data":"…"}` value streams in
+both `STRUCTURED` and `SEGMENTABLE` delivery.
 
 Resumption is a **per-stage cascade**, not an event replay: `JsonSink.resume(control, source)` and
 `JsonTransform.resume(control, source, sink)` continue any in-flight fragment before the next event is
@@ -149,9 +156,9 @@ int length = generator.length();
 
 The pipeline operates on a single buffered frame and is bounded by the value size and, for structured
 rendering, by nesting depth — no unbounded document is buffered. The hard `[offset, limit)` bound makes
-the constraint explicit: a value larger than the bound must arrive through the **segment path**, which
-fragments it across chunks; a one-shot structured scalar or an object key written in a single call must
-fit the bound. Malformed wire (a syntax error in the frame) is rejected as `REJECTED`.
+the constraint explicit: container subtrees and string values larger than the bound stream across chunks
+(see above), while a one-shot number/`true`/`false`/`null` or an object **key** written in a single call
+must fit the bound. Malformed input (a syntax error in the frame) is rejected as `REJECTED`.
 
 ## Run performance benchmarks
 

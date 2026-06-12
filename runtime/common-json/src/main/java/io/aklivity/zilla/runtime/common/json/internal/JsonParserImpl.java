@@ -277,6 +277,11 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
             break;
         default:
             lastEvent = JsonEvent.of(next());
+            if (lastEvent == JsonEvent.VALUE_STRING)
+            {
+                segmentSliceOffset = bufferOffset(tokenizer.valueStreamStart());
+                segmentSliceLength = (int) (tokenizer.valueStreamEnd() - tokenizer.valueStreamStart());
+            }
             if (armNextValue)
             {
                 armNextValue = false;
