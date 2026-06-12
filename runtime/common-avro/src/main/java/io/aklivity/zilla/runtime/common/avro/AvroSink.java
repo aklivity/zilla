@@ -54,7 +54,7 @@ public interface AvroSink
         AvroController control,
         AvroSource source)
     {
-        return AvroPipeline.Status.RESUMABLE;
+        return AvroPipeline.Status.ADVANCED;
     }
 
     default void reset()

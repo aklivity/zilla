@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.common.avro;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.END_ARRAY;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.INT;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.START_ARRAY;
-import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.COMPLETE;
+import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.COMPLETED;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -51,7 +51,7 @@ public class AvroSchemaTest
         Recorder recorder = AvroValues.record(
             Avro.schema("{\"type\":\"long\",\"logicalType\":\"timestamp-millis\"}"),
             new byte[] { 0x02 });
-        assertEquals(COMPLETE, recorder.status);
+        assertEquals(COMPLETED, recorder.status);
         assertEquals(1L, recorder.entries.get(0).longValue);
     }
 
@@ -61,7 +61,7 @@ public class AvroSchemaTest
         Recorder recorder = AvroValues.record(
             Avro.schema("{\"type\":\"bytes\",\"logicalType\":\"decimal\"}"),
             new byte[] { 0x02, 0x07 });
-        assertEquals(COMPLETE, recorder.status);
+        assertEquals(COMPLETED, recorder.status);
     }
 
     @Test
@@ -70,7 +70,7 @@ public class AvroSchemaTest
         Recorder recorder = AvroValues.record(
             Avro.schema("{\"type\":\"fixed\",\"name\":\"Dec\",\"size\":2,\"logicalType\":\"decimal\"}"),
             new byte[] { 0x01, 0x02 });
-        assertEquals(COMPLETE, recorder.status);
+        assertEquals(COMPLETED, recorder.status);
     }
 
     @Test
@@ -82,7 +82,7 @@ public class AvroSchemaTest
                 {"name":"a","type":{"type":"enum","name":"E","symbols":["X","Y"]}},
                 {"name":"b","type":"E"}]}"""),
             new byte[] { 0x02, 0x00 });
-        assertEquals(COMPLETE, recorder.status);
+        assertEquals(COMPLETED, recorder.status);
     }
 
     @Test
@@ -105,9 +105,9 @@ public class AvroSchemaTest
             {
                 captured[0] = source.getString();
             }
-            return Status.RESUMABLE;
+            return Status.ADVANCED;
         };
-        assertEquals(COMPLETE, parse("\"string\"", new byte[] { 0x06, 0x66, 0x6f, 0x6f }, sink));
+        assertEquals(COMPLETED, parse("\"string\"", new byte[] { 0x06, 0x66, 0x6f, 0x6f }, sink));
         assertEquals("foo", captured[0]);
     }
 
@@ -124,9 +124,9 @@ public class AvroSchemaTest
                 segment.getBytes(0, dst);
                 captured[0] = dst;
             }
-            return Status.RESUMABLE;
+            return Status.ADVANCED;
         };
-        assertEquals(COMPLETE, parse("\"bytes\"", new byte[] { 0x04, (byte) 0xff, 0x01 }, sink));
+        assertEquals(COMPLETED, parse("\"bytes\"", new byte[] { 0x04, (byte) 0xff, 0x01 }, sink));
         assertArrayEquals(new byte[] { (byte) 0xff, 0x01 }, captured[0]);
     }
 
@@ -144,9 +144,9 @@ public class AvroSchemaTest
             {
                 captured[0] = source.getString();
             }
-            return Status.RESUMABLE;
+            return Status.ADVANCED;
         };
-        assertEquals(COMPLETE, parse("\"string\"", binary, sink));
+        assertEquals(COMPLETED, parse("\"string\"", binary, sink));
         assertEquals("€", captured[0]);
     }
 
@@ -160,9 +160,9 @@ public class AvroSchemaTest
             {
                 fields.add(source.getField());
             }
-            return Status.RESUMABLE;
+            return Status.ADVANCED;
         };
-        assertEquals(COMPLETE, parse("""
+        assertEquals(COMPLETED, parse("""
             {"type":"record","name":"R","fields":[
             {"name":"id","type":"int"},
             {"name":"name","type":"string"}]}""",
@@ -180,10 +180,10 @@ public class AvroSchemaTest
             {
                 keys.add(source.getKey());
             }
-            return Status.RESUMABLE;
+            return Status.ADVANCED;
         };
         // one block, count 1 (0x02), key "a" (0x02 'a'), value 7 (0x0e), terminator 0x00
-        assertEquals(COMPLETE, parse("{\"type\":\"map\",\"values\":\"long\"}",
+        assertEquals(COMPLETED, parse("{\"type\":\"map\",\"values\":\"long\"}",
             new byte[] { 0x02, 0x02, 0x61, 0x0e, 0x00 }, sink));
         assertEquals(List.of("a"), keys);
     }
@@ -201,10 +201,10 @@ public class AvroSchemaTest
                 depth[0] = location.depth();
                 position[0] = location.position();
             }
-            return Status.RESUMABLE;
+            return Status.ADVANCED;
         };
         // record { id:int=1 (0x02), name:string="hi" (0x04 'h' 'i') }; name begins at byte 1, depth 2
-        assertEquals(COMPLETE, parse("""
+        assertEquals(COMPLETED, parse("""
             {"type":"record","name":"R","fields":[
             {"name":"id","type":"int"},
             {"name":"name","type":"string"}]}""",

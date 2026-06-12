@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.common.avro;
 
-import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.COMPLETE;
+import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.COMPLETED;
 import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.REJECTED;
 import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.SUSPENDED;
 import static io.aklivity.zilla.runtime.common.avro.AvroSink.Delivery.STRUCTURED;
@@ -119,7 +119,7 @@ public class AvroChunkingTest
             generator.wrap(out, 0, limit);
             status = pipeline.feed(in, 0, datum.length);
         }
-        assertEquals(COMPLETE, status);
+        assertEquals(COMPLETED, status);
 
         // a suspended value resumes through the sink, not by replaying events, so the transform sees
         // START_MESSAGE and STRING once each (the datum completes on the value, before END_MESSAGE) —
@@ -156,7 +156,7 @@ public class AvroChunkingTest
             generator.wrap(out, 0, limit);
             status = pipeline.feed(in, 0, datum.length);
         }
-        assertEquals(COMPLETE, status);
+        assertEquals(COMPLETED, status);
         chunks.add(drain(out, generator.length()));
 
         assertTrue(chunks.size() >= 2, "expected the value to be split across chunks");
@@ -193,7 +193,7 @@ public class AvroChunkingTest
             generator.wrap(out, 0, limit);
             status = pipeline.feed(in, 0, datum.length);
         }
-        assertEquals(COMPLETE, status);
+        assertEquals(COMPLETED, status);
         chunks.add(drain(out, generator.length()));
 
         assertTrue(chunks.size() >= 2, "expected the datum to span multiple chunks");

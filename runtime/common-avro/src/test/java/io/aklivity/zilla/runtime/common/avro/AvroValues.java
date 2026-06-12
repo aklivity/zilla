@@ -72,7 +72,7 @@ public final class AvroValues
         AvroPipeline pipeline = Avro.parser(schema).stream().transform(schema.validator()).into(AvroSink.of(generator, delivery));
         pipeline.reset();
         Status status = pipeline.feed(new UnsafeBuffer(binary), 0, binary.length);
-        if (status != Status.COMPLETE)
+        if (status != Status.COMPLETED)
         {
             throw new AssertionError("parse did not complete: " + status);
         }
@@ -138,7 +138,7 @@ public final class AvroValues
                 events.add(event);
                 entries.add(new Entry(event, source));
             }
-            return Status.RESUMABLE;
+            return Status.ADVANCED;
         }
 
         @Override

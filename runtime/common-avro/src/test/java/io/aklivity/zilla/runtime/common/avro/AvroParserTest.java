@@ -31,7 +31,7 @@ import static io.aklivity.zilla.runtime.common.avro.AvroEvent.START_MAP;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.START_RECORD;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.STRING;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.UNION_BRANCH;
-import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.COMPLETE;
+import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.COMPLETED;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -51,7 +51,7 @@ public class AvroParserTest
         byte[] binary)
     {
         Recorder recorder = AvroValues.record(Avro.schema(schemaText), binary);
-        assertEquals(COMPLETE, recorder.status);
+        assertEquals(COMPLETED, recorder.status);
         return recorder;
     }
 

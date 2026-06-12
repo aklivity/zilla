@@ -277,7 +277,7 @@ public class AvroPipelineBM
             AvroSource source,
             AvroEvent event)
         {
-            return Status.RESUMABLE;
+            return Status.ADVANCED;
         }
     }
 }

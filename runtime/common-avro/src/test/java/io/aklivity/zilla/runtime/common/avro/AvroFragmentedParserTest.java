@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.common.avro;
 
-import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.COMPLETE;
+import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.COMPLETED;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -37,13 +37,13 @@ public class AvroFragmentedParserTest
         AvroPipeline pipeline = Avro.parser(schema).stream().into(recorder);
         pipeline.reset();
         UnsafeBuffer one = new UnsafeBuffer(new byte[1]);
-        Status status = binary.length == 0 ? pipeline.feed(one, 0, 0) : Status.RESUMABLE;
+        Status status = binary.length == 0 ? pipeline.feed(one, 0, 0) : Status.ADVANCED;
         for (int i = 0; i < binary.length; i++)
         {
             one.putByte(0, binary[i]);
             status = pipeline.feed(one, 0, 1);
         }
-        assertEquals(COMPLETE, status);
+        assertEquals(COMPLETED, status);
         return recorder.events;
     }
 
@@ -53,7 +53,7 @@ public class AvroFragmentedParserTest
     {
         AvroSchema schema = Avro.schema(schemaText);
         Recorder whole = AvroValues.record(schema, binary);
-        assertEquals(COMPLETE, whole.status);
+        assertEquals(COMPLETED, whole.status);
         assertEquals(whole.events, parseByteByByte(schema, binary));
     }
 
@@ -120,13 +120,13 @@ public class AvroFragmentedParserTest
         AvroPipeline pipeline = Avro.parser(schema).stream().into(AvroSink.of(generator, AvroSink.Delivery.SEGMENTABLE));
         pipeline.reset();
         UnsafeBuffer one = new UnsafeBuffer(new byte[1]);
-        Status status = Status.RESUMABLE;
+        Status status = Status.ADVANCED;
         for (int i = 0; i < binary.length; i++)
         {
             one.putByte(0, binary[i]);
             status = pipeline.feed(one, 0, 1);
         }
-        assertEquals(COMPLETE, status);
+        assertEquals(COMPLETED, status);
         byte[] result = new byte[generator.length()];
         out.getBytes(0, result);
         assertArrayEquals(binary, result);

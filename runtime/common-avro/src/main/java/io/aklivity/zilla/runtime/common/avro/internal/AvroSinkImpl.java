@@ -14,8 +14,8 @@
  */
 package io.aklivity.zilla.runtime.common.avro.internal;
 
-import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.COMPLETE;
-import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.RESUMABLE;
+import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.ADVANCED;
+import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.COMPLETED;
 import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.SUSPENDED;
 
 import org.agrona.DirectBuffer;
@@ -70,7 +70,7 @@ public final class AvroSinkImpl implements AvroSink
         AvroSource source,
         AvroEvent event)
     {
-        Status status = RESUMABLE;
+        Status status = ADVANCED;
         DirectBuffer segment;
         switch (event)
         {
@@ -82,7 +82,7 @@ public final class AvroSinkImpl implements AvroSink
             break;
         case START_RECORD:
             status = atomic();
-            if (status == RESUMABLE)
+            if (status == ADVANCED)
             {
                 generator.writeStartRecord();
                 depth++;
@@ -90,7 +90,7 @@ public final class AvroSinkImpl implements AvroSink
             break;
         case START_ARRAY:
             status = atomic();
-            if (status == RESUMABLE)
+            if (status == ADVANCED)
             {
                 generator.writeStartArray();
                 depth++;
@@ -98,7 +98,7 @@ public final class AvroSinkImpl implements AvroSink
             break;
         case START_MAP:
             status = atomic();
-            if (status == RESUMABLE)
+            if (status == ADVANCED)
             {
                 generator.writeStartMap();
                 depth++;
@@ -108,7 +108,7 @@ public final class AvroSinkImpl implements AvroSink
         case END_ARRAY:
         case END_MAP:
             status = atomic();
-            if (status == RESUMABLE)
+            if (status == ADVANCED)
             {
                 generator.writeEnd();
                 status = close();
@@ -116,7 +116,7 @@ public final class AvroSinkImpl implements AvroSink
             break;
         case MAP_KEY:
             status = atomic();
-            if (status == RESUMABLE)
+            if (status == ADVANCED)
             {
                 segment = source.getSegment();
                 generator.writeKey(segment, 0, segment.capacity());
@@ -124,14 +124,14 @@ public final class AvroSinkImpl implements AvroSink
             break;
         case UNION_BRANCH:
             status = atomic();
-            if (status == RESUMABLE)
+            if (status == ADVANCED)
             {
                 generator.writeIndex(source.getInt());
             }
             break;
         case NULL:
             status = atomic();
-            if (status == RESUMABLE)
+            if (status == ADVANCED)
             {
                 generator.writeNull();
                 status = scalar();
@@ -139,7 +139,7 @@ public final class AvroSinkImpl implements AvroSink
             break;
         case BOOLEAN:
             status = atomic();
-            if (status == RESUMABLE)
+            if (status == ADVANCED)
             {
                 generator.writeBoolean(source.getBoolean());
                 status = scalar();
@@ -147,7 +147,7 @@ public final class AvroSinkImpl implements AvroSink
             break;
         case INT:
             status = atomic();
-            if (status == RESUMABLE)
+            if (status == ADVANCED)
             {
                 generator.writeInt(source.getInt());
                 status = scalar();
@@ -155,7 +155,7 @@ public final class AvroSinkImpl implements AvroSink
             break;
         case LONG:
             status = atomic();
-            if (status == RESUMABLE)
+            if (status == ADVANCED)
             {
                 generator.writeLong(source.getLong());
                 status = scalar();
@@ -163,7 +163,7 @@ public final class AvroSinkImpl implements AvroSink
             break;
         case FLOAT:
             status = atomic();
-            if (status == RESUMABLE)
+            if (status == ADVANCED)
             {
                 generator.writeFloat(source.getFloat());
                 status = scalar();
@@ -171,7 +171,7 @@ public final class AvroSinkImpl implements AvroSink
             break;
         case DOUBLE:
             status = atomic();
-            if (status == RESUMABLE)
+            if (status == ADVANCED)
             {
                 generator.writeDouble(source.getDouble());
                 status = scalar();
@@ -179,7 +179,7 @@ public final class AvroSinkImpl implements AvroSink
             break;
         case ENUM:
             status = atomic();
-            if (status == RESUMABLE)
+            if (status == ADVANCED)
             {
                 generator.writeEnum(source.getInt());
                 status = scalar();
@@ -193,7 +193,7 @@ public final class AvroSinkImpl implements AvroSink
         case START_SEGMENT:
         case CONTINUE_SEGMENT:
             status = atomic();
-            if (status == RESUMABLE)
+            if (status == ADVANCED)
             {
                 segment = source.getSegment();
                 generator.writeRaw(segment, 0, segment.capacity());
@@ -201,7 +201,7 @@ public final class AvroSinkImpl implements AvroSink
             break;
         case END_SEGMENT:
             status = atomic();
-            if (status == RESUMABLE)
+            if (status == ADVANCED)
             {
                 segment = source.getSegment();
                 generator.writeRaw(segment, 0, segment.capacity());
@@ -263,17 +263,17 @@ public final class AvroSinkImpl implements AvroSink
 
     private Status atomic()
     {
-        return generator.length() > 0 && generator.remaining() < HEADROOM ? SUSPENDED : RESUMABLE;
+        return generator.length() > 0 && generator.remaining() < HEADROOM ? SUSPENDED : ADVANCED;
     }
 
     private Status close()
     {
         depth--;
-        return depth == 0 ? COMPLETE : RESUMABLE;
+        return depth == 0 ? COMPLETED : ADVANCED;
     }
 
     private Status scalar()
     {
-        return depth == 0 ? COMPLETE : RESUMABLE;
+        return depth == 0 ? COMPLETED : ADVANCED;
     }
 }

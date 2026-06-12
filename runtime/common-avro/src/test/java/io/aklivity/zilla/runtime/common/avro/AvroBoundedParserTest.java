@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.common.avro;
 
-import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.COMPLETE;
+import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.COMPLETED;
 import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.REJECTED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -39,7 +39,7 @@ public class AvroBoundedParserTest
         // keeps buffering across frames until it crosses the 8-byte work limit
         byte[] binary = { (byte) 0xC8, 0x01, 0, 0, 0, 0, 0, 0, 0, 0 };
         UnsafeBuffer one = new UnsafeBuffer(new byte[1]);
-        Status status = Status.RESUMABLE;
+        Status status = Status.ADVANCED;
         for (int i = 0; i < binary.length && status != REJECTED; i++)
         {
             one.putByte(0, binary[i]);
@@ -55,6 +55,6 @@ public class AvroBoundedParserTest
         AvroPipeline pipeline = Avro.parser(schema, Map.of()).stream().into(new Recorder());
         pipeline.reset();
         Status status = pipeline.feed(new UnsafeBuffer(new byte[] { 0x02 }), 0, 1);
-        assertEquals(COMPLETE, status);
+        assertEquals(COMPLETED, status);
     }
 }

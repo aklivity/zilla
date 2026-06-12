@@ -14,9 +14,9 @@
  */
 package io.aklivity.zilla.runtime.common.avro.internal;
 
-import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.COMPLETE;
+import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.ADVANCED;
+import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.COMPLETED;
 import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.REJECTED;
-import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.RESUMABLE;
 import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.SUSPENDED;
 
 import org.agrona.DirectBuffer;
@@ -29,7 +29,7 @@ import io.aklivity.zilla.runtime.common.avro.AvroValidationException;
  * Backs {@link AvroPipeline}: pulls events from the bound {@link AvroParserImpl} and pushes each
  * through the root {@link AvroSink}, passing the parser itself as both the immutable source view and
  * the control handle. The status is whatever the sink reports; if the sink never completes but the
- * parser reaches the end of the message, the datum is {@code COMPLETE}; malformed binary aborts with
+ * parser reaches the end of the message, the datum is {@code COMPLETED}; malformed binary aborts with
  * {@code REJECTED}. On {@code SUSPENDED} (bounded output full) the parser keeps its position, so a
  * resume {@code feed} continues from where it paused — its buffer arguments are ignored.
  */
@@ -62,7 +62,7 @@ final class AvroPipelineImpl implements AvroPipeline
         int offset,
         int length)
     {
-        Status status = RESUMABLE;
+        Status status = ADVANCED;
         try
         {
             if (suspended)
@@ -73,13 +73,13 @@ final class AvroPipelineImpl implements AvroPipeline
             {
                 parser.wrap(buffer, offset, length);
             }
-            while (status == RESUMABLE && parser.hasNext())
+            while (status == ADVANCED && parser.hasNext())
             {
                 status = root.feed(parser, parser, parser.nextEvent());
             }
-            if (status == RESUMABLE && parser.complete())
+            if (status == ADVANCED && parser.complete())
             {
-                status = COMPLETE;
+                status = COMPLETED;
             }
         }
         catch (AvroValidationException ex)
