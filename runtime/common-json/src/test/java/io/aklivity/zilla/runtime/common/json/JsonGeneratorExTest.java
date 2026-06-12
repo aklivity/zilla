@@ -166,7 +166,7 @@ class JsonGeneratorExTest
     void shouldReportLength()
     {
         MutableDirectBuffer buffer = new UnsafeBuffer(new byte[64]);
-        JsonGeneratorEx generator = StreamingJson.createGenerator().wrap(buffer, 0);
+        JsonGeneratorEx generator = StreamingJson.createGenerator().wrap(buffer, 0, buffer.capacity());
         generator.writeStartObject().writeKey("a").writeNumber("1").writeEnd();
         assertEquals("{\"a\":1}".length(), generator.length());
     }
@@ -199,20 +199,10 @@ class JsonGeneratorExTest
     }
 
     @Test
-    void shouldResetContextOnTwoArgWrap()
-    {
-        MutableDirectBuffer buffer = new UnsafeBuffer(new byte[64]);
-        JsonGeneratorEx generator = StreamingJson.createGenerator();
-        generator.wrap(buffer, 0).writeStartArray().writeNumber("1");
-        generator.wrap(buffer, 0).writeStartObject().writeEnd();
-        assertEquals("{}", drain(generator, buffer));
-    }
-
-    @Test
     void shouldWriteAtNonZeroOffset()
     {
         MutableDirectBuffer buffer = new UnsafeBuffer(new byte[64]);
-        JsonGeneratorEx generator = StreamingJson.createGenerator().wrap(buffer, 8);
+        JsonGeneratorEx generator = StreamingJson.createGenerator().wrap(buffer, 8, buffer.capacity());
         generator.writeStartArray().writeNumber("1").writeEnd();
         byte[] out = new byte[generator.length()];
         buffer.getBytes(8, out);
@@ -223,7 +213,7 @@ class JsonGeneratorExTest
         Consumer<JsonGeneratorEx> writer)
     {
         MutableDirectBuffer buffer = new UnsafeBuffer(new byte[512]);
-        JsonGeneratorEx generator = StreamingJson.createGenerator().wrap(buffer, 0);
+        JsonGeneratorEx generator = StreamingJson.createGenerator().wrap(buffer, 0, buffer.capacity());
         writer.accept(generator);
         return drain(generator, buffer);
     }

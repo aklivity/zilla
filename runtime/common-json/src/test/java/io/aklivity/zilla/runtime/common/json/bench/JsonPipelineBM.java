@@ -183,7 +183,7 @@ public class JsonPipelineBM
         UnsafeBuffer buffer,
         int length)
     {
-        generator.wrap(outputBuffer, 0);
+        generator.wrap(outputBuffer, 0, outputBuffer.capacity());
         pipeline.reset();
         pipeline.feed(buffer, 0, length);
         return generator.length();

@@ -43,7 +43,7 @@ class JsonValidatorChainTest
     void shouldForwardFullStreamWhenValid()
     {
         JsonSchema schema = JsonSchema.of(OBJECT_SCHEMA);
-        JsonGeneratorEx gen = StreamingJson.createGenerator().wrap(buffer, 0);
+        JsonGeneratorEx gen = StreamingJson.createGenerator().wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = StreamingJson.createParser().stream()
             .transform(schema.validator())
             .into(JsonSink.of(gen));
@@ -58,7 +58,7 @@ class JsonValidatorChainTest
     void shouldValidateFullStreamWhileProjectingSubset()
     {
         JsonSchema schema = JsonSchema.of(OBJECT_SCHEMA);
-        JsonGeneratorEx gen = StreamingJson.createGenerator().wrap(buffer, 0);
+        JsonGeneratorEx gen = StreamingJson.createGenerator().wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = StreamingJson.createParser().stream()
             .transform(schema.validator())
             .transform(StreamingJson.projector(List.of("/id")))
@@ -74,7 +74,7 @@ class JsonValidatorChainTest
     void shouldRejectMissingRequiredAfterEmitting()
     {
         JsonSchema schema = JsonSchema.of(OBJECT_SCHEMA);
-        JsonGeneratorEx gen = StreamingJson.createGenerator().wrap(buffer, 0);
+        JsonGeneratorEx gen = StreamingJson.createGenerator().wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = StreamingJson.createParser().stream()
             .transform(schema.validator())
             .transform(StreamingJson.projector(List.of("/id")))
@@ -90,7 +90,7 @@ class JsonValidatorChainTest
     void shouldRejectTypeViolation()
     {
         JsonSchema schema = JsonSchema.of(OBJECT_SCHEMA);
-        JsonGeneratorEx gen = StreamingJson.createGenerator().wrap(buffer, 0);
+        JsonGeneratorEx gen = StreamingJson.createGenerator().wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = StreamingJson.createParser().stream()
             .transform(schema.validator())
             .into(JsonSink.of(gen));
@@ -104,7 +104,7 @@ class JsonValidatorChainTest
     void shouldResumeMidValueWithoutReset()
     {
         JsonSchema schema = JsonSchema.of(OBJECT_SCHEMA);
-        JsonGeneratorEx gen = StreamingJson.createGenerator().wrap(buffer, 0);
+        JsonGeneratorEx gen = StreamingJson.createGenerator().wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = StreamingJson.createParser().stream()
             .transform(schema.validator())
             .into(JsonSink.of(gen));
@@ -129,18 +129,18 @@ class JsonValidatorChainTest
             .transform(schema.validator())
             .into(JsonSink.of(gen));
 
-        gen.wrap(buffer, 0);
+        gen.wrap(buffer, 0, buffer.capacity());
         assertEquals(Status.COMPLETE, run(pipeline, "{\"id\":1,\"name\":\"a\"} "));
         assertEquals("{\"id\":1,\"name\":\"a\"}", output(gen));
 
-        gen.wrap(buffer, 0);
+        gen.wrap(buffer, 0, buffer.capacity());
         assertEquals(Status.REJECTED, run(pipeline, "{\"id\":2} "));
     }
 
     @Test
     void shouldForwardThroughDefaultResetTransform()
     {
-        JsonGeneratorEx gen = StreamingJson.createGenerator().wrap(buffer, 0);
+        JsonGeneratorEx gen = StreamingJson.createGenerator().wrap(buffer, 0, buffer.capacity());
         JsonTransform passthrough = (control, source, event, sink) -> sink.feed(control, source, event);
         JsonPipeline pipeline = StreamingJson.createParser().stream()
             .transform(passthrough)

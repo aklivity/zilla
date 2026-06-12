@@ -32,7 +32,7 @@ class JsonProjectorSegmentHardeningTest
     @Test
     void shouldSegmentDeeplyNestedKeptSubtreeAsSingleVerbatimValue()
     {
-        JsonGeneratorEx gen = StreamingJson.createGenerator().wrap(buffer, 0);
+        JsonGeneratorEx gen = StreamingJson.createGenerator().wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = StreamingJson.createParser().stream()
             .transform(StreamingJson.projector(List.of("/a")))
             .into(JsonSink.of(gen, JsonSink.Delivery.SEGMENTABLE));
@@ -51,11 +51,11 @@ class JsonProjectorSegmentHardeningTest
             .transform(StreamingJson.projector(List.of("/x")))
             .into(JsonSink.of(gen, JsonSink.Delivery.SEGMENTABLE));
 
-        gen.wrap(buffer, 0);
+        gen.wrap(buffer, 0, buffer.capacity());
         run(pipeline, "{\"x\":{ \"v\" : 1 },\"y\":2} ");
         assertEquals("{\"x\":{ \"v\" : 1 }}", output(gen));
 
-        gen.wrap(buffer, 0);
+        gen.wrap(buffer, 0, buffer.capacity());
         run(pipeline, "{\"x\":[9 ,8]} ");
         assertEquals("{\"x\":[9 ,8]}", output(gen));
     }
@@ -63,7 +63,7 @@ class JsonProjectorSegmentHardeningTest
     @Test
     void shouldNormalizeNestedWhenNotOptedIn()
     {
-        JsonGeneratorEx gen = StreamingJson.createGenerator().wrap(buffer, 0);
+        JsonGeneratorEx gen = StreamingJson.createGenerator().wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = StreamingJson.createParser().stream()
             .transform(StreamingJson.projector(List.of("/a")))
             .into(JsonSink.of(gen));

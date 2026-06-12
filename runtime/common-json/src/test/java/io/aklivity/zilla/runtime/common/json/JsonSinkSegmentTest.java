@@ -55,7 +55,7 @@ class JsonSinkSegmentTest
     {
         JsonGeneratorEx gen = StreamingJson.createGenerator();
         MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
-        gen.wrap(buffer, 0);
+        gen.wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = StreamingJson.createParser().stream()
             .transform(segmentRoot)
             .into(JsonSink.of(gen));
@@ -75,7 +75,7 @@ class JsonSinkSegmentTest
     {
         JsonGeneratorEx gen = StreamingJson.createGenerator();
         MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
-        gen.wrap(buffer, 0);
+        gen.wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = StreamingJson.createParser().stream()
             .into(JsonSink.of(gen, JsonSink.Delivery.SEGMENTABLE));
 
@@ -94,7 +94,7 @@ class JsonSinkSegmentTest
     {
         JsonGeneratorEx gen = StreamingJson.createGenerator();
         MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
-        gen.wrap(buffer, 0);
+        gen.wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = StreamingJson.createParser().stream()
             .transform(segmentRoot)
             .into(JsonSink.of(gen));
@@ -114,7 +114,7 @@ class JsonSinkSegmentTest
     {
         JsonGeneratorEx gen = StreamingJson.createGenerator();
         MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
-        gen.wrap(buffer, 0);
+        gen.wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = StreamingJson.createParser().stream()
             .transform(segmentRoot)
             .into(JsonSink.of(gen));
@@ -134,7 +134,7 @@ class JsonSinkSegmentTest
     {
         JsonGeneratorEx gen = StreamingJson.createGenerator();
         MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
-        gen.wrap(buffer, 0);
+        gen.wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = StreamingJson.createParser().stream()
             .transform(segmentRoot)
             .into(JsonSink.of(gen));

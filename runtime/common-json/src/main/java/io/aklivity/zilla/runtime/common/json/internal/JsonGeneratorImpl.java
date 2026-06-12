@@ -56,23 +56,10 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     @Override
     public JsonGeneratorImpl wrap(
         MutableDirectBuffer buffer,
-        int offset)
-    {
-        this.buffer = buffer;
-        this.offset = offset;
-        this.progress = offset;
-        this.limit = buffer.capacity();
-        this.depth = 0;
-        this.afterKey = false;
-        return this;
-    }
-
-    @Override
-    public JsonGeneratorImpl wrap(
-        MutableDirectBuffer buffer,
         int offset,
         int limit)
     {
+        assert offset <= limit && limit <= buffer.capacity();
         this.buffer = buffer;
         this.offset = offset;
         this.progress = offset;

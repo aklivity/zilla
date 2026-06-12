@@ -36,22 +36,13 @@ import org.agrona.MutableDirectBuffer;
 public interface JsonGeneratorEx extends JsonGenerator
 {
     /**
-     * (Re)targets the generator at {@code buffer} starting at {@code offset}, resetting all
-     * structural context and binding the limit to the buffer's full capacity. Reuse a single
-     * instance per worker thread across values.
-     */
-    JsonGeneratorEx wrap(
-        MutableDirectBuffer buffer,
-        int offset);
-
-    /**
      * Re-targets the generator at {@code buffer} starting at {@code offset} with a hard byte
-     * {@code limit} (rather than the buffer's full capacity), the bound a chunking driver watches via
-     * {@link #remaining()} to decide when to drain and resume. Unlike {@link #wrap(MutableDirectBuffer,
-     * int)}, the structural context (open object/array depth and pending separators) is preserved, so a
-     * value paused by {@link JsonPipeline.Status#SUSPENDED} continues across the drain as one
-     * uninterrupted serialization. The two-argument {@link #wrap(MutableDirectBuffer, int)} is
-     * equivalent with {@code limit} set to the buffer capacity and the context reset.
+     * {@code limit}, the bound a chunking driver watches via {@link #remaining()} to decide when to
+     * drain and resume; {@code limit} must be supported by the buffer capacity. Structural context
+     * (open object/array depth and pending separators) is preserved, so a value paused by
+     * {@link JsonPipeline.Status#SUSPENDED} continues across the drain as one uninterrupted
+     * serialization. For an unbounded value pass the buffer's capacity as {@code limit}. Reuse a
+     * single instance per worker thread across values.
      */
     JsonGeneratorEx wrap(
         MutableDirectBuffer buffer,

@@ -111,7 +111,7 @@ class JsonProjectorTest
     {
         JsonGeneratorEx gen = StreamingJson.createGenerator();
         MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
-        gen.wrap(buffer, 0);
+        gen.wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = StreamingJson.createParser().stream()
             .transform(StreamingJson.projector(List.of("/a", "/c")))
             .into(JsonSink.of(gen));
@@ -138,13 +138,13 @@ class JsonProjectorTest
             .transform(StreamingJson.projector(List.of("/x")))
             .into(JsonSink.of(gen));
 
-        gen.wrap(buffer, 0);
+        gen.wrap(buffer, 0, buffer.capacity());
         feed(pipeline, "{\"x\":1,\"y\":2} ");
         byte[] out1 = new byte[gen.length()];
         buffer.getBytes(0, out1);
         assertEquals("{\"x\":1}", new String(out1, UTF_8));
 
-        gen.wrap(buffer, 0);
+        gen.wrap(buffer, 0, buffer.capacity());
         feed(pipeline, "{\"x\":\"two\"} ");
         byte[] out2 = new byte[gen.length()];
         buffer.getBytes(0, out2);
@@ -169,7 +169,7 @@ class JsonProjectorTest
     {
         JsonGeneratorEx gen = StreamingJson.createGenerator();
         MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
-        gen.wrap(buffer, 0);
+        gen.wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = StreamingJson.createParser().stream()
             .transform(StreamingJson.projector(retained))
             .into(JsonSink.of(gen));

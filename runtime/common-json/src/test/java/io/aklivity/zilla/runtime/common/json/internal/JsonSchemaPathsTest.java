@@ -108,7 +108,7 @@ class JsonSchemaPathsTest
     {
         JsonGeneratorEx gen = StreamingJson.createGenerator();
         MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
-        gen.wrap(buffer, 0);
+        gen.wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = StreamingJson.createParser().stream()
             .transform(StreamingJson.projector(JsonSchemaPaths.retained(
                 "{\"type\":\"object\",\"properties\":{" +
