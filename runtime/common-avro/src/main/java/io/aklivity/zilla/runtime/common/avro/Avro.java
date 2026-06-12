@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.runtime.common.avro;
 
-import java.util.Map;
-
 import org.agrona.MutableDirectBuffer;
 
 import io.aklivity.zilla.runtime.common.avro.internal.AvroGeneratorImpl;
@@ -34,15 +32,6 @@ import io.aklivity.zilla.runtime.common.avro.internal.AvroStreamImpl;
  */
 public final class Avro
 {
-    /**
-     * Config key (an {@code Integer}) bounding the bytes the parser will buffer for a single in-flight
-     * datum before rejecting it with {@link AvroValidationException} — a guard against a malformed or
-     * hostile length prefix growing the work buffer without bound. Defaults to 16 MiB when absent.
-     */
-    public static final String WORK_MAX_BYTES = "io.aklivity.zilla.runtime.common.avro.work.max.bytes";
-
-    private static final int WORK_MAX_BYTES_DEFAULT = 16 * 1024 * 1024;
-
     private Avro()
     {
     }
@@ -67,7 +56,7 @@ public final class Avro
     public static AvroParser parser(
         AvroSchema schema)
     {
-        return new AvroParserImpl(schema, WORK_MAX_BYTES_DEFAULT);
+        return new AvroParserImpl(schema);
     }
 
     /**
@@ -78,19 +67,6 @@ public final class Avro
         AvroParser parser)
     {
         return new AvroStreamImpl(parser);
-    }
-
-    /**
-     * Creates a schema-bound {@link AvroParser} with parser config (e.g. {@link #WORK_MAX_BYTES});
-     * keys absent from {@code config} take their defaults.
-     */
-    public static AvroParser parser(
-        AvroSchema schema,
-        Map<String, ?> config)
-    {
-        Object raw = config.get(WORK_MAX_BYTES);
-        int maxWorkBytes = raw == null ? WORK_MAX_BYTES_DEFAULT : ((Number) raw).intValue();
-        return new AvroParserImpl(schema, maxWorkBytes);
     }
 
     /**

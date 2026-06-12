@@ -42,8 +42,6 @@ import static java.nio.ByteOrder.LITTLE_ENDIAN;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import org.agrona.DirectBuffer;
-import org.agrona.ExpandableArrayBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.common.avro.AvroEvent;
@@ -81,14 +79,17 @@ public final class AvroParserImpl implements AvroParser
         DONE
     }
 
+    private static final DirectBuffer EMPTY = new UnsafeBuffer(0, 0);
+
     private final AvroNode root;
-    private final MutableDirectBuffer work;
     private final UnsafeBuffer segmentView;
     private final AvroLocationImpl location;
-    private final int maxWorkBytes;
 
-    private int workLimit;
+    private DirectBuffer buffer;
+    private int base;
+    private int limit;
     private int pos;
+    private long origin;
 
     private AvroNode[] nodeStack;
     private int[] stateStack;
@@ -118,12 +119,9 @@ public final class AvroParserImpl implements AvroParser
     private AvroNode cursorType;
 
     public AvroParserImpl(
-        AvroSchema schema,
-        int maxWorkBytes)
+        AvroSchema schema)
     {
         this.root = (AvroNode) schema.type();
-        this.maxWorkBytes = maxWorkBytes;
-        this.work = new ExpandableArrayBuffer();
         this.segmentView = new UnsafeBuffer(0, 0);
         this.location = new AvroLocationImpl();
         this.nodeStack = new AvroNode[16];
@@ -138,22 +136,11 @@ public final class AvroParserImpl implements AvroParser
         int offset,
         int length)
     {
-        if (pos > 0)
-        {
-            int remaining = workLimit - pos;
-            if (remaining > 0)
-            {
-                work.putBytes(0, work, pos, remaining);
-            }
-            workLimit = remaining;
-            pos = 0;
-        }
-        if (workLimit + length > maxWorkBytes)
-        {
-            throw new AvroValidationException("datum exceeds max " + maxWorkBytes + " bytes");
-        }
-        work.putBytes(workLimit, buffer, offset, length);
-        workLimit += length;
+        origin += pos - base;
+        this.buffer = buffer;
+        this.base = offset;
+        this.pos = offset;
+        this.limit = offset + length;
     }
 
     @Override
@@ -189,8 +176,11 @@ public final class AvroParserImpl implements AvroParser
     public void reset()
     {
         depth = 0;
-        workLimit = 0;
+        base = 0;
         pos = 0;
+        limit = 0;
+        origin = 0;
+        buffer = EMPTY;
         phase = Phase.NEW;
         pending = null;
         cursorType = null;
@@ -199,6 +189,11 @@ public final class AvroParserImpl implements AvroParser
         segmentStarted = false;
         segmentPendingEnd = false;
         push(root);
+    }
+
+    private long position()
+    {
+        return origin + (pos - base);
     }
 
     private void advance(
@@ -210,7 +205,7 @@ public final class AvroParserImpl implements AvroParser
             switch (phase)
             {
             case NEW:
-                location.locate(depth, pos);
+                location.locate(depth, position());
                 clearValue();
                 cursorType = root;
                 pending = START_MESSAGE;
@@ -236,7 +231,7 @@ public final class AvroParserImpl implements AvroParser
                 }
                 else
                 {
-                    location.locate(depth, pos);
+                    location.locate(depth, position());
                     int step = step(nodeStack[depth - 1]);
                     if (step == STEP_EVENT || step == STEP_UNDERFLOW)
                     {
@@ -249,7 +244,7 @@ public final class AvroParserImpl implements AvroParser
                 }
                 break;
             case SEGMENT:
-                location.locate(depth, pos);
+                location.locate(depth, position());
                 int segment = segmentStep();
                 if (segment == STEP_EVENT || segment == STEP_UNDERFLOW)
                 {
@@ -261,7 +256,7 @@ public final class AvroParserImpl implements AvroParser
                 }
                 break;
             case END:
-                location.locate(depth, pos);
+                location.locate(depth, position());
                 clearValue();
                 cursorType = null;
                 pending = END_MESSAGE;
@@ -394,13 +389,13 @@ public final class AvroParserImpl implements AvroParser
     private int stepBoolean()
     {
         int result;
-        if (pos >= workLimit)
+        if (pos >= limit)
         {
             result = STEP_UNDERFLOW;
         }
         else
         {
-            int b = work.getByte(pos) & 0xff;
+            int b = buffer.getByte(pos) & 0xff;
             if (b > 1)
             {
                 result = STEP_REJECTED;
@@ -452,13 +447,13 @@ public final class AvroParserImpl implements AvroParser
     private int stepFloat()
     {
         int result;
-        if (pos + Float.BYTES > workLimit)
+        if (pos + Float.BYTES > limit)
         {
             result = STEP_UNDERFLOW;
         }
         else
         {
-            floatValue = work.getFloat(pos, LITTLE_ENDIAN);
+            floatValue = buffer.getFloat(pos, LITTLE_ENDIAN);
             pos += Float.BYTES;
             clearValue();
             pop();
@@ -470,13 +465,13 @@ public final class AvroParserImpl implements AvroParser
     private int stepDouble()
     {
         int result;
-        if (pos + Double.BYTES > workLimit)
+        if (pos + Double.BYTES > limit)
         {
             result = STEP_UNDERFLOW;
         }
         else
         {
-            doubleValue = work.getDouble(pos, LITTLE_ENDIAN);
+            doubleValue = buffer.getDouble(pos, LITTLE_ENDIAN);
             pos += Double.BYTES;
             clearValue();
             pop();
@@ -498,7 +493,7 @@ public final class AvroParserImpl implements AvroParser
             {
                 result = STEP_REJECTED;
             }
-            else if (dataStart + length > workLimit)
+            else if (dataStart + length > limit)
             {
                 result = STEP_UNDERFLOW;
             }
@@ -521,7 +516,7 @@ public final class AvroParserImpl implements AvroParser
         AvroNode node)
     {
         int result;
-        if (pos + node.size > workLimit)
+        if (pos + node.size > limit)
         {
             result = STEP_UNDERFLOW;
         }
@@ -671,7 +666,7 @@ public final class AvroParserImpl implements AvroParser
                 {
                     result = STEP_REJECTED;
                 }
-                else if (dataStart + length > workLimit)
+                else if (dataStart + length > limit)
                 {
                     result = STEP_UNDERFLOW;
                 }
@@ -861,7 +856,7 @@ public final class AvroParserImpl implements AvroParser
     @Override
     public DirectBuffer getSegment()
     {
-        segmentView.wrap(work, valueOffset, valueLength);
+        segmentView.wrap(buffer, valueOffset, valueLength);
         return segmentView;
     }
 
@@ -874,7 +869,7 @@ public final class AvroParserImpl implements AvroParser
     private String decode()
     {
         byte[] dst = new byte[valueLength];
-        work.getBytes(valueOffset, dst);
+        buffer.getBytes(valueOffset, dst);
         return new String(dst, UTF_8);
     }
 
@@ -889,14 +884,14 @@ public final class AvroParserImpl implements AvroParser
         boolean reading = true;
         while (reading)
         {
-            if (p >= workLimit)
+            if (p >= limit)
             {
                 status = READ_UNDERFLOW;
                 reading = false;
             }
             else
             {
-                int b = work.getByte(p) & 0xff;
+                int b = buffer.getByte(p) & 0xff;
                 p++;
                 result |= (long) (b & 0x7f) << shift;
                 if ((b & 0x80) == 0)

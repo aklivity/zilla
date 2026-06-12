@@ -18,7 +18,7 @@ import org.agrona.DirectBuffer;
 
 /**
  * A schema-bound Avro event cursor. {@link #reset()} rewinds for a new datum, {@link #wrap(DirectBuffer,
- * int, int)} appends each frame's bytes — a datum may span several wraps — then a {@link #hasNext()} /
+ * int, int)} presents the caller-owned bytes — read in place, never copied — then a {@link #hasNext()} /
  * {@link #nextEvent()} loop pulls one {@link AvroEvent} at a time, the value at each read through this
  * cursor's typed accessors ({@link #getInt()}, {@link #getString()}, {@link #getSegment()}, …). A datum is
  * framed by {@link AvroEvent#START_MESSAGE} and {@link AvroEvent#END_MESSAGE}; {@link #hasNext()} returns
@@ -42,14 +42,16 @@ public interface AvroParser
     }
 
     /**
-     * Rewinds the cursor to before the root {@link AvroEvent#START_MESSAGE}, discarding any buffered
-     * bytes, to begin a fresh datum.
+     * Rewinds the cursor to before the root {@link AvroEvent#START_MESSAGE} to begin a fresh datum.
      */
     void reset();
 
     /**
-     * Appends {@code [offset, offset + length)} of {@code buffer} to the in-flight datum's bytes; a datum
-     * fed in fragments is wrapped once per fragment, the cursor resuming where it underflowed.
+     * Presents {@code [offset, offset + length)} of the caller-owned {@code buffer} as the next contiguous
+     * run of datum bytes — the parser's not-yet-consumed remainder plus any newly arrived bytes — and reads
+     * it in place without copying. A datum fed in fragments is re-presented each call from the consumed
+     * watermark ({@link #getLocation()} position), the cursor resuming where it underflowed. The buffer is
+     * borrowed for the duration of the call only.
      */
     void wrap(
         DirectBuffer buffer,

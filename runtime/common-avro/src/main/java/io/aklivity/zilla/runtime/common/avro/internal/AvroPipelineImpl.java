@@ -69,6 +69,12 @@ final class AvroPipelineImpl implements AvroPipeline
     }
 
     @Override
+    public long position()
+    {
+        return parser.getLocation().position();
+    }
+
+    @Override
     public Status feed(
         DirectBuffer buffer,
         int offset,

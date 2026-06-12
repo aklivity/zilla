@@ -36,12 +36,14 @@ public class AvroFragmentedParserTest
         Recorder recorder = new Recorder();
         AvroPipeline pipeline = Avro.stream(Avro.parser(schema)).into(recorder);
         pipeline.reset();
-        UnsafeBuffer one = new UnsafeBuffer(new byte[1]);
-        Status status = binary.length == 0 ? pipeline.feed(one, 0, 0) : Status.ADVANCED;
-        for (int i = 0; i < binary.length; i++)
+        UnsafeBuffer buffer = new UnsafeBuffer(binary);
+        // simulate byte-by-byte arrival: each feed presents the unconsumed remainder plus one new byte
+        Status status = pipeline.feed(buffer, 0, 0);
+        int consumed = (int) pipeline.position();
+        for (int available = 1; available <= binary.length && status != COMPLETED; available++)
         {
-            one.putByte(0, binary[i]);
-            status = pipeline.feed(one, 0, 1);
+            status = pipeline.feed(buffer, consumed, available - consumed);
+            consumed = (int) pipeline.position();
         }
         assertEquals(COMPLETED, status);
         return recorder.events;
@@ -119,12 +121,13 @@ public class AvroFragmentedParserTest
         AvroGenerator generator = Avro.generator(schema, out, 0);
         AvroPipeline pipeline = Avro.stream(Avro.parser(schema)).into(AvroSink.of(generator, AvroSink.Delivery.SEGMENTABLE));
         pipeline.reset();
-        UnsafeBuffer one = new UnsafeBuffer(new byte[1]);
-        Status status = Status.ADVANCED;
-        for (int i = 0; i < binary.length; i++)
+        UnsafeBuffer buffer = new UnsafeBuffer(binary);
+        Status status = pipeline.feed(buffer, 0, 0);
+        int consumed = (int) pipeline.position();
+        for (int available = 1; available <= binary.length && status != COMPLETED; available++)
         {
-            one.putByte(0, binary[i]);
-            status = pipeline.feed(one, 0, 1);
+            status = pipeline.feed(buffer, consumed, available - consumed);
+            consumed = (int) pipeline.position();
         }
         assertEquals(COMPLETED, status);
         byte[] result = new byte[generator.length()];

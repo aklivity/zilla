@@ -57,18 +57,16 @@ public class AvroParserPullTest
     public void shouldPullAcrossFrames()
     {
         AvroParser parser = Avro.parser(Avro.schema("\"int\""));
-        UnsafeBuffer one = new UnsafeBuffer(new byte[1]);
 
-        // multi-byte varint 64 -> 0x80 0x01, fed one byte at a time
-        one.putByte(0, (byte) 0x80);
-        parser.wrap(one, 0, 1);
+        // multi-byte varint 64 -> 0x80 0x01; the caller re-presents the unconsumed bytes plus each new byte
+        parser.wrap(new UnsafeBuffer(new byte[] { (byte) 0x80 }), 0, 1);
         // START_MESSAGE is available, but the INT value is not yet
         assertEquals(true, parser.hasNext());
         assertEquals(START_MESSAGE, parser.nextEvent());
         assertEquals(false, parser.hasNext());
 
-        one.putByte(0, (byte) 0x01);
-        parser.wrap(one, 0, 1);
+        // re-present the unconsumed 0x80 plus the newly arrived 0x01
+        parser.wrap(new UnsafeBuffer(new byte[] { (byte) 0x80, 0x01 }), 0, 2);
 
         List<AvroEvent> events = new ArrayList<>();
         while (parser.hasNext())
