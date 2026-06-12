@@ -32,6 +32,7 @@ import io.aklivity.zilla.runtime.common.protobuf.Protobuf;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufController;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufEvent;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufField;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufGenerator;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufMessage;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline.Status;
@@ -45,6 +46,9 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
 public class ProtobufPipelineTest
 {
     private final ProtobufSchema schema = newSchema();
+
+    private boolean sawSuspended;
+    private boolean sawStarved;
 
     @Test
     public void shouldValidateProto3Complete()
@@ -396,6 +400,303 @@ public class ProtobufPipelineTest
             w.writeVarint64(4);
         });
         assertFalse(schema.validate("R", new UnsafeBuffer(message), 0, message.length));
+    }
+
+    @Test
+    public void shouldStreamAcrossTinyWindows()
+    {
+        byte[] home = wire(w ->
+        {
+            w.writeTag(1, ProtobufWireType.LEN);
+            w.writeBytes("Zion".getBytes(UTF_8));
+        });
+        byte[] message = wire(w ->
+        {
+            w.writeTag(1, ProtobufWireType.LEN);
+            w.writeBytes("neo".getBytes(UTF_8));
+            w.writeTag(2, ProtobufWireType.VARINT);
+            w.writeVarint64(7);
+            w.writeTag(4, ProtobufWireType.LEN);
+            w.writeBytes(home);
+        });
+
+        List<String> expected = capture(message);
+
+        for (int window : new int[]{1, 2, 3, 7})
+        {
+            Capture sink = new Capture(false);
+            ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, "P")).into(sink);
+            pipeline.reset();
+
+            Status last = feedWindows(pipeline, message, window);
+
+            assertEquals(Status.COMPLETED, last, "window=" + window);
+            assertEquals(expected, sink.events, "window=" + window);
+        }
+    }
+
+    @Test
+    public void shouldResumeMidVarintSplit()
+    {
+        byte[] message = wire(w ->
+        {
+            w.writeTag(2, ProtobufWireType.VARINT);
+            w.writeVarint64(300);
+        });
+
+        UnsafeBuffer buffer = new UnsafeBuffer(message);
+        Capture sink = new Capture(false);
+        ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, "P")).into(sink);
+        pipeline.reset();
+
+        // the value 300 is a two-byte varint; split the window between its bytes
+        assertEquals(Status.STARVED, pipeline.feed(buffer, 0, message.length - 1, false));
+        assertEquals(Status.COMPLETED, pipeline.feed(buffer, message.length - 1, 1, true));
+        assertEquals(List.of("{", "F2", "V300", "}"), sink.events);
+    }
+
+    @Test
+    public void shouldStreamNestedMessageAcrossWindows()
+    {
+        byte[] home = wire(w ->
+        {
+            w.writeTag(1, ProtobufWireType.LEN);
+            w.writeBytes("Zion".getBytes(UTF_8));
+        });
+        byte[] message = wire(w ->
+        {
+            w.writeTag(4, ProtobufWireType.LEN);
+            w.writeBytes(home);
+        });
+
+        List<String> expected = capture(message);
+
+        Capture sink = new Capture(false);
+        ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, "P")).into(sink);
+        pipeline.reset();
+
+        // split inside the nested message body so remaining must survive the window swap
+        UnsafeBuffer buffer = new UnsafeBuffer(message);
+        int split = message.length - 2;
+        assertEquals(Status.STARVED, pipeline.feed(buffer, 0, split, false));
+        assertEquals(Status.COMPLETED, pipeline.feed(buffer, split, message.length - split, true));
+        assertEquals(expected, sink.events);
+    }
+
+    @Test
+    public void shouldRejectTruncatedMidTagWhenLast()
+    {
+        // a varint tag that never terminates, with last = true
+        assertEquals(Status.REJECTED, feedLast(new byte[]{(byte) 0x80}));
+    }
+
+    @Test
+    public void shouldRejectTruncatedMidVarintWhenLast()
+    {
+        byte[] message = wire(w ->
+        {
+            w.writeTag(2, ProtobufWireType.VARINT);
+            w.writeVarint64(300);
+        });
+        // drop the final continuation byte of the value, end of input declared
+        assertEquals(Status.REJECTED, feedLast(prefix(message, message.length - 1)));
+    }
+
+    @Test
+    public void shouldRejectTruncatedMidLengthWhenLast()
+    {
+        byte[] message = wire(w ->
+        {
+            w.writeTag(1, ProtobufWireType.LEN);
+            w.writeBytes("hi".getBytes(UTF_8));
+        });
+        // keep the tag and length prefix but drop the value bytes
+        assertEquals(Status.REJECTED, feedLast(prefix(message, 2)));
+    }
+
+    @Test
+    public void shouldRejectTruncatedNestedWhenLast()
+    {
+        byte[] home = wire(w ->
+        {
+            w.writeTag(1, ProtobufWireType.LEN);
+            w.writeBytes("Zion".getBytes(UTF_8));
+        });
+        byte[] message = wire(w ->
+        {
+            w.writeTag(4, ProtobufWireType.LEN);
+            w.writeBytes(home);
+        });
+        // nested message declared longer than the bytes that arrive
+        assertEquals(Status.REJECTED, feedLast(prefix(message, message.length - 2)));
+    }
+
+    @Test
+    public void shouldCompleteOnCleanBoundaryWhenLast()
+    {
+        byte[] message = wire(w ->
+        {
+            w.writeTag(1, ProtobufWireType.LEN);
+            w.writeBytes("neo".getBytes(UTF_8));
+            w.writeTag(2, ProtobufWireType.VARINT);
+            w.writeVarint64(7);
+        });
+
+        // first window ends exactly after field 1; the final window carries field 2 with last = true
+        UnsafeBuffer buffer = new UnsafeBuffer(message);
+        int split = 5; // tag(1) + len(1) + "neo"(3)
+        Capture sink = new Capture(false);
+        ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, "P")).into(sink);
+        pipeline.reset();
+
+        assertEquals(Status.STARVED, pipeline.feed(buffer, 0, split, false));
+        assertEquals(Status.COMPLETED, pipeline.feed(buffer, split, message.length - split, true));
+        assertEquals(List.of("{", "F1", "Vneo", "F2", "V7", "}"), sink.events);
+    }
+
+    @Test
+    public void shouldInterleaveSuspendedAndStarved()
+    {
+        byte[] home = wire(w ->
+        {
+            w.writeTag(1, ProtobufWireType.LEN);
+            w.writeBytes("a-rather-long-city-name".getBytes(UTF_8));
+        });
+        byte[] message = wire(w ->
+        {
+            w.writeTag(1, ProtobufWireType.LEN);
+            w.writeBytes("neo".getBytes(UTF_8));
+            w.writeTag(2, ProtobufWireType.VARINT);
+            w.writeVarint64(7);
+            w.writeTag(4, ProtobufWireType.LEN);
+            w.writeBytes(home);
+        });
+
+        // one-shot reference: whole input, ample output — neither axis triggers
+        byte[] whole = transcode(message, message.length, 1 << 16);
+        assertFalse(sawSuspended);
+        assertFalse(sawStarved);
+
+        // tiny input windows, ample output: input streaming alone must preserve the output bytes exactly
+        byte[] starvedOnly = transcode(message, 3, 1 << 16);
+        assertTrue(sawStarved);
+        assertFalse(sawSuspended);
+        assertArrayEquals(whole, starvedOnly);
+
+        // tiny input windows and a tiny output limit: both axes compose to a clean completion
+        byte[] chunked = transcode(message, 3, 16);
+        assertTrue(sawStarved);
+        assertTrue(sawSuspended);
+        assertTrue(chunked.length > 0);
+    }
+
+    private byte[] transcode(
+        byte[] message,
+        int window,
+        int cap)
+    {
+        sawSuspended = false;
+        sawStarved = false;
+
+        UnsafeBuffer output = new UnsafeBuffer(new byte[cap]);
+
+        ProtobufGenerator generator = Protobuf.generator().wrap(output, 0, cap);
+        ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, "P"))
+            .into(ProtobufSink.of(generator, schema, "P"));
+        pipeline.reset();
+
+        ExpandableArrayBuffer drained = new ExpandableArrayBuffer();
+        int drainedLength = 0;
+
+        UnsafeBuffer in = new UnsafeBuffer(message);
+        int offset = 0;
+        boolean completed = false;
+        int guard = 0;
+        while (!completed)
+        {
+            if (guard++ > 1000)
+            {
+                throw new AssertionError("pipeline failed to converge");
+            }
+            int length = Math.min(window, message.length - offset);
+            boolean last = offset + length == message.length;
+            Status status = pipeline.feed(in, offset, length, last);
+            while (status == Status.SUSPENDED)
+            {
+                sawSuspended = true;
+                drained.putBytes(drainedLength, output, 0, generator.length());
+                drainedLength += generator.length();
+                generator.wrap(output, 0, cap);
+                status = pipeline.feed(in, offset, length, last);
+            }
+            switch (status)
+            {
+            case STARVED:
+                sawStarved = true;
+                offset += length;
+                break;
+            case COMPLETED:
+                drained.putBytes(drainedLength, output, 0, generator.length());
+                drainedLength += generator.length();
+                completed = true;
+                break;
+            default:
+                throw new AssertionError("unexpected status " + status);
+            }
+        }
+
+        byte[] bytes = new byte[drainedLength];
+        drained.getBytes(0, bytes);
+        return bytes;
+    }
+
+    private List<String> capture(
+        byte[] message)
+    {
+        Capture sink = new Capture(false);
+        ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, "P")).into(sink);
+        pipeline.reset();
+        assertEquals(Status.COMPLETED, feed(pipeline, message));
+        return List.copyOf(sink.events);
+    }
+
+    private Status feedLast(
+        byte[] message)
+    {
+        ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, "P")).into(new ProtobufDiscardSinkImpl());
+        pipeline.reset();
+        return pipeline.feed(new UnsafeBuffer(message), 0, message.length, true);
+    }
+
+    private static Status feedWindows(
+        ProtobufPipeline pipeline,
+        byte[] message,
+        int window)
+    {
+        UnsafeBuffer buffer = new UnsafeBuffer(message);
+        int offset = 0;
+        Status status = Status.STARVED;
+        while (offset < message.length)
+        {
+            int length = Math.min(window, message.length - offset);
+            boolean last = offset + length == message.length;
+            status = pipeline.feed(buffer, offset, length, last);
+            if (!last)
+            {
+                assertEquals(Status.STARVED, status);
+            }
+            offset += length;
+        }
+        return status;
+    }
+
+    private static byte[] prefix(
+        byte[] message,
+        int length)
+    {
+        byte[] bytes = new byte[length];
+        System.arraycopy(message, 0, bytes, 0, length);
+        return bytes;
     }
 
     private static Status feed(

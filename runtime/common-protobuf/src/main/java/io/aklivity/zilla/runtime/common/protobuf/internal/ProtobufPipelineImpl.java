@@ -45,6 +45,7 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
     private final ProtobufSink head;
 
     private boolean suspended;
+    private boolean starved;
 
     public ProtobufPipelineImpl(
         ProtobufParser parser,
@@ -70,31 +71,47 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
     {
         head.reset();
         suspended = false;
+        starved = false;
     }
 
     @Override
     public Status feed(
         DirectBuffer buffer,
         int offset,
-        int length)
+        int length,
+        boolean last)
     {
         Status status = Status.ADVANCED;
         try
         {
             if (suspended)
             {
-                // continue the suspended work without replaying the event through the stages
+                // output back-pressure: continue the suspended work on the same window without replaying it
                 status = head.resume(control, source);
+            }
+            else if (starved)
+            {
+                // input back-pressure: continue the in-flight message with the next window
+                parser.resume(buffer, offset, length, last);
             }
             else
             {
-                parser.wrap(buffer, offset, length);
+                parser.wrap(buffer, offset, length, last);
             }
             while (status == Status.ADVANCED && parser.hasNext())
             {
-                status = head.feed(control, source, parser.nextEvent(control.mode()));
+                ProtobufEvent event = parser.nextEvent(control.mode());
+                if (event == null)
+                {
+                    status = Status.STARVED;
+                }
+                else
+                {
+                    status = head.feed(control, source, event);
+                }
             }
             suspended = status == Status.SUSPENDED;
+            starved = status == Status.STARVED;
         }
         catch (ProtobufException ex)
         {

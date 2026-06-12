@@ -118,6 +118,54 @@ if (pipeline.feed(in, off, len) == ProtobufPipeline.Status.COMPLETED)  // COMPLE
   instead of expanding it into structured events —
   preserving the nested bytes verbatim.
 
+### Two back-pressure axes: input `STARVED` and output `SUSPENDED`
+
+`feed` carries two independent kinds of back-pressure, each with its own non-terminal "call `feed`
+again" status, so a message flows in bounded memory with a window of input in and a window of output
+out:
+
+- **Output — `SUSPENDED`** (the generator filled): drain the output, reset the generator, and call
+  `feed` again with the **same** input window to resume the in-flight message from where it paused.
+- **Input — `STARVED`** (the input window was consumed before the message completed): call `feed`
+  again with the **next** input window. End of input is signalled by the caller via the `last` flag on
+  `feed(buffer, offset, length, last)`; pass `last == true` only on the final window. The three-argument
+  `feed(buffer, offset, length)` is the whole-buffer shorthand (`last == true`) and never returns
+  `STARVED`.
+
+`STARVED` is returned only when `last == false`; under `last == true` a clean message end yields
+`COMPLETED` and an incomplete one (a primitive, length-prefix, or nested message that runs past the
+bytes) yields `REJECTED`. The parser keeps the partial trailing unit (a split tag/varint/length/fixed,
+or a leaf value being reassembled) as a small internal carry, so the caller just feeds successive
+windows and need not align them to message boundaries.
+
+```java
+pipeline.reset();
+for (boolean done = false; !done; )
+{
+    Window in = nextWindow();                       // bytes + final-flag
+    Status status = pipeline.feed(in.buffer(), in.offset(), in.length(), in.last());
+    while (status == Status.SUSPENDED)              // output full
+    {
+        emitDataFrame(out, 0, generator.length());  // drain — flow-controlled
+        generator.wrap(out, 0, limit);              // reset output (fresh or recycled buffer)
+        status = pipeline.feed(in.buffer(), in.offset(), in.length(), in.last());
+    }
+    switch (status)
+    {
+    case STARVED: break;                            // feed the next input window
+    case COMPLETED: emitDataFrame(out, 0, generator.length()); done = true; break;
+    case REJECTED: abort(); done = true; break;
+    default: break;
+    }
+}
+```
+
+> **Milestone status.** Structure streams across windows today — tags, scalars, and nested-message
+> bodies resume across `feed` calls in bounded memory. A large leaf `string`/`bytes` value or a
+> composite delivered as a `SEGMENT` must still be fully present in the reassembly window (it is held
+> until complete rather than chunked); per-window `SEGMENT` delivery with a non-zero `bytesDeferred()`,
+> UTF-8 code-point-boundary chunking, and groups that straddle a window arrive in a follow-up.
+
 ### Bounded output and streaming
 
 `Protobuf.generator().wrap(out, 0, limit)` bounds the output (`limit` must fit the buffer capacity).
@@ -211,12 +259,15 @@ Protobuf.stream(Protobuf.parser()).transform(redact).into(ProtobufSink.of(genera
 
 Protobuf fields are length-delimited and may arrive in any order, and a repeated field's elements
 may be interleaved — which complicates strictly forward-streaming under a no-full-document-buffer
-goal. This library resolves it with a **bounded-buffer contract**: it operates on a single,
-fully-buffered message (the engine delivers the reassembled payload). Processing is bounded by the
-message size, and for nested messages by nesting depth — the parser decodes in place over a per-depth
-frame stack, and the generator streams its output bounded by `limit`, fragmenting any value too large
-rather than buffering it. No unbounded document is buffered. Truncated or overlong varints, lengths that
-run past the message, and unterminated or mismatched groups are rejected with a `ProtobufException`.
+goal. This library resolves it with a **bounded-buffer contract**: a message is processed either whole (the
+engine delivers the reassembled payload) or as successive input windows (the streaming contract, see
+*Two back-pressure axes* above), without buffering the whole document either way. Processing is bounded
+by the message structure — the parser decodes over a per-depth frame stack whose scope ends are tracked
+by a swap-safe position counter rather than the refillable byte limit, so a frame survives a window
+swap — plus the current primitive or leaf value (a split unit is carried internally until it completes).
+The generator streams its output bounded by `limit`, fragmenting any value too large rather than
+buffering it. No unbounded document is buffered. Truncated or overlong varints, lengths that run past
+the message under `last`, and unterminated or mismatched groups are rejected with a `ProtobufException`.
 
 ## Conformance
 

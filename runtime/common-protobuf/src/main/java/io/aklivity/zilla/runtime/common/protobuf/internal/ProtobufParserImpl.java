@@ -30,8 +30,8 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufType;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
 
 /**
- * The pull cursor that decodes a fully-buffered message one {@link ProtobufEvent} at a time. It is the
- * pipeline primitive: a caller drives it directly with {@link #wrap}, {@link #hasNext} and
+ * The pull cursor that decodes a message one {@link ProtobufEvent} at a time. It is the pipeline
+ * primitive: a caller drives it directly with {@link #wrap}, {@link #hasNext} and
  * {@link #nextEvent(ProtobufParser.Mode)}, reading the current value through the {@link ProtobufSource}
  * accessors it implements. At a composite field {@link ProtobufParser.Mode#SEGMENTED} delivers it as raw
  * segment bytes rather than recursing; {@code Protobuf.stream} layers the push pipeline over the same
@@ -42,6 +42,12 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
  * tokenizes the wire into generic {@code FIELD}/{@code VALUE} pairs. Decode is a resumable state
  * machine over an explicit per-depth frame stack rather than the Java call stack, so each call yields
  * exactly one event.
+ * <p>
+ * Input may arrive whole ({@code last == true}, the default — every read bounded by the buffer) or as
+ * successive windows ({@code last == false} then {@link #resume}). Each scope's end is tracked by the
+ * swap-safe {@code end} position rather than the refillable byte {@code limit}, so a frame survives a
+ * window swap; when a window is exhausted before the message completes, {@link #nextEvent} rewinds to the
+ * last unit boundary, stashes the partial unit as carry, and returns {@code null} to signal starvation.
  */
 public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
 {
@@ -55,10 +61,7 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
     private final ProtobufSchema schema;
     private final String messageName;
     private final List<Frame> frames;
-
-    private DirectBuffer inputBuffer;
-    private int inputOffset;
-    private int inputLength;
+    private final ProtobufReader reader;
 
     private boolean started;
     private boolean done;
@@ -87,22 +90,33 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
         this.schema = schema;
         this.messageName = messageName;
         this.frames = new ArrayList<>();
+        this.reader = new ProtobufReader();
     }
 
     @Override
     public ProtobufParser wrap(
         DirectBuffer buffer,
         int offset,
-        int length)
+        int length,
+        boolean last)
     {
-        this.inputBuffer = buffer;
-        this.inputOffset = offset;
-        this.inputLength = length;
+        reader.wrap(buffer, offset, length, last);
         this.started = false;
         this.done = false;
         this.depth = -1;
         this.phase = PHASE_NONE;
         this.deferred = 0;
+        return this;
+    }
+
+    @Override
+    public ProtobufParser resume(
+        DirectBuffer buffer,
+        int offset,
+        int length,
+        boolean last)
+    {
+        reader.resume(buffer, offset, length, last);
         return this;
     }
 
@@ -127,14 +141,14 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
             switch (phase)
             {
             case PHASE_SCALAR_VALUE:
-                decodeScalar(field, frames.get(depth).reader);
-                phase = PHASE_NONE;
-                event = ProtobufEvent.VALUE;
+                reader.mark();
+                decodeScalar(field, reader);
+                event = reader.starved() ? starve() : value();
                 break;
             case PHASE_RAW_VALUE:
-                decodeRaw(frames.get(depth).reader, fieldNumber, wireType);
-                phase = PHASE_NONE;
-                event = ProtobufEvent.VALUE;
+                reader.mark();
+                decodeRaw(reader, fieldNumber, wireType);
+                event = reader.starved() ? starve() : value();
                 break;
             case PHASE_COMPOSITE:
                 event = resolveComposite(mode);
@@ -213,6 +227,19 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
         return deferred;
     }
 
+    private ProtobufEvent value()
+    {
+        phase = PHASE_NONE;
+        return ProtobufEvent.VALUE;
+    }
+
+    private ProtobufEvent starve()
+    {
+        reader.rewind();
+        reader.stash();
+        return null;
+    }
+
     private ProtobufEvent startRoot()
     {
         ProtobufMessage root = schema != null ? schema.message(messageName) : null;
@@ -222,22 +249,24 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
         }
         depth = 0;
         Frame frame = frame(0);
-        frame.reader.wrap(inputBuffer, inputOffset, inputLength);
         frame.message = root;
         frame.group = false;
-        frame.packedLimit = -1;
+        frame.groupNumber = -1;
+        frame.packedEnd = -1L;
+        frame.end = -1L;
         boundary();
-        slice(inputBuffer, inputOffset, inputLength);
+        slice(reader.buffer(), reader.offset(), reader.available());
         return ProtobufEvent.START_MESSAGE;
     }
 
     private ProtobufEvent advance()
     {
         ProtobufEvent event = null;
-        while (event == null)
+        boolean starving = false;
+        while (event == null && !starving)
         {
             Frame frame = frames.get(depth);
-            if (frame.packedLimit >= 0 && frame.reader.offset() < frame.packedLimit)
+            if (frame.packedEnd >= 0L && reader.position() < frame.packedEnd)
             {
                 field = frame.packedField;
                 fieldNumber = field.number();
@@ -245,17 +274,41 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
                 phase = PHASE_SCALAR_VALUE;
                 event = ProtobufEvent.FIELD;
             }
-            else if (frame.packedLimit >= 0)
+            else if (frame.packedEnd >= 0L)
             {
-                frame.packedLimit = -1;
+                frame.packedEnd = -1L;
             }
-            else if (!frame.reader.hasRemaining())
+            else if (frame.end >= 0L && reader.position() >= frame.end)
             {
                 event = endFrame();
             }
+            else if (!reader.hasRemaining())
+            {
+                if (!reader.last())
+                {
+                    starving = true;
+                }
+                else if (depth == 0)
+                {
+                    event = endFrame();
+                }
+                else
+                {
+                    throw new ProtobufException(frame.group
+                        ? "unterminated group " + frame.groupNumber
+                        : "truncated message");
+                }
+            }
             else
             {
+                reader.mark();
                 event = readField(frame);
+                if (reader.starved())
+                {
+                    reader.rewind();
+                    reader.stash();
+                    starving = true;
+                }
             }
         }
         return event;
@@ -265,57 +318,86 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
         Frame frame)
     {
         ProtobufEvent event;
-        ProtobufReader reader = frame.reader;
+        ProtobufReader reader = this.reader;
         int tag = reader.readVarint32();
-        int number = tag >>> 3;
-        ProtobufWireType wt = ProtobufWireType.of(tag & 0x7);
-        if (frame.message == null)
+        if (reader.starved())
         {
-            field = null;
-            fieldNumber = number;
-            wireType = wt;
-            phase = PHASE_RAW_VALUE;
-            event = ProtobufEvent.FIELD;
+            event = null;
         }
         else
         {
-            ProtobufField fld = frame.message.field(number);
-            if (fld == null)
+            int number = tag >>> 3;
+            ProtobufWireType wt = ProtobufWireType.of(tag & 0x7);
+            if (wt == ProtobufWireType.EGROUP)
             {
-                reader.skipField(number, wt);
-                event = null;
+                if (!frame.group || number != frame.groupNumber)
+                {
+                    throw new ProtobufException("unexpected group end " + number);
+                }
+                event = endFrame();
             }
-            else if (fld.composite())
+            else if (frame.message == null)
             {
-                event = readComposite(frame, fld, number, wt);
-            }
-            else if (fld.repeated() && fld.type().packable() && wt == ProtobufWireType.LEN)
-            {
-                int blockLength = reader.readLength();
-                frame.packedLimit = reader.offset() + blockLength;
-                frame.packedField = fld;
-                event = null;
+                field = null;
+                fieldNumber = number;
+                wireType = wt;
+                phase = PHASE_RAW_VALUE;
+                event = ProtobufEvent.FIELD;
             }
             else
             {
-                requireWireType(fld, wt);
-                field = fld;
-                fieldNumber = number;
-                wireType = wt;
-                phase = PHASE_SCALAR_VALUE;
-                event = ProtobufEvent.FIELD;
+                event = readSchemaField(frame, number, wt);
             }
         }
         return event;
     }
 
-    private ProtobufEvent readComposite(
+    private ProtobufEvent readSchemaField(
         Frame frame,
+        int number,
+        ProtobufWireType wt)
+    {
+        ProtobufEvent event;
+        ProtobufReader reader = this.reader;
+        ProtobufField fld = frame.message.field(number);
+        if (fld == null)
+        {
+            reader.skipField(number, wt);
+            event = null;
+        }
+        else if (fld.composite())
+        {
+            event = readComposite(fld, number, wt);
+        }
+        else if (fld.repeated() && fld.type().packable() && wt == ProtobufWireType.LEN)
+        {
+            int blockLength = reader.readLength();
+            if (!reader.starved())
+            {
+                frame.packedEnd = reader.position() + blockLength;
+                frame.packedField = fld;
+            }
+            event = null;
+        }
+        else
+        {
+            requireWireType(fld, wt);
+            field = fld;
+            fieldNumber = number;
+            wireType = wt;
+            phase = PHASE_SCALAR_VALUE;
+            event = ProtobufEvent.FIELD;
+        }
+        return event;
+    }
+
+    private ProtobufEvent readComposite(
         ProtobufField fld,
         int number,
         ProtobufWireType wt)
     {
-        ProtobufReader reader = frame.reader;
+        ProtobufEvent event;
+        ProtobufReader reader = this.reader;
         if (fld.type() == ProtobufType.GROUP)
         {
             if (wt != ProtobufWireType.SGROUP)
@@ -323,7 +405,7 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
                 throw new ProtobufException("field " + number + " expected group");
             }
             regionOffset = reader.offset();
-            regionLength = reader.skipGroup(number) - regionOffset;
+            regionLength = -1;
         }
         else
         {
@@ -333,14 +415,22 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
             }
             regionLength = reader.readLength();
             regionOffset = reader.offset();
-            reader.skip(regionLength);
         }
-        compositeField = fld;
-        field = fld;
-        fieldNumber = number;
-        wireType = wt;
-        phase = PHASE_COMPOSITE;
-        return ProtobufEvent.FIELD;
+
+        if (reader.starved())
+        {
+            event = null;
+        }
+        else
+        {
+            compositeField = fld;
+            field = fld;
+            fieldNumber = number;
+            wireType = wt;
+            phase = PHASE_COMPOSITE;
+            event = ProtobufEvent.FIELD;
+        }
+        return event;
     }
 
     private ProtobufEvent resolveComposite(
@@ -349,12 +439,7 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
         ProtobufEvent event;
         if (mode == Mode.SEGMENTED)
         {
-            phase = PHASE_NONE;
-            field = compositeField;
-            fieldNumber = compositeField.number();
-            wireType = compositeField.type().wireType();
-            slice(inputBuffer, regionOffset, regionLength);
-            event = ProtobufEvent.SEGMENT;
+            event = segment();
         }
         else
         {
@@ -371,15 +456,40 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
             boolean group = compositeField.type() == ProtobufType.GROUP;
             phase = PHASE_NONE;
             Frame frame = frame(depth);
-            frame.reader.wrap(inputBuffer, regionOffset, regionLength);
             frame.message = nested;
             frame.group = group;
-            frame.packedLimit = -1;
+            frame.groupNumber = compositeField.number();
+            frame.packedEnd = -1L;
+            frame.end = group ? -1L : reader.position() + regionLength;
             boundary();
-            slice(inputBuffer, regionOffset, regionLength);
+            slice(reader.buffer(), regionOffset, group ? 0 : regionLength);
             event = group ? ProtobufEvent.START_GROUP : ProtobufEvent.START_MESSAGE;
         }
         return event;
+    }
+
+    private ProtobufEvent segment()
+    {
+        int length = regionLength;
+        if (length < 0)
+        {
+            length = reader.skipGroup(compositeField.number()) - regionOffset;
+        }
+        else
+        {
+            reader.skip(length);
+        }
+        if (reader.starved())
+        {
+            // M1: a composite segment must be fully buffered; streaming segments arrive in M2
+            throw new ProtobufException("segment exceeds available window");
+        }
+        phase = PHASE_NONE;
+        field = compositeField;
+        fieldNumber = compositeField.number();
+        wireType = compositeField.type().wireType();
+        slice(reader.buffer(), regionOffset, length);
+        return ProtobufEvent.SEGMENT;
     }
 
     private ProtobufEvent endFrame()
@@ -527,10 +637,11 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
 
     private static final class Frame
     {
-        private final ProtobufReader reader = new ProtobufReader();
         private ProtobufMessage message;
         private boolean group;
-        private int packedLimit;
+        private int groupNumber;
+        private long end;
+        private long packedEnd;
         private ProtobufField packedField;
     }
 }

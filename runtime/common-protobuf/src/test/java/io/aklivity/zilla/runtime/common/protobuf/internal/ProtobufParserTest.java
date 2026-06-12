@@ -18,6 +18,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -248,6 +249,87 @@ public class ProtobufParserTest
 
         assertEquals(4, count(parser, message));
         assertEquals(4, count(parser, message));
+    }
+
+    @Test
+    public void shouldReturnNullThenResumeAcrossWindows()
+    {
+        byte[] home = wire(w ->
+        {
+            w.writeTag(1, ProtobufWireType.LEN);
+            w.writeBytes("Zion".getBytes(UTF_8));
+        });
+        byte[] message = wire(w ->
+        {
+            w.writeTag(1, ProtobufWireType.LEN);
+            w.writeBytes("neo".getBytes(UTF_8));
+            w.writeTag(4, ProtobufWireType.LEN);
+            w.writeBytes(home);
+        });
+
+        List<String> whole = drain(Protobuf.parser(schema, "P").wrap(new UnsafeBuffer(message), 0, message.length));
+
+        ProtobufParser parser = Protobuf.parser(schema, "P");
+        UnsafeBuffer buffer = new UnsafeBuffer(message);
+        List<String> events = new ArrayList<>();
+        boolean sawNull = false;
+        int offset = 0;
+        int window = 2;
+        parser.wrap(buffer, offset, Math.min(window, message.length), window >= message.length);
+        while (parser.hasNext())
+        {
+            ProtobufEvent event = parser.nextEvent();
+            if (event == null)
+            {
+                sawNull = true;
+                offset += window;
+                int length = Math.min(window, message.length - offset);
+                boolean last = offset + length >= message.length;
+                parser.resume(buffer, offset, length, last);
+            }
+            else
+            {
+                record(parser, events, event);
+            }
+        }
+
+        assertTrue(sawNull);
+        assertEquals(whole, events);
+    }
+
+    private static List<String> drain(
+        ProtobufParser parser)
+    {
+        List<String> events = new ArrayList<>();
+        while (parser.hasNext())
+        {
+            record(parser, events, parser.nextEvent());
+        }
+        return events;
+    }
+
+    private static void record(
+        ProtobufParser parser,
+        List<String> events,
+        ProtobufEvent event)
+    {
+        switch (event)
+        {
+        case START_MESSAGE:
+            events.add("{");
+            break;
+        case END_MESSAGE:
+            events.add("}");
+            break;
+        case FIELD:
+            events.add("F" + parser.field().number());
+            break;
+        case VALUE:
+            events.add("V" + scalar(parser));
+            break;
+        default:
+            break;
+        }
     }
 
     private static int count(

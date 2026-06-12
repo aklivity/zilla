@@ -44,13 +44,41 @@ public interface ProtobufParser
     }
 
     /**
-     * Borrows {@code buffer} as the input for the next pull, the message occupying {@code [offset,
-     * offset + length)}, and rewinds the cursor to before the root {@link ProtobufEvent#START_MESSAGE}.
+     * Borrows {@code buffer} as a whole, fully-buffered message (equivalent to
+     * {@link #wrap(DirectBuffer, int, int, boolean)} with {@code last == true}) and rewinds the cursor to
+     * before the root {@link ProtobufEvent#START_MESSAGE}.
+     */
+    default ProtobufParser wrap(
+        DirectBuffer buffer,
+        int offset,
+        int length)
+    {
+        return wrap(buffer, offset, length, true);
+    }
+
+    /**
+     * Borrows {@code buffer} as the first (or only) input window of a message, the bytes occupying
+     * {@code [offset, offset + length)}, and rewinds the cursor to before the root
+     * {@link ProtobufEvent#START_MESSAGE}. {@code last} marks the final window: when {@code false} and the
+     * window is exhausted mid-message, {@link #nextEvent(Mode)} returns {@code null} to signal starvation,
+     * and the next window is supplied via {@link #resume}.
      */
     ProtobufParser wrap(
         DirectBuffer buffer,
         int offset,
-        int length);
+        int length,
+        boolean last);
+
+    /**
+     * Continues an in-flight message with its next input window after {@link #nextEvent(Mode)} returned
+     * {@code null} (starvation); {@code last} marks the final window. The cursor's position within the
+     * message is preserved across the window swap.
+     */
+    ProtobufParser resume(
+        DirectBuffer buffer,
+        int offset,
+        int length,
+        boolean last);
 
     /**
      * {@code true} until the root {@link ProtobufEvent#END_MESSAGE} has been pulled.
@@ -70,6 +98,12 @@ public interface ProtobufParser
      * composite field {@code mode} chooses whether to recurse into it ({@link Mode#STRUCTURED}) or deliver
      * it as raw segment bytes ({@link Mode#SEGMENTED}). Malformed wire and wire-type/declared-type
      * mismatches raise a {@link ProtobufException}.
+     * <p>
+     * Returns {@code null} only when a window borrowed with {@code last == false} (see {@link #wrap} /
+     * {@link #resume}) is exhausted before the message completes, signalling starvation — the caller then
+     * supplies the next window via {@link #resume}. A whole-buffer cursor ({@code last == true}, the
+     * default) never returns {@code null}; it completes through the root {@link ProtobufEvent#END_MESSAGE}
+     * or rejects truncated input with a {@link ProtobufException}.
      */
     ProtobufEvent nextEvent(
         Mode mode);

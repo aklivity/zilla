@@ -19,12 +19,43 @@ import org.agrona.DirectBuffer;
 /**
  * A runnable {@code common-protobuf} pipeline assembled from a {@link ProtobufStream} description
  * terminated with a {@link ProtobufSink}. Reuse a single instance per worker thread: call
- * {@link #reset()} once per message, then {@link #feed(DirectBuffer, int, int)} with the fully
- * buffered message (the bounded-buffer contract).
+ * {@link #reset()} once per message, then {@link #feed} the message, which may arrive whole (the
+ * bounded-buffer contract) or as successive input windows (the streaming contract).
  * <p>
- * Output is bounded by the generator's limit: when it fills, {@code feed} returns {@link Status#SUSPENDED}
- * with a complete, drainable region in the output buffer; the caller drains it, resets the generator, and
- * calls {@code feed} again to resume the in-flight message from where it paused.
+ * Back-pressure has two independent axes, each with its own non-terminal "call {@code feed} again"
+ * status:
+ * <ul>
+ * <li><b>Output</b> — {@link Status#SUSPENDED}: the bounded generator filled mid-message. The caller
+ * drains the output, resets the generator, and calls {@code feed} again with the <em>same</em> input
+ * window to resume the in-flight message from where it paused.</li>
+ * <li><b>Input</b> — {@link Status#STARVED}: the input window was consumed but the message is not yet
+ * complete. The caller calls {@code feed} again with the <em>next</em> input window, passing
+ * {@code last == true} only on the final window. {@code STARVED} is returned only when
+ * {@code last == false}; a clean message end under {@code last} yields {@link Status#COMPLETED} and an
+ * incomplete one yields {@link Status#REJECTED}.</li>
+ * </ul>
+ * The canonical caller loop honours both axes:
+ * <pre>{@code
+ * pipeline.reset();
+ * for (boolean done = false; !done; )
+ * {
+ *     Window in = nextWindow();
+ *     Status s = pipeline.feed(in.buffer(), in.offset(), in.length(), in.last());
+ *     while (s == SUSPENDED)
+ *     {
+ *         drainOutput();
+ *         generator.wrap(out, 0, limit);
+ *         s = pipeline.feed(in.buffer(), in.offset(), in.length(), in.last());
+ *     }
+ *     switch (s)
+ *     {
+ *     case STARVED: break;                 // feed the next window
+ *     case COMPLETED: done = true; break;  // emit the final output
+ *     case REJECTED: abort(); done = true; break;
+ *     default: break;
+ *     }
+ * }
+ * }</pre>
  */
 public interface ProtobufPipeline
 {
@@ -34,6 +65,8 @@ public interface ProtobufPipeline
         ADVANCED,
         /** the bounded output filled: drain the buffer, reset the generator, then {@link #feed} again to resume */
         SUSPENDED,
+        /** the input window was consumed mid-message: {@link #feed} the next window (input back-pressure) */
+        STARVED,
         /** the message finished and was accepted */
         COMPLETED,
         /** the message was rejected; the output must be abandoned */
@@ -42,8 +75,28 @@ public interface ProtobufPipeline
 
     void reset();
 
+    /**
+     * Feeds a whole message in one shot (equivalent to {@link #feed(DirectBuffer, int, int, boolean)} with
+     * {@code last == true}), preserving the bounded-buffer contract for callers that reassemble first.
+     */
+    default Status feed(
+        DirectBuffer buffer,
+        int offset,
+        int length)
+    {
+        return feed(buffer, offset, length, true);
+    }
+
+    /**
+     * Feeds one input window of a message; {@code last} marks the final window. Returns
+     * {@link Status#STARVED} when the window is consumed before the message completes (input
+     * back-pressure), {@link Status#SUSPENDED} when the bounded output fills (output back-pressure),
+     * {@link Status#COMPLETED} on a clean message end, or {@link Status#REJECTED} on malformed or
+     * truncated input.
+     */
     Status feed(
         DirectBuffer buffer,
         int offset,
-        int length);
+        int length,
+        boolean last);
 }

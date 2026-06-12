@@ -17,29 +17,93 @@ package io.aklivity.zilla.runtime.common.protobuf.internal;
 import java.nio.ByteOrder;
 
 import org.agrona.DirectBuffer;
+import org.agrona.ExpandableArrayBuffer;
+import org.agrona.MutableDirectBuffer;
 
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufException;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
 
 /**
- * A reusable decode cursor over a {@link DirectBuffer} region. All reads advance {@link #offset()};
- * truncated or overlong varints and wire types that run past the region limit raise a
- * {@link ProtobufException} so malformed input is rejected rather than read out of bounds.
+ * A reusable decode cursor over a {@link DirectBuffer} region. All reads advance {@link #offset()}.
+ * <p>
+ * The cursor separates two bounds: {@link #limit()} is the end of the bytes currently <em>available</em>
+ * (refillable across windows), while a higher layer tracks each scope's semantic end via the swap-safe
+ * {@link #position()} counter. A read that would cross {@link #limit()} resolves by the {@code last} flag:
+ * when {@code last} (the whole-buffer contract) it raises a {@link ProtobufException} — truncated input is
+ * rejected — otherwise it sets {@link #starved()} and returns without reading out of bounds, so the caller
+ * can {@link #rewind()} to the last {@link #mark()}, {@link #stash()} the partial unit, and continue from
+ * the next window via {@link #resume}. The stashed carry is prepended to that window so a primitive split
+ * across the boundary decodes from one contiguous region.
  */
 public final class ProtobufReader
 {
+    private final MutableDirectBuffer combined = new ExpandableArrayBuffer();
+    private final MutableDirectBuffer pending = new ExpandableArrayBuffer();
+
     private DirectBuffer buffer;
+    private int base;
+    private long positionBase;
     private int offset;
     private int limit;
+    private int mark;
+    private boolean last;
+    private boolean starved;
+    private int pendingLength;
 
     public ProtobufReader wrap(
         DirectBuffer buffer,
         int offset,
         int length)
     {
+        return wrap(buffer, offset, length, true);
+    }
+
+    public ProtobufReader wrap(
+        DirectBuffer buffer,
+        int offset,
+        int length,
+        boolean last)
+    {
         this.buffer = buffer;
+        this.base = offset;
+        this.positionBase = 0L;
         this.offset = offset;
         this.limit = offset + length;
+        this.mark = offset;
+        this.last = last;
+        this.starved = false;
+        this.pendingLength = 0;
+        return this;
+    }
+
+    public ProtobufReader resume(
+        DirectBuffer buffer,
+        int offset,
+        int length,
+        boolean last)
+    {
+        long position = position();
+        if (pendingLength > 0)
+        {
+            combined.putBytes(0, pending, 0, pendingLength);
+            combined.putBytes(pendingLength, buffer, offset, length);
+            this.buffer = combined;
+            this.base = 0;
+            this.offset = 0;
+            this.limit = pendingLength + length;
+            this.pendingLength = 0;
+        }
+        else
+        {
+            this.buffer = buffer;
+            this.base = offset;
+            this.offset = offset;
+            this.limit = offset + length;
+        }
+        this.positionBase = position;
+        this.mark = this.offset;
+        this.last = last;
+        this.starved = false;
         return this;
     }
 
@@ -53,9 +117,49 @@ public final class ProtobufReader
         return limit;
     }
 
+    public long position()
+    {
+        return positionBase + (offset - base);
+    }
+
+    public boolean last()
+    {
+        return last;
+    }
+
+    public boolean starved()
+    {
+        return starved;
+    }
+
+    public int available()
+    {
+        return limit - offset;
+    }
+
     public boolean hasRemaining()
     {
         return offset < limit;
+    }
+
+    public void mark()
+    {
+        this.mark = offset;
+        this.starved = false;
+    }
+
+    public void rewind()
+    {
+        this.offset = mark;
+    }
+
+    public void stash()
+    {
+        pendingLength = limit - mark;
+        if (pendingLength > 0)
+        {
+            pending.putBytes(0, buffer, mark, pendingLength);
+        }
     }
 
     public int readVarint32()
@@ -72,7 +176,12 @@ public final class ProtobufReader
         {
             if (offset >= limit)
             {
-                throw new ProtobufException("truncated varint");
+                if (last)
+                {
+                    throw new ProtobufException("truncated varint");
+                }
+                starved = true;
+                break;
             }
             int b = buffer.getByte(offset++) & 0xff;
             value |= (long) (b & 0x7f) << shift;
@@ -83,7 +192,7 @@ public final class ProtobufReader
             }
             shift += 7;
         }
-        if (!complete)
+        if (!complete && !starved)
         {
             throw new ProtobufException("malformed varint");
         }
@@ -104,28 +213,37 @@ public final class ProtobufReader
 
     public int readFixed32()
     {
-        require(4);
-        int value = buffer.getInt(offset, ByteOrder.LITTLE_ENDIAN);
-        offset += 4;
+        int value = 0;
+        if (require(4))
+        {
+            value = buffer.getInt(offset, ByteOrder.LITTLE_ENDIAN);
+            offset += 4;
+        }
         return value;
     }
 
     public long readFixed64()
     {
-        require(8);
-        long value = buffer.getLong(offset, ByteOrder.LITTLE_ENDIAN);
-        offset += 8;
+        long value = 0L;
+        if (require(8))
+        {
+            value = buffer.getLong(offset, ByteOrder.LITTLE_ENDIAN);
+            offset += 8;
+        }
         return value;
     }
 
     public int readLength()
     {
         int length = readVarint32();
-        if (length < 0)
+        if (!starved)
         {
-            throw new ProtobufException("negative length " + length);
+            if (length < 0)
+            {
+                throw new ProtobufException("negative length " + length);
+            }
+            require(length);
         }
-        require(length);
         return length;
     }
 
@@ -137,8 +255,10 @@ public final class ProtobufReader
     public void skip(
         int length)
     {
-        require(length);
-        offset += length;
+        if (require(length))
+        {
+            offset += length;
+        }
     }
 
     public void skipField(
@@ -180,7 +300,8 @@ public final class ProtobufReader
     /**
      * Skips a proto2 group body, leaving the cursor just past the matching {@code EGROUP} tag, and
      * returns the offset of that {@code EGROUP} tag (i.e. the end of the group body). Nested groups
-     * are handled recursively; an unterminated or mismatched group is rejected.
+     * are handled recursively; an unterminated or mismatched group is rejected. A group that runs past
+     * the available bytes under {@code !last} sets {@link #starved()} and returns early.
      */
     public int skipGroup(
         int number)
@@ -190,10 +311,21 @@ public final class ProtobufReader
         {
             if (offset >= limit)
             {
-                throw new ProtobufException("unterminated group " + number);
+                if (last)
+                {
+                    throw new ProtobufException("unterminated group " + number);
+                }
+                starved = true;
+                end = offset;
+                break;
             }
             int tagOffset = offset;
             int tag = readVarint32();
+            if (starved)
+            {
+                end = tagOffset;
+                break;
+            }
             int fieldNumber = tag >>> 3;
             ProtobufWireType wireType = ProtobufWireType.of(tag & 0x7);
             if (wireType == ProtobufWireType.EGROUP)
@@ -207,17 +339,28 @@ public final class ProtobufReader
             else
             {
                 skipField(fieldNumber, wireType);
+                if (starved)
+                {
+                    end = tagOffset;
+                    break;
+                }
             }
         }
         return end;
     }
 
-    private void require(
+    private boolean require(
         int length)
     {
-        if (offset + length > limit)
+        boolean available = offset + length <= limit;
+        if (!available)
         {
-            throw new ProtobufException("truncated field: need " + length + " bytes");
+            if (last)
+            {
+                throw new ProtobufException("truncated field: need " + length + " bytes");
+            }
+            starved = true;
         }
+        return available;
     }
 }
