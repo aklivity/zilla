@@ -40,9 +40,9 @@ import org.agrona.concurrent.UnsafeBuffer;
 import io.aklivity.zilla.runtime.common.json.DirectBufferInputStreamEx;
 import io.aklivity.zilla.runtime.common.json.JsonController;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
+import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.json.JsonSource;
-import io.aklivity.zilla.runtime.common.json.StreamingJson;
 import io.aklivity.zilla.runtime.common.json.internal.json.JsonValues;
 
 public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonController
@@ -90,8 +90,8 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
         this.ownedInput = new DirectBufferInputStreamEx();
         this.in = ownedInput;
         this.tokenizer = new JsonTokenizer(
-            pathList(config, StreamingJson.PATH_INCLUDES),
-            pathList(config, StreamingJson.PATH_EXCLUDES),
+            pathList(config, JsonEx.PATH_INCLUDES),
+            pathList(config, JsonEx.PATH_EXCLUDES),
             tokenMaxBytes(config));
         this.location = new JsonLocationImpl(tokenizer);
     }
@@ -115,8 +115,8 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
         // A DirectBufferInputStreamEx is a resumable frame source whose EOF is a frame boundary;
         // any other stream is one-shot, so its EOF is the terminal delimiter for a trailing number.
         this.tokenizer = new JsonTokenizer(
-            pathList(config, StreamingJson.PATH_INCLUDES),
-            pathList(config, StreamingJson.PATH_EXCLUDES),
+            pathList(config, JsonEx.PATH_INCLUDES),
+            pathList(config, JsonEx.PATH_EXCLUDES),
             tokenMaxBytes(config),
             !(in instanceof DirectBufferInputStreamEx));
         this.location = new JsonLocationImpl(tokenizer);
@@ -368,7 +368,7 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
         if (value == null && !tokenizer.valueReadable())
         {
             throw new IllegalStateException("value not readable; configure path via " +
-                "StreamingJson.PATH_INCLUDES (or remove from PATH_EXCLUDES)");
+                "JsonEx.PATH_INCLUDES (or remove from PATH_EXCLUDES)");
         }
         return value;
     }
@@ -634,7 +634,7 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
     private static int tokenMaxBytes(
         Map<String, ?> config)
     {
-        final Object raw = config.get(StreamingJson.TOKEN_MAX_BYTES);
+        final Object raw = config.get(JsonEx.TOKEN_MAX_BYTES);
         return raw == null ? Integer.MAX_VALUE : ((Number) raw).intValue();
     }
 }

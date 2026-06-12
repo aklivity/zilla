@@ -53,10 +53,10 @@ class JsonSinkSegmentTest
     @Test
     void shouldWriteSegmentedObjectVerbatim()
     {
-        JsonGeneratorEx gen = StreamingJson.createGenerator();
+        JsonGeneratorEx gen = JsonEx.createGenerator();
         MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
         gen.wrap(buffer, 0, buffer.capacity());
-        JsonPipeline pipeline = StreamingJson.stream(StreamingJson.createParser())
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(segmentRoot)
             .into(JsonSink.of(gen));
 
@@ -73,10 +73,10 @@ class JsonSinkSegmentTest
     @Test
     void shouldSegmentWholeDocumentWithBareSegmentableSink()
     {
-        JsonGeneratorEx gen = StreamingJson.createGenerator();
+        JsonGeneratorEx gen = JsonEx.createGenerator();
         MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
         gen.wrap(buffer, 0, buffer.capacity());
-        JsonPipeline pipeline = StreamingJson.stream(StreamingJson.createParser())
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .into(JsonSink.of(gen, JsonSink.Delivery.SEGMENTABLE));
 
         byte[] bytes = "{ \"a\" : [1, 2], \"b\" : 3 } ".getBytes(UTF_8);
@@ -92,10 +92,10 @@ class JsonSinkSegmentTest
     @Test
     void shouldWriteSegmentedArrayVerbatim()
     {
-        JsonGeneratorEx gen = StreamingJson.createGenerator();
+        JsonGeneratorEx gen = JsonEx.createGenerator();
         MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
         gen.wrap(buffer, 0, buffer.capacity());
-        JsonPipeline pipeline = StreamingJson.stream(StreamingJson.createParser())
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(segmentRoot)
             .into(JsonSink.of(gen));
 
@@ -112,10 +112,10 @@ class JsonSinkSegmentTest
     @Test
     void shouldWriteSegmentedNestedWhitespaceVerbatim()
     {
-        JsonGeneratorEx gen = StreamingJson.createGenerator();
+        JsonGeneratorEx gen = JsonEx.createGenerator();
         MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
         gen.wrap(buffer, 0, buffer.capacity());
-        JsonPipeline pipeline = StreamingJson.stream(StreamingJson.createParser())
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(segmentRoot)
             .into(JsonSink.of(gen));
 
@@ -132,10 +132,10 @@ class JsonSinkSegmentTest
     @Test
     void shouldCompleteAcrossFrames()
     {
-        JsonGeneratorEx gen = StreamingJson.createGenerator();
+        JsonGeneratorEx gen = JsonEx.createGenerator();
         MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
         gen.wrap(buffer, 0, buffer.capacity());
-        JsonPipeline pipeline = StreamingJson.stream(StreamingJson.createParser())
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(segmentRoot)
             .into(JsonSink.of(gen));
 

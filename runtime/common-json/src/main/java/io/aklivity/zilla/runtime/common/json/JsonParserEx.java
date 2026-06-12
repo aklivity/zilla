@@ -23,7 +23,7 @@ import org.agrona.DirectBuffer;
  * {@code jakarta.json.stream} contract lacks. This is the {@code *Ex} pattern for going beyond JSON-P:
  * a sub-interface of the standard type that drives a {@link JsonStream} pipeline.
  * <p>
- * Obtain an instance from {@link StreamingJson#createParser()} (the implementation is internal). Reuse a
+ * Obtain an instance from {@link JsonEx#createParser()} (the implementation is internal). Reuse a
  * single instance per worker thread, calling {@link #wrap(DirectBuffer, int, int)} to borrow each frame's
  * buffer before pumping.
  */

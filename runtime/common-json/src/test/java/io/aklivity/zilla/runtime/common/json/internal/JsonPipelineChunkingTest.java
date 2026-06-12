@@ -24,13 +24,13 @@ import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
 
+import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonTransform;
-import io.aklivity.zilla.runtime.common.json.StreamingJson;
 
 class JsonPipelineChunkingTest
 {
@@ -39,9 +39,9 @@ class JsonPipelineChunkingTest
     @Test
     void shouldChunkLargeArrayThroughTerminalSink()
     {
-        JsonGeneratorEx generator = StreamingJson.createGenerator();
+        JsonGeneratorEx generator = JsonEx.createGenerator();
         MutableDirectBuffer output = new UnsafeBuffer(new byte[128]);
-        JsonPipeline pipeline = StreamingJson.stream(StreamingJson.createParser())
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .into(JsonSink.of(generator));
 
         String json = "[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]";
@@ -51,9 +51,9 @@ class JsonPipelineChunkingTest
     @Test
     void shouldChunkLargeObjectThroughTerminalSink()
     {
-        JsonGeneratorEx generator = StreamingJson.createGenerator();
+        JsonGeneratorEx generator = JsonEx.createGenerator();
         MutableDirectBuffer output = new UnsafeBuffer(new byte[128]);
-        JsonPipeline pipeline = StreamingJson.stream(StreamingJson.createParser())
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .into(JsonSink.of(generator));
 
         String json = "{\"k0\":0,\"k1\":1,\"k2\":2,\"k3\":3,\"k4\":4,\"k5\":5,\"k6\":6,\"k7\":7,\"k8\":8,\"k9\":9}";
@@ -63,10 +63,10 @@ class JsonPipelineChunkingTest
     @Test
     void shouldChunkThroughProjectorTransform()
     {
-        JsonGeneratorEx generator = StreamingJson.createGenerator();
+        JsonGeneratorEx generator = JsonEx.createGenerator();
         MutableDirectBuffer output = new UnsafeBuffer(new byte[128]);
-        JsonPipeline pipeline = StreamingJson.stream(StreamingJson.createParser())
-            .transform(StreamingJson.projector(List.of("")))
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(JsonEx.projector(List.of("")))
             .into(JsonSink.of(generator));
 
         String json = "{\"id\":1,\"items\":[10,11,12,13,14,15,16,17,18,19],\"ok\":true}";
@@ -76,9 +76,9 @@ class JsonPipelineChunkingTest
     @Test
     void shouldChunkThroughValidatorTransform()
     {
-        JsonGeneratorEx generator = StreamingJson.createGenerator();
+        JsonGeneratorEx generator = JsonEx.createGenerator();
         MutableDirectBuffer output = new UnsafeBuffer(new byte[128]);
-        JsonPipeline pipeline = StreamingJson.stream(StreamingJson.createParser())
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonSchema.of("{\"type\":\"object\"}").validator())
             .into(JsonSink.of(generator));
 
@@ -89,9 +89,9 @@ class JsonPipelineChunkingTest
     @Test
     void shouldFragmentLargeStringValueStructured()
     {
-        JsonGeneratorEx generator = StreamingJson.createGenerator();
+        JsonGeneratorEx generator = JsonEx.createGenerator();
         MutableDirectBuffer output = new UnsafeBuffer(new byte[256]);
-        JsonPipeline pipeline = StreamingJson.stream(StreamingJson.createParser())
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .into(JsonSink.of(generator));
 
         // a single string property value far larger than BOUND, in structured delivery
@@ -102,9 +102,9 @@ class JsonPipelineChunkingTest
     @Test
     void shouldFragmentValueLargerThanBound()
     {
-        JsonGeneratorEx generator = StreamingJson.createGenerator();
+        JsonGeneratorEx generator = JsonEx.createGenerator();
         MutableDirectBuffer output = new UnsafeBuffer(new byte[256]);
-        JsonPipeline pipeline = StreamingJson.stream(StreamingJson.createParser())
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .into(JsonSink.of(generator, JsonSink.Delivery.SEGMENTABLE));
 
         // one top-level array whose verbatim form far exceeds BOUND, delivered as a single segment that
@@ -116,10 +116,10 @@ class JsonPipelineChunkingTest
     @Test
     void shouldFragmentValueThroughForwardingTransform()
     {
-        JsonGeneratorEx generator = StreamingJson.createGenerator();
+        JsonGeneratorEx generator = JsonEx.createGenerator();
         MutableDirectBuffer output = new UnsafeBuffer(new byte[256]);
         JsonTransform passthrough = (control, source, event, sink) -> sink.feed(control, source, event);
-        JsonPipeline pipeline = StreamingJson.stream(StreamingJson.createParser())
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(passthrough)
             .into(JsonSink.of(generator, JsonSink.Delivery.SEGMENTABLE));
 
@@ -131,9 +131,9 @@ class JsonPipelineChunkingTest
     @Test
     void shouldCompleteWithoutSuspendWhenWithinBound()
     {
-        JsonGeneratorEx generator = StreamingJson.createGenerator();
+        JsonGeneratorEx generator = JsonEx.createGenerator();
         MutableDirectBuffer output = new UnsafeBuffer(new byte[128]);
-        JsonPipeline pipeline = StreamingJson.stream(StreamingJson.createParser())
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .into(JsonSink.of(generator));
 
         byte[] bytes = "[1,2,3] ".getBytes(UTF_8);

@@ -109,11 +109,11 @@ class JsonProjectorTest
     @Test
     void shouldProjectAcrossFramesWithoutReset()
     {
-        JsonGeneratorEx gen = StreamingJson.createGenerator();
+        JsonGeneratorEx gen = JsonEx.createGenerator();
         MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
         gen.wrap(buffer, 0, buffer.capacity());
-        JsonPipeline pipeline = StreamingJson.stream(StreamingJson.createParser())
-            .transform(StreamingJson.projector(List.of("/a", "/c")))
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(JsonEx.projector(List.of("/a", "/c")))
             .into(JsonSink.of(gen));
 
         byte[] bytes = "{\"a\":1,\"b\":2,\"c\":3} ".getBytes(UTF_8);
@@ -132,10 +132,10 @@ class JsonProjectorTest
     @Test
     void shouldResetForReuseAcrossValues()
     {
-        JsonGeneratorEx gen = StreamingJson.createGenerator();
+        JsonGeneratorEx gen = JsonEx.createGenerator();
         MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
-        JsonPipeline pipeline = StreamingJson.stream(StreamingJson.createParser())
-            .transform(StreamingJson.projector(List.of("/x")))
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(JsonEx.projector(List.of("/x")))
             .into(JsonSink.of(gen));
 
         gen.wrap(buffer, 0, buffer.capacity());
@@ -167,11 +167,11 @@ class JsonProjectorTest
         List<String> retained,
         String input)
     {
-        JsonGeneratorEx gen = StreamingJson.createGenerator();
+        JsonGeneratorEx gen = JsonEx.createGenerator();
         MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
         gen.wrap(buffer, 0, buffer.capacity());
-        JsonPipeline pipeline = StreamingJson.stream(StreamingJson.createParser())
-            .transform(StreamingJson.projector(retained))
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(JsonEx.projector(retained))
             .into(JsonSink.of(gen));
         feed(pipeline, input + " ");
         byte[] out = new byte[gen.length()];

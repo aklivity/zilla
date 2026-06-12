@@ -21,11 +21,11 @@ import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
 
+import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
-import io.aklivity.zilla.runtime.common.json.StreamingJson;
 
 class JsonPipelineRejectTest
 {
@@ -34,9 +34,9 @@ class JsonPipelineRejectTest
     @Test
     void shouldRejectMalformedJson()
     {
-        JsonGeneratorEx generator = StreamingJson.createGenerator();
+        JsonGeneratorEx generator = JsonEx.createGenerator();
         MutableDirectBuffer output = new UnsafeBuffer(new byte[128]);
-        JsonPipeline pipeline = StreamingJson.stream(StreamingJson.createParser())
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .into(JsonSink.of(generator));
 
         byte[] bytes = "[1 2]".getBytes(UTF_8);

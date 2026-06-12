@@ -23,10 +23,10 @@ import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
 
+import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
-import io.aklivity.zilla.runtime.common.json.StreamingJson;
 
 class JsonSchemaPathsTest
 {
@@ -106,11 +106,11 @@ class JsonSchemaPathsTest
     @Test
     void shouldDriveProjectorEndToEnd()
     {
-        JsonGeneratorEx gen = StreamingJson.createGenerator();
+        JsonGeneratorEx gen = JsonEx.createGenerator();
         MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
         gen.wrap(buffer, 0, buffer.capacity());
-        JsonPipeline pipeline = StreamingJson.stream(StreamingJson.createParser())
-            .transform(StreamingJson.projector(JsonSchemaPaths.retained(
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(JsonEx.projector(JsonSchemaPaths.retained(
                 "{\"type\":\"object\",\"properties\":{" +
                 "\"items\":{\"type\":\"array\",\"items\":{\"type\":\"object\"," +
                 "\"properties\":{\"id\":{\"type\":\"integer\"}}}}}}")))

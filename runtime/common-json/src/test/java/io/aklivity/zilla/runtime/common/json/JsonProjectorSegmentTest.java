@@ -32,9 +32,9 @@ class JsonProjectorSegmentTest
     @Test
     void shouldSegmentKeptSubtreeWhenSinkOptsIn()
     {
-        JsonGeneratorEx gen = StreamingJson.createGenerator().wrap(buffer, 0, buffer.capacity());
-        JsonPipeline pipeline = StreamingJson.stream(StreamingJson.createParser())
-            .transform(StreamingJson.projector(List.of("/a")))
+        JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(JsonEx.projector(List.of("/a")))
             .into(JsonSink.of(gen, JsonSink.Delivery.SEGMENTABLE));
 
         Status status = run(pipeline, "{\"a\":{ \"b\" : 1 },\"z\":9} ");
@@ -46,9 +46,9 @@ class JsonProjectorSegmentTest
     @Test
     void shouldNormalizeWhenSinkDoesNotOptIn()
     {
-        JsonGeneratorEx gen = StreamingJson.createGenerator().wrap(buffer, 0, buffer.capacity());
-        JsonPipeline pipeline = StreamingJson.stream(StreamingJson.createParser())
-            .transform(StreamingJson.projector(List.of("/a")))
+        JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(JsonEx.projector(List.of("/a")))
             .into(JsonSink.of(gen));
 
         Status status = run(pipeline, "{\"a\":{ \"b\" : 1 },\"z\":9} ");
@@ -60,9 +60,9 @@ class JsonProjectorSegmentTest
     @Test
     void shouldSegmentRootIdentityWhenSinkOptsIn()
     {
-        JsonGeneratorEx gen = StreamingJson.createGenerator().wrap(buffer, 0, buffer.capacity());
-        JsonPipeline pipeline = StreamingJson.stream(StreamingJson.createParser())
-            .transform(StreamingJson.projector(List.of("")))
+        JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(JsonEx.projector(List.of("")))
             .into(JsonSink.of(gen, JsonSink.Delivery.SEGMENTABLE));
 
         Status status = run(pipeline, "{ \"a\" : 1 } ");
@@ -74,13 +74,13 @@ class JsonProjectorSegmentTest
     @Test
     void shouldStaySegmentFreeAndValidWithValidatorUpstream()
     {
-        JsonGeneratorEx gen = StreamingJson.createGenerator().wrap(buffer, 0, buffer.capacity());
+        JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
         JsonTransform decliner = (control, source, event, sink) -> sink.feed(() ->
         {
         }, source, event);
-        JsonPipeline pipeline = StreamingJson.stream(StreamingJson.createParser())
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(decliner)
-            .transform(StreamingJson.projector(List.of("/a")))
+            .transform(JsonEx.projector(List.of("/a")))
             .into(JsonSink.of(gen, JsonSink.Delivery.SEGMENTABLE));
 
         Status status = run(pipeline, "{\"a\":{ \"b\" : 1 },\"z\":9} ");
@@ -92,9 +92,9 @@ class JsonProjectorSegmentTest
     @Test
     void shouldHandleArrayElementSegment()
     {
-        JsonGeneratorEx gen = StreamingJson.createGenerator().wrap(buffer, 0, buffer.capacity());
-        JsonPipeline pipeline = StreamingJson.stream(StreamingJson.createParser())
-            .transform(StreamingJson.projector(List.of("/items/0")))
+        JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(JsonEx.projector(List.of("/items/0")))
             .into(JsonSink.of(gen, JsonSink.Delivery.SEGMENTABLE));
 
         Status status = run(pipeline, "{\"items\":[{ \"id\" : 1 },{\"id\":2}]} ");

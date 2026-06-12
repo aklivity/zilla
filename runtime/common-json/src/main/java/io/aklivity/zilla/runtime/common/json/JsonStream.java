@@ -15,7 +15,7 @@
 package io.aklivity.zilla.runtime.common.json;
 
 /**
- * A description of a {@code common-json} pipeline — a driver bound by {@link StreamingJson#stream(JsonParserEx)} plus
+ * A description of a {@code common-json} pipeline — a driver bound by {@link JsonEx#stream(JsonParserEx)} plus
  * an ordered list of {@link JsonTransform} stages. Append stages with {@link #transform(JsonTransform)}
  * (left-to-right, in data-flow order); terminate with {@link #into(JsonSink)} to obtain the runnable,
  * resumable {@link JsonPipeline}. A {@code JsonStream} carries no state and is not itself runnable.

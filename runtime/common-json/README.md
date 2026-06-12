@@ -9,15 +9,15 @@ keeps parse, transform, and serialize on a single pass with no intermediate DOM.
 
 ## Pull parser
 
-`StreamingJson.createParser()` returns a resumable pull cursor fed one frame at a time via
+`JsonEx.createParser()` returns a resumable pull cursor fed one frame at a time via
 `wrap(buffer, offset, length)`, then driven with the standard `hasNext()` / `next()`. It also
-implements `jakarta.json.stream.JsonParser`, so `StreamingJson.createParser(in)` works anywhere a
+implements `jakarta.json.stream.JsonParser`, so `JsonEx.createParser(in)` works anywhere a
 one-shot pull parser is expected. `PATH_INCLUDES` / `PATH_EXCLUDES` config bounds which paths are
 materialized (so deep values can be scanned and discarded without allocating), and `TOKEN_MAX_BYTES`
 fails fast on a single value that cannot make progress under reset semantics.
 
 ```java
-JsonParserEx parser = StreamingJson.createParser().wrap(buffer, offset, length);
+JsonParserEx parser = JsonEx.createParser().wrap(buffer, offset, length);
 while (parser.hasNext())
 {
     switch (parser.next())
@@ -31,13 +31,13 @@ while (parser.hasNext())
 
 ## Streaming pipeline
 
-`StreamingJson.stream(parser)` layers a composable push pipeline over the same cursor: it pumps the
+`JsonEx.stream(parser)` layers a composable push pipeline over the same cursor: it pumps the
 parser and feeds each event through an ordered chain of `JsonTransform` stages to a terminal `JsonSink`.
 
 ```java
-JsonGeneratorEx generator = StreamingJson.createGenerator().wrap(out, 0, out.capacity());
-JsonPipeline pipeline = StreamingJson.stream(StreamingJson.createParser())
-    .transform(StreamingJson.projector(List.of("/id", "/name")))
+JsonGeneratorEx generator = JsonEx.createGenerator().wrap(out, 0, out.capacity());
+JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+    .transform(JsonEx.projector(List.of("/id", "/name")))
     .into(JsonSink.of(generator));
 pipeline.reset();
 if (pipeline.feed(in, off, len) == JsonPipeline.Status.COMPLETED)   // ADVANCED / SUSPENDED / COMPLETED / REJECTED
@@ -46,14 +46,14 @@ if (pipeline.feed(in, off, len) == JsonPipeline.Status.COMPLETED)   // ADVANCED 
 }
 ```
 
-- **`StreamingJson.stream(parser)`** begins the pipeline; **`JsonStream`** appends stages (`transform`)
+- **`JsonEx.stream(parser)`** begins the pipeline; **`JsonStream`** appends stages (`transform`)
   and terminates (`into`), yielding the runnable **`JsonPipeline`** (`reset` / `feed` / `Status`).
 - **`JsonSource`** is the per-event read-only value view handed to a stage — the parser's accessors
   without the cursor advance, so a stage cannot disturb the pump.
 - **`JsonTransform`** is an intermediate stage (`feed(control, source, event, sink)`); **`JsonSink`**
   is the terminal (`feed(control, source, event)`). Third parties may implement either to consume or
   rewrite the projected event stream (e.g. field masking, encryption).
-- **`StreamingJson.projector(pointers)`** returns a `JsonTransform` that prunes a document to a set of
+- **`JsonEx.projector(pointers)`** returns a `JsonTransform` that prunes a document to a set of
   retained RFC 6901 pointers (`-` matches any array index), forwarding only kept events.
   `projector(schema)` derives the pointers from a `JsonSchema`.
 - **`JsonSchema.of(text).validator()`** returns a `JsonTransform` that forwards every event and adds
@@ -80,7 +80,7 @@ if (pipeline.feed(in, off, len) == JsonPipeline.Status.COMPLETED)   // ADVANCED 
 
 ### Bounded output and streaming
 
-`StreamingJson.createGenerator().wrap(out, 0, limit)` bounds the output. `limit` is a **hard bound**
+`JsonEx.createGenerator().wrap(out, 0, limit)` bounds the output. `limit` is a **hard bound**
 asserted at `wrap` to fit the buffer capacity: the usable region is exactly `[offset, limit)` and no
 write crosses it. A driver watches `generator.remaining()` and, when it nears the limit at an event
 boundary, the sink returns `SUSPENDED`.
@@ -92,8 +92,8 @@ re-wrap, so the value continues exactly where it paused; `reset()` clears that c
 value.
 
 ```java
-JsonGeneratorEx generator = StreamingJson.createGenerator().wrap(out, 0, limit);
-JsonPipeline pipeline = StreamingJson.stream(StreamingJson.createParser())
+JsonGeneratorEx generator = JsonEx.createGenerator().wrap(out, 0, limit);
+JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
     .into(JsonSink.of(generator));
 pipeline.reset();
 
@@ -136,7 +136,7 @@ simple — no stage has to be suspend/resume aware unless it originates `SUSPEND
 
 ### Writing JSON directly
 
-`StreamingJson.createGenerator()` is a buffer-backed, compact writer that inserts structural separators
+`JsonEx.createGenerator()` is a buffer-backed, compact writer that inserts structural separators
 and quoting automatically from an internal context stack, emitting in source order with no
 insignificant whitespace. It implements `jakarta.json.stream.JsonGenerator` with covariant returns for
 fluent chaining, plus the streaming-to-buffer extensions: `writeNumber(literal)` emits a numeric
@@ -144,7 +144,7 @@ lexeme verbatim, `writeRaw` / `writeRawContinue` splice a pre-encoded value (in 
 and `writeSegment` writes a bounded, deferred-tracking fragment.
 
 ```java
-JsonGeneratorEx generator = StreamingJson.createGenerator().wrap(out, 0, out.capacity());
+JsonGeneratorEx generator = JsonEx.createGenerator().wrap(out, 0, out.capacity());
 generator.writeStartObject()
     .write("id", id)
     .write("name", name)

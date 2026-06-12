@@ -28,7 +28,7 @@ import org.agrona.MutableDirectBuffer;
  * {@code jakarta.json.stream} contract lacks. This is the {@code *Ex} pattern for going beyond
  * JSON-P: a sub-interface of the standard type adding the extra methods a streaming, buffer-
  * backed caller needs, implemented internally by {@code JsonGeneratorImpl} and obtained via
- * {@link StreamingJson#createGenerator()}.
+ * {@link JsonEx#createGenerator()}.
  * <p>
  * Every inherited {@link JsonGenerator} method is redeclared with a covariant {@code
  * JsonGeneratorEx} return so the standard write methods chain fluently alongside the extensions.

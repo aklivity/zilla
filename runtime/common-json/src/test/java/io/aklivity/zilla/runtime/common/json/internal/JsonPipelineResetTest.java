@@ -21,11 +21,11 @@ import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
 
+import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
-import io.aklivity.zilla.runtime.common.json.StreamingJson;
 
 class JsonPipelineResetTest
 {
@@ -36,9 +36,9 @@ class JsonPipelineResetTest
     @Test
     void shouldClearGeneratorContextOnResetForReuse()
     {
-        JsonGeneratorEx generator = StreamingJson.createGenerator();
+        JsonGeneratorEx generator = JsonEx.createGenerator();
         MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
-        JsonPipeline pipeline = StreamingJson.stream(StreamingJson.createParser())
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .into(JsonSink.of(generator));
 
         generator.wrap(buffer, 0, buffer.capacity());

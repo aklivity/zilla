@@ -32,9 +32,9 @@ class JsonProjectorSegmentHardeningTest
     @Test
     void shouldSegmentDeeplyNestedKeptSubtreeAsSingleVerbatimValue()
     {
-        JsonGeneratorEx gen = StreamingJson.createGenerator().wrap(buffer, 0, buffer.capacity());
-        JsonPipeline pipeline = StreamingJson.stream(StreamingJson.createParser())
-            .transform(StreamingJson.projector(List.of("/a")))
+        JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(JsonEx.projector(List.of("/a")))
             .into(JsonSink.of(gen, JsonSink.Delivery.SEGMENTABLE));
 
         Status status = run(pipeline, "{\"a\":{ \"b\" : { \"c\" : [1, {\"d\": 2}] } },\"z\":9} ");
@@ -46,9 +46,9 @@ class JsonProjectorSegmentHardeningTest
     @Test
     void shouldResetForReuseAcrossSegmentedValues()
     {
-        JsonGeneratorEx gen = StreamingJson.createGenerator();
-        JsonPipeline pipeline = StreamingJson.stream(StreamingJson.createParser())
-            .transform(StreamingJson.projector(List.of("/x")))
+        JsonGeneratorEx gen = JsonEx.createGenerator();
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(JsonEx.projector(List.of("/x")))
             .into(JsonSink.of(gen, JsonSink.Delivery.SEGMENTABLE));
 
         gen.wrap(buffer, 0, buffer.capacity());
@@ -63,9 +63,9 @@ class JsonProjectorSegmentHardeningTest
     @Test
     void shouldNormalizeNestedWhenNotOptedIn()
     {
-        JsonGeneratorEx gen = StreamingJson.createGenerator().wrap(buffer, 0, buffer.capacity());
-        JsonPipeline pipeline = StreamingJson.stream(StreamingJson.createParser())
-            .transform(StreamingJson.projector(List.of("/a")))
+        JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(JsonEx.projector(List.of("/a")))
             .into(JsonSink.of(gen));
 
         Status status = run(pipeline, "{\"a\":{ \"b\" : { \"c\" : [1, {\"d\": 2}] } },\"z\":9} ");

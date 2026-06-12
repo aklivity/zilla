@@ -126,7 +126,7 @@ public interface JsonSchema
     /**
      * Returns the RFC 6901 JSON Pointers to retain when projecting an instance of this schema — the
      * union of paths declared across all branches of the schema. Suitable for {@link
-     * StreamingJson#projector(java.util.List)}.
+     * JsonEx#projector(java.util.List)}.
      */
     List<String> retainedPaths();
 }
