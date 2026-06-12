@@ -19,6 +19,7 @@ import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.SUSPENDE
 import static io.aklivity.zilla.runtime.common.avro.AvroSink.Delivery.STRUCTURED;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayOutputStream;
@@ -59,6 +60,14 @@ public class AvroChunkingTest
         generator.writeInt(1);
         assertEquals(1, generator.length());
         assertEquals(9, generator.remaining());
+    }
+
+    @Test
+    public void shouldRejectLimitExceedingCapacity()
+    {
+        MutableDirectBuffer out = new UnsafeBuffer(new byte[16]);
+        AvroGenerator generator = Avro.generator(Avro.schema("\"int\""), out, 0);
+        assertThrows(IllegalArgumentException.class, () -> generator.wrap(out, 0, out.capacity() + 1));
     }
 
     @Test

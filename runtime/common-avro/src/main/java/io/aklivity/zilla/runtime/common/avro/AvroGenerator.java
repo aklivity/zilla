@@ -22,21 +22,17 @@ import org.agrona.MutableDirectBuffer;
  * generator validates each call against the schema and writes the Avro binary encoding, framing arrays
  * and maps as single-element blocks so values can be written without buffering. Records are positional
  * — field values are written in declaration order with no field names on the wire.
- * {@link #wrap(MutableDirectBuffer, int)} targets the output buffer and resets; {@link #length()}
+ * {@link #wrap(MutableDirectBuffer, int, int)} targets the output buffer and resets; {@link #length()}
  * reports the bytes written for the current message; {@link #writeRaw} appends a raw slice verbatim.
  * Not thread-safe; reuse one per thread.
  */
 public interface AvroGenerator
 {
-    void wrap(
-        MutableDirectBuffer buffer,
-        int offset);
-
     /**
-     * Wraps {@code buffer} with a hard byte {@code limit} (rather than the buffer's full capacity) — the
-     * bound a chunking driver watches via {@link #remaining()} to decide when to drain and continue. The
-     * two-argument {@link #wrap(MutableDirectBuffer, int)} is equivalent with {@code limit} set to the
-     * remaining capacity.
+     * Targets {@code buffer} starting at {@code offset} with a hard byte {@code limit} — the bound a
+     * chunking driver watches via {@link #remaining()} to decide when to drain and continue. Pass the
+     * buffer's remaining capacity for unbounded output; {@code offset + limit} must not exceed the
+     * buffer's capacity.
      */
     void wrap(
         MutableDirectBuffer buffer,

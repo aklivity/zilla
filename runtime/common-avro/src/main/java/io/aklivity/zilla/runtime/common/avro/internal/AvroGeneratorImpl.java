@@ -51,14 +51,6 @@ public final class AvroGeneratorImpl implements AvroGenerator
     @Override
     public void wrap(
         MutableDirectBuffer buffer,
-        int offset)
-    {
-        retarget(buffer, offset, buffer.capacity());
-    }
-
-    @Override
-    public void wrap(
-        MutableDirectBuffer buffer,
         int offset,
         int limit)
     {
@@ -276,6 +268,10 @@ public final class AvroGeneratorImpl implements AvroGenerator
         int offset,
         int bound)
     {
+        if (bound > buffer.capacity())
+        {
+            throw new IllegalArgumentException("limit exceeds buffer capacity");
+        }
         this.buffer = buffer;
         this.base = offset;
         this.bound = bound;
