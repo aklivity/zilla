@@ -116,7 +116,7 @@ public interface JsonSchema
      * lets a downstream projector see the complete, unpruned stream (required for whole-value
      * keywords like {@code required}, {@code additionalProperties}, and the combinators); the
      * stage's own {@link JsonPipeline.Status} reflects the schema verdict — {@link
-     * JsonPipeline.Status#COMPLETE} when the value validates, {@link
+     * JsonPipeline.Status#COMPLETED} when the value validates, {@link
      * JsonPipeline.Status#REJECTED} when it does not. Rejection is reported at the value boundary,
      * after the forwarded events have already been emitted, so callers abort the output stream on
      * {@code REJECTED} (emit-then-abort).

@@ -113,7 +113,7 @@ public final class JsonProjectorImpl implements JsonTransform
         JsonEvent event,
         JsonSink sink)
     {
-        downstream = Status.RESUMABLE;
+        downstream = Status.ADVANCED;
         if (segMode == SegMode.AWAITING)
         {
             onAwaiting(control, source, event, sink);
@@ -137,11 +137,11 @@ public final class JsonProjectorImpl implements JsonTransform
         }
         else if (rootDone)
         {
-            status = Status.COMPLETE;
+            status = Status.COMPLETED;
         }
         else
         {
-            status = Status.RESUMABLE;
+            status = Status.ADVANCED;
         }
         return status;
     }
@@ -168,7 +168,7 @@ public final class JsonProjectorImpl implements JsonTransform
         {
         case REJECTED -> 3;
         case SUSPENDED -> 2;
-        case COMPLETE -> 1;
+        case COMPLETED -> 1;
         default -> 0;
         };
     }

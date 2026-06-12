@@ -40,7 +40,7 @@ JsonPipeline pipeline = StreamingJson.createParser().stream()
     .transform(StreamingJson.projector(List.of("/id", "/name")))
     .into(JsonSink.of(generator));
 pipeline.reset();
-if (pipeline.feed(in, off, len) == JsonPipeline.Status.COMPLETE)   // RESUMABLE / SUSPENDED / COMPLETE / REJECTED
+if (pipeline.feed(in, off, len) == JsonPipeline.Status.COMPLETED)   // ADVANCED / SUSPENDED / COMPLETED / REJECTED
 {
     int length = generator.length();    // projected JSON bytes in out
 }
@@ -69,11 +69,11 @@ if (pipeline.feed(in, off, len) == JsonPipeline.Status.COMPLETE)   // RESUMABLE 
 
 `feed` returns one of four states, separating **input** bounding from **output** bounding:
 
-- **`RESUMABLE`** — the parser exhausted this frame mid-value; feed the next frame to continue. The
+- **`ADVANCED`** — the parser exhausted this frame mid-value; feed the next frame to continue. The
   parser is not re-wrapped on a resumed feed, so a value spanning frames reassembles seamlessly.
 - **`SUSPENDED`** — the bounded output filled; drain it, re-target the generator, and feed the same
   frame again to continue (see below).
-- **`COMPLETE`** — the current top-level value finished and was accepted.
+- **`COMPLETED`** — the current top-level value finished and was accepted.
 - **`REJECTED`** — the value was rejected (malformed JSON, or a schema violation from a `validator`
   stage); the output must be abandoned. Malformed input surfaces as `REJECTED` rather than escaping
   `feed` as an exception.
@@ -104,11 +104,11 @@ while (status == JsonPipeline.Status.SUSPENDED)   // output full
     generator.wrap(out, 0, limit);                // re-target output, structural context preserved
     status = pipeline.feed(in, off, len);         // resume the in-flight value
 }
-// COMPLETE: emit the final generator.length() bytes
+// COMPLETED: emit the final generator.length() bytes
 ```
 
 `reset()` also clears the generator's structural context (via the pipeline's `reset()` cascade), so a
-generator returned to a pool mid-value — an abandoned `RESUMABLE` frame or a `REJECTED` value left with
+generator returned to a pool mid-value — an abandoned `ADVANCED` frame or a `REJECTED` value left with
 open structure — does not leak that structure into the next checkout.
 
 ### Fragmenting values larger than the bound

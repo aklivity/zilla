@@ -128,7 +128,7 @@ class JsonPipelineChunkingTest
         generator.wrap(output, 0, 128);
         Status status = pipeline.feed(new UnsafeBuffer(bytes), 0, bytes.length);
 
-        assertEquals(Status.COMPLETE, status);
+        assertEquals(Status.COMPLETED, status);
         byte[] out = new byte[generator.length()];
         output.getBytes(0, out);
         assertEquals("[1,2,3]", new String(out, UTF_8));
@@ -164,7 +164,7 @@ class JsonPipelineChunkingTest
             guard++;
         }
         while (status == Status.SUSPENDED && guard < 10_000);
-        assertEquals(Status.COMPLETE, status);
+        assertEquals(Status.COMPLETED, status);
         assertTrue(suspends >= 1, "expected at least one SUSPENDED chunk boundary");
         return result.toString();
     }

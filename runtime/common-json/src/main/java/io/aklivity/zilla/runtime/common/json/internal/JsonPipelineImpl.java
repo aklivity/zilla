@@ -56,7 +56,7 @@ public final class JsonPipelineImpl implements JsonPipeline
         int offset,
         int length)
     {
-        Status status = Status.RESUMABLE;
+        Status status = Status.ADVANCED;
         try
         {
             if (suspended)
@@ -67,7 +67,7 @@ public final class JsonPipelineImpl implements JsonPipeline
             {
                 parser.wrap(buffer, offset, length);
             }
-            while (status == Status.RESUMABLE && parser.hasNextEvent())
+            while (status == Status.ADVANCED && parser.hasNextEvent())
             {
                 status = root.feed(parser, parser, parser.nextEvent());
             }

@@ -47,14 +47,14 @@ public interface JsonSink
      * being written across chunks — before the next event is fed, reading the in-flight value from
      * {@code source} and steering the immediate upstream with {@code control}. Returns {@link
      * JsonPipeline.Status#SUSPENDED} if the bounded output filled again, or {@link
-     * JsonPipeline.Status#RESUMABLE} when nothing remains pending. A stage with no in-flight output
-     * returns {@code RESUMABLE}; the default is sufficient for stages that only forward events.
+     * JsonPipeline.Status#ADVANCED} when nothing remains pending. A stage with no in-flight output
+     * returns {@code ADVANCED}; the default is sufficient for stages that only forward events.
      */
     default JsonPipeline.Status resume(
         JsonController control,
         JsonSource source)
     {
-        return JsonPipeline.Status.RESUMABLE;
+        return JsonPipeline.Status.ADVANCED;
     }
 
     default void reset()

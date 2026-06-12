@@ -39,7 +39,7 @@ class JsonProjectorSegmentTest
 
         Status status = run(pipeline, "{\"a\":{ \"b\" : 1 },\"z\":9} ");
 
-        assertEquals(Status.COMPLETE, status);
+        assertEquals(Status.COMPLETED, status);
         assertEquals("{\"a\":{ \"b\" : 1 }}", output(gen));
     }
 
@@ -53,7 +53,7 @@ class JsonProjectorSegmentTest
 
         Status status = run(pipeline, "{\"a\":{ \"b\" : 1 },\"z\":9} ");
 
-        assertEquals(Status.COMPLETE, status);
+        assertEquals(Status.COMPLETED, status);
         assertEquals("{\"a\":{\"b\":1}}", output(gen));
     }
 
@@ -67,7 +67,7 @@ class JsonProjectorSegmentTest
 
         Status status = run(pipeline, "{ \"a\" : 1 } ");
 
-        assertEquals(Status.COMPLETE, status);
+        assertEquals(Status.COMPLETED, status);
         assertEquals("{ \"a\" : 1 }", output(gen));
     }
 
@@ -85,7 +85,7 @@ class JsonProjectorSegmentTest
 
         Status status = run(pipeline, "{\"a\":{ \"b\" : 1 },\"z\":9} ");
 
-        assertEquals(Status.COMPLETE, status);
+        assertEquals(Status.COMPLETED, status);
         assertEquals("{\"a\":{\"b\":1}}", output(gen));
     }
 
@@ -99,7 +99,7 @@ class JsonProjectorSegmentTest
 
         Status status = run(pipeline, "{\"items\":[{ \"id\" : 1 },{\"id\":2}]} ");
 
-        assertEquals(Status.COMPLETE, status);
+        assertEquals(Status.COMPLETED, status);
         assertEquals("{\"items\":[{ \"id\" : 1 }]}", output(gen));
     }
 

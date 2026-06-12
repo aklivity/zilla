@@ -39,7 +39,7 @@ class JsonProjectorSegmentHardeningTest
 
         Status status = run(pipeline, "{\"a\":{ \"b\" : { \"c\" : [1, {\"d\": 2}] } },\"z\":9} ");
 
-        assertEquals(Status.COMPLETE, status);
+        assertEquals(Status.COMPLETED, status);
         assertEquals("{\"a\":{ \"b\" : { \"c\" : [1, {\"d\": 2}] } }}", output(gen));
     }
 
@@ -70,7 +70,7 @@ class JsonProjectorSegmentHardeningTest
 
         Status status = run(pipeline, "{\"a\":{ \"b\" : { \"c\" : [1, {\"d\": 2}] } },\"z\":9} ");
 
-        assertEquals(Status.COMPLETE, status);
+        assertEquals(Status.COMPLETED, status);
         assertEquals("{\"a\":{\"b\":{\"c\":[1,{\"d\":2}]}}}", output(gen));
     }
 

@@ -1673,7 +1673,7 @@ public final class JsonSchemaImpl implements JsonSchema
             if (event.segmented() || event == JsonEvent.START_DOCUMENT || event == JsonEvent.END_DOCUMENT)
             {
                 status = downstream == Status.REJECTED ? Status.REJECTED
-                    : downstream == Status.SUSPENDED ? Status.SUSPENDED : Status.RESUMABLE;
+                    : downstream == Status.SUSPENDED ? Status.SUSPENDED : Status.ADVANCED;
             }
             else
             {
@@ -1684,11 +1684,11 @@ public final class JsonSchemaImpl implements JsonSchema
                 }
                 else if (verdict == Verdict.VALID)
                 {
-                    status = Status.COMPLETE;
+                    status = Status.COMPLETED;
                 }
                 else
                 {
-                    status = downstream == Status.SUSPENDED ? Status.SUSPENDED : Status.RESUMABLE;
+                    status = downstream == Status.SUSPENDED ? Status.SUSPENDED : Status.ADVANCED;
                 }
             }
             return status;

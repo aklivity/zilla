@@ -36,7 +36,7 @@ class JsonSinkSegmentTest
             JsonEvent event,
             JsonSink sink)
         {
-            Status status = Status.RESUMABLE;
+            Status status = Status.ADVANCED;
             if (!armed && (event == JsonEvent.START_OBJECT || event == JsonEvent.START_ARRAY))
             {
                 armed = true;
@@ -64,7 +64,7 @@ class JsonSinkSegmentTest
         pipeline.reset();
         Status status = pipeline.feed(new UnsafeBuffer(bytes), 0, bytes.length);
 
-        assertEquals(Status.COMPLETE, status);
+        assertEquals(Status.COMPLETED, status);
         byte[] out = new byte[gen.length()];
         buffer.getBytes(0, out);
         assertEquals("{ \"a\" : 1 }", new String(out, UTF_8));
@@ -83,7 +83,7 @@ class JsonSinkSegmentTest
         pipeline.reset();
         Status status = pipeline.feed(new UnsafeBuffer(bytes), 0, bytes.length);
 
-        assertEquals(Status.COMPLETE, status);
+        assertEquals(Status.COMPLETED, status);
         byte[] out = new byte[gen.length()];
         buffer.getBytes(0, out);
         assertEquals("{ \"a\" : [1, 2], \"b\" : 3 }", new String(out, UTF_8));
@@ -103,7 +103,7 @@ class JsonSinkSegmentTest
         pipeline.reset();
         Status status = pipeline.feed(new UnsafeBuffer(bytes), 0, bytes.length);
 
-        assertEquals(Status.COMPLETE, status);
+        assertEquals(Status.COMPLETED, status);
         byte[] out = new byte[gen.length()];
         buffer.getBytes(0, out);
         assertEquals("[ 1, 2 ]", new String(out, UTF_8));
@@ -123,7 +123,7 @@ class JsonSinkSegmentTest
         pipeline.reset();
         Status status = pipeline.feed(new UnsafeBuffer(bytes), 0, bytes.length);
 
-        assertEquals(Status.COMPLETE, status);
+        assertEquals(Status.COMPLETED, status);
         byte[] out = new byte[gen.length()];
         buffer.getBytes(0, out);
         assertEquals("{ \"x\" : [1 ,2] }", new String(out, UTF_8));
@@ -143,10 +143,10 @@ class JsonSinkSegmentTest
         byte[] second = "\"b\":2} ".getBytes(UTF_8);
 
         pipeline.reset();
-        assertEquals(Status.RESUMABLE, pipeline.feed(new UnsafeBuffer(first), 0, first.length));
+        assertEquals(Status.ADVANCED, pipeline.feed(new UnsafeBuffer(first), 0, first.length));
         Status status = pipeline.feed(new UnsafeBuffer(second), 0, second.length);
 
-        assertEquals(Status.COMPLETE, status);
+        assertEquals(Status.COMPLETED, status);
         byte[] out = new byte[gen.length()];
         buffer.getBytes(0, out);
         assertEquals("{\"a\":1,\"b\":2}", new String(out, UTF_8));

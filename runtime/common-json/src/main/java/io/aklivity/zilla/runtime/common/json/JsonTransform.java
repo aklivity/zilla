@@ -39,7 +39,7 @@ public interface JsonTransform
      * sufficient for a stage that only forwards events. A stage that itself emits a value across chunks
      * (substituting or expanding output) overrides this to continue its own emission, draining the
      * downstream first. Returns {@link JsonPipeline.Status#SUSPENDED} if the bounded output filled again,
-     * or {@link JsonPipeline.Status#RESUMABLE} when nothing remains pending.
+     * or {@link JsonPipeline.Status#ADVANCED} when nothing remains pending.
      */
     default JsonPipeline.Status resume(
         JsonController control,

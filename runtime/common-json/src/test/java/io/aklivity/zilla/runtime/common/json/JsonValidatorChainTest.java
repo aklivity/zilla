@@ -50,7 +50,7 @@ class JsonValidatorChainTest
 
         Status status = run(pipeline, "{\"id\":1,\"name\":\"x\"} ");
 
-        assertEquals(Status.COMPLETE, status);
+        assertEquals(Status.COMPLETED, status);
         assertEquals("{\"id\":1,\"name\":\"x\"}", output(gen));
     }
 
@@ -66,7 +66,7 @@ class JsonValidatorChainTest
 
         Status status = run(pipeline, "{\"id\":1,\"name\":\"x\"} ");
 
-        assertEquals(Status.COMPLETE, status);
+        assertEquals(Status.COMPLETED, status);
         assertEquals("{\"id\":1}", output(gen));
     }
 
@@ -113,10 +113,10 @@ class JsonValidatorChainTest
         UnsafeBuffer in = new UnsafeBuffer(bytes);
 
         pipeline.reset();
-        assertEquals(Status.RESUMABLE, pipeline.feed(in, 0, 8));
+        assertEquals(Status.ADVANCED, pipeline.feed(in, 0, 8));
         Status status = pipeline.feed(in, 8, bytes.length - 8);
 
-        assertEquals(Status.COMPLETE, status);
+        assertEquals(Status.COMPLETED, status);
         assertEquals("{\"id\":1,\"name\":\"x\"}", output(gen));
     }
 
@@ -130,7 +130,7 @@ class JsonValidatorChainTest
             .into(JsonSink.of(gen));
 
         gen.wrap(buffer, 0, buffer.capacity());
-        assertEquals(Status.COMPLETE, run(pipeline, "{\"id\":1,\"name\":\"a\"} "));
+        assertEquals(Status.COMPLETED, run(pipeline, "{\"id\":1,\"name\":\"a\"} "));
         assertEquals("{\"id\":1,\"name\":\"a\"}", output(gen));
 
         gen.wrap(buffer, 0, buffer.capacity());
@@ -148,7 +148,7 @@ class JsonValidatorChainTest
 
         Status status = run(pipeline, "{\"id\":1} ");
 
-        assertEquals(Status.COMPLETE, status);
+        assertEquals(Status.COMPLETED, status);
         assertEquals("{\"id\":1}", output(gen));
     }
 

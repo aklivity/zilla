@@ -26,7 +26,7 @@ import io.aklivity.zilla.runtime.common.json.JsonSource;
 
 /**
  * Terminal {@link JsonSink} that materializes each fed event into the corresponding {@code writeXxx}
- * call on the wrapped {@link JsonGeneratorEx}. Reaches {@link Status#COMPLETE} when the current
+ * call on the wrapped {@link JsonGeneratorEx}. Reaches {@link Status#COMPLETED} when the current
  * top-level value closes at depth zero.
  */
 public final class JsonSinkImpl implements JsonSink
@@ -59,7 +59,7 @@ public final class JsonSinkImpl implements JsonSink
         JsonSource source,
         JsonEvent event)
     {
-        Status status = Status.RESUMABLE;
+        Status status = Status.ADVANCED;
         DirectBuffer segment;
         switch (event)
         {
@@ -80,7 +80,7 @@ public final class JsonSinkImpl implements JsonSink
             depth--;
             if (depth == 0)
             {
-                status = Status.COMPLETE;
+                status = Status.COMPLETED;
             }
             break;
         case VALUE_STRING:
@@ -136,7 +136,7 @@ public final class JsonSinkImpl implements JsonSink
     {
         Status status = pendingSegmentEvent != null
             ? writeChunk(source.getSegment(), pendingSegmentEvent)
-            : Status.RESUMABLE;
+            : Status.ADVANCED;
         return boundary(status);
     }
 
@@ -172,7 +172,7 @@ public final class JsonSinkImpl implements JsonSink
         {
             segmentWritten = 0;
             pendingSegmentEvent = null;
-            status = event == JsonEvent.END_SEGMENT ? scalarStatus() : Status.RESUMABLE;
+            status = event == JsonEvent.END_SEGMENT ? scalarStatus() : Status.ADVANCED;
         }
         return status;
     }
@@ -183,7 +183,7 @@ public final class JsonSinkImpl implements JsonSink
         Status status)
     {
         Status result = status;
-        if (status == Status.RESUMABLE && generator.length() > 0 && generator.remaining() < HEADROOM)
+        if (status == Status.ADVANCED && generator.length() > 0 && generator.remaining() < HEADROOM)
         {
             result = Status.SUSPENDED;
         }
@@ -192,6 +192,6 @@ public final class JsonSinkImpl implements JsonSink
 
     private Status scalarStatus()
     {
-        return depth == 0 ? Status.COMPLETE : Status.RESUMABLE;
+        return depth == 0 ? Status.COMPLETED : Status.ADVANCED;
     }
 }
