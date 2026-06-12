@@ -19,6 +19,7 @@ import java.util.List;
 
 import io.aklivity.zilla.runtime.common.avro.AvroController;
 import io.aklivity.zilla.runtime.common.avro.AvroEvent;
+import io.aklivity.zilla.runtime.common.avro.AvroParser;
 import io.aklivity.zilla.runtime.common.avro.AvroPipeline;
 import io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status;
 import io.aklivity.zilla.runtime.common.avro.AvroSink;
@@ -28,11 +29,11 @@ import io.aklivity.zilla.runtime.common.avro.AvroTransform;
 
 public final class AvroStreamImpl implements AvroStream
 {
-    private final AvroParserImpl driver;
+    private final AvroParser driver;
     private final List<AvroTransform> transforms;
 
     public AvroStreamImpl(
-        AvroParserImpl driver)
+        AvroParser driver)
     {
         this.driver = driver;
         this.transforms = new ArrayList<>();

@@ -77,7 +77,7 @@ public final class Avro
     public static AvroStream stream(
         AvroParser parser)
     {
-        return new AvroStreamImpl((AvroParserImpl) parser);
+        return new AvroStreamImpl(parser);
     }
 
     /**

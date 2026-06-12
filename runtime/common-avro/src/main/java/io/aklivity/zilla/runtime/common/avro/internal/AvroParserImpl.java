@@ -46,22 +46,21 @@ import org.agrona.ExpandableArrayBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
-import io.aklivity.zilla.runtime.common.avro.AvroController;
 import io.aklivity.zilla.runtime.common.avro.AvroEvent;
 import io.aklivity.zilla.runtime.common.avro.AvroKind;
 import io.aklivity.zilla.runtime.common.avro.AvroLocation;
 import io.aklivity.zilla.runtime.common.avro.AvroParser;
 import io.aklivity.zilla.runtime.common.avro.AvroSchema;
-import io.aklivity.zilla.runtime.common.avro.AvroSource;
 import io.aklivity.zilla.runtime.common.avro.AvroType;
 import io.aklivity.zilla.runtime.common.avro.AvroValidationException;
 
 /**
- * The pull parser ({@link AvroParser}) that is also the {@link AvroSource} the pipeline layers over
- * it and the {@link AvroController} steering segment delivery. The interfaces stay distinct; this one
- * class provides all three so the pipeline can hand the same instance to a sink as source and control.
+ * The pull cursor ({@link AvroParser}) that decodes the Avro wire into a typed event stream and reads
+ * each value in place. It is a pure cursor: {@link AvroPipelineImpl} layers the push pipeline over it,
+ * owning the read-only {@code AvroSource} view and the {@code AvroController} the stages see, so a stage
+ * cannot disturb the pump.
  */
-public final class AvroParserImpl implements AvroParser, AvroSource, AvroController
+public final class AvroParserImpl implements AvroParser
 {
     private static final int READ_OK = 0;
     private static final int READ_UNDERFLOW = 1;
@@ -188,7 +187,8 @@ public final class AvroParserImpl implements AvroParser, AvroSource, AvroControl
         segmentRequested = true;
     }
 
-    void reset()
+    @Override
+    public void reset()
     {
         depth = 0;
         workLimit = 0;
@@ -204,7 +204,8 @@ public final class AvroParserImpl implements AvroParser, AvroSource, AvroControl
         push(root);
     }
 
-    boolean complete()
+    @Override
+    public boolean complete()
     {
         return done;
     }

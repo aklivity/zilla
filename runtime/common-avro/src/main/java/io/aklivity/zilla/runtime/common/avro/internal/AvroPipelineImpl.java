@@ -21,30 +21,43 @@ import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.SUSPENDE
 
 import org.agrona.DirectBuffer;
 
+import io.aklivity.zilla.runtime.common.avro.AvroController;
+import io.aklivity.zilla.runtime.common.avro.AvroLocation;
+import io.aklivity.zilla.runtime.common.avro.AvroParser;
 import io.aklivity.zilla.runtime.common.avro.AvroPipeline;
 import io.aklivity.zilla.runtime.common.avro.AvroSink;
+import io.aklivity.zilla.runtime.common.avro.AvroSource;
+import io.aklivity.zilla.runtime.common.avro.AvroType;
 import io.aklivity.zilla.runtime.common.avro.AvroValidationException;
 
 /**
- * Backs {@link AvroPipeline}: pulls events from the bound {@link AvroParserImpl} and pushes each
- * through the root {@link AvroSink}, passing the parser itself as both the immutable source view and
- * the control handle. The status is whatever the sink reports; if the sink never completes but the
- * parser reaches the end of the message, the datum is {@code COMPLETED}; malformed binary aborts with
- * {@code REJECTED}. On {@code SUSPENDED} (bounded output full) the parser keeps its position, so a
- * resume {@code feed} continues from where it paused — its buffer arguments are ignored.
+ * Backs {@link AvroPipeline}: a thin pump that re-targets the {@link AvroParser} cursor at the frame
+ * buffer and pushes each pulled event through the stage chain to the terminal sink. It owns the
+ * per-edge handles the stages see — a read-only {@link AvroSource} view that delegates to the parser's
+ * accessors (without exposing the cursor, so a stage cannot disturb the pump) and an
+ * {@link AvroController} that forwards a stage's segment request — leaving the parser a pure cursor.
+ * <p>
+ * The status is whatever the sink reports; if the sink never completes but the parser reaches the end
+ * of the message, the datum is {@code COMPLETED}; malformed binary aborts with {@code REJECTED}. On
+ * {@code SUSPENDED} (bounded output full) the parser keeps its position, so a resume {@code feed}
+ * continues from where it paused — its buffer arguments are ignored.
  */
 final class AvroPipelineImpl implements AvroPipeline
 {
-    private final AvroParserImpl parser;
+    private final AvroParser parser;
+    private final Source source;
+    private final Control control;
     private final AvroSink root;
 
     private boolean suspended;
 
     AvroPipelineImpl(
-        AvroParserImpl parser,
+        AvroParser parser,
         AvroSink root)
     {
         this.parser = parser;
+        this.source = new Source(parser);
+        this.control = new Control(parser);
         this.root = root;
     }
 
@@ -67,7 +80,7 @@ final class AvroPipelineImpl implements AvroPipeline
         {
             if (suspended)
             {
-                status = root.resume(parser, parser);
+                status = root.resume(control, source);
             }
             else
             {
@@ -75,7 +88,7 @@ final class AvroPipelineImpl implements AvroPipeline
             }
             while (status == ADVANCED && parser.hasNext())
             {
-                status = root.feed(parser, parser, parser.nextEvent());
+                status = root.feed(control, source, parser.nextEvent());
             }
             if (status == ADVANCED && parser.complete())
             {
@@ -88,5 +101,103 @@ final class AvroPipelineImpl implements AvroPipeline
         }
         suspended = status == SUSPENDED;
         return status;
+    }
+
+    // the read-only view handed to stages: the parser's accessors without its cursor, so a stage reads the
+    // current value but cannot advance the pump
+    private static final class Source implements AvroSource
+    {
+        private final AvroParser parser;
+
+        private Source(
+            AvroParser parser)
+        {
+            this.parser = parser;
+        }
+
+        @Override
+        public boolean getBoolean()
+        {
+            return parser.getBoolean();
+        }
+
+        @Override
+        public int getInt()
+        {
+            return parser.getInt();
+        }
+
+        @Override
+        public long getLong()
+        {
+            return parser.getLong();
+        }
+
+        @Override
+        public float getFloat()
+        {
+            return parser.getFloat();
+        }
+
+        @Override
+        public double getDouble()
+        {
+            return parser.getDouble();
+        }
+
+        @Override
+        public String getString()
+        {
+            return parser.getString();
+        }
+
+        @Override
+        public String getField()
+        {
+            return parser.getField();
+        }
+
+        @Override
+        public String getKey()
+        {
+            return parser.getKey();
+        }
+
+        @Override
+        public DirectBuffer getSegment()
+        {
+            return parser.getSegment();
+        }
+
+        @Override
+        public AvroType type()
+        {
+            return parser.type();
+        }
+
+        @Override
+        public AvroLocation getLocation()
+        {
+            return parser.getLocation();
+        }
+    }
+
+    // the head edge's controller: a stage's segmentable() request is forwarded to the cursor, which honors it
+    // at the next message boundary
+    private static final class Control implements AvroController
+    {
+        private final AvroParser parser;
+
+        private Control(
+            AvroParser parser)
+        {
+            this.parser = parser;
+        }
+
+        @Override
+        public void segmentable()
+        {
+            parser.segmentable();
+        }
     }
 }
