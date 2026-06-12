@@ -23,7 +23,7 @@ import jakarta.json.stream.JsonParser;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
 
-class StreamingJsonLocationTest
+class JsonLocationTest
 {
     @Test
     void shouldReturnMinusOneForLineAndColumn()
@@ -63,6 +63,6 @@ class StreamingJsonLocationTest
         byte[] bytes = text.getBytes(UTF_8);
         DirectBufferInputStreamEx in = new DirectBufferInputStreamEx();
         in.wrap(new UnsafeBuffer(bytes), 0, bytes.length);
-        return StreamingJson.createParser(in);
+        return JsonEx.createParser(in);
     }
 }

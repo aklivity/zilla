@@ -36,9 +36,9 @@ import org.junit.jupiter.api.DynamicNode;
 import org.junit.jupiter.api.TestFactory;
 
 import io.aklivity.zilla.runtime.common.json.DirectBufferInputStreamEx;
+import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
 import io.aklivity.zilla.runtime.common.json.JsonSchema.Draft;
-import io.aklivity.zilla.runtime.common.json.StreamingJson;
 
 /**
  * Runs the vendored subset of the official JSON Schema Test Suite (see
@@ -369,6 +369,6 @@ class JsonSchemaConformanceTest
         byte[] bytes = text.getBytes(UTF_8);
         DirectBufferInputStreamEx in = new DirectBufferInputStreamEx();
         in.wrap(new UnsafeBuffer(bytes), 0, bytes.length);
-        return StreamingJson.createParser(in);
+        return JsonEx.createParser(in);
     }
 }

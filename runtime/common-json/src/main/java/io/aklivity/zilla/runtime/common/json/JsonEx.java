@@ -25,6 +25,7 @@ import io.aklivity.zilla.runtime.common.json.internal.JsonGeneratorImpl;
 import io.aklivity.zilla.runtime.common.json.internal.JsonParserFactoryImpl;
 import io.aklivity.zilla.runtime.common.json.internal.JsonParserImpl;
 import io.aklivity.zilla.runtime.common.json.internal.JsonProjectorImpl;
+import io.aklivity.zilla.runtime.common.json.internal.JsonStreamImpl;
 
 /**
  * Entry point for {@code common-json}'s streaming JSON parsing over Agrona buffers.
@@ -35,7 +36,7 @@ import io.aklivity.zilla.runtime.common.json.internal.JsonProjectorImpl;
  * parser also supports. It requires no {@code jakarta.json} provider on the classpath;
  * {@code common-json} ships the implementation.
  */
-public final class StreamingJson
+public final class JsonEx
 {
     /**
      * Config key whose value is a {@code List<String>} of JSON Pointer (RFC 6901) syntax
@@ -67,7 +68,7 @@ public final class StreamingJson
      */
     public static final String TOKEN_MAX_BYTES = "io.aklivity.zilla.runtime.common.json.token.max.bytes";
 
-    private StreamingJson()
+    private JsonEx()
     {
     }
 
@@ -119,6 +120,18 @@ public final class StreamingJson
     public static JsonGeneratorEx createGenerator()
     {
         return new JsonGeneratorImpl();
+    }
+
+    /**
+     * Begins a push pipeline pumped by {@code parser}: append stages with {@link JsonStream#transform}
+     * and terminate with {@link JsonStream#into}. The {@code parser} (from {@link #createParser()} or
+     * {@link #createParser(Map)}) supplies the events; stages see a non-advancing {@link JsonSource}
+     * view of each.
+     */
+    public static JsonStream stream(
+        JsonParserEx parser)
+    {
+        return new JsonStreamImpl((JsonParserImpl) parser);
     }
 
     /**

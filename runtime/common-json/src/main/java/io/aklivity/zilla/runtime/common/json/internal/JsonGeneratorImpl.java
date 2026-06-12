@@ -48,27 +48,44 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
 
     private MutableDirectBuffer buffer;
     private int offset;
+    private int progress;
     private int limit;
     private int depth;
+    private int deferred;
     private boolean afterKey;
 
     @Override
     public JsonGeneratorImpl wrap(
         MutableDirectBuffer buffer,
-        int offset)
+        int offset,
+        int limit)
     {
+        assert offset <= limit && limit <= buffer.capacity();
         this.buffer = buffer;
         this.offset = offset;
-        this.limit = offset;
-        this.depth = 0;
-        this.afterKey = false;
+        this.progress = offset;
+        this.limit = limit;
         return this;
     }
 
     @Override
     public int length()
     {
-        return limit - offset;
+        return progress - offset;
+    }
+
+    @Override
+    public void reset()
+    {
+        this.depth = 0;
+        this.deferred = 0;
+        this.afterKey = false;
+    }
+
+    @Override
+    public int remaining()
+    {
+        return limit - progress;
     }
 
     @Override
@@ -109,6 +126,13 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     public JsonGeneratorImpl writeKey(
         String name)
     {
+        return writeKey((CharSequence) name);
+    }
+
+    @Override
+    public JsonGeneratorImpl writeKey(
+        CharSequence name)
+    {
         if (hasMembers[depth - 1])
         {
             putByte(',');
@@ -131,6 +155,13 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     @Override
     public JsonGeneratorImpl write(
         String value)
+    {
+        return write((CharSequence) value);
+    }
+
+    @Override
+    public JsonGeneratorImpl write(
+        CharSequence value)
     {
         preValue();
         writeString(value);
@@ -319,6 +350,13 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     public JsonGeneratorImpl writeNumber(
         String literal)
     {
+        return writeNumber((CharSequence) literal);
+    }
+
+    @Override
+    public JsonGeneratorImpl writeNumber(
+        CharSequence literal)
+    {
         preValue();
         writeAscii(literal);
         return this;
@@ -331,8 +369,9 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         int length)
     {
         preValue();
-        buffer.putBytes(limit, source, index, length);
-        limit += length;
+        assert progress + length <= limit;
+        buffer.putBytes(progress, source, index, length);
+        progress += length;
         return this;
     }
 
@@ -342,8 +381,23 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         int index,
         int length)
     {
-        buffer.putBytes(limit, source, index, length);
-        limit += length;
+        assert progress + length <= limit;
+        buffer.putBytes(progress, source, index, length);
+        progress += length;
+        return this;
+    }
+
+    @Override
+    public JsonGeneratorImpl writeSegment(
+        DirectBuffer source,
+        int index,
+        int length,
+        int deferred)
+    {
+        assert progress + length <= limit;
+        buffer.putBytes(progress, source, index, length);
+        progress += length;
+        this.deferred = deferred;
         return this;
     }
 
@@ -383,14 +437,14 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     }
 
     private void writeString(
-        String value)
+        CharSequence value)
     {
         putByte('"');
         int index = 0;
         int length = value.length();
         while (index < length)
         {
-            int codePoint = value.codePointAt(index);
+            int codePoint = Character.codePointAt(value, index);
             index += Character.charCount(codePoint);
             switch (codePoint)
             {
@@ -476,7 +530,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     }
 
     private void writeAscii(
-        String value)
+        CharSequence value)
     {
         for (int index = 0; index < value.length(); index++)
         {
@@ -487,7 +541,8 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     private void putByte(
         int value)
     {
-        buffer.putByte(limit, (byte) value);
-        limit++;
+        assert progress < limit;
+        buffer.putByte(progress, (byte) value);
+        progress++;
     }
 }

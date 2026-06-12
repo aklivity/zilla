@@ -34,7 +34,7 @@ import jakarta.json.stream.JsonParserFactory;
 
 import org.junit.jupiter.api.Test;
 
-import io.aklivity.zilla.runtime.common.json.StreamingJson;
+import io.aklivity.zilla.runtime.common.json.JsonEx;
 
 public class JsonParserFactoryImplTest
 {
@@ -42,9 +42,9 @@ public class JsonParserFactoryImplTest
     public void shouldCreateParserForInputStreamWithSharedConfig()
     {
         final Map<String, Object> config = Map.of(
-            StreamingJson.PATH_INCLUDES, List.of("/jsonrpc"),
-            StreamingJson.TOKEN_MAX_BYTES, 1024);
-        final JsonParserFactory factory = StreamingJson.createParserFactory(config);
+            JsonEx.PATH_INCLUDES, List.of("/jsonrpc"),
+            JsonEx.TOKEN_MAX_BYTES, 1024);
+        final JsonParserFactory factory = JsonEx.createParserFactory(config);
 
         final InputStream in1 = new BufferedInputStream(
             new ByteArrayInputStream("{\"jsonrpc\":\"2.0\"}".getBytes(UTF_8)));
@@ -66,15 +66,15 @@ public class JsonParserFactoryImplTest
     public void shouldExposeConfigInUse()
     {
         final Map<String, Object> config = Map.of(
-            StreamingJson.PATH_INCLUDES, List.of("/jsonrpc"));
-        final JsonParserFactory factory = StreamingJson.createParserFactory(config);
+            JsonEx.PATH_INCLUDES, List.of("/jsonrpc"));
+        final JsonParserFactory factory = JsonEx.createParserFactory(config);
         assertSame(config, factory.getConfigInUse());
     }
 
     @Test
     public void shouldCreateParserForInputStreamWithCharset()
     {
-        final JsonParserFactory factory = StreamingJson.createParserFactory(Map.of());
+        final JsonParserFactory factory = JsonEx.createParserFactory(Map.of());
         final InputStream in = new BufferedInputStream(
             new ByteArrayInputStream("{}".getBytes(UTF_8)));
         try (JsonParser parser = factory.createParser(in, UTF_8))
@@ -86,7 +86,7 @@ public class JsonParserFactoryImplTest
     @Test
     public void shouldCreateParserForReaderSource()
     {
-        final JsonParserFactory factory = StreamingJson.createParserFactory(Map.of());
+        final JsonParserFactory factory = JsonEx.createParserFactory(Map.of());
         try (JsonParser parser = factory.createParser(new StringReader("{\"a\":1}")))
         {
             assertEquals(JsonParser.Event.START_OBJECT, parser.next());
@@ -98,7 +98,7 @@ public class JsonParserFactoryImplTest
     @Test
     public void shouldCreateParserForJsonObjectSource()
     {
-        final JsonParserFactory factory = StreamingJson.createParserFactory(Map.of());
+        final JsonParserFactory factory = JsonEx.createParserFactory(Map.of());
         final JsonObject object = JsonProvider.provider().createObjectBuilder().add("a", 1).build();
         try (JsonParser parser = factory.createParser(object))
         {
@@ -111,7 +111,7 @@ public class JsonParserFactoryImplTest
     @Test
     public void shouldCreateParserForJsonArraySource()
     {
-        final JsonParserFactory factory = StreamingJson.createParserFactory(Map.of());
+        final JsonParserFactory factory = JsonEx.createParserFactory(Map.of());
         final JsonArray array = JsonProvider.provider().createArrayBuilder().add(1).add(2).build();
         try (JsonParser parser = factory.createParser(array))
         {
