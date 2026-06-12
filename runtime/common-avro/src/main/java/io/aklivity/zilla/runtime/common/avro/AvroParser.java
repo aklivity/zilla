@@ -48,15 +48,30 @@ public interface AvroParser
 
     /**
      * Presents {@code [offset, offset + length)} of the caller-owned {@code buffer} as the next contiguous
+     * run of datum bytes with {@code last == true} — the whole datum, or the final window of a streamed one.
+     */
+    default void wrap(
+        DirectBuffer buffer,
+        int offset,
+        int length)
+    {
+        wrap(buffer, offset, length, true);
+    }
+
+    /**
+     * Presents {@code [offset, offset + length)} of the caller-owned {@code buffer} as the next contiguous
      * run of datum bytes — the parser's not-yet-consumed remainder plus any newly arrived bytes — and reads
      * it in place without copying. A datum fed in fragments is re-presented each call from the consumed
-     * watermark ({@link #getLocation()} position), the cursor resuming where it underflowed. The buffer is
-     * borrowed for the duration of the call only.
+     * watermark ({@link #getLocation()} position), the cursor resuming where it underflowed. When
+     * {@code last} is {@code false} more input will follow, so a unit that does not fit underflows and
+     * waits; when {@code last} is {@code true} this is the final input, so a unit that cannot complete is a
+     * truncation. The buffer is borrowed for the duration of the call only.
      */
     void wrap(
         DirectBuffer buffer,
         int offset,
-        int length);
+        int length,
+        boolean last);
 
     /**
      * {@code true} while an event is available from the buffered bytes; {@code false} once they are

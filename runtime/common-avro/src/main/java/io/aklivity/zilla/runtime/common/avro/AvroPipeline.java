@@ -48,10 +48,27 @@ public interface AvroPipeline
 
     void reset();
 
+    /**
+     * Feeds the whole datum, or the final window of a streamed one ({@code last == true}).
+     */
+    default Status feed(
+        DirectBuffer buffer,
+        int offset,
+        int length)
+    {
+        return feed(buffer, offset, length, true);
+    }
+
+    /**
+     * Feeds the next input window. When {@code last} is {@code false} more input will follow, so an
+     * incomplete datum returns {@link Status#ADVANCED}; when {@code last} is {@code true} this is the final
+     * input, so a datum that cannot complete returns {@link Status#REJECTED} (truncated).
+     */
     Status feed(
         DirectBuffer buffer,
         int offset,
-        int length);
+        int length,
+        boolean last);
 
     /**
      * The aggregate count of input bytes consumed since {@link #reset()} — the watermark up to which the

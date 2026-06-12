@@ -78,7 +78,8 @@ final class AvroPipelineImpl implements AvroPipeline
     public Status feed(
         DirectBuffer buffer,
         int offset,
-        int length)
+        int length,
+        boolean last)
     {
         Status status = ADVANCED;
         try
@@ -89,7 +90,7 @@ final class AvroPipelineImpl implements AvroPipeline
             }
             else
             {
-                parser.wrap(buffer, offset, length);
+                parser.wrap(buffer, offset, length, last);
             }
             while (status == ADVANCED)
             {

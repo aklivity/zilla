@@ -136,20 +136,21 @@ public class AvroValueStreamingTest
         generator.wrap(out, 0, out.capacity());
         UnsafeBuffer in = new UnsafeBuffer(datum);
         int consumed = 0;
-        Status status = pipeline.feed(in, 0, 0);
+        Status status = pipeline.feed(in, 0, 0, false);
         while (status != COMPLETED && status != REJECTED)
         {
             if (status == SUSPENDED)
             {
                 output.add(drain(out, generator.length()));
                 generator.wrap(out, 0, out.capacity());
-                status = pipeline.feed(in, consumed, Math.min(16, datum.length - consumed));
+                int length = Math.min(16, datum.length - consumed);
+                status = pipeline.feed(in, consumed, length, consumed + length == datum.length);
             }
             else
             {
                 consumed = (int) pipeline.position();
                 int length = Math.min(16, datum.length - consumed);
-                status = pipeline.feed(in, consumed, length);
+                status = pipeline.feed(in, consumed, length, consumed + length == datum.length);
             }
         }
         assertEquals(COMPLETED, status);
@@ -193,12 +194,13 @@ public class AvroValueStreamingTest
         AvroPipeline pipeline = Avro.stream(Avro.parser(schema)).into(collector);
         pipeline.reset();
         UnsafeBuffer buffer = new UnsafeBuffer(datum);
-        Status status = pipeline.feed(buffer, 0, 0);
+        Status status = pipeline.feed(buffer, 0, 0, false);
         int consumed = (int) pipeline.position();
         int guard = datum.length * 2 + 8;
         while (status != COMPLETED && status != REJECTED && guard-- > 0)
         {
-            status = pipeline.feed(buffer, consumed, Math.min(8, datum.length - consumed));
+            int length = Math.min(8, datum.length - consumed);
+            status = pipeline.feed(buffer, consumed, length, consumed + length == datum.length);
             consumed = (int) pipeline.position();
         }
         assertEquals(COMPLETED, status);
@@ -211,6 +213,20 @@ public class AvroValueStreamingTest
         assertEquals(0, deferreds.get(deferreds.size() - 1).intValue());
     }
 
+    @Test
+    public void shouldRejectTruncatedValueOnLastWindow()
+    {
+        AvroSchema schema = Avro.schema("\"string\"");
+        byte[] datum = encode("\"string\"", "a".repeat(40));
+
+        AvroPipeline pipeline = Avro.stream(Avro.parser(schema)).into(new Collector());
+        pipeline.reset();
+        // the final window holds only part of the value, so it cannot complete -> truncated
+        Status status = pipeline.feed(new UnsafeBuffer(datum), 0, 10, true);
+
+        assertEquals(REJECTED, status);
+    }
+
     private static Status feedWindowed(
         AvroPipeline pipeline,
         byte[] datum,
@@ -220,13 +236,13 @@ public class AvroValueStreamingTest
         pipeline.reset();
         collector.reset();
         UnsafeBuffer buffer = new UnsafeBuffer(datum);
-        Status status = pipeline.feed(buffer, 0, 0);
+        Status status = pipeline.feed(buffer, 0, 0, false);
         int consumed = (int) pipeline.position();
         int guard = datum.length * 2 + 8;
         while (status != COMPLETED && status != REJECTED && guard-- > 0)
         {
             int length = Math.min(window, datum.length - consumed);
-            status = pipeline.feed(buffer, consumed, length);
+            status = pipeline.feed(buffer, consumed, length, consumed + length == datum.length);
             consumed = (int) pipeline.position();
         }
         return status;

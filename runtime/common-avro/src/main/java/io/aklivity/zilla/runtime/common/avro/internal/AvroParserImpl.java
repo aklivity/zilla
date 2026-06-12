@@ -89,6 +89,7 @@ public final class AvroParserImpl implements AvroParser
     private int limit;
     private int pos;
     private long origin;
+    private boolean last;
 
     private AvroNode[] nodeStack;
     private int[] stateStack;
@@ -134,13 +135,15 @@ public final class AvroParserImpl implements AvroParser
     public void wrap(
         DirectBuffer buffer,
         int offset,
-        int length)
+        int length,
+        boolean last)
     {
         origin += pos - base;
         this.buffer = buffer;
         this.base = offset;
         this.pos = offset;
         this.limit = offset + length;
+        this.last = last;
     }
 
     @Override
@@ -268,6 +271,10 @@ public final class AvroParserImpl implements AvroParser
                 producing = false;
                 break;
             }
+        }
+        if (pending == null && !done && last)
+        {
+            throw new AvroValidationException("truncated datum");
         }
     }
 

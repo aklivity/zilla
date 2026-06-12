@@ -58,14 +58,15 @@ public class AvroParserPullTest
     {
         AvroParser parser = Avro.parser(Avro.schema("\"int\""));
 
-        // multi-byte varint 64 -> 0x80 0x01; the caller re-presents the unconsumed bytes plus each new byte
-        parser.wrap(new UnsafeBuffer(new byte[] { (byte) 0x80 }), 0, 1);
+        // multi-byte varint 64 -> 0x80 0x01; the caller re-presents the unconsumed bytes plus each new byte.
+        // last == false: more input will follow, so the partial INT underflows rather than truncating
+        parser.wrap(new UnsafeBuffer(new byte[] { (byte) 0x80 }), 0, 1, false);
         // START_MESSAGE is available, but the INT value is not yet
         assertEquals(true, parser.hasNext());
         assertEquals(START_MESSAGE, parser.nextEvent());
         assertEquals(false, parser.hasNext());
 
-        // re-present the unconsumed 0x80 plus the newly arrived 0x01
+        // re-present the unconsumed 0x80 plus the newly arrived 0x01 as the final window
         parser.wrap(new UnsafeBuffer(new byte[] { (byte) 0x80, 0x01 }), 0, 2);
 
         List<AvroEvent> events = new ArrayList<>();
