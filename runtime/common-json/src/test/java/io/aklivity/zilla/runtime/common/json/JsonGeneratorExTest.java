@@ -199,6 +199,17 @@ class JsonGeneratorExTest
     }
 
     @Test
+    void shouldClearContextOnReset()
+    {
+        MutableDirectBuffer buffer = new UnsafeBuffer(new byte[64]);
+        JsonGeneratorEx generator = StreamingJson.createGenerator();
+        generator.wrap(buffer, 0, buffer.capacity()).writeStartArray().writeNumber("1");
+        generator.reset();
+        generator.wrap(buffer, 0, buffer.capacity()).writeStartObject().writeEnd();
+        assertEquals("{}", drain(generator, buffer));
+    }
+
+    @Test
     void shouldWriteAtNonZeroOffset()
     {
         MutableDirectBuffer buffer = new UnsafeBuffer(new byte[64]);

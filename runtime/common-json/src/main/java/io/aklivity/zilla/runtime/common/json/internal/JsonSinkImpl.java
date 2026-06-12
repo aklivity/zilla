@@ -137,6 +137,7 @@ public final class JsonSinkImpl implements JsonSink
     public void reset()
     {
         depth = 0;
+        generator.reset();
     }
 
     private Status scalarStatus()

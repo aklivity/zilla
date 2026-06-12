@@ -50,6 +50,14 @@ public interface JsonGeneratorEx extends JsonGenerator
         int limit);
 
     /**
+     * Clears the structural context (open object/array depth and pending separators) without
+     * re-targeting the buffer, readying the instance for a fresh top-level value. Reuse across pooled
+     * callers calls this — via the pipeline's {@code reset()} cascade — so an instance returned mid-value
+     * does not leak open structure into the next value.
+     */
+    void reset();
+
+    /**
      * Reports the number of bytes written since the last {@link #wrap}.
      */
     int length();

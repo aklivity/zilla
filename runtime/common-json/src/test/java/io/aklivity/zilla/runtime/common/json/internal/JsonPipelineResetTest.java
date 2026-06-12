@@ -1,0 +1,58 @@
+/*
+ * Copyright 2021-2024 Aklivity Inc
+ *
+ * Licensed under the Aklivity Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ *   https://www.aklivity.io/aklivity-community-license/
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+package io.aklivity.zilla.runtime.common.json.internal;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import org.agrona.MutableDirectBuffer;
+import org.agrona.concurrent.UnsafeBuffer;
+import org.junit.jupiter.api.Test;
+
+import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
+import io.aklivity.zilla.runtime.common.json.JsonPipeline;
+import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
+import io.aklivity.zilla.runtime.common.json.JsonSink;
+import io.aklivity.zilla.runtime.common.json.StreamingJson;
+
+class JsonPipelineResetTest
+{
+    // Models a pooled generator returned to the pool mid-value: the first caller abandons a partial
+    // array (leaving open structure in the generator), and a second caller checks the instance back out
+    // and, per the pooling discipline, resets the pipeline before reuse. The reset must clear the stale
+    // generator context so the next value is emitted clean (no leaked separator from the open array).
+    @Test
+    void shouldClearGeneratorContextOnResetForReuse()
+    {
+        JsonGeneratorEx generator = StreamingJson.createGenerator();
+        MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
+        JsonPipeline pipeline = StreamingJson.createParser().stream()
+            .into(JsonSink.of(generator));
+
+        generator.wrap(buffer, 0, buffer.capacity());
+        pipeline.reset();
+        assertEquals(Status.RESUMABLE, pipeline.feed(new UnsafeBuffer("[1,".getBytes(UTF_8)), 0, 3));
+
+        pipeline.reset();
+        generator.wrap(buffer, 0, buffer.capacity());
+        byte[] bytes = "{\"b\":2} ".getBytes(UTF_8);
+        Status status = pipeline.feed(new UnsafeBuffer(bytes), 0, bytes.length);
+
+        assertEquals(Status.COMPLETE, status);
+        byte[] out = new byte[generator.length()];
+        buffer.getBytes(0, out);
+        assertEquals("{\"b\":2}", new String(out, UTF_8));
+    }
+}

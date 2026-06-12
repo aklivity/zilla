@@ -74,6 +74,13 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     }
 
     @Override
+    public void reset()
+    {
+        this.depth = 0;
+        this.afterKey = false;
+    }
+
+    @Override
     public int remaining()
     {
         return limit - progress;
