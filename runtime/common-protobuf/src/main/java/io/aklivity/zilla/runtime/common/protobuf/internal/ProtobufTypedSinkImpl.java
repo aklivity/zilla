@@ -55,6 +55,7 @@ public final class ProtobufTypedSinkImpl implements ProtobufSink
     private int depth;
     private ProtobufField pending;
     private int valueWritten;
+    private int valueTotal;
     private ProtobufEvent suspended;
 
     public ProtobufTypedSinkImpl(
@@ -99,6 +100,7 @@ public final class ProtobufTypedSinkImpl implements ProtobufSink
         depth = -1;
         pending = null;
         valueWritten = 0;
+        valueTotal = 0;
         suspended = null;
     }
 
@@ -203,52 +205,76 @@ public final class ProtobufTypedSinkImpl implements ProtobufSink
         ProtobufSource source)
     {
         int number = field.number();
-        int valueLength = source.length();
+        int length = source.length();
+        int deferred = source.bytesDeferred();
+        int remaining = generator.remaining();
         ProtobufPipeline.Status status;
-        if (valueWritten == 0)
+        if (valueWritten == 0 && deferred == 0 && tagSize(number) + varintSize(length) + length <= remaining)
         {
-            int full = tagSize(number) + varintSize(valueLength) + valueLength;
-            int remaining = generator.remaining();
-            if (full <= remaining)
-            {
-                generator.writeBytes(number, source.buffer(), source.offset(), valueLength);
-                status = ProtobufPipeline.Status.ADVANCED;
-            }
-            else if (generator.length() > 0)
-            {
-                // break at this field boundary; on a fresh buffer the whole value may fit
-                generator.flush();
-                status = ProtobufPipeline.Status.SUSPENDED;
-            }
-            else
-            {
-                // a fresh buffer still cannot hold the value whole, so fragment it mid-byte
-                int header = tagSize(number) + varintSize(valueLength);
-                int now = remaining - header;
-                if (now < 1)
-                {
-                    throw new ProtobufException("value header exceeds output limit");
-                }
-                generator.writeSegment(number, source.buffer(), source.offset(), now, valueLength - now);
-                valueWritten = now;
-                generator.flush();
-                status = ProtobufPipeline.Status.SUSPENDED;
-            }
+            // whole value present and it fits — write it in one piece
+            generator.writeBytes(number, source.buffer(), source.offset(), length);
+            status = ProtobufPipeline.Status.ADVANCED;
+        }
+        else if (valueWritten == 0 && deferred == 0 && generator.length() > 0)
+        {
+            // break at this field boundary; on a fresh buffer the whole value may fit
+            generator.flush();
+            status = ProtobufPipeline.Status.SUSPENDED;
         }
         else
         {
-            int remainder = valueLength - valueWritten;
-            int now = Math.min(generator.remaining(), remainder);
-            generator.writeSegment(number, source.buffer(), source.offset() + valueWritten, now, remainder - now);
+            // a value chunked on input (deferred > 0) or too large for one buffer streams via writeSegment
+            status = writeChunk(number, length, deferred, source, remaining);
+        }
+        return status;
+    }
+
+    private ProtobufPipeline.Status writeChunk(
+        int number,
+        int length,
+        int deferred,
+        ProtobufSource source,
+        int remaining)
+    {
+        if (valueWritten == 0)
+        {
+            // the first chunk carries the whole value's length: length now plus all that is still deferred
+            valueTotal = length + deferred;
+        }
+        int chunkRemaining = valueTotal - deferred - valueWritten;
+        int sourceOffset = source.offset() + length - chunkRemaining;
+        int header = valueWritten == 0 ? tagSize(number) + varintSize(valueTotal) : 0;
+        ProtobufPipeline.Status status;
+        if (valueWritten == 0 && header + 1 > remaining && generator.length() > 0)
+        {
+            // can't even start the value here; a fresh buffer may hold the header
+            generator.flush();
+            status = ProtobufPipeline.Status.SUSPENDED;
+        }
+        else if (valueWritten == 0 && header + 1 > remaining)
+        {
+            throw new ProtobufException("value header exceeds output limit");
+        }
+        else
+        {
+            int now = Math.min(remaining - header, chunkRemaining);
+            generator.writeSegment(number, source.buffer(), sourceOffset, now, valueTotal - valueWritten - now);
             valueWritten += now;
-            if (valueWritten < valueLength)
+            if (now < chunkRemaining)
             {
+                // output filled mid-chunk; suspend and replay this same value event
                 generator.flush();
                 status = ProtobufPipeline.Status.SUSPENDED;
+            }
+            else if (deferred > 0)
+            {
+                // chunk fully written, more input chunks of this value still to come
+                status = ProtobufPipeline.Status.ADVANCED;
             }
             else
             {
                 valueWritten = 0;
+                valueTotal = 0;
                 status = ProtobufPipeline.Status.ADVANCED;
             }
         }

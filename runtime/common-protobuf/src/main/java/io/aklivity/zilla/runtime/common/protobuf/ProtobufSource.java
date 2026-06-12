@@ -73,10 +73,12 @@ public interface ProtobufSource
     int length();
 
     /**
-     * For a {@link ProtobufEvent#SEGMENT}, the number of bytes of the value still to come after this
-     * slice — {@code 0} on the last (or only) piece, and {@code 0} for every non-segment event. A value
-     * larger than the input window arrives as repeated {@code SEGMENT}s with a decreasing
-     * {@code bytesDeferred()}, mirroring the generator's {@code writeSegment(..., deferred)}.
+     * The number of bytes of the current value still to come after this slice — {@code 0} on the last
+     * (or only) piece, and {@code 0} for every event that is not a value piece. A length-delimited value
+     * larger than the input window arrives as repeated pieces with a decreasing {@code bytesDeferred()},
+     * mirroring the generator's {@code writeSegment(..., deferred)}: a leaf {@code string}/{@code bytes}
+     * scalar streams as repeated {@link ProtobufEvent#VALUE}s, a raw composite as repeated
+     * {@link ProtobufEvent#SEGMENT}s.
      */
     int bytesDeferred();
 }

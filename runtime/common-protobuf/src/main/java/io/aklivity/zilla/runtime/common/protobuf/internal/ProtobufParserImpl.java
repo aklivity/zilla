@@ -57,6 +57,7 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
     private static final int PHASE_SCALAR_VALUE = 1;
     private static final int PHASE_RAW_VALUE = 2;
     private static final int PHASE_COMPOSITE = 3;
+    private static final int PHASE_LEAF = 4;
 
     private final ProtobufSchema schema;
     private final String messageName;
@@ -82,6 +83,8 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
     private int offset;
     private int length;
     private int deferred;
+    private int leafRemaining;
+    private boolean leafString;
 
     public ProtobufParserImpl(
         ProtobufSchema schema,
@@ -106,6 +109,7 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
         this.depth = -1;
         this.phase = PHASE_NONE;
         this.deferred = 0;
+        this.leafRemaining = -1;
         return this;
     }
 
@@ -152,6 +156,9 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
                 break;
             case PHASE_COMPOSITE:
                 event = resolveComposite(mode);
+                break;
+            case PHASE_LEAF:
+                event = leaf();
                 break;
             default:
                 event = advance();
@@ -230,7 +237,86 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
     private ProtobufEvent value()
     {
         phase = PHASE_NONE;
+        deferred = 0;
         return ProtobufEvent.VALUE;
+    }
+
+    private ProtobufEvent leaf()
+    {
+        ProtobufEvent event;
+        reader.mark();
+        if (leafRemaining < 0)
+        {
+            int len = reader.readVarint32();
+            if (reader.starved())
+            {
+                event = starve();
+            }
+            else if (len < 0)
+            {
+                throw new ProtobufException("negative length " + len);
+            }
+            else if (len <= reader.available())
+            {
+                slice(reader.buffer(), reader.offset(), len);
+                reader.skip(len);
+                longValue = len;
+                deferred = 0;
+                phase = PHASE_NONE;
+                event = ProtobufEvent.VALUE;
+            }
+            else if (reader.last())
+            {
+                throw new ProtobufException("truncated field: need " + len + " bytes");
+            }
+            else
+            {
+                leafRemaining = len;
+                // re-checkpoint at the body so a body starvation carries only the body, not the length prefix
+                reader.mark();
+                event = leafChunk();
+            }
+        }
+        else
+        {
+            event = leafChunk();
+        }
+        return event;
+    }
+
+    private ProtobufEvent leafChunk()
+    {
+        ProtobufEvent event;
+        int available = reader.available();
+        if (leafRemaining <= available)
+        {
+            slice(reader.buffer(), reader.offset(), leafRemaining);
+            reader.skip(leafRemaining);
+            leafRemaining = -1;
+            deferred = 0;
+            phase = PHASE_NONE;
+            event = ProtobufEvent.VALUE;
+        }
+        else
+        {
+            int chunk = leafString
+                ? utf8SafeLength(reader.buffer(), reader.offset(), available)
+                : available;
+            if (chunk == 0)
+            {
+                // only a partial code point present; carry it and wait for the next window
+                event = starve();
+            }
+            else
+            {
+                slice(reader.buffer(), reader.offset(), chunk);
+                reader.skip(chunk);
+                leafRemaining -= chunk;
+                deferred = leafRemaining;
+                event = ProtobufEvent.VALUE;
+            }
+        }
+        return event;
     }
 
     private ProtobufEvent starve()
@@ -341,7 +427,8 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
                 field = null;
                 fieldNumber = number;
                 wireType = wt;
-                phase = PHASE_RAW_VALUE;
+                leafString = false;
+                phase = wt == ProtobufWireType.LEN ? PHASE_LEAF : PHASE_RAW_VALUE;
                 event = ProtobufEvent.FIELD;
             }
             else
@@ -385,7 +472,9 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
             field = fld;
             fieldNumber = number;
             wireType = wt;
-            phase = PHASE_SCALAR_VALUE;
+            boolean len = fld.type() == ProtobufType.STRING || fld.type() == ProtobufType.BYTES;
+            leafString = fld.type() == ProtobufType.STRING;
+            phase = len ? PHASE_LEAF : PHASE_SCALAR_VALUE;
             event = ProtobufEvent.FIELD;
         }
         return event;
@@ -488,6 +577,7 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
         field = compositeField;
         fieldNumber = compositeField.number();
         wireType = compositeField.type().wireType();
+        deferred = 0;
         slice(reader.buffer(), regionOffset, length);
         return ProtobufEvent.SEGMENT;
     }
@@ -548,12 +638,6 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
         case FLOAT:
             floatValue = Float.intBitsToFloat(reader.readFixed32());
             break;
-        case STRING:
-        case BYTES:
-            int len = reader.readLength();
-            slice(reader.buffer(), reader.offset(), len);
-            reader.skip(len);
-            break;
         default:
             throw new ProtobufException("unsupported scalar type " + field.type());
         }
@@ -578,12 +662,6 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
         case I32:
             longValue = reader.readFixed32() & 0xffffffffL;
             slice(reader.buffer(), start, 4);
-            break;
-        case LEN:
-            int len = reader.readLength();
-            longValue = len;
-            slice(reader.buffer(), reader.offset(), len);
-            reader.skip(len);
             break;
         case SGROUP:
             int bodyStart = reader.offset();
@@ -613,6 +691,61 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
         field = null;
         fieldNumber = -1;
         wireType = null;
+        deferred = 0;
+    }
+
+    private static int utf8SafeLength(
+        DirectBuffer buffer,
+        int offset,
+        int length)
+    {
+        int safe = length;
+        int back = 0;
+        while (back < length && back < 4 && (buffer.getByte(offset + length - 1 - back) & 0xc0) == 0x80)
+        {
+            back++;
+        }
+        if (back >= length)
+        {
+            // the whole window is continuation bytes (no lead present) — emit nothing yet
+            safe = 0;
+        }
+        else
+        {
+            int leadIndex = length - 1 - back;
+            int codePointLength = utf8CodePointLength(buffer.getByte(offset + leadIndex) & 0xff);
+            // trim the trailing code point only when it is not fully present
+            safe = leadIndex + codePointLength <= length ? length : leadIndex;
+        }
+        return safe;
+    }
+
+    private static int utf8CodePointLength(
+        int lead)
+    {
+        int codePointLength;
+        if ((lead & 0x80) == 0)
+        {
+            codePointLength = 1;
+        }
+        else if ((lead & 0xe0) == 0xc0)
+        {
+            codePointLength = 2;
+        }
+        else if ((lead & 0xf0) == 0xe0)
+        {
+            codePointLength = 3;
+        }
+        else if ((lead & 0xf8) == 0xf0)
+        {
+            codePointLength = 4;
+        }
+        else
+        {
+            // invalid lead byte; treat as a single byte so malformed input still makes progress
+            codePointLength = 1;
+        }
+        return codePointLength;
     }
 
     private void slice(

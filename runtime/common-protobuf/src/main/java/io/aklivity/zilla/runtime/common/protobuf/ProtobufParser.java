@@ -153,8 +153,9 @@ public interface ProtobufParser
     int length();
 
     /**
-     * For a {@link ProtobufEvent#SEGMENT}, the number of bytes of the value still to come after this
-     * slice — {@code 0} on the last (or only) piece, and {@code 0} for every non-segment event.
+     * For a chunked value — a leaf {@code string}/{@code bytes} {@link ProtobufEvent#VALUE} or a
+     * {@link ProtobufEvent#SEGMENT} — the number of bytes of the value still to come after this slice;
+     * {@code 0} on the last (or only) piece, and {@code 0} for every other event.
      */
     int bytesDeferred();
 }

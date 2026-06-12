@@ -21,10 +21,13 @@ package io.aklivity.zilla.runtime.common.protobuf;
  * scalar or a nested {@code START_MESSAGE}…{@code END_MESSAGE} for a composite. A proto2 group is framed
  * by {@link #START_GROUP} / {@link #END_GROUP} instead — the same structured body, but delimited on the
  * wire by start/end-group tags rather than a length prefix. A {@link #SEGMENT} delivers a composite value
- * as raw wire bytes rather than as structured events; {@link #segmented()} distinguishes it, and
- * {@link ProtobufSource#bytesDeferred()} carries how much of the value is still to come — a value larger
- * than the input window arrives as repeated {@code SEGMENT}s with a decreasing {@code bytesDeferred()},
- * the last (or only) piece reporting {@code 0}.
+ * as raw wire bytes rather than as structured events; {@link #segmented()} distinguishes it.
+ * <p>
+ * {@link ProtobufSource#bytesDeferred()} carries how much of a value is still to come. A length-delimited
+ * value larger than the input window streams in pieces, each piece reporting the bytes still deferred and
+ * the last (or only) piece reporting {@code 0}: a chunked leaf {@code string}/{@code bytes} scalar arrives
+ * as repeated {@code VALUE}s (a {@code string} split on code-point boundaries, {@code bytes} at the raw
+ * edge), and a composite delivered as raw bytes arrives as repeated {@code SEGMENT}s.
  * <p>
  * There is no document frame: the bounded-buffer contract is exactly one fully-buffered message per
  * {@link ProtobufPipeline#feed}, so the root {@link #START_MESSAGE} / {@link #END_MESSAGE} is the

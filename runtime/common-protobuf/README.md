@@ -160,11 +160,12 @@ for (boolean done = false; !done; )
 }
 ```
 
-> **Milestone status.** Structure streams across windows today — tags, scalars, and nested-message
-> bodies resume across `feed` calls in bounded memory. A large leaf `string`/`bytes` value or a
-> composite delivered as a `SEGMENT` must still be fully present in the reassembly window (it is held
-> until complete rather than chunked); per-window `SEGMENT` delivery with a non-zero `bytesDeferred()`,
-> UTF-8 code-point-boundary chunking, and groups that straddle a window arrive in a follow-up.
+Leaf values stream too: a `string`/`bytes` value larger than the input window arrives as repeated
+`VALUE` events, each carrying the bytes still to come in `ProtobufSource.bytesDeferred()` (a `string` is
+split only on UTF-8 code-point boundaries, `bytes` at the raw window edge), and the wire sink forwards
+each chunk straight through the generator's `writeSegment` — so a multi-megabyte value flows
+in-window → out-window with nothing buffered but the current slice. Proto2 groups straddle windows as
+well, decoded incrementally to their `EGROUP` tag.
 
 ### Bounded output and streaming
 
@@ -264,9 +265,10 @@ engine delivers the reassembled payload) or as successive input windows (the str
 *Two back-pressure axes* above), without buffering the whole document either way. Processing is bounded
 by the message structure — the parser decodes over a per-depth frame stack whose scope ends are tracked
 by a swap-safe position counter rather than the refillable byte limit, so a frame survives a window
-swap — plus the current primitive or leaf value (a split unit is carried internally until it completes).
-The generator streams its output bounded by `limit`, fragmenting any value too large rather than
-buffering it. No unbounded document is buffered. Truncated or overlong varints, lengths that run past
+swap — plus the current primitive (a split tag/varint/length/fixed, or a partial UTF-8 code point, is
+carried internally, at most a few bytes, until it completes). Leaf `string`/`bytes` values stream in
+window-sized pieces rather than being reassembled whole. The generator streams its output bounded by
+`limit`, fragmenting any value too large rather than buffering it. No unbounded document is buffered. Truncated or overlong varints, lengths that run past
 the message under `last`, and unterminated or mismatched groups are rejected with a `ProtobufException`.
 
 ## Conformance

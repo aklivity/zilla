@@ -20,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -34,6 +35,7 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufEvent;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufField;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufGenerator;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufMessage;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufParser;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline.Status;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSchema;
@@ -590,6 +592,125 @@ public class ProtobufPipelineTest
         assertTrue(chunked.length > 0);
     }
 
+    @Test
+    public void shouldStreamLargeStringEndToEnd()
+    {
+        String text = "the quick brown fox jumps over the lazy dog, then does it all again twice";
+        byte[] message = wire(w ->
+        {
+            w.writeTag(1, ProtobufWireType.LEN);
+            w.writeBytes(text.getBytes(UTF_8));
+        });
+
+        byte[] whole = transcode(message, message.length, 1 << 16);
+        byte[] chunked = transcode(message, 5, 24);
+        assertTrue(sawStarved);
+        assertTrue(sawSuspended);
+
+        assertEquals(text, decodeName(whole));
+        assertEquals(text, decodeName(chunked));
+    }
+
+    @Test
+    public void shouldStreamGroupAcrossWindows()
+    {
+        byte[] message = wire(w ->
+        {
+            w.writeTag(5, ProtobufWireType.SGROUP);
+            w.writeTag(1, ProtobufWireType.VARINT);
+            w.writeVarint64(9);
+            w.writeTag(5, ProtobufWireType.EGROUP);
+        });
+
+        List<String> expected = capture(message);
+
+        Capture sink = new Capture(false);
+        ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, "P")).into(sink);
+        pipeline.reset();
+
+        assertEquals(Status.COMPLETED, feedWindows(pipeline, message, 1));
+        assertEquals(expected, sink.events);
+    }
+
+    @Test
+    public void shouldStreamSchemaFreeValueAcrossWindows()
+    {
+        byte[] data = new byte[40];
+        for (int i = 0; i < data.length; i++)
+        {
+            data[i] = (byte) (i * 7 + 1);
+        }
+        byte[] message = wire(w ->
+        {
+            w.writeTag(7, ProtobufWireType.LEN);
+            w.writeBytes(data);
+        });
+
+        byte[] whole = transcodeUntyped(message, message.length);
+        byte[] chunked = transcodeUntyped(message, 6);
+        assertArrayEquals(whole, chunked);
+        assertArrayEquals(message, chunked);
+    }
+
+    private String decodeName(
+        byte[] wire)
+    {
+        ProtobufParser parser = Protobuf.parser(schema, "P").wrap(new UnsafeBuffer(wire), 0, wire.length);
+        String name = null;
+        ProtobufField field = null;
+        while (parser.hasNext())
+        {
+            ProtobufEvent event = parser.nextEvent();
+            if (event == ProtobufEvent.FIELD)
+            {
+                field = parser.field();
+            }
+            else if (event == ProtobufEvent.VALUE && field != null && field.number() == 1)
+            {
+                byte[] bytes = new byte[parser.length()];
+                parser.buffer().getBytes(parser.offset(), bytes);
+                name = new String(bytes, UTF_8);
+            }
+        }
+        return name;
+    }
+
+    private byte[] transcodeUntyped(
+        byte[] message,
+        int window)
+    {
+        UnsafeBuffer output = new UnsafeBuffer(new byte[4096]);
+        ProtobufGenerator generator = Protobuf.generator().wrap(output, 0, output.capacity());
+        ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser())
+            .into(ProtobufSink.of(generator));
+        pipeline.reset();
+
+        UnsafeBuffer in = new UnsafeBuffer(message);
+        int offset = 0;
+        boolean completed = false;
+        while (!completed)
+        {
+            int length = Math.min(window, message.length - offset);
+            boolean last = offset + length == message.length;
+            Status status = pipeline.feed(in, offset, length, last);
+            switch (status)
+            {
+            case STARVED:
+                offset += length;
+                break;
+            case COMPLETED:
+                completed = true;
+                break;
+            default:
+                throw new AssertionError("unexpected status " + status);
+            }
+        }
+
+        byte[] bytes = new byte[generator.length()];
+        output.getBytes(0, bytes);
+        return bytes;
+    }
+
     private byte[] transcode(
         byte[] message,
         int window,
@@ -761,6 +882,7 @@ public class ProtobufPipelineTest
     {
         private final boolean segmentComposites;
         private final List<String> events = new ArrayList<>();
+        private final ByteArrayOutputStream valueBytes = new ByteArrayOutputStream();
         private byte[] segment;
         private int depth;
 
@@ -808,7 +930,26 @@ public class ProtobufPipelineTest
                 }
                 break;
             case VALUE:
-                events.add("V" + value(source));
+                ProtobufField valueField = source.field();
+                if (valueField != null &&
+                    (valueField.type() == ProtobufType.STRING || valueField.type() == ProtobufType.BYTES))
+                {
+                    // a string/bytes value may arrive in chunks; reassemble before recording
+                    byte[] chunk = new byte[source.length()];
+                    source.buffer().getBytes(source.offset(), chunk);
+                    valueBytes.writeBytes(chunk);
+                    if (source.bytesDeferred() == 0)
+                    {
+                        events.add(valueField.type() == ProtobufType.STRING
+                            ? "V" + valueBytes.toString(UTF_8)
+                            : "Vb" + valueBytes.size());
+                        valueBytes.reset();
+                    }
+                }
+                else
+                {
+                    events.add("V" + value(source));
+                }
                 break;
             case SEGMENT:
                 events.add("SEGMENT");
@@ -825,6 +966,7 @@ public class ProtobufPipelineTest
         public void reset()
         {
             events.clear();
+            valueBytes.reset();
             segment = null;
             depth = 0;
         }

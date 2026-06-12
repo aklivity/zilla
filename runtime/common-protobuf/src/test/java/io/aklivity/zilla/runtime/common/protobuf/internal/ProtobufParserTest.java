@@ -20,8 +20,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import org.agrona.ExpandableArrayBuffer;
@@ -272,6 +274,7 @@ public class ProtobufParserTest
         ProtobufParser parser = Protobuf.parser(schema, "P");
         UnsafeBuffer buffer = new UnsafeBuffer(message);
         List<String> events = new ArrayList<>();
+        StringBuilder pending = new StringBuilder();
         boolean sawNull = false;
         int offset = 0;
         int window = 2;
@@ -289,11 +292,12 @@ public class ProtobufParserTest
             }
             else
             {
-                record(parser, events, event);
+                record(parser, events, pending, event);
             }
         }
 
         assertTrue(sawNull);
+        // chunked across 2-byte windows, the events match the whole-buffer stream once value chunks are reassembled
         assertEquals(whole, events);
     }
 
@@ -301,9 +305,10 @@ public class ProtobufParserTest
         ProtobufParser parser)
     {
         List<String> events = new ArrayList<>();
+        StringBuilder pending = new StringBuilder();
         while (parser.hasNext())
         {
-            record(parser, events, parser.nextEvent());
+            record(parser, events, pending, parser.nextEvent());
         }
         return events;
     }
@@ -311,6 +316,7 @@ public class ProtobufParserTest
     private static void record(
         ProtobufParser parser,
         List<String> events,
+        StringBuilder pending,
         ProtobufEvent event)
     {
         switch (event)
@@ -325,10 +331,145 @@ public class ProtobufParserTest
             events.add("F" + parser.field().number());
             break;
         case VALUE:
-            events.add("V" + scalar(parser));
+            // a value may arrive in chunks (bytesDeferred > 0); reassemble before recording
+            pending.append(scalar(parser));
+            if (parser.bytesDeferred() == 0)
+            {
+                events.add("V" + pending);
+                pending.setLength(0);
+            }
             break;
         default:
             break;
+        }
+    }
+
+    @Test
+    public void shouldChunkLargeStringAcrossWindows()
+    {
+        String text = "the quick brown fox jumps over the lazy dog";
+        byte[] message = wire(w ->
+        {
+            w.writeTag(1, ProtobufWireType.LEN);
+            w.writeBytes(text.getBytes(UTF_8));
+        });
+
+        List<Integer> deferreds = new ArrayList<>();
+        ByteArrayOutputStream value = new ByteArrayOutputStream();
+        driveWindows(Protobuf.parser(schema, "P"), message, 8, (parser, event) ->
+        {
+            if (event == ProtobufEvent.VALUE)
+            {
+                deferreds.add(parser.bytesDeferred());
+                appendValue(parser, value);
+            }
+        });
+
+        assertEquals(text, value.toString(UTF_8));
+        assertTrue(deferreds.size() > 1, "expected multiple chunks");
+        assertEquals(0, (int) deferreds.get(deferreds.size() - 1));
+        for (int i = 1; i < deferreds.size(); i++)
+        {
+            assertTrue(deferreds.get(i) < deferreds.get(i - 1), "bytesDeferred must strictly decrease");
+        }
+    }
+
+    @Test
+    public void shouldChunkStringOnCodePointBoundaries()
+    {
+        // 1-byte ASCII, 2-byte (é), 3-byte (☃) and 4-byte (😀) code points
+        String text = "aé☃b😀c☃dé😀f☃gh😀ité☃klm";
+        byte[] message = wire(w ->
+        {
+            w.writeTag(1, ProtobufWireType.LEN);
+            w.writeBytes(text.getBytes(UTF_8));
+        });
+
+        ByteArrayOutputStream value = new ByteArrayOutputStream();
+        List<byte[]> chunks = new ArrayList<>();
+        driveWindows(Protobuf.parser(schema, "P"), message, 4, (parser, event) ->
+        {
+            if (event == ProtobufEvent.VALUE)
+            {
+                byte[] chunk = new byte[parser.length()];
+                parser.buffer().getBytes(parser.offset(), chunk);
+                chunks.add(chunk);
+                value.writeBytes(chunk);
+            }
+        });
+
+        assertEquals(text, value.toString(UTF_8));
+        assertTrue(chunks.size() > 1, "expected multiple chunks");
+        for (byte[] chunk : chunks)
+        {
+            // a chunk split mid-code-point would not round-trip through UTF-8
+            assertArrayEquals(chunk, new String(chunk, UTF_8).getBytes(UTF_8));
+        }
+    }
+
+    @Test
+    public void shouldChunkBytesAcrossWindows()
+    {
+        byte[] data = new byte[40];
+        for (int i = 0; i < data.length; i++)
+        {
+            // continuation-like bytes prove BYTES is split at the raw edge, never UTF-8 trimmed
+            data[i] = (byte) (0x80 + (i % 0x40));
+        }
+        byte[] message = wire(w ->
+        {
+            w.writeTag(5, ProtobufWireType.LEN);
+            w.writeBytes(data);
+        });
+
+        List<Integer> deferreds = new ArrayList<>();
+        ByteArrayOutputStream value = new ByteArrayOutputStream();
+        driveWindows(Protobuf.parser(schema, "P"), message, 7, (parser, event) ->
+        {
+            if (event == ProtobufEvent.VALUE)
+            {
+                deferreds.add(parser.bytesDeferred());
+                appendValue(parser, value);
+            }
+        });
+
+        assertArrayEquals(data, value.toByteArray());
+        assertTrue(deferreds.size() > 1, "expected multiple chunks");
+        assertEquals(0, (int) deferreds.get(deferreds.size() - 1));
+    }
+
+    private static void appendValue(
+        ProtobufParser parser,
+        ByteArrayOutputStream sink)
+    {
+        byte[] chunk = new byte[parser.length()];
+        parser.buffer().getBytes(parser.offset(), chunk);
+        sink.writeBytes(chunk);
+    }
+
+    private static void driveWindows(
+        ProtobufParser parser,
+        byte[] message,
+        int window,
+        BiConsumer<ProtobufParser, ProtobufEvent> consumer)
+    {
+        UnsafeBuffer buffer = new UnsafeBuffer(message);
+        int offset = 0;
+        int length = Math.min(window, message.length);
+        parser.wrap(buffer, offset, length, offset + length >= message.length);
+        while (parser.hasNext())
+        {
+            ProtobufEvent event = parser.nextEvent();
+            if (event == null)
+            {
+                offset += length;
+                length = Math.min(window, message.length - offset);
+                parser.resume(buffer, offset, length, offset + length >= message.length);
+            }
+            else
+            {
+                consumer.accept(parser, event);
+            }
         }
     }
 
@@ -386,6 +527,7 @@ public class ProtobufParserTest
                 .field(ProtobufField.builder().number(1).name("name").type(ProtobufType.STRING).build())
                 .field(ProtobufField.builder().number(2).name("id").type(ProtobufType.INT32).build())
                 .field(ProtobufField.builder().number(4).name("home").type(ProtobufType.MESSAGE).typeName("Addr").build())
+                .field(ProtobufField.builder().number(5).name("data").type(ProtobufType.BYTES).build())
                 .build())
             .build();
     }
