@@ -139,7 +139,10 @@ A length-delimited value larger than a whole chunk **cannot** be deferred to a f
 body streams as raw continuation bytes across as many chunks as needed, never buffered in full. The
 enclosing records carry the value's deferred remainder in their lengths until it is fully written, then
 close and reopen for the fields that follow. So a value of any size streams, provided its **total length
-is known when it starts** (the parser supplies it via `source.length()`).
+is known when it starts** (the parser supplies it via `source.length()`). The one unsupported case is a
+transform that *grows* a message past that upper bound while the message also spans a chunk — its length
+slot has already drained and cannot widen, so it is rejected; pass a deliberately large `startMessage`
+length to reserve a wider slot.
 
 ```java
 ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, limit);
@@ -208,10 +211,10 @@ Protobuf fields are length-delimited and may arrive in any order, and a repeated
 may be interleaved — which complicates strictly forward-streaming under a no-full-document-buffer
 goal. This library resolves it with a **bounded-buffer contract**: it operates on a single,
 fully-buffered message (the engine delivers the reassembled payload). Processing is bounded by the
-message size, and for nested messages by nesting depth (each length-delimited nested message is
-staged in per-depth scratch since its length is known only once its body is built). No unbounded
-document is buffered. Truncated or overlong varints, lengths that run past the message, and
-unterminated or mismatched groups are rejected with a `ProtobufException`.
+message size, and for nested messages by nesting depth — the parser decodes in place over a per-depth
+frame stack, and the generator streams its output bounded by `limit`, fragmenting any value too large
+rather than buffering it. No unbounded document is buffered. Truncated or overlong varints, lengths that
+run past the message, and unterminated or mismatched groups are rejected with a `ProtobufException`.
 
 ## Conformance
 

@@ -97,6 +97,48 @@ public class ProtobufChunkingTest
     }
 
     @Test
+    public void shouldChunkTopLevelFieldsAcrossChunks()
+    {
+        ProtobufSchema flat = flatSchema();
+        byte[] input = wire(w ->
+        {
+            w.writeTag(1, ProtobufWireType.LEN);
+            w.writeBytes("alpha".getBytes(UTF_8));
+            w.writeTag(2, ProtobufWireType.LEN);
+            w.writeBytes("bravo".getBytes(UTF_8));
+            w.writeTag(3, ProtobufWireType.LEN);
+            w.writeBytes("charlie".getBytes(UTF_8));
+        });
+
+        // the root is not a generator level, so its fields chunk by plain concatenation — no reopen
+        List<byte[]> chunks = chunk(flat, "Flat", input, 12);
+
+        assertTrue(chunks.size() >= 2, "expected the top-level fields to be split across chunks");
+        String[] values = decodeFlat(flat, concat(chunks));
+        assertEquals("alpha", values[1]);
+        assertEquals("bravo", values[2]);
+        assertEquals("charlie", values[3]);
+    }
+
+    @Test
+    public void shouldFragmentTopLevelLeafLargerThanChunk()
+    {
+        ProtobufSchema flat = flatSchema();
+        String blob = "q".repeat(300);
+        byte[] input = wire(w ->
+        {
+            w.writeTag(1, ProtobufWireType.LEN);
+            w.writeBytes(blob.getBytes(UTF_8));
+        });
+
+        // a top-level value larger than a chunk fragments with no enclosing message framing at all
+        List<byte[]> chunks = chunk(flat, "Flat", input, 40);
+
+        assertTrue(chunks.size() >= 5, "expected the top-level value to be fragmented across many chunks");
+        assertEquals(blob, decodeFlat(flat, concat(chunks))[1]);
+    }
+
+    @Test
     public void shouldFragmentLeafInsideGroupSpanningChunks()
     {
         ProtobufSchema grouped = Protobuf.schema()
@@ -239,10 +281,19 @@ public class ProtobufChunkingTest
         byte[] input,
         int limit)
     {
+        return chunk(schema, "Person", input, limit);
+    }
+
+    private List<byte[]> chunk(
+        ProtobufSchema schema,
+        String message,
+        byte[] input,
+        int limit)
+    {
         MutableDirectBuffer out = new UnsafeBuffer(new byte[1024]);
         ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, limit);
-        ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, "Person"))
-            .into(ProtobufSink.of(generator, schema, "Person"));
+        ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, message))
+            .into(ProtobufSink.of(generator, schema, message));
         pipeline.reset();
 
         List<byte[]> chunks = new ArrayList<>();
@@ -364,6 +415,44 @@ public class ProtobufChunkingTest
         byte[] bytes = new byte[writer.length()];
         buffer.getBytes(0, bytes);
         return bytes;
+    }
+
+    // parses the concatenated chunks of a flat message, indexing each top-level string by its field number
+    private static String[] decodeFlat(
+        ProtobufSchema schema,
+        byte[] message)
+    {
+        ProtobufParser parser = Protobuf.parser(schema, "Flat").wrap(new UnsafeBuffer(message), 0, message.length);
+        String[] values = new String[4];
+        int number = 0;
+        while (parser.hasNext())
+        {
+            switch (parser.nextEvent())
+            {
+            case FIELD:
+                number = parser.field().number();
+                break;
+            case VALUE:
+                byte[] value = new byte[parser.length()];
+                parser.buffer().getBytes(parser.offset(), value);
+                values[number] = new String(value, UTF_8);
+                break;
+            default:
+                break;
+            }
+        }
+        return values;
+    }
+
+    private static ProtobufSchema flatSchema()
+    {
+        return Protobuf.schema()
+            .message(ProtobufMessage.builder("Flat")
+                .field(ProtobufField.builder().number(1).name("a").type(ProtobufType.STRING).build())
+                .field(ProtobufField.builder().number(2).name("b").type(ProtobufType.STRING).build())
+                .field(ProtobufField.builder().number(3).name("c").type(ProtobufType.STRING).build())
+                .build())
+            .build();
     }
 
     private static ProtobufSchema newSchema()
