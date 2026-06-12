@@ -16,13 +16,11 @@ package io.aklivity.zilla.runtime.common.avro.internal;
 
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.BOOLEAN;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.BYTES;
-import static io.aklivity.zilla.runtime.common.avro.AvroEvent.CONTINUE_SEGMENT;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.DOUBLE;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.END_ARRAY;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.END_MAP;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.END_MESSAGE;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.END_RECORD;
-import static io.aklivity.zilla.runtime.common.avro.AvroEvent.END_SEGMENT;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.ENUM;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.FIELD_NAME;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.FIXED;
@@ -31,11 +29,11 @@ import static io.aklivity.zilla.runtime.common.avro.AvroEvent.INT;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.LONG;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.MAP_KEY;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.NULL;
+import static io.aklivity.zilla.runtime.common.avro.AvroEvent.SEGMENT;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.START_ARRAY;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.START_MAP;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.START_MESSAGE;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.START_RECORD;
-import static io.aklivity.zilla.runtime.common.avro.AvroEvent.START_SEGMENT;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.STRING;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.UNION_BRANCH;
 import static java.nio.ByteOrder.LITTLE_ENDIAN;
@@ -101,8 +99,6 @@ public final class AvroParserImpl implements AvroParser
 
     private Phase phase;
     private boolean segmenting;
-    private boolean segmentStarted;
-    private boolean segmentPendingEnd;
 
     private AvroEvent pending;
     private boolean done;
@@ -190,8 +186,6 @@ public final class AvroParserImpl implements AvroParser
         valueRemaining = 0;
         valueStreaming = false;
         segmenting = false;
-        segmentStarted = false;
-        segmentPendingEnd = false;
         push(root);
     }
 
@@ -221,7 +215,6 @@ public final class AvroParserImpl implements AvroParser
                 {
                     phase = Phase.SEGMENT;
                     segmenting = true;
-                    segmentStarted = false;
                 }
                 else
                 {
@@ -278,48 +271,33 @@ public final class AvroParserImpl implements AvroParser
     private int segmentStep()
     {
         int result;
-        if (segmentPendingEnd)
+        int scanStart = pos;
+        int scan = STEP_CONTINUE;
+        while (scan == STEP_CONTINUE && depth > 0)
         {
-            segmentPendingEnd = false;
-            setSegment(pos, 0);
-            pending = END_SEGMENT;
-            phase = Phase.END;
-            result = STEP_EVENT;
+            scan = step(nodeStack[depth - 1]);
+        }
+        if (scan == STEP_REJECTED)
+        {
+            result = STEP_REJECTED;
         }
         else
         {
-            int scanStart = pos;
-            int scan = STEP_CONTINUE;
-            while (scan == STEP_CONTINUE && depth > 0)
+            // the whole datum reaching depth 0 ends the run; END_MESSAGE (not a terminal segment event)
+            // bounds it, so the final SEGMENT carries the trailing bytes and the next advance emits END
+            if (depth == 0)
             {
-                scan = step(nodeStack[depth - 1]);
+                phase = Phase.END;
             }
-            if (scan == STEP_REJECTED)
+            if (pos > scanStart)
             {
-                result = STEP_REJECTED;
+                setSegment(scanStart, pos - scanStart);
+                pending = SEGMENT;
+                result = STEP_EVENT;
             }
             else if (depth == 0)
             {
-                setSegment(scanStart, pos - scanStart);
-                if (segmentStarted)
-                {
-                    pending = END_SEGMENT;
-                    phase = Phase.END;
-                }
-                else
-                {
-                    segmentStarted = true;
-                    segmentPendingEnd = true;
-                    pending = START_SEGMENT;
-                }
-                result = STEP_EVENT;
-            }
-            else if (pos > scanStart)
-            {
-                setSegment(scanStart, pos - scanStart);
-                pending = segmentStarted ? CONTINUE_SEGMENT : START_SEGMENT;
-                segmentStarted = true;
-                result = STEP_EVENT;
+                result = STEP_CONTINUE;
             }
             else
             {

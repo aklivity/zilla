@@ -190,8 +190,7 @@ public final class AvroSinkImpl implements AvroSink
         case FIXED:
             status = writeValue(source);
             break;
-        case START_SEGMENT:
-        case CONTINUE_SEGMENT:
+        case SEGMENT:
             status = atomic();
             if (status == ADVANCED)
             {
@@ -199,14 +198,10 @@ public final class AvroSinkImpl implements AvroSink
                 generator.writeRaw(segment, 0, segment.capacity());
             }
             break;
-        case END_SEGMENT:
-            status = atomic();
-            if (status == ADVANCED)
-            {
-                segment = source.getSegment();
-                generator.writeRaw(segment, 0, segment.capacity());
-                status = scalar();
-            }
+        case END_MESSAGE:
+            // a segmented datum is raw bytes only, so it completes here; a structured datum has already
+            // completed on its top-level value or record close and never reaches this
+            status = scalar();
             break;
         default:
             break;

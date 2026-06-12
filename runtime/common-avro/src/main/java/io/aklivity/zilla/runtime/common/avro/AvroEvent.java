@@ -17,10 +17,9 @@ package io.aklivity.zilla.runtime.common.avro;
 /**
  * The event currency of an {@link AvroStream} pipeline: the Avro-native structured events produced by
  * walking the compiled schema in lockstep with the binary, plus document framing
- * ({@link #START_MESSAGE} / {@link #END_MESSAGE}) and segment framing ({@link #START_SEGMENT} /
- * {@link #CONTINUE_SEGMENT} / {@link #END_SEGMENT}). A segment run delivers one complete value as raw
- * Avro bytes rather than as structured events, for verbatim passthrough; {@link #segmented()}
- * distinguishes those events.
+ * ({@link #START_MESSAGE} / {@link #END_MESSAGE}) and {@link #SEGMENT} for verbatim passthrough. A
+ * segment run delivers the whole datum as raw Avro bytes rather than as structured events, bracketed by
+ * the message framing; {@link #segmented()} distinguishes a segment event.
  */
 public enum AvroEvent
 {
@@ -81,15 +80,15 @@ public enum AvroEvent
     FIXED,
     /** an Avro {@code enum} symbol, readable via {@link AvroSource#getString()} */
     ENUM,
-    /** start of a verbatim segment run; the raw slice is readable via {@link AvroSource#getSegment()} */
-    START_SEGMENT,
-    /** a continuation of a verbatim segment run spanning more than one frame */
-    CONTINUE_SEGMENT,
-    /** the final slice of a verbatim segment run */
-    END_SEGMENT;
+    /**
+     * a slice of the datum delivered as raw Avro bytes for verbatim passthrough, readable via
+     * {@link AvroSource#getSegment()}. The whole datum arrives as a run of {@code SEGMENT} events between
+     * {@link #START_MESSAGE} and {@link #END_MESSAGE}; the message framing bounds the run.
+     */
+    SEGMENT;
 
     public boolean segmented()
     {
-        return this == START_SEGMENT || this == CONTINUE_SEGMENT || this == END_SEGMENT;
+        return this == SEGMENT;
     }
 }
