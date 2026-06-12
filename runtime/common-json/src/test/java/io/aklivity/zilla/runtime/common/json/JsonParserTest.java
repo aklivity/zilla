@@ -44,7 +44,7 @@ import jakarta.json.stream.JsonParsingException;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
 
-class StreamingJsonParserTest
+class JsonParserTest
 {
     @Test
     void shouldParseFlatObject()
