@@ -998,6 +998,12 @@ public final class JsonSchemaImpl implements JsonSchema
         {
             throw new UnsupportedOperationException();
         }
+
+        @Override
+        public boolean deferredBytes()
+        {
+            return false;
+        }
     }
 
     private static String canonicalize(
@@ -1470,6 +1476,12 @@ public final class JsonSchemaImpl implements JsonSchema
         public DirectBuffer getSegment()
         {
             throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean deferredBytes()
+        {
+            return false;
         }
     }
 

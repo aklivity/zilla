@@ -44,4 +44,12 @@ public interface JsonSource
      * current contiguous slice, valid on-stack only.
      */
     DirectBuffer getSegment();
+
+    /**
+     * Whether the current value has bytes still deferred to later events — {@code true} while more of
+     * this same value follows (the value is being streamed across input frames because it exceeds the
+     * input window), {@code false} when this event completes it. A JSON string is quote-delimited, so
+     * this is a "more is coming" signal, not a remaining byte count.
+     */
+    boolean deferredBytes();
 }

@@ -16,14 +16,17 @@ package io.aklivity.zilla.runtime.common.json.internal;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
 
+import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
@@ -84,6 +87,57 @@ class JsonPipelineChunkingTest
 
         String json = "{\"k0\":0,\"k1\":1,\"k2\":2,\"k3\":3,\"k4\":4,\"k5\":5,\"k6\":6,\"k7\":7,\"k8\":8,\"k9\":9}";
         assertEquals(json, chunked(pipeline, generator, output, json));
+    }
+
+    @Test
+    void shouldStreamStringValueAcrossInputFrames()
+    {
+        JsonGeneratorEx generator = JsonEx.createGenerator();
+        MutableDirectBuffer output = new UnsafeBuffer(new byte[256]);
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+            .into(JsonSink.of(generator, JsonSink.Delivery.SEGMENTABLE));
+        generator.wrap(output, 0, output.capacity());
+        pipeline.reset();
+
+        // a single string value split mid-token across two input frames (larger than the input window)
+        byte[] f1 = "{\"data\":\"aaaaaaaaaa".getBytes(UTF_8);
+        byte[] f2 = "bbbbbbbbbb\"} ".getBytes(UTF_8);
+        assertEquals(Status.ADVANCED, pipeline.feed(new UnsafeBuffer(f1), 0, f1.length));
+        Status status = pipeline.feed(new UnsafeBuffer(f2), 0, f2.length);
+
+        assertEquals(Status.COMPLETED, status);
+        byte[] out = new byte[generator.length()];
+        output.getBytes(0, out);
+        assertEquals("{\"data\":\"aaaaaaaaaabbbbbbbbbb\"}", new String(out, UTF_8));
+    }
+
+    @Test
+    void shouldReportDeferredBytesWhileStreamingAcrossFrames()
+    {
+        JsonGeneratorEx generator = JsonEx.createGenerator();
+        MutableDirectBuffer output = new UnsafeBuffer(new byte[256]);
+        List<Boolean> deferred = new ArrayList<>();
+        JsonTransform probe = (control, source, event, sink) ->
+        {
+            if (event == JsonEvent.START_SEGMENT || event == JsonEvent.CONTINUE_SEGMENT ||
+                event == JsonEvent.END_SEGMENT)
+            {
+                deferred.add(source.deferredBytes());
+            }
+            return sink.feed(control, source, event);
+        };
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(probe)
+            .into(JsonSink.of(generator, JsonSink.Delivery.SEGMENTABLE));
+        generator.wrap(output, 0, output.capacity());
+        pipeline.reset();
+
+        pipeline.feed(new UnsafeBuffer("{\"data\":\"aaaaaaaaaa".getBytes(UTF_8)), 0, 19);
+        pipeline.feed(new UnsafeBuffer("bbbbbbbbbb\"} ".getBytes(UTF_8)), 0, 13);
+
+        // first fragment is mid-stream (more deferred); the closing fragment completes the value
+        assertTrue(deferred.get(0));
+        assertFalse(deferred.get(deferred.size() - 1));
     }
 
     @Test

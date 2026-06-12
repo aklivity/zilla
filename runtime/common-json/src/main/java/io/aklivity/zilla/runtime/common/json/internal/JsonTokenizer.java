@@ -82,6 +82,9 @@ public final class JsonTokenizer
     private long valueStreamStart;
     private long valueStreamEnd;
     private boolean valueReadable = true;
+    // set while a segment scan is in progress: a value-string is then streamed across frames as raw
+    // bytes (no rewind to require it whole-in-frame, no decoded retention) rather than buffered whole.
+    private boolean segmenting;
 
     // scalar resume state (valid when resumeOp != NONE)
     private ResumeOp resumeOp = ResumeOp.NONE;
@@ -135,11 +138,20 @@ public final class JsonTokenizer
         valuePending = false;
         streamOffset = 0;
         valueReadable = true;
+        segmenting = false;
         resumeOp = ResumeOp.NONE;
         resumeEscape = false;
         resumeUnicodePending = 0;
         resumeUnicodeValue = 0;
         resumeLiteralIndex = 0;
+    }
+
+    // Tracks whether a segment scan is in progress so a value-string spanning frames is streamed as raw
+    // bytes instead of rewound (which would require it whole in one frame) or retained whole in scratch.
+    void segmenting(
+        boolean segmenting)
+    {
+        this.segmenting = segmenting;
     }
 
     public static final List<String> INCLUDE_ALL = null;
@@ -218,8 +230,11 @@ public final class JsonTokenizer
                 {
                     return true;
                 }
+                // While segmenting, a value-string spanning the frame is not rewound — its resume state
+                // is kept so the next frame continues it and the raw bytes stream as segments.
                 final boolean midReadableScalarScan =
-                    (resumeOp == ResumeOp.VALUE_STRING || resumeOp == ResumeOp.VALUE_NUMBER) && valueReadable;
+                    (resumeOp == ResumeOp.VALUE_STRING || resumeOp == ResumeOp.VALUE_NUMBER) &&
+                    valueReadable && !segmenting;
                 if (midReadableScalarScan)
                 {
                     in.reset();
@@ -869,7 +884,7 @@ public final class JsonTokenizer
     private void appendScratch(
         char c)
     {
-        if (valueReadable)
+        if (valueReadable && !streamingValue())
         {
             scratch.append(c);
         }
@@ -878,10 +893,17 @@ public final class JsonTokenizer
     private void appendCodePointScratch(
         int codePoint)
     {
-        if (valueReadable)
+        if (valueReadable && !streamingValue())
         {
             scratch.appendCodePoint(codePoint);
         }
+    }
+
+    // A value-string being streamed as raw segment bytes is not retained in scratch; keys and numbers
+    // still retain (keys for path matching, numbers for grammar validation).
+    private boolean streamingValue()
+    {
+        return segmenting && resumeOp == ResumeOp.VALUE_STRING;
     }
 
     private int decodeUtf8(

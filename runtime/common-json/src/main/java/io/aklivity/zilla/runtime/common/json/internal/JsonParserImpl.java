@@ -283,6 +283,7 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
                     segmentStartOffset = tokenizer.streamOffset() - 1;
                     segmentDepth = 1;
                     segmentState = SegmentState.PENDING_START;
+                    tokenizer.segmenting(true);
                     event = scanSegment(bufferOffset(segmentStartOffset), JsonEvent.START_SEGMENT);
                 }
                 else
@@ -327,6 +328,7 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
 
                 if (segmentDepth == 0)
                 {
+                    tokenizer.segmenting(false);
                     final int sliceEnd = bufferOffset(tokenizer.streamOffset());
                     segmentSliceOffset = sliceStart;
                     segmentSliceLength = sliceEnd - sliceStart;
@@ -354,11 +356,18 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
             segmentStartOffset = tokenizer.streamOffset() - 1;
             segmentState = SegmentState.PENDING_START;
             segmentDepth = 1;
+            tokenizer.segmenting(true);
         }
         else if (lastEvent == JsonEvent.START_DOCUMENT)
         {
             armNextValue = true;
         }
+    }
+
+    @Override
+    public boolean deferredBytes()
+    {
+        return segmentState == SegmentState.SCANNING;
     }
 
     @Override
