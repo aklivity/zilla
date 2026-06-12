@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.common.protobuf.internal;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -105,6 +106,66 @@ public class ProtobufParserTest
         assertEquals(home.length, nestedLength);
         assertEquals("P", rootName);
         assertEquals("Addr", nestedName);
+    }
+
+    @Test
+    public void shouldPullCompositeAsSegment()
+    {
+        byte[] home = wire(w ->
+        {
+            w.writeTag(1, ProtobufWireType.LEN);
+            w.writeBytes("Zion".getBytes(UTF_8));
+        });
+        byte[] message = wire(w ->
+        {
+            w.writeTag(1, ProtobufWireType.LEN);
+            w.writeBytes("neo".getBytes(UTF_8));
+            w.writeTag(4, ProtobufWireType.LEN);
+            w.writeBytes(home);
+        });
+
+        ProtobufParser parser = Protobuf.parser(schema, "P").wrap(new UnsafeBuffer(message), 0, message.length);
+
+        List<String> events = new ArrayList<>();
+        byte[] segment = null;
+        boolean segmentNext = false;
+        while (parser.hasNext())
+        {
+            // at the composite field, pull its value as a raw segment instead of recursing into it
+            ProtobufEvent event = parser.nextEvent(segmentNext
+                ? ProtobufParser.Mode.SEGMENTED
+                : ProtobufParser.Mode.STRUCTURED);
+            segmentNext = false;
+            switch (event)
+            {
+            case START_MESSAGE:
+                events.add("{");
+                break;
+            case END_MESSAGE:
+                events.add("}");
+                break;
+            case FIELD:
+                events.add("F" + parser.field().number());
+                segmentNext = parser.field().composite();
+                break;
+            case VALUE:
+                events.add("V" + scalar(parser));
+                break;
+            case START_SEGMENT:
+                events.add("S");
+                segment = new byte[parser.length()];
+                parser.buffer().getBytes(parser.offset(), segment);
+                break;
+            case END_SEGMENT:
+                events.add("E");
+                break;
+            default:
+                break;
+            }
+        }
+
+        assertEquals(List.of("{", "F1", "Vneo", "F4", "S", "E", "}"), events);
+        assertArrayEquals(home, segment);
     }
 
     @Test

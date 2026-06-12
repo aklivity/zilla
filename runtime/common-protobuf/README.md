@@ -72,6 +72,9 @@ while (parser.hasNext())
 }
 ```
 
+`nextEvent()` defaults to `STRUCTURED`; pass `Mode.SEGMENTED` to `nextEvent(mode)` at a composite `FIELD`
+to receive that value as a raw `START_SEGMENT`…`END_SEGMENT` byte pair instead of recursing into it.
+
 A schema-free cursor (`Protobuf.parser()`, no schema) tokenizes the wire into generic `FIELD`/`VALUE`
 pairs carrying `fieldNumber()` and `wireType()` (see Schema-free mode below).
 

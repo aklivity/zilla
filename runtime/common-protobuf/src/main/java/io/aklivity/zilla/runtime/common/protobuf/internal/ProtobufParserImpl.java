@@ -32,10 +32,10 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
 /**
  * The pull cursor that decodes a fully-buffered message one {@link ProtobufEvent} at a time. It is the
  * pipeline primitive: a caller drives it directly with {@link #wrap}, {@link #hasNext} and
- * {@link #nextEvent}, reading the current value through the {@link ProtobufSource} accessors it
- * implements. {@code Protobuf.stream} layers the push pipeline over the same cursor and steers it through
- * a controller that calls {@link #segmentable()} to arm the next composite field for verbatim segment
- * delivery.
+ * {@link #nextEvent(ProtobufParser.Mode)}, reading the current value through the {@link ProtobufSource}
+ * accessors it implements. At a composite field {@link ProtobufParser.Mode#SEGMENTED} delivers it as raw
+ * segment bytes rather than recursing; {@code Protobuf.stream} layers the push pipeline over the same
+ * cursor, the pump selecting that mode when a stage requests it through its {@link ProtobufController}.
  * <p>
  * Schema-bound it emits {@code START_MESSAGE}/{@code END_MESSAGE}, {@code FIELD} then {@code VALUE} for
  * a scalar, and a nested {@code START_MESSAGE}…{@code END_MESSAGE} for a composite; schema-free it
@@ -65,7 +65,6 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
     private boolean done;
     private int depth;
     private int phase;
-    private boolean armed;
 
     private ProtobufField compositeField;
     private int regionOffset;
@@ -103,7 +102,6 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
         this.done = false;
         this.depth = -1;
         this.phase = PHASE_NONE;
-        this.armed = false;
         return this;
     }
 
@@ -114,7 +112,8 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
     }
 
     @Override
-    public ProtobufEvent nextEvent()
+    public ProtobufEvent nextEvent(
+        Mode mode)
     {
         ProtobufEvent event;
         if (!started)
@@ -137,7 +136,7 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
                 event = ProtobufEvent.VALUE;
                 break;
             case PHASE_COMPOSITE:
-                event = resolveComposite();
+                event = resolveComposite(mode);
                 break;
             case PHASE_SEGMENT_END:
                 phase = PHASE_NONE;
@@ -150,12 +149,6 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
             }
         }
         return event;
-    }
-
-    // the arm hook the pipeline's ProtobufController delegates to; deliver the next composite as a segment
-    void segmentable()
-    {
-        armed = true;
     }
 
     @Override
@@ -344,17 +337,16 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
         field = fld;
         fieldNumber = number;
         wireType = wt;
-        armed = false;
         phase = PHASE_COMPOSITE;
         return ProtobufEvent.FIELD;
     }
 
-    private ProtobufEvent resolveComposite()
+    private ProtobufEvent resolveComposite(
+        Mode mode)
     {
         ProtobufEvent event;
-        if (armed)
+        if (mode == Mode.SEGMENTED)
         {
-            armed = false;
             phase = PHASE_SEGMENT_END;
             field = compositeField;
             fieldNumber = compositeField.number();

@@ -32,6 +32,18 @@ import org.agrona.DirectBuffer;
 public interface ProtobufParser
 {
     /**
+     * How {@link #nextEvent(Mode)} descends into a composite field: {@code STRUCTURED} recurses into its
+     * nested events, {@code SEGMENTED} delivers it as raw segment bytes (a {@link ProtobufEvent#segmented()}
+     * START/END pair, read via {@link #buffer()}/{@link #offset()}/{@link #length()}). The mode is consulted
+     * only at a composite field; for every other event it is ignored.
+     */
+    enum Mode
+    {
+        STRUCTURED,
+        SEGMENTED
+    }
+
+    /**
      * Borrows {@code buffer} as the input for the next pull, the message occupying {@code [offset,
      * offset + length)}, and rewinds the cursor to before the root {@link ProtobufEvent#START_MESSAGE}.
      */
@@ -46,10 +58,21 @@ public interface ProtobufParser
     boolean hasNext();
 
     /**
-     * Advances the cursor and returns the next event; the accessors then read the value it positions.
-     * Malformed wire and wire-type/declared-type mismatches raise a {@link ProtobufException}.
+     * Advances the cursor and returns the next event in {@link Mode#STRUCTURED} mode.
      */
-    ProtobufEvent nextEvent();
+    default ProtobufEvent nextEvent()
+    {
+        return nextEvent(Mode.STRUCTURED);
+    }
+
+    /**
+     * Advances the cursor and returns the next event; the accessors then read the value it positions. At a
+     * composite field {@code mode} chooses whether to recurse into it ({@link Mode#STRUCTURED}) or deliver
+     * it as raw segment bytes ({@link Mode#SEGMENTED}). Malformed wire and wire-type/declared-type
+     * mismatches raise a {@link ProtobufException}.
+     */
+    ProtobufEvent nextEvent(
+        Mode mode);
 
     /**
      * The field of the current {@link ProtobufEvent#FIELD} / {@link ProtobufEvent#VALUE} or composite,

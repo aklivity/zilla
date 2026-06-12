@@ -21,6 +21,7 @@ import org.agrona.DirectBuffer;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufController;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufEvent;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufException;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufParser;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSink;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSource;
@@ -35,7 +36,7 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufTransform;
 public final class ProtobufPipelineImpl implements ProtobufPipeline
 {
     private final ProtobufParserImpl parser;
-    private final ProtobufController control;
+    private final Control control;
     private final ProtobufSink head;
 
     private boolean suspended;
@@ -46,8 +47,9 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
         ProtobufSink sink)
     {
         this.parser = parser;
-        // the head edge's control handle steers the parser (the upstream) without the parser being a controller
-        this.control = parser::segmentable;
+        // the head edge's control handle records a stage's segment request, which the pump turns into the
+        // SEGMENTED mode it passes to the parser — so the parser itself holds no segmentation state
+        this.control = new Control();
 
         ProtobufSink chain = sink;
         for (int i = transforms.size() - 1; i >= 0; i--)
@@ -84,7 +86,7 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
             }
             while (status == Status.ADVANCED && parser.hasNext())
             {
-                status = head.feed(control, parser, parser.nextEvent());
+                status = head.feed(control, parser, parser.nextEvent(control.mode()));
             }
             suspended = status == Status.SUSPENDED;
         }
@@ -130,6 +132,26 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
         {
             transform.reset();
             downstream.reset();
+        }
+    }
+
+    // the head edge's controller: a stage's segmentable() request becomes a one-shot SEGMENTED mode that the
+    // pump passes to the parser on the next pull
+    private static final class Control implements ProtobufController
+    {
+        private boolean segmented;
+
+        @Override
+        public void segmentable()
+        {
+            segmented = true;
+        }
+
+        private ProtobufParser.Mode mode()
+        {
+            ProtobufParser.Mode mode = segmented ? ProtobufParser.Mode.SEGMENTED : ProtobufParser.Mode.STRUCTURED;
+            segmented = false;
+            return mode;
         }
     }
 }
