@@ -22,6 +22,7 @@ import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.SUSPENDE
 import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.common.avro.AvroController;
+import io.aklivity.zilla.runtime.common.avro.AvroEvent;
 import io.aklivity.zilla.runtime.common.avro.AvroLocation;
 import io.aklivity.zilla.runtime.common.avro.AvroParser;
 import io.aklivity.zilla.runtime.common.avro.AvroPipeline;
@@ -57,7 +58,7 @@ final class AvroPipelineImpl implements AvroPipeline
     {
         this.parser = parser;
         this.source = new Source(parser);
-        this.control = new Control(parser);
+        this.control = new Control();
         this.root = root;
     }
 
@@ -86,9 +87,14 @@ final class AvroPipelineImpl implements AvroPipeline
             {
                 parser.wrap(buffer, offset, length);
             }
-            while (status == ADVANCED && parser.hasNext())
+            while (status == ADVANCED)
             {
-                status = root.feed(control, source, parser.nextEvent());
+                AvroEvent event = parser.nextEvent(control.mode());
+                if (event == null)
+                {
+                    break;
+                }
+                status = root.feed(control, source, event);
             }
             if (status == ADVANCED && parser.complete())
             {
@@ -182,22 +188,23 @@ final class AvroPipelineImpl implements AvroPipeline
         }
     }
 
-    // the head edge's controller: a stage's segmentable() request is forwarded to the cursor, which honors it
-    // at the next message boundary
+    // the head edge's controller: a stage's segmentable() request becomes a one-shot SEGMENTED mode that the
+    // pump passes to the parser on the next pull
     private static final class Control implements AvroController
     {
-        private final AvroParser parser;
-
-        private Control(
-            AvroParser parser)
-        {
-            this.parser = parser;
-        }
+        private boolean segmented;
 
         @Override
         public void segmentable()
         {
-            parser.segmentable();
+            segmented = true;
+        }
+
+        private AvroParser.Mode mode()
+        {
+            AvroParser.Mode mode = segmented ? AvroParser.Mode.SEGMENTED : AvroParser.Mode.STRUCTURED;
+            segmented = false;
+            return mode;
         }
     }
 }

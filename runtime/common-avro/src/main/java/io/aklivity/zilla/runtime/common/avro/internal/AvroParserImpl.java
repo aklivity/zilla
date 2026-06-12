@@ -99,7 +99,6 @@ public final class AvroParserImpl implements AvroParser
     private int scratchNext;
 
     private Phase phase;
-    private boolean segmentRequested;
     private boolean segmenting;
     private boolean segmentStarted;
     private boolean segmentPendingEnd;
@@ -162,14 +161,19 @@ public final class AvroParserImpl implements AvroParser
     {
         if (pending == null && !done)
         {
-            advance();
+            advance(AvroParser.Mode.STRUCTURED);
         }
         return pending != null;
     }
 
     @Override
-    public AvroEvent nextEvent()
+    public AvroEvent nextEvent(
+        AvroParser.Mode mode)
     {
+        if (pending == null && !done)
+        {
+            advance(mode);
+        }
         AvroEvent event = pending;
         pending = null;
         return event;
@@ -182,12 +186,6 @@ public final class AvroParserImpl implements AvroParser
     }
 
     @Override
-    public void segmentable()
-    {
-        segmentRequested = true;
-    }
-
-    @Override
     public void reset()
     {
         depth = 0;
@@ -197,7 +195,6 @@ public final class AvroParserImpl implements AvroParser
         pending = null;
         cursorType = null;
         done = false;
-        segmentRequested = false;
         segmenting = false;
         segmentStarted = false;
         segmentPendingEnd = false;
@@ -210,7 +207,8 @@ public final class AvroParserImpl implements AvroParser
         return done;
     }
 
-    private void advance()
+    private void advance(
+        AvroParser.Mode mode)
     {
         boolean producing = true;
         while (producing)
@@ -226,7 +224,7 @@ public final class AvroParserImpl implements AvroParser
                 producing = false;
                 break;
             case ROUTE:
-                if (segmentRequested)
+                if (mode == AvroParser.Mode.SEGMENTED)
                 {
                     phase = Phase.SEGMENT;
                     segmenting = true;

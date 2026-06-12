@@ -17,22 +17,30 @@ package io.aklivity.zilla.runtime.common.avro;
 import org.agrona.DirectBuffer;
 
 /**
- * The pull cursor of a {@code common-avro} pipeline. A schema-bound parser decodes a datum into a typed
- * event stream framed by {@link AvroEvent#START_MESSAGE} and {@link AvroEvent#END_MESSAGE}. Reuse a
- * single instance per worker thread; not thread-safe.
- * <p>
- * It can be driven directly: {@link #reset()} rewinds for a new datum, {@link #wrap(DirectBuffer, int,
- * int)} appends each frame's bytes — a datum may span several wraps — then a {@link #hasNext()} /
+ * A schema-bound Avro event cursor. {@link #reset()} rewinds for a new datum, {@link #wrap(DirectBuffer,
+ * int, int)} appends each frame's bytes — a datum may span several wraps — then a {@link #hasNext()} /
  * {@link #nextEvent()} loop pulls one {@link AvroEvent} at a time, the value at each read through this
- * parser's accessors ({@link #getInt()}, {@link #getString()}, {@link #getSegment()}, …). That is the
- * same value surface an {@link AvroSource} exposes to a pipeline stage, but cursor-bearing;
- * {@link Avro#stream(AvroParser)} layers the push pipeline over the same cursor and hands stages a
- * non-advancing {@link AvroSource} view instead. {@link #hasNext()} returns {@code false} when the
- * buffered bytes are exhausted, so feed more and continue; malformed binary throws
- * {@link AvroValidationException}.
+ * cursor's typed accessors ({@link #getInt()}, {@link #getString()}, {@link #getSegment()}, …). A datum is
+ * framed by {@link AvroEvent#START_MESSAGE} and {@link AvroEvent#END_MESSAGE}; {@link #hasNext()} returns
+ * {@code false} when the buffered bytes are exhausted, so feed more and continue; malformed binary throws
+ * {@link AvroValidationException}. Whether the datum is delivered as structured events or as a verbatim
+ * segment run is chosen per pull via {@link #nextEvent(Mode)} — a stream concern the pipeline drives, not
+ * a mode held on the cursor. Reuse a single instance per worker thread; not thread-safe.
  */
 public interface AvroParser
 {
+    /**
+     * How {@link #nextEvent(Mode)} delivers the datum body: {@code STRUCTURED} emits the typed event
+     * stream; {@code SEGMENTED} delivers it verbatim as a {@link AvroEvent#segmented()} run, read via
+     * {@link #getSegment()}. Consulted at the message body (after {@link AvroEvent#START_MESSAGE}); for
+     * every other event it is ignored.
+     */
+    enum Mode
+    {
+        STRUCTURED,
+        SEGMENTED
+    }
+
     /**
      * Rewinds the cursor to before the root {@link AvroEvent#START_MESSAGE}, discarding any buffered
      * bytes, to begin a fresh datum.
@@ -54,19 +62,27 @@ public interface AvroParser
      */
     boolean hasNext();
 
-    AvroEvent nextEvent();
+    /**
+     * Advances the cursor and returns the next event in {@link Mode#STRUCTURED} mode.
+     */
+    default AvroEvent nextEvent()
+    {
+        return nextEvent(Mode.STRUCTURED);
+    }
+
+    /**
+     * Advances the cursor and returns the next event, or {@code null} when the buffered bytes are
+     * exhausted; the accessors then read the value it positions. At the message body {@code mode} chooses
+     * structured events ({@link Mode#STRUCTURED}) or a verbatim segment run ({@link Mode#SEGMENTED}).
+     */
+    AvroEvent nextEvent(
+        Mode mode);
 
     /**
      * {@code true} once the root {@link AvroEvent#END_MESSAGE} has been pulled — the datum is fully
      * consumed.
      */
     boolean complete();
-
-    /**
-     * Requests that the next composite be delivered as a verbatim segment run ({@link AvroEvent#segmented()}
-     * events) rather than as structured events; best-effort, consulted at the next {@link AvroEvent#START_MESSAGE}.
-     */
-    void segmentable();
 
     boolean getBoolean();
 
