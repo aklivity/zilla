@@ -281,6 +281,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/tools.call.no.schema/client",
+        "${net}/tools.call.no.schema/server"})
+    public void shouldForwardToolsCallWithoutSchema() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/tools.call.is.error/client",
         "${net}/tools.call.is.error/server"})
     public void shouldCallToolIsError() throws Exception

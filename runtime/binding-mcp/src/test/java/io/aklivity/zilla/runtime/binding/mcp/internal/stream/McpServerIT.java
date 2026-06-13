@@ -94,6 +94,16 @@ public class McpServerIT
     }
 
     @Test
+    @Configuration("server.validation.yaml")
+    @Specification({
+        "${net}/tools.call.no.schema/client",
+        "${app}/tools.call.no.schema/server"})
+    public void shouldForwardToolsCallWithoutSchema() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.yaml")
     @Specification({
         "${net}/lifecycle.initialize.elicitation.url/client",
