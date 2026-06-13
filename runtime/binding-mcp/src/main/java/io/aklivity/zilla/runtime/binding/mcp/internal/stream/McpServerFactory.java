@@ -2629,9 +2629,8 @@ public final class McpServerFactory implements McpStreamFactory
             doNetBegin(traceId, authorization, extension);
 
             final int codecLimit = codecBuffer.putStringWithoutLengthAscii(0,
-                """
-                {"jsonrpc":"2.0","id":%s,"error":{"code":%d,"message":"%s"}
-                """.formatted(decodedId, code, message));
+                "{\"jsonrpc\":\"2.0\",\"id\":%s,\"error\":{\"code\":%d,\"message\":\"%s\"}}"
+                    .formatted(decodedId, code, message));
             doNetData(traceId, authorization, codecBuffer, 0, codecLimit);
             doNetEnd(traceId, authorization);
         }

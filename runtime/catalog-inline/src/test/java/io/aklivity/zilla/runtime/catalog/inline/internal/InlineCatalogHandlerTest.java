@@ -48,6 +48,17 @@ public class InlineCatalogHandlerTest
     }
 
     @Test
+    public void shouldConstructWithoutOptionsAndAcceptRuntimeRegistration()
+    {
+        InlineCatalogHandler handler = new InlineCatalogHandler(null);
+
+        int schemaId = handler.register("weather", SCHEMA_A);
+
+        assertThat(schemaId, not(equalTo(NO_SCHEMA_ID)));
+        assertThat(handler.resolve(schemaId), equalTo(SCHEMA_A));
+    }
+
+    @Test
     public void shouldContentAddressIdenticalSchemas()
     {
         InlineCatalogHandler handler = newHandler();

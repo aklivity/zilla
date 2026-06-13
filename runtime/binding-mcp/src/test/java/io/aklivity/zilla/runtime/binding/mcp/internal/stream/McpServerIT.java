@@ -74,6 +74,26 @@ public class McpServerIT
     }
 
     @Test
+    @Configuration("server.validation.yaml")
+    @Specification({
+        "${net}/tools.call.valid.input/client",
+        "${app}/tools.call.valid.input/server"})
+    public void shouldAcceptToolsCallWithValidInput() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.validation.yaml")
+    @Specification({
+        "${net}/tools.call.invalid.input/client",
+        "${app}/tools.call.invalid.input/server"})
+    public void shouldRejectToolsCallWithInvalidInput() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.yaml")
     @Specification({
         "${net}/lifecycle.initialize.elicitation.url/client",

@@ -39,7 +39,10 @@ public class InlineCatalogHandler implements CatalogHandler
         this.schemaIds = new HashMap<>();
         this.references = new HashMap<>();
         this.crc32c = new CRC32C();
-        registerSchema(config.subjects);
+        if (config != null)
+        {
+            registerSchema(config.subjects);
+        }
     }
 
     @Override
