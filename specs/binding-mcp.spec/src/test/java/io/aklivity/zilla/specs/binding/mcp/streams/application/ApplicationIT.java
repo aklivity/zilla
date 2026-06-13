@@ -218,6 +218,24 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/tools.call.valid.input/client",
+        "${app}/tools.call.valid.input/server"})
+    public void shouldAcceptToolsCallWithValidInput() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/tools.call.invalid.input/client",
+        "${app}/tools.call.invalid.input/server"})
+    public void shouldRejectToolsCallWithInvalidInput() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/tools.call.is.error/client",
         "${app}/tools.call.is.error/server"})
     public void shouldCallToolIsError() throws Exception
