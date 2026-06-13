@@ -104,6 +104,16 @@ public class McpServerIT
     }
 
     @Test
+    @Configuration("server.validation.yaml")
+    @Specification({
+        "${net}/tools.list.recapture/client",
+        "${app}/tools.list.recapture/server"})
+    public void shouldValidateToolsCallAgainstRecapturedSchema() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.yaml")
     @Specification({
         "${net}/lifecycle.initialize.elicitation.url/client",
