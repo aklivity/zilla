@@ -19,6 +19,7 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabiliti
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabilities.CLIENT_ELICITATION_URL;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_LIFECYCLE;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
+import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
 import static java.lang.Integer.toUnsignedLong;
 
 import java.net.URLDecoder;
@@ -31,14 +32,19 @@ import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import jakarta.json.Json;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonReader;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParserFactory;
 
 import org.agrona.DirectBuffer;
+import org.agrona.ExpandableDirectByteBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
+import org.agrona.collections.Object2IntHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
@@ -83,6 +89,8 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
+import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 import io.aklivity.zilla.runtime.engine.util.function.LongIntPredicate;
 import io.aklivity.zilla.runtime.engine.util.function.LongIntToLongFunction;
 
@@ -425,6 +433,7 @@ public final class McpServerFactory implements McpStreamFactory
                         routedId,
                         initialId,
                         resolvedId,
+                        binding,
                         session,
                         redirectURI,
                         altSvc,
@@ -1443,6 +1452,7 @@ public final class McpServerFactory implements McpStreamFactory
 
         private McpRequestStream stream;
 
+        private final McpBindingConfig binding;
         private final String redirectURI;
         private final String altSvc;
         private final int contentLength;
@@ -1454,6 +1464,7 @@ public final class McpServerFactory implements McpStreamFactory
             long routedId,
             long initialId,
             long resolvedId,
+            McpBindingConfig binding,
             McpLifecycleStream session,
             String redirectURI,
             String altSvc,
@@ -1466,6 +1477,7 @@ public final class McpServerFactory implements McpStreamFactory
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.resolvedId = resolvedId;
+            this.binding = binding;
             this.session = session;
             this.decoder = decodeJsonRpc;
             this.initialMax = decodeMax;
@@ -1598,6 +1610,11 @@ public final class McpServerFactory implements McpStreamFactory
                 stream != null &&
                 stream.elicitationId == null)
             {
+                if (stream.validator != null && !stream.argsValidated)
+                {
+                    stream.validateArgs(traceId, authorization);
+                }
+
                 state = McpState.closedInitial(state);
                 stream.doAppEnd(traceId, authorization);
             }
@@ -2122,6 +2139,7 @@ public final class McpServerFactory implements McpStreamFactory
 
             assert stream == null;
             stream = new McpRequestStream(session, this);
+            stream.toolsList = binding.validatesTools();
             stream.doAppBegin(traceId, authorization, beginEx);
         }
 
@@ -2131,7 +2149,29 @@ public final class McpServerFactory implements McpStreamFactory
             long authorization)
         {
             final int paramsLength = contentLength - decodedParamsProgress - 1;
-            McpBeginExFW beginEx = mcpBeginExRW
+
+            assert stream == null;
+            stream = new McpRequestStream(session, this);
+
+            final int schemaId = session.toolSchemaIds.getValue(name);
+            final ValidatorHandler validator = binding.resolveToolValidator(schemaId);
+            if (validator != null)
+            {
+                stream.validator = validator;
+                stream.toolName = name;
+                stream.argsExpected = paramsLength;
+            }
+            else
+            {
+                stream.doAppBegin(traceId, authorization, toolsCallBeginEx(name, paramsLength));
+            }
+        }
+
+        private McpBeginExFW toolsCallBeginEx(
+            String name,
+            int paramsLength)
+        {
+            return mcpBeginExRW
                 .wrap(codecBuffer, 0, codecBuffer.capacity())
                 .typeId(mcpTypeId)
                 .toolsCall(t -> t
@@ -2140,10 +2180,13 @@ public final class McpServerFactory implements McpStreamFactory
                     .contentLength(paramsLength)
                     .timeout(session.requestTimeout))
                 .build();
+        }
 
-            assert stream == null;
-            stream = new McpRequestStream(session, this);
-            stream.doAppBegin(traceId, authorization, beginEx);
+        private void doToolsCallBegin(
+            long traceId,
+            long authorization)
+        {
+            stream.doAppBegin(traceId, authorization, toolsCallBeginEx(stream.toolName, stream.argsExpected));
         }
 
         private void onDecodePromptsList(
@@ -2239,7 +2282,28 @@ public final class McpServerFactory implements McpStreamFactory
             int offset,
             int limit)
         {
-            return stream != null ? stream.doAppData(traceId, authorization, buffer, offset, limit) : offset;
+            int progress = offset;
+            if (stream != null)
+            {
+                progress = stream.validator != null
+                    ? stream.bufferArgs(traceId, authorization, buffer, offset, limit)
+                    : stream.doAppData(traceId, authorization, buffer, offset, limit);
+            }
+            return progress;
+        }
+
+        private void onDecodeInvalidParams(
+            long traceId,
+            long authorization)
+        {
+            doEncodeResponseError(traceId, authorization,
+                httpBeginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
+                    .typeId(httpTypeId)
+                    .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(STATUS_400))
+                    .inject(this::injectAltSvc)
+                    .build(),
+                -32602,
+                "Invalid params");
         }
 
         private int onDecodeNotifyCancelled(
@@ -3275,6 +3339,7 @@ public final class McpServerFactory implements McpStreamFactory
         private final Object2ObjectHashMap<String, McpRequestStream> requests;
         private final Object2ObjectHashMap<String, McpRequestStream> elicitRequests;
         private final Object2ObjectHashMap<String, McpElicitation> elicitations;
+        private final Object2IntHashMap<String> toolSchemaIds;
 
         private final McpServer server;
         private final long originId;
@@ -3308,6 +3373,7 @@ public final class McpServerFactory implements McpStreamFactory
             this.requests = new Object2ObjectHashMap<>();
             this.elicitRequests = new Object2ObjectHashMap<>();
             this.elicitations = new Object2ObjectHashMap<>();
+            this.toolSchemaIds = new Object2IntHashMap<>(NO_SCHEMA_ID);
             this.originId = server.routedId;
             this.routedId = server.resolvedId;
             this.initialId = supplyInitialId.applyAsLong(server.resolvedId);
@@ -3333,6 +3399,18 @@ public final class McpServerFactory implements McpStreamFactory
         private void touch()
         {
             lastActiveAt = System.currentTimeMillis();
+        }
+
+        private void evictToolSchemas()
+        {
+            if (!toolSchemaIds.isEmpty())
+            {
+                for (String name : toolSchemaIds.keySet())
+                {
+                    server.binding.unregisterToolSchema(name);
+                }
+                toolSchemaIds.clear();
+            }
         }
 
         private void scheduleInactivity(
@@ -3689,6 +3767,7 @@ public final class McpServerFactory implements McpStreamFactory
                 }
                 break;
             case McpFlushExFW.KIND_TOOLS_LIST_CHANGED:
+                evictToolSchemas();
                 sse.doEncodeNotifyEvent(traceId, authorization, LIFECYCLE_STREAM_ID_PREFIX,
                     flushEx.toolsListChanged().id(), NOTIFICATIONS_TOOLS_LIST_CHANGED_BYTES);
                 break;
@@ -4521,6 +4600,18 @@ public final class McpServerFactory implements McpStreamFactory
 
         McpEventStream sse;
 
+        private boolean toolsList;
+        private ExpandableDirectByteBuffer captureBuffer;
+        private int captureProgress;
+
+        private ValidatorHandler validator;
+        private String toolName;
+        private int argsExpected;
+        private ExpandableDirectByteBuffer argsBuffer;
+        private int argsProgress;
+        private int argsForwarded;
+        private boolean argsValidated;
+
         private String elicitationId;
         private String elicitUrl;
         private String elicitCorrelationId;
@@ -4588,6 +4679,88 @@ public final class McpServerFactory implements McpStreamFactory
             }
 
             return offset + length;
+        }
+
+        private int bufferArgs(
+            long traceId,
+            long authorization,
+            DirectBuffer buffer,
+            int offset,
+            int limit)
+        {
+            final int length = limit - offset;
+            if (argsBuffer == null)
+            {
+                argsBuffer = new ExpandableDirectByteBuffer();
+            }
+            argsBuffer.putBytes(argsProgress, buffer, offset, length);
+            argsProgress += length;
+
+            if (!argsValidated && argsProgress >= argsExpected)
+            {
+                validateArgs(traceId, authorization);
+            }
+
+            return limit;
+        }
+
+        private void validateArgs(
+            long traceId,
+            long authorization)
+        {
+            argsValidated = true;
+
+            final String arguments = extractArguments();
+            boolean valid = false;
+            if (arguments != null)
+            {
+                final int length = codecBuffer.putStringWithoutLengthUtf8(0, arguments);
+                valid = validator.validate(traceId, originId, ValidatorHandler.FLAGS_COMPLETE,
+                    codecBuffer, 0, length, ValueConsumer.NOP);
+            }
+
+            if (valid)
+            {
+                server.doToolsCallBegin(traceId, authorization);
+                flushArgs(traceId, authorization);
+            }
+            else
+            {
+                server.onDecodeInvalidParams(traceId, authorization);
+                cleanupRequest();
+            }
+        }
+
+        private String extractArguments()
+        {
+            String arguments = null;
+            try
+            {
+                final DirectBufferInputStreamEx input = new DirectBufferInputStreamEx();
+                input.wrap(argsBuffer, 0, argsProgress);
+                try (JsonReader reader = Json.createReader(input))
+                {
+                    final JsonObject params = reader.readObject();
+                    arguments = params.containsKey("arguments")
+                        ? params.get("arguments").toString()
+                        : "{}";
+                }
+            }
+            catch (Exception ex)
+            {
+                arguments = null;
+            }
+            return arguments;
+        }
+
+        private void flushArgs(
+            long traceId,
+            long authorization)
+        {
+            if (app != null && argsForwarded < argsProgress)
+            {
+                argsForwarded = doAppData(traceId, authorization, argsBuffer, argsForwarded, argsProgress);
+            }
         }
 
         private void doAppFlush(
@@ -4956,6 +5129,11 @@ public final class McpServerFactory implements McpStreamFactory
             }
             else if (payload != null)
             {
+                if (toolsList)
+                {
+                    captureToolsListData(payload);
+                }
+
                 if (sse != null)
                 {
                     sse.doEncodeResponseSseData(traceId, authorization, requestId, payload.value());
@@ -4965,6 +5143,49 @@ public final class McpServerFactory implements McpStreamFactory
                     server.doEncodeResponseBegin(traceId, authorization);
                     server.doEncodeResponseData(traceId, authorization, payload.value());
                 }
+            }
+        }
+
+        private void captureToolsListData(
+            OctetsFW payload)
+        {
+            if (captureBuffer == null)
+            {
+                captureBuffer = new ExpandableDirectByteBuffer();
+            }
+            final int length = payload.sizeof();
+            captureBuffer.putBytes(captureProgress, payload.buffer(), payload.offset(), length);
+            captureProgress += length;
+        }
+
+        private void captureToolSchemas()
+        {
+            try
+            {
+                final DirectBufferInputStreamEx input = new DirectBufferInputStreamEx();
+                input.wrap(captureBuffer, 0, captureProgress);
+                try (JsonReader reader = Json.createReader(input))
+                {
+                    final JsonObject result = reader.readObject();
+                    if (result.containsKey("tools"))
+                    {
+                        for (JsonValue item : result.getJsonArray("tools"))
+                        {
+                            final JsonObject tool = item.asJsonObject();
+                            if (tool.containsKey("name") && tool.containsKey("inputSchema"))
+                            {
+                                final String name = tool.getString("name");
+                                final String schema = tool.getJsonObject("inputSchema").toString();
+                                final int schemaId = server.binding.registerToolSchema(name, schema);
+                                session.toolSchemaIds.put(name, schemaId);
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // best-effort capture; malformed list leaves prior schemas intact
             }
         }
 
@@ -5085,6 +5306,11 @@ public final class McpServerFactory implements McpStreamFactory
 
             state = McpState.closedReply(state);
 
+            if (toolsList && captureProgress > 0)
+            {
+                captureToolSchemas();
+            }
+
             if (sse != null)
             {
                 sse.doEncodeResponseSsePostamble(traceId, authorization);
@@ -5136,6 +5362,11 @@ public final class McpServerFactory implements McpStreamFactory
             state = McpState.openedInitial(state);
 
             server.decodeNet(traceId, authorization, budgetId);
+
+            if (validator != null && argsValidated)
+            {
+                flushArgs(traceId, authorization);
+            }
         }
 
         private void onAppReset(
