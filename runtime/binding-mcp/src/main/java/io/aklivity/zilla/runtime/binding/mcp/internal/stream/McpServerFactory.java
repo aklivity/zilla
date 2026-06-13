@@ -2632,7 +2632,12 @@ public final class McpServerFactory implements McpStreamFactory
                 "{\"jsonrpc\":\"2.0\",\"id\":%s,\"error\":{\"code\":%d,\"message\":\"%s\"}}"
                     .formatted(decodedId, code, message));
             doNetData(traceId, authorization, codecBuffer, 0, codecLimit);
-            doNetEnd(traceId, authorization);
+
+            state = McpState.closingReply(state);
+            if (encodeSlot == BufferPool.NO_SLOT)
+            {
+                doNetEnd(traceId, authorization);
+            }
         }
 
         private void encodeNet(
@@ -4695,11 +4700,6 @@ public final class McpServerFactory implements McpStreamFactory
             argsBuffer.putBytes(argsProgress, buffer, offset, length);
             argsProgress += length;
 
-            if (!argsValidated && argsProgress >= argsExpected)
-            {
-                validateArgs(traceId, authorization);
-            }
-
             return limit;
         }
 
@@ -4944,15 +4944,18 @@ public final class McpServerFactory implements McpStreamFactory
             int minReplyNoAck,
             int minReplyMax)
         {
-            final long replyAckMax = Math.max(replySeq - minReplyNoAck, 0);
-            if (replyAckMax > replyAck || minReplyMax > replyMax)
+            if (app != null)
             {
-                replyAck = replyAckMax;
-                assert replyAck <= replySeq;
+                final long replyAckMax = Math.max(replySeq - minReplyNoAck, 0);
+                if (replyAckMax > replyAck || minReplyMax > replyMax)
+                {
+                    replyAck = replyAckMax;
+                    assert replyAck <= replySeq;
 
-                replyMax = Math.max(minReplyMax, replyMax);
+                    replyMax = Math.max(minReplyMax, replyMax);
 
-                doAppWindow(traceId, authorization, budgetId, padding);
+                    doAppWindow(traceId, authorization, budgetId, padding);
+                }
             }
         }
 
