@@ -58,6 +58,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     private int consumed;
     private boolean afterKey;
     private boolean stringOpen;
+    private boolean numberOpen;
 
     public JsonGeneratorImpl()
     {
@@ -105,6 +106,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         this.depth = 0;
         this.afterKey = false;
         this.stringOpen = false;
+        this.numberOpen = false;
     }
 
     @Override
@@ -404,6 +406,24 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     {
         preValue();
         writeAscii(literal);
+        return this;
+    }
+
+    @Override
+    public JsonGeneratorImpl writeNumber(
+        CharSequence literal,
+        Completion completion)
+    {
+        if (!numberOpen)
+        {
+            preValue();
+            numberOpen = true;
+        }
+        writeAscii(literal);
+        if (completion == Completion.COMPLETE)
+        {
+            numberOpen = false;
+        }
         return this;
     }
 

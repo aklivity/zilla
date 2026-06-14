@@ -383,38 +383,51 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
     @Override
     public boolean isIntegralNumber()
     {
-        String v = tokenizer.stringValue();
+        final CharSequence v = numberLexeme();
         if (v == null)
         {
             throw new IllegalStateException("Not a number");
         }
-        for (int i = 0; i < v.length(); i++)
+        boolean integral = true;
+        for (int i = 0; integral && i < v.length(); i++)
         {
-            char c = v.charAt(i);
-            if (c == '.' || c == 'e' || c == 'E')
-            {
-                return false;
-            }
+            final char c = v.charAt(i);
+            integral = c != '.' && c != 'e' && c != 'E';
         }
-        return true;
+        return integral;
     }
 
     @Override
     public int getInt()
     {
+        if (tokenizer.numberFragmented())
+        {
+            throw new IllegalStateException("number spans multiple windows; use getBigDecimal()");
+        }
         return Integer.parseInt(tokenizer.stringValue());
     }
 
     @Override
     public long getLong()
     {
+        if (tokenizer.numberFragmented())
+        {
+            throw new IllegalStateException("number spans multiple windows; use getBigDecimal()");
+        }
         return Long.parseLong(tokenizer.stringValue());
     }
 
     @Override
     public BigDecimal getBigDecimal()
     {
-        return new BigDecimal(tokenizer.stringValue());
+        return new BigDecimal(numberLexeme().toString());
+    }
+
+    // The current number's full lexeme: a fragmented number's is accumulated in the tokenizer across
+    // its fragments; an unfragmented one is the current scratch value.
+    private CharSequence numberLexeme()
+    {
+        return tokenizer.numberFragmented() ? tokenizer.numberLexeme() : tokenizer.stringValue();
     }
 
     @Override

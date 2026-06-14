@@ -158,13 +158,14 @@ public final class JsonSinkImpl implements JsonSink
         JsonEvent event)
     {
         final boolean deferred = source.deferredBytes();
+        final Completion completion = deferred ? Completion.INCOMPLETE : Completion.COMPLETE;
         if (event == JsonEvent.VALUE_NUMBER)
         {
-            generator.writeNumber(source.getString());
+            generator.writeNumber(source.getString(), completion);
         }
         else
         {
-            generator.write(source.getString(), deferred ? Completion.INCOMPLETE : Completion.COMPLETE);
+            generator.write(source.getString(), completion);
         }
         return deferred ? Status.ADVANCED : scalarStatus();
     }

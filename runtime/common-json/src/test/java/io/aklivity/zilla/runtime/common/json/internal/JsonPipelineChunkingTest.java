@@ -19,8 +19,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+
+import jakarta.json.stream.JsonParser;
 
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -263,6 +266,79 @@ class JsonPipelineChunkingTest
         byte[] out = new byte[generator.length()];
         output.getBytes(0, out);
         assertEquals(json, new String(out, UTF_8));
+    }
+
+    @Test
+    void shouldReconstructWindowFragmentedNumberValueDecoded()
+    {
+        String json = "{\"n\":" + "1".repeat(40) + "}";
+        assertEquals(json, feedWindowed(json, JsonSink.Delivery.DECODED, 8));
+    }
+
+    @Test
+    void shouldReconstructWindowFragmentedNumberValueVerbatim()
+    {
+        String json = "{\"n\":" + "1".repeat(40) + "}";
+        assertEquals(json, feedWindowed(json, JsonSink.Delivery.STRUCTURED, 8));
+    }
+
+    @Test
+    void shouldReadWindowFragmentedNumberAsBigDecimalAndRejectGetInt()
+    {
+        // a number far longer than long range fragments across small windows; getBigDecimal() reads the
+        // whole value from the accumulated lexeme, while getInt()/getLong() reject the fragmented number
+        String bigNumber = "12345678901234567890123456789012";
+        String json = "{\"n\":" + bigNumber + "}";
+
+        JsonGeneratorEx generator = JsonEx.createGenerator();
+        MutableDirectBuffer output = new UnsafeBuffer(new byte[256]);
+        List<BigDecimal> wholes = new ArrayList<>();
+        List<Boolean> intRejected = new ArrayList<>();
+        JsonTransform probe = (control, source, event, sink) ->
+        {
+            if (event == JsonEvent.VALUE_NUMBER && !source.deferredBytes())
+            {
+                final JsonParser number = (JsonParser) source;
+                wholes.add(number.getBigDecimal());
+                boolean rejected = false;
+                try
+                {
+                    number.getInt();
+                }
+                catch (IllegalStateException ex)
+                {
+                    rejected = true;
+                }
+                intRejected.add(rejected);
+            }
+            return sink.feed(control, source, event);
+        };
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(probe)
+            .into(JsonSink.of(generator, JsonSink.Delivery.DECODED));
+        generator.wrap(output, 0, output.capacity());
+        pipeline.reset();
+
+        byte[] msg = (json + " ").getBytes(UTF_8);
+        int committed = 0;
+        int offset = 0;
+        Status status = Status.STARVED;
+        int guard = 0;
+        while (guard++ < 100_000)
+        {
+            offset = Math.min(offset + 8, msg.length);
+            boolean last = offset >= msg.length;
+            status = pipeline.feed(new UnsafeBuffer(msg), committed, offset - committed, last);
+            if (status != Status.STARVED)
+            {
+                break;
+            }
+            assertFalse(last, "last window must not starve");
+            committed = (int) pipeline.position();
+        }
+        assertEquals(Status.COMPLETED, status);
+        assertEquals(new BigDecimal(bigNumber), wholes.get(0));
+        assertTrue(intRejected.get(0), "getInt() must reject a fragmented number");
     }
 
     // Feeds the document in fixed-size windows, carrying the unconsumed tail (up to position()) across

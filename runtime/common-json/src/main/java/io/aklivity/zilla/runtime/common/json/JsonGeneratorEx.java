@@ -106,6 +106,18 @@ public interface JsonGeneratorEx extends JsonGenerator
         CharSequence literal);
 
     /**
+     * Emits a numeric literal that may arrive in fragments. The leading structural separator is emitted
+     * before the first fragment; each fragment's lexeme chars are appended verbatim (numbers carry no
+     * quoting or trailing delimiter). Pass {@link Completion#INCOMPLETE} while the source reports more
+     * deferred bytes and {@link Completion#COMPLETE} on the final fragment, so a number delivered across
+     * several windows forms one literal without the caller concatenating.
+     * {@code writeNumber(literal, COMPLETE)} is equivalent to {@link #writeNumber(CharSequence)}.
+     */
+    JsonGeneratorEx writeNumber(
+        CharSequence literal,
+        Completion completion);
+
+    /**
      * Splices a pre-encoded JSON value from {@code source} verbatim as the next value, with no
      * re-encoding.
      */
