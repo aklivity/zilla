@@ -23,7 +23,6 @@ import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.StringReader;
-import java.util.List;
 import java.util.Map;
 
 import jakarta.json.JsonArray;
@@ -43,7 +42,6 @@ public class JsonParserFactoryImplTest
     public void shouldCreateParserForInputStreamWithSharedConfig()
     {
         final Map<String, Object> config = Map.of(
-            JsonParserEx.PATH_INCLUDES, List.of("/jsonrpc"),
             JsonParserEx.TOKEN_MAX_BYTES, 1024);
         final JsonParserFactory factory = JsonEx.createParserFactory(config);
 
@@ -67,7 +65,7 @@ public class JsonParserFactoryImplTest
     public void shouldExposeConfigInUse()
     {
         final Map<String, Object> config = Map.of(
-            JsonParserEx.PATH_INCLUDES, List.of("/jsonrpc"));
+            JsonParserEx.TOKEN_MAX_BYTES, 1024);
         final JsonParserFactory factory = JsonEx.createParserFactory(config);
         assertSame(config, factory.getConfigInUse());
     }

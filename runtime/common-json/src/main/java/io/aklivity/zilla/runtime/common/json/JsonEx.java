@@ -58,8 +58,8 @@ public final class JsonEx
     }
 
     /**
-     * Variant of {@link #createParser()} taking parser config (e.g. {@link JsonParserEx#PATH_INCLUDES},
-     * {@link JsonParserEx#TOKEN_MAX_BYTES}); the returned parser starts empty and is fed via {@link
+     * Variant of {@link #createParser()} taking parser config (e.g. {@link JsonParserEx#TOKEN_MAX_BYTES});
+     * the returned parser starts empty and is fed via {@link
      * JsonParserEx#wrap(org.agrona.DirectBuffer, int, int)}.
      */
     public static JsonParserEx createParser(

@@ -32,7 +32,6 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeg
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
@@ -225,20 +224,6 @@ public final class McpClientFactory implements McpStreamFactory
     private final String clientName;
     private final String clientVersion;
 
-    private static final List<String> CLIENT_JSON_PATH_INCLUDES = List.of(
-        "/jsonrpc",
-        "/id",
-        "/method",
-        "/protocolVersion",
-        "/params/progressToken",
-        "/params/progress",
-        "/params/total",
-        "/params/message",
-        "/params/elicitationId",
-        "/params/url",
-        "/params/mode",
-        "/params/status");
-
     private static final int SSE_LINE_START = 0;
     private static final int SSE_FIELD_NAME = 1;
     private static final int SSE_AFTER_COLON = 2;
@@ -286,10 +271,8 @@ public final class McpClientFactory implements McpStreamFactory
         this.clientName = config.clientName();
         this.clientVersion = config.clientVersion();
         this.responseParserFactory = JsonEx.createParserFactory(Map.of(
-            JsonParserEx.PATH_INCLUDES, CLIENT_JSON_PATH_INCLUDES,
             JsonParserEx.TOKEN_MAX_BYTES, decodeMax));
         this.requestParserFactory = JsonEx.createParserFactory(Map.of(
-            JsonParserEx.PATH_INCLUDES, List.of(),
             JsonParserEx.TOKEN_MAX_BYTES, encodeMax));
 
         final Int2ObjectHashMap<McpSessionIdResolver> resolvers = new Int2ObjectHashMap<>();

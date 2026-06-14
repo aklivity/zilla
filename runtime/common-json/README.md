@@ -12,9 +12,10 @@ keeps parse, transform, and serialize on a single pass with no intermediate DOM.
 `JsonEx.createParser()` returns a resumable pull cursor fed one frame at a time via
 `wrap(buffer, offset, length)`, then driven with the standard `hasNext()` / `next()`. It also
 implements `jakarta.json.stream.JsonParser`, so `JsonEx.createParser(in)` works anywhere a
-one-shot pull parser is expected. `PATH_INCLUDES` / `PATH_EXCLUDES` config bounds which paths are
-materialized (so deep values can be scanned and discarded without allocating), and `TOKEN_MAX_BYTES`
-fails fast on a single value that cannot make progress under reset semantics.
+one-shot pull parser is expected. Every value is readable on demand (decoded lazily via
+`getString()`, or spliced verbatim via `getSegment()`); `TOKEN_MAX_BYTES` bounds a single value to
+the caller's slot, delivering anything larger as `deferredBytes()` fragments rather than buffering
+it whole.
 
 ```java
 JsonParserEx parser = JsonEx.createParser().wrap(buffer, offset, length);

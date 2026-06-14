@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_PROMPTS_LIST;
 
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 import java.util.function.LongFunction;
 
 import org.agrona.DirectBuffer;
@@ -31,8 +30,6 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 
 final class McpProxyPromptsListFactory extends McpProxyListFactory
 {
-    private static final List<String> PROMPTS_LIST_ITEM_JSON_PATH_INCLUDES = List.of("/prompts/-/name");
-
     private final DirectBuffer prelude =
         new UnsafeBuffer("{\"prompts\":[".getBytes(StandardCharsets.UTF_8));
 
@@ -41,7 +38,7 @@ final class McpProxyPromptsListFactory extends McpProxyListFactory
         EngineContext context,
         LongFunction<McpBindingConfig> supplyBinding)
     {
-        super(config, context, supplyBinding, McpBeginExFW.KIND_PROMPTS_LIST, PROMPTS_LIST_ITEM_JSON_PATH_INCLUDES);
+        super(config, context, supplyBinding, McpBeginExFW.KIND_PROMPTS_LIST);
     }
 
     @Override

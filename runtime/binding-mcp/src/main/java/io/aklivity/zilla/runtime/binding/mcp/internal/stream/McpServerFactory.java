@@ -23,7 +23,6 @@ import static java.lang.Integer.toUnsignedLong;
 
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.LongUnaryOperator;
@@ -227,14 +226,6 @@ public final class McpServerFactory implements McpStreamFactory
 
     private final DirectBufferInputStreamEx inputRO = new DirectBufferInputStreamEx();
 
-    private static final List<String> SERVER_JSON_PATH_INCLUDES = List.of(
-        "/jsonrpc",
-        "/id",
-        "/method",
-        "/params/name",
-        "/params/uri",
-        "/params/_meta/progressToken",
-        "/result/action");
     private final JsonParserFactory parserFactory;
 
     private final McpServerDecoder decodeJsonRpc = this::decodeJsonRpc;
@@ -293,7 +284,6 @@ public final class McpServerFactory implements McpStreamFactory
         this.sessionIdAttempts = config.sessionIdAttempts();
         this.sessions = new Object2ObjectHashMap<>();
         this.parserFactory = JsonEx.createParserFactory(Map.of(
-            JsonParserEx.PATH_INCLUDES, SERVER_JSON_PATH_INCLUDES,
             JsonParserEx.TOKEN_MAX_BYTES, decodeMax));
     }
 
