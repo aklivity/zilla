@@ -28,13 +28,18 @@ public interface JsonSink
 {
     /**
      * Delivery mode a terminal sink requests. {@link #STRUCTURED} consumes structured events and
-     * renders normalized output; {@link #SEGMENTABLE} opts in to verbatim segment delivery for kept
-     * values (best-effort, demand-gated) by calling {@link JsonController#segmentable()}.
+     * renders output by splicing each value's verbatim token bytes (chunked across bounded output);
+     * {@link #SEGMENTABLE} opts in to verbatim segment delivery for kept values (best-effort,
+     * demand-gated) by calling {@link JsonController#segmentable()}; {@link #DECODED} renders each
+     * scalar from its decoded {@code getString()} via {@link JsonGeneratorEx#write(CharSequence,
+     * boolean)}, letting the generator own quoting/escaping so a value delivered as fragments forms a
+     * single string without the sink concatenating.
      */
     enum Delivery
     {
         STRUCTURED,
-        SEGMENTABLE
+        SEGMENTABLE,
+        DECODED
     }
 
     JsonPipeline.Status feed(

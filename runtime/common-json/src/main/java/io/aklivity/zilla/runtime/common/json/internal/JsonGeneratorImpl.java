@@ -28,6 +28,7 @@ import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
+import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx.Completion;
 
 /**
  * Streaming, compact {@link JsonGeneratorEx} that writes directly into a {@link
@@ -56,6 +57,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     private int depth;
     private int consumed;
     private boolean afterKey;
+    private boolean stringOpen;
 
     public JsonGeneratorImpl()
     {
@@ -102,6 +104,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     {
         this.depth = 0;
         this.afterKey = false;
+        this.stringOpen = false;
     }
 
     @Override
@@ -187,6 +190,26 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     {
         preValue();
         writeString(value);
+        return this;
+    }
+
+    @Override
+    public JsonGeneratorImpl write(
+        CharSequence value,
+        Completion completion)
+    {
+        if (!stringOpen)
+        {
+            preValue();
+            putByte.accept('"');
+            stringOpen = true;
+        }
+        writeStringBody(value);
+        if (completion == Completion.COMPLETE)
+        {
+            putByte.accept('"');
+            stringOpen = false;
+        }
         return this;
     }
 
@@ -445,6 +468,13 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         CharSequence value)
     {
         putByte.accept('"');
+        writeStringBody(value);
+        putByte.accept('"');
+    }
+
+    private void writeStringBody(
+        CharSequence value)
+    {
         int index = 0;
         int length = value.length();
         while (index < length)
@@ -493,7 +523,6 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
                 break;
             }
         }
-        putByte.accept('"');
     }
 
     private void writeUtf8(

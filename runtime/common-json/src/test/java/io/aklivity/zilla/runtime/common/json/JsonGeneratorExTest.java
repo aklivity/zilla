@@ -28,6 +28,8 @@ import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
 
+import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx.Completion;
+
 class JsonGeneratorExTest
 {
     @Test
@@ -228,6 +230,28 @@ class JsonGeneratorExTest
         byte[] out = new byte[generator.length()];
         buffer.getBytes(8, out);
         assertEquals("[1]", new String(out, UTF_8));
+    }
+
+    @Test
+    void shouldWriteDeferredStringAcrossFragments()
+    {
+        assertEquals("[\"abcd\"]", generate(g -> g
+            .writeStartArray()
+            .write("ab", Completion.INCOMPLETE)
+            .write("cd", Completion.COMPLETE)
+            .writeEnd()));
+    }
+
+    @Test
+    void shouldWriteDeferredStringWithEscapesAcrossFragments()
+    {
+        // a fragment boundary between escapable chars must still produce one correctly escaped string
+        assertEquals(
+            generate(g -> g.writeStartArray().write("a\"b\nc").writeEnd()),
+            generate(g -> g.writeStartArray()
+                .write("a\"b", Completion.INCOMPLETE)
+                .write("\nc", Completion.COMPLETE)
+                .writeEnd()));
     }
 
     private static String generate(

@@ -76,6 +76,10 @@ public final class JsonTokenizer
     private long streamOffset;
     private long valueStreamStart;
     private long valueStreamEnd;
+    // raw stream offset where the current value-string fragment began; getSegment() of a fragmented
+    // value returns [fragmentStart, valueStreamEnd] so each fragment's verbatim bytes splice back to
+    // the whole token (fragment 1 includes the opening quote, the final fragment the closing quote)
+    private long fragmentStart;
     private boolean valueReadable = true;
     // set while a segment scan is in progress: a value-string is then streamed across frames as raw
     // bytes (no rewind to require it whole-in-frame, no decoded retention) rather than buffered whole.
@@ -132,6 +136,7 @@ public final class JsonTokenizer
         pendingString = null;
         valuePending = false;
         streamOffset = 0;
+        fragmentStart = 0;
         valueReadable = true;
         segmenting = false;
         fragmenting = false;
@@ -218,6 +223,8 @@ public final class JsonTokenizer
                     resumeUnicodeValue = 0;
                     if (scratch.length() > 0)
                     {
+                        valueStreamStart = fragmentStart;
+                        valueStreamEnd = streamOffset;
                         pendingEvent = JsonParser.Event.VALUE_STRING;
                         pendingString = takeScratch();
                         valuePending = false;
@@ -414,6 +421,7 @@ public final class JsonTokenizer
             state = ParseState.OBJ_AFTER_KEY;
             break;
         case VALUE_STRING:
+            fragmentStart = streamOffset;
             continueStringContent(in);
             finishStringValue();
             break;
@@ -459,6 +467,7 @@ public final class JsonTokenizer
     // fragment) with the value left in progress so the next advance() continues it.
     private void finishStringValue()
     {
+        valueStreamStart = fragmentStart;
         valueStreamEnd = streamOffset;
         pendingEvent = JsonParser.Event.VALUE_STRING;
         if (stringComplete)
@@ -574,6 +583,7 @@ public final class JsonTokenizer
             break;
         case '"':
             valueStreamStart = streamOffset - 1;
+            fragmentStart = streamOffset - 1;
             scratch.setLength(0);
             resumeEscape = false;
             resumeUnicodePending = 0;
