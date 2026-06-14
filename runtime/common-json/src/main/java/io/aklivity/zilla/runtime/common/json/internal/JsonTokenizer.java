@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.common.json.internal;
 
-import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayDeque;
@@ -95,6 +94,10 @@ public final class JsonTokenizer
     // getLong() then throw (the value would overflow) and getBigDecimal() reads the accumulated lexeme.
     private boolean numberFragmented;
 
+    // set when a read hits the end of the current input window mid-token: the scan unwinds logically
+    // (no exception) and advance() routes to onScalarStarved; reset at the top of each advance()
+    private boolean starved;
+
     // scalar resume state (valid when resumeOp != NONE)
     private ResumeOp resumeOp = ResumeOp.NONE;
     private boolean resumeEscape;
@@ -136,6 +139,7 @@ public final class JsonTokenizer
         fragmentStart = 0;
         segmenting = false;
         fragmenting = false;
+        starved = false;
         resumeOp = ResumeOp.NONE;
         resumeEscape = false;
         resumeUnicodePending = 0;
@@ -171,6 +175,8 @@ public final class JsonTokenizer
     public boolean advance(
         InputStream in) throws IOException
     {
+        starved = false;
+
         if (state == ParseState.DOC_DONE)
         {
             if (terminalEof)
@@ -184,29 +190,24 @@ public final class JsonTokenizer
         pendingString = null;
         valuePending = false;
 
-        while (pendingEvent == null && state != ParseState.DOC_DONE)
+        boolean produced = true;
+        while (!starved && pendingEvent == null && state != ParseState.DOC_DONE)
         {
-            try
+            if (resumeOp != ResumeOp.NONE)
             {
-                if (resumeOp != ResumeOp.NONE)
-                {
-                    resumeScan(in);
-                }
-                else
-                {
-                    advanceOne(in);
-                }
+                resumeScan(in);
             }
-            catch (EOFException ex)
+            else
             {
-                if (pendingEvent != null)
-                {
-                    return true;
-                }
-                return onScalarStarved();
+                advanceOne(in);
             }
         }
-        return true;
+
+        if (starved && pendingEvent == null)
+        {
+            produced = onScalarStarved();
+        }
+        return produced;
     }
 
     // The window was exhausted mid-scalar. A value-string whose own bytes fill the window (or one
@@ -238,8 +239,10 @@ public final class JsonTokenizer
                     valueStreamStart = fragmentStart;
                     valueStreamEnd = streamOffset;
                     pendingEvent = JsonParser.Event.VALUE_STRING;
-                    pendingString = takeScratch();
-                    valuePending = false;
+                    // capture lazily: a verbatim/segmented consumer reads only getSegment() and never
+                    // materializes the decoded chars, so leave them in scratch (cleared when the next
+                    // fragment resumes) and let stringValue() take them on demand
+                    captureValue();
                     delivered = true;
                 }
             }
@@ -255,8 +258,7 @@ public final class JsonTokenizer
                     valueStreamStart = fragmentStart;
                     valueStreamEnd = streamOffset;
                     pendingEvent = JsonParser.Event.VALUE_NUMBER;
-                    pendingString = takeScratch();
-                    valuePending = false;
+                    captureValue();
                     delivered = true;
                 }
             }
@@ -449,38 +451,60 @@ public final class JsonTokenizer
         {
         case KEY_STRING:
             continueStringContent(in);
-            pendingEvent = JsonParser.Event.KEY_NAME;
-            captureKey();
-            resumeOp = ResumeOp.NONE;
-            state = ParseState.OBJ_AFTER_KEY;
+            if (!starved)
+            {
+                pendingEvent = JsonParser.Event.KEY_NAME;
+                captureKey();
+                resumeOp = ResumeOp.NONE;
+                state = ParseState.OBJ_AFTER_KEY;
+            }
             break;
         case VALUE_STRING:
+            // discard the prior fragment's chars (already shipped, captured lazily) before decoding the
+            // next fragment into scratch
+            scratch.setLength(0);
             fragmentStart = streamOffset;
             continueStringContent(in);
-            finishStringValue();
+            if (!starved)
+            {
+                finishStringValue();
+            }
             break;
         case VALUE_NUMBER:
+            scratch.setLength(0);
             fragmentStart = streamOffset;
             continueNumberContent(in);
-            finishNumberValue();
+            if (!starved)
+            {
+                finishNumberValue();
+            }
             break;
         case VALUE_TRUE:
             continueLiteral(in, "true");
-            pendingEvent = JsonParser.Event.VALUE_TRUE;
-            resumeOp = ResumeOp.NONE;
-            afterValueConsumed();
+            if (!starved)
+            {
+                pendingEvent = JsonParser.Event.VALUE_TRUE;
+                resumeOp = ResumeOp.NONE;
+                afterValueConsumed();
+            }
             break;
         case VALUE_FALSE:
             continueLiteral(in, "false");
-            pendingEvent = JsonParser.Event.VALUE_FALSE;
-            resumeOp = ResumeOp.NONE;
-            afterValueConsumed();
+            if (!starved)
+            {
+                pendingEvent = JsonParser.Event.VALUE_FALSE;
+                resumeOp = ResumeOp.NONE;
+                afterValueConsumed();
+            }
             break;
         case VALUE_NULL:
             continueLiteral(in, "null");
-            pendingEvent = JsonParser.Event.VALUE_NULL;
-            resumeOp = ResumeOp.NONE;
-            afterValueConsumed();
+            if (!starved)
+            {
+                pendingEvent = JsonParser.Event.VALUE_NULL;
+                resumeOp = ResumeOp.NONE;
+                afterValueConsumed();
+            }
             break;
         default:
             throw new IllegalStateException("Unexpected resumeOp: " + resumeOp);
@@ -543,20 +567,26 @@ public final class JsonTokenizer
         InputStream in) throws IOException
     {
         int c = skipWhitespace(in);
-        parseValue(in, c);
+        if (!starved)
+        {
+            parseValue(in, c);
+        }
     }
 
     private void consumeValueOrEnd(
         InputStream in) throws IOException
     {
         int c = skipWhitespace(in);
-        if (c == ']')
+        if (!starved)
         {
-            emitEnd(JsonParser.Event.END_ARRAY);
-        }
-        else
-        {
-            parseValue(in, c);
+            if (c == ']')
+            {
+                emitEnd(JsonParser.Event.END_ARRAY);
+            }
+            else
+            {
+                parseValue(in, c);
+            }
         }
     }
 
@@ -564,20 +594,26 @@ public final class JsonTokenizer
         InputStream in) throws IOException
     {
         int c = skipWhitespace(in);
-        parseKey(in, c);
+        if (!starved)
+        {
+            parseKey(in, c);
+        }
     }
 
     private void consumeKeyOrEnd(
         InputStream in) throws IOException
     {
         int c = skipWhitespace(in);
-        if (c == '}')
+        if (!starved)
         {
-            emitEnd(JsonParser.Event.END_OBJECT);
-        }
-        else
-        {
-            parseKey(in, c);
+            if (c == '}')
+            {
+                emitEnd(JsonParser.Event.END_OBJECT);
+            }
+            else
+            {
+                parseKey(in, c);
+            }
         }
     }
 
@@ -585,11 +621,14 @@ public final class JsonTokenizer
         InputStream in) throws IOException
     {
         int c = skipWhitespace(in);
-        if (c != ':')
+        if (!starved)
         {
-            throw new JsonParsingException("Expected ':' but got: " + describe(c), null);
+            if (c != ':')
+            {
+                throw new JsonParsingException("Expected ':' but got: " + describe(c), null);
+            }
+            state = ParseState.OBJ_AFTER_COLON;
         }
-        state = ParseState.OBJ_AFTER_COLON;
     }
 
     private void consumeSeparatorOrEnd(
@@ -597,17 +636,20 @@ public final class JsonTokenizer
         boolean inObject) throws IOException
     {
         int c = skipWhitespace(in);
-        if (c == ',')
+        if (!starved)
         {
-            state = inObject ? ParseState.OBJ_AFTER_COMMA : ParseState.ARR_AFTER_COMMA;
-        }
-        else if (inObject && c == '}' || !inObject && c == ']')
-        {
-            emitEnd(inObject ? JsonParser.Event.END_OBJECT : JsonParser.Event.END_ARRAY);
-        }
-        else
-        {
-            throw new JsonParsingException("Expected ',' or closing bracket but got: " + describe(c), null);
+            if (c == ',')
+            {
+                state = inObject ? ParseState.OBJ_AFTER_COMMA : ParseState.ARR_AFTER_COMMA;
+            }
+            else if (inObject && c == '}' || !inObject && c == ']')
+            {
+                emitEnd(inObject ? JsonParser.Event.END_OBJECT : JsonParser.Event.END_ARRAY);
+            }
+            else
+            {
+                throw new JsonParsingException("Expected ',' or closing bracket but got: " + describe(c), null);
+            }
         }
     }
 
@@ -635,31 +677,43 @@ public final class JsonTokenizer
             resumeUnicodePending = 0;
             resumeOp = ResumeOp.VALUE_STRING;
             continueStringContent(in);
-            finishStringValue();
+            if (!starved)
+            {
+                finishStringValue();
+            }
             break;
         case 't':
             resumeLiteralIndex = 1;
             resumeOp = ResumeOp.VALUE_TRUE;
             continueLiteral(in, "true");
-            pendingEvent = JsonParser.Event.VALUE_TRUE;
-            resumeOp = ResumeOp.NONE;
-            afterValueConsumed();
+            if (!starved)
+            {
+                pendingEvent = JsonParser.Event.VALUE_TRUE;
+                resumeOp = ResumeOp.NONE;
+                afterValueConsumed();
+            }
             break;
         case 'f':
             resumeLiteralIndex = 1;
             resumeOp = ResumeOp.VALUE_FALSE;
             continueLiteral(in, "false");
-            pendingEvent = JsonParser.Event.VALUE_FALSE;
-            resumeOp = ResumeOp.NONE;
-            afterValueConsumed();
+            if (!starved)
+            {
+                pendingEvent = JsonParser.Event.VALUE_FALSE;
+                resumeOp = ResumeOp.NONE;
+                afterValueConsumed();
+            }
             break;
         case 'n':
             resumeLiteralIndex = 1;
             resumeOp = ResumeOp.VALUE_NULL;
             continueLiteral(in, "null");
-            pendingEvent = JsonParser.Event.VALUE_NULL;
-            resumeOp = ResumeOp.NONE;
-            afterValueConsumed();
+            if (!starved)
+            {
+                pendingEvent = JsonParser.Event.VALUE_NULL;
+                resumeOp = ResumeOp.NONE;
+                afterValueConsumed();
+            }
             break;
         default:
             if (c == '-' || c >= '0' && c <= '9')
@@ -672,7 +726,10 @@ public final class JsonTokenizer
                 scratch.append((char) c);
                 resumeOp = ResumeOp.VALUE_NUMBER;
                 continueNumberContent(in);
-                finishNumberValue();
+                if (!starved)
+                {
+                    finishNumberValue();
+                }
             }
             else
             {
@@ -694,10 +751,13 @@ public final class JsonTokenizer
         resumeUnicodePending = 0;
         resumeOp = ResumeOp.KEY_STRING;
         continueStringContent(in);
-        pendingEvent = JsonParser.Event.KEY_NAME;
-        captureKey();
-        resumeOp = ResumeOp.NONE;
-        state = ParseState.OBJ_AFTER_KEY;
+        if (!starved)
+        {
+            pendingEvent = JsonParser.Event.KEY_NAME;
+            captureKey();
+            resumeOp = ResumeOp.NONE;
+            state = ParseState.OBJ_AFTER_KEY;
+        }
     }
 
     // Keys are always deferred (left in scratch, materialized lazily by stringValue()), so a key that
@@ -781,14 +841,10 @@ public final class JsonTokenizer
     private void enforceEndOfInput(
         InputStream in) throws IOException
     {
-        try
+        int c = skipWhitespace(in);
+        if (c != -1)
         {
-            int c = skipWhitespace(in);
             throw new JsonParsingException("Unexpected trailing content: " + describe(c), null);
-        }
-        catch (EOFException ex)
-        {
-            // clean end of input
         }
     }
 
@@ -808,21 +864,25 @@ public final class JsonTokenizer
         InputStream in,
         String expected) throws IOException
     {
-        while (resumeLiteralIndex < expected.length())
+        while (!starved && resumeLiteralIndex < expected.length())
         {
             int c = readByte(in);
-            if (c != expected.charAt(resumeLiteralIndex))
+            if (!starved)
             {
-                throw new JsonParsingException("Unexpected character in literal: " + describe(c), null);
+                if (c != expected.charAt(resumeLiteralIndex))
+                {
+                    throw new JsonParsingException("Unexpected character in literal: " + describe(c), null);
+                }
+                resumeLiteralIndex++;
             }
-            resumeLiteralIndex++;
         }
     }
 
     private void continueStringContent(
         InputStream in) throws IOException
     {
-        while (true)
+        boolean complete = false;
+        while (!complete && !starved)
         {
             // Track each complete-unit boundary so an EOF mid-char/escape can rewind here: the chars
             // decoded so far ship as a fragment and the partial unit's bytes stay unconsumed
@@ -832,67 +892,74 @@ public final class JsonTokenizer
                 unitStartOffset = streamOffset;
             }
             int c = readByte(in);
-            if (resumeUnicodePending > 0)
+            if (!starved)
             {
-                resumeUnicodeValue = (resumeUnicodeValue << 4) | hexDigit(c);
-                resumeUnicodePending--;
-                if (resumeUnicodePending == 0)
+                if (resumeUnicodePending > 0)
                 {
-                    appendScratch((char) resumeUnicodeValue);
+                    resumeUnicodeValue = (resumeUnicodeValue << 4) | hexDigit(c);
+                    resumeUnicodePending--;
+                    if (resumeUnicodePending == 0)
+                    {
+                        appendScratch((char) resumeUnicodeValue);
+                    }
                 }
-            }
-            else if (resumeEscape)
-            {
-                resumeEscape = false;
-                switch (c)
+                else if (resumeEscape)
                 {
-                case '"':
-                case '\\':
-                case '/':
+                    resumeEscape = false;
+                    switch (c)
+                    {
+                    case '"':
+                    case '\\':
+                    case '/':
+                        appendScratch((char) c);
+                        break;
+                    case 'b':
+                        appendScratch('\b');
+                        break;
+                    case 'f':
+                        appendScratch('\f');
+                        break;
+                    case 'n':
+                        appendScratch('\n');
+                        break;
+                    case 'r':
+                        appendScratch('\r');
+                        break;
+                    case 't':
+                        appendScratch('\t');
+                        break;
+                    case 'u':
+                        resumeUnicodePending = 4;
+                        resumeUnicodeValue = 0;
+                        break;
+                    default:
+                        throw new JsonParsingException("Invalid escape: \\" + describe(c), null);
+                    }
+                }
+                else if (c == '"')
+                {
+                    complete = true;
+                }
+                else if (c == '\\')
+                {
+                    resumeEscape = true;
+                }
+                else if (c < 0x20)
+                {
+                    throw new JsonParsingException("Unescaped control character in string: " + describe(c), null);
+                }
+                else if (c < 0x80)
+                {
                     appendScratch((char) c);
-                    break;
-                case 'b':
-                    appendScratch('\b');
-                    break;
-                case 'f':
-                    appendScratch('\f');
-                    break;
-                case 'n':
-                    appendScratch('\n');
-                    break;
-                case 'r':
-                    appendScratch('\r');
-                    break;
-                case 't':
-                    appendScratch('\t');
-                    break;
-                case 'u':
-                    resumeUnicodePending = 4;
-                    resumeUnicodeValue = 0;
-                    break;
-                default:
-                    throw new JsonParsingException("Invalid escape: \\" + describe(c), null);
                 }
-            }
-            else if (c == '"')
-            {
-                return;
-            }
-            else if (c == '\\')
-            {
-                resumeEscape = true;
-            }
-            else if (c < 0x20)
-            {
-                throw new JsonParsingException("Unescaped control character in string: " + describe(c), null);
-            }
-            else if (c < 0x80)
-            {
-                appendScratch((char) c);
-            }
-            else
-            {
-                appendCodePointScratch(decodeUtf8(in, c));
+                else
+                {
+                    int codePoint = decodeUtf8(in, c);
+                    if (!starved)
+                    {
+                        appendCodePointScratch(codePoint);
+                    }
+                }
             }
         }
     }
@@ -947,14 +1014,17 @@ public final class JsonTokenizer
         {
             throw new JsonParsingException("Invalid UTF-8 lead byte: " + describe(first), null);
         }
-        for (int i = 0; i < remaining; i++)
+        for (int i = 0; !starved && i < remaining; i++)
         {
             int cont = readByte(in);
-            if ((cont & 0xc0) != 0x80)
+            if (!starved)
             {
-                throw new JsonParsingException("Invalid UTF-8 continuation: " + describe(cont), null);
+                if ((cont & 0xc0) != 0x80)
+                {
+                    throw new JsonParsingException("Invalid UTF-8 continuation: " + describe(cont), null);
+                }
+                code = (code << 6) | (cont & 0x3f);
             }
-            code = (code << 6) | (cont & 0x3f);
         }
         return code;
     }
@@ -980,19 +1050,18 @@ public final class JsonTokenizer
     private void continueNumberContent(
         InputStream in) throws IOException
     {
-        while (true)
+        boolean complete = false;
+        while (!complete && !starved)
         {
             in.mark(1);
             int c = in.read();
             if (c == -1)
             {
-                if (terminalEof)
-                {
-                    return;
-                }
-                throw new EOFException();
+                // terminal window: EOF ends the number; otherwise the window is exhausted mid-number
+                starved = !terminalEof;
+                complete = terminalEof;
             }
-            if (c >= '0' && c <= '9' || c == '.' || c == '-' || c == '+' || c == 'e' || c == 'E')
+            else if (c >= '0' && c <= '9' || c == '.' || c == '-' || c == '+' || c == 'e' || c == 'E')
             {
                 streamOffset++;
                 appendScratch((char) c);
@@ -1000,7 +1069,7 @@ public final class JsonTokenizer
             else
             {
                 in.reset();
-                return;
+                complete = true;
             }
         }
     }
@@ -1073,9 +1142,12 @@ public final class JsonTokenizer
         int c = in.read();
         if (c == -1)
         {
-            throw new EOFException();
+            starved = true;
         }
-        streamOffset++;
+        else
+        {
+            streamOffset++;
+        }
         return c;
     }
 
