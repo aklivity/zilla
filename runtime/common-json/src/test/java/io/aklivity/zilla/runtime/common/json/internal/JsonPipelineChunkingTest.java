@@ -233,6 +233,39 @@ class JsonPipelineChunkingTest
         assertEquals(json, feedFragmented(json, JsonSink.Delivery.STRUCTURED));
     }
 
+    @Test
+    void shouldReconstructFragmentedValueWithMultibyteAcrossFrames()
+    {
+        // an over-slot value whose 2-byte 'é' straddles the input window while fragmenting: the parser
+        // leaves the partial char unconsumed (position() < window) and the caller carries the tail
+        JsonGeneratorEx generator = JsonEx.createGenerator();
+        MutableDirectBuffer output = new UnsafeBuffer(new byte[512]);
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser(Map.of(JsonParserEx.TOKEN_MAX_BYTES, 8)))
+            .into(JsonSink.of(generator, JsonSink.Delivery.DECODED));
+        generator.wrap(output, 0, output.capacity());
+        pipeline.reset();
+
+        String json = "{\"data\":\"" + "x".repeat(10) + "é" + "y".repeat(10) + "\"}";
+        byte[] msg = (json + " ").getBytes(UTF_8);
+        int firstWindow = -1;
+        for (int i = 0; i < msg.length && firstWindow < 0; i++)
+        {
+            if ((msg[i] & 0xff) == 0xc3)
+            {
+                firstWindow = i + 1; // window ends on the lead byte of 'é', splitting the char
+            }
+        }
+
+        assertEquals(Status.STARVED, pipeline.feed(new UnsafeBuffer(msg), 0, firstWindow, false));
+        int committed = (int) pipeline.position();
+        assertEquals(Status.COMPLETED,
+            pipeline.feed(new UnsafeBuffer(msg), committed, msg.length - committed, true));
+
+        byte[] out = new byte[generator.length()];
+        output.getBytes(0, out);
+        assertEquals(json, new String(out, UTF_8));
+    }
+
     private static String feedFragmented(
         String json,
         JsonSink.Delivery delivery)

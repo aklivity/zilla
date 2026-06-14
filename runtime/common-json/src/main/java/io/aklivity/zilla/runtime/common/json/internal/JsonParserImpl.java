@@ -139,6 +139,11 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
         return wrap(buffer, offset, length);
     }
 
+    public long position()
+    {
+        return tokenizer.streamOffset();
+    }
+
     void reset()
     {
         tokenizer.reset();
