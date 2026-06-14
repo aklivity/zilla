@@ -361,7 +361,7 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
     @Override
     public boolean deferredBytes()
     {
-        return segmentState == SegmentState.SCANNING;
+        return segmentState == SegmentState.SCANNING || tokenizer.fragmenting();
     }
 
     @Override

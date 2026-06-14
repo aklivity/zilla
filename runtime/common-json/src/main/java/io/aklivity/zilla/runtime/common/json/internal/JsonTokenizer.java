@@ -51,6 +51,9 @@ public final class JsonTokenizer
     }
 
     private static final int MAX_DEPTH = 64;
+    // upper bound on the bytes of a single decoded unit (a UTF-8 char is at most 4 bytes, a
+    // backslash-u escape is 6); the fragment-boundary mark rewinds across at most one such unit
+    private static final int MAX_UNIT_BYTES = 8;
 
     private final Deque<ParseState> stack = new ArrayDeque<>();
     private final StringBuilder scratch = new StringBuilder();
@@ -77,6 +80,13 @@ public final class JsonTokenizer
     // set while a segment scan is in progress: a value-string is then streamed across frames as raw
     // bytes (no rewind to require it whole-in-frame, no decoded retention) rather than buffered whole.
     private boolean segmenting;
+    // set while a value-string larger than tokenMaxBytes is being delivered as a sequence of
+    // fragments: each fragment carries the decoded chars that fit the slot, deferredBytes() stays true
+    // until the closing quote. A partial char/escape at a frame boundary is left unconsumed (rewound
+    // to unitStartOffset) for the caller's decode slot to re-present, so no partial state crosses wrap.
+    private boolean fragmenting;
+    private boolean stringComplete;
+    private long unitStartOffset;
 
     // scalar resume state (valid when resumeOp != NONE)
     private ResumeOp resumeOp = ResumeOp.NONE;
@@ -124,6 +134,8 @@ public final class JsonTokenizer
         streamOffset = 0;
         valueReadable = true;
         segmenting = false;
+        fragmenting = false;
+        stringComplete = false;
         resumeOp = ResumeOp.NONE;
         resumeEscape = false;
         resumeUnicodePending = 0;
@@ -192,10 +204,27 @@ public final class JsonTokenizer
                 }
                 // While segmenting, a value-string spanning the frame is not rewound — its resume state
                 // is kept so the next frame continues it and the raw bytes stream as segments.
-                final boolean midReadableScalarScan =
-                    (resumeOp == ResumeOp.VALUE_STRING || resumeOp == ResumeOp.VALUE_NUMBER) &&
-                    valueReadable && !segmenting;
-                if (midReadableScalarScan)
+                final boolean midScalar =
+                    (resumeOp == ResumeOp.VALUE_STRING || resumeOp == ResumeOp.VALUE_NUMBER) && !segmenting;
+                boolean delivered = false;
+                if (midScalar && fragmenting && resumeOp == ResumeOp.VALUE_STRING)
+                {
+                    // mid-fragmentation: ship the chars accumulated so far and leave the partial unit's
+                    // bytes unconsumed (rewound to its start) for the decode slot to re-present.
+                    in.reset();
+                    streamOffset = unitStartOffset;
+                    resumeEscape = false;
+                    resumeUnicodePending = 0;
+                    resumeUnicodeValue = 0;
+                    if (scratch.length() > 0)
+                    {
+                        pendingEvent = JsonParser.Event.VALUE_STRING;
+                        pendingString = takeScratch();
+                        valuePending = false;
+                        delivered = true;
+                    }
+                }
+                else if (midScalar)
                 {
                     in.reset();
                     streamOffset = iterStart;
@@ -205,7 +234,7 @@ public final class JsonTokenizer
                     resumeUnicodePending = 0;
                     resumeUnicodeValue = 0;
                 }
-                return false;
+                return delivered;
             }
         }
         return true;
@@ -277,6 +306,13 @@ public final class JsonTokenizer
     public boolean valueReadable()
     {
         return valueReadable;
+    }
+
+    // True while a value-string is being delivered in fragments and more fragments follow the current
+    // event; drives the parser's deferredBytes() for over-slot scalars.
+    public boolean fragmenting()
+    {
+        return fragmenting;
     }
 
     public String currentPath()
@@ -379,10 +415,7 @@ public final class JsonTokenizer
             break;
         case VALUE_STRING:
             continueStringContent(in);
-            pendingEvent = JsonParser.Event.VALUE_STRING;
-            captureValue(valueReadable);
-            resumeOp = ResumeOp.NONE;
-            afterValueConsumed();
+            finishStringValue();
             break;
         case VALUE_NUMBER:
             continueNumberContent(in);
@@ -419,6 +452,28 @@ public final class JsonTokenizer
     {
         valuePending = readable;
         pendingString = null;
+    }
+
+    // Completes a VALUE_STRING scan: a finished string (closing quote seen) is captured lazily and the
+    // parse state advances; a slot-bound fragment is materialized eagerly (freeing scratch for the next
+    // fragment) with the value left in progress so the next advance() continues it.
+    private void finishStringValue()
+    {
+        valueStreamEnd = streamOffset;
+        pendingEvent = JsonParser.Event.VALUE_STRING;
+        if (stringComplete)
+        {
+            captureValue(valueReadable);
+            fragmenting = false;
+            resumeOp = ResumeOp.NONE;
+            afterValueConsumed();
+        }
+        else
+        {
+            pendingString = takeScratch();
+            valuePending = false;
+            fragmenting = true;
+        }
     }
 
     private String takeScratch()
@@ -524,11 +579,7 @@ public final class JsonTokenizer
             resumeUnicodePending = 0;
             resumeOp = ResumeOp.VALUE_STRING;
             continueStringContent(in);
-            valueStreamEnd = streamOffset;
-            pendingEvent = JsonParser.Event.VALUE_STRING;
-            captureValue(valueReadable);
-            resumeOp = ResumeOp.NONE;
-            afterValueConsumed();
+            finishStringValue();
             break;
         case 't':
             resumeLiteralIndex = 1;
@@ -721,8 +772,17 @@ public final class JsonTokenizer
     private void continueStringContent(
         InputStream in) throws IOException
     {
+        stringComplete = false;
         while (true)
         {
+            // While fragmenting, mark each unit boundary so an EOF mid-char/escape rewinds here: the
+            // chars decoded so far ship as a fragment and the partial unit's bytes stay unconsumed for
+            // the decode slot to re-present on the next frame.
+            if (fragmenting && !resumeEscape && resumeUnicodePending == 0)
+            {
+                in.mark(MAX_UNIT_BYTES);
+                unitStartOffset = streamOffset;
+            }
             int c = readByte(in);
             if (resumeUnicodePending > 0)
             {
@@ -732,9 +792,8 @@ public final class JsonTokenizer
                 {
                     appendScratch((char) resumeUnicodeValue);
                 }
-                continue;
             }
-            if (resumeEscape)
+            else if (resumeEscape)
             {
                 resumeEscape = false;
                 switch (c)
@@ -766,10 +825,10 @@ public final class JsonTokenizer
                 default:
                     throw new JsonParsingException("Invalid escape: \\" + describe(c), null);
                 }
-                continue;
             }
-            if (c == '"')
+            else if (c == '"')
             {
+                stringComplete = true;
                 return;
             }
             else if (c == '\\')
@@ -786,8 +845,13 @@ public final class JsonTokenizer
             }
             else
             {
-                int codePoint = decodeUtf8(in, c);
-                appendCodePointScratch(codePoint);
+                appendCodePointScratch(decodeUtf8(in, c));
+            }
+            // suspend with a full fragment once a complete unit pushes scratch to the slot bound
+            if (!resumeEscape && resumeUnicodePending == 0 &&
+                tokenMaxBytes != Integer.MAX_VALUE && scratch.length() >= tokenMaxBytes)
+            {
+                return;
             }
         }
     }
@@ -975,14 +1039,6 @@ public final class JsonTokenizer
             throw new EOFException();
         }
         streamOffset++;
-        if (valueReadable &&
-            (resumeOp == ResumeOp.VALUE_STRING || resumeOp == ResumeOp.VALUE_NUMBER) &&
-            scratch.length() >= tokenMaxBytes)
-        {
-            throw new JsonParsingException(
-                "value at " + currentPath() + " exceeds max " + tokenMaxBytes + " bytes",
-                null);
-        }
         return c;
     }
 
