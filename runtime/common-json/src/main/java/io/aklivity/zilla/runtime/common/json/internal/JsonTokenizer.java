@@ -80,7 +80,6 @@ public final class JsonTokenizer
     // value returns [fragmentStart, valueStreamEnd] so each fragment's verbatim bytes splice back to
     // the whole token (fragment 1 includes the opening quote, the final fragment the closing quote)
     private long fragmentStart;
-    private boolean valueReadable = true;
     // set while a segment scan is in progress: a value-string is then streamed across frames as raw
     // bytes (no rewind to require it whole-in-frame, no decoded retention) rather than buffered whole.
     private boolean segmenting;
@@ -137,7 +136,6 @@ public final class JsonTokenizer
         valuePending = false;
         streamOffset = 0;
         fragmentStart = 0;
-        valueReadable = true;
         segmenting = false;
         fragmenting = false;
         stringComplete = false;
@@ -310,11 +308,6 @@ public final class JsonTokenizer
         return pathDepth > 0 && pathInArray[pathDepth - 1];
     }
 
-    public boolean valueReadable()
-    {
-        return valueReadable;
-    }
-
     // True while a value-string is being delivered in fragments and more fragments follow the current
     // event; drives the parser's deferredBytes() for over-slot scalars.
     public boolean fragmenting()
@@ -428,7 +421,7 @@ public final class JsonTokenizer
         case VALUE_NUMBER:
             continueNumberContent(in);
             pendingEvent = JsonParser.Event.VALUE_NUMBER;
-            captureValue(valueReadable);
+            captureValue();
             resumeOp = ResumeOp.NONE;
             afterValueConsumed();
             break;
@@ -455,10 +448,9 @@ public final class JsonTokenizer
         }
     }
 
-    private void captureValue(
-        boolean readable)
+    private void captureValue()
     {
-        valuePending = readable;
+        valuePending = true;
         pendingString = null;
     }
 
@@ -472,7 +464,7 @@ public final class JsonTokenizer
         pendingEvent = JsonParser.Event.VALUE_STRING;
         if (stringComplete)
         {
-            captureValue(valueReadable);
+            captureValue();
             fragmenting = false;
             resumeOp = ResumeOp.NONE;
             afterValueConsumed();
@@ -568,7 +560,6 @@ public final class JsonTokenizer
         InputStream in,
         int c) throws IOException
     {
-        valueReadable = true;
         switch (c)
         {
         case '{':
@@ -620,15 +611,12 @@ public final class JsonTokenizer
             {
                 valueStreamStart = streamOffset - 1;
                 scratch.setLength(0);
-                if (valueReadable)
-                {
-                    scratch.append((char) c);
-                }
+                scratch.append((char) c);
                 resumeOp = ResumeOp.VALUE_NUMBER;
                 continueNumberContent(in);
                 valueStreamEnd = streamOffset;
                 pendingEvent = JsonParser.Event.VALUE_NUMBER;
-                captureValue(valueReadable);
+                captureValue();
                 resumeOp = ResumeOp.NONE;
                 afterValueConsumed();
             }
@@ -647,8 +635,6 @@ public final class JsonTokenizer
         {
             throw new JsonParsingException("Expected '\"' for key but got: " + describe(c), null);
         }
-        // keys must always be readable so path matching can compare them
-        valueReadable = true;
         scratch.setLength(0);
         resumeEscape = false;
         resumeUnicodePending = 0;
@@ -869,7 +855,7 @@ public final class JsonTokenizer
     private void appendScratch(
         char c)
     {
-        if (valueReadable && !streamingValue())
+        if (!streamingValue())
         {
             scratch.append(c);
         }
@@ -878,7 +864,7 @@ public final class JsonTokenizer
     private void appendCodePointScratch(
         int codePoint)
     {
-        if (valueReadable && !streamingValue())
+        if (!streamingValue())
         {
             scratch.appendCodePoint(codePoint);
         }
@@ -976,61 +962,58 @@ public final class JsonTokenizer
         }
     }
 
-    // RFC 8259 number grammar: -?(0|[1-9][0-9]*)(\.[0-9]+)?([eE][+-]?[0-9]+)?. Only enforced for
-    // readable values, where scratch holds the complete lexeme; filtered-out values are discarded.
+    // RFC 8259 number grammar: -?(0|[1-9][0-9]*)(\.[0-9]+)?([eE][+-]?[0-9]+)?. scratch holds the
+    // complete lexeme (numbers are always retained in scratch for validation and lazy materialization).
     private void validateNumber()
     {
-        if (valueReadable)
+        final int length = scratch.length();
+        int index = 0;
+        boolean valid = length > 0;
+        if (valid && scratch.charAt(index) == '-')
         {
-            final int length = scratch.length();
-            int index = 0;
-            boolean valid = length > 0;
-            if (valid && scratch.charAt(index) == '-')
+            index++;
+        }
+        final int intStart = index;
+        if (index < length && scratch.charAt(index) == '0')
+        {
+            index++;
+        }
+        else
+        {
+            while (index < length && isDigit(scratch.charAt(index)))
             {
                 index++;
             }
-            final int intStart = index;
-            if (index < length && scratch.charAt(index) == '0')
+        }
+        valid &= index > intStart;
+        if (valid && index < length && scratch.charAt(index) == '.')
+        {
+            index++;
+            final int fracStart = index;
+            while (index < length && isDigit(scratch.charAt(index)))
             {
                 index++;
             }
-            else
-            {
-                while (index < length && isDigit(scratch.charAt(index)))
-                {
-                    index++;
-                }
-            }
-            valid &= index > intStart;
-            if (valid && index < length && scratch.charAt(index) == '.')
+            valid &= index > fracStart;
+        }
+        if (valid && index < length && (scratch.charAt(index) == 'e' || scratch.charAt(index) == 'E'))
+        {
+            index++;
+            if (index < length && (scratch.charAt(index) == '+' || scratch.charAt(index) == '-'))
             {
                 index++;
-                final int fracStart = index;
-                while (index < length && isDigit(scratch.charAt(index)))
-                {
-                    index++;
-                }
-                valid &= index > fracStart;
             }
-            if (valid && index < length && (scratch.charAt(index) == 'e' || scratch.charAt(index) == 'E'))
+            final int expStart = index;
+            while (index < length && isDigit(scratch.charAt(index)))
             {
                 index++;
-                if (index < length && (scratch.charAt(index) == '+' || scratch.charAt(index) == '-'))
-                {
-                    index++;
-                }
-                final int expStart = index;
-                while (index < length && isDigit(scratch.charAt(index)))
-                {
-                    index++;
-                }
-                valid &= index > expStart;
             }
-            valid &= index == length;
-            if (!valid)
-            {
-                throw new JsonParsingException("Invalid JSON number: " + scratch, null);
-            }
+            valid &= index > expStart;
+        }
+        valid &= index == length;
+        if (!valid)
+        {
+            throw new JsonParsingException("Invalid JSON number: " + scratch, null);
         }
     }
 
