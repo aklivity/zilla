@@ -56,9 +56,9 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     private int limit;
     private int depth;
     private int consumed;
-    private boolean afterKey;
-    private boolean stringOpen;
-    private boolean numberOpen;
+    // at most one of these positions holds at a time: a value is expected after a key, or an
+    // incomplete string/number fragment is open awaiting its remaining fragments
+    private Pending pending = Pending.NONE;
 
     public JsonGeneratorImpl()
     {
@@ -104,9 +104,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     public void reset()
     {
         this.depth = 0;
-        this.afterKey = false;
-        this.stringOpen = false;
-        this.numberOpen = false;
+        this.pending = Pending.NONE;
     }
 
     @Override
@@ -167,7 +165,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         hasMembers[depth - 1] = true;
         writeString(name);
         putByte.accept(':');
-        afterKey = true;
+        pending = Pending.AFTER_KEY;
         return this;
     }
 
@@ -200,17 +198,17 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         CharSequence value,
         Completion completion)
     {
-        if (!stringOpen)
+        if (pending != Pending.STRING)
         {
             preValue();
             putByte.accept('"');
-            stringOpen = true;
+            pending = Pending.STRING;
         }
         writeStringBody(value);
         if (completion == Completion.COMPLETE)
         {
             putByte.accept('"');
-            stringOpen = false;
+            pending = Pending.NONE;
         }
         return this;
     }
@@ -414,15 +412,15 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         CharSequence literal,
         Completion completion)
     {
-        if (!numberOpen)
+        if (pending != Pending.NUMBER)
         {
             preValue();
-            numberOpen = true;
+            pending = Pending.NUMBER;
         }
         writeAscii(literal);
         if (completion == Completion.COMPLETE)
         {
-            numberOpen = false;
+            pending = Pending.NONE;
         }
         return this;
     }
@@ -465,14 +463,14 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         inArray[depth] = array;
         hasMembers[depth] = false;
         depth++;
-        afterKey = false;
+        pending = Pending.NONE;
     }
 
     private void preValue()
     {
-        if (afterKey)
+        if (pending == Pending.AFTER_KEY)
         {
-            afterKey = false;
+            pending = Pending.NONE;
         }
         else if (depth > 0 && inArray[depth - 1])
         {
@@ -713,5 +711,13 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
             DirectBuffer source,
             int index,
             int length);
+    }
+
+    private enum Pending
+    {
+        NONE,
+        AFTER_KEY,
+        STRING,
+        NUMBER
     }
 }
