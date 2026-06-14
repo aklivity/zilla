@@ -40,6 +40,7 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
+import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonSink.Delivery;
 
@@ -76,10 +77,17 @@ public class JsonPipelineBM
         "\"keep\":{\"id\":99,\"name\":\"retain\",\"extra\":\"more-text-here\",\"nested\":{\"p\":1,\"q\":2}}," +
         "\"drop2\":[0,1,2,3,4,5,6,7,8,9],\"drop3\":{\"a\":\"b\",\"c\":\"d\"}} ";
 
+    // values far larger than FRAGMENT_WINDOW so windowed feeding forces the fragmenting path
+    private static final String LARGE_STRING = "{\"data\":\"" + "x".repeat(512) + "\"}";
+    private static final String LARGE_NUMBER = "{\"data\":" + "1".repeat(512) + "}";
+
+    private static final int FRAGMENT_WINDOW = 64;
+
     private final MutableDirectBuffer outputBuffer = new UnsafeBuffer(new byte[16 * 1024]);
     private final JsonGeneratorEx generator = JsonEx.createGenerator();
     private final JsonSink structuredSink = JsonSink.of(generator);
     private final JsonSink segmentableSink = JsonSink.of(generator, Delivery.SEGMENTABLE);
+    private final JsonSink decodedSink = JsonSink.of(generator, Delivery.DECODED);
 
     private JsonPipeline scalarLeavesPipeline;
     private JsonPipeline keptContainerStructuredPipeline;
@@ -88,16 +96,24 @@ public class JsonPipelineBM
     private JsonPipeline rootIdentitySegmentedPipeline;
     private JsonPipeline mostlySkippedStructuredPipeline;
     private JsonPipeline mostlySkippedSegmentedPipeline;
+    private JsonPipeline fragmentStringStructuredPipeline;
+    private JsonPipeline fragmentStringSegmentedPipeline;
+    private JsonPipeline fragmentStringDecodedPipeline;
+    private JsonPipeline fragmentNumberDecodedPipeline;
 
     private UnsafeBuffer flatBuffer;
     private UnsafeBuffer nestedBuffer;
     private UnsafeBuffer rootIdentityBuffer;
     private UnsafeBuffer mostlySkippedBuffer;
+    private UnsafeBuffer largeStringBuffer;
+    private UnsafeBuffer largeNumberBuffer;
 
     private int flatLength;
     private int nestedLength;
     private int rootIdentityLength;
     private int mostlySkippedLength;
+    private int largeStringLength;
+    private int largeNumberLength;
 
     @Setup(Level.Trial)
     public void init()
@@ -120,20 +136,32 @@ public class JsonPipelineBM
         mostlySkippedSegmentedPipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonEx.projector(List.of("/keep"))).into(segmentableSink);
 
+        // no transform: an over-window value fragments and is rendered straight to the sink
+        fragmentStringStructuredPipeline = JsonEx.stream(JsonEx.createParser()).into(structuredSink);
+        fragmentStringSegmentedPipeline = JsonEx.stream(JsonEx.createParser()).into(segmentableSink);
+        fragmentStringDecodedPipeline = JsonEx.stream(JsonEx.createParser()).into(decodedSink);
+        fragmentNumberDecodedPipeline = JsonEx.stream(JsonEx.createParser()).into(decodedSink);
+
         byte[] flatBytes = FLAT_OBJECT.getBytes(UTF_8);
         byte[] nestedBytes = NESTED_OBJECT.getBytes(UTF_8);
         byte[] rootIdentityBytes = ROOT_IDENTITY.getBytes(UTF_8);
         byte[] mostlySkippedBytes = MOSTLY_SKIPPED.getBytes(UTF_8);
+        byte[] largeStringBytes = LARGE_STRING.getBytes(UTF_8);
+        byte[] largeNumberBytes = LARGE_NUMBER.getBytes(UTF_8);
 
         flatBuffer = new UnsafeBuffer(flatBytes);
         nestedBuffer = new UnsafeBuffer(nestedBytes);
         rootIdentityBuffer = new UnsafeBuffer(rootIdentityBytes);
         mostlySkippedBuffer = new UnsafeBuffer(mostlySkippedBytes);
+        largeStringBuffer = new UnsafeBuffer(largeStringBytes);
+        largeNumberBuffer = new UnsafeBuffer(largeNumberBytes);
 
         flatLength = flatBytes.length;
         nestedLength = nestedBytes.length;
         rootIdentityLength = rootIdentityBytes.length;
         mostlySkippedLength = mostlySkippedBytes.length;
+        largeStringLength = largeStringBytes.length;
+        largeNumberLength = largeNumberBytes.length;
     }
 
     @Benchmark
@@ -178,6 +206,30 @@ public class JsonPipelineBM
         return run(mostlySkippedSegmentedPipeline, mostlySkippedBuffer, mostlySkippedLength);
     }
 
+    @Benchmark
+    public int fragmentStringSegmented()
+    {
+        return runWindowed(fragmentStringSegmentedPipeline, largeStringBuffer, largeStringLength, FRAGMENT_WINDOW);
+    }
+
+    @Benchmark
+    public int fragmentStringStructured()
+    {
+        return runWindowed(fragmentStringStructuredPipeline, largeStringBuffer, largeStringLength, FRAGMENT_WINDOW);
+    }
+
+    @Benchmark
+    public int fragmentStringDecoded()
+    {
+        return runWindowed(fragmentStringDecodedPipeline, largeStringBuffer, largeStringLength, FRAGMENT_WINDOW);
+    }
+
+    @Benchmark
+    public int fragmentNumberDecoded()
+    {
+        return runWindowed(fragmentNumberDecodedPipeline, largeNumberBuffer, largeNumberLength, FRAGMENT_WINDOW);
+    }
+
     private int run(
         JsonPipeline pipeline,
         UnsafeBuffer buffer,
@@ -187,6 +239,34 @@ public class JsonPipelineBM
         pipeline.reset();
         pipeline.feed(buffer, 0, length);
         return generator.length();
+    }
+
+    // Feeds an over-window value in fixed window-sized steps, advancing the committed watermark to
+    // position() on each STARVED so the trailing partial unit carries into the next window; reuses the
+    // field buffer so the fragmenting path's only allocations are the ones under measurement.
+    private int runWindowed(
+        JsonPipeline pipeline,
+        UnsafeBuffer buffer,
+        int length,
+        int window)
+    {
+        generator.wrap(outputBuffer, 0, outputBuffer.capacity());
+        pipeline.reset();
+        int committed = 0;
+        int offset = 0;
+        Status status = Status.STARVED;
+        while (offset < length)
+        {
+            offset = Math.min(offset + window, length);
+            boolean last = offset >= length;
+            status = pipeline.feed(buffer, committed, offset - committed, last);
+            if (status != Status.STARVED)
+            {
+                break;
+            }
+            committed = (int) pipeline.position();
+        }
+        return status == Status.COMPLETED ? generator.length() : -1;
     }
 
     public static void main(
