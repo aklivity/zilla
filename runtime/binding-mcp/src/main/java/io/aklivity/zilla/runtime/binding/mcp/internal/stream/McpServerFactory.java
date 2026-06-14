@@ -33,6 +33,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import jakarta.json.Json;
+import jakarta.json.JsonArray;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonReader;
 import jakarta.json.JsonValue;
@@ -3705,6 +3706,7 @@ public final class McpServerFactory implements McpStreamFactory
                     sse.doNetEnd(traceId, authorization);
                     sse = null;
                 }
+                evictToolSchemas();
                 doAppEnd(traceId, authorization);
                 sessions.remove(sessionId);
             }
@@ -3917,6 +3919,7 @@ public final class McpServerFactory implements McpStreamFactory
                     sse.doNetEnd(traceId, authorization);
                     sse = null;
                 }
+                evictToolSchemas();
                 cancelInactivity();
                 sessions.remove(sessionId);
             }
@@ -5171,7 +5174,15 @@ public final class McpServerFactory implements McpStreamFactory
                     final JsonObject result = reader.readObject();
                     if (result.containsKey("tools"))
                     {
-                        for (JsonValue item : result.getJsonArray("tools"))
+                        final JsonArray tools = result.getJsonArray("tools");
+
+                        // tools/list carries the authoritative full set; release the
+                        // session's prior schemas (dropping their catalog references)
+                        // before recapturing so refcounts stay balanced and tools no
+                        // longer advertised are forgotten
+                        session.evictToolSchemas();
+
+                        for (JsonValue item : tools)
                         {
                             final JsonObject tool = item.asJsonObject();
                             if (tool.containsKey("name") && tool.containsKey("inputSchema"))

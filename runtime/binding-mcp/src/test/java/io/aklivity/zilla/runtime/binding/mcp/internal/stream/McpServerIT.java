@@ -114,6 +114,16 @@ public class McpServerIT
     }
 
     @Test
+    @Configuration("server.validation.yaml")
+    @Specification({
+        "${net}/tools.list.drop/client",
+        "${app}/tools.list.drop/server"})
+    public void shouldForwardToolsCallForToolDroppedFromList() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.yaml")
     @Specification({
         "${net}/lifecycle.initialize.elicitation.url/client",
