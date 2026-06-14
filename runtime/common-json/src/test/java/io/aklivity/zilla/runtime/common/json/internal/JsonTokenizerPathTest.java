@@ -144,6 +144,34 @@ public class JsonTokenizerPathTest
     }
 
     @Test
+    public void shouldMatchObjectKeysAndArrayIndexesViaCharSequence() throws IOException
+    {
+        // exercises the allocation-free matcher: object keys compared as CharSequence (pathKeyChars),
+        // array indexes compared numerically, plus wildcard and explicit-index matching
+        final List<String> includes = List.of("/users/-/id", "/meta/count", "/list/1");
+        final JsonTokenizer tokenizer =
+            new JsonTokenizer(includes, List.of(), Integer.MAX_VALUE);
+
+        final String json = "{\"users\":[{\"id\":1,\"name\":\"a\"},{\"id\":2}]," +
+            "\"meta\":{\"count\":5,\"other\":9},\"list\":[10,11,12]}";
+        final InputStream in = new BufferedInputStream(
+            new ByteArrayInputStream(json.getBytes(UTF_8)));
+
+        final List<String> readable = new ArrayList<>();
+        while (tokenizer.advance(in))
+        {
+            final JsonParser.Event ev = tokenizer.event();
+            if ((ev == JsonParser.Event.VALUE_NUMBER || ev == JsonParser.Event.VALUE_STRING) &&
+                tokenizer.valueReadable())
+            {
+                readable.add(tokenizer.stringValue());
+            }
+            tokenizer.clearEvent();
+        }
+        assertEquals(List.of("1", "2", "5", "11"), readable);
+    }
+
+    @Test
     public void shouldSuppressScratchForNonReadableValues() throws IOException
     {
         final List<String> includes = List.of("/tools/-/name");

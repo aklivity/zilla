@@ -59,16 +59,13 @@ public final class JsonTokenizer
     private final StringBuilder scratch = new StringBuilder();
     private final List<String[]> pathIncludes;
     private final List<String[]> pathExcludes;
-    private final boolean pathFiltering;
     private final int tokenMaxBytes;
     private boolean terminalEof;
 
     // path tracking — pre-allocated, no per-event allocation
     private final boolean[] pathInArray = new boolean[MAX_DEPTH];
-    // pathKey holds the key String only when path filtering is configured (the filter compares keys
-    // eagerly); pathKeyChars mirrors it allocation-free for currentPath() in the deferred (no-filter)
-    // mode, where keys are not materialized into Strings.
-    private final String[] pathKey = new String[MAX_DEPTH];
+    // pathKeyChars mirrors each object key allocation-free; path matching and currentPath() compare
+    // against it as a CharSequence so keys are never materialized into Strings just to track the path.
     private final StringBuilder[] pathKeyChars = new StringBuilder[MAX_DEPTH];
     private final boolean[] pathKeySet = new boolean[MAX_DEPTH];
     private final int[] pathIndex = new int[MAX_DEPTH];
@@ -118,7 +115,6 @@ public final class JsonTokenizer
     {
         this.pathIncludes = compilePaths(pathIncludes);
         this.pathExcludes = compilePaths(pathExcludes);
-        this.pathFiltering = this.pathIncludes != null || this.pathExcludes != null;
         this.tokenMaxBytes = tokenMaxBytes;
         this.terminalEof = terminalEof;
         for (int i = 0; i < MAX_DEPTH; i++)
@@ -342,10 +338,6 @@ public final class JsonTokenizer
             {
                 path.append(pathIndex[i]);
             }
-            else if (pathKey[i] != null)
-            {
-                path.append(pathKey[i].replace("~", "~0").replace("/", "~1"));
-            }
             else if (pathKeySet[i])
             {
                 path.append(pathKeyChars[i].toString().replace("~", "~0").replace("/", "~1"));
@@ -375,11 +367,21 @@ public final class JsonTokenizer
             }
             for (int i = 0; i < pathDepth; i++)
             {
-                final String segment = pathInArray[i]
-                    ? Integer.toString(pathIndex[i])
-                    : pathKey[i];
                 final String expected = target[i];
-                if (!WILDCARD_INDEX.equals(expected) && !expected.equals(segment))
+                final boolean matched;
+                if (WILDCARD_INDEX.equals(expected))
+                {
+                    matched = true;
+                }
+                else if (pathInArray[i])
+                {
+                    matched = matchesIndex(expected, pathIndex[i]);
+                }
+                else
+                {
+                    matched = pathKeySet[i] && charsEqual(expected, pathKeyChars[i]);
+                }
+                if (!matched)
                 {
                     continue outer;
                 }
@@ -387,6 +389,41 @@ public final class JsonTokenizer
             return true;
         }
         return false;
+    }
+
+    private static boolean charsEqual(
+        String segment,
+        CharSequence key)
+    {
+        boolean matches = segment.length() == key.length();
+        for (int i = 0; matches && i < segment.length(); i++)
+        {
+            matches = segment.charAt(i) == key.charAt(i);
+        }
+        return matches;
+    }
+
+    private static boolean matchesIndex(
+        String segment,
+        int index)
+    {
+        boolean matches = !segment.isEmpty() && (segment.length() == 1 || segment.charAt(0) != '0');
+        int value = 0;
+        for (int i = 0; matches && i < segment.length(); i++)
+        {
+            final char c = segment.charAt(i);
+            matches = c >= '0' && c <= '9';
+            if (matches)
+            {
+                final int digit = c - '0';
+                matches = value <= (Integer.MAX_VALUE - digit) / 10;
+                if (matches)
+                {
+                    value = value * 10 + digit;
+                }
+            }
+        }
+        return matches && value == index;
     }
 
     private void pushPath(
@@ -397,7 +434,6 @@ public final class JsonTokenizer
             throw new JsonParsingException("JSON depth exceeds " + MAX_DEPTH, null);
         }
         pathInArray[pathDepth] = inArray;
-        pathKey[pathDepth] = null;
         pathKeySet[pathDepth] = false;
         pathIndex[pathDepth] = 0;
         pathDepth++;
@@ -406,7 +442,6 @@ public final class JsonTokenizer
     private void popPath()
     {
         pathDepth--;
-        pathKey[pathDepth] = null;
         pathKeySet[pathDepth] = false;
     }
 
@@ -689,32 +724,20 @@ public final class JsonTokenizer
         state = ParseState.OBJ_AFTER_KEY;
     }
 
-    // Keys are normally deferred (left in scratch, materialized lazily by stringValue()), so a key
-    // that is never read by a downstream stage allocates no String. When the tokenizer is itself
-    // configured with a path filter it must compare keys eagerly via pathKey[], so in that mode the
-    // key is materialized up front and the per-depth pathKey slot is set.
+    // Keys are always deferred (left in scratch, materialized lazily by stringValue()), so a key that
+    // is never read by a downstream stage allocates no String. The chars are mirrored into the
+    // per-depth pathKeyChars slot so path matching and currentPath() can compare them as a
+    // CharSequence without materializing a String — even when path filtering is configured.
     private void captureKey()
     {
-        if (pathFiltering)
+        valuePending = true;
+        pendingString = null;
+        if (pathDepth > 0 && !pathInArray[pathDepth - 1])
         {
-            pendingString = takeScratch();
-            valuePending = false;
-            if (pathDepth > 0 && !pathInArray[pathDepth - 1])
-            {
-                pathKey[pathDepth - 1] = pendingString;
-            }
-        }
-        else
-        {
-            valuePending = true;
-            pendingString = null;
-            if (pathDepth > 0 && !pathInArray[pathDepth - 1])
-            {
-                final StringBuilder keyChars = pathKeyChars[pathDepth - 1];
-                keyChars.setLength(0);
-                keyChars.append(scratch);
-                pathKeySet[pathDepth - 1] = true;
-            }
+            final StringBuilder keyChars = pathKeyChars[pathDepth - 1];
+            keyChars.setLength(0);
+            keyChars.append(scratch);
+            pathKeySet[pathDepth - 1] = true;
         }
     }
 
