@@ -68,6 +68,18 @@ public final class JsonEx
      */
     public static final String TOKEN_MAX_BYTES = "io.aklivity.zilla.runtime.common.json.token.max.bytes";
 
+    /**
+     * Config key whose {@link Boolean} value opts a {@link #createGenerator(Map) generator} into
+     * escape mode: every byte it emits is escaped as JSON string <em>content</em> — structural bytes
+     * ({@code &#123; &#125; : , [ ]}) and UTF-8 continuation bytes pass through, while {@code "},
+     * {@code \}, and control characters are escaped. This composes with the generator's existing
+     * value-escaping, so the whole output stream becomes the escaped form of the document — the inner
+     * content of a JSON-in-JSON string. The caller writes the surrounding quotes and outer envelope.
+     * <p>
+     * Defaults to {@code false} (verbatim output) when absent.
+     */
+    public static final String GENERATE_ESCAPED = "io.aklivity.zilla.runtime.common.json.generate.escaped";
+
     private JsonEx()
     {
     }
@@ -120,6 +132,17 @@ public final class JsonEx
     public static JsonGeneratorEx createGenerator()
     {
         return new JsonGeneratorImpl();
+    }
+
+    /**
+     * Variant of {@link #createGenerator()} taking generator config (e.g. {@link #GENERATE_ESCAPED}).
+     * Reuse a single instance per worker thread, calling {@link JsonGeneratorEx#wrap(
+     * org.agrona.MutableDirectBuffer, int, int)} before each value.
+     */
+    public static JsonGeneratorEx createGenerator(
+        Map<String, ?> config)
+    {
+        return new JsonGeneratorImpl(config);
     }
 
     /**

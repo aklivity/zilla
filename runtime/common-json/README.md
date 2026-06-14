@@ -146,11 +146,11 @@ fluent chaining, plus the streaming-to-buffer extensions: `writeNumber(literal)`
 lexeme verbatim, `writeRaw` splices a pre-encoded value (emitting its leading separator once), and
 `writeSegment` appends a bounded, consumption-driven fragment of that value with no separator.
 
-`wrap(buffer, offset, limit, escape)` opts the generator into **escape mode**: every byte it emits is
-escaped as JSON string *content* (structural bytes and UTF-8 continuation bytes pass through; `"`, `\`,
-and control characters are escaped), composing with the generator's existing value-escaping so the whole
-output stream becomes the escaped form of the document — the inner content of a JSON-in-JSON string. The
-caller writes the surrounding quotes and outer envelope.
+`createGenerator(Map.of(JsonEx.GENERATE_ESCAPED, true))` opts the generator into **escape mode**: every
+byte it emits is escaped as JSON string *content* (structural bytes and UTF-8 continuation bytes pass
+through; `"`, `\`, and control characters are escaped), composing with the generator's existing
+value-escaping so the whole output stream becomes the escaped form of the document — the inner content of
+a JSON-in-JSON string. The caller writes the surrounding quotes and outer envelope.
 
 ```java
 JsonGeneratorEx generator = JsonEx.createGenerator().wrap(out, 0, out.capacity());

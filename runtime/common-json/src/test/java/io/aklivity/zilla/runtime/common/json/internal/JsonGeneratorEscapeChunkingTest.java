@@ -20,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.util.List;
+import java.util.Map;
 
 import jakarta.json.stream.JsonParser;
 
@@ -33,9 +34,6 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
 
-// Mirrors JsonPipelineChunkingTest / JsonProjectorSegmentTest but with escape-heavy content driven
-// through tiny output windows, so the non-1:1 ratio of JSON-string escaping and the resume/SUSPENDED
-// cascade are exercised — precisely the case a botched consumption-driven cut would corrupt.
 class JsonGeneratorEscapeChunkingTest
 {
     private final MutableDirectBuffer output = new UnsafeBuffer(new byte[256]);
@@ -43,7 +41,6 @@ class JsonGeneratorEscapeChunkingTest
     @Test
     void shouldChunkQuoteHeavyStringThroughTinyWindow()
     {
-        // a string value packed with quotes and backslashes, each escaping to two output bytes
         String json = "{\"text\":\"" + "\\\"".repeat(40) + "\"}";
         assertRoundTrips(json, 8, false);
     }
@@ -51,7 +48,6 @@ class JsonGeneratorEscapeChunkingTest
     @Test
     void shouldChunkControlHeavyStringThroughTinyWindow()
     {
-        // backslash-escaped chars each expand again under JSON-in-JSON escaping, stressing the ratio
         String json = "{\"text\":\"" + "\\n\\t\\r".repeat(20) + "\"}";
         assertRoundTrips(json, 8, false);
     }
@@ -76,10 +72,6 @@ class JsonGeneratorEscapeChunkingTest
     @Test
     void shouldEmbedProjectedSubDocumentAsEscapedStringEndToEnd()
     {
-        // the JSON-in-JSON use case: escape a projected sub-document into the content of a JSON string in
-        // an outer envelope, then re-parse the envelope and confirm the inner text re-parses to the original
-        // the window must hold the structured outer key {\"keep\": atomically (keys are not fragmented);
-        // the tiny-window stress on the non-1:1 segment ratio is covered by the root-identity tests above
         String json = "{\"keep\":{\"id\":1,\"note\":\"a \\\"b\\\" \\\\ c\\n\"},\"drop\":true}";
         String plain = drive(json, Integer.MAX_VALUE, true, false);
         String escaped = drive(json, 16, true, true);
@@ -88,9 +80,6 @@ class JsonGeneratorEscapeChunkingTest
         assertEquals(plain, textOf(envelope));
     }
 
-    // Drives the document through a segmentable (optionally projecting) pipeline whose generator is
-    // escape-wrapped, draining on each SUSPENDED at the given bound, and asserts the concatenated escaped
-    // output re-parses (as JSON string content) back to the document's plain projected serialization.
     private void assertRoundTrips(
         String json,
         int bound,
@@ -107,7 +96,8 @@ class JsonGeneratorEscapeChunkingTest
         boolean project,
         boolean escape)
     {
-        JsonGeneratorEx generator = JsonEx.createGenerator();
+        Map<String, ?> config = escape ? Map.of(JsonEx.GENERATE_ESCAPED, true) : Map.of();
+        JsonGeneratorEx generator = JsonEx.createGenerator(config);
         JsonPipeline pipeline = project
             ? JsonEx.stream(JsonEx.createParser())
                 .transform(JsonEx.projector(List.of("/keep")))
@@ -120,7 +110,7 @@ class JsonGeneratorEscapeChunkingTest
         StringBuilder result = new StringBuilder();
         pipeline.reset();
         int window = Math.min(bound, output.capacity());
-        generator.wrap(output, 0, window, escape);
+        generator.wrap(output, 0, window);
         int suspends = 0;
         int guard = 0;
         Status status;
@@ -133,7 +123,7 @@ class JsonGeneratorEscapeChunkingTest
             if (status == Status.SUSPENDED)
             {
                 suspends++;
-                generator.wrap(output, 0, window, escape);
+                generator.wrap(output, 0, window);
             }
             guard++;
         }

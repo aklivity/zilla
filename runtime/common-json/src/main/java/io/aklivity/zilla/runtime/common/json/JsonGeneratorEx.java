@@ -50,22 +50,6 @@ public interface JsonGeneratorEx extends JsonGenerator
         int limit);
 
     /**
-     * Variant of {@link #wrap(MutableDirectBuffer, int, int)} that additionally selects {@code escape}
-     * mode. When {@code escape} is {@code true} every byte the generator emits is escaped as JSON string
-     * <em>content</em> as it is written — structural bytes ({@code &#123; &#125; : , [ ]}) and UTF-8
-     * continuation bytes pass through, while {@code "}, {@code \}, and control characters are escaped.
-     * This composes with the generator's existing value-escaping, so the whole output stream becomes the
-     * escaped form of the document — exactly the inner content of a JSON-in-JSON string. The caller writes
-     * the surrounding quotes and any outer envelope; the generator emits only the inner escaped content.
-     * When {@code escape} is {@code false} the behavior is identical to the three-argument {@code wrap}.
-     */
-    JsonGeneratorEx wrap(
-        MutableDirectBuffer buffer,
-        int offset,
-        int limit,
-        boolean escape);
-
-    /**
      * Clears the structural context (open object/array depth and pending separators) without
      * re-targeting the buffer, readying the instance for a fresh top-level value. Reuse across pooled
      * callers calls this — via the pipeline's {@code reset()} cascade — so an instance returned mid-value

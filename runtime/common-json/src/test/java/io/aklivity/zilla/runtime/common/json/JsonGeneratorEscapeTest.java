@@ -19,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayInputStream;
+import java.util.Map;
 import java.util.function.Consumer;
 
 import jakarta.json.stream.JsonParser;
@@ -32,7 +33,6 @@ class JsonGeneratorEscapeTest
     @Test
     void shouldEscapeQuotesAndPassStructuralBytesThrough()
     {
-        // structural bytes ({ } : ) pass through verbatim; the value's own quotes are escaped
         assertEquals("{\\\"a\\\":1}", escaped(g -> g
             .writeStartObject()
             .write("a", 1)
@@ -42,25 +42,19 @@ class JsonGeneratorEscapeTest
     @Test
     void shouldEscapeBackslashByDoubling()
     {
-        // a value-side backslash is first turned into \\ by writeString, then the escape layer doubles
-        // each of those, yielding the correct nested representation \\\\
         assertEquals("\\\"a\\\\\\\\b\\\"", escaped(g -> g.write("a\\b")));
     }
 
     @Test
     void shouldEscapeEmbeddedQuoteWithNesting()
     {
-        // a value containing a quote: writeString turns " into \" then the escape layer escapes both
-        // bytes, producing \\\" — the JSON-in-JSON nested form
         assertEquals("\\\"a\\\\\\\"b\\\"", escaped(g -> g.write("a\"b")));
     }
 
     @Test
     void shouldEscapeControlCharacters()
     {
-        // round-trips are asserted separately; here just confirm controls are escaped, not raw
-        String esc = escaped(g -> g.write("a\nb\tc"));
-        assertEquals("\\\"a\\\\nb\\\\tc\\\"", esc);
+        assertEquals("\\\"a\\\\nb\\\\tc\\\"", escaped(g -> g.write("a\nb\tc")));
     }
 
     @Test
@@ -82,7 +76,7 @@ class JsonGeneratorEscapeTest
     @Test
     void shouldRoundTripControlHeavyValue()
     {
-        assertRoundTrips(g -> g.write("line1\nline2\ttab\r\b\f"));
+        assertRoundTrips(g -> g.write("line1\nline2\ttab\r\b\f"));
     }
 
     @Test
@@ -94,7 +88,6 @@ class JsonGeneratorEscapeTest
     @Test
     void shouldEscapeWriteRawContent()
     {
-        // writeRaw splices pre-encoded bytes; in escape mode they are escaped like any other output
         MutableDirectBuffer source = new UnsafeBuffer("\"x\"".getBytes(UTF_8));
         assertEquals("[\\\"x\\\"]", escaped(g -> g
             .writeStartArray()
@@ -105,9 +98,6 @@ class JsonGeneratorEscapeTest
     @Test
     void shouldEscapeRawBytesThroughSegment()
     {
-        // the segment path escapes verbatim bytes directly; raw control bytes (which valid JSON never
-        // carries as a token) exercise escapeByte's short-escape and unicode-escape branches. Escaping
-        // then decoding as JSON string content returns the original bytes.
         byte[] raw = {'"', '\\', '\n', '\r', '\t', '\b', '\f', 0x01, 'A', '~'};
         assertEquals(new String(raw, UTF_8), decodeJsonString(escapeSegment(raw, 64)));
     }
@@ -115,15 +105,13 @@ class JsonGeneratorEscapeTest
     @Test
     void shouldConsumeSegmentAtomicallyByEscapedWidth()
     {
-        // a raw 0x01 needs six output bytes; the segment cut must never split an escape across the bound —
-        // a five-byte window consumes nothing, a six-byte window consumes it whole
         MutableDirectBuffer source = new UnsafeBuffer(new byte[] { 0x01 });
         MutableDirectBuffer out = new UnsafeBuffer(new byte[16]);
-        JsonGeneratorEx generator = JsonEx.createGenerator().wrap(out, 0, 5, true);
+        JsonGeneratorEx generator = JsonEx.createGenerator(Map.of(JsonEx.GENERATE_ESCAPED, true)).wrap(out, 0, 5);
         assertEquals(0, generator.writeSegment(source, 0, 1));
         assertEquals(0, generator.length());
 
-        generator.wrap(out, 0, 6, true);
+        generator.wrap(out, 0, 6);
         assertEquals(1, generator.writeSegment(source, 0, 1));
         byte[] written = new byte[generator.length()];
         out.getBytes(0, written);
@@ -148,14 +136,10 @@ class JsonGeneratorEscapeTest
             .writeEnd());
     }
 
-    // The defining property of escape mode: escaping a document, then decoding the result as JSON
-    // string content, yields the document's plain serialization. This is exactly JSON-in-JSON.
     private static void assertRoundTrips(
         Consumer<JsonGeneratorEx> writer)
     {
-        String plain = generate(writer, false);
-        String escaped = generate(writer, true);
-        assertEquals(plain, decodeJsonString(escaped));
+        assertEquals(generate(writer, false), decodeJsonString(generate(writer, true)));
     }
 
     private static String escaped(
@@ -164,20 +148,18 @@ class JsonGeneratorEscapeTest
         return generate(writer, true);
     }
 
-    // Escapes raw bytes through the consumption-driven segment path, draining and re-wrapping on each
-    // bounded cut, and concatenates the escaped chunks.
     private static String escapeSegment(
         byte[] raw,
         int bound)
     {
         MutableDirectBuffer source = new UnsafeBuffer(raw);
         MutableDirectBuffer out = new UnsafeBuffer(new byte[raw.length * 6 + 16]);
-        JsonGeneratorEx generator = JsonEx.createGenerator();
+        JsonGeneratorEx generator = JsonEx.createGenerator(Map.of(JsonEx.GENERATE_ESCAPED, true));
         StringBuilder result = new StringBuilder();
         int index = 0;
         while (index < raw.length)
         {
-            generator.wrap(out, 0, Math.min(bound, out.capacity()), true);
+            generator.wrap(out, 0, Math.min(bound, out.capacity()));
             int consumed = generator.writeSegment(source, index, raw.length - index);
             index += consumed;
             byte[] chunk = new byte[generator.length()];
@@ -193,7 +175,8 @@ class JsonGeneratorEscapeTest
         boolean escape)
     {
         MutableDirectBuffer buffer = new UnsafeBuffer(new byte[512]);
-        JsonGeneratorEx generator = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity(), escape);
+        Map<String, ?> config = escape ? Map.of(JsonEx.GENERATE_ESCAPED, true) : Map.of();
+        JsonGeneratorEx generator = JsonEx.createGenerator(config).wrap(buffer, 0, buffer.capacity());
         writer.accept(generator);
         byte[] out = new byte[generator.length()];
         buffer.getBytes(0, out);
