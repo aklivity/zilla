@@ -96,7 +96,7 @@ class JsonGeneratorEscapeChunkingTest
         boolean project,
         boolean escape)
     {
-        Map<String, ?> config = escape ? Map.of(JsonEx.GENERATE_ESCAPED, true) : Map.of();
+        Map<String, ?> config = escape ? Map.of(JsonGeneratorEx.GENERATE_ESCAPED, true) : Map.of();
         JsonGeneratorEx generator = JsonEx.createGenerator(config);
         JsonPipeline pipeline = project
             ? JsonEx.stream(JsonEx.createParser())

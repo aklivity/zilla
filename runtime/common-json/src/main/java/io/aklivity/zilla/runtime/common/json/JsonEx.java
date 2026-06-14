@@ -18,7 +18,6 @@ import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 
-import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParserFactory;
 
 import io.aklivity.zilla.runtime.common.json.internal.JsonGeneratorImpl;
@@ -38,48 +37,6 @@ import io.aklivity.zilla.runtime.common.json.internal.JsonStreamImpl;
  */
 public final class JsonEx
 {
-    /**
-     * Config key whose value is a {@code List<String>} of JSON Pointer (RFC 6901) syntax
-     * identifying document paths whose values must be readable via {@link
-     * JsonParser#getString()} after the corresponding event. The convention {@code -} as an
-     * array-index segment is treated as a wildcard matching any index (parser-internal
-     * extension to RFC 6901).
-     * <p>
-     * Defaults to "every path included" when absent. When specified, only listed paths
-     * (minus any matched by {@link #PATH_EXCLUDES}) are readable; values at all other
-     * paths are scanned and discarded, and {@code getString()} on those throws.
-     */
-    public static final String PATH_INCLUDES = "io.aklivity.zilla.runtime.common.json.path.includes";
-
-    /**
-     * Config key whose value is a {@code List<String>} of JSON Pointer (RFC 6901) syntax
-     * identifying document paths whose values are NOT required to be readable, even if
-     * matched by {@link #PATH_INCLUDES}. Excludes have final veto.
-     */
-    public static final String PATH_EXCLUDES = "io.aklivity.zilla.runtime.common.json.path.excludes";
-
-    /**
-     * Config key whose value is an {@code Integer} bounding the number of bytes the parser
-     * will scan for a single included value before throwing {@link
-     * jakarta.json.stream.JsonParsingException}. Set to the caller's slot capacity to fail
-     * fast on values that cannot make progress under reset semantics.
-     * <p>
-     * Defaults to unbounded (no enforcement) when absent.
-     */
-    public static final String TOKEN_MAX_BYTES = "io.aklivity.zilla.runtime.common.json.token.max.bytes";
-
-    /**
-     * Config key whose {@link Boolean} value opts a {@link #createGenerator(Map) generator} into
-     * escape mode: every byte it emits is escaped as JSON string <em>content</em> — structural bytes
-     * ({@code &#123; &#125; : , [ ]}) and UTF-8 continuation bytes pass through, while {@code "},
-     * {@code \}, and control characters are escaped. This composes with the generator's existing
-     * value-escaping, so the whole output stream becomes the escaped form of the document — the inner
-     * content of a JSON-in-JSON string. The caller writes the surrounding quotes and outer envelope.
-     * <p>
-     * Defaults to {@code false} (verbatim output) when absent.
-     */
-    public static final String GENERATE_ESCAPED = "io.aklivity.zilla.runtime.common.json.generate.escaped";
-
     private JsonEx()
     {
     }
@@ -101,9 +58,9 @@ public final class JsonEx
     }
 
     /**
-     * Variant of {@link #createParser()} taking parser config (e.g. {@link #PATH_INCLUDES},
-     * {@link #TOKEN_MAX_BYTES}); the returned parser starts empty and is fed via {@link
-     * JsonParserEx#wrap(org.agrona.DirectBuffer, int, int)}.
+     * Variant of {@link #createParser()} taking parser config (see {@link JsonConfigEx} for the
+     * available keys, e.g. {@link JsonParserEx#PATH_INCLUDES}); the returned parser starts empty and
+     * is fed via {@link JsonParserEx#wrap(org.agrona.DirectBuffer, int, int)}.
      */
     public static JsonParserEx createParser(
         Map<String, ?> config)
@@ -135,9 +92,10 @@ public final class JsonEx
     }
 
     /**
-     * Variant of {@link #createGenerator()} taking generator config (e.g. {@link #GENERATE_ESCAPED}).
-     * Reuse a single instance per worker thread, calling {@link JsonGeneratorEx#wrap(
-     * org.agrona.MutableDirectBuffer, int, int)} before each value.
+     * Variant of {@link #createGenerator()} taking generator config (see {@link JsonConfigEx} for the
+     * available keys, e.g. {@link JsonGeneratorEx#GENERATE_ESCAPED}). Reuse a single instance per worker
+     * thread, calling {@link JsonGeneratorEx#wrap(org.agrona.MutableDirectBuffer, int, int)} before each
+     * value.
      */
     public static JsonGeneratorEx createGenerator(
         Map<String, ?> config)

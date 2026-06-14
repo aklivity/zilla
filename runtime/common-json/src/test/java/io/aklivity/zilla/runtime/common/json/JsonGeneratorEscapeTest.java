@@ -107,12 +107,14 @@ class JsonGeneratorEscapeTest
     {
         MutableDirectBuffer source = new UnsafeBuffer(new byte[] { 0x01 });
         MutableDirectBuffer out = new UnsafeBuffer(new byte[16]);
-        JsonGeneratorEx generator = JsonEx.createGenerator(Map.of(JsonEx.GENERATE_ESCAPED, true)).wrap(out, 0, 5);
-        assertEquals(0, generator.writeSegment(source, 0, 1));
+        JsonGeneratorEx generator = JsonEx.createGenerator(Map.of(JsonGeneratorEx.GENERATE_ESCAPED, true)).wrap(out, 0, 5);
+        generator.writeSegment(source, 0, 1);
+        assertEquals(0, generator.consumed());
         assertEquals(0, generator.length());
 
         generator.wrap(out, 0, 6);
-        assertEquals(1, generator.writeSegment(source, 0, 1));
+        generator.writeSegment(source, 0, 1);
+        assertEquals(1, generator.consumed());
         byte[] written = new byte[generator.length()];
         out.getBytes(0, written);
         assertEquals("\\u0001", new String(written, UTF_8));
@@ -154,13 +156,14 @@ class JsonGeneratorEscapeTest
     {
         MutableDirectBuffer source = new UnsafeBuffer(raw);
         MutableDirectBuffer out = new UnsafeBuffer(new byte[raw.length * 6 + 16]);
-        JsonGeneratorEx generator = JsonEx.createGenerator(Map.of(JsonEx.GENERATE_ESCAPED, true));
+        JsonGeneratorEx generator = JsonEx.createGenerator(Map.of(JsonGeneratorEx.GENERATE_ESCAPED, true));
         StringBuilder result = new StringBuilder();
         int index = 0;
         while (index < raw.length)
         {
             generator.wrap(out, 0, Math.min(bound, out.capacity()));
-            int consumed = generator.writeSegment(source, index, raw.length - index);
+            generator.writeSegment(source, index, raw.length - index);
+            int consumed = generator.consumed();
             index += consumed;
             byte[] chunk = new byte[generator.length()];
             out.getBytes(0, chunk);
@@ -175,7 +178,7 @@ class JsonGeneratorEscapeTest
         boolean escape)
     {
         MutableDirectBuffer buffer = new UnsafeBuffer(new byte[512]);
-        Map<String, ?> config = escape ? Map.of(JsonEx.GENERATE_ESCAPED, true) : Map.of();
+        Map<String, ?> config = escape ? Map.of(JsonGeneratorEx.GENERATE_ESCAPED, true) : Map.of();
         JsonGeneratorEx generator = JsonEx.createGenerator(config).wrap(buffer, 0, buffer.capacity());
         writer.accept(generator);
         byte[] out = new byte[generator.length()];

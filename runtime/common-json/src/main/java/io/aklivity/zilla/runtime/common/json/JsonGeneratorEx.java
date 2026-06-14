@@ -36,6 +36,19 @@ import org.agrona.MutableDirectBuffer;
 public interface JsonGeneratorEx extends JsonGenerator
 {
     /**
+     * Config key whose {@link Boolean} value opts a {@link JsonEx#createGenerator(java.util.Map)
+     * generator} into escape mode: every byte it emits is escaped as JSON string <em>content</em> —
+     * structural bytes ({@code &#123; &#125; : , [ ]}) and UTF-8 continuation bytes pass through, while
+     * {@code "}, {@code \}, and control characters are escaped. This composes with the generator's
+     * existing value-escaping, so the whole output stream becomes the escaped form of the document — the
+     * inner content of a JSON-in-JSON string. The caller writes the surrounding quotes and outer
+     * envelope.
+     * <p>
+     * Defaults to {@code false} (verbatim output) when absent.
+     */
+    String GENERATE_ESCAPED = "io.aklivity.zilla.runtime.common.json.generate.escaped";
+
+    /**
      * Re-targets the generator at {@code buffer} starting at {@code offset} with a hard byte
      * {@code limit}, the bound a chunking driver watches via {@link #remaining()} to decide when to
      * drain and resume; {@code limit} must be supported by the buffer capacity. Structural context
@@ -61,6 +74,15 @@ public interface JsonGeneratorEx extends JsonGenerator
      * Reports the number of bytes written since the last {@link #wrap}.
      */
     int length();
+
+    /**
+     * Cumulative count of <em>source</em> bytes consumed by {@link #writeRaw} and {@link #writeSegment}
+     * since the last {@link #wrap}. This is the source-domain counterpart to {@link #length()} (which
+     * counts output bytes): in escape mode one source byte may expand to several output bytes, so the two
+     * diverge. A driver fragmenting a value reads this around a {@link #writeSegment} call (as a delta) to
+     * learn how many source bytes were taken.
+     */
+    int consumed();
 
     /**
      * Bytes that may still be written before reaching the {@code limit} set at {@link #wrap}. A driver
@@ -96,13 +118,12 @@ public interface JsonGeneratorEx extends JsonGenerator
      * Appends up to {@code length} content bytes of a value verbatim from {@code source} starting at
      * {@code index}, with no structural separator (the value's leading separator is emitted once, before
      * its first segment). The write is <em>consumption-driven</em>: the generator copies as many
-     * <em>source</em> bytes as fit the output bound — escaping them when in {@code escape} mode, where one
-     * source byte may expand to several output bytes — and <em>returns the number of source bytes
-     * consumed</em>. A driver fragments a value larger than what fits by writing what it can, draining when
-     * the returned count is less than {@code length}, then continuing on resume from the unconsumed
-     * remainder. In the non-escape case the returned count is {@code min(length, remaining())}.
+     * <em>source</em> bytes as fit the output bound — escaping them in escape mode, where one source byte
+     * may expand to several output bytes. Track how many source bytes were taken via {@link #consumed()};
+     * a driver fragments a value larger than what fits by writing what it can, draining, then continuing
+     * on resume from the unconsumed remainder.
      */
-    int writeSegment(
+    JsonGeneratorEx writeSegment(
         DirectBuffer source,
         int index,
         int length);

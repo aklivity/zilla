@@ -147,8 +147,10 @@ public final class JsonSinkImpl implements JsonSink
         DirectBuffer segment,
         JsonSource source)
     {
+        int before = generator.consumed();
         int available = segment.capacity() - segmentWritten;
-        int consumed = generator.writeSegment(segment, segmentWritten, available);
+        generator.writeSegment(segment, segmentWritten, available);
+        int consumed = generator.consumed() - before;
         int outputDeferred = available - consumed;
         segmentWritten += consumed;
         Status status;

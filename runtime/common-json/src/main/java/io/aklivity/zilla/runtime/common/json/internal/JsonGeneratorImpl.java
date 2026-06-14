@@ -27,7 +27,6 @@ import jakarta.json.JsonValue;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 
-import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 
 /**
@@ -48,13 +47,14 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     private final boolean[] inArray = new boolean[MAX_DEPTH];
     private final boolean[] hasMembers = new boolean[MAX_DEPTH];
     private final IntConsumer putByte;
-    private final SegmentWriter segmentWriter;
+    private final SegmentWriter writeSegment;
 
     private MutableDirectBuffer buffer;
     private int offset;
     private int progress;
     private int limit;
     private int depth;
+    private int consumed;
     private boolean afterKey;
 
     public JsonGeneratorImpl()
@@ -65,9 +65,9 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     public JsonGeneratorImpl(
         Map<String, ?> config)
     {
-        final boolean escaped = Boolean.TRUE.equals(config.get(JsonEx.GENERATE_ESCAPED));
+        final boolean escaped = Boolean.TRUE.equals(config.get(JsonGeneratorEx.GENERATE_ESCAPED));
         this.putByte = escaped ? this::putEscaped : this::putRaw;
-        this.segmentWriter = escaped ? this::writeEscapedSegment : this::writeRawSegment;
+        this.writeSegment = escaped ? this::writeEscapedSegment : this::writeRawSegment;
     }
 
     @Override
@@ -81,6 +81,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         this.offset = offset;
         this.progress = offset;
         this.limit = limit;
+        this.consumed = 0;
         return this;
     }
 
@@ -88,6 +89,12 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     public int length()
     {
         return progress - offset;
+    }
+
+    @Override
+    public int consumed()
+    {
+        return consumed;
     }
 
     @Override
@@ -384,18 +391,19 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         int length)
     {
         preValue();
-        int written = segmentWriter.write(source, index, length);
+        int written = writeSegment.accept(source, index, length);
         assert written == length;
         return this;
     }
 
     @Override
-    public int writeSegment(
+    public JsonGeneratorImpl writeSegment(
         DirectBuffer source,
         int index,
         int length)
     {
-        return segmentWriter.write(source, index, length);
+        writeSegment.accept(source, index, length);
+        return this;
     }
 
     @Override
@@ -540,10 +548,11 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         int index,
         int length)
     {
-        int consumed = Math.min(length, limit - progress);
-        buffer.putBytes(progress, source, index, consumed);
-        progress += consumed;
-        return consumed;
+        int written = Math.min(length, limit - progress);
+        buffer.putBytes(progress, source, index, written);
+        progress += written;
+        consumed += written;
+        return written;
     }
 
     private int writeEscapedSegment(
@@ -551,18 +560,19 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         int index,
         int length)
     {
-        int consumed = 0;
-        while (consumed < length)
+        int written = 0;
+        while (written < length)
         {
-            int value = source.getByte(index + consumed) & 0xff;
+            int value = source.getByte(index + written) & 0xff;
             if (limit - progress < escapedWidth(value))
             {
                 break;
             }
             putEscaped(value);
-            consumed++;
+            written++;
         }
-        return consumed;
+        consumed += written;
+        return written;
     }
 
     private void putEscaped(
@@ -650,7 +660,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     @FunctionalInterface
     private interface SegmentWriter
     {
-        int write(
+        int accept(
             DirectBuffer source,
             int index,
             int length);
