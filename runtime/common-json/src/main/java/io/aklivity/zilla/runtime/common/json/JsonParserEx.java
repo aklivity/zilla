@@ -30,20 +30,17 @@ import org.agrona.DirectBuffer;
 public interface JsonParserEx extends JsonParser
 {
     /**
-     * Config key whose value is an {@code Integer} bounding the decoded bytes a single value may reach
-     * before the parser delivers it as a sequence of fragments rather than buffering it whole: each
-     * fragment carries the chars that fit the bound and {@code deferredBytes()} stays {@code true} until
-     * the value completes. Set to the caller's slot capacity so values larger than the slot are
-     * fragmented rather than forcing whole-value reassembly.
+     * Borrows {@code buffer} as the input window for the next pump, starting at {@code offset} for
+     * {@code length} bytes. The buffer is read in place for the duration of the pump.
      * <p>
-     * Defaults to unbounded (never fragment) when absent.
-     */
-    String TOKEN_MAX_BYTES = "io.aklivity.zilla.runtime.common.json.token.max.bytes";
-
-    /**
-     * Borrows {@code buffer} as the input for the next pump, starting at {@code offset} for {@code length}
-     * bytes. The buffer is read in place for the duration of the pump; resume state carried in the parser
-     * bridges values that span frames.
+     * The window is also the fragmentation bound: a value that fits the window is delivered whole; a
+     * value whose own bytes fill the window without completing is delivered as fragments — the same
+     * structured event repeated with {@code deferredBytes()} {@code true} until the value completes.
+     * The caller carries any unconsumed tail (up to {@code position()}) into the next window, so a
+     * value that merely straddles a window boundary is reassembled whole. Consequently a single whole
+     * {@code getString()} and {@code getInt()}/{@code getLong()} are valid only for a value that fits
+     * one window; a larger value is read by accumulating {@code getString()} fragments (or splicing
+     * {@code getSegment()}), and a fragmented number via {@code getBigDecimal()}/{@code getBigInteger()}.
      */
     JsonParserEx wrap(
         DirectBuffer buffer,

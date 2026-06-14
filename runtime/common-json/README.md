@@ -13,9 +13,9 @@ keeps parse, transform, and serialize on a single pass with no intermediate DOM.
 `wrap(buffer, offset, length)`, then driven with the standard `hasNext()` / `next()`. It also
 implements `jakarta.json.stream.JsonParser`, so `JsonEx.createParser(in)` works anywhere a
 one-shot pull parser is expected. Every value is readable on demand (decoded lazily via
-`getString()`, or spliced verbatim via `getSegment()`); `TOKEN_MAX_BYTES` bounds a single value to
-the caller's slot, delivering anything larger as `deferredBytes()` fragments rather than buffering
-it whole.
+`getString()`, or spliced verbatim via `getSegment()`); the input window (`wrap`/`feed`) is the
+fragmentation bound — a value that fits the window is delivered whole, while one that fills the
+window is delivered as `deferredBytes()` fragments rather than buffered whole.
 
 ```java
 JsonParserEx parser = JsonEx.createParser().wrap(buffer, offset, length);

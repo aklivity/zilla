@@ -16,8 +16,6 @@ package io.aklivity.zilla.runtime.common.json.internal;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
@@ -107,33 +105,6 @@ public class JsonTokenizerPathTest
             tokenizer.clearEvent();
         }
         assertEquals("/a~1b/c~0d", observedPathAtNumber);
-    }
-
-    @Test
-    public void shouldFragmentValueExceedingTokenMaxBytes() throws IOException
-    {
-        final JsonTokenizer tokenizer = new JsonTokenizer(8);
-
-        final String json = "{\"payload\":\"abcdefghijklmnopqrst\"}";
-        final InputStream in = new BufferedInputStream(
-            new ByteArrayInputStream(json.getBytes(UTF_8)));
-
-        final StringBuilder assembled = new StringBuilder();
-        int fragments = 0;
-        boolean lastDeferred = true;
-        while (tokenizer.advance(in))
-        {
-            if (tokenizer.event() == JsonParser.Event.VALUE_STRING)
-            {
-                assembled.append(tokenizer.stringValue());
-                fragments++;
-                lastDeferred = tokenizer.fragmenting();
-            }
-            tokenizer.clearEvent();
-        }
-        assertEquals("abcdefghijklmnopqrst", assembled.toString());
-        assertTrue(fragments > 1, "expected multiple fragments, got " + fragments);
-        assertFalse(lastDeferred, "final fragment should not defer");
     }
 
     @Test

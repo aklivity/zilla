@@ -21,7 +21,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -30,7 +29,6 @@ import org.junit.jupiter.api.Test;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
-import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
@@ -216,47 +214,48 @@ class JsonPipelineChunkingTest
     }
 
     @Test
-    void shouldReconstructInputFragmentedStringValueDecoded()
+    void shouldReconstructWindowFragmentedStringValueDecoded()
     {
-        // tokenMaxBytes fragments the over-slot value; the DECODED sink re-renders each fragment via
-        // generator.write(getString(), deferredBytes()) with no concatenation
+        // small feed windows fragment the over-window value; the DECODED sink re-renders each fragment
+        // via generator.write(getString(), Completion) with no concatenation
         String json = "{\"data\":\"" + "x".repeat(40) + "\"}";
-        assertEquals(json, feedFragmented(json, JsonSink.Delivery.DECODED));
+        assertEquals(json, feedWindowed(json, JsonSink.Delivery.DECODED, 8));
     }
 
     @Test
-    void shouldReconstructInputFragmentedStringValueVerbatim()
+    void shouldReconstructWindowFragmentedStringValueVerbatim()
     {
         // same fragmented value, verbatim path: each fragment's getSegment() raw bytes splice back to
         // the whole token
         String json = "{\"data\":\"" + "x".repeat(40) + "\"}";
-        assertEquals(json, feedFragmented(json, JsonSink.Delivery.STRUCTURED));
+        assertEquals(json, feedWindowed(json, JsonSink.Delivery.STRUCTURED, 8));
     }
 
     @Test
-    void shouldReconstructFragmentedValueWithMultibyteAcrossFrames()
+    void shouldReconstructFragmentedValueWithMultibyteAcrossWindow()
     {
-        // an over-slot value whose 2-byte 'é' straddles the input window while fragmenting: the parser
-        // leaves the partial char unconsumed (position() < window) and the caller carries the tail
+        // a top-level string fills the first window and fragments; the window ends on the lead byte of
+        // 'é', so the parser leaves the partial char unconsumed (position() < window) and the caller
+        // carries the tail into the next window
         JsonGeneratorEx generator = JsonEx.createGenerator();
         MutableDirectBuffer output = new UnsafeBuffer(new byte[512]);
-        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser(Map.of(JsonParserEx.TOKEN_MAX_BYTES, 8)))
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .into(JsonSink.of(generator, JsonSink.Delivery.DECODED));
         generator.wrap(output, 0, output.capacity());
         pipeline.reset();
 
-        String json = "{\"data\":\"" + "x".repeat(10) + "é" + "y".repeat(10) + "\"}";
+        String json = "\"" + "x".repeat(10) + "é" + "y".repeat(10) + "\"";
         byte[] msg = (json + " ").getBytes(UTF_8);
-        int firstWindow = -1;
-        for (int i = 0; i < msg.length && firstWindow < 0; i++)
+        int w1 = -1;
+        for (int i = 0; i < msg.length && w1 < 0; i++)
         {
             if ((msg[i] & 0xff) == 0xc3)
             {
-                firstWindow = i + 1; // window ends on the lead byte of 'é', splitting the char
+                w1 = i + 1; // window ends on the lead byte of 'é', splitting the char
             }
         }
 
-        assertEquals(Status.STARVED, pipeline.feed(new UnsafeBuffer(msg), 0, firstWindow, false));
+        assertEquals(Status.STARVED, pipeline.feed(new UnsafeBuffer(msg), 0, w1, false));
         int committed = (int) pipeline.position();
         assertEquals(Status.COMPLETED,
             pipeline.feed(new UnsafeBuffer(msg), committed, msg.length - committed, true));
@@ -266,19 +265,36 @@ class JsonPipelineChunkingTest
         assertEquals(json, new String(out, UTF_8));
     }
 
-    private static String feedFragmented(
+    // Feeds the document in fixed-size windows, carrying the unconsumed tail (up to position()) across
+    // feeds the way a real caller does; a value that fills a window is fragmented and reconstructed.
+    private static String feedWindowed(
         String json,
-        JsonSink.Delivery delivery)
+        JsonSink.Delivery delivery,
+        int window)
     {
         JsonGeneratorEx generator = JsonEx.createGenerator();
         MutableDirectBuffer output = new UnsafeBuffer(new byte[512]);
-        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser(Map.of(JsonParserEx.TOKEN_MAX_BYTES, 8)))
-            .into(JsonSink.of(generator, delivery));
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser()).into(JsonSink.of(generator, delivery));
         generator.wrap(output, 0, output.capacity());
         pipeline.reset();
 
-        byte[] bytes = (json + " ").getBytes(UTF_8);
-        Status status = pipeline.feed(new UnsafeBuffer(bytes), 0, bytes.length);
+        byte[] msg = (json + " ").getBytes(UTF_8);
+        int committed = 0;
+        int offset = 0;
+        Status status = Status.STARVED;
+        int guard = 0;
+        while (guard++ < 100_000)
+        {
+            offset = Math.min(offset + window, msg.length);
+            boolean last = offset >= msg.length;
+            status = pipeline.feed(new UnsafeBuffer(msg), committed, offset - committed, last);
+            if (status != Status.STARVED)
+            {
+                break;
+            }
+            assertFalse(last, "last window must not starve");
+            committed = (int) pipeline.position();
+        }
         assertEquals(Status.COMPLETED, status);
         byte[] out = new byte[generator.length()];
         output.getBytes(0, out);

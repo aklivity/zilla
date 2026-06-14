@@ -34,15 +34,13 @@ import jakarta.json.stream.JsonParserFactory;
 import org.junit.jupiter.api.Test;
 
 import io.aklivity.zilla.runtime.common.json.JsonEx;
-import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 
 public class JsonParserFactoryImplTest
 {
     @Test
     public void shouldCreateParserForInputStreamWithSharedConfig()
     {
-        final Map<String, Object> config = Map.of(
-            JsonParserEx.TOKEN_MAX_BYTES, 1024);
+        final Map<String, Object> config = Map.of();
         final JsonParserFactory factory = JsonEx.createParserFactory(config);
 
         final InputStream in1 = new BufferedInputStream(
@@ -64,8 +62,7 @@ public class JsonParserFactoryImplTest
     @Test
     public void shouldExposeConfigInUse()
     {
-        final Map<String, Object> config = Map.of(
-            JsonParserEx.TOKEN_MAX_BYTES, 1024);
+        final Map<String, Object> config = Map.of("io.aklivity.zilla.example", 1);
         final JsonParserFactory factory = JsonEx.createParserFactory(config);
         assertSame(config, factory.getConfigInUse());
     }

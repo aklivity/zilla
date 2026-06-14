@@ -51,14 +51,13 @@ public final class JsonTokenizer
     }
 
     private static final int MAX_DEPTH = 64;
-    // upper bound on the bytes of a single decoded unit (a UTF-8 char is at most 4 bytes, a
-    // backslash-u escape is 6); the fragment-boundary mark rewinds across at most one such unit
-    private static final int MAX_UNIT_BYTES = 8;
 
     private final Deque<ParseState> stack = new ArrayDeque<>();
     private final StringBuilder scratch = new StringBuilder();
-    private final int tokenMaxBytes;
     private boolean terminalEof;
+    // byte length of the current input window; a value whose own bytes reach this length without
+    // completing fills the window and is delivered as fragments rather than reassembled across windows.
+    private int windowLength = Integer.MAX_VALUE;
 
     // path tracking — pre-allocated, no per-event allocation
     private final boolean[] pathInArray = new boolean[MAX_DEPTH];
@@ -83,12 +82,11 @@ public final class JsonTokenizer
     // set while a segment scan is in progress: a value-string is then streamed across frames as raw
     // bytes (no rewind to require it whole-in-frame, no decoded retention) rather than buffered whole.
     private boolean segmenting;
-    // set while a value-string larger than tokenMaxBytes is being delivered as a sequence of
-    // fragments: each fragment carries the decoded chars that fit the slot, deferredBytes() stays true
-    // until the closing quote. A partial char/escape at a frame boundary is left unconsumed (rewound
-    // to unitStartOffset) for the caller's decode slot to re-present, so no partial state crosses wrap.
+    // set while a value-string that fills the input window is being delivered as a sequence of
+    // fragments: each fragment carries the decoded chars scanned so far, deferredBytes() stays true
+    // until the closing quote. A partial char/escape at a window boundary is left unconsumed (rewound
+    // to unitStartOffset) for the caller to re-present, so no partial state crosses a wrap.
     private boolean fragmenting;
-    private boolean stringComplete;
     private long unitStartOffset;
 
     // scalar resume state (valid when resumeOp != NONE)
@@ -100,13 +98,7 @@ public final class JsonTokenizer
 
     public JsonTokenizer()
     {
-        this(Integer.MAX_VALUE);
-    }
-
-    public JsonTokenizer(
-        int tokenMaxBytes)
-    {
-        this(tokenMaxBytes, false);
+        this(false);
     }
 
     // terminalEof distinguishes a one-shot stream (EOF is the final delimiter) from the chunked
@@ -114,10 +106,8 @@ public final class JsonTokenizer
     // only matters for numbers, which unlike strings and the true/false/null literals are not
     // self-terminating and need a following non-digit byte to know they have ended.
     public JsonTokenizer(
-        int tokenMaxBytes,
         boolean terminalEof)
     {
-        this.tokenMaxBytes = tokenMaxBytes;
         this.terminalEof = terminalEof;
         for (int i = 0; i < MAX_DEPTH; i++)
         {
@@ -138,7 +128,6 @@ public final class JsonTokenizer
         fragmentStart = 0;
         segmenting = false;
         fragmenting = false;
-        stringComplete = false;
         resumeOp = ResumeOp.NONE;
         resumeEscape = false;
         resumeUnicodePending = 0;
@@ -163,6 +152,14 @@ public final class JsonTokenizer
         this.terminalEof = terminalEof;
     }
 
+    // Set per input window: its byte length is the fragmentation bound — a value whose own bytes reach
+    // it without completing is delivered as fragments instead of reassembled across windows.
+    void window(
+        int length)
+    {
+        this.windowLength = length;
+    }
+
     public boolean advance(
         InputStream in) throws IOException
     {
@@ -181,13 +178,6 @@ public final class JsonTokenizer
 
         while (pendingEvent == null && state != ParseState.DOC_DONE)
         {
-            // Snapshot at the start of each iteration. On EOF mid-readable-scalar-scan we rewind
-            // to drop any partial scratch and let the caller retry once more bytes are appended.
-            // For other parse steps (KEY_NAME, structural separators, non-readable values) the
-            // existing internal-resume state carries across frames without needing rewind.
-            final long iterStart = streamOffset;
-            in.mark(tokenMaxBytes == Integer.MAX_VALUE ? Integer.MAX_VALUE : tokenMaxBytes);
-
             try
             {
                 if (resumeOp != ResumeOp.NONE)
@@ -205,44 +195,56 @@ public final class JsonTokenizer
                 {
                     return true;
                 }
-                // While segmenting, a value-string spanning the frame is not rewound — its resume state
-                // is kept so the next frame continues it and the raw bytes stream as segments.
-                final boolean midScalar =
-                    (resumeOp == ResumeOp.VALUE_STRING || resumeOp == ResumeOp.VALUE_NUMBER) && !segmenting;
-                boolean delivered = false;
-                if (midScalar && fragmenting && resumeOp == ResumeOp.VALUE_STRING)
-                {
-                    // mid-fragmentation: ship the chars accumulated so far and leave the partial unit's
-                    // bytes unconsumed (rewound to its start) for the decode slot to re-present.
-                    in.reset();
-                    streamOffset = unitStartOffset;
-                    resumeEscape = false;
-                    resumeUnicodePending = 0;
-                    resumeUnicodeValue = 0;
-                    if (scratch.length() > 0)
-                    {
-                        valueStreamStart = fragmentStart;
-                        valueStreamEnd = streamOffset;
-                        pendingEvent = JsonParser.Event.VALUE_STRING;
-                        pendingString = takeScratch();
-                        valuePending = false;
-                        delivered = true;
-                    }
-                }
-                else if (midScalar)
-                {
-                    in.reset();
-                    streamOffset = iterStart;
-                    scratch.setLength(0);
-                    resumeOp = ResumeOp.NONE;
-                    resumeEscape = false;
-                    resumeUnicodePending = 0;
-                    resumeUnicodeValue = 0;
-                }
-                return delivered;
+                return onScalarStarved();
             }
         }
         return true;
+    }
+
+    // The window was exhausted mid-scalar. A value-string whose own bytes fill the window (or one
+    // already fragmenting) ships its decoded-so-far as a fragment, leaving the partial unit for the
+    // caller to re-present via position(); a smaller value (or a number, or the terminal window) is
+    // rewound to its start so the caller carries it whole into a fuller next window. Keys and
+    // segmented value-strings keep their resume state and simply wait for more input. Returns true
+    // iff a fragment event was produced.
+    private boolean onScalarStarved()
+    {
+        final boolean midScalar =
+            (resumeOp == ResumeOp.VALUE_STRING || resumeOp == ResumeOp.VALUE_NUMBER) && !segmenting;
+        boolean delivered = false;
+        if (midScalar)
+        {
+            final long valueBytes = streamOffset - valueStreamStart;
+            final boolean fragmentString = resumeOp == ResumeOp.VALUE_STRING && !terminalEof &&
+                (fragmenting || valueBytes >= windowLength);
+            if (fragmentString)
+            {
+                streamOffset = unitStartOffset;
+                resumeEscape = false;
+                resumeUnicodePending = 0;
+                resumeUnicodeValue = 0;
+                fragmenting = true;
+                if (scratch.length() > 0)
+                {
+                    valueStreamStart = fragmentStart;
+                    valueStreamEnd = streamOffset;
+                    pendingEvent = JsonParser.Event.VALUE_STRING;
+                    pendingString = takeScratch();
+                    valuePending = false;
+                    delivered = true;
+                }
+            }
+            else
+            {
+                streamOffset = valueStreamStart;
+                scratch.setLength(0);
+                resumeOp = ResumeOp.NONE;
+                resumeEscape = false;
+                resumeUnicodePending = 0;
+                resumeUnicodeValue = 0;
+            }
+        }
+        return delivered;
     }
 
     public JsonParser.Event event()
@@ -454,27 +456,19 @@ public final class JsonTokenizer
         pendingString = null;
     }
 
-    // Completes a VALUE_STRING scan: a finished string (closing quote seen) is captured lazily and the
-    // parse state advances; a slot-bound fragment is materialized eagerly (freeing scratch for the next
-    // fragment) with the value left in progress so the next advance() continues it.
+    // Completes a VALUE_STRING scan: continueStringContent only returns here once the closing quote is
+    // seen (otherwise it throws EOFException and onScalarStarved decides fragment-vs-reassemble), so the
+    // string is whole — the final fragment of a fragmented value, or a value that fit one window. It is
+    // captured lazily and the parse state advances.
     private void finishStringValue()
     {
         valueStreamStart = fragmentStart;
         valueStreamEnd = streamOffset;
         pendingEvent = JsonParser.Event.VALUE_STRING;
-        if (stringComplete)
-        {
-            captureValue();
-            fragmenting = false;
-            resumeOp = ResumeOp.NONE;
-            afterValueConsumed();
-        }
-        else
-        {
-            pendingString = takeScratch();
-            valuePending = false;
-            fragmenting = true;
-        }
+        captureValue();
+        fragmenting = false;
+        resumeOp = ResumeOp.NONE;
+        afterValueConsumed();
     }
 
     private String takeScratch()
@@ -768,15 +762,13 @@ public final class JsonTokenizer
     private void continueStringContent(
         InputStream in) throws IOException
     {
-        stringComplete = false;
         while (true)
         {
-            // While fragmenting, mark each unit boundary so an EOF mid-char/escape rewinds here: the
-            // chars decoded so far ship as a fragment and the partial unit's bytes stay unconsumed for
-            // the decode slot to re-present on the next frame.
-            if (fragmenting && !resumeEscape && resumeUnicodePending == 0)
+            // Track each complete-unit boundary so an EOF mid-char/escape can rewind here: the chars
+            // decoded so far ship as a fragment and the partial unit's bytes stay unconsumed
+            // (position() reports unitStartOffset) for the caller to re-present on the next window.
+            if (!resumeEscape && resumeUnicodePending == 0)
             {
-                in.mark(MAX_UNIT_BYTES);
                 unitStartOffset = streamOffset;
             }
             int c = readByte(in);
@@ -824,7 +816,6 @@ public final class JsonTokenizer
             }
             else if (c == '"')
             {
-                stringComplete = true;
                 return;
             }
             else if (c == '\\')
@@ -842,12 +833,6 @@ public final class JsonTokenizer
             else
             {
                 appendCodePointScratch(decodeUtf8(in, c));
-            }
-            // suspend with a full fragment once a complete unit pushes scratch to the slot bound
-            if (!resumeEscape && resumeUnicodePending == 0 &&
-                tokenMaxBytes != Integer.MAX_VALUE && scratch.length() >= tokenMaxBytes)
-            {
-                return;
             }
         }
     }

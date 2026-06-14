@@ -76,7 +76,6 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.common.json.DirectBufferInputStreamEx;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
-import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -283,8 +282,7 @@ public final class McpServerFactory implements McpStreamFactory
         this.encodeMax = encodePool.slotCapacity();
         this.sessionIdAttempts = config.sessionIdAttempts();
         this.sessions = new Object2ObjectHashMap<>();
-        this.parserFactory = JsonEx.createParserFactory(Map.of(
-            JsonParserEx.TOKEN_MAX_BYTES, decodeMax));
+        this.parserFactory = JsonEx.createParserFactory(Map.of());
     }
 
     @Override
