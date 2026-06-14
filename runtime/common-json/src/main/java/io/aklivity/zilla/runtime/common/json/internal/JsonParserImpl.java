@@ -18,7 +18,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.util.AbstractMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Spliterator;
 import java.util.Spliterators;
@@ -88,8 +87,6 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
         this.ownedInput = new DirectBufferInputStreamEx();
         this.in = ownedInput;
         this.tokenizer = new JsonTokenizer(
-            pathList(config, JsonParserEx.PATH_INCLUDES),
-            pathList(config, JsonParserEx.PATH_EXCLUDES),
             tokenMaxBytes(config));
         this.location = new JsonLocationImpl(tokenizer);
     }
@@ -113,8 +110,6 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
         // A DirectBufferInputStreamEx is a resumable frame source whose EOF is a frame boundary;
         // any other stream is one-shot, so its EOF is the terminal delimiter for a trailing number.
         this.tokenizer = new JsonTokenizer(
-            pathList(config, JsonParserEx.PATH_INCLUDES),
-            pathList(config, JsonParserEx.PATH_EXCLUDES),
             tokenMaxBytes(config),
             !(in instanceof DirectBufferInputStreamEx));
         this.location = new JsonLocationImpl(tokenizer);
@@ -372,13 +367,7 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
     @Override
     public String getString()
     {
-        final String value = tokenizer.stringValue();
-        if (value == null && !tokenizer.valueReadable())
-        {
-            throw new IllegalStateException("value not readable; configure path via " +
-                "JsonParserEx.PATH_INCLUDES (or remove from PATH_EXCLUDES)");
-        }
-        return value;
+        return tokenizer.stringValue();
     }
 
     @Override
@@ -629,14 +618,6 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
             }
             return advanced;
         }
-    }
-
-    @SuppressWarnings("unchecked")
-    private static List<String> pathList(
-        Map<String, ?> config,
-        String key)
-    {
-        return (List<String>) config.get(key);
     }
 
     private static int tokenMaxBytes(

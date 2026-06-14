@@ -19,8 +19,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayDeque;
 import java.util.Deque;
-import java.util.List;
-import java.util.Optional;
 
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParsingException;
@@ -53,12 +51,9 @@ public final class JsonTokenizer
     }
 
     private static final int MAX_DEPTH = 64;
-    private static final String WILDCARD_INDEX = "-";
 
     private final Deque<ParseState> stack = new ArrayDeque<>();
     private final StringBuilder scratch = new StringBuilder();
-    private final List<String[]> pathIncludes;
-    private final List<String[]> pathExcludes;
     private final int tokenMaxBytes;
     private boolean terminalEof;
 
@@ -92,15 +87,13 @@ public final class JsonTokenizer
 
     public JsonTokenizer()
     {
-        this(null, null, Integer.MAX_VALUE);
+        this(Integer.MAX_VALUE);
     }
 
     public JsonTokenizer(
-        List<String> pathIncludes,
-        List<String> pathExcludes,
         int tokenMaxBytes)
     {
-        this(pathIncludes, pathExcludes, tokenMaxBytes, false);
+        this(tokenMaxBytes, false);
     }
 
     // terminalEof distinguishes a one-shot stream (EOF is the final delimiter) from the chunked
@@ -108,13 +101,9 @@ public final class JsonTokenizer
     // only matters for numbers, which unlike strings and the true/false/null literals are not
     // self-terminating and need a following non-digit byte to know they have ended.
     public JsonTokenizer(
-        List<String> pathIncludes,
-        List<String> pathExcludes,
         int tokenMaxBytes,
         boolean terminalEof)
     {
-        this.pathIncludes = compilePaths(pathIncludes);
-        this.pathExcludes = compilePaths(pathExcludes);
         this.tokenMaxBytes = tokenMaxBytes;
         this.terminalEof = terminalEof;
         for (int i = 0; i < MAX_DEPTH; i++)
@@ -157,40 +146,6 @@ public final class JsonTokenizer
         boolean terminalEof)
     {
         this.terminalEof = terminalEof;
-    }
-
-    public static final List<String> INCLUDE_ALL = null;
-
-    private static List<String[]> compilePaths(
-        List<String> paths)
-    {
-        return Optional.ofNullable(paths)
-            .map(JsonTokenizer::compilePathList)
-            .orElse(null);
-    }
-
-    private static List<String[]> compilePathList(
-        List<String> paths)
-    {
-        return paths.isEmpty()
-            ? List.of()
-            : paths.stream().map(JsonTokenizer::compilePath).toList();
-    }
-
-    private static String[] compilePath(
-        String path)
-    {
-        if (path.isEmpty())
-        {
-            return new String[0];
-        }
-        // RFC 6901: leading '/', segments separated by '/', '~1' decodes to '/', '~0' to '~'
-        final String[] parts = path.substring(1).split("/", -1);
-        for (int i = 0; i < parts.length; i++)
-        {
-            parts[i] = parts[i].replace("~1", "/").replace("~0", "~");
-        }
-        return parts;
     }
 
     public boolean advance(
@@ -344,86 +299,6 @@ public final class JsonTokenizer
             }
         }
         return path.toString();
-    }
-
-    private boolean currentPathReadable()
-    {
-        // null pathIncludes means include all; empty list means include none;
-        // non-empty list restricts to matching paths
-        final boolean included = pathIncludes == null || pathMatchesAny(pathIncludes);
-        // excludes have final veto
-        return included && (pathExcludes == null || !pathMatchesAny(pathExcludes));
-    }
-
-    private boolean pathMatchesAny(
-        List<String[]> paths)
-    {
-        outer:
-        for (String[] target : paths)
-        {
-            if (target.length != pathDepth)
-            {
-                continue;
-            }
-            for (int i = 0; i < pathDepth; i++)
-            {
-                final String expected = target[i];
-                final boolean matched;
-                if (WILDCARD_INDEX.equals(expected))
-                {
-                    matched = true;
-                }
-                else if (pathInArray[i])
-                {
-                    matched = matchesIndex(expected, pathIndex[i]);
-                }
-                else
-                {
-                    matched = pathKeySet[i] && charsEqual(expected, pathKeyChars[i]);
-                }
-                if (!matched)
-                {
-                    continue outer;
-                }
-            }
-            return true;
-        }
-        return false;
-    }
-
-    private static boolean charsEqual(
-        String segment,
-        CharSequence key)
-    {
-        boolean matches = segment.length() == key.length();
-        for (int i = 0; matches && i < segment.length(); i++)
-        {
-            matches = segment.charAt(i) == key.charAt(i);
-        }
-        return matches;
-    }
-
-    private static boolean matchesIndex(
-        String segment,
-        int index)
-    {
-        boolean matches = !segment.isEmpty() && (segment.length() == 1 || segment.charAt(0) != '0');
-        int value = 0;
-        for (int i = 0; matches && i < segment.length(); i++)
-        {
-            final char c = segment.charAt(i);
-            matches = c >= '0' && c <= '9';
-            if (matches)
-            {
-                final int digit = c - '0';
-                matches = value <= (Integer.MAX_VALUE - digit) / 10;
-                if (matches)
-                {
-                    value = value * 10 + digit;
-                }
-            }
-        }
-        return matches && value == index;
     }
 
     private void pushPath(
@@ -629,7 +504,7 @@ public final class JsonTokenizer
         InputStream in,
         int c) throws IOException
     {
-        valueReadable = currentPathReadable();
+        valueReadable = true;
         switch (c)
         {
         case '{':
