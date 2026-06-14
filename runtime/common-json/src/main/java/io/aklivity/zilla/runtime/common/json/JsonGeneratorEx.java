@@ -50,6 +50,22 @@ public interface JsonGeneratorEx extends JsonGenerator
         int limit);
 
     /**
+     * Variant of {@link #wrap(MutableDirectBuffer, int, int)} that additionally selects {@code escape}
+     * mode. When {@code escape} is {@code true} every byte the generator emits is escaped as JSON string
+     * <em>content</em> as it is written — structural bytes ({@code &#123; &#125; : , [ ]}) and UTF-8
+     * continuation bytes pass through, while {@code "}, {@code \}, and control characters are escaped.
+     * This composes with the generator's existing value-escaping, so the whole output stream becomes the
+     * escaped form of the document — exactly the inner content of a JSON-in-JSON string. The caller writes
+     * the surrounding quotes and any outer envelope; the generator emits only the inner escaped content.
+     * When {@code escape} is {@code false} the behavior is identical to the three-argument {@code wrap}.
+     */
+    JsonGeneratorEx wrap(
+        MutableDirectBuffer buffer,
+        int offset,
+        int limit,
+        boolean escape);
+
+    /**
      * Clears the structural context (open object/array depth and pending separators) without
      * re-targeting the buffer, readying the instance for a fresh top-level value. Reuse across pooled
      * callers calls this — via the pipeline's {@code reset()} cascade — so an instance returned mid-value
@@ -103,18 +119,19 @@ public interface JsonGeneratorEx extends JsonGenerator
         int length);
 
     /**
-     * Appends {@code length} content bytes of a value verbatim within the usable region {@code [offset,
-     * limit)}, with no re-encoding and no structural separator (the value's leading separator is emitted
-     * once, before its first segment). {@code deferred} reports how many bytes of this value remain to be
-     * written after these {@code length} bytes; a driver fragments a value larger than {@link #remaining()}
-     * by writing what fits, leaving {@code deferred > 0}, draining, then continuing on resume until
-     * {@code deferred} reaches zero.
+     * Appends up to {@code length} content bytes of a value verbatim from {@code source} starting at
+     * {@code index}, with no structural separator (the value's leading separator is emitted once, before
+     * its first segment). The write is <em>consumption-driven</em>: the generator copies as many
+     * <em>source</em> bytes as fit the output bound — escaping them when in {@code escape} mode, where one
+     * source byte may expand to several output bytes — and <em>returns the number of source bytes
+     * consumed</em>. A driver fragments a value larger than what fits by writing what it can, draining when
+     * the returned count is less than {@code length}, then continuing on resume from the unconsumed
+     * remainder. In the non-escape case the returned count is {@code min(length, remaining())}.
      */
-    JsonGeneratorEx writeSegment(
+    int writeSegment(
         DirectBuffer source,
         int index,
-        int length,
-        int deferred);
+        int length);
 
     @Override
     JsonGeneratorEx writeStartObject();

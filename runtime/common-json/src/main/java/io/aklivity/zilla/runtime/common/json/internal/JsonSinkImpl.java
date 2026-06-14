@@ -143,19 +143,19 @@ public final class JsonSinkImpl implements JsonSink
         generator.reset();
     }
 
-    // Writes as much of the current segment slice as the bounded output allows, deferring the rest: when
-    // the slice does not fit it stashes the remainder (pendingSegment) and reports SUSPENDED so the driver
-    // drains and a later resume() continues from segmentWritten. Once the slice is fully written the value
-    // continues (more fragments follow, source.deferredBytes()) or completes (the value boundary).
+    // Hands the whole remaining slice to the generator, which consumes as many source bytes as its bounded
+    // output allows (escaping is not length-preserving) and reports how many it consumed; the rest is
+    // deferred. When some remains it stashes the remainder (pendingSegment) and reports SUSPENDED so the
+    // driver drains and a later resume() continues from segmentWritten. Once the slice is fully consumed the
+    // value continues (more fragments follow, source.deferredBytes()) or completes (the value boundary).
     private Status writeChunk(
         DirectBuffer segment,
         JsonSource source)
     {
-        int sliceLength = segment.capacity();
-        int length = Math.min(sliceLength - segmentWritten, generator.remaining());
-        int outputDeferred = sliceLength - segmentWritten - length;
-        generator.writeSegment(segment, segmentWritten, length, outputDeferred);
-        segmentWritten += length;
+        int available = segment.capacity() - segmentWritten;
+        int consumed = generator.writeSegment(segment, segmentWritten, available);
+        int outputDeferred = available - consumed;
+        segmentWritten += consumed;
         Status status;
         if (outputDeferred > 0)
         {

@@ -51,8 +51,8 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     private int progress;
     private int limit;
     private int depth;
-    private int deferred;
     private boolean afterKey;
+    private boolean escape;
 
     @Override
     public JsonGeneratorImpl wrap(
@@ -60,11 +60,22 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         int offset,
         int limit)
     {
+        return wrap(buffer, offset, limit, false);
+    }
+
+    @Override
+    public JsonGeneratorImpl wrap(
+        MutableDirectBuffer buffer,
+        int offset,
+        int limit,
+        boolean escape)
+    {
         assert offset <= limit && limit <= buffer.capacity();
         this.buffer = buffer;
         this.offset = offset;
         this.progress = offset;
         this.limit = limit;
+        this.escape = escape;
         return this;
     }
 
@@ -78,7 +89,6 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     public void reset()
     {
         this.depth = 0;
-        this.deferred = 0;
         this.afterKey = false;
     }
 
@@ -369,9 +379,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         int length)
     {
         preValue();
-        assert progress + length <= limit;
-        buffer.putBytes(progress, source, index, length);
-        progress += length;
+        putBytes(source, index, length);
         return this;
     }
 
@@ -381,24 +389,33 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         int index,
         int length)
     {
-        assert progress + length <= limit;
-        buffer.putBytes(progress, source, index, length);
-        progress += length;
+        putBytes(source, index, length);
         return this;
     }
 
     @Override
-    public JsonGeneratorImpl writeSegment(
+    public int writeSegment(
         DirectBuffer source,
         int index,
-        int length,
-        int deferred)
+        int length)
     {
-        assert progress + length <= limit;
-        buffer.putBytes(progress, source, index, length);
-        progress += length;
-        this.deferred = deferred;
-        return this;
+        int consumed;
+        if (escape)
+        {
+            consumed = 0;
+            while (consumed < length && limit - progress >= escapedWidth(source.getByte(index + consumed) & 0xff))
+            {
+                escapeByte(source.getByte(index + consumed) & 0xff);
+                consumed++;
+            }
+        }
+        else
+        {
+            consumed = Math.min(length, limit - progress);
+            buffer.putBytes(progress, source, index, consumed);
+            progress += consumed;
+        }
+        return consumed;
     }
 
     @Override
@@ -538,7 +555,116 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         }
     }
 
+    // The single byte-output choke point. In escape mode every emitted byte is escaped as JSON string
+    // content, so structural bytes and the generator's own value-escaping both compose into the correct
+    // nested (JSON-in-JSON) form; otherwise the byte is written verbatim.
     private void putByte(
+        int value)
+    {
+        if (escape)
+        {
+            escapeByte(value & 0xff);
+        }
+        else
+        {
+            putRaw(value);
+        }
+    }
+
+    private void putBytes(
+        DirectBuffer source,
+        int index,
+        int length)
+    {
+        if (escape)
+        {
+            for (int cursor = 0; cursor < length; cursor++)
+            {
+                escapeByte(source.getByte(index + cursor) & 0xff);
+            }
+        }
+        else
+        {
+            assert progress + length <= limit;
+            buffer.putBytes(progress, source, index, length);
+            progress += length;
+        }
+    }
+
+    private void escapeByte(
+        int value)
+    {
+        switch (value)
+        {
+        case '"':
+            putRaw('\\');
+            putRaw('"');
+            break;
+        case '\\':
+            putRaw('\\');
+            putRaw('\\');
+            break;
+        case '\n':
+            putRaw('\\');
+            putRaw('n');
+            break;
+        case '\r':
+            putRaw('\\');
+            putRaw('r');
+            break;
+        case '\t':
+            putRaw('\\');
+            putRaw('t');
+            break;
+        case '\b':
+            putRaw('\\');
+            putRaw('b');
+            break;
+        case '\f':
+            putRaw('\\');
+            putRaw('f');
+            break;
+        default:
+            if (value < 0x20)
+            {
+                putRaw('\\');
+                putRaw('u');
+                putRaw(HEX[value >> 12 & 0xf]);
+                putRaw(HEX[value >> 8 & 0xf]);
+                putRaw(HEX[value >> 4 & 0xf]);
+                putRaw(HEX[value & 0xf]);
+            }
+            else
+            {
+                putRaw(value);
+            }
+            break;
+        }
+    }
+
+    private static int escapedWidth(
+        int value)
+    {
+        int width;
+        switch (value)
+        {
+        case '"':
+        case '\\':
+        case '\n':
+        case '\r':
+        case '\t':
+        case '\b':
+        case '\f':
+            width = 2;
+            break;
+        default:
+            width = value < 0x20 ? 6 : 1;
+            break;
+        }
+        return width;
+    }
+
+    private void putRaw(
         int value)
     {
         assert progress < limit;
