@@ -143,8 +143,8 @@ simple — no stage has to be suspend/resume aware unless it originates `SUSPEND
 and quoting automatically from an internal context stack, emitting in source order with no
 insignificant whitespace. It implements `jakarta.json.stream.JsonGenerator` with covariant returns for
 fluent chaining, plus the streaming-to-buffer extensions: `writeNumber(literal)` emits a numeric
-lexeme verbatim, `writeRaw` / `writeRawContinue` splice a pre-encoded value (in one or more fragments),
-and `writeSegment` writes a bounded, consumption-driven fragment.
+lexeme verbatim, `writeRaw` splices a pre-encoded value (emitting its leading separator once), and
+`writeSegment` appends a bounded, consumption-driven fragment of that value with no separator.
 
 `wrap(buffer, offset, limit, escape)` opts the generator into **escape mode**: every byte it emits is
 escaped as JSON string *content* (structural bytes and UTF-8 continuation bytes pass through; `"`, `\`,

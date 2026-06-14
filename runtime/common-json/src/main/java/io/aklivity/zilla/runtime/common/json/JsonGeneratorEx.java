@@ -109,16 +109,6 @@ public interface JsonGeneratorEx extends JsonGenerator
         int length);
 
     /**
-     * Appends the continuation bytes of a value already begun by {@link #writeRaw} verbatim, with no
-     * re-encoding and without emitting a structural separator. Used to splice a value delivered as
-     * multiple fragments so the whole fragment run counts as a single value.
-     */
-    JsonGeneratorEx writeRawContinue(
-        DirectBuffer source,
-        int index,
-        int length);
-
-    /**
      * Appends up to {@code length} content bytes of a value verbatim from {@code source} starting at
      * {@code index}, with no structural separator (the value's leading separator is emitted once, before
      * its first segment). The write is <em>consumption-driven</em>: the generator copies as many

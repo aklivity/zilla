@@ -384,16 +384,6 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     }
 
     @Override
-    public JsonGeneratorImpl writeRawContinue(
-        DirectBuffer source,
-        int index,
-        int length)
-    {
-        putBytes(source, index, length);
-        return this;
-    }
-
-    @Override
     public int writeSegment(
         DirectBuffer source,
         int index,
