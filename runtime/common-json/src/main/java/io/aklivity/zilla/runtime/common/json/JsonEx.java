@@ -58,9 +58,9 @@ public final class JsonEx
     }
 
     /**
-     * Variant of {@link #createParser()} taking parser config (see {@link JsonConfigEx} for the
-     * available keys, e.g. {@link JsonParserEx#PATH_INCLUDES}); the returned parser starts empty and
-     * is fed via {@link JsonParserEx#wrap(org.agrona.DirectBuffer, int, int)}.
+     * Variant of {@link #createParser()} taking parser config (e.g. {@link JsonParserEx#PATH_INCLUDES},
+     * {@link JsonParserEx#TOKEN_MAX_BYTES}); the returned parser starts empty and is fed via {@link
+     * JsonParserEx#wrap(org.agrona.DirectBuffer, int, int)}.
      */
     public static JsonParserEx createParser(
         Map<String, ?> config)
@@ -92,10 +92,9 @@ public final class JsonEx
     }
 
     /**
-     * Variant of {@link #createGenerator()} taking generator config (see {@link JsonConfigEx} for the
-     * available keys, e.g. {@link JsonGeneratorEx#GENERATE_ESCAPED}). Reuse a single instance per worker
-     * thread, calling {@link JsonGeneratorEx#wrap(org.agrona.MutableDirectBuffer, int, int)} before each
-     * value.
+     * Variant of {@link #createGenerator()} taking generator config (e.g.
+     * {@link JsonGeneratorEx#GENERATE_ESCAPED}). Reuse a single instance per worker thread, calling
+     * {@link JsonGeneratorEx#wrap(org.agrona.MutableDirectBuffer, int, int)} before each value.
      */
     public static JsonGeneratorEx createGenerator(
         Map<String, ?> config)
