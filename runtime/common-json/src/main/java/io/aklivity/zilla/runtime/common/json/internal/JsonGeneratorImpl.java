@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.common.json.internal;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Map;
+import java.util.function.IntConsumer;
 
 import jakarta.json.JsonArray;
 import jakarta.json.JsonObject;
@@ -45,14 +46,29 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
 
     private final boolean[] inArray = new boolean[MAX_DEPTH];
     private final boolean[] hasMembers = new boolean[MAX_DEPTH];
+    private final IntConsumer putByte;
+    private final SegmentWriter writeSegment;
 
     private MutableDirectBuffer buffer;
     private int offset;
     private int progress;
     private int limit;
     private int depth;
-    private int deferred;
+    private int consumed;
     private boolean afterKey;
+
+    public JsonGeneratorImpl()
+    {
+        this(Map.of());
+    }
+
+    public JsonGeneratorImpl(
+        Map<String, ?> config)
+    {
+        final boolean escaped = Boolean.TRUE.equals(config.get(JsonGeneratorEx.GENERATE_ESCAPED));
+        this.putByte = escaped ? this::putEscaped : this::putRaw;
+        this.writeSegment = escaped ? this::writeEscapedSegment : this::writeRawSegment;
+    }
 
     @Override
     public JsonGeneratorImpl wrap(
@@ -65,6 +81,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         this.offset = offset;
         this.progress = offset;
         this.limit = limit;
+        this.consumed = 0;
         return this;
     }
 
@@ -75,10 +92,15 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     }
 
     @Override
+    public int consumed()
+    {
+        return consumed;
+    }
+
+    @Override
     public void reset()
     {
         this.depth = 0;
-        this.deferred = 0;
         this.afterKey = false;
     }
 
@@ -92,7 +114,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     public JsonGeneratorImpl writeStartObject()
     {
         preValue();
-        putByte('{');
+        putByte.accept('{');
         push(false);
         return this;
     }
@@ -109,7 +131,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     public JsonGeneratorImpl writeStartArray()
     {
         preValue();
-        putByte('[');
+        putByte.accept('[');
         push(true);
         return this;
     }
@@ -135,11 +157,11 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     {
         if (hasMembers[depth - 1])
         {
-            putByte(',');
+            putByte.accept(',');
         }
         hasMembers[depth - 1] = true;
         writeString(name);
-        putByte(':');
+        putByte.accept(':');
         afterKey = true;
         return this;
     }
@@ -148,7 +170,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     public JsonGeneratorImpl writeEnd()
     {
         depth--;
-        putByte(inArray[depth] ? ']' : '}');
+        putByte.accept(inArray[depth] ? ']' : '}');
         return this;
     }
 
@@ -369,21 +391,8 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         int length)
     {
         preValue();
-        assert progress + length <= limit;
-        buffer.putBytes(progress, source, index, length);
-        progress += length;
-        return this;
-    }
-
-    @Override
-    public JsonGeneratorImpl writeRawContinue(
-        DirectBuffer source,
-        int index,
-        int length)
-    {
-        assert progress + length <= limit;
-        buffer.putBytes(progress, source, index, length);
-        progress += length;
+        int written = writeSegment.accept(source, index, length);
+        assert written == length;
         return this;
     }
 
@@ -391,13 +400,9 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     public JsonGeneratorImpl writeSegment(
         DirectBuffer source,
         int index,
-        int length,
-        int deferred)
+        int length)
     {
-        assert progress + length <= limit;
-        buffer.putBytes(progress, source, index, length);
-        progress += length;
-        this.deferred = deferred;
+        writeSegment.accept(source, index, length);
         return this;
     }
 
@@ -430,7 +435,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         {
             if (hasMembers[depth - 1])
             {
-                putByte(',');
+                putByte.accept(',');
             }
             hasMembers[depth - 1] = true;
         }
@@ -439,7 +444,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     private void writeString(
         CharSequence value)
     {
-        putByte('"');
+        putByte.accept('"');
         int index = 0;
         int length = value.length();
         while (index < length)
@@ -449,32 +454,32 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
             switch (codePoint)
             {
             case '"':
-                putByte('\\');
-                putByte('"');
+                putByte.accept('\\');
+                putByte.accept('"');
                 break;
             case '\\':
-                putByte('\\');
-                putByte('\\');
+                putByte.accept('\\');
+                putByte.accept('\\');
                 break;
             case '\n':
-                putByte('\\');
-                putByte('n');
+                putByte.accept('\\');
+                putByte.accept('n');
                 break;
             case '\r':
-                putByte('\\');
-                putByte('r');
+                putByte.accept('\\');
+                putByte.accept('r');
                 break;
             case '\t':
-                putByte('\\');
-                putByte('t');
+                putByte.accept('\\');
+                putByte.accept('t');
                 break;
             case '\b':
-                putByte('\\');
-                putByte('b');
+                putByte.accept('\\');
+                putByte.accept('b');
                 break;
             case '\f':
-                putByte('\\');
-                putByte('f');
+                putByte.accept('\\');
+                putByte.accept('f');
                 break;
             default:
                 if (codePoint < 0x20)
@@ -488,7 +493,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
                 break;
             }
         }
-        putByte('"');
+        putByte.accept('"');
     }
 
     private void writeUtf8(
@@ -496,37 +501,37 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     {
         if (codePoint < 0x80)
         {
-            putByte(codePoint);
+            putByte.accept(codePoint);
         }
         else if (codePoint < 0x800)
         {
-            putByte(0xc0 | codePoint >> 6);
-            putByte(0x80 | codePoint & 0x3f);
+            putByte.accept(0xc0 | codePoint >> 6);
+            putByte.accept(0x80 | codePoint & 0x3f);
         }
         else if (codePoint < 0x10000)
         {
-            putByte(0xe0 | codePoint >> 12);
-            putByte(0x80 | codePoint >> 6 & 0x3f);
-            putByte(0x80 | codePoint & 0x3f);
+            putByte.accept(0xe0 | codePoint >> 12);
+            putByte.accept(0x80 | codePoint >> 6 & 0x3f);
+            putByte.accept(0x80 | codePoint & 0x3f);
         }
         else
         {
-            putByte(0xf0 | codePoint >> 18);
-            putByte(0x80 | codePoint >> 12 & 0x3f);
-            putByte(0x80 | codePoint >> 6 & 0x3f);
-            putByte(0x80 | codePoint & 0x3f);
+            putByte.accept(0xf0 | codePoint >> 18);
+            putByte.accept(0x80 | codePoint >> 12 & 0x3f);
+            putByte.accept(0x80 | codePoint >> 6 & 0x3f);
+            putByte.accept(0x80 | codePoint & 0x3f);
         }
     }
 
     private void writeUnicodeEscape(
         int codePoint)
     {
-        putByte('\\');
-        putByte('u');
-        putByte(HEX[codePoint >> 12 & 0xf]);
-        putByte(HEX[codePoint >> 8 & 0xf]);
-        putByte(HEX[codePoint >> 4 & 0xf]);
-        putByte(HEX[codePoint & 0xf]);
+        putByte.accept('\\');
+        putByte.accept('u');
+        putByte.accept(HEX[codePoint >> 12 & 0xf]);
+        putByte.accept(HEX[codePoint >> 8 & 0xf]);
+        putByte.accept(HEX[codePoint >> 4 & 0xf]);
+        putByte.accept(HEX[codePoint & 0xf]);
     }
 
     private void writeAscii(
@@ -534,15 +539,130 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     {
         for (int index = 0; index < value.length(); index++)
         {
-            putByte(value.charAt(index));
+            putByte.accept(value.charAt(index));
         }
     }
 
-    private void putByte(
+    private int writeRawSegment(
+        DirectBuffer source,
+        int index,
+        int length)
+    {
+        int written = Math.min(length, limit - progress);
+        buffer.putBytes(progress, source, index, written);
+        progress += written;
+        consumed += written;
+        return written;
+    }
+
+    private int writeEscapedSegment(
+        DirectBuffer source,
+        int index,
+        int length)
+    {
+        int written = 0;
+        while (written < length)
+        {
+            int value = source.getByte(index + written) & 0xff;
+            if (limit - progress < escapedWidth(value))
+            {
+                break;
+            }
+            putEscaped(value);
+            written++;
+        }
+        consumed += written;
+        return written;
+    }
+
+    private void putEscaped(
+        int value)
+    {
+        value &= 0xff;
+        switch (value)
+        {
+        case '"':
+            putRaw('\\');
+            putRaw('"');
+            break;
+        case '\\':
+            putRaw('\\');
+            putRaw('\\');
+            break;
+        case '\n':
+            putRaw('\\');
+            putRaw('n');
+            break;
+        case '\r':
+            putRaw('\\');
+            putRaw('r');
+            break;
+        case '\t':
+            putRaw('\\');
+            putRaw('t');
+            break;
+        case '\b':
+            putRaw('\\');
+            putRaw('b');
+            break;
+        case '\f':
+            putRaw('\\');
+            putRaw('f');
+            break;
+        default:
+            if (value < 0x20)
+            {
+                putRaw('\\');
+                putRaw('u');
+                putRaw(HEX[value >> 12 & 0xf]);
+                putRaw(HEX[value >> 8 & 0xf]);
+                putRaw(HEX[value >> 4 & 0xf]);
+                putRaw(HEX[value & 0xf]);
+            }
+            else
+            {
+                putRaw(value);
+            }
+            break;
+        }
+    }
+
+    private static int escapedWidth(
+        int value)
+    {
+        int width;
+        switch (value)
+        {
+        case '"':
+        case '\\':
+        case '\n':
+        case '\r':
+        case '\t':
+        case '\b':
+        case '\f':
+            width = 2;
+            break;
+        default:
+            width = value < 0x20 ? 6 : 1;
+            break;
+        }
+        return width;
+    }
+
+    private void putRaw(
         int value)
     {
         assert progress < limit;
         buffer.putByte(progress, (byte) value);
         progress++;
+    }
+
+    @FunctionalInterface
+    private interface SegmentWriter
+    {
+        int accept(
+            DirectBuffer source,
+            int index,
+            int length);
     }
 }

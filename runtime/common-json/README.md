@@ -115,10 +115,12 @@ open structure — does not leak that structure into the next checkout.
 ### Fragmenting values larger than the bound
 
 A value whose verbatim form exceeds `remaining()` is **fragmented mid-byte** rather than overrunning
-the bound. `generator.writeSegment(source, index, length, deferred)` appends the bytes that fit and
-records `deferred` — how many bytes of the value remain — and the sink returns `SUSPENDED`; on resume
-it continues from where it paused until `deferred` reaches zero. A value of any size streams this way,
-never buffered in full.
+the bound. `generator.writeSegment(source, index, length)` is **consumption-driven**: it appends as
+many *source* bytes as fit the bound — escaping them when the generator is in escape mode, where one
+source byte may expand to several output bytes. `consumed()` reports the cumulative source bytes taken
+(the source-domain counterpart to `length()`); when fewer than `length` were taken the sink defers the
+remainder and returns `SUSPENDED`; on resume it continues from where it paused until the value is fully
+consumed. A value of any size streams this way, never buffered in full.
 
 This covers both a verbatim container subtree (`SEGMENTABLE` delivery) and a **scalar string value**.
 A string value larger than the bound is read as its raw token bytes — the parser exposes the token
@@ -141,8 +143,14 @@ simple — no stage has to be suspend/resume aware unless it originates `SUSPEND
 and quoting automatically from an internal context stack, emitting in source order with no
 insignificant whitespace. It implements `jakarta.json.stream.JsonGenerator` with covariant returns for
 fluent chaining, plus the streaming-to-buffer extensions: `writeNumber(literal)` emits a numeric
-lexeme verbatim, `writeRaw` / `writeRawContinue` splice a pre-encoded value (in one or more fragments),
-and `writeSegment` writes a bounded, deferred-tracking fragment.
+lexeme verbatim, `writeRaw` splices a pre-encoded value (emitting its leading separator once), and
+`writeSegment` appends a bounded, consumption-driven fragment of that value with no separator.
+
+`createGenerator(Map.of(JsonGeneratorEx.GENERATE_ESCAPED, true))` opts the generator into **escape mode**: every
+byte it emits is escaped as JSON string *content* (structural bytes and UTF-8 continuation bytes pass
+through; `"`, `\`, and control characters are escaped), composing with the generator's existing
+value-escaping so the whole output stream becomes the escaped form of the document — the inner content of
+a JSON-in-JSON string. The caller writes the surrounding quotes and outer envelope.
 
 ```java
 JsonGeneratorEx generator = JsonEx.createGenerator().wrap(out, 0, out.capacity());

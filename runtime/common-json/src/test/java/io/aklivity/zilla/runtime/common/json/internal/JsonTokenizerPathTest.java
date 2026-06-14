@@ -32,6 +32,7 @@ import jakarta.json.stream.JsonParsingException;
 import org.junit.jupiter.api.Test;
 
 import io.aklivity.zilla.runtime.common.json.JsonEx;
+import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 
 public class JsonTokenizerPathTest
 {
@@ -188,7 +189,7 @@ public class JsonTokenizerPathTest
             new ByteArrayInputStream(json.getBytes(UTF_8)));
 
         final Map<String, Object> config = Map.of(
-            JsonEx.PATH_INCLUDES, List.of("/tools/-/name"));
+            JsonParserEx.PATH_INCLUDES, List.of("/tools/-/name"));
         final JsonParser parser = JsonEx.createParserFactory(config).createParser(in);
 
         boolean sawNonReadableValue = false;

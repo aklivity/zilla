@@ -53,6 +53,7 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.common.json.DirectBufferInputStreamEx;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
+import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -133,7 +134,7 @@ abstract class McpProxyListFactory implements BindingHandler
         this.supplyBinding = supplyBinding;
         this.kind = kind;
         this.listItemParserFactory = JsonEx.createParserFactory(
-            Map.of(JsonEx.PATH_INCLUDES, pathIncludes));
+            Map.of(JsonParserEx.PATH_INCLUDES, pathIncludes));
     }
 
     @Override
