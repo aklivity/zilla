@@ -80,6 +80,7 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.common.json.DirectBufferInputStreamEx;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
+import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -285,11 +286,11 @@ public final class McpClientFactory implements McpStreamFactory
         this.clientName = config.clientName();
         this.clientVersion = config.clientVersion();
         this.responseParserFactory = JsonEx.createParserFactory(Map.of(
-            JsonEx.PATH_INCLUDES, CLIENT_JSON_PATH_INCLUDES,
-            JsonEx.TOKEN_MAX_BYTES, decodeMax));
+            JsonParserEx.PATH_INCLUDES, CLIENT_JSON_PATH_INCLUDES,
+            JsonParserEx.TOKEN_MAX_BYTES, decodeMax));
         this.requestParserFactory = JsonEx.createParserFactory(Map.of(
-            JsonEx.PATH_INCLUDES, List.of(),
-            JsonEx.TOKEN_MAX_BYTES, encodeMax));
+            JsonParserEx.PATH_INCLUDES, List.of(),
+            JsonParserEx.TOKEN_MAX_BYTES, encodeMax));
 
         final Int2ObjectHashMap<McpSessionIdResolver> resolvers = new Int2ObjectHashMap<>();
         resolvers.put(KIND_TOOLS_LIST, ex -> ex.toolsList().sessionId().asString());
