@@ -17,6 +17,9 @@ package io.aklivity.zilla.runtime.common.avro.json;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import java.io.ByteArrayOutputStream;
 
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -245,6 +248,92 @@ public class AvroJsonTest
         assertEquals(json, avroToJson(schema, jsonToAvro(schema, json)));
     }
 
+    @Test
+    public void shouldStreamAvroToJsonAcrossDrains()
+    {
+        String schemaText = """
+            {"type":"record","name":"R","fields":[
+            {"name":"id","type":"long"},
+            {"name":"name","type":"string"},
+            {"name":"tags","type":{"type":"array","items":"string"}}]}""";
+        // id=7, name="hello", tags=["a","b","c"] via single-element blocks
+        byte[] binary =
+        {
+            0x0e,
+            0x0a, 0x68, 0x65, 0x6c, 0x6c, 0x6f,
+            0x02, 0x02, 0x61, 0x02, 0x02, 0x62, 0x02, 0x02, 0x63, 0x00
+        };
+        AvroSchema schema = Avro.schema(schemaText);
+        String whole = avroToJson(schema, binary);
+        // a bound small enough to force several drains mid-datum, but large enough for any single value
+        assertEquals(whole, avroToJsonChunked(schema, binary, 48));
+    }
+
+    @Test
+    public void shouldWriteThroughGeneratorApi()
+    {
+        AvroSchema schema = Avro.schema("""
+            {"type":"record","name":"R","fields":[
+            {"name":"a","type":"string"},
+            {"name":"b","type":"bytes"},
+            {"name":"c","type":{"type":"fixed","name":"F","size":2}}]}""");
+        MutableDirectBuffer out = new UnsafeBuffer(new byte[256]);
+        JsonGeneratorEx json = JsonEx.createGenerator();
+        AvroGenerator generator = AvroJson.generator(schema, json).wrap(out, 0, out.capacity());
+        generator.writeStartRecord();
+        generator.writeString(new UnsafeBuffer("hi".getBytes(UTF_8)), 0, 2);
+        generator.writeBytes(new UnsafeBuffer(new byte[] { (byte) 0xff, 0x00 }), 0, 2);
+        generator.writeFixed(new UnsafeBuffer(new byte[] { 0x01, 0x02 }), 0, 2);
+        generator.writeEnd();
+        json.flush();
+        byte[] bytes = new byte[json.length()];
+        out.getBytes(0, bytes);
+        assertEquals("{\"a\":\"hi\",\"b\":\"/wA=\",\"c\":\"AQI=\"}", new String(bytes, UTF_8));
+
+        assertThrows(UnsupportedOperationException.class,
+            () -> generator.writeRaw(new UnsafeBuffer(new byte[] { 0x00 }), 0, 1));
+    }
+
+    private static String avroToJsonChunked(
+        AvroSchema schema,
+        byte[] binary,
+        int limit)
+    {
+        MutableDirectBuffer out = new UnsafeBuffer(new byte[limit]);
+        JsonGeneratorEx json = JsonEx.createGenerator();
+        AvroGenerator generator = AvroJson.generator(schema, json);
+        AvroPipeline pipeline = Avro.stream(Avro.parser(schema)).into(AvroSink.of(generator));
+        ByteArrayOutputStream result = new ByteArrayOutputStream();
+        generator.wrap(out, 0, limit);
+        pipeline.reset();
+        UnsafeBuffer input = new UnsafeBuffer(binary);
+        Status status = pipeline.feed(input, 0, binary.length);
+        while (status == Status.SUSPENDED)
+        {
+            drain(out, json, result);
+            generator.wrap(out, 0, limit);
+            status = pipeline.feed(input, 0, binary.length);
+        }
+        if (status != Status.COMPLETED)
+        {
+            throw new AssertionError("avro -> json did not complete: " + status);
+        }
+        drain(out, json, result);
+        return result.toString(UTF_8);
+    }
+
+    private static void drain(
+        MutableDirectBuffer out,
+        JsonGeneratorEx json,
+        ByteArrayOutputStream result)
+    {
+        json.flush();
+        int length = json.length();
+        byte[] chunk = new byte[length];
+        out.getBytes(0, chunk);
+        result.write(chunk, 0, length);
+    }
+
     private void assertJson(
         String schemaText,
         byte[] binary,
@@ -268,18 +357,19 @@ public class AvroJsonTest
         byte[] binary)
     {
         MutableDirectBuffer out = new UnsafeBuffer(new byte[Math.max(256, binary.length * 8)]);
-        JsonGeneratorEx generator = JsonEx.createGenerator().wrap(out, 0, out.capacity());
-        AvroPipeline pipeline = Avro.stream(Avro.parser(schema)).into(AvroJson.sink(generator));
+        JsonGeneratorEx json = JsonEx.createGenerator();
+        AvroGenerator generator = AvroJson.generator(schema, json).wrap(out, 0, out.capacity());
+        AvroPipeline pipeline = Avro.stream(Avro.parser(schema)).into(AvroSink.of(generator));
         pipeline.reset();
         Status status = pipeline.feed(new UnsafeBuffer(binary), 0, binary.length);
         if (status != Status.COMPLETED)
         {
             throw new AssertionError("avro -> json did not complete: " + status);
         }
-        generator.flush();
-        byte[] json = new byte[generator.length()];
-        out.getBytes(0, json);
-        return new String(json, UTF_8);
+        json.flush();
+        byte[] bytes = new byte[json.length()];
+        out.getBytes(0, bytes);
+        return new String(bytes, UTF_8);
     }
 
     private static byte[] jsonToAvro(

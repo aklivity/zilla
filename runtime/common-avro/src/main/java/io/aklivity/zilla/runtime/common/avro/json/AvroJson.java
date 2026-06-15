@@ -15,7 +15,9 @@
 package io.aklivity.zilla.runtime.common.avro.json;
 
 import io.aklivity.zilla.runtime.common.avro.Avro;
+import io.aklivity.zilla.runtime.common.avro.AvroGenerator;
 import io.aklivity.zilla.runtime.common.avro.AvroKind;
+import io.aklivity.zilla.runtime.common.avro.AvroParser;
 import io.aklivity.zilla.runtime.common.avro.AvroSchema;
 import io.aklivity.zilla.runtime.common.avro.AvroSink;
 import io.aklivity.zilla.runtime.common.avro.AvroStream;
@@ -26,17 +28,18 @@ import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 /**
  * The {@code common-avro} ↔ {@code common-json} bridge: the single place that composes the two
  * self-contained streaming libraries so a datum can cross between Avro binary and JSON without
- * buffering a whole document.
+ * buffering a whole document. It is symmetric, adapting each {@code common-avro} streaming contract over its
+ * {@code common-json} peer so both fit the existing pipeline unchanged:
  * <ul>
- * <li>{@link #stream(AvroSchema, JsonParserEx)} — <b>JSON → Avro</b>: walks the compiled schema in
- * lockstep with the JSON pull events from {@code parser}, presenting them as an {@link AvroStream} whose
- * driver emits the Avro event stream. Terminate with {@link AvroStream#into(AvroSink)} over an
- * {@link AvroSink#of(io.aklivity.zilla.runtime.common.avro.AvroGenerator) Avro generator sink} to write
+ * <li>{@link #parser(AvroSchema, JsonParserEx)} — <b>JSON → Avro</b>: an {@link AvroParser} that drives a
+ * {@link JsonParserEx}, presenting the JSON events and accessors as the Avro event stream. Use it as a cursor
+ * straight into an {@link AvroGenerator}, or via {@link #stream(AvroSchema, JsonParserEx)} terminated with
+ * {@link AvroStream#into(AvroSink)} over an {@link AvroSink#of(AvroGenerator) Avro generator sink} to write
  * Avro binary.</li>
- * <li>{@link #sink(JsonGeneratorEx)} — <b>Avro → JSON</b>: a terminal {@link AvroSink} that materializes
- * each fed Avro event into the corresponding write on {@code generator}, applying the type mapping below.
- * Drive it from an {@link Avro#stream(io.aklivity.zilla.runtime.common.avro.AvroParser) Avro parse
- * pipeline}.</li>
+ * <li>{@link #generator(AvroSchema, JsonGeneratorEx)} — <b>Avro → JSON</b>: an {@link AvroGenerator} that
+ * drives a {@link JsonGeneratorEx}, mapping each positional Avro write onto JSON. Use it behind an
+ * {@link AvroSink#of(AvroGenerator) AvroSink} terminating an
+ * {@link Avro#stream(AvroParser) Avro parse pipeline}.</li>
  * </ul>
  * <p>
  * <b>Type mapping (Avro ↔ JSON).</b> {@code null}/{@code boolean}/{@code int}/{@code long}/{@code float}/
@@ -58,6 +61,19 @@ public final class AvroJson
     }
 
     /**
+     * Returns a schema-bound <b>JSON → Avro</b> {@link AvroParser} that drives {@code parser}, presenting the
+     * JSON pull events and accessors as the Avro event stream. Pass it to {@link Avro#stream(AvroParser)} (or
+     * use {@link #stream(AvroSchema, JsonParserEx)}) to build a pipeline, or drive it as a cursor straight
+     * into an {@link AvroGenerator}. Reuse a single instance per worker thread.
+     */
+    public static AvroParser parser(
+        AvroSchema schema,
+        JsonParserEx parser)
+    {
+        return new AvroJsonParser(schema, parser);
+    }
+
+    /**
      * Begins a <b>JSON → Avro</b> push pipeline driven by {@code parser}: the returned {@link AvroStream}
      * walks {@code schema} in lockstep with the JSON pull events and emits the Avro event stream. Append
      * stages with {@link AvroStream#transform} and terminate with {@link AvroStream#into(AvroSink)}; the
@@ -67,18 +83,20 @@ public final class AvroJson
         AvroSchema schema,
         JsonParserEx parser)
     {
-        return Avro.stream(new AvroJsonParser(schema, parser));
+        return Avro.stream(parser(schema, parser));
     }
 
     /**
-     * Returns a terminal <b>Avro → JSON</b> {@link AvroSink} that materializes each fed Avro event into the
-     * corresponding write on {@code generator}, applying the documented type mapping. The supplied generator
-     * must already be wrapped over its target buffer; reuse a single instance per worker thread.
+     * Returns a schema-bound <b>Avro → JSON</b> {@link AvroGenerator} that maps each positional Avro write
+     * onto {@code generator}, applying the documented type mapping. Wrap it over the target buffer via
+     * {@link AvroGenerator#wrap} (which re-targets {@code generator}), then drive it directly or behind an
+     * {@link AvroSink#of(AvroGenerator) AvroSink}. Reuse a single instance per worker thread.
      */
-    public static AvroSink sink(
+    public static AvroGenerator generator(
+        AvroSchema schema,
         JsonGeneratorEx generator)
     {
-        return new AvroJsonSink(generator);
+        return new AvroJsonGenerator(schema, generator);
     }
 
     /**
