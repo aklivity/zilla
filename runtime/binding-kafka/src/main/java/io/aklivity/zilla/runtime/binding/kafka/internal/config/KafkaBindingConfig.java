@@ -122,6 +122,7 @@ public final class KafkaBindingConfig
                     .mechanism(credentials.mechanism)
                     .username(credentials.username)
                     .password(credentials.password)
+                    .token(credentials.token)
                     .build();
             }
         }

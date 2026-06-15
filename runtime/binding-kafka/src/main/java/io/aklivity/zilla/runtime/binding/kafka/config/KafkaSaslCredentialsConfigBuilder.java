@@ -25,6 +25,7 @@ public final class KafkaSaslCredentialsConfigBuilder<T> extends ConfigBuilder<T,
     private String mechanism;
     private String username;
     private String password;
+    private String token;
 
     KafkaSaslCredentialsConfigBuilder(
         Function<KafkaSaslCredentialsConfig, T> mapper)
@@ -60,9 +61,16 @@ public final class KafkaSaslCredentialsConfigBuilder<T> extends ConfigBuilder<T,
         return this;
     }
 
+    public KafkaSaslCredentialsConfigBuilder<T> token(
+        String token)
+    {
+        this.token = token;
+        return this;
+    }
+
     @Override
     public T build()
     {
-        return mapper.apply(new KafkaSaslCredentialsConfig(mechanism, username, password));
+        return mapper.apply(new KafkaSaslCredentialsConfig(mechanism, username, password, token));
     }
 }

@@ -228,7 +228,7 @@
                                     {
                                         "title": "Mechanism",
                                         "type": "string",
-                                        "enum": [ "plain", "scram-sha-1", "scram-sha-256", "scram-sha-512" ]
+                                        "enum": [ "plain", "scram-sha-1", "scram-sha-256", "scram-sha-512", "oauthbearer" ]
                                     },
                                     "username":
                                     {
@@ -239,9 +239,30 @@
                                     {
                                         "title": "Password",
                                         "type": "string"
+                                    },
+                                    "token":
+                                    {
+                                        "title": "Token",
+                                        "type": "string"
                                     }
                                 },
-                                "required": [ "mechanism", "username", "password" ],
+                                "oneOf":
+                                [
+                                    {
+                                        "properties":
+                                        {
+                                            "mechanism": { "enum": [ "plain", "scram-sha-1", "scram-sha-256", "scram-sha-512" ] }
+                                        },
+                                        "required": [ "mechanism", "username", "password" ]
+                                    },
+                                    {
+                                        "properties":
+                                        {
+                                            "mechanism": { "const": "oauthbearer" }
+                                        },
+                                        "required": [ "mechanism", "token" ]
+                                    }
+                                ],
                                 "additionalProperties": false
                             }
                         },
