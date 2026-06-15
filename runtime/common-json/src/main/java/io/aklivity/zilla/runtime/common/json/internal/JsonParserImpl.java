@@ -129,6 +129,7 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
     // Wraps the next input window of a chunked feed; last == true marks the final window, so its EOF is the
     // terminal delimiter (completing a trailing scalar, rejecting a truncated value) rather than a frame
     // boundary with more bytes to come.
+    @Override
     public JsonParserEx wrap(
         DirectBuffer buffer,
         int offset,
@@ -139,6 +140,7 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
         return wrap(buffer, offset, length);
     }
 
+    @Override
     public long position()
     {
         return tokenizer.streamOffset();
@@ -217,6 +219,7 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
         return currentEvent;
     }
 
+    @Override
     public JsonEvent nextEvent()
     {
         JsonEvent event;
@@ -238,6 +241,7 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
         return event;
     }
 
+    @Override
     public boolean hasNextEvent()
     {
         boolean result;

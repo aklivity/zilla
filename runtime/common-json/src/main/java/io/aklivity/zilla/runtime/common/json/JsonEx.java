@@ -135,7 +135,7 @@ public final class JsonEx
     public static JsonStream stream(
         JsonParserEx parser)
     {
-        return new JsonStreamImpl((JsonParserImpl) parser);
+        return new JsonStreamImpl(parser);
     }
 
     /**

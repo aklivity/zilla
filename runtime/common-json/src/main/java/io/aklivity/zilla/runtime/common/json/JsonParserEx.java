@@ -48,9 +48,23 @@ public interface JsonParserEx extends JsonParser
         int length);
 
     /**
-     * Rewinds the parser to before the first event of a fresh top-level document, clearing all carried parse
-     * state so a single instance can be reused across documents (one per worker thread). Call once per
-     * document before {@link #wrap(DirectBuffer, int, int)}.
+     * Wraps the next input window of a chunked feed; {@code last} marks the final window, so its EOF is the
+     * terminal delimiter (completing a trailing scalar, rejecting a truncated value) rather than a frame
+     * boundary with more bytes to come. The three-argument {@link #wrap(DirectBuffer, int, int)} is the
+     * {@code last == true} shorthand.
+     */
+    JsonParserEx wrap(
+        DirectBuffer buffer,
+        int offset,
+        int length,
+        boolean last);
+
+    /**
+     * Rewinds the parser to before the start of a document, clearing all tokenizer state (parse stack,
+     * scratch, stream offset) so the next {@link #wrap(DirectBuffer, int, int)} begins a fresh top-level
+     * value. A reused instance calls this once per document; it is not called between the windows of a
+     * single document (those continue via {@code wrap}). Distinct from a window swap, which preserves
+     * in-flight state.
      */
     void reset();
 
@@ -63,4 +77,24 @@ public interface JsonParserEx extends JsonParser
      * a value that fits one window; a fragmented value is read via {@code getString()} fragments as before.
      */
     CharSequence getStringView();
+
+    /**
+     * The number of input bytes committed since the document began — always at a whole-token boundary. On
+     * starvation (a window consumed before the value completes) everything at or after this position is the
+     * unconsumed tail the caller retains and re-presents, contiguous, in the next window.
+     */
+    long position();
+
+    /**
+     * Whether another {@link #nextEvent()} is available — {@code true} until the document's
+     * {@link JsonEvent#END_DOCUMENT} has been pulled, {@code false} when the window is consumed mid-document
+     * (more input is needed).
+     */
+    boolean hasNextEvent();
+
+    /**
+     * Advances and returns the next {@link JsonEvent} of the pipeline event stream — a superset of the
+     * standard {@code jakarta.json.stream.JsonParser.Event} adding document framing and segment delivery.
+     */
+    JsonEvent nextEvent();
 }
