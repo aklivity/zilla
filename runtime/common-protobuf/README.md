@@ -288,33 +288,21 @@ unbounded document is buffered. Truncated or overlong varints, lengths that run 
 ## protobuf ↔ JSON
 
 `ProtobufJson` (package `io.aklivity.zilla.runtime.common.protobuf.json`) bridges the wire layer to the
-`common-json` transcoder, applying the proto3 JSON mapping: a message is a JSON object keyed by each field's
-proto3 json name, a `repeated` field a JSON array, a `map` a JSON object, 64-bit and unsigned-64-bit integers
-JSON strings, `bytes` a base64 string, an `enum` its value name (its number when unknown), and `float`/`double`
-JSON numbers (`"NaN"`/`"Infinity"`/`"-Infinity"` as strings). It plugs into the same pipeline machinery from
-either edge.
+`common-json` transcoder by **adapting the wire `ProtobufParser` and `ProtobufGenerator` to a `JsonParserEx`
+and `JsonGeneratorEx`** — so both directions drop into the existing pipeline machinery unchanged, as a pure
+`ProtobufParser` ↔ `ProtobufGenerator` pair or via `Protobuf.stream(...).into(ProtobufSink.of(...))`. It applies
+the proto3 JSON mapping: a message is a JSON object keyed by each field's proto3 json name, a `repeated` field a
+JSON array, a `map` a JSON object, 64-bit and unsigned-64-bit integers JSON strings, `bytes` a base64 string, an
+`enum` its value name (its number when unknown), and `float`/`double` JSON numbers (`"NaN"`/`"Infinity"`/
+`"-Infinity"` as strings).
 
-**protobuf → JSON** — `ProtobufJson.sink(JsonGeneratorEx)` is a terminal `ProtobufSink` that renders the decoded
-event stream as JSON:
-
-```java
-JsonGeneratorEx json = JsonEx.createGenerator().wrap(out, 0, out.capacity());
-ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, "Person"))
-    .into(ProtobufJson.sink(json));
-pipeline.reset();
-if (pipeline.feed(in, off, len) == ProtobufPipeline.Status.COMPLETED)
-{
-    int length = json.length();   // Person rendered as JSON in out
-}
-```
-
-**JSON → protobuf** — `ProtobufJson.stream(JsonParserEx, schema, messageName)` is a `ProtobufStream` pumped by a
-`JsonParserEx`, mapping each JSON value onto its descriptor field so a terminal wire `ProtobufSink` encodes it:
+**JSON → protobuf** — `ProtobufJson.parser(JsonParserEx, schema, messageName)` is a `ProtobufParser` that reads
+JSON and maps each value onto its descriptor field, so a wire `ProtobufGenerator` (or a whole pipeline) encodes it:
 
 ```java
 ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, out.capacity());
-ProtobufPipeline pipeline = ProtobufJson.stream(JsonEx.createParser(), readSchema, "Person")
-    .into(ProtobufSink.of(generator, writeSchema, "Person"));
+ProtobufPipeline pipeline = Protobuf.stream(ProtobufJson.parser(JsonEx.createParser(), schema, "Person"))
+    .into(ProtobufSink.of(generator, schema, "Person"));
 pipeline.reset();
 if (pipeline.feed(jsonIn, off, len) == ProtobufPipeline.Status.COMPLETED)
 {
@@ -322,11 +310,39 @@ if (pipeline.feed(jsonIn, off, len) == ProtobufPipeline.Status.COMPLETED)
 }
 ```
 
-Bounded-buffer contract: a JSON document is parsed as a single, fully-buffered value (the engine delivers the
-reassembled payload), so processing is bounded by the message size and nesting depth; no unbounded document is
-buffered. Malformed JSON, a non-object root, an unknown message, and an unknown enum value are rejected with a
-`ProtobufException` (the pipeline reports `REJECTED`). Unknown JSON fields are ignored and `null` values omitted,
-per the proto3 JSON mapping.
+It streams windowed JSON input the same way the wire parser does — `nextEvent` returns `null` on a partial window
+and `resume` continues with the next — pulling one JSON token at a time with no document buffer (only the bounded
+per-message frame stack). One JSON leaf value must fit a single input window; message structure may split across
+windows at any token boundary.
+
+**protobuf → JSON** — `ProtobufJson.generator(JsonGeneratorEx, schema, messageName)` is a `ProtobufGenerator` that
+renders the wire write calls as JSON, resolving each field by number against the schema:
+
+```java
+ProtobufGenerator json = ProtobufJson.generator(JsonEx.createGenerator(), schema, "Person");
+json.wrap(out, 0, out.capacity());
+ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, "Person"))
+    .into(ProtobufSink.of(json, schema, "Person"));
+pipeline.reset();
+if (pipeline.feed(in, off, len) == ProtobufPipeline.Status.COMPLETED)
+{
+    json.flush();                 // finalize the root object (the protobuf root carries no end event)
+    int length = json.length();   // Person rendered as JSON in out
+}
+```
+
+The root object opens on the first write and is finalized by `flush()`; protobuf input may stream across windows,
+while the JSON output buffer must hold the whole document.
+
+Numbers are formatted into a reused `StringBuilder` and emitted via `writeNumber`/`write`, so the generator side
+adds no per-message allocation (`ProtobufJsonPipelineBM.protobufToJson` measures ≈ 0 B/op). The
+`ProtobufJsonParser` likewise reuses its frame stack and value buffers; its residual allocation
+(`ProtobufJsonPipelineBM.jsonToProtobuf`) is the `common-json` `JsonParserEx` value accessors (`getString` /
+`getLong`), not the adapter.
+
+Bounded-buffer contract: no unbounded document is buffered either way. Malformed JSON, a non-object root, an
+unknown message, and an unknown enum value are rejected with a `ProtobufException` (the pipeline reports
+`REJECTED`). Unknown JSON fields are ignored and `null` values omitted, per the proto3 JSON mapping.
 
 ## Conformance
 

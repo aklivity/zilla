@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.common.protobuf.json;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.function.Consumer;
 
@@ -24,7 +25,6 @@ import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
 
 import io.aklivity.zilla.runtime.common.json.JsonEx;
-import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.protobuf.Protobuf;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufEnum;
@@ -36,6 +36,7 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline.Status;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSchema;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSink;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufType;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
 
 public class ProtobufJsonTest
 {
@@ -105,15 +106,7 @@ public class ProtobufJsonTest
     @Test
     public void shouldRenderNestedRepeatedAndMapsAsJson()
     {
-        byte[] wire = wire(g ->
-        {
-            g.writeString(1, "neo");
-            g.startMessage(2, 16).writeString(1, "Zion").endMessage();
-            g.writeInt32(3, 1).writeInt32(3, 2);
-            g.writeString(4, "a").writeString(4, "b");
-            g.startMessage(5, 16).writeString(1, "k").writeString(2, "v").endMessage();
-            g.startMessage(6, 16).writeString(1, "s").writeInt32(2, 7).endMessage();
-        });
+        byte[] wire = nestedWire();
 
         String json = toJson("Person", wire);
 
@@ -194,6 +187,92 @@ public class ProtobufJsonTest
     }
 
     @Test
+    public void shouldStreamJsonAcrossTinyWindows()
+    {
+        String json = "{" +
+            "\"name\":\"neo\"," +
+            "\"home\":{\"name\":\"Zion\"}," +
+            "\"nums\":[1,2,3]," +
+            "\"props\":{\"k\":\"v\"}" +
+            "}";
+
+        byte[] whole = toProtobuf("Person", json);
+
+        // each JSON leaf value must fit within a window; structure may split between tokens across windows
+        for (int window : new int[]{8, 12, 20, 40})
+        {
+            byte[] streamed = toProtobufWindowed("Person", json, window);
+            assertEquals(toJson("Person", whole), toJson("Person", streamed), "window=" + window);
+        }
+    }
+
+    @Test
+    public void shouldReusePipelineAcrossMessages()
+    {
+        UnsafeBuffer out = new UnsafeBuffer(new byte[4096]);
+        ProtobufGenerator generator = Protobuf.generator();
+        JsonParserEx parser = JsonEx.createParser();
+        ProtobufPipeline pipeline = Protobuf.stream(ProtobufJson.parser(parser, schema, "Person"))
+            .into(ProtobufSink.of(generator, schema, "Person"));
+
+        byte[] first = feedReuse(pipeline, generator, out, "{\"name\":\"neo\",\"nums\":[1]}");
+        byte[] second = feedReuse(pipeline, generator, out, "{\"name\":\"trinity\",\"nums\":[2,3]}");
+
+        assertEquals("{\"name\":\"neo\",\"nums\":[1]}", toJson("Person", first));
+        assertEquals("{\"name\":\"trinity\",\"nums\":[2,3]}", toJson("Person", second));
+    }
+
+    @Test
+    public void shouldRoundTripGroup()
+    {
+        assertEquals("{\"grp\":{\"x\":5}}", roundTrip("Person", "{\"grp\":{\"x\":5}}"));
+    }
+
+    @Test
+    public void shouldRoundTripRepeatedMessage()
+    {
+        assertEquals("{\"labels\":[{\"name\":\"a\"},{\"name\":\"b\"}]}",
+            roundTrip("Person", "{\"labels\":[{\"name\":\"a\"},{\"name\":\"b\"}]}"));
+    }
+
+    @Test
+    public void shouldRoundTripMessageValuedMap()
+    {
+        assertEquals("{\"meta\":{\"k\":{\"name\":\"v\"}}}",
+            roundTrip("Person", "{\"meta\":{\"k\":{\"name\":\"v\"}}}"));
+    }
+
+    @Test
+    public void shouldRoundTripNonFinite()
+    {
+        assertEquals("{\"fl\":\"NaN\",\"db\":\"-Infinity\"}",
+            roundTrip("Scalars", "{\"fl\":\"NaN\",\"db\":\"-Infinity\"}"));
+    }
+
+    @Test
+    public void shouldEncodeNumberFormsAsStrings()
+    {
+        assertEquals("{\"i64\":\"42\",\"u64\":\"7\"}", roundTrip("Scalars", "{\"i64\":42,\"u64\":7}"));
+    }
+
+    @Test
+    public void shouldEncodeEnumNumber()
+    {
+        assertEquals("{\"en\":\"GREEN\"}", roundTrip("Scalars", "{\"en\":1}"));
+    }
+
+    @Test
+    public void shouldRejectUnsupportedGeneratorWrites()
+    {
+        ProtobufGenerator generator = ProtobufJson.generator(JsonEx.createGenerator(), schema, "Person");
+        generator.wrap(new UnsafeBuffer(new byte[64]), 0, 64);
+        UnsafeBuffer any = new UnsafeBuffer(new byte[]{1});
+        assertThrows(RuntimeException.class, () -> generator.writeMessage(1, any, 0, 1));
+        assertThrows(RuntimeException.class, () -> generator.writeRaw(any, 0, 1));
+        assertThrows(RuntimeException.class, () -> generator.writeValue(1, ProtobufWireType.LEN, any, 0, 1));
+    }
+
+    @Test
     public void shouldRejectMalformedJson()
     {
         assertEquals(Status.REJECTED, feedJson("Person", "{\"name\":"));
@@ -229,14 +308,14 @@ public class ProtobufJsonTest
         byte[] wire)
     {
         MutableDirectBuffer out = new UnsafeBuffer(new byte[8192]);
-        JsonGeneratorEx generator = JsonEx.createGenerator();
+        ProtobufGenerator generator = ProtobufJson.generator(JsonEx.createGenerator(), schema, messageName);
         generator.wrap(out, 0, out.capacity());
         ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, messageName))
-            .into(ProtobufJson.sink(generator));
+            .into(ProtobufSink.of(generator, schema, messageName));
         pipeline.reset();
 
-        Status status = pipeline.feed(new UnsafeBuffer(wire), 0, wire.length);
-        assertEquals(Status.COMPLETED, status);
+        assertEquals(Status.COMPLETED, pipeline.feed(new UnsafeBuffer(wire), 0, wire.length));
+        generator.flush();
 
         byte[] bytes = new byte[generator.length()];
         out.getBytes(0, bytes);
@@ -249,15 +328,67 @@ public class ProtobufJsonTest
     {
         MutableDirectBuffer out = new UnsafeBuffer(new byte[8192]);
         ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, out.capacity());
-        JsonParserEx parser = JsonEx.createParser();
-        ProtobufPipeline pipeline = ProtobufJson.stream(parser, schema, messageName)
+        ProtobufPipeline pipeline = Protobuf.stream(ProtobufJson.parser(JsonEx.createParser(), schema, messageName))
             .into(ProtobufSink.of(generator, schema, messageName));
         pipeline.reset();
 
         byte[] in = json.getBytes(UTF_8);
-        Status status = pipeline.feed(new UnsafeBuffer(in), 0, in.length);
-        assertEquals(Status.COMPLETED, status);
+        assertEquals(Status.COMPLETED, pipeline.feed(new UnsafeBuffer(in), 0, in.length));
 
+        byte[] bytes = new byte[generator.length()];
+        out.getBytes(0, bytes);
+        return bytes;
+    }
+
+    private byte[] toProtobufWindowed(
+        String messageName,
+        String json,
+        int window)
+    {
+        MutableDirectBuffer out = new UnsafeBuffer(new byte[8192]);
+        ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, out.capacity());
+        ProtobufPipeline pipeline = Protobuf.stream(ProtobufJson.parser(JsonEx.createParser(), schema, messageName))
+            .into(ProtobufSink.of(generator, schema, messageName));
+        pipeline.reset();
+
+        UnsafeBuffer in = new UnsafeBuffer(json.getBytes(UTF_8));
+        int length = in.capacity();
+        int committed = 0;
+        int offset = 0;
+        Status status = Status.STARVED;
+        boolean done = false;
+        while (!done)
+        {
+            int take = Math.min(window, length - offset);
+            offset += take;
+            boolean last = offset >= length;
+            status = pipeline.feed(in, committed, offset - committed, last);
+            if (status == Status.STARVED)
+            {
+                committed = (int) pipeline.position();
+            }
+            else
+            {
+                done = true;
+            }
+        }
+
+        assertEquals(Status.COMPLETED, status, "window=" + window);
+        byte[] bytes = new byte[generator.length()];
+        out.getBytes(0, bytes);
+        return bytes;
+    }
+
+    private byte[] feedReuse(
+        ProtobufPipeline pipeline,
+        ProtobufGenerator generator,
+        UnsafeBuffer out,
+        String json)
+    {
+        generator.wrap(out, 0, out.capacity());
+        pipeline.reset();
+        byte[] in = json.getBytes(UTF_8);
+        assertEquals(Status.COMPLETED, pipeline.feed(new UnsafeBuffer(in), 0, in.length));
         byte[] bytes = new byte[generator.length()];
         out.getBytes(0, bytes);
         return bytes;
@@ -269,13 +400,24 @@ public class ProtobufJsonTest
     {
         MutableDirectBuffer out = new UnsafeBuffer(new byte[8192]);
         ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, out.capacity());
-        JsonParserEx parser = JsonEx.createParser();
-        ProtobufPipeline pipeline = ProtobufJson.stream(parser, schema, messageName)
+        ProtobufPipeline pipeline = Protobuf.stream(ProtobufJson.parser(JsonEx.createParser(), schema, messageName))
             .into(ProtobufSink.of(generator, schema, messageName));
         pipeline.reset();
-
         byte[] in = json.getBytes(UTF_8);
         return pipeline.feed(new UnsafeBuffer(in), 0, in.length);
+    }
+
+    private byte[] nestedWire()
+    {
+        return wire(g ->
+        {
+            g.writeString(1, "neo");
+            g.startMessage(2, 16).writeString(1, "Zion").endMessage();
+            g.writeInt32(3, 1).writeInt32(3, 2);
+            g.writeString(4, "a").writeString(4, "b");
+            g.startMessage(5, 16).writeString(1, "k").writeString(2, "v").endMessage();
+            g.startMessage(6, 16).writeString(1, "s").writeInt32(2, 7).endMessage();
+        });
     }
 
     private static byte[] wire(
@@ -318,6 +460,15 @@ public class ProtobufJsonTest
             .message(ProtobufMessage.builder("Nested")
                 .field(ProtobufField.builder().number(1).name("name").type(ProtobufType.STRING).build())
                 .build())
+            .message(ProtobufMessage.builder("Grp")
+                .field(ProtobufField.builder().number(1).name("x").type(ProtobufType.INT32).build())
+                .build())
+            .message(ProtobufMessage.builder("MetaEntry")
+                .mapEntry(true)
+                .field(ProtobufField.builder().number(1).name("key").type(ProtobufType.STRING).build())
+                .field(ProtobufField.builder().number(2).name("value").type(ProtobufType.MESSAGE).typeName("Nested")
+                    .build())
+                .build())
             .message(ProtobufMessage.builder("PropsEntry")
                 .mapEntry(true)
                 .field(ProtobufField.builder().number(1).name("key").type(ProtobufType.STRING).build())
@@ -338,6 +489,11 @@ public class ProtobufJsonTest
                     .repeated(true).build())
                 .field(ProtobufField.builder().number(6).name("scores").type(ProtobufType.MESSAGE)
                     .typeName("ScoresEntry").repeated(true).build())
+                .field(ProtobufField.builder().number(7).name("labels").type(ProtobufType.MESSAGE).typeName("Nested")
+                    .repeated(true).build())
+                .field(ProtobufField.builder().number(8).name("grp").type(ProtobufType.GROUP).typeName("Grp").build())
+                .field(ProtobufField.builder().number(9).name("meta").type(ProtobufType.MESSAGE).typeName("MetaEntry")
+                    .repeated(true).build())
                 .build())
             .build();
     }
