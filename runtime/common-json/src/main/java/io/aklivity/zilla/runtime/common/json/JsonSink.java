@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.runtime.common.json;
 
-import io.aklivity.zilla.runtime.common.json.internal.JsonSinkImpl;
-
 /**
  * The consume end of a {@link JsonStream} pipeline. Each {@link #feed(JsonController, JsonSource, JsonEvent)}
  * delivers one event (with {@code source} positioned to read its scalar, or its bytes when the event is
@@ -26,6 +24,12 @@ import io.aklivity.zilla.runtime.common.json.internal.JsonSinkImpl;
  */
 public interface JsonSink
 {
+    /**
+     * Config key (for {@link JsonEx#createSink(JsonGeneratorEx, java.util.Map)}) whose value is the
+     * {@link Delivery} mode the terminal sink requests; absent ⇒ {@link Delivery#STRUCTURED}.
+     */
+    String DELIVERY = "io.aklivity.zilla.runtime.common.json.sink.delivery";
+
     /**
      * Delivery mode a terminal sink requests. {@link #STRUCTURED} consumes structured events and
      * renders output by splicing each value's verbatim token bytes (chunked across bounded output);
@@ -64,27 +68,5 @@ public interface JsonSink
 
     default void reset()
     {
-    }
-
-    /**
-     * A terminal sink that materializes each fed event into the corresponding {@code writeXxx} call on
-     * {@code generator}. The supplied generator must already be wrapped over its target buffer.
-     */
-    static JsonSink of(
-        JsonGeneratorEx generator)
-    {
-        return new JsonSinkImpl(generator);
-    }
-
-    /**
-     * A terminal sink with the given {@link Delivery} mode: {@link Delivery#SEGMENTABLE} opts in to
-     * verbatim segment delivery for kept values; {@link Delivery#STRUCTURED} renders normalized
-     * structured output. The supplied generator must already be wrapped over its target buffer.
-     */
-    static JsonSink of(
-        JsonGeneratorEx generator,
-        Delivery delivery)
-    {
-        return new JsonSinkImpl(generator, delivery);
     }
 }

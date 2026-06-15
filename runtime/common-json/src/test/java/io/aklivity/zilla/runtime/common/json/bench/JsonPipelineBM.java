@@ -18,6 +18,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.util.List;
+import java.util.Map;
 
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -85,9 +86,9 @@ public class JsonPipelineBM
 
     private final MutableDirectBuffer outputBuffer = new UnsafeBuffer(new byte[16 * 1024]);
     private final JsonGeneratorEx generator = JsonEx.createGenerator();
-    private final JsonSink structuredSink = JsonSink.of(generator);
-    private final JsonSink segmentableSink = JsonSink.of(generator, Delivery.SEGMENTABLE);
-    private final JsonSink decodedSink = JsonSink.of(generator, Delivery.DECODED);
+    private final JsonSink structuredSink = JsonEx.createSink(generator);
+    private final JsonSink segmentableSink = JsonEx.createSink(generator, Map.of(JsonSink.DELIVERY, Delivery.SEGMENTABLE));
+    private final JsonSink decodedSink = JsonEx.createSink(generator, Map.of(JsonSink.DELIVERY, Delivery.DECODED));
 
     private JsonPipeline scalarLeavesPipeline;
     private JsonPipeline keptContainerStructuredPipeline;

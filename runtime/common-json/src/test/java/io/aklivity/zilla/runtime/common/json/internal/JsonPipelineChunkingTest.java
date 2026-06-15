@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import jakarta.json.stream.JsonParser;
 
@@ -48,7 +49,7 @@ class JsonPipelineChunkingTest
         JsonGeneratorEx generator = JsonEx.createGenerator();
         MutableDirectBuffer output = new UnsafeBuffer(new byte[128]);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
-            .into(JsonSink.of(generator));
+            .into(JsonEx.createSink(generator));
 
         String json = "[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]";
         assertEquals(json, chunked(pipeline, generator, output, json));
@@ -60,7 +61,7 @@ class JsonPipelineChunkingTest
         JsonGeneratorEx generator = JsonEx.createGenerator();
         MutableDirectBuffer output = new UnsafeBuffer(new byte[128]);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
-            .into(JsonSink.of(generator));
+            .into(JsonEx.createSink(generator));
 
         String json = "{\"k0\":0,\"k1\":1,\"k2\":2,\"k3\":3,\"k4\":4,\"k5\":5,\"k6\":6,\"k7\":7,\"k8\":8,\"k9\":9}";
         assertEquals(json, chunked(pipeline, generator, output, json));
@@ -73,7 +74,7 @@ class JsonPipelineChunkingTest
         MutableDirectBuffer output = new UnsafeBuffer(new byte[128]);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonEx.projector(List.of("")))
-            .into(JsonSink.of(generator));
+            .into(JsonEx.createSink(generator));
 
         String json = "{\"id\":1,\"items\":[10,11,12,13,14,15,16,17,18,19],\"ok\":true}";
         assertEquals(json, chunked(pipeline, generator, output, json));
@@ -86,7 +87,7 @@ class JsonPipelineChunkingTest
         MutableDirectBuffer output = new UnsafeBuffer(new byte[128]);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonSchema.of("{\"type\":\"object\"}").validator())
-            .into(JsonSink.of(generator));
+            .into(JsonEx.createSink(generator));
 
         String json = "{\"k0\":0,\"k1\":1,\"k2\":2,\"k3\":3,\"k4\":4,\"k5\":5,\"k6\":6,\"k7\":7,\"k8\":8,\"k9\":9}";
         assertEquals(json, chunked(pipeline, generator, output, json));
@@ -98,7 +99,7 @@ class JsonPipelineChunkingTest
         JsonGeneratorEx generator = JsonEx.createGenerator();
         MutableDirectBuffer output = new UnsafeBuffer(new byte[256]);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
-            .into(JsonSink.of(generator, JsonSink.Delivery.SEGMENTABLE));
+            .into(JsonEx.createSink(generator, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.SEGMENTABLE)));
         generator.wrap(output, 0, output.capacity());
         pipeline.reset();
 
@@ -130,7 +131,7 @@ class JsonPipelineChunkingTest
         };
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(probe)
-            .into(JsonSink.of(generator, JsonSink.Delivery.SEGMENTABLE));
+            .into(JsonEx.createSink(generator, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.SEGMENTABLE)));
         generator.wrap(output, 0, output.capacity());
         pipeline.reset();
 
@@ -148,7 +149,7 @@ class JsonPipelineChunkingTest
         JsonGeneratorEx generator = JsonEx.createGenerator();
         MutableDirectBuffer output = new UnsafeBuffer(new byte[256]);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
-            .into(JsonSink.of(generator));
+            .into(JsonEx.createSink(generator));
 
         // a single string property value far larger than BOUND, in structured delivery
         String json = "{\"data\":\"" + "x".repeat(96) + "\"}";
@@ -161,7 +162,7 @@ class JsonPipelineChunkingTest
         JsonGeneratorEx generator = JsonEx.createGenerator();
         MutableDirectBuffer output = new UnsafeBuffer(new byte[256]);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
-            .into(JsonSink.of(generator));
+            .into(JsonEx.createSink(generator));
 
         // a single numeric property value far larger than BOUND, in structured delivery
         String json = "{\"data\":" + "1".repeat(96) + "}";
@@ -174,7 +175,7 @@ class JsonPipelineChunkingTest
         JsonGeneratorEx generator = JsonEx.createGenerator();
         MutableDirectBuffer output = new UnsafeBuffer(new byte[256]);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
-            .into(JsonSink.of(generator, JsonSink.Delivery.SEGMENTABLE));
+            .into(JsonEx.createSink(generator, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.SEGMENTABLE)));
 
         // one top-level array whose verbatim form far exceeds BOUND, delivered as a single segment that
         // must be fragmented across many chunks
@@ -190,7 +191,7 @@ class JsonPipelineChunkingTest
         JsonTransform passthrough = (control, source, event, sink) -> sink.feed(control, source, event);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(passthrough)
-            .into(JsonSink.of(generator, JsonSink.Delivery.SEGMENTABLE));
+            .into(JsonEx.createSink(generator, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.SEGMENTABLE)));
 
         // the resume cascade must continue the in-flight fragment through the transform stage
         String json = "[\"aaaaaaaa\",\"bbbbbbbb\",\"cccccccc\",\"dddddddd\",\"eeeeeeee\",\"ffffffff\"]";
@@ -203,7 +204,7 @@ class JsonPipelineChunkingTest
         JsonGeneratorEx generator = JsonEx.createGenerator();
         MutableDirectBuffer output = new UnsafeBuffer(new byte[128]);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
-            .into(JsonSink.of(generator));
+            .into(JsonEx.createSink(generator));
 
         byte[] bytes = "[1,2,3] ".getBytes(UTF_8);
         pipeline.reset();
@@ -243,7 +244,7 @@ class JsonPipelineChunkingTest
         JsonGeneratorEx generator = JsonEx.createGenerator();
         MutableDirectBuffer output = new UnsafeBuffer(new byte[512]);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
-            .into(JsonSink.of(generator, JsonSink.Delivery.DECODED));
+            .into(JsonEx.createSink(generator, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.DECODED)));
         generator.wrap(output, 0, output.capacity());
         pipeline.reset();
 
@@ -315,7 +316,7 @@ class JsonPipelineChunkingTest
         };
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(probe)
-            .into(JsonSink.of(generator, JsonSink.Delivery.DECODED));
+            .into(JsonEx.createSink(generator, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.DECODED)));
         generator.wrap(output, 0, output.capacity());
         pipeline.reset();
 
@@ -350,7 +351,8 @@ class JsonPipelineChunkingTest
     {
         JsonGeneratorEx generator = JsonEx.createGenerator();
         MutableDirectBuffer output = new UnsafeBuffer(new byte[512]);
-        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser()).into(JsonSink.of(generator, delivery));
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+            .into(JsonEx.createSink(generator, Map.of(JsonSink.DELIVERY, delivery)));
         generator.wrap(output, 0, output.capacity());
         pipeline.reset();
 

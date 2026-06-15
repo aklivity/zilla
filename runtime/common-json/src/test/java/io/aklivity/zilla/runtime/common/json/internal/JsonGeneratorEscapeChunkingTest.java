@@ -101,9 +101,9 @@ class JsonGeneratorEscapeChunkingTest
         JsonPipeline pipeline = project
             ? JsonEx.stream(JsonEx.createParser())
                 .transform(JsonEx.projector(List.of("/keep")))
-                .into(JsonSink.of(generator, JsonSink.Delivery.SEGMENTABLE))
+                .into(JsonEx.createSink(generator, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.SEGMENTABLE)))
             : JsonEx.stream(JsonEx.createParser())
-                .into(JsonSink.of(generator, JsonSink.Delivery.SEGMENTABLE));
+                .into(JsonEx.createSink(generator, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.SEGMENTABLE)));
 
         byte[] bytes = (json + " ").getBytes(UTF_8);
         UnsafeBuffer in = new UnsafeBuffer(bytes);
