@@ -65,6 +65,7 @@ scope mcp
         union McpResetEx switch (uint8) extends core::stream::Extension
         {
             case 0: mcp::stream::McpBearerResetEx bearer;
+            case 1: mcp::stream::McpErrorResetEx error;
         }
 
         struct McpResumableFlushEx
@@ -123,6 +124,12 @@ scope mcp
             string16 scopes = null;
             string16 resourceMetadata = null;
             McpBearerError error;
+        }
+
+        struct McpErrorResetEx
+        {
+            int32 code;
+            string16 message = null;
         }
 
         struct McpLifecycleBeginEx

@@ -33,6 +33,9 @@ import io.aklivity.zilla.runtime.engine.util.function.LongObjectPredicate;
 public final class McpHttpRouteConfig
 {
     private static final Pattern ARGS_PATTERN = Pattern.compile("^\\$\\{\\s*args\\.([^}]+?)\\s*\\}$");
+    private static final Pattern EXPRESSION_PATTERN = Pattern.compile("\\$\\{\\s*([^}]+?)\\s*\\}");
+    private static final String ARGS_PREFIX = "args.";
+    private static final String PARAMS_PREFIX = "params.";
 
     public final long id;
     public final String tool;
@@ -40,6 +43,8 @@ public final class McpHttpRouteConfig
     public final McpHttpWithConfig with;
     public final List<String> bodyTemplatePointers;
     public final Map<String, String> bodyTemplateRenames;
+    public final List<String> argAccessors;
+    public final List<String> paramAccessors;
 
     private final LongObjectPredicate<UnaryOperator<String>> authorized;
 
@@ -84,6 +89,22 @@ public final class McpHttpRouteConfig
             this.bodyTemplatePointers = null;
             this.bodyTemplateRenames = null;
         }
+
+        final List<String> args = new ArrayList<>();
+        final List<String> params = new ArrayList<>();
+        if (with != null)
+        {
+            if (with.headers != null)
+            {
+                with.headers.values().forEach(value -> collectAccessors(value, args, params));
+            }
+            if (bodyTemplate != null)
+            {
+                bodyTemplate.values().forEach(value -> collectAccessors(value, args, params));
+            }
+        }
+        this.argAccessors = args;
+        this.paramAccessors = params;
     }
 
     boolean authorized(
@@ -102,6 +123,37 @@ public final class McpHttpRouteConfig
         String name)
     {
         return resource != null && resource.equals(name);
+    }
+
+    private static void collectAccessors(
+        String template,
+        List<String> args,
+        List<String> params)
+    {
+        if (template != null && template.contains("${"))
+        {
+            final Matcher matcher = EXPRESSION_PATTERN.matcher(template);
+            while (matcher.find())
+            {
+                final String expression = matcher.group(1);
+                if (expression.startsWith(ARGS_PREFIX))
+                {
+                    final String accessor = expression.substring(ARGS_PREFIX.length());
+                    if (!args.contains(accessor))
+                    {
+                        args.add(accessor);
+                    }
+                }
+                else if (expression.startsWith(PARAMS_PREFIX))
+                {
+                    final String accessor = expression.substring(PARAMS_PREFIX.length());
+                    if (!params.contains(accessor))
+                    {
+                        params.add(accessor);
+                    }
+                }
+            }
+        }
     }
 
     private static String pointer(

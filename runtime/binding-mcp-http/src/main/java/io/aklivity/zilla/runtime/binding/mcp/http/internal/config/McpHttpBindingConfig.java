@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.mcp.http.internal.config;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 
+import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.IdentityHashMap;
@@ -27,6 +28,12 @@ import java.util.Optional;
 import java.util.function.ToLongFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import jakarta.json.Json;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonReader;
+import jakarta.json.JsonStructure;
+import jakarta.json.JsonValue;
 
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpAuthorizationConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpOptionsConfig;
@@ -58,7 +65,9 @@ public final class McpHttpBindingConfig
     private final Map<String, McpHttpResourceConfig> resourcesByName;
     private final Map<String, McpHttpPromptConfig> promptsByName;
     private final List<ResourceMatcher> resourceMatchers;
+    private final Map<String, List<String>> resourceCaptures;
     private final Map<ModelConfig, JsonSchema> jsonSchemas;
+    private final Map<McpHttpRouteConfig, List<String>> unsatisfiedAccessors;
 
     public McpHttpBindingConfig(
         BindingConfig binding,
@@ -107,6 +116,13 @@ public final class McpHttpBindingConfig
             .map(ResourceMatcher::new)
             .collect(toList());
 
+        this.resourceCaptures = resourceMatchers.stream()
+            .collect(toMap(
+                matcher -> matcher.resource.name,
+                matcher -> List.copyOf(matcher.paramNames),
+                (existing, replacement) -> existing,
+                LinkedHashMap::new));
+
         GuardHandler guard = null;
         if (options != null && options.authorization != null)
         {
@@ -116,6 +132,7 @@ public final class McpHttpBindingConfig
         this.guard = guard;
 
         this.jsonSchemas = new IdentityHashMap<>();
+        this.unsatisfiedAccessors = new IdentityHashMap<>();
     }
 
     public McpHttpRouteConfig resolveTool(
@@ -261,6 +278,122 @@ public final class McpHttpBindingConfig
             }
         }
         return text;
+    }
+
+    public List<String> unsatisfiedAccessors(
+        McpHttpRouteConfig route)
+    {
+        List<String> verdict = unsatisfiedAccessors.get(route);
+        if (verdict == null)
+        {
+            final List<String> unsatisfied = new ArrayList<>();
+            boolean deferred = false;
+
+            if (route.tool != null && !route.argAccessors.isEmpty())
+            {
+                final McpHttpToolConfig tool = toolsByName.get(route.tool);
+                final ModelConfig input = tool != null ? tool.input : null;
+                final String text = input != null ? schemaText(input) : null;
+                if (input != null && (text == null || text.isBlank()))
+                {
+                    deferred = true;
+                }
+                else if (text != null)
+                {
+                    for (String accessor : route.argAccessors)
+                    {
+                        if (!argPathValid(text, accessor))
+                        {
+                            unsatisfied.add("args." + accessor);
+                        }
+                    }
+                }
+            }
+
+            if (!route.paramAccessors.isEmpty())
+            {
+                final List<String> captures = resourceCaptures.getOrDefault(route.resource, List.of());
+                for (String accessor : route.paramAccessors)
+                {
+                    if (!captures.contains(accessor))
+                    {
+                        unsatisfied.add("params." + accessor);
+                    }
+                }
+            }
+
+            verdict = unsatisfied;
+            if (!deferred)
+            {
+                unsatisfiedAccessors.put(route, verdict);
+            }
+        }
+        return verdict;
+    }
+
+    static boolean argPathValid(
+        String schemaText,
+        String dottedPath)
+    {
+        boolean valid = true;
+        if (schemaText != null && !schemaText.isBlank())
+        {
+            try (JsonReader reader = Json.createReader(new StringReader(schemaText)))
+            {
+                final JsonStructure structure = reader.read();
+                if (structure.getValueType() == JsonValue.ValueType.OBJECT)
+                {
+                    valid = pathExists(structure.asJsonObject(), dottedPath.split("\\."), 0);
+                }
+            }
+            catch (Exception ex)
+            {
+                valid = true;
+            }
+        }
+        return valid;
+    }
+
+    private static boolean pathExists(
+        JsonObject node,
+        String[] segments,
+        int index)
+    {
+        boolean exists;
+        final JsonValue additional = node.get("additionalProperties");
+        final boolean openAdditional = additional != null &&
+            (additional.getValueType() == JsonValue.ValueType.TRUE ||
+             additional.getValueType() == JsonValue.ValueType.OBJECT);
+        if (index >= segments.length)
+        {
+            exists = true;
+        }
+        else if (node.containsKey("$ref") || node.containsKey("allOf") || node.containsKey("anyOf") ||
+            node.containsKey("oneOf") || node.containsKey("patternProperties") || node.containsKey("items") ||
+            openAdditional)
+        {
+            exists = true;
+        }
+        else if (node.containsKey("properties") &&
+            node.get("properties").getValueType() == JsonValue.ValueType.OBJECT)
+        {
+            final JsonObject properties = node.getJsonObject("properties");
+            final String segment = segments[index];
+            if (properties.containsKey(segment) &&
+                properties.get(segment).getValueType() == JsonValue.ValueType.OBJECT)
+            {
+                exists = pathExists(properties.getJsonObject(segment), segments, index + 1);
+            }
+            else
+            {
+                exists = properties.containsKey(segment);
+            }
+        }
+        else
+        {
+            exists = true;
+        }
+        return exists;
     }
 
     private static final class ResourceMatcher
