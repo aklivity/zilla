@@ -426,7 +426,8 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
         {
             throw new IllegalStateException("number spans multiple windows; use getBigDecimal()");
         }
-        return Integer.parseInt(tokenizer.stringValue());
+        final CharSequence lexeme = tokenizer.stringView();
+        return Integer.parseInt(lexeme, 0, lexeme.length(), 10);
     }
 
     @Override
@@ -436,7 +437,8 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
         {
             throw new IllegalStateException("number spans multiple windows; use getBigDecimal()");
         }
-        return Long.parseLong(tokenizer.stringValue());
+        final CharSequence lexeme = tokenizer.stringView();
+        return Long.parseLong(lexeme, 0, lexeme.length(), 10);
     }
 
     @Override

@@ -259,6 +259,50 @@ class JsonParserTest
     }
 
     @Test
+    void shouldGetIntBoundariesWithoutMaterializingString()
+    {
+        JsonParser parser = parserFor("[0,-1,2147483647,-2147483648]");
+
+        assertEquals(START_ARRAY, parser.next());
+        assertEquals(VALUE_NUMBER, parser.next());
+        assertEquals(0, parser.getInt());
+        assertEquals(VALUE_NUMBER, parser.next());
+        assertEquals(-1, parser.getInt());
+        assertEquals(VALUE_NUMBER, parser.next());
+        assertEquals(Integer.MAX_VALUE, parser.getInt());
+        assertEquals(VALUE_NUMBER, parser.next());
+        assertEquals(Integer.MIN_VALUE, parser.getInt());
+        assertEquals(END_ARRAY, parser.next());
+    }
+
+    @Test
+    void shouldGetLongBoundariesWithoutMaterializingString()
+    {
+        JsonParser parser = parserFor("[0,-1,9223372036854775807,-9223372036854775808]");
+
+        assertEquals(START_ARRAY, parser.next());
+        assertEquals(VALUE_NUMBER, parser.next());
+        assertEquals(0L, parser.getLong());
+        assertEquals(VALUE_NUMBER, parser.next());
+        assertEquals(-1L, parser.getLong());
+        assertEquals(VALUE_NUMBER, parser.next());
+        assertEquals(Long.MAX_VALUE, parser.getLong());
+        assertEquals(VALUE_NUMBER, parser.next());
+        assertEquals(Long.MIN_VALUE, parser.getLong());
+        assertEquals(END_ARRAY, parser.next());
+    }
+
+    @Test
+    void shouldRejectGetIntOnNonIntegralNumber()
+    {
+        JsonParser parser = parserFor("[3.14]");
+
+        assertEquals(START_ARRAY, parser.next());
+        assertEquals(VALUE_NUMBER, parser.next());
+        assertThrows(NumberFormatException.class, parser::getInt);
+    }
+
+    @Test
     void shouldDecodeTwoByteUtf8()
     {
         byte[] bytes = {'"', (byte) 0xC3, (byte) 0xA9, '"'};
