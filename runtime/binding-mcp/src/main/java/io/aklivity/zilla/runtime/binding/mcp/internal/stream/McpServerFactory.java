@@ -67,6 +67,7 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpChallengeE
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpElicitAction;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpElicitCompleteFlushExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpElicitCreateChallengeExFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpErrorResetExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpFlushExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpProgressFlushExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpResetExFW;
@@ -1754,6 +1755,31 @@ public final class McpServerFactory implements McpStreamFactory
             return rejected;
         }
 
+        private boolean doNetRejectError(
+            long traceId,
+            long authorization,
+            OctetsFW extension,
+            String id)
+        {
+            boolean rejected = false;
+            final McpResetExFW resetEx = extension == null
+                ? null
+                : extension.get(mcpResetExRO::tryWrap);
+            if (resetEx != null && resetEx.kind() == McpResetExFW.KIND_ERROR && !McpState.replyOpening(state))
+            {
+                final McpErrorResetExFW error = resetEx.error();
+                doEncodeResponseError(traceId, authorization, httpBeginExRW
+                    .wrap(codecBuffer, 0, codecBuffer.capacity())
+                    .typeId(httpTypeId)
+                    .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(STATUS_200))
+                    .inject(this::injectAltSvc)
+                    .build(),
+                    id, error.code(), error.message().asString());
+                rejected = true;
+            }
+            return rejected;
+        }
+
         private void doNetData(
             long traceId,
             long authorization,
@@ -2542,12 +2568,23 @@ public final class McpServerFactory implements McpStreamFactory
             int code,
             String message)
         {
+            doEncodeResponseError(traceId, authorization, extension, decodedId, code, message);
+        }
+
+        private void doEncodeResponseError(
+            long traceId,
+            long authorization,
+            Flyweight extension,
+            String id,
+            int code,
+            String message)
+        {
             doNetBegin(traceId, authorization, extension);
 
             final int codecLimit = codecBuffer.putStringWithoutLengthAscii(0,
                 """
                 {"jsonrpc":"2.0","id":%s,"error":{"code":%d,"message":"%s"}
-                """.formatted(decodedId, code, message));
+                """.formatted(id, code, message));
             doNetData(traceId, authorization, codecBuffer, 0, codecLimit);
             doNetEnd(traceId, authorization);
         }
@@ -5125,7 +5162,8 @@ public final class McpServerFactory implements McpStreamFactory
             final long authorization = reset.authorization();
             final OctetsFW extension = reset.extension();
 
-            if (!server.doNetRejectBearer(traceId, authorization, extension))
+            if (!server.doNetRejectError(traceId, authorization, extension, requestId) &&
+                !server.doNetRejectBearer(traceId, authorization, extension))
             {
                 server.doNetReset(traceId, authorization);
             }
