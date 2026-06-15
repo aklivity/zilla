@@ -970,6 +970,12 @@ public final class JsonSchemaImpl implements JsonSchema
         }
 
         @Override
+        public CharSequence getStringView()
+        {
+            return parser.getString();
+        }
+
+        @Override
         public BigDecimal getBigDecimal()
         {
             return parser.getBigDecimal();
@@ -979,6 +985,18 @@ public final class JsonSchemaImpl implements JsonSchema
         public boolean isIntegralNumber()
         {
             return parser.isIntegralNumber();
+        }
+
+        @Override
+        public int getInt()
+        {
+            return parser.getInt();
+        }
+
+        @Override
+        public long getLong()
+        {
+            return parser.getLong();
         }
 
         @Override
@@ -1449,6 +1467,12 @@ public final class JsonSchemaImpl implements JsonSchema
         }
 
         @Override
+        public CharSequence getStringView()
+        {
+            return token.text;
+        }
+
+        @Override
         public boolean isIntegralNumber()
         {
             return !token.text.contains(".") && !token.text.contains("e") && !token.text.contains("E");
@@ -1458,6 +1482,18 @@ public final class JsonSchemaImpl implements JsonSchema
         public BigDecimal getBigDecimal()
         {
             return new BigDecimal(token.text);
+        }
+
+        @Override
+        public int getInt()
+        {
+            return Integer.parseInt(token.text);
+        }
+
+        @Override
+        public long getLong()
+        {
+            return Long.parseLong(token.text);
         }
 
         @Override

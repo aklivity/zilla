@@ -30,12 +30,31 @@ public interface JsonSource
 {
     String getString();
 
+    /**
+     * Non-owning, on-stack char view of the current scalar value (a number lexeme or a decoded string),
+     * valid only for the duration of the current event. The allocation-free counterpart to
+     * {@link #getString()} for stages that read or re-emit the value without retaining it.
+     */
+    CharSequence getStringView();
+
     // valid only on a key event; non-owning, on-stack char view of the current key
     CharSequence getKey();
 
     BigDecimal getBigDecimal();
 
     boolean isIntegralNumber();
+
+    /**
+     * The current number as an {@code int}. Valid only on an integral number that fits one window;
+     * a fragmented number throws (read it via {@link #getBigDecimal()} instead).
+     */
+    int getInt();
+
+    /**
+     * The current number as a {@code long}. Valid only on an integral number that fits one window;
+     * a fragmented number throws (read it via {@link #getBigDecimal()} instead).
+     */
+    long getLong();
 
     JsonLocation getLocation();
 
