@@ -293,6 +293,15 @@ public class McpHttpProxyIT
     }
 
     @Test
+    @Configuration("proxy.unresolved.event.yaml")
+    @Specification({
+        "${mcp}/create.pr.unresolved/client"})
+    public void shouldEmitSchemaAccessorUnresolvedEvent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.yaml")
     @Specification({
         "${mcp}/create.pr.malformed/client",

@@ -47,7 +47,7 @@ public final class McpHttpEventFormatter implements EventFormatterSpi
         case SCHEMA_ACCESSOR_UNRESOLVED:
         {
             final McpHttpSchemaAccessorUnresolvedExFW ex = extension.schemaAccessorUnresolved();
-            result = String.format("Expression \"${%s}\" is unresolved against the schema for \"%s\".",
+            result = String.format("Expression \"%s\" is unresolved against the schema for \"%s\".",
                 ex.accessor().asString(), ex.name().asString());
             break;
         }
