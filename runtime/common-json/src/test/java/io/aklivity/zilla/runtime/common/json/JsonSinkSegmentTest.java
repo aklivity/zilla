@@ -17,6 +17,8 @@ package io.aklivity.zilla.runtime.common.json;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.util.Map;
+
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
@@ -58,7 +60,7 @@ class JsonSinkSegmentTest
         gen.wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(segmentRoot)
-            .into(JsonSink.of(gen));
+            .into(JsonEx.createSink(gen));
 
         byte[] bytes = "{ \"a\" : 1 } ".getBytes(UTF_8);
         pipeline.reset();
@@ -77,7 +79,7 @@ class JsonSinkSegmentTest
         MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
         gen.wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
-            .into(JsonSink.of(gen, JsonSink.Delivery.SEGMENTABLE));
+            .into(JsonEx.createSink(gen, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.SEGMENTABLE)));
 
         byte[] bytes = "{ \"a\" : [1, 2], \"b\" : 3 } ".getBytes(UTF_8);
         pipeline.reset();
@@ -97,7 +99,7 @@ class JsonSinkSegmentTest
         gen.wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(segmentRoot)
-            .into(JsonSink.of(gen));
+            .into(JsonEx.createSink(gen));
 
         byte[] bytes = "[ 1, 2 ] ".getBytes(UTF_8);
         pipeline.reset();
@@ -117,7 +119,7 @@ class JsonSinkSegmentTest
         gen.wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(segmentRoot)
-            .into(JsonSink.of(gen));
+            .into(JsonEx.createSink(gen));
 
         byte[] bytes = "{ \"x\" : [1 ,2] } ".getBytes(UTF_8);
         pipeline.reset();
@@ -137,7 +139,7 @@ class JsonSinkSegmentTest
         gen.wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(segmentRoot)
-            .into(JsonSink.of(gen));
+            .into(JsonEx.createSink(gen));
 
         byte[] first = "{\"a\":1,".getBytes(UTF_8);
         byte[] second = "\"b\":2} ".getBytes(UTF_8);
@@ -150,5 +152,15 @@ class JsonSinkSegmentTest
         byte[] out = new byte[gen.length()];
         buffer.getBytes(0, out);
         assertEquals("{\"a\":1,\"b\":2}", new String(out, UTF_8));
+    }
+
+    @Test
+    void shouldUseDefaultResumeAndResetForForwardingSink()
+    {
+        // a stage that only forwards events relies on the JsonSink default resume/reset:
+        // reset is a no-op and resume reports nothing pending
+        JsonSink sink = (control, source, event) -> Status.ADVANCED;
+        sink.reset();
+        assertEquals(Status.ADVANCED, sink.resume(null, null));
     }
 }

@@ -26,7 +26,6 @@ import org.junit.jupiter.api.Test;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
-import io.aklivity.zilla.runtime.common.json.JsonSink;
 
 class JsonSchemaPathsTest
 {
@@ -114,7 +113,7 @@ class JsonSchemaPathsTest
                 "{\"type\":\"object\",\"properties\":{" +
                 "\"items\":{\"type\":\"array\",\"items\":{\"type\":\"object\"," +
                 "\"properties\":{\"id\":{\"type\":\"integer\"}}}}}}")))
-            .into(JsonSink.of(gen));
+            .into(JsonEx.createSink(gen));
         pipeline.reset();
         byte[] bytes = "{\"items\":[{\"id\":1,\"x\":9},{\"id\":2}],\"k\":0} ".getBytes(UTF_8);
         pipeline.feed(new UnsafeBuffer(bytes), 0, bytes.length);

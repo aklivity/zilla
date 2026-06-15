@@ -19,6 +19,7 @@ import org.agrona.DirectBuffer;
 import io.aklivity.zilla.runtime.common.json.JsonController;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
+import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx.Completion;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonSink.Delivery;
@@ -87,15 +88,24 @@ public final class JsonSinkImpl implements JsonSink
         case VALUE_STRING:
         case VALUE_NUMBER:
         case SEGMENT:
-            // splice the kept leaf's raw token bytes verbatim, fragmenting across chunks; the value's
-            // leading separator is emitted once, before its first content byte
-            segment = source.getSegment();
-            if (!valueStarted)
+            if (delivery == Delivery.DECODED && event != JsonEvent.SEGMENT)
             {
-                generator.writeRaw(segment, 0, 0);
-                valueStarted = true;
+                // render from the decoded value; the generator owns quoting/escaping and joins
+                // fragments (deferredBytes) into one string, so the sink does no concatenation
+                status = writeDecoded(source, event);
             }
-            status = writeChunk(segment, source);
+            else
+            {
+                // splice the kept leaf's raw token bytes verbatim, fragmenting across chunks; the value's
+                // leading separator is emitted once, before its first content byte
+                segment = source.getSegment();
+                if (!valueStarted)
+                {
+                    generator.writeRaw(segment, 0, 0);
+                    valueStarted = true;
+                }
+                status = writeChunk(segment, source);
+            }
             break;
         case VALUE_TRUE:
             generator.write(true);
@@ -141,6 +151,23 @@ public final class JsonSinkImpl implements JsonSink
         valueStarted = false;
         pendingSegment = false;
         generator.reset();
+    }
+
+    private Status writeDecoded(
+        JsonSource source,
+        JsonEvent event)
+    {
+        final boolean deferred = source.deferredBytes();
+        final Completion completion = deferred ? Completion.INCOMPLETE : Completion.COMPLETE;
+        if (event == JsonEvent.VALUE_NUMBER)
+        {
+            generator.writeNumber(source.getString(), completion);
+        }
+        else
+        {
+            generator.write(source.getString(), completion);
+        }
+        return deferred ? Status.ADVANCED : scalarStatus();
     }
 
     private Status writeChunk(

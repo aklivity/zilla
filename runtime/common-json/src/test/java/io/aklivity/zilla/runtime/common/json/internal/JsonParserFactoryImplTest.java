@@ -23,7 +23,6 @@ import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.StringReader;
-import java.util.List;
 import java.util.Map;
 
 import jakarta.json.JsonArray;
@@ -35,16 +34,13 @@ import jakarta.json.stream.JsonParserFactory;
 import org.junit.jupiter.api.Test;
 
 import io.aklivity.zilla.runtime.common.json.JsonEx;
-import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 
 public class JsonParserFactoryImplTest
 {
     @Test
     public void shouldCreateParserForInputStreamWithSharedConfig()
     {
-        final Map<String, Object> config = Map.of(
-            JsonParserEx.PATH_INCLUDES, List.of("/jsonrpc"),
-            JsonParserEx.TOKEN_MAX_BYTES, 1024);
+        final Map<String, Object> config = Map.of();
         final JsonParserFactory factory = JsonEx.createParserFactory(config);
 
         final InputStream in1 = new BufferedInputStream(
@@ -66,8 +62,7 @@ public class JsonParserFactoryImplTest
     @Test
     public void shouldExposeConfigInUse()
     {
-        final Map<String, Object> config = Map.of(
-            JsonParserEx.PATH_INCLUDES, List.of("/jsonrpc"));
+        final Map<String, Object> config = Map.of("io.aklivity.zilla.example", 1);
         final JsonParserFactory factory = JsonEx.createParserFactory(config);
         assertSame(config, factory.getConfigInUse());
     }

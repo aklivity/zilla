@@ -18,7 +18,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.util.AbstractMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Spliterator;
 import java.util.Spliterators;
@@ -87,10 +86,7 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
     {
         this.ownedInput = new DirectBufferInputStreamEx();
         this.in = ownedInput;
-        this.tokenizer = new JsonTokenizer(
-            pathList(config, JsonParserEx.PATH_INCLUDES),
-            pathList(config, JsonParserEx.PATH_EXCLUDES),
-            tokenMaxBytes(config));
+        this.tokenizer = new JsonTokenizer();
         this.location = new JsonLocationImpl(tokenizer);
     }
 
@@ -113,9 +109,6 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
         // A DirectBufferInputStreamEx is a resumable frame source whose EOF is a frame boundary;
         // any other stream is one-shot, so its EOF is the terminal delimiter for a trailing number.
         this.tokenizer = new JsonTokenizer(
-            pathList(config, JsonParserEx.PATH_INCLUDES),
-            pathList(config, JsonParserEx.PATH_EXCLUDES),
-            tokenMaxBytes(config),
             !(in instanceof DirectBufferInputStreamEx));
         this.location = new JsonLocationImpl(tokenizer);
     }
@@ -127,6 +120,7 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
         int length)
     {
         frameBaseStreamOffset = tokenizer.streamOffset();
+        tokenizer.window(length);
         ownedInput.wrap(buffer, offset, length);
         return this;
     }
@@ -142,6 +136,11 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
     {
         tokenizer.terminal(last);
         return wrap(buffer, offset, length);
+    }
+
+    public long position()
+    {
+        return tokenizer.streamOffset();
     }
 
     void reset()
@@ -366,19 +365,13 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
     @Override
     public boolean deferredBytes()
     {
-        return segmentState == SegmentState.SCANNING;
+        return segmentState == SegmentState.SCANNING || tokenizer.fragmenting();
     }
 
     @Override
     public String getString()
     {
-        final String value = tokenizer.stringValue();
-        if (value == null && !tokenizer.valueReadable())
-        {
-            throw new IllegalStateException("value not readable; configure path via " +
-                "JsonParserEx.PATH_INCLUDES (or remove from PATH_EXCLUDES)");
-        }
-        return value;
+        return tokenizer.stringValue();
     }
 
     @Override
@@ -390,38 +383,51 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
     @Override
     public boolean isIntegralNumber()
     {
-        String v = tokenizer.stringValue();
+        final CharSequence v = numberLexeme();
         if (v == null)
         {
             throw new IllegalStateException("Not a number");
         }
-        for (int i = 0; i < v.length(); i++)
+        boolean integral = true;
+        for (int i = 0; integral && i < v.length(); i++)
         {
-            char c = v.charAt(i);
-            if (c == '.' || c == 'e' || c == 'E')
-            {
-                return false;
-            }
+            final char c = v.charAt(i);
+            integral = c != '.' && c != 'e' && c != 'E';
         }
-        return true;
+        return integral;
     }
 
     @Override
     public int getInt()
     {
+        if (tokenizer.numberFragmented())
+        {
+            throw new IllegalStateException("number spans multiple windows; use getBigDecimal()");
+        }
         return Integer.parseInt(tokenizer.stringValue());
     }
 
     @Override
     public long getLong()
     {
+        if (tokenizer.numberFragmented())
+        {
+            throw new IllegalStateException("number spans multiple windows; use getBigDecimal()");
+        }
         return Long.parseLong(tokenizer.stringValue());
     }
 
     @Override
     public BigDecimal getBigDecimal()
     {
-        return new BigDecimal(tokenizer.stringValue());
+        return new BigDecimal(numberLexeme().toString());
+    }
+
+    // The current number's full lexeme: a fragmented number's is accumulated in the tokenizer across
+    // its fragments; an unfragmented one is the current scratch value.
+    private CharSequence numberLexeme()
+    {
+        return tokenizer.numberFragmented() ? tokenizer.numberLexeme() : tokenizer.stringValue();
     }
 
     @Override
@@ -631,18 +637,4 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
         }
     }
 
-    @SuppressWarnings("unchecked")
-    private static List<String> pathList(
-        Map<String, ?> config,
-        String key)
-    {
-        return (List<String>) config.get(key);
-    }
-
-    private static int tokenMaxBytes(
-        Map<String, ?> config)
-    {
-        final Object raw = config.get(JsonParserEx.TOKEN_MAX_BYTES);
-        return raw == null ? Integer.MAX_VALUE : ((Number) raw).intValue();
-    }
 }

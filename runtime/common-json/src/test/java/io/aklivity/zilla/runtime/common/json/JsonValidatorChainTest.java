@@ -46,7 +46,7 @@ class JsonValidatorChainTest
         JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(schema.validator())
-            .into(JsonSink.of(gen));
+            .into(JsonEx.createSink(gen));
 
         Status status = run(pipeline, "{\"id\":1,\"name\":\"x\"} ");
 
@@ -62,7 +62,7 @@ class JsonValidatorChainTest
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(schema.validator())
             .transform(JsonEx.projector(List.of("/id")))
-            .into(JsonSink.of(gen));
+            .into(JsonEx.createSink(gen));
 
         Status status = run(pipeline, "{\"id\":1,\"name\":\"x\"} ");
 
@@ -78,7 +78,7 @@ class JsonValidatorChainTest
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(schema.validator())
             .transform(JsonEx.projector(List.of("/id")))
-            .into(JsonSink.of(gen));
+            .into(JsonEx.createSink(gen));
 
         Status status = run(pipeline, "{\"id\":1} ");
 
@@ -93,7 +93,7 @@ class JsonValidatorChainTest
         JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(schema.validator())
-            .into(JsonSink.of(gen));
+            .into(JsonEx.createSink(gen));
 
         Status status = run(pipeline, "{\"id\":\"x\",\"name\":\"y\"} ");
 
@@ -107,7 +107,7 @@ class JsonValidatorChainTest
         JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(schema.validator())
-            .into(JsonSink.of(gen));
+            .into(JsonEx.createSink(gen));
 
         byte[] bytes = "{\"id\":1,\"name\":\"x\"} ".getBytes(UTF_8);
         UnsafeBuffer in = new UnsafeBuffer(bytes);
@@ -127,7 +127,7 @@ class JsonValidatorChainTest
         JsonGeneratorEx gen = JsonEx.createGenerator();
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(schema.validator())
-            .into(JsonSink.of(gen));
+            .into(JsonEx.createSink(gen));
 
         gen.wrap(buffer, 0, buffer.capacity());
         assertEquals(Status.COMPLETED, run(pipeline, "{\"id\":1,\"name\":\"a\"} "));
@@ -144,7 +144,7 @@ class JsonValidatorChainTest
         JsonTransform passthrough = (control, source, event, sink) -> sink.feed(control, source, event);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(passthrough)
-            .into(JsonSink.of(gen));
+            .into(JsonEx.createSink(gen));
 
         Status status = run(pipeline, "{\"id\":1} ");
 

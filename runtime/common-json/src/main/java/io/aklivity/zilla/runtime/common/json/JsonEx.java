@@ -24,6 +24,7 @@ import io.aklivity.zilla.runtime.common.json.internal.JsonGeneratorImpl;
 import io.aklivity.zilla.runtime.common.json.internal.JsonParserFactoryImpl;
 import io.aklivity.zilla.runtime.common.json.internal.JsonParserImpl;
 import io.aklivity.zilla.runtime.common.json.internal.JsonProjectorImpl;
+import io.aklivity.zilla.runtime.common.json.internal.JsonSinkImpl;
 import io.aklivity.zilla.runtime.common.json.internal.JsonStreamImpl;
 
 /**
@@ -58,9 +59,8 @@ public final class JsonEx
     }
 
     /**
-     * Variant of {@link #createParser()} taking parser config (e.g. {@link JsonParserEx#PATH_INCLUDES},
-     * {@link JsonParserEx#TOKEN_MAX_BYTES}); the returned parser starts empty and is fed via {@link
-     * JsonParserEx#wrap(org.agrona.DirectBuffer, int, int)}.
+     * Variant of {@link #createParser()} taking parser config; the returned parser starts empty and is
+     * fed via {@link JsonParserEx#wrap(org.agrona.DirectBuffer, int, int)}.
      */
     public static JsonParserEx createParser(
         Map<String, ?> config)
@@ -100,6 +100,30 @@ public final class JsonEx
         Map<String, ?> config)
     {
         return new JsonGeneratorImpl(config);
+    }
+
+    /**
+     * Returns a terminal {@link JsonSink} that materializes each fed event into the corresponding
+     * {@code writeXxx} call on {@code generator} (structured delivery). The supplied generator must
+     * already be wrapped over its target buffer; reuse a single instance per worker thread.
+     */
+    public static JsonSink createSink(
+        JsonGeneratorEx generator)
+    {
+        return new JsonSinkImpl(generator);
+    }
+
+    /**
+     * Variant of {@link #createSink(JsonGeneratorEx)} taking sink config; the {@link JsonSink#DELIVERY}
+     * key selects the {@link JsonSink.Delivery} mode (absent ⇒ {@link JsonSink.Delivery#STRUCTURED}).
+     */
+    public static JsonSink createSink(
+        JsonGeneratorEx generator,
+        Map<String, ?> config)
+    {
+        final Object delivery = config.get(JsonSink.DELIVERY);
+        return new JsonSinkImpl(generator,
+            delivery instanceof JsonSink.Delivery mode ? mode : JsonSink.Delivery.STRUCTURED);
     }
 
     /**

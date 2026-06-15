@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
 
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 import java.util.function.LongFunction;
 
 import org.agrona.DirectBuffer;
@@ -31,8 +30,6 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 
 final class McpProxyToolsListFactory extends McpProxyListFactory
 {
-    private static final List<String> TOOLS_LIST_ITEM_JSON_PATH_INCLUDES = List.of("/tools/-/name");
-
     private final DirectBuffer prelude =
         new UnsafeBuffer("{\"tools\":[".getBytes(StandardCharsets.UTF_8));
 
@@ -41,7 +38,7 @@ final class McpProxyToolsListFactory extends McpProxyListFactory
         EngineContext context,
         LongFunction<McpBindingConfig> supplyBinding)
     {
-        super(config, context, supplyBinding, McpBeginExFW.KIND_TOOLS_LIST, TOOLS_LIST_ITEM_JSON_PATH_INCLUDES);
+        super(config, context, supplyBinding, McpBeginExFW.KIND_TOOLS_LIST);
     }
 
     @Override

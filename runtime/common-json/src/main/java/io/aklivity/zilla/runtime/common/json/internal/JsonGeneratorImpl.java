@@ -28,6 +28,7 @@ import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
+import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx.Completion;
 
 /**
  * Streaming, compact {@link JsonGeneratorEx} that writes directly into a {@link
@@ -55,7 +56,9 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     private int limit;
     private int depth;
     private int consumed;
-    private boolean afterKey;
+    // at most one of these positions holds at a time: a value is expected after a key, or an
+    // incomplete string/number fragment is open awaiting its remaining fragments
+    private Pending pending = Pending.NONE;
 
     public JsonGeneratorImpl()
     {
@@ -101,7 +104,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     public void reset()
     {
         this.depth = 0;
-        this.afterKey = false;
+        this.pending = Pending.NONE;
     }
 
     @Override
@@ -162,7 +165,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         hasMembers[depth - 1] = true;
         writeString(name);
         putByte.accept(':');
-        afterKey = true;
+        pending = Pending.AFTER_KEY;
         return this;
     }
 
@@ -187,6 +190,26 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     {
         preValue();
         writeString(value);
+        return this;
+    }
+
+    @Override
+    public JsonGeneratorImpl write(
+        CharSequence value,
+        Completion completion)
+    {
+        if (pending != Pending.STRING)
+        {
+            preValue();
+            putByte.accept('"');
+            pending = Pending.STRING;
+        }
+        writeStringBody(value);
+        if (completion == Completion.COMPLETE)
+        {
+            putByte.accept('"');
+            pending = Pending.NONE;
+        }
         return this;
     }
 
@@ -385,6 +408,24 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     }
 
     @Override
+    public JsonGeneratorImpl writeNumber(
+        CharSequence literal,
+        Completion completion)
+    {
+        if (pending != Pending.NUMBER)
+        {
+            preValue();
+            pending = Pending.NUMBER;
+        }
+        writeAscii(literal);
+        if (completion == Completion.COMPLETE)
+        {
+            pending = Pending.NONE;
+        }
+        return this;
+    }
+
+    @Override
     public JsonGeneratorImpl writeRaw(
         DirectBuffer source,
         int index,
@@ -422,14 +463,14 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         inArray[depth] = array;
         hasMembers[depth] = false;
         depth++;
-        afterKey = false;
+        pending = Pending.NONE;
     }
 
     private void preValue()
     {
-        if (afterKey)
+        if (pending == Pending.AFTER_KEY)
         {
-            afterKey = false;
+            pending = Pending.NONE;
         }
         else if (depth > 0 && inArray[depth - 1])
         {
@@ -445,6 +486,13 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         CharSequence value)
     {
         putByte.accept('"');
+        writeStringBody(value);
+        putByte.accept('"');
+    }
+
+    private void writeStringBody(
+        CharSequence value)
+    {
         int index = 0;
         int length = value.length();
         while (index < length)
@@ -493,7 +541,6 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
                 break;
             }
         }
-        putByte.accept('"');
     }
 
     private void writeUtf8(
@@ -664,5 +711,13 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
             DirectBuffer source,
             int index,
             int length);
+    }
+
+    private enum Pending
+    {
+        NONE,
+        AFTER_KEY,
+        STRING,
+        NUMBER
     }
 }

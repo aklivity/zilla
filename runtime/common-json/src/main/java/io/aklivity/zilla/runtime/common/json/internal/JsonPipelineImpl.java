@@ -51,6 +51,12 @@ public final class JsonPipelineImpl implements JsonPipeline
     }
 
     @Override
+    public long position()
+    {
+        return parser.position();
+    }
+
+    @Override
     public Status feed(
         DirectBuffer buffer,
         int offset,

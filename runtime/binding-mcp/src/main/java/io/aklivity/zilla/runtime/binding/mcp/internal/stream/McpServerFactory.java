@@ -23,7 +23,6 @@ import static java.lang.Integer.toUnsignedLong;
 
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.LongUnaryOperator;
@@ -225,16 +224,6 @@ public final class McpServerFactory implements McpStreamFactory
     private final int encodeMax;
     private final int sessionIdAttempts;
 
-    private final DirectBufferInputStreamEx inputRO = new DirectBufferInputStreamEx();
-
-    private static final List<String> SERVER_JSON_PATH_INCLUDES = List.of(
-        "/jsonrpc",
-        "/id",
-        "/method",
-        "/params/name",
-        "/params/uri",
-        "/params/_meta/progressToken",
-        "/result/action");
     private final JsonParserFactory parserFactory;
 
     private final McpServerDecoder decodeJsonRpc = this::decodeJsonRpc;
@@ -292,9 +281,7 @@ public final class McpServerFactory implements McpStreamFactory
         this.encodeMax = encodePool.slotCapacity();
         this.sessionIdAttempts = config.sessionIdAttempts();
         this.sessions = new Object2ObjectHashMap<>();
-        this.parserFactory = JsonEx.createParserFactory(Map.of(
-            JsonParserEx.PATH_INCLUDES, SERVER_JSON_PATH_INCLUDES,
-            JsonParserEx.TOKEN_MAX_BYTES, decodeMax));
+        this.parserFactory = JsonEx.createParserFactory(Map.of());
     }
 
     @Override
@@ -559,18 +546,20 @@ public final class McpServerFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        DirectBufferInputStreamEx input = inputRO;
-        input.wrap(buffer, progress, limit - progress);
-
         server.decodedId = null;
         server.decodedMethod = null;
         server.decodedMethodParam = null;
         server.decodedProgressToken = null;
         server.decodedAction = null;
-        server.decodableJson = parserFactory.createParser(input);
+        server.decodableJson = JsonEx.createParser(Map.of());
+        server.decodableJson.wrap(buffer, progress, limit - progress);
         server.decoder = decodeJsonRpcStart;
+        // Map parser stream-offset 0 to buffer position `progress`.
+        // The decodeJsonRpc* methods use offset + decodedX - decodedParserProgress as buffer position,
+        // so set decodedParserProgress = offset - progress to align.
+        server.decodedParserProgress = offset - progress;
 
-        progress = limit - input.available();
+        progress = offset + (int) (server.decodableJson.getLocation().getStreamOffset() - server.decodedParserProgress);
 
         return progress;
     }
@@ -586,7 +575,6 @@ public final class McpServerFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        DirectBufferInputStreamEx input = inputRO;
         JsonParser parser = server.decodableJson;
 
         decode:
@@ -602,7 +590,7 @@ public final class McpServerFactory implements McpStreamFactory
 
             server.decoder = decodeJsonRpcNext;
 
-            progress = limit - input.available();
+            progress = offset + (int) (parser.getLocation().getStreamOffset() - server.decodedParserProgress);
         }
 
         return progress;
@@ -619,7 +607,6 @@ public final class McpServerFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        DirectBufferInputStreamEx input = inputRO;
         JsonParser parser = server.decodableJson;
 
         decode:
@@ -667,7 +654,7 @@ public final class McpServerFactory implements McpStreamFactory
                 break decode;
             }
 
-            progress = limit - input.available();
+            progress = offset + (int) (parser.getLocation().getStreamOffset() - server.decodedParserProgress);
         }
 
         return progress;
@@ -684,7 +671,6 @@ public final class McpServerFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        DirectBufferInputStreamEx input = inputRO;
         JsonParser parser = server.decodableJson;
 
         decode:
@@ -717,7 +703,7 @@ public final class McpServerFactory implements McpStreamFactory
                 server.onDecodeRequestId(server.decodedId);
             }
 
-            progress = limit - input.available();
+            progress = offset + (int) (parser.getLocation().getStreamOffset() - server.decodedParserProgress);
         }
 
         return progress;
@@ -734,7 +720,6 @@ public final class McpServerFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        DirectBufferInputStreamEx input = inputRO;
         JsonParser parser = server.decodableJson;
 
         decode:
@@ -750,7 +735,7 @@ public final class McpServerFactory implements McpStreamFactory
 
             server.decoder = decodeJsonRpcResultNext;
 
-            progress = limit - input.available();
+            progress = offset + (int) (parser.getLocation().getStreamOffset() - server.decodedParserProgress);
         }
 
         return progress;
@@ -767,7 +752,6 @@ public final class McpServerFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        DirectBufferInputStreamEx input = inputRO;
         JsonParser parser = server.decodableJson;
 
         decode:
@@ -798,7 +782,7 @@ public final class McpServerFactory implements McpStreamFactory
                 break decode;
             }
 
-            progress = limit - input.available();
+            progress = offset + (int) (parser.getLocation().getStreamOffset() - server.decodedParserProgress);
         }
 
         return progress;
@@ -815,7 +799,6 @@ public final class McpServerFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        DirectBufferInputStreamEx input = inputRO;
         JsonParser parser = server.decodableJson;
 
         decode:
@@ -832,7 +815,7 @@ public final class McpServerFactory implements McpStreamFactory
             server.decodedAction = parser.getString();
             server.decoder = decodeJsonRpcResultNext;
 
-            progress = limit - input.available();
+            progress = offset + (int) (parser.getLocation().getStreamOffset() - server.decodedParserProgress);
         }
 
         return progress;
@@ -849,7 +832,6 @@ public final class McpServerFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        DirectBufferInputStreamEx input = inputRO;
         JsonParser parser = server.decodableJson;
 
         decode:
@@ -866,7 +848,7 @@ public final class McpServerFactory implements McpStreamFactory
 
             server.decoder = decodeJsonRpcNext;
 
-            progress = limit - input.available();
+            progress = offset + (int) (parser.getLocation().getStreamOffset() - server.decodedParserProgress);
         }
 
         return progress;
@@ -883,7 +865,6 @@ public final class McpServerFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        DirectBufferInputStreamEx input = inputRO;
         JsonParser parser = server.decodableJson;
 
         decode:
@@ -902,7 +883,7 @@ public final class McpServerFactory implements McpStreamFactory
             server.decodedId = id;
             server.decoder = decodeJsonRpcNext;
 
-            progress = limit - input.available();
+            progress = offset + (int) (parser.getLocation().getStreamOffset() - server.decodedParserProgress);
         }
 
         return progress;
@@ -919,7 +900,6 @@ public final class McpServerFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        DirectBufferInputStreamEx input = inputRO;
         JsonParser parser = server.decodableJson;
 
         decode:
@@ -992,7 +972,7 @@ public final class McpServerFactory implements McpStreamFactory
             server.decodedMethod = method;
             server.decoder = decodeJsonRpcNext;
 
-            progress = limit - input.available();
+            progress = offset + (int) (parser.getLocation().getStreamOffset() - server.decodedParserProgress);
         }
 
         return progress;
@@ -1429,7 +1409,7 @@ public final class McpServerFactory implements McpStreamFactory
         private boolean sseUpgrade;
         private boolean responseStarted;
 
-        private JsonParser decodableJson;
+        private JsonParserEx decodableJson;
         private String decodedMethod;
         private String decodedMethodParam;
         private String decodedId;
@@ -1578,8 +1558,7 @@ public final class McpServerFactory implements McpStreamFactory
                 if (decodableJson != null)
                 {
                     final int delta = (int) (decodableJson.getLocation().getStreamOffset() - decodedParserProgress);
-                    final DirectBufferInputStreamEx input = inputRO;
-                    input.wrap(buffer, offset + delta, limit - offset - delta);
+                    decodableJson.wrap(buffer, offset + delta, limit - offset - delta);
                 }
 
                 decodeNet(traceId, authorization, budgetId, reserved, buffer, offset, limit);

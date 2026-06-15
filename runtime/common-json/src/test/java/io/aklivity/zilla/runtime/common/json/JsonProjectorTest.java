@@ -114,7 +114,7 @@ class JsonProjectorTest
         gen.wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonEx.projector(List.of("/a", "/c")))
-            .into(JsonSink.of(gen));
+            .into(JsonEx.createSink(gen));
 
         byte[] bytes = "{\"a\":1,\"b\":2,\"c\":3} ".getBytes(UTF_8);
         UnsafeBuffer in = new UnsafeBuffer(bytes);
@@ -136,7 +136,7 @@ class JsonProjectorTest
         MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonEx.projector(List.of("/x")))
-            .into(JsonSink.of(gen));
+            .into(JsonEx.createSink(gen));
 
         gen.wrap(buffer, 0, buffer.capacity());
         feed(pipeline, "{\"x\":1,\"y\":2} ");
@@ -172,7 +172,7 @@ class JsonProjectorTest
         gen.wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonEx.projector(retained))
-            .into(JsonSink.of(gen));
+            .into(JsonEx.createSink(gen));
         feed(pipeline, input + " ");
         byte[] out = new byte[gen.length()];
         buffer.getBytes(0, out);

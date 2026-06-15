@@ -19,8 +19,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+
+import jakarta.json.stream.JsonParser;
 
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -45,7 +49,7 @@ class JsonPipelineChunkingTest
         JsonGeneratorEx generator = JsonEx.createGenerator();
         MutableDirectBuffer output = new UnsafeBuffer(new byte[128]);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
-            .into(JsonSink.of(generator));
+            .into(JsonEx.createSink(generator));
 
         String json = "[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]";
         assertEquals(json, chunked(pipeline, generator, output, json));
@@ -57,7 +61,7 @@ class JsonPipelineChunkingTest
         JsonGeneratorEx generator = JsonEx.createGenerator();
         MutableDirectBuffer output = new UnsafeBuffer(new byte[128]);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
-            .into(JsonSink.of(generator));
+            .into(JsonEx.createSink(generator));
 
         String json = "{\"k0\":0,\"k1\":1,\"k2\":2,\"k3\":3,\"k4\":4,\"k5\":5,\"k6\":6,\"k7\":7,\"k8\":8,\"k9\":9}";
         assertEquals(json, chunked(pipeline, generator, output, json));
@@ -70,7 +74,7 @@ class JsonPipelineChunkingTest
         MutableDirectBuffer output = new UnsafeBuffer(new byte[128]);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonEx.projector(List.of("")))
-            .into(JsonSink.of(generator));
+            .into(JsonEx.createSink(generator));
 
         String json = "{\"id\":1,\"items\":[10,11,12,13,14,15,16,17,18,19],\"ok\":true}";
         assertEquals(json, chunked(pipeline, generator, output, json));
@@ -83,7 +87,7 @@ class JsonPipelineChunkingTest
         MutableDirectBuffer output = new UnsafeBuffer(new byte[128]);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonSchema.of("{\"type\":\"object\"}").validator())
-            .into(JsonSink.of(generator));
+            .into(JsonEx.createSink(generator));
 
         String json = "{\"k0\":0,\"k1\":1,\"k2\":2,\"k3\":3,\"k4\":4,\"k5\":5,\"k6\":6,\"k7\":7,\"k8\":8,\"k9\":9}";
         assertEquals(json, chunked(pipeline, generator, output, json));
@@ -95,7 +99,7 @@ class JsonPipelineChunkingTest
         JsonGeneratorEx generator = JsonEx.createGenerator();
         MutableDirectBuffer output = new UnsafeBuffer(new byte[256]);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
-            .into(JsonSink.of(generator, JsonSink.Delivery.SEGMENTABLE));
+            .into(JsonEx.createSink(generator, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.SEGMENTABLE)));
         generator.wrap(output, 0, output.capacity());
         pipeline.reset();
 
@@ -127,7 +131,7 @@ class JsonPipelineChunkingTest
         };
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(probe)
-            .into(JsonSink.of(generator, JsonSink.Delivery.SEGMENTABLE));
+            .into(JsonEx.createSink(generator, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.SEGMENTABLE)));
         generator.wrap(output, 0, output.capacity());
         pipeline.reset();
 
@@ -145,7 +149,7 @@ class JsonPipelineChunkingTest
         JsonGeneratorEx generator = JsonEx.createGenerator();
         MutableDirectBuffer output = new UnsafeBuffer(new byte[256]);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
-            .into(JsonSink.of(generator));
+            .into(JsonEx.createSink(generator));
 
         // a single string property value far larger than BOUND, in structured delivery
         String json = "{\"data\":\"" + "x".repeat(96) + "\"}";
@@ -158,7 +162,7 @@ class JsonPipelineChunkingTest
         JsonGeneratorEx generator = JsonEx.createGenerator();
         MutableDirectBuffer output = new UnsafeBuffer(new byte[256]);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
-            .into(JsonSink.of(generator));
+            .into(JsonEx.createSink(generator));
 
         // a single numeric property value far larger than BOUND, in structured delivery
         String json = "{\"data\":" + "1".repeat(96) + "}";
@@ -171,7 +175,7 @@ class JsonPipelineChunkingTest
         JsonGeneratorEx generator = JsonEx.createGenerator();
         MutableDirectBuffer output = new UnsafeBuffer(new byte[256]);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
-            .into(JsonSink.of(generator, JsonSink.Delivery.SEGMENTABLE));
+            .into(JsonEx.createSink(generator, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.SEGMENTABLE)));
 
         // one top-level array whose verbatim form far exceeds BOUND, delivered as a single segment that
         // must be fragmented across many chunks
@@ -187,7 +191,7 @@ class JsonPipelineChunkingTest
         JsonTransform passthrough = (control, source, event, sink) -> sink.feed(control, source, event);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(passthrough)
-            .into(JsonSink.of(generator, JsonSink.Delivery.SEGMENTABLE));
+            .into(JsonEx.createSink(generator, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.SEGMENTABLE)));
 
         // the resume cascade must continue the in-flight fragment through the transform stage
         String json = "[\"aaaaaaaa\",\"bbbbbbbb\",\"cccccccc\",\"dddddddd\",\"eeeeeeee\",\"ffffffff\"]";
@@ -200,7 +204,7 @@ class JsonPipelineChunkingTest
         JsonGeneratorEx generator = JsonEx.createGenerator();
         MutableDirectBuffer output = new UnsafeBuffer(new byte[128]);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
-            .into(JsonSink.of(generator));
+            .into(JsonEx.createSink(generator));
 
         byte[] bytes = "[1,2,3] ".getBytes(UTF_8);
         pipeline.reset();
@@ -211,6 +215,168 @@ class JsonPipelineChunkingTest
         byte[] out = new byte[generator.length()];
         output.getBytes(0, out);
         assertEquals("[1,2,3]", new String(out, UTF_8));
+    }
+
+    @Test
+    void shouldReconstructWindowFragmentedStringValueDecoded()
+    {
+        // small feed windows fragment the over-window value; the DECODED sink re-renders each fragment
+        // via generator.write(getString(), Completion) with no concatenation
+        String json = "{\"data\":\"" + "x".repeat(40) + "\"}";
+        assertEquals(json, feedWindowed(json, JsonSink.Delivery.DECODED, 8));
+    }
+
+    @Test
+    void shouldReconstructWindowFragmentedStringValueVerbatim()
+    {
+        // same fragmented value, verbatim path: each fragment's getSegment() raw bytes splice back to
+        // the whole token
+        String json = "{\"data\":\"" + "x".repeat(40) + "\"}";
+        assertEquals(json, feedWindowed(json, JsonSink.Delivery.STRUCTURED, 8));
+    }
+
+    @Test
+    void shouldReconstructFragmentedValueWithMultibyteAcrossWindow()
+    {
+        // a top-level string fills the first window and fragments; the window ends on the lead byte of
+        // 'é', so the parser leaves the partial char unconsumed (position() < window) and the caller
+        // carries the tail into the next window
+        JsonGeneratorEx generator = JsonEx.createGenerator();
+        MutableDirectBuffer output = new UnsafeBuffer(new byte[512]);
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+            .into(JsonEx.createSink(generator, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.DECODED)));
+        generator.wrap(output, 0, output.capacity());
+        pipeline.reset();
+
+        String json = "\"" + "x".repeat(10) + "é" + "y".repeat(10) + "\"";
+        byte[] msg = (json + " ").getBytes(UTF_8);
+        int w1 = -1;
+        for (int i = 0; i < msg.length && w1 < 0; i++)
+        {
+            if ((msg[i] & 0xff) == 0xc3)
+            {
+                w1 = i + 1; // window ends on the lead byte of 'é', splitting the char
+            }
+        }
+
+        assertEquals(Status.STARVED, pipeline.feed(new UnsafeBuffer(msg), 0, w1, false));
+        int committed = (int) pipeline.position();
+        assertEquals(Status.COMPLETED,
+            pipeline.feed(new UnsafeBuffer(msg), committed, msg.length - committed, true));
+
+        byte[] out = new byte[generator.length()];
+        output.getBytes(0, out);
+        assertEquals(json, new String(out, UTF_8));
+    }
+
+    @Test
+    void shouldReconstructWindowFragmentedNumberValueDecoded()
+    {
+        String json = "{\"n\":" + "1".repeat(40) + "}";
+        assertEquals(json, feedWindowed(json, JsonSink.Delivery.DECODED, 8));
+    }
+
+    @Test
+    void shouldReconstructWindowFragmentedNumberValueVerbatim()
+    {
+        String json = "{\"n\":" + "1".repeat(40) + "}";
+        assertEquals(json, feedWindowed(json, JsonSink.Delivery.STRUCTURED, 8));
+    }
+
+    @Test
+    void shouldReadWindowFragmentedNumberAsBigDecimalAndRejectGetInt()
+    {
+        // a number far longer than long range fragments across small windows; getBigDecimal() reads the
+        // whole value from the accumulated lexeme, while getInt()/getLong() reject the fragmented number
+        String bigNumber = "12345678901234567890123456789012";
+        String json = "{\"n\":" + bigNumber + "}";
+
+        JsonGeneratorEx generator = JsonEx.createGenerator();
+        MutableDirectBuffer output = new UnsafeBuffer(new byte[256]);
+        List<BigDecimal> wholes = new ArrayList<>();
+        List<Boolean> intRejected = new ArrayList<>();
+        JsonTransform probe = (control, source, event, sink) ->
+        {
+            if (event == JsonEvent.VALUE_NUMBER && !source.deferredBytes())
+            {
+                final JsonParser number = (JsonParser) source;
+                wholes.add(number.getBigDecimal());
+                boolean rejected = false;
+                try
+                {
+                    number.getInt();
+                }
+                catch (IllegalStateException ex)
+                {
+                    rejected = true;
+                }
+                intRejected.add(rejected);
+            }
+            return sink.feed(control, source, event);
+        };
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(probe)
+            .into(JsonEx.createSink(generator, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.DECODED)));
+        generator.wrap(output, 0, output.capacity());
+        pipeline.reset();
+
+        byte[] msg = (json + " ").getBytes(UTF_8);
+        int committed = 0;
+        int offset = 0;
+        Status status = Status.STARVED;
+        int guard = 0;
+        while (guard++ < 100_000)
+        {
+            offset = Math.min(offset + 8, msg.length);
+            boolean last = offset >= msg.length;
+            status = pipeline.feed(new UnsafeBuffer(msg), committed, offset - committed, last);
+            if (status != Status.STARVED)
+            {
+                break;
+            }
+            assertFalse(last, "last window must not starve");
+            committed = (int) pipeline.position();
+        }
+        assertEquals(Status.COMPLETED, status);
+        assertEquals(new BigDecimal(bigNumber), wholes.get(0));
+        assertTrue(intRejected.get(0), "getInt() must reject a fragmented number");
+    }
+
+    // Feeds the document in fixed-size windows, carrying the unconsumed tail (up to position()) across
+    // feeds the way a real caller does; a value that fills a window is fragmented and reconstructed.
+    private static String feedWindowed(
+        String json,
+        JsonSink.Delivery delivery,
+        int window)
+    {
+        JsonGeneratorEx generator = JsonEx.createGenerator();
+        MutableDirectBuffer output = new UnsafeBuffer(new byte[512]);
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+            .into(JsonEx.createSink(generator, Map.of(JsonSink.DELIVERY, delivery)));
+        generator.wrap(output, 0, output.capacity());
+        pipeline.reset();
+
+        byte[] msg = (json + " ").getBytes(UTF_8);
+        int committed = 0;
+        int offset = 0;
+        Status status = Status.STARVED;
+        int guard = 0;
+        while (guard++ < 100_000)
+        {
+            offset = Math.min(offset + window, msg.length);
+            boolean last = offset >= msg.length;
+            status = pipeline.feed(new UnsafeBuffer(msg), committed, offset - committed, last);
+            if (status != Status.STARVED)
+            {
+                break;
+            }
+            assertFalse(last, "last window must not starve");
+            committed = (int) pipeline.position();
+        }
+        assertEquals(Status.COMPLETED, status);
+        byte[] out = new byte[generator.length()];
+        output.getBytes(0, out);
+        return new String(out, UTF_8);
     }
 
     // Drives a value through the pipeline with the generator bounded at BOUND, draining and re-targeting

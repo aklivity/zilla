@@ -106,6 +106,18 @@ public interface JsonGeneratorEx extends JsonGenerator
         CharSequence literal);
 
     /**
+     * Emits a numeric literal that may arrive in fragments. The leading structural separator is emitted
+     * before the first fragment; each fragment's lexeme chars are appended verbatim (numbers carry no
+     * quoting or trailing delimiter). Pass {@link Completion#INCOMPLETE} while the source reports more
+     * deferred bytes and {@link Completion#COMPLETE} on the final fragment, so a number delivered across
+     * several windows forms one literal without the caller concatenating.
+     * {@code writeNumber(literal, COMPLETE)} is equivalent to {@link #writeNumber(CharSequence)}.
+     */
+    JsonGeneratorEx writeNumber(
+        CharSequence literal,
+        Completion completion);
+
+    /**
      * Splices a pre-encoded JSON value from {@code source} verbatim as the next value, with no
      * re-encoding.
      */
@@ -169,6 +181,30 @@ public interface JsonGeneratorEx extends JsonGenerator
      */
     JsonGeneratorEx write(
         CharSequence value);
+
+    /**
+     * Whether a {@link #write(CharSequence, Completion)} call finishes the string value or leaves it
+     * open for further fragments.
+     */
+    enum Completion
+    {
+        COMPLETE,
+        INCOMPLETE
+    }
+
+    /**
+     * Writes a string value that may arrive in fragments. The generator owns the surrounding quotes
+     * and escaping: the opening quote is emitted before the first fragment, each fragment's chars are
+     * escaped and encoded as they are read, and the closing quote is emitted when {@code completion} is
+     * {@link Completion#COMPLETE}. Pass {@link Completion#INCOMPLETE} while the source reports more
+     * deferred bytes so a value delivered across several fragments forms a single quoted string without
+     * the caller concatenating. {@code write(value, COMPLETE)} is equivalent to
+     * {@link #write(CharSequence)}. The {@link Completion} argument disambiguates this overload from the
+     * inherited {@code write(String, boolean)} key/value pair when the value is a {@code String}.
+     */
+    JsonGeneratorEx write(
+        CharSequence value,
+        Completion completion);
 
     @Override
     JsonGeneratorEx write(

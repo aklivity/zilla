@@ -16,7 +16,6 @@ package io.aklivity.zilla.runtime.common.json.internal;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
@@ -24,15 +23,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import jakarta.json.stream.JsonParser;
-import jakarta.json.stream.JsonParsingException;
 
 import org.junit.jupiter.api.Test;
-
-import io.aklivity.zilla.runtime.common.json.JsonEx;
-import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 
 public class JsonTokenizerPathTest
 {
@@ -92,40 +86,10 @@ public class JsonTokenizerPathTest
     }
 
     @Test
-    public void shouldCompilePathsAndMatchExpectedValues() throws IOException
+    public void shouldTrackPathWithEscapedSlashAndTilde() throws IOException
     {
-        final List<String> includes = List.of(
-            "",                       // root
-            "/tools/-/name",          // wildcard array index
-            "/tools/-/title");
-        final List<String> excludes = List.of(
-            "/tools/-/title");        // excludes win for title
-
-        final JsonTokenizer tokenizer =
-            new JsonTokenizer(includes, excludes, 1024);
-
-        final String json = "{\"tools\":[{\"name\":\"X\",\"title\":\"T\"},{\"name\":\"Y\"}]}";
-        final InputStream in = new BufferedInputStream(
-            new ByteArrayInputStream(json.getBytes(UTF_8)));
-
-        int eventCount = 0;
-        while (tokenizer.advance(in))
-        {
-            eventCount++;
-            tokenizer.clearEvent();
-        }
-        assertEquals(15, eventCount);
-    }
-
-    @Test
-    public void shouldMatchPathSegmentWithEscapedSlashAndTilde() throws IOException
-    {
-        // RFC 6901 escapes: "~1" decodes to "/", "~0" decodes to "~"
-        final List<String> includes = List.of(
-            "/a~1b/c~0d");            // path of "/a/b" then "c~d"
-
-        final JsonTokenizer tokenizer =
-            new JsonTokenizer(includes, List.of(), Integer.MAX_VALUE);
+        // RFC 6901 escapes in currentPath(): "/" encodes to "~1", "~" encodes to "~0"
+        final JsonTokenizer tokenizer = new JsonTokenizer();
 
         final String json = "{\"a/b\":{\"c~d\":42}}";
         final InputStream in = new BufferedInputStream(
@@ -144,121 +108,9 @@ public class JsonTokenizerPathTest
     }
 
     @Test
-    public void shouldSuppressScratchForNonReadableValues() throws IOException
+    public void shouldHandleArrayDocument() throws IOException
     {
-        final List<String> includes = List.of("/tools/-/name");
-        final JsonTokenizer tokenizer =
-            new JsonTokenizer(includes, List.of(), Integer.MAX_VALUE);
-
-        final String json = "{\"tools\":[{\"name\":\"X\",\"description\":\"a quite long description\"}]}";
-        final InputStream in = new BufferedInputStream(
-            new ByteArrayInputStream(json.getBytes(UTF_8)));
-
-        final List<String> readableValues = new ArrayList<>();
-        final List<JsonParser.Event> nonReadableValueEvents = new ArrayList<>();
-        while (tokenizer.advance(in))
-        {
-            final JsonParser.Event ev = tokenizer.event();
-            switch (ev)
-            {
-            case VALUE_STRING:
-            case VALUE_NUMBER:
-                if (tokenizer.valueReadable())
-                {
-                    readableValues.add(tokenizer.stringValue());
-                }
-                else
-                {
-                    nonReadableValueEvents.add(ev);
-                }
-                break;
-            default:
-                break;
-            }
-            tokenizer.clearEvent();
-        }
-        assertEquals(List.of("X"), readableValues);
-        assertEquals(1, nonReadableValueEvents.size());
-    }
-
-    @Test
-    public void shouldThrowFromGetStringForNonReadableValueAtParserLevel() throws IOException
-    {
-        final String json = "{\"tools\":[{\"name\":\"X\",\"description\":\"a long description\"}]}";
-        final BufferedInputStream in = new BufferedInputStream(
-            new ByteArrayInputStream(json.getBytes(UTF_8)));
-
-        final Map<String, Object> config = Map.of(
-            JsonParserEx.PATH_INCLUDES, List.of("/tools/-/name"));
-        final JsonParser parser = JsonEx.createParserFactory(config).createParser(in);
-
-        boolean sawNonReadableValue = false;
-        while (parser.hasNext())
-        {
-            final JsonParser.Event ev = parser.next();
-            if (ev == JsonParser.Event.KEY_NAME && "description".equals(parser.getString()))
-            {
-                final JsonParser.Event next = parser.next();
-                assertEquals(JsonParser.Event.VALUE_STRING, next);
-                assertThrows(IllegalStateException.class, parser::getString);
-                sawNonReadableValue = true;
-                break;
-            }
-        }
-        if (!sawNonReadableValue)
-        {
-            throw new AssertionError("did not reach the non-readable value");
-        }
-    }
-
-    @Test
-    public void shouldThrowWhenReadableValueExceedsTokenMaxBytes() throws IOException
-    {
-        final List<String> includes = List.of("/payload");
-        final JsonTokenizer tokenizer =
-            new JsonTokenizer(includes, List.of(), 8);
-
-        final String json = "{\"payload\":\"abcdefghijklmnopqrst\"}";
-        final InputStream in = new BufferedInputStream(
-            new ByteArrayInputStream(json.getBytes(UTF_8)));
-
-        assertThrows(JsonParsingException.class, () ->
-        {
-            while (tokenizer.advance(in))
-            {
-                tokenizer.clearEvent();
-            }
-        });
-    }
-
-    @Test
-    public void shouldNotThrowWhenExcludedValueExceedsTokenMaxBytes() throws IOException
-    {
-        final List<String> excludes = List.of("/payload");
-        final JsonTokenizer tokenizer =
-            new JsonTokenizer(JsonTokenizer.INCLUDE_ALL, excludes, 8);
-
-        final String json = "{\"payload\":\"abcdefghijklmnopqrst\",\"id\":1}";
-        final InputStream in = new BufferedInputStream(
-            new ByteArrayInputStream(json.getBytes(UTF_8)));
-
-        Long observedId = null;
-        while (tokenizer.advance(in))
-        {
-            if (tokenizer.event() == JsonParser.Event.VALUE_NUMBER && tokenizer.valueReadable())
-            {
-                observedId = Long.parseLong(tokenizer.stringValue());
-            }
-            tokenizer.clearEvent();
-        }
-        assertEquals(1L, observedId);
-    }
-
-    @Test
-    public void shouldHandleEmptyConfigAsLegacyBehavior() throws IOException
-    {
-        final JsonTokenizer tokenizer =
-            new JsonTokenizer(List.of(), List.of(), Integer.MAX_VALUE);
+        final JsonTokenizer tokenizer = new JsonTokenizer();
 
         final String json = "[1,2,3]";
         final InputStream in = new BufferedInputStream(
