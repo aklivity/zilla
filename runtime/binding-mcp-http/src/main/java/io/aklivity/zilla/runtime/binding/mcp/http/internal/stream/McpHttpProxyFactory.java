@@ -72,6 +72,7 @@ import io.aklivity.zilla.runtime.binding.mcp.http.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.types.stream.McpBeginExFW;
+import io.aklivity.zilla.runtime.binding.mcp.http.internal.types.stream.McpResetExFW;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
@@ -102,6 +103,7 @@ public final class McpHttpProxyFactory implements BindingHandler
     private static final int FLAGS_COMPLETE = 0x03;
     private static final int WINDOW_MAX = 65536;
     private static final int MAX_ERROR_BODY = 8192;
+    private static final int JSON_RPC_INTERNAL_ERROR = -32603;
     private static final int RESPONSE_WINDOW = 1024;
     private static final int RESPONSE_GEN_BOUND = 1024;
     private static final int RESPONSE_BUFFER_MAX = 4096;
@@ -125,6 +127,7 @@ public final class McpHttpProxyFactory implements BindingHandler
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
     private final HttpBeginExFW.Builder httpBeginExRW = new HttpBeginExFW.Builder();
     private final McpBeginExFW.Builder mcpBeginExRW = new McpBeginExFW.Builder();
+    private final McpResetExFW.Builder mcpResetExRW = new McpResetExFW.Builder();
 
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer extBuffer;
@@ -613,6 +616,15 @@ public final class McpHttpProxyFactory implements BindingHandler
                 }
             }
 
+            final List<String> unsatisfied = binding.unsatisfiedAccessors(route);
+            if (!unsatisfied.isEmpty())
+            {
+                final String accessor = unsatisfied.get(0);
+                doMcpReset(traceId, JSON_RPC_INTERNAL_ERROR, "unresolved expression: ${" + accessor + "}");
+                cleanupRequestSlot();
+                return;
+            }
+
             String path = interpolate(with.headers.get(HEADER_PATH), expr -> resolveRequest(args, expr));
 
             if (with.query != null)
@@ -1072,6 +1084,25 @@ public final class McpHttpProxyFactory implements BindingHandler
             if (!McpHttpState.initialClosed(state))
             {
                 doReset(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization);
+                state = McpHttpState.closedInitial(state);
+            }
+        }
+
+        private void doMcpReset(
+            long traceId,
+            int code,
+            String message)
+        {
+            if (!McpHttpState.initialClosed(state))
+            {
+                final McpResetExFW resetEx = mcpResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                    .typeId(mcpTypeId)
+                    .error(e -> e
+                        .code(code)
+                        .message(message))
+                    .build();
+                doReset(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                    traceId, authorization, resetEx);
                 state = McpHttpState.closedInitial(state);
             }
         }
@@ -2617,6 +2648,33 @@ public final class McpHttpProxyFactory implements BindingHandler
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
+            .build();
+
+        receiver.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
+    }
+
+    private void doReset(
+        MessageConsumer receiver,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        Flyweight extension)
+    {
+        final ResetFW reset = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+            .originId(originId)
+            .routedId(routedId)
+            .streamId(streamId)
+            .sequence(sequence)
+            .acknowledge(acknowledge)
+            .maximum(maximum)
+            .traceId(traceId)
+            .authorization(authorization)
+            .extension(extension.buffer(), extension.offset(), extension.sizeof())
             .build();
 
         receiver.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
