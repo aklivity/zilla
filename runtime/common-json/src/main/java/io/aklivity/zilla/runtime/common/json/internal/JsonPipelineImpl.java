@@ -18,27 +18,35 @@ import jakarta.json.stream.JsonParsingException;
 
 import org.agrona.DirectBuffer;
 
+import io.aklivity.zilla.runtime.common.json.JsonController;
+import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
+import io.aklivity.zilla.runtime.common.json.JsonSource;
 
 /**
- * Backs {@link JsonPipeline}: holds the bound root {@link JsonSink} and the {@link JsonParserImpl}
+ * Backs {@link JsonPipeline}: holds the bound root {@link JsonSink} and the {@link JsonParserEx}
  * driver. {@link #feed(DirectBuffer, int, int)} re-targets the parser at the frame buffer then pumps
  * each parsed event through the root sink, passing the parser itself as the immutable
- * {@code JsonSource} view.
+ * {@code JsonSource} view and the {@link JsonController}.
  */
 public final class JsonPipelineImpl implements JsonPipeline
 {
-    private final JsonParserImpl parser;
+    private final JsonParserEx parser;
+    private final JsonSource source;
+    private final JsonController control;
     private final JsonSink root;
 
     private boolean suspended;
 
     public JsonPipelineImpl(
-        JsonParserImpl parser,
+        JsonParserEx parser,
         JsonSink root)
     {
         this.parser = parser;
+        // the parser is also the per-event source view and the upstream controller a stage steers
+        this.source = (JsonSource) parser;
+        this.control = (JsonController) parser;
         this.root = root;
     }
 
@@ -68,7 +76,7 @@ public final class JsonPipelineImpl implements JsonPipeline
         {
             if (suspended)
             {
-                status = root.resume(parser, parser);
+                status = root.resume(control, source);
             }
             else
             {
@@ -76,7 +84,7 @@ public final class JsonPipelineImpl implements JsonPipeline
             }
             while (status == Status.ADVANCED && parser.hasNextEvent())
             {
-                status = root.feed(parser, parser, parser.nextEvent());
+                status = root.feed(control, source, parser.nextEvent());
             }
             if (status == Status.ADVANCED)
             {
