@@ -590,18 +590,33 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         }
     }
 
+    // Copies whole source units only: a unit is a whole UTF-8 character or a whole JSON escape sequence
+    // (a two-byte backslash escape or a six-byte backslash-u escape), never a partial multibyte char or
+    // split escape. Stops before a unit that does not fit the output bound; consumed() advances by the
+    // source bytes taken, always on a unit boundary.
     private int writeRawSegment(
         DirectBuffer source,
         int index,
         int length)
     {
-        int written = Math.min(length, limit - progress);
-        buffer.putBytes(progress, source, index, written);
-        progress += written;
+        int written = 0;
+        while (written < length)
+        {
+            int unit = unitLength(source, index + written, length - written);
+            if (limit - progress < unit)
+            {
+                break;
+            }
+            buffer.putBytes(progress, source, index + written, unit);
+            progress += unit;
+            written += unit;
+        }
         consumed += written;
         return written;
     }
 
+    // Escapes whole source units only (see writeRawSegment): each unit's escaped output is emitted
+    // atomically, stopping before a unit whose escaped width would exceed the output bound.
     private int writeEscapedSegment(
         DirectBuffer source,
         int index,
@@ -610,16 +625,74 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         int written = 0;
         while (written < length)
         {
-            int value = source.getByte(index + written) & 0xff;
-            if (limit - progress < escapedWidth(value))
+            int unit = unitLength(source, index + written, length - written);
+            if (limit - progress < escapedUnitWidth(source, index + written, unit))
             {
                 break;
             }
-            putEscaped(value);
-            written++;
+            for (int i = 0; i < unit; i++)
+            {
+                putEscaped(source.getByte(index + written + i) & 0xff);
+            }
+            written += unit;
         }
         consumed += written;
         return written;
+    }
+
+    // Byte length of the next source unit at index: a JSON escape sequence (backslash-X is 2 bytes,
+    // backslash-u-XXXX is 6 bytes) is one unit, a UTF-8 character is one unit of 1-4 bytes per its lead
+    // byte. A unit whose bytes are not all available within length is reported as the available remainder
+    // so it is held back, not split.
+    private static int unitLength(
+        DirectBuffer source,
+        int index,
+        int length)
+    {
+        int first = source.getByte(index) & 0xff;
+        int unit;
+        if (first == '\\')
+        {
+            int next = length > 1 ? source.getByte(index + 1) & 0xff : -1;
+            unit = next == 'u' ? 6 : 2;
+        }
+        else if (first < 0x80)
+        {
+            unit = 1;
+        }
+        else if ((first & 0xe0) == 0xc0)
+        {
+            unit = 2;
+        }
+        else if ((first & 0xf0) == 0xe0)
+        {
+            unit = 3;
+        }
+        else if ((first & 0xf8) == 0xf0)
+        {
+            unit = 4;
+        }
+        else
+        {
+            unit = 1;
+        }
+        return Math.min(unit, length);
+    }
+
+    // Output byte width of a source unit once escaped: the sum of each byte's escaped width, so a
+    // multibyte UTF-8 char passes through verbatim while an escape sequence's backslash and content are
+    // themselves escaped (JSON-in-JSON).
+    private static int escapedUnitWidth(
+        DirectBuffer source,
+        int index,
+        int unit)
+    {
+        int width = 0;
+        for (int i = 0; i < unit; i++)
+        {
+            width += escapedWidth(source.getByte(index + i) & 0xff);
+        }
+        return width;
     }
 
     private void putEscaped(

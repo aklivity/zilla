@@ -37,7 +37,6 @@ public final class JsonSinkImpl implements JsonSink
     private final JsonGeneratorEx generator;
     private final Delivery delivery;
     private int depth;
-    private int segmentWritten;
     private boolean valueStarted;
     private boolean pendingSegment;
 
@@ -104,7 +103,7 @@ public final class JsonSinkImpl implements JsonSink
                     generator.writeRaw(segment, 0, 0);
                     valueStarted = true;
                 }
-                status = writeChunk(segment, source);
+                status = writeChunk(control, segment, source);
             }
             break;
         case VALUE_TRUE:
@@ -139,7 +138,7 @@ public final class JsonSinkImpl implements JsonSink
         JsonController control,
         JsonSource source)
     {
-        Status status = pendingSegment ? writeChunk(source.getSegment(), source) : Status.ADVANCED;
+        Status status = pendingSegment ? writeChunk(control, source.getSegment(), source) : Status.ADVANCED;
         return boundary(status);
     }
 
@@ -147,7 +146,6 @@ public final class JsonSinkImpl implements JsonSink
     public void reset()
     {
         depth = 0;
-        segmentWritten = 0;
         valueStarted = false;
         pendingSegment = false;
         generator.reset();
@@ -170,16 +168,21 @@ public final class JsonSinkImpl implements JsonSink
         return deferred ? Status.ADVANCED : scalarStatus();
     }
 
+    // Append-only and stateless: writes the segment view whole, where the view is the remainder the
+    // upstream re-exposes after each consumed() pushback (no per-value write offset kept here). The
+    // generator copies as many whole source units as fit the output bound; the source bytes it took are
+    // pushed back via control.consumed(...) so the upstream advances and re-exposes the remainder.
     private Status writeChunk(
+        JsonController control,
         DirectBuffer segment,
         JsonSource source)
     {
+        int available = segment.capacity();
         int before = generator.consumed();
-        int available = segment.capacity() - segmentWritten;
-        generator.writeSegment(segment, segmentWritten, available);
+        generator.writeSegment(segment, 0, available);
         int consumed = generator.consumed() - before;
         int outputDeferred = available - consumed;
-        segmentWritten += consumed;
+        control.consumed(consumed);
         Status status;
         if (outputDeferred > 0)
         {
@@ -188,7 +191,6 @@ public final class JsonSinkImpl implements JsonSink
         }
         else
         {
-            segmentWritten = 0;
             pendingSegment = false;
             if (source.deferredBytes())
             {

@@ -61,8 +61,9 @@ public final class JsonProjectorImpl implements JsonTransform
 
     private final KeySource keySource = new KeySource();
 
-    private final JsonController downstreamControl = this::onDownstreamSegmentable;
+    private final DownstreamControl downstreamControl = new DownstreamControl();
 
+    private JsonController upstreamControl;
     private int depth;
     private int containers;
     private Decision keyDecision;
@@ -110,6 +111,25 @@ public final class JsonProjectorImpl implements JsonTransform
         downstreamDemand = true;
     }
 
+    // Relays the terminal sink's consumed() pushback to the projector's own upstream so the parser
+    // advances by exactly the source bytes truly emitted, the same relay the projector does for
+    // segmentable(). The current upstream control is captured per feed/resume.
+    private final class DownstreamControl implements JsonController
+    {
+        @Override
+        public void segmentable()
+        {
+            onDownstreamSegmentable();
+        }
+
+        @Override
+        public void consumed(
+            int sourceBytes)
+        {
+            upstreamControl.consumed(sourceBytes);
+        }
+    }
+
     @Override
     public Status feed(
         JsonController control,
@@ -117,6 +137,7 @@ public final class JsonProjectorImpl implements JsonTransform
         JsonEvent event,
         JsonSink sink)
     {
+        upstreamControl = control;
         downstream = Status.ADVANCED;
         if (segMode == SegMode.AWAITING)
         {
@@ -190,7 +211,7 @@ public final class JsonProjectorImpl implements JsonTransform
             forward(sink, source, event);
             break;
         case KEY_NAME:
-            onKey(source);
+            onKey(control, source);
             break;
         case START_OBJECT:
         case START_ARRAY:
@@ -207,6 +228,7 @@ public final class JsonProjectorImpl implements JsonTransform
     }
 
     private void onKey(
+        JsonController control,
         JsonSource source)
     {
         StringBuilder key = segmentKeys[depth];
@@ -221,6 +243,14 @@ public final class JsonProjectorImpl implements JsonTransform
         // A forwarded key reuses the char view already buffered above for path matching, so no key
         // ever materializes a String — neither the SKIP majority nor the KEEP keys carried downstream.
         pendingKey = d == Decision.SKIP ? null : key;
+        // arm the kept value for verbatim segment delivery: if it is a scalar leaf the upstream streams
+        // it as raw segment fragments; if it turns out to be a container the upstream re-arms at its start
+        // and the scalar arm is discarded. Best-effort, demand-gated, exactly like the container path.
+        boolean parentEmit = containers == 0 || frameEmit[containers - 1];
+        if (parentEmit && d == Decision.KEEP_ALL && downstreamDemand)
+        {
+            control.segmentable();
+        }
     }
 
     private void forwardPendingKey(
