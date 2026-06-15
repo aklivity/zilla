@@ -144,7 +144,8 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
         return tokenizer.streamOffset();
     }
 
-    void reset()
+    @Override
+    public void reset()
     {
         tokenizer.reset();
         segmentState = SegmentState.NONE;
@@ -393,6 +394,12 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
 
     @Override
     public CharSequence getKey()
+    {
+        return tokenizer.stringView();
+    }
+
+    @Override
+    public CharSequence getStringView()
     {
         return tokenizer.stringView();
     }

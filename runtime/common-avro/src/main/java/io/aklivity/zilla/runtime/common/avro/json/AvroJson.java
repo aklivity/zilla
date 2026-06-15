@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.common.avro.json;
 
+import java.util.List;
+
 import io.aklivity.zilla.runtime.common.avro.Avro;
 import io.aklivity.zilla.runtime.common.avro.AvroGenerator;
 import io.aklivity.zilla.runtime.common.avro.AvroKind;
@@ -148,18 +150,19 @@ public final class AvroJson
     }
 
     /**
-     * The branch index of {@code union} whose key matches {@code name} (the Avro JSON union discriminator),
-     * or {@code -1} when no branch matches.
+     * The index of the {@code branches} entry whose key matches {@code name} (the Avro JSON union
+     * discriminator), or {@code -1} when no branch matches. The list is supplied by the caller (cached per
+     * schema node) so resolution allocates nothing on the hot path.
      */
     static int branchIndex(
-        AvroType union,
-        String name)
+        List<AvroType> branches,
+        CharSequence name)
     {
         int index = -1;
-        int count = union.branches().size();
+        int count = branches.size();
         for (int i = 0; index < 0 && i < count; i++)
         {
-            if (branchName(union.branches().get(i)).equals(name))
+            if (branchName(branches.get(i)).contentEquals(name))
             {
                 index = i;
             }
@@ -168,17 +171,17 @@ public final class AvroJson
     }
 
     /**
-     * The branch index of {@code union} whose kind is {@code null}, or {@code -1} when the union has no
+     * The index of the {@code branches} entry whose kind is {@code null}, or {@code -1} when there is no
      * null branch.
      */
     static int nullBranchIndex(
-        AvroType union)
+        List<AvroType> branches)
     {
         int index = -1;
-        int count = union.branches().size();
+        int count = branches.size();
         for (int i = 0; index < 0 && i < count; i++)
         {
-            if (union.branches().get(i).kind() == AvroKind.NULL)
+            if (branches.get(i).kind() == AvroKind.NULL)
             {
                 index = i;
             }

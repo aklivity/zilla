@@ -47,6 +47,25 @@ import org.junit.jupiter.api.Test;
 class JsonParserTest
 {
     @Test
+    void shouldExposeZeroCopyStringViewForValueAndNumber()
+    {
+        JsonParserEx parser = JsonEx.createParser();
+        byte[] bytes = "{\"k\":\"hello\",\"n\":-12345}".getBytes(UTF_8);
+        parser.wrap(new UnsafeBuffer(bytes), 0, bytes.length);
+
+        assertEquals(START_OBJECT, parser.next());
+        assertEquals(KEY_NAME, parser.next());
+        assertEquals("k", parser.getStringView().toString());
+        assertEquals(VALUE_STRING, parser.next());
+        assertEquals("hello", parser.getStringView().toString());
+        assertEquals(KEY_NAME, parser.next());
+        assertEquals("n", parser.getStringView().toString());
+        assertEquals(VALUE_NUMBER, parser.next());
+        assertEquals("-12345", parser.getStringView().toString());
+        assertEquals(END_OBJECT, parser.next());
+    }
+
+    @Test
     void shouldParseFlatObject()
     {
         JsonParser parser = parserFor("{\"jsonrpc\":\"2.0\",\"id\":42,\"method\":\"tools/list\"}");

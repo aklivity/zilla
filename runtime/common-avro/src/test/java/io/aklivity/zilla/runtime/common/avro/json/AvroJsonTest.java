@@ -270,6 +270,43 @@ public class AvroJsonTest
     }
 
     @Test
+    public void shouldReuseParserAcrossDatums()
+    {
+        AvroSchema schema = Avro.schema("""
+            {"type":"record","name":"R","fields":[
+            {"name":"id","type":"int"},
+            {"name":"name","type":"string"}]}""");
+        JsonParserEx parser = JsonEx.createParser();
+        MutableDirectBuffer out = new UnsafeBuffer(new byte[128]);
+        AvroGenerator generator = Avro.generator(schema, out, 0);
+        AvroPipeline pipeline = AvroJson.stream(schema, parser).into(AvroSink.of(generator));
+
+        assertArrayEquals(new byte[] { 0x02, 0x04, 0x68, 0x69 },
+            feedOnce(pipeline, generator, out, "{\"id\":1,\"name\":\"hi\"}"));
+        assertArrayEquals(new byte[] { 0x06, 0x02, 0x7a },
+            feedOnce(pipeline, generator, out, "{\"id\":3,\"name\":\"z\"}"));
+    }
+
+    private static byte[] feedOnce(
+        AvroPipeline pipeline,
+        AvroGenerator generator,
+        MutableDirectBuffer out,
+        String json)
+    {
+        byte[] jsonBytes = json.getBytes(UTF_8);
+        generator.wrap(out, 0, out.capacity());
+        pipeline.reset();
+        Status status = pipeline.feed(new UnsafeBuffer(jsonBytes), 0, jsonBytes.length);
+        if (status != Status.COMPLETED)
+        {
+            throw new AssertionError("json -> avro did not complete: " + status);
+        }
+        byte[] avro = new byte[generator.length()];
+        out.getBytes(0, avro);
+        return avro;
+    }
+
+    @Test
     public void shouldWriteThroughGeneratorApi()
     {
         AvroSchema schema = Avro.schema("""

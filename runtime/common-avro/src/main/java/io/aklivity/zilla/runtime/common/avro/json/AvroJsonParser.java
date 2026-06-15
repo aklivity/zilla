@@ -15,6 +15,9 @@
 package io.aklivity.zilla.runtime.common.avro.json;
 
 import java.util.Base64;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
 
 import jakarta.json.stream.JsonParser.Event;
 
@@ -45,11 +48,12 @@ import io.aklivity.zilla.runtime.common.json.JsonParserEx;
  * {@link io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status#STARVED}, resuming where it underflowed
  * on the next window. {@code last == true} makes an incomplete unit a truncation.
  * <p>
- * <b>Allocation.</b> Numbers read through the primitive {@code getInt}/{@code getLong} accessors and
- * structure carries cached schema strings, so the structural and numeric hot path allocates nothing per
- * message. {@code string} values are read through {@code JsonParserEx#getString} (the {@code jakarta.json}
- * pull contract), then encoded into a reused buffer; {@code bytes}/{@code fixed} base64 is decoded into a
- * reused buffer.
+ * <b>Allocation.</b> The structural, string, and integer hot path allocates nothing per message: field
+ * keys, {@code string} content, enum symbols, union branch names, and {@code int}/{@code long} lexemes are
+ * all read through the zero-copy {@link JsonParserEx#getStringView()} view (compared via
+ * {@code String#contentEquals}, parsed in place, or re-encoded into a reused buffer). Floating-point values
+ * route through {@code getBigDecimal}, and {@code bytes}/{@code fixed} base64 through {@code getString} —
+ * both of which materialize, matching the floating-point cost on the Avro → JSON side.
  * <p>
  * JSON that does not match the schema (wrong scalar type, an unexpected field key, an unknown union branch, a
  * {@code fixed} of the wrong size) raises {@link AvroValidationException}, reported as a clean reject. Reuse
@@ -64,6 +68,9 @@ final class AvroJsonParser implements AvroParser, AvroLocation
     private final JsonParserEx json;
     private final AvroType rootType;
     private final UnsafeBuffer segment;
+    private final Map<AvroType, List<AvroField>> fieldsByType;
+    private final Map<AvroType, List<AvroType>> branchesByType;
+    private final Map<AvroType, List<String>> symbolsByType;
 
     private Frame[] stack;
     private int top;
@@ -79,9 +86,9 @@ final class AvroJsonParser implements AvroParser, AvroLocation
     private long longValue;
     private float floatValue;
     private double doubleValue;
-    private String stringValue;
+    private CharSequence valueChars;
     private String fieldName;
-    private String keyName;
+    private CharSequence keyChars;
     private AvroType currentType;
 
     AvroJsonParser(
@@ -91,6 +98,9 @@ final class AvroJsonParser implements AvroParser, AvroLocation
         this.json = json;
         this.rootType = schema.type();
         this.segment = new UnsafeBuffer(0, 0);
+        this.fieldsByType = new IdentityHashMap<>();
+        this.branchesByType = new IdentityHashMap<>();
+        this.symbolsByType = new IdentityHashMap<>();
         this.stack = new Frame[16];
         this.bytes = new byte[64];
     }
@@ -98,6 +108,7 @@ final class AvroJsonParser implements AvroParser, AvroLocation
     @Override
     public void reset()
     {
+        json.reset();
         top = 0;
         state = NOT_STARTED;
         havePending = false;
@@ -188,7 +199,7 @@ final class AvroJsonParser implements AvroParser, AvroLocation
     @Override
     public String getString()
     {
-        return stringValue;
+        return valueChars == null ? null : valueChars.toString();
     }
 
     @Override
@@ -200,7 +211,7 @@ final class AvroJsonParser implements AvroParser, AvroLocation
     @Override
     public String getKey()
     {
-        return keyName;
+        return keyChars == null ? null : keyChars.toString();
     }
 
     @Override
@@ -273,6 +284,7 @@ final class AvroJsonParser implements AvroParser, AvroLocation
         AvroType type)
     {
         AvroEvent event = null;
+        List<AvroField> fields = fields(type);
         if (frame.phase == 0)
         {
             if (accept(Event.START_OBJECT))
@@ -282,13 +294,13 @@ final class AvroJsonParser implements AvroParser, AvroLocation
                 event = AvroEvent.START_RECORD;
             }
         }
-        else if (frame.fieldIndex < type.fields().size())
+        else if (frame.fieldIndex < fields.size())
         {
             Event next = peek();
             if (next != null)
             {
-                AvroField field = type.fields().get(frame.fieldIndex);
-                if (next != Event.KEY_NAME || !json.getString().equals(field.name()))
+                AvroField field = fields.get(frame.fieldIndex);
+                if (next != Event.KEY_NAME || !field.name().contentEquals(json.getStringView()))
                 {
                     throw reject("expected field " + field.name());
                 }
@@ -371,8 +383,9 @@ final class AvroJsonParser implements AvroParser, AvroLocation
                 {
                     throw reject("expected map key");
                 }
-                keyName = json.getString();
-                segmentUtf8(keyName);
+                CharSequence key = json.getStringView();
+                keyChars = key;
+                segmentUtf8(key);
                 consume();
                 frame.phase = 2;
                 currentType = type.values();
@@ -392,12 +405,13 @@ final class AvroJsonParser implements AvroParser, AvroLocation
         AvroType type)
     {
         AvroEvent event = null;
+        List<AvroType> branches = branches(type);
         if (frame.phase == 0)
         {
             Event next = peek();
             if (next == Event.VALUE_NULL)
             {
-                int index = AvroJson.nullBranchIndex(type);
+                int index = AvroJson.nullBranchIndex(branches);
                 if (index < 0)
                 {
                     throw reject("union has no null branch");
@@ -423,10 +437,10 @@ final class AvroJsonParser implements AvroParser, AvroLocation
                 {
                     throw reject("expected union branch name");
                 }
-                int index = AvroJson.branchIndex(type, json.getString());
+                int index = AvroJson.branchIndex(branches, json.getStringView());
                 if (index < 0)
                 {
-                    throw reject("unknown union branch " + json.getString());
+                    throw reject("unknown union branch " + json.getStringView());
                 }
                 consume();
                 event = selectBranch(type, index, true);
@@ -441,7 +455,7 @@ final class AvroJsonParser implements AvroParser, AvroLocation
         boolean wrapped)
     {
         intValue = index;
-        AvroType branch = union.branches().get(index);
+        AvroType branch = branches(union).get(index);
         currentType = branch;
         popFrame();
         push(branch, wrapped);
@@ -487,13 +501,13 @@ final class AvroJsonParser implements AvroParser, AvroLocation
             break;
         case INT:
             require(next == Event.VALUE_NUMBER, "expected number");
-            intValue = readInt();
+            intValue = (int) parseLong(json.getStringView());
             consume();
             event = AvroEvent.INT;
             break;
         case LONG:
             require(next == Event.VALUE_NUMBER, "expected number");
-            longValue = readLong();
+            longValue = parseLong(json.getStringView());
             consume();
             event = AvroEvent.LONG;
             break;
@@ -511,8 +525,8 @@ final class AvroJsonParser implements AvroParser, AvroLocation
             break;
         case STRING:
             require(next == Event.VALUE_STRING, "expected string");
-            stringValue = json.getString();
-            segmentUtf8(stringValue);
+            valueChars = json.getStringView();
+            segmentUtf8(valueChars);
             consume();
             event = AvroEvent.STRING;
             break;
@@ -541,48 +555,55 @@ final class AvroJsonParser implements AvroParser, AvroLocation
     private AvroEvent readEnum(
         AvroType type)
     {
-        String symbol = json.getString();
-        int ordinal = type.symbols().indexOf(symbol);
+        CharSequence symbol = json.getStringView();
+        List<String> symbols = symbols(type);
+        int ordinal = -1;
+        for (int i = 0; ordinal < 0 && i < symbols.size(); i++)
+        {
+            if (symbols.get(i).contentEquals(symbol))
+            {
+                ordinal = i;
+            }
+        }
         if (ordinal < 0)
         {
             throw reject("unknown enum symbol " + symbol);
         }
         intValue = ordinal;
-        stringValue = symbol;
+        valueChars = symbol;
         consume();
         return AvroEvent.ENUM;
     }
 
-    private int readInt()
+    private long parseLong(
+        CharSequence value)
     {
-        int value;
-        try
+        int length = value.length();
+        int index = 0;
+        boolean negative = length > 0 && value.charAt(0) == '-';
+        if (negative)
         {
-            value = json.getInt();
+            index = 1;
         }
-        catch (IllegalStateException ex)
+        if (index == length)
         {
-            value = json.getBigDecimal().intValue();
+            throw reject("expected integer");
         }
-        return value;
-    }
-
-    private long readLong()
-    {
-        long value;
-        try
+        long magnitude = 0;
+        for (; index < length; index++)
         {
-            value = json.getLong();
+            char ch = value.charAt(index);
+            if (ch < '0' || ch > '9')
+            {
+                throw reject("expected integer");
+            }
+            magnitude = magnitude * 10 + (ch - '0');
         }
-        catch (IllegalStateException ex)
-        {
-            value = json.getBigDecimal().longValue();
-        }
-        return value;
+        return negative ? -magnitude : magnitude;
     }
 
     private void segmentUtf8(
-        String value)
+        CharSequence value)
     {
         int count = value.length();
         ensureBytes(count * 3);
@@ -733,6 +754,24 @@ final class AvroJsonParser implements AvroParser, AvroLocation
         String message)
     {
         return new AvroValidationException(message);
+    }
+
+    private List<AvroField> fields(
+        AvroType type)
+    {
+        return fieldsByType.computeIfAbsent(type, AvroType::fields);
+    }
+
+    private List<AvroType> branches(
+        AvroType type)
+    {
+        return branchesByType.computeIfAbsent(type, AvroType::branches);
+    }
+
+    private List<String> symbols(
+        AvroType type)
+    {
+        return symbolsByType.computeIfAbsent(type, AvroType::symbols);
     }
 
     private static final class Frame

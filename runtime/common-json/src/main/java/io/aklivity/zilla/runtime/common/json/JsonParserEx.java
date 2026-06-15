@@ -46,4 +46,21 @@ public interface JsonParserEx extends JsonParser
         DirectBuffer buffer,
         int offset,
         int length);
+
+    /**
+     * Rewinds the parser to before the first event of a fresh top-level document, clearing all carried parse
+     * state so a single instance can be reused across documents (one per worker thread). Call once per
+     * document before {@link #wrap(DirectBuffer, int, int)}.
+     */
+    void reset();
+
+    /**
+     * A non-owning, on-stack {@link CharSequence} view of the current scalar token — the decoded content of
+     * a {@code VALUE_STRING} (or key), or the lexeme of a {@code VALUE_NUMBER} — valid only until the parser
+     * advances. The zero-copy peer of {@link #getString()} / {@link #getBigDecimal()}: a streaming caller
+     * reads and re-encodes the value (or parses the number) without materializing a {@code String}. The
+     * backing buffer is reused across tokens, so copy out anything needed beyond the current event. Valid for
+     * a value that fits one window; a fragmented value is read via {@code getString()} fragments as before.
+     */
+    CharSequence getStringView();
 }
