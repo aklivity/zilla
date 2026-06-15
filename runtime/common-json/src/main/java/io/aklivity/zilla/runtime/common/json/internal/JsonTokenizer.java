@@ -84,9 +84,8 @@ public final class JsonTokenizer
     // set while a segment scan is in progress: a value-string is then streamed across frames as raw
     // bytes (no rewind to require it whole-in-frame, no decoded retention) rather than buffered whole.
     private boolean segmenting;
-    // set while the current top-level value-string is being delivered verbatim as raw segment fragments
-    // (a kept scalar leaf armed by the projector): like segmenting it suppresses decoded retention, but
-    // unlike a container scan it lets the value-string itself fragment across windows at unit boundaries.
+    // set while a kept scalar leaf value-string is delivered verbatim as raw fragments: suppresses decoded
+    // retention and lets the value-string fragment across windows at unit boundaries
     private boolean scalarSegment;
     // set while a value-string that fills the input window is being delivered as a sequence of
     // fragments: each fragment carries the decoded chars scanned so far, deferredBytes() stays true
@@ -160,8 +159,7 @@ public final class JsonTokenizer
         this.segmenting = segmenting;
     }
 
-    // Arms the next top-level value-string to stream verbatim as raw segment fragments: decoded chars are
-    // not retained and the value-string fragments across windows at UTF-8/escape unit boundaries.
+    // Arms the next value-string to stream verbatim as raw fragments (no decoded retention).
     void scalarSegment(
         boolean scalarSegment)
     {
@@ -237,16 +235,12 @@ public final class JsonTokenizer
         if (midScalar)
         {
             final long valueBytes = streamOffset - valueStreamStart;
-            // a kept scalar leaf streamed verbatim fragments on any starve (whatever bytes scanned so
-            // far ship as a raw fragment); a retained-but-decoded value only fragments once its own bytes
-            // fill the window (smaller values reassemble whole next window)
+            // a kept scalar leaf fragments verbatim on any starve; a decoded value only once it fills the window
             final boolean fragment =
                 !terminalEof && (scalarSegment || fragmenting || valueBytes >= windowLength);
             if (fragment && resumeOp == ResumeOp.VALUE_STRING)
             {
-                // string: rewind to the last complete code-point/escape boundary, leaving the partial
-                // unit for the caller to carry; ship the chars decoded so far (verbatim leaf: ship the
-                // raw bytes scanned so far, nothing retained in scratch)
+                // rewind to the last complete code-point/escape boundary, leaving the partial unit for the caller
                 streamOffset = unitStartOffset;
                 resumeEscape = false;
                 resumeUnicodePending = 0;
@@ -676,8 +670,7 @@ public final class JsonTokenizer
         InputStream in,
         int c) throws IOException
     {
-        // a scalar-segment arm applies only to a value-string; clear it for any other value so it does
-        // not leak into a container's inner strings or a following value
+        // a scalar-segment arm applies only to a value-string; clear it for any other value
         if (c != '"')
         {
             scalarSegment = false;

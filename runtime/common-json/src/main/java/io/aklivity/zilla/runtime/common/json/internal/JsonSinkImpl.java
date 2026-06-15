@@ -168,10 +168,8 @@ public final class JsonSinkImpl implements JsonSink
         return deferred ? Status.ADVANCED : scalarStatus();
     }
 
-    // Append-only and stateless: writes the segment view whole, where the view is the remainder the
-    // upstream re-exposes after each consumed() pushback (no per-value write offset kept here). The
-    // generator copies as many whole source units as fit the output bound; the source bytes it took are
-    // pushed back via control.consumed(...) so the upstream advances and re-exposes the remainder.
+    // Append-only and stateless: writes the segment view whole and pushes back the source bytes the
+    // generator took via control.consumed(...) so the upstream re-exposes the remainder.
     private Status writeChunk(
         JsonController control,
         DirectBuffer segment,

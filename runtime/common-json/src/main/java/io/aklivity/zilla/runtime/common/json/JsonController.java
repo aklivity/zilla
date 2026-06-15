@@ -22,21 +22,14 @@ package io.aklivity.zilla.runtime.common.json;
  * caller determines which by observing the events that follow — there is no return value, because a
  * mediating upstream cannot know the outcome at call time. A mediating {@link JsonTransform} supplies
  * its own {@code JsonController} to its downstream; a non-mediating stage passes its own through.
- * <p>
- * A terminal stage that splices a kept value's verbatim bytes also calls {@link #consumed(int)} after
- * each segment chunk, reporting how many <em>source</em> bytes it actually took, so the upstream advances
- * its {@code position()} by exactly that count and re-exposes the value remainder on resume. A mediating
- * stage forwards {@code consumed} to its own upstream, the same way it relays {@code segmentable}.
  */
 public interface JsonController
 {
     void segmentable();
 
     /**
-     * Reports that {@code sourceBytes} source bytes of the current verbatim segment were consumed by the
-     * terminal write, always on a UTF-8 character and JSON escape-sequence boundary. The upstream advances
-     * its {@code position()} by this count so the next pull/resume re-exposes the value remainder. The
-     * default is a no-op for upstreams that do not track segment consumption.
+     * Reports {@code sourceBytes} source bytes consumed by a verbatim segment write so the upstream
+     * advances its {@code position()} and re-exposes the value remainder on resume.
      */
     default void consumed(
         int sourceBytes)

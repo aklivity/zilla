@@ -590,10 +590,8 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         }
     }
 
-    // Copies whole source units only: a unit is a whole UTF-8 character or a whole JSON escape sequence
-    // (a two-byte backslash escape or a six-byte backslash-u escape), never a partial multibyte char or
-    // split escape. Stops before a unit that does not fit the output bound; consumed() advances by the
-    // source bytes taken, always on a unit boundary.
+    // Copies whole source units (UTF-8 char or JSON escape sequence), stopping before one that overflows
+    // the output bound, so consumed() always advances on a unit boundary.
     private int writeRawSegment(
         DirectBuffer source,
         int index,
@@ -615,8 +613,8 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         return written;
     }
 
-    // Escapes whole source units only (see writeRawSegment): each unit's escaped output is emitted
-    // atomically, stopping before a unit whose escaped width would exceed the output bound.
+    // Escapes whole source units (see writeRawSegment), stopping before a unit whose escaped width
+    // would overflow the output bound.
     private int writeEscapedSegment(
         DirectBuffer source,
         int index,
@@ -640,10 +638,8 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         return written;
     }
 
-    // Byte length of the next source unit at index: a JSON escape sequence (backslash-X is 2 bytes,
-    // backslash-u-XXXX is 6 bytes) is one unit, a UTF-8 character is one unit of 1-4 bytes per its lead
-    // byte. A unit whose bytes are not all available within length is reported as the available remainder
-    // so it is held back, not split.
+    // Byte length of the next source unit: a backslash escape (2 or 6 bytes) or a UTF-8 char (1-4 bytes),
+    // capped at length so a unit not wholly available is held back rather than split.
     private static int unitLength(
         DirectBuffer source,
         int index,
@@ -679,9 +675,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         return Math.min(unit, length);
     }
 
-    // Output byte width of a source unit once escaped: the sum of each byte's escaped width, so a
-    // multibyte UTF-8 char passes through verbatim while an escape sequence's backslash and content are
-    // themselves escaped (JSON-in-JSON).
+    // Output byte width of a source unit once escaped: the sum of each byte's escaped width.
     private static int escapedUnitWidth(
         DirectBuffer source,
         int index,

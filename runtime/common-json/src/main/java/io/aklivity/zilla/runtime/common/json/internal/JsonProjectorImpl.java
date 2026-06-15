@@ -111,9 +111,8 @@ public final class JsonProjectorImpl implements JsonTransform
         downstreamDemand = true;
     }
 
-    // Relays the terminal sink's consumed() pushback to the projector's own upstream so the parser
-    // advances by exactly the source bytes truly emitted, the same relay the projector does for
-    // segmentable(). The current upstream control is captured per feed/resume.
+    // Relays the sink's consumed() pushback to the projector's own upstream, the same way it relays
+    // segmentable(); the upstream control is captured per feed/resume.
     private final class DownstreamControl implements JsonController
     {
         @Override
@@ -243,9 +242,7 @@ public final class JsonProjectorImpl implements JsonTransform
         // A forwarded key reuses the char view already buffered above for path matching, so no key
         // ever materializes a String — neither the SKIP majority nor the KEEP keys carried downstream.
         pendingKey = d == Decision.SKIP ? null : key;
-        // arm the kept value for verbatim segment delivery: if it is a scalar leaf the upstream streams
-        // it as raw segment fragments; if it turns out to be a container the upstream re-arms at its start
-        // and the scalar arm is discarded. Best-effort, demand-gated, exactly like the container path.
+        // arm the kept value for verbatim segment delivery; best-effort, demand-gated
         boolean parentEmit = containers == 0 || frameEmit[containers - 1];
         if (parentEmit && d == Decision.KEEP_ALL && downstreamDemand)
         {

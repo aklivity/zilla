@@ -367,9 +367,7 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
         }
         else if (lastEvent == JsonEvent.KEY_NAME)
         {
-            // a kept scalar leaf armed at its key: the upcoming value-string is streamed verbatim as raw
-            // segment fragments (no decoded retention) once parseValue enters it; the tokenizer clears
-            // the arm if the value turns out to be a container, number, or literal rather than a string
+            // arm the upcoming value-string to stream verbatim; the tokenizer clears it for a non-string
             tokenizer.scalarSegment(true);
         }
     }
@@ -458,8 +456,7 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
     @Override
     public DirectBuffer getSegment()
     {
-        // re-expose the unconsumed remainder of the current segment slice: a partial terminal write
-        // pushes back consumed() so the next pull/resume appends from where it stopped, append-only
+        // re-expose the unconsumed remainder of the segment slice after consumed() pushback, append-only
         segmentView.wrap(ownedInput.buffer(), segmentSliceOffset + segmentConsumed, segmentSliceLength - segmentConsumed);
         return segmentView;
     }

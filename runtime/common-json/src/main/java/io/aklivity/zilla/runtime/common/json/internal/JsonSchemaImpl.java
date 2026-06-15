@@ -1662,8 +1662,7 @@ public final class JsonSchemaImpl implements JsonSchema
 
     private final class Validator implements JsonTransform
     {
-        // declines segmentable() (validation requires structured events) but relays consumed() to the
-        // upstream so a verbatim segment path further downstream still advances the parser correctly
+        // declines segmentable() (validation needs structured events) but relays consumed() upstream
         private final class Decline implements JsonController
         {
             @Override
