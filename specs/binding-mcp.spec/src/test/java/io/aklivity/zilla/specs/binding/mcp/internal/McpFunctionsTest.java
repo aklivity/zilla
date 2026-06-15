@@ -1337,6 +1337,42 @@ public class McpFunctionsTest
     }
 
     @Test
+    public void shouldGenerateErrorResetEx()
+    {
+        byte[] bytes = McpFunctions.resetEx()
+            .typeId(0)
+            .error()
+                .code(-32603)
+                .message("unresolved expression: args.ownerr")
+                .build()
+            .build();
+
+        assertNotNull(bytes);
+    }
+
+    @Test
+    public void shouldMatchErrorResetEx() throws Exception
+    {
+        BytesMatcher matcher = McpFunctions.matchResetEx()
+            .typeId(0)
+            .error()
+                .code(-32603)
+                .message("unresolved expression: args.ownerr")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new McpResetExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .error(e -> e.code(-32603).message("unresolved expression: args.ownerr"))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
     public void shouldReturnNullWhenResetExMatcherIsEmpty() throws Exception
     {
         BytesMatcher matcher = McpFunctions.matchResetEx()
