@@ -1662,10 +1662,25 @@ public final class JsonSchemaImpl implements JsonSchema
 
     private final class Validator implements JsonTransform
     {
-        private final JsonController decline = () ->
+        // declines segmentable() (validation needs structured events) but relays consumed() upstream
+        private final class Decline implements JsonController
         {
-        };
+            @Override
+            public void segmentable()
+            {
+            }
 
+            @Override
+            public void consumed(
+                int sourceBytes)
+            {
+                upstreamControl.consumed(sourceBytes);
+            }
+        }
+
+        private final JsonController decline = new Decline();
+
+        private JsonController upstreamControl;
         private Eval eval;
 
         private Validator()
@@ -1680,6 +1695,7 @@ public final class JsonSchemaImpl implements JsonSchema
             JsonEvent event,
             JsonSink sink)
         {
+            upstreamControl = control;
             Status downstream = sink.feed(decline, source, event);
             Status status;
             if (event.segmented() || event == JsonEvent.START_DOCUMENT || event == JsonEvent.END_DOCUMENT)

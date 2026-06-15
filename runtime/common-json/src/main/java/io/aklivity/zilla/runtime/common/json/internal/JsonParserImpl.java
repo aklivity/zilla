@@ -59,6 +59,7 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
     private long segmentStartOffset;
     private int segmentSliceOffset;
     private int segmentSliceLength;
+    private int segmentConsumed;
     private int segmentDepth;
     private boolean armNextValue;
 
@@ -148,6 +149,7 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
         tokenizer.reset();
         segmentState = SegmentState.NONE;
         segmentDepth = 0;
+        segmentConsumed = 0;
         armNextValue = false;
         lastEvent = null;
         docState = DocState.NOT_STARTED;
@@ -278,6 +280,7 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
             {
                 segmentSliceOffset = bufferOffset(tokenizer.valueStreamStart());
                 segmentSliceLength = (int) (tokenizer.valueStreamEnd() - tokenizer.valueStreamStart());
+                segmentConsumed = 0;
             }
             if (armNextValue)
             {
@@ -317,6 +320,7 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
             {
                 segmentSliceOffset = sliceStart;
                 segmentSliceLength = ownedInput.offset() + ownedInput.length() - sliceStart;
+                segmentConsumed = 0;
                 segmentState = SegmentState.SCANNING;
                 event = JsonEvent.SEGMENT;
             }
@@ -338,6 +342,7 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
                     final int sliceEnd = bufferOffset(tokenizer.streamOffset());
                     segmentSliceOffset = sliceStart;
                     segmentSliceLength = sliceEnd - sliceStart;
+                    segmentConsumed = 0;
                     segmentState = SegmentState.NONE;
                     event = JsonEvent.SEGMENT;
                 }
@@ -360,6 +365,18 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
         {
             armNextValue = true;
         }
+        else if (lastEvent == JsonEvent.KEY_NAME)
+        {
+            // arm the upcoming value-string to stream verbatim; the tokenizer clears it for a non-string
+            tokenizer.scalarSegment(true);
+        }
+    }
+
+    @Override
+    public void consumed(
+        int sourceBytes)
+    {
+        segmentConsumed += sourceBytes;
     }
 
     @Override
@@ -439,7 +456,8 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
     @Override
     public DirectBuffer getSegment()
     {
-        segmentView.wrap(ownedInput.buffer(), segmentSliceOffset, segmentSliceLength);
+        // re-expose the unconsumed remainder of the segment slice after consumed() pushback, append-only
+        segmentView.wrap(ownedInput.buffer(), segmentSliceOffset + segmentConsumed, segmentSliceLength - segmentConsumed);
         return segmentView;
     }
 
