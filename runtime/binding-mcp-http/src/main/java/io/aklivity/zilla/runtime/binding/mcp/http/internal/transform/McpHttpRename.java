@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.mcp.http.internal.stream;
+package io.aklivity.zilla.runtime.binding.mcp.http.internal.transform;
 
 import java.math.BigDecimal;
 import java.util.Map;
@@ -33,14 +33,14 @@ import io.aklivity.zilla.runtime.common.json.JsonTransform;
  * leaving every value (including whole object/array subtrees) untouched. Chained after a projector,
  * it realizes the rename portion of a request body template without materializing any value.
  */
-final class McpHttpRename implements JsonTransform
+public final class McpHttpRename implements JsonTransform
 {
     private final Map<String, String> renames;
     private final KeySource keySource = new KeySource();
 
     private int depth;
 
-    McpHttpRename(
+    public McpHttpRename(
         Map<String, String> renames)
     {
         this.renames = renames;

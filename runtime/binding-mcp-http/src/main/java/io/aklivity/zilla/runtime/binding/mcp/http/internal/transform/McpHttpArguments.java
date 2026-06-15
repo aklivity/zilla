@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.mcp.http.internal.stream;
+package io.aklivity.zilla.runtime.binding.mcp.http.internal.transform;
 
 import java.util.Map;
 
@@ -31,7 +31,7 @@ import io.aklivity.zilla.runtime.common.json.JsonTransform;
  * raised by the downstream projector is propagated to the upstream parser, letting a large argument value
  * (e.g. a request body) stream verbatim across input frames.
  */
-final class McpHttpArguments implements JsonTransform
+public final class McpHttpArguments implements JsonTransform
 {
     private final Map<String, String> captured;
     private final JsonController downstreamControl = this::onDownstreamSegmentable;
@@ -43,7 +43,7 @@ final class McpHttpArguments implements JsonTransform
     private int forwardDepth;
     private String captureKey;
 
-    McpHttpArguments(
+    public McpHttpArguments(
         Map<String, String> captured)
     {
         this.captured = captured;

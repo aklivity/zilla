@@ -60,6 +60,8 @@ import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpWithConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.McpHttpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.config.McpHttpBindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.config.McpHttpRouteConfig;
+import io.aklivity.zilla.runtime.binding.mcp.http.internal.transform.McpHttpArguments;
+import io.aklivity.zilla.runtime.binding.mcp.http.internal.transform.McpHttpRename;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.types.OctetsFW;
