@@ -43,7 +43,6 @@ import java.util.regex.Pattern;
 import jakarta.json.stream.JsonParser;
 
 import org.agrona.DirectBuffer;
-import org.agrona.ExpandableArrayBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
@@ -773,6 +772,11 @@ public final class McpClientFactory implements McpStreamFactory
                 {
                     http.decodedResultErrorKey = true;
                 }
+            }
+
+            if (http.decodedSkipObjectThen == decodeJsonRpcResultEnd)
+            {
+                http.onDecodeResultEvent(event, parser, http.decodedSkipObjectDepth);
             }
         }
 
@@ -3552,6 +3556,13 @@ public final class McpClientFactory implements McpStreamFactory
             int offset,
             int limit);
 
+        void onDecodeResultEvent(
+            JsonParser.Event event,
+            JsonParser parser,
+            int depth)
+        {
+        }
+
         protected void cleanupDecodeSlot()
         {
             if (decodeSlot != NO_SLOT)
@@ -4183,8 +4194,10 @@ public final class McpClientFactory implements McpStreamFactory
 
     private final class HttpInitializeRequest extends HttpStream
     {
-        private final ExpandableArrayBuffer resultBuffer = new ExpandableArrayBuffer();
-        private int resultLimit;
+        private boolean inCapabilities;
+        private String capabilityCategory;
+        private boolean expectVersion;
+        private boolean expectListChanged;
 
         HttpInitializeRequest(
             McpStream mcp)
@@ -4254,95 +4267,82 @@ public final class McpClientFactory implements McpStreamFactory
             int offset,
             int limit)
         {
-            final int length = limit - offset;
-            resultBuffer.putBytes(resultLimit, buffer, offset, length);
-            resultLimit += length;
             return limit;
         }
 
         @Override
-        void onResponseComplete(
-            long traceId,
-            long authorization)
+        void onDecodeResultEvent(
+            JsonParser.Event event,
+            JsonParser parser,
+            int depth)
         {
-            if (resultLimit == 0)
+            switch (event)
             {
-                return;
-            }
-
-            int bits = 0;
-            try (JsonParserEx parser = JsonEx.createParser())
-            {
-                parser.wrap(resultBuffer, 0, resultLimit);
-                int depth = 0;
-                boolean inCapabilities = false;
-                String primitive = null;
-
-                while (parser.hasNext())
+            case KEY_NAME:
+                final String key = parser.getString();
+                if (depth == 1 && JSON_KEY_PROTOCOL_VERSION.equals(key))
                 {
-                    final JsonParser.Event event = parser.next();
-                    switch (event)
+                    expectVersion = true;
+                }
+                else if (depth == 1 && JSON_KEY_CAPABILITIES.equals(key))
+                {
+                    inCapabilities = true;
+                }
+                else if (depth == 2 && inCapabilities)
+                {
+                    capabilityCategory = key;
+                }
+                else if (depth == 3 && capabilityCategory != null && JSON_KEY_LIST_CHANGED.equals(key))
+                {
+                    expectListChanged = true;
+                }
+                break;
+            case VALUE_STRING:
+                if (expectVersion && mcp instanceof McpLifecycleStream lifecycle)
+                {
+                    lifecycle.negotiatedVersion = parser.getString();
+                }
+                expectVersion = false;
+                expectListChanged = false;
+                break;
+            case VALUE_TRUE:
+                if (expectListChanged && capabilityCategory != null)
+                {
+                    switch (capabilityCategory)
                     {
-                    case START_OBJECT:
-                        depth++;
+                    case JSON_KEY_TOOLS:
+                        mcp.serverCapabilities |= SERVER_TOOLS_LIST_CHANGED.value();
                         break;
-                    case END_OBJECT:
-                        depth--;
-                        if (depth == 2 && primitive != null)
-                        {
-                            primitive = null;
-                        }
-                        if (depth == 1 && inCapabilities)
-                        {
-                            inCapabilities = false;
-                        }
+                    case JSON_KEY_PROMPTS:
+                        mcp.serverCapabilities |= SERVER_PROMPTS_LIST_CHANGED.value();
                         break;
-                    case KEY_NAME:
-                        final String key = parser.getString();
-                        if (depth == 1 && JSON_KEY_PROTOCOL_VERSION.equals(key))
-                        {
-                            if (parser.hasNext() && parser.next() == JsonParser.Event.VALUE_STRING &&
-                                mcp instanceof McpLifecycleStream lifecycle)
-                            {
-                                lifecycle.negotiatedVersion = parser.getString();
-                            }
-                        }
-                        else if (depth == 1 && JSON_KEY_CAPABILITIES.equals(key))
-                        {
-                            inCapabilities = true;
-                        }
-                        else if (depth == 2 && inCapabilities)
-                        {
-                            primitive = key;
-                        }
-                        else if (depth == 3 && primitive != null && JSON_KEY_LIST_CHANGED.equals(key))
-                        {
-                            if (parser.hasNext() && parser.next() == JsonParser.Event.VALUE_TRUE)
-                            {
-                                switch (primitive)
-                                {
-                                case JSON_KEY_TOOLS:
-                                    bits |= SERVER_TOOLS_LIST_CHANGED.value();
-                                    break;
-                                case JSON_KEY_PROMPTS:
-                                    bits |= SERVER_PROMPTS_LIST_CHANGED.value();
-                                    break;
-                                case JSON_KEY_RESOURCES:
-                                    bits |= SERVER_RESOURCES_LIST_CHANGED.value();
-                                    break;
-                                default:
-                                    break;
-                                }
-                            }
-                        }
+                    case JSON_KEY_RESOURCES:
+                        mcp.serverCapabilities |= SERVER_RESOURCES_LIST_CHANGED.value();
                         break;
                     default:
                         break;
                     }
                 }
+                expectVersion = false;
+                expectListChanged = false;
+                break;
+            case END_OBJECT:
+                if (depth == 2)
+                {
+                    capabilityCategory = null;
+                }
+                else if (depth == 1)
+                {
+                    inCapabilities = false;
+                }
+                expectVersion = false;
+                expectListChanged = false;
+                break;
+            default:
+                expectVersion = false;
+                expectListChanged = false;
+                break;
             }
-
-            mcp.serverCapabilities |= bits;
         }
     }
 
