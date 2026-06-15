@@ -240,6 +240,67 @@ class JsonProjectorSegmentTest
         return result.toString();
     }
 
+    @Test
+    void shouldStreamMultiLeafResourceLikeBinding()
+    {
+        String status = "z".repeat(300);
+        String json = "{\"id\":\"12345\",\"status\":\"" + status + "\",\"total\":42.5," +
+            "\"customer\":\"acme\",\"createdAt\":\"2026-01-01\"} ";
+
+        String escaped = driveMulti(json, 16, 7);
+        String whole = driveMulti(json, 4096, 4096);
+
+        assertEquals(whole, escaped);
+        assertEquals("{\"id\":\"12345\",\"status\":\"" + status + "\",\"total\":42.5}",
+            decodeJsonString(escaped));
+    }
+
+    private static String driveMulti(
+        String json,
+        int outBound,
+        int inStep)
+    {
+        MutableDirectBuffer out = new UnsafeBuffer(new byte[outBound]);
+        JsonGeneratorEx gen = JsonEx.createGenerator(Map.of(JsonGeneratorEx.GENERATE_ESCAPED, true));
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(JsonEx.projector(List.of("/id", "/status", "/total")))
+            .into(JsonEx.createSink(gen, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.SEGMENTABLE)));
+
+        byte[] bytes = json.getBytes(UTF_8);
+        pipeline.reset();
+        gen.wrap(out, 0, outBound);
+
+        StringBuilder result = new StringBuilder();
+        int committed = 0;
+        int offset = 0;
+        Status status = Status.STARVED;
+        int guard = 0;
+        while (guard++ < 1_000_000)
+        {
+            if (status != Status.SUSPENDED)
+            {
+                offset = Math.min(offset + inStep, bytes.length);
+            }
+            boolean last = offset >= bytes.length;
+            status = pipeline.feed(new UnsafeBuffer(bytes), committed, offset - committed, last);
+            byte[] chunk = new byte[gen.length()];
+            out.getBytes(0, chunk);
+            result.append(new String(chunk, UTF_8));
+            committed = (int) pipeline.position();
+            if (status == Status.SUSPENDED)
+            {
+                gen.wrap(out, 0, outBound);
+            }
+            else if (status == Status.COMPLETED || status == Status.REJECTED)
+            {
+                break;
+            }
+        }
+
+        assertEquals(Status.COMPLETED, status);
+        return result.toString();
+    }
+
     // The project(/a) plain (non-escaped) rendering, whole-shot, for the JSON-in-JSON round-trip check.
     private static String plain(
         String json)
