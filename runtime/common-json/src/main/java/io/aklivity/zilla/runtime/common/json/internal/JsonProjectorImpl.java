@@ -72,6 +72,8 @@ public final class JsonProjectorImpl implements JsonTransform
     private Status downstream;
     private SegMode segMode = SegMode.NONE;
     private JsonEvent deferredStart;
+    private boolean scalarPending;
+    private boolean scalarEmit;
 
     private enum SegMode
     {
@@ -99,6 +101,8 @@ public final class JsonProjectorImpl implements JsonTransform
         downstreamDemand = false;
         segMode = SegMode.NONE;
         deferredStart = null;
+        scalarPending = false;
+        scalarEmit = false;
     }
 
     private void onDownstreamSegmentable()
@@ -348,18 +352,48 @@ public final class JsonProjectorImpl implements JsonTransform
         JsonEvent event,
         JsonSink sink)
     {
-        Decision d = enterValue();
-        boolean parentEmit = containers == 0 || frameEmit[containers - 1];
-        boolean emit = parentEmit && d == Decision.KEEP_ALL;
-        if (emit)
+        if (scalarPending)
         {
-            forwardPendingKey(sink);
-            forward(sink, source, event);
+            // a continuation fragment of a kept/dropped scalar value split across input windows: the value
+            // was already entered on its first fragment, so forward (if kept) without re-entering and only
+            // account for the consumed value once its closing fragment arrives (deferredBytes false)
+            if (scalarEmit)
+            {
+                forward(sink, source, event);
+            }
+            if (!source.deferredBytes())
+            {
+                finishScalar();
+            }
         }
         else
         {
-            pendingKey = null;
+            Decision d = enterValue();
+            boolean parentEmit = containers == 0 || frameEmit[containers - 1];
+            scalarEmit = parentEmit && d == Decision.KEEP_ALL;
+            if (scalarEmit)
+            {
+                forwardPendingKey(sink);
+                forward(sink, source, event);
+            }
+            else
+            {
+                pendingKey = null;
+            }
+            if (source.deferredBytes())
+            {
+                scalarPending = true;
+            }
+            else
+            {
+                finishScalar();
+            }
         }
+    }
+
+    private void finishScalar()
+    {
+        scalarPending = false;
         if (containers == 0)
         {
             rootDone = true;
