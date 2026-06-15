@@ -30,6 +30,14 @@ public interface JsonSource
 {
     String getString();
 
+    /**
+     * A non-owning, on-stack {@link CharSequence} view of the current scalar — the decoded content of a
+     * string value (or key), or the lexeme of a number — valid only until the cursor advances. The
+     * zero-copy peer of {@link #getString()}: a stage reads (or re-encodes) the value without
+     * materializing a {@code String}. The backing buffer is reused across events.
+     */
+    CharSequence getStringView();
+
     // valid only on a key event; non-owning, on-stack char view of the current key
     CharSequence getKey();
 

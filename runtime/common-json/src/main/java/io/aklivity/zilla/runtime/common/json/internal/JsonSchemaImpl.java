@@ -970,6 +970,12 @@ public final class JsonSchemaImpl implements JsonSchema
         }
 
         @Override
+        public CharSequence getStringView()
+        {
+            return parser.getString();
+        }
+
+        @Override
         public BigDecimal getBigDecimal()
         {
             return parser.getBigDecimal();
@@ -1444,6 +1450,12 @@ public final class JsonSchemaImpl implements JsonSchema
 
         @Override
         public String getString()
+        {
+            return token.text;
+        }
+
+        @Override
+        public CharSequence getStringView()
         {
             return token.text;
         }

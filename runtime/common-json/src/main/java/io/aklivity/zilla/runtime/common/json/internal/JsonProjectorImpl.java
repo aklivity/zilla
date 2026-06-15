@@ -589,6 +589,12 @@ public final class JsonProjectorImpl implements JsonTransform
         }
 
         @Override
+        public CharSequence getStringView()
+        {
+            return key;
+        }
+
+        @Override
         public CharSequence getKey()
         {
             return key;
