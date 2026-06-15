@@ -231,14 +231,18 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     public JsonGeneratorImpl write(
         int value)
     {
-        return writeNumber(Integer.toString(value));
+        preValue();
+        progress += buffer.putIntAscii(progress, value);
+        return this;
     }
 
     @Override
     public JsonGeneratorImpl write(
         long value)
     {
-        return writeNumber(Long.toString(value));
+        preValue();
+        progress += buffer.putLongAscii(progress, value);
+        return this;
     }
 
     @Override
