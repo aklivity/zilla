@@ -134,6 +134,41 @@ class JsonProjectorSegmentTest
         assertEquals("{\"items\":[{ \"id\" : 1 }]}", output(gen));
     }
 
+    @Test
+    void shouldDecodeKeptScalarLeafFragmentedAcrossWindows()
+    {
+        JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(JsonEx.projector(List.of("/a")))
+            .into(JsonEx.createSink(gen, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.DECODED)));
+
+        // a retained scalar leaf far larger than the input window: it fragments across windows and the
+        // DECODED sink rejoins the fragments; the dropped sibling /b also fragments and must not be emitted
+        String value = "x".repeat(40);
+        String json = "{\"a\":\"" + value + "\",\"b\":\"" + "y".repeat(40) + "\"} ";
+        byte[] bytes = json.getBytes(UTF_8);
+        pipeline.reset();
+
+        int committed = 0;
+        int offset = 0;
+        Status status = Status.STARVED;
+        int guard = 0;
+        while (guard++ < 10_000)
+        {
+            offset = Math.min(offset + 8, bytes.length);
+            boolean last = offset >= bytes.length;
+            status = pipeline.feed(new UnsafeBuffer(bytes), committed, offset - committed, last);
+            committed = (int) pipeline.position();
+            if (status == Status.COMPLETED || status == Status.REJECTED)
+            {
+                break;
+            }
+        }
+
+        assertEquals(Status.COMPLETED, status);
+        assertEquals("{\"a\":\"" + value + "\"}", output(gen));
+    }
+
     private String output(
         JsonGeneratorEx gen)
     {
