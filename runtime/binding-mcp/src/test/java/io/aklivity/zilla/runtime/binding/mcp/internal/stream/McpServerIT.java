@@ -136,6 +136,16 @@ public class McpServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/tools.call.reject.error/client",
+        "${app}/tools.call.reject.error/server"})
+    public void shouldRejectToolsCallWithError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/lifecycle.initialize.alt.svc/client",
         "${app}/lifecycle.initialize.alt.svc/server"})
     @Configure(name = MCP_ALT_SVC_ENABLED_NAME, value = "true")

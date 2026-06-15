@@ -1768,7 +1768,7 @@ public final class McpServerFactory implements McpStreamFactory
             if (resetEx != null && resetEx.kind() == McpResetExFW.KIND_ERROR && !McpState.replyOpening(state))
             {
                 final McpErrorResetExFW error = resetEx.error();
-                doEncodeResponseError(traceId, authorization, httpBeginExRW
+                doEncodeResponseErrorDeferred(traceId, authorization, httpBeginExRW
                     .wrap(codecBuffer, 0, codecBuffer.capacity())
                     .typeId(httpTypeId)
                     .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(STATUS_200))
@@ -2568,10 +2568,17 @@ public final class McpServerFactory implements McpStreamFactory
             int code,
             String message)
         {
-            doEncodeResponseError(traceId, authorization, extension, decodedId, code, message);
+            doNetBegin(traceId, authorization, extension);
+
+            final int codecLimit = codecBuffer.putStringWithoutLengthAscii(0,
+                """
+                {"jsonrpc":"2.0","id":%s,"error":{"code":%d,"message":"%s"}
+                """.formatted(decodedId, code, message));
+            doNetData(traceId, authorization, codecBuffer, 0, codecLimit);
+            doNetEnd(traceId, authorization);
         }
 
-        private void doEncodeResponseError(
+        private void doEncodeResponseErrorDeferred(
             long traceId,
             long authorization,
             Flyweight extension,
@@ -2582,11 +2589,15 @@ public final class McpServerFactory implements McpStreamFactory
             doNetBegin(traceId, authorization, extension);
 
             final int codecLimit = codecBuffer.putStringWithoutLengthAscii(0,
-                """
-                {"jsonrpc":"2.0","id":%s,"error":{"code":%d,"message":"%s"}
-                """.formatted(id, code, message));
+                "{\"jsonrpc\":\"2.0\",\"id\":%s,\"error\":{\"code\":%d,\"message\":\"%s\"}}"
+                    .formatted(id, code, message));
             doNetData(traceId, authorization, codecBuffer, 0, codecLimit);
-            doNetEnd(traceId, authorization);
+
+            state = McpState.closingReply(state);
+            if (encodeSlot == NO_SLOT)
+            {
+                doNetEnd(traceId, authorization);
+            }
         }
 
         private void encodeNet(
