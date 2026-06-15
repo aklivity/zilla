@@ -1,0 +1,196 @@
+#
+# Copyright 2021-2024 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+---
+name: test
+catalogs:
+  http_github0:
+    type: inline
+    options:
+      subjects:
+        create_pr_params:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "required": ["owner", "repo", "title", "head", "base"],
+              "properties": {
+                "owner": { "type": "string" },
+                "repo":  { "type": "string" },
+                "title": { "type": "string" },
+                "head":  { "type": "string" },
+                "base":  { "type": "string" },
+                "body":  { "type": "string" },
+                "draft": { "type": "boolean" }
+              }
+            }
+        create_pr_body:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "required": ["title", "head", "base"],
+              "properties": {
+                "title": { "type": "string" },
+                "head":  { "type": "string" },
+                "base":  { "type": "string" },
+                "body":  { "type": "string" },
+                "draft": { "type": "boolean" }
+              }
+            }
+        create_pr_result:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "properties": {
+                "number":   { "type": "integer" },
+                "html_url": { "type": "string" },
+                "state":    { "type": "string" },
+                "title":    { "type": "string" }
+              }
+            }
+        search_code_params:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "required": ["q"],
+              "properties": {
+                "q":        { "type": "string" },
+                "per_page": { "type": "integer" },
+                "page":     { "type": "integer" }
+              }
+            }
+        search_code_result:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "properties": {
+                "total_count": { "type": "integer" },
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": { "path": { "type": "string" } }
+                  }
+                }
+              }
+            }
+        order_result:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "properties": {
+                "id":     { "type": "string" },
+                "status": { "type": "string" },
+                "total":  { "type": "number" }
+              }
+            }
+bindings:
+  app0:
+    type: mcp_http
+    kind: proxy
+    options:
+      tools:
+        create_pr:
+          description: >
+            Create a pull request to merge one branch into another.
+            Use when proposing code changes for review.
+          summary: "Created pull request #${result.number}"
+          schemas:
+            input:
+              model: json
+              catalog:
+                http_github0:
+                  - subject: create_pr_params
+                    version: latest
+            output:
+              model: json
+              catalog:
+                http_github0:
+                  - subject: create_pr_result
+                    version: latest
+        search_code:
+          description: >
+            Search for code across repositories using code search syntax.
+          summary: "Found ${result.total_count} matches"
+          schemas:
+            input:
+              model: json
+              catalog:
+                http_github0:
+                  - subject: search_code_params
+                    version: latest
+            output:
+              model: json
+              catalog:
+                http_github0:
+                  - subject: search_code_result
+                    version: latest
+      resources:
+        order:
+          uri: "order://{orderId}"
+          description: "Customer order by identifier"
+          mimeType: application/json
+          schemas:
+            output:
+              model: json
+              catalog:
+                http_github0:
+                  - subject: order_result
+                    version: latest
+    routes:
+      - when:
+          - tool: create_pr
+        exit: http0
+        with:
+          headers:
+            ":method": POST
+            ":scheme": https
+            ":authority": api.github.com
+            ":path": /repos/${args.ownerr}/${args.repo}/pulls
+          body:
+            model: json
+            catalog:
+              http_github0:
+                - subject: create_pr_body
+                  version: latest
+      - when:
+          - tool: search_code
+        exit: http0
+        with:
+          headers:
+            ":method": GET
+            ":scheme": https
+            ":authority": api.github.com
+            ":path": /search/code
+          query:
+            model: json
+            catalog:
+              http_github0:
+                - subject: search_code_params
+                  version: latest
+      - when:
+          - resource: order
+        exit: http0
+        with:
+          headers:
+            ":method": GET
+            ":scheme": https
+            ":authority": api.orders.internal
+            ":path": /orders/${params.orderId}

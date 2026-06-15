@@ -60,6 +60,7 @@ import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpWithConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.McpHttpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.config.McpHttpBindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.config.McpHttpRouteConfig;
+import io.aklivity.zilla.runtime.binding.mcp.http.internal.events.McpHttpEventContext;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.transform.McpHttpArguments;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.transform.McpHttpRename;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.types.Flyweight;
@@ -138,6 +139,7 @@ public final class McpHttpProxyFactory implements BindingHandler
     private final int httpTypeId;
     private final int mcpTypeId;
     private final EngineContext context;
+    private final McpHttpEventContext events;
     private final Long2ObjectHashMap<McpHttpBindingConfig> bindings;
 
     private final JsonGeneratorEx projectGenerator;
@@ -166,6 +168,7 @@ public final class McpHttpProxyFactory implements BindingHandler
         this.supplyReplyId = context::supplyReplyId;
         this.httpTypeId = context.supplyTypeId(HTTP_TYPE_NAME);
         this.mcpTypeId = context.supplyTypeId(MCP_TYPE_NAME);
+        this.events = new McpHttpEventContext(context);
         this.bindings = new Long2ObjectHashMap<>();
         this.projectGenerator = JsonEx.createGenerator();
         this.projectBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
@@ -620,6 +623,7 @@ public final class McpHttpProxyFactory implements BindingHandler
             if (!unsatisfied.isEmpty())
             {
                 final String accessor = unsatisfied.get(0);
+                events.schemaAccessorUnresolved(traceId, binding.id, name != null ? name : uri, accessor);
                 doMcpReset(traceId, JSON_RPC_INTERNAL_ERROR, "unresolved expression: ${" + accessor + "}");
                 cleanupRequestSlot();
                 return;

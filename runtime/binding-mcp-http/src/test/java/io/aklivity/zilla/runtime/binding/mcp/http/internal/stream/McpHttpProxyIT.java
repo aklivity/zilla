@@ -284,6 +284,15 @@ public class McpHttpProxyIT
     }
 
     @Test
+    @Configuration("proxy.unresolved.yaml")
+    @Specification({
+        "${mcp}/create.pr.unresolved/client"})
+    public void shouldRejectToolWhenExpressionUnresolved() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.yaml")
     @Specification({
         "${mcp}/create.pr.malformed/client",

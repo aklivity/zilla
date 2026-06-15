@@ -30,4 +30,7 @@ module io.aklivity.zilla.runtime.binding.mcp.http
 
     provides io.aklivity.zilla.runtime.engine.config.WithConfigAdapterSpi
         with io.aklivity.zilla.runtime.binding.mcp.http.internal.config.McpHttpWithConfigAdapter;
+
+    provides io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi
+        with io.aklivity.zilla.runtime.binding.mcp.http.internal.events.McpHttpEventFormatterFactory;
 }
