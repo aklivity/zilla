@@ -1,0 +1,322 @@
+/*
+ * Copyright 2021-2024 Aklivity Inc
+ *
+ * Licensed under the Aklivity Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ *   https://www.aklivity.io/aklivity-community-license/
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+package io.aklivity.zilla.runtime.binding.mcp.http.internal.config;
+
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toMap;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.function.ToLongFunction;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpAuthorizationConfig;
+import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpOptionsConfig;
+import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpPromptConfig;
+import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpResourceConfig;
+import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpToolConfig;
+import io.aklivity.zilla.runtime.common.json.JsonSchema;
+import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
+import io.aklivity.zilla.runtime.engine.config.ModelConfig;
+import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
+import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
+
+public final class McpHttpBindingConfig
+{
+    private static final String CREDENTIALS_TOKEN = "{credentials}";
+    private static final String IDENTITY_TOKEN = "{identity}";
+
+    public final long id;
+    public final McpHttpOptionsConfig options;
+    public final List<McpHttpRouteConfig> routes;
+    public final GuardHandler guard;
+
+    private final EngineContext context;
+    private final ToLongFunction<String> resolveId;
+    private final Map<String, McpHttpToolConfig> toolsByName;
+    private final Map<String, McpHttpResourceConfig> resourcesByName;
+    private final Map<String, McpHttpPromptConfig> promptsByName;
+    private final List<ResourceMatcher> resourceMatchers;
+    private final Map<ModelConfig, JsonSchema> jsonSchemas;
+
+    public McpHttpBindingConfig(
+        BindingConfig binding,
+        EngineContext context)
+    {
+        this.id = binding.id;
+        this.context = context;
+        this.resolveId = binding.resolveId;
+        this.options = (McpHttpOptionsConfig) binding.options;
+        this.routes = binding.routes.stream()
+            .map(McpHttpRouteConfig::new)
+            .collect(toList());
+
+        this.toolsByName = Optional.ofNullable(options)
+            .map(o -> o.tools)
+            .stream()
+            .flatMap(List::stream)
+            .collect(toMap(
+                tool -> tool.name,
+                tool -> tool,
+                (existing, replacement) -> existing,
+                LinkedHashMap::new));
+
+        this.resourcesByName = Optional.ofNullable(options)
+            .map(o -> o.resources)
+            .stream()
+            .flatMap(List::stream)
+            .collect(toMap(
+                resource -> resource.name,
+                resource -> resource,
+                (existing, replacement) -> existing,
+                LinkedHashMap::new));
+
+        this.promptsByName = Optional.ofNullable(options)
+            .map(o -> o.prompts)
+            .stream()
+            .flatMap(List::stream)
+            .collect(toMap(
+                prompt -> prompt.name,
+                prompt -> prompt,
+                (existing, replacement) -> existing,
+                LinkedHashMap::new));
+
+        this.resourceMatchers = resourcesByName.values().stream()
+            .filter(resource -> resource.uri != null)
+            .map(ResourceMatcher::new)
+            .collect(toList());
+
+        GuardHandler guard = null;
+        if (options != null && options.authorization != null)
+        {
+            final long guardId = resolveId.applyAsLong(options.authorization.name);
+            guard = context.supplyGuard(guardId);
+        }
+        this.guard = guard;
+
+        this.jsonSchemas = new IdentityHashMap<>();
+    }
+
+    public McpHttpRouteConfig resolveTool(
+        String name,
+        long authorization)
+    {
+        return routes.stream()
+            .filter(r -> r.authorized(authorization) && r.matchesTool(name))
+            .findFirst()
+            .orElse(null);
+    }
+
+    public McpHttpResourceConfig resolveResource(
+        String uri,
+        Map<String, String> params)
+    {
+        McpHttpResourceConfig matched = null;
+        for (ResourceMatcher matcher : resourceMatchers)
+        {
+            if (matcher.matches(uri, params))
+            {
+                matched = matcher.resource;
+                break;
+            }
+        }
+        return matched;
+    }
+
+    public McpHttpRouteConfig resolveResourceRoute(
+        String name,
+        long authorization)
+    {
+        return routes.stream()
+            .filter(r -> r.authorized(authorization) && r.matchesResource(name))
+            .findFirst()
+            .orElse(null);
+    }
+
+    public Collection<McpHttpToolConfig> tools()
+    {
+        return toolsByName.values();
+    }
+
+    public Collection<McpHttpResourceConfig> resources()
+    {
+        return resourcesByName.values();
+    }
+
+    public Collection<McpHttpPromptConfig> prompts()
+    {
+        return promptsByName.values();
+    }
+
+    public McpHttpPromptConfig prompt(
+        String name)
+    {
+        return promptsByName.get(name);
+    }
+
+    public McpHttpResourceConfig resource(
+        String name)
+    {
+        return resourcesByName.get(name);
+    }
+
+    public void resolveCredentials(
+        long authorization,
+        Map<String, String> headers)
+    {
+        final McpHttpAuthorizationConfig authorizationConfig = options != null ? options.authorization : null;
+        if (authorizationConfig != null && authorizationConfig.headers != null && guard != null)
+        {
+            final String credentials = guard.credentials(authorization);
+            final String identity = guard.identity(authorization);
+            for (Map.Entry<String, String> entry : authorizationConfig.headers.entrySet())
+            {
+                final String value = substitute(entry.getValue(), credentials, identity);
+                if (value != null)
+                {
+                    headers.put(entry.getKey(), value);
+                }
+            }
+        }
+    }
+
+    private static String substitute(
+        String template,
+        String credentials,
+        String identity)
+    {
+        String value = template;
+        if (value.contains(CREDENTIALS_TOKEN))
+        {
+            value = credentials != null ? value.replace(CREDENTIALS_TOKEN, credentials) : null;
+        }
+        if (value != null && value.contains(IDENTITY_TOKEN))
+        {
+            value = identity != null ? value.replace(IDENTITY_TOKEN, identity) : null;
+        }
+        return value;
+    }
+
+    public McpHttpToolConfig tool(
+        String name)
+    {
+        return toolsByName.get(name);
+    }
+
+    public JsonSchema jsonSchema(
+        ModelConfig model)
+    {
+        return model != null
+            ? jsonSchemas.computeIfAbsent(model, this::resolveJsonSchema)
+            : null;
+    }
+
+    private JsonSchema resolveJsonSchema(
+        ModelConfig model)
+    {
+        final String text = schemaText(model);
+        return text != null ? JsonSchema.of(text) : null;
+    }
+
+    public String schemaText(
+        ModelConfig model)
+    {
+        String text = null;
+        if (model.cataloged != null && !model.cataloged.isEmpty())
+        {
+            final CatalogedConfig cataloged = model.cataloged.get(0);
+            final long catalogId = cataloged.id != 0L
+                ? cataloged.id
+                : resolveId.applyAsLong(cataloged.name);
+            final CatalogHandler handler = context.supplyCatalog(catalogId);
+
+            if (handler != null && cataloged.schemas != null && !cataloged.schemas.isEmpty())
+            {
+                final SchemaConfig subject = cataloged.schemas.get(0);
+                int schemaId = subject.id != CatalogHandler.NO_SCHEMA_ID
+                    ? subject.id
+                    : handler.resolve(subject.subject, subject.version);
+                text = handler.resolve(schemaId);
+            }
+        }
+        return text;
+    }
+
+    private static final class ResourceMatcher
+    {
+        private static final Pattern PARAM_PATTERN = Pattern.compile("\\{([A-Za-z][A-Za-z0-9]*)\\}");
+
+        private final McpHttpResourceConfig resource;
+        private final Pattern pattern;
+        private final List<String> paramNames;
+
+        private ResourceMatcher(
+            McpHttpResourceConfig resource)
+        {
+            this.resource = resource;
+            this.paramNames = new ArrayList<>();
+            this.pattern = compile(resource.uri, paramNames);
+        }
+
+        private boolean matches(
+            String uri,
+            Map<String, String> params)
+        {
+            boolean matched = false;
+            if (uri != null)
+            {
+                final Matcher matcher = pattern.matcher(uri);
+                if (matcher.matches())
+                {
+                    for (String name : paramNames)
+                    {
+                        params.put(name, matcher.group(name));
+                    }
+                    matched = true;
+                }
+            }
+            return matched;
+        }
+
+        private static Pattern compile(
+            String template,
+            List<String> names)
+        {
+            final StringBuilder regex = new StringBuilder("^");
+            final Matcher matcher = PARAM_PATTERN.matcher(template);
+            int last = 0;
+            while (matcher.find())
+            {
+                regex.append(Pattern.quote(template.substring(last, matcher.start())));
+                final String name = matcher.group(1);
+                names.add(name);
+                regex.append("(?<").append(name).append(">[^/]+)");
+                last = matcher.end();
+            }
+            regex.append(Pattern.quote(template.substring(last)));
+            regex.append("$");
+            return Pattern.compile(regex.toString());
+        }
+    }
+}
