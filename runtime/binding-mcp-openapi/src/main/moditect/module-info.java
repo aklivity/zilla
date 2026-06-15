@@ -12,30 +12,29 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-module io.aklivity.zilla.runtime.binding.openapi
+module io.aklivity.zilla.runtime.binding.mcp.openapi
 {
-    requires transitive io.aklivity.zilla.runtime.common.openapi;
+    requires io.aklivity.zilla.runtime.common.json;
     requires io.aklivity.zilla.runtime.common.yaml;
 
     requires io.aklivity.zilla.runtime.engine;
-    requires io.aklivity.zilla.runtime.binding.http;
-    requires io.aklivity.zilla.runtime.binding.tcp;
-    requires io.aklivity.zilla.runtime.binding.tls;
+    requires io.aklivity.zilla.runtime.binding.mcp.http;
+    requires io.aklivity.zilla.runtime.binding.openapi;
     requires io.aklivity.zilla.runtime.catalog.inline;
-    requires io.aklivity.zilla.runtime.guard.jwt;
-    requires io.aklivity.zilla.runtime.vault.filesystem;
     requires io.aklivity.zilla.runtime.model.core;
     requires io.aklivity.zilla.runtime.model.json;
 
-    exports io.aklivity.zilla.runtime.binding.openapi.config;
-    exports io.aklivity.zilla.runtime.binding.openapi.internal.view;
+    exports io.aklivity.zilla.runtime.binding.mcp.openapi.config;
 
     provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
-        with io.aklivity.zilla.runtime.binding.openapi.internal.OpenapiBindingFactorySpi;
+        with io.aklivity.zilla.runtime.binding.mcp.openapi.internal.McpOpenapiBindingFactorySpi;
 
     provides io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi
-        with io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiOptionsConfigAdapter;
+        with io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config.McpOpenapiOptionsConfigAdapter;
 
-    provides io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi
-        with io.aklivity.zilla.runtime.binding.openapi.internal.event.OpenapiEventFormatterFactory;
+    provides io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi
+        with io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config.McpOpenapiConditionConfigAdapter;
+
+    provides io.aklivity.zilla.runtime.engine.config.WithConfigAdapterSpi
+        with io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config.McpOpenapiWithConfigAdapter;
 }
