@@ -41,7 +41,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import jakarta.json.stream.JsonParser;
-import jakarta.json.stream.JsonParserFactory;
 
 import org.agrona.DirectBuffer;
 import org.agrona.ExpandableArrayBuffer;
@@ -77,7 +76,6 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpResetExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.WindowFW;
-import io.aklivity.zilla.runtime.common.json.DirectBufferInputStreamEx;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -198,8 +196,6 @@ public final class McpClientFactory implements McpStreamFactory
     private final McpFlushExFW.Builder mcpFlushExRW = new McpFlushExFW.Builder();
     private final McpResetExFW.Builder mcpResetExRW = new McpResetExFW.Builder();
 
-    private final DirectBufferInputStreamEx responseInputRO = new DirectBufferInputStreamEx();
-
     private final EngineContext context;
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer extBuffer;
@@ -230,8 +226,6 @@ public final class McpClientFactory implements McpStreamFactory
     private static final int SSE_SMALL_VALUE = 3;
     private static final int SSE_IGNORE_VALUE = 4;
 
-    private final JsonParserFactory responseParserFactory;
-    private final JsonParserFactory requestParserFactory;
     private final Matcher bearerChallengeMatcher = BEARER_CHALLENGE_PATTERN.matcher("");
 
     private final McpConfiguration config;
@@ -269,8 +263,6 @@ public final class McpClientFactory implements McpStreamFactory
         this.signaler = context.signaler();
         this.clientName = config.clientName();
         this.clientVersion = config.clientVersion();
-        this.responseParserFactory = JsonEx.createParserFactory(Map.of());
-        this.requestParserFactory = JsonEx.createParserFactory(Map.of());
 
         final Int2ObjectHashMap<McpSessionIdResolver> resolvers = new Int2ObjectHashMap<>();
         resolvers.put(KIND_TOOLS_LIST, ex -> ex.toolsList().sessionId().asString());
@@ -4278,11 +4270,10 @@ public final class McpClientFactory implements McpStreamFactory
                 return;
             }
 
-            responseInputRO.wrap(resultBuffer, 0, resultLimit);
-
             int bits = 0;
-            try (JsonParser parser = responseParserFactory.createParser(responseInputRO))
+            try (JsonParserEx parser = JsonEx.createParser())
             {
+                parser.wrap(resultBuffer, 0, resultLimit);
                 int depth = 0;
                 boolean inCapabilities = false;
                 String primitive = null;
