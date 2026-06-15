@@ -2,11 +2,13 @@
 
 A format-native, provider-free Protobuf wire library for the hot path: a descriptor-bound streaming
 parser and generator over Agrona `DirectBuffer`s, composable into validating, transforming pipelines.
-It owns the Protobuf wire side only and has **no JSON dependency**.
+The core wire layer (package `io.aklivity.zilla.runtime.common.protobuf`) owns the Protobuf wire side
+only and carries **no JSON dependency**.
 
-The protobuf ↔ JSON mapping is **not** here — it is owned by the `model-protobuf` converter, which
-composes this wire layer with a JSON layer. Keeping that mapping out lets `common-protobuf` stay
-single-format and dependency-light.
+The protobuf ↔ JSON mapping lives apart from that core in the `io.aklivity.zilla.runtime.common.protobuf.json`
+package (`ProtobufJson`), which composes the wire layer with the `common-json` transcoder — see
+[protobuf ↔ JSON](#protobuf--json) below. The wire core stays single-format and dependency-light; only
+the `.json` package pulls in `common-json`.
 
 ## Descriptor model
 
@@ -282,6 +284,49 @@ point) for the caller to retain and re-present (see *Two back-pressure axes* abo
 streams its output bounded by `limit`, fragmenting any value too large rather than buffering it. No
 unbounded document is buffered. Truncated or overlong varints, lengths that run past the message under
 `last`, and unterminated or mismatched groups are rejected with a `ProtobufException`.
+
+## protobuf ↔ JSON
+
+`ProtobufJson` (package `io.aklivity.zilla.runtime.common.protobuf.json`) bridges the wire layer to the
+`common-json` transcoder, applying the proto3 JSON mapping: a message is a JSON object keyed by each field's
+proto3 json name, a `repeated` field a JSON array, a `map` a JSON object, 64-bit and unsigned-64-bit integers
+JSON strings, `bytes` a base64 string, an `enum` its value name (its number when unknown), and `float`/`double`
+JSON numbers (`"NaN"`/`"Infinity"`/`"-Infinity"` as strings). It plugs into the same pipeline machinery from
+either edge.
+
+**protobuf → JSON** — `ProtobufJson.sink(JsonGeneratorEx)` is a terminal `ProtobufSink` that renders the decoded
+event stream as JSON:
+
+```java
+JsonGeneratorEx json = JsonEx.createGenerator().wrap(out, 0, out.capacity());
+ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, "Person"))
+    .into(ProtobufJson.sink(json));
+pipeline.reset();
+if (pipeline.feed(in, off, len) == ProtobufPipeline.Status.COMPLETED)
+{
+    int length = json.length();   // Person rendered as JSON in out
+}
+```
+
+**JSON → protobuf** — `ProtobufJson.stream(JsonParserEx, schema, messageName)` is a `ProtobufStream` pumped by a
+`JsonParserEx`, mapping each JSON value onto its descriptor field so a terminal wire `ProtobufSink` encodes it:
+
+```java
+ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, out.capacity());
+ProtobufPipeline pipeline = ProtobufJson.stream(JsonEx.createParser(), readSchema, "Person")
+    .into(ProtobufSink.of(generator, writeSchema, "Person"));
+pipeline.reset();
+if (pipeline.feed(jsonIn, off, len) == ProtobufPipeline.Status.COMPLETED)
+{
+    int length = generator.length();   // Person wire bytes in out
+}
+```
+
+Bounded-buffer contract: a JSON document is parsed as a single, fully-buffered value (the engine delivers the
+reassembled payload), so processing is bounded by the message size and nesting depth; no unbounded document is
+buffered. Malformed JSON, a non-object root, an unknown message, and an unknown enum value are rejected with a
+`ProtobufException` (the pipeline reports `REJECTED`). Unknown JSON fields are ignored and `null` values omitted,
+per the proto3 JSON mapping.
 
 ## Conformance
 
