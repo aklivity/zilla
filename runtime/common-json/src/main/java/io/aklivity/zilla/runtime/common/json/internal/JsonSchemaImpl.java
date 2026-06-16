@@ -82,6 +82,11 @@ public final class JsonSchemaImpl implements JsonSchema
     private static final JsonSchemaImpl ANY = new JsonSchemaImpl(false);
     private static final JsonSchemaImpl NONE = new JsonSchemaImpl(true);
 
+    // a lexeme of at most this many characters is always within long range, so getLong() is safe
+    private static final int LONG_DIGITS = 18;
+    private static final BigDecimal LONG_MIN = BigDecimal.valueOf(Long.MIN_VALUE);
+    private static final BigDecimal LONG_MAX = BigDecimal.valueOf(Long.MAX_VALUE);
+
     private static final JsonRefResolver LOCAL_ONLY = ref -> null;
 
     private static final URI EMPTY_URI = URI.create("");
@@ -120,6 +125,9 @@ public final class JsonSchemaImpl implements JsonSchema
     private final BigDecimal exclusiveMinimum;
     private final BigDecimal exclusiveMaximum;
     private final BigDecimal multipleOf;
+    // every present numeric bound is an integer within long range (and multipleOf is non-zero): an
+    // integer instance can then be checked with long arithmetic instead of a BigDecimal per value
+    private final boolean integerBounds;
     private final int minLength;
     private final int maxLength;
     private final Pattern pattern;
@@ -321,6 +329,9 @@ public final class JsonSchemaImpl implements JsonSchema
         this.exclusiveMinimum = exclusiveMin;
         this.exclusiveMaximum = exclusiveMax;
         this.multipleOf = number(schema, "multipleOf");
+        this.integerBounds = longInteger(this.minimum) && longInteger(this.maximum) &&
+            longInteger(this.exclusiveMinimum) && longInteger(this.exclusiveMaximum) &&
+            (this.multipleOf == null || longInteger(this.multipleOf) && this.multipleOf.signum() != 0);
         this.minLength = integer(schema, "minLength");
         this.maxLength = integer(schema, "maxLength");
         this.pattern = schema.has("pattern") ? compilePattern(schema.get("pattern").string()) : null;
@@ -377,6 +388,7 @@ public final class JsonSchemaImpl implements JsonSchema
         this.exclusiveMinimum = null;
         this.exclusiveMaximum = null;
         this.multipleOf = null;
+        this.integerBounds = false;
         this.minLength = -1;
         this.maxLength = -1;
         this.pattern = null;
@@ -428,6 +440,7 @@ public final class JsonSchemaImpl implements JsonSchema
         this.exclusiveMinimum = null;
         this.exclusiveMaximum = null;
         this.multipleOf = null;
+        this.integerBounds = false;
         this.minLength = -1;
         this.maxLength = -1;
         this.pattern = null;
@@ -1111,6 +1124,15 @@ public final class JsonSchemaImpl implements JsonSchema
             canonical = length >= 2 && !(length == 2 && text.charAt(1) == '0');
         }
         return canonical;
+    }
+
+    // absent, or an integer within long range
+    private static boolean longInteger(
+        BigDecimal value)
+    {
+        return value == null ||
+            value.stripTrailingZeros().scale() <= 0 &&
+            value.compareTo(LONG_MIN) >= 0 && value.compareTo(LONG_MAX) <= 0;
     }
 
     private static URI baseOf(
@@ -2577,10 +2599,63 @@ public final class JsonSchemaImpl implements JsonSchema
         private void checkNumberReport(
             JsonSource parser)
         {
-            boolean modernDraft = context != null && context.draft() != Draft.DRAFT_04;
             boolean lexicalIntegral = parser.isIntegralNumber();
             boolean bounded = minimum != null || maximum != null ||
                 exclusiveMinimum != null || exclusiveMaximum != null || multipleOf != null;
+            if (bounded && integerBounds && lexicalIntegral && parser.getStringView().length() <= LONG_DIGITS)
+            {
+                // integer instance against integer bounds: compare with long arithmetic, no BigDecimal
+                checkIntegerBounds(parser, parser.getLong());
+            }
+            else
+            {
+                checkDecimalReport(parser, lexicalIntegral, bounded);
+            }
+        }
+
+        private void checkIntegerBounds(
+            JsonSource parser,
+            long value)
+        {
+            boolean typeOk = types == null || types.contains(JsonType.NUMBER) || types.contains(JsonType.INTEGER);
+            if (!typeOk)
+            {
+                directInvalid = true;
+                trace.report("type", "expected " + typesText() + " but was number", parser);
+            }
+            else if (minimum != null && value < minimum.longValue())
+            {
+                directInvalid = true;
+                trace.report("minimum", value + " < minimum " + minimum, parser);
+            }
+            else if (maximum != null && value > maximum.longValue())
+            {
+                directInvalid = true;
+                trace.report("maximum", value + " > maximum " + maximum, parser);
+            }
+            else if (exclusiveMinimum != null && value <= exclusiveMinimum.longValue())
+            {
+                directInvalid = true;
+                trace.report("exclusiveMinimum", value + " <= exclusiveMinimum " + exclusiveMinimum, parser);
+            }
+            else if (exclusiveMaximum != null && value >= exclusiveMaximum.longValue())
+            {
+                directInvalid = true;
+                trace.report("exclusiveMaximum", value + " >= exclusiveMaximum " + exclusiveMaximum, parser);
+            }
+            else if (multipleOf != null && value % multipleOf.longValue() != 0)
+            {
+                directInvalid = true;
+                trace.report("multipleOf", value + " is not a multiple of " + multipleOf, parser);
+            }
+        }
+
+        private void checkDecimalReport(
+            JsonSource parser,
+            boolean lexicalIntegral,
+            boolean bounded)
+        {
+            boolean modernDraft = context != null && context.draft() != Draft.DRAFT_04;
             // a BigDecimal is needed only for a bounds check, or to decide integrality of a
             // fractional-looking lexeme (1.0, 6e2) under a modern draft — never for an unbounded integer
             BigDecimal value = bounded || modernDraft && !lexicalIntegral ? parser.getBigDecimal() : null;
