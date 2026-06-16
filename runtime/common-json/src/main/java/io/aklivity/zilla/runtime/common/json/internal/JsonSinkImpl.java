@@ -38,8 +38,10 @@ public final class JsonSinkImpl implements JsonSink
     private final Delivery delivery;
     private int depth;
     private boolean valueStarted;
-    private boolean pendingSegment;
-    private boolean pendingDecoded;
+    // the value event currently mid-write across a bounded-output suspend, or null when nothing is in
+    // flight; resume() re-runs that value's write, and the delivery mode resolves a decoded string from a
+    // verbatim one. A boundary() suspend at an event boundary leaves this null, so resume just advances.
+    private JsonEvent pending;
 
     public JsonSinkImpl(
         JsonGeneratorEx generator)
@@ -62,7 +64,6 @@ public final class JsonSinkImpl implements JsonSink
         JsonEvent event)
     {
         Status status = Status.ADVANCED;
-        DirectBuffer segment;
         switch (event)
         {
         case KEY_NAME:
@@ -88,25 +89,7 @@ public final class JsonSinkImpl implements JsonSink
         case VALUE_STRING:
         case VALUE_NUMBER:
         case SEGMENT:
-            if (event == JsonEvent.VALUE_STRING && delivery != Delivery.SEGMENTABLE)
-            {
-                // structured (canonical) string: render from the decoded char view, the generator owning
-                // quoting/escaping and joining fragments (deferredBytes) into one string. The bounded write
-                // emits only what fits and reports consumed chars, the same flow control as the byte path.
-                status = writeDecodedString(control, source);
-            }
-            else
-            {
-                // verbatim string token, number lexeme, or segment: splice the raw bytes, fragmenting across
-                // chunks; the value's leading separator is emitted once, before its first content byte
-                segment = source.getSegment();
-                if (!valueStarted)
-                {
-                    generator.writeRaw(segment, 0, 0);
-                    valueStarted = true;
-                }
-                status = writeChunk(control, segment, source);
-            }
+            status = writeValue(control, source, event);
             break;
         case VALUE_TRUE:
             generator.write(true);
@@ -140,19 +123,7 @@ public final class JsonSinkImpl implements JsonSink
         JsonController control,
         JsonSource source)
     {
-        Status status;
-        if (pendingDecoded)
-        {
-            status = writeDecodedString(control, source);
-        }
-        else if (pendingSegment)
-        {
-            status = writeChunk(control, source.getSegment(), source);
-        }
-        else
-        {
-            status = Status.ADVANCED;
-        }
+        Status status = pending != null ? writeValue(control, source, pending) : Status.ADVANCED;
         return boundary(status);
     }
 
@@ -161,9 +132,36 @@ public final class JsonSinkImpl implements JsonSink
     {
         depth = 0;
         valueStarted = false;
-        pendingSegment = false;
-        pendingDecoded = false;
+        pending = null;
         generator.reset();
+    }
+
+    // Writes one scalar/segment value, fed fresh or resumed: a structured (non-SEGMENTABLE) string renders
+    // canonically from its decoded char view; a verbatim string, number lexeme, or segment splices raw
+    // bytes. Records the event as pending while the bounded output leaves it mid-write so resume re-runs it.
+    private Status writeValue(
+        JsonController control,
+        JsonSource source,
+        JsonEvent event)
+    {
+        Status status;
+        if (event == JsonEvent.VALUE_STRING && delivery != Delivery.SEGMENTABLE)
+        {
+            status = writeDecodedString(control, source);
+        }
+        else
+        {
+            final DirectBuffer segment = source.getSegment();
+            if (!valueStarted)
+            {
+                // emit the value's leading separator once, before its first content byte
+                generator.writeRaw(segment, 0, 0);
+                valueStarted = true;
+            }
+            status = writeChunk(control, segment, source);
+        }
+        pending = status == Status.SUSPENDED ? event : null;
+        return status;
     }
 
     // Renders a structured string canonically from its decoded char view: the generator owns the quotes and
@@ -184,19 +182,17 @@ public final class JsonSinkImpl implements JsonSink
         Status status;
         if (available - consumed > 0)
         {
-            pendingDecoded = true;
             status = Status.SUSPENDED;
         }
         else
         {
-            pendingDecoded = false;
             status = deferred ? Status.ADVANCED : scalarStatus();
         }
         return status;
     }
 
-    // Append-only and stateless: writes the segment view whole and pushes back the source bytes the
-    // generator took via control.consumed(...) so the upstream re-exposes the remainder.
+    // Writes the segment view whole and pushes back the source bytes the generator took via
+    // control.consumed(...) so the upstream re-exposes the remainder.
     private Status writeChunk(
         JsonController control,
         DirectBuffer segment,
@@ -211,21 +207,16 @@ public final class JsonSinkImpl implements JsonSink
         Status status;
         if (outputDeferred > 0)
         {
-            pendingSegment = true;
             status = Status.SUSPENDED;
+        }
+        else if (source.deferredBytes())
+        {
+            status = Status.ADVANCED;
         }
         else
         {
-            pendingSegment = false;
-            if (source.deferredBytes())
-            {
-                status = Status.ADVANCED;
-            }
-            else
-            {
-                valueStarted = false;
-                status = scalarStatus();
-            }
+            valueStarted = false;
+            status = scalarStatus();
         }
         return status;
     }
