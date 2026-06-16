@@ -36,6 +36,19 @@ import org.agrona.MutableDirectBuffer;
 public interface JsonGeneratorEx extends JsonGenerator
 {
     /**
+     * Config key whose {@link Boolean} value opts a {@link JsonEx#createGenerator(java.util.Map)
+     * generator} into escape mode: every byte it emits is escaped as JSON string <em>content</em> —
+     * structural bytes ({@code &#123; &#125; : , [ ]}) and UTF-8 continuation bytes pass through, while
+     * {@code "}, {@code \}, and control characters are escaped. This composes with the generator's
+     * existing value-escaping, so the whole output stream becomes the escaped form of the document — the
+     * inner content of a JSON-in-JSON string. The caller writes the surrounding quotes and outer
+     * envelope.
+     * <p>
+     * Defaults to {@code false} (verbatim output) when absent.
+     */
+    String GENERATE_ESCAPED = "io.aklivity.zilla.runtime.common.json.generate.escaped";
+
+    /**
      * Re-targets the generator at {@code buffer} starting at {@code offset} with a hard byte
      * {@code limit}, the bound a chunking driver watches via {@link #remaining()} to decide when to
      * drain and resume; {@code limit} must be supported by the buffer capacity. Structural context
@@ -63,6 +76,15 @@ public interface JsonGeneratorEx extends JsonGenerator
     int length();
 
     /**
+     * Cumulative count of <em>source</em> bytes consumed by {@link #writeRaw} and {@link #writeSegment}
+     * since the last {@link #wrap}. This is the source-domain counterpart to {@link #length()} (which
+     * counts output bytes): in escape mode one source byte may expand to several output bytes, so the two
+     * diverge. A driver fragmenting a value reads this around a {@link #writeSegment} call (as a delta) to
+     * learn how many source bytes were taken.
+     */
+    int consumed();
+
+    /**
      * Bytes that may still be written before reaching the {@code limit} set at {@link #wrap}. A driver
      * checks this at an event boundary to decide whether to suspend (drain) before the next write.
      */
@@ -84,6 +106,18 @@ public interface JsonGeneratorEx extends JsonGenerator
         CharSequence literal);
 
     /**
+     * Emits a numeric literal that may arrive in fragments. The leading structural separator is emitted
+     * before the first fragment; each fragment's lexeme chars are appended verbatim (numbers carry no
+     * quoting or trailing delimiter). Pass {@link Completion#INCOMPLETE} while the source reports more
+     * deferred bytes and {@link Completion#COMPLETE} on the final fragment, so a number delivered across
+     * several windows forms one literal without the caller concatenating.
+     * {@code writeNumber(literal, COMPLETE)} is equivalent to {@link #writeNumber(CharSequence)}.
+     */
+    JsonGeneratorEx writeNumber(
+        CharSequence literal,
+        Completion completion);
+
+    /**
      * Splices a pre-encoded JSON value from {@code source} verbatim as the next value, with no
      * re-encoding.
      */
@@ -93,28 +127,34 @@ public interface JsonGeneratorEx extends JsonGenerator
         int length);
 
     /**
-     * Appends the continuation bytes of a value already begun by {@link #writeRaw} verbatim, with no
-     * re-encoding and without emitting a structural separator. Used to splice a value delivered as
-     * multiple fragments so the whole fragment run counts as a single value.
+     * Appends up to {@code length} content bytes of a value verbatim from {@code source} starting at
+     * {@code index}, with no structural separator (the value's leading separator is emitted once, before
+     * its first segment). The write is <em>consumption-driven</em>: the generator copies as many
+     * <em>source</em> bytes as fit the output bound — escaping them in escape mode, where one source byte
+     * may expand to several output bytes. Track how many source bytes were taken via {@link #consumed()};
+     * a driver fragments a value larger than what fits by writing what it can, draining, then continuing
+     * on resume from the unconsumed remainder.
      */
-    JsonGeneratorEx writeRawContinue(
+    JsonGeneratorEx writeSegment(
         DirectBuffer source,
         int index,
         int length);
 
     /**
-     * Appends {@code length} content bytes of a value verbatim within the usable region {@code [offset,
-     * limit)}, with no re-encoding and no structural separator (the value's leading separator is emitted
-     * once, before its first segment). {@code deferred} reports how many bytes of this value remain to be
-     * written after these {@code length} bytes; a driver fragments a value larger than {@link #remaining()}
-     * by writing what fits, leaving {@code deferred > 0}, draining, then continuing on resume until
-     * {@code deferred} reaches zero.
+     * Appends a value's verbatim bytes that may arrive in fragments, owning the value's leading structural
+     * separator so the caller holds no per-value state. The separator is emitted before the first fragment;
+     * each fragment appends bounded, consumption-driven content exactly as {@link #writeSegment(DirectBuffer,
+     * int, int)} (track via {@link #consumed()}); the value ends — readying the next value's separator — on
+     * {@link Completion#COMPLETE} once the final fragment is fully written. Pass {@link Completion#INCOMPLETE}
+     * while the source reports more deferred bytes, so a value delivered across fragments forms one spliced
+     * value. {@code writeSegment(source, index, length, COMPLETE)} for a value that fits one fragment is
+     * equivalent to {@link #writeRaw(DirectBuffer, int, int)}.
      */
     JsonGeneratorEx writeSegment(
         DirectBuffer source,
         int index,
         int length,
-        int deferred);
+        Completion completion);
 
     @Override
     JsonGeneratorEx writeStartObject();
@@ -157,6 +197,30 @@ public interface JsonGeneratorEx extends JsonGenerator
      */
     JsonGeneratorEx write(
         CharSequence value);
+
+    /**
+     * Whether a {@link #write(CharSequence, Completion)} call finishes the string value or leaves it
+     * open for further fragments.
+     */
+    enum Completion
+    {
+        COMPLETE,
+        INCOMPLETE
+    }
+
+    /**
+     * Writes a string value that may arrive in fragments. The generator owns the surrounding quotes
+     * and escaping: the opening quote is emitted before the first fragment, each fragment's chars are
+     * escaped and encoded as they are read, and the closing quote is emitted when {@code completion} is
+     * {@link Completion#COMPLETE}. Pass {@link Completion#INCOMPLETE} while the source reports more
+     * deferred bytes so a value delivered across several fragments forms a single quoted string without
+     * the caller concatenating. {@code write(value, COMPLETE)} is equivalent to
+     * {@link #write(CharSequence)}. The {@link Completion} argument disambiguates this overload from the
+     * inherited {@code write(String, boolean)} key/value pair when the value is a {@code String}.
+     */
+    JsonGeneratorEx write(
+        CharSequence value,
+        Completion completion);
 
     @Override
     JsonGeneratorEx write(

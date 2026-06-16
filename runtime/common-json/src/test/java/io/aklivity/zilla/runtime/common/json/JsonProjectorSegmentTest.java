@@ -17,7 +17,11 @@ package io.aklivity.zilla.runtime.common.json;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.io.ByteArrayInputStream;
 import java.util.List;
+import java.util.Map;
+
+import jakarta.json.stream.JsonParser;
 
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -35,7 +39,7 @@ class JsonProjectorSegmentTest
         JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonEx.projector(List.of("/a")))
-            .into(JsonSink.of(gen, JsonSink.Delivery.SEGMENTABLE));
+            .into(JsonEx.createSink(gen, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.SEGMENTABLE)));
 
         Status status = run(pipeline, "{\"a\":{ \"b\" : 1 },\"z\":9} ");
 
@@ -49,7 +53,7 @@ class JsonProjectorSegmentTest
         JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonEx.projector(List.of("/a")))
-            .into(JsonSink.of(gen));
+            .into(JsonEx.createSink(gen));
 
         Status status = run(pipeline, "{\"a\":{ \"b\" : 1 },\"z\":9} ");
 
@@ -58,19 +62,19 @@ class JsonProjectorSegmentTest
     }
 
     @Test
-    void shouldPreserveLeafStringEscapesVerbatimWhenStructured()
+    void shouldCanonicalizeLeafStringEscapesWhenStructured()
     {
         JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonEx.projector(List.of("")))
-            .into(JsonSink.of(gen));
+            .into(JsonEx.createSink(gen));
 
-        // structured delivery normalizes structure (whitespace) but preserves each leaf value's bytes,
-        // so the original A escape survives rather than collapsing to A
+        // structured delivery renders each leaf string from its decoded value, so escaping is canonical:
+        // the redundant A collapses to A. Byte-verbatim preservation is the segmented path's job.
         Status status = run(pipeline, "{ \"a\" : \"x\\u0041y\" } ");
 
         assertEquals(Status.COMPLETED, status);
-        assertEquals("{\"a\":\"x\\u0041y\"}", output(gen));
+        assertEquals("{\"a\":\"xAy\"}", output(gen));
     }
 
     @Test
@@ -79,7 +83,7 @@ class JsonProjectorSegmentTest
         JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonEx.projector(List.of("")))
-            .into(JsonSink.of(gen));
+            .into(JsonEx.createSink(gen));
 
         Status status = run(pipeline, "{ \"a\" : 1.0e2 } ");
 
@@ -93,7 +97,7 @@ class JsonProjectorSegmentTest
         JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonEx.projector(List.of("")))
-            .into(JsonSink.of(gen, JsonSink.Delivery.SEGMENTABLE));
+            .into(JsonEx.createSink(gen, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.SEGMENTABLE)));
 
         Status status = run(pipeline, "{ \"a\" : 1 } ");
 
@@ -111,7 +115,7 @@ class JsonProjectorSegmentTest
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(decliner)
             .transform(JsonEx.projector(List.of("/a")))
-            .into(JsonSink.of(gen, JsonSink.Delivery.SEGMENTABLE));
+            .into(JsonEx.createSink(gen, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.SEGMENTABLE)));
 
         Status status = run(pipeline, "{\"a\":{ \"b\" : 1 },\"z\":9} ");
 
@@ -125,12 +129,211 @@ class JsonProjectorSegmentTest
         JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonEx.projector(List.of("/items/0")))
-            .into(JsonSink.of(gen, JsonSink.Delivery.SEGMENTABLE));
+            .into(JsonEx.createSink(gen, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.SEGMENTABLE)));
 
         Status status = run(pipeline, "{\"items\":[{ \"id\" : 1 },{\"id\":2}]} ");
 
         assertEquals(Status.COMPLETED, status);
         assertEquals("{\"items\":[{ \"id\" : 1 }]}", output(gen));
+    }
+
+    @Test
+    void shouldDecodeKeptScalarLeafFragmentedAcrossWindows()
+    {
+        JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(JsonEx.projector(List.of("/a")))
+            .into(JsonEx.createSink(gen, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.STRUCTURED)));
+
+        // a retained scalar leaf far larger than the input window: it fragments across windows and the
+        // structured sink rejoins the fragments canonically; the dropped sibling /b also fragments and
+        // must not be emitted
+        String value = "x".repeat(40);
+        String json = "{\"a\":\"" + value + "\",\"b\":\"" + "y".repeat(40) + "\"} ";
+        byte[] bytes = json.getBytes(UTF_8);
+        pipeline.reset();
+
+        int committed = 0;
+        int offset = 0;
+        Status status = Status.STARVED;
+        int guard = 0;
+        while (guard++ < 10_000)
+        {
+            offset = Math.min(offset + 8, bytes.length);
+            boolean last = offset >= bytes.length;
+            status = pipeline.feed(new UnsafeBuffer(bytes), committed, offset - committed, last);
+            committed = (int) pipeline.position();
+            if (status == Status.COMPLETED || status == Status.REJECTED)
+            {
+                break;
+            }
+        }
+
+        assertEquals(Status.COMPLETED, status);
+        assertEquals("{\"a\":\"" + value + "\"}", output(gen));
+    }
+
+    @Test
+    void shouldStreamKeptScalarLeafSegmentedAcrossInputAndOutputBounds()
+    {
+        // a retained scalar leaf far larger than both the input window and the output bound, whose JSON
+        // string content carries escape sequences and a multibyte character: it streams verbatim through
+        // projector -> SEGMENTABLE sink -> escape-mode generator, fragmenting across input (STARVED) and
+        // output (SUSPENDED). The escaped chunked result must equal the escaped whole-shot result, and
+        // when read back as JSON string content must decode to the projected plain document (kept /a,
+        // dropped sibling /b excluded), with neither a multibyte character nor an escape sequence split.
+        String leafContent = ("A\\\"é\\\\B\\t" + "z".repeat(40)).repeat(4);
+        String json = "{\"a\":\"" + leafContent + "\",\"b\":\"" + "y".repeat(120) + "\"} ";
+
+        String escaped = drive(json, 16, 7);
+        String whole = drive(json, 4096, 4096);
+
+        assertEquals(whole, escaped);
+        assertEquals(plain(json), decodeJsonString(escaped));
+    }
+
+    // Drives the project(/a) -> SEGMENTABLE -> escape-mode pipeline with a bounded output (outBound) and a
+    // bounded input window (inStep), accumulating each drained output chunk; reconstructs the full escaped
+    // output across STARVED (input back-pressure) and SUSPENDED (output back-pressure).
+    private static String drive(
+        String json,
+        int outBound,
+        int inStep)
+    {
+        MutableDirectBuffer out = new UnsafeBuffer(new byte[outBound]);
+        JsonGeneratorEx gen = JsonEx.createGenerator(Map.of(JsonGeneratorEx.GENERATE_ESCAPED, true));
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(JsonEx.projector(List.of("/a")))
+            .into(JsonEx.createSink(gen, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.SEGMENTABLE)));
+
+        byte[] bytes = json.getBytes(UTF_8);
+        pipeline.reset();
+        gen.wrap(out, 0, outBound);
+
+        StringBuilder result = new StringBuilder();
+        int committed = 0;
+        int offset = 0;
+        Status status = Status.STARVED;
+        int guard = 0;
+        while (guard++ < 1_000_000)
+        {
+            if (status != Status.SUSPENDED)
+            {
+                offset = Math.min(offset + inStep, bytes.length);
+            }
+            boolean last = offset >= bytes.length;
+            status = pipeline.feed(new UnsafeBuffer(bytes), committed, offset - committed, last);
+            byte[] chunk = new byte[gen.length()];
+            out.getBytes(0, chunk);
+            result.append(new String(chunk, UTF_8));
+            committed = (int) pipeline.position();
+            if (status == Status.SUSPENDED)
+            {
+                gen.wrap(out, 0, outBound);
+            }
+            else if (status == Status.COMPLETED || status == Status.REJECTED)
+            {
+                break;
+            }
+        }
+
+        assertEquals(Status.COMPLETED, status);
+        return result.toString();
+    }
+
+    @Test
+    void shouldStreamMultiLeafResourceLikeBinding()
+    {
+        String status = "z".repeat(300);
+        String json = "{\"id\":\"12345\",\"status\":\"" + status + "\",\"total\":42.5," +
+            "\"customer\":\"acme\",\"createdAt\":\"2026-01-01\"} ";
+
+        String escaped = driveMulti(json, 16, 7);
+        String whole = driveMulti(json, 4096, 4096);
+
+        assertEquals(whole, escaped);
+        assertEquals("{\"id\":\"12345\",\"status\":\"" + status + "\",\"total\":42.5}",
+            decodeJsonString(escaped));
+    }
+
+    private static String driveMulti(
+        String json,
+        int outBound,
+        int inStep)
+    {
+        MutableDirectBuffer out = new UnsafeBuffer(new byte[outBound]);
+        JsonGeneratorEx gen = JsonEx.createGenerator(Map.of(JsonGeneratorEx.GENERATE_ESCAPED, true));
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(JsonEx.projector(List.of("/id", "/status", "/total")))
+            .into(JsonEx.createSink(gen, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.SEGMENTABLE)));
+
+        byte[] bytes = json.getBytes(UTF_8);
+        pipeline.reset();
+        gen.wrap(out, 0, outBound);
+
+        StringBuilder result = new StringBuilder();
+        int committed = 0;
+        int offset = 0;
+        Status status = Status.STARVED;
+        int guard = 0;
+        while (guard++ < 1_000_000)
+        {
+            if (status != Status.SUSPENDED)
+            {
+                offset = Math.min(offset + inStep, bytes.length);
+            }
+            boolean last = offset >= bytes.length;
+            status = pipeline.feed(new UnsafeBuffer(bytes), committed, offset - committed, last);
+            byte[] chunk = new byte[gen.length()];
+            out.getBytes(0, chunk);
+            result.append(new String(chunk, UTF_8));
+            committed = (int) pipeline.position();
+            if (status == Status.SUSPENDED)
+            {
+                gen.wrap(out, 0, outBound);
+            }
+            else if (status == Status.COMPLETED || status == Status.REJECTED)
+            {
+                break;
+            }
+        }
+
+        assertEquals(Status.COMPLETED, status);
+        return result.toString();
+    }
+
+    // The project(/a) plain (non-escaped) rendering, whole-shot, for the JSON-in-JSON round-trip check.
+    private static String plain(
+        String json)
+    {
+        MutableDirectBuffer out = new UnsafeBuffer(new byte[4096]);
+        JsonGeneratorEx gen = JsonEx.createGenerator().wrap(out, 0, out.capacity());
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(JsonEx.projector(List.of("/a")))
+            .into(JsonEx.createSink(gen, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.SEGMENTABLE)));
+        byte[] bytes = json.getBytes(UTF_8);
+        pipeline.reset();
+        Status status = pipeline.feed(new UnsafeBuffer(bytes), 0, bytes.length);
+        assertEquals(Status.COMPLETED, status);
+        byte[] rendered = new byte[gen.length()];
+        out.getBytes(0, rendered);
+        return new String(rendered, UTF_8);
+    }
+
+    private static String decodeJsonString(
+        String content)
+    {
+        String document = "{\"v\":\"" + content + "\"}";
+        JsonParser parser = JsonEx.createParser(new ByteArrayInputStream(document.getBytes(UTF_8)));
+        String result = null;
+        while (parser.hasNext())
+        {
+            if (parser.next() == JsonParser.Event.VALUE_STRING)
+            {
+                result = parser.getString();
+            }
+        }
+        return result;
     }
 
     private String output(

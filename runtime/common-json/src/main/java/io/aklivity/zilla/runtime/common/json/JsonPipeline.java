@@ -70,4 +70,12 @@ public interface JsonPipeline
         int offset,
         int length,
         boolean last);
+
+    /**
+     * The aggregate count of input bytes consumed since {@link #reset()} — the watermark up to which the
+     * caller may drop bytes before re-presenting the remainder. Advances on {@link Status#STARVED} (a
+     * partial trailing unit, e.g. a multibyte character split across a frame, is left unconsumed for the
+     * caller to carry); held steady while {@link Status#SUSPENDED}.
+     */
+    long position();
 }

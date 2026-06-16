@@ -25,7 +25,6 @@ import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
-import io.aklivity.zilla.runtime.common.json.JsonSink;
 
 class JsonPipelineResetTest
 {
@@ -39,7 +38,7 @@ class JsonPipelineResetTest
         JsonGeneratorEx generator = JsonEx.createGenerator();
         MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
-            .into(JsonSink.of(generator));
+            .into(JsonEx.createSink(generator));
 
         generator.wrap(buffer, 0, buffer.capacity());
         pipeline.reset();

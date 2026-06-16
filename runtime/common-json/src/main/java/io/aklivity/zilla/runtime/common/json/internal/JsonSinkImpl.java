@@ -19,6 +19,7 @@ import org.agrona.DirectBuffer;
 import io.aklivity.zilla.runtime.common.json.JsonController;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
+import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx.Completion;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonSink.Delivery;
@@ -36,9 +37,6 @@ public final class JsonSinkImpl implements JsonSink
     private final JsonGeneratorEx generator;
     private final Delivery delivery;
     private int depth;
-    private int segmentWritten;
-    private boolean valueStarted;
-    private boolean pendingSegment;
 
     public JsonSinkImpl(
         JsonGeneratorEx generator)
@@ -61,11 +59,10 @@ public final class JsonSinkImpl implements JsonSink
         JsonEvent event)
     {
         Status status = Status.ADVANCED;
-        DirectBuffer segment;
         switch (event)
         {
         case KEY_NAME:
-            generator.writeKey(source.getKey());
+            generator.writeKey(source.getStringView());
             break;
         case START_OBJECT:
             generator.writeStartObject();
@@ -87,15 +84,7 @@ public final class JsonSinkImpl implements JsonSink
         case VALUE_STRING:
         case VALUE_NUMBER:
         case SEGMENT:
-            // splice the kept leaf's raw token bytes verbatim, fragmenting across chunks; the value's
-            // leading separator is emitted once, before its first content byte
-            segment = source.getSegment();
-            if (!valueStarted)
-            {
-                generator.writeRaw(segment, 0, 0);
-                valueStarted = true;
-            }
-            status = writeChunk(segment, source);
+            status = writeValue(control, source, event);
             break;
         case VALUE_TRUE:
             generator.write(true);
@@ -127,9 +116,12 @@ public final class JsonSinkImpl implements JsonSink
     @Override
     public Status resume(
         JsonController control,
-        JsonSource source)
+        JsonSource source,
+        JsonEvent event)
     {
-        Status status = pendingSegment ? writeChunk(source.getSegment(), source) : Status.ADVANCED;
+        // the pump supplies the event that suspended; continue only while its value still has an unwritten
+        // remainder (a boundary drain after a completed value, or a structural event, leaves none)
+        Status status = inFlight(source, event) ? writeValue(control, source, event) : Status.ADVANCED;
         return boundary(status);
     }
 
@@ -137,44 +129,118 @@ public final class JsonSinkImpl implements JsonSink
     public void reset()
     {
         depth = 0;
-        segmentWritten = 0;
-        valueStarted = false;
-        pendingSegment = false;
         generator.reset();
     }
 
-    // Writes as much of the current segment slice as the bounded output allows, deferring the rest: when
-    // the slice does not fit it stashes the remainder (pendingSegment) and reports SUSPENDED so the driver
-    // drains and a later resume() continues from segmentWritten. Once the slice is fully written the value
-    // continues (more fragments follow, source.deferredBytes()) or completes (the value boundary).
-    private Status writeChunk(
-        DirectBuffer segment,
-        JsonSource source)
+    // Whether the suspended event still has value bytes/chars left to write, read from the source cursor —
+    // the sink keeps no pending state of its own.
+    private boolean inFlight(
+        JsonSource source,
+        JsonEvent event)
     {
-        int sliceLength = segment.capacity();
-        int length = Math.min(sliceLength - segmentWritten, generator.remaining());
-        int outputDeferred = sliceLength - segmentWritten - length;
-        generator.writeSegment(segment, segmentWritten, length, outputDeferred);
-        segmentWritten += length;
-        Status status;
-        if (outputDeferred > 0)
+        boolean result;
+        switch (event)
         {
-            pendingSegment = true;
+        case VALUE_STRING:
+        case VALUE_NUMBER:
+            result = source.getStringView().length() > 0;
+            break;
+        case SEGMENT:
+            result = source.getSegment().capacity() > 0;
+            break;
+        default:
+            result = false;
+            break;
+        }
+        return result;
+    }
+
+    // Writes one scalar/segment value, fed fresh or resumed: a structured (non-SEGMENTABLE) string renders
+    // canonically from its decoded char view; a verbatim string, number lexeme, or segment splices raw
+    // bytes.
+    private Status writeValue(
+        JsonController control,
+        JsonSource source,
+        JsonEvent event)
+    {
+        Status status;
+        if (event == JsonEvent.VALUE_NUMBER || event == JsonEvent.VALUE_STRING)
+        {
+            // a structured scalar renders canonically from its char view; a verbatim value arrives as a
+            // SEGMENT, so getSegment() is reached only for segmented events
+            status = writeScalar(control, source, event);
+        }
+        else
+        {
+            status = writeChunk(control, source.getSegment(), source);
+        }
+        return status;
+    }
+
+    // Renders a structured scalar canonically from its decoded char view: the generator owns quoting and
+    // escaping (a string) or emits the lexeme (a number), writing only what fits the bound and reporting
+    // consumed source chars so the parser advances its char cursor and re-exposes the remainder on resume —
+    // the char-domain analog of writeChunk.
+    private Status writeScalar(
+        JsonController control,
+        JsonSource source,
+        JsonEvent event)
+    {
+        final boolean deferred = source.deferredBytes();
+        final Completion completion = deferred ? Completion.INCOMPLETE : Completion.COMPLETE;
+        final CharSequence view = source.getStringView();
+        final int available = view.length();
+        final int before = generator.consumed();
+        if (event == JsonEvent.VALUE_NUMBER)
+        {
+            generator.writeNumber(view, completion);
+        }
+        else
+        {
+            generator.write(view, completion);
+        }
+        final int consumed = generator.consumed() - before;
+        control.consumed(consumed);
+        Status status;
+        if (available - consumed > 0)
+        {
             status = Status.SUSPENDED;
         }
         else
         {
-            segmentWritten = 0;
-            pendingSegment = false;
-            if (source.deferredBytes())
-            {
-                status = Status.ADVANCED;
-            }
-            else
-            {
-                valueStarted = false;
-                status = scalarStatus();
-            }
+            status = deferred ? Status.ADVANCED : scalarStatus();
+        }
+        return status;
+    }
+
+    // Splices the segment view, the generator owning the value's leading separator (emitted once on the
+    // first fragment) so the sink keeps no state; pushes back the source bytes the generator took via
+    // control.consumed(...) so the upstream re-exposes the remainder.
+    private Status writeChunk(
+        JsonController control,
+        DirectBuffer segment,
+        JsonSource source)
+    {
+        boolean deferred = source.deferredBytes();
+        Completion completion = deferred ? Completion.INCOMPLETE : Completion.COMPLETE;
+        int available = segment.capacity();
+        int before = generator.consumed();
+        generator.writeSegment(segment, 0, available, completion);
+        int consumed = generator.consumed() - before;
+        int outputDeferred = available - consumed;
+        control.consumed(consumed);
+        Status status;
+        if (outputDeferred > 0)
+        {
+            status = Status.SUSPENDED;
+        }
+        else if (deferred)
+        {
+            status = Status.ADVANCED;
+        }
+        else
+        {
+            status = scalarStatus();
         }
         return status;
     }

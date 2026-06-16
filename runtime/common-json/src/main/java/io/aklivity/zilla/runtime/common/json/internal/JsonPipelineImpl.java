@@ -18,27 +18,38 @@ import jakarta.json.stream.JsonParsingException;
 
 import org.agrona.DirectBuffer;
 
+import io.aklivity.zilla.runtime.common.json.JsonController;
+import io.aklivity.zilla.runtime.common.json.JsonEvent;
+import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
+import io.aklivity.zilla.runtime.common.json.JsonSource;
 
 /**
- * Backs {@link JsonPipeline}: holds the bound root {@link JsonSink} and the {@link JsonParserImpl}
+ * Backs {@link JsonPipeline}: holds the bound root {@link JsonSink} and the {@link JsonParserEx}
  * driver. {@link #feed(DirectBuffer, int, int)} re-targets the parser at the frame buffer then pumps
  * each parsed event through the root sink, passing the parser itself as the immutable
- * {@code JsonSource} view.
+ * {@code JsonSource} view and the {@link JsonController}.
  */
 public final class JsonPipelineImpl implements JsonPipeline
 {
-    private final JsonParserImpl parser;
+    private final JsonParserEx parser;
+    private final JsonSource source;
+    private final JsonController control;
     private final JsonSink root;
 
     private boolean suspended;
+    // the value event in flight across a suspend, handed to root.resume() so no stage stores it
+    private JsonEvent resumeEvent;
 
     public JsonPipelineImpl(
-        JsonParserImpl parser,
+        JsonParserEx parser,
         JsonSink root)
     {
         this.parser = parser;
+        // the parser is also the per-event source view and the upstream controller a stage steers
+        this.source = (JsonSource) parser;
+        this.control = (JsonController) parser;
         this.root = root;
     }
 
@@ -48,6 +59,13 @@ public final class JsonPipelineImpl implements JsonPipeline
         parser.reset();
         root.reset();
         suspended = false;
+        resumeEvent = null;
+    }
+
+    @Override
+    public long position()
+    {
+        return parser.position();
     }
 
     @Override
@@ -62,7 +80,7 @@ public final class JsonPipelineImpl implements JsonPipeline
         {
             if (suspended)
             {
-                status = root.resume(parser, parser);
+                status = root.resume(control, source, resumeEvent);
             }
             else
             {
@@ -70,7 +88,13 @@ public final class JsonPipelineImpl implements JsonPipeline
             }
             while (status == Status.ADVANCED && parser.hasNextEvent())
             {
-                status = root.feed(parser, parser, parser.nextEvent());
+                final JsonEvent event = parser.nextEvent();
+                status = root.feed(control, source, event);
+                if (status == Status.SUSPENDED)
+                {
+                    // the pump owns the resume cursor: remember the in-flight event for the next entry
+                    resumeEvent = event;
+                }
             }
             if (status == Status.ADVANCED)
             {

@@ -19,6 +19,7 @@ import java.util.List;
 
 import io.aklivity.zilla.runtime.common.json.JsonController;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
+import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
@@ -27,18 +28,18 @@ import io.aklivity.zilla.runtime.common.json.JsonStream;
 import io.aklivity.zilla.runtime.common.json.JsonTransform;
 
 /**
- * Backs {@link JsonStream}: holds the {@link JsonParserImpl} driver plus the ordered list of
+ * Backs {@link JsonStream}: holds the {@link JsonParserEx} driver plus the ordered list of
  * {@link JsonTransform} stages appended via {@link #transform(JsonTransform)}. {@link #into(JsonSink)}
  * binds the chain back-to-front into a single root {@link JsonSink} and returns a runnable
  * {@link JsonPipelineImpl}.
  */
 public final class JsonStreamImpl implements JsonStream
 {
-    private final JsonParserImpl parser;
+    private final JsonParserEx parser;
     private final List<JsonTransform> transforms;
 
     public JsonStreamImpl(
-        JsonParserImpl parser)
+        JsonParserEx parser)
     {
         this.parser = parser;
         this.transforms = new ArrayList<>();
@@ -89,9 +90,10 @@ public final class JsonStreamImpl implements JsonStream
         @Override
         public Status resume(
             JsonController control,
-            JsonSource source)
+            JsonSource source,
+            JsonEvent event)
         {
-            return transform.resume(control, source, downstream);
+            return transform.resume(control, source, event, downstream);
         }
 
         @Override

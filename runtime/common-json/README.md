@@ -12,9 +12,10 @@ keeps parse, transform, and serialize on a single pass with no intermediate DOM.
 `JsonEx.createParser()` returns a resumable pull cursor fed one frame at a time via
 `wrap(buffer, offset, length)`, then driven with the standard `hasNext()` / `next()`. It also
 implements `jakarta.json.stream.JsonParser`, so `JsonEx.createParser(in)` works anywhere a
-one-shot pull parser is expected. `PATH_INCLUDES` / `PATH_EXCLUDES` config bounds which paths are
-materialized (so deep values can be scanned and discarded without allocating), and `TOKEN_MAX_BYTES`
-fails fast on a single value that cannot make progress under reset semantics.
+one-shot pull parser is expected. Every value is readable on demand (decoded lazily via
+`getString()`, or spliced verbatim via `getSegment()`); the input window (`wrap`/`feed`) is the
+fragmentation bound — a value that fits the window is delivered whole, while one that fills the
+window is delivered as `deferredBytes()` fragments rather than buffered whole.
 
 ```java
 JsonParserEx parser = JsonEx.createParser().wrap(buffer, offset, length);
@@ -115,10 +116,12 @@ open structure — does not leak that structure into the next checkout.
 ### Fragmenting values larger than the bound
 
 A value whose verbatim form exceeds `remaining()` is **fragmented mid-byte** rather than overrunning
-the bound. `generator.writeSegment(source, index, length, deferred)` appends the bytes that fit and
-records `deferred` — how many bytes of the value remain — and the sink returns `SUSPENDED`; on resume
-it continues from where it paused until `deferred` reaches zero. A value of any size streams this way,
-never buffered in full.
+the bound. `generator.writeSegment(source, index, length)` is **consumption-driven**: it appends as
+many *source* bytes as fit the bound — escaping them when the generator is in escape mode, where one
+source byte may expand to several output bytes. `consumed()` reports the cumulative source bytes taken
+(the source-domain counterpart to `length()`); when fewer than `length` were taken the sink defers the
+remainder and returns `SUSPENDED`; on resume it continues from where it paused until the value is fully
+consumed. A value of any size streams this way, never buffered in full.
 
 This covers both a verbatim container subtree (`SEGMENTABLE` delivery) and a **scalar string value**.
 A string value larger than the bound is read as its raw token bytes — the parser exposes the token
@@ -127,13 +130,16 @@ one frame — and spliced across chunks; a string that fits is still re-encoded 
 never longer than the raw token, so the fit check is safe). So a giant `{"data":"…"}` value streams in
 both `STRUCTURED` and `SEGMENTABLE` delivery.
 
-Resumption is a **per-stage cascade**, not an event replay: `JsonSink.resume(control, source)` and
-`JsonTransform.resume(control, source, sink)` continue any in-flight fragment before the next event is
-pulled, with the same `control` and `source` context as `feed`. `JsonTransform.resume(control, source,
-sink)` defaults to `sink.resume(control, source)`, so a stage that only forwards events ignores it
-entirely; a stage that itself emits a value across chunks (substituting or expanding output) overrides
-it to continue its own emission, draining the downstream first. This keeps the transform contract
-simple — no stage has to be suspend/resume aware unless it originates `SUSPENDED`.
+Resumption is a **per-stage cascade**, not an event replay: `JsonSink.resume(control, source, event)`
+and `JsonTransform.resume(control, source, event, sink)` continue any in-flight fragment before the next
+event is pulled, with the same `control` and `source` context as `feed` plus the value `event` that
+suspended (supplied by the pump, which owns the single resume cursor, so a stage keeps no per-value
+resume state). The sink holds none: it continues only while the source view still has an unwritten
+remainder (`getStringView().length()`/`getSegment().capacity()`) and otherwise just advances.
+`JsonTransform.resume` defaults to `sink.resume(control, source, event)`, so a stage that only forwards
+events ignores it entirely; a stage that itself emits a value across chunks (substituting or expanding
+output) overrides it to continue its own emission, draining the downstream first. This keeps the
+transform contract simple — no stage has to be suspend/resume aware unless it originates `SUSPENDED`.
 
 ### Writing JSON directly
 
@@ -141,8 +147,17 @@ simple — no stage has to be suspend/resume aware unless it originates `SUSPEND
 and quoting automatically from an internal context stack, emitting in source order with no
 insignificant whitespace. It implements `jakarta.json.stream.JsonGenerator` with covariant returns for
 fluent chaining, plus the streaming-to-buffer extensions: `writeNumber(literal)` emits a numeric
-lexeme verbatim, `writeRaw` / `writeRawContinue` splice a pre-encoded value (in one or more fragments),
-and `writeSegment` writes a bounded, deferred-tracking fragment.
+lexeme verbatim, `writeRaw` splices a pre-encoded value (emitting its leading separator once), and
+`writeSegment(source, index, length)` appends a bounded, consumption-driven fragment of that value with
+no separator. Its `writeSegment(source, index, length, completion)` overload owns the leading separator
+across fragments — emitted before the first fragment, the value ending on `Completion.COMPLETE` — so a
+fragmented value splices without the caller tracking whether the separator was already written.
+
+`createGenerator(Map.of(JsonGeneratorEx.GENERATE_ESCAPED, true))` opts the generator into **escape mode**: every
+byte it emits is escaped as JSON string *content* (structural bytes and UTF-8 continuation bytes pass
+through; `"`, `\`, and control characters are escaped), composing with the generator's existing
+value-escaping so the whole output stream becomes the escaped form of the document — the inner content of
+a JSON-in-JSON string. The caller writes the surrounding quotes and outer envelope.
 
 ```java
 JsonGeneratorEx generator = JsonEx.createGenerator().wrap(out, 0, out.capacity());

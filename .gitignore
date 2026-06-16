@@ -37,3 +37,9 @@ gen/
 examples/grpc-clicker.json
 .claude/
 AGENTS.override.md
+
+# JMH profiler output
+*.jfr
+*-Throughput/
+*-Average/
+*-SampleTime/

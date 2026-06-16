@@ -1,0 +1,29 @@
+{
+  "type" : "record",
+  "name" : "Primitives",
+  "fields" : [ {
+    "name" : "intField",
+    "type" : "int"
+  }, {
+    "name" : "longField",
+    "type" : "long"
+  }, {
+    "name" : "stringField",
+    "type" : "string"
+  }, {
+    "name" : "boolField",
+    "type" : "boolean"
+  }, {
+    "name" : "floatField",
+    "type" : "float"
+  }, {
+    "name" : "doubleField",
+    "type" : "double"
+  }, {
+    "name" : "bytesField",
+    "type" : "bytes"
+  }, {
+    "name" : "nullField",
+    "type" : "null"
+  } ]
+}

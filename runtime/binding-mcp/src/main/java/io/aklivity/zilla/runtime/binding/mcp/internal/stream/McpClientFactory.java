@@ -32,7 +32,6 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeg
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
@@ -42,10 +41,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import jakarta.json.stream.JsonParser;
-import jakarta.json.stream.JsonParserFactory;
 
 import org.agrona.DirectBuffer;
-import org.agrona.ExpandableArrayBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
@@ -78,8 +75,8 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpResetExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.WindowFW;
-import io.aklivity.zilla.runtime.common.json.DirectBufferInputStreamEx;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
+import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -198,8 +195,6 @@ public final class McpClientFactory implements McpStreamFactory
     private final McpFlushExFW.Builder mcpFlushExRW = new McpFlushExFW.Builder();
     private final McpResetExFW.Builder mcpResetExRW = new McpResetExFW.Builder();
 
-    private final DirectBufferInputStreamEx responseInputRO = new DirectBufferInputStreamEx();
-
     private final EngineContext context;
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer extBuffer;
@@ -224,29 +219,12 @@ public final class McpClientFactory implements McpStreamFactory
     private final String clientName;
     private final String clientVersion;
 
-    private static final List<String> CLIENT_JSON_PATH_INCLUDES = List.of(
-        "/jsonrpc",
-        "/id",
-        "/method",
-        "/protocolVersion",
-        "/params/progressToken",
-        "/params/progress",
-        "/params/total",
-        "/params/message",
-        "/params/elicitationId",
-        "/params/url",
-        "/params/mode",
-        "/params/status");
-
     private static final int SSE_LINE_START = 0;
     private static final int SSE_FIELD_NAME = 1;
     private static final int SSE_AFTER_COLON = 2;
     private static final int SSE_SMALL_VALUE = 3;
     private static final int SSE_IGNORE_VALUE = 4;
 
-    private final JsonParserFactory responseParserFactory;
-    private final JsonParserFactory requestParserFactory;
-    private final DirectBufferInputStreamEx requestInputRO = new DirectBufferInputStreamEx();
     private final Matcher bearerChallengeMatcher = BEARER_CHALLENGE_PATTERN.matcher("");
 
     private final McpConfiguration config;
@@ -284,12 +262,6 @@ public final class McpClientFactory implements McpStreamFactory
         this.signaler = context.signaler();
         this.clientName = config.clientName();
         this.clientVersion = config.clientVersion();
-        this.responseParserFactory = JsonEx.createParserFactory(Map.of(
-            JsonEx.PATH_INCLUDES, CLIENT_JSON_PATH_INCLUDES,
-            JsonEx.TOKEN_MAX_BYTES, decodeMax));
-        this.requestParserFactory = JsonEx.createParserFactory(Map.of(
-            JsonEx.PATH_INCLUDES, List.of(),
-            JsonEx.TOKEN_MAX_BYTES, encodeMax));
 
         final Int2ObjectHashMap<McpSessionIdResolver> resolvers = new Int2ObjectHashMap<>();
         resolvers.put(KIND_TOOLS_LIST, ex -> ex.toolsList().sessionId().asString());
@@ -417,13 +389,18 @@ public final class McpClientFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        DirectBufferInputStreamEx input = requestInputRO;
-        input.wrap(buffer, progress, limit - progress);
         if (stream.paramsParser == null)
         {
-            stream.paramsParser = requestParserFactory.createParser(input);
+            stream.paramsParser = JsonEx.createParser(Map.of());
+            stream.paramsParser.wrap(buffer, progress, limit - progress);
+            stream.paramsParserProgress = offset - progress;
         }
-        final JsonParser parser = stream.paramsParser;
+        else
+        {
+            final int delta = (int) (stream.paramsParser.getLocation().getStreamOffset() - stream.paramsParserProgress);
+            stream.paramsParser.wrap(buffer, offset + delta, limit - offset - delta);
+        }
+        final JsonParserEx parser = stream.paramsParser;
         while (stream.decoder != decodeRequestEnd && parser.hasNext())
         {
             final JsonParser.Event event = parser.next();
@@ -438,8 +415,6 @@ public final class McpClientFactory implements McpStreamFactory
                 stream.paramsDepth--;
                 if (stream.paramsDepth == 0)
                 {
-                    parser.close();
-                    stream.paramsParser = null;
                     stream.state = McpState.openedInitial(stream.state);
                     stream.http.doEncodeRequestEnd(traceId, authorization);
                     stream.decoder = decodeRequestEnd;
@@ -449,7 +424,14 @@ public final class McpClientFactory implements McpStreamFactory
                 break;
             }
         }
-        return limit - input.available();
+        progress = offset + (int) (parser.getLocation().getStreamOffset() - stream.paramsParserProgress);
+        stream.paramsParserProgress += progress - offset;
+        if (stream.decoder == decodeRequestEnd)
+        {
+            parser.close();
+            stream.paramsParser = null;
+        }
+        return progress;
     }
 
     private int decodeRequestEnd(
@@ -477,17 +459,15 @@ public final class McpClientFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        DirectBufferInputStreamEx input = responseInputRO;
-        input.wrap(buffer, progress, limit - progress);
-
-        http.decodableJson = responseParserFactory.createParser(input);
+        http.decodableJson = JsonEx.createParser(Map.of());
+        http.decodableJson.wrap(buffer, progress, limit - progress);
         http.decoder = decodeJsonRpcStart;
         // Map parser stream-offset 0 to buffer position `progress`.
         // The decodeJsonRpc* methods use offset + decodedX - decodedParserProgress as buffer position,
         // so set decodedParserProgress = offset - progress to align.
         http.decodedParserProgress = offset - progress;
 
-        progress = limit - input.available();
+        progress = offset + (int) (http.decodableJson.getLocation().getStreamOffset() - http.decodedParserProgress);
 
         return progress;
     }
@@ -503,7 +483,6 @@ public final class McpClientFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        DirectBufferInputStreamEx input = responseInputRO;
         JsonParser parser = http.decodableJson;
 
         decode:
@@ -519,7 +498,7 @@ public final class McpClientFactory implements McpStreamFactory
 
             http.decoder = decodeJsonRpcNext;
 
-            progress = limit - input.available();
+            progress = offset + (int) (parser.getLocation().getStreamOffset() - http.decodedParserProgress);
         }
 
         return progress;
@@ -536,7 +515,6 @@ public final class McpClientFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        DirectBufferInputStreamEx input = responseInputRO;
         JsonParser parser = http.decodableJson;
 
         decode:
@@ -578,7 +556,7 @@ public final class McpClientFactory implements McpStreamFactory
                 break decode;
             }
 
-            progress = limit - input.available();
+            progress = offset + (int) (parser.getLocation().getStreamOffset() - http.decodedParserProgress);
         }
 
         return progress;
@@ -595,7 +573,6 @@ public final class McpClientFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        DirectBufferInputStreamEx input = responseInputRO;
         JsonParser parser = http.decodableJson;
 
         decode:
@@ -611,7 +588,7 @@ public final class McpClientFactory implements McpStreamFactory
             http.decodableJson = null;
             http.decoder = http.sseMode ? decodeSseEventEnd : decodeIgnore;
 
-            progress = limit - input.available();
+            progress = offset + (int) (parser.getLocation().getStreamOffset() - http.decodedParserProgress);
         }
 
         return progress;
@@ -628,7 +605,6 @@ public final class McpClientFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        DirectBufferInputStreamEx input = responseInputRO;
         JsonParser parser = http.decodableJson;
 
         decode:
@@ -645,7 +621,7 @@ public final class McpClientFactory implements McpStreamFactory
 
             http.decoder = decodeJsonRpcNext;
 
-            progress = limit - input.available();
+            progress = offset + (int) (parser.getLocation().getStreamOffset() - http.decodedParserProgress);
         }
 
         return progress;
@@ -662,7 +638,6 @@ public final class McpClientFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        DirectBufferInputStreamEx input = responseInputRO;
         JsonParser parser = http.decodableJson;
 
         decode:
@@ -680,7 +655,7 @@ public final class McpClientFactory implements McpStreamFactory
             http.sseEventJsonId = parser.getString();
             http.decoder = decodeJsonRpcNext;
 
-            progress = limit - input.available();
+            progress = offset + (int) (parser.getLocation().getStreamOffset() - http.decodedParserProgress);
         }
 
         return progress;
@@ -798,6 +773,11 @@ public final class McpClientFactory implements McpStreamFactory
                     http.decodedResultErrorKey = true;
                 }
             }
+
+            if (http.decodedSkipObjectThen == decodeJsonRpcResultEnd)
+            {
+                http.onDecodeResultEvent(event, parser, http.decodedSkipObjectDepth);
+            }
         }
 
         final int decodedResultProgress = (int) parser.getLocation().getStreamOffset();
@@ -826,7 +806,6 @@ public final class McpClientFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        DirectBufferInputStreamEx input = responseInputRO;
         JsonParser parser = http.decodableJson;
 
         decode:
@@ -849,7 +828,7 @@ public final class McpClientFactory implements McpStreamFactory
                 http.sseEventMethod = method;
             }
             http.decoder = decodeJsonRpcNext;
-            progress = limit - input.available();
+            progress = offset + (int) (parser.getLocation().getStreamOffset() - http.decodedParserProgress);
         }
 
         return progress;
@@ -866,7 +845,6 @@ public final class McpClientFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        DirectBufferInputStreamEx input = responseInputRO;
         JsonParser parser = http.decodableJson;
 
         decode:
@@ -880,7 +858,7 @@ public final class McpClientFactory implements McpStreamFactory
                 break decode;
             }
             http.decoder = decodeJsonRpcParamsNext;
-            progress = limit - input.available();
+            progress = offset + (int) (parser.getLocation().getStreamOffset() - http.decodedParserProgress);
         }
 
         return progress;
@@ -897,7 +875,6 @@ public final class McpClientFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        DirectBufferInputStreamEx input = responseInputRO;
         JsonParser parser = http.decodableJson;
 
         decode:
@@ -944,7 +921,7 @@ public final class McpClientFactory implements McpStreamFactory
                 break decode;
             }
 
-            progress = limit - input.available();
+            progress = offset + (int) (parser.getLocation().getStreamOffset() - http.decodedParserProgress);
         }
 
         return progress;
@@ -961,7 +938,6 @@ public final class McpClientFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        DirectBufferInputStreamEx input = responseInputRO;
         JsonParser parser = http.decodableJson;
 
         if (parser.hasNext())
@@ -969,7 +945,7 @@ public final class McpClientFactory implements McpStreamFactory
             parser.next();
             http.sseProgressToken = parser.getString();
             http.decoder = decodeJsonRpcParamsNext;
-            progress = limit - input.available();
+            progress = offset + (int) (parser.getLocation().getStreamOffset() - http.decodedParserProgress);
         }
 
         return progress;
@@ -986,7 +962,6 @@ public final class McpClientFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        DirectBufferInputStreamEx input = responseInputRO;
         JsonParser parser = http.decodableJson;
 
         if (parser.hasNext())
@@ -994,7 +969,7 @@ public final class McpClientFactory implements McpStreamFactory
             parser.next();
             http.sseProgress = parser.getLong();
             http.decoder = decodeJsonRpcParamsNext;
-            progress = limit - input.available();
+            progress = offset + (int) (parser.getLocation().getStreamOffset() - http.decodedParserProgress);
         }
 
         return progress;
@@ -1011,7 +986,6 @@ public final class McpClientFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        DirectBufferInputStreamEx input = responseInputRO;
         JsonParser parser = http.decodableJson;
 
         if (parser.hasNext())
@@ -1019,7 +993,7 @@ public final class McpClientFactory implements McpStreamFactory
             parser.next();
             http.sseProgressTotal = parser.getLong();
             http.decoder = decodeJsonRpcParamsNext;
-            progress = limit - input.available();
+            progress = offset + (int) (parser.getLocation().getStreamOffset() - http.decodedParserProgress);
         }
 
         return progress;
@@ -1036,7 +1010,6 @@ public final class McpClientFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        DirectBufferInputStreamEx input = responseInputRO;
         JsonParser parser = http.decodableJson;
 
         if (parser.hasNext())
@@ -1044,7 +1017,7 @@ public final class McpClientFactory implements McpStreamFactory
             parser.next();
             http.sseProgressMessage = parser.getString();
             http.decoder = decodeJsonRpcParamsNext;
-            progress = limit - input.available();
+            progress = offset + (int) (parser.getLocation().getStreamOffset() - http.decodedParserProgress);
         }
 
         return progress;
@@ -1061,7 +1034,6 @@ public final class McpClientFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        DirectBufferInputStreamEx input = responseInputRO;
         JsonParser parser = http.decodableJson;
 
         if (parser.hasNext())
@@ -1069,7 +1041,7 @@ public final class McpClientFactory implements McpStreamFactory
             parser.next();
             http.sseElicitationId = parser.getString();
             http.decoder = decodeJsonRpcParamsNext;
-            progress = limit - input.available();
+            progress = offset + (int) (parser.getLocation().getStreamOffset() - http.decodedParserProgress);
         }
 
         return progress;
@@ -1086,7 +1058,6 @@ public final class McpClientFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        DirectBufferInputStreamEx input = responseInputRO;
         JsonParser parser = http.decodableJson;
 
         if (parser.hasNext())
@@ -1094,7 +1065,7 @@ public final class McpClientFactory implements McpStreamFactory
             parser.next();
             http.sseElicitUrl = parser.getString();
             http.decoder = decodeJsonRpcParamsNext;
-            progress = limit - input.available();
+            progress = offset + (int) (parser.getLocation().getStreamOffset() - http.decodedParserProgress);
         }
 
         return progress;
@@ -1111,7 +1082,6 @@ public final class McpClientFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        DirectBufferInputStreamEx input = responseInputRO;
         JsonParser parser = http.decodableJson;
 
         if (parser.hasNext())
@@ -1119,7 +1089,7 @@ public final class McpClientFactory implements McpStreamFactory
             parser.next();
             http.sseElicitMode = parser.getString();
             http.decoder = decodeJsonRpcParamsNext;
-            progress = limit - input.available();
+            progress = offset + (int) (parser.getLocation().getStreamOffset() - http.decodedParserProgress);
         }
 
         return progress;
@@ -1529,6 +1499,9 @@ public final class McpClientFactory implements McpStreamFactory
         private int replyMax;
         private long replyBud;
         private int replyPad;
+
+        protected int decodeSlot = NO_SLOT;
+        protected int decodeSlotOffset;
 
         int state;
 
@@ -2112,12 +2085,23 @@ public final class McpClientFactory implements McpStreamFactory
             }
         }
 
-        private void cleanupApp(
+        protected void cleanupApp(
             long traceId,
             long authorization)
         {
             doAppReset(traceId, authorization);
             doAppAbort(traceId, authorization);
+            cleanupDecodeSlot();
+        }
+
+        protected void cleanupDecodeSlot()
+        {
+            if (decodeSlot != NO_SLOT)
+            {
+                decodePool.release(decodeSlot);
+                decodeSlot = NO_SLOT;
+                decodeSlotOffset = 0;
+            }
         }
     }
 
@@ -2686,7 +2670,8 @@ public final class McpClientFactory implements McpStreamFactory
         long timeout;
         private HttpEventStream sse;
 
-        JsonParser paramsParser;
+        JsonParserEx paramsParser;
+        long paramsParserProgress;
         int paramsDepth;
 
         private boolean pendingAuth;
@@ -3301,8 +3286,45 @@ public final class McpClientFactory implements McpStreamFactory
                 final OctetsFW payload = data.payload();
                 if (payload != null && payload.sizeof() > 0)
                 {
-                    decoder.decode(this, data.traceId(), data.authorization(),
-                        0L, 0, payload.buffer(), payload.offset(), payload.offset(), payload.limit());
+                    DirectBuffer buffer = payload.buffer();
+                    int offset = payload.offset();
+                    int limit = payload.limit();
+
+                    if (decodeSlot != NO_SLOT)
+                    {
+                        final MutableDirectBuffer slot = decodePool.buffer(decodeSlot);
+                        slot.putBytes(decodeSlotOffset, payload.buffer(), payload.offset(), payload.sizeof());
+                        decodeSlotOffset += payload.sizeof();
+                        buffer = slot;
+                        offset = 0;
+                        limit = decodeSlotOffset;
+                    }
+
+                    final int progress = decoder.decode(this, data.traceId(), data.authorization(),
+                        0L, 0, buffer, offset, offset, limit);
+
+                    if (progress < limit)
+                    {
+                        if (decodeSlot == NO_SLOT)
+                        {
+                            decodeSlot = decodePool.acquire(initialId);
+                        }
+
+                        if (decodeSlot == NO_SLOT)
+                        {
+                            cleanupApp(data.traceId(), data.authorization());
+                        }
+                        else
+                        {
+                            final MutableDirectBuffer slot = decodePool.buffer(decodeSlot);
+                            slot.putBytes(0, buffer, progress, limit - progress);
+                            decodeSlotOffset = limit - progress;
+                        }
+                    }
+                    else
+                    {
+                        cleanupDecodeSlot();
+                    }
                 }
             }
         }
@@ -3470,7 +3492,7 @@ public final class McpClientFactory implements McpStreamFactory
         protected int decodeSlotReserved;
 
         protected HttpResponseDecoder decoder;
-        protected JsonParser decodableJson;
+        protected JsonParserEx decodableJson;
         protected int decodedResultProgress;
         protected int decodedParserProgress;
         protected HttpResponseDecoder decodedSkipObjectThen;
@@ -3533,6 +3555,13 @@ public final class McpClientFactory implements McpStreamFactory
             DirectBuffer buffer,
             int offset,
             int limit);
+
+        void onDecodeResultEvent(
+            JsonParser.Event event,
+            JsonParser parser,
+            int depth)
+        {
+        }
 
         protected void cleanupDecodeSlot()
         {
@@ -3719,8 +3748,7 @@ public final class McpClientFactory implements McpStreamFactory
                 if (decodableJson != null)
                 {
                     final int delta = (int) (decodableJson.getLocation().getStreamOffset() - decodedParserProgress);
-                    final DirectBufferInputStreamEx input = responseInputRO;
-                    input.wrap(buffer, offset + delta, limit - offset - delta);
+                    decodableJson.wrap(buffer, offset + delta, limit - offset - delta);
                 }
 
                 decodeNet(traceId, authorization, budgetId, reserved, buffer, offset, limit);
@@ -4166,8 +4194,10 @@ public final class McpClientFactory implements McpStreamFactory
 
     private final class HttpInitializeRequest extends HttpStream
     {
-        private final ExpandableArrayBuffer resultBuffer = new ExpandableArrayBuffer();
-        private int resultLimit;
+        private boolean inCapabilities;
+        private String capabilityCategory;
+        private boolean expectVersion;
+        private boolean expectListChanged;
 
         HttpInitializeRequest(
             McpStream mcp)
@@ -4237,96 +4267,82 @@ public final class McpClientFactory implements McpStreamFactory
             int offset,
             int limit)
         {
-            final int length = limit - offset;
-            resultBuffer.putBytes(resultLimit, buffer, offset, length);
-            resultLimit += length;
             return limit;
         }
 
         @Override
-        void onResponseComplete(
-            long traceId,
-            long authorization)
+        void onDecodeResultEvent(
+            JsonParser.Event event,
+            JsonParser parser,
+            int depth)
         {
-            if (resultLimit == 0)
+            switch (event)
             {
-                return;
-            }
-
-            responseInputRO.wrap(resultBuffer, 0, resultLimit);
-
-            int bits = 0;
-            try (JsonParser parser = responseParserFactory.createParser(responseInputRO))
-            {
-                int depth = 0;
-                boolean inCapabilities = false;
-                String primitive = null;
-
-                while (parser.hasNext())
+            case KEY_NAME:
+                final String key = parser.getString();
+                if (depth == 1 && JSON_KEY_PROTOCOL_VERSION.equals(key))
                 {
-                    final JsonParser.Event event = parser.next();
-                    switch (event)
+                    expectVersion = true;
+                }
+                else if (depth == 1 && JSON_KEY_CAPABILITIES.equals(key))
+                {
+                    inCapabilities = true;
+                }
+                else if (depth == 2 && inCapabilities)
+                {
+                    capabilityCategory = key;
+                }
+                else if (depth == 3 && capabilityCategory != null && JSON_KEY_LIST_CHANGED.equals(key))
+                {
+                    expectListChanged = true;
+                }
+                break;
+            case VALUE_STRING:
+                if (expectVersion && mcp instanceof McpLifecycleStream lifecycle)
+                {
+                    lifecycle.negotiatedVersion = parser.getString();
+                }
+                expectVersion = false;
+                expectListChanged = false;
+                break;
+            case VALUE_TRUE:
+                if (expectListChanged && capabilityCategory != null)
+                {
+                    switch (capabilityCategory)
                     {
-                    case START_OBJECT:
-                        depth++;
+                    case JSON_KEY_TOOLS:
+                        mcp.serverCapabilities |= SERVER_TOOLS_LIST_CHANGED.value();
                         break;
-                    case END_OBJECT:
-                        depth--;
-                        if (depth == 2 && primitive != null)
-                        {
-                            primitive = null;
-                        }
-                        if (depth == 1 && inCapabilities)
-                        {
-                            inCapabilities = false;
-                        }
+                    case JSON_KEY_PROMPTS:
+                        mcp.serverCapabilities |= SERVER_PROMPTS_LIST_CHANGED.value();
                         break;
-                    case KEY_NAME:
-                        final String key = parser.getString();
-                        if (depth == 1 && JSON_KEY_PROTOCOL_VERSION.equals(key))
-                        {
-                            if (parser.hasNext() && parser.next() == JsonParser.Event.VALUE_STRING &&
-                                mcp instanceof McpLifecycleStream lifecycle)
-                            {
-                                lifecycle.negotiatedVersion = parser.getString();
-                            }
-                        }
-                        else if (depth == 1 && JSON_KEY_CAPABILITIES.equals(key))
-                        {
-                            inCapabilities = true;
-                        }
-                        else if (depth == 2 && inCapabilities)
-                        {
-                            primitive = key;
-                        }
-                        else if (depth == 3 && primitive != null && JSON_KEY_LIST_CHANGED.equals(key))
-                        {
-                            if (parser.hasNext() && parser.next() == JsonParser.Event.VALUE_TRUE)
-                            {
-                                switch (primitive)
-                                {
-                                case JSON_KEY_TOOLS:
-                                    bits |= SERVER_TOOLS_LIST_CHANGED.value();
-                                    break;
-                                case JSON_KEY_PROMPTS:
-                                    bits |= SERVER_PROMPTS_LIST_CHANGED.value();
-                                    break;
-                                case JSON_KEY_RESOURCES:
-                                    bits |= SERVER_RESOURCES_LIST_CHANGED.value();
-                                    break;
-                                default:
-                                    break;
-                                }
-                            }
-                        }
+                    case JSON_KEY_RESOURCES:
+                        mcp.serverCapabilities |= SERVER_RESOURCES_LIST_CHANGED.value();
                         break;
                     default:
                         break;
                     }
                 }
+                expectVersion = false;
+                expectListChanged = false;
+                break;
+            case END_OBJECT:
+                if (depth == 2)
+                {
+                    capabilityCategory = null;
+                }
+                else if (depth == 1)
+                {
+                    inCapabilities = false;
+                }
+                expectVersion = false;
+                expectListChanged = false;
+                break;
+            default:
+                expectVersion = false;
+                expectListChanged = false;
+                break;
             }
-
-            mcp.serverCapabilities |= bits;
         }
     }
 
@@ -4589,8 +4605,7 @@ public final class McpClientFactory implements McpStreamFactory
                 if (decodableJson != null)
                 {
                     final int delta = (int) (decodableJson.getLocation().getStreamOffset() - decodedParserProgress);
-                    final DirectBufferInputStreamEx input = responseInputRO;
-                    input.wrap(buffer, offset + delta, limit - offset - delta);
+                    decodableJson.wrap(buffer, offset + delta, limit - offset - delta);
                 }
 
                 decodeNet(traceId, authorization, budgetId, reserved, buffer, offset, limit);

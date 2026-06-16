@@ -14,13 +14,10 @@
  */
 package io.aklivity.zilla.runtime.common.json.internal;
 
-import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayDeque;
 import java.util.Deque;
-import java.util.List;
-import java.util.Optional;
 
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParsingException;
@@ -53,22 +50,21 @@ public final class JsonTokenizer
     }
 
     private static final int MAX_DEPTH = 64;
-    private static final String WILDCARD_INDEX = "-";
 
     private final Deque<ParseState> stack = new ArrayDeque<>();
     private final StringBuilder scratch = new StringBuilder();
-    private final List<String[]> pathIncludes;
-    private final List<String[]> pathExcludes;
-    private final boolean pathFiltering;
-    private final int tokenMaxBytes;
+    // accumulates the full lexeme of a fragmented number across its fragments (scratch holds only the
+    // current fragment); getBigDecimal() reads this on the final fragment to read the value whole.
+    private final StringBuilder numberLexeme = new StringBuilder();
     private boolean terminalEof;
+    // byte length of the current input window; a value whose own bytes reach this length without
+    // completing fills the window and is delivered as fragments rather than reassembled across windows.
+    private int windowLength = Integer.MAX_VALUE;
 
     // path tracking — pre-allocated, no per-event allocation
     private final boolean[] pathInArray = new boolean[MAX_DEPTH];
-    // pathKey holds the key String only when path filtering is configured (the filter compares keys
-    // eagerly); pathKeyChars mirrors it allocation-free for currentPath() in the deferred (no-filter)
-    // mode, where keys are not materialized into Strings.
-    private final String[] pathKey = new String[MAX_DEPTH];
+    // pathKeyChars mirrors each object key allocation-free; path matching and currentPath() compare
+    // against it as a CharSequence so keys are never materialized into Strings just to track the path.
     private final StringBuilder[] pathKeyChars = new StringBuilder[MAX_DEPTH];
     private final boolean[] pathKeySet = new boolean[MAX_DEPTH];
     private final int[] pathIndex = new int[MAX_DEPTH];
@@ -81,10 +77,34 @@ public final class JsonTokenizer
     private long streamOffset;
     private long valueStreamStart;
     private long valueStreamEnd;
-    private boolean valueReadable = true;
+    // raw stream offset where the current value (string or number) fragment began; getSegment() of a
+    // fragmented value returns [fragmentStart, valueStreamEnd] so each fragment's verbatim bytes splice
+    // back to the whole token (fragment 1 includes the opening quote, the final fragment the closing one)
+    private long fragmentStart;
     // set while a segment scan is in progress: a value-string is then streamed across frames as raw
     // bytes (no rewind to require it whole-in-frame, no decoded retention) rather than buffered whole.
     private boolean segmenting;
+    // set while a kept scalar leaf value-string is delivered verbatim as raw fragments: suppresses decoded
+    // retention and lets the value-string fragment across windows at unit boundaries
+    private boolean scalarSegment;
+    // set while a value-string that fills the input window is being delivered as a sequence of
+    // fragments: each fragment carries the decoded chars scanned so far, deferredBytes() stays true
+    // until the closing quote. A partial char/escape at a window boundary is left unconsumed (rewound
+    // to unitStartOffset) for the caller to re-present, so no partial state crosses a wrap.
+    private boolean fragmenting;
+    private long unitStartOffset;
+    // true once the current/just-completed number was delivered in more than one fragment: getInt()/
+    // getLong() then throw (the value would overflow) and getBigDecimal() reads the accumulated lexeme.
+    private boolean numberFragmented;
+
+    // set at each VALUE_STRING delivery: true when the value-string was streamed verbatim as raw bytes
+    // (a segment scan or an armed scalar leaf), so the caller splices its raw token bytes; false when it
+    // was decoded into scratch, so the caller renders it canonically from the decoded chars.
+    private boolean stringVerbatim;
+
+    // set when a read hits the end of the current input window mid-token: the scan unwinds logically
+    // (no exception) and advance() routes to onScalarStarved; reset at the top of each advance()
+    private boolean starved;
 
     // scalar resume state (valid when resumeOp != NONE)
     private ResumeOp resumeOp = ResumeOp.NONE;
@@ -95,15 +115,7 @@ public final class JsonTokenizer
 
     public JsonTokenizer()
     {
-        this(null, null, Integer.MAX_VALUE);
-    }
-
-    public JsonTokenizer(
-        List<String> pathIncludes,
-        List<String> pathExcludes,
-        int tokenMaxBytes)
-    {
-        this(pathIncludes, pathExcludes, tokenMaxBytes, false);
+        this(false);
     }
 
     // terminalEof distinguishes a one-shot stream (EOF is the final delimiter) from the chunked
@@ -111,15 +123,8 @@ public final class JsonTokenizer
     // only matters for numbers, which unlike strings and the true/false/null literals are not
     // self-terminating and need a following non-digit byte to know they have ended.
     public JsonTokenizer(
-        List<String> pathIncludes,
-        List<String> pathExcludes,
-        int tokenMaxBytes,
         boolean terminalEof)
     {
-        this.pathIncludes = compilePaths(pathIncludes);
-        this.pathExcludes = compilePaths(pathExcludes);
-        this.pathFiltering = this.pathIncludes != null || this.pathExcludes != null;
-        this.tokenMaxBytes = tokenMaxBytes;
         this.terminalEof = terminalEof;
         for (int i = 0; i < MAX_DEPTH; i++)
         {
@@ -131,14 +136,20 @@ public final class JsonTokenizer
     {
         stack.clear();
         scratch.setLength(0);
+        numberLexeme.setLength(0);
+        numberFragmented = false;
+        stringVerbatim = false;
         pathDepth = 0;
         state = ParseState.DOC_START;
         pendingEvent = null;
         pendingString = null;
         valuePending = false;
         streamOffset = 0;
-        valueReadable = true;
+        fragmentStart = 0;
         segmenting = false;
+        scalarSegment = false;
+        fragmenting = false;
+        starved = false;
         resumeOp = ResumeOp.NONE;
         resumeEscape = false;
         resumeUnicodePending = 0;
@@ -154,6 +165,13 @@ public final class JsonTokenizer
         this.segmenting = segmenting;
     }
 
+    // Arms the next value-string to stream verbatim as raw fragments (no decoded retention).
+    void scalarSegment(
+        boolean scalarSegment)
+    {
+        this.scalarSegment = scalarSegment;
+    }
+
     // Set per input window: when true this window's EOF is the terminal delimiter (one-shot or final
     // window), so a trailing scalar completes at EOF and an incomplete value is rejected; when false EOF
     // is a frame boundary with more bytes still to come.
@@ -163,43 +181,19 @@ public final class JsonTokenizer
         this.terminalEof = terminalEof;
     }
 
-    public static final List<String> INCLUDE_ALL = null;
-
-    private static List<String[]> compilePaths(
-        List<String> paths)
+    // Set per input window: its byte length is the fragmentation bound — a value whose own bytes reach
+    // it without completing is delivered as fragments instead of reassembled across windows.
+    void window(
+        int length)
     {
-        return Optional.ofNullable(paths)
-            .map(JsonTokenizer::compilePathList)
-            .orElse(null);
-    }
-
-    private static List<String[]> compilePathList(
-        List<String> paths)
-    {
-        return paths.isEmpty()
-            ? List.of()
-            : paths.stream().map(JsonTokenizer::compilePath).toList();
-    }
-
-    private static String[] compilePath(
-        String path)
-    {
-        if (path.isEmpty())
-        {
-            return new String[0];
-        }
-        // RFC 6901: leading '/', segments separated by '/', '~1' decodes to '/', '~0' to '~'
-        final String[] parts = path.substring(1).split("/", -1);
-        for (int i = 0; i < parts.length; i++)
-        {
-            parts[i] = parts[i].replace("~1", "/").replace("~0", "~");
-        }
-        return parts;
+        this.windowLength = length;
     }
 
     public boolean advance(
         InputStream in) throws IOException
     {
+        starved = false;
+
         if (state == ParseState.DOC_DONE)
         {
             if (terminalEof)
@@ -213,51 +207,92 @@ public final class JsonTokenizer
         pendingString = null;
         valuePending = false;
 
-        while (pendingEvent == null && state != ParseState.DOC_DONE)
+        boolean produced = true;
+        while (!starved && pendingEvent == null && state != ParseState.DOC_DONE)
         {
-            // Snapshot at the start of each iteration. On EOF mid-readable-scalar-scan we rewind
-            // to drop any partial scratch and let the caller retry once more bytes are appended.
-            // For other parse steps (KEY_NAME, structural separators, non-readable values) the
-            // existing internal-resume state carries across frames without needing rewind.
-            final long iterStart = streamOffset;
-            in.mark(tokenMaxBytes == Integer.MAX_VALUE ? Integer.MAX_VALUE : tokenMaxBytes);
-
-            try
+            if (resumeOp != ResumeOp.NONE)
             {
-                if (resumeOp != ResumeOp.NONE)
-                {
-                    resumeScan(in);
-                }
-                else
-                {
-                    advanceOne(in);
-                }
+                resumeScan(in);
             }
-            catch (EOFException ex)
+            else
             {
-                if (pendingEvent != null)
-                {
-                    return true;
-                }
-                // While segmenting, a value-string spanning the frame is not rewound — its resume state
-                // is kept so the next frame continues it and the raw bytes stream as segments.
-                final boolean midReadableScalarScan =
-                    (resumeOp == ResumeOp.VALUE_STRING || resumeOp == ResumeOp.VALUE_NUMBER) &&
-                    valueReadable && !segmenting;
-                if (midReadableScalarScan)
-                {
-                    in.reset();
-                    streamOffset = iterStart;
-                    scratch.setLength(0);
-                    resumeOp = ResumeOp.NONE;
-                    resumeEscape = false;
-                    resumeUnicodePending = 0;
-                    resumeUnicodeValue = 0;
-                }
-                return false;
+                advanceOne(in);
             }
         }
-        return true;
+
+        if (starved && pendingEvent == null)
+        {
+            produced = onScalarStarved();
+        }
+        return produced;
+    }
+
+    // The window was exhausted mid-scalar. A value-string whose own bytes fill the window (or one
+    // already fragmenting) ships its decoded-so-far as a fragment, leaving the partial unit for the
+    // caller to re-present via position(); a smaller value (or a number, or the terminal window) is
+    // rewound to its start so the caller carries it whole into a fuller next window. Keys and
+    // segmented value-strings keep their resume state and simply wait for more input. Returns true
+    // iff a fragment event was produced.
+    private boolean onScalarStarved()
+    {
+        final boolean midScalar =
+            (resumeOp == ResumeOp.VALUE_STRING || resumeOp == ResumeOp.VALUE_NUMBER) && !segmenting;
+        boolean delivered = false;
+        if (midScalar)
+        {
+            final long valueBytes = streamOffset - valueStreamStart;
+            // a kept scalar leaf fragments verbatim on any starve; a decoded value only once it fills the window
+            final boolean fragment =
+                !terminalEof && (scalarSegment || fragmenting || valueBytes >= windowLength);
+            if (fragment && resumeOp == ResumeOp.VALUE_STRING)
+            {
+                // rewind to the last complete code-point/escape boundary, leaving the partial unit for the caller
+                streamOffset = unitStartOffset;
+                resumeEscape = false;
+                resumeUnicodePending = 0;
+                resumeUnicodeValue = 0;
+                fragmenting = true;
+                if (scalarSegment ? streamOffset > fragmentStart : scratch.length() > 0)
+                {
+                    valueStreamStart = fragmentStart;
+                    valueStreamEnd = streamOffset;
+                    stringVerbatim = scalarSegment || segmenting;
+                    pendingEvent = JsonParser.Event.VALUE_STRING;
+                    // capture lazily: a verbatim/segmented consumer reads only getSegment() and never
+                    // materializes the decoded chars, so leave them in scratch (cleared when the next
+                    // fragment resumes) and let stringValue() take them on demand
+                    captureValue();
+                    delivered = true;
+                }
+            }
+            else if (fragment)
+            {
+                // number: every digit is a complete unit so nothing is rewound; accumulate the whole
+                // lexeme and ship the digits scanned so far
+                fragmenting = true;
+                numberFragmented = true;
+                if (scratch.length() > 0)
+                {
+                    numberLexeme.append(scratch);
+                    valueStreamStart = fragmentStart;
+                    valueStreamEnd = streamOffset;
+                    pendingEvent = JsonParser.Event.VALUE_NUMBER;
+                    captureValue();
+                    delivered = true;
+                }
+            }
+            else
+            {
+                // value fits a window (or terminal): rewind to its start and reassemble whole next window
+                streamOffset = valueStreamStart;
+                scratch.setLength(0);
+                resumeOp = ResumeOp.NONE;
+                resumeEscape = false;
+                resumeUnicodePending = 0;
+                resumeUnicodeValue = 0;
+            }
+        }
+        return delivered;
     }
 
     public JsonParser.Event event()
@@ -323,9 +358,30 @@ public final class JsonTokenizer
         return pathDepth > 0 && pathInArray[pathDepth - 1];
     }
 
-    public boolean valueReadable()
+    // True while a value-string is being delivered in fragments and more fragments follow the current
+    // event; drives the parser's deferredBytes() for over-slot scalars.
+    public boolean fragmenting()
     {
-        return valueReadable;
+        return fragmenting;
+    }
+
+    // True when the current/just-completed number was delivered in more than one fragment, so its whole
+    // lexeme is in numberLexeme() rather than the current scratch.
+    public boolean numberFragmented()
+    {
+        return numberFragmented;
+    }
+
+    // True when the just-delivered value-string was streamed verbatim as raw bytes rather than decoded
+    // into scratch; the parser then splices its raw token bytes instead of rendering canonically.
+    public boolean stringVerbatim()
+    {
+        return stringVerbatim;
+    }
+
+    public CharSequence numberLexeme()
+    {
+        return numberLexeme;
     }
 
     public String currentPath()
@@ -342,51 +398,12 @@ public final class JsonTokenizer
             {
                 path.append(pathIndex[i]);
             }
-            else if (pathKey[i] != null)
-            {
-                path.append(pathKey[i].replace("~", "~0").replace("/", "~1"));
-            }
             else if (pathKeySet[i])
             {
                 path.append(pathKeyChars[i].toString().replace("~", "~0").replace("/", "~1"));
             }
         }
         return path.toString();
-    }
-
-    private boolean currentPathReadable()
-    {
-        // null pathIncludes means include all; empty list means include none;
-        // non-empty list restricts to matching paths
-        final boolean included = pathIncludes == null || pathMatchesAny(pathIncludes);
-        // excludes have final veto
-        return included && (pathExcludes == null || !pathMatchesAny(pathExcludes));
-    }
-
-    private boolean pathMatchesAny(
-        List<String[]> paths)
-    {
-        outer:
-        for (String[] target : paths)
-        {
-            if (target.length != pathDepth)
-            {
-                continue;
-            }
-            for (int i = 0; i < pathDepth; i++)
-            {
-                final String segment = pathInArray[i]
-                    ? Integer.toString(pathIndex[i])
-                    : pathKey[i];
-                final String expected = target[i];
-                if (!WILDCARD_INDEX.equals(expected) && !expected.equals(segment))
-                {
-                    continue outer;
-                }
-            }
-            return true;
-        }
-        return false;
     }
 
     private void pushPath(
@@ -397,7 +414,6 @@ public final class JsonTokenizer
             throw new JsonParsingException("JSON depth exceeds " + MAX_DEPTH, null);
         }
         pathInArray[pathDepth] = inArray;
-        pathKey[pathDepth] = null;
         pathKeySet[pathDepth] = false;
         pathIndex[pathDepth] = 0;
         pathDepth++;
@@ -406,7 +422,6 @@ public final class JsonTokenizer
     private void popPath()
     {
         pathDepth--;
-        pathKey[pathDepth] = null;
         pathKeySet[pathDepth] = false;
     }
 
@@ -462,53 +477,111 @@ public final class JsonTokenizer
         {
         case KEY_STRING:
             continueStringContent(in);
-            pendingEvent = JsonParser.Event.KEY_NAME;
-            captureKey();
-            resumeOp = ResumeOp.NONE;
-            state = ParseState.OBJ_AFTER_KEY;
+            if (!starved)
+            {
+                pendingEvent = JsonParser.Event.KEY_NAME;
+                captureKey();
+                resumeOp = ResumeOp.NONE;
+                state = ParseState.OBJ_AFTER_KEY;
+            }
             break;
         case VALUE_STRING:
+            // discard the prior fragment's chars (already shipped, captured lazily) before decoding the
+            // next fragment into scratch
+            scratch.setLength(0);
+            fragmentStart = streamOffset;
             continueStringContent(in);
-            pendingEvent = JsonParser.Event.VALUE_STRING;
-            captureValue(valueReadable);
-            resumeOp = ResumeOp.NONE;
-            afterValueConsumed();
+            if (!starved)
+            {
+                finishStringValue();
+            }
             break;
         case VALUE_NUMBER:
+            scratch.setLength(0);
+            fragmentStart = streamOffset;
             continueNumberContent(in);
-            pendingEvent = JsonParser.Event.VALUE_NUMBER;
-            captureValue(valueReadable);
-            resumeOp = ResumeOp.NONE;
-            afterValueConsumed();
+            if (!starved)
+            {
+                finishNumberValue();
+            }
             break;
         case VALUE_TRUE:
             continueLiteral(in, "true");
-            pendingEvent = JsonParser.Event.VALUE_TRUE;
-            resumeOp = ResumeOp.NONE;
-            afterValueConsumed();
+            if (!starved)
+            {
+                pendingEvent = JsonParser.Event.VALUE_TRUE;
+                resumeOp = ResumeOp.NONE;
+                afterValueConsumed();
+            }
             break;
         case VALUE_FALSE:
             continueLiteral(in, "false");
-            pendingEvent = JsonParser.Event.VALUE_FALSE;
-            resumeOp = ResumeOp.NONE;
-            afterValueConsumed();
+            if (!starved)
+            {
+                pendingEvent = JsonParser.Event.VALUE_FALSE;
+                resumeOp = ResumeOp.NONE;
+                afterValueConsumed();
+            }
             break;
         case VALUE_NULL:
             continueLiteral(in, "null");
-            pendingEvent = JsonParser.Event.VALUE_NULL;
-            resumeOp = ResumeOp.NONE;
-            afterValueConsumed();
+            if (!starved)
+            {
+                pendingEvent = JsonParser.Event.VALUE_NULL;
+                resumeOp = ResumeOp.NONE;
+                afterValueConsumed();
+            }
             break;
         default:
             throw new IllegalStateException("Unexpected resumeOp: " + resumeOp);
         }
     }
 
-    private void captureValue(
-        boolean readable)
+    private void captureValue()
     {
-        valuePending = readable;
+        valuePending = true;
         pendingString = null;
+    }
+
+    // Completes a VALUE_STRING scan: continueStringContent only returns here once the closing quote is
+    // seen (otherwise it throws EOFException and onScalarStarved decides fragment-vs-reassemble), so the
+    // string is whole — the final fragment of a fragmented value, or a value that fit one window. It is
+    // captured lazily and the parse state advances.
+    private void finishStringValue()
+    {
+        valueStreamStart = fragmentStart;
+        valueStreamEnd = streamOffset;
+        stringVerbatim = scalarSegment || segmenting;
+        pendingEvent = JsonParser.Event.VALUE_STRING;
+        captureValue();
+        fragmenting = false;
+        scalarSegment = false;
+        resumeOp = ResumeOp.NONE;
+        afterValueConsumed();
+    }
+
+    // Completes a VALUE_NUMBER scan: continueNumberContent only returns here once the number terminator
+    // (or the terminal window's EOF) is seen, so the number is whole. A fragmented number's full lexeme
+    // is validated from numberLexeme (the final fragment's digits appended); an unfragmented one from
+    // scratch. Captured lazily and the parse state advances.
+    private void finishNumberValue()
+    {
+        if (numberFragmented)
+        {
+            numberLexeme.append(scratch);
+            validateNumber(numberLexeme);
+        }
+        else
+        {
+            validateNumber(scratch);
+        }
+        valueStreamStart = fragmentStart;
+        valueStreamEnd = streamOffset;
+        pendingEvent = JsonParser.Event.VALUE_NUMBER;
+        captureValue();
+        fragmenting = false;
+        resumeOp = ResumeOp.NONE;
+        afterValueConsumed();
     }
 
     private String takeScratch()
@@ -522,20 +595,26 @@ public final class JsonTokenizer
         InputStream in) throws IOException
     {
         int c = skipWhitespace(in);
-        parseValue(in, c);
+        if (!starved)
+        {
+            parseValue(in, c);
+        }
     }
 
     private void consumeValueOrEnd(
         InputStream in) throws IOException
     {
         int c = skipWhitespace(in);
-        if (c == ']')
+        if (!starved)
         {
-            emitEnd(JsonParser.Event.END_ARRAY);
-        }
-        else
-        {
-            parseValue(in, c);
+            if (c == ']')
+            {
+                emitEnd(JsonParser.Event.END_ARRAY);
+            }
+            else
+            {
+                parseValue(in, c);
+            }
         }
     }
 
@@ -543,20 +622,26 @@ public final class JsonTokenizer
         InputStream in) throws IOException
     {
         int c = skipWhitespace(in);
-        parseKey(in, c);
+        if (!starved)
+        {
+            parseKey(in, c);
+        }
     }
 
     private void consumeKeyOrEnd(
         InputStream in) throws IOException
     {
         int c = skipWhitespace(in);
-        if (c == '}')
+        if (!starved)
         {
-            emitEnd(JsonParser.Event.END_OBJECT);
-        }
-        else
-        {
-            parseKey(in, c);
+            if (c == '}')
+            {
+                emitEnd(JsonParser.Event.END_OBJECT);
+            }
+            else
+            {
+                parseKey(in, c);
+            }
         }
     }
 
@@ -564,11 +649,14 @@ public final class JsonTokenizer
         InputStream in) throws IOException
     {
         int c = skipWhitespace(in);
-        if (c != ':')
+        if (!starved)
         {
-            throw new JsonParsingException("Expected ':' but got: " + describe(c), null);
+            if (c != ':')
+            {
+                throw new JsonParsingException("Expected ':' but got: " + describe(c), null);
+            }
+            state = ParseState.OBJ_AFTER_COLON;
         }
-        state = ParseState.OBJ_AFTER_COLON;
     }
 
     private void consumeSeparatorOrEnd(
@@ -576,17 +664,20 @@ public final class JsonTokenizer
         boolean inObject) throws IOException
     {
         int c = skipWhitespace(in);
-        if (c == ',')
+        if (!starved)
         {
-            state = inObject ? ParseState.OBJ_AFTER_COMMA : ParseState.ARR_AFTER_COMMA;
-        }
-        else if (inObject && c == '}' || !inObject && c == ']')
-        {
-            emitEnd(inObject ? JsonParser.Event.END_OBJECT : JsonParser.Event.END_ARRAY);
-        }
-        else
-        {
-            throw new JsonParsingException("Expected ',' or closing bracket but got: " + describe(c), null);
+            if (c == ',')
+            {
+                state = inObject ? ParseState.OBJ_AFTER_COMMA : ParseState.ARR_AFTER_COMMA;
+            }
+            else if (inObject && c == '}' || !inObject && c == ']')
+            {
+                emitEnd(inObject ? JsonParser.Event.END_OBJECT : JsonParser.Event.END_ARRAY);
+            }
+            else
+            {
+                throw new JsonParsingException("Expected ',' or closing bracket but got: " + describe(c), null);
+            }
         }
     }
 
@@ -594,7 +685,11 @@ public final class JsonTokenizer
         InputStream in,
         int c) throws IOException
     {
-        valueReadable = currentPathReadable();
+        // a scalar-segment arm applies only to a value-string; clear it for any other value
+        if (c != '"')
+        {
+            scalarSegment = false;
+        }
         switch (c)
         {
         case '{':
@@ -609,57 +704,65 @@ public final class JsonTokenizer
             break;
         case '"':
             valueStreamStart = streamOffset - 1;
+            fragmentStart = streamOffset - 1;
             scratch.setLength(0);
             resumeEscape = false;
             resumeUnicodePending = 0;
             resumeOp = ResumeOp.VALUE_STRING;
             continueStringContent(in);
-            valueStreamEnd = streamOffset;
-            pendingEvent = JsonParser.Event.VALUE_STRING;
-            captureValue(valueReadable);
-            resumeOp = ResumeOp.NONE;
-            afterValueConsumed();
+            if (!starved)
+            {
+                finishStringValue();
+            }
             break;
         case 't':
             resumeLiteralIndex = 1;
             resumeOp = ResumeOp.VALUE_TRUE;
             continueLiteral(in, "true");
-            pendingEvent = JsonParser.Event.VALUE_TRUE;
-            resumeOp = ResumeOp.NONE;
-            afterValueConsumed();
+            if (!starved)
+            {
+                pendingEvent = JsonParser.Event.VALUE_TRUE;
+                resumeOp = ResumeOp.NONE;
+                afterValueConsumed();
+            }
             break;
         case 'f':
             resumeLiteralIndex = 1;
             resumeOp = ResumeOp.VALUE_FALSE;
             continueLiteral(in, "false");
-            pendingEvent = JsonParser.Event.VALUE_FALSE;
-            resumeOp = ResumeOp.NONE;
-            afterValueConsumed();
+            if (!starved)
+            {
+                pendingEvent = JsonParser.Event.VALUE_FALSE;
+                resumeOp = ResumeOp.NONE;
+                afterValueConsumed();
+            }
             break;
         case 'n':
             resumeLiteralIndex = 1;
             resumeOp = ResumeOp.VALUE_NULL;
             continueLiteral(in, "null");
-            pendingEvent = JsonParser.Event.VALUE_NULL;
-            resumeOp = ResumeOp.NONE;
-            afterValueConsumed();
+            if (!starved)
+            {
+                pendingEvent = JsonParser.Event.VALUE_NULL;
+                resumeOp = ResumeOp.NONE;
+                afterValueConsumed();
+            }
             break;
         default:
             if (c == '-' || c >= '0' && c <= '9')
             {
                 valueStreamStart = streamOffset - 1;
+                fragmentStart = streamOffset - 1;
+                numberLexeme.setLength(0);
+                numberFragmented = false;
                 scratch.setLength(0);
-                if (valueReadable)
-                {
-                    scratch.append((char) c);
-                }
+                scratch.append((char) c);
                 resumeOp = ResumeOp.VALUE_NUMBER;
                 continueNumberContent(in);
-                valueStreamEnd = streamOffset;
-                pendingEvent = JsonParser.Event.VALUE_NUMBER;
-                captureValue(valueReadable);
-                resumeOp = ResumeOp.NONE;
-                afterValueConsumed();
+                if (!starved)
+                {
+                    finishNumberValue();
+                }
             }
             else
             {
@@ -676,45 +779,34 @@ public final class JsonTokenizer
         {
             throw new JsonParsingException("Expected '\"' for key but got: " + describe(c), null);
         }
-        // keys must always be readable so path matching can compare them
-        valueReadable = true;
         scratch.setLength(0);
         resumeEscape = false;
         resumeUnicodePending = 0;
         resumeOp = ResumeOp.KEY_STRING;
         continueStringContent(in);
-        pendingEvent = JsonParser.Event.KEY_NAME;
-        captureKey();
-        resumeOp = ResumeOp.NONE;
-        state = ParseState.OBJ_AFTER_KEY;
+        if (!starved)
+        {
+            pendingEvent = JsonParser.Event.KEY_NAME;
+            captureKey();
+            resumeOp = ResumeOp.NONE;
+            state = ParseState.OBJ_AFTER_KEY;
+        }
     }
 
-    // Keys are normally deferred (left in scratch, materialized lazily by stringValue()), so a key
-    // that is never read by a downstream stage allocates no String. When the tokenizer is itself
-    // configured with a path filter it must compare keys eagerly via pathKey[], so in that mode the
-    // key is materialized up front and the per-depth pathKey slot is set.
+    // Keys are always deferred (left in scratch, materialized lazily by stringValue()), so a key that
+    // is never read by a downstream stage allocates no String. The chars are mirrored into the
+    // per-depth pathKeyChars slot so path matching and currentPath() can compare them as a
+    // CharSequence without materializing a String — even when path filtering is configured.
     private void captureKey()
     {
-        if (pathFiltering)
+        valuePending = true;
+        pendingString = null;
+        if (pathDepth > 0 && !pathInArray[pathDepth - 1])
         {
-            pendingString = takeScratch();
-            valuePending = false;
-            if (pathDepth > 0 && !pathInArray[pathDepth - 1])
-            {
-                pathKey[pathDepth - 1] = pendingString;
-            }
-        }
-        else
-        {
-            valuePending = true;
-            pendingString = null;
-            if (pathDepth > 0 && !pathInArray[pathDepth - 1])
-            {
-                final StringBuilder keyChars = pathKeyChars[pathDepth - 1];
-                keyChars.setLength(0);
-                keyChars.append(scratch);
-                pathKeySet[pathDepth - 1] = true;
-            }
+            final StringBuilder keyChars = pathKeyChars[pathDepth - 1];
+            keyChars.setLength(0);
+            keyChars.append(scratch);
+            pathKeySet[pathDepth - 1] = true;
         }
     }
 
@@ -782,14 +874,10 @@ public final class JsonTokenizer
     private void enforceEndOfInput(
         InputStream in) throws IOException
     {
-        try
+        int c = skipWhitespace(in);
+        if (c != -1)
         {
-            int c = skipWhitespace(in);
             throw new JsonParsingException("Unexpected trailing content: " + describe(c), null);
-        }
-        catch (EOFException ex)
-        {
-            // clean end of input
         }
     }
 
@@ -809,87 +897,102 @@ public final class JsonTokenizer
         InputStream in,
         String expected) throws IOException
     {
-        while (resumeLiteralIndex < expected.length())
+        while (!starved && resumeLiteralIndex < expected.length())
         {
             int c = readByte(in);
-            if (c != expected.charAt(resumeLiteralIndex))
+            if (!starved)
             {
-                throw new JsonParsingException("Unexpected character in literal: " + describe(c), null);
+                if (c != expected.charAt(resumeLiteralIndex))
+                {
+                    throw new JsonParsingException("Unexpected character in literal: " + describe(c), null);
+                }
+                resumeLiteralIndex++;
             }
-            resumeLiteralIndex++;
         }
     }
 
     private void continueStringContent(
         InputStream in) throws IOException
     {
-        while (true)
+        boolean complete = false;
+        while (!complete && !starved)
         {
+            // Track each complete-unit boundary so an EOF mid-char/escape can rewind here: the chars
+            // decoded so far ship as a fragment and the partial unit's bytes stay unconsumed
+            // (position() reports unitStartOffset) for the caller to re-present on the next window.
+            if (!resumeEscape && resumeUnicodePending == 0)
+            {
+                unitStartOffset = streamOffset;
+            }
             int c = readByte(in);
-            if (resumeUnicodePending > 0)
+            if (!starved)
             {
-                resumeUnicodeValue = (resumeUnicodeValue << 4) | hexDigit(c);
-                resumeUnicodePending--;
-                if (resumeUnicodePending == 0)
+                if (resumeUnicodePending > 0)
                 {
-                    appendScratch((char) resumeUnicodeValue);
+                    resumeUnicodeValue = (resumeUnicodeValue << 4) | hexDigit(c);
+                    resumeUnicodePending--;
+                    if (resumeUnicodePending == 0)
+                    {
+                        appendScratch((char) resumeUnicodeValue);
+                    }
                 }
-                continue;
-            }
-            if (resumeEscape)
-            {
-                resumeEscape = false;
-                switch (c)
+                else if (resumeEscape)
                 {
-                case '"':
-                case '\\':
-                case '/':
+                    resumeEscape = false;
+                    switch (c)
+                    {
+                    case '"':
+                    case '\\':
+                    case '/':
+                        appendScratch((char) c);
+                        break;
+                    case 'b':
+                        appendScratch('\b');
+                        break;
+                    case 'f':
+                        appendScratch('\f');
+                        break;
+                    case 'n':
+                        appendScratch('\n');
+                        break;
+                    case 'r':
+                        appendScratch('\r');
+                        break;
+                    case 't':
+                        appendScratch('\t');
+                        break;
+                    case 'u':
+                        resumeUnicodePending = 4;
+                        resumeUnicodeValue = 0;
+                        break;
+                    default:
+                        throw new JsonParsingException("Invalid escape: \\" + describe(c), null);
+                    }
+                }
+                else if (c == '"')
+                {
+                    complete = true;
+                }
+                else if (c == '\\')
+                {
+                    resumeEscape = true;
+                }
+                else if (c < 0x20)
+                {
+                    throw new JsonParsingException("Unescaped control character in string: " + describe(c), null);
+                }
+                else if (c < 0x80)
+                {
                     appendScratch((char) c);
-                    break;
-                case 'b':
-                    appendScratch('\b');
-                    break;
-                case 'f':
-                    appendScratch('\f');
-                    break;
-                case 'n':
-                    appendScratch('\n');
-                    break;
-                case 'r':
-                    appendScratch('\r');
-                    break;
-                case 't':
-                    appendScratch('\t');
-                    break;
-                case 'u':
-                    resumeUnicodePending = 4;
-                    resumeUnicodeValue = 0;
-                    break;
-                default:
-                    throw new JsonParsingException("Invalid escape: \\" + describe(c), null);
                 }
-                continue;
-            }
-            if (c == '"')
-            {
-                return;
-            }
-            else if (c == '\\')
-            {
-                resumeEscape = true;
-            }
-            else if (c < 0x20)
-            {
-                throw new JsonParsingException("Unescaped control character in string: " + describe(c), null);
-            }
-            else if (c < 0x80)
-            {
-                appendScratch((char) c);
-            }
-            else
-            {
-                int codePoint = decodeUtf8(in, c);
-                appendCodePointScratch(codePoint);
+                else
+                {
+                    int codePoint = decodeUtf8(in, c);
+                    if (!starved)
+                    {
+                        appendCodePointScratch(codePoint);
+                    }
+                }
             }
         }
     }
@@ -897,7 +1000,7 @@ public final class JsonTokenizer
     private void appendScratch(
         char c)
     {
-        if (valueReadable && !streamingValue())
+        if (!streamingValue())
         {
             scratch.append(c);
         }
@@ -906,7 +1009,7 @@ public final class JsonTokenizer
     private void appendCodePointScratch(
         int codePoint)
     {
-        if (valueReadable && !streamingValue())
+        if (!streamingValue())
         {
             scratch.appendCodePoint(codePoint);
         }
@@ -916,7 +1019,7 @@ public final class JsonTokenizer
     // still retain (keys for path matching, numbers for grammar validation).
     private boolean streamingValue()
     {
-        return segmenting && resumeOp == ResumeOp.VALUE_STRING;
+        return (segmenting || scalarSegment) && resumeOp == ResumeOp.VALUE_STRING;
     }
 
     private int decodeUtf8(
@@ -944,14 +1047,17 @@ public final class JsonTokenizer
         {
             throw new JsonParsingException("Invalid UTF-8 lead byte: " + describe(first), null);
         }
-        for (int i = 0; i < remaining; i++)
+        for (int i = 0; !starved && i < remaining; i++)
         {
             int cont = readByte(in);
-            if ((cont & 0xc0) != 0x80)
+            if (!starved)
             {
-                throw new JsonParsingException("Invalid UTF-8 continuation: " + describe(cont), null);
+                if ((cont & 0xc0) != 0x80)
+                {
+                    throw new JsonParsingException("Invalid UTF-8 continuation: " + describe(cont), null);
+                }
+                code = (code << 6) | (cont & 0x3f);
             }
-            code = (code << 6) | (cont & 0x3f);
         }
         return code;
     }
@@ -977,20 +1083,18 @@ public final class JsonTokenizer
     private void continueNumberContent(
         InputStream in) throws IOException
     {
-        while (true)
+        boolean complete = false;
+        while (!complete && !starved)
         {
             in.mark(1);
             int c = in.read();
             if (c == -1)
             {
-                if (terminalEof)
-                {
-                    validateNumber();
-                    return;
-                }
-                throw new EOFException();
+                // terminal window: EOF ends the number; otherwise the window is exhausted mid-number
+                starved = !terminalEof;
+                complete = terminalEof;
             }
-            if (c >= '0' && c <= '9' || c == '.' || c == '-' || c == '+' || c == 'e' || c == 'E')
+            else if (c >= '0' && c <= '9' || c == '.' || c == '-' || c == '+' || c == 'e' || c == 'E')
             {
                 streamOffset++;
                 appendScratch((char) c);
@@ -998,67 +1102,64 @@ public final class JsonTokenizer
             else
             {
                 in.reset();
-                validateNumber();
-                return;
+                complete = true;
             }
         }
     }
 
-    // RFC 8259 number grammar: -?(0|[1-9][0-9]*)(\.[0-9]+)?([eE][+-]?[0-9]+)?. Only enforced for
-    // readable values, where scratch holds the complete lexeme; filtered-out values are discarded.
-    private void validateNumber()
+    // RFC 8259 number grammar: -?(0|[1-9][0-9]*)(\.[0-9]+)?([eE][+-]?[0-9]+)?. scratch holds the
+    // complete lexeme (numbers are always retained in scratch for validation and lazy materialization).
+    private void validateNumber(
+        CharSequence lexeme)
     {
-        if (valueReadable)
+        final int length = lexeme.length();
+        int index = 0;
+        boolean valid = length > 0;
+        if (valid && lexeme.charAt(index) == '-')
         {
-            final int length = scratch.length();
-            int index = 0;
-            boolean valid = length > 0;
-            if (valid && scratch.charAt(index) == '-')
+            index++;
+        }
+        final int intStart = index;
+        if (index < length && lexeme.charAt(index) == '0')
+        {
+            index++;
+        }
+        else
+        {
+            while (index < length && isDigit(lexeme.charAt(index)))
             {
                 index++;
             }
-            final int intStart = index;
-            if (index < length && scratch.charAt(index) == '0')
+        }
+        valid &= index > intStart;
+        if (valid && index < length && lexeme.charAt(index) == '.')
+        {
+            index++;
+            final int fracStart = index;
+            while (index < length && isDigit(lexeme.charAt(index)))
             {
                 index++;
             }
-            else
-            {
-                while (index < length && isDigit(scratch.charAt(index)))
-                {
-                    index++;
-                }
-            }
-            valid &= index > intStart;
-            if (valid && index < length && scratch.charAt(index) == '.')
+            valid &= index > fracStart;
+        }
+        if (valid && index < length && (lexeme.charAt(index) == 'e' || lexeme.charAt(index) == 'E'))
+        {
+            index++;
+            if (index < length && (lexeme.charAt(index) == '+' || lexeme.charAt(index) == '-'))
             {
                 index++;
-                final int fracStart = index;
-                while (index < length && isDigit(scratch.charAt(index)))
-                {
-                    index++;
-                }
-                valid &= index > fracStart;
             }
-            if (valid && index < length && (scratch.charAt(index) == 'e' || scratch.charAt(index) == 'E'))
+            final int expStart = index;
+            while (index < length && isDigit(lexeme.charAt(index)))
             {
                 index++;
-                if (index < length && (scratch.charAt(index) == '+' || scratch.charAt(index) == '-'))
-                {
-                    index++;
-                }
-                final int expStart = index;
-                while (index < length && isDigit(scratch.charAt(index)))
-                {
-                    index++;
-                }
-                valid &= index > expStart;
             }
-            valid &= index == length;
-            if (!valid)
-            {
-                throw new JsonParsingException("Invalid JSON number: " + scratch, null);
-            }
+            valid &= index > expStart;
+        }
+        valid &= index == length;
+        if (!valid)
+        {
+            throw new JsonParsingException("Invalid JSON number: " + lexeme, null);
         }
     }
 
@@ -1074,16 +1175,11 @@ public final class JsonTokenizer
         int c = in.read();
         if (c == -1)
         {
-            throw new EOFException();
+            starved = true;
         }
-        streamOffset++;
-        if (valueReadable &&
-            (resumeOp == ResumeOp.VALUE_STRING || resumeOp == ResumeOp.VALUE_NUMBER) &&
-            scratch.length() >= tokenMaxBytes)
+        else
         {
-            throw new JsonParsingException(
-                "value at " + currentPath() + " exceeds max " + tokenMaxBytes + " bytes",
-                null);
+            streamOffset++;
         }
         return c;
     }

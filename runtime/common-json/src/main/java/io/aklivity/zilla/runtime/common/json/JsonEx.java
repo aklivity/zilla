@@ -18,13 +18,13 @@ import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 
-import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParserFactory;
 
 import io.aklivity.zilla.runtime.common.json.internal.JsonGeneratorImpl;
 import io.aklivity.zilla.runtime.common.json.internal.JsonParserFactoryImpl;
 import io.aklivity.zilla.runtime.common.json.internal.JsonParserImpl;
 import io.aklivity.zilla.runtime.common.json.internal.JsonProjectorImpl;
+import io.aklivity.zilla.runtime.common.json.internal.JsonSinkImpl;
 import io.aklivity.zilla.runtime.common.json.internal.JsonStreamImpl;
 
 /**
@@ -38,36 +38,6 @@ import io.aklivity.zilla.runtime.common.json.internal.JsonStreamImpl;
  */
 public final class JsonEx
 {
-    /**
-     * Config key whose value is a {@code List<String>} of JSON Pointer (RFC 6901) syntax
-     * identifying document paths whose values must be readable via {@link
-     * JsonParser#getString()} after the corresponding event. The convention {@code -} as an
-     * array-index segment is treated as a wildcard matching any index (parser-internal
-     * extension to RFC 6901).
-     * <p>
-     * Defaults to "every path included" when absent. When specified, only listed paths
-     * (minus any matched by {@link #PATH_EXCLUDES}) are readable; values at all other
-     * paths are scanned and discarded, and {@code getString()} on those throws.
-     */
-    public static final String PATH_INCLUDES = "io.aklivity.zilla.runtime.common.json.path.includes";
-
-    /**
-     * Config key whose value is a {@code List<String>} of JSON Pointer (RFC 6901) syntax
-     * identifying document paths whose values are NOT required to be readable, even if
-     * matched by {@link #PATH_INCLUDES}. Excludes have final veto.
-     */
-    public static final String PATH_EXCLUDES = "io.aklivity.zilla.runtime.common.json.path.excludes";
-
-    /**
-     * Config key whose value is an {@code Integer} bounding the number of bytes the parser
-     * will scan for a single included value before throwing {@link
-     * jakarta.json.stream.JsonParsingException}. Set to the caller's slot capacity to fail
-     * fast on values that cannot make progress under reset semantics.
-     * <p>
-     * Defaults to unbounded (no enforcement) when absent.
-     */
-    public static final String TOKEN_MAX_BYTES = "io.aklivity.zilla.runtime.common.json.token.max.bytes";
-
     private JsonEx()
     {
     }
@@ -89,9 +59,8 @@ public final class JsonEx
     }
 
     /**
-     * Variant of {@link #createParser()} taking parser config (e.g. {@link #PATH_INCLUDES},
-     * {@link #TOKEN_MAX_BYTES}); the returned parser starts empty and is fed via {@link
-     * JsonParserEx#wrap(org.agrona.DirectBuffer, int, int)}.
+     * Variant of {@link #createParser()} taking parser config; the returned parser starts empty and is
+     * fed via {@link JsonParserEx#wrap(org.agrona.DirectBuffer, int, int)}.
      */
     public static JsonParserEx createParser(
         Map<String, ?> config)
@@ -123,6 +92,41 @@ public final class JsonEx
     }
 
     /**
+     * Variant of {@link #createGenerator()} taking generator config (e.g.
+     * {@link JsonGeneratorEx#GENERATE_ESCAPED}). Reuse a single instance per worker thread, calling
+     * {@link JsonGeneratorEx#wrap(org.agrona.MutableDirectBuffer, int, int)} before each value.
+     */
+    public static JsonGeneratorEx createGenerator(
+        Map<String, ?> config)
+    {
+        return new JsonGeneratorImpl(config);
+    }
+
+    /**
+     * Returns a terminal {@link JsonSink} that materializes each fed event into the corresponding
+     * {@code writeXxx} call on {@code generator} (structured delivery). The supplied generator must
+     * already be wrapped over its target buffer; reuse a single instance per worker thread.
+     */
+    public static JsonSink createSink(
+        JsonGeneratorEx generator)
+    {
+        return new JsonSinkImpl(generator);
+    }
+
+    /**
+     * Variant of {@link #createSink(JsonGeneratorEx)} taking sink config; the {@link JsonSink#DELIVERY}
+     * key selects the {@link JsonSink.Delivery} mode (absent ⇒ {@link JsonSink.Delivery#STRUCTURED}).
+     */
+    public static JsonSink createSink(
+        JsonGeneratorEx generator,
+        Map<String, ?> config)
+    {
+        final Object delivery = config.get(JsonSink.DELIVERY);
+        return new JsonSinkImpl(generator,
+            delivery instanceof JsonSink.Delivery mode ? mode : JsonSink.Delivery.STRUCTURED);
+    }
+
+    /**
      * Begins a push pipeline pumped by {@code parser}: append stages with {@link JsonStream#transform}
      * and terminate with {@link JsonStream#into}. The {@code parser} (from {@link #createParser()} or
      * {@link #createParser(Map)}) supplies the events; stages see a non-advancing {@link JsonSource}
@@ -131,7 +135,7 @@ public final class JsonEx
     public static JsonStream stream(
         JsonParserEx parser)
     {
-        return new JsonStreamImpl((JsonParserImpl) parser);
+        return new JsonStreamImpl(parser);
     }
 
     /**

@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.runtime.common.json;
 
-import io.aklivity.zilla.runtime.common.json.internal.JsonSinkImpl;
-
 /**
  * The consume end of a {@link JsonStream} pipeline. Each {@link #feed(JsonController, JsonSource, JsonEvent)}
  * delivers one event (with {@code source} positioned to read its scalar, or its bytes when the event is
@@ -27,9 +25,17 @@ import io.aklivity.zilla.runtime.common.json.internal.JsonSinkImpl;
 public interface JsonSink
 {
     /**
-     * Delivery mode a terminal sink requests. {@link #STRUCTURED} consumes structured events and
-     * renders normalized output; {@link #SEGMENTABLE} opts in to verbatim segment delivery for kept
-     * values (best-effort, demand-gated) by calling {@link JsonController#segmentable()}.
+     * Config key (for {@link JsonEx#createSink(JsonGeneratorEx, java.util.Map)}) whose value is the
+     * {@link Delivery} mode the terminal sink requests; absent ⇒ {@link Delivery#STRUCTURED}.
+     */
+    String DELIVERY = "io.aklivity.zilla.runtime.common.json.sink.delivery";
+
+    /**
+     * Delivery mode a terminal sink requests. {@link #STRUCTURED} consumes structured events and renders
+     * each scalar canonically from its decoded value ({@link JsonSource#getStringView()}), the generator
+     * owning quoting/escaping so a value delivered as fragments forms one value without the sink
+     * concatenating; {@link #SEGMENTABLE} opts in to verbatim byte delivery for kept values (best-effort,
+     * demand-gated) by calling {@link JsonController#segmentable()}.
      */
     enum Delivery
     {
@@ -43,43 +49,23 @@ public interface JsonSink
         JsonEvent event);
 
     /**
-     * Continues any output left in flight by a prior {@link JsonPipeline.Status#SUSPENDED} — a value
-     * being written across chunks — before the next event is fed, reading the in-flight value from
-     * {@code source} and steering the immediate upstream with {@code control}. Returns {@link
-     * JsonPipeline.Status#SUSPENDED} if the bounded output filled again, or {@link
-     * JsonPipeline.Status#ADVANCED} when nothing remains pending. A stage with no in-flight output
-     * returns {@code ADVANCED}; the default is sufficient for stages that only forward events.
+     * Continues the value left in flight by a prior {@link JsonPipeline.Status#SUSPENDED} — a value being
+     * written across chunks — before the next event is fed. {@code event} is the value event that
+     * suspended (supplied by the pump, so the sink keeps no resume state); the sink re-reads the in-flight
+     * value's remainder from {@code source} and steers the immediate upstream with {@code control}. Returns
+     * {@link JsonPipeline.Status#SUSPENDED} if the bounded output filled again, or {@link
+     * JsonPipeline.Status#ADVANCED} when nothing remains pending. A stage with no in-flight output returns
+     * {@code ADVANCED}; the default is sufficient for stages that only forward events.
      */
     default JsonPipeline.Status resume(
         JsonController control,
-        JsonSource source)
+        JsonSource source,
+        JsonEvent event)
     {
         return JsonPipeline.Status.ADVANCED;
     }
 
     default void reset()
     {
-    }
-
-    /**
-     * A terminal sink that materializes each fed event into the corresponding {@code writeXxx} call on
-     * {@code generator}. The supplied generator must already be wrapped over its target buffer.
-     */
-    static JsonSink of(
-        JsonGeneratorEx generator)
-    {
-        return new JsonSinkImpl(generator);
-    }
-
-    /**
-     * A terminal sink with the given {@link Delivery} mode: {@link Delivery#SEGMENTABLE} opts in to
-     * verbatim segment delivery for kept values; {@link Delivery#STRUCTURED} renders normalized
-     * structured output. The supplied generator must already be wrapped over its target buffer.
-     */
-    static JsonSink of(
-        JsonGeneratorEx generator,
-        Delivery delivery)
-    {
-        return new JsonSinkImpl(generator, delivery);
     }
 }

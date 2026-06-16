@@ -1,0 +1,10 @@
+{
+  "intField" : 42,
+  "longField" : 9999999999,
+  "stringField" : "hello",
+  "boolField" : true,
+  "floatField" : 1.5,
+  "doubleField" : 2.25,
+  "bytesField" : "\u0001ÿ\u0010",
+  "nullField" : null
+}

@@ -26,7 +26,6 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTes
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -179,6 +178,16 @@ public class McpServerIT
         "${net}/tools.call.reject.bearer/client",
         "${app}/tools.call.reject.bearer/server"})
     public void shouldRejectToolsCallWithBearerChallenge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/tools.call.reject.error/client",
+        "${app}/tools.call.reject.error/server"})
+    public void shouldRejectToolsCallWithError() throws Exception
     {
         k3po.finish();
     }
@@ -397,11 +406,10 @@ public class McpServerIT
         k3po.finish();
     }
 
-    @Ignore("broker OAuth-callback elicit (context/elicitCallback) pending dedicated broker net scripts; see issue #1810")
     @Test
     @Configuration("server.timeout.yaml")
     @Specification({
-        "${net}/tools.call.elicit.completed/client",
+        "${net}/tools.call.elicit.completed.context/client",
         "${app}/tools.call.elicit.completed.context/server"})
     public void shouldCallToolElicitCompletedWithContext() throws Exception
     {

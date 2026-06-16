@@ -61,8 +61,9 @@ public final class JsonProjectorImpl implements JsonTransform
 
     private final KeySource keySource = new KeySource();
 
-    private final JsonController downstreamControl = this::onDownstreamSegmentable;
+    private final DownstreamControl downstreamControl = new DownstreamControl();
 
+    private JsonController upstreamControl;
     private int depth;
     private int containers;
     private Decision keyDecision;
@@ -72,6 +73,8 @@ public final class JsonProjectorImpl implements JsonTransform
     private Status downstream;
     private SegMode segMode = SegMode.NONE;
     private JsonEvent deferredStart;
+    private boolean scalarPending;
+    private boolean scalarEmit;
 
     private enum SegMode
     {
@@ -99,11 +102,31 @@ public final class JsonProjectorImpl implements JsonTransform
         downstreamDemand = false;
         segMode = SegMode.NONE;
         deferredStart = null;
+        scalarPending = false;
+        scalarEmit = false;
     }
 
     private void onDownstreamSegmentable()
     {
         downstreamDemand = true;
+    }
+
+    // Relays the sink's consumed() pushback to the projector's own upstream, the same way it relays
+    // segmentable(); the upstream control is captured per feed/resume.
+    private final class DownstreamControl implements JsonController
+    {
+        @Override
+        public void segmentable()
+        {
+            onDownstreamSegmentable();
+        }
+
+        @Override
+        public void consumed(
+            int sourceBytes)
+        {
+            upstreamControl.consumed(sourceBytes);
+        }
     }
 
     @Override
@@ -113,6 +136,7 @@ public final class JsonProjectorImpl implements JsonTransform
         JsonEvent event,
         JsonSink sink)
     {
+        upstreamControl = control;
         downstream = Status.ADVANCED;
         if (segMode == SegMode.AWAITING)
         {
@@ -186,7 +210,7 @@ public final class JsonProjectorImpl implements JsonTransform
             forward(sink, source, event);
             break;
         case KEY_NAME:
-            onKey(source);
+            onKey(control, source);
             break;
         case START_OBJECT:
         case START_ARRAY:
@@ -203,11 +227,12 @@ public final class JsonProjectorImpl implements JsonTransform
     }
 
     private void onKey(
+        JsonController control,
         JsonSource source)
     {
         StringBuilder key = segmentKeys[depth];
         key.setLength(0);
-        key.append(source.getKey());
+        key.append(source.getStringView());
         segmentIsKey[depth] = true;
         indexes[depth] = -1;
         depth++;
@@ -217,6 +242,12 @@ public final class JsonProjectorImpl implements JsonTransform
         // A forwarded key reuses the char view already buffered above for path matching, so no key
         // ever materializes a String — neither the SKIP majority nor the KEEP keys carried downstream.
         pendingKey = d == Decision.SKIP ? null : key;
+        // arm the kept value for verbatim segment delivery; best-effort, demand-gated
+        boolean parentEmit = containers == 0 || frameEmit[containers - 1];
+        if (parentEmit && d == Decision.KEEP_ALL && downstreamDemand)
+        {
+            control.segmentable();
+        }
     }
 
     private void forwardPendingKey(
@@ -348,18 +379,48 @@ public final class JsonProjectorImpl implements JsonTransform
         JsonEvent event,
         JsonSink sink)
     {
-        Decision d = enterValue();
-        boolean parentEmit = containers == 0 || frameEmit[containers - 1];
-        boolean emit = parentEmit && d == Decision.KEEP_ALL;
-        if (emit)
+        if (scalarPending)
         {
-            forwardPendingKey(sink);
-            forward(sink, source, event);
+            // a continuation fragment of a kept/dropped scalar value split across input windows: the value
+            // was already entered on its first fragment, so forward (if kept) without re-entering and only
+            // account for the consumed value once its closing fragment arrives (deferredBytes false)
+            if (scalarEmit)
+            {
+                forward(sink, source, event);
+            }
+            if (!source.deferredBytes())
+            {
+                finishScalar();
+            }
         }
         else
         {
-            pendingKey = null;
+            Decision d = enterValue();
+            boolean parentEmit = containers == 0 || frameEmit[containers - 1];
+            scalarEmit = parentEmit && d == Decision.KEEP_ALL;
+            if (scalarEmit)
+            {
+                forwardPendingKey(sink);
+                forward(sink, source, event);
+            }
+            else
+            {
+                pendingKey = null;
+            }
+            if (source.deferredBytes())
+            {
+                scalarPending = true;
+            }
+            else
+            {
+                finishScalar();
+            }
         }
+    }
+
+    private void finishScalar()
+    {
+        scalarPending = false;
         if (containers == 0)
         {
             rootDone = true;
@@ -528,7 +589,7 @@ public final class JsonProjectorImpl implements JsonTransform
         }
 
         @Override
-        public CharSequence getKey()
+        public CharSequence getStringView()
         {
             return key;
         }
@@ -541,6 +602,18 @@ public final class JsonProjectorImpl implements JsonTransform
 
         @Override
         public boolean isIntegralNumber()
+        {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public int getInt()
+        {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public long getLong()
         {
             throw new UnsupportedOperationException();
         }

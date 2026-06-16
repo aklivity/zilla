@@ -31,7 +31,7 @@ class JsonPipelineStarvedTest
     void shouldStarveWhenWindowConsumedMidValue()
     {
         JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
-        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser()).into(JsonSink.of(gen));
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser()).into(JsonEx.createSink(gen));
         pipeline.reset();
 
         byte[] f1 = "{\"a\":1,".getBytes(UTF_8);
@@ -44,7 +44,7 @@ class JsonPipelineStarvedTest
     void shouldCompleteAcrossWindowsAfterStarved()
     {
         JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
-        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser()).into(JsonSink.of(gen));
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser()).into(JsonEx.createSink(gen));
         pipeline.reset();
 
         byte[] f1 = "{\"a\":1,".getBytes(UTF_8);
@@ -62,7 +62,7 @@ class JsonPipelineStarvedTest
     void shouldRejectTruncatedStructureWhenLast()
     {
         JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
-        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser()).into(JsonSink.of(gen));
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser()).into(JsonEx.createSink(gen));
         pipeline.reset();
 
         // the object never closes and this is the final window: truncated, not merely starved
@@ -76,7 +76,7 @@ class JsonPipelineStarvedTest
     void shouldRejectTruncatedStringWhenLast()
     {
         JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
-        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser()).into(JsonSink.of(gen));
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser()).into(JsonEx.createSink(gen));
         pipeline.reset();
 
         // an unterminated string at terminal EOF is malformed
@@ -90,7 +90,7 @@ class JsonPipelineStarvedTest
     void shouldCompleteWholeValueWithDefaultFeed()
     {
         JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
-        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser()).into(JsonSink.of(gen));
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser()).into(JsonEx.createSink(gen));
         pipeline.reset();
 
         // the three-argument shorthand is last == true: a whole value completes in one shot
@@ -104,7 +104,7 @@ class JsonPipelineStarvedTest
     void shouldCompleteTrailingScalarAtTerminalEof()
     {
         JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
-        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser()).into(JsonSink.of(gen));
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser()).into(JsonEx.createSink(gen));
         pipeline.reset();
 
         // a bare trailing number with no delimiter completes because last == true makes EOF terminal

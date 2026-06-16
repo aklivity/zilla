@@ -39,6 +39,7 @@ import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpElicitComple
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpElicitCreateChallengeExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpElicitResponseFlushExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpEndExFW;
+import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpErrorResetExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpFlushExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpLifecycleBeginExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpOutcome;
@@ -2092,11 +2093,42 @@ public final class McpFunctions
             return new McpBearerResetExBuilder();
         }
 
+        public McpErrorResetExBuilder error()
+        {
+            return new McpErrorResetExBuilder();
+        }
+
         public byte[] build()
         {
             final byte[] array = new byte[resetExRW.limit()];
             writeBuffer.getBytes(0, array);
             return array;
+        }
+
+        public final class McpErrorResetExBuilder
+        {
+            private int code;
+            private String message;
+
+            public McpErrorResetExBuilder code(
+                int code)
+            {
+                this.code = code;
+                return this;
+            }
+
+            public McpErrorResetExBuilder message(
+                String message)
+            {
+                this.message = message;
+                return this;
+            }
+
+            public McpResetExBuilder build()
+            {
+                resetExRW.error(e -> e.code(code).message(message));
+                return McpResetExBuilder.this;
+            }
         }
 
         public final class McpBearerResetExBuilder
@@ -2162,6 +2194,14 @@ public final class McpFunctions
         {
             this.kind = McpResetExFW.KIND_BEARER;
             final McpBearerResetExMatcherBuilder matcher = new McpBearerResetExMatcherBuilder();
+            this.caseMatcher = matcher::match;
+            return matcher;
+        }
+
+        public McpErrorResetExMatcherBuilder error()
+        {
+            this.kind = McpResetExFW.KIND_ERROR;
+            final McpErrorResetExMatcherBuilder matcher = new McpErrorResetExMatcherBuilder();
             this.caseMatcher = matcher::match;
             return matcher;
         }
@@ -2281,6 +2321,50 @@ public final class McpFunctions
                 McpBearerResetExFW bearer)
             {
                 return error == null || error == bearer.error().get();
+            }
+        }
+
+        public final class McpErrorResetExMatcherBuilder
+        {
+            private Integer code;
+            private String16FW message;
+
+            public McpErrorResetExMatcherBuilder code(
+                int code)
+            {
+                this.code = code;
+                return this;
+            }
+
+            public McpErrorResetExMatcherBuilder message(
+                String message)
+            {
+                this.message = new String16FW(message);
+                return this;
+            }
+
+            public McpResetExMatcherBuilder build()
+            {
+                return McpResetExMatcherBuilder.this;
+            }
+
+            private boolean match(
+                McpResetExFW resetEx)
+            {
+                final McpErrorResetExFW error = resetEx.error();
+                return matchCode(error) && matchMessage(error);
+            }
+
+            private boolean matchCode(
+                McpErrorResetExFW error)
+            {
+                return code == null || code == error.code();
+            }
+
+            private boolean matchMessage(
+                McpErrorResetExFW error)
+            {
+                return message == null || message.equals(error.message());
             }
         }
     }

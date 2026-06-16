@@ -18,7 +18,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.util.AbstractMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Spliterator;
 import java.util.Spliterators;
@@ -40,7 +39,6 @@ import org.agrona.concurrent.UnsafeBuffer;
 import io.aklivity.zilla.runtime.common.json.DirectBufferInputStreamEx;
 import io.aklivity.zilla.runtime.common.json.JsonController;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
-import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.json.JsonSource;
 import io.aklivity.zilla.runtime.common.json.internal.json.JsonValues;
@@ -61,8 +59,14 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
     private long segmentStartOffset;
     private int segmentSliceOffset;
     private int segmentSliceLength;
+    private int segmentConsumed;
     private int segmentDepth;
     private boolean armNextValue;
+    // running char cursor into the decoded chars of the current canonical value-string: getStringView()
+    // exposes the unconsumed remainder from here and consumed() advances it, so a resumed bounded write
+    // continues where the output bound left off
+    private int stringViewOffset;
+    private final StringView stringViewRO = new StringView();
 
     private enum SegmentState
     {
@@ -88,10 +92,7 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
     {
         this.ownedInput = new DirectBufferInputStreamEx();
         this.in = ownedInput;
-        this.tokenizer = new JsonTokenizer(
-            pathList(config, JsonEx.PATH_INCLUDES),
-            pathList(config, JsonEx.PATH_EXCLUDES),
-            tokenMaxBytes(config));
+        this.tokenizer = new JsonTokenizer();
         this.location = new JsonLocationImpl(tokenizer);
     }
 
@@ -114,9 +115,6 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
         // A DirectBufferInputStreamEx is a resumable frame source whose EOF is a frame boundary;
         // any other stream is one-shot, so its EOF is the terminal delimiter for a trailing number.
         this.tokenizer = new JsonTokenizer(
-            pathList(config, JsonEx.PATH_INCLUDES),
-            pathList(config, JsonEx.PATH_EXCLUDES),
-            tokenMaxBytes(config),
             !(in instanceof DirectBufferInputStreamEx));
         this.location = new JsonLocationImpl(tokenizer);
     }
@@ -128,6 +126,7 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
         int length)
     {
         frameBaseStreamOffset = tokenizer.streamOffset();
+        tokenizer.window(length);
         ownedInput.wrap(buffer, offset, length);
         return this;
     }
@@ -135,6 +134,7 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
     // Wraps the next input window of a chunked feed; last == true marks the final window, so its EOF is the
     // terminal delimiter (completing a trailing scalar, rejecting a truncated value) rather than a frame
     // boundary with more bytes to come.
+    @Override
     public JsonParserEx wrap(
         DirectBuffer buffer,
         int offset,
@@ -145,13 +145,23 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
         return wrap(buffer, offset, length);
     }
 
-    void reset()
+    @Override
+    public long position()
+    {
+        return tokenizer.streamOffset();
+    }
+
+    @Override
+    public void reset()
     {
         tokenizer.reset();
         segmentState = SegmentState.NONE;
         segmentDepth = 0;
+        segmentConsumed = 0;
         armNextValue = false;
+        stringViewOffset = 0;
         lastEvent = null;
+        currentEvent = null;
         docState = DocState.NOT_STARTED;
     }
 
@@ -216,13 +226,13 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
         return currentEvent;
     }
 
+    @Override
     public JsonEvent nextEvent()
     {
         JsonEvent event;
         if (docState == DocState.NOT_STARTED)
         {
             docState = DocState.STARTED;
-            lastEvent = JsonEvent.START_DOCUMENT;
             event = JsonEvent.START_DOCUMENT;
         }
         else if (segmentState == SegmentState.NONE && !tokenizerHasNext() && tokenizer.done())
@@ -234,9 +244,34 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
         {
             event = nextToken();
         }
+        // lastEvent is the canonical delivered event (the basis for the streaming-only accessor asserts);
+        // currentEvent is its jakarta projection (null for a segment or document framing), keeping the
+        // shared jakarta getters' asserts valid whether driven by the pipeline or the raw parser
+        lastEvent = event;
+        currentEvent = toEvent(event);
         return event;
     }
 
+    private static Event toEvent(
+        JsonEvent event)
+    {
+        return switch (event)
+        {
+        case START_OBJECT -> Event.START_OBJECT;
+        case END_OBJECT -> Event.END_OBJECT;
+        case START_ARRAY -> Event.START_ARRAY;
+        case END_ARRAY -> Event.END_ARRAY;
+        case KEY_NAME -> Event.KEY_NAME;
+        case VALUE_STRING -> Event.VALUE_STRING;
+        case VALUE_NUMBER -> Event.VALUE_NUMBER;
+        case VALUE_TRUE -> Event.VALUE_TRUE;
+        case VALUE_FALSE -> Event.VALUE_FALSE;
+        case VALUE_NULL -> Event.VALUE_NULL;
+        default -> null;
+        };
+    }
+
+    @Override
     public boolean hasNextEvent()
     {
         boolean result;
@@ -276,10 +311,21 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
             break;
         default:
             lastEvent = JsonEvent.of(next());
-            if (lastEvent == JsonEvent.VALUE_STRING || lastEvent == JsonEvent.VALUE_NUMBER)
+            if (lastEvent == JsonEvent.VALUE_NUMBER ||
+                lastEvent == JsonEvent.VALUE_STRING && !tokenizer.stringVerbatim())
             {
+                // structured scalar (number lexeme or canonical string): the sink renders it from the
+                // decoded char view, so reset the char cursor; the raw segment slice is not used
+                stringViewOffset = 0;
+            }
+            else if (lastEvent == JsonEvent.VALUE_STRING)
+            {
+                // verbatim string token (with quotes): delivered as a segment so the raw bytes are spliced
+                // through the byte path; getSegment() is then valid only on this segmented event
                 segmentSliceOffset = bufferOffset(tokenizer.valueStreamStart());
                 segmentSliceLength = (int) (tokenizer.valueStreamEnd() - tokenizer.valueStreamStart());
+                segmentConsumed = 0;
+                lastEvent = JsonEvent.SEGMENT;
             }
             if (armNextValue)
             {
@@ -319,6 +365,7 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
             {
                 segmentSliceOffset = sliceStart;
                 segmentSliceLength = ownedInput.offset() + ownedInput.length() - sliceStart;
+                segmentConsumed = 0;
                 segmentState = SegmentState.SCANNING;
                 event = JsonEvent.SEGMENT;
             }
@@ -340,6 +387,7 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
                     final int sliceEnd = bufferOffset(tokenizer.streamOffset());
                     segmentSliceOffset = sliceStart;
                     segmentSliceLength = sliceEnd - sliceStart;
+                    segmentConsumed = 0;
                     segmentState = SegmentState.NONE;
                     event = JsonEvent.SEGMENT;
                 }
@@ -361,68 +409,119 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
         else if (lastEvent == JsonEvent.START_DOCUMENT)
         {
             armNextValue = true;
+            // a bare top-level string then streams verbatim too; cleared by the tokenizer for any non-string
+            tokenizer.scalarSegment(true);
+        }
+        else if (lastEvent == JsonEvent.KEY_NAME)
+        {
+            // arm the upcoming value-string to stream verbatim; the tokenizer clears it for a non-string
+            tokenizer.scalarSegment(true);
+        }
+    }
+
+    @Override
+    public void consumed(
+        int sourceUnits)
+    {
+        // a decoded scalar advances its char cursor; a verbatim string or raw segment its byte cursor
+        if (charScalar())
+        {
+            stringViewOffset += sourceUnits;
+        }
+        else
+        {
+            segmentConsumed += sourceUnits;
         }
     }
 
     @Override
     public boolean deferredBytes()
     {
-        return segmentState == SegmentState.SCANNING;
+        return segmentState == SegmentState.SCANNING || tokenizer.fragmenting();
     }
 
     @Override
     public String getString()
     {
-        final String value = tokenizer.stringValue();
-        if (value == null && !tokenizer.valueReadable())
-        {
-            throw new IllegalStateException("value not readable; configure path via " +
-                "JsonEx.PATH_INCLUDES (or remove from PATH_EXCLUDES)");
-        }
-        return value;
+        assert currentEvent == Event.KEY_NAME || currentEvent == Event.VALUE_STRING || currentEvent == Event.VALUE_NUMBER;
+        return tokenizer.stringValue();
     }
 
     @Override
-    public CharSequence getKey()
+    public CharSequence getStringView()
     {
-        return tokenizer.stringView();
+        assert lastEvent == JsonEvent.VALUE_STRING || lastEvent == JsonEvent.VALUE_NUMBER ||
+            lastEvent == JsonEvent.KEY_NAME;
+        // while rendering a structured scalar, expose the unconsumed char remainder so a resumed write
+        // continues from where the bounded output left off; otherwise (a key, or a fresh value) the full
+        // decoded view
+        return charScalar()
+            ? stringViewRO.wrap(tokenizer.stringView(), stringViewOffset)
+            : tokenizer.stringView();
+    }
+
+    // True while the current scalar is delivered decoded (rendered canonically by the sink from its char
+    // view): a number lexeme or a canonical string. A verbatim value-string is delivered as a SEGMENT, so
+    // any VALUE_STRING here is canonical; derived from the delivered event, valid while parked on resume.
+    private boolean charScalar()
+    {
+        return lastEvent == JsonEvent.VALUE_NUMBER || lastEvent == JsonEvent.VALUE_STRING;
     }
 
     @Override
     public boolean isIntegralNumber()
     {
-        String v = tokenizer.stringValue();
+        assert currentEvent == Event.VALUE_NUMBER;
+        final CharSequence v = numberLexeme();
         if (v == null)
         {
             throw new IllegalStateException("Not a number");
         }
-        for (int i = 0; i < v.length(); i++)
+        boolean integral = true;
+        for (int i = 0; integral && i < v.length(); i++)
         {
-            char c = v.charAt(i);
-            if (c == '.' || c == 'e' || c == 'E')
-            {
-                return false;
-            }
+            final char c = v.charAt(i);
+            integral = c != '.' && c != 'e' && c != 'E';
         }
-        return true;
+        return integral;
     }
 
     @Override
     public int getInt()
     {
-        return Integer.parseInt(tokenizer.stringValue());
+        assert currentEvent == Event.VALUE_NUMBER;
+        if (tokenizer.numberFragmented())
+        {
+            throw new IllegalStateException("number spans multiple windows; use getBigDecimal()");
+        }
+        final CharSequence lexeme = tokenizer.stringView();
+        return Integer.parseInt(lexeme, 0, lexeme.length(), 10);
     }
 
     @Override
     public long getLong()
     {
-        return Long.parseLong(tokenizer.stringValue());
+        assert currentEvent == Event.VALUE_NUMBER;
+        if (tokenizer.numberFragmented())
+        {
+            throw new IllegalStateException("number spans multiple windows; use getBigDecimal()");
+        }
+        final CharSequence lexeme = tokenizer.stringView();
+        return Long.parseLong(lexeme, 0, lexeme.length(), 10);
     }
 
     @Override
     public BigDecimal getBigDecimal()
     {
-        return new BigDecimal(tokenizer.stringValue());
+        assert currentEvent == Event.VALUE_NUMBER;
+        return new BigDecimal(numberLexeme().toString());
+    }
+
+    // The current number's full lexeme: a fragmented number's is accumulated in the tokenizer across
+    // its fragments; an unfragmented one is the current scratch value.
+    private CharSequence numberLexeme()
+    {
+        return tokenizer.numberFragmented() ? tokenizer.numberLexeme() : tokenizer.stringValue();
     }
 
     @Override
@@ -434,7 +533,9 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
     @Override
     public DirectBuffer getSegment()
     {
-        segmentView.wrap(ownedInput.buffer(), segmentSliceOffset, segmentSliceLength);
+        assert lastEvent != null && lastEvent.segmented();
+        // re-expose the unconsumed remainder of the segment slice after consumed() pushback, append-only
+        segmentView.wrap(ownedInput.buffer(), segmentSliceOffset + segmentConsumed, segmentSliceLength - segmentConsumed);
         return segmentView;
     }
 
@@ -632,18 +733,47 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
         }
     }
 
-    @SuppressWarnings("unchecked")
-    private static List<String> pathList(
-        Map<String, ?> config,
-        String key)
+    // Reusable, allocation-free char view onto the decoded string remainder: wraps the tokenizer's decoded
+    // chars at a running offset so a bounded write can resume from where it left off without copying.
+    private static final class StringView implements CharSequence
     {
-        return (List<String>) config.get(key);
-    }
+        private CharSequence base;
+        private int offset;
 
-    private static int tokenMaxBytes(
-        Map<String, ?> config)
-    {
-        final Object raw = config.get(JsonEx.TOKEN_MAX_BYTES);
-        return raw == null ? Integer.MAX_VALUE : ((Number) raw).intValue();
+        private StringView wrap(
+            CharSequence base,
+            int offset)
+        {
+            this.base = base;
+            this.offset = offset;
+            return this;
+        }
+
+        @Override
+        public int length()
+        {
+            return base.length() - offset;
+        }
+
+        @Override
+        public char charAt(
+            int index)
+        {
+            return base.charAt(offset + index);
+        }
+
+        @Override
+        public CharSequence subSequence(
+            int start,
+            int end)
+        {
+            return base.subSequence(offset + start, offset + end);
+        }
+
+        @Override
+        public String toString()
+        {
+            return base.subSequence(offset, base.length()).toString();
+        }
     }
 }

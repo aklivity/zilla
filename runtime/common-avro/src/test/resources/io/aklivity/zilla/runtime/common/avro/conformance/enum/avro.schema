@@ -1,0 +1,5 @@
+{
+  "type" : "enum",
+  "name" : "Suit",
+  "symbols" : [ "SPADES", "HEARTS", "CLUBS" ]
+}
