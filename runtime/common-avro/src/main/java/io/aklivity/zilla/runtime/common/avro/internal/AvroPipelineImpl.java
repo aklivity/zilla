@@ -50,6 +50,7 @@ final class AvroPipelineImpl implements AvroPipeline
     private final AvroSink root;
 
     private boolean suspended;
+    private AvroEvent suspendedEvent;
 
     AvroPipelineImpl(
         AvroParser parser,
@@ -57,7 +58,7 @@ final class AvroPipelineImpl implements AvroPipeline
     {
         this.parser = parser;
         this.source = new Source(parser);
-        this.control = new Control();
+        this.control = new Control(parser);
         this.root = root;
     }
 
@@ -83,11 +84,12 @@ final class AvroPipelineImpl implements AvroPipeline
         boolean last)
     {
         Status status = ADVANCED;
+        AvroEvent event = null;
         try
         {
             if (suspended)
             {
-                status = root.resume(control, source);
+                status = root.resume(control, source, suspendedEvent);
             }
             else
             {
@@ -95,7 +97,7 @@ final class AvroPipelineImpl implements AvroPipeline
             }
             while (status == ADVANCED)
             {
-                AvroEvent event = parser.nextEvent(control.mode());
+                event = parser.nextEvent(control.mode());
                 if (event == null)
                 {
                     break;
@@ -114,6 +116,12 @@ final class AvroPipelineImpl implements AvroPipeline
             status = REJECTED;
         }
         suspended = status == SUSPENDED;
+        // the pump remembers which event suspended (so the sink keeps no resume state); a re-suspend on
+        // resume leaves event null, keeping the prior suspendedEvent
+        if (suspended && event != null)
+        {
+            suspendedEvent = event;
+        }
         return status;
     }
 
@@ -203,15 +211,31 @@ final class AvroPipelineImpl implements AvroPipeline
     }
 
     // the head edge's controller: a stage's segmentable() request becomes a one-shot SEGMENTED mode that the
-    // pump passes to the parser on the next pull
+    // pump passes to the parser on the next pull; consumed() pushback advances the parser's value cursor so
+    // the terminal sink resumes a bounded value without keeping its own offset
     private static final class Control implements AvroController
     {
+        private final AvroParser parser;
+
         private boolean segmented;
+
+        private Control(
+            AvroParser parser)
+        {
+            this.parser = parser;
+        }
 
         @Override
         public void segmentable()
         {
             segmented = true;
+        }
+
+        @Override
+        public void consumed(
+            int sourceBytes)
+        {
+            parser.consumed(sourceBytes);
         }
 
         private AvroParser.Mode mode()

@@ -107,6 +107,7 @@ public final class AvroParserImpl implements AvroParser
 
     private int valueOffset;
     private int valueLength;
+    private int valueConsumed;
     private int valueRemaining;
     private int deferred;
     private boolean valueStreaming;
@@ -189,6 +190,7 @@ public final class AvroParserImpl implements AvroParser
         cursorType = null;
         done = false;
         valueRemaining = 0;
+        valueConsumed = 0;
         deferred = 0;
         valueStreaming = false;
         segmenting = false;
@@ -874,6 +876,7 @@ public final class AvroParserImpl implements AvroParser
     {
         this.valueOffset = offset;
         this.valueLength = length;
+        this.valueConsumed = 0;
         this.string = null;
     }
 
@@ -883,12 +886,14 @@ public final class AvroParserImpl implements AvroParser
     {
         this.valueOffset = offset;
         this.valueLength = length;
+        this.valueConsumed = 0;
     }
 
     private void clearValue()
     {
         this.string = null;
         this.valueLength = 0;
+        this.valueConsumed = 0;
         this.deferred = 0;
     }
 
@@ -948,8 +953,15 @@ public final class AvroParserImpl implements AvroParser
     @Override
     public DirectBuffer getSegment()
     {
-        segmentView.wrap(buffer, valueOffset, valueLength);
+        segmentView.wrap(buffer, valueOffset + valueConsumed, valueLength - valueConsumed);
         return segmentView;
+    }
+
+    @Override
+    public void consumed(
+        int sourceBytes)
+    {
+        valueConsumed += sourceBytes;
     }
 
     @Override

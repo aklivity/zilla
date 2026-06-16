@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.common.avro;
 
 import static io.aklivity.zilla.runtime.common.avro.AvroValues.NO_CONTROL;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.agrona.DirectBuffer;
@@ -24,7 +25,7 @@ import org.junit.jupiter.api.Test;
 public class AvroGeneratorTest
 {
     private final UnsafeBuffer out = new UnsafeBuffer(new byte[64]);
-    private final AvroSource zero = new ZeroSource();
+    private final AvroSource zero = new ZeroSource(new byte[0]);
 
     private AvroSink sink(
         String schemaText)
@@ -56,9 +57,24 @@ public class AvroGeneratorTest
         assertThrows(AvroValidationException.class, () -> sink.feed(NO_CONTROL, zero, AvroEvent.INT));
     }
 
+    @Test
+    public void shouldStreamBytesValueReportingConsumed()
+    {
+        AvroSink sink = sink("\"bytes\"");
+        AvroSource bytes = new ZeroSource(new byte[] { 0x01, 0x02, 0x03 });
+        // writeValue streams the segment and reports control.consumed(...) — here the no-op default
+        assertEquals(AvroPipeline.Status.COMPLETED, sink.feed(NO_CONTROL, bytes, AvroEvent.BYTES));
+    }
+
     private static final class ZeroSource implements AvroSource
     {
-        private final UnsafeBuffer empty = new UnsafeBuffer(new byte[0]);
+        private final UnsafeBuffer empty;
+
+        private ZeroSource(
+            byte[] segment)
+        {
+            this.empty = new UnsafeBuffer(segment);
+        }
         private final AvroLocation location = new AvroLocation()
         {
             @Override
