@@ -16,14 +16,12 @@ package io.aklivity.zilla.runtime.common.yaml.internal;
 
 import java.io.IOException;
 import java.io.Writer;
-import java.util.Locale;
 import java.util.regex.Pattern;
 
 public final class YamlEmitter
 {
     private static final Pattern NUMBER_PATTERN = Pattern.compile(
         "-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?:[eE][+-]?[0-9]+)?");
-    private static final Pattern PLAIN_PATTERN = Pattern.compile("[A-Za-z0-9_./@+-]+");
 
     private YamlEmitter()
     {
@@ -665,18 +663,42 @@ public final class YamlEmitter
     private static boolean plain(
         String value)
     {
-        String lower = value.toLowerCase(Locale.ROOT);
         return !value.isEmpty() &&
             !value.isBlank() &&
-            PLAIN_PATTERN.matcher(value).matches() &&
-            !NUMBER_PATTERN.matcher(value).matches() &&
-            !"true".equals(lower) &&
-            !"false".equals(lower) &&
-            !"null".equals(lower) &&
-            !"~".equals(lower) &&
+            isPlainChars(value) &&
             !value.startsWith("-") &&
             !value.startsWith("+") &&
-            !value.startsWith(".");
+            !value.startsWith(".") &&
+            !"true".equalsIgnoreCase(value) &&
+            !"false".equalsIgnoreCase(value) &&
+            !"null".equalsIgnoreCase(value) &&
+            !"~".equals(value) &&
+            !looksLikeNumber(value);
+    }
+
+    private static boolean isPlainChars(
+        String value)
+    {
+        boolean plain = true;
+        for (int i = 0; i < value.length(); i++)
+        {
+            char c = value.charAt(i);
+            boolean allowed = c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' || c >= '0' && c <= '9' ||
+                c == '_' || c == '.' || c == '/' || c == '@' || c == '+' || c == '-';
+            if (!allowed)
+            {
+                plain = false;
+                break;
+            }
+        }
+        return plain;
+    }
+
+    private static boolean looksLikeNumber(
+        String value)
+    {
+        char first = value.charAt(0);
+        return first >= '0' && first <= '9' && NUMBER_PATTERN.matcher(value).matches();
     }
 
     private static String quote(
