@@ -28,6 +28,7 @@ import static jakarta.json.stream.JsonParser.Event.VALUE_TRUE;
 import java.math.BigDecimal;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -1633,6 +1634,73 @@ public final class JsonSchemaImpl implements JsonSchema
         }
     }
 
+    // Open-addressed set of canonical element strings for uniqueItems: stores the strings directly in a
+    // probe table rather than a HashSet, so detecting a duplicate over an N-element array allocates the
+    // table (plus its resizes) instead of a node per element. The string is still kept and compared so a
+    // hash collision never reports a false duplicate. Reused across array instances via clear().
+    private static final class CanonSet
+    {
+        private String[] table;
+        private int mask;
+        private int size;
+
+        private CanonSet()
+        {
+            table = new String[16];
+            mask = table.length - 1;
+        }
+
+        private void clear()
+        {
+            Arrays.fill(table, null);
+            size = 0;
+        }
+
+        // adds value, returning false if an equal value was already present (a duplicate element)
+        private boolean add(
+            String value)
+        {
+            if (size + 1 > (table.length >> 1) + (table.length >> 2))
+            {
+                resize();
+            }
+            int index = value.hashCode() & mask;
+            String existing = table[index];
+            boolean added = true;
+            while (existing != null)
+            {
+                if (existing.equals(value))
+                {
+                    added = false;
+                    break;
+                }
+                index = index + 1 & mask;
+                existing = table[index];
+            }
+            if (added)
+            {
+                table[index] = value;
+                size++;
+            }
+            return added;
+        }
+
+        private void resize()
+        {
+            String[] old = table;
+            table = new String[old.length << 1];
+            mask = table.length - 1;
+            size = 0;
+            for (String value : old)
+            {
+                if (value != null)
+                {
+                    add(value);
+                }
+            }
+        }
+    }
+
     private boolean validateTokens(
         List<Token> tokens,
         DynScope scope)
@@ -1998,7 +2066,7 @@ public final class JsonSchemaImpl implements JsonSchema
         private Eval[] directChildren;
         private Eval containsChild;
         private int containsMatched;
-        private Set<String> uniqueSeen;
+        private CanonSet uniqueSeen;
         private UniqueCanon uniqueCanon;
         private boolean uniqueElement;
         private final List<Token> valueTokens;
@@ -2577,7 +2645,7 @@ public final class JsonSchemaImpl implements JsonSchema
                 {
                     if (uniqueSeen == null)
                     {
-                        uniqueSeen = new HashSet<>();
+                        uniqueSeen = new CanonSet();
                         uniqueCanon = new UniqueCanon();
                     }
                     uniqueCanon.reset();
