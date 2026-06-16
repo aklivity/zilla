@@ -130,13 +130,16 @@ one frame — and spliced across chunks; a string that fits is still re-encoded 
 never longer than the raw token, so the fit check is safe). So a giant `{"data":"…"}` value streams in
 both `STRUCTURED` and `SEGMENTABLE` delivery.
 
-Resumption is a **per-stage cascade**, not an event replay: `JsonSink.resume(control, source)` and
-`JsonTransform.resume(control, source, sink)` continue any in-flight fragment before the next event is
-pulled, with the same `control` and `source` context as `feed`. `JsonTransform.resume(control, source,
-sink)` defaults to `sink.resume(control, source)`, so a stage that only forwards events ignores it
-entirely; a stage that itself emits a value across chunks (substituting or expanding output) overrides
-it to continue its own emission, draining the downstream first. This keeps the transform contract
-simple — no stage has to be suspend/resume aware unless it originates `SUSPENDED`.
+Resumption is a **per-stage cascade**, not an event replay: `JsonSink.resume(control, source, event)`
+and `JsonTransform.resume(control, source, event, sink)` continue any in-flight fragment before the next
+event is pulled, with the same `control` and `source` context as `feed` plus the value `event` that
+suspended (supplied by the pump, which owns the single resume cursor, so a stage keeps no per-value
+resume state). The sink holds none: it continues only while the source view still has an unwritten
+remainder (`getStringView().length()`/`getSegment().capacity()`) and otherwise just advances.
+`JsonTransform.resume` defaults to `sink.resume(control, source, event)`, so a stage that only forwards
+events ignores it entirely; a stage that itself emits a value across chunks (substituting or expanding
+output) overrides it to continue its own emission, draining the downstream first. This keeps the
+transform contract simple — no stage has to be suspend/resume aware unless it originates `SUSPENDED`.
 
 ### Writing JSON directly
 
@@ -145,7 +148,10 @@ and quoting automatically from an internal context stack, emitting in source ord
 insignificant whitespace. It implements `jakarta.json.stream.JsonGenerator` with covariant returns for
 fluent chaining, plus the streaming-to-buffer extensions: `writeNumber(literal)` emits a numeric
 lexeme verbatim, `writeRaw` splices a pre-encoded value (emitting its leading separator once), and
-`writeSegment` appends a bounded, consumption-driven fragment of that value with no separator.
+`writeSegment(source, index, length)` appends a bounded, consumption-driven fragment of that value with
+no separator. Its `writeSegment(source, index, length, completion)` overload owns the leading separator
+across fragments — emitted before the first fragment, the value ending on `Completion.COMPLETE` — so a
+fragmented value splices without the caller tracking whether the separator was already written.
 
 `createGenerator(Map.of(JsonGeneratorEx.GENERATE_ESCAPED, true))` opts the generator into **escape mode**: every
 byte it emits is escaped as JSON string *content* (structural bytes and UTF-8 continuation bytes pass

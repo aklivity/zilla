@@ -37,8 +37,6 @@ public final class JsonSinkImpl implements JsonSink
     private final JsonGeneratorEx generator;
     private final Delivery delivery;
     private int depth;
-    private boolean valueStarted;
-    private boolean pendingSegment;
 
     public JsonSinkImpl(
         JsonGeneratorEx generator)
@@ -61,11 +59,10 @@ public final class JsonSinkImpl implements JsonSink
         JsonEvent event)
     {
         Status status = Status.ADVANCED;
-        DirectBuffer segment;
         switch (event)
         {
         case KEY_NAME:
-            generator.writeKey(source.getKey());
+            generator.writeKey(source.getStringView());
             break;
         case START_OBJECT:
             generator.writeStartObject();
@@ -87,24 +84,7 @@ public final class JsonSinkImpl implements JsonSink
         case VALUE_STRING:
         case VALUE_NUMBER:
         case SEGMENT:
-            if (delivery == Delivery.DECODED && event != JsonEvent.SEGMENT)
-            {
-                // render from the decoded value; the generator owns quoting/escaping and joins
-                // fragments (deferredBytes) into one string, so the sink does no concatenation
-                status = writeDecoded(source, event);
-            }
-            else
-            {
-                // splice the kept leaf's raw token bytes verbatim, fragmenting across chunks; the value's
-                // leading separator is emitted once, before its first content byte
-                segment = source.getSegment();
-                if (!valueStarted)
-                {
-                    generator.writeRaw(segment, 0, 0);
-                    valueStarted = true;
-                }
-                status = writeChunk(control, segment, source);
-            }
+            status = writeValue(control, source, event);
             break;
         case VALUE_TRUE:
             generator.write(true);
@@ -136,9 +116,12 @@ public final class JsonSinkImpl implements JsonSink
     @Override
     public Status resume(
         JsonController control,
-        JsonSource source)
+        JsonSource source,
+        JsonEvent event)
     {
-        Status status = pendingSegment ? writeChunk(control, source.getSegment(), source) : Status.ADVANCED;
+        // the pump supplies the event that suspended; continue only while its value still has an unwritten
+        // remainder (a boundary drain after a completed value, or a structural event, leaves none)
+        Status status = inFlight(source, event) ? writeValue(control, source, event) : Status.ADVANCED;
         return boundary(status);
     }
 
@@ -146,59 +129,118 @@ public final class JsonSinkImpl implements JsonSink
     public void reset()
     {
         depth = 0;
-        valueStarted = false;
-        pendingSegment = false;
         generator.reset();
     }
 
-    private Status writeDecoded(
+    // Whether the suspended event still has value bytes/chars left to write, read from the source cursor —
+    // the sink keeps no pending state of its own.
+    private boolean inFlight(
+        JsonSource source,
+        JsonEvent event)
+    {
+        boolean result;
+        switch (event)
+        {
+        case VALUE_STRING:
+        case VALUE_NUMBER:
+            result = source.getStringView().length() > 0;
+            break;
+        case SEGMENT:
+            result = source.getSegment().capacity() > 0;
+            break;
+        default:
+            result = false;
+            break;
+        }
+        return result;
+    }
+
+    // Writes one scalar/segment value, fed fresh or resumed: a structured (non-SEGMENTABLE) string renders
+    // canonically from its decoded char view; a verbatim string, number lexeme, or segment splices raw
+    // bytes.
+    private Status writeValue(
+        JsonController control,
+        JsonSource source,
+        JsonEvent event)
+    {
+        Status status;
+        if (event == JsonEvent.VALUE_NUMBER || event == JsonEvent.VALUE_STRING)
+        {
+            // a structured scalar renders canonically from its char view; a verbatim value arrives as a
+            // SEGMENT, so getSegment() is reached only for segmented events
+            status = writeScalar(control, source, event);
+        }
+        else
+        {
+            status = writeChunk(control, source.getSegment(), source);
+        }
+        return status;
+    }
+
+    // Renders a structured scalar canonically from its decoded char view: the generator owns quoting and
+    // escaping (a string) or emits the lexeme (a number), writing only what fits the bound and reporting
+    // consumed source chars so the parser advances its char cursor and re-exposes the remainder on resume —
+    // the char-domain analog of writeChunk.
+    private Status writeScalar(
+        JsonController control,
         JsonSource source,
         JsonEvent event)
     {
         final boolean deferred = source.deferredBytes();
         final Completion completion = deferred ? Completion.INCOMPLETE : Completion.COMPLETE;
+        final CharSequence view = source.getStringView();
+        final int available = view.length();
+        final int before = generator.consumed();
         if (event == JsonEvent.VALUE_NUMBER)
         {
-            generator.writeNumber(source.getString(), completion);
+            generator.writeNumber(view, completion);
         }
         else
         {
-            generator.write(source.getString(), completion);
+            generator.write(view, completion);
         }
-        return deferred ? Status.ADVANCED : scalarStatus();
+        final int consumed = generator.consumed() - before;
+        control.consumed(consumed);
+        Status status;
+        if (available - consumed > 0)
+        {
+            status = Status.SUSPENDED;
+        }
+        else
+        {
+            status = deferred ? Status.ADVANCED : scalarStatus();
+        }
+        return status;
     }
 
-    // Append-only and stateless: writes the segment view whole and pushes back the source bytes the
-    // generator took via control.consumed(...) so the upstream re-exposes the remainder.
+    // Splices the segment view, the generator owning the value's leading separator (emitted once on the
+    // first fragment) so the sink keeps no state; pushes back the source bytes the generator took via
+    // control.consumed(...) so the upstream re-exposes the remainder.
     private Status writeChunk(
         JsonController control,
         DirectBuffer segment,
         JsonSource source)
     {
+        boolean deferred = source.deferredBytes();
+        Completion completion = deferred ? Completion.INCOMPLETE : Completion.COMPLETE;
         int available = segment.capacity();
         int before = generator.consumed();
-        generator.writeSegment(segment, 0, available);
+        generator.writeSegment(segment, 0, available, completion);
         int consumed = generator.consumed() - before;
         int outputDeferred = available - consumed;
         control.consumed(consumed);
         Status status;
         if (outputDeferred > 0)
         {
-            pendingSegment = true;
             status = Status.SUSPENDED;
+        }
+        else if (deferred)
+        {
+            status = Status.ADVANCED;
         }
         else
         {
-            pendingSegment = false;
-            if (source.deferredBytes())
-            {
-                status = Status.ADVANCED;
-            }
-            else
-            {
-                valueStarted = false;
-                status = scalarStatus();
-            }
+            status = scalarStatus();
         }
         return status;
     }

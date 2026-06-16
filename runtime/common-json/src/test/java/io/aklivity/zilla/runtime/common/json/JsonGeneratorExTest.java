@@ -110,6 +110,30 @@ class JsonGeneratorExTest
     }
 
     @Test
+    void shouldWriteSignedIntBoundaries()
+    {
+        assertEquals("[0,-1,2147483647,-2147483648]", generate(g -> g
+            .writeStartArray()
+            .write(0)
+            .write(-1)
+            .write(Integer.MAX_VALUE)
+            .write(Integer.MIN_VALUE)
+            .writeEnd()));
+    }
+
+    @Test
+    void shouldWriteSignedLongBoundaries()
+    {
+        assertEquals("[0,-1,9223372036854775807,-9223372036854775808]", generate(g -> g
+            .writeStartArray()
+            .write(0L)
+            .write(-1L)
+            .write(Long.MAX_VALUE)
+            .write(Long.MIN_VALUE)
+            .writeEnd()));
+    }
+
+    @Test
     void shouldRejectNonFiniteDouble()
     {
         assertThrows(NumberFormatException.class, () -> generate(g -> g.write(Double.NaN)));

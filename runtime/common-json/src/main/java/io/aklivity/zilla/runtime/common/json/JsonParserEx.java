@@ -87,4 +87,14 @@ public interface JsonParserEx extends JsonParser
      * standard {@code jakarta.json.stream.JsonParser.Event} adding document framing and segment delivery.
      */
     JsonEvent nextEvent();
+
+    /**
+     * A non-owning, on-stack {@link CharSequence} view of the current scalar token — a string value, a
+     * number lexeme, or an object key — valid until the parser advances. The zero-copy peer of
+     * {@link #getString()}: a streaming caller reads or matches the value (or key) without materializing a
+     * {@code String}. The backing buffer is reused across events, so copy out anything needed beyond the
+     * current event. This promotes the {@link JsonSource#getStringView()} accessor onto the parser surface
+     * so a caller holding a {@code JsonParserEx} reads scalars without narrowing to {@link JsonSource}.
+     */
+    CharSequence getStringView();
 }

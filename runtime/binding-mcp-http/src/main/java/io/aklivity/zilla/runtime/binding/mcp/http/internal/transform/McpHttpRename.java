@@ -73,7 +73,7 @@ public final class McpHttpRename implements JsonTransform
             status = sink.feed(control, source, event);
             break;
         case KEY_NAME:
-            final String renamed = depth == 1 ? renames.get(source.getKey().toString()) : null;
+            final String renamed = depth == 1 ? renames.get(source.getStringView().toString()) : null;
             status = renamed != null
                 ? sink.feed(control, keySource.with(renamed), event)
                 : sink.feed(control, source, event);
@@ -103,7 +103,7 @@ public final class McpHttpRename implements JsonTransform
         }
 
         @Override
-        public CharSequence getKey()
+        public CharSequence getStringView()
         {
             return key;
         }
@@ -116,6 +116,18 @@ public final class McpHttpRename implements JsonTransform
 
         @Override
         public boolean isIntegralNumber()
+        {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public int getInt()
+        {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public long getLong()
         {
             throw new UnsupportedOperationException();
         }

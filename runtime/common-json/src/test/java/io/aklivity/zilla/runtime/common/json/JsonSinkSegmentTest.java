@@ -161,6 +161,6 @@ class JsonSinkSegmentTest
         // reset is a no-op and resume reports nothing pending
         JsonSink sink = (control, source, event) -> Status.ADVANCED;
         sink.reset();
-        assertEquals(Status.ADVANCED, sink.resume(null, null));
+        assertEquals(Status.ADVANCED, sink.resume(null, null, null));
     }
 }

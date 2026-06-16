@@ -204,8 +204,13 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
             putByte.accept('"');
             pending = Pending.STRING;
         }
-        writeStringBody(value);
-        if (completion == Completion.COMPLETE)
+        // emit only the code points whose escaped form fits the output bound (reserving room for the
+        // closing quote on the final fragment); report the source chars taken via consumed() so a chunking
+        // driver advances its cursor and resumes from the remainder, the char-domain analog of writeSegment
+        final int reserve = completion == Completion.COMPLETE ? 1 : 0;
+        final int written = writeStringBody(value, reserve);
+        consumed += written;
+        if (written == value.length() && completion == Completion.COMPLETE)
         {
             putByte.accept('"');
             pending = Pending.NONE;
@@ -231,14 +236,18 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     public JsonGeneratorImpl write(
         int value)
     {
-        return writeNumber(Integer.toString(value));
+        preValue();
+        progress += buffer.putIntAscii(progress, value);
+        return this;
     }
 
     @Override
     public JsonGeneratorImpl write(
         long value)
     {
-        return writeNumber(Long.toString(value));
+        preValue();
+        progress += buffer.putLongAscii(progress, value);
+        return this;
     }
 
     @Override
@@ -417,8 +426,12 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
             preValue();
             pending = Pending.NUMBER;
         }
-        writeAscii(literal);
-        if (completion == Completion.COMPLETE)
+        // emit only the lexeme chars that fit the output bound and report them via consumed(), so a number
+        // longer than the bound suspends and resumes from the remainder — the analog of write(value, …) for
+        // a literal that carries no quoting or escaping
+        final int written = writeAsciiBounded(literal);
+        consumed += written;
+        if (written == literal.length() && completion == Completion.COMPLETE)
         {
             pending = Pending.NONE;
         }
@@ -444,6 +457,27 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         int length)
     {
         writeSegment.accept(source, index, length);
+        return this;
+    }
+
+    @Override
+    public JsonGeneratorImpl writeSegment(
+        DirectBuffer source,
+        int index,
+        int length,
+        Completion completion)
+    {
+        if (pending != Pending.SEGMENT)
+        {
+            // emit the value's leading separator once, before its first fragment
+            preValue();
+            pending = Pending.SEGMENT;
+        }
+        int written = writeSegment.accept(source, index, length);
+        if (written == length && completion == Completion.COMPLETE)
+        {
+            pending = Pending.NONE;
+        }
         return this;
     }
 
@@ -499,48 +533,122 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         {
             int codePoint = Character.codePointAt(value, index);
             index += Character.charCount(codePoint);
-            switch (codePoint)
+            emitStringCodePoint(codePoint);
+        }
+    }
+
+    // Bounded counterpart used by write(CharSequence, Completion): emits whole code points while each one's
+    // escaped width fits the output bound (minus reserve, held back for a trailing close-quote), stopping
+    // on a code-point boundary so no UTF-8 char or escape is split; returns the count of source chars
+    // emitted so the caller can advance its cursor and resume from the remainder.
+    private int writeStringBody(
+        CharSequence value,
+        int reserve)
+    {
+        final int budget = limit - reserve;
+        int index = 0;
+        final int length = value.length();
+        while (index < length)
+        {
+            final int codePoint = Character.codePointAt(value, index);
+            if (budget - progress < codePointWidth(codePoint))
             {
-            case '"':
-                putByte.accept('\\');
-                putByte.accept('"');
-                break;
-            case '\\':
-                putByte.accept('\\');
-                putByte.accept('\\');
-                break;
-            case '\n':
-                putByte.accept('\\');
-                putByte.accept('n');
-                break;
-            case '\r':
-                putByte.accept('\\');
-                putByte.accept('r');
-                break;
-            case '\t':
-                putByte.accept('\\');
-                putByte.accept('t');
-                break;
-            case '\b':
-                putByte.accept('\\');
-                putByte.accept('b');
-                break;
-            case '\f':
-                putByte.accept('\\');
-                putByte.accept('f');
-                break;
-            default:
-                if (codePoint < 0x20)
-                {
-                    writeUnicodeEscape(codePoint);
-                }
-                else
-                {
-                    writeUtf8(codePoint);
-                }
                 break;
             }
+            index += Character.charCount(codePoint);
+            emitStringCodePoint(codePoint);
         }
+        return index;
+    }
+
+    private void emitStringCodePoint(
+        int codePoint)
+    {
+        switch (codePoint)
+        {
+        case '"':
+            putByte.accept('\\');
+            putByte.accept('"');
+            break;
+        case '\\':
+            putByte.accept('\\');
+            putByte.accept('\\');
+            break;
+        case '\n':
+            putByte.accept('\\');
+            putByte.accept('n');
+            break;
+        case '\r':
+            putByte.accept('\\');
+            putByte.accept('r');
+            break;
+        case '\t':
+            putByte.accept('\\');
+            putByte.accept('t');
+            break;
+        case '\b':
+            putByte.accept('\\');
+            putByte.accept('b');
+            break;
+        case '\f':
+            putByte.accept('\\');
+            putByte.accept('f');
+            break;
+        default:
+            if (codePoint < 0x20)
+            {
+                writeUnicodeEscape(codePoint);
+            }
+            else
+            {
+                writeUtf8(codePoint);
+            }
+            break;
+        }
+    }
+
+    // Output byte width of a code point once written as canonical JSON string content: a short escape
+    // (2 bytes), a control-char \\uXXXX escape (6), or its UTF-8 encoding (1-4). Mirrors emitStringCodePoint
+    // for the verbatim (non GENERATE_ESCAPED) generator, which is the only mode the decoded value path uses.
+    private static int codePointWidth(
+        int codePoint)
+    {
+        int width;
+        switch (codePoint)
+        {
+        case '"':
+        case '\\':
+        case '\n':
+        case '\r':
+        case '\t':
+        case '\b':
+        case '\f':
+            width = 2;
+            break;
+        default:
+            if (codePoint < 0x20)
+            {
+                width = 6;
+            }
+            else if (codePoint < 0x80)
+            {
+                width = 1;
+            }
+            else if (codePoint < 0x800)
+            {
+                width = 2;
+            }
+            else if (codePoint < 0x10000)
+            {
+                width = 3;
+            }
+            else
+            {
+                width = 4;
+            }
+            break;
+        }
+        return width;
     }
 
     private void writeUtf8(
@@ -588,6 +696,22 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         {
             putByte.accept(value.charAt(index));
         }
+    }
+
+    // Bounded counterpart for a fragmented/over-bound number lexeme: emits ASCII lexeme chars (each one
+    // output byte, no escaping) while the bound has room, returning the count emitted so the caller can
+    // advance its cursor and resume from the remainder.
+    private int writeAsciiBounded(
+        CharSequence value)
+    {
+        int index = 0;
+        final int length = value.length();
+        while (index < length && progress < limit)
+        {
+            putByte.accept(value.charAt(index));
+            index++;
+        }
+        return index;
     }
 
     // Copies whole source units (UTF-8 char or JSON escape sequence), stopping before one that overflows
@@ -785,6 +909,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         NONE,
         AFTER_KEY,
         STRING,
-        NUMBER
+        NUMBER,
+        SEGMENT
     }
 }
