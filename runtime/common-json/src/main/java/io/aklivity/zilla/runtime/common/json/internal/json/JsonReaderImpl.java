@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.runtime.common.json.internal.json;
 
-import java.math.BigDecimal;
-
 import jakarta.json.JsonArray;
 import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonException;
@@ -104,7 +102,7 @@ public final class JsonReaderImpl implements JsonReader
         case START_OBJECT -> readObjectValue();
         case START_ARRAY -> readArrayValue();
         case VALUE_STRING -> JsonValues.string(parser.getString());
-        case VALUE_NUMBER -> JsonValues.number(new BigDecimal(parser.getString()));
+        case VALUE_NUMBER -> JsonValues.numberLiteral(parser.getString());
         case VALUE_TRUE -> JsonValue.TRUE;
         case VALUE_FALSE -> JsonValue.FALSE;
         case VALUE_NULL -> JsonValue.NULL;

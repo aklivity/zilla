@@ -556,7 +556,7 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
         case START_OBJECT -> getObject();
         case START_ARRAY -> getArray();
         case VALUE_STRING, KEY_NAME -> JsonValues.string(getString());
-        case VALUE_NUMBER -> JsonValues.number(getBigDecimal());
+        case VALUE_NUMBER -> JsonValues.numberLiteral(numberLexeme().toString());
         case VALUE_TRUE -> JsonValue.TRUE;
         case VALUE_FALSE -> JsonValue.FALSE;
         case VALUE_NULL -> JsonValue.NULL;

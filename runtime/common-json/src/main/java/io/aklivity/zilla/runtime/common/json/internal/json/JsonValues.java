@@ -142,6 +142,16 @@ public final class JsonValues
         return new NumberValue(Objects.requireNonNull(value, "value"));
     }
 
+    // A number parsed from source: retains the original lexeme and defers the BigDecimal (and its
+    // canonicalization) until a numeric or equality accessor actually needs it. A parse-then-re-emit
+    // pass — the common gateway case — touches only toString(), so no BigDecimal is ever allocated and
+    // the source form (e.g. an exponent) is preserved verbatim rather than expanded.
+    public static JsonNumber numberLiteral(
+        String lexeme)
+    {
+        return new NumberValue(Objects.requireNonNull(lexeme, "lexeme"));
+    }
+
     static JsonNumber number(
         BigInteger value)
     {
@@ -819,66 +829,77 @@ public final class JsonValues
 
     private static final class NumberValue implements JsonNumber
     {
-        private final BigDecimal value;
+        private final String lexeme;
+        // canonical (stripTrailingZeros) form: eager when built from a number, lazily derived from the
+        // lexeme on first numeric/equality access otherwise; not final because of that benign, idempotent
+        // lazy init (handlers are single-threaded per worker and the recomputed value is always equal)
+        private BigDecimal value;
 
         private NumberValue(
             BigDecimal value)
         {
             this.value = value.stripTrailingZeros();
+            this.lexeme = null;
+        }
+
+        private NumberValue(
+            String lexeme)
+        {
+            this.lexeme = lexeme;
         }
 
         @Override
         public boolean isIntegral()
         {
-            return value.scale() <= 0;
+            return decimal().scale() <= 0;
         }
 
         @Override
         public int intValue()
         {
-            return value.intValue();
+            return decimal().intValue();
         }
 
         @Override
         public int intValueExact()
         {
-            return value.intValueExact();
+            return decimal().intValueExact();
         }
 
         @Override
         public long longValue()
         {
-            return value.longValue();
+            return decimal().longValue();
         }
 
         @Override
         public long longValueExact()
         {
-            return value.longValueExact();
+            return decimal().longValueExact();
         }
 
         @Override
         public BigInteger bigIntegerValue()
         {
-            return value.toBigInteger();
+            return decimal().toBigInteger();
         }
 
         @Override
         public BigInteger bigIntegerValueExact()
         {
-            return value.toBigIntegerExact();
+            return decimal().toBigIntegerExact();
         }
 
         @Override
         public double doubleValue()
         {
-            return value.doubleValue();
+            return decimal().doubleValue();
         }
 
         @Override
         public BigDecimal bigDecimalValue()
         {
-            return value;
+            return decimal();
         }
 
         @Override
@@ -890,20 +911,31 @@ public final class JsonValues
         @Override
         public String toString()
         {
-            return value.toPlainString();
+            return lexeme != null ? lexeme : value.toPlainString();
         }
 
         @Override
         public int hashCode()
         {
-            return value.hashCode();
+            return decimal().hashCode();
         }
 
         @Override
         public boolean equals(
             Object obj)
         {
-            return obj instanceof JsonNumber that && value.compareTo(that.bigDecimalValue()) == 0;
+            return obj instanceof JsonNumber that && decimal().compareTo(that.bigDecimalValue()) == 0;
+        }
+
+        private BigDecimal decimal()
+        {
+            BigDecimal result = value;
+            if (result == null)
+            {
+                result = new BigDecimal(lexeme).stripTrailingZeros();
+                value = result;
+            }
+            return result;
         }
     }
 
