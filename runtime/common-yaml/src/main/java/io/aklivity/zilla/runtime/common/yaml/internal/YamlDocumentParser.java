@@ -31,6 +31,7 @@ public final class YamlDocumentParser
     private static final Pattern INTEGER_PATTERN = Pattern.compile("-?(?:0|[1-9][0-9]*)");
     private static final Pattern FLOAT_PATTERN = Pattern.compile(
         "-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?:[eE][+-]?[0-9]+)|-?(?:0|[1-9][0-9]*)\\.[0-9]+");
+    private static final Pattern FLOW_FOLD_PATTERN = Pattern.compile("[ \\t]*\\R[ \\t]*");
 
     private final List<Line> lines;
     private final Map<String, YamlNode> anchors;
@@ -2586,6 +2587,7 @@ public final class YamlDocumentParser
         private final Map<String, String> tagHandles;
         private final YamlConfiguration config;
         private int cursor;
+        private YamlDocumentParser delegate;
 
         private FlowParser(
             String text,
@@ -2599,6 +2601,24 @@ public final class YamlDocumentParser
             this.anchors = anchors;
             this.tagHandles = tagHandles;
             this.config = config;
+        }
+
+        private YamlDocumentParser delegate()
+        {
+            if (delegate == null)
+            {
+                delegate = new YamlDocumentParser(new Document(List.of(), new YamlLocation(1, 1, 0), "",
+                    DocumentScanner.defaultTagHandles(), config));
+            }
+            return delegate;
+        }
+
+        private YamlNode applyFlowTag(
+            YamlNode value,
+            String tag,
+            Line line)
+        {
+            return delegate().applyTag(value, tag, scalarText(value, ""), line);
         }
 
         private YamlNode parse()
@@ -2626,9 +2646,7 @@ public final class YamlDocumentParser
             }
 
             ValueSpec spec = parseFlowDecorators();
-            new YamlDocumentParser(new Document(List.of(), new YamlLocation(1, 1, 0), "",
-                DocumentScanner.defaultTagHandles(), config))
-                .validateSpec(spec, line);
+            delegate().validateSpec(spec, line);
             YamlNode value;
             if (spec.alias != null)
             {
@@ -2643,7 +2661,7 @@ public final class YamlDocumentParser
                 case '\'', '"' -> parseQuotedScalar();
                 default -> parseBareScalar();
                 };
-                value = applyFlowTag(value, spec.tag, line, config);
+                value = applyFlowTag(value, spec.tag, line);
                 if (spec.anchor != null)
                 {
                     if (!config.anchors())
@@ -2756,9 +2774,7 @@ public final class YamlDocumentParser
                     {
                         throw error("YAML merge keys are disabled", line);
                     }
-                    new YamlDocumentParser(new Document(List.of(), new YamlLocation(1, 1, text.length()), "",
-                        DocumentScanner.defaultTagHandles(), config))
-                        .merge(object, value, line);
+                    delegate().merge(object, value, line);
                 }
                 else
                 {
@@ -2957,9 +2973,7 @@ public final class YamlDocumentParser
 
             int mark = cursor;
             ValueSpec spec = parseFlowDecorators();
-            new YamlDocumentParser(new Document(List.of(), new YamlLocation(1, 1, 0), "",
-                DocumentScanner.defaultTagHandles(), config))
-                .validateSpec(spec, line);
+            delegate().validateSpec(spec, line);
             if (spec.alias != null)
             {
                 return new KeySpec(null, resolve(spec.alias));
@@ -2972,7 +2986,7 @@ public final class YamlDocumentParser
                 case '{', '[' -> parseValue();
                 default -> parseBareKeyScalar();
                 };
-                key = applyFlowTag(key, spec.tag, line, config);
+                key = applyFlowTag(key, spec.tag, line);
                 if (spec.anchor != null)
                 {
                     if (!config.anchors())
@@ -3021,15 +3035,30 @@ public final class YamlDocumentParser
             {
                 throw error("Document markers are not allowed in flow collection", line);
             }
-            return new YamlDocumentParser(new Document(List.of(), new YamlLocation(1, 1, text.length()), "",
-                DocumentScanner.defaultTagHandles(), config))
-                .parseScalar(value, null, line);
+            return delegate().parseScalar(value, null, line);
         }
 
         private static String foldFlowScalar(
             String value)
         {
-            return value.replaceAll("[ \\t]*\\R[ \\t]*", " ");
+            return hasLineBreak(value) ? FLOW_FOLD_PATTERN.matcher(value).replaceAll(" ") : value;
+        }
+
+        private static boolean hasLineBreak(
+            String value)
+        {
+            boolean found = false;
+            for (int i = 0; i < value.length(); i++)
+            {
+                char c = value.charAt(i);
+                if (c == '\n' || c == '\r' || c == '\f' || c == '\u000B' ||
+                    c == '\u0085' || c == '\u2028' || c == '\u2029')
+                {
+                    found = true;
+                    break;
+                }
+            }
+            return found;
         }
 
         private YamlScalarNode parseQuotedScalar()
@@ -3084,9 +3113,7 @@ public final class YamlDocumentParser
             {
                 throw error("Document markers are not allowed in flow collection", line);
             }
-            return new YamlDocumentParser(new Document(List.of(), new YamlLocation(1, 1, text.length()), "",
-                DocumentScanner.defaultTagHandles(), config))
-                .parseScalar(value, null, line);
+            return delegate().parseScalar(value, null, line);
         }
 
         private static boolean isFlowDocumentMarker(
@@ -3172,17 +3199,6 @@ public final class YamlDocumentParser
         {
             return text.charAt(index) == '#' && (index == 0 || Character.isWhitespace(text.charAt(index - 1)));
         }
-    }
-
-    private static YamlNode applyFlowTag(
-        YamlNode value,
-        String tag,
-        Line line,
-        YamlConfiguration config)
-    {
-        return new YamlDocumentParser(new Document(List.of(), new YamlLocation(1, 1, 0), "",
-            DocumentScanner.defaultTagHandles(), config))
-            .applyTag(value, tag, scalarText(value, ""), line);
     }
 
     private static final class Line
