@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.common.protobuf.json;
 
+import java.util.Map;
+
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufGenerator;
@@ -49,6 +51,24 @@ import io.aklivity.zilla.runtime.common.protobuf.json.internal.ProtobufJsonParse
 public final class ProtobufJson
 {
     /**
+     * Generator config key (a {@link Boolean}): when {@code true}, the JSON key is the proto field name
+     * (snake_case) instead of the proto3 json name. Mirrors {@code protobuf-java}'s
+     * {@code JsonFormat.Printer.preservingProtoFieldNames()}.
+     */
+    public static final String GENERATE_PROTO_FIELD_NAMES =
+        "io.aklivity.zilla.runtime.common.protobuf.json.generate.proto.field.names";
+
+    /**
+     * Generator config key (a {@link Boolean}): when {@code true}, every field is emitted — unset
+     * implicit-presence scalars and enums as their declared (proto2) or type default, empty {@code repeated}
+     * as {@code []}, empty {@code map} as {@code {}} — while fields with explicit presence (proto3
+     * {@code optional}, message, {@code oneof}) stay omitted when unset. Mirrors {@code protobuf-java}'s
+     * {@code JsonFormat.Printer.includingDefaultValueFields()}.
+     */
+    public static final String GENERATE_DEFAULTS =
+        "io.aklivity.zilla.runtime.common.protobuf.json.generate.defaults";
+
+    /**
      * A {@link ProtobufParser} that reads JSON through {@code parser}, mapping each JSON value onto the field
      * of the message named {@code messageName} in {@code schema} (by proto3 json name then proto name) and
      * presenting it as the matching protobuf event so a wire {@link ProtobufGenerator} (or a whole pipeline)
@@ -80,22 +100,19 @@ public final class ProtobufJson
     }
 
     /**
-     * As {@link #generator(JsonGeneratorEx, ProtobufSchema, String)}, with two compatibility options for
-     * matching a {@code protobuf-java} {@code JsonFormat} rendering: when {@code protoFieldNames} is set the
-     * proto field name (snake_case) is used as the JSON key instead of the proto3 json name; when
-     * {@code includeDefaults} is set every field is emitted, with unset implicit-presence scalars and enums
-     * rendered as their declared (proto2) or type default, empty {@code repeated} as {@code []} and empty
-     * {@code map} as {@code {}} — fields with explicit presence (proto3 {@code optional}, message, {@code
-     * oneof}) remain omitted when unset. Fields are emitted in wire order (not field-number order), which is
+     * As {@link #generator(JsonGeneratorEx, ProtobufSchema, String)}, configured for {@code protobuf-java}
+     * {@code JsonFormat} compatibility via {@code config} — see {@link #GENERATE_PROTO_FIELD_NAMES} and
+     * {@link #GENERATE_DEFAULTS}. Fields are emitted in wire order (not field-number order), which is
      * semantically equivalent JSON.
      */
     public static ProtobufGenerator generator(
         JsonGeneratorEx generator,
         ProtobufSchema schema,
         String messageName,
-        boolean protoFieldNames,
-        boolean includeDefaults)
+        Map<String, ?> config)
     {
+        boolean protoFieldNames = Boolean.TRUE.equals(config.get(GENERATE_PROTO_FIELD_NAMES));
+        boolean includeDefaults = Boolean.TRUE.equals(config.get(GENERATE_DEFAULTS));
         return new ProtobufJsonGeneratorImpl(generator, schema, messageName, protoFieldNames, includeDefaults);
     }
 

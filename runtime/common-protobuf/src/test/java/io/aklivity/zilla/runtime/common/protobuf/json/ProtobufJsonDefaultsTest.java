@@ -17,6 +17,8 @@ package io.aklivity.zilla.runtime.common.protobuf.json;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.Consumer;
 
 import org.agrona.MutableDirectBuffer;
@@ -139,9 +141,12 @@ public class ProtobufJsonDefaultsTest
         boolean protoFieldNames,
         boolean includeDefaults)
     {
+        Map<String, Object> config = new HashMap<>();
+        config.put(ProtobufJson.GENERATE_PROTO_FIELD_NAMES, protoFieldNames);
+        config.put(ProtobufJson.GENERATE_DEFAULTS, includeDefaults);
         MutableDirectBuffer out = new UnsafeBuffer(new byte[8192]);
         ProtobufGenerator generator =
-            ProtobufJson.generator(JsonEx.createGenerator(), schema, messageName, protoFieldNames, includeDefaults);
+            ProtobufJson.generator(JsonEx.createGenerator(), schema, messageName, config);
         generator.wrap(out, 0, out.capacity());
         ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, messageName))
             .into(ProtobufSink.of(generator, schema, messageName));
