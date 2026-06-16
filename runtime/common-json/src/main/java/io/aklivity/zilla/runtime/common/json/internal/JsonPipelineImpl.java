@@ -19,6 +19,7 @@ import jakarta.json.stream.JsonParsingException;
 import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.common.json.JsonController;
+import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
@@ -38,6 +39,8 @@ public final class JsonPipelineImpl implements JsonPipeline
     private final JsonSink root;
 
     private boolean suspended;
+    // the value event in flight across a suspend, handed to root.resume() so no stage stores it
+    private JsonEvent resumeEvent;
 
     public JsonPipelineImpl(
         JsonParserEx parser,
@@ -56,6 +59,7 @@ public final class JsonPipelineImpl implements JsonPipeline
         parser.reset();
         root.reset();
         suspended = false;
+        resumeEvent = null;
     }
 
     @Override
@@ -76,7 +80,7 @@ public final class JsonPipelineImpl implements JsonPipeline
         {
             if (suspended)
             {
-                status = root.resume(control, source);
+                status = root.resume(control, source, resumeEvent);
             }
             else
             {
@@ -84,7 +88,13 @@ public final class JsonPipelineImpl implements JsonPipeline
             }
             while (status == Status.ADVANCED && parser.hasNextEvent())
             {
-                status = root.feed(control, source, parser.nextEvent());
+                final JsonEvent event = parser.nextEvent();
+                status = root.feed(control, source, event);
+                if (status == Status.SUSPENDED)
+                {
+                    // the pump owns the resume cursor: remember the in-flight event for the next entry
+                    resumeEvent = event;
+                }
             }
             if (status == Status.ADVANCED)
             {

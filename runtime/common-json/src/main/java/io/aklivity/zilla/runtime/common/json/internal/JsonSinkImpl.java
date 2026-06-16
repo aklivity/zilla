@@ -38,10 +38,6 @@ public final class JsonSinkImpl implements JsonSink
     private final Delivery delivery;
     private int depth;
     private boolean valueStarted;
-    // the value event currently mid-write across a bounded-output suspend, or null when nothing is in
-    // flight; resume() re-runs that value's write, and the delivery mode resolves a decoded string from a
-    // verbatim one. A boundary() suspend at an event boundary leaves this null, so resume just advances.
-    private JsonEvent pending;
 
     public JsonSinkImpl(
         JsonGeneratorEx generator)
@@ -121,9 +117,12 @@ public final class JsonSinkImpl implements JsonSink
     @Override
     public Status resume(
         JsonController control,
-        JsonSource source)
+        JsonSource source,
+        JsonEvent event)
     {
-        Status status = pending != null ? writeValue(control, source, pending) : Status.ADVANCED;
+        // the pump supplies the event that suspended; continue only while its value still has an unwritten
+        // remainder (a boundary drain after a completed value, or a structural event, leaves none)
+        Status status = inFlight(source, event) ? writeValue(control, source, event) : Status.ADVANCED;
         return boundary(status);
     }
 
@@ -132,13 +131,35 @@ public final class JsonSinkImpl implements JsonSink
     {
         depth = 0;
         valueStarted = false;
-        pending = null;
         generator.reset();
+    }
+
+    // Whether the suspended event still has value bytes/chars left to write, read from the source cursor —
+    // the sink keeps no pending state of its own.
+    private boolean inFlight(
+        JsonSource source,
+        JsonEvent event)
+    {
+        boolean result;
+        switch (event)
+        {
+        case VALUE_STRING:
+        case VALUE_NUMBER:
+            result = source.getStringView().length() > 0;
+            break;
+        case SEGMENT:
+            result = source.getSegment().capacity() > 0;
+            break;
+        default:
+            result = false;
+            break;
+        }
+        return result;
     }
 
     // Writes one scalar/segment value, fed fresh or resumed: a structured (non-SEGMENTABLE) string renders
     // canonically from its decoded char view; a verbatim string, number lexeme, or segment splices raw
-    // bytes. Records the event as pending while the bounded output leaves it mid-write so resume re-runs it.
+    // bytes.
     private Status writeValue(
         JsonController control,
         JsonSource source,
@@ -162,7 +183,6 @@ public final class JsonSinkImpl implements JsonSink
             }
             status = writeChunk(control, segment, source);
         }
-        pending = status == Status.SUSPENDED ? event : null;
         return status;
     }
 
