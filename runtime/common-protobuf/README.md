@@ -336,9 +336,13 @@ while the JSON output buffer must hold the whole document.
 
 Numbers are formatted into a reused `StringBuilder` and emitted via `writeNumber`/`write`, so the generator side
 adds no per-message allocation (`ProtobufJsonPipelineBM.protobufToJson` measures ≈ 0 B/op). The
-`ProtobufJsonParser` likewise reuses its frame stack and value buffers; its residual allocation
-(`ProtobufJsonPipelineBM.jsonToProtobuf`) is the `common-json` `JsonParserEx` value accessors (`getString` /
-`getLong`), not the adapter.
+`ProtobufJsonParser` likewise reuses its frame stack and value buffers, and reads scalars and keys through the
+parser's non-owning `getStringView()` / `getKey()` char views — parsing integers with
+`Long.parseLong(CharSequence, …)`, resolving field names with the allocation-free `ProtobufMessage.field(
+CharSequence)`, and UTF-8-encoding strings straight into the reused value buffer — so no per-value
+`String`/`byte[]` is materialized. The small residual (`ProtobufJsonPipelineBM.jsonToProtobuf`, ≈ 100 B/op) is
+`float`/`double` values, which round-trip through a `String` because the JDK has no `CharSequence` floating-point
+parse.
 
 Bounded-buffer contract: no unbounded document is buffered either way. Malformed JSON, a non-object root, an
 unknown message, and an unknown enum value are rejected with a `ProtobufException` (the pipeline reports

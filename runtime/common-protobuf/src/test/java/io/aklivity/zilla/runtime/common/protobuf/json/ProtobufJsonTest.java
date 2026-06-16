@@ -161,6 +161,15 @@ public class ProtobufJsonTest
     }
 
     @Test
+    public void shouldRoundTripMultibyteUtf8String()
+    {
+        // 2-byte (é), 3-byte (中), and 4-byte surrogate-pair (😀) UTF-8 sequences
+        String json = "{\"name\":\"é中😀\",\"tags\":[\"é\",\"中\"]}";
+
+        assertEquals(json, roundTrip("Person", json));
+    }
+
+    @Test
     public void shouldEncodeJsonAsExpectedWire()
     {
         byte[] expected = wire(g -> g

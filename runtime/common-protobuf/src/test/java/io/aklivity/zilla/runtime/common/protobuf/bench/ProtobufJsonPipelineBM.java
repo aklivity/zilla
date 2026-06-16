@@ -50,8 +50,10 @@ import io.aklivity.zilla.runtime.common.protobuf.json.ProtobufJson;
  * Compares the two {@code ProtobufJson} bridge directions over the same fully-buffered message — JSON →
  * protobuf wire (a {@code ProtobufJsonParserImpl} feeding the wire sink) and protobuf wire → JSON (the wire
  * parser feeding a {@code ProtobufJsonGeneratorImpl}). Run with {@code -prof gc} to read allocation per op
- * ({@code gc.alloc.rate.norm}, B/op): the bridge adapters reuse all buffers and add no per-op allocation of
- * their own, so any residual is the {@code common-json} parser/generator value formatting.
+ * ({@code gc.alloc.rate.norm}, B/op): the bridge adapters reuse all buffers and read scalars/keys through the
+ * parser's non-owning char views, so {@code protobufToJson} is ≈ 0 B/op and {@code jsonToProtobuf}'s small
+ * residual (≈ 100 B/op) is only {@code float}/{@code double} values, which the JDK can parse only from a
+ * {@code String}.
  */
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.Throughput)

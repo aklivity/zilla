@@ -14,17 +14,15 @@
  */
 package io.aklivity.zilla.runtime.common.protobuf.json.internal;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import java.util.Base64;
-
-import jakarta.json.stream.JsonParser.Event;
 
 import org.agrona.DirectBuffer;
 import org.agrona.ExpandableArrayBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
+import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
+import io.aklivity.zilla.runtime.common.json.JsonSource;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufEvent;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufException;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufField;
@@ -43,12 +41,17 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
  * of {@link io.aklivity.zilla.runtime.common.protobuf.Protobuf#stream(ProtobufParser)} into a wire
  * {@link io.aklivity.zilla.runtime.common.protobuf.ProtobufSink}.
  * <p>
- * Streaming: the JSON is pulled one token at a time and translated incrementally, so input arrives windowed
- * — {@link #nextEvent(Mode)} returns {@code null} when a window is consumed mid-document and {@link #resume}
- * continues with the next window, exactly as the wire parser does. The translator carries no document buffer;
- * only the bounded per-message frame stack and a small pending-event ring. One JSON leaf value must fit a
- * single input window (it is read via the {@code JsonParserEx} value accessors); message structure may split
- * across windows at any token boundary.
+ * Streaming: the JSON is pulled one {@link JsonEvent} at a time and translated incrementally, so input arrives
+ * windowed — {@link #nextEvent(Mode)} returns {@code null} when a window is consumed mid-document and
+ * {@link #resume} continues with the next window, exactly as the wire parser does. The translator carries no
+ * document buffer; only the bounded per-message frame stack and a small pending-event ring. One JSON leaf value
+ * must fit a single input window (it is read via the allocation-free {@link JsonSource#getStringView()} /
+ * {@link JsonSource#getKey()} views); message structure may split across windows at any token boundary.
+ * <p>
+ * Allocation: scalar values and keys are read through the parser's non-owning char views and parsed/encoded
+ * straight into a reused buffer — integers via {@code Long.parseLong(CharSequence, …)}, strings UTF-8-encoded
+ * into the value buffer — so no per-value {@code String}/{@code byte[]} is materialized (floats, enum names by
+ * string, and {@code bytes} base64 still round-trip through a {@code String}).
  */
 public final class ProtobufJsonParserImpl implements ProtobufParser
 {
@@ -63,6 +66,7 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
     }
 
     private final JsonParserEx parser;
+    private final JsonSource source;
     private final ProtobufSchema schema;
     private final String messageName;
     private final UnsafeBuffer estimateView;
@@ -100,6 +104,8 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
         String messageName)
     {
         this.parser = parser;
+        // the parser is also the per-event source view exposing the allocation-free value/key char views
+        this.source = (JsonSource) parser;
         this.schema = schema;
         this.messageName = messageName;
         this.estimateView = new UnsafeBuffer(new byte[ESTIMATE]);
@@ -297,13 +303,18 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
 
     private boolean prime()
     {
-        Event token = pull();
+        JsonEvent token = pull();
         boolean progress;
         if (token == null)
         {
             progress = starve();
         }
-        else if (token == Event.START_OBJECT)
+        else if (token == JsonEvent.START_DOCUMENT)
+        {
+            // the event stream opens with a document frame before the root value; skip it
+            progress = true;
+        }
+        else if (token == JsonEvent.START_OBJECT)
         {
             primed = true;
             ProtobufMessage root = schema.message(messageName);
@@ -328,14 +339,14 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
         }
         else
         {
-            Event token = pull();
+            JsonEvent token = pull();
             if (token == null)
             {
                 progress = starve();
             }
-            else if (token == Event.KEY_NAME)
+            else if (token == JsonEvent.KEY_NAME)
             {
-                ProtobufField field = frame.message.field(parser.getString());
+                ProtobufField field = frame.message.field(source.getKey());
                 if (field == null)
                 {
                     beginSkip();
@@ -346,7 +357,7 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
                 }
                 progress = true;
             }
-            else if (token == Event.END_OBJECT)
+            else if (token == JsonEvent.END_OBJECT)
             {
                 closeMessage(frame);
                 progress = true;
@@ -363,7 +374,7 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
         Frame frame)
     {
         ProtobufField field = frame.pendingField;
-        Event token = pull();
+        JsonEvent token = pull();
         boolean progress;
         if (token == null)
         {
@@ -381,13 +392,13 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
     private boolean arrayStep(
         Frame frame)
     {
-        Event token = pull();
+        JsonEvent token = pull();
         boolean progress;
         if (token == null)
         {
             progress = starve();
         }
-        else if (token == Event.END_ARRAY)
+        else if (token == JsonEvent.END_ARRAY)
         {
             depth--;
             progress = true;
@@ -403,7 +414,7 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
                 push(Kind.MESSAGE, field.message(), null, group, false);
                 enqueue(group ? ProtobufEvent.START_GROUP : ProtobufEvent.START_MESSAGE, null, field.message());
             }
-            else if (token != Event.VALUE_NULL)
+            else if (token != JsonEvent.VALUE_NULL)
             {
                 enqueue(ProtobufEvent.FIELD, field, null);
                 decodeValue(field, token);
@@ -420,17 +431,17 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
         boolean progress;
         if (frame.mapStep == 0)
         {
-            Event token = pull();
+            JsonEvent token = pull();
             if (token == null)
             {
                 progress = starve();
             }
-            else if (token == Event.END_OBJECT)
+            else if (token == JsonEvent.END_OBJECT)
             {
                 depth--;
                 progress = true;
             }
-            else if (token == Event.KEY_NAME)
+            else if (token == JsonEvent.KEY_NAME)
             {
                 ProtobufMessage entry = frame.message;
                 ProtobufField keyField = entry.field(1);
@@ -449,7 +460,7 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
         }
         else
         {
-            Event token = pull();
+            JsonEvent token = pull();
             if (token == null)
             {
                 progress = starve();
@@ -466,7 +477,7 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
                     push(Kind.MESSAGE, valueField.message(), null, group, true);
                     enqueue(group ? ProtobufEvent.START_GROUP : ProtobufEvent.START_MESSAGE, null, valueField.message());
                 }
-                else if (token == Event.VALUE_NULL)
+                else if (token == JsonEvent.VALUE_NULL)
                 {
                     enqueue(ProtobufEvent.END_MESSAGE, null, null);
                 }
@@ -485,9 +496,9 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
 
     private void dispatchValue(
         ProtobufField field,
-        Event token)
+        JsonEvent token)
     {
-        if (token == Event.VALUE_NULL)
+        if (token == JsonEvent.VALUE_NULL)
         {
             // proto3 JSON: a null value leaves the field absent
         }
@@ -498,7 +509,7 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
         }
         else if (field.repeated())
         {
-            if (token != Event.START_ARRAY)
+            if (token != JsonEvent.START_ARRAY)
             {
                 throw new ProtobufException("expected json array");
             }
@@ -537,7 +548,7 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
 
     private boolean skipStep()
     {
-        Event token = pull();
+        JsonEvent token = pull();
         boolean progress;
         if (token == null)
         {
@@ -548,7 +559,7 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
             if (!skipPrimed)
             {
                 skipPrimed = true;
-                if (token == Event.START_OBJECT || token == Event.START_ARRAY)
+                if (token == JsonEvent.START_OBJECT || token == JsonEvent.START_ARRAY)
                 {
                     skipDepth = 1;
                 }
@@ -557,11 +568,11 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
                     skipping = false;
                 }
             }
-            else if (token == Event.START_OBJECT || token == Event.START_ARRAY)
+            else if (token == JsonEvent.START_OBJECT || token == JsonEvent.START_ARRAY)
             {
                 skipDepth++;
             }
-            else if (token == Event.END_OBJECT || token == Event.END_ARRAY)
+            else if (token == JsonEvent.END_OBJECT || token == JsonEvent.END_ARRAY)
             {
                 skipDepth--;
                 skipping = skipDepth != 0;
@@ -587,16 +598,15 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
         return false;
     }
 
-    private Event pull()
+    private JsonEvent pull()
     {
-        return parser.hasNext() ? parser.next() : null;
+        return parser.hasNextEvent() ? parser.nextEvent() : null;
     }
 
     private void decodeValue(
         ProtobufField field,
-        Event token)
+        JsonEvent token)
     {
-        boolean text = token == Event.VALUE_STRING;
         switch (field.type())
         {
         case INT32:
@@ -605,33 +615,35 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
         case INT64:
         case SINT64:
         case SFIXED64:
-            longValue = text ? Long.parseLong(parser.getString()) : parser.getLong();
+            longValue = parseLong(source.getStringView());
             break;
         case UINT32:
         case FIXED32:
-            longValue = (text ? Long.parseLong(parser.getString()) : parser.getLong()) & 0xffffffffL;
+            longValue = parseLong(source.getStringView()) & 0xffffffffL;
             break;
         case UINT64:
         case FIXED64:
-            longValue = text ? Long.parseUnsignedLong(parser.getString()) : parser.getLong();
+            longValue = parseUnsignedLong(source.getStringView());
             break;
         case BOOL:
-            longValue = token == Event.VALUE_TRUE ? 1L : 0L;
+            longValue = token == JsonEvent.VALUE_TRUE ? 1L : 0L;
             break;
         case FLOAT:
-            floatValue = text ? Float.parseFloat(parser.getString()) : parser.getBigDecimal().floatValue();
+            floatValue = Float.parseFloat(source.getStringView().toString());
             break;
         case DOUBLE:
-            doubleValue = text ? Double.parseDouble(parser.getString()) : parser.getBigDecimal().doubleValue();
+            doubleValue = Double.parseDouble(source.getStringView().toString());
             break;
         case ENUM:
-            longValue = text ? enumNumber(field, parser.getString()) : parser.getInt();
+            longValue = token == JsonEvent.VALUE_STRING
+                ? enumNumber(field, source.getStringView().toString())
+                : parseLong(source.getStringView());
             break;
         case STRING:
-            putBytes(parser.getString().getBytes(UTF_8));
+            putUtf8(source.getStringView());
             break;
         case BYTES:
-            putBytes(decodeBase64(parser.getString()));
+            putBytes(decodeBase64(source.getStringView().toString()));
             break;
         default:
             throw new ProtobufException("unsupported scalar type " + field.type());
@@ -641,27 +653,83 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
     private void decodeKey(
         ProtobufField keyField)
     {
-        String text = parser.getString();
+        CharSequence text = source.getKey();
         switch (keyField.type())
         {
         case STRING:
-            putBytes(text.getBytes(UTF_8));
+            putUtf8(text);
             break;
         case BOOL:
-            longValue = "true".equals(text) ? 1L : 0L;
+            longValue = "true".contentEquals(text) ? 1L : 0L;
             break;
         case UINT32:
         case FIXED32:
-            longValue = Long.parseLong(text) & 0xffffffffL;
+            longValue = parseLong(text) & 0xffffffffL;
             break;
         case UINT64:
         case FIXED64:
-            longValue = Long.parseUnsignedLong(text);
+            longValue = parseUnsignedLong(text);
             break;
         default:
-            longValue = Long.parseLong(text);
+            longValue = parseLong(text);
             break;
         }
+    }
+
+    private void putUtf8(
+        CharSequence value)
+    {
+        int length = value.length();
+        int index = 0;
+        int i = 0;
+        while (i < length)
+        {
+            int codePoint = value.charAt(i++);
+            if (codePoint >= 0xd800 && codePoint <= 0xdbff && i < length)
+            {
+                char low = value.charAt(i);
+                if (low >= 0xdc00 && low <= 0xdfff)
+                {
+                    codePoint = ((codePoint - 0xd800) << 10) + (low - 0xdc00) + 0x10000;
+                    i++;
+                }
+            }
+            if (codePoint < 0x80)
+            {
+                valueBuffer.putByte(index++, (byte) codePoint);
+            }
+            else if (codePoint < 0x800)
+            {
+                valueBuffer.putByte(index++, (byte) (0xc0 | codePoint >> 6));
+                valueBuffer.putByte(index++, (byte) (0x80 | codePoint & 0x3f));
+            }
+            else if (codePoint < 0x10000)
+            {
+                valueBuffer.putByte(index++, (byte) (0xe0 | codePoint >> 12));
+                valueBuffer.putByte(index++, (byte) (0x80 | codePoint >> 6 & 0x3f));
+                valueBuffer.putByte(index++, (byte) (0x80 | codePoint & 0x3f));
+            }
+            else
+            {
+                valueBuffer.putByte(index++, (byte) (0xf0 | codePoint >> 18));
+                valueBuffer.putByte(index++, (byte) (0x80 | codePoint >> 12 & 0x3f));
+                valueBuffer.putByte(index++, (byte) (0x80 | codePoint >> 6 & 0x3f));
+                valueBuffer.putByte(index++, (byte) (0x80 | codePoint & 0x3f));
+            }
+        }
+        valueLength = index;
+    }
+
+    private static long parseLong(
+        CharSequence value)
+    {
+        return Long.parseLong(value, 0, value.length(), 10);
+    }
+
+    private static long parseUnsignedLong(
+        CharSequence value)
+    {
+        return Long.parseUnsignedLong(value, 0, value.length(), 10);
     }
 
     private int enumNumber(
@@ -684,9 +752,9 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
     }
 
     private void expectStartObject(
-        Event token)
+        JsonEvent token)
     {
-        if (token != Event.START_OBJECT)
+        if (token != JsonEvent.START_OBJECT)
         {
             throw new ProtobufException("expected json object");
         }
