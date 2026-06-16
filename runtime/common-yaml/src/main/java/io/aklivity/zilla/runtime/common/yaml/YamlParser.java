@@ -22,6 +22,15 @@ public interface YamlParser extends AutoCloseable
 
     YamlValue parse();
 
+    /**
+     * Non-owning, on-stack {@link CharSequence} view of the current scalar token — a string value, a
+     * number lexeme, or a mapping key — valid only until the parser advances. The allocation-free peer
+     * of {@link #getString()}: a streaming caller reads or matches the scalar without materializing a
+     * {@code String}. The backing buffer is reused across events, so copy out anything retained beyond
+     * the current event.
+     */
+    CharSequence getStringView();
+
     YamlValue getValue();
 
     YamlObject getObject();

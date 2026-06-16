@@ -37,6 +37,7 @@ public final class YamlParserImpl implements YamlParser
 {
     private final String text;
     private final YamlConfiguration config;
+    private final CharSequenceView stringView;
     private Deque<Frame> stack;
     private YamlNode root;
     private YamlEvent current;
@@ -57,6 +58,7 @@ public final class YamlParserImpl implements YamlParser
     {
         this.text = readAll(reader);
         this.config = config;
+        this.stringView = new CharSequenceView();
     }
 
     public YamlParserImpl(
@@ -86,6 +88,7 @@ public final class YamlParserImpl implements YamlParser
     {
         this.text = readAll(in, charset);
         this.config = config;
+        this.stringView = new CharSequenceView();
     }
 
     @Override
@@ -157,6 +160,13 @@ public final class YamlParserImpl implements YamlParser
     public String getString()
     {
         return current != null ? current.getString() : null;
+    }
+
+    @Override
+    public CharSequence getStringView()
+    {
+        String value = current != null ? current.getString() : null;
+        return value != null ? stringView.wrap(value, 0, value.length()) : null;
     }
 
     @Override
