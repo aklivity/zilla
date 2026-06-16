@@ -81,7 +81,9 @@ public class McpOpenapiCompositeGeneratorTest
         "        }," +
         "        \"responses\": { \"201\": { \"description\": \"created\"," +
         "          \"content\": { \"application/json\": { \"schema\": {" +
-        "            \"type\": \"object\", \"properties\": { \"number\": { \"type\": \"integer\" } } } } } } }" +
+        "            \"type\": \"object\", \"properties\": { \"number\": { \"type\": \"integer\" }," +
+        "              \"html_url\": { \"type\": \"string\" }, \"state\": { \"type\": \"string\" }," +
+        "              \"title\": { \"type\": \"string\" } } } } } } }" +
         "      }" +
         "    }," +
         "    \"/repos/{owner}/{repo}\": {" +

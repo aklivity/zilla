@@ -67,4 +67,32 @@ public class McpOpenapiProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mcp}/read.order/client",
+        "${http}/read.order/server"})
+    public void shouldReadResourceOrder() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mcp}/tools.list/client"})
+    public void shouldListTools() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mcp}/resources.list/client"})
+    public void shouldListResources() throws Exception
+    {
+        k3po.finish();
+    }
 }

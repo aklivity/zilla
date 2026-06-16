@@ -44,4 +44,13 @@ public class HttpClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${http}/read.order/client",
+        "${http}/read.order/server"})
+    public void shouldProxyReadOrderToHttp() throws Exception
+    {
+        k3po.finish();
+    }
 }
