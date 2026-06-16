@@ -24,6 +24,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 import jakarta.json.Json;
 import jakarta.json.JsonArrayBuilder;
@@ -462,7 +463,7 @@ public final class McpOpenapiCompositeGenerator
                 final OpenapiSchemaView schema = typed.schema;
                 if (schema != null && schema.properties != null)
                 {
-                    for (Map.Entry<String, OpenapiSchemaView> entry : schema.properties.entrySet())
+                    for (Map.Entry<String, OpenapiSchemaView> entry : new TreeMap<>(schema.properties).entrySet())
                     {
                         String key = entry.getKey();
                         if (propertyNames.contains(key))

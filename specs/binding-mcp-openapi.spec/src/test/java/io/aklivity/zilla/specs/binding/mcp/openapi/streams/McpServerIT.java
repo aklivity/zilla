@@ -44,4 +44,31 @@ public class McpServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${mcp}/read.order/client",
+        "${mcp}/read.order/server"})
+    public void shouldReadResourceOrder() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mcp}/tools.list/client",
+        "${mcp}/tools.list/server"})
+    public void shouldListTools() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mcp}/resources.list/client",
+        "${mcp}/resources.list/server"})
+    public void shouldListResources() throws Exception
+    {
+        k3po.finish();
+    }
 }
