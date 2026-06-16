@@ -47,6 +47,22 @@ import org.junit.jupiter.api.Test;
 class JsonParserTest
 {
     @Test
+    void shouldViewKeyAndValueThroughStringView()
+    {
+        JsonParserEx parser = JsonEx.createParser();
+        byte[] bytes = "{\"alpha\":-12345}".getBytes(UTF_8);
+        parser.wrap(new UnsafeBuffer(bytes), 0, bytes.length);
+
+        assertEquals(JsonEvent.START_DOCUMENT, parser.nextEvent());
+        assertEquals(JsonEvent.START_OBJECT, parser.nextEvent());
+        assertEquals(JsonEvent.KEY_NAME, parser.nextEvent());
+        assertEquals("alpha", parser.getStringView().toString());
+        assertEquals(JsonEvent.VALUE_NUMBER, parser.nextEvent());
+        assertEquals("-12345", parser.getStringView().toString());
+        assertEquals(JsonEvent.END_OBJECT, parser.nextEvent());
+    }
+
+    @Test
     void shouldParseFlatObject()
     {
         JsonParser parser = parserFor("{\"jsonrpc\":\"2.0\",\"id\":42,\"method\":\"tools/list\"}");

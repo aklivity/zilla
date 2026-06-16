@@ -232,7 +232,7 @@ public final class JsonProjectorImpl implements JsonTransform
     {
         StringBuilder key = segmentKeys[depth];
         key.setLength(0);
-        key.append(source.getKey());
+        key.append(source.getStringView());
         segmentIsKey[depth] = true;
         indexes[depth] = -1;
         depth++;
@@ -590,12 +590,6 @@ public final class JsonProjectorImpl implements JsonTransform
 
         @Override
         public CharSequence getStringView()
-        {
-            return key;
-        }
-
-        @Override
-        public CharSequence getKey()
         {
             return key;
         }
