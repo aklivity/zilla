@@ -64,10 +64,9 @@ import io.aklivity.zilla.runtime.common.json.JsonValidationException;
 
 /**
  * An immutable, compiled JSON Schema that validates an instance by consuming a streaming
- * {@link JsonParser} event stream without materializing a DOM. Compile once per schema and
- * reuse for the lifetime of the binding; {@link #validate(JsonParser)} and
- * {@link #validate(JsonParser, Consumer)} each create a per-call evaluator and may be called
- * repeatedly on the owning worker thread.
+ * {@link JsonParser} event stream without materializing a DOM. Compile once and reuse;
+ * {@link #validate(JsonParser)} and {@link #validate(JsonParser, Consumer)} hold no per-call
+ * state on the schema, so a compiled schema may be shared and validated concurrently.
  * <p>
  * Validation is event-driven and push-based: each event is fed to every live evaluator, so
  * combinators evaluate their candidate subschemas concurrently over the single stream without
@@ -203,8 +202,8 @@ public final class JsonSchemaImpl implements JsonSchema
         return refs;
     }
 
-    // stateless so the schema stays immutable and shareable; a single worker that validates repeatedly
-    // reuses the validating parser from newParser(), which carries the per-worker mutable state
+    // stateless so the schema stays immutable and shareable; a caller validating repeatedly reuses the
+    // validating parser from newParser(), which carries the mutable per-validation state
     @Override
     public boolean validate(
         JsonParser parser)

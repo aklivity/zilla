@@ -829,7 +829,7 @@ public final class JsonValues
     {
         private final String lexeme;
         // canonical (stripTrailingZeros) form; eager from a number, else derived from the lexeme lazily
-        // (non-final for that benign single-worker lazy init)
+        // (non-final for that benign single-threaded lazy init)
         private BigDecimal value;
 
         private NumberValue(

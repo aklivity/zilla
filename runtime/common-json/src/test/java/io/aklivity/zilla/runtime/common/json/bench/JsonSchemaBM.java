@@ -109,12 +109,12 @@ public class JsonSchemaBM
         "{\"id\":3,\"name\":\"d\"},{\"id\":4,\"name\":\"e\"},{\"id\":5,\"name\":\"f\"}," +
         "{\"id\":6,\"name\":\"g\"},{\"id\":7,\"name\":\"h\"}] ";
 
-    // one parser reused across messages as a worker does: each op re-wraps the input and resets it,
-    // rather than constructing a parser (and its 64-deep tokenizer path buffers) per message
+    // one parser reused across messages as a long-lived caller does: each op re-wraps the input and
+    // resets it, rather than constructing a parser (and its 64-deep tokenizer path buffers) per message
     private final DirectBufferInputStreamEx inputRO = new DirectBufferInputStreamEx();
     private final JsonParserEx parser = JsonEx.createParser(inputRO);
 
-    // one schema per kind, held across ops so validate() reuses its evaluator as a worker does
+    // one schema per kind, held across ops to reflect a long-lived compiled schema
     private JsonSchema flatObjectSchema;
     private JsonSchema arrayObjectsSchema;
     private JsonSchema oneOfSchema;
