@@ -404,6 +404,45 @@ public final class YamlEmitter
         writer.write(buffer, at, buffer.length - at);
     }
 
+    public static void writeScalar(
+        Writer writer,
+        String value) throws IOException
+    {
+        if (plain(value))
+        {
+            writer.write(value);
+        }
+        else
+        {
+            writer.write('"');
+            for (int i = 0; i < value.length(); i++)
+            {
+                char c = value.charAt(i);
+                char escape = switch (c)
+                {
+                case '"' -> '"';
+                case '\\' -> '\\';
+                case '\b' -> 'b';
+                case '\f' -> 'f';
+                case '\n' -> 'n';
+                case '\r' -> 'r';
+                case '\t' -> 't';
+                default -> '\0';
+                };
+                if (escape == '\0')
+                {
+                    writer.write(c);
+                }
+                else
+                {
+                    writer.write('\\');
+                    writer.write(escape);
+                }
+            }
+            writer.write('"');
+        }
+    }
+
     private static String formatNode(
         YamlNode node)
     {

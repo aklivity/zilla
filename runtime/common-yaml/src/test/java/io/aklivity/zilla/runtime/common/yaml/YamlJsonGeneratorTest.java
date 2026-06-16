@@ -144,6 +144,20 @@ class YamlJsonGeneratorTest
     }
 
     @Test
+    void shouldQuoteAndEscapeSpecialCharacters()
+    {
+        StringWriter out = new StringWriter();
+
+        YamlJson.createGenerator(out)
+            .writeStartObject()
+                .write("v", "a\"b\\c\nd\te\bf\fg\rh")
+            .writeEnd()
+            .close();
+
+        assertEquals("v: \"a\\\"b\\\\c\\nd\\te\\bf\\fg\\rh\"\n", out.toString());
+    }
+
+    @Test
     void shouldGenerateIntegerScalarEdges()
     {
         StringWriter out = new StringWriter();

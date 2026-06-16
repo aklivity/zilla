@@ -111,7 +111,7 @@ public final class YamlGeneratorImpl implements YamlGenerator
     public YamlGenerator write(
         String value)
     {
-        beginScalar(YamlEmitter.formatPlain(value));
+        beginScalarValue(value);
         return this;
     }
 
@@ -336,6 +336,14 @@ public final class YamlGeneratorImpl implements YamlGenerator
         emit("\n");
     }
 
+    private void beginScalarValue(
+        String value)
+    {
+        beginScalarPrefix();
+        emitScalar(value);
+        emit("\n");
+    }
+
     private void beginInteger(
         long value)
     {
@@ -379,7 +387,7 @@ public final class YamlGeneratorImpl implements YamlGenerator
                 {
                     indent(stack.childIndent());
                 }
-                emit(YamlEmitter.formatPlain(key));
+                emitScalar(key);
                 emit(": ");
                 stack.clearFirst();
             }
@@ -454,7 +462,7 @@ public final class YamlGeneratorImpl implements YamlGenerator
                     {
                         indent(childIndent);
                     }
-                    emit(YamlEmitter.formatPlain(key));
+                    emitScalar(key);
                     emit(":");
                     YamlEmitter.writeObjectValue(node, writer, childIndent, config);
                     stack.clearFirst();
@@ -477,7 +485,7 @@ public final class YamlGeneratorImpl implements YamlGenerator
             case OBJECT_VALUE ->
             {
                 indent(stack.introIndent());
-                emit(YamlEmitter.formatPlain(stack.introKey()));
+                emitScalar(stack.introKey());
                 emit(":\n");
             }
             case ARRAY_ELEMENT ->
@@ -512,7 +520,7 @@ public final class YamlGeneratorImpl implements YamlGenerator
         case OBJECT_VALUE ->
         {
             indent(introIndent);
-            emit(YamlEmitter.formatPlain(introKey));
+            emitScalar(introKey);
             emit(": ");
             emit(body);
         }
@@ -561,6 +569,19 @@ public final class YamlGeneratorImpl implements YamlGenerator
         try
         {
             writer.write(text);
+        }
+        catch (IOException ex)
+        {
+            throw new IllegalStateException(ex.getMessage(), ex);
+        }
+    }
+
+    private void emitScalar(
+        String value)
+    {
+        try
+        {
+            YamlEmitter.writeScalar(writer, value);
         }
         catch (IOException ex)
         {

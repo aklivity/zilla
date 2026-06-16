@@ -215,7 +215,7 @@ public final class YamlJsonGenerator implements JsonGenerator
     public JsonGenerator write(
         String value)
     {
-        beginScalar(YamlEmitter.formatPlain(value));
+        beginScalarValue(value);
         return this;
     }
 
@@ -321,6 +321,14 @@ public final class YamlJsonGenerator implements JsonGenerator
         emit("\n");
     }
 
+    private void beginScalarValue(
+        String value)
+    {
+        beginScalarPrefix();
+        emitScalar(value);
+        emit("\n");
+    }
+
     private void beginInteger(
         long value)
     {
@@ -364,7 +372,7 @@ public final class YamlJsonGenerator implements JsonGenerator
                 {
                     indent(stack.childIndent());
                 }
-                emit(YamlEmitter.formatPlain(key));
+                emitScalar(key);
                 emit(": ");
                 stack.clearFirst();
             }
@@ -423,7 +431,7 @@ public final class YamlJsonGenerator implements JsonGenerator
             }
             writeEnd();
         }
-        case STRING -> beginScalar(YamlEmitter.formatPlain(((JsonString) value).getString()));
+        case STRING -> beginScalarValue(((JsonString) value).getString());
         case NUMBER -> beginScalar(((JsonNumber) value).toString());
         case TRUE -> beginScalar("true");
         case FALSE -> beginScalar("false");
@@ -441,7 +449,7 @@ public final class YamlJsonGenerator implements JsonGenerator
             case OBJECT_VALUE ->
             {
                 indent(stack.introIndent());
-                emit(YamlEmitter.formatPlain(stack.introKey()));
+                emitScalar(stack.introKey());
                 emit(":\n");
             }
             case ARRAY_ELEMENT ->
@@ -476,7 +484,7 @@ public final class YamlJsonGenerator implements JsonGenerator
         case OBJECT_VALUE ->
         {
             indent(introIndent);
-            emit(YamlEmitter.formatPlain(introKey));
+            emitScalar(introKey);
             emit(": ");
             emit(body);
         }
@@ -525,6 +533,19 @@ public final class YamlJsonGenerator implements JsonGenerator
         try
         {
             writer.write(text);
+        }
+        catch (IOException ex)
+        {
+            throw new JsonException(ex.getMessage(), ex);
+        }
+    }
+
+    private void emitScalar(
+        String value)
+    {
+        try
+        {
+            YamlEmitter.writeScalar(writer, value);
         }
         catch (IOException ex)
         {
