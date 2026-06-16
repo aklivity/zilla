@@ -55,6 +55,8 @@ public final class YamlJsonParser implements JsonParser
     private final String text;
     private final Map<String, ?> config;
     private final boolean uniqueKeys;
+    private final YamlJsonEvent eventA = new YamlJsonEvent();
+    private final YamlJsonEvent eventB = new YamlJsonEvent();
     private YamlJsonLocation end;
     private long documentOffset;
     private YamlJsonEvent current;
@@ -527,7 +529,7 @@ public final class YamlJsonParser implements JsonParser
         int column,
         long offset)
     {
-        return new YamlJsonEvent(event, value, node, line, column, documentOffset + offset);
+        return freeEvent().set(event, value, node, line, column, documentOffset + offset);
     }
 
     private YamlJsonEvent eventAtEnd(
@@ -535,7 +537,12 @@ public final class YamlJsonParser implements JsonParser
         String value,
         YamlNode node)
     {
-        return new YamlJsonEvent(event, value, node, end);
+        return freeEvent().set(event, value, node, end);
+    }
+
+    private YamlJsonEvent freeEvent()
+    {
+        return current == eventA ? eventB : eventA;
     }
 
     private static YamlJsonLocation location(

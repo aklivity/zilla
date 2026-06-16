@@ -52,6 +52,38 @@ import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 class YamlJsonParserTest
 {
     @Test
+    void shouldKeepCurrentEventStableAcrossLookahead()
+    {
+        JsonParser parser = parserFor("""
+            first: alpha
+            second: beta
+            """);
+
+        assertEquals(START_OBJECT, parser.next());
+
+        assertEquals(KEY_NAME, parser.next());
+        assertEquals("first", parser.getString());
+        // peek ahead before consuming the current value; current must remain valid
+        parser.hasNext();
+        assertEquals("first", parser.getString());
+
+        assertEquals(VALUE_STRING, parser.next());
+        parser.hasNext();
+        assertEquals("alpha", parser.getString());
+
+        assertEquals(KEY_NAME, parser.next());
+        parser.hasNext();
+        assertEquals("second", parser.getString());
+
+        assertEquals(VALUE_STRING, parser.next());
+        parser.hasNext();
+        assertEquals("beta", parser.getString());
+
+        assertEquals(END_OBJECT, parser.next());
+        assertFalse(parser.hasNext());
+    }
+
+    @Test
     void shouldParseBlockMappingsAndIndentlessSequences()
     {
         JsonParser parser = parserFor("""
