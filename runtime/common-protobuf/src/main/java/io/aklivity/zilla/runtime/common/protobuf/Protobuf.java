@@ -19,6 +19,7 @@ import org.agrona.DirectBuffer;
 import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufGeneratorImpl;
 import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufParserImpl;
 import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufSchemaCompiler;
+import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufSourceCompiler;
 import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufStreamImpl;
 
 /**
@@ -51,6 +52,19 @@ public final class Protobuf
         int length)
     {
         return new ProtobufSchemaCompiler().compile(fileDescriptorSet, offset, length);
+    }
+
+    /**
+     * Compiles {@code .proto} source text (a single proto2 or proto3 file, detected from its
+     * {@code syntax} statement) into a {@link ProtobufSchema}, parsed with this library's own ANTLR
+     * grammars so there is no {@code protobuf-java} dependency. Composite field type references are
+     * resolved by the proto scoping rules and {@code map} fields are expanded to the synthetic
+     * {@code map_entry} message, matching {@code protoc}.
+     */
+    public static ProtobufSchema schema(
+        CharSequence source)
+    {
+        return new ProtobufSourceCompiler().compile(source);
     }
 
     /**
