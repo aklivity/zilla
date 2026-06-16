@@ -17,8 +17,6 @@ package io.aklivity.zilla.runtime.common.json.bench;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
-import jakarta.json.stream.JsonParser;
-
 import org.agrona.concurrent.UnsafeBuffer;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -114,19 +112,16 @@ public class JsonSchemaBM
     private final DirectBufferInputStreamEx inputRO = new DirectBufferInputStreamEx();
     private final JsonParserEx parser = JsonEx.createParser(inputRO);
 
-    // one schema per kind, held across ops to reflect a long-lived compiled schema
-    private JsonSchema flatObjectSchema;
-    private JsonSchema arrayObjectsSchema;
-    private JsonSchema oneOfSchema;
-    private JsonSchema containsSchema;
-    private JsonSchema typedIntegersSchema;
-    private JsonSchema boundedNumbersSchema;
-    private JsonSchema uniqueScalarsSchema;
-    private JsonSchema uniqueObjectsSchema;
-
-    // a validating parser reused across documents (over the shared delegate): reset() per op replays one
-    // evaluator instead of building a fresh tree, the counterpart to the per-document validate() above
+    // one validating parser per kind, reused across ops over the shared delegate: reset() per op replays
+    // one evaluator, the production pattern, rather than building a fresh tree per document
+    private JsonParserEx flatObjectValidator;
+    private JsonParserEx arrayObjectsValidator;
+    private JsonParserEx oneOfValidator;
+    private JsonParserEx containsValidator;
     private JsonParserEx typedIntegersValidator;
+    private JsonParserEx boundedNumbersValidator;
+    private JsonParserEx uniqueScalarsValidator;
+    private JsonParserEx uniqueObjectsValidator;
 
     private UnsafeBuffer flatObjectBuffer;
     private UnsafeBuffer arrayObjectsBuffer;
@@ -147,15 +142,14 @@ public class JsonSchemaBM
     @Setup(Level.Trial)
     public void init()
     {
-        flatObjectSchema = JsonSchema.of(FLAT_OBJECT_SCHEMA);
-        arrayObjectsSchema = JsonSchema.of(ARRAY_OBJECTS_SCHEMA);
-        oneOfSchema = JsonSchema.of(ONE_OF_SCHEMA);
-        containsSchema = JsonSchema.of(CONTAINS_SCHEMA);
-        typedIntegersSchema = JsonSchema.of(TYPED_INTEGERS_SCHEMA);
-        boundedNumbersSchema = JsonSchema.of(BOUNDED_NUMBERS_SCHEMA);
-        uniqueScalarsSchema = JsonSchema.of(UNIQUE_SCALARS_SCHEMA);
-        uniqueObjectsSchema = JsonSchema.of(UNIQUE_OBJECTS_SCHEMA);
-        typedIntegersValidator = (JsonParserEx) JsonSchema.of(TYPED_INTEGERS_SCHEMA).newParser(false, parser);
+        flatObjectValidator = validator(FLAT_OBJECT_SCHEMA);
+        arrayObjectsValidator = validator(ARRAY_OBJECTS_SCHEMA);
+        oneOfValidator = validator(ONE_OF_SCHEMA);
+        containsValidator = validator(CONTAINS_SCHEMA);
+        typedIntegersValidator = validator(TYPED_INTEGERS_SCHEMA);
+        boundedNumbersValidator = validator(BOUNDED_NUMBERS_SCHEMA);
+        uniqueScalarsValidator = validator(UNIQUE_SCALARS_SCHEMA);
+        uniqueObjectsValidator = validator(UNIQUE_OBJECTS_SCHEMA);
 
         byte[] flatObjectBytes = FLAT_OBJECT_INSTANCE.getBytes(UTF_8);
         byte[] arrayObjectsBytes = ARRAY_OBJECTS_INSTANCE.getBytes(UTF_8);
@@ -183,75 +177,74 @@ public class JsonSchemaBM
     }
 
     @Benchmark
-    public boolean validateFlatObject()
+    public int validateFlatObject()
     {
-        return flatObjectSchema.validate(parserFor(flatObjectBuffer, flatObjectLength));
-    }
-
-    // reused validating parser: same instance + evaluator across ops, only the input re-wrapped
-    @Benchmark
-    public int validateReusedTypedIntegers()
-    {
-        inputRO.wrap(numbersBuffer, 0, numbersLength);
-        typedIntegersValidator.reset();
-        int events = 0;
-        while (typedIntegersValidator.hasNext())
-        {
-            typedIntegersValidator.next();
-            events++;
-        }
-        return events;
+        return drive(flatObjectValidator, flatObjectBuffer, flatObjectLength);
     }
 
     @Benchmark
-    public boolean validateArrayObjects()
+    public int validateArrayObjects()
     {
-        return arrayObjectsSchema.validate(parserFor(arrayObjectsBuffer, arrayObjectsLength));
+        return drive(arrayObjectsValidator, arrayObjectsBuffer, arrayObjectsLength);
     }
 
     @Benchmark
-    public boolean validateOneOf()
+    public int validateOneOf()
     {
-        return oneOfSchema.validate(parserFor(oneOfBuffer, oneOfLength));
+        return drive(oneOfValidator, oneOfBuffer, oneOfLength);
     }
 
     @Benchmark
-    public boolean validateContains()
+    public int validateContains()
     {
-        return containsSchema.validate(parserFor(containsBuffer, containsLength));
+        return drive(containsValidator, containsBuffer, containsLength);
     }
 
     @Benchmark
-    public boolean validateTypedIntegers()
+    public int validateTypedIntegers()
     {
-        return typedIntegersSchema.validate(parserFor(numbersBuffer, numbersLength));
+        return drive(typedIntegersValidator, numbersBuffer, numbersLength);
     }
 
     @Benchmark
-    public boolean validateBoundedNumbers()
+    public int validateBoundedNumbers()
     {
-        return boundedNumbersSchema.validate(parserFor(numbersBuffer, numbersLength));
+        return drive(boundedNumbersValidator, numbersBuffer, numbersLength);
     }
 
     @Benchmark
-    public boolean validateUniqueScalars()
+    public int validateUniqueScalars()
     {
-        return uniqueScalarsSchema.validate(parserFor(uniqueScalarsBuffer, uniqueScalarsLength));
+        return drive(uniqueScalarsValidator, uniqueScalarsBuffer, uniqueScalarsLength);
     }
 
     @Benchmark
-    public boolean validateUniqueObjects()
+    public int validateUniqueObjects()
     {
-        return uniqueObjectsSchema.validate(parserFor(uniqueObjectsBuffer, uniqueObjectsLength));
+        return drive(uniqueObjectsValidator, uniqueObjectsBuffer, uniqueObjectsLength);
     }
 
-    private JsonParser parserFor(
+    private JsonParserEx validator(
+        String schema)
+    {
+        return (JsonParserEx) JsonSchema.of(schema).newParser(false, parser);
+    }
+
+    // re-wrap the input over the next instance and reset the validating parser, then drive it to completion
+    private int drive(
+        JsonParserEx validator,
         UnsafeBuffer buffer,
         int length)
     {
         inputRO.wrap(buffer, 0, length);
-        parser.reset();
-        return parser;
+        validator.reset();
+        int events = 0;
+        while (validator.hasNext())
+        {
+            validator.next();
+            events++;
+        }
+        return events;
     }
 
     public static void main(
