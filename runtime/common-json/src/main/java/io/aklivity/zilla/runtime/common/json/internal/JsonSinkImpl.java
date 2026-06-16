@@ -87,11 +87,13 @@ public final class JsonSinkImpl implements JsonSink
         case VALUE_STRING:
         case VALUE_NUMBER:
         case SEGMENT:
-            if (delivery == Delivery.DECODED && event != JsonEvent.SEGMENT)
+            if (delivery == Delivery.DECODED && event == JsonEvent.VALUE_STRING)
             {
-                // render from the decoded value; the generator owns quoting/escaping and joins
-                // fragments (deferredBytes) into one string, so the sink does no concatenation
-                status = writeDecoded(source, event);
+                // render the string from its decoded value; the generator owns quoting/escaping and
+                // joins fragments (deferredBytes) into one string, so the sink does no concatenation.
+                // A number's decoded form equals its raw lexeme, so it splices verbatim via the segment
+                // path below — the same bounded consumed() flow control as every other value.
+                status = writeDecoded(source);
             }
             else
             {
@@ -152,19 +154,11 @@ public final class JsonSinkImpl implements JsonSink
     }
 
     private Status writeDecoded(
-        JsonSource source,
-        JsonEvent event)
+        JsonSource source)
     {
         final boolean deferred = source.deferredBytes();
         final Completion completion = deferred ? Completion.INCOMPLETE : Completion.COMPLETE;
-        if (event == JsonEvent.VALUE_NUMBER)
-        {
-            generator.writeNumber(source.getStringView(), completion);
-        }
-        else
-        {
-            generator.write(source.getStringView(), completion);
-        }
+        generator.write(source.getStringView(), completion);
         return deferred ? Status.ADVANCED : scalarStatus();
     }
 

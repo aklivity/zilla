@@ -94,6 +94,20 @@ class JsonPipelineChunkingTest
     }
 
     @Test
+    void shouldChunkDecodedNumberValueThroughBoundedOutput()
+    {
+        JsonGeneratorEx generator = JsonEx.createGenerator();
+        MutableDirectBuffer output = new UnsafeBuffer(new byte[128]);
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+            .into(JsonEx.createSink(generator, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.DECODED)));
+
+        // a single decoded number lexeme longer than the output bound must suspend/resume mid-value,
+        // propagating consumed bytes back to the parser rather than overrunning the generator's limit
+        String json = "{\"n\":" + "1".repeat(100) + "}";
+        assertEquals(json, chunked(pipeline, generator, output, json));
+    }
+
+    @Test
     void shouldStreamStringValueAcrossInputFrames()
     {
         JsonGeneratorEx generator = JsonEx.createGenerator();
