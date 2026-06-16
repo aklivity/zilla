@@ -40,8 +40,6 @@ public final class ProtobufUntypedSinkImpl implements ProtobufSink
     private final ProtobufGenerator generator;
 
     private int depth;
-    private int valueWritten;
-    private int valueTotal;
 
     public ProtobufUntypedSinkImpl(
         ProtobufGenerator generator)
@@ -55,7 +53,7 @@ public final class ProtobufUntypedSinkImpl implements ProtobufSink
         ProtobufSource source,
         ProtobufEvent event)
     {
-        return dispatch(source, event);
+        return dispatch(control, source, event);
     }
 
     @Override
@@ -64,18 +62,17 @@ public final class ProtobufUntypedSinkImpl implements ProtobufSink
         ProtobufSource source,
         ProtobufEvent event)
     {
-        return dispatch(source, event);
+        return dispatch(control, source, event);
     }
 
     @Override
     public void reset()
     {
         depth = 0;
-        valueWritten = 0;
-        valueTotal = 0;
     }
 
     private ProtobufPipeline.Status dispatch(
+        ProtobufController control,
         ProtobufSource source,
         ProtobufEvent event)
     {
@@ -93,7 +90,7 @@ public final class ProtobufUntypedSinkImpl implements ProtobufSink
             }
             break;
         case VALUE:
-            status = onValue(source);
+            status = onValue(control, source);
             break;
         default:
             break;
@@ -102,12 +99,38 @@ public final class ProtobufUntypedSinkImpl implements ProtobufSink
     }
 
     private ProtobufPipeline.Status onValue(
+        ProtobufController control,
         ProtobufSource source)
     {
         ProtobufPipeline.Status status;
         if (source.wireType() == ProtobufWireType.LEN)
         {
-            status = writeChunk(source);
+            // a length-delimited value streams through the consumption-driven generator; the sink pushes the
+            // unconsumed remainder back via control.consumed() and the source re-exposes it on resume, so the
+            // sink keeps no write cursor
+            DirectBuffer segment = source.segment();
+            int available = segment.capacity();
+            int deferred = source.deferredBytes();
+            int before = generator.consumed();
+            generator.writeSegment(source.fieldNumber(), segment, 0, available, deferred);
+            int written = generator.consumed() - before;
+            control.consumed(written);
+            if (written < available)
+            {
+                if (generator.length() > 0)
+                {
+                    generator.flush();
+                    status = ProtobufPipeline.Status.SUSPENDED;
+                }
+                else
+                {
+                    throw new ProtobufException("value header exceeds output limit");
+                }
+            }
+            else
+            {
+                status = ProtobufPipeline.Status.ADVANCED;
+            }
         }
         else
         {
@@ -116,74 +139,5 @@ public final class ProtobufUntypedSinkImpl implements ProtobufSink
             status = ProtobufPipeline.Status.ADVANCED;
         }
         return status;
-    }
-
-    private ProtobufPipeline.Status writeChunk(
-        ProtobufSource source)
-    {
-        int number = source.fieldNumber();
-        DirectBuffer segment = source.segment();
-        int length = segment.capacity();
-        int deferred = source.deferredBytes();
-        int remaining = generator.remaining();
-        if (valueWritten == 0)
-        {
-            // the first chunk carries the whole value's length: length now plus all that is still deferred
-            valueTotal = length + deferred;
-        }
-        int chunkRemaining = valueTotal - deferred - valueWritten;
-        int segmentOffset = length - chunkRemaining;
-        int header = valueWritten == 0 ? tagSize(number) + varintSize(valueTotal) : 0;
-        ProtobufPipeline.Status status;
-        if (valueWritten == 0 && header + 1 > remaining && generator.length() > 0)
-        {
-            generator.flush();
-            status = ProtobufPipeline.Status.SUSPENDED;
-        }
-        else if (valueWritten == 0 && header + 1 > remaining)
-        {
-            throw new ProtobufException("value header exceeds output limit");
-        }
-        else
-        {
-            int now = Math.min(remaining - header, chunkRemaining);
-            generator.writeSegment(number, segment, segmentOffset, now, valueTotal - valueWritten - now);
-            valueWritten += now;
-            if (now < chunkRemaining)
-            {
-                generator.flush();
-                status = ProtobufPipeline.Status.SUSPENDED;
-            }
-            else if (deferred > 0)
-            {
-                status = ProtobufPipeline.Status.ADVANCED;
-            }
-            else
-            {
-                valueWritten = 0;
-                valueTotal = 0;
-                status = ProtobufPipeline.Status.ADVANCED;
-            }
-        }
-        return status;
-    }
-
-    private static int tagSize(
-        int number)
-    {
-        return varintSize((long) number << 3);
-    }
-
-    private static int varintSize(
-        long value)
-    {
-        long remaining = value & 0xffffffffL;
-        int size = 1;
-        while (remaining >= 0x80L)
-        {
-            remaining >>>= 7;
-            size++;
-        }
-        return size;
     }
 }

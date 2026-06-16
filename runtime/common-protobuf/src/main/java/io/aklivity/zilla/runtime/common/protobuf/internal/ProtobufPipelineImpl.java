@@ -241,8 +241,8 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
     }
 
     // the head edge's controller: a stage's segmentable() request becomes a one-shot SEGMENTED mode that the
-    // pump passes to the parser on the next pull
-    private static final class Control implements ProtobufController
+    // pump passes to the parser on the next pull, and a sink's consumed() pushback advances the parser's slice
+    private final class Control implements ProtobufController
     {
         private boolean segmented;
 
@@ -250,6 +250,13 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
         public void segmentable()
         {
             segmented = true;
+        }
+
+        @Override
+        public void consumed(
+            int sourceBytes)
+        {
+            parser.consumed(sourceBytes);
         }
 
         private ProtobufParser.Mode mode()

@@ -56,8 +56,6 @@ public final class ProtobufTypedSinkImpl implements ProtobufSink
 
     private int depth;
     private ProtobufField pending;
-    private int valueWritten;
-    private int valueTotal;
 
     public ProtobufTypedSinkImpl(
         ProtobufGenerator generator,
@@ -77,7 +75,7 @@ public final class ProtobufTypedSinkImpl implements ProtobufSink
         ProtobufSource source,
         ProtobufEvent event)
     {
-        return dispatch(source, event);
+        return dispatch(control, source, event);
     }
 
     @Override
@@ -86,9 +84,9 @@ public final class ProtobufTypedSinkImpl implements ProtobufSink
         ProtobufSource source,
         ProtobufEvent event)
     {
-        // re-run the event that did not fit; the field/value position is held in pending and valueWritten,
-        // so this continues a fragmented value or retries a whole field against the freshly drained buffer
-        return dispatch(source, event);
+        // re-run the event that did not fit; pending holds the field and the source re-exposes the value's
+        // unconsumed remainder, so this continues a fragmented value or retries a whole field on a fresh buffer
+        return dispatch(control, source, event);
     }
 
     @Override
@@ -96,11 +94,10 @@ public final class ProtobufTypedSinkImpl implements ProtobufSink
     {
         depth = -1;
         pending = null;
-        valueWritten = 0;
-        valueTotal = 0;
     }
 
     private ProtobufPipeline.Status dispatch(
+        ProtobufController control,
         ProtobufSource source,
         ProtobufEvent event)
     {
@@ -117,7 +114,7 @@ public final class ProtobufTypedSinkImpl implements ProtobufSink
             pending = mapField(source.field());
             break;
         case VALUE:
-            status = onValue(source);
+            status = onValue(control, source);
             break;
         case END_MESSAGE:
             status = onEndMessage();
@@ -184,96 +181,53 @@ public final class ProtobufTypedSinkImpl implements ProtobufSink
     }
 
     private ProtobufPipeline.Status onValue(
+        ProtobufController control,
         ProtobufSource source)
     {
         ProtobufPipeline.Status status = ProtobufPipeline.Status.ADVANCED;
         if (scope(depth).active && pending != null)
         {
             status = pending.type().wireType() == ProtobufWireType.LEN
-                ? onValueLength(pending, source)
+                ? onValueLength(control, pending, source)
                 : onValueScalar(pending, source);
         }
         return status;
     }
 
+    // A length-delimited value streams through the consumption-driven generator: it takes only what fits, the
+    // sink pushes the unconsumed remainder back to the source via control.consumed(), and on resume the source
+    // re-exposes that remainder — so the sink tracks no write cursor of its own. A whole value that fits is one
+    // writeSegment call producing a single canonical record (its prefix is the minimal length varint).
     private ProtobufPipeline.Status onValueLength(
+        ProtobufController control,
         ProtobufField field,
         ProtobufSource source)
     {
-        int number = field.number();
         DirectBuffer segment = source.segment();
-        int length = segment.capacity();
+        int available = segment.capacity();
         int deferred = source.deferredBytes();
-        int remaining = generator.remaining();
+        int before = generator.consumed();
+        generator.writeSegment(field.number(), segment, 0, available, deferred);
+        int written = generator.consumed() - before;
+        control.consumed(written);
         ProtobufPipeline.Status status;
-        if (valueWritten == 0 && deferred == 0 && tagSize(number) + varintSize(length) + length <= remaining)
+        if (written < available)
         {
-            // whole value present and it fits — write it in one piece
-            generator.writeBytes(number, segment, 0, length);
-            status = ProtobufPipeline.Status.ADVANCED;
-        }
-        else if (valueWritten == 0 && deferred == 0 && generator.length() > 0)
-        {
-            // break at this field boundary; on a fresh buffer the whole value may fit
-            generator.flush();
-            status = ProtobufPipeline.Status.SUSPENDED;
-        }
-        else
-        {
-            // a value chunked on input (deferred > 0) or too large for one buffer streams via writeSegment
-            status = writeChunk(number, length, deferred, source, remaining);
-        }
-        return status;
-    }
-
-    private ProtobufPipeline.Status writeChunk(
-        int number,
-        int length,
-        int deferred,
-        ProtobufSource source,
-        int remaining)
-    {
-        if (valueWritten == 0)
-        {
-            // the first chunk carries the whole value's length: length now plus all that is still deferred
-            valueTotal = length + deferred;
-        }
-        int chunkRemaining = valueTotal - deferred - valueWritten;
-        int segmentOffset = length - chunkRemaining;
-        int header = valueWritten == 0 ? tagSize(number) + varintSize(valueTotal) : 0;
-        ProtobufPipeline.Status status;
-        if (valueWritten == 0 && header + 1 > remaining && generator.length() > 0)
-        {
-            // can't even start the value here; a fresh buffer may hold the header
-            generator.flush();
-            status = ProtobufPipeline.Status.SUSPENDED;
-        }
-        else if (valueWritten == 0 && header + 1 > remaining)
-        {
-            throw new ProtobufException("value header exceeds output limit");
-        }
-        else
-        {
-            int now = Math.min(remaining - header, chunkRemaining);
-            generator.writeSegment(number, source.segment(), segmentOffset, now, valueTotal - valueWritten - now);
-            valueWritten += now;
-            if (now < chunkRemaining)
+            if (generator.length() > 0)
             {
-                // output filled mid-chunk; suspend and replay this same value event
+                // output filled before this chunk drained; drain and replay against a fresh buffer
                 generator.flush();
                 status = ProtobufPipeline.Status.SUSPENDED;
             }
-            else if (deferred > 0)
-            {
-                // chunk fully written, more input chunks of this value still to come
-                status = ProtobufPipeline.Status.ADVANCED;
-            }
             else
             {
-                valueWritten = 0;
-                valueTotal = 0;
-                status = ProtobufPipeline.Status.ADVANCED;
+                throw new ProtobufException("value header exceeds output limit");
             }
+        }
+        else
+        {
+            // this chunk fully written: ADVANCED whether the value completed (deferred == 0) or more input follows
+            status = ProtobufPipeline.Status.ADVANCED;
         }
         return status;
     }
