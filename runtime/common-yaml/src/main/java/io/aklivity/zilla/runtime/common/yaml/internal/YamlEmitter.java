@@ -370,6 +370,12 @@ public final class YamlEmitter
     private static String formatKey(
         String value)
     {
+        return formatPlain(value);
+    }
+
+    public static String formatPlain(
+        String value)
+    {
         return plain(value) ? value : quote(value);
     }
 
@@ -575,7 +581,7 @@ public final class YamlEmitter
         {
         case "'" -> singleQuote(scalar.value);
         case "\"" -> quote(scalar.value);
-        default -> plain(scalar.value) ? scalar.value : quote(scalar.value);
+        default -> formatPlain(scalar.value);
         };
         };
         return formatPrefix(scalar) + value;
