@@ -147,7 +147,7 @@ class JsonSchemaValidatingParserTest
         String json)
     {
         byte[] bytes = json.getBytes(UTF_8);
-        in.wrap(new UnsafeBuffer(bytes), 0, bytes.length);
+        in.wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
         parser.reset();
         boolean valid = true;
         try

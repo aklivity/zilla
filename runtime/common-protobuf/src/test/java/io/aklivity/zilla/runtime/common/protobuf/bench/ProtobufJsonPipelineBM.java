@@ -17,8 +17,8 @@ package io.aklivity.zilla.runtime.common.protobuf.bench;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -63,7 +63,7 @@ import io.aklivity.zilla.runtime.common.protobuf.json.ProtobufJson;
 @OutputTimeUnit(SECONDS)
 public class ProtobufJsonPipelineBM
 {
-    private final MutableDirectBuffer outputBuffer = new UnsafeBuffer(new byte[16 * 1024]);
+    private final MutableDirectBufferEx outputBuffer = new UnsafeBufferEx(new byte[16 * 1024]);
 
     private final ProtobufSchema schema = newSchema();
     private final ProtobufGenerator wireGenerator = Protobuf.generator();
@@ -72,9 +72,9 @@ public class ProtobufJsonPipelineBM
     private ProtobufPipeline protobufToJsonPipeline;
     private ProtobufGenerator jsonRenderer;
 
-    private UnsafeBuffer jsonBuffer;
+    private UnsafeBufferEx jsonBuffer;
     private int jsonLength;
-    private UnsafeBuffer wireBuffer;
+    private UnsafeBufferEx wireBuffer;
     private int wireLength;
 
     @Setup(Level.Trial)
@@ -96,10 +96,10 @@ public class ProtobufJsonPipelineBM
             "\"meta\":{\"source\":\"sensor\",\"seq\":\"7\"}" +
             "}";
         byte[] jsonBytes = json.getBytes(UTF_8);
-        jsonBuffer = new UnsafeBuffer(jsonBytes);
+        jsonBuffer = new UnsafeBufferEx(jsonBytes);
         jsonLength = jsonBytes.length;
 
-        UnsafeBuffer wire = new UnsafeBuffer(new byte[1024]);
+        UnsafeBufferEx wire = new UnsafeBufferEx(new byte[1024]);
         ProtobufGenerator generator = Protobuf.generator().wrap(wire, 0, wire.capacity());
         generator.writeInt32(1, 42).writeString(2, "zilla").writeBool(3, true).writeDouble(4, 1.5)
             .writeString(5, "a").writeString(5, "b")

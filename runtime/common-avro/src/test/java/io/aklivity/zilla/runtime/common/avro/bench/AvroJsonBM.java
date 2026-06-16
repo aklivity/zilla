@@ -21,8 +21,8 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.List;
 
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericDatumWriter;
@@ -86,7 +86,7 @@ public class AvroJsonBM
         {"name":"items","type":{"type":"array","items":{"type":"record","name":"Item","fields":[
         {"name":"key","type":"string"},{"name":"value","type":"long"}]}}}]}""";
 
-    private final MutableDirectBuffer outputBuffer = new UnsafeBuffer(new byte[16 * 1024]);
+    private final MutableDirectBufferEx outputBuffer = new UnsafeBufferEx(new byte[16 * 1024]);
 
     private AvroGenerator flatJsonGenerator;
     private AvroGenerator nestedJsonGenerator;
@@ -98,10 +98,10 @@ public class AvroJsonBM
     private AvroPipeline flatToAvro;
     private AvroPipeline nestedToAvro;
 
-    private UnsafeBuffer flatAvro;
-    private UnsafeBuffer nestedAvro;
-    private UnsafeBuffer flatJson;
-    private UnsafeBuffer nestedJson;
+    private UnsafeBufferEx flatAvro;
+    private UnsafeBufferEx nestedAvro;
+    private UnsafeBufferEx flatJson;
+    private UnsafeBufferEx nestedJson;
     private int flatAvroLength;
     private int nestedAvroLength;
     private int flatJsonLength;
@@ -125,15 +125,15 @@ public class AvroJsonBM
 
         byte[] flatBytes = referenceEncode(FLAT, flatValue());
         byte[] nestedBytes = referenceEncode(NESTED, nestedValue());
-        flatAvro = new UnsafeBuffer(flatBytes);
-        nestedAvro = new UnsafeBuffer(nestedBytes);
+        flatAvro = new UnsafeBufferEx(flatBytes);
+        nestedAvro = new UnsafeBufferEx(nestedBytes);
         flatAvroLength = flatBytes.length;
         nestedAvroLength = nestedBytes.length;
 
         byte[] flatJsonBytes = toJson(flatSchema, flatBytes);
         byte[] nestedJsonBytes = toJson(nestedSchema, nestedBytes);
-        flatJson = new UnsafeBuffer(flatJsonBytes);
-        nestedJson = new UnsafeBuffer(nestedJsonBytes);
+        flatJson = new UnsafeBufferEx(flatJsonBytes);
+        nestedJson = new UnsafeBufferEx(nestedJsonBytes);
         flatJsonLength = flatJsonBytes.length;
         nestedJsonLength = nestedJsonBytes.length;
     }
@@ -165,7 +165,7 @@ public class AvroJsonBM
     private int transcode(
         AvroPipeline pipeline,
         AvroGenerator generator,
-        UnsafeBuffer buffer,
+        UnsafeBufferEx buffer,
         int length)
     {
         generator.wrap(outputBuffer, 0, outputBuffer.capacity());
@@ -178,12 +178,12 @@ public class AvroJsonBM
         AvroSchema schema,
         byte[] avro)
     {
-        MutableDirectBuffer out = new UnsafeBuffer(new byte[16 * 1024]);
+        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[16 * 1024]);
         JsonGeneratorEx json = JsonEx.createGenerator();
         AvroGenerator generator = AvroJson.generator(schema, json).wrap(out, 0, out.capacity());
         AvroPipeline pipeline = Avro.stream(Avro.parser(schema)).into(AvroSink.of(generator));
         pipeline.reset();
-        Status status = pipeline.feed(new UnsafeBuffer(avro), 0, avro.length);
+        Status status = pipeline.feed(new UnsafeBufferEx(avro), 0, avro.length);
         if (status != Status.COMPLETED)
         {
             throw new IllegalStateException("avro -> json did not complete: " + status);

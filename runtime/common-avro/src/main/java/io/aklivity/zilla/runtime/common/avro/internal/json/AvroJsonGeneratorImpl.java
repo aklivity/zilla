@@ -15,14 +15,13 @@
 package io.aklivity.zilla.runtime.common.avro.internal.json;
 
 import static io.aklivity.zilla.runtime.common.avro.internal.json.AvroJsonUnion.branchName;
-import static io.aklivity.zilla.runtime.common.avro.internal.json.AvroJsonUnion.nullableSingle;
 
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 
 import io.aklivity.zilla.runtime.common.avro.AvroField;
 import io.aklivity.zilla.runtime.common.avro.AvroGenerator;
@@ -49,15 +48,13 @@ import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx.Completion;
  * <b>Streaming.</b> {@link #length()} and {@link #remaining()} surface the JSON generator's bound (with
  * headroom reserved so a scalar's text expansion stays within the limit the driving sink assumes), so the
  * driving {@link io.aklivity.zilla.runtime.common.avro.AvroSink} drains and resumes across the datum the same
- * way it does for Avro binary output. A {@code string}/{@code bytes}/{@code fixed} value too large for the
- * output window is streamed across windows by {@link #writeSegment} itself — consumption-driven, reporting
- * only the source bytes whose output fit — so the adapter holds no per-value carry buffer and {@link #flush()}
- * has nothing left to emit.
+ * way it does for Avro binary output. A {@code string}/{@code bytes}/{@code fixed} value streamed in across
+ * input windows via {@link #writeSegment} is coalesced and emitted on {@link #flush()}.
  * <p>
  * <b>Allocation.</b> The hot path allocates nothing per message: record field lists, union branch lists, and
  * enum symbol lists are resolved once per schema node and cached; field names and branch keys are cached
  * schema strings; {@code string} content and base64 are written through a reused {@link CharText} view; the
- * frame stack is reused and grows only past the largest value seen.
+ * frame stack and coalescing buffer are reused and grow only past the largest value seen.
  */
 public final class AvroJsonGeneratorImpl implements AvroGenerator
 {
@@ -70,51 +67,39 @@ public final class AvroJsonGeneratorImpl implements AvroGenerator
     private static final int RESERVE = 24;
 
     private final JsonGeneratorEx json;
-    private final boolean canonical;
     private final AvroType rootType;
     private final Map<AvroType, List<AvroField>> fieldsByType;
     private final Map<AvroType, List<AvroType>> branchesByType;
     private final Map<AvroType, List<String>> symbolsByType;
     private final CharText text;
-    // a reused StringBuilder: append(double)/append(float) formats through FloatingDecimal's thread-local
-    // buffer (no per-value String, unlike json.write(double)'s Double.toString), then writeNumber takes the chars
-    private final StringBuilder scratch;
 
     private Frame[] stack;
     private int top;
     private AvroType valueType;
     private boolean datumComplete;
+    private byte[] coalesced;
+    private int coalescedLength;
     private boolean valueOpen;
-    private boolean valueQuoteOpen;
     private AvroKind valueKind;
 
     public AvroJsonGeneratorImpl(
         AvroSchema schema,
         JsonGeneratorEx json)
     {
-        this(schema, json, false);
-    }
-
-    public AvroJsonGeneratorImpl(
-        AvroSchema schema,
-        JsonGeneratorEx json,
-        boolean canonical)
-    {
         this.json = json;
-        this.canonical = canonical;
         this.rootType = schema.type();
         this.fieldsByType = new IdentityHashMap<>();
         this.branchesByType = new IdentityHashMap<>();
         this.symbolsByType = new IdentityHashMap<>();
         this.text = new CharText(64);
-        this.scratch = new StringBuilder();
         this.stack = new Frame[16];
+        this.coalesced = new byte[64];
         this.datumComplete = true;
     }
 
     @Override
     public AvroGenerator wrap(
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         int offset,
         int limit)
     {
@@ -123,7 +108,7 @@ public final class AvroJsonGeneratorImpl implements AvroGenerator
             top = 0;
             valueType = rootType;
             valueOpen = false;
-            valueQuoteOpen = false;
+            coalescedLength = 0;
             datumComplete = false;
             json.reset();
         }
@@ -182,7 +167,7 @@ public final class AvroJsonGeneratorImpl implements AvroGenerator
 
     @Override
     public void writeKey(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length)
     {
@@ -195,9 +180,8 @@ public final class AvroJsonGeneratorImpl implements AvroGenerator
         int index)
     {
         value();
-        List<AvroType> branches = branches(valueType);
-        AvroType branch = branches.get(index);
-        boolean wrapped = branch.kind() != AvroKind.NULL && !(canonical && nullableSingle(branches));
+        AvroType branch = branches(valueType).get(index);
+        boolean wrapped = branch.kind() != AvroKind.NULL;
         if (wrapped)
         {
             json.writeStartObject();
@@ -250,9 +234,7 @@ public final class AvroJsonGeneratorImpl implements AvroGenerator
         float value)
     {
         value();
-        scratch.setLength(0);
-        scratch.append((double) value);
-        json.writeNumber(scratch);
+        json.write((double) value);
         complete();
     }
 
@@ -261,15 +243,13 @@ public final class AvroJsonGeneratorImpl implements AvroGenerator
         double value)
     {
         value();
-        scratch.setLength(0);
-        scratch.append(value);
-        json.writeNumber(scratch);
+        json.write(value);
         complete();
     }
 
     @Override
     public void writeString(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length)
     {
@@ -281,7 +261,7 @@ public final class AvroJsonGeneratorImpl implements AvroGenerator
 
     @Override
     public void writeBytes(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length)
     {
@@ -290,7 +270,7 @@ public final class AvroJsonGeneratorImpl implements AvroGenerator
 
     @Override
     public void writeFixed(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length)
     {
@@ -308,7 +288,7 @@ public final class AvroJsonGeneratorImpl implements AvroGenerator
 
     @Override
     public void writeRaw(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length)
     {
@@ -317,7 +297,7 @@ public final class AvroJsonGeneratorImpl implements AvroGenerator
 
     @Override
     public int writeSegment(
-        DirectBuffer source,
+        DirectBufferEx source,
         int offset,
         int length,
         int deferred)
@@ -327,124 +307,40 @@ public final class AvroJsonGeneratorImpl implements AvroGenerator
             value();
             valueKind = valueType.kind();
             valueOpen = true;
-            valueQuoteOpen = false;
         }
-        return valueKind == AvroKind.STRING
-            ? writeStringSegment(source, offset, length, deferred)
-            : writeBinarySegment(source, offset, length, deferred);
+        coalesce(source, offset, length);
+        return length;
     }
 
     @Override
     public void flush()
     {
-        // a segmented value is finalized in writeSegment on its final fragment — the JSON string is closed and the
-        // value completed there — so once the driving sink has consumed the whole value, nothing remains to emit
+        if (valueKind == AvroKind.STRING)
+        {
+            text.utf8(coalesced, coalescedLength);
+        }
+        else
+        {
+            text.base64(coalesced, coalescedLength);
+        }
+        json.write(text, Completion.COMPLETE);
+        coalescedLength = 0;
+        valueOpen = false;
+        complete();
     }
 
     private void writeBinary(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length)
     {
         value();
-        text.base64(buffer, offset, length);
+        coalescedLength = 0;
+        coalesce(buffer, offset, length);
+        text.base64(coalesced, coalescedLength);
         json.write(text, Completion.COMPLETE);
+        coalescedLength = 0;
         complete();
-    }
-
-    // The UTF-8 source slice is decoded to chars and driven through the consumption-driven json string write
-    // (bounded, escaping, quoting); the chars json took map back to a whole-code-point prefix of the source, so
-    // exactly those source bytes are reported consumed and the unconsumed remainder streams in on resume.
-    private int writeStringSegment(
-        DirectBuffer source,
-        int offset,
-        int length,
-        int deferred)
-    {
-        text.utf8(source, offset, length);
-        Completion completion = deferred == 0 ? Completion.COMPLETE : Completion.INCOMPLETE;
-        int before = json.consumed();
-        json.write(text, completion);
-        int charsWritten = json.consumed() - before;
-        valueQuoteOpen = true;
-        int consumed = utf8ByteLength(text, charsWritten);
-        if (charsWritten == text.length() && deferred == 0)
-        {
-            valueOpen = false;
-            complete();
-        }
-        return consumed;
-    }
-
-    // The source bytes are base64-encoded a whole 3-byte group at a time so a 4-char group never splits a window:
-    // whole groups that fit the output bound are emitted and only those source bytes reported consumed, leaving a
-    // 1-2 byte sub-group tail unconsumed for the source to re-present — except on the final delivery, where the
-    // tail is padded and emitted. No adapter-side carry buffer is held; output back-pressure carries the remainder.
-    private int writeBinarySegment(
-        DirectBuffer source,
-        int offset,
-        int length,
-        int deferred)
-    {
-        int reserve = (valueQuoteOpen ? 0 : 1) + (deferred == 0 ? 1 : 0);
-        int groupsFit = Math.max(0, json.remaining() - reserve) / 4;
-        int wholeGroups = Math.min(groupsFit, length / 3);
-        int taken = wholeGroups * 3;
-        int rem = length - taken;
-        boolean complete = false;
-        if (deferred == 0 && rem > 0 && rem < 3 && wholeGroups < groupsFit)
-        {
-            // the final delivery's 1-2 byte tail forms one padded group when it still fits the bound
-            taken += rem;
-            complete = true;
-        }
-        else if (deferred == 0 && rem == 0 && wholeGroups == length / 3)
-        {
-            complete = true;
-        }
-        Completion completion = complete ? Completion.COMPLETE : Completion.INCOMPLETE;
-        text.base64(source, offset, taken);
-        if (text.length() > 0 || complete)
-        {
-            json.write(text, completion);
-            valueQuoteOpen = true;
-        }
-        if (complete)
-        {
-            valueOpen = false;
-            complete();
-        }
-        return taken;
-    }
-
-    private static int utf8ByteLength(
-        CharSequence value,
-        int toCharIndex)
-    {
-        int bytes = 0;
-        int index = 0;
-        while (index < toCharIndex)
-        {
-            int codePoint = Character.codePointAt(value, index);
-            index += Character.charCount(codePoint);
-            if (codePoint < 0x80)
-            {
-                bytes += 1;
-            }
-            else if (codePoint < 0x800)
-            {
-                bytes += 2;
-            }
-            else if (codePoint < 0x10000)
-            {
-                bytes += 3;
-            }
-            else
-            {
-                bytes += 4;
-            }
-        }
-        return bytes;
     }
 
     private void value()
@@ -489,6 +385,21 @@ public final class AvroJsonGeneratorImpl implements AvroGenerator
         {
             datumComplete = true;
         }
+    }
+
+    private void coalesce(
+        DirectBufferEx source,
+        int offset,
+        int length)
+    {
+        if (coalescedLength + length > coalesced.length)
+        {
+            byte[] grown = new byte[Math.max(coalesced.length * 2, coalescedLength + length)];
+            System.arraycopy(coalesced, 0, grown, 0, coalescedLength);
+            coalesced = grown;
+        }
+        source.getBytes(offset, coalesced, coalescedLength, length);
+        coalescedLength += length;
     }
 
     private Frame push(
