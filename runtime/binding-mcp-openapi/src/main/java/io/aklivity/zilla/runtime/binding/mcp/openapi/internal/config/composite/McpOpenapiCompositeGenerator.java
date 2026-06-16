@@ -71,7 +71,14 @@ public final class McpOpenapiCompositeGenerator
 {
     private static final String CATALOG_NAME = "catalog0";
     private static final String BINDING_NAME = "mcp_http0";
-    private static final String HTTP_CLIENT_EXIT = "sys:http_client";
+
+    private final String httpClientExit;
+
+    public McpOpenapiCompositeGenerator(
+        String httpClientExit)
+    {
+        this.httpClientExit = httpClientExit;
+    }
 
     public McpOpenapiCompositeConfig generate(
         McpOpenapiBindingConfig binding)
@@ -307,7 +314,7 @@ public final class McpOpenapiCompositeGenerator
             binding.route()
                 .when(when)
                 .with(with)
-                .exit(HTTP_CLIENT_EXIT)
+                .exit(httpClientExit)
                 .build();
         }
 

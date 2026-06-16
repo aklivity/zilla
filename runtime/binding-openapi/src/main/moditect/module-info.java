@@ -28,7 +28,6 @@ module io.aklivity.zilla.runtime.binding.openapi
     requires io.aklivity.zilla.runtime.model.json;
 
     exports io.aklivity.zilla.runtime.binding.openapi.config;
-    exports io.aklivity.zilla.runtime.binding.openapi.internal.view;
 
     opens io.aklivity.zilla.runtime.binding.openapi.internal.model;
     opens io.aklivity.zilla.runtime.binding.openapi.internal.model.extensions.http.kafka;

@@ -80,7 +80,7 @@ public final class McpOpenapiProxyFactory implements BindingHandler
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.bindings = new Long2ObjectHashMap<>();
-        this.generator = new McpOpenapiCompositeGenerator();
+        this.generator = new McpOpenapiCompositeGenerator(config.httpClientExit());
         this.compositeRouteId = config.compositeRouteId();
     }
 

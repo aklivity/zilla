@@ -19,12 +19,14 @@ import io.aklivity.zilla.runtime.engine.Configuration;
 public class McpOpenapiConfiguration extends Configuration
 {
     public static final LongPropertyDef MCP_OPENAPI_COMPOSITE_ROUTE_ID;
+    public static final PropertyDef<String> MCP_OPENAPI_HTTP_CLIENT_EXIT;
     private static final ConfigurationDef MCP_OPENAPI_CONFIG;
 
     static
     {
         final ConfigurationDef config = new ConfigurationDef("zilla.binding.mcp.openapi");
         MCP_OPENAPI_COMPOSITE_ROUTE_ID = config.property("composite.route.id", -1L);
+        MCP_OPENAPI_HTTP_CLIENT_EXIT = config.property("http.client.exit", "sys:http_client");
         MCP_OPENAPI_CONFIG = config;
     }
 
@@ -42,5 +44,10 @@ public class McpOpenapiConfiguration extends Configuration
     public long compositeRouteId()
     {
         return MCP_OPENAPI_COMPOSITE_ROUTE_ID.getAsLong(this);
+    }
+
+    public String httpClientExit()
+    {
+        return MCP_OPENAPI_HTTP_CLIENT_EXIT.get(this);
     }
 }
