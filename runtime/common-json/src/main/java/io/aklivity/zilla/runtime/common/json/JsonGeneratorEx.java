@@ -55,7 +55,7 @@ public interface JsonGeneratorEx extends JsonGenerator
      * (open object/array depth and pending separators) is preserved, so a value paused by
      * {@link JsonPipeline.Status#SUSPENDED} continues across the drain as one uninterrupted
      * serialization. For an unbounded value pass the buffer's capacity as {@code limit}. Reuse a
-     * single instance per worker thread across values.
+     * single instance per thread across values.
      */
     JsonGeneratorEx wrap(
         MutableDirectBuffer buffer,

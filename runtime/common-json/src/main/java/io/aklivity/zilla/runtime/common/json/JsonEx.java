@@ -51,7 +51,7 @@ public final class JsonEx
     /**
      * Returns an empty {@link JsonParserEx} to be fed via {@link JsonParserEx#wrap(
      * org.agrona.DirectBuffer, int, int)} (or {@link JsonPipeline#feed(org.agrona.DirectBuffer,
-     * int, int)} when driving a pipeline). Reuse a single instance per worker thread.
+     * int, int)} when driving a pipeline). Reuse a single instance per thread.
      */
     public static JsonParserEx createParser()
     {
@@ -69,9 +69,8 @@ public final class JsonEx
     }
 
     /**
-     * Mirrors {@link jakarta.json.Json#createParserFactory(Map)}. Construct once per
-     * factory class and reuse for the lifetime of the binding to avoid repeating config
-     * resolution on every stream.
+     * Mirrors {@link jakarta.json.Json#createParserFactory(Map)}. Construct once and reuse to
+     * avoid repeating config resolution on every stream.
      */
     public static JsonParserFactory createParserFactory(
         Map<String, ?> config)
@@ -82,7 +81,7 @@ public final class JsonEx
     /**
      * Returns a buffer-backed {@link JsonGeneratorEx} — a standard {@link
      * jakarta.json.stream.JsonGenerator} extended with the streaming-to-buffer methods. Reuse a
-     * single instance per worker thread, calling {@link JsonGeneratorEx#wrap(
+     * single instance per thread, calling {@link JsonGeneratorEx#wrap(
      * org.agrona.MutableDirectBuffer, int)} before each value. Requires no {@code jakarta.json}
      * provider on the classpath; {@code common-json} ships the implementation.
      */
@@ -93,7 +92,7 @@ public final class JsonEx
 
     /**
      * Variant of {@link #createGenerator()} taking generator config (e.g.
-     * {@link JsonGeneratorEx#GENERATE_ESCAPED}). Reuse a single instance per worker thread, calling
+     * {@link JsonGeneratorEx#GENERATE_ESCAPED}). Reuse a single instance per thread, calling
      * {@link JsonGeneratorEx#wrap(org.agrona.MutableDirectBuffer, int, int)} before each value.
      */
     public static JsonGeneratorEx createGenerator(
@@ -105,7 +104,7 @@ public final class JsonEx
     /**
      * Returns a terminal {@link JsonSink} that materializes each fed event into the corresponding
      * {@code writeXxx} call on {@code generator} (structured delivery). The supplied generator must
-     * already be wrapped over its target buffer; reuse a single instance per worker thread.
+     * already be wrapped over its target buffer; reuse a single instance per thread.
      */
     public static JsonSink createSink(
         JsonGeneratorEx generator)
@@ -141,8 +140,8 @@ public final class JsonEx
     /**
      * Returns a {@link JsonTransform} that prunes a document to the given retained RFC 6901
      * pointers, forwarding each kept event to the downstream sink supplied at assembly. Add it to a
-     * pipeline via {@link JsonStream#transform(JsonTransform)}. Reuse a single instance per worker
-     * thread; it resets per top-level value.
+     * pipeline via {@link JsonStream#transform(JsonTransform)}. Reuse a single instance per thread;
+     * it resets per top-level value.
      */
     public static JsonTransform projector(
         List<String> pointers)

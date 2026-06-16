@@ -18,7 +18,7 @@ import org.agrona.DirectBuffer;
 
 /**
  * A runnable, resumable {@code common-json} pipeline assembled from a {@link JsonStream} description
- * terminated with a {@link JsonSink}. Reuse a single instance per worker thread: call {@link #reset()}
+ * terminated with a {@link JsonSink}. Reuse a single instance per thread: call {@link #reset()}
  * once per top-level value, then {@link #feed(DirectBuffer, int, int)} per frame, resuming a value left
  * {@link Status#ADVANCED} by an earlier frame.
  * <p>

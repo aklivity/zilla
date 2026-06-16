@@ -142,6 +142,14 @@ public final class JsonValues
         return new NumberValue(Objects.requireNonNull(value, "value"));
     }
 
+    // a parsed number: retains the lexeme and defers the BigDecimal until a numeric/equality accessor
+    // needs it, so parse-then-re-emit touches only toString() and preserves the source form verbatim
+    public static JsonNumber numberLiteral(
+        String lexeme)
+    {
+        return new NumberValue(Objects.requireNonNull(lexeme, "lexeme"));
+    }
+
     static JsonNumber number(
         BigInteger value)
     {
@@ -819,66 +827,76 @@ public final class JsonValues
 
     private static final class NumberValue implements JsonNumber
     {
-        private final BigDecimal value;
+        private final String lexeme;
+        // canonical (stripTrailingZeros) form; eager from a number, else derived from the lexeme lazily
+        // (non-final for that benign single-threaded lazy init)
+        private BigDecimal value;
 
         private NumberValue(
             BigDecimal value)
         {
             this.value = value.stripTrailingZeros();
+            this.lexeme = null;
+        }
+
+        private NumberValue(
+            String lexeme)
+        {
+            this.lexeme = lexeme;
         }
 
         @Override
         public boolean isIntegral()
         {
-            return value.scale() <= 0;
+            return decimal().scale() <= 0;
         }
 
         @Override
         public int intValue()
         {
-            return value.intValue();
+            return decimal().intValue();
         }
 
         @Override
         public int intValueExact()
         {
-            return value.intValueExact();
+            return decimal().intValueExact();
         }
 
         @Override
         public long longValue()
         {
-            return value.longValue();
+            return decimal().longValue();
         }
 
         @Override
         public long longValueExact()
         {
-            return value.longValueExact();
+            return decimal().longValueExact();
         }
 
         @Override
         public BigInteger bigIntegerValue()
         {
-            return value.toBigInteger();
+            return decimal().toBigInteger();
         }
 
         @Override
         public BigInteger bigIntegerValueExact()
         {
-            return value.toBigIntegerExact();
+            return decimal().toBigIntegerExact();
         }
 
         @Override
         public double doubleValue()
         {
-            return value.doubleValue();
+            return decimal().doubleValue();
         }
 
         @Override
         public BigDecimal bigDecimalValue()
         {
-            return value;
+            return decimal();
         }
 
         @Override
@@ -890,20 +908,31 @@ public final class JsonValues
         @Override
         public String toString()
         {
-            return value.toPlainString();
+            return lexeme != null ? lexeme : value.toPlainString();
         }
 
         @Override
         public int hashCode()
         {
-            return value.hashCode();
+            return decimal().hashCode();
         }
 
         @Override
         public boolean equals(
             Object obj)
         {
-            return obj instanceof JsonNumber that && value.compareTo(that.bigDecimalValue()) == 0;
+            return obj instanceof JsonNumber that && decimal().compareTo(that.bigDecimalValue()) == 0;
+        }
+
+        private BigDecimal decimal()
+        {
+            BigDecimal result = value;
+            if (result == null)
+            {
+                result = new BigDecimal(lexeme).stripTrailingZeros();
+                value = result;
+            }
+            return result;
         }
     }
 

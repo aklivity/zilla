@@ -24,7 +24,7 @@ import org.agrona.DirectBuffer;
  * a sub-interface of the standard type that drives a {@link JsonStream} pipeline.
  * <p>
  * Obtain an instance from {@link JsonEx#createParser()} (the implementation is internal). Reuse a
- * single instance per worker thread, calling {@link #wrap(DirectBuffer, int, int)} to borrow each frame's
+ * single instance per thread, calling {@link #wrap(DirectBuffer, int, int)} to borrow each frame's
  * buffer before pumping.
  */
 public interface JsonParserEx extends JsonParser
