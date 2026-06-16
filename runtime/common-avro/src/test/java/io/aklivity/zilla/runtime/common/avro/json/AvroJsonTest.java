@@ -270,6 +270,56 @@ public class AvroJsonTest
     }
 
     @Test
+    public void shouldStreamJsonToAvroAcrossDrains()
+    {
+        // a string longer than the output bound forces a mid-value suspend, so the bridge parser must honor
+        // consumed() pushback (re-expose the segment remainder) for the stateless sink to resume correctly
+        AvroSchema schema = Avro.schema("\"string\"");
+        String json = "\"abcdefghijklmnopqrstuvwxyz0123456789\"";
+        assertArrayEquals(jsonToAvro(schema, json), jsonToAvroChunked(schema, json, 12));
+    }
+
+    private static byte[] jsonToAvroChunked(
+        AvroSchema schema,
+        String json,
+        int limit)
+    {
+        byte[] jsonBytes = json.getBytes(UTF_8);
+        MutableDirectBuffer out = new UnsafeBuffer(new byte[Math.max(256, jsonBytes.length * 4)]);
+        JsonParserEx parser = JsonEx.createParser();
+        AvroGenerator generator = Avro.generator(schema, out, 0);
+        AvroPipeline pipeline = AvroJson.stream(schema, parser).into(AvroSink.of(generator));
+        generator.wrap(out, 0, limit);
+        pipeline.reset();
+        ByteArrayOutputStream result = new ByteArrayOutputStream();
+        UnsafeBuffer input = new UnsafeBuffer(jsonBytes);
+        Status status = pipeline.feed(input, 0, jsonBytes.length);
+        while (status == Status.SUSPENDED)
+        {
+            drainAvro(out, generator, result);
+            generator.wrap(out, 0, limit);
+            status = pipeline.feed(input, 0, jsonBytes.length);
+        }
+        if (status != Status.COMPLETED)
+        {
+            throw new AssertionError("json -> avro did not complete: " + status);
+        }
+        drainAvro(out, generator, result);
+        return result.toByteArray();
+    }
+
+    private static void drainAvro(
+        MutableDirectBuffer out,
+        AvroGenerator generator,
+        ByteArrayOutputStream result)
+    {
+        int length = generator.length();
+        byte[] chunk = new byte[length];
+        out.getBytes(0, chunk);
+        result.write(chunk, 0, length);
+    }
+
+    @Test
     public void shouldReuseParserAcrossDatums()
     {
         AvroSchema schema = Avro.schema("""

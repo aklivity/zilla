@@ -67,6 +67,7 @@ final class AvroJsonParser implements AvroParser, AvroLocation
     private final JsonParserEx json;
     private final AvroType rootType;
     private final UnsafeBuffer segment;
+    private final UnsafeBuffer segmentView;
     private final Map<AvroType, List<AvroField>> fieldsByType;
     private final Map<AvroType, List<AvroType>> branchesByType;
     private final Map<AvroType, List<String>> symbolsByType;
@@ -89,6 +90,7 @@ final class AvroJsonParser implements AvroParser, AvroLocation
     private String fieldName;
     private CharSequence keyChars;
     private AvroType currentType;
+    private int segmentConsumed;
 
     AvroJsonParser(
         AvroSchema schema,
@@ -97,6 +99,7 @@ final class AvroJsonParser implements AvroParser, AvroLocation
         this.json = json;
         this.rootType = schema.type();
         this.segment = new UnsafeBuffer(0, 0);
+        this.segmentView = new UnsafeBuffer(0, 0);
         this.fieldsByType = new IdentityHashMap<>();
         this.branchesByType = new IdentityHashMap<>();
         this.symbolsByType = new IdentityHashMap<>();
@@ -112,6 +115,7 @@ final class AvroJsonParser implements AvroParser, AvroLocation
         state = NOT_STARTED;
         havePending = false;
         starved = false;
+        segmentConsumed = 0;
     }
 
     @Override
@@ -216,7 +220,16 @@ final class AvroJsonParser implements AvroParser, AvroLocation
     @Override
     public DirectBuffer getSegment()
     {
-        return segment;
+        // expose the unconsumed remainder so a bounded-output suspend on the Avro side resumes correctly
+        segmentView.wrap(segment, segmentConsumed, segment.capacity() - segmentConsumed);
+        return segmentView;
+    }
+
+    @Override
+    public void consumed(
+        int sourceBytes)
+    {
+        segmentConsumed += sourceBytes;
     }
 
     @Override
@@ -627,6 +640,7 @@ final class AvroJsonParser implements AvroParser, AvroLocation
             }
         }
         segment.wrap(bytes, 0, index);
+        segmentConsumed = 0;
     }
 
     private void segmentBytes(
@@ -638,6 +652,7 @@ final class AvroJsonParser implements AvroParser, AvroLocation
             throw reject("fixed expected " + fixedSize + " bytes but found " + value.length);
         }
         segment.wrap(value);
+        segmentConsumed = 0;
     }
 
     private byte[] decode(
