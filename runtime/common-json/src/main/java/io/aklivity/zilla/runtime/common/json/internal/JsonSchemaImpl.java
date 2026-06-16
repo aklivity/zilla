@@ -32,6 +32,7 @@ import java.util.BitSet;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -2010,6 +2011,15 @@ public final class JsonSchemaImpl implements JsonSchema
         private Eval itemEval;
         private JsonSchemaImpl itemEvalSchema;
         private Eval containsEval;
+        // child evals reused across this object's properties, keyed by the applicable schema instance:
+        // each property value is validated by a single applicable schema, processed one key at a time, so
+        // the same eval is reset and reused for every key sharing that schema. Like itemEval, it is left
+        // intact by reset() and reset on its own next use, so reuse holds across outer array elements too.
+        private Map<JsonSchemaImpl, Eval> propEvals;
+        // set once this eval has been reset for reuse (it is the items/contains schema of an array). The
+        // property-eval cache is gated on it: a single-use object validated once never pays for the map,
+        // which would not be amortized, while an object reused per array element does.
+        private boolean reused;
 
         private final boolean annotate;
         private Set<String> evaluatedProps;
@@ -2051,6 +2061,7 @@ public final class JsonSchemaImpl implements JsonSchema
         // containsEval) are intentionally left intact and reset on their own next use.
         private void reset()
         {
+            reused = true;
             started = false;
             done = false;
             result = null;
@@ -2138,6 +2149,38 @@ public final class JsonSchemaImpl implements JsonSchema
                 result = schema.eval(trace, dynScope);
                 itemEval = result;
                 itemEvalSchema = schema;
+            }
+            return result;
+        }
+
+        // The eval for a property value, reusing the cached instance for its applicable schema so the
+        // properties of an object (and the same properties across the elements of an array of objects)
+        // are validated without allocating a fresh eval per key.
+        private Eval propEvalFor(
+            JsonSchemaImpl schema)
+        {
+            Eval result;
+            if (reused)
+            {
+                if (propEvals == null)
+                {
+                    propEvals = new IdentityHashMap<>();
+                }
+                result = propEvals.get(schema);
+                if (result == null)
+                {
+                    result = schema.eval(trace, dynScope);
+                    propEvals.put(schema, result);
+                }
+                else
+                {
+                    result.reset();
+                }
+            }
+            else
+            {
+                // first use (or a single-use object): no reuse to amortize a cache, so evaluate fresh
+                result = schema.eval(trace, dynScope);
             }
             return result;
         }
@@ -2653,7 +2696,7 @@ public final class JsonSchemaImpl implements JsonSchema
                 {
                     schema = additionalSchema != null ? additionalSchema : additionalAllowed ? ANY : NONE;
                 }
-                directChild = schema.eval(trace, dynScope);
+                directChild = propEvalFor(schema);
                 directChildren = null;
             }
             else
@@ -2690,7 +2733,7 @@ public final class JsonSchemaImpl implements JsonSchema
         {
             if (applicable.size() == 1)
             {
-                directChild = applicable.get(0).eval(trace, dynScope);
+                directChild = propEvalFor(applicable.get(0));
                 directChildren = null;
             }
             else
