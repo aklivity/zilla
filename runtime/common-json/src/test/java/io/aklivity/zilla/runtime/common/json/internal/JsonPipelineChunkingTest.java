@@ -24,8 +24,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import jakarta.json.stream.JsonParser;
-
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
@@ -336,12 +334,11 @@ class JsonPipelineChunkingTest
         {
             if (event == JsonEvent.VALUE_NUMBER && !source.deferredBytes())
             {
-                final JsonParser number = (JsonParser) source;
-                wholes.add(number.getBigDecimal());
+                wholes.add(source.getBigDecimal());
                 boolean rejected = false;
                 try
                 {
-                    number.getInt();
+                    source.getInt();
                 }
                 catch (IllegalStateException ex)
                 {

@@ -37,13 +37,12 @@ import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.common.json.DirectBufferInputStreamEx;
-import io.aklivity.zilla.runtime.common.json.JsonController;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
-import io.aklivity.zilla.runtime.common.json.JsonSource;
+import io.aklivity.zilla.runtime.common.json.JsonParserEx.Mode;
 import io.aklivity.zilla.runtime.common.json.internal.json.JsonValues;
 
-public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonController
+public final class JsonParserImpl implements JsonParserEx
 {
     private final InputStream in;
     private final DirectBufferInputStreamEx ownedInput;
@@ -227,10 +226,39 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
     }
 
     @Override
-    public JsonEvent nextEvent()
+    public JsonEvent nextEvent(
+        Mode mode)
     {
+        if (mode == Mode.SEGMENTED)
+        {
+            // arm the just-delivered boundary to stream verbatim before pulling its events (the mode-driven
+            // peer of a stage's JsonController.segmentable(); keyed off the previously delivered event)
+            if (lastEvent == JsonEvent.START_OBJECT || lastEvent == JsonEvent.START_ARRAY)
+            {
+                segmentStartOffset = tokenizer.streamOffset() - 1;
+                segmentState = SegmentState.PENDING_START;
+                segmentDepth = 1;
+                tokenizer.segmenting(true);
+            }
+            else if (lastEvent == JsonEvent.START_DOCUMENT)
+            {
+                armNextValue = true;
+                // a bare top-level string then streams verbatim too; cleared by the tokenizer for a non-string
+                tokenizer.scalarSegment(true);
+            }
+            else if (lastEvent == JsonEvent.KEY_NAME)
+            {
+                // arm the upcoming value-string to stream verbatim; the tokenizer clears it for a non-string
+                tokenizer.scalarSegment(true);
+            }
+        }
         JsonEvent event;
-        if (docState == DocState.NOT_STARTED)
+        if (!hasNextEvent())
+        {
+            // window consumed mid-document, or the document already ended: no event this pull
+            event = null;
+        }
+        else if (docState == DocState.NOT_STARTED)
         {
             docState = DocState.STARTED;
             event = JsonEvent.START_DOCUMENT;
@@ -244,11 +272,14 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
         {
             event = nextToken();
         }
-        // lastEvent is the canonical delivered event (the basis for the streaming-only accessor asserts);
-        // currentEvent is its jakarta projection (null for a segment or document framing), keeping the
-        // shared jakarta getters' asserts valid whether driven by the pipeline or the raw parser
-        lastEvent = event;
-        currentEvent = toEvent(event);
+        if (event != null)
+        {
+            // lastEvent is the canonical delivered event (the basis for the streaming-only accessor asserts);
+            // currentEvent is its jakarta projection (null for a segment or document framing), keeping the
+            // shared jakarta getters' asserts valid whether driven by the pipeline or the raw parser
+            lastEvent = event;
+            currentEvent = toEvent(event);
+        }
         return event;
     }
 
@@ -394,29 +425,6 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
             }
         }
         return event;
-    }
-
-    @Override
-    public void segmentable()
-    {
-        if (lastEvent == JsonEvent.START_OBJECT || lastEvent == JsonEvent.START_ARRAY)
-        {
-            segmentStartOffset = tokenizer.streamOffset() - 1;
-            segmentState = SegmentState.PENDING_START;
-            segmentDepth = 1;
-            tokenizer.segmenting(true);
-        }
-        else if (lastEvent == JsonEvent.START_DOCUMENT)
-        {
-            armNextValue = true;
-            // a bare top-level string then streams verbatim too; cleared by the tokenizer for any non-string
-            tokenizer.scalarSegment(true);
-        }
-        else if (lastEvent == JsonEvent.KEY_NAME)
-        {
-            // arm the upcoming value-string to stream verbatim; the tokenizer clears it for a non-string
-            tokenizer.scalarSegment(true);
-        }
     }
 
     @Override

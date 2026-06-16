@@ -57,6 +57,7 @@
           <chartDirectory>src/main/helm</chartDirectory>
           <chartVersion>${project.version}</chartVersion>
           <appVersion>${project.version}</appVersion>
+          <helmVersion>${helm.version}</helmVersion>
           <skipUpload>true</skipUpload>
         </configuration>
       </plugin>
