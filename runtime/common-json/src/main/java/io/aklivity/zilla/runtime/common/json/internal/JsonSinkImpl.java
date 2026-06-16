@@ -145,9 +145,10 @@ public final class JsonSinkImpl implements JsonSink
         JsonEvent event)
     {
         Status status;
-        if (event == JsonEvent.VALUE_NUMBER ||
-            event == JsonEvent.VALUE_STRING && delivery != Delivery.SEGMENTABLE)
+        if (event == JsonEvent.VALUE_NUMBER || event == JsonEvent.VALUE_STRING)
         {
+            // a structured scalar renders canonically from its char view; a verbatim value arrives as a
+            // SEGMENT, so getSegment() is reached only for segmented events
             status = writeScalar(control, source, event);
         }
         else

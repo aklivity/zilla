@@ -709,12 +709,14 @@ class JsonParserTest
     }
 
     @Test
-    void shouldThrowIsIntegralOnNonNumberEvent()
+    void shouldRejectIsIntegralOnNonNumberEvent()
     {
         JsonParser parser = parserFor("true");
         parser.next();
 
-        assertThrows(IllegalStateException.class, parser::isIntegralNumber);
+        // isIntegralNumber() is valid only on a VALUE_NUMBER event; misuse trips the contract assert
+        // (assertions enabled under test), falling back to IllegalStateException when assertions are off
+        assertThrows(AssertionError.class, parser::isIntegralNumber);
     }
 
     @Test

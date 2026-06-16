@@ -161,6 +161,7 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
         armNextValue = false;
         stringViewOffset = 0;
         lastEvent = null;
+        currentEvent = null;
         docState = DocState.NOT_STARTED;
     }
 
@@ -232,7 +233,6 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
         if (docState == DocState.NOT_STARTED)
         {
             docState = DocState.STARTED;
-            lastEvent = JsonEvent.START_DOCUMENT;
             event = JsonEvent.START_DOCUMENT;
         }
         else if (segmentState == SegmentState.NONE && !tokenizerHasNext() && tokenizer.done())
@@ -244,7 +244,31 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
         {
             event = nextToken();
         }
+        // lastEvent is the canonical delivered event (the basis for the streaming-only accessor asserts);
+        // currentEvent is its jakarta projection (null for a segment or document framing), keeping the
+        // shared jakarta getters' asserts valid whether driven by the pipeline or the raw parser
+        lastEvent = event;
+        currentEvent = toEvent(event);
         return event;
+    }
+
+    private static Event toEvent(
+        JsonEvent event)
+    {
+        return switch (event)
+        {
+        case START_OBJECT -> Event.START_OBJECT;
+        case END_OBJECT -> Event.END_OBJECT;
+        case START_ARRAY -> Event.START_ARRAY;
+        case END_ARRAY -> Event.END_ARRAY;
+        case KEY_NAME -> Event.KEY_NAME;
+        case VALUE_STRING -> Event.VALUE_STRING;
+        case VALUE_NUMBER -> Event.VALUE_NUMBER;
+        case VALUE_TRUE -> Event.VALUE_TRUE;
+        case VALUE_FALSE -> Event.VALUE_FALSE;
+        case VALUE_NULL -> Event.VALUE_NULL;
+        default -> null;
+        };
     }
 
     @Override
@@ -296,10 +320,12 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
             }
             else if (lastEvent == JsonEvent.VALUE_STRING)
             {
-                // verbatim string token (with quotes): the sink splices the raw bytes
+                // verbatim string token (with quotes): delivered as a segment so the raw bytes are spliced
+                // through the byte path; getSegment() is then valid only on this segmented event
                 segmentSliceOffset = bufferOffset(tokenizer.valueStreamStart());
                 segmentSliceLength = (int) (tokenizer.valueStreamEnd() - tokenizer.valueStreamStart());
                 segmentConsumed = 0;
+                lastEvent = JsonEvent.SEGMENT;
             }
             if (armNextValue)
             {
@@ -417,12 +443,14 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
     @Override
     public String getString()
     {
+        assert currentEvent == Event.KEY_NAME || currentEvent == Event.VALUE_STRING || currentEvent == Event.VALUE_NUMBER;
         return tokenizer.stringValue();
     }
 
     @Override
     public CharSequence getStringView()
     {
+        assert lastEvent == JsonEvent.VALUE_STRING || lastEvent == JsonEvent.VALUE_NUMBER;
         // while rendering a structured scalar, expose the unconsumed char remainder so a resumed write
         // continues from where the bounded output left off; otherwise the full decoded view
         return charScalar()
@@ -431,24 +459,24 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
     }
 
     // True while the current scalar is delivered decoded (rendered canonically by the sink from its char
-    // view) rather than verbatim: a number lexeme, or a value-string the tokenizer did not stream verbatim.
-    // Derived from the current event and the tokenizer's verbatim mark, not stored, so there is no per-value
-    // flag to reset; it stays valid while the parser is parked mid-output on resume.
+    // view): a number lexeme or a canonical string. A verbatim value-string is delivered as a SEGMENT, so
+    // any VALUE_STRING here is canonical; derived from the delivered event, valid while parked on resume.
     private boolean charScalar()
     {
-        return lastEvent == JsonEvent.VALUE_NUMBER ||
-            lastEvent == JsonEvent.VALUE_STRING && !tokenizer.stringVerbatim();
+        return lastEvent == JsonEvent.VALUE_NUMBER || lastEvent == JsonEvent.VALUE_STRING;
     }
 
     @Override
     public CharSequence getKey()
     {
+        assert lastEvent == JsonEvent.KEY_NAME;
         return tokenizer.stringView();
     }
 
     @Override
     public boolean isIntegralNumber()
     {
+        assert currentEvent == Event.VALUE_NUMBER;
         final CharSequence v = numberLexeme();
         if (v == null)
         {
@@ -466,6 +494,7 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
     @Override
     public int getInt()
     {
+        assert currentEvent == Event.VALUE_NUMBER;
         if (tokenizer.numberFragmented())
         {
             throw new IllegalStateException("number spans multiple windows; use getBigDecimal()");
@@ -477,6 +506,7 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
     @Override
     public long getLong()
     {
+        assert currentEvent == Event.VALUE_NUMBER;
         if (tokenizer.numberFragmented())
         {
             throw new IllegalStateException("number spans multiple windows; use getBigDecimal()");
@@ -488,6 +518,7 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
     @Override
     public BigDecimal getBigDecimal()
     {
+        assert currentEvent == Event.VALUE_NUMBER;
         return new BigDecimal(numberLexeme().toString());
     }
 
@@ -507,6 +538,7 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
     @Override
     public DirectBuffer getSegment()
     {
+        assert lastEvent != null && lastEvent.segmented();
         // re-expose the unconsumed remainder of the segment slice after consumed() pushback, append-only
         segmentView.wrap(ownedInput.buffer(), segmentSliceOffset + segmentConsumed, segmentSliceLength - segmentConsumed);
         return segmentView;
