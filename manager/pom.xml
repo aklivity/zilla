@@ -101,6 +101,12 @@
   </dependencies>
 
   <build>
+    <testResources>
+      <testResource>
+        <directory>src/test/resources</directory>
+        <filtering>true</filtering>
+      </testResource>
+    </testResources>
     <plugins>
       <plugin>
         <groupId>org.jasig.maven</groupId>
@@ -112,6 +118,7 @@
         <configuration>
           <excludes>
             <exclude>src/main/java/org/apache/ivy/**</exclude>
+            <exclude>src/test/resources/**/*.json</exclude>
           </excludes>
         </configuration>
       </plugin>
