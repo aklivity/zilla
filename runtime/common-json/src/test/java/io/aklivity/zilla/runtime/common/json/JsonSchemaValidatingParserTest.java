@@ -124,6 +124,42 @@ class JsonSchemaValidatingParserTest
         assertEquals(42, value);
     }
 
+    @Test
+    void shouldReuseValidatingParserAcrossDocuments()
+    {
+        JsonSchema schema = JsonSchema.of("{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"integer\"}}," +
+            "\"required\":[\"id\"],\"additionalProperties\":false}");
+        DirectBufferInputStreamEx in = new DirectBufferInputStreamEx();
+        JsonParserEx parser = (JsonParserEx) schema.newParser(true, JsonEx.createParser(in));
+        for (int i = 0; i < 3; i++)
+        {
+            assertTrue(validates(parser, in, "{\"id\":1} "));
+            assertFalse(validates(parser, in, "{\"id\":\"x\"} "));
+            assertFalse(validates(parser, in, "{} "));
+            assertTrue(validates(parser, in, "{\"id\":2} "));
+        }
+    }
+
+    private static boolean validates(
+        JsonParserEx parser,
+        DirectBufferInputStreamEx in,
+        String json)
+    {
+        byte[] bytes = json.getBytes(UTF_8);
+        in.wrap(new UnsafeBuffer(bytes), 0, bytes.length);
+        parser.reset();
+        boolean valid = true;
+        try
+        {
+            drain(parser);
+        }
+        catch (JsonValidationException ex)
+        {
+            valid = false;
+        }
+        return valid;
+    }
+
     private static void drain(
         JsonParser parser)
     {
