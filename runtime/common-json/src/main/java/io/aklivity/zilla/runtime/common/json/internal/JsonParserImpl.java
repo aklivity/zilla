@@ -62,6 +62,11 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
     private int segmentConsumed;
     private int segmentDepth;
     private boolean armNextValue;
+    // running char cursor into the decoded chars of the current canonical value-string: getStringView()
+    // exposes the unconsumed remainder from here and consumed() advances it, so a resumed bounded write
+    // continues where the output bound left off
+    private int stringViewOffset;
+    private final StringView stringViewRO = new StringView();
 
     private enum SegmentState
     {
@@ -154,6 +159,7 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
         segmentDepth = 0;
         segmentConsumed = 0;
         armNextValue = false;
+        stringViewOffset = 0;
         lastEvent = null;
         docState = DocState.NOT_STARTED;
     }
@@ -281,8 +287,15 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
             break;
         default:
             lastEvent = JsonEvent.of(next());
-            if (lastEvent == JsonEvent.VALUE_STRING || lastEvent == JsonEvent.VALUE_NUMBER)
+            if (lastEvent == JsonEvent.VALUE_STRING && !tokenizer.stringVerbatim())
             {
+                // canonical string: the sink renders it from the decoded char view, so reset the char
+                // cursor; the raw segment slice is not used for this value
+                stringViewOffset = 0;
+            }
+            else if (lastEvent == JsonEvent.VALUE_STRING || lastEvent == JsonEvent.VALUE_NUMBER)
+            {
+                // verbatim string token (with quotes) or number lexeme: the sink splices the raw bytes
                 segmentSliceOffset = bufferOffset(tokenizer.valueStreamStart());
                 segmentSliceLength = (int) (tokenizer.valueStreamEnd() - tokenizer.valueStreamStart());
                 segmentConsumed = 0;
@@ -369,6 +382,8 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
         else if (lastEvent == JsonEvent.START_DOCUMENT)
         {
             armNextValue = true;
+            // a bare top-level string then streams verbatim too; cleared by the tokenizer for any non-string
+            tokenizer.scalarSegment(true);
         }
         else if (lastEvent == JsonEvent.KEY_NAME)
         {
@@ -379,9 +394,17 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
 
     @Override
     public void consumed(
-        int sourceBytes)
+        int sourceUnits)
     {
-        segmentConsumed += sourceBytes;
+        // a canonical string advances its char cursor; a verbatim segment or number its raw byte cursor
+        if (decodedString())
+        {
+            stringViewOffset += sourceUnits;
+        }
+        else
+        {
+            segmentConsumed += sourceUnits;
+        }
     }
 
     @Override
@@ -399,7 +422,19 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
     @Override
     public CharSequence getStringView()
     {
-        return tokenizer.stringView();
+        // while rendering a canonical string, expose the unconsumed char remainder so a resumed write
+        // continues from where the bounded output left off; otherwise the full decoded view
+        return decodedString()
+            ? stringViewRO.wrap(tokenizer.stringView(), stringViewOffset)
+            : tokenizer.stringView();
+    }
+
+    // True while the current value-string is delivered decoded (rendered canonically by the sink) rather
+    // than verbatim. Derived from the current event and the tokenizer's verbatim mark, not stored, so
+    // there is no per-value flag to reset; it stays valid while the parser is parked mid-output on resume.
+    private boolean decodedString()
+    {
+        return lastEvent == JsonEvent.VALUE_STRING && !tokenizer.stringVerbatim();
     }
 
     @Override
@@ -668,4 +703,47 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
         }
     }
 
+    // Reusable, allocation-free char view onto the decoded string remainder: wraps the tokenizer's decoded
+    // chars at a running offset so a bounded write can resume from where it left off without copying.
+    private static final class StringView implements CharSequence
+    {
+        private CharSequence base;
+        private int offset;
+
+        private StringView wrap(
+            CharSequence base,
+            int offset)
+        {
+            this.base = base;
+            this.offset = offset;
+            return this;
+        }
+
+        @Override
+        public int length()
+        {
+            return base.length() - offset;
+        }
+
+        @Override
+        public char charAt(
+            int index)
+        {
+            return base.charAt(offset + index);
+        }
+
+        @Override
+        public CharSequence subSequence(
+            int start,
+            int end)
+        {
+            return base.subSequence(offset + start, offset + end);
+        }
+
+        @Override
+        public String toString()
+        {
+            return base.subSequence(offset, base.length()).toString();
+        }
+    }
 }

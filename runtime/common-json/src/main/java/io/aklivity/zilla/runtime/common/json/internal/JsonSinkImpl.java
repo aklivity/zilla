@@ -39,6 +39,7 @@ public final class JsonSinkImpl implements JsonSink
     private int depth;
     private boolean valueStarted;
     private boolean pendingSegment;
+    private boolean pendingDecoded;
 
     public JsonSinkImpl(
         JsonGeneratorEx generator)
@@ -87,18 +88,17 @@ public final class JsonSinkImpl implements JsonSink
         case VALUE_STRING:
         case VALUE_NUMBER:
         case SEGMENT:
-            if (delivery == Delivery.DECODED && event == JsonEvent.VALUE_STRING)
+            if (event == JsonEvent.VALUE_STRING && delivery != Delivery.SEGMENTABLE)
             {
-                // render the string from its decoded value; the generator owns quoting/escaping and
-                // joins fragments (deferredBytes) into one string, so the sink does no concatenation.
-                // A number's decoded form equals its raw lexeme, so it splices verbatim via the segment
-                // path below — the same bounded consumed() flow control as every other value.
-                status = writeDecoded(source);
+                // structured (canonical) string: render from the decoded char view, the generator owning
+                // quoting/escaping and joining fragments (deferredBytes) into one string. The bounded write
+                // emits only what fits and reports consumed chars, the same flow control as the byte path.
+                status = writeDecodedString(control, source);
             }
             else
             {
-                // splice the kept leaf's raw token bytes verbatim, fragmenting across chunks; the value's
-                // leading separator is emitted once, before its first content byte
+                // verbatim string token, number lexeme, or segment: splice the raw bytes, fragmenting across
+                // chunks; the value's leading separator is emitted once, before its first content byte
                 segment = source.getSegment();
                 if (!valueStarted)
                 {
@@ -140,7 +140,19 @@ public final class JsonSinkImpl implements JsonSink
         JsonController control,
         JsonSource source)
     {
-        Status status = pendingSegment ? writeChunk(control, source.getSegment(), source) : Status.ADVANCED;
+        Status status;
+        if (pendingDecoded)
+        {
+            status = writeDecodedString(control, source);
+        }
+        else if (pendingSegment)
+        {
+            status = writeChunk(control, source.getSegment(), source);
+        }
+        else
+        {
+            status = Status.ADVANCED;
+        }
         return boundary(status);
     }
 
@@ -150,16 +162,37 @@ public final class JsonSinkImpl implements JsonSink
         depth = 0;
         valueStarted = false;
         pendingSegment = false;
+        pendingDecoded = false;
         generator.reset();
     }
 
-    private Status writeDecoded(
+    // Renders a structured string canonically from its decoded char view: the generator owns the quotes and
+    // escaping and writes only what fits the bound, reporting consumed source chars so the parser advances
+    // its char cursor and re-exposes the remainder on resume — the char-domain analog of writeChunk.
+    private Status writeDecodedString(
+        JsonController control,
         JsonSource source)
     {
         final boolean deferred = source.deferredBytes();
         final Completion completion = deferred ? Completion.INCOMPLETE : Completion.COMPLETE;
-        generator.write(source.getStringView(), completion);
-        return deferred ? Status.ADVANCED : scalarStatus();
+        final CharSequence view = source.getStringView();
+        final int available = view.length();
+        final int before = generator.consumed();
+        generator.write(view, completion);
+        final int consumed = generator.consumed() - before;
+        control.consumed(consumed);
+        Status status;
+        if (available - consumed > 0)
+        {
+            pendingDecoded = true;
+            status = Status.SUSPENDED;
+        }
+        else
+        {
+            pendingDecoded = false;
+            status = deferred ? Status.ADVANCED : scalarStatus();
+        }
+        return status;
     }
 
     // Append-only and stateless: writes the segment view whole and pushes back the source bytes the
