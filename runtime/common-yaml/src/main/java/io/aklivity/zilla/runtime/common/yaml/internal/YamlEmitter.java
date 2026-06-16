@@ -145,7 +145,7 @@ public final class YamlEmitter
         }
     }
 
-    private static void writeObjectValue(
+    static void writeObjectValue(
         YamlNode value,
         Writer writer,
         int indent,
@@ -201,61 +201,70 @@ public final class YamlEmitter
     {
         for (YamlNode value : array.values)
         {
-            writeLeadingComments(value, writer, indent, config);
-            if (value.alias != null)
-            {
-                writeIndent(writer, indent);
-                writer.write("- ");
-                writer.write(formatAlias(value));
-                writeLineComment(value, writer, config);
-                writer.write('\n');
-            }
-            else if (value instanceof YamlScalarNode scalar)
-            {
-                writeIndent(writer, indent);
-                writer.write("- ");
-                writeScalar(scalar, writer, indent, false, config);
-            }
-            else if (value instanceof YamlObjectNode object)
-            {
-                if (config.preserveComments() && object.lineComment != null)
-                {
-                    writeIndent(writer, indent);
-                    writer.write("-");
-                    writeLineComment(object, writer, config);
-                    writer.write('\n');
-                    writeNode(object, writer, indent + 1, config);
-                }
-                else
-                {
-                    writeArrayObject(object, writer, indent, config);
-                }
-            }
-            else if (isEmptyArray(value))
-            {
-                writeIndent(writer, indent);
-                writer.write("- ");
-                writer.write(formatPrefix(value));
-                writer.write("[]");
-                writeLineComment(value, writer, config);
-                writer.write('\n');
-            }
-            else if ("flow".equals(value.style))
-            {
-                writeIndent(writer, indent);
-                writer.write("- ");
-                writer.write(formatNode(value));
-                writeLineComment(value, writer, config);
-                writer.write('\n');
-            }
-            else
+            writeArrayElement(value, writer, indent, config);
+        }
+    }
+
+    static void writeArrayElement(
+        YamlNode value,
+        Writer writer,
+        int indent,
+        YamlConfiguration config) throws IOException
+    {
+        writeLeadingComments(value, writer, indent, config);
+        if (value.alias != null)
+        {
+            writeIndent(writer, indent);
+            writer.write("- ");
+            writer.write(formatAlias(value));
+            writeLineComment(value, writer, config);
+            writer.write('\n');
+        }
+        else if (value instanceof YamlScalarNode scalar)
+        {
+            writeIndent(writer, indent);
+            writer.write("- ");
+            writeScalar(scalar, writer, indent, false, config);
+        }
+        else if (value instanceof YamlObjectNode object)
+        {
+            if (config.preserveComments() && object.lineComment != null)
             {
                 writeIndent(writer, indent);
                 writer.write("-");
-                writeLineComment(value, writer, config);
+                writeLineComment(object, writer, config);
                 writer.write('\n');
-                writeNode(value, writer, indent + 1, config);
+                writeNode(object, writer, indent + 1, config);
             }
+            else
+            {
+                writeArrayObject(object, writer, indent, config);
+            }
+        }
+        else if (isEmptyArray(value))
+        {
+            writeIndent(writer, indent);
+            writer.write("- ");
+            writer.write(formatPrefix(value));
+            writer.write("[]");
+            writeLineComment(value, writer, config);
+            writer.write('\n');
+        }
+        else if ("flow".equals(value.style))
+        {
+            writeIndent(writer, indent);
+            writer.write("- ");
+            writer.write(formatNode(value));
+            writeLineComment(value, writer, config);
+            writer.write('\n');
+        }
+        else
+        {
+            writeIndent(writer, indent);
+            writer.write("-");
+            writeLineComment(value, writer, config);
+            writer.write('\n');
+            writeNode(value, writer, indent + 1, config);
         }
     }
 
