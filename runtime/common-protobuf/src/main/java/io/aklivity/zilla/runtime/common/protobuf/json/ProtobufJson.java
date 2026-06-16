@@ -51,12 +51,12 @@ import io.aklivity.zilla.runtime.common.protobuf.json.internal.ProtobufJsonParse
 public final class ProtobufJson
 {
     /**
-     * Generator config key (a {@link Boolean}): when {@code true}, the JSON key is the proto field name
-     * (snake_case) instead of the proto3 json name. Mirrors {@code protobuf-java}'s
+     * Generator config key whose value is a {@link FieldNames} selecting which name renders as each JSON
+     * object key (absent ⇒ {@link FieldNames#JSON}). {@link FieldNames#PROTO} mirrors {@code protobuf-java}'s
      * {@code JsonFormat.Printer.preservingProtoFieldNames()}.
      */
-    public static final String GENERATE_PROTO_FIELD_NAMES =
-        "io.aklivity.zilla.runtime.common.protobuf.json.generate.proto.field.names";
+    public static final String FIELD_NAMES =
+        "io.aklivity.zilla.runtime.common.protobuf.json.field.names";
 
     /**
      * Generator config key (a {@link Boolean}): when {@code true}, every field is emitted — unset
@@ -67,6 +67,16 @@ public final class ProtobufJson
      */
     public static final String GENERATE_DEFAULTS =
         "io.aklivity.zilla.runtime.common.protobuf.json.generate.defaults";
+
+    /**
+     * The name rendered as each JSON object key: the proto3 json name (lowerCamelCase) or the proto field
+     * name (snake_case). Value type of the {@link #FIELD_NAMES} config key.
+     */
+    public enum FieldNames
+    {
+        JSON,
+        PROTO
+    }
 
     /**
      * A {@link ProtobufParser} that reads JSON through {@code parser}, mapping each JSON value onto the field
@@ -111,7 +121,7 @@ public final class ProtobufJson
         String messageName,
         Map<String, ?> config)
     {
-        boolean protoFieldNames = Boolean.TRUE.equals(config.get(GENERATE_PROTO_FIELD_NAMES));
+        boolean protoFieldNames = config.get(FIELD_NAMES) == FieldNames.PROTO;
         boolean includeDefaults = Boolean.TRUE.equals(config.get(GENERATE_DEFAULTS));
         return new ProtobufJsonGeneratorImpl(generator, schema, messageName, protoFieldNames, includeDefaults);
     }

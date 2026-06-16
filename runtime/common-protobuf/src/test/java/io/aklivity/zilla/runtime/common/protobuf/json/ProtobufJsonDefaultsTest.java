@@ -142,7 +142,8 @@ public class ProtobufJsonDefaultsTest
         boolean includeDefaults)
     {
         Map<String, Object> config = new HashMap<>();
-        config.put(ProtobufJson.GENERATE_PROTO_FIELD_NAMES, protoFieldNames);
+        config.put(ProtobufJson.FIELD_NAMES,
+            protoFieldNames ? ProtobufJson.FieldNames.PROTO : ProtobufJson.FieldNames.JSON);
         config.put(ProtobufJson.GENERATE_DEFAULTS, includeDefaults);
         MutableDirectBuffer out = new UnsafeBuffer(new byte[8192]);
         ProtobufGenerator generator =
