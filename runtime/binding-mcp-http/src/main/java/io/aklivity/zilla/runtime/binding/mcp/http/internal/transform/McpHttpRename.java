@@ -73,7 +73,7 @@ public final class McpHttpRename implements JsonTransform
             status = sink.feed(control, source, event);
             break;
         case KEY_NAME:
-            final String renamed = depth == 1 ? renames.get(source.getKey().toString()) : null;
+            final String renamed = depth == 1 ? renames.get(source.getStringView().toString()) : null;
             status = renamed != null
                 ? sink.feed(control, keySource.with(renamed), event)
                 : sink.feed(control, source, event);
@@ -104,12 +104,6 @@ public final class McpHttpRename implements JsonTransform
 
         @Override
         public CharSequence getStringView()
-        {
-            return key;
-        }
-
-        @Override
-        public CharSequence getKey()
         {
             return key;
         }
