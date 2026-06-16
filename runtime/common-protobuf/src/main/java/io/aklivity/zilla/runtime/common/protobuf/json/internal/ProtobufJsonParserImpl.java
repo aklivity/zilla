@@ -22,7 +22,6 @@ import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
-import io.aklivity.zilla.runtime.common.json.JsonSource;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufEvent;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufException;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufField;
@@ -45,8 +44,8 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
  * windowed — {@link #nextEvent(Mode)} returns {@code null} when a window is consumed mid-document and
  * {@link #resume} continues with the next window, exactly as the wire parser does. The translator carries no
  * document buffer; only the bounded per-message frame stack and a small pending-event ring. One JSON leaf value
- * must fit a single input window (it is read via the allocation-free {@link JsonSource#getStringView()} /
- * {@link JsonSource#getKey()} views); message structure may split across windows at any token boundary.
+ * must fit a single input window (it is read via the allocation-free {@link JsonParserEx#getStringView()}
+ * view); message structure may split across windows at any token boundary.
  * <p>
  * Allocation: scalar values and keys are read through the parser's non-owning char views and parsed/encoded
  * straight into a reused buffer — integers via {@code Long.parseLong(CharSequence, …)}, strings UTF-8-encoded
@@ -66,7 +65,6 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
     }
 
     private final JsonParserEx parser;
-    private final JsonSource source;
     private final ProtobufSchema schema;
     private final String messageName;
     private final UnsafeBuffer estimateView;
@@ -104,8 +102,6 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
         String messageName)
     {
         this.parser = parser;
-        // the parser is also the per-event source view exposing the allocation-free value/key char views
-        this.source = (JsonSource) parser;
         this.schema = schema;
         this.messageName = messageName;
         this.estimateView = new UnsafeBuffer(new byte[ESTIMATE]);
@@ -346,7 +342,7 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
             }
             else if (token == JsonEvent.KEY_NAME)
             {
-                ProtobufField field = frame.message.field(source.getKey());
+                ProtobufField field = frame.message.field(parser.getStringView());
                 if (field == null)
                 {
                     beginSkip();
@@ -615,35 +611,35 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
         case INT64:
         case SINT64:
         case SFIXED64:
-            longValue = parseLong(source.getStringView());
+            longValue = parseLong(parser.getStringView());
             break;
         case UINT32:
         case FIXED32:
-            longValue = parseLong(source.getStringView()) & 0xffffffffL;
+            longValue = parseLong(parser.getStringView()) & 0xffffffffL;
             break;
         case UINT64:
         case FIXED64:
-            longValue = parseUnsignedLong(source.getStringView());
+            longValue = parseUnsignedLong(parser.getStringView());
             break;
         case BOOL:
             longValue = token == JsonEvent.VALUE_TRUE ? 1L : 0L;
             break;
         case FLOAT:
-            floatValue = Float.parseFloat(source.getStringView().toString());
+            floatValue = Float.parseFloat(parser.getStringView().toString());
             break;
         case DOUBLE:
-            doubleValue = Double.parseDouble(source.getStringView().toString());
+            doubleValue = Double.parseDouble(parser.getStringView().toString());
             break;
         case ENUM:
             longValue = token == JsonEvent.VALUE_STRING
-                ? enumNumber(field, source.getStringView().toString())
-                : parseLong(source.getStringView());
+                ? enumNumber(field, parser.getStringView().toString())
+                : parseLong(parser.getStringView());
             break;
         case STRING:
-            putUtf8(source.getStringView());
+            putUtf8(parser.getStringView());
             break;
         case BYTES:
-            putBytes(decodeBase64(source.getStringView().toString()));
+            putBytes(decodeBase64(parser.getStringView().toString()));
             break;
         default:
             throw new ProtobufException("unsupported scalar type " + field.type());
@@ -653,7 +649,7 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
     private void decodeKey(
         ProtobufField keyField)
     {
-        CharSequence text = source.getKey();
+        CharSequence text = parser.getStringView();
         switch (keyField.type())
         {
         case STRING:
