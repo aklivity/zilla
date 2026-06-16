@@ -61,6 +61,14 @@ public interface ProtobufGenerator
      */
     int remaining();
 
+    /**
+     * Cumulative count of source value bytes consumed by {@link #writeSegment} since the last {@link #wrap}.
+     * Because {@code writeSegment} is consumption-driven — it writes only as many of the offered bytes as fit
+     * the bound — a driver reads this around a call (as a delta) to learn how many bytes were taken and push
+     * the unconsumed remainder back to its upstream.
+     */
+    int consumed();
+
     ProtobufGenerator writeInt32(
         int field,
         int value);
@@ -143,12 +151,14 @@ public interface ProtobufGenerator
 
     /**
      * Writes part of a length-delimited {@code field} whose total body length is {@code length + deferred}.
-     * The first call (when no segment is open) emits the tag and the total length prefix, then writes the
-     * {@code length} bytes at {@code value[offset, offset+length)}; subsequent calls write further body
-     * bytes only, with {@code deferred} counting the bytes still to come after this call. So a value larger
-     * than the buffer is written across chunks — drain after a call that leaves {@code deferred > 0}, re-wrap
-     * (the open levels and segment persist), and continue. The total is known up front, so the length prefix
-     * is correct in the concatenated stream even though the body arrives in pieces.
+     * The first call (when no segment is open) emits the tag and the total length prefix; thereafter it
+     * appends body bytes from {@code value[offset, offset+length)}. It is <em>consumption-driven</em>: it
+     * writes only as many of the offered {@code length} bytes as fit the bound (and, on the first call, writes
+     * nothing if the header plus one byte would not fit), reporting how many it took via {@link #consumed()}.
+     * A driver reads {@code consumed()} as a delta to learn the amount written, pushes the remainder back to
+     * its upstream, drains, re-{@link #wrap(MutableDirectBuffer, int, int) wraps} (the open levels and segment
+     * persist), and continues. The total is known up front, so the length prefix is correct in the
+     * concatenated stream even though the body arrives in pieces.
      */
     ProtobufGenerator writeSegment(
         int field,

@@ -81,6 +81,9 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
     private double doubleValue;
     private float floatValue;
     private final UnsafeBuffer segment = new UnsafeBuffer(new byte[0]);
+    private DirectBuffer segmentBuffer;
+    private int segmentOffset;
+    private int segmentLength;
     private int deferred;
     private int leafRemaining;
     private boolean leafString;
@@ -227,6 +230,16 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
     public int deferredBytes()
     {
         return deferred;
+    }
+
+    @Override
+    public void consumed(
+        int sourceBytes)
+    {
+        // advance the current value slice so segment() re-exposes the remainder on resume
+        segmentOffset += sourceBytes;
+        segmentLength -= sourceBytes;
+        segment.wrap(segmentBuffer, segmentOffset, segmentLength);
     }
 
     private ProtobufEvent value()
@@ -781,6 +794,9 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
         int offset,
         int length)
     {
+        segmentBuffer = buffer;
+        segmentOffset = offset;
+        segmentLength = length;
         segment.wrap(buffer, offset, length);
     }
 

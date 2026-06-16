@@ -970,6 +970,12 @@ public final class JsonSchemaImpl implements JsonSchema
         }
 
         @Override
+        public CharSequence getStringView()
+        {
+            return parser.getString();
+        }
+
+        @Override
         public BigDecimal getBigDecimal()
         {
             return parser.getBigDecimal();
@@ -982,15 +988,21 @@ public final class JsonSchemaImpl implements JsonSchema
         }
 
         @Override
-        public JsonLocation getLocation()
+        public int getInt()
         {
-            return parser.getLocation();
+            return parser.getInt();
         }
 
         @Override
-        public CharSequence getKey()
+        public long getLong()
         {
-            throw new UnsupportedOperationException();
+            return parser.getLong();
+        }
+
+        @Override
+        public JsonLocation getLocation()
+        {
+            return parser.getLocation();
         }
 
         @Override
@@ -1449,6 +1461,12 @@ public final class JsonSchemaImpl implements JsonSchema
         }
 
         @Override
+        public CharSequence getStringView()
+        {
+            return token.text;
+        }
+
+        @Override
         public boolean isIntegralNumber()
         {
             return !token.text.contains(".") && !token.text.contains("e") && !token.text.contains("E");
@@ -1461,13 +1479,19 @@ public final class JsonSchemaImpl implements JsonSchema
         }
 
         @Override
-        public JsonLocation getLocation()
+        public int getInt()
         {
-            throw new UnsupportedOperationException();
+            return Integer.parseInt(token.text);
         }
 
         @Override
-        public CharSequence getKey()
+        public long getLong()
+        {
+            return Long.parseLong(token.text);
+        }
+
+        @Override
+        public JsonLocation getLocation()
         {
             throw new UnsupportedOperationException();
         }

@@ -232,7 +232,7 @@ public final class JsonProjectorImpl implements JsonTransform
     {
         StringBuilder key = segmentKeys[depth];
         key.setLength(0);
-        key.append(source.getKey());
+        key.append(source.getStringView());
         segmentIsKey[depth] = true;
         indexes[depth] = -1;
         depth++;
@@ -589,7 +589,7 @@ public final class JsonProjectorImpl implements JsonTransform
         }
 
         @Override
-        public CharSequence getKey()
+        public CharSequence getStringView()
         {
             return key;
         }
@@ -602,6 +602,18 @@ public final class JsonProjectorImpl implements JsonTransform
 
         @Override
         public boolean isIntegralNumber()
+        {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public int getInt()
+        {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public long getLong()
         {
             throw new UnsupportedOperationException();
         }

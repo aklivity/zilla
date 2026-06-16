@@ -97,7 +97,7 @@ public final class McpHttpArguments implements JsonTransform
             depth++;
             break;
         case KEY_NAME:
-            argsArmed = depth == 1 && "arguments".contentEquals(source.getKey());
+            argsArmed = depth == 1 && "arguments".contentEquals(source.getStringView());
             break;
         case END_OBJECT:
         case END_ARRAY:
@@ -133,7 +133,7 @@ public final class McpHttpArguments implements JsonTransform
             }
             break;
         case KEY_NAME:
-            captureKey = forwardDepth == 1 ? source.getKey().toString() : null;
+            captureKey = forwardDepth == 1 ? source.getStringView().toString() : null;
             status = forward(sink, source, event);
             break;
         case VALUE_STRING:

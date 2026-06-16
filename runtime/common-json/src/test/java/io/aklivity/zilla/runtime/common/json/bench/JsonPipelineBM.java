@@ -88,7 +88,6 @@ public class JsonPipelineBM
     private final JsonGeneratorEx generator = JsonEx.createGenerator();
     private final JsonSink structuredSink = JsonEx.createSink(generator);
     private final JsonSink segmentableSink = JsonEx.createSink(generator, Map.of(JsonSink.DELIVERY, Delivery.SEGMENTABLE));
-    private final JsonSink decodedSink = JsonEx.createSink(generator, Map.of(JsonSink.DELIVERY, Delivery.DECODED));
 
     private JsonPipeline scalarLeavesPipeline;
     private JsonPipeline keptContainerStructuredPipeline;
@@ -99,8 +98,7 @@ public class JsonPipelineBM
     private JsonPipeline mostlySkippedSegmentedPipeline;
     private JsonPipeline fragmentStringStructuredPipeline;
     private JsonPipeline fragmentStringSegmentedPipeline;
-    private JsonPipeline fragmentStringDecodedPipeline;
-    private JsonPipeline fragmentNumberDecodedPipeline;
+    private JsonPipeline fragmentNumberStructuredPipeline;
 
     private UnsafeBuffer flatBuffer;
     private UnsafeBuffer nestedBuffer;
@@ -140,8 +138,7 @@ public class JsonPipelineBM
         // no transform: an over-window value fragments and is rendered straight to the sink
         fragmentStringStructuredPipeline = JsonEx.stream(JsonEx.createParser()).into(structuredSink);
         fragmentStringSegmentedPipeline = JsonEx.stream(JsonEx.createParser()).into(segmentableSink);
-        fragmentStringDecodedPipeline = JsonEx.stream(JsonEx.createParser()).into(decodedSink);
-        fragmentNumberDecodedPipeline = JsonEx.stream(JsonEx.createParser()).into(decodedSink);
+        fragmentNumberStructuredPipeline = JsonEx.stream(JsonEx.createParser()).into(structuredSink);
 
         byte[] flatBytes = FLAT_OBJECT.getBytes(UTF_8);
         byte[] nestedBytes = NESTED_OBJECT.getBytes(UTF_8);
@@ -220,15 +217,9 @@ public class JsonPipelineBM
     }
 
     @Benchmark
-    public int fragmentStringDecoded()
+    public int fragmentNumberStructured()
     {
-        return runWindowed(fragmentStringDecodedPipeline, largeStringBuffer, largeStringLength, FRAGMENT_WINDOW);
-    }
-
-    @Benchmark
-    public int fragmentNumberDecoded()
-    {
-        return runWindowed(fragmentNumberDecodedPipeline, largeNumberBuffer, largeNumberLength, FRAGMENT_WINDOW);
+        return runWindowed(fragmentNumberStructuredPipeline, largeNumberBuffer, largeNumberLength, FRAGMENT_WINDOW);
     }
 
     private int run(

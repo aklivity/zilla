@@ -97,6 +97,11 @@ public final class JsonTokenizer
     // getLong() then throw (the value would overflow) and getBigDecimal() reads the accumulated lexeme.
     private boolean numberFragmented;
 
+    // set at each VALUE_STRING delivery: true when the value-string was streamed verbatim as raw bytes
+    // (a segment scan or an armed scalar leaf), so the caller splices its raw token bytes; false when it
+    // was decoded into scratch, so the caller renders it canonically from the decoded chars.
+    private boolean stringVerbatim;
+
     // set when a read hits the end of the current input window mid-token: the scan unwinds logically
     // (no exception) and advance() routes to onScalarStarved; reset at the top of each advance()
     private boolean starved;
@@ -133,6 +138,7 @@ public final class JsonTokenizer
         scratch.setLength(0);
         numberLexeme.setLength(0);
         numberFragmented = false;
+        stringVerbatim = false;
         pathDepth = 0;
         state = ParseState.DOC_START;
         pendingEvent = null;
@@ -250,6 +256,7 @@ public final class JsonTokenizer
                 {
                     valueStreamStart = fragmentStart;
                     valueStreamEnd = streamOffset;
+                    stringVerbatim = scalarSegment || segmenting;
                     pendingEvent = JsonParser.Event.VALUE_STRING;
                     // capture lazily: a verbatim/segmented consumer reads only getSegment() and never
                     // materializes the decoded chars, so leave them in scratch (cleared when the next
@@ -363,6 +370,13 @@ public final class JsonTokenizer
     public boolean numberFragmented()
     {
         return numberFragmented;
+    }
+
+    // True when the just-delivered value-string was streamed verbatim as raw bytes rather than decoded
+    // into scratch; the parser then splices its raw token bytes instead of rendering canonically.
+    public boolean stringVerbatim()
+    {
+        return stringVerbatim;
     }
 
     public CharSequence numberLexeme()
@@ -537,6 +551,7 @@ public final class JsonTokenizer
     {
         valueStreamStart = fragmentStart;
         valueStreamEnd = streamOffset;
+        stringVerbatim = scalarSegment || segmenting;
         pendingEvent = JsonParser.Event.VALUE_STRING;
         captureValue();
         fragmenting = false;

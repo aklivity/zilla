@@ -121,9 +121,21 @@ public interface AvroParser
 
     /**
      * Non-owning, on-stack view of the current contiguous raw Avro bytes — valid on {@link AvroEvent#BYTES}
-     * and {@link AvroEvent#FIXED} value events (the chunk available now) and on segment events.
+     * and {@link AvroEvent#FIXED} value events (the chunk available now) and on segment events. After
+     * {@link #consumed(int)} pushback (a bounded-output suspend) it exposes only the unconsumed remainder.
      */
     DirectBuffer getSegment();
+
+    /**
+     * Advances the current value chunk's read cursor by {@code sourceBytes} already written downstream, so a
+     * subsequent {@link #getSegment()} after a bounded-output suspend exposes only the remainder — letting a
+     * terminal sink resume a length-delimited value without tracking its own offset. The default does
+     * nothing, for a parser whose values are never delivered in bounded pieces.
+     */
+    default void consumed(
+        int sourceBytes)
+    {
+    }
 
     /**
      * The bytes still to come in later events of the run the current event belongs to, {@code 0} on its

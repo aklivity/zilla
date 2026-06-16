@@ -25,4 +25,14 @@ package io.aklivity.zilla.runtime.common.protobuf;
 public interface ProtobufController
 {
     void segmentable();
+
+    /**
+     * Reports {@code sourceBytes} source bytes consumed by a verbatim segment write so the upstream advances
+     * past them and re-exposes the value's remainder from {@link ProtobufSource#segment()} on resume — the
+     * pushback that lets a bounded sink stream a length-delimited value without tracking its own write cursor.
+     */
+    default void consumed(
+        int sourceBytes)
+    {
+    }
 }

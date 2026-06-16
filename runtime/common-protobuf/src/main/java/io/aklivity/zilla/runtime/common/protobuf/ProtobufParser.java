@@ -163,4 +163,15 @@ public interface ProtobufParser
      * {@code 0} on the last (or only) piece, and {@code 0} for every other event.
      */
     int deferredBytes();
+
+    /**
+     * Advances past {@code sourceBytes} of the current value's slice so {@link #segment()} re-exposes the
+     * unconsumed remainder — the pushback a bounded sink uses to stream a length-delimited value across
+     * output windows without tracking its own write cursor. The default is a no-op for cursors that need no
+     * pushback.
+     */
+    default void consumed(
+        int sourceBytes)
+    {
+    }
 }
