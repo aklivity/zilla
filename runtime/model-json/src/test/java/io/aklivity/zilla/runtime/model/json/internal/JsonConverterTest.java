@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.model.json.internal;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -66,6 +67,21 @@ public class JsonConverterTest
 
     private EngineContext context;
 
+    private final MutableDirectBuffer out = new UnsafeBuffer(new byte[1024]);
+    private int outLength;
+    private final ValueConsumer capture = (buffer, index, length) ->
+    {
+        buffer.getBytes(index, out, 0, length);
+        outLength = length;
+    };
+
+    private String captured()
+    {
+        byte[] bytes = new byte[outLength];
+        out.getBytes(0, bytes);
+        return new String(bytes, UTF_8);
+    }
+
     @Before
     public void init()
     {
@@ -109,7 +125,9 @@ public class JsonConverterTest
         byte[] bytes = payload.getBytes();
         data.wrap(bytes, 0, bytes.length);
 
-        assertEquals(data.capacity(), converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
+        String expected = "{\"id\":\"123\",\"status\":\"OK\"}";
+        assertEquals(expected.length(), converter.convert(0L, 0L, data, 0, data.capacity(), capture));
+        assertEquals(expected, captured());
     }
 
     @Test
@@ -152,7 +170,9 @@ public class JsonConverterTest
         byte[] bytes = payload.getBytes();
         data.wrap(bytes, 0, bytes.length);
 
-        assertEquals(data.capacity(), converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
+        String expected = "[{\"id\":\"123\",\"status\":\"OK\"}]";
+        assertEquals(expected.length(), converter.convert(0L, 0L, data, 0, data.capacity(), capture));
+        assertEquals(expected, captured());
     }
 
     @Test
@@ -195,10 +215,6 @@ public class JsonConverterTest
         byte[] bytes = payload.getBytes();
         data.wrap(bytes, 0, bytes.length);
 
-        MutableDirectBuffer value = new UnsafeBuffer(new byte[data.capacity() + 5]);
-        value.putBytes(0, new byte[]{0x00, 0x00, 0x00, 0x00, 0x01});
-        value.putBytes(5, bytes);
-
         assertEquals(-1, converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
@@ -240,7 +256,9 @@ public class JsonConverterTest
         byte[] bytes = payload.getBytes();
         data.wrap(bytes, 0, bytes.length);
 
-        assertEquals(data.capacity(), converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
+        String expected = "{\"id\":\"123\",\"status\":\"OK\"}";
+        assertEquals(expected.length(), converter.convert(0L, 0L, data, 0, data.capacity(), capture));
+        assertEquals(expected, captured());
     }
 
     @Test
@@ -333,7 +351,10 @@ public class JsonConverterTest
                 "}";
         byte[] bytes = payload.getBytes();
         data.wrap(bytes, 0, bytes.length);
-        assertEquals(data.capacity(), converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
+
+        String expected = "{\"id\":\"123\",\"zillaId\":321,\"status\":\"OK\"}";
+        assertEquals(expected.length(), converter.convert(0L, 0L, data, 0, data.capacity(), capture));
+        assertEquals(expected, captured());
 
         assertEquals(2, converter.extractedLength(statusPath));
         final ConverterHandler.FieldVisitor visitor = (buffer, index, length) ->
