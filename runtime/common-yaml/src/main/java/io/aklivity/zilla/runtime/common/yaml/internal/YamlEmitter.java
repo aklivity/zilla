@@ -16,13 +16,9 @@ package io.aklivity.zilla.runtime.common.yaml.internal;
 
 import java.io.IOException;
 import java.io.Writer;
-import java.util.regex.Pattern;
 
 public final class YamlEmitter
 {
-    private static final Pattern NUMBER_PATTERN = Pattern.compile(
-        "-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?:[eE][+-]?[0-9]+)?");
-
     private YamlEmitter()
     {
     }
@@ -712,8 +708,58 @@ public final class YamlEmitter
     private static boolean looksLikeNumber(
         String value)
     {
-        char first = value.charAt(0);
-        return first >= '0' && first <= '9' && NUMBER_PATTERN.matcher(value).matches();
+        int length = value.length();
+        int at = integerPart(value);
+        boolean number = at > 0;
+        if (number && at < length && value.charAt(at) == '.')
+        {
+            int start = at + 1;
+            at = digits(value, start);
+            number = at > start;
+        }
+        if (number && at < length && (value.charAt(at) == 'e' || value.charAt(at) == 'E'))
+        {
+            int start = at + 1;
+            if (start < length && (value.charAt(start) == '+' || value.charAt(start) == '-'))
+            {
+                start++;
+            }
+            at = digits(value, start);
+            number = at > start;
+        }
+        return number && at == length;
+    }
+
+    private static int integerPart(
+        String value)
+    {
+        int at;
+        char first = value.isEmpty() ? '\0' : value.charAt(0);
+        if (first == '0')
+        {
+            at = 1;
+        }
+        else if (first >= '1' && first <= '9')
+        {
+            at = digits(value, 1);
+        }
+        else
+        {
+            at = 0;
+        }
+        return at;
+    }
+
+    private static int digits(
+        String value,
+        int start)
+    {
+        int at = start;
+        while (at < value.length() && value.charAt(at) >= '0' && value.charAt(at) <= '9')
+        {
+            at++;
+        }
+        return at;
     }
 
     private static String quote(

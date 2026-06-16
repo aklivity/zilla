@@ -14,6 +14,9 @@
  */
 package io.aklivity.zilla.runtime.common.yaml.internal.json;
 
+import static io.aklivity.zilla.runtime.common.yaml.internal.YamlGeneratorStack.ARRAY_ELEMENT;
+import static io.aklivity.zilla.runtime.common.yaml.internal.YamlGeneratorStack.OBJECT_VALUE;
+import static io.aklivity.zilla.runtime.common.yaml.internal.YamlGeneratorStack.ROOT;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.IOException;
@@ -22,8 +25,6 @@ import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.ArrayDeque;
-import java.util.Deque;
 import java.util.Map;
 
 import jakarta.json.JsonException;
@@ -33,15 +34,12 @@ import jakarta.json.JsonValue;
 import jakarta.json.stream.JsonGenerator;
 
 import io.aklivity.zilla.runtime.common.yaml.internal.YamlEmitter;
+import io.aklivity.zilla.runtime.common.yaml.internal.YamlGeneratorStack;
 
 public final class YamlJsonGenerator implements JsonGenerator
 {
-    private static final int ROOT = 0;
-    private static final int OBJECT_VALUE = 1;
-    private static final int ARRAY_ELEMENT = 2;
-
     private final Writer writer;
-    private final Deque<Scope> stack;
+    private final YamlGeneratorStack stack;
     private boolean rootDone;
     private boolean closed;
 
@@ -49,7 +47,7 @@ public final class YamlJsonGenerator implements JsonGenerator
         Writer writer)
     {
         this.writer = writer;
-        this.stack = new ArrayDeque<>();
+        this.stack = new YamlGeneratorStack();
     }
 
     public YamlJsonGenerator(
@@ -91,16 +89,15 @@ public final class YamlJsonGenerator implements JsonGenerator
         String name)
     {
         ensureOpen();
-        if (stack.isEmpty() || stack.peek().array)
+        if (stack.isEmpty() || stack.array())
         {
             throw new JsonException("Expected object context");
         }
-        Scope context = stack.peek();
-        if (context.pendingKey != null)
+        if (stack.pendingKey() != null)
         {
             throw new JsonException("Previous key has no value");
         }
-        context.pendingKey = name;
+        stack.pendingKey(name);
         return this;
     }
 
@@ -183,15 +180,19 @@ public final class YamlJsonGenerator implements JsonGenerator
         {
             throw new JsonException("No YAML structure to end");
         }
-        Scope context = stack.peek();
-        if (!context.array && context.pendingKey != null)
+        if (!stack.array() && stack.pendingKey() != null)
         {
             throw new JsonException("Object key has no value");
         }
+        boolean opened = stack.opened();
+        int kind = stack.kind();
+        boolean array = stack.array();
+        int introIndent = stack.introIndent();
+        String introKey = stack.introKey();
         stack.pop();
-        if (!context.opened)
+        if (!opened)
         {
-            closeEmpty(context);
+            closeEmpty(kind, array, introIndent, introKey);
         }
         if (stack.isEmpty())
         {
@@ -323,32 +324,31 @@ public final class YamlJsonGenerator implements JsonGenerator
         }
         else
         {
-            Scope parent = stack.peek();
-            ensureOpened(parent);
-            if (parent.array)
+            ensureOpened();
+            if (stack.array())
             {
-                parent.first = false;
-                indent(parent.childIndent);
+                stack.clearFirst();
+                indent(stack.childIndent());
                 emit("- ");
                 emit(text);
                 emit("\n");
             }
             else
             {
-                String key = requireKey(parent);
-                if (parent.firstInline && parent.first)
+                String key = requireKey();
+                if (stack.firstInline() && stack.first())
                 {
-                    parent.firstInline = false;
+                    stack.clearFirstInline();
                 }
                 else
                 {
-                    indent(parent.childIndent);
+                    indent(stack.childIndent());
                 }
                 emit(YamlEmitter.formatPlain(key));
                 emit(": ");
                 emit(text);
                 emit("\n");
-                parent.first = false;
+                stack.clearFirst();
             }
         }
     }
@@ -357,29 +357,28 @@ public final class YamlJsonGenerator implements JsonGenerator
         boolean array)
     {
         ensureOpen();
-        Scope child;
         if (stack.isEmpty())
         {
             requireRootAvailable();
-            child = new Scope(ROOT, array, 0, null);
+            stack.push(ROOT, array, 0, null);
         }
         else
         {
-            Scope parent = stack.peek();
-            ensureOpened(parent);
-            if (parent.array)
+            ensureOpened();
+            if (stack.array())
             {
-                parent.first = false;
-                child = new Scope(ARRAY_ELEMENT, array, parent.childIndent, null);
+                int childIndent = stack.childIndent();
+                stack.clearFirst();
+                stack.push(ARRAY_ELEMENT, array, childIndent, null);
             }
             else
             {
-                String key = requireKey(parent);
-                parent.first = false;
-                child = new Scope(OBJECT_VALUE, array, parent.childIndent, key);
+                String key = requireKey();
+                int childIndent = stack.childIndent();
+                stack.clearFirst();
+                stack.push(OBJECT_VALUE, array, childIndent, key);
             }
         }
-        stack.push(child);
     }
 
     private void writeValue(
@@ -414,35 +413,31 @@ public final class YamlJsonGenerator implements JsonGenerator
         }
     }
 
-    private void ensureOpened(
-        Scope scope)
+    private void ensureOpened()
     {
-        if (!scope.opened)
+        if (!stack.opened())
         {
-            scope.opened = true;
-            switch (scope.introKind)
+            stack.markOpened();
+            switch (stack.kind())
             {
-            case ROOT -> scope.childIndent = 0;
             case OBJECT_VALUE ->
             {
-                indent(scope.introIndent);
-                emit(YamlEmitter.formatPlain(scope.introKey));
+                indent(stack.introIndent());
+                emit(YamlEmitter.formatPlain(stack.introKey()));
                 emit(":\n");
-                scope.childIndent = scope.introIndent + 1;
             }
             case ARRAY_ELEMENT ->
             {
-                indent(scope.introIndent);
-                if (scope.array)
+                indent(stack.introIndent());
+                if (stack.array())
                 {
                     emit("-\n");
                 }
                 else
                 {
                     emit("- ");
-                    scope.firstInline = true;
+                    stack.markFirstInline();
                 }
-                scope.childIndent = scope.introIndent + 1;
             }
             default ->
             {
@@ -452,41 +447,40 @@ public final class YamlJsonGenerator implements JsonGenerator
     }
 
     private void closeEmpty(
-        Scope scope)
+        int kind,
+        boolean array,
+        int introIndent,
+        String introKey)
     {
-        String body = scope.array ? "[]" : "{}";
-        switch (scope.introKind)
+        String body = array ? "[]" : "{}";
+        switch (kind)
         {
-        case ROOT -> emit(body);
         case OBJECT_VALUE ->
         {
-            indent(scope.introIndent);
-            emit(YamlEmitter.formatPlain(scope.introKey));
+            indent(introIndent);
+            emit(YamlEmitter.formatPlain(introKey));
             emit(": ");
             emit(body);
         }
         case ARRAY_ELEMENT ->
         {
-            indent(scope.introIndent);
+            indent(introIndent);
             emit("- ");
             emit(body);
         }
-        default ->
-        {
-        }
+        default -> emit(body);
         }
         emit("\n");
     }
 
-    private String requireKey(
-        Scope object)
+    private String requireKey()
     {
-        if (object.pendingKey == null)
+        String key = stack.pendingKey();
+        if (key == null)
         {
             throw new JsonException("Expected an object key");
         }
-        String key = object.pendingKey;
-        object.pendingKey = null;
+        stack.pendingKey(null);
         return key;
     }
 
@@ -525,31 +519,6 @@ public final class YamlJsonGenerator implements JsonGenerator
         if (closed)
         {
             throw new JsonException("YAML generator is closed");
-        }
-    }
-
-    private static final class Scope
-    {
-        private final int introKind;
-        private final boolean array;
-        private final int introIndent;
-        private final String introKey;
-        private int childIndent;
-        private boolean opened;
-        private boolean first = true;
-        private boolean firstInline;
-        private String pendingKey;
-
-        private Scope(
-            int introKind,
-            boolean array,
-            int introIndent,
-            String introKey)
-        {
-            this.introKind = introKind;
-            this.array = array;
-            this.introIndent = introIndent;
-            this.introKey = introKey;
         }
     }
 }
