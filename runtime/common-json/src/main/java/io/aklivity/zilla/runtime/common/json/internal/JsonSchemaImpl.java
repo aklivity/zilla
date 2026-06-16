@@ -2003,6 +2003,13 @@ public final class JsonSchemaImpl implements JsonSchema
         private final List<Token> valueTokens;
         private Eval refEval;
         private Eval dynEval;
+        // child evals reused across this array's elements: items and contains are constant per array, so
+        // a single instance is reset between elements rather than reallocated for each. Held apart from
+        // the directChild/containsChild slots (which clear on element completion) and never reset by the
+        // owning eval's own reset() — they are reset on next use, preserving reuse across outer elements.
+        private Eval itemEval;
+        private JsonSchemaImpl itemEvalSchema;
+        private Eval containsEval;
 
         private final boolean annotate;
         private Set<String> evaluatedProps;
@@ -2035,6 +2042,104 @@ public final class JsonSchemaImpl implements JsonSchema
             this.elseEval = elseSchema != null ? elseSchema.eval(Trace.NONE, dynScope) : null;
             this.dependentSchemaEvals = evalsOfMap(dependentSchemas, Trace.NONE);
             this.trackKeys = required != null || dependentRequired != null || dependentSchemaEvals != null;
+        }
+
+        // Returns this eval to its pre-feed state so it can validate the next array element without
+        // reallocation. The eager combinator/conditional children (built in the constructor and reused
+        // across feeds) are reset in place; the lazily built children (directChild, directChildren,
+        // refEval, dynEval) are dropped and rebuilt on demand. The reused per-array caches (itemEval,
+        // containsEval) are intentionally left intact and reset on their own next use.
+        private void reset()
+        {
+            started = false;
+            done = false;
+            result = null;
+            depth = 0;
+            directInvalid = false;
+            object = false;
+            array = false;
+            seen = null;
+            count = 0;
+            currentIndex = 0;
+            directChild = null;
+            directChildMark = 0;
+            directChildren = null;
+            containsChild = null;
+            containsMatched = 0;
+            if (uniqueSeen != null)
+            {
+                uniqueSeen.clear();
+            }
+            uniqueElement = false;
+            if (valueTokens != null)
+            {
+                valueTokens.clear();
+            }
+            refEval = null;
+            dynEval = null;
+            evaluatedProps = null;
+            evaluatedItems = null;
+            currentKey = null;
+            propValues = null;
+            itemValues = null;
+            childTokens = null;
+            resetEach(allOfEvals);
+            resetEach(anyOfEvals);
+            resetEach(oneOfEvals);
+            resetOne(notEval);
+            resetOne(ifEval);
+            resetOne(thenEval);
+            resetOne(elseEval);
+            if (dependentSchemaEvals != null)
+            {
+                for (Eval eval : dependentSchemaEvals.values())
+                {
+                    eval.reset();
+                }
+            }
+        }
+
+        private static void resetOne(
+            Eval eval)
+        {
+            if (eval != null)
+            {
+                eval.reset();
+            }
+        }
+
+        private static void resetEach(
+            Eval[] evals)
+        {
+            if (evals != null)
+            {
+                for (Eval eval : evals)
+                {
+                    eval.reset();
+                }
+            }
+        }
+
+        // The eval for the element at the current index, reusing the cached instance when the element
+        // schema is index-independent (a single items schema, or the ANY fallback) — the common case — so
+        // every element after the first is validated without allocating a fresh eval tree. A prefixItems
+        // tuple yields a different schema per index and so falls through to a fresh eval.
+        private Eval itemEvalFor(
+            JsonSchemaImpl schema)
+        {
+            Eval result;
+            if (itemEval != null && itemEvalSchema == schema)
+            {
+                itemEval.reset();
+                result = itemEval;
+            }
+            else
+            {
+                result = schema.eval(trace, dynScope);
+                itemEval = result;
+                itemEvalSchema = schema;
+            }
+            return result;
         }
 
         private Verdict feed(
@@ -2388,14 +2493,22 @@ public final class JsonSchemaImpl implements JsonSchema
                 count++;
                 currentIndex = index;
                 directChildMark = trace.push(index);
-                directChild = elementSchema(index).eval(trace, dynScope);
+                directChild = itemEvalFor(elementSchema(index));
                 if (annotate && coversItem(index))
                 {
                     evaluatedItems.set(index);
                 }
                 if (contains != null)
                 {
-                    containsChild = contains.eval(Trace.NONE, dynScope);
+                    if (containsEval == null)
+                    {
+                        containsEval = contains.eval(Trace.NONE, dynScope);
+                    }
+                    else
+                    {
+                        containsEval.reset();
+                    }
+                    containsChild = containsEval;
                 }
                 if (uniqueItems)
                 {
