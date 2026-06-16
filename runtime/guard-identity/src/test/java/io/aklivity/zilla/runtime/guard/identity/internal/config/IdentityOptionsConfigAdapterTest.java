@@ -39,7 +39,7 @@ public class IdentityOptionsConfigAdapterTest
     }
 
     @Test
-    public void shouldReadOptions()
+    public void shouldReadOptionsWithCredentials()
     {
         String text = "{\"credentials\":\"token\"}";
 
@@ -50,9 +50,20 @@ public class IdentityOptionsConfigAdapterTest
     }
 
     @Test
-    public void shouldWriteOptions()
+    public void shouldReadOptionsWithIdentity()
     {
-        IdentityOptionsConfig options = new IdentityOptionsConfig("token");
+        String text = "{\"identity\":\"alice\"}";
+
+        IdentityOptionsConfig options = jsonb.fromJson(text, IdentityOptionsConfig.class);
+
+        assertThat(options, not(nullValue()));
+        assertThat(options.identity, equalTo("alice"));
+    }
+
+    @Test
+    public void shouldWriteOptionsWithCredentials()
+    {
+        IdentityOptionsConfig options = new IdentityOptionsConfig(null, "token");
 
         String json = jsonb.toJson(options);
 
@@ -61,9 +72,20 @@ public class IdentityOptionsConfigAdapterTest
     }
 
     @Test
-    public void shouldWriteOptionsWithNullCredentials()
+    public void shouldWriteOptionsWithIdentity()
     {
-        IdentityOptionsConfig options = new IdentityOptionsConfig(null);
+        IdentityOptionsConfig options = new IdentityOptionsConfig("alice", null);
+
+        String json = jsonb.toJson(options);
+
+        assertThat(json, not(nullValue()));
+        assertThat(json, equalTo("{\"identity\":\"alice\"}"));
+    }
+
+    @Test
+    public void shouldWriteOptionsWithNullFields()
+    {
+        IdentityOptionsConfig options = new IdentityOptionsConfig(null, null);
 
         String json = jsonb.toJson(options);
 
