@@ -38,6 +38,7 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 import io.aklivity.zilla.runtime.common.json.DirectBufferInputStreamEx;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
+import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
 
 @State(Scope.Benchmark)
@@ -109,7 +110,11 @@ public class JsonSchemaBM
         "{\"id\":3,\"name\":\"d\"},{\"id\":4,\"name\":\"e\"},{\"id\":5,\"name\":\"f\"}," +
         "{\"id\":6,\"name\":\"g\"},{\"id\":7,\"name\":\"h\"}] ";
 
+    // one parser, reused across messages as a worker does in production: each op re-wraps the input over
+    // the next message buffer and resets parser state, rather than constructing a parser (and its 64-deep
+    // tokenizer path buffers) per message
     private final DirectBufferInputStreamEx inputRO = new DirectBufferInputStreamEx();
+    private final JsonParserEx parser = JsonEx.createParser(inputRO);
 
     private JsonSchema flatObjectSchema;
     private JsonSchema arrayObjectsSchema;
@@ -226,7 +231,8 @@ public class JsonSchemaBM
         int length)
     {
         inputRO.wrap(buffer, 0, length);
-        return JsonEx.createParser(inputRO);
+        parser.reset();
+        return parser;
     }
 
     public static void main(
