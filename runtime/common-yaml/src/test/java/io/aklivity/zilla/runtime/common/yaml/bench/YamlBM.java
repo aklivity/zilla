@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.common.yaml.bench;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.io.StringReader;
-import java.io.StringWriter;
 
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -28,6 +27,7 @@ import org.openjdk.jmh.annotations.OutputTimeUnit;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
+import org.openjdk.jmh.infra.Blackhole;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
@@ -132,10 +132,10 @@ public class YamlBM
     }
 
     @Benchmark
-    public int generateBlockConfig()
+    public void generateBlockConfig(
+        Blackhole blackhole)
     {
-        StringWriter out = new StringWriter();
-        Yaml.createGenerator(out)
+        Yaml.createGenerator(new BlackholeWriter(blackhole))
             .writeStartObject()
                 .write("name", "example")
                 .writeStartObject("bindings")
@@ -160,7 +160,6 @@ public class YamlBM
                 .writeEnd()
             .writeEnd()
             .close();
-        return out.getBuffer().length();
     }
 
     private int parse(
