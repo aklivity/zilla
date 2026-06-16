@@ -114,6 +114,104 @@ class YamlJsonGeneratorTest
     }
 
     @Test
+    void shouldQuoteNumericStringsAndLeaveAmbiguousStringsPlain()
+    {
+        StringWriter out = new StringWriter();
+
+        YamlJson.createGenerator(out)
+            .writeStartObject()
+                .write("zero", "0")
+                .write("integer", "42")
+                .write("exponent", "1e10")
+                .write("signedExponent", "1.5e-3")
+                .write("leadingZero", "007")
+                .write("address", "0.0.0.0")
+                .write("version", "1.2.3")
+                .write("word", "server")
+            .writeEnd()
+            .close();
+
+        assertEquals("""
+            zero: "0"
+            integer: "42"
+            exponent: "1e10"
+            signedExponent: "1.5e-3"
+            leadingZero: 007
+            address: 0.0.0.0
+            version: 1.2.3
+            word: server
+            """, out.toString());
+    }
+
+    @Test
+    void shouldQuoteAndEscapeSpecialCharacters()
+    {
+        StringWriter out = new StringWriter();
+
+        YamlJson.createGenerator(out)
+            .writeStartObject()
+                .write("v", "a\"b\\c\nd\te\bf\fg\rh")
+            .writeEnd()
+            .close();
+
+        assertEquals("v: \"a\\\"b\\\\c\\nd\\te\\bf\\fg\\rh\"\n", out.toString());
+    }
+
+    @Test
+    void shouldGenerateIntegerScalarEdges()
+    {
+        StringWriter out = new StringWriter();
+
+        YamlJson.createGenerator(out)
+            .writeStartObject()
+                .write("zero", 0)
+                .write("negative", -7114)
+                .write("intMin", Integer.MIN_VALUE)
+                .write("longMin", Long.MIN_VALUE)
+                .write("longMax", Long.MAX_VALUE)
+            .writeEnd()
+            .close();
+
+        assertEquals("""
+            zero: 0
+            negative: -7114
+            intMin: -2147483648
+            longMin: -9223372036854775808
+            longMax: 9223372036854775807
+            """, out.toString());
+    }
+
+    @Test
+    void shouldGenerateObjectsNestedBeyondInitialStackCapacity()
+    {
+        int depth = 12;
+
+        StringWriter out = new StringWriter();
+        JsonGenerator generator = YamlJson.createGenerator(out);
+
+        generator.writeStartObject();
+        for (int level = 0; level < depth; level++)
+        {
+            generator.writeStartObject("k" + level);
+        }
+        generator.write("leaf", "v");
+        for (int level = 0; level <= depth; level++)
+        {
+            generator.writeEnd();
+        }
+        generator.close();
+
+        StringBuilder expected = new StringBuilder();
+        for (int level = 0; level < depth; level++)
+        {
+            expected.append("  ".repeat(level)).append('k').append(level).append(":\n");
+        }
+        expected.append("  ".repeat(depth)).append("leaf: v\n");
+
+        assertEquals(expected.toString(), out.toString());
+    }
+
+    @Test
     void shouldGenerateFromJsonValues()
     {
         StringWriter out = new StringWriter();
