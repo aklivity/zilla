@@ -1592,8 +1592,14 @@ public final class JsonSchemaImpl implements JsonSchema
 
     private static final class Frame
     {
-        private final StringBuilder array = new StringBuilder();
-        private final List<String> members = new ArrayList<>();
+        // an array streams its elements straight into buffer (order preserved); an object collects its
+        // members as parallel quoted-key/value-canon lists and assembles them sorted into buffer at render,
+        // so only the one canonical String per container is allocated — no per-member "key:value" concat
+        // and no String.join intermediate
+        private final StringBuilder buffer = new StringBuilder();
+        private final List<String> keys = new ArrayList<>();
+        private final List<String> values = new ArrayList<>();
+        private int[] order = new int[16];
         private boolean object;
         private boolean first;
         private String key;
@@ -1604,8 +1610,16 @@ public final class JsonSchemaImpl implements JsonSchema
             this.object = object;
             this.first = true;
             this.key = null;
-            array.setLength(0);
-            members.clear();
+            buffer.setLength(0);
+            if (object)
+            {
+                keys.clear();
+                values.clear();
+            }
+            else
+            {
+                buffer.append('[');
+            }
         }
 
         private void key(
@@ -1619,16 +1633,17 @@ public final class JsonSchemaImpl implements JsonSchema
         {
             if (object)
             {
-                members.add(key + ":" + canon);
+                keys.add(key);
+                values.add(canon);
                 key = null;
             }
             else
             {
                 if (!first)
                 {
-                    array.append(',');
+                    buffer.append(',');
                 }
-                array.append(canon);
+                buffer.append(canon);
                 first = false;
             }
         }
@@ -1638,12 +1653,63 @@ public final class JsonSchemaImpl implements JsonSchema
             String result;
             if (object)
             {
-                members.sort(null);
-                result = "{" + String.join(",", members) + "}";
+                int count = keys.size();
+                sortMembers(count);
+                buffer.append('{');
+                for (int i = 0; i < count; i++)
+                {
+                    if (i > 0)
+                    {
+                        buffer.append(',');
+                    }
+                    int member = order[i];
+                    buffer.append(keys.get(member)).append(':').append(values.get(member));
+                }
+                buffer.append('}');
             }
             else
             {
-                result = "[" + array + "]";
+                buffer.append(']');
+            }
+            result = buffer.toString();
+            return result;
+        }
+
+        // Stable insertion sort of member indices by (quoted key, then value). Because a quoted key is
+        // self-delimiting, this is identical to sorting the concatenated "key:value" members, so the
+        // canonical form — and thus duplicate detection — is unchanged.
+        private void sortMembers(
+            int count)
+        {
+            if (count > order.length)
+            {
+                order = new int[Math.max(count, order.length << 1)];
+            }
+            for (int i = 0; i < count; i++)
+            {
+                order[i] = i;
+            }
+            for (int i = 1; i < count; i++)
+            {
+                int current = order[i];
+                int j = i - 1;
+                while (j >= 0 && compareMembers(order[j], current) > 0)
+                {
+                    order[j + 1] = order[j];
+                    j--;
+                }
+                order[j + 1] = current;
+            }
+        }
+
+        private int compareMembers(
+            int left,
+            int right)
+        {
+            int result = keys.get(left).compareTo(keys.get(right));
+            if (result == 0)
+            {
+                result = values.get(left).compareTo(values.get(right));
             }
             return result;
         }
