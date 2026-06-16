@@ -66,7 +66,7 @@ jobs:
         mkdir -p ~/docker-base-cache
         imgs=$(docker images --format '{{.Repository}}:{{.Tag}}' \
           | grep -Ev '<none>|ghcr.io/aklivity/zilla' \
-          | grep -E '^(eclipse-temurin|ubuntu|alpine):')
+          | grep -E '^(eclipse-temurin|ubuntu|alpine|kreinerattila/tshark):')
         if [ -n "$imgs" ]; then
           docker save -o ~/docker-base-cache/base-images.tar $imgs
         fi
