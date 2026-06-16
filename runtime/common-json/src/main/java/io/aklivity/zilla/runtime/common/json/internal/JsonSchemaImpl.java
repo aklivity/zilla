@@ -123,6 +123,10 @@ public final class JsonSchemaImpl implements JsonSchema
     private final Set<JsonType> types;
     private final Set<String> enumCanons;
     private final String constantCanon;
+    // scalar-string const/enum: the decoded candidate(s), so a string instance is compared as a
+    // CharSequence without materializing its canonical (set only when no canonical fallback is needed)
+    private final String constString;
+    private final String[] enumStrings;
     private final BigDecimal minimum;
     private final BigDecimal maximum;
     private final BigDecimal exclusiveMinimum;
@@ -325,6 +329,10 @@ public final class JsonSchemaImpl implements JsonSchema
         this.types = parseTypes(schema.get("type"));
         this.enumCanons = parseEnumCanons(schema.get("enum"));
         this.constantCanon = schema.has("const") ? canonicalizeNode(schema.get("const")) : null;
+        JsonNode constNode = schema.get("const");
+        this.constString = enumCanons == null && constNode != null && constNode.kind() == JsonNode.Kind.STRING
+            ? constNode.string() : null;
+        this.enumStrings = constantCanon == null ? enumStrings(schema.get("enum")) : null;
         BigDecimal minimumValue = number(schema, "minimum");
         BigDecimal maximumValue = number(schema, "maximum");
         BigDecimal exclusiveMin = exclusiveBound(schema, "exclusiveMinimum", minimumValue, context.draft());
@@ -397,6 +405,8 @@ public final class JsonSchemaImpl implements JsonSchema
         this.types = null;
         this.enumCanons = null;
         this.constantCanon = null;
+        this.constString = null;
+        this.enumStrings = null;
         this.minimum = null;
         this.maximum = null;
         this.exclusiveMinimum = null;
@@ -453,6 +463,8 @@ public final class JsonSchemaImpl implements JsonSchema
         this.types = null;
         this.enumCanons = null;
         this.constantCanon = null;
+        this.constString = null;
+        this.enumStrings = null;
         this.minimum = null;
         this.maximum = null;
         this.exclusiveMinimum = null;
@@ -792,6 +804,44 @@ public final class JsonSchemaImpl implements JsonSchema
             }
         }
         return result;
+    }
+
+    // the decoded enum candidates when every one is a scalar string, else null (canonical path)
+    private static String[] enumStrings(
+        JsonNode enumNode)
+    {
+        String[] result = null;
+        if (enumNode != null)
+        {
+            List<String> strings = new ArrayList<>();
+            boolean allStrings = true;
+            for (JsonNode candidate : enumNode.elements())
+            {
+                if (candidate.kind() == JsonNode.Kind.STRING)
+                {
+                    strings.add(candidate.string());
+                }
+                else
+                {
+                    allStrings = false;
+                    break;
+                }
+            }
+            result = allStrings ? strings.toArray(NO_KEYS) : null;
+        }
+        return result;
+    }
+
+    private static boolean containsString(
+        String[] candidates,
+        CharSequence value)
+    {
+        boolean found = false;
+        for (int i = 0; !found && i < candidates.length; i++)
+        {
+            found = charsEqual(candidates[i], value);
+        }
+        return found;
     }
 
     private static String canonicalizeNode(
@@ -2194,6 +2244,7 @@ public final class JsonSchemaImpl implements JsonSchema
         private UniqueCanon uniqueCanon;
         private boolean uniqueElement;
         private final UniqueCanon constCanon;
+        private boolean scalarStringOk;
         private Eval refEval;
         private Eval dynEval;
         // items/contains evals reused across this array's elements (reset on next use, not by reset())
@@ -2226,7 +2277,8 @@ public final class JsonSchemaImpl implements JsonSchema
             this.trace = trace;
             this.dynScope = context != null ? parentScope.push(context.base.toString()) : parentScope;
             this.annotate = context != null && is2019Plus(context.draft());
-            this.constCanon = constantCanon != null || enumCanons != null ? new UniqueCanon() : null;
+            this.constCanon = (constantCanon != null || enumCanons != null) && constString == null && enumStrings == null
+                ? new UniqueCanon() : null;
             // allOf branches must all match, so a failing branch is a genuine failure and reports
             // through the shared trace; the remaining combinators select among candidate branches
             // where a non-matching branch is expected, so they evaluate under Trace.NONE and only
@@ -2263,6 +2315,7 @@ public final class JsonSchemaImpl implements JsonSchema
             containsChild = null;
             containsMatched = 0;
             uniqueElement = false;
+            scalarStringOk = false;
             refEval = null;
             dynEval = null;
             currentKey = null;
@@ -2513,6 +2566,13 @@ public final class JsonSchemaImpl implements JsonSchema
                 break;
             case VALUE_STRING:
                 checkStringReport(parser);
+                if (constString != null || enumStrings != null)
+                {
+                    CharSequence value = parser.getStringView();
+                    scalarStringOk = constString != null
+                        ? charsEqual(constString, value)
+                        : containsString(enumStrings, value);
+                }
                 break;
             case VALUE_NUMBER:
                 checkNumberReport(parser);
@@ -3121,7 +3181,23 @@ public final class JsonSchemaImpl implements JsonSchema
                 valid = false;
                 trace.report("$dynamicRef", "instance failed dynamically referenced schema", parser);
             }
-            if (valid && constCanon != null)
+            if (valid && constString != null)
+            {
+                valid = scalarStringOk;
+                if (!valid)
+                {
+                    trace.report("const", "value does not equal const", parser);
+                }
+            }
+            else if (valid && enumStrings != null)
+            {
+                valid = scalarStringOk;
+                if (!valid)
+                {
+                    trace.report("enum", "value not in enum", parser);
+                }
+            }
+            else if (valid && constCanon != null)
             {
                 String canon = constCanon.result;
                 if (constantCanon != null && !constantCanon.equals(canon))

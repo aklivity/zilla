@@ -73,6 +73,19 @@ class JsonSchemaTest
     }
 
     @Test
+    void shouldValidateScalarStringConstAndEnumAgainstNonStrings()
+    {
+        // a non-string or structural instance never equals a scalar-string const/enum
+        assertFalse(valid("{\"const\":\"fixed\"}", "5"));
+        assertFalse(valid("{\"const\":\"fixed\"}", "true"));
+        assertFalse(valid("{\"const\":\"fixed\"}", "{\"fixed\":1}"));
+        assertFalse(valid("{\"const\":\"fixed\"}", "[\"fixed\"]"));
+        assertFalse(valid("{\"enum\":[\"a\",\"b\"]}", "5"));
+        assertFalse(valid("{\"enum\":[\"a\",\"b\"]}", "{}"));
+        assertTrue(valid("{\"enum\":[\"a\",\"b\"]}", "\"a\""));
+    }
+
+    @Test
     void shouldValidateNumericBounds()
     {
         assertTrue(valid("{\"minimum\":5,\"maximum\":10}", "5"));
