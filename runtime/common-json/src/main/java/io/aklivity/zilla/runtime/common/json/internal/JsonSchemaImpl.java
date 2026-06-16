@@ -1081,10 +1081,40 @@ public final class JsonSchemaImpl implements JsonSchema
     }
 
     private static String normalizeNumber(
-        String text)
+        CharSequence text)
     {
-        BigDecimal value = new BigDecimal(text);
-        return value.signum() == 0 ? "0" : value.stripTrailingZeros().toPlainString();
+        String result;
+        if (canonicalInteger(text))
+        {
+            // a plain integer literal already equals its stripTrailingZeros().toPlainString() form,
+            // so it is canonical as-is and needs no BigDecimal
+            result = text.toString();
+        }
+        else
+        {
+            BigDecimal value = new BigDecimal(text.toString());
+            result = value.signum() == 0 ? "0" : value.stripTrailingZeros().toPlainString();
+        }
+        return result;
+    }
+
+    private static boolean canonicalInteger(
+        CharSequence text)
+    {
+        int length = text.length();
+        boolean digits = length > 0;
+        for (int i = 0; digits && i < length; i++)
+        {
+            char c = text.charAt(i);
+            digits = c >= '0' && c <= '9' || i == 0 && c == '-';
+        }
+        boolean canonical = digits;
+        if (canonical && text.charAt(0) == '-')
+        {
+            // "-0" normalizes to "0" and a lone "-" is not a number, so neither is canonical as-is
+            canonical = length >= 2 && !(length == 2 && text.charAt(1) == '0');
+        }
+        return canonical;
     }
 
     private static URI baseOf(
@@ -1437,6 +1467,168 @@ public final class JsonSchemaImpl implements JsonSchema
         {
             this.event = event;
             this.text = text;
+        }
+    }
+
+    // Builds an array element's canonical text incrementally so a uniqueItems check needs neither a
+    // retained Token list nor a recursive pass. A scalar (the common uniqueItems case) yields its
+    // canonical String with no buffering; an array streams its elements into a reused buffer; only an
+    // object buffers its members, to sort them. The output matches canonicalize(List<Token>) — same
+    // quoting and number normalization — so duplicate detection is unchanged.
+    private static final class UniqueCanon
+    {
+        private static final int MAX_DEPTH = 64;
+
+        private final Frame[] frames = new Frame[MAX_DEPTH];
+        private final StringBuilder quoted = new StringBuilder();
+        private int depth;
+        private String result;
+
+        private void reset()
+        {
+            depth = 0;
+            result = null;
+        }
+
+        private void feed(
+            Event event,
+            JsonSource parser)
+        {
+            switch (event)
+            {
+            case START_OBJECT:
+                frame(depth++).begin(true);
+                break;
+            case START_ARRAY:
+                frame(depth++).begin(false);
+                break;
+            case END_OBJECT:
+            case END_ARRAY:
+                emit(frames[--depth].render());
+                break;
+            case KEY_NAME:
+                frames[depth - 1].key(quoted(parser.getStringView()));
+                break;
+            case VALUE_STRING:
+                emit(quoted(parser.getStringView()));
+                break;
+            case VALUE_NUMBER:
+                emit(normalizeNumber(parser.getStringView()));
+                break;
+            case VALUE_TRUE:
+                emit("true");
+                break;
+            case VALUE_FALSE:
+                emit("false");
+                break;
+            default:
+                emit("null");
+                break;
+            }
+        }
+
+        private void emit(
+            String canon)
+        {
+            if (depth == 0)
+            {
+                result = canon;
+            }
+            else
+            {
+                frames[depth - 1].add(canon);
+            }
+        }
+
+        private Frame frame(
+            int index)
+        {
+            Frame frame = frames[index];
+            if (frame == null)
+            {
+                frame = new Frame();
+                frames[index] = frame;
+            }
+            return frame;
+        }
+
+        // Mirrors quote(String): wraps in quotes and escapes only backslash and double-quote.
+        private String quoted(
+            CharSequence value)
+        {
+            StringBuilder out = quoted;
+            out.setLength(0);
+            out.append('"');
+            for (int i = 0; i < value.length(); i++)
+            {
+                char c = value.charAt(i);
+                if (c == '"' || c == '\\')
+                {
+                    out.append('\\');
+                }
+                out.append(c);
+            }
+            out.append('"');
+            return out.toString();
+        }
+    }
+
+    private static final class Frame
+    {
+        private final StringBuilder array = new StringBuilder();
+        private final List<String> members = new ArrayList<>();
+        private boolean object;
+        private boolean first;
+        private String key;
+
+        private void begin(
+            boolean object)
+        {
+            this.object = object;
+            this.first = true;
+            this.key = null;
+            array.setLength(0);
+            members.clear();
+        }
+
+        private void key(
+            String quotedKey)
+        {
+            this.key = quotedKey;
+        }
+
+        private void add(
+            String canon)
+        {
+            if (object)
+            {
+                members.add(key + ":" + canon);
+                key = null;
+            }
+            else
+            {
+                if (!first)
+                {
+                    array.append(',');
+                }
+                array.append(canon);
+                first = false;
+            }
+        }
+
+        private String render()
+        {
+            String result;
+            if (object)
+            {
+                members.sort(null);
+                result = "{" + String.join(",", members) + "}";
+            }
+            else
+            {
+                result = "[" + array + "]";
+            }
+            return result;
         }
     }
 
@@ -1806,7 +1998,8 @@ public final class JsonSchemaImpl implements JsonSchema
         private Eval containsChild;
         private int containsMatched;
         private Set<String> uniqueSeen;
-        private List<Token> uniqueTokens;
+        private UniqueCanon uniqueCanon;
+        private boolean uniqueElement;
         private final List<Token> valueTokens;
         private Eval refEval;
         private Eval dynEval;
@@ -2209,8 +2402,10 @@ public final class JsonSchemaImpl implements JsonSchema
                     if (uniqueSeen == null)
                     {
                         uniqueSeen = new HashSet<>();
+                        uniqueCanon = new UniqueCanon();
                     }
-                    uniqueTokens = new ArrayList<>();
+                    uniqueCanon.reset();
+                    uniqueElement = true;
                 }
                 if (itemValues != null)
                 {
@@ -2252,9 +2447,9 @@ public final class JsonSchemaImpl implements JsonSchema
             Event event,
             JsonSource parser)
         {
-            if (uniqueTokens != null)
+            if (uniqueElement)
             {
-                uniqueTokens.add(new Token(event, tokenText(event, parser)));
+                uniqueCanon.feed(event, parser);
             }
             if (childTokens != null)
             {
@@ -2308,14 +2503,14 @@ public final class JsonSchemaImpl implements JsonSchema
             {
                 directChild = null;
                 directChildren = null;
-                if (uniqueTokens != null)
+                if (uniqueElement)
                 {
-                    if (!uniqueSeen.add(canonicalize(uniqueTokens, new int[] {0})))
+                    if (!uniqueSeen.add(uniqueCanon.result))
                     {
                         directInvalid = true;
                         trace.report("uniqueItems", "duplicate array element", parser);
                     }
-                    uniqueTokens = null;
+                    uniqueElement = false;
                 }
                 if (childTokens != null)
                 {
