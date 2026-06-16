@@ -31,14 +31,12 @@ public interface JsonSource
     String getString();
 
     /**
-     * Non-owning, on-stack char view of the current scalar value (a number lexeme or a decoded string),
-     * valid only for the duration of the current event. The allocation-free counterpart to
-     * {@link #getString()} for stages that read or re-emit the value without retaining it.
+     * Non-owning, on-stack char view of the current scalar token — a decoded string value, a number
+     * lexeme, or an object key — valid only for the duration of the current event. The allocation-free
+     * counterpart to {@link #getString()} for stages that read or re-emit the value (or key) without
+     * retaining it.
      */
     CharSequence getStringView();
-
-    // valid only on a key event; non-owning, on-stack char view of the current key
-    CharSequence getKey();
 
     BigDecimal getBigDecimal();
 

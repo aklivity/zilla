@@ -450,9 +450,11 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
     @Override
     public CharSequence getStringView()
     {
-        assert lastEvent == JsonEvent.VALUE_STRING || lastEvent == JsonEvent.VALUE_NUMBER;
+        assert lastEvent == JsonEvent.VALUE_STRING || lastEvent == JsonEvent.VALUE_NUMBER ||
+            lastEvent == JsonEvent.KEY_NAME;
         // while rendering a structured scalar, expose the unconsumed char remainder so a resumed write
-        // continues from where the bounded output left off; otherwise the full decoded view
+        // continues from where the bounded output left off; otherwise (a key, or a fresh value) the full
+        // decoded view
         return charScalar()
             ? stringViewRO.wrap(tokenizer.stringView(), stringViewOffset)
             : tokenizer.stringView();
@@ -464,13 +466,6 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
     private boolean charScalar()
     {
         return lastEvent == JsonEvent.VALUE_NUMBER || lastEvent == JsonEvent.VALUE_STRING;
-    }
-
-    @Override
-    public CharSequence getKey()
-    {
-        assert lastEvent == JsonEvent.KEY_NAME;
-        return tokenizer.stringView();
     }
 
     @Override

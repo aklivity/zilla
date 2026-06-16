@@ -62,7 +62,7 @@ public final class JsonSinkImpl implements JsonSink
         switch (event)
         {
         case KEY_NAME:
-            generator.writeKey(source.getKey());
+            generator.writeKey(source.getStringView());
             break;
         case START_OBJECT:
             generator.writeStartObject();
