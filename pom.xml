@@ -250,6 +250,13 @@
     <pluginManagement>
       <plugins>
         <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-resources-plugin</artifactId>
+          <configuration>
+            <propertiesEncoding>${project.build.sourceEncoding}</propertiesEncoding>
+          </configuration>
+        </plugin>
+        <plugin>
           <groupId>org.jasig.maven</groupId>
           <artifactId>maven-notice-plugin</artifactId>
           <version>1.1.0</version>
