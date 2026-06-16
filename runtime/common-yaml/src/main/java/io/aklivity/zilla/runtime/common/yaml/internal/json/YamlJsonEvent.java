@@ -24,7 +24,11 @@ final class YamlJsonEvent
     final JsonParser.Event event;
     final String value;
     final YamlNode node;
-    final YamlJsonLocation location;
+
+    private final int line;
+    private final int column;
+    private final long offset;
+    private YamlJsonLocation location;
 
     YamlJsonEvent(
         JsonParser.Event event,
@@ -47,7 +51,9 @@ final class YamlJsonEvent
         this.event = event;
         this.value = value;
         this.node = node;
-        this.location = new YamlJsonLocation(new YamlLocation(line, column, offset));
+        this.line = line;
+        this.column = column;
+        this.offset = offset;
     }
 
     YamlJsonEvent(
@@ -60,5 +66,17 @@ final class YamlJsonEvent
         this.value = value;
         this.node = node;
         this.location = location;
+        this.line = (int) location.getLineNumber();
+        this.column = (int) location.getColumnNumber();
+        this.offset = location.getStreamOffset();
+    }
+
+    YamlJsonLocation location()
+    {
+        if (location == null)
+        {
+            location = new YamlJsonLocation(new YamlLocation(line, column, offset));
+        }
+        return location;
     }
 }
