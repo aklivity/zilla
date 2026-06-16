@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.binding.mcp.openapi.internal;
 
 import static io.aklivity.zilla.runtime.binding.mcp.openapi.internal.McpOpenapiConfiguration.MCP_OPENAPI_COMPOSITE_ROUTE_ID;
+import static io.aklivity.zilla.runtime.binding.mcp.openapi.internal.McpOpenapiConfiguration.MCP_OPENAPI_HTTP_CLIENT_EXIT;
 import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
@@ -22,10 +23,12 @@ import org.junit.Test;
 public class McpOpenapiConfigurationTest
 {
     public static final String MCP_OPENAPI_COMPOSITE_ROUTE_ID_NAME = "zilla.binding.mcp.openapi.composite.route.id";
+    public static final String MCP_OPENAPI_HTTP_CLIENT_EXIT_NAME = "zilla.binding.mcp.openapi.http.client.exit";
 
     @Test
     public void shouldVerifyConstants() throws Exception
     {
         assertEquals(MCP_OPENAPI_COMPOSITE_ROUTE_ID.name(), MCP_OPENAPI_COMPOSITE_ROUTE_ID_NAME);
+        assertEquals(MCP_OPENAPI_HTTP_CLIENT_EXIT.name(), MCP_OPENAPI_HTTP_CLIENT_EXIT_NAME);
     }
 }

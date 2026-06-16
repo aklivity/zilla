@@ -52,8 +52,10 @@ connected
 
 write '{"name":"create_pr","arguments":{"owner":"acme","repo":"widget","title":"Add feature","head":"feature","base":"main"}}'
 
+# no summary configured -> mcp_http sets content text to the compact projected JSON
 read  '{'
-        '"content":[{"type":"text","text":"Created pull request #42"}],'
+        '"content":[{"type":"text","text":'
+        '"{\\"number\\":42,\\"html_url\\":\\"https://github.com/acme/widget/pull/42\\",\\"state\\":\\"open\\",\\"title\\":\\"Add feature\\"}"}],'
         '"structuredContent":{"number":42,"html_url":"https://github.com/acme/widget/pull/42","state":"open","title":"Add feature"},'
         '"isError":false'
       '}'

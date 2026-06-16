@@ -107,7 +107,7 @@ public class McpOpenapiCompositeGeneratorTest
     @Mock
     private CatalogHandler catalog;
 
-    private final McpOpenapiCompositeGenerator generator = new McpOpenapiCompositeGenerator();
+    private final McpOpenapiCompositeGenerator generator = new McpOpenapiCompositeGenerator("sys:http_client");
 
     @Before
     public void initMocks()
@@ -153,6 +153,8 @@ public class McpOpenapiCompositeGeneratorTest
 
         assertThat(mcpHttpOptions.resources, notNullValue());
         assertThat(mcpHttpOptions.resources.get(0).uri, equalTo("/repos/{owner}/{repo}"));
+
+        assertThat(mcpHttp.routes.get(0).exit, equalTo("sys:http_client"));
 
         McpHttpWithConfig toolWith = withForMethod(mcpHttp, "POST");
         assertThat(toolWith, notNullValue());
