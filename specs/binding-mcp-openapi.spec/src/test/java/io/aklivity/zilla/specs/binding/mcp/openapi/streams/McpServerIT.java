@@ -71,4 +71,31 @@ public class McpServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${mcp}/create.pr.10k/client",
+        "${mcp}/create.pr.10k/server"})
+    public void shouldCallToolCreatePr10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mcp}/create.pr.aborted/client",
+        "${mcp}/create.pr.aborted/server"})
+    public void shouldAbortToolCreatePr() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mcp}/create.pr.error/client",
+        "${mcp}/create.pr.error/server"})
+    public void shouldRejectToolCreatePr() throws Exception
+    {
+        k3po.finish();
+    }
 }
