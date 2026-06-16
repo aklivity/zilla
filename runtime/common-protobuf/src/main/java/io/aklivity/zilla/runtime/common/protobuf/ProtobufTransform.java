@@ -31,17 +31,19 @@ public interface ProtobufTransform
         ProtobufSink sink);
 
     /**
-     * Continues after a prior {@link #feed} returned {@link ProtobufPipeline.Status#SUSPENDED}. The default
-     * forwards to {@code sink.resume(control, source)}, so a stage that does not originate suspension needs
-     * no awareness of it; a stage that returns {@code SUSPENDED} on its own (e.g. to emit buffered events)
+     * Continues after a prior {@link #feed} returned {@link ProtobufPipeline.Status#SUSPENDED}, with the
+     * {@code event} that suspended supplied by the pump. The default forwards to
+     * {@code sink.resume(control, source, event)}, so a stage that does not originate suspension needs no
+     * awareness of it; a stage that returns {@code SUSPENDED} on its own (e.g. to emit buffered events)
      * overrides this to drive its own resumption before delegating downstream.
      */
     default ProtobufPipeline.Status resume(
         ProtobufController control,
         ProtobufSource source,
+        ProtobufEvent event,
         ProtobufSink sink)
     {
-        return sink.resume(control, source);
+        return sink.resume(control, source, event);
     }
 
     default void reset()

@@ -20,6 +20,10 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.io.FileMatchers.anExistingFile;
 
 import java.io.File;
+import java.io.InputStream;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Properties;
 
 import org.junit.Test;
 
@@ -30,12 +34,22 @@ import io.aklivity.zilla.manager.internal.ZpmCli;
 public class ZpmInstallTest
 {
     @Test
-    public void shouldInstallEngine()
+    public void shouldInstallEngine() throws Exception
     {
+        Properties versions = new Properties();
+        try (InputStream resource = getClass().getResourceAsStream("/conf/install/version.properties"))
+        {
+            versions.load(resource);
+        }
+        String version = versions.getProperty("project.version");
+        String agronaVersion = versions.getProperty("agrona.version");
+
+        Path configDir = Paths.get(getClass().getResource("/conf/install/zpm.json").toURI()).getParent();
+
         String[] args =
         {
             "install",
-            "--config-directory", "src/conf/install",
+            "--config-directory", configDir.toString(),
             "--lock-directory", "target/test-locks/install",
             "--output-directory", "target/zpm",
             "--launcher-directory", "target",
@@ -48,11 +62,15 @@ public class ZpmInstallTest
         install.run();
 
         assertThat(install, instanceOf(ZpmInstall.class));
-        assertThat(new File("src/conf/install/zpm.json"), anExistingFile());
+        assertThat(configDir.resolve("zpm.json").toFile(), anExistingFile());
         assertThat(new File("target/test-locks/install/zpm-lock.json"), anExistingFile());
-        assertThat(new File("target/zpm/cache/io/aklivity/zilla/engine/0.9.5/engine-0.9.5.jar"), anExistingFile());
-        assertThat(new File("target/zpm/cache/io/aklivity/zilla/binding-tcp/0.9.5/binding-tcp-0.9.5.jar"), anExistingFile());
-        assertThat(new File("target/zpm/cache/io/aklivity/zilla/binding-tls/0.9.5/binding-tls-0.9.5.jar"), anExistingFile());
-        assertThat(new File("target/zpm/cache/org/agrona/agrona/1.6.0/agrona-1.6.0.jar"), anExistingFile());
+        assertThat(new File(String.format("target/zpm/cache/io/aklivity/zilla/engine/%1$s/engine-%1$s.jar", version)),
+            anExistingFile());
+        assertThat(new File(String.format("target/zpm/cache/io/aklivity/zilla/binding-tcp/%1$s/binding-tcp-%1$s.jar", version)),
+            anExistingFile());
+        assertThat(new File(String.format("target/zpm/cache/io/aklivity/zilla/binding-tls/%1$s/binding-tls-%1$s.jar", version)),
+            anExistingFile());
+        assertThat(new File(String.format("target/zpm/cache/org/agrona/agrona/%1$s/agrona-%1$s.jar", agronaVersion)),
+            anExistingFile());
     }
 }

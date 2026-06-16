@@ -52,6 +52,7 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
     private int depth;
     private int limit;
     private int segmentRemaining;
+    private int consumed;
     private boolean needsReopen;
     private boolean flushed;
 
@@ -90,6 +91,7 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
             segmentRemaining = 0;
             needsReopen = false;
         }
+        consumed = 0;
         return this;
     }
 
@@ -97,6 +99,12 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
     public int length()
     {
         return writer.length();
+    }
+
+    @Override
+    public int consumed()
+    {
+        return consumed;
     }
 
     @Override
@@ -317,14 +325,22 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
     {
         if (segmentRemaining == 0)
         {
+            int total = length + deferred;
+            int header = varintSize((long) field << 3) + varintSize(total);
+            if (remaining() < header + 1)
+            {
+                // not even the tag, length prefix, and one body byte fit; take nothing so the caller drains
+                return this;
+            }
             reopen();
             writer.writeTag(field, ProtobufWireType.LEN);
-            int total = length + deferred;
             writer.writeVarint32(total);
             segmentRemaining = total;
         }
-        writer.writeRaw(value, offset, length);
-        segmentRemaining -= length;
+        int now = Math.min(length, remaining());
+        writer.writeRaw(value, offset, now);
+        segmentRemaining -= now;
+        consumed += now;
         if (segmentRemaining == 0)
         {
             completeSegment();
