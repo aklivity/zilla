@@ -65,8 +65,8 @@ public final class ProtobufJson
      * {@code optional}, message, {@code oneof}) stay omitted when unset. Mirrors {@code protobuf-java}'s
      * {@code JsonFormat.Printer.includingDefaultValueFields()}.
      */
-    public static final String GENERATE_DEFAULTS =
-        "io.aklivity.zilla.runtime.common.protobuf.json.generate.defaults";
+    public static final String INCLUDE_DEFAULTS =
+        "io.aklivity.zilla.runtime.common.protobuf.json.include.defaults";
 
     /**
      * The name rendered as each JSON object key: the proto3 json name (lowerCamelCase) or the proto field
@@ -111,8 +111,8 @@ public final class ProtobufJson
 
     /**
      * As {@link #generator(JsonGeneratorEx, ProtobufSchema, String)}, configured for {@code protobuf-java}
-     * {@code JsonFormat} compatibility via {@code config} — see {@link #GENERATE_PROTO_FIELD_NAMES} and
-     * {@link #GENERATE_DEFAULTS}. Fields are emitted in wire order (not field-number order), which is
+     * {@code JsonFormat} compatibility via {@code config} — see {@link #FIELD_NAMES} and
+     * {@link #INCLUDE_DEFAULTS}. Fields are emitted in wire order (not field-number order), which is
      * semantically equivalent JSON.
      */
     public static ProtobufGenerator generator(
@@ -122,7 +122,7 @@ public final class ProtobufJson
         Map<String, ?> config)
     {
         boolean protoFieldNames = config.get(FIELD_NAMES) == FieldNames.PROTO;
-        boolean includeDefaults = Boolean.TRUE.equals(config.get(GENERATE_DEFAULTS));
+        boolean includeDefaults = Boolean.TRUE.equals(config.get(INCLUDE_DEFAULTS));
         return new ProtobufJsonGeneratorImpl(generator, schema, messageName, protoFieldNames, includeDefaults);
     }
 

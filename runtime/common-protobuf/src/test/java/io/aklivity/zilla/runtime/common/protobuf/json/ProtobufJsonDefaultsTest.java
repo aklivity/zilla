@@ -144,7 +144,7 @@ public class ProtobufJsonDefaultsTest
         Map<String, Object> config = new HashMap<>();
         config.put(ProtobufJson.FIELD_NAMES,
             protoFieldNames ? ProtobufJson.FieldNames.PROTO : ProtobufJson.FieldNames.JSON);
-        config.put(ProtobufJson.GENERATE_DEFAULTS, includeDefaults);
+        config.put(ProtobufJson.INCLUDE_DEFAULTS, includeDefaults);
         MutableDirectBuffer out = new UnsafeBuffer(new byte[8192]);
         ProtobufGenerator generator =
             ProtobufJson.generator(JsonEx.createGenerator(), schema, messageName, config);
