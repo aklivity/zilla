@@ -95,4 +95,34 @@ public class McpOpenapiProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mcp}/create.pr.10k/client",
+        "${http}/create.pr.10k/server"})
+    public void shouldCallToolCreatePr10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mcp}/create.pr.aborted/client",
+        "${http}/create.pr.aborted/server"})
+    public void shouldAbortToolCreatePr() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mcp}/create.pr.error/client",
+        "${http}/create.pr.error/server"})
+    public void shouldRejectToolCreatePr() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -53,4 +53,31 @@ public class HttpClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${http}/create.pr.10k/client",
+        "${http}/create.pr.10k/server"})
+    public void shouldProxyCreatePr10kToHttp() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/create.pr.aborted/client",
+        "${http}/create.pr.aborted/server"})
+    public void shouldProxyCreatePrAbortedToHttp() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/create.pr.error/client",
+        "${http}/create.pr.error/server"})
+    public void shouldProxyCreatePrErrorToHttp() throws Exception
+    {
+        k3po.finish();
+    }
 }
