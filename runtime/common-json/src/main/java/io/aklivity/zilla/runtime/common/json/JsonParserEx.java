@@ -83,10 +83,34 @@ public interface JsonParserEx extends JsonParser
     boolean hasNextEvent();
 
     /**
-     * Advances and returns the next {@link JsonEvent} of the pipeline event stream — a superset of the
-     * standard {@code jakarta.json.stream.JsonParser.Event} adding document framing and segment delivery.
+     * How {@link #nextEvent(Mode)} delivers the value at the current boundary: {@code STRUCTURED} emits the
+     * typed event stream; {@code SEGMENTED} opts the value (and its descendants) in to verbatim delivery as a
+     * {@link JsonEvent#segmented()} run, read via {@link #getSegment()}. Best-effort and consulted only at a
+     * value boundary; for every other event it is ignored.
      */
-    JsonEvent nextEvent();
+    enum Mode
+    {
+        STRUCTURED,
+        SEGMENTED
+    }
+
+    /**
+     * Advances and returns the next {@link JsonEvent} in {@link Mode#STRUCTURED} mode.
+     */
+    default JsonEvent nextEvent()
+    {
+        return nextEvent(Mode.STRUCTURED);
+    }
+
+    /**
+     * Advances and returns the next {@link JsonEvent} of the pipeline event stream — a superset of the
+     * standard {@code jakarta.json.stream.JsonParser.Event} adding document framing and segment delivery. At a
+     * value boundary {@code mode} chooses structured events ({@link Mode#STRUCTURED}) or a verbatim segment run
+     * ({@link Mode#SEGMENTED}); elsewhere it is ignored. This is the mode-driven peer of a stage's
+     * {@link JsonController#segmentable()}, so the segment request need not narrow onto the parser surface.
+     */
+    JsonEvent nextEvent(
+        Mode mode);
 
     /**
      * A non-owning, on-stack {@link CharSequence} view of the current scalar token — a string value, a
@@ -97,4 +121,30 @@ public interface JsonParserEx extends JsonParser
      * so a caller holding a {@code JsonParserEx} reads scalars without narrowing to {@link JsonSource}.
      */
     CharSequence getStringView();
+
+    /**
+     * Valid only when the current event is {@link JsonEvent#segmented()}; non-owning view of the current
+     * contiguous slice, valid on-stack only. The {@link JsonSource#getSegment()} accessor promoted onto the
+     * parser surface so a pipeline exposes it to a stage without narrowing to {@link JsonSource}.
+     */
+    DirectBuffer getSegment();
+
+    /**
+     * Whether the current value has bytes still deferred to later events — {@code true} while more of this same
+     * value follows (the value is being streamed across input frames because it exceeds the input window),
+     * {@code false} when this event completes it. The {@link JsonSource#deferredBytes()} accessor promoted onto
+     * the parser surface.
+     */
+    boolean deferredBytes();
+
+    /**
+     * Reports {@code sourceBytes} source bytes consumed by a verbatim segment write so the parser advances its
+     * {@link #position()} and re-exposes the value remainder on resume — the output-side pushback that lets a
+     * terminal sink stream a length-delimited value without keeping its own offset. The default does nothing,
+     * for a parser whose values are never delivered in bounded pieces.
+     */
+    default void consumed(
+        int sourceBytes)
+    {
+    }
 }
