@@ -84,6 +84,25 @@ public interface JsonSchema
         Consumer<JsonSchemaDiagnostic> reporter);
 
     /**
+     * Returns a reusable validator bound to this schema. The schema stays immutable and may be shared
+     * across worker threads; the returned {@link Evaluator} carries the mutable per-validation state and
+     * so is confined to a single worker, which holds one and reuses it across messages. Each
+     * {@link Evaluator#validate(JsonParser)} resets and replays one evaluator rather than allocating a
+     * fresh tree per message, the reuse counterpart to the stateless {@link #validate(JsonParser)}.
+     */
+    Evaluator newEvaluator();
+
+    interface Evaluator
+    {
+        boolean validate(
+            JsonParser parser);
+
+        boolean validate(
+            JsonParser parser,
+            Consumer<JsonSchemaDiagnostic> reporter);
+    }
+
+    /**
      * Wraps {@code parser} in a validating {@link JsonParser} that validates the delegated event
      * stream against this schema in a single pass as the caller pulls events. This replaces the
      * justify {@code JsonValidationService.createJsonProvider(schema, throwing).createParser(...)}

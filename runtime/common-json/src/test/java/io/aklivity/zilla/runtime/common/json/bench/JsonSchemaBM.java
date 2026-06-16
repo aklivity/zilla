@@ -116,14 +116,16 @@ public class JsonSchemaBM
     private final DirectBufferInputStreamEx inputRO = new DirectBufferInputStreamEx();
     private final JsonParserEx parser = JsonEx.createParser(inputRO);
 
-    private JsonSchema flatObjectSchema;
-    private JsonSchema arrayObjectsSchema;
-    private JsonSchema oneOfSchema;
-    private JsonSchema containsSchema;
-    private JsonSchema typedIntegersSchema;
-    private JsonSchema boundedNumbersSchema;
-    private JsonSchema uniqueScalarsSchema;
-    private JsonSchema uniqueObjectsSchema;
+    // a worker holds one reusable evaluator per schema (the schema stays immutable/shareable); each op
+    // reuses it, the production-representative counterpart to the stateless JsonSchema.validate()
+    private JsonSchema.Evaluator flatObjectSchema;
+    private JsonSchema.Evaluator arrayObjectsSchema;
+    private JsonSchema.Evaluator oneOfSchema;
+    private JsonSchema.Evaluator containsSchema;
+    private JsonSchema.Evaluator typedIntegersSchema;
+    private JsonSchema.Evaluator boundedNumbersSchema;
+    private JsonSchema.Evaluator uniqueScalarsSchema;
+    private JsonSchema.Evaluator uniqueObjectsSchema;
 
     private UnsafeBuffer flatObjectBuffer;
     private UnsafeBuffer arrayObjectsBuffer;
@@ -144,14 +146,14 @@ public class JsonSchemaBM
     @Setup(Level.Trial)
     public void init()
     {
-        flatObjectSchema = JsonSchema.of(FLAT_OBJECT_SCHEMA);
-        arrayObjectsSchema = JsonSchema.of(ARRAY_OBJECTS_SCHEMA);
-        oneOfSchema = JsonSchema.of(ONE_OF_SCHEMA);
-        containsSchema = JsonSchema.of(CONTAINS_SCHEMA);
-        typedIntegersSchema = JsonSchema.of(TYPED_INTEGERS_SCHEMA);
-        boundedNumbersSchema = JsonSchema.of(BOUNDED_NUMBERS_SCHEMA);
-        uniqueScalarsSchema = JsonSchema.of(UNIQUE_SCALARS_SCHEMA);
-        uniqueObjectsSchema = JsonSchema.of(UNIQUE_OBJECTS_SCHEMA);
+        flatObjectSchema = JsonSchema.of(FLAT_OBJECT_SCHEMA).newEvaluator();
+        arrayObjectsSchema = JsonSchema.of(ARRAY_OBJECTS_SCHEMA).newEvaluator();
+        oneOfSchema = JsonSchema.of(ONE_OF_SCHEMA).newEvaluator();
+        containsSchema = JsonSchema.of(CONTAINS_SCHEMA).newEvaluator();
+        typedIntegersSchema = JsonSchema.of(TYPED_INTEGERS_SCHEMA).newEvaluator();
+        boundedNumbersSchema = JsonSchema.of(BOUNDED_NUMBERS_SCHEMA).newEvaluator();
+        uniqueScalarsSchema = JsonSchema.of(UNIQUE_SCALARS_SCHEMA).newEvaluator();
+        uniqueObjectsSchema = JsonSchema.of(UNIQUE_OBJECTS_SCHEMA).newEvaluator();
 
         byte[] flatObjectBytes = FLAT_OBJECT_INSTANCE.getBytes(UTF_8);
         byte[] arrayObjectsBytes = ARRAY_OBJECTS_INSTANCE.getBytes(UTF_8);

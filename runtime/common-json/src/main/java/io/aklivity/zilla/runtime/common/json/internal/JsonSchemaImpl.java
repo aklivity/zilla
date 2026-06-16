@@ -156,12 +156,6 @@ public final class JsonSchemaImpl implements JsonSchema
 
     private List<String> retainedPaths;
 
-    // the no-reporter validate() evaluator and its source view, reused across messages: a compiled schema
-    // is owned by one worker (per-handler cache), so successive validate() calls reset and replay one
-    // evaluator tree rather than building a fresh one per message
-    private Eval rootEval;
-    private final ParserSource parserSource = new ParserSource();
-
     public static JsonSchema of(
         String schema)
     {
@@ -213,22 +207,15 @@ public final class JsonSchemaImpl implements JsonSchema
     public boolean validate(
         JsonParser parser)
     {
-        // reset-on-entry leaves a thrown prior validation's partial state harmless
-        if (rootEval == null)
-        {
-            rootEval = eval();
-        }
-        else
-        {
-            rootEval.reset();
-        }
-        JsonSource source = parserSource.wrap(parser);
-        Verdict verdict = Verdict.PENDING;
-        while (parser.hasNext() && verdict == Verdict.PENDING)
-        {
-            verdict = rootEval.feed(parser.next(), source);
-        }
-        return verdict == Verdict.VALID;
+        // stateless: a fresh evaluator per call keeps the schema immutable and shareable; a single
+        // worker validating repeatedly should hold a newEvaluator() and reuse it instead
+        return drive(eval(), new ParserSource().wrap(parser), parser);
+    }
+
+    @Override
+    public Evaluator newEvaluator()
+    {
+        return new SchemaEvaluator();
     }
 
     /**
@@ -241,14 +228,53 @@ public final class JsonSchemaImpl implements JsonSchema
         Consumer<JsonSchemaDiagnostic> reporter)
     {
         Trace trace = new Trace(reporter);
-        Eval eval = eval(trace);
-        JsonSource source = parserSource.wrap(parser);
+        return drive(eval(trace), new ParserSource().wrap(parser), parser);
+    }
+
+    private static boolean drive(
+        Eval eval,
+        JsonSource source,
+        JsonParser parser)
+    {
         Verdict verdict = Verdict.PENDING;
         while (parser.hasNext() && verdict == Verdict.PENDING)
         {
             verdict = eval.feed(parser.next(), source);
         }
         return verdict == Verdict.VALID;
+    }
+
+    // Per-worker reuse handle: holds the mutable evaluator and source view so the immutable schema can be
+    // shared across workers. Confined to one worker; resets the evaluator on entry so a prior validation
+    // that threw leaves no partial state.
+    private final class SchemaEvaluator implements Evaluator
+    {
+        private final ParserSource source = new ParserSource();
+        private Eval eval;
+
+        @Override
+        public boolean validate(
+            JsonParser parser)
+        {
+            if (eval == null)
+            {
+                eval = eval();
+            }
+            else
+            {
+                eval.reset();
+            }
+            return drive(eval, source.wrap(parser), parser);
+        }
+
+        @Override
+        public boolean validate(
+            JsonParser parser,
+            Consumer<JsonSchemaDiagnostic> reporter)
+        {
+            // the reporter's Trace varies per call, so this overload evaluates fresh
+            return drive(eval(new Trace(reporter)), source.wrap(parser), parser);
+        }
     }
 
     @Override

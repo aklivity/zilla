@@ -228,18 +228,19 @@ class JsonSchemaTest
     @Test
     void shouldReuseEvaluatorAcrossValidations()
     {
-        // one compiled schema validated repeatedly exercises the pooled, reset-between-calls evaluator;
+        // a reusable evaluator validated repeatedly exercises the reset-between-calls reuse path;
         // interleave valid and invalid instances across cycles to catch any state carried between calls
         JsonSchema schema = JsonSchema.of("{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"integer\"}," +
             "\"tags\":{\"type\":\"array\",\"uniqueItems\":true}},\"required\":[\"id\"],\"additionalProperties\":false}");
+        JsonSchema.Evaluator evaluator = schema.newEvaluator();
         for (int i = 0; i < 3; i++)
         {
-            assertTrue(schema.validate(parserFor("{\"id\":1,\"tags\":[1,2,3]} ")));
-            assertFalse(schema.validate(parserFor("{\"id\":1,\"tags\":[2,2]} ")));
-            assertFalse(schema.validate(parserFor("{\"tags\":[1]} ")));
-            assertFalse(schema.validate(parserFor("{\"id\":\"x\"} ")));
-            assertFalse(schema.validate(parserFor("{\"id\":1,\"extra\":true} ")));
-            assertTrue(schema.validate(parserFor("{\"id\":2} ")));
+            assertTrue(evaluator.validate(parserFor("{\"id\":1,\"tags\":[1,2,3]} ")));
+            assertFalse(evaluator.validate(parserFor("{\"id\":1,\"tags\":[2,2]} ")));
+            assertFalse(evaluator.validate(parserFor("{\"tags\":[1]} ")));
+            assertFalse(evaluator.validate(parserFor("{\"id\":\"x\"} ")));
+            assertFalse(evaluator.validate(parserFor("{\"id\":1,\"extra\":true} ")));
+            assertTrue(evaluator.validate(parserFor("{\"id\":2} ")));
         }
     }
 
