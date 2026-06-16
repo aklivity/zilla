@@ -56,7 +56,7 @@ import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx.Completion;
  * schema strings; {@code string} content and base64 are written through a reused {@link CharText} view; the
  * frame stack and coalescing buffer are reused and grow only past the largest value seen.
  */
-public final class AvroJsonGenerator implements AvroGenerator
+public final class AvroJsonGeneratorImpl implements AvroGenerator
 {
     private static final int RECORD = 0;
     private static final int ARRAY = 1;
@@ -82,7 +82,7 @@ public final class AvroJsonGenerator implements AvroGenerator
     private boolean valueOpen;
     private AvroKind valueKind;
 
-    public AvroJsonGenerator(
+    public AvroJsonGeneratorImpl(
         AvroSchema schema,
         JsonGeneratorEx json)
     {

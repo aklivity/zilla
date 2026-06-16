@@ -58,7 +58,7 @@ import io.aklivity.zilla.runtime.common.json.JsonParserEx;
  * {@code fixed} of the wrong size) raises {@link AvroValidationException}, reported as a clean reject. Reuse
  * a single instance per worker thread; not thread-safe.
  */
-public final class AvroJsonParser implements AvroParser, AvroLocation
+public final class AvroJsonParserImpl implements AvroParser, AvroLocation
 {
     private static final int NOT_STARTED = 0;
     private static final int RUNNING = 1;
@@ -92,7 +92,7 @@ public final class AvroJsonParser implements AvroParser, AvroLocation
     private AvroType currentType;
     private int segmentConsumed;
 
-    public AvroJsonParser(
+    public AvroJsonParserImpl(
         AvroSchema schema,
         JsonParserEx json)
     {

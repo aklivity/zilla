@@ -20,8 +20,8 @@ import io.aklivity.zilla.runtime.common.avro.AvroParser;
 import io.aklivity.zilla.runtime.common.avro.AvroSchema;
 import io.aklivity.zilla.runtime.common.avro.AvroSink;
 import io.aklivity.zilla.runtime.common.avro.AvroStream;
-import io.aklivity.zilla.runtime.common.avro.internal.json.AvroJsonGenerator;
-import io.aklivity.zilla.runtime.common.avro.internal.json.AvroJsonParser;
+import io.aklivity.zilla.runtime.common.avro.internal.json.AvroJsonGeneratorImpl;
+import io.aklivity.zilla.runtime.common.avro.internal.json.AvroJsonParserImpl;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 
@@ -70,7 +70,7 @@ public final class AvroJson
         AvroSchema schema,
         JsonParserEx parser)
     {
-        return new AvroJsonParser(schema, parser);
+        return new AvroJsonParserImpl(schema, parser);
     }
 
     /**
@@ -96,6 +96,6 @@ public final class AvroJson
         AvroSchema schema,
         JsonGeneratorEx generator)
     {
-        return new AvroJsonGenerator(schema, generator);
+        return new AvroJsonGeneratorImpl(schema, generator);
     }
 }
