@@ -49,10 +49,14 @@ import io.aklivity.zilla.runtime.common.yaml.internal.YamlScalarNode;
 
 public final class YamlJsonParser implements JsonParser
 {
+    private static final Map<String, ?> JSON_AS_YAML_DEFAULTS = Map.of(YamlConfig.FEATURE_NON_SCALAR_KEYS, false);
+
     private final Deque<Frame> stack;
     private final String text;
     private final Map<String, ?> config;
     private final boolean uniqueKeys;
+    private final YamlJsonEvent eventA = new YamlJsonEvent();
+    private final YamlJsonEvent eventB = new YamlJsonEvent();
     private YamlJsonLocation end;
     private long documentOffset;
     private YamlJsonEvent current;
@@ -128,13 +132,18 @@ public final class YamlJsonParser implements JsonParser
     private static Map<String, ?> jsonAsYamlConfig(
         Map<String, ?> config)
     {
-        Map<String, Object> effective = new HashMap<>();
-        if (config != null)
+        Map<String, ?> effective;
+        if (config == null || config.isEmpty())
         {
-            effective.putAll(config);
+            effective = JSON_AS_YAML_DEFAULTS;
         }
-        effective.put(YamlConfig.FEATURE_NON_SCALAR_KEYS, false);
-        return Map.copyOf(effective);
+        else
+        {
+            Map<String, Object> merged = new HashMap<>(config);
+            merged.put(YamlConfig.FEATURE_NON_SCALAR_KEYS, false);
+            effective = Map.copyOf(merged);
+        }
+        return effective;
     }
 
     @Override
@@ -216,7 +225,7 @@ public final class YamlJsonParser implements JsonParser
     @Override
     public JsonLocation getLocation()
     {
-        return exhausted ? end : current != null ? current.location : end;
+        return exhausted ? end : current != null ? current.location() : end;
     }
 
     @Override
@@ -238,11 +247,20 @@ public final class YamlJsonParser implements JsonParser
     @Override
     public JsonValue getValue()
     {
-        if (current == null || current.node == null)
+        JsonValue value;
+        if (current != null && current.node != null)
+        {
+            value = toJsonValue(current.node);
+        }
+        else if (current != null && current.event == Event.KEY_NAME && current.value != null)
+        {
+            value = YamlJsonValues.string(current.value);
+        }
+        else
         {
             throw new IllegalStateException("No value is available for current event");
         }
-        return toJsonValue(current.node);
+        return value;
     }
 
     @Override
@@ -341,9 +359,7 @@ public final class YamlJsonParser implements JsonParser
                     YamlEntry entry = object.entries.get(frame.index);
                     String name = jsonKeyName(entry);
                     frame.value = true;
-                    return event(Event.KEY_NAME, name,
-                        YamlScalarNode.string(name, entry.line, entry.column, entry.offset),
-                        entry.line, entry.column, entry.offset);
+                    return event(Event.KEY_NAME, name, null, entry.line, entry.column, entry.offset);
                 }
 
                 boolean root = stack.size() == 1;
@@ -513,7 +529,7 @@ public final class YamlJsonParser implements JsonParser
         int column,
         long offset)
     {
-        return new YamlJsonEvent(event, value, node, line, column, documentOffset + offset);
+        return freeEvent().set(event, value, node, line, column, documentOffset + offset);
     }
 
     private YamlJsonEvent eventAtEnd(
@@ -521,7 +537,12 @@ public final class YamlJsonParser implements JsonParser
         String value,
         YamlNode node)
     {
-        return new YamlJsonEvent(event, value, node, end);
+        return freeEvent().set(event, value, node, end);
+    }
+
+    private YamlJsonEvent freeEvent()
+    {
+        return current == eventA ? eventB : eventA;
     }
 
     private static YamlJsonLocation location(

@@ -450,8 +450,11 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
     @Override
     public CharSequence getStringView()
     {
+        // valid on both drives: the pump tracks lastEvent, a jakarta next() tracks currentEvent
         assert lastEvent == JsonEvent.VALUE_STRING || lastEvent == JsonEvent.VALUE_NUMBER ||
-            lastEvent == JsonEvent.KEY_NAME;
+            lastEvent == JsonEvent.KEY_NAME ||
+            currentEvent == Event.VALUE_STRING || currentEvent == Event.VALUE_NUMBER ||
+            currentEvent == Event.KEY_NAME;
         // while rendering a structured scalar, expose the unconsumed char remainder so a resumed write
         // continues from where the bounded output left off; otherwise (a key, or a fresh value) the full
         // decoded view
@@ -517,11 +520,11 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
         return new BigDecimal(numberLexeme().toString());
     }
 
-    // The current number's full lexeme: a fragmented number's is accumulated in the tokenizer across
-    // its fragments; an unfragmented one is the current scratch value.
+    // the current number's full lexeme; the char view (not stringValue()), so a caller that only scans
+    // it — e.g. isIntegralNumber() — materializes no String
     private CharSequence numberLexeme()
     {
-        return tokenizer.numberFragmented() ? tokenizer.numberLexeme() : tokenizer.stringValue();
+        return tokenizer.numberFragmented() ? tokenizer.numberLexeme() : tokenizer.stringView();
     }
 
     @Override
@@ -556,7 +559,7 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
         case START_OBJECT -> getObject();
         case START_ARRAY -> getArray();
         case VALUE_STRING, KEY_NAME -> JsonValues.string(getString());
-        case VALUE_NUMBER -> JsonValues.number(getBigDecimal());
+        case VALUE_NUMBER -> JsonValues.numberLiteral(numberLexeme().toString());
         case VALUE_TRUE -> JsonValue.TRUE;
         case VALUE_FALSE -> JsonValue.FALSE;
         case VALUE_NULL -> JsonValue.NULL;

@@ -16,6 +16,8 @@ module io.aklivity.zilla.runtime.common.avro
 {
     requires transitive jakarta.json;
     requires transitive org.agrona;
+    requires transitive io.aklivity.zilla.runtime.common.json;
 
     exports io.aklivity.zilla.runtime.common.avro;
+    exports io.aklivity.zilla.runtime.common.avro.json;
 }

@@ -114,6 +114,26 @@ public final class ProtobufMessage
         return fieldByJsonName.get(jsonNameOrName);
     }
 
+    /**
+     * Resolves a field by its proto3 json name or proto name from a non-owning {@link CharSequence} (e.g. a
+     * parser's key view), without materializing a {@code String} for the lookup. Scans in declaration order,
+     * preferring a json-name match; returns {@code null} when no field matches.
+     */
+    public ProtobufField field(
+        CharSequence jsonNameOrName)
+    {
+        ProtobufField match = null;
+        for (int i = 0; match == null && i < fields.size(); i++)
+        {
+            ProtobufField field = fields.get(i);
+            if (field.jsonName().contentEquals(jsonNameOrName) || field.name().contentEquals(jsonNameOrName))
+            {
+                match = field;
+            }
+        }
+        return match;
+    }
+
     public ProtobufField mapKey()
     {
         return fieldByNumber.get(1);

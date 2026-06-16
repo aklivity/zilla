@@ -14,14 +14,15 @@
  */
 package io.aklivity.zilla.runtime.common.yaml.internal;
 
+import static io.aklivity.zilla.runtime.common.yaml.internal.YamlGeneratorStack.ARRAY_ELEMENT;
+import static io.aklivity.zilla.runtime.common.yaml.internal.YamlGeneratorStack.OBJECT_VALUE;
+import static io.aklivity.zilla.runtime.common.yaml.internal.YamlGeneratorStack.ROOT;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
-import java.util.ArrayDeque;
-import java.util.Deque;
 
 import io.aklivity.zilla.runtime.common.yaml.YamlDocument;
 import io.aklivity.zilla.runtime.common.yaml.YamlGenerator;
@@ -32,9 +33,9 @@ public final class YamlGeneratorImpl implements YamlGenerator
 {
     private final Writer writer;
     private final YamlConfiguration config;
-    private final Deque<Context> stack;
-    private YamlNode rootNode;
-    private boolean written;
+    private final YamlGeneratorStack stack;
+    private final char[] numberBuffer;
+    private boolean started;
     private boolean closed;
 
     public YamlGeneratorImpl(
@@ -49,7 +50,8 @@ public final class YamlGeneratorImpl implements YamlGenerator
     {
         this.writer = writer;
         this.config = config;
-        this.stack = new ArrayDeque<>();
+        this.stack = new YamlGeneratorStack();
+        this.numberBuffer = new char[20];
     }
 
     public YamlGeneratorImpl(
@@ -61,8 +63,7 @@ public final class YamlGeneratorImpl implements YamlGenerator
     @Override
     public YamlGenerator writeStartObject()
     {
-        add(new YamlObjectNode(1, 1, 0));
-        stack.push(new Context(rootNode(), true));
+        beginContainer(false);
         return this;
     }
 
@@ -77,8 +78,7 @@ public final class YamlGeneratorImpl implements YamlGenerator
     @Override
     public YamlGenerator writeStartArray()
     {
-        add(new YamlArrayNode(1, 1, 0));
-        stack.push(new Context(rootNode(), false));
+        beginContainer(true);
         return this;
     }
 
@@ -95,12 +95,15 @@ public final class YamlGeneratorImpl implements YamlGenerator
         String name)
     {
         ensureOpen();
-        Context context = objectContext();
-        if (context.name != null)
+        if (stack.isEmpty() || stack.array())
+        {
+            throw new IllegalStateException("Expected YAML object context");
+        }
+        if (stack.pendingKey() != null)
         {
             throw new IllegalStateException("YAML object key has already been written");
         }
-        context.name = name;
+        stack.pendingKey(name);
         return this;
     }
 
@@ -108,7 +111,7 @@ public final class YamlGeneratorImpl implements YamlGenerator
     public YamlGenerator write(
         String value)
     {
-        add(YamlScalarNode.string(value, 1, 1, 0));
+        beginScalarValue(value);
         return this;
     }
 
@@ -125,7 +128,7 @@ public final class YamlGeneratorImpl implements YamlGenerator
     public YamlGenerator write(
         int value)
     {
-        add(YamlScalarNode.number(Integer.toString(value), 1, 1, 0));
+        beginInteger(value);
         return this;
     }
 
@@ -142,7 +145,7 @@ public final class YamlGeneratorImpl implements YamlGenerator
     public YamlGenerator write(
         long value)
     {
-        add(YamlScalarNode.number(Long.toString(value), 1, 1, 0));
+        beginInteger(value);
         return this;
     }
 
@@ -163,7 +166,7 @@ public final class YamlGeneratorImpl implements YamlGenerator
         {
             throw new IllegalArgumentException("Non-finite YAML numbers are not valid JSON values");
         }
-        add(YamlScalarNode.number(Double.toString(value), 1, 1, 0));
+        beginScalar(Double.toString(value));
         return this;
     }
 
@@ -180,7 +183,7 @@ public final class YamlGeneratorImpl implements YamlGenerator
     public YamlGenerator write(
         boolean value)
     {
-        add(YamlScalarNode.literal(value ? YamlScalarType.TRUE : YamlScalarType.FALSE, 1, 1, 0));
+        beginScalar(value ? "true" : "false");
         return this;
     }
 
@@ -196,7 +199,7 @@ public final class YamlGeneratorImpl implements YamlGenerator
     @Override
     public YamlGenerator writeNull()
     {
-        add(YamlScalarNode.literal(YamlScalarType.NULL, 1, 1, 0));
+        beginScalar("null");
         return this;
     }
 
@@ -212,7 +215,7 @@ public final class YamlGeneratorImpl implements YamlGenerator
     public YamlGenerator write(
         YamlValue value)
     {
-        add(YamlValues.node(value));
+        placeNode(YamlValues.node(value));
         return this;
     }
 
@@ -233,19 +236,27 @@ public final class YamlGeneratorImpl implements YamlGenerator
         {
             throw new IllegalStateException("No YAML collection is open");
         }
-        Context context = stack.peek();
-        if (context.object && context.name != null)
+        if (!stack.array() && stack.pendingKey() != null)
         {
             throw new IllegalStateException("YAML object key has no value");
         }
+        boolean opened = stack.opened();
+        int kind = stack.kind();
+        boolean array = stack.array();
+        int introIndent = stack.introIndent();
+        String introKey = stack.introKey();
         stack.pop();
+        if (!opened)
+        {
+            closeEmpty(kind, array, introIndent, introKey);
+        }
         return this;
     }
 
     @Override
     public void flush()
     {
-        writeDocument();
+        ensureOpen();
         try
         {
             writer.flush();
@@ -261,7 +272,10 @@ public final class YamlGeneratorImpl implements YamlGenerator
     {
         if (!closed)
         {
-            writeDocument();
+            if (!stack.isEmpty())
+            {
+                throw new IllegalStateException("YAML document has an open collection");
+            }
             try
             {
                 writer.close();
@@ -282,7 +296,7 @@ public final class YamlGeneratorImpl implements YamlGenerator
         {
             throw new IllegalStateException("YAML document has an open collection");
         }
-        if (written || rootNode != null)
+        if (started)
         {
             throw new IllegalStateException("YAML document has already been written");
         }
@@ -311,91 +325,268 @@ public final class YamlGeneratorImpl implements YamlGenerator
         {
             throw new IllegalStateException(ex.getMessage(), ex);
         }
-        written = true;
+        started = true;
     }
 
-    private void writeDocument()
+    private void beginScalar(
+        String text)
+    {
+        beginScalarPrefix();
+        emit(text);
+        emit("\n");
+    }
+
+    private void beginScalarValue(
+        String value)
+    {
+        beginScalarPrefix();
+        emitScalar(value);
+        emit("\n");
+    }
+
+    private void beginInteger(
+        long value)
+    {
+        beginScalarPrefix();
+        try
+        {
+            YamlEmitter.writeInteger(writer, value, numberBuffer);
+        }
+        catch (IOException ex)
+        {
+            throw new IllegalStateException(ex.getMessage(), ex);
+        }
+        emit("\n");
+    }
+
+    private void beginScalarPrefix()
     {
         ensureOpen();
-        if (!stack.isEmpty())
+        if (stack.isEmpty())
         {
-            throw new IllegalStateException("YAML document has an open collection");
+            requireRootAvailable();
+            started = true;
         }
-        if (!written && rootNode != null)
+        else
         {
+            ensureOpened();
+            if (stack.array())
+            {
+                stack.clearFirst();
+                indent(stack.childIndent());
+                emit("- ");
+            }
+            else
+            {
+                String key = requireKey();
+                if (stack.firstInline() && stack.first())
+                {
+                    stack.clearFirstInline();
+                }
+                else
+                {
+                    indent(stack.childIndent());
+                }
+                emitScalar(key);
+                emit(": ");
+                stack.clearFirst();
+            }
+        }
+    }
+
+    private void beginContainer(
+        boolean array)
+    {
+        ensureOpen();
+        if (stack.isEmpty())
+        {
+            requireRootAvailable();
+            started = true;
+            stack.push(ROOT, array, 0, null);
+        }
+        else
+        {
+            ensureOpened();
+            if (stack.array())
+            {
+                int childIndent = stack.childIndent();
+                stack.clearFirst();
+                stack.push(ARRAY_ELEMENT, array, childIndent, null);
+            }
+            else
+            {
+                String key = requireKey();
+                int childIndent = stack.childIndent();
+                stack.clearFirst();
+                stack.push(OBJECT_VALUE, array, childIndent, key);
+            }
+        }
+    }
+
+    private void placeNode(
+        YamlNode node)
+    {
+        ensureOpen();
+        if (stack.isEmpty())
+        {
+            requireRootAvailable();
+            started = true;
             try
             {
-                YamlEmitter.write(rootNode, writer, config);
+                YamlEmitter.write(node, writer, config);
             }
             catch (IOException ex)
             {
                 throw new IllegalStateException(ex.getMessage(), ex);
             }
-            written = true;
-        }
-    }
-
-    private void add(
-        YamlNode node)
-    {
-        ensureOpen();
-        if (written)
-        {
-            throw new IllegalStateException("YAML document has already been written");
-        }
-
-        if (stack.isEmpty())
-        {
-            if (rootNode != null)
-            {
-                throw new IllegalStateException("Only one root YAML value is supported");
-            }
-            rootNode = node;
         }
         else
         {
-            Context context = stack.peek();
-            if (context.object)
+            ensureOpened();
+            try
             {
-                if (context.name == null)
+                if (stack.array())
                 {
-                    throw new IllegalStateException("Expected YAML object key");
+                    stack.clearFirst();
+                    YamlEmitter.writeArrayElement(node, writer, stack.childIndent(), config);
                 }
-                ((YamlObjectNode) context.node).add(new YamlEntry(context.name, node, 1, 1, 0));
-                context.name = null;
+                else
+                {
+                    String key = requireKey();
+                    int childIndent = stack.childIndent();
+                    if (stack.firstInline() && stack.first())
+                    {
+                        stack.clearFirstInline();
+                    }
+                    else
+                    {
+                        indent(childIndent);
+                    }
+                    emitScalar(key);
+                    emit(":");
+                    YamlEmitter.writeObjectValue(node, writer, childIndent, config);
+                    stack.clearFirst();
+                }
             }
-            else
+            catch (IOException ex)
             {
-                ((YamlArrayNode) context.node).add(node);
+                throw new IllegalStateException(ex.getMessage(), ex);
             }
         }
     }
 
-    private YamlNode rootNode()
+    private void ensureOpened()
     {
-        return stack.isEmpty() ? rootNode : childNode();
+        if (!stack.opened())
+        {
+            stack.markOpened();
+            switch (stack.kind())
+            {
+            case OBJECT_VALUE ->
+            {
+                indent(stack.introIndent());
+                emitScalar(stack.introKey());
+                emit(":\n");
+            }
+            case ARRAY_ELEMENT ->
+            {
+                indent(stack.introIndent());
+                if (stack.array())
+                {
+                    emit("-\n");
+                }
+                else
+                {
+                    emit("- ");
+                    stack.markFirstInline();
+                }
+            }
+            default ->
+            {
+            }
+            }
+        }
     }
 
-    private YamlNode childNode()
+    private void closeEmpty(
+        int kind,
+        boolean array,
+        int introIndent,
+        String introKey)
     {
-        Context parent = stack.peek();
-        if (parent.object)
+        String body = array ? "[]" : "{}";
+        switch (kind)
         {
-            YamlObjectNode object = (YamlObjectNode) parent.node;
-            return object.entries.get(object.entries.size() - 1).value;
+        case OBJECT_VALUE ->
+        {
+            indent(introIndent);
+            emitScalar(introKey);
+            emit(": ");
+            emit(body);
         }
-
-        YamlArrayNode array = (YamlArrayNode) parent.node;
-        return array.values.get(array.values.size() - 1);
+        case ARRAY_ELEMENT ->
+        {
+            indent(introIndent);
+            emit("- ");
+            emit(body);
+        }
+        default -> emit(body);
+        }
+        emit("\n");
     }
 
-    private Context objectContext()
+    private String requireKey()
     {
-        if (stack.isEmpty() || !stack.peek().object)
+        String key = stack.pendingKey();
+        if (key == null)
         {
-            throw new IllegalStateException("Expected YAML object context");
+            throw new IllegalStateException("Expected YAML object key");
         }
-        return stack.peek();
+        stack.pendingKey(null);
+        return key;
+    }
+
+    private void requireRootAvailable()
+    {
+        if (started)
+        {
+            throw new IllegalStateException("Only one root YAML value is supported");
+        }
+    }
+
+    private void indent(
+        int depth)
+    {
+        for (int i = 0; i < depth; i++)
+        {
+            emit("  ");
+        }
+    }
+
+    private void emit(
+        String text)
+    {
+        try
+        {
+            writer.write(text);
+        }
+        catch (IOException ex)
+        {
+            throw new IllegalStateException(ex.getMessage(), ex);
+        }
+    }
+
+    private void emitScalar(
+        String value)
+    {
+        try
+        {
+            YamlEmitter.writeScalar(writer, value);
+        }
+        catch (IOException ex)
+        {
+            throw new IllegalStateException(ex.getMessage(), ex);
+        }
     }
 
     private void ensureOpen()
@@ -403,21 +594,6 @@ public final class YamlGeneratorImpl implements YamlGenerator
         if (closed)
         {
             throw new IllegalStateException("YAML generator is closed");
-        }
-    }
-
-    private static final class Context
-    {
-        final YamlNode node;
-        final boolean object;
-        String name;
-
-        private Context(
-            YamlNode node,
-            boolean object)
-        {
-            this.node = node;
-            this.object = object;
         }
     }
 }
