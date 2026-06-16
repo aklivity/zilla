@@ -82,6 +82,9 @@ public final class JsonSchemaImpl implements JsonSchema
     private static final JsonSchemaImpl ANY = new JsonSchemaImpl(false);
     private static final JsonSchemaImpl NONE = new JsonSchemaImpl(true);
 
+    private static final String[] NO_KEYS = new String[0];
+    private static final JsonSchemaImpl[] NO_SCHEMAS = new JsonSchemaImpl[0];
+
     // a lexeme of at most this many characters is always within long range, so getLong() is safe
     private static final int LONG_DIGITS = 18;
     private static final BigDecimal LONG_MIN = BigDecimal.valueOf(Long.MIN_VALUE);
@@ -153,6 +156,12 @@ public final class JsonSchemaImpl implements JsonSchema
     private final JsonSchemaImpl propertyNames;
     private final Map<String, Set<String>> dependentRequired;
     private final Map<String, JsonSchemaImpl> dependentSchemas;
+    // an object using only properties/required/additionalProperties: its keys can be matched as a
+    // CharSequence against these arrays, so a key is not materialized into a String to look up or track
+    private final boolean simpleObject;
+    private final String[] propertyKeys;
+    private final JsonSchemaImpl[] propertySchemas;
+    private final String[] requiredKeys;
     private final List<JsonSchemaImpl> allOf;
     private final List<JsonSchemaImpl> anyOf;
     private final List<JsonSchemaImpl> oneOf;
@@ -361,6 +370,11 @@ public final class JsonSchemaImpl implements JsonSchema
         this.propertyNames = schema.has("propertyNames") ? from(schema.get("propertyNames"), context) : null;
         this.dependentRequired = parseDependentRequired(schema);
         this.dependentSchemas = parseDependentSchemas(schema, context);
+        this.simpleObject = patternProperties == null && propertyNames == null &&
+            unevaluatedProperties == null && dependentRequired == null && dependentSchemas == null;
+        this.requiredKeys = required != null ? required.toArray(NO_KEYS) : NO_KEYS;
+        this.propertyKeys = properties != null ? properties.keySet().toArray(NO_KEYS) : NO_KEYS;
+        this.propertySchemas = properties != null ? properties.values().toArray(NO_SCHEMAS) : NO_SCHEMAS;
         this.allOf = parseSchemaArray(schema.get("allOf"), context);
         this.anyOf = parseSchemaArray(schema.get("anyOf"), context);
         this.oneOf = parseSchemaArray(schema.get("oneOf"), context);
@@ -414,6 +428,10 @@ public final class JsonSchemaImpl implements JsonSchema
         this.propertyNames = null;
         this.dependentRequired = null;
         this.dependentSchemas = null;
+        this.simpleObject = false;
+        this.requiredKeys = NO_KEYS;
+        this.propertyKeys = NO_KEYS;
+        this.propertySchemas = NO_SCHEMAS;
         this.allOf = null;
         this.anyOf = null;
         this.oneOf = null;
@@ -466,6 +484,10 @@ public final class JsonSchemaImpl implements JsonSchema
         this.propertyNames = null;
         this.dependentRequired = null;
         this.dependentSchemas = null;
+        this.simpleObject = false;
+        this.requiredKeys = NO_KEYS;
+        this.propertyKeys = NO_KEYS;
+        this.propertySchemas = NO_SCHEMAS;
         this.allOf = null;
         this.anyOf = null;
         this.oneOf = null;
@@ -1124,6 +1146,19 @@ public final class JsonSchemaImpl implements JsonSchema
             canonical = length >= 2 && !(length == 2 && text.charAt(1) == '0');
         }
         return canonical;
+    }
+
+    private static boolean charsEqual(
+        String name,
+        CharSequence key)
+    {
+        int length = name.length();
+        boolean equal = length == key.length();
+        for (int i = 0; equal && i < length; i++)
+        {
+            equal = name.charAt(i) == key.charAt(i);
+        }
+        return equal;
     }
 
     // absent, or an integer within long range
@@ -2222,6 +2257,10 @@ public final class JsonSchemaImpl implements JsonSchema
         private boolean reused;
 
         private final boolean annotate;
+        // keys matched/tracked as a CharSequence (no String): a simple object, with neither annotation
+        // nor diagnostics needing the materialized key
+        private final boolean fastKeys;
+        private boolean[] requiredSeen;
         private Set<String> evaluatedProps;
         private BitSet evaluatedItems;
         private String currentKey;
@@ -2252,6 +2291,7 @@ public final class JsonSchemaImpl implements JsonSchema
             this.elseEval = elseSchema != null ? elseSchema.eval(Trace.NONE, dynScope) : null;
             this.dependentSchemaEvals = evalsOfMap(dependentSchemas, Trace.NONE);
             this.trackKeys = required != null || dependentRequired != null || dependentSchemaEvals != null;
+            this.fastKeys = simpleObject && !annotate && !trace.active();
         }
 
         // resets to pre-feed state for reuse: eager combinator children reset in place, lazy children
@@ -2477,7 +2517,18 @@ public final class JsonSchemaImpl implements JsonSchema
             {
             case START_OBJECT:
                 object = true;
-                if (trackKeys && seen == null)
+                if (fastKeys)
+                {
+                    if (requiredSeen == null)
+                    {
+                        requiredSeen = new boolean[requiredKeys.length];
+                    }
+                    else
+                    {
+                        Arrays.fill(requiredSeen, false);
+                    }
+                }
+                else if (trackKeys && seen == null)
                 {
                     seen = new HashSet<>();
                 }
@@ -2721,7 +2772,11 @@ public final class JsonSchemaImpl implements JsonSchema
         {
             if (event == END_OBJECT)
             {
-                if (required != null && !seen.containsAll(required))
+                if (fastKeys)
+                {
+                    checkRequiredFast();
+                }
+                else if (required != null && !seen.containsAll(required))
                 {
                     directInvalid = true;
                     Set<String> missing = new LinkedHashSet<>(required);
@@ -2738,6 +2793,10 @@ public final class JsonSchemaImpl implements JsonSchema
                     directInvalid = true;
                     trace.report("maxProperties", count + " > maxProperties " + maxProperties, parser);
                 }
+            }
+            else if (fastKeys)
+            {
+                onFastKey(parser);
             }
             else
             {
@@ -2758,6 +2817,51 @@ public final class JsonSchemaImpl implements JsonSchema
                     trace.report("propertyNames", "property name '" + key + "' violates propertyNames", parser);
                 }
                 setApplicableFor(key);
+            }
+        }
+
+        // matches the key as a CharSequence against the schema's property and required key arrays, so a
+        // simple object's keys are validated and required-tracked without materializing a String
+        private void onFastKey(
+            JsonSource parser)
+        {
+            CharSequence key = parser.getStringView();
+            count++;
+            for (int i = 0; i < requiredKeys.length; i++)
+            {
+                if (charsEqual(requiredKeys[i], key))
+                {
+                    requiredSeen[i] = true;
+                    break;
+                }
+            }
+            JsonSchemaImpl schema = null;
+            for (int i = 0; i < propertyKeys.length; i++)
+            {
+                if (charsEqual(propertyKeys[i], key))
+                {
+                    schema = propertySchemas[i];
+                    break;
+                }
+            }
+            if (schema == null)
+            {
+                schema = additionalSchema != null ? additionalSchema : additionalAllowed ? ANY : NONE;
+            }
+            directChildMark = 0;
+            directChild = propEvalFor(schema);
+            directChildren = null;
+        }
+
+        private void checkRequiredFast()
+        {
+            for (int i = 0; i < requiredKeys.length; i++)
+            {
+                if (!requiredSeen[i])
+                {
+                    directInvalid = true;
+                    break;
+                }
             }
         }
 
