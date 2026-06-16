@@ -189,6 +189,7 @@ public final class ProtobufSchemaCompiler
         String name = "";
         String jsonName = null;
         String typeName = null;
+        String defaultValue = null;
         int fieldNumber = 0;
         int label = 0;
         int typeNumber = 0;
@@ -218,6 +219,9 @@ public final class ProtobufSchemaCompiler
                 break;
             case 6:
                 typeName = stripLeadingDot(readString(reader));
+                break;
+            case 7:
+                defaultValue = readString(reader);
                 break;
             case 8:
                 int[] fieldOptions = region(reader);
@@ -256,6 +260,10 @@ public final class ProtobufSchemaCompiler
         if (packed != null)
         {
             field.packed(packed);
+        }
+        if (defaultValue != null)
+        {
+            field.defaultValue(defaultValue);
         }
         if (oneofIndex >= 0 && !proto3Optional && oneofIndex < oneofs.size())
         {

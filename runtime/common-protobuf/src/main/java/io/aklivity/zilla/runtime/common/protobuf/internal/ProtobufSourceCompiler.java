@@ -178,6 +178,10 @@ public final class ProtobufSourceCompiler
         {
             builder.oneof(field.oneofName);
         }
+        if (field.defaultValue != null)
+        {
+            builder.defaultValue(field.defaultValue);
+        }
         boolean packed = field.packed != null
             ? field.packed
             : proto3 && field.repeated && type.packable();
@@ -303,6 +307,7 @@ public final class ProtobufSourceCompiler
         private Boolean packed;
         private String jsonName;
         private String oneofName;
+        private String defaultValue;
         private Set<String> enumNames;
     }
 
@@ -354,13 +359,13 @@ public final class ProtobufSourceCompiler
             DraftMessage message = new DraftMessage(qualify(name), false);
             draft.messages.add(message);
             messages.push(message);
-            scope.push(name);
+            scope.addLast(name);
         }
 
         private void exitMessage()
         {
             messages.pop();
-            scope.pop();
+            scope.removeLast();
         }
 
         private void addEnum(
@@ -554,6 +559,10 @@ public final class ProtobufSourceCompiler
                     {
                         field.jsonName = stripQuotes(value);
                     }
+                    else if ("default".equals(name))
+                    {
+                        field.defaultValue = stripQuotes(value);
+                    }
                 }
             }
         }
@@ -689,6 +698,10 @@ public final class ProtobufSourceCompiler
                     else if ("json_name".equals(name))
                     {
                         field.jsonName = stripQuotes(value);
+                    }
+                    else if ("default".equals(name))
+                    {
+                        field.defaultValue = stripQuotes(value);
                     }
                 }
             }

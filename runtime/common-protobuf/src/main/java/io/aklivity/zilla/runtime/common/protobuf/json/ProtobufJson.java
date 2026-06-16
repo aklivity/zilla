@@ -79,6 +79,26 @@ public final class ProtobufJson
         return new ProtobufJsonGeneratorImpl(generator, schema, messageName);
     }
 
+    /**
+     * As {@link #generator(JsonGeneratorEx, ProtobufSchema, String)}, with two compatibility options for
+     * matching a {@code protobuf-java} {@code JsonFormat} rendering: when {@code protoFieldNames} is set the
+     * proto field name (snake_case) is used as the JSON key instead of the proto3 json name; when
+     * {@code includeDefaults} is set every field is emitted, with unset implicit-presence scalars and enums
+     * rendered as their declared (proto2) or type default, empty {@code repeated} as {@code []} and empty
+     * {@code map} as {@code {}} — fields with explicit presence (proto3 {@code optional}, message, {@code
+     * oneof}) remain omitted when unset. Fields are emitted in wire order (not field-number order), which is
+     * semantically equivalent JSON.
+     */
+    public static ProtobufGenerator generator(
+        JsonGeneratorEx generator,
+        ProtobufSchema schema,
+        String messageName,
+        boolean protoFieldNames,
+        boolean includeDefaults)
+    {
+        return new ProtobufJsonGeneratorImpl(generator, schema, messageName, protoFieldNames, includeDefaults);
+    }
+
     private ProtobufJson()
     {
     }
