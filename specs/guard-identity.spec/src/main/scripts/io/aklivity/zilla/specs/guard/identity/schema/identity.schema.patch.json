@@ -27,7 +27,23 @@
                     {
                         "const": "identity"
                     },
-                    "options": false
+                    "options":
+                    {
+                        "properties":
+                        {
+                            "identity":
+                            {
+                                "title": "Identity",
+                                "type": "string"
+                            },
+                            "credentials":
+                            {
+                                "title": "Credentials",
+                                "type": "string"
+                            }
+                        },
+                        "additionalProperties": false
+                    }
                 },
                 "additionalProperties": false
             }

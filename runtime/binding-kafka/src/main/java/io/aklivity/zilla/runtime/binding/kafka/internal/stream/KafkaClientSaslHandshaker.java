@@ -174,6 +174,8 @@ public abstract class KafkaClientSaslHandshaker
         private long guardSession;
         private final GuardHandler guard;
 
+        protected long saslAuthorization;
+
         protected KafkaSaslClient(
             List<KafkaServerConfig> servers,
             KafkaSaslConfig sasl,
@@ -208,9 +210,11 @@ public abstract class KafkaClientSaslHandshaker
             long traceId,
             long budgetId)
         {
-            if (guard != null)
+            if (guard != null &&
+                (CREDENTIALS_TEMPLATE.equals(sasl.token) || CREDENTIALS_TEMPLATE.equals(sasl.password)))
             {
-                guardSession = guard.reauthorize(traceId, routedId, initialId, null);
+                final String credentials = guard.credentials(saslAuthorization);
+                guardSession = guard.reauthorize(traceId, routedId, initialId, credentials);
             }
 
             final MutableDirectBuffer encodeBuffer = writeBuffer;
@@ -904,10 +908,23 @@ public abstract class KafkaClientSaslHandshaker
             if (authenticateResponse != null)
             {
                 final int errorCode = authenticateResponse.errorCode();
-                if (errorCode != ERROR_NONE)
+                final int authBytesLen = authenticateResponse.authBytesLen();
+                final int authErrorCode = errorCode == ERROR_NONE && authBytesLen > 0
+                    ? ERROR_SASL_AUTHENTICATION_FAILED
+                    : errorCode;
+                if (authErrorCode != ERROR_NONE)
                 {
-                    event.saslAuthenticationFailed(traceId, client.originId, null,
-                        authenticateResponse.errorMessage().asString());
+                    final String errorDetail;
+                    if (authBytesLen > 0)
+                    {
+                        final DirectBuffer errorBytes = authenticateResponse.authBytes().value();
+                        errorDetail = errorBytes.getStringWithoutLengthUtf8(0, errorBytes.capacity());
+                    }
+                    else
+                    {
+                        errorDetail = authenticateResponse.errorMessage().asString();
+                    }
+                    event.saslAuthenticationFailed(traceId, client.originId, null, errorDetail);
                 }
 
                 progress = authenticateResponse.limit();
@@ -916,7 +933,7 @@ public abstract class KafkaClientSaslHandshaker
                 assert client.decodableResponseBytes >= 0;
 
                 client.onDecodeSaslResponse(traceId);
-                client.onDecodeSaslAuthenticateResponse(traceId, authorization, errorCode);
+                client.onDecodeSaslAuthenticateResponse(traceId, authorization, authErrorCode);
             }
         }
 
