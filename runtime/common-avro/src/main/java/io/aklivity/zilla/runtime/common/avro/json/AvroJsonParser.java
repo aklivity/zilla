@@ -19,8 +19,6 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 
-import jakarta.json.stream.JsonParser.Event;
-
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
@@ -31,14 +29,15 @@ import io.aklivity.zilla.runtime.common.avro.AvroParser;
 import io.aklivity.zilla.runtime.common.avro.AvroSchema;
 import io.aklivity.zilla.runtime.common.avro.AvroType;
 import io.aklivity.zilla.runtime.common.avro.AvroValidationException;
+import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 
 /**
- * <b>JSON → Avro</b> adapter: an {@link AvroParser} that drives a {@link JsonParserEx} and, walking the
- * compiled {@link AvroSchema} in lockstep, presents the JSON pull events and accessors as the Avro
- * {@link AvroEvent} stream — so it plugs in wherever an {@code AvroParser} does, whether driving an
- * {@link io.aklivity.zilla.runtime.common.avro.AvroGenerator} directly or feeding an
- * {@link io.aklivity.zilla.runtime.common.avro.AvroSink} through an
+ * <b>JSON → Avro</b> adapter: an {@link AvroParser} that drives a {@link JsonParserEx} over its streaming
+ * event surface ({@link JsonParserEx#nextEvent()}) and, walking the compiled {@link AvroSchema} in lockstep,
+ * presents the JSON events and accessors as the Avro {@link AvroEvent} stream — so it plugs in wherever an
+ * {@code AvroParser} does, whether driving an {@link io.aklivity.zilla.runtime.common.avro.AvroGenerator}
+ * directly or feeding an {@link io.aklivity.zilla.runtime.common.avro.AvroSink} through an
  * {@link io.aklivity.zilla.runtime.common.avro.AvroPipeline}. The schema walk is a pushdown automaton — one
  * {@link #nextEvent} yields one event — so no document is buffered.
  * <p>
@@ -75,7 +74,7 @@ final class AvroJsonParser implements AvroParser, AvroLocation
     private Frame[] stack;
     private int top;
     private int state;
-    private Event pendingEvent;
+    private JsonEvent pendingEvent;
     private boolean havePending;
     private boolean last;
     private boolean starved;
@@ -122,7 +121,7 @@ final class AvroJsonParser implements AvroParser, AvroLocation
         int length,
         boolean last)
     {
-        json.wrap(buffer, offset, length);
+        json.wrap(buffer, offset, length, last);
         this.last = last;
         this.havePending = false;
         this.starved = false;
@@ -247,7 +246,7 @@ final class AvroJsonParser implements AvroParser, AvroLocation
     @Override
     public long position()
     {
-        return json.getLocation().getStreamOffset();
+        return json.position();
     }
 
     private AvroEvent step()
@@ -287,7 +286,7 @@ final class AvroJsonParser implements AvroParser, AvroLocation
         List<AvroField> fields = fields(type);
         if (frame.phase == 0)
         {
-            if (accept(Event.START_OBJECT))
+            if (accept(JsonEvent.START_OBJECT))
             {
                 frame.phase = 1;
                 currentType = type;
@@ -296,11 +295,11 @@ final class AvroJsonParser implements AvroParser, AvroLocation
         }
         else if (frame.fieldIndex < fields.size())
         {
-            Event next = peek();
+            JsonEvent next = peek();
             if (next != null)
             {
                 AvroField field = fields.get(frame.fieldIndex);
-                if (next != Event.KEY_NAME || !field.name().contentEquals(json.getStringView()))
+                if (next != JsonEvent.KEY_NAME || !field.name().contentEquals(json.getStringView()))
                 {
                     throw reject("expected field " + field.name());
                 }
@@ -312,7 +311,7 @@ final class AvroJsonParser implements AvroParser, AvroLocation
                 event = AvroEvent.FIELD_NAME;
             }
         }
-        else if (accept(Event.END_OBJECT))
+        else if (accept(JsonEvent.END_OBJECT))
         {
             popFrame();
             currentType = type;
@@ -328,7 +327,7 @@ final class AvroJsonParser implements AvroParser, AvroLocation
         AvroEvent event = null;
         if (frame.phase == 0)
         {
-            if (accept(Event.START_ARRAY))
+            if (accept(JsonEvent.START_ARRAY))
             {
                 frame.phase = 1;
                 currentType = type;
@@ -337,8 +336,8 @@ final class AvroJsonParser implements AvroParser, AvroLocation
         }
         else
         {
-            Event next = peek();
-            if (next == Event.END_ARRAY)
+            JsonEvent next = peek();
+            if (next == JsonEvent.END_ARRAY)
             {
                 consume();
                 popFrame();
@@ -360,7 +359,7 @@ final class AvroJsonParser implements AvroParser, AvroLocation
         AvroEvent event = null;
         if (frame.phase == 0)
         {
-            if (accept(Event.START_OBJECT))
+            if (accept(JsonEvent.START_OBJECT))
             {
                 frame.phase = 1;
                 currentType = type;
@@ -369,8 +368,8 @@ final class AvroJsonParser implements AvroParser, AvroLocation
         }
         else if (frame.phase == 1)
         {
-            Event next = peek();
-            if (next == Event.END_OBJECT)
+            JsonEvent next = peek();
+            if (next == JsonEvent.END_OBJECT)
             {
                 consume();
                 popFrame();
@@ -379,7 +378,7 @@ final class AvroJsonParser implements AvroParser, AvroLocation
             }
             else if (next != null)
             {
-                if (next != Event.KEY_NAME)
+                if (next != JsonEvent.KEY_NAME)
                 {
                     throw reject("expected map key");
                 }
@@ -408,8 +407,8 @@ final class AvroJsonParser implements AvroParser, AvroLocation
         List<AvroType> branches = branches(type);
         if (frame.phase == 0)
         {
-            Event next = peek();
-            if (next == Event.VALUE_NULL)
+            JsonEvent next = peek();
+            if (next == JsonEvent.VALUE_NULL)
             {
                 int index = AvroJson.nullBranchIndex(branches);
                 if (index < 0)
@@ -418,7 +417,7 @@ final class AvroJsonParser implements AvroParser, AvroLocation
                 }
                 event = selectBranch(type, index, false);
             }
-            else if (next == Event.START_OBJECT)
+            else if (next == JsonEvent.START_OBJECT)
             {
                 consume();
                 frame.phase = 1;
@@ -430,10 +429,10 @@ final class AvroJsonParser implements AvroParser, AvroLocation
         }
         else
         {
-            Event next = peek();
+            JsonEvent next = peek();
             if (next != null)
             {
-                if (next != Event.KEY_NAME)
+                if (next != JsonEvent.KEY_NAME)
                 {
                     throw reject("expected union branch name");
                 }
@@ -467,7 +466,7 @@ final class AvroJsonParser implements AvroParser, AvroLocation
         AvroType type)
     {
         AvroEvent event;
-        Event next = peek();
+        JsonEvent next = peek();
         if (next == null)
         {
             event = null;
@@ -483,65 +482,65 @@ final class AvroJsonParser implements AvroParser, AvroLocation
 
     private AvroEvent readScalar(
         AvroType type,
-        Event next)
+        JsonEvent next)
     {
         AvroEvent event;
         switch (type.kind())
         {
         case NULL:
-            require(next == Event.VALUE_NULL, "expected null");
+            require(next == JsonEvent.VALUE_NULL, "expected null");
             consume();
             event = AvroEvent.NULL;
             break;
         case BOOLEAN:
-            require(next == Event.VALUE_TRUE || next == Event.VALUE_FALSE, "expected boolean");
-            booleanValue = next == Event.VALUE_TRUE;
+            require(next == JsonEvent.VALUE_TRUE || next == JsonEvent.VALUE_FALSE, "expected boolean");
+            booleanValue = next == JsonEvent.VALUE_TRUE;
             consume();
             event = AvroEvent.BOOLEAN;
             break;
         case INT:
-            require(next == Event.VALUE_NUMBER, "expected number");
+            require(next == JsonEvent.VALUE_NUMBER, "expected number");
             intValue = (int) parseLong(json.getStringView());
             consume();
             event = AvroEvent.INT;
             break;
         case LONG:
-            require(next == Event.VALUE_NUMBER, "expected number");
+            require(next == JsonEvent.VALUE_NUMBER, "expected number");
             longValue = parseLong(json.getStringView());
             consume();
             event = AvroEvent.LONG;
             break;
         case FLOAT:
-            require(next == Event.VALUE_NUMBER, "expected number");
+            require(next == JsonEvent.VALUE_NUMBER, "expected number");
             floatValue = json.getBigDecimal().floatValue();
             consume();
             event = AvroEvent.FLOAT;
             break;
         case DOUBLE:
-            require(next == Event.VALUE_NUMBER, "expected number");
+            require(next == JsonEvent.VALUE_NUMBER, "expected number");
             doubleValue = json.getBigDecimal().doubleValue();
             consume();
             event = AvroEvent.DOUBLE;
             break;
         case STRING:
-            require(next == Event.VALUE_STRING, "expected string");
+            require(next == JsonEvent.VALUE_STRING, "expected string");
             valueChars = json.getStringView();
             segmentUtf8(valueChars);
             consume();
             event = AvroEvent.STRING;
             break;
         case ENUM:
-            require(next == Event.VALUE_STRING, "expected enum symbol");
+            require(next == JsonEvent.VALUE_STRING, "expected enum symbol");
             event = readEnum(type);
             break;
         case BYTES:
-            require(next == Event.VALUE_STRING, "expected base64 string");
+            require(next == JsonEvent.VALUE_STRING, "expected base64 string");
             segmentBytes(decode(json.getString()), 0);
             consume();
             event = AvroEvent.BYTES;
             break;
         case FIXED:
-            require(next == Event.VALUE_STRING, "expected base64 string");
+            require(next == JsonEvent.VALUE_STRING, "expected base64 string");
             segmentBytes(decode(json.getString()), type.size());
             consume();
             event = AvroEvent.FIXED;
@@ -657,9 +656,9 @@ final class AvroJsonParser implements AvroParser, AvroLocation
     }
 
     private boolean accept(
-        Event expected)
+        JsonEvent expected)
     {
-        Event next = peek();
+        JsonEvent next = peek();
         boolean accepted = next == expected;
         if (next != null && !accepted)
         {
@@ -682,14 +681,21 @@ final class AvroJsonParser implements AvroParser, AvroLocation
         }
     }
 
-    private Event peek()
+    // Pulls the next JSON event, skipping the document-framing START_DOCUMENT so the schema walk sees only
+    // structural and value events. Returns null (and arms STARVED) when the window is exhausted mid-datum
+    // and more input will follow; a truncation under last == true is a reject.
+    private JsonEvent peek()
     {
-        if (!havePending)
+        while (!havePending && !starved)
         {
-            if (json.hasNext())
+            if (json.hasNextEvent())
             {
-                pendingEvent = json.next();
-                havePending = true;
+                JsonEvent next = json.nextEvent();
+                if (next != JsonEvent.START_DOCUMENT && next != JsonEvent.END_DOCUMENT)
+                {
+                    pendingEvent = next;
+                    havePending = true;
+                }
             }
             else if (last)
             {
@@ -737,7 +743,7 @@ final class AvroJsonParser implements AvroParser, AvroLocation
         top--;
         if (frame.closeObject)
         {
-            accept(Event.END_OBJECT);
+            accept(JsonEvent.END_OBJECT);
         }
     }
 

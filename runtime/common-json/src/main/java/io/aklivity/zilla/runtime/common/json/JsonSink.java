@@ -31,19 +31,16 @@ public interface JsonSink
     String DELIVERY = "io.aklivity.zilla.runtime.common.json.sink.delivery";
 
     /**
-     * Delivery mode a terminal sink requests. {@link #STRUCTURED} consumes structured events and
-     * renders output by splicing each value's verbatim token bytes (chunked across bounded output);
-     * {@link #SEGMENTABLE} opts in to verbatim segment delivery for kept values (best-effort,
-     * demand-gated) by calling {@link JsonController#segmentable()}; {@link #DECODED} renders each
-     * scalar from its decoded {@code getString()} via {@link JsonGeneratorEx#write(CharSequence,
-     * boolean)}, letting the generator own quoting/escaping so a value delivered as fragments forms a
-     * single string without the sink concatenating.
+     * Delivery mode a terminal sink requests. {@link #STRUCTURED} consumes structured events and renders
+     * each scalar canonically from its decoded value ({@link JsonSource#getStringView()}), the generator
+     * owning quoting/escaping so a value delivered as fragments forms one value without the sink
+     * concatenating; {@link #SEGMENTABLE} opts in to verbatim byte delivery for kept values (best-effort,
+     * demand-gated) by calling {@link JsonController#segmentable()}.
      */
     enum Delivery
     {
         STRUCTURED,
-        SEGMENTABLE,
-        DECODED
+        SEGMENTABLE
     }
 
     JsonPipeline.Status feed(
@@ -52,16 +49,18 @@ public interface JsonSink
         JsonEvent event);
 
     /**
-     * Continues any output left in flight by a prior {@link JsonPipeline.Status#SUSPENDED} — a value
-     * being written across chunks — before the next event is fed, reading the in-flight value from
-     * {@code source} and steering the immediate upstream with {@code control}. Returns {@link
-     * JsonPipeline.Status#SUSPENDED} if the bounded output filled again, or {@link
-     * JsonPipeline.Status#ADVANCED} when nothing remains pending. A stage with no in-flight output
-     * returns {@code ADVANCED}; the default is sufficient for stages that only forward events.
+     * Continues the value left in flight by a prior {@link JsonPipeline.Status#SUSPENDED} — a value being
+     * written across chunks — before the next event is fed. {@code event} is the value event that
+     * suspended (supplied by the pump, so the sink keeps no resume state); the sink re-reads the in-flight
+     * value's remainder from {@code source} and steers the immediate upstream with {@code control}. Returns
+     * {@link JsonPipeline.Status#SUSPENDED} if the bounded output filled again, or {@link
+     * JsonPipeline.Status#ADVANCED} when nothing remains pending. A stage with no in-flight output returns
+     * {@code ADVANCED}; the default is sufficient for stages that only forward events.
      */
     default JsonPipeline.Status resume(
         JsonController control,
-        JsonSource source)
+        JsonSource source,
+        JsonEvent event)
     {
         return JsonPipeline.Status.ADVANCED;
     }

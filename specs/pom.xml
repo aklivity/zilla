@@ -28,6 +28,7 @@
     <module>binding-http.spec</module>
     <module>binding-grpc.spec</module>
     <module>binding-mcp.spec</module>
+    <module>binding-mcp-http.spec</module>
     <module>binding-mqtt.spec</module>
     <module>binding-openapi.spec</module>
     <module>binding-openapi-asyncapi.spec</module>

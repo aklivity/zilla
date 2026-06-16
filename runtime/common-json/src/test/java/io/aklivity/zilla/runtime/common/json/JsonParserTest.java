@@ -47,22 +47,19 @@ import org.junit.jupiter.api.Test;
 class JsonParserTest
 {
     @Test
-    void shouldExposeZeroCopyStringViewForValueAndNumber()
+    void shouldViewKeyAndValueThroughStringView()
     {
         JsonParserEx parser = JsonEx.createParser();
-        byte[] bytes = "{\"k\":\"hello\",\"n\":-12345}".getBytes(UTF_8);
+        byte[] bytes = "{\"alpha\":-12345}".getBytes(UTF_8);
         parser.wrap(new UnsafeBuffer(bytes), 0, bytes.length);
 
-        assertEquals(START_OBJECT, parser.next());
-        assertEquals(KEY_NAME, parser.next());
-        assertEquals("k", parser.getStringView().toString());
-        assertEquals(VALUE_STRING, parser.next());
-        assertEquals("hello", parser.getStringView().toString());
-        assertEquals(KEY_NAME, parser.next());
-        assertEquals("n", parser.getStringView().toString());
-        assertEquals(VALUE_NUMBER, parser.next());
+        assertEquals(JsonEvent.START_DOCUMENT, parser.nextEvent());
+        assertEquals(JsonEvent.START_OBJECT, parser.nextEvent());
+        assertEquals(JsonEvent.KEY_NAME, parser.nextEvent());
+        assertEquals("alpha", parser.getStringView().toString());
+        assertEquals(JsonEvent.VALUE_NUMBER, parser.nextEvent());
         assertEquals("-12345", parser.getStringView().toString());
-        assertEquals(END_OBJECT, parser.next());
+        assertEquals(JsonEvent.END_OBJECT, parser.nextEvent());
     }
 
     @Test
@@ -275,6 +272,50 @@ class JsonParserTest
         assertEquals(START_ARRAY, parser.next());
         assertEquals(VALUE_NUMBER, parser.next());
         assertEquals(123456789012L, parser.getLong());
+    }
+
+    @Test
+    void shouldGetIntBoundariesWithoutMaterializingString()
+    {
+        JsonParser parser = parserFor("[0,-1,2147483647,-2147483648]");
+
+        assertEquals(START_ARRAY, parser.next());
+        assertEquals(VALUE_NUMBER, parser.next());
+        assertEquals(0, parser.getInt());
+        assertEquals(VALUE_NUMBER, parser.next());
+        assertEquals(-1, parser.getInt());
+        assertEquals(VALUE_NUMBER, parser.next());
+        assertEquals(Integer.MAX_VALUE, parser.getInt());
+        assertEquals(VALUE_NUMBER, parser.next());
+        assertEquals(Integer.MIN_VALUE, parser.getInt());
+        assertEquals(END_ARRAY, parser.next());
+    }
+
+    @Test
+    void shouldGetLongBoundariesWithoutMaterializingString()
+    {
+        JsonParser parser = parserFor("[0,-1,9223372036854775807,-9223372036854775808]");
+
+        assertEquals(START_ARRAY, parser.next());
+        assertEquals(VALUE_NUMBER, parser.next());
+        assertEquals(0L, parser.getLong());
+        assertEquals(VALUE_NUMBER, parser.next());
+        assertEquals(-1L, parser.getLong());
+        assertEquals(VALUE_NUMBER, parser.next());
+        assertEquals(Long.MAX_VALUE, parser.getLong());
+        assertEquals(VALUE_NUMBER, parser.next());
+        assertEquals(Long.MIN_VALUE, parser.getLong());
+        assertEquals(END_ARRAY, parser.next());
+    }
+
+    @Test
+    void shouldRejectGetIntOnNonIntegralNumber()
+    {
+        JsonParser parser = parserFor("[3.14]");
+
+        assertEquals(START_ARRAY, parser.next());
+        assertEquals(VALUE_NUMBER, parser.next());
+        assertThrows(NumberFormatException.class, parser::getInt);
     }
 
     @Test
@@ -684,12 +725,14 @@ class JsonParserTest
     }
 
     @Test
-    void shouldThrowIsIntegralOnNonNumberEvent()
+    void shouldRejectIsIntegralOnNonNumberEvent()
     {
         JsonParser parser = parserFor("true");
         parser.next();
 
-        assertThrows(IllegalStateException.class, parser::isIntegralNumber);
+        // isIntegralNumber() is valid only on a VALUE_NUMBER event; misuse trips the contract assert
+        // (assertions enabled under test), falling back to IllegalStateException when assertions are off
+        assertThrows(AssertionError.class, parser::isIntegralNumber);
     }
 
     @Test

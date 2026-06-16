@@ -69,16 +69,6 @@ public interface JsonParserEx extends JsonParser
     void reset();
 
     /**
-     * A non-owning, on-stack {@link CharSequence} view of the current scalar token — the decoded content of
-     * a {@code VALUE_STRING} (or key), or the lexeme of a {@code VALUE_NUMBER} — valid only until the parser
-     * advances. The zero-copy peer of {@link #getString()} / {@link #getBigDecimal()}: a streaming caller
-     * reads and re-encodes the value (or parses the number) without materializing a {@code String}. The
-     * backing buffer is reused across tokens, so copy out anything needed beyond the current event. Valid for
-     * a value that fits one window; a fragmented value is read via {@code getString()} fragments as before.
-     */
-    CharSequence getStringView();
-
-    /**
      * The number of input bytes committed since the document began — always at a whole-token boundary. On
      * starvation (a window consumed before the value completes) everything at or after this position is the
      * unconsumed tail the caller retains and re-presents, contiguous, in the next window.
@@ -97,4 +87,14 @@ public interface JsonParserEx extends JsonParser
      * standard {@code jakarta.json.stream.JsonParser.Event} adding document framing and segment delivery.
      */
     JsonEvent nextEvent();
+
+    /**
+     * A non-owning, on-stack {@link CharSequence} view of the current scalar token — a string value, a
+     * number lexeme, or an object key — valid until the parser advances. The zero-copy peer of
+     * {@link #getString()}: a streaming caller reads or matches the value (or key) without materializing a
+     * {@code String}. The backing buffer is reused across events, so copy out anything needed beyond the
+     * current event. This promotes the {@link JsonSource#getStringView()} accessor onto the parser surface
+     * so a caller holding a {@code JsonParserEx} reads scalars without narrowing to {@link JsonSource}.
+     */
+    CharSequence getStringView();
 }

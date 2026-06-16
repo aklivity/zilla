@@ -1,0 +1,43 @@
+#
+# Copyright 2021-2024 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+connect "zilla://streams/http0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+# query projection appends ?q=...&per_page=5 to :path (exploded; absent optional 'page' omitted)
+write zilla:begin.ext ${http:beginEx()
+                            .typeId(zilla:id("http"))
+                            .header(":method", "GET")
+                            .header(":scheme", "https")
+                            .header(":authority", "api.github.com")
+                            .header(":path", "/search/code?q=addClass&per_page=5")
+                            .build()}
+
+connected
+
+read zilla:begin.ext ${http:matchBeginEx()
+                           .typeId(zilla:id("http"))
+                           .header(":status", "200")
+                           .header("content-type", "application/json")
+                           .build()}
+
+# full upstream response; incomplete_results and per-item sha/repository dropped by the projection
+read  '{"total_count":2,"incomplete_results":false,"items":['
+      '{"path":"src/a.js","sha":"aaa","repository":{"name":"widget"}},'
+      '{"path":"src/b.js","sha":"bbb","repository":{"name":"widget"}}]}'
+read closed
+
+write close
