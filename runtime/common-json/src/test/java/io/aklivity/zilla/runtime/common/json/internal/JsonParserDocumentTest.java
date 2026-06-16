@@ -22,6 +22,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
 
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
+import io.aklivity.zilla.runtime.common.json.JsonParserEx.Mode;
 
 public class JsonParserDocumentTest
 {
@@ -60,8 +61,7 @@ public class JsonParserDocumentTest
 
         assertEquals(JsonEvent.START_DOCUMENT, parser.nextEvent());
         assertEquals(JsonEvent.START_OBJECT, parser.nextEvent());
-        parser.segmentable();
-        assertEquals(JsonEvent.SEGMENT, parser.nextEvent());
+        assertEquals(JsonEvent.SEGMENT, parser.nextEvent(Mode.SEGMENTED));
         assertEquals(JsonEvent.END_DOCUMENT, parser.nextEvent());
         assertFalse(parser.hasNextEvent());
     }

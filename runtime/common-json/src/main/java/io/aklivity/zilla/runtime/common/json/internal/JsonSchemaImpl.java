@@ -52,6 +52,7 @@ import org.agrona.DirectBuffer;
 import io.aklivity.zilla.runtime.common.json.JsonController;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
+import io.aklivity.zilla.runtime.common.json.JsonParserEx.Mode;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonRefResolver;
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
@@ -2102,15 +2103,28 @@ public final class JsonSchemaImpl implements JsonSchema
         }
 
         @Override
-        public JsonEvent nextEvent()
+        public JsonEvent nextEvent(
+            Mode mode)
         {
-            return delegateEx.nextEvent();
+            return delegateEx.nextEvent(mode);
         }
 
         @Override
         public CharSequence getStringView()
         {
             return delegateEx != null ? delegateEx.getStringView() : delegate.getString();
+        }
+
+        @Override
+        public DirectBuffer getSegment()
+        {
+            return delegateEx.getSegment();
+        }
+
+        @Override
+        public boolean deferredBytes()
+        {
+            return delegateEx.deferredBytes();
         }
 
         private void report(
