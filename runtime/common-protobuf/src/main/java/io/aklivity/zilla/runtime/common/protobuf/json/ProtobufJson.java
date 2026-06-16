@@ -52,8 +52,8 @@ public final class ProtobufJson
 {
     /**
      * Generator config key whose value is a {@link FieldNames} selecting which name renders as each JSON
-     * object key (absent ⇒ {@link FieldNames#JSON}). {@link FieldNames#PROTO} mirrors {@code protobuf-java}'s
-     * {@code JsonFormat.Printer.preservingProtoFieldNames()}.
+     * object key (absent ⇒ {@link FieldNames#JSON}). {@link FieldNames#PROTO} mirrors the Protobuf
+     * {@code JsonFormat} printer's {@code preservingProtoFieldNames()}.
      */
     public static final String FIELD_NAMES =
         "io.aklivity.zilla.runtime.common.protobuf.json.field.names";
@@ -62,8 +62,8 @@ public final class ProtobufJson
      * Generator config key (a {@link Boolean}): when {@code true}, every field is emitted — unset
      * implicit-presence scalars and enums as their declared (proto2) or type default, empty {@code repeated}
      * as {@code []}, empty {@code map} as {@code {}} — while fields with explicit presence (proto3
-     * {@code optional}, message, {@code oneof}) stay omitted when unset. Mirrors {@code protobuf-java}'s
-     * {@code JsonFormat.Printer.includingDefaultValueFields()}.
+     * {@code optional}, message, {@code oneof}) stay omitted when unset. Mirrors the Protobuf
+     * {@code JsonFormat} printer's {@code includingDefaultValueFields()}.
      */
     public static final String INCLUDE_DEFAULTS =
         "io.aklivity.zilla.runtime.common.protobuf.json.include.defaults";
@@ -110,7 +110,7 @@ public final class ProtobufJson
     }
 
     /**
-     * As {@link #generator(JsonGeneratorEx, ProtobufSchema, String)}, configured for {@code protobuf-java}
+     * As {@link #generator(JsonGeneratorEx, ProtobufSchema, String)}, configured for Protobuf
      * {@code JsonFormat} compatibility via {@code config} — see {@link #FIELD_NAMES} and
      * {@link #INCLUDE_DEFAULTS}. Fields are emitted in wire order (not field-number order), which is
      * semantically equivalent JSON.

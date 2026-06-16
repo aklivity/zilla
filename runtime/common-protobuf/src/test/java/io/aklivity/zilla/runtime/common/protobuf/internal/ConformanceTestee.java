@@ -33,7 +33,7 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
  * A protobuf conformance testee for the binary category, driven by the native
  * {@code conformance_test_runner} over stdin/stdout. Each {@code ConformanceRequest} / {@code
  * ConformanceResponse} is itself Protobuf, so this reads and writes them with {@code
- * common-protobuf}'s own reader and writer — no {@code protobuf-java}.
+ * common-protobuf}'s own reader and writer — no third-party protobuf library.
  * <p>
  * It handles {@code protobuf_payload} in / {@code PROTOBUF} out by canonicalizing against the
  * schema compiled from the conformance {@code FileDescriptorSet}; JSON/text formats are skipped

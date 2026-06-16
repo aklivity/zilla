@@ -45,7 +45,7 @@ import io.aklivity.zilla.runtime.common.protobuf.internal.parser.Protobuf3Parser
 
 /**
  * Compiles {@code .proto} source text into a {@link ProtobufSchema}, decoded with this library's own
- * ANTLR grammars so there is no {@code protobuf-java} dependency. A single file is parsed (proto2 or
+ * ANTLR grammars so there is no third-party protobuf dependency. A single file is parsed (proto2 or
  * proto3, detected from its {@code syntax} statement); composite field type references are resolved
  * by the proto scoping rules (innermost enclosing scope outward) to the dotless full names this model
  * keys on, and {@code map} fields are expanded into the synthetic {@code map_entry} message and a

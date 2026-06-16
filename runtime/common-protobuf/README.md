@@ -13,7 +13,7 @@ the `.json` package pulls in `common-json`.
 ## Descriptor model
 
 `ProtobufSchema` is a compiled, immutable model — build one per `schemaId` and cache it. It is
-**provider-free**: there is no dependency on `protobuf-java`. Construct the model with the public
+**provider-free**: there is no dependency on a third-party protobuf library. Construct the model with the public
 builders (`ProtobufSchema.Builder`, `ProtobufMessage.Builder`, `ProtobufField.Builder`,
 `ProtobufEnum.Builder`); a consumer such as `model-protobuf` populates field metadata from its own
 `.proto` compilation.
@@ -32,7 +32,7 @@ synthetic map-entry message (`mapEntry(true)`) with `key` as field 1 and `value`
 
 A compiled `google.protobuf.FileDescriptorSet` (e.g. from `protoc --descriptor_set_out`) can be
 turned into a `ProtobufSchema` directly — `descriptor.proto` is itself Protobuf, so it is decoded
-with this library's own wire reader and needs no `protobuf-java`:
+with this library's own wire reader and needs no third-party protobuf library:
 
 ```java
 ProtobufSchema schema = Protobuf.schema(descriptorSet, offset, length);

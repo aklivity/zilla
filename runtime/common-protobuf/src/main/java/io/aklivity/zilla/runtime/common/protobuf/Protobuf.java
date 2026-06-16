@@ -44,7 +44,7 @@ public final class Protobuf
     /**
      * Compiles a serialized {@code google.protobuf.FileDescriptorSet} (e.g. {@code protoc
      * --descriptor_set_out}) into a {@link ProtobufSchema}, decoded with this library's own wire
-     * reader so there is no {@code protobuf-java} dependency.
+     * reader so there is no third-party protobuf dependency.
      */
     public static ProtobufSchema schema(
         DirectBuffer fileDescriptorSet,
@@ -57,7 +57,7 @@ public final class Protobuf
     /**
      * Compiles {@code .proto} source text (a single proto2 or proto3 file, detected from its
      * {@code syntax} statement) into a {@link ProtobufSchema}, parsed with this library's own ANTLR
-     * grammars so there is no {@code protobuf-java} dependency. Composite field type references are
+     * grammars so there is no third-party protobuf dependency. Composite field type references are
      * resolved by the proto scoping rules and {@code map} fields are expanded to the synthetic
      * {@code map_entry} message, matching {@code protoc}.
      */

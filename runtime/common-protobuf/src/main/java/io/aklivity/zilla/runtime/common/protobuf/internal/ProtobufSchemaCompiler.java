@@ -30,7 +30,7 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
  * Compiles a serialized {@code google.protobuf.FileDescriptorSet} into a {@link ProtobufSchema}.
  * <p>
  * {@code descriptor.proto} is itself Protobuf, so this decodes the descriptor set with the same
- * {@link ProtobufReader} the rest of the library uses — no {@code protobuf-java} dependency. Full
+ * {@link ProtobufReader} the rest of the library uses — no third-party protobuf dependency. Full
  * names are assembled from the file package and nested type path; composite field {@code type_name}
  * references (leading-dot fully-qualified in the descriptor) are normalized to the dotless full
  * names this model keys on.
