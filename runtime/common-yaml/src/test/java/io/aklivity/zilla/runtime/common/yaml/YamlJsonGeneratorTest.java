@@ -144,6 +144,30 @@ class YamlJsonGeneratorTest
     }
 
     @Test
+    void shouldGenerateIntegerScalarEdges()
+    {
+        StringWriter out = new StringWriter();
+
+        YamlJson.createGenerator(out)
+            .writeStartObject()
+                .write("zero", 0)
+                .write("negative", -7114)
+                .write("intMin", Integer.MIN_VALUE)
+                .write("longMin", Long.MIN_VALUE)
+                .write("longMax", Long.MAX_VALUE)
+            .writeEnd()
+            .close();
+
+        assertEquals("""
+            zero: 0
+            negative: -7114
+            intMin: -2147483648
+            longMin: -9223372036854775808
+            longMax: 9223372036854775807
+            """, out.toString());
+    }
+
+    @Test
     void shouldGenerateObjectsNestedBeyondInitialStackCapacity()
     {
         int depth = 12;

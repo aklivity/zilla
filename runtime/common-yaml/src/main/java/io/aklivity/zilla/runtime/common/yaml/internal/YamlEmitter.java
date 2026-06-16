@@ -384,6 +384,26 @@ public final class YamlEmitter
         return plain(value) ? value : quote(value);
     }
 
+    public static void writeInteger(
+        Writer writer,
+        long value,
+        char[] buffer) throws IOException
+    {
+        int at = buffer.length;
+        long magnitude = value > 0 ? -value : value;
+        do
+        {
+            buffer[--at] = (char) ('0' - (int) (magnitude % 10));
+            magnitude /= 10;
+        }
+        while (magnitude != 0);
+        if (value < 0)
+        {
+            buffer[--at] = '-';
+        }
+        writer.write(buffer, at, buffer.length - at);
+    }
+
     private static String formatNode(
         YamlNode node)
     {

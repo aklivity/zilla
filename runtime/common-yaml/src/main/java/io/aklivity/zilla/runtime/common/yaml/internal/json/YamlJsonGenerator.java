@@ -40,6 +40,7 @@ public final class YamlJsonGenerator implements JsonGenerator
 {
     private final Writer writer;
     private final YamlGeneratorStack stack;
+    private final char[] numberBuffer;
     private boolean rootDone;
     private boolean closed;
 
@@ -48,6 +49,7 @@ public final class YamlJsonGenerator implements JsonGenerator
     {
         this.writer = writer;
         this.stack = new YamlGeneratorStack();
+        this.numberBuffer = new char[20];
     }
 
     public YamlJsonGenerator(
@@ -237,7 +239,7 @@ public final class YamlJsonGenerator implements JsonGenerator
     public JsonGenerator write(
         int value)
     {
-        beginScalar(Integer.toString(value));
+        beginInteger(value);
         return this;
     }
 
@@ -245,7 +247,7 @@ public final class YamlJsonGenerator implements JsonGenerator
     public JsonGenerator write(
         long value)
     {
-        beginScalar(Long.toString(value));
+        beginInteger(value);
         return this;
     }
 
@@ -314,12 +316,32 @@ public final class YamlJsonGenerator implements JsonGenerator
     private void beginScalar(
         String text)
     {
+        beginScalarPrefix();
+        emit(text);
+        emit("\n");
+    }
+
+    private void beginInteger(
+        long value)
+    {
+        beginScalarPrefix();
+        try
+        {
+            YamlEmitter.writeInteger(writer, value, numberBuffer);
+        }
+        catch (IOException ex)
+        {
+            throw new JsonException(ex.getMessage(), ex);
+        }
+        emit("\n");
+    }
+
+    private void beginScalarPrefix()
+    {
         ensureOpen();
         if (stack.isEmpty())
         {
             requireRootAvailable();
-            emit(text);
-            emit("\n");
             rootDone = true;
         }
         else
@@ -330,8 +352,6 @@ public final class YamlJsonGenerator implements JsonGenerator
                 stack.clearFirst();
                 indent(stack.childIndent());
                 emit("- ");
-                emit(text);
-                emit("\n");
             }
             else
             {
@@ -346,8 +366,6 @@ public final class YamlJsonGenerator implements JsonGenerator
                 }
                 emit(YamlEmitter.formatPlain(key));
                 emit(": ");
-                emit(text);
-                emit("\n");
                 stack.clearFirst();
             }
         }

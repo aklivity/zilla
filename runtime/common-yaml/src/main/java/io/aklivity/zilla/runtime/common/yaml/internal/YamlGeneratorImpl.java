@@ -34,6 +34,7 @@ public final class YamlGeneratorImpl implements YamlGenerator
     private final Writer writer;
     private final YamlConfiguration config;
     private final YamlGeneratorStack stack;
+    private final char[] numberBuffer;
     private boolean started;
     private boolean closed;
 
@@ -50,6 +51,7 @@ public final class YamlGeneratorImpl implements YamlGenerator
         this.writer = writer;
         this.config = config;
         this.stack = new YamlGeneratorStack();
+        this.numberBuffer = new char[20];
     }
 
     public YamlGeneratorImpl(
@@ -126,7 +128,7 @@ public final class YamlGeneratorImpl implements YamlGenerator
     public YamlGenerator write(
         int value)
     {
-        beginScalar(Integer.toString(value));
+        beginInteger(value);
         return this;
     }
 
@@ -143,7 +145,7 @@ public final class YamlGeneratorImpl implements YamlGenerator
     public YamlGenerator write(
         long value)
     {
-        beginScalar(Long.toString(value));
+        beginInteger(value);
         return this;
     }
 
@@ -329,13 +331,33 @@ public final class YamlGeneratorImpl implements YamlGenerator
     private void beginScalar(
         String text)
     {
+        beginScalarPrefix();
+        emit(text);
+        emit("\n");
+    }
+
+    private void beginInteger(
+        long value)
+    {
+        beginScalarPrefix();
+        try
+        {
+            YamlEmitter.writeInteger(writer, value, numberBuffer);
+        }
+        catch (IOException ex)
+        {
+            throw new IllegalStateException(ex.getMessage(), ex);
+        }
+        emit("\n");
+    }
+
+    private void beginScalarPrefix()
+    {
         ensureOpen();
         if (stack.isEmpty())
         {
             requireRootAvailable();
             started = true;
-            emit(text);
-            emit("\n");
         }
         else
         {
@@ -345,8 +367,6 @@ public final class YamlGeneratorImpl implements YamlGenerator
                 stack.clearFirst();
                 indent(stack.childIndent());
                 emit("- ");
-                emit(text);
-                emit("\n");
             }
             else
             {
@@ -361,8 +381,6 @@ public final class YamlGeneratorImpl implements YamlGenerator
                 }
                 emit(YamlEmitter.formatPlain(key));
                 emit(": ");
-                emit(text);
-                emit("\n");
                 stack.clearFirst();
             }
         }
