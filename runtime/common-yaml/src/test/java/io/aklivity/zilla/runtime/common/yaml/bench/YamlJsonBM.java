@@ -18,6 +18,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.io.StringReader;
 
+import jakarta.json.stream.JsonGenerator;
 import jakarta.json.stream.JsonParser;
 
 import org.openjdk.jmh.annotations.Benchmark;
@@ -84,6 +85,11 @@ public class YamlJsonBM
           host: example.com
         """;
 
+    private static final String QUOTED_VALUE = "value: with #special \"chars\" and \\backslash";
+
+    private static final String[] SCALAR_ITEMS = scalarItems();
+    private static final String[] OBJECT_KEYS = objectKeys();
+
     @Benchmark
     public int parseBlockConfig()
     {
@@ -131,6 +137,63 @@ public class YamlJsonBM
                 .writeEnd()
             .writeEnd()
             .close();
+    }
+
+    @Benchmark
+    public void generateScalarArray(
+        Blackhole blackhole)
+    {
+        JsonGenerator generator = YamlJson.createGenerator(new BlackholeWriter(blackhole));
+        generator.writeStartObject()
+            .writeStartArray("values");
+        for (int index = 0; index < 64; index++)
+        {
+            if ((index & 1) == 0)
+            {
+                generator.write(SCALAR_ITEMS[index >> 1]);
+            }
+            else
+            {
+                generator.write(index);
+            }
+        }
+        generator.writeEnd()
+            .writeEnd()
+            .close();
+    }
+
+    @Benchmark
+    public void generateQuotedScalars(
+        Blackhole blackhole)
+    {
+        JsonGenerator generator = YamlJson.createGenerator(new BlackholeWriter(blackhole));
+        generator.writeStartObject();
+        for (int index = 0; index < OBJECT_KEYS.length; index++)
+        {
+            generator.write(OBJECT_KEYS[index], QUOTED_VALUE);
+        }
+        generator.writeEnd()
+            .close();
+    }
+
+    private static String[] scalarItems()
+    {
+        String[] items = new String[32];
+        for (int index = 0; index < items.length; index++)
+        {
+            items[index] = "item" + (index << 1);
+        }
+        return items;
+    }
+
+    private static String[] objectKeys()
+    {
+        String[] keys = new String[32];
+        for (int index = 0; index < keys.length; index++)
+        {
+            keys[index] = "key" + index;
+        }
+        return keys;
     }
 
     private int parse(
