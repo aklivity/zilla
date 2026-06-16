@@ -143,10 +143,11 @@ class JsonProjectorSegmentTest
         JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonEx.projector(List.of("/a")))
-            .into(JsonEx.createSink(gen, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.DECODED)));
+            .into(JsonEx.createSink(gen, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.STRUCTURED)));
 
         // a retained scalar leaf far larger than the input window: it fragments across windows and the
-        // DECODED sink rejoins the fragments; the dropped sibling /b also fragments and must not be emitted
+        // structured sink rejoins the fragments canonically; the dropped sibling /b also fragments and
+        // must not be emitted
         String value = "x".repeat(40);
         String json = "{\"a\":\"" + value + "\",\"b\":\"" + "y".repeat(40) + "\"} ";
         byte[] bytes = json.getBytes(UTF_8);

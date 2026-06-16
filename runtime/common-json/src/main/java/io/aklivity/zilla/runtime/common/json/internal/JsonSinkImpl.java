@@ -145,9 +145,10 @@ public final class JsonSinkImpl implements JsonSink
         JsonEvent event)
     {
         Status status;
-        if (event == JsonEvent.VALUE_STRING && delivery != Delivery.SEGMENTABLE)
+        if (event == JsonEvent.VALUE_NUMBER ||
+            event == JsonEvent.VALUE_STRING && delivery != Delivery.SEGMENTABLE)
         {
-            status = writeDecodedString(control, source);
+            status = writeScalar(control, source, event);
         }
         else
         {
@@ -164,19 +165,28 @@ public final class JsonSinkImpl implements JsonSink
         return status;
     }
 
-    // Renders a structured string canonically from its decoded char view: the generator owns the quotes and
-    // escaping and writes only what fits the bound, reporting consumed source chars so the parser advances
-    // its char cursor and re-exposes the remainder on resume — the char-domain analog of writeChunk.
-    private Status writeDecodedString(
+    // Renders a structured scalar canonically from its decoded char view: the generator owns quoting and
+    // escaping (a string) or emits the lexeme (a number), writing only what fits the bound and reporting
+    // consumed source chars so the parser advances its char cursor and re-exposes the remainder on resume —
+    // the char-domain analog of writeChunk.
+    private Status writeScalar(
         JsonController control,
-        JsonSource source)
+        JsonSource source,
+        JsonEvent event)
     {
         final boolean deferred = source.deferredBytes();
         final Completion completion = deferred ? Completion.INCOMPLETE : Completion.COMPLETE;
         final CharSequence view = source.getStringView();
         final int available = view.length();
         final int before = generator.consumed();
-        generator.write(view, completion);
+        if (event == JsonEvent.VALUE_NUMBER)
+        {
+            generator.writeNumber(view, completion);
+        }
+        else
+        {
+            generator.write(view, completion);
+        }
         final int consumed = generator.consumed() - before;
         control.consumed(consumed);
         Status status;

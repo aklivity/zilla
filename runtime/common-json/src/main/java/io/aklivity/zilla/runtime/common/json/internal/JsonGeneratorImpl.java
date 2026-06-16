@@ -426,8 +426,12 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
             preValue();
             pending = Pending.NUMBER;
         }
-        writeAscii(literal);
-        if (completion == Completion.COMPLETE)
+        // emit only the lexeme chars that fit the output bound and report them via consumed(), so a number
+        // longer than the bound suspends and resumes from the remainder — the analog of write(value, …) for
+        // a literal that carries no quoting or escaping
+        final int written = writeAsciiBounded(literal);
+        consumed += written;
+        if (written == literal.length() && completion == Completion.COMPLETE)
         {
             pending = Pending.NONE;
         }
@@ -671,6 +675,22 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         {
             putByte.accept(value.charAt(index));
         }
+    }
+
+    // Bounded counterpart for a fragmented/over-bound number lexeme: emits ASCII lexeme chars (each one
+    // output byte, no escaping) while the bound has room, returning the count emitted so the caller can
+    // advance its cursor and resume from the remainder.
+    private int writeAsciiBounded(
+        CharSequence value)
+    {
+        int index = 0;
+        final int length = value.length();
+        while (index < length && progress < limit)
+        {
+            putByte.accept(value.charAt(index));
+            index++;
+        }
+        return index;
     }
 
     // Copies whole source units (UTF-8 char or JSON escape sequence), stopping before one that overflows

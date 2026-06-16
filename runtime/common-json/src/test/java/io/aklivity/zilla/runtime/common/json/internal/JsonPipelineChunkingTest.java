@@ -94,12 +94,12 @@ class JsonPipelineChunkingTest
     }
 
     @Test
-    void shouldChunkDecodedNumberValueThroughBoundedOutput()
+    void shouldChunkStructuredNumberValueThroughBoundedOutput()
     {
         JsonGeneratorEx generator = JsonEx.createGenerator();
         MutableDirectBuffer output = new UnsafeBuffer(new byte[128]);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
-            .into(JsonEx.createSink(generator, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.DECODED)));
+            .into(JsonEx.createSink(generator, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.STRUCTURED)));
 
         // a single decoded number lexeme longer than the output bound must suspend/resume mid-value,
         // propagating consumed bytes back to the parser rather than overrunning the generator's limit
@@ -108,12 +108,12 @@ class JsonPipelineChunkingTest
     }
 
     @Test
-    void shouldChunkDecodedControlHeavyStringThroughBoundedOutput()
+    void shouldChunkStructuredControlHeavyStringThroughBoundedOutput()
     {
         JsonGeneratorEx generator = JsonEx.createGenerator();
         MutableDirectBuffer output = new UnsafeBuffer(new byte[128]);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
-            .into(JsonEx.createSink(generator, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.DECODED)));
+            .into(JsonEx.createSink(generator, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.STRUCTURED)));
 
         // a control-char-heavy string rendered canonically (short escapes) far exceeds the output bound:
         // the bounded write must suspend mid-string without splitting an escape, then resume byte-correct
@@ -122,12 +122,12 @@ class JsonPipelineChunkingTest
     }
 
     @Test
-    void shouldChunkDecodedMultibyteStringThroughBoundedOutput()
+    void shouldChunkStructuredMultibyteStringThroughBoundedOutput()
     {
         JsonGeneratorEx generator = JsonEx.createGenerator();
         MutableDirectBuffer output = new UnsafeBuffer(new byte[128]);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
-            .into(JsonEx.createSink(generator, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.DECODED)));
+            .into(JsonEx.createSink(generator, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.STRUCTURED)));
 
         // multibyte UTF-8 content far larger than the output bound: a suspend must fall on a code-point
         // boundary so no multibyte character is split across chunks
@@ -136,14 +136,14 @@ class JsonPipelineChunkingTest
     }
 
     @Test
-    void shouldChunkDecodedStringAcrossInputAndOutputBounds()
+    void shouldChunkStructuredStringAcrossInputAndOutputBounds()
     {
         // a decoded string larger than both the input window and the output bound, carrying escapes and a
         // multibyte char: with the input window wider than the output bound a single fragment overruns the
         // bound, so it starves on input and suspends mid-fragment on output, reconstructing canonically
         String content = ("\\né\\t" + "x".repeat(6)).repeat(8);
         String json = "{\"data\":\"" + content + "\"}";
-        assertEquals(json, chunkedWindowed(JsonSink.Delivery.DECODED, json, 40, 24));
+        assertEquals(json, chunkedWindowed(JsonSink.Delivery.STRUCTURED, json, 40, 24));
     }
 
     @Test
@@ -271,19 +271,10 @@ class JsonPipelineChunkingTest
     }
 
     @Test
-    void shouldReconstructWindowFragmentedStringValueDecoded()
+    void shouldReconstructWindowFragmentedStringValueStructured()
     {
-        // small feed windows fragment the over-window value; the DECODED sink re-renders each fragment
-        // via generator.write(getString(), Completion) with no concatenation
-        String json = "{\"data\":\"" + "x".repeat(40) + "\"}";
-        assertEquals(json, feedWindowed(json, JsonSink.Delivery.DECODED, 8));
-    }
-
-    @Test
-    void shouldReconstructWindowFragmentedStringValueVerbatim()
-    {
-        // same fragmented value, verbatim path: each fragment's getSegment() raw bytes splice back to
-        // the whole token
+        // small feed windows fragment the over-window value; the structured sink re-renders each fragment
+        // canonically from getStringView() with no concatenation
         String json = "{\"data\":\"" + "x".repeat(40) + "\"}";
         assertEquals(json, feedWindowed(json, JsonSink.Delivery.STRUCTURED, 8));
     }
@@ -297,7 +288,7 @@ class JsonPipelineChunkingTest
         JsonGeneratorEx generator = JsonEx.createGenerator();
         MutableDirectBuffer output = new UnsafeBuffer(new byte[512]);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
-            .into(JsonEx.createSink(generator, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.DECODED)));
+            .into(JsonEx.createSink(generator, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.STRUCTURED)));
         generator.wrap(output, 0, output.capacity());
         pipeline.reset();
 
@@ -323,14 +314,7 @@ class JsonPipelineChunkingTest
     }
 
     @Test
-    void shouldReconstructWindowFragmentedNumberValueDecoded()
-    {
-        String json = "{\"n\":" + "1".repeat(40) + "}";
-        assertEquals(json, feedWindowed(json, JsonSink.Delivery.DECODED, 8));
-    }
-
-    @Test
-    void shouldReconstructWindowFragmentedNumberValueVerbatim()
+    void shouldReconstructWindowFragmentedNumberValueStructured()
     {
         String json = "{\"n\":" + "1".repeat(40) + "}";
         assertEquals(json, feedWindowed(json, JsonSink.Delivery.STRUCTURED, 8));
@@ -369,7 +353,7 @@ class JsonPipelineChunkingTest
         };
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(probe)
-            .into(JsonEx.createSink(generator, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.DECODED)));
+            .into(JsonEx.createSink(generator, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.STRUCTURED)));
         generator.wrap(output, 0, output.capacity());
         pipeline.reset();
 

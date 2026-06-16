@@ -287,15 +287,16 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
             break;
         default:
             lastEvent = JsonEvent.of(next());
-            if (lastEvent == JsonEvent.VALUE_STRING && !tokenizer.stringVerbatim())
+            if (lastEvent == JsonEvent.VALUE_NUMBER ||
+                lastEvent == JsonEvent.VALUE_STRING && !tokenizer.stringVerbatim())
             {
-                // canonical string: the sink renders it from the decoded char view, so reset the char
-                // cursor; the raw segment slice is not used for this value
+                // structured scalar (number lexeme or canonical string): the sink renders it from the
+                // decoded char view, so reset the char cursor; the raw segment slice is not used
                 stringViewOffset = 0;
             }
-            else if (lastEvent == JsonEvent.VALUE_STRING || lastEvent == JsonEvent.VALUE_NUMBER)
+            else if (lastEvent == JsonEvent.VALUE_STRING)
             {
-                // verbatim string token (with quotes) or number lexeme: the sink splices the raw bytes
+                // verbatim string token (with quotes): the sink splices the raw bytes
                 segmentSliceOffset = bufferOffset(tokenizer.valueStreamStart());
                 segmentSliceLength = (int) (tokenizer.valueStreamEnd() - tokenizer.valueStreamStart());
                 segmentConsumed = 0;
@@ -396,8 +397,8 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
     public void consumed(
         int sourceUnits)
     {
-        // a canonical string advances its char cursor; a verbatim segment or number its raw byte cursor
-        if (decodedString())
+        // a decoded scalar advances its char cursor; a verbatim string or raw segment its byte cursor
+        if (charScalar())
         {
             stringViewOffset += sourceUnits;
         }
@@ -422,19 +423,21 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
     @Override
     public CharSequence getStringView()
     {
-        // while rendering a canonical string, expose the unconsumed char remainder so a resumed write
+        // while rendering a structured scalar, expose the unconsumed char remainder so a resumed write
         // continues from where the bounded output left off; otherwise the full decoded view
-        return decodedString()
+        return charScalar()
             ? stringViewRO.wrap(tokenizer.stringView(), stringViewOffset)
             : tokenizer.stringView();
     }
 
-    // True while the current value-string is delivered decoded (rendered canonically by the sink) rather
-    // than verbatim. Derived from the current event and the tokenizer's verbatim mark, not stored, so
-    // there is no per-value flag to reset; it stays valid while the parser is parked mid-output on resume.
-    private boolean decodedString()
+    // True while the current scalar is delivered decoded (rendered canonically by the sink from its char
+    // view) rather than verbatim: a number lexeme, or a value-string the tokenizer did not stream verbatim.
+    // Derived from the current event and the tokenizer's verbatim mark, not stored, so there is no per-value
+    // flag to reset; it stays valid while the parser is parked mid-output on resume.
+    private boolean charScalar()
     {
-        return lastEvent == JsonEvent.VALUE_STRING && !tokenizer.stringVerbatim();
+        return lastEvent == JsonEvent.VALUE_NUMBER ||
+            lastEvent == JsonEvent.VALUE_STRING && !tokenizer.stringVerbatim();
     }
 
     @Override
