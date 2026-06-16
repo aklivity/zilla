@@ -2069,7 +2069,6 @@ public final class JsonSchemaImpl implements JsonSchema
             directInvalid = false;
             object = false;
             array = false;
-            seen = null;
             count = 0;
             currentIndex = 0;
             directChild = null;
@@ -2077,23 +2076,41 @@ public final class JsonSchemaImpl implements JsonSchema
             directChildren = null;
             containsChild = null;
             containsMatched = 0;
+            uniqueElement = false;
+            refEval = null;
+            dynEval = null;
+            currentKey = null;
+            childTokens = null;
+            // per-instance collections are cleared and reused rather than reallocated each element; their
+            // backing object is allocated once (lazily, in onOpen) and only when the schema needs it
+            if (seen != null)
+            {
+                seen.clear();
+            }
             if (uniqueSeen != null)
             {
                 uniqueSeen.clear();
             }
-            uniqueElement = false;
             if (valueTokens != null)
             {
                 valueTokens.clear();
             }
-            refEval = null;
-            dynEval = null;
-            evaluatedProps = null;
-            evaluatedItems = null;
-            currentKey = null;
-            propValues = null;
-            itemValues = null;
-            childTokens = null;
+            if (evaluatedProps != null)
+            {
+                evaluatedProps.clear();
+            }
+            if (evaluatedItems != null)
+            {
+                evaluatedItems.clear();
+            }
+            if (propValues != null)
+            {
+                propValues.clear();
+            }
+            if (itemValues != null)
+            {
+                itemValues.clear();
+            }
             resetEach(allOfEvals);
             resetEach(anyOfEvals);
             resetEach(oneOfEvals);
@@ -2267,12 +2284,15 @@ public final class JsonSchemaImpl implements JsonSchema
             {
             case START_OBJECT:
                 object = true;
-                seen = trackKeys ? new HashSet<>() : null;
-                if (annotate)
+                if (trackKeys && seen == null)
+                {
+                    seen = new HashSet<>();
+                }
+                if (annotate && evaluatedProps == null)
                 {
                     evaluatedProps = new HashSet<>();
                 }
-                if (unevaluatedProperties != null)
+                if (unevaluatedProperties != null && propValues == null)
                 {
                     propValues = new LinkedHashMap<>();
                 }
@@ -2284,11 +2304,11 @@ public final class JsonSchemaImpl implements JsonSchema
                 break;
             case START_ARRAY:
                 array = true;
-                if (annotate)
+                if (annotate && evaluatedItems == null)
                 {
                     evaluatedItems = new BitSet();
                 }
-                if (unevaluatedItems != null)
+                if (unevaluatedItems != null && itemValues == null)
                 {
                     itemValues = new ArrayList<>();
                 }
