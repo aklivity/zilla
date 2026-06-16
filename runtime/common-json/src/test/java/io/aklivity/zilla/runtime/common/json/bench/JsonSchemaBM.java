@@ -124,6 +124,10 @@ public class JsonSchemaBM
     private JsonSchema uniqueScalarsSchema;
     private JsonSchema uniqueObjectsSchema;
 
+    // a validating parser reused across documents (over the shared delegate): reset() per op replays one
+    // evaluator instead of building a fresh tree, the counterpart to the per-document validate() above
+    private JsonParserEx typedIntegersValidator;
+
     private UnsafeBuffer flatObjectBuffer;
     private UnsafeBuffer arrayObjectsBuffer;
     private UnsafeBuffer oneOfBuffer;
@@ -151,6 +155,7 @@ public class JsonSchemaBM
         boundedNumbersSchema = JsonSchema.of(BOUNDED_NUMBERS_SCHEMA);
         uniqueScalarsSchema = JsonSchema.of(UNIQUE_SCALARS_SCHEMA);
         uniqueObjectsSchema = JsonSchema.of(UNIQUE_OBJECTS_SCHEMA);
+        typedIntegersValidator = (JsonParserEx) JsonSchema.of(TYPED_INTEGERS_SCHEMA).newParser(false, parser);
 
         byte[] flatObjectBytes = FLAT_OBJECT_INSTANCE.getBytes(UTF_8);
         byte[] arrayObjectsBytes = ARRAY_OBJECTS_INSTANCE.getBytes(UTF_8);
@@ -181,6 +186,21 @@ public class JsonSchemaBM
     public boolean validateFlatObject()
     {
         return flatObjectSchema.validate(parserFor(flatObjectBuffer, flatObjectLength));
+    }
+
+    // reused validating parser: same instance + evaluator across ops, only the input re-wrapped
+    @Benchmark
+    public int validateReusedTypedIntegers()
+    {
+        inputRO.wrap(numbersBuffer, 0, numbersLength);
+        typedIntegersValidator.reset();
+        int events = 0;
+        while (typedIntegersValidator.hasNext())
+        {
+            typedIntegersValidator.next();
+            events++;
+        }
+        return events;
     }
 
     @Benchmark

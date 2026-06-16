@@ -1903,9 +1903,12 @@ public final class JsonSchemaImpl implements JsonSchema
         }
     }
 
-    private final class ValidatingParser implements JsonParser
+    // wraps a delegate parser, validating as the caller pulls via next(); a single thread reuses one
+    // instance across documents by re-wrapping the delegate and calling reset()
+    private final class ValidatingParser implements JsonParserEx
     {
         private final JsonParser delegate;
+        private final JsonParserEx delegateEx;
         private final boolean throwing;
         private final Consumer<JsonSchemaDiagnostic> reporter;
         private final List<JsonSchemaDiagnostic> diagnostics;
@@ -1920,6 +1923,7 @@ public final class JsonSchemaImpl implements JsonSchema
             Consumer<JsonSchemaDiagnostic> reporter)
         {
             this.delegate = delegate;
+            this.delegateEx = delegate instanceof JsonParserEx ex ? ex : null;
             this.throwing = throwing;
             this.reporter = reporter;
             this.diagnostics = throwing || reporter != null ? new ArrayList<>() : null;
@@ -1989,6 +1993,68 @@ public final class JsonSchemaImpl implements JsonSchema
         public void close()
         {
             delegate.close();
+        }
+
+        // rearms for the next document: resets the delegate's parse state and this validation pass
+        @Override
+        public void reset()
+        {
+            if (delegateEx != null)
+            {
+                delegateEx.reset();
+            }
+            eval.reset();
+            verdict = Verdict.PENDING;
+            if (diagnostics != null)
+            {
+                diagnostics.clear();
+            }
+        }
+
+        // streaming-over-buffers surface, delegated; validation runs on the next()/getString() pull path
+        @Override
+        public JsonParserEx wrap(
+            DirectBuffer buffer,
+            int offset,
+            int length)
+        {
+            delegateEx.wrap(buffer, offset, length);
+            return this;
+        }
+
+        @Override
+        public JsonParserEx wrap(
+            DirectBuffer buffer,
+            int offset,
+            int length,
+            boolean last)
+        {
+            delegateEx.wrap(buffer, offset, length, last);
+            return this;
+        }
+
+        @Override
+        public long position()
+        {
+            return delegateEx.position();
+        }
+
+        @Override
+        public boolean hasNextEvent()
+        {
+            return delegateEx.hasNextEvent();
+        }
+
+        @Override
+        public JsonEvent nextEvent()
+        {
+            return delegateEx.nextEvent();
+        }
+
+        @Override
+        public CharSequence getStringView()
+        {
+            return delegateEx != null ? delegateEx.getStringView() : delegate.getString();
         }
 
         private void report(
