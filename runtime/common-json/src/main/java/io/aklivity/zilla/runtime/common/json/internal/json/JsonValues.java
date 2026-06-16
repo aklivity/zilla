@@ -142,10 +142,8 @@ public final class JsonValues
         return new NumberValue(Objects.requireNonNull(value, "value"));
     }
 
-    // A number parsed from source: retains the original lexeme and defers the BigDecimal (and its
-    // canonicalization) until a numeric or equality accessor actually needs it. A parse-then-re-emit
-    // pass — the common gateway case — touches only toString(), so no BigDecimal is ever allocated and
-    // the source form (e.g. an exponent) is preserved verbatim rather than expanded.
+    // a parsed number: retains the lexeme and defers the BigDecimal until a numeric/equality accessor
+    // needs it, so parse-then-re-emit touches only toString() and preserves the source form verbatim
     public static JsonNumber numberLiteral(
         String lexeme)
     {
@@ -830,9 +828,8 @@ public final class JsonValues
     private static final class NumberValue implements JsonNumber
     {
         private final String lexeme;
-        // canonical (stripTrailingZeros) form: eager when built from a number, lazily derived from the
-        // lexeme on first numeric/equality access otherwise; not final because of that benign, idempotent
-        // lazy init (handlers are single-threaded per worker and the recomputed value is always equal)
+        // canonical (stripTrailingZeros) form; eager from a number, else derived from the lexeme lazily
+        // (non-final for that benign single-worker lazy init)
         private BigDecimal value;
 
         private NumberValue(

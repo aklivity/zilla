@@ -203,32 +203,21 @@ public final class JsonSchemaImpl implements JsonSchema
         return refs;
     }
 
+    // stateless so the schema stays immutable and shareable; a single worker that validates repeatedly
+    // reuses the validating parser from newParser(), which carries the per-worker mutable state
     @Override
     public boolean validate(
         JsonParser parser)
     {
-        // stateless: a fresh evaluator per call keeps the schema immutable and shareable; a single
-        // worker validating repeatedly should hold a newEvaluator() and reuse it instead
         return drive(eval(), new ParserSource().wrap(parser), parser);
     }
 
-    @Override
-    public Evaluator newEvaluator()
-    {
-        return new SchemaEvaluator();
-    }
-
-    /**
-     * Validates and reports each failing keyword + instance JSON-Pointer + message via
-     * {@code reporter}. Returns {@code true} iff every diagnostic-bearing failure cleared.
-     */
     @Override
     public boolean validate(
         JsonParser parser,
         Consumer<JsonSchemaDiagnostic> reporter)
     {
-        Trace trace = new Trace(reporter);
-        return drive(eval(trace), new ParserSource().wrap(parser), parser);
+        return drive(eval(new Trace(reporter)), new ParserSource().wrap(parser), parser);
     }
 
     private static boolean drive(
@@ -242,39 +231,6 @@ public final class JsonSchemaImpl implements JsonSchema
             verdict = eval.feed(parser.next(), source);
         }
         return verdict == Verdict.VALID;
-    }
-
-    // Per-worker reuse handle: holds the mutable evaluator and source view so the immutable schema can be
-    // shared across workers. Confined to one worker; resets the evaluator on entry so a prior validation
-    // that threw leaves no partial state.
-    private final class SchemaEvaluator implements Evaluator
-    {
-        private final ParserSource source = new ParserSource();
-        private Eval eval;
-
-        @Override
-        public boolean validate(
-            JsonParser parser)
-        {
-            if (eval == null)
-            {
-                eval = eval();
-            }
-            else
-            {
-                eval.reset();
-            }
-            return drive(eval, source.wrap(parser), parser);
-        }
-
-        @Override
-        public boolean validate(
-            JsonParser parser,
-            Consumer<JsonSchemaDiagnostic> reporter)
-        {
-            // the reporter's Trace varies per call, so this overload evaluates fresh
-            return drive(eval(new Trace(reporter)), source.wrap(parser), parser);
-        }
     }
 
     @Override
@@ -999,8 +955,7 @@ public final class JsonSchemaImpl implements JsonSchema
     private static final class ParserSource implements JsonSource
     {
         private JsonParser parser;
-        // non-null when the delegate exposes the zero-alloc char view (common-json's parser); a YAML-backed
-        // or any other jakarta parser leaves it null and getStringView() falls back to getString()
+        // non-null only when the delegate offers the zero-alloc char view; else getStringView falls back
         private JsonParserEx parserEx;
 
         private ParserSource wrap(
@@ -1129,8 +1084,7 @@ public final class JsonSchemaImpl implements JsonSchema
         String result;
         if (canonicalInteger(text))
         {
-            // a plain integer literal already equals its stripTrailingZeros().toPlainString() form,
-            // so it is canonical as-is and needs no BigDecimal
+            // a plain integer literal is already canonical, so no BigDecimal
             result = text.toString();
         }
         else
@@ -1154,7 +1108,7 @@ public final class JsonSchemaImpl implements JsonSchema
         boolean canonical = digits;
         if (canonical && text.charAt(0) == '-')
         {
-            // "-0" normalizes to "0" and a lone "-" is not a number, so neither is canonical as-is
+            // "-0" normalizes to "0", so it is not canonical as-is
             canonical = length >= 2 && !(length == 2 && text.charAt(1) == '0');
         }
         return canonical;
@@ -1513,11 +1467,8 @@ public final class JsonSchemaImpl implements JsonSchema
         }
     }
 
-    // Builds an array element's canonical text incrementally so a uniqueItems check needs neither a
-    // retained Token list nor a recursive pass. A scalar (the common uniqueItems case) yields its
-    // canonical String with no buffering; an array streams its elements into a reused buffer; only an
-    // object buffers its members, to sort them. The output matches canonicalize(List<Token>) — same
-    // quoting and number normalization — so duplicate detection is unchanged.
+    // Builds an array element's canonical text incrementally (no retained Token list, no recursive pass)
+    // for uniqueItems. Output matches canonicalize(List<Token>), so duplicate detection is unchanged.
     private static final class UniqueCanon
     {
         private static final int MAX_DEPTH = 64;
@@ -1595,7 +1546,7 @@ public final class JsonSchemaImpl implements JsonSchema
             return frame;
         }
 
-        // Mirrors quote(String): wraps in quotes and escapes only backslash and double-quote.
+        // mirrors quote(String): escapes only backslash and double-quote
         private String quoted(
             CharSequence value)
         {
@@ -1618,10 +1569,8 @@ public final class JsonSchemaImpl implements JsonSchema
 
     private static final class Frame
     {
-        // an array streams its elements straight into buffer (order preserved); an object collects its
-        // members as parallel quoted-key/value-canon lists and assembles them sorted into buffer at render,
-        // so only the one canonical String per container is allocated — no per-member "key:value" concat
-        // and no String.join intermediate
+        // arrays stream into buffer in order; objects collect members as parallel key/value lists and
+        // assemble them sorted at render, so only one canonical String per container is allocated
         private final StringBuilder buffer = new StringBuilder();
         private final List<String> keys = new ArrayList<>();
         private final List<String> values = new ArrayList<>();
@@ -1701,9 +1650,8 @@ public final class JsonSchemaImpl implements JsonSchema
             return result;
         }
 
-        // Stable insertion sort of member indices by (quoted key, then value). Because a quoted key is
-        // self-delimiting, this is identical to sorting the concatenated "key:value" members, so the
-        // canonical form — and thus duplicate detection — is unchanged.
+        // sort member indices by (quoted key, then value); a quoted key is self-delimiting, so this
+        // matches sorting the "key:value" members — the canonical form is unchanged
         private void sortMembers(
             int count)
         {
@@ -1741,10 +1689,8 @@ public final class JsonSchemaImpl implements JsonSchema
         }
     }
 
-    // Open-addressed set of canonical element strings for uniqueItems: stores the strings directly in a
-    // probe table rather than a HashSet, so detecting a duplicate over an N-element array allocates the
-    // table (plus its resizes) instead of a node per element. The string is still kept and compared so a
-    // hash collision never reports a false duplicate. Reused across array instances via clear().
+    // Open-addressed set of canonical uniqueItems strings: probe table rather than HashSet, so no node
+    // per element. The string is kept and compared, so a hash collision never reports a false duplicate.
     private static final class CanonSet
     {
         private String[] table;
@@ -1763,7 +1709,7 @@ public final class JsonSchemaImpl implements JsonSchema
             size = 0;
         }
 
-        // adds value, returning false if an equal value was already present (a duplicate element)
+        // false if an equal value was already present (a duplicate element)
         private boolean add(
             String value)
         {
@@ -2179,21 +2125,13 @@ public final class JsonSchemaImpl implements JsonSchema
         private final List<Token> valueTokens;
         private Eval refEval;
         private Eval dynEval;
-        // child evals reused across this array's elements: items and contains are constant per array, so
-        // a single instance is reset between elements rather than reallocated for each. Held apart from
-        // the directChild/containsChild slots (which clear on element completion) and never reset by the
-        // owning eval's own reset() — they are reset on next use, preserving reuse across outer elements.
+        // items/contains evals reused across this array's elements (reset on next use, not by reset())
         private Eval itemEval;
         private JsonSchemaImpl itemEvalSchema;
         private Eval containsEval;
-        // child evals reused across this object's properties, keyed by the applicable schema instance:
-        // each property value is validated by a single applicable schema, processed one key at a time, so
-        // the same eval is reset and reused for every key sharing that schema. Like itemEval, it is left
-        // intact by reset() and reset on its own next use, so reuse holds across outer array elements too.
+        // property evals reused across an object's keys, by applicable schema; gated on reused so a
+        // single-use object never pays for the map
         private Map<JsonSchemaImpl, Eval> propEvals;
-        // set once this eval has been reset for reuse (it is the items/contains schema of an array). The
-        // property-eval cache is gated on it: a single-use object validated once never pays for the map,
-        // which would not be amortized, while an object reused per array element does.
         private boolean reused;
 
         private final boolean annotate;
@@ -2229,11 +2167,8 @@ public final class JsonSchemaImpl implements JsonSchema
             this.trackKeys = required != null || dependentRequired != null || dependentSchemaEvals != null;
         }
 
-        // Returns this eval to its pre-feed state so it can validate the next array element without
-        // reallocation. The eager combinator/conditional children (built in the constructor and reused
-        // across feeds) are reset in place; the lazily built children (directChild, directChildren,
-        // refEval, dynEval) are dropped and rebuilt on demand. The reused per-array caches (itemEval,
-        // containsEval) are intentionally left intact and reset on their own next use.
+        // resets to pre-feed state for reuse: eager combinator children reset in place, lazy children
+        // (directChild, refEval, dynEval) dropped, the itemEval/containsEval/propEvals caches left intact
         private void reset()
         {
             reused = true;
@@ -2256,8 +2191,7 @@ public final class JsonSchemaImpl implements JsonSchema
             dynEval = null;
             currentKey = null;
             childTokens = null;
-            // per-instance collections are cleared and reused rather than reallocated each element; their
-            // backing object is allocated once (lazily, in onOpen) and only when the schema needs it
+            // per-instance collections are cleared and reused, allocated once lazily in onOpen
             if (seen != null)
             {
                 seen.clear();
@@ -2323,10 +2257,8 @@ public final class JsonSchemaImpl implements JsonSchema
             }
         }
 
-        // The eval for the element at the current index, reusing the cached instance when the element
-        // schema is index-independent (a single items schema, or the ANY fallback) — the common case — so
-        // every element after the first is validated without allocating a fresh eval tree. A prefixItems
-        // tuple yields a different schema per index and so falls through to a fresh eval.
+        // reuses the cached element eval when the item schema is index-independent (a single items schema
+        // or the ANY fallback); a prefixItems tuple varies per index and falls through to a fresh eval
         private Eval itemEvalFor(
             JsonSchemaImpl schema)
         {
@@ -2345,9 +2277,8 @@ public final class JsonSchemaImpl implements JsonSchema
             return result;
         }
 
-        // The eval for a property value, reusing the cached instance for its applicable schema so the
-        // properties of an object (and the same properties across the elements of an array of objects)
-        // are validated without allocating a fresh eval per key.
+        // reuses the cached eval for a property's applicable schema, so object keys (and the same keys
+        // across array-of-object elements) need no fresh eval per key
         private Eval propEvalFor(
             JsonSchemaImpl schema)
         {
@@ -2371,7 +2302,7 @@ public final class JsonSchemaImpl implements JsonSchema
             }
             else
             {
-                // first use (or a single-use object): no reuse to amortize a cache, so evaluate fresh
+                // single-use object: no reuse to amortize a cache, so evaluate fresh
                 result = schema.eval(trace, dynScope);
             }
             return result;
@@ -2585,10 +2516,8 @@ public final class JsonSchemaImpl implements JsonSchema
             boolean lexicalIntegral = parser.isIntegralNumber();
             boolean bounded = minimum != null || maximum != null ||
                 exclusiveMinimum != null || exclusiveMaximum != null || multipleOf != null;
-            // a plain integer literal is integral under every draft, so the type check alone needs no
-            // BigDecimal; only a bounds check, or deciding integrality of a fractional-looking lexeme
-            // (e.g. 1.0, 6e2) under a modern draft, forces one — so defer it and skip it entirely for an
-            // unbounded typed integer, the common case
+            // a BigDecimal is needed only for a bounds check, or to decide integrality of a
+            // fractional-looking lexeme (1.0, 6e2) under a modern draft — never for an unbounded integer
             BigDecimal value = bounded || modernDraft && !lexicalIntegral ? parser.getBigDecimal() : null;
             boolean integral = modernDraft && value != null
                 ? value.signum() == 0 || value.stripTrailingZeros().scale() <= 0

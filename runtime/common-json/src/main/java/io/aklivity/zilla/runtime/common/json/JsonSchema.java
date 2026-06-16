@@ -23,10 +23,10 @@ import jakarta.json.stream.JsonParser;
 import io.aklivity.zilla.runtime.common.json.internal.JsonSchemaImpl;
 
 /**
- * A compiled, immutable JSON Schema validating a streaming {@link JsonParser} event stream
- * without materialising a DOM. Compile once per schema and reuse for the lifetime of the
- * binding; each {@link #validate(JsonParser)} call creates a per-call evaluator and may be
- * called repeatedly on the owning worker thread.
+ * A compiled JSON Schema validating a streaming {@link JsonParser} event stream without
+ * materialising a DOM. Compile once per schema and reuse for the lifetime of the binding;
+ * {@link #validate(JsonParser)} may be called repeatedly on the owning worker thread, reusing
+ * one evaluator across calls.
  * <p>
  * Drafts 04, 06, and 07 are supported; {@link Draft} selects the dialect and is otherwise
  * auto-detected from a top-level {@code $schema} URI (defaulting to draft-07).
@@ -82,25 +82,6 @@ public interface JsonSchema
     boolean validate(
         JsonParser parser,
         Consumer<JsonSchemaDiagnostic> reporter);
-
-    /**
-     * Returns a reusable validator bound to this schema. The schema stays immutable and may be shared
-     * across worker threads; the returned {@link Evaluator} carries the mutable per-validation state and
-     * so is confined to a single worker, which holds one and reuses it across messages. Each
-     * {@link Evaluator#validate(JsonParser)} resets and replays one evaluator rather than allocating a
-     * fresh tree per message, the reuse counterpart to the stateless {@link #validate(JsonParser)}.
-     */
-    Evaluator newEvaluator();
-
-    interface Evaluator
-    {
-        boolean validate(
-            JsonParser parser);
-
-        boolean validate(
-            JsonParser parser,
-            Consumer<JsonSchemaDiagnostic> reporter);
-    }
 
     /**
      * Wraps {@code parser} in a validating {@link JsonParser} that validates the delegated event
