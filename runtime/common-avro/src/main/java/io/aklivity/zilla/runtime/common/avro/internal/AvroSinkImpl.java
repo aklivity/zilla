@@ -46,8 +46,6 @@ public final class AvroSinkImpl implements AvroSink
     private final AvroGenerator generator;
     private final Delivery delivery;
     private int depth;
-    private int valueOffset;
-    private boolean valueStarted;
 
     public AvroSinkImpl(
         AvroGenerator generator)
@@ -187,7 +185,7 @@ public final class AvroSinkImpl implements AvroSink
         case STRING:
         case BYTES:
         case FIXED:
-            status = writeValue(source);
+            status = writeValue(control, source);
             break;
         case SEGMENT:
             status = atomic();
@@ -220,39 +218,34 @@ public final class AvroSinkImpl implements AvroSink
     public void reset()
     {
         depth = 0;
-        valueOffset = 0;
-        valueStarted = false;
     }
 
+    // Streams a length-delimited value (string/bytes/fixed) into the bounded generator without sink state:
+    // the segment is the value's unconsumed remainder (the parser advances it on consumed()), so a resume
+    // re-reads it from the source and continues. The generator writes the length prefix once and copies
+    // only what fits the bound; consumed() pushes the written payload back so the parser re-exposes the rest.
     private Status writeValue(
+        AvroController control,
         AvroSource source)
     {
-        Status status;
-        if (!valueStarted && generator.length() > 0 && generator.remaining() < HEADROOM)
-        {
-            status = SUSPENDED;
-        }
-        else
+        Status status = atomic();
+        if (status == ADVANCED)
         {
             DirectBuffer segment = source.getSegment();
-            int total = segment.capacity();
+            int available = segment.capacity();
             int deferred = source.deferredBytes();
-            valueOffset += generator.writeSegment(segment, valueOffset, total - valueOffset, deferred);
-            valueStarted = true;
-            if (valueOffset < total)
+            int written = generator.writeSegment(segment, 0, available, deferred);
+            if (written > 0)
+            {
+                control.consumed(written);
+            }
+            if (written < available)
             {
                 status = SUSPENDED;
             }
-            else if (deferred > 0)
-            {
-                valueOffset = 0;
-                status = ADVANCED;
-            }
-            else
+            else if (deferred == 0)
             {
                 generator.flush();
-                valueOffset = 0;
-                valueStarted = false;
                 status = scalar();
             }
         }

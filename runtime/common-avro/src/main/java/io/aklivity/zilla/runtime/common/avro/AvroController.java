@@ -26,4 +26,15 @@ package io.aklivity.zilla.runtime.common.avro;
 public interface AvroController
 {
     void segmentable();
+
+    /**
+     * Reports {@code sourceBytes} payload bytes consumed by a bounded value write, so the upstream advances
+     * its segment cursor and re-exposes the value's unconsumed remainder on resume — the output-side
+     * back-pressure pushback that lets a terminal sink stream a length-delimited value without keeping its
+     * own offset. The default does nothing for a non-mediating edge that forwards no value.
+     */
+    default void consumed(
+        int sourceBytes)
+    {
+    }
 }

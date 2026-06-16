@@ -58,7 +58,7 @@ final class AvroPipelineImpl implements AvroPipeline
     {
         this.parser = parser;
         this.source = new Source(parser);
-        this.control = new Control();
+        this.control = new Control(parser);
         this.root = root;
     }
 
@@ -211,15 +211,31 @@ final class AvroPipelineImpl implements AvroPipeline
     }
 
     // the head edge's controller: a stage's segmentable() request becomes a one-shot SEGMENTED mode that the
-    // pump passes to the parser on the next pull
+    // pump passes to the parser on the next pull; consumed() pushback advances the parser's value cursor so
+    // the terminal sink resumes a bounded value without keeping its own offset
     private static final class Control implements AvroController
     {
+        private final AvroParser parser;
+
         private boolean segmented;
+
+        private Control(
+            AvroParser parser)
+        {
+            this.parser = parser;
+        }
 
         @Override
         public void segmentable()
         {
             segmented = true;
+        }
+
+        @Override
+        public void consumed(
+            int sourceBytes)
+        {
+            parser.consumed(sourceBytes);
         }
 
         private AvroParser.Mode mode()
