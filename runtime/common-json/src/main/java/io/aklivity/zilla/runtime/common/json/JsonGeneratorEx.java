@@ -140,6 +140,22 @@ public interface JsonGeneratorEx extends JsonGenerator
         int index,
         int length);
 
+    /**
+     * Appends a value's verbatim bytes that may arrive in fragments, owning the value's leading structural
+     * separator so the caller holds no per-value state. The separator is emitted before the first fragment;
+     * each fragment appends bounded, consumption-driven content exactly as {@link #writeSegment(DirectBuffer,
+     * int, int)} (track via {@link #consumed()}); the value ends — readying the next value's separator — on
+     * {@link Completion#COMPLETE} once the final fragment is fully written. Pass {@link Completion#INCOMPLETE}
+     * while the source reports more deferred bytes, so a value delivered across fragments forms one spliced
+     * value. {@code writeSegment(source, index, length, COMPLETE)} for a value that fits one fragment is
+     * equivalent to {@link #writeRaw(DirectBuffer, int, int)}.
+     */
+    JsonGeneratorEx writeSegment(
+        DirectBuffer source,
+        int index,
+        int length,
+        Completion completion);
+
     @Override
     JsonGeneratorEx writeStartObject();
 

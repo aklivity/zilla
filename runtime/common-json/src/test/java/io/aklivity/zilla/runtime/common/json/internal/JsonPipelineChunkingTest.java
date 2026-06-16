@@ -94,6 +94,59 @@ class JsonPipelineChunkingTest
     }
 
     @Test
+    void shouldChunkStructuredNumberValueThroughBoundedOutput()
+    {
+        JsonGeneratorEx generator = JsonEx.createGenerator();
+        MutableDirectBuffer output = new UnsafeBuffer(new byte[128]);
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+            .into(JsonEx.createSink(generator, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.STRUCTURED)));
+
+        // a single decoded number lexeme longer than the output bound must suspend/resume mid-value,
+        // propagating consumed bytes back to the parser rather than overrunning the generator's limit
+        String json = "{\"n\":" + "1".repeat(100) + "}";
+        assertEquals(json, chunked(pipeline, generator, output, json));
+    }
+
+    @Test
+    void shouldChunkStructuredControlHeavyStringThroughBoundedOutput()
+    {
+        JsonGeneratorEx generator = JsonEx.createGenerator();
+        MutableDirectBuffer output = new UnsafeBuffer(new byte[128]);
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+            .into(JsonEx.createSink(generator, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.STRUCTURED)));
+
+        // a control-char-heavy string rendered canonically (short escapes) far exceeds the output bound:
+        // the bounded write must suspend mid-string without splitting an escape, then resume byte-correct
+        String json = "{\"data\":\"" + "\\n\\t\\r\\b\\f".repeat(12) + "\"}";
+        assertEquals(json, chunked(pipeline, generator, output, json));
+    }
+
+    @Test
+    void shouldChunkStructuredMultibyteStringThroughBoundedOutput()
+    {
+        JsonGeneratorEx generator = JsonEx.createGenerator();
+        MutableDirectBuffer output = new UnsafeBuffer(new byte[128]);
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+            .into(JsonEx.createSink(generator, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.STRUCTURED)));
+
+        // multibyte UTF-8 content far larger than the output bound: a suspend must fall on a code-point
+        // boundary so no multibyte character is split across chunks
+        String json = "{\"data\":\"" + "é中".repeat(20) + "\"}";
+        assertEquals(json, chunked(pipeline, generator, output, json));
+    }
+
+    @Test
+    void shouldChunkStructuredStringAcrossInputAndOutputBounds()
+    {
+        // a decoded string larger than both the input window and the output bound, carrying escapes and a
+        // multibyte char: with the input window wider than the output bound a single fragment overruns the
+        // bound, so it starves on input and suspends mid-fragment on output, reconstructing canonically
+        String content = ("\\né\\t" + "x".repeat(6)).repeat(8);
+        String json = "{\"data\":\"" + content + "\"}";
+        assertEquals(json, chunkedWindowed(JsonSink.Delivery.STRUCTURED, json, 40, 24));
+    }
+
+    @Test
     void shouldStreamStringValueAcrossInputFrames()
     {
         JsonGeneratorEx generator = JsonEx.createGenerator();
@@ -218,19 +271,10 @@ class JsonPipelineChunkingTest
     }
 
     @Test
-    void shouldReconstructWindowFragmentedStringValueDecoded()
+    void shouldReconstructWindowFragmentedStringValueStructured()
     {
-        // small feed windows fragment the over-window value; the DECODED sink re-renders each fragment
-        // via generator.write(getString(), Completion) with no concatenation
-        String json = "{\"data\":\"" + "x".repeat(40) + "\"}";
-        assertEquals(json, feedWindowed(json, JsonSink.Delivery.DECODED, 8));
-    }
-
-    @Test
-    void shouldReconstructWindowFragmentedStringValueVerbatim()
-    {
-        // same fragmented value, verbatim path: each fragment's getSegment() raw bytes splice back to
-        // the whole token
+        // small feed windows fragment the over-window value; the structured sink re-renders each fragment
+        // canonically from getStringView() with no concatenation
         String json = "{\"data\":\"" + "x".repeat(40) + "\"}";
         assertEquals(json, feedWindowed(json, JsonSink.Delivery.STRUCTURED, 8));
     }
@@ -244,7 +288,7 @@ class JsonPipelineChunkingTest
         JsonGeneratorEx generator = JsonEx.createGenerator();
         MutableDirectBuffer output = new UnsafeBuffer(new byte[512]);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
-            .into(JsonEx.createSink(generator, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.DECODED)));
+            .into(JsonEx.createSink(generator, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.STRUCTURED)));
         generator.wrap(output, 0, output.capacity());
         pipeline.reset();
 
@@ -270,14 +314,7 @@ class JsonPipelineChunkingTest
     }
 
     @Test
-    void shouldReconstructWindowFragmentedNumberValueDecoded()
-    {
-        String json = "{\"n\":" + "1".repeat(40) + "}";
-        assertEquals(json, feedWindowed(json, JsonSink.Delivery.DECODED, 8));
-    }
-
-    @Test
-    void shouldReconstructWindowFragmentedNumberValueVerbatim()
+    void shouldReconstructWindowFragmentedNumberValueStructured()
     {
         String json = "{\"n\":" + "1".repeat(40) + "}";
         assertEquals(json, feedWindowed(json, JsonSink.Delivery.STRUCTURED, 8));
@@ -316,7 +353,7 @@ class JsonPipelineChunkingTest
         };
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(probe)
-            .into(JsonEx.createSink(generator, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.DECODED)));
+            .into(JsonEx.createSink(generator, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.STRUCTURED)));
         generator.wrap(output, 0, output.capacity());
         pipeline.reset();
 
@@ -377,6 +414,63 @@ class JsonPipelineChunkingTest
         byte[] out = new byte[generator.length()];
         output.getBytes(0, out);
         return new String(out, UTF_8);
+    }
+
+    // Drives a value through both bounds at once: fixed-size input windows (carrying the unconsumed tail
+    // across STARVED) and a bounded output (draining + re-targeting across SUSPENDED), concatenating every
+    // drained chunk into one document. Asserts both axes engage at least once.
+    private static String chunkedWindowed(
+        JsonSink.Delivery delivery,
+        String json,
+        int inWindow,
+        int outBound)
+    {
+        JsonGeneratorEx generator = JsonEx.createGenerator();
+        MutableDirectBuffer output = new UnsafeBuffer(new byte[256]);
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+            .into(JsonEx.createSink(generator, Map.of(JsonSink.DELIVERY, delivery)));
+
+        byte[] msg = (json + " ").getBytes(UTF_8);
+        StringBuilder result = new StringBuilder();
+        pipeline.reset();
+        generator.wrap(output, 0, outBound);
+        int committed = 0;
+        int offset = 0;
+        int suspends = 0;
+        int starves = 0;
+        int guard = 0;
+        Status status = Status.STARVED;
+        while (guard++ < 100_000)
+        {
+            if (status == Status.STARVED)
+            {
+                offset = Math.min(offset + inWindow, msg.length);
+            }
+            boolean last = offset >= msg.length;
+            status = pipeline.feed(new UnsafeBuffer(msg), committed, offset - committed, last);
+            byte[] chunk = new byte[generator.length()];
+            output.getBytes(0, chunk);
+            result.append(new String(chunk, UTF_8));
+            if (status == Status.SUSPENDED)
+            {
+                suspends++;
+            }
+            else if (status == Status.STARVED)
+            {
+                assertFalse(last, "last window must not starve");
+                starves++;
+                committed = (int) pipeline.position();
+            }
+            else
+            {
+                break;
+            }
+            generator.wrap(output, 0, outBound);
+        }
+        assertEquals(Status.COMPLETED, status);
+        assertTrue(suspends >= 1, "expected at least one SUSPENDED chunk boundary");
+        assertTrue(starves >= 1, "expected at least one STARVED input boundary");
+        return result.toString();
     }
 
     // Drives a value through the pipeline with the generator bounded at BOUND, draining and re-targeting

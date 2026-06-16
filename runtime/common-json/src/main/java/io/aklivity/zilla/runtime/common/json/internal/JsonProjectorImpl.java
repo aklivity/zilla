@@ -589,6 +589,12 @@ public final class JsonProjectorImpl implements JsonTransform
         }
 
         @Override
+        public CharSequence getStringView()
+        {
+            return key;
+        }
+
+        @Override
         public CharSequence getKey()
         {
             return key;
@@ -602,6 +608,18 @@ public final class JsonProjectorImpl implements JsonTransform
 
         @Override
         public boolean isIntegralNumber()
+        {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public int getInt()
+        {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public long getLong()
         {
             throw new UnsupportedOperationException();
         }
