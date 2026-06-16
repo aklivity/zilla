@@ -12,9 +12,9 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.common.avro.json;
+package io.aklivity.zilla.runtime.common.avro.internal.json;
 
-import static io.aklivity.zilla.runtime.common.avro.json.AvroJson.branchName;
+import static io.aklivity.zilla.runtime.common.avro.internal.json.AvroJsonUnion.branchName;
 
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -40,7 +40,8 @@ import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx.Completion;
  * record field names as JSON object keys — the same reason {@link io.aklivity.zilla.runtime.common.avro.Avro
  * #generator Avro.generator} is schema-bound.
  * <p>
- * Type mapping (see {@link AvroJson}): records and maps become JSON objects, arrays become JSON arrays,
+ * Type mapping (see {@link io.aklivity.zilla.runtime.common.avro.json.AvroJson}): records and maps become JSON
+ * objects, arrays become JSON arrays,
  * {@code bytes}/{@code fixed} become base64 strings, enums become their symbol string, and a union value
  * becomes {@code null} or the single-entry {@code {"<branch>": value}} wrapper.
  * <p>
@@ -55,7 +56,7 @@ import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx.Completion;
  * schema strings; {@code string} content and base64 are written through a reused {@link CharText} view; the
  * frame stack and coalescing buffer are reused and grow only past the largest value seen.
  */
-final class AvroJsonGenerator implements AvroGenerator
+public final class AvroJsonGenerator implements AvroGenerator
 {
     private static final int RECORD = 0;
     private static final int ARRAY = 1;
@@ -81,7 +82,7 @@ final class AvroJsonGenerator implements AvroGenerator
     private boolean valueOpen;
     private AvroKind valueKind;
 
-    AvroJsonGenerator(
+    public AvroJsonGenerator(
         AvroSchema schema,
         JsonGeneratorEx json)
     {

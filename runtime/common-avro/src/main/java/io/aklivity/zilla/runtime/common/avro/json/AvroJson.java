@@ -14,16 +14,14 @@
  */
 package io.aklivity.zilla.runtime.common.avro.json;
 
-import java.util.List;
-
 import io.aklivity.zilla.runtime.common.avro.Avro;
 import io.aklivity.zilla.runtime.common.avro.AvroGenerator;
-import io.aklivity.zilla.runtime.common.avro.AvroKind;
 import io.aklivity.zilla.runtime.common.avro.AvroParser;
 import io.aklivity.zilla.runtime.common.avro.AvroSchema;
 import io.aklivity.zilla.runtime.common.avro.AvroSink;
 import io.aklivity.zilla.runtime.common.avro.AvroStream;
-import io.aklivity.zilla.runtime.common.avro.AvroType;
+import io.aklivity.zilla.runtime.common.avro.internal.json.AvroJsonGenerator;
+import io.aklivity.zilla.runtime.common.avro.internal.json.AvroJsonParser;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 
@@ -99,93 +97,5 @@ public final class AvroJson
         JsonGeneratorEx generator)
     {
         return new AvroJsonGenerator(schema, generator);
-    }
-
-    /**
-     * The JSON object key the Avro JSON encoding uses for {@code branch} of a union — the primitive type
-     * name, the declared name of a named type, or {@code "array"} / {@code "map"}.
-     */
-    static String branchName(
-        AvroType branch)
-    {
-        AvroKind kind = branch.kind();
-        String name;
-        switch (kind)
-        {
-        case NULL:
-            name = "null";
-            break;
-        case BOOLEAN:
-            name = "boolean";
-            break;
-        case INT:
-            name = "int";
-            break;
-        case LONG:
-            name = "long";
-            break;
-        case FLOAT:
-            name = "float";
-            break;
-        case DOUBLE:
-            name = "double";
-            break;
-        case BYTES:
-            name = "bytes";
-            break;
-        case STRING:
-            name = "string";
-            break;
-        case ARRAY:
-            name = "array";
-            break;
-        case MAP:
-            name = "map";
-            break;
-        default:
-            name = branch.name();
-            break;
-        }
-        return name;
-    }
-
-    /**
-     * The index of the {@code branches} entry whose key matches {@code name} (the Avro JSON union
-     * discriminator), or {@code -1} when no branch matches. The list is supplied by the caller (cached per
-     * schema node) so resolution allocates nothing on the hot path.
-     */
-    static int branchIndex(
-        List<AvroType> branches,
-        CharSequence name)
-    {
-        int index = -1;
-        int count = branches.size();
-        for (int i = 0; index < 0 && i < count; i++)
-        {
-            if (branchName(branches.get(i)).contentEquals(name))
-            {
-                index = i;
-            }
-        }
-        return index;
-    }
-
-    /**
-     * The index of the {@code branches} entry whose kind is {@code null}, or {@code -1} when there is no
-     * null branch.
-     */
-    static int nullBranchIndex(
-        List<AvroType> branches)
-    {
-        int index = -1;
-        int count = branches.size();
-        for (int i = 0; index < 0 && i < count; i++)
-        {
-            if (branches.get(i).kind() == AvroKind.NULL)
-            {
-                index = i;
-            }
-        }
-        return index;
     }
 }

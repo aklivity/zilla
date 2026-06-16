@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.common.avro.json;
+package io.aklivity.zilla.runtime.common.avro.internal.json;
 
 import java.util.Base64;
 import java.util.IdentityHashMap;
@@ -58,7 +58,7 @@ import io.aklivity.zilla.runtime.common.json.JsonParserEx;
  * {@code fixed} of the wrong size) raises {@link AvroValidationException}, reported as a clean reject. Reuse
  * a single instance per worker thread; not thread-safe.
  */
-final class AvroJsonParser implements AvroParser, AvroLocation
+public final class AvroJsonParser implements AvroParser, AvroLocation
 {
     private static final int NOT_STARTED = 0;
     private static final int RUNNING = 1;
@@ -92,7 +92,7 @@ final class AvroJsonParser implements AvroParser, AvroLocation
     private AvroType currentType;
     private int segmentConsumed;
 
-    AvroJsonParser(
+    public AvroJsonParser(
         AvroSchema schema,
         JsonParserEx json)
     {
@@ -423,7 +423,7 @@ final class AvroJsonParser implements AvroParser, AvroLocation
             JsonEvent next = peek();
             if (next == JsonEvent.VALUE_NULL)
             {
-                int index = AvroJson.nullBranchIndex(branches);
+                int index = AvroJsonUnion.nullBranchIndex(branches);
                 if (index < 0)
                 {
                     throw reject("union has no null branch");
@@ -449,7 +449,7 @@ final class AvroJsonParser implements AvroParser, AvroLocation
                 {
                     throw reject("expected union branch name");
                 }
-                int index = AvroJson.branchIndex(branches, json.getStringView());
+                int index = AvroJsonUnion.branchIndex(branches, json.getStringView());
                 if (index < 0)
                 {
                     throw reject("unknown union branch " + json.getStringView());
