@@ -161,11 +161,25 @@ jobs:
         run: |
           docker load -i ~/docker-cache/docker.tar
 
-      - name: Cache Docker images
+      - name: Restore cached example images
         if: ${{ hashFiles(format('examples/{0}/compose.yaml', matrix.dir)) != '' }}
-        uses: ScribeMD/docker-cache@0.5.0
+        uses: actions/cache/restore@v5
         with:
-          key: docker-${{ runner.os }}-${{ matrix.dir }}-${{ hashFiles(format('examples/{0}/compose.yaml', matrix.dir)) }}
+          path: ~/docker-examples-cache/images.tar
+          key: docker-examples-${{ runner.os }}-${{ matrix.dir }}-${{ github.run_id }}
+          restore-keys: |
+            docker-examples-${{ runner.os }}-${{ matrix.dir }}-
+
+      - name: Load cached example images
+        run: |
+          if [ -f ~/docker-examples-cache/images.tar ]; then
+            docker load -i ~/docker-examples-cache/images.tar || true
+          fi
+
+      - name: Pull example images
+        if: ${{ hashFiles(format('examples/{0}/compose.yaml', matrix.dir)) != '' }}
+        working-directory: examples/${{ matrix.dir }}
+        run: docker compose pull --ignore-pull-failures || true
 
       - name: Start Zilla and wait for it to be healthy
         working-directory: examples/${{ matrix.dir }}
@@ -176,6 +190,22 @@ jobs:
         run: |
           set -o pipefail
           ./.github/test.sh | tee $GITHUB_STEP_SUMMARY
+
+      - name: Save example images
+        if: ${{ always() && hashFiles(format('examples/{0}/compose.yaml', matrix.dir)) != '' }}
+        run: |
+          mkdir -p ~/docker-examples-cache
+          imgs=$(docker images --format '{{.Repository}}:{{.Tag}}' \
+            | grep -Ev '<none>|ghcr.io/aklivity/zilla')
+          if [ -n "$imgs" ]; then
+            docker save -o ~/docker-examples-cache/images.tar $imgs
+          fi
+      - name: Save example image cache
+        if: ${{ always() && hashFiles(format('examples/{0}/compose.yaml', matrix.dir)) != '' }}
+        uses: actions/cache/save@v5
+        with:
+          path: ~/docker-examples-cache/images.tar
+          key: docker-examples-${{ runner.os }}-${{ matrix.dir }}-${{ github.run_id }}
 
       - name: Collect docker logs on failure
         if: failure()
