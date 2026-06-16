@@ -1055,57 +1055,6 @@ public final class JsonSchemaImpl implements JsonSchema
         }
     }
 
-    private static String canonicalize(
-        List<Token> tokens,
-        int[] position)
-    {
-        Token token = tokens.get(position[0]++);
-        String result;
-        switch (token.event)
-        {
-        case START_OBJECT:
-        {
-            List<String> members = new ArrayList<>();
-            while (tokens.get(position[0]).event != END_OBJECT)
-            {
-                String key = tokens.get(position[0]++).text;
-                members.add(quote(key) + ":" + canonicalize(tokens, position));
-            }
-            position[0]++;
-            members.sort(null);
-            result = "{" + String.join(",", members) + "}";
-            break;
-        }
-        case START_ARRAY:
-        {
-            List<String> elements = new ArrayList<>();
-            while (tokens.get(position[0]).event != END_ARRAY)
-            {
-                elements.add(canonicalize(tokens, position));
-            }
-            position[0]++;
-            result = "[" + String.join(",", elements) + "]";
-            break;
-        }
-        case VALUE_STRING:
-            result = quote(token.text);
-            break;
-        case VALUE_NUMBER:
-            result = normalizeNumber(token.text);
-            break;
-        case VALUE_TRUE:
-            result = "true";
-            break;
-        case VALUE_FALSE:
-            result = "false";
-            break;
-        default:
-            result = "null";
-            break;
-        }
-        return result;
-    }
-
     private static String quote(
         String value)
     {
@@ -2244,7 +2193,7 @@ public final class JsonSchemaImpl implements JsonSchema
         private CanonSet uniqueSeen;
         private UniqueCanon uniqueCanon;
         private boolean uniqueElement;
-        private final List<Token> valueTokens;
+        private final UniqueCanon constCanon;
         private Eval refEval;
         private Eval dynEval;
         // items/contains evals reused across this array's elements (reset on next use, not by reset())
@@ -2277,7 +2226,7 @@ public final class JsonSchemaImpl implements JsonSchema
             this.trace = trace;
             this.dynScope = context != null ? parentScope.push(context.base.toString()) : parentScope;
             this.annotate = context != null && is2019Plus(context.draft());
-            this.valueTokens = constantCanon != null || enumCanons != null ? new ArrayList<>() : null;
+            this.constCanon = constantCanon != null || enumCanons != null ? new UniqueCanon() : null;
             // allOf branches must all match, so a failing branch is a genuine failure and reports
             // through the shared trace; the remaining combinators select among candidate branches
             // where a non-matching branch is expected, so they evaluate under Trace.NONE and only
@@ -2327,9 +2276,9 @@ public final class JsonSchemaImpl implements JsonSchema
             {
                 uniqueSeen.clear();
             }
-            if (valueTokens != null)
+            if (constCanon != null)
             {
-                valueTokens.clear();
+                constCanon.reset();
             }
             if (evaluatedProps != null)
             {
@@ -2446,9 +2395,9 @@ public final class JsonSchemaImpl implements JsonSchema
             }
             else
             {
-                if (valueTokens != null)
+                if (constCanon != null)
                 {
-                    valueTokens.add(new Token(event, tokenText(event, parser)));
+                    constCanon.feed(event, parser);
                 }
                 if (refApplicator != null && refEval == null)
                 {
@@ -3172,9 +3121,9 @@ public final class JsonSchemaImpl implements JsonSchema
                 valid = false;
                 trace.report("$dynamicRef", "instance failed dynamically referenced schema", parser);
             }
-            if (valid && valueTokens != null)
+            if (valid && constCanon != null)
             {
-                String canon = canonicalize(valueTokens, new int[] {0});
+                String canon = constCanon.result;
                 if (constantCanon != null && !constantCanon.equals(canon))
                 {
                     valid = false;
