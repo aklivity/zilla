@@ -156,6 +156,12 @@ public final class JsonSchemaImpl implements JsonSchema
 
     private List<String> retainedPaths;
 
+    // the no-reporter validate() evaluator and its source view, reused across messages: a compiled schema
+    // is owned by one worker (per-handler cache), so successive validate() calls reset and replay one
+    // evaluator tree rather than building a fresh one per message
+    private Eval rootEval;
+    private final ParserSource parserSource = new ParserSource();
+
     public static JsonSchema of(
         String schema)
     {
@@ -207,12 +213,20 @@ public final class JsonSchemaImpl implements JsonSchema
     public boolean validate(
         JsonParser parser)
     {
-        Eval eval = eval();
-        ParserSource source = new ParserSource(parser);
+        // reset-on-entry leaves a thrown prior validation's partial state harmless
+        if (rootEval == null)
+        {
+            rootEval = eval();
+        }
+        else
+        {
+            rootEval.reset();
+        }
+        JsonSource source = parserSource.wrap(parser);
         Verdict verdict = Verdict.PENDING;
         while (parser.hasNext() && verdict == Verdict.PENDING)
         {
-            verdict = eval.feed(parser.next(), source);
+            verdict = rootEval.feed(parser.next(), source);
         }
         return verdict == Verdict.VALID;
     }
@@ -228,7 +242,7 @@ public final class JsonSchemaImpl implements JsonSchema
     {
         Trace trace = new Trace(reporter);
         Eval eval = eval(trace);
-        ParserSource source = new ParserSource(parser);
+        JsonSource source = parserSource.wrap(parser);
         Verdict verdict = Verdict.PENDING;
         while (parser.hasNext() && verdict == Verdict.PENDING)
         {
@@ -958,16 +972,17 @@ public final class JsonSchemaImpl implements JsonSchema
 
     private static final class ParserSource implements JsonSource
     {
-        private final JsonParser parser;
+        private JsonParser parser;
         // non-null when the delegate exposes the zero-alloc char view (common-json's parser); a YAML-backed
         // or any other jakarta parser leaves it null and getStringView() falls back to getString()
-        private final JsonParserEx parserEx;
+        private JsonParserEx parserEx;
 
-        private ParserSource(
+        private ParserSource wrap(
             JsonParser parser)
         {
             this.parser = parser;
             this.parserEx = parser instanceof JsonParserEx ex ? ex : null;
+            return this;
         }
 
         @Override
@@ -1872,7 +1887,7 @@ public final class JsonSchemaImpl implements JsonSchema
             this.reporter = reporter;
             this.diagnostics = throwing || reporter != null ? new ArrayList<>() : null;
             this.eval = diagnostics != null ? eval(new Trace(this::report)) : eval();
-            this.source = new ParserSource(delegate);
+            this.source = new ParserSource().wrap(delegate);
             this.verdict = Verdict.PENDING;
         }
 

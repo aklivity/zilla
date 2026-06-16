@@ -225,6 +225,24 @@ class JsonSchemaTest
         assertFalse(valid(schema, "[2,1]"));
     }
 
+    @Test
+    void shouldReuseEvaluatorAcrossValidations()
+    {
+        // one compiled schema validated repeatedly exercises the pooled, reset-between-calls evaluator;
+        // interleave valid and invalid instances across cycles to catch any state carried between calls
+        JsonSchema schema = JsonSchema.of("{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"integer\"}," +
+            "\"tags\":{\"type\":\"array\",\"uniqueItems\":true}},\"required\":[\"id\"],\"additionalProperties\":false}");
+        for (int i = 0; i < 3; i++)
+        {
+            assertTrue(schema.validate(parserFor("{\"id\":1,\"tags\":[1,2,3]} ")));
+            assertFalse(schema.validate(parserFor("{\"id\":1,\"tags\":[2,2]} ")));
+            assertFalse(schema.validate(parserFor("{\"tags\":[1]} ")));
+            assertFalse(schema.validate(parserFor("{\"id\":\"x\"} ")));
+            assertFalse(schema.validate(parserFor("{\"id\":1,\"extra\":true} ")));
+            assertTrue(schema.validate(parserFor("{\"id\":2} ")));
+        }
+    }
+
     private static boolean valid(
         String schema,
         String instance)
