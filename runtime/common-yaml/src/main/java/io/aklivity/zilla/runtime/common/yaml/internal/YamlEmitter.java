@@ -16,15 +16,9 @@ package io.aklivity.zilla.runtime.common.yaml.internal;
 
 import java.io.IOException;
 import java.io.Writer;
-import java.util.Locale;
-import java.util.regex.Pattern;
 
 public final class YamlEmitter
 {
-    private static final Pattern NUMBER_PATTERN = Pattern.compile(
-        "-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?:[eE][+-]?[0-9]+)?");
-    private static final Pattern PLAIN_PATTERN = Pattern.compile("[A-Za-z0-9_./@+-]+");
-
     private YamlEmitter()
     {
     }
@@ -147,7 +141,7 @@ public final class YamlEmitter
         }
     }
 
-    private static void writeObjectValue(
+    static void writeObjectValue(
         YamlNode value,
         Writer writer,
         int indent,
@@ -203,61 +197,70 @@ public final class YamlEmitter
     {
         for (YamlNode value : array.values)
         {
-            writeLeadingComments(value, writer, indent, config);
-            if (value.alias != null)
-            {
-                writeIndent(writer, indent);
-                writer.write("- ");
-                writer.write(formatAlias(value));
-                writeLineComment(value, writer, config);
-                writer.write('\n');
-            }
-            else if (value instanceof YamlScalarNode scalar)
-            {
-                writeIndent(writer, indent);
-                writer.write("- ");
-                writeScalar(scalar, writer, indent, false, config);
-            }
-            else if (value instanceof YamlObjectNode object)
-            {
-                if (config.preserveComments() && object.lineComment != null)
-                {
-                    writeIndent(writer, indent);
-                    writer.write("-");
-                    writeLineComment(object, writer, config);
-                    writer.write('\n');
-                    writeNode(object, writer, indent + 1, config);
-                }
-                else
-                {
-                    writeArrayObject(object, writer, indent, config);
-                }
-            }
-            else if (isEmptyArray(value))
-            {
-                writeIndent(writer, indent);
-                writer.write("- ");
-                writer.write(formatPrefix(value));
-                writer.write("[]");
-                writeLineComment(value, writer, config);
-                writer.write('\n');
-            }
-            else if ("flow".equals(value.style))
-            {
-                writeIndent(writer, indent);
-                writer.write("- ");
-                writer.write(formatNode(value));
-                writeLineComment(value, writer, config);
-                writer.write('\n');
-            }
-            else
+            writeArrayElement(value, writer, indent, config);
+        }
+    }
+
+    static void writeArrayElement(
+        YamlNode value,
+        Writer writer,
+        int indent,
+        YamlConfiguration config) throws IOException
+    {
+        writeLeadingComments(value, writer, indent, config);
+        if (value.alias != null)
+        {
+            writeIndent(writer, indent);
+            writer.write("- ");
+            writer.write(formatAlias(value));
+            writeLineComment(value, writer, config);
+            writer.write('\n');
+        }
+        else if (value instanceof YamlScalarNode scalar)
+        {
+            writeIndent(writer, indent);
+            writer.write("- ");
+            writeScalar(scalar, writer, indent, false, config);
+        }
+        else if (value instanceof YamlObjectNode object)
+        {
+            if (config.preserveComments() && object.lineComment != null)
             {
                 writeIndent(writer, indent);
                 writer.write("-");
-                writeLineComment(value, writer, config);
+                writeLineComment(object, writer, config);
                 writer.write('\n');
-                writeNode(value, writer, indent + 1, config);
+                writeNode(object, writer, indent + 1, config);
             }
+            else
+            {
+                writeArrayObject(object, writer, indent, config);
+            }
+        }
+        else if (isEmptyArray(value))
+        {
+            writeIndent(writer, indent);
+            writer.write("- ");
+            writer.write(formatPrefix(value));
+            writer.write("[]");
+            writeLineComment(value, writer, config);
+            writer.write('\n');
+        }
+        else if ("flow".equals(value.style))
+        {
+            writeIndent(writer, indent);
+            writer.write("- ");
+            writer.write(formatNode(value));
+            writeLineComment(value, writer, config);
+            writer.write('\n');
+        }
+        else
+        {
+            writeIndent(writer, indent);
+            writer.write("-");
+            writeLineComment(value, writer, config);
+            writer.write('\n');
+            writeNode(value, writer, indent + 1, config);
         }
     }
 
@@ -372,7 +375,72 @@ public final class YamlEmitter
     private static String formatKey(
         String value)
     {
+        return formatPlain(value);
+    }
+
+    public static String formatPlain(
+        String value)
+    {
         return plain(value) ? value : quote(value);
+    }
+
+    public static void writeInteger(
+        Writer writer,
+        long value,
+        char[] buffer) throws IOException
+    {
+        int at = buffer.length;
+        long magnitude = value > 0 ? -value : value;
+        do
+        {
+            buffer[--at] = (char) ('0' - (int) (magnitude % 10));
+            magnitude /= 10;
+        }
+        while (magnitude != 0);
+        if (value < 0)
+        {
+            buffer[--at] = '-';
+        }
+        writer.write(buffer, at, buffer.length - at);
+    }
+
+    public static void writeScalar(
+        Writer writer,
+        String value) throws IOException
+    {
+        if (plain(value))
+        {
+            writer.write(value);
+        }
+        else
+        {
+            writer.write('"');
+            for (int i = 0; i < value.length(); i++)
+            {
+                char c = value.charAt(i);
+                char escape = switch (c)
+                {
+                case '"' -> '"';
+                case '\\' -> '\\';
+                case '\b' -> 'b';
+                case '\f' -> 'f';
+                case '\n' -> 'n';
+                case '\r' -> 'r';
+                case '\t' -> 't';
+                default -> '\0';
+                };
+                if (escape == '\0')
+                {
+                    writer.write(c);
+                }
+                else
+                {
+                    writer.write('\\');
+                    writer.write(escape);
+                }
+            }
+            writer.write('"');
+        }
     }
 
     private static String formatNode(
@@ -577,7 +645,7 @@ public final class YamlEmitter
         {
         case "'" -> singleQuote(scalar.value);
         case "\"" -> quote(scalar.value);
-        default -> plain(scalar.value) ? scalar.value : quote(scalar.value);
+        default -> formatPlain(scalar.value);
         };
         };
         return formatPrefix(scalar) + value;
@@ -665,18 +733,92 @@ public final class YamlEmitter
     private static boolean plain(
         String value)
     {
-        String lower = value.toLowerCase(Locale.ROOT);
         return !value.isEmpty() &&
             !value.isBlank() &&
-            PLAIN_PATTERN.matcher(value).matches() &&
-            !NUMBER_PATTERN.matcher(value).matches() &&
-            !"true".equals(lower) &&
-            !"false".equals(lower) &&
-            !"null".equals(lower) &&
-            !"~".equals(lower) &&
+            isPlainChars(value) &&
             !value.startsWith("-") &&
             !value.startsWith("+") &&
-            !value.startsWith(".");
+            !value.startsWith(".") &&
+            !"true".equalsIgnoreCase(value) &&
+            !"false".equalsIgnoreCase(value) &&
+            !"null".equalsIgnoreCase(value) &&
+            !"~".equals(value) &&
+            !looksLikeNumber(value);
+    }
+
+    private static boolean isPlainChars(
+        String value)
+    {
+        boolean plain = true;
+        for (int i = 0; i < value.length(); i++)
+        {
+            char c = value.charAt(i);
+            boolean allowed = c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' || c >= '0' && c <= '9' ||
+                c == '_' || c == '.' || c == '/' || c == '@' || c == '+' || c == '-';
+            if (!allowed)
+            {
+                plain = false;
+                break;
+            }
+        }
+        return plain;
+    }
+
+    private static boolean looksLikeNumber(
+        String value)
+    {
+        int length = value.length();
+        int at = integerPart(value);
+        boolean number = at > 0;
+        if (number && at < length && value.charAt(at) == '.')
+        {
+            int start = at + 1;
+            at = digits(value, start);
+            number = at > start;
+        }
+        if (number && at < length && (value.charAt(at) == 'e' || value.charAt(at) == 'E'))
+        {
+            int start = at + 1;
+            if (start < length && (value.charAt(start) == '+' || value.charAt(start) == '-'))
+            {
+                start++;
+            }
+            at = digits(value, start);
+            number = at > start;
+        }
+        return number && at == length;
+    }
+
+    private static int integerPart(
+        String value)
+    {
+        int at;
+        char first = value.isEmpty() ? '\0' : value.charAt(0);
+        if (first == '0')
+        {
+            at = 1;
+        }
+        else if (first >= '1' && first <= '9')
+        {
+            at = digits(value, 1);
+        }
+        else
+        {
+            at = 0;
+        }
+        return at;
+    }
+
+    private static int digits(
+        String value,
+        int start)
+    {
+        int at = start;
+        while (at < value.length() && value.charAt(at) >= '0' && value.charAt(at) <= '9')
+        {
+            at++;
+        }
+        return at;
     }
 
     private static String quote(
