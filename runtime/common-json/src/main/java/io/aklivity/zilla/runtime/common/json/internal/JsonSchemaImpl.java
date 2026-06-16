@@ -49,6 +49,7 @@ import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.common.json.JsonController;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
+import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonRefResolver;
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
@@ -956,11 +957,15 @@ public final class JsonSchemaImpl implements JsonSchema
     private static final class ParserSource implements JsonSource
     {
         private final JsonParser parser;
+        // non-null when the delegate exposes the zero-alloc char view (common-json's parser); a YAML-backed
+        // or any other jakarta parser leaves it null and getStringView() falls back to getString()
+        private final JsonParserEx parserEx;
 
         private ParserSource(
             JsonParser parser)
         {
             this.parser = parser;
+            this.parserEx = parser instanceof JsonParserEx ex ? ex : null;
         }
 
         @Override
@@ -972,7 +977,7 @@ public final class JsonSchemaImpl implements JsonSchema
         @Override
         public CharSequence getStringView()
         {
-            return parser.getString();
+            return parserEx != null ? parserEx.getStringView() : parser.getString();
         }
 
         @Override
@@ -2013,8 +2018,8 @@ public final class JsonSchemaImpl implements JsonSchema
         private void checkStringReport(
             JsonSource parser)
         {
-            String value = parser.getString();
-            int length = value.codePointCount(0, value.length());
+            CharSequence value = parser.getStringView();
+            int length = Character.codePointCount(value, 0, value.length());
             if (types != null && !types.contains(JsonType.STRING))
             {
                 directInvalid = true;
@@ -2040,10 +2045,18 @@ public final class JsonSchemaImpl implements JsonSchema
         private void checkNumberReport(
             JsonSource parser)
         {
-            BigDecimal value = parser.getBigDecimal();
-            boolean integral = context != null && context.draft() != Draft.DRAFT_04
+            boolean modernDraft = context != null && context.draft() != Draft.DRAFT_04;
+            boolean lexicalIntegral = parser.isIntegralNumber();
+            boolean bounded = minimum != null || maximum != null ||
+                exclusiveMinimum != null || exclusiveMaximum != null || multipleOf != null;
+            // a plain integer literal is integral under every draft, so the type check alone needs no
+            // BigDecimal; only a bounds check, or deciding integrality of a fractional-looking lexeme
+            // (e.g. 1.0, 6e2) under a modern draft, forces one — so defer it and skip it entirely for an
+            // unbounded typed integer, the common case
+            BigDecimal value = bounded || modernDraft && !lexicalIntegral ? parser.getBigDecimal() : null;
+            boolean integral = modernDraft && value != null
                 ? value.signum() == 0 || value.stripTrailingZeros().scale() <= 0
-                : parser.isIntegralNumber();
+                : lexicalIntegral;
             boolean typeOk = types == null ||
                 types.contains(JsonType.NUMBER) ||
                 integral && types.contains(JsonType.INTEGER);

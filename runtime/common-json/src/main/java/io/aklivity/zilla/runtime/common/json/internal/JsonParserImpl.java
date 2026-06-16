@@ -450,8 +450,12 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
     @Override
     public CharSequence getStringView()
     {
+        // valid on both drives: the streaming pump tracks lastEvent, while a jakarta pull (next()) tracks
+        // currentEvent — the latter leaves lastEvent null, so charScalar() yields the full decoded view
         assert lastEvent == JsonEvent.VALUE_STRING || lastEvent == JsonEvent.VALUE_NUMBER ||
-            lastEvent == JsonEvent.KEY_NAME;
+            lastEvent == JsonEvent.KEY_NAME ||
+            currentEvent == Event.VALUE_STRING || currentEvent == Event.VALUE_NUMBER ||
+            currentEvent == Event.KEY_NAME;
         // while rendering a structured scalar, expose the unconsumed char remainder so a resumed write
         // continues from where the bounded output left off; otherwise (a key, or a fresh value) the full
         // decoded view
@@ -518,10 +522,11 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
     }
 
     // The current number's full lexeme: a fragmented number's is accumulated in the tokenizer across
-    // its fragments; an unfragmented one is the current scratch value.
+    // its fragments; an unfragmented one is the decoded char view (not stringValue(), so a caller that
+    // only scans the lexeme — e.g. isIntegralNumber() — materializes no String).
     private CharSequence numberLexeme()
     {
-        return tokenizer.numberFragmented() ? tokenizer.numberLexeme() : tokenizer.stringValue();
+        return tokenizer.numberFragmented() ? tokenizer.numberLexeme() : tokenizer.stringView();
     }
 
     @Override

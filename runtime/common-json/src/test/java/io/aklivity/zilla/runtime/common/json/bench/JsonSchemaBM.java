@@ -68,6 +68,15 @@ public class JsonSchemaBM
         "{\"type\":\"array\",\"contains\":{\"type\":\"object\",\"properties\":" +
         "{\"marker\":{\"const\":true}},\"required\":[\"marker\"]}}";
 
+    // typed integers with no numeric bounds: the type check needs only integrality, never a BigDecimal
+    private static final String TYPED_INTEGERS_SCHEMA =
+        "{\"type\":\"array\",\"items\":{\"type\":\"integer\"}}";
+
+    // the bounded-number control: minimum/maximum/multipleOf force a BigDecimal per element, so this
+    // path cannot avoid the allocation and is the baseline TYPED_INTEGERS is compared against
+    private static final String BOUNDED_NUMBERS_SCHEMA =
+        "{\"type\":\"array\",\"items\":{\"type\":\"number\",\"minimum\":0,\"maximum\":1000,\"multipleOf\":1}}";
+
     private static final String UNIQUE_SCALARS_SCHEMA =
         "{\"type\":\"array\",\"uniqueItems\":true}";
 
@@ -89,6 +98,9 @@ public class JsonSchemaBM
         "[{\"marker\":false},{\"marker\":false},{\"marker\":false},{\"marker\":false}," +
         "{\"marker\":false},{\"marker\":false},{\"marker\":false},{\"marker\":true}] ";
 
+    private static final String NUMBERS_INSTANCE =
+        "[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15] ";
+
     private static final String UNIQUE_SCALARS_INSTANCE =
         "[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15] ";
 
@@ -103,6 +115,8 @@ public class JsonSchemaBM
     private JsonSchema arrayObjectsSchema;
     private JsonSchema oneOfSchema;
     private JsonSchema containsSchema;
+    private JsonSchema typedIntegersSchema;
+    private JsonSchema boundedNumbersSchema;
     private JsonSchema uniqueScalarsSchema;
     private JsonSchema uniqueObjectsSchema;
 
@@ -110,6 +124,7 @@ public class JsonSchemaBM
     private UnsafeBuffer arrayObjectsBuffer;
     private UnsafeBuffer oneOfBuffer;
     private UnsafeBuffer containsBuffer;
+    private UnsafeBuffer numbersBuffer;
     private UnsafeBuffer uniqueScalarsBuffer;
     private UnsafeBuffer uniqueObjectsBuffer;
 
@@ -117,6 +132,7 @@ public class JsonSchemaBM
     private int arrayObjectsLength;
     private int oneOfLength;
     private int containsLength;
+    private int numbersLength;
     private int uniqueScalarsLength;
     private int uniqueObjectsLength;
 
@@ -127,6 +143,8 @@ public class JsonSchemaBM
         arrayObjectsSchema = JsonSchema.of(ARRAY_OBJECTS_SCHEMA);
         oneOfSchema = JsonSchema.of(ONE_OF_SCHEMA);
         containsSchema = JsonSchema.of(CONTAINS_SCHEMA);
+        typedIntegersSchema = JsonSchema.of(TYPED_INTEGERS_SCHEMA);
+        boundedNumbersSchema = JsonSchema.of(BOUNDED_NUMBERS_SCHEMA);
         uniqueScalarsSchema = JsonSchema.of(UNIQUE_SCALARS_SCHEMA);
         uniqueObjectsSchema = JsonSchema.of(UNIQUE_OBJECTS_SCHEMA);
 
@@ -134,6 +152,7 @@ public class JsonSchemaBM
         byte[] arrayObjectsBytes = ARRAY_OBJECTS_INSTANCE.getBytes(UTF_8);
         byte[] oneOfBytes = ONE_OF_INSTANCE.getBytes(UTF_8);
         byte[] containsBytes = CONTAINS_INSTANCE.getBytes(UTF_8);
+        byte[] numbersBytes = NUMBERS_INSTANCE.getBytes(UTF_8);
         byte[] uniqueScalarsBytes = UNIQUE_SCALARS_INSTANCE.getBytes(UTF_8);
         byte[] uniqueObjectsBytes = UNIQUE_OBJECTS_INSTANCE.getBytes(UTF_8);
 
@@ -141,6 +160,7 @@ public class JsonSchemaBM
         arrayObjectsBuffer = new UnsafeBuffer(arrayObjectsBytes);
         oneOfBuffer = new UnsafeBuffer(oneOfBytes);
         containsBuffer = new UnsafeBuffer(containsBytes);
+        numbersBuffer = new UnsafeBuffer(numbersBytes);
         uniqueScalarsBuffer = new UnsafeBuffer(uniqueScalarsBytes);
         uniqueObjectsBuffer = new UnsafeBuffer(uniqueObjectsBytes);
 
@@ -148,6 +168,7 @@ public class JsonSchemaBM
         arrayObjectsLength = arrayObjectsBytes.length;
         oneOfLength = oneOfBytes.length;
         containsLength = containsBytes.length;
+        numbersLength = numbersBytes.length;
         uniqueScalarsLength = uniqueScalarsBytes.length;
         uniqueObjectsLength = uniqueObjectsBytes.length;
     }
@@ -174,6 +195,18 @@ public class JsonSchemaBM
     public boolean validateContains()
     {
         return containsSchema.validate(parserFor(containsBuffer, containsLength));
+    }
+
+    @Benchmark
+    public boolean validateTypedIntegers()
+    {
+        return typedIntegersSchema.validate(parserFor(numbersBuffer, numbersLength));
+    }
+
+    @Benchmark
+    public boolean validateBoundedNumbers()
+    {
+        return boundedNumbersSchema.validate(parserFor(numbersBuffer, numbersLength));
     }
 
     @Benchmark
