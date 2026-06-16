@@ -46,6 +46,7 @@ import io.aklivity.zilla.runtime.common.yaml.internal.YamlNode;
 import io.aklivity.zilla.runtime.common.yaml.internal.YamlObjectNode;
 import io.aklivity.zilla.runtime.common.yaml.internal.YamlParseException;
 import io.aklivity.zilla.runtime.common.yaml.internal.YamlScalarNode;
+import io.aklivity.zilla.runtime.common.yaml.internal.YamlStreamScanner;
 
 public final class YamlJsonParser implements JsonParser
 {
@@ -62,6 +63,11 @@ public final class YamlJsonParser implements JsonParser
     private YamlJsonEvent current;
     private YamlJsonEvent next;
     private boolean exhausted;
+
+    private final YamlStreamScanner scanner;
+    private int scanCursor;
+    private int scanCurrent;
+    private int buildCursor;
 
     public YamlJsonParser(
         Reader reader)
@@ -105,7 +111,23 @@ public final class YamlJsonParser implements JsonParser
         this.text = text;
         this.config = jsonAsYamlConfig(config);
         this.uniqueKeys = Boolean.TRUE.equals(this.config.get(YamlConfig.FEATURE_UNIQUE_KEYS));
-        parseDocument(0);
+        this.scanCurrent = -1;
+
+        YamlStreamScanner candidate = null;
+        if (config == null || config.isEmpty())
+        {
+            YamlStreamScanner streaming = new YamlStreamScanner();
+            if (streaming.scan(text))
+            {
+                candidate = streaming;
+            }
+        }
+        this.scanner = candidate;
+
+        if (scanner == null)
+        {
+            parseDocument(0);
+        }
     }
 
     private void parseDocument(
@@ -149,12 +171,21 @@ public final class YamlJsonParser implements JsonParser
     @Override
     public boolean hasNext()
     {
-        if (next == null && !exhausted)
+        boolean hasNext;
+        if (scanner != null)
         {
-            next = nextEvent();
-            exhausted = next == null;
+            hasNext = scanCursor < scanner.count();
         }
-        return next != null;
+        else
+        {
+            if (next == null && !exhausted)
+            {
+                next = nextEvent();
+                exhausted = next == null;
+            }
+            hasNext = next != null;
+        }
+        return hasNext;
     }
 
     @Override
@@ -164,29 +195,62 @@ public final class YamlJsonParser implements JsonParser
         {
             throw new JsonParsingException("No more events", getLocation());
         }
-        current = next;
-        next = null;
-        return current.event;
+
+        Event event;
+        if (scanner != null)
+        {
+            scanCurrent = scanCursor++;
+            event = scanEvent(scanner.kind(scanCurrent));
+        }
+        else
+        {
+            current = next;
+            next = null;
+            event = current.event;
+        }
+        return event;
     }
 
     @Override
     public Event currentEvent()
     {
-        if (current == null)
+        Event event;
+        if (scanner != null)
+        {
+            if (scanCurrent < 0)
+            {
+                throw new IllegalStateException("No current event");
+            }
+            event = scanEvent(scanner.kind(scanCurrent));
+        }
+        else if (current != null)
+        {
+            event = current.event;
+        }
+        else
         {
             throw new IllegalStateException("No current event");
         }
-        return current.event;
+        return event;
     }
 
     @Override
     public String getString()
     {
-        if (current == null || current.value == null)
+        String value;
+        if (scanner != null)
+        {
+            value = scanString();
+        }
+        else if (current != null && current.value != null)
+        {
+            value = current.value;
+        }
+        else
         {
             throw new IllegalStateException("No string value is available for current event");
         }
-        return current.value;
+        return value;
     }
 
     @Override
@@ -225,7 +289,16 @@ public final class YamlJsonParser implements JsonParser
     @Override
     public JsonLocation getLocation()
     {
-        return exhausted ? end : current != null ? current.location() : end;
+        JsonLocation location;
+        if (scanner != null)
+        {
+            location = scanLocation();
+        }
+        else
+        {
+            location = exhausted ? end : current != null ? current.location() : end;
+        }
+        return location;
     }
 
     @Override
@@ -248,7 +321,23 @@ public final class YamlJsonParser implements JsonParser
     public JsonValue getValue()
     {
         JsonValue value;
-        if (current != null && current.node != null)
+        if (scanner != null)
+        {
+            if (scanCurrent < 0)
+            {
+                throw new IllegalStateException("No value is available for current event");
+            }
+            if (scanner.kind(scanCurrent) == YamlStreamScanner.KEY_NAME)
+            {
+                value = YamlJsonValues.string(scanner.string(scanCurrent));
+            }
+            else
+            {
+                buildCursor = scanCurrent;
+                value = scanValue();
+            }
+        }
+        else if (current != null && current.node != null)
         {
             value = toJsonValue(current.node);
         }
@@ -307,7 +396,10 @@ public final class YamlJsonParser implements JsonParser
     private void skip(
         Event expected)
     {
-        if (current == null || current.event != expected)
+        Event positioned = scanner != null ?
+            scanCurrent < 0 ? null : scanEvent(scanner.kind(scanCurrent)) :
+            current != null ? current.event : null;
+        if (positioned != expected)
         {
             throw new IllegalStateException("Parser is not positioned on " + expected);
         }
@@ -329,11 +421,122 @@ public final class YamlJsonParser implements JsonParser
 
     private String numberValue()
     {
-        if (current == null || current.event != Event.VALUE_NUMBER)
+        String value;
+        if (scanner != null)
         {
-            throw new IllegalStateException("Not a number");
+            if (scanCurrent < 0 || scanner.kind(scanCurrent) != YamlStreamScanner.VALUE_NUMBER)
+            {
+                throw new IllegalStateException("Not a number");
+            }
+            value = scanner.string(scanCurrent);
         }
-        return current.value;
+        else
+        {
+            if (current == null || current.event != Event.VALUE_NUMBER)
+            {
+                throw new IllegalStateException("Not a number");
+            }
+            value = current.value;
+        }
+        return value;
+    }
+
+    private Event scanEvent(
+        byte kind)
+    {
+        return switch (kind)
+        {
+        case YamlStreamScanner.START_OBJECT -> Event.START_OBJECT;
+        case YamlStreamScanner.END_OBJECT -> Event.END_OBJECT;
+        case YamlStreamScanner.START_ARRAY -> Event.START_ARRAY;
+        case YamlStreamScanner.END_ARRAY -> Event.END_ARRAY;
+        case YamlStreamScanner.KEY_NAME -> Event.KEY_NAME;
+        case YamlStreamScanner.VALUE_STRING -> Event.VALUE_STRING;
+        case YamlStreamScanner.VALUE_NUMBER -> Event.VALUE_NUMBER;
+        case YamlStreamScanner.VALUE_TRUE -> Event.VALUE_TRUE;
+        case YamlStreamScanner.VALUE_FALSE -> Event.VALUE_FALSE;
+        case YamlStreamScanner.VALUE_NULL -> Event.VALUE_NULL;
+        default -> throw new IllegalStateException("Unexpected scanner event: " + kind);
+        };
+    }
+
+    private String scanString()
+    {
+        byte kind = scanCurrent < 0 ? 0 : scanner.kind(scanCurrent);
+        if (kind != YamlStreamScanner.KEY_NAME &&
+            kind != YamlStreamScanner.VALUE_STRING &&
+            kind != YamlStreamScanner.VALUE_NUMBER)
+        {
+            throw new IllegalStateException("No string value is available for current event");
+        }
+        return scanner.string(scanCurrent);
+    }
+
+    private YamlJsonLocation scanLocation()
+    {
+        int index = scanCurrent >= 0 && scanCursor <= scanner.count() ? scanCurrent : scanner.count() - 1;
+        return index < 0 ? new YamlJsonLocation(new YamlLocation(1, 1, 0)) :
+            new YamlJsonLocation(new YamlLocation(scanner.line(index), scanner.column(index), scanner.offset(index)));
+    }
+
+    private JsonValue scanValue()
+    {
+        byte kind = scanner.kind(buildCursor);
+        JsonValue value;
+        switch (kind)
+        {
+        case YamlStreamScanner.START_OBJECT ->
+        {
+            buildCursor++;
+            JsonObjectBuilder builder = YamlJsonValues.objectBuilder();
+            while (scanner.kind(buildCursor) != YamlStreamScanner.END_OBJECT)
+            {
+                String name = scanner.string(buildCursor);
+                buildCursor++;
+                builder.add(name, scanValue());
+            }
+            buildCursor++;
+            value = builder.build();
+        }
+        case YamlStreamScanner.START_ARRAY ->
+        {
+            buildCursor++;
+            JsonArrayBuilder builder = YamlJsonValues.arrayBuilder();
+            while (scanner.kind(buildCursor) != YamlStreamScanner.END_ARRAY)
+            {
+                builder.add(scanValue());
+            }
+            buildCursor++;
+            value = builder.build();
+        }
+        case YamlStreamScanner.VALUE_STRING ->
+        {
+            value = YamlJsonValues.string(scanner.string(buildCursor));
+            buildCursor++;
+        }
+        case YamlStreamScanner.VALUE_NUMBER ->
+        {
+            value = YamlJsonValues.number(new BigDecimal(scanner.string(buildCursor)));
+            buildCursor++;
+        }
+        case YamlStreamScanner.VALUE_TRUE ->
+        {
+            value = JsonValue.TRUE;
+            buildCursor++;
+        }
+        case YamlStreamScanner.VALUE_FALSE ->
+        {
+            value = JsonValue.FALSE;
+            buildCursor++;
+        }
+        case YamlStreamScanner.VALUE_NULL ->
+        {
+            value = JsonValue.NULL;
+            buildCursor++;
+        }
+        default -> throw new IllegalStateException("Unexpected scanner event: " + kind);
+        }
+        return value;
     }
 
     private YamlJsonEvent nextEvent()

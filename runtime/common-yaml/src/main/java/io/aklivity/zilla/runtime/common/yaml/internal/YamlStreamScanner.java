@@ -1,0 +1,939 @@
+/*
+ * Copyright 2021-2024 Aklivity Inc
+ *
+ * Licensed under the Aklivity Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ *   https://www.aklivity.io/aklivity-community-license/
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+package io.aklivity.zilla.runtime.common.yaml.internal;
+
+import java.math.BigInteger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+/**
+ * Tree-free, buffer-backed streaming scanner over a YAML document. A single forward pass classifies
+ * lines into a compact event buffer (parallel arrays indexing into the source {@code text}) without
+ * building the {@link YamlNode} tree, the intermediate {@code Line} objects, or the per-scalar
+ * {@code String}s that the eager {@link YamlDocumentParser} allocates. Plain scalars stay as zero-copy
+ * slices; only hex integers — which JSON renders in decimal — are materialized.
+ * <p>
+ * The scanner is deliberately conservative: it accepts only single-document block mappings, block
+ * sequences and plain scalars (with comments, blank lines and JSON-style scalar typing). The moment it
+ * encounters anything outside that subset — quoted or block scalars, flow collections, anchors, aliases,
+ * merge keys, tags, explicit keys, document markers, directives or tabs — {@link #scan(String)} returns
+ * {@code false} and the caller re-parses the whole document with the eager parser. Because of that
+ * fallback the scanner only has to be correct for what it accepts; it never has to be complete.
+ */
+public final class YamlStreamScanner
+{
+    public static final byte START_OBJECT = 1;
+    public static final byte END_OBJECT = 2;
+    public static final byte START_ARRAY = 3;
+    public static final byte END_ARRAY = 4;
+    public static final byte KEY_NAME = 5;
+    public static final byte VALUE_STRING = 6;
+    public static final byte VALUE_NUMBER = 7;
+    public static final byte VALUE_TRUE = 8;
+    public static final byte VALUE_FALSE = 9;
+    public static final byte VALUE_NULL = 10;
+
+    private static final int INITIAL_EVENTS = 48;
+
+    private static final Pattern NUMBER_PATTERN = Pattern.compile(
+        "-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?:[eE][+-]?[0-9]+)?");
+    private static final Pattern HEX_INTEGER_PATTERN = Pattern.compile("-?0x[0-9a-fA-F]+");
+
+    private static final Bail BAIL = new Bail();
+
+    private Matcher numberMatcher;
+    private Matcher hexMatcher;
+    private CharSequenceView classifyView;
+    private CharSequenceView resultView;
+
+    private String text;
+
+    // line model — one slot per source line, sized to the document on each scan
+    private int[] lineStart;
+    private int[] lineIndent;
+    private int[] contentStart;
+    private int[] contentEnd;
+    private int lineCount;
+
+    // event buffer — kind plus a slice [offset, offset + length) into text, or a materialized value
+    private byte[] kinds;
+    private int[] offsets;
+    private int[] lengths;
+    private String[] texts;
+    private int eventCount;
+
+    private int cursor;
+
+    public boolean scan(
+        String text)
+    {
+        this.text = text;
+        this.eventCount = 0;
+        this.cursor = 0;
+
+        boolean scanned;
+        try
+        {
+            reject(text);
+            splitLines(text);
+            rejectMarkers();
+            scanRoot();
+            scanned = true;
+        }
+        catch (Bail ignore)
+        {
+            scanned = false;
+        }
+        return scanned;
+    }
+
+    public int count()
+    {
+        return eventCount;
+    }
+
+    public byte kind(
+        int index)
+    {
+        return kinds[index];
+    }
+
+    public int offset(
+        int index)
+    {
+        return offsets[index];
+    }
+
+    public int line(
+        int index)
+    {
+        return lineOf(offsets[index]) + 1;
+    }
+
+    public int column(
+        int index)
+    {
+        int at = offsets[index];
+        return at - lineStart[lineOf(at)] + 1;
+    }
+
+    public CharSequence stringView(
+        int index)
+    {
+        CharSequence view;
+        if (resultView == null)
+        {
+            resultView = new CharSequenceView();
+        }
+        if (texts[index] != null)
+        {
+            view = resultView.wrap(texts[index], 0, texts[index].length());
+        }
+        else if (hasSlice(kinds[index]))
+        {
+            view = resultView.wrap(text, offsets[index], lengths[index]);
+        }
+        else
+        {
+            view = null;
+        }
+        return view;
+    }
+
+    public String string(
+        int index)
+    {
+        String value = texts[index];
+        if (value == null && hasSlice(kinds[index]))
+        {
+            value = text.substring(offsets[index], offsets[index] + lengths[index]);
+        }
+        return value;
+    }
+
+    private static boolean hasSlice(
+        byte kind)
+    {
+        return kind == KEY_NAME || kind == VALUE_STRING || kind == VALUE_NUMBER;
+    }
+
+    private void scanRoot()
+    {
+        skipIgnorable();
+        if (cursor >= lineCount)
+        {
+            throw BAIL;
+        }
+
+        int line = cursor;
+        char first = text.charAt(contentStart[line]);
+        if (first == '{' || first == '[')
+        {
+            throw BAIL;
+        }
+
+        scanBlock(lineIndent[line]);
+
+        skipIgnorable();
+        if (cursor < lineCount)
+        {
+            throw BAIL;
+        }
+    }
+
+    private void scanBlock(
+        int indent)
+    {
+        skipIgnorable();
+        int line = cursor;
+        if (lineIndent[line] != indent)
+        {
+            throw BAIL;
+        }
+
+        if (isSequence(line, indent))
+        {
+            scanSequence(indent);
+        }
+        else if (isExplicitKey(line) || mappingColon(contentStart[line], contentEnd[line]) == -1)
+        {
+            throw BAIL;
+        }
+        else
+        {
+            scanMapping(indent);
+        }
+    }
+
+    private void scanMapping(
+        int indent)
+    {
+        int line = cursor;
+        emit(START_OBJECT, contentStart[line], 0, null);
+        scanMappingEntries(indent);
+        emit(END_OBJECT, contentStart[line], 0, null);
+    }
+
+    private void scanMappingEntries(
+        int indent)
+    {
+        while (true)
+        {
+            skipIgnorable();
+            if (cursor >= lineCount)
+            {
+                break;
+            }
+
+            int line = cursor;
+            if (lineIndent[line] != indent || isSequence(line, indent))
+            {
+                break;
+            }
+            if (isExplicitKey(line))
+            {
+                throw BAIL;
+            }
+
+            scanEntry(contentStart[line], contentEnd[line], indent, line);
+        }
+    }
+
+    private void scanEntry(
+        int start,
+        int end,
+        int indent,
+        int line)
+    {
+        int colon = mappingColon(start, end);
+        if (colon == -1)
+        {
+            throw BAIL;
+        }
+
+        int keyEnd = trimEnd(start, colon);
+        if (keyEnd == start || isReservedStart(text.charAt(start)) || isMergeKey(start, keyEnd))
+        {
+            throw BAIL;
+        }
+        emit(KEY_NAME, start, keyEnd - start, null);
+
+        int valueStart = skipSpace(colon + 1, end);
+        cursor++;
+        if (valueStart == end)
+        {
+            scanNestedValue(indent, line);
+        }
+        else
+        {
+            scanScalar(valueStart, end, indent, line);
+        }
+    }
+
+    private void scanNestedValue(
+        int indent,
+        int line)
+    {
+        skipIgnorable();
+        if (cursor < lineCount && lineIndent[cursor] > indent)
+        {
+            scanBlock(lineIndent[cursor]);
+        }
+        else if (cursor < lineCount && lineIndent[cursor] == indent && isSequence(cursor, indent))
+        {
+            scanSequence(indent);
+        }
+        else
+        {
+            emit(VALUE_NULL, contentStart[line], 0, null);
+        }
+    }
+
+    private void scanSequence(
+        int indent)
+    {
+        int line = cursor;
+        emit(START_ARRAY, contentStart[line], 0, null);
+        scanSequenceItems(indent);
+        emit(END_ARRAY, contentStart[line], 0, null);
+    }
+
+    private void scanSequenceItems(
+        int indent)
+    {
+        while (true)
+        {
+            skipIgnorable();
+            if (cursor >= lineCount)
+            {
+                break;
+            }
+
+            int line = cursor;
+            if (!isSequence(line, indent))
+            {
+                break;
+            }
+
+            int start = contentStart[line];
+            int end = contentEnd[line];
+            int itemAt = start + 1;
+            while (itemAt < end && isSpace(text.charAt(itemAt)))
+            {
+                itemAt++;
+            }
+
+            if (itemAt == end)
+            {
+                cursor++;
+                scanNestedSequenceValue(indent, line);
+            }
+            else if (isCompactSequence(itemAt, end))
+            {
+                throw BAIL;
+            }
+            else if (mappingColon(itemAt, end) != -1)
+            {
+                scanSequenceItemMapping(indent, itemAt, end, line);
+            }
+            else
+            {
+                cursor++;
+                scanScalar(itemAt, end, indent, line);
+            }
+        }
+    }
+
+    private void scanNestedSequenceValue(
+        int indent,
+        int line)
+    {
+        skipIgnorable();
+        if (cursor < lineCount && lineIndent[cursor] > indent)
+        {
+            scanBlock(lineIndent[cursor]);
+        }
+        else
+        {
+            emit(VALUE_NULL, contentStart[line], 0, null);
+        }
+    }
+
+    private void scanSequenceItemMapping(
+        int indent,
+        int start,
+        int end,
+        int line)
+    {
+        emit(START_OBJECT, start, 0, null);
+        scanEntry(start, end, indent + 2, line);
+
+        while (true)
+        {
+            skipIgnorable();
+            if (cursor >= lineCount || lineIndent[cursor] <= indent)
+            {
+                break;
+            }
+
+            int next = cursor;
+            if (isSequence(next, lineIndent[next]) || mappingColon(contentStart[next], contentEnd[next]) == -1)
+            {
+                throw BAIL;
+            }
+            scanMappingEntries(lineIndent[next]);
+        }
+
+        emit(END_OBJECT, start, 0, null);
+    }
+
+    private void scanScalar(
+        int start,
+        int end,
+        int refIndent,
+        int line)
+    {
+        char first = text.charAt(start);
+        if (isReservedStart(first) || isCompactSequence(start, end) || mappingColon(start, end) != -1)
+        {
+            throw BAIL;
+        }
+        if (isNonFinite(start, end))
+        {
+            throw BAIL;
+        }
+
+        skipIgnorable();
+        if (cursor < lineCount && lineIndent[cursor] > refIndent)
+        {
+            throw BAIL;
+        }
+
+        byte kind;
+        String materialized = null;
+        if (equalsIgnoreCase(start, end, "true"))
+        {
+            kind = VALUE_TRUE;
+        }
+        else if (equalsIgnoreCase(start, end, "false"))
+        {
+            kind = VALUE_FALSE;
+        }
+        else if (equalsIgnoreCase(start, end, "null") || end - start == 1 && first == '~')
+        {
+            kind = VALUE_NULL;
+        }
+        else if (hexMatcher().reset(classifyView(start, end)).matches())
+        {
+            kind = VALUE_NUMBER;
+            materialized = numberText(start, end);
+        }
+        else if (numberMatcher().reset(classifyView(start, end)).matches())
+        {
+            kind = VALUE_NUMBER;
+        }
+        else
+        {
+            kind = VALUE_STRING;
+        }
+
+        emit(kind, start, end - start, materialized);
+    }
+
+    private Matcher numberMatcher()
+    {
+        if (numberMatcher == null)
+        {
+            numberMatcher = NUMBER_PATTERN.matcher("");
+        }
+        return numberMatcher;
+    }
+
+    private Matcher hexMatcher()
+    {
+        if (hexMatcher == null)
+        {
+            hexMatcher = HEX_INTEGER_PATTERN.matcher("");
+        }
+        return hexMatcher;
+    }
+
+    private CharSequence classifyView(
+        int start,
+        int end)
+    {
+        if (classifyView == null)
+        {
+            classifyView = new CharSequenceView();
+        }
+        return classifyView.wrap(text, start, end - start);
+    }
+
+    private String numberText(
+        int start,
+        int end)
+    {
+        boolean negative = text.charAt(start) == '-';
+        int digits = negative ? start + 1 : start;
+        String value = new BigInteger(text.substring(digits + 2, end), 16).toString();
+        return negative ? "-" + value : value;
+    }
+
+    private boolean isNonFinite(
+        int start,
+        int end)
+    {
+        return equalsIgnoreCase(start, end, ".nan") ||
+            equalsIgnoreCase(start, end, ".inf") ||
+            equalsIgnoreCase(start, end, "+.inf") ||
+            equalsIgnoreCase(start, end, "-.inf");
+    }
+
+    private boolean isSequence(
+        int line,
+        int indent)
+    {
+        int start = contentStart[line];
+        int end = contentEnd[line];
+        return lineIndent[line] == indent && start < end && text.charAt(start) == '-' &&
+            (end - start == 1 || isSpace(text.charAt(start + 1)));
+    }
+
+    private boolean isExplicitKey(
+        int line)
+    {
+        int start = contentStart[line];
+        int end = contentEnd[line];
+        return start < end && text.charAt(start) == '?' &&
+            (end - start == 1 || isSpace(text.charAt(start + 1)));
+    }
+
+    private boolean isCompactSequence(
+        int start,
+        int end)
+    {
+        return end - start > 1 && text.charAt(start) == '-' && isSpace(text.charAt(start + 1));
+    }
+
+    private boolean isMergeKey(
+        int start,
+        int end)
+    {
+        return end - start == 2 && text.charAt(start) == '<' && text.charAt(start + 1) == '<';
+    }
+
+    private int mappingColon(
+        int start,
+        int end)
+    {
+        boolean single = false;
+        boolean doub = false;
+        boolean escaped = false;
+        int depth = 0;
+        int found = -1;
+
+        for (int i = start; i < end && found == -1; i++)
+        {
+            char c = text.charAt(i);
+            if (doub)
+            {
+                if (escaped)
+                {
+                    escaped = false;
+                }
+                else if (c == '\\')
+                {
+                    escaped = true;
+                }
+                else if (c == '"')
+                {
+                    doub = false;
+                }
+            }
+            else if (single)
+            {
+                if (c == '\'')
+                {
+                    if (i + 1 < end && text.charAt(i + 1) == '\'')
+                    {
+                        i++;
+                    }
+                    else
+                    {
+                        single = false;
+                    }
+                }
+            }
+            else
+            {
+                switch (c)
+                {
+                case '\'' ->
+                {
+                    if (isQuotedTokenStart(start, i))
+                    {
+                        single = true;
+                    }
+                }
+                case '"' ->
+                {
+                    if (isQuotedTokenStart(start, i))
+                    {
+                        doub = true;
+                    }
+                }
+                case '{', '[' -> depth++;
+                case '}', ']' ->
+                {
+                    if (depth > 0)
+                    {
+                        depth--;
+                    }
+                }
+                case ':' ->
+                {
+                    if (depth == 0 && (i + 1 == end || isSpace(text.charAt(i + 1))) && !isAnchorOrAliasColon(start, i))
+                    {
+                        found = i;
+                    }
+                }
+                default ->
+                {
+                    // continue
+                }
+                }
+            }
+        }
+
+        return found;
+    }
+
+    private boolean isAnchorOrAliasColon(
+        int start,
+        int colon)
+    {
+        int at = colon - 1;
+        while (at >= start && !isSpace(text.charAt(at)))
+        {
+            at--;
+        }
+        at++;
+        return at < colon && (text.charAt(at) == '&' || text.charAt(at) == '*');
+    }
+
+    private boolean isQuotedTokenStart(
+        int start,
+        int index)
+    {
+        char previous = index == start ? 0 : text.charAt(index - 1);
+        return index == start || isSpace(previous) ||
+            previous == '[' || previous == '{' || previous == ',' || previous == ':';
+    }
+
+    private static boolean isReservedStart(
+        char c)
+    {
+        return c == '"' || c == '\'' || c == '[' || c == ']' || c == '{' || c == '}' ||
+            c == '|' || c == '>' || c == '&' || c == '*' || c == '!' || c == '?' ||
+            c == '#' || c == '%' || c == '@' || c == '`' || c == ',';
+    }
+
+    private boolean equalsIgnoreCase(
+        int start,
+        int end,
+        String literal)
+    {
+        boolean match = end - start == literal.length();
+        for (int i = 0; match && i < literal.length(); i++)
+        {
+            match = Character.toLowerCase(text.charAt(start + i)) == literal.charAt(i);
+        }
+        return match;
+    }
+
+    private int trimEnd(
+        int start,
+        int end)
+    {
+        int at = end;
+        while (at > start && isSpace(text.charAt(at - 1)))
+        {
+            at--;
+        }
+        return at;
+    }
+
+    private int skipSpace(
+        int start,
+        int end)
+    {
+        int at = start;
+        while (at < end && isSpace(text.charAt(at)))
+        {
+            at++;
+        }
+        return at;
+    }
+
+    private void skipIgnorable()
+    {
+        while (cursor < lineCount && contentStart[cursor] == contentEnd[cursor])
+        {
+            cursor++;
+        }
+    }
+
+    private int lineOf(
+        int offset)
+    {
+        int low = 0;
+        int high = lineCount - 1;
+        while (low < high)
+        {
+            int mid = low + high + 1 >>> 1;
+            if (lineStart[mid] <= offset)
+            {
+                low = mid;
+            }
+            else
+            {
+                high = mid - 1;
+            }
+        }
+        return low;
+    }
+
+    private void emit(
+        byte kind,
+        int offset,
+        int length,
+        String materialized)
+    {
+        if (kinds == null)
+        {
+            kinds = new byte[INITIAL_EVENTS];
+            offsets = new int[INITIAL_EVENTS];
+            lengths = new int[INITIAL_EVENTS];
+            texts = new String[INITIAL_EVENTS];
+        }
+        else if (eventCount == kinds.length)
+        {
+            int size = kinds.length << 1;
+            kinds = copyOf(kinds, size);
+            offsets = copyOf(offsets, size);
+            lengths = copyOf(lengths, size);
+            texts = copyOf(texts, size);
+        }
+
+        kinds[eventCount] = kind;
+        offsets[eventCount] = offset;
+        lengths[eventCount] = length;
+        texts[eventCount] = materialized;
+        eventCount++;
+    }
+
+    private void reject(
+        String text)
+    {
+        if (text.indexOf('\t') != -1)
+        {
+            throw BAIL;
+        }
+
+        int at = 0;
+        while (at < text.length() && Character.isWhitespace(text.charAt(at)))
+        {
+            at++;
+        }
+        if (at < text.length() && (text.charAt(at) == '{' || text.charAt(at) == '['))
+        {
+            throw BAIL;
+        }
+    }
+
+    private void rejectMarkers()
+    {
+        for (int line = 0; line < lineCount; line++)
+        {
+            int start = contentStart[line];
+            int end = contentEnd[line];
+            if (start == end)
+            {
+                continue;
+            }
+            char first = text.charAt(start);
+            if (first == '%' || isMarker(start, end, '-') || isMarker(start, end, '.'))
+            {
+                throw BAIL;
+            }
+        }
+    }
+
+    private boolean isMarker(
+        int start,
+        int end,
+        char c)
+    {
+        int length = end - start;
+        return length >= 3 && text.charAt(start) == c && text.charAt(start + 1) == c && text.charAt(start + 2) == c &&
+            (length == 3 || isSpace(text.charAt(start + 3)));
+    }
+
+    private void splitLines(
+        String text)
+    {
+        int count = 1;
+        for (int i = 0; i < text.length(); i++)
+        {
+            if (text.charAt(i) == '\n')
+            {
+                count++;
+            }
+        }
+
+        lineStart = new int[count];
+        lineIndent = new int[count];
+        contentStart = new int[count];
+        contentEnd = new int[count];
+        lineCount = count;
+
+        int start = 0;
+        for (int line = 0; line < count; line++)
+        {
+            int eol = text.indexOf('\n', start);
+            int rawEnd = eol == -1 ? text.length() : eol;
+            int trimmedEnd = rawEnd > start && text.charAt(rawEnd - 1) == '\r' ? rawEnd - 1 : rawEnd;
+
+            int indent = start;
+            while (indent < trimmedEnd && isSpace(text.charAt(indent)))
+            {
+                indent++;
+            }
+
+            int comment = commentIndex(indent, trimmedEnd);
+            int end = comment == -1 ? trimmedEnd : comment;
+            while (end > indent && isSpace(text.charAt(end - 1)))
+            {
+                end--;
+            }
+
+            lineStart[line] = start;
+            lineIndent[line] = indent - start;
+            contentStart[line] = indent;
+            contentEnd[line] = end;
+
+            start = eol == -1 ? text.length() : eol + 1;
+        }
+    }
+
+    private int commentIndex(
+        int start,
+        int end)
+    {
+        boolean single = false;
+        boolean doub = false;
+        boolean escaped = false;
+        int found = -1;
+
+        for (int i = start; i < end && found == -1; i++)
+        {
+            char c = text.charAt(i);
+            if (doub)
+            {
+                if (escaped)
+                {
+                    escaped = false;
+                }
+                else if (c == '\\')
+                {
+                    escaped = true;
+                }
+                else if (c == '"')
+                {
+                    doub = false;
+                }
+            }
+            else if (single)
+            {
+                if (c == '\'')
+                {
+                    if (i + 1 < end && text.charAt(i + 1) == '\'')
+                    {
+                        i++;
+                    }
+                    else
+                    {
+                        single = false;
+                    }
+                }
+            }
+            else if (c == '\'')
+            {
+                single = true;
+            }
+            else if (c == '"')
+            {
+                doub = true;
+            }
+            else if (c == '#' && (i == start || Character.isWhitespace(text.charAt(i - 1))))
+            {
+                found = i;
+            }
+        }
+
+        return found;
+    }
+
+    private static boolean isSpace(
+        char c)
+    {
+        return c == ' ' || c == '\t';
+    }
+
+    private static byte[] copyOf(
+        byte[] source,
+        int size)
+    {
+        byte[] target = new byte[size];
+        System.arraycopy(source, 0, target, 0, source.length);
+        return target;
+    }
+
+    private static int[] copyOf(
+        int[] source,
+        int size)
+    {
+        int[] target = new int[size];
+        System.arraycopy(source, 0, target, 0, source.length);
+        return target;
+    }
+
+    private static String[] copyOf(
+        String[] source,
+        int size)
+    {
+        String[] target = new String[size];
+        System.arraycopy(source, 0, target, 0, source.length);
+        return target;
+    }
+
+    private static final class Bail extends RuntimeException
+    {
+        private Bail()
+        {
+            super(null, null, false, false);
+        }
+    }
+}
