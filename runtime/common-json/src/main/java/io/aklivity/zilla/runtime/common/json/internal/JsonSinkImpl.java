@@ -37,7 +37,6 @@ public final class JsonSinkImpl implements JsonSink
     private final JsonGeneratorEx generator;
     private final Delivery delivery;
     private int depth;
-    private boolean valueStarted;
 
     public JsonSinkImpl(
         JsonGeneratorEx generator)
@@ -130,7 +129,6 @@ public final class JsonSinkImpl implements JsonSink
     public void reset()
     {
         depth = 0;
-        valueStarted = false;
         generator.reset();
     }
 
@@ -174,14 +172,7 @@ public final class JsonSinkImpl implements JsonSink
         }
         else
         {
-            final DirectBuffer segment = source.getSegment();
-            if (!valueStarted)
-            {
-                // emit the value's leading separator once, before its first content byte
-                generator.writeRaw(segment, 0, 0);
-                valueStarted = true;
-            }
-            status = writeChunk(control, segment, source);
+            status = writeChunk(control, source.getSegment(), source);
         }
         return status;
     }
@@ -222,16 +213,19 @@ public final class JsonSinkImpl implements JsonSink
         return status;
     }
 
-    // Writes the segment view whole and pushes back the source bytes the generator took via
+    // Splices the segment view, the generator owning the value's leading separator (emitted once on the
+    // first fragment) so the sink keeps no state; pushes back the source bytes the generator took via
     // control.consumed(...) so the upstream re-exposes the remainder.
     private Status writeChunk(
         JsonController control,
         DirectBuffer segment,
         JsonSource source)
     {
+        boolean deferred = source.deferredBytes();
+        Completion completion = deferred ? Completion.INCOMPLETE : Completion.COMPLETE;
         int available = segment.capacity();
         int before = generator.consumed();
-        generator.writeSegment(segment, 0, available);
+        generator.writeSegment(segment, 0, available, completion);
         int consumed = generator.consumed() - before;
         int outputDeferred = available - consumed;
         control.consumed(consumed);
@@ -240,13 +234,12 @@ public final class JsonSinkImpl implements JsonSink
         {
             status = Status.SUSPENDED;
         }
-        else if (source.deferredBytes())
+        else if (deferred)
         {
             status = Status.ADVANCED;
         }
         else
         {
-            valueStarted = false;
             status = scalarStatus();
         }
         return status;

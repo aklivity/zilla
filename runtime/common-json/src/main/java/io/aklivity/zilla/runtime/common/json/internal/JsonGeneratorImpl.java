@@ -461,6 +461,27 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     }
 
     @Override
+    public JsonGeneratorImpl writeSegment(
+        DirectBuffer source,
+        int index,
+        int length,
+        Completion completion)
+    {
+        if (pending != Pending.SEGMENT)
+        {
+            // emit the value's leading separator once, before its first fragment
+            preValue();
+            pending = Pending.SEGMENT;
+        }
+        int written = writeSegment.accept(source, index, length);
+        if (written == length && completion == Completion.COMPLETE)
+        {
+            pending = Pending.NONE;
+        }
+        return this;
+    }
+
+    @Override
     public void flush()
     {
     }
@@ -888,6 +909,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         NONE,
         AFTER_KEY,
         STRING,
-        NUMBER
+        NUMBER,
+        SEGMENT
     }
 }
