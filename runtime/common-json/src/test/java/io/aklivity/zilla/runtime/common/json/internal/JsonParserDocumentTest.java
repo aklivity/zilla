@@ -18,7 +18,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import org.junit.jupiter.api.Test;
 
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
@@ -86,7 +86,7 @@ public class JsonParserDocumentTest
         String json)
     {
         final byte[] bytes = json.getBytes(UTF_8);
-        final UnsafeBuffer buffer = new UnsafeBuffer(bytes);
+        final UnsafeBufferEx buffer = new UnsafeBufferEx(bytes);
         parser.wrap(buffer, 0, bytes.length);
     }
 }

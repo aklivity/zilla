@@ -17,7 +17,9 @@ package io.aklivity.zilla.runtime.common.json.bench;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
-import org.agrona.concurrent.UnsafeBuffer;
+import jakarta.json.stream.JsonParser;
+
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -36,7 +38,6 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 import io.aklivity.zilla.runtime.common.json.DirectBufferInputStreamEx;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
-import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
 
 @State(Scope.Benchmark)
@@ -67,14 +68,6 @@ public class JsonSchemaBM
         "{\"type\":\"array\",\"contains\":{\"type\":\"object\",\"properties\":" +
         "{\"marker\":{\"const\":true}},\"required\":[\"marker\"]}}";
 
-    // typed integers with no numeric bounds: the type check needs only integrality, never a BigDecimal
-    private static final String TYPED_INTEGERS_SCHEMA =
-        "{\"type\":\"array\",\"items\":{\"type\":\"integer\"}}";
-
-    // the control: minimum/maximum/multipleOf force a BigDecimal per element
-    private static final String BOUNDED_NUMBERS_SCHEMA =
-        "{\"type\":\"array\",\"items\":{\"type\":\"number\",\"minimum\":0,\"maximum\":1000,\"multipleOf\":1}}";
-
     private static final String UNIQUE_SCALARS_SCHEMA =
         "{\"type\":\"array\",\"uniqueItems\":true}";
 
@@ -96,9 +89,6 @@ public class JsonSchemaBM
         "[{\"marker\":false},{\"marker\":false},{\"marker\":false},{\"marker\":false}," +
         "{\"marker\":false},{\"marker\":false},{\"marker\":false},{\"marker\":true}] ";
 
-    private static final String NUMBERS_INSTANCE =
-        "[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15] ";
-
     private static final String UNIQUE_SCALARS_INSTANCE =
         "[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15] ";
 
@@ -107,144 +97,103 @@ public class JsonSchemaBM
         "{\"id\":3,\"name\":\"d\"},{\"id\":4,\"name\":\"e\"},{\"id\":5,\"name\":\"f\"}," +
         "{\"id\":6,\"name\":\"g\"},{\"id\":7,\"name\":\"h\"}] ";
 
-    // one parser reused across messages as a long-lived caller does: each op re-wraps the input and
-    // resets it, rather than constructing a parser (and its 64-deep tokenizer path buffers) per message
     private final DirectBufferInputStreamEx inputRO = new DirectBufferInputStreamEx();
-    private final JsonParserEx parser = JsonEx.createParser(inputRO);
 
-    // one validating parser per kind, reused across ops over the shared delegate: reset() per op replays
-    // one evaluator, the production pattern, rather than building a fresh tree per document
-    private JsonParserEx flatObjectValidator;
-    private JsonParserEx arrayObjectsValidator;
-    private JsonParserEx oneOfValidator;
-    private JsonParserEx containsValidator;
-    private JsonParserEx typedIntegersValidator;
-    private JsonParserEx boundedNumbersValidator;
-    private JsonParserEx uniqueScalarsValidator;
-    private JsonParserEx uniqueObjectsValidator;
+    private JsonSchema flatObjectSchema;
+    private JsonSchema arrayObjectsSchema;
+    private JsonSchema oneOfSchema;
+    private JsonSchema containsSchema;
+    private JsonSchema uniqueScalarsSchema;
+    private JsonSchema uniqueObjectsSchema;
 
-    private UnsafeBuffer flatObjectBuffer;
-    private UnsafeBuffer arrayObjectsBuffer;
-    private UnsafeBuffer oneOfBuffer;
-    private UnsafeBuffer containsBuffer;
-    private UnsafeBuffer numbersBuffer;
-    private UnsafeBuffer uniqueScalarsBuffer;
-    private UnsafeBuffer uniqueObjectsBuffer;
+    private UnsafeBufferEx flatObjectBuffer;
+    private UnsafeBufferEx arrayObjectsBuffer;
+    private UnsafeBufferEx oneOfBuffer;
+    private UnsafeBufferEx containsBuffer;
+    private UnsafeBufferEx uniqueScalarsBuffer;
+    private UnsafeBufferEx uniqueObjectsBuffer;
 
     private int flatObjectLength;
     private int arrayObjectsLength;
     private int oneOfLength;
     private int containsLength;
-    private int numbersLength;
     private int uniqueScalarsLength;
     private int uniqueObjectsLength;
 
     @Setup(Level.Trial)
     public void init()
     {
-        flatObjectValidator = validator(FLAT_OBJECT_SCHEMA);
-        arrayObjectsValidator = validator(ARRAY_OBJECTS_SCHEMA);
-        oneOfValidator = validator(ONE_OF_SCHEMA);
-        containsValidator = validator(CONTAINS_SCHEMA);
-        typedIntegersValidator = validator(TYPED_INTEGERS_SCHEMA);
-        boundedNumbersValidator = validator(BOUNDED_NUMBERS_SCHEMA);
-        uniqueScalarsValidator = validator(UNIQUE_SCALARS_SCHEMA);
-        uniqueObjectsValidator = validator(UNIQUE_OBJECTS_SCHEMA);
+        flatObjectSchema = JsonSchema.of(FLAT_OBJECT_SCHEMA);
+        arrayObjectsSchema = JsonSchema.of(ARRAY_OBJECTS_SCHEMA);
+        oneOfSchema = JsonSchema.of(ONE_OF_SCHEMA);
+        containsSchema = JsonSchema.of(CONTAINS_SCHEMA);
+        uniqueScalarsSchema = JsonSchema.of(UNIQUE_SCALARS_SCHEMA);
+        uniqueObjectsSchema = JsonSchema.of(UNIQUE_OBJECTS_SCHEMA);
 
         byte[] flatObjectBytes = FLAT_OBJECT_INSTANCE.getBytes(UTF_8);
         byte[] arrayObjectsBytes = ARRAY_OBJECTS_INSTANCE.getBytes(UTF_8);
         byte[] oneOfBytes = ONE_OF_INSTANCE.getBytes(UTF_8);
         byte[] containsBytes = CONTAINS_INSTANCE.getBytes(UTF_8);
-        byte[] numbersBytes = NUMBERS_INSTANCE.getBytes(UTF_8);
         byte[] uniqueScalarsBytes = UNIQUE_SCALARS_INSTANCE.getBytes(UTF_8);
         byte[] uniqueObjectsBytes = UNIQUE_OBJECTS_INSTANCE.getBytes(UTF_8);
 
-        flatObjectBuffer = new UnsafeBuffer(flatObjectBytes);
-        arrayObjectsBuffer = new UnsafeBuffer(arrayObjectsBytes);
-        oneOfBuffer = new UnsafeBuffer(oneOfBytes);
-        containsBuffer = new UnsafeBuffer(containsBytes);
-        numbersBuffer = new UnsafeBuffer(numbersBytes);
-        uniqueScalarsBuffer = new UnsafeBuffer(uniqueScalarsBytes);
-        uniqueObjectsBuffer = new UnsafeBuffer(uniqueObjectsBytes);
+        flatObjectBuffer = new UnsafeBufferEx(flatObjectBytes);
+        arrayObjectsBuffer = new UnsafeBufferEx(arrayObjectsBytes);
+        oneOfBuffer = new UnsafeBufferEx(oneOfBytes);
+        containsBuffer = new UnsafeBufferEx(containsBytes);
+        uniqueScalarsBuffer = new UnsafeBufferEx(uniqueScalarsBytes);
+        uniqueObjectsBuffer = new UnsafeBufferEx(uniqueObjectsBytes);
 
         flatObjectLength = flatObjectBytes.length;
         arrayObjectsLength = arrayObjectsBytes.length;
         oneOfLength = oneOfBytes.length;
         containsLength = containsBytes.length;
-        numbersLength = numbersBytes.length;
         uniqueScalarsLength = uniqueScalarsBytes.length;
         uniqueObjectsLength = uniqueObjectsBytes.length;
     }
 
     @Benchmark
-    public int validateFlatObject()
+    public boolean validateFlatObject()
     {
-        return drive(flatObjectValidator, flatObjectBuffer, flatObjectLength);
+        return flatObjectSchema.validate(parserFor(flatObjectBuffer, flatObjectLength));
     }
 
     @Benchmark
-    public int validateArrayObjects()
+    public boolean validateArrayObjects()
     {
-        return drive(arrayObjectsValidator, arrayObjectsBuffer, arrayObjectsLength);
+        return arrayObjectsSchema.validate(parserFor(arrayObjectsBuffer, arrayObjectsLength));
     }
 
     @Benchmark
-    public int validateOneOf()
+    public boolean validateOneOf()
     {
-        return drive(oneOfValidator, oneOfBuffer, oneOfLength);
+        return oneOfSchema.validate(parserFor(oneOfBuffer, oneOfLength));
     }
 
     @Benchmark
-    public int validateContains()
+    public boolean validateContains()
     {
-        return drive(containsValidator, containsBuffer, containsLength);
+        return containsSchema.validate(parserFor(containsBuffer, containsLength));
     }
 
     @Benchmark
-    public int validateTypedIntegers()
+    public boolean validateUniqueScalars()
     {
-        return drive(typedIntegersValidator, numbersBuffer, numbersLength);
+        return uniqueScalarsSchema.validate(parserFor(uniqueScalarsBuffer, uniqueScalarsLength));
     }
 
     @Benchmark
-    public int validateBoundedNumbers()
+    public boolean validateUniqueObjects()
     {
-        return drive(boundedNumbersValidator, numbersBuffer, numbersLength);
+        return uniqueObjectsSchema.validate(parserFor(uniqueObjectsBuffer, uniqueObjectsLength));
     }
 
-    @Benchmark
-    public int validateUniqueScalars()
-    {
-        return drive(uniqueScalarsValidator, uniqueScalarsBuffer, uniqueScalarsLength);
-    }
-
-    @Benchmark
-    public int validateUniqueObjects()
-    {
-        return drive(uniqueObjectsValidator, uniqueObjectsBuffer, uniqueObjectsLength);
-    }
-
-    private JsonParserEx validator(
-        String schema)
-    {
-        return (JsonParserEx) JsonSchema.of(schema).newParser(false, parser);
-    }
-
-    // re-wrap the input over the next instance and reset the validating parser, then drive it to completion
-    private int drive(
-        JsonParserEx validator,
-        UnsafeBuffer buffer,
+    private JsonParser parserFor(
+        UnsafeBufferEx buffer,
         int length)
     {
         inputRO.wrap(buffer, 0, length);
-        validator.reset();
-        int events = 0;
-        while (validator.hasNext())
-        {
-            validator.next();
-            events++;
-        }
-        return events;
+        return JsonEx.createParser(inputRO);
     }
 
     public static void main(

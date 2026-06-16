@@ -20,8 +20,8 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import java.util.List;
 import java.util.Map;
 
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -84,7 +84,7 @@ public class JsonPipelineBM
 
     private static final int FRAGMENT_WINDOW = 64;
 
-    private final MutableDirectBuffer outputBuffer = new UnsafeBuffer(new byte[16 * 1024]);
+    private final MutableDirectBufferEx outputBuffer = new UnsafeBufferEx(new byte[16 * 1024]);
     private final JsonGeneratorEx generator = JsonEx.createGenerator();
     private final JsonSink structuredSink = JsonEx.createSink(generator);
     private final JsonSink segmentableSink = JsonEx.createSink(generator, Map.of(JsonSink.DELIVERY, Delivery.SEGMENTABLE));
@@ -100,12 +100,12 @@ public class JsonPipelineBM
     private JsonPipeline fragmentStringSegmentedPipeline;
     private JsonPipeline fragmentNumberStructuredPipeline;
 
-    private UnsafeBuffer flatBuffer;
-    private UnsafeBuffer nestedBuffer;
-    private UnsafeBuffer rootIdentityBuffer;
-    private UnsafeBuffer mostlySkippedBuffer;
-    private UnsafeBuffer largeStringBuffer;
-    private UnsafeBuffer largeNumberBuffer;
+    private UnsafeBufferEx flatBuffer;
+    private UnsafeBufferEx nestedBuffer;
+    private UnsafeBufferEx rootIdentityBuffer;
+    private UnsafeBufferEx mostlySkippedBuffer;
+    private UnsafeBufferEx largeStringBuffer;
+    private UnsafeBufferEx largeNumberBuffer;
 
     private int flatLength;
     private int nestedLength;
@@ -147,12 +147,12 @@ public class JsonPipelineBM
         byte[] largeStringBytes = LARGE_STRING.getBytes(UTF_8);
         byte[] largeNumberBytes = LARGE_NUMBER.getBytes(UTF_8);
 
-        flatBuffer = new UnsafeBuffer(flatBytes);
-        nestedBuffer = new UnsafeBuffer(nestedBytes);
-        rootIdentityBuffer = new UnsafeBuffer(rootIdentityBytes);
-        mostlySkippedBuffer = new UnsafeBuffer(mostlySkippedBytes);
-        largeStringBuffer = new UnsafeBuffer(largeStringBytes);
-        largeNumberBuffer = new UnsafeBuffer(largeNumberBytes);
+        flatBuffer = new UnsafeBufferEx(flatBytes);
+        nestedBuffer = new UnsafeBufferEx(nestedBytes);
+        rootIdentityBuffer = new UnsafeBufferEx(rootIdentityBytes);
+        mostlySkippedBuffer = new UnsafeBufferEx(mostlySkippedBytes);
+        largeStringBuffer = new UnsafeBufferEx(largeStringBytes);
+        largeNumberBuffer = new UnsafeBufferEx(largeNumberBytes);
 
         flatLength = flatBytes.length;
         nestedLength = nestedBytes.length;
@@ -224,7 +224,7 @@ public class JsonPipelineBM
 
     private int run(
         JsonPipeline pipeline,
-        UnsafeBuffer buffer,
+        UnsafeBufferEx buffer,
         int length)
     {
         generator.wrap(outputBuffer, 0, outputBuffer.capacity());
@@ -238,7 +238,7 @@ public class JsonPipelineBM
     // field buffer so the fragmenting path's only allocations are the ones under measurement.
     private int runWindowed(
         JsonPipeline pipeline,
-        UnsafeBuffer buffer,
+        UnsafeBufferEx buffer,
         int length,
         int window)
     {

@@ -30,8 +30,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.TestFactory;
 
@@ -69,9 +69,9 @@ public class ProtobufBinaryConformanceTest
         byte[] input = readBytes(ROOT + "cases/" + name + ".in");
         byte[] expected = readBytes(ROOT + "cases/" + name + ".expected");
 
-        MutableDirectBuffer out = new UnsafeBuffer(new byte[Math.max(64, expected.length * 2 + 16)]);
+        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[Math.max(64, expected.length * 2 + 16)]);
         ProtobufCanonicalizer canonicalizer = new ProtobufCanonicalizer(schema);
-        int length = canonicalizer.canonicalize(messageName, new UnsafeBuffer(input), 0, input.length, out, 0);
+        int length = canonicalizer.canonicalize(messageName, new UnsafeBufferEx(input), 0, input.length, out, 0);
 
         byte[] actual = new byte[length];
         out.getBytes(0, actual);

@@ -19,8 +19,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.List;
 
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import org.junit.jupiter.api.Test;
 
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
@@ -110,14 +110,14 @@ class JsonProjectorTest
     void shouldProjectAcrossFramesWithoutReset()
     {
         JsonGeneratorEx gen = JsonEx.createGenerator();
-        MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[1024]);
         gen.wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonEx.projector(List.of("/a", "/c")))
             .into(JsonEx.createSink(gen));
 
         byte[] bytes = "{\"a\":1,\"b\":2,\"c\":3} ".getBytes(UTF_8);
-        UnsafeBuffer in = new UnsafeBuffer(bytes);
+        UnsafeBufferEx in = new UnsafeBufferEx(bytes);
 
         pipeline.reset();
         assertEquals(Status.STARVED, pipeline.feed(in, 0, 7, false));
@@ -133,7 +133,7 @@ class JsonProjectorTest
     void shouldResetForReuseAcrossValues()
     {
         JsonGeneratorEx gen = JsonEx.createGenerator();
-        MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[1024]);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonEx.projector(List.of("/x")))
             .into(JsonEx.createSink(gen));
@@ -168,7 +168,7 @@ class JsonProjectorTest
         String input)
     {
         JsonGeneratorEx gen = JsonEx.createGenerator();
-        MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[1024]);
         gen.wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonEx.projector(retained))
@@ -185,6 +185,6 @@ class JsonProjectorTest
     {
         byte[] bytes = text.getBytes(UTF_8);
         pipeline.reset();
-        return pipeline.feed(new UnsafeBuffer(bytes), 0, bytes.length);
+        return pipeline.feed(new UnsafeBufferEx(bytes), 0, bytes.length);
     }
 }

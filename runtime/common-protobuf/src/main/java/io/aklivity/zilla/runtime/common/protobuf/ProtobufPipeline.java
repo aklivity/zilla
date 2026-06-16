@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.common.protobuf;
 
-import org.agrona.DirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 /**
  * A runnable {@code common-protobuf} pipeline assembled from a {@link ProtobufStream} description
@@ -89,7 +89,7 @@ public interface ProtobufPipeline
      * {@code last == true}), preserving the bounded-buffer contract for callers that reassemble first.
      */
     default Status feed(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit)
     {
@@ -104,7 +104,7 @@ public interface ProtobufPipeline
      * malformed or truncated input.
      */
     Status feed(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit,
         boolean last);

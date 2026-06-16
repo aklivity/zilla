@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.common.json.internal;
 
-import org.agrona.DirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 import io.aklivity.zilla.runtime.common.json.JsonController;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
@@ -218,7 +218,7 @@ public final class JsonSinkImpl implements JsonSink
     // control.consumed(...) so the upstream re-exposes the remainder.
     private Status writeChunk(
         JsonController control,
-        DirectBuffer segment,
+        DirectBufferEx segment,
         JsonSource source)
     {
         boolean deferred = source.deferredBytes();

@@ -47,7 +47,7 @@ import jakarta.json.stream.JsonLocation;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParser.Event;
 
-import org.agrona.DirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 import io.aklivity.zilla.runtime.common.json.JsonController;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
@@ -1094,7 +1094,7 @@ public final class JsonSchemaImpl implements JsonSchema
         }
 
         @Override
-        public DirectBuffer getSegment()
+        public DirectBufferEx getSegment()
         {
             throw new UnsupportedOperationException();
         }
@@ -1872,7 +1872,7 @@ public final class JsonSchemaImpl implements JsonSchema
         }
 
         @Override
-        public DirectBuffer getSegment()
+        public DirectBufferEx getSegment()
         {
             throw new UnsupportedOperationException();
         }

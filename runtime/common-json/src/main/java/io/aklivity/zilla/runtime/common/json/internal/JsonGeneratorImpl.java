@@ -24,8 +24,8 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx.Completion;
@@ -50,7 +50,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     private final IntConsumer putByte;
     private final SegmentWriter writeSegment;
 
-    private MutableDirectBuffer buffer;
+    private MutableDirectBufferEx buffer;
     private int offset;
     private int progress;
     private int limit;
@@ -75,7 +75,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
 
     @Override
     public JsonGeneratorImpl wrap(
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         int offset,
         int limit)
     {
@@ -440,7 +440,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
 
     @Override
     public JsonGeneratorImpl writeRaw(
-        DirectBuffer source,
+        DirectBufferEx source,
         int index,
         int length)
     {
@@ -452,7 +452,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
 
     @Override
     public JsonGeneratorImpl writeSegment(
-        DirectBuffer source,
+        DirectBufferEx source,
         int index,
         int length)
     {
@@ -462,7 +462,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
 
     @Override
     public JsonGeneratorImpl writeSegment(
-        DirectBuffer source,
+        DirectBufferEx source,
         int index,
         int length,
         Completion completion)
@@ -717,7 +717,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     // Copies whole source units (UTF-8 char or JSON escape sequence), stopping before one that overflows
     // the output bound, so consumed() always advances on a unit boundary.
     private int writeRawSegment(
-        DirectBuffer source,
+        DirectBufferEx source,
         int index,
         int length)
     {
@@ -740,7 +740,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     // Escapes whole source units (see writeRawSegment), stopping before a unit whose escaped width
     // would overflow the output bound.
     private int writeEscapedSegment(
-        DirectBuffer source,
+        DirectBufferEx source,
         int index,
         int length)
     {
@@ -765,7 +765,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     // Byte length of the next source unit: a backslash escape (2 or 6 bytes) or a UTF-8 char (1-4 bytes),
     // capped at length so a unit not wholly available is held back rather than split.
     private static int unitLength(
-        DirectBuffer source,
+        DirectBufferEx source,
         int index,
         int length)
     {
@@ -801,7 +801,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
 
     // Output byte width of a source unit once escaped: the sum of each byte's escaped width.
     private static int escapedUnitWidth(
-        DirectBuffer source,
+        DirectBufferEx source,
         int index,
         int unit)
     {
@@ -899,7 +899,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     private interface SegmentWriter
     {
         int accept(
-            DirectBuffer source,
+            DirectBufferEx source,
             int index,
             int length);
     }

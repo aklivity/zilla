@@ -22,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.function.Consumer;
 
 import org.agrona.ExpandableArrayBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import org.junit.jupiter.api.Test;
 
 import io.aklivity.zilla.runtime.common.protobuf.Protobuf;
@@ -124,7 +124,7 @@ public class ConformanceTesteeTest
         byte[] message,
         int number)
     {
-        ProtobufReader reader = new ProtobufReader().wrap(new UnsafeBuffer(message), 0, message.length);
+        ProtobufReader reader = new ProtobufReader().wrap(new UnsafeBufferEx(message), 0, message.length);
         byte[] value = null;
         while (reader.hasRemaining())
         {

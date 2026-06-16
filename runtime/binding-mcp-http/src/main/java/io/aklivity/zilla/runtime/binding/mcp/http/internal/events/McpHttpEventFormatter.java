@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.http.internal.events;
 
-import org.agrona.DirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.types.event.McpHttpEventExFW;
@@ -34,7 +34,7 @@ public final class McpHttpEventFormatter implements EventFormatterSpi
 
     @Override
     public String format(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length)
     {

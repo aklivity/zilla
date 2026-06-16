@@ -14,8 +14,8 @@
  */
 package io.aklivity.zilla.runtime.common.protobuf;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 
 /**
  * A buffer-backed Protobuf wire generator. Reuse a single instance per worker thread;
@@ -49,7 +49,7 @@ public interface ProtobufGenerator
      * generator starts a fresh message.
      */
     ProtobufGenerator wrap(
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         int offset,
         int limit);
 
@@ -135,7 +135,7 @@ public interface ProtobufGenerator
 
     ProtobufGenerator writeBytes(
         int field,
-        DirectBuffer value,
+        DirectBufferEx value,
         int offset,
         int length);
 
@@ -145,7 +145,7 @@ public interface ProtobufGenerator
      */
     ProtobufGenerator writeMessage(
         int field,
-        DirectBuffer message,
+        DirectBufferEx message,
         int offset,
         int length);
 
@@ -162,7 +162,7 @@ public interface ProtobufGenerator
      */
     ProtobufGenerator writeSegment(
         int field,
-        DirectBuffer value,
+        DirectBufferEx value,
         int offset,
         int length,
         int deferred);
@@ -209,7 +209,7 @@ public interface ProtobufGenerator
      * to pass a field through unchanged.
      */
     ProtobufGenerator writeRaw(
-        DirectBuffer source,
+        DirectBufferEx source,
         int offset,
         int length);
 
@@ -224,7 +224,7 @@ public interface ProtobufGenerator
     ProtobufGenerator writeValue(
         int field,
         ProtobufWireType wireType,
-        DirectBuffer value,
+        DirectBufferEx value,
         int offset,
         int length);
 

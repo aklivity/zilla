@@ -16,7 +16,7 @@ package io.aklivity.zilla.runtime.common.json;
 
 import jakarta.json.stream.JsonParser;
 
-import org.agrona.DirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 /**
  * A {@link JsonParser} extended with the streaming-over-buffers surface the standard
@@ -52,7 +52,7 @@ public interface JsonParserEx extends JsonParser
      * {@code getSegment()}), and a fragmented number via {@code getBigDecimal()}/{@code getBigInteger()}.
      */
     JsonParserEx wrap(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit);
 
@@ -63,7 +63,7 @@ public interface JsonParserEx extends JsonParser
      * {@link #wrap(DirectBuffer, int, int)} is the {@code last == true} shorthand.
      */
     JsonParserEx wrap(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit,
         boolean last);

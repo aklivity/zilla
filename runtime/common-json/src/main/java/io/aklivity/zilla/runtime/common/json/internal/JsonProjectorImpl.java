@@ -20,7 +20,7 @@ import java.util.List;
 
 import jakarta.json.stream.JsonLocation;
 
-import org.agrona.DirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 import io.aklivity.zilla.runtime.common.json.JsonController;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
@@ -625,7 +625,7 @@ public final class JsonProjectorImpl implements JsonTransform
         }
 
         @Override
-        public DirectBuffer getSegment()
+        public DirectBufferEx getSegment()
         {
             throw new UnsupportedOperationException();
         }

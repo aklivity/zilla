@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.common.json;
 
-import org.agrona.DirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 /**
  * A runnable, resumable {@code common-json} pipeline assembled from a {@link JsonStream} description
@@ -50,7 +50,7 @@ public interface JsonPipeline
      * {@code last == true}), for callers that reassemble the value before feeding it.
      */
     default Status feed(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit)
     {
@@ -66,7 +66,7 @@ public interface JsonPipeline
      * {@code last == false}; an incomplete value under {@code last == true} yields {@code REJECTED}.
      */
     Status feed(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit,
         boolean last);

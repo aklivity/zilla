@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.common.protobuf;
 
-import org.agrona.DirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 /**
  * The pull cursor of a {@code common-protobuf} pipeline. A schema-bound parser
@@ -49,7 +49,7 @@ public interface ProtobufParser
      * before the root {@link ProtobufEvent#START_MESSAGE}.
      */
     default ProtobufParser wrap(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit)
     {
@@ -64,7 +64,7 @@ public interface ProtobufParser
      * and the next window is supplied via {@link #resume}.
      */
     ProtobufParser wrap(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit,
         boolean last);
@@ -75,7 +75,7 @@ public interface ProtobufParser
      * cursor's position within the message is preserved across the window swap.
      */
     ProtobufParser resume(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit,
         boolean last);
@@ -155,7 +155,7 @@ public interface ProtobufParser
      * chunk, of the current segment slice, or of the whole message at a {@link ProtobufEvent#START_MESSAGE};
      * its {@code [0, capacity())} is the slice. Valid on-stack only.
      */
-    DirectBuffer segment();
+    DirectBufferEx segment();
 
     /**
      * For a chunked value — a leaf {@code string}/{@code bytes} {@link ProtobufEvent#VALUE} or a

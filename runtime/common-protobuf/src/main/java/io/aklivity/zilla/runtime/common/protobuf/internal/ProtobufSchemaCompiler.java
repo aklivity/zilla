@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.common.protobuf.internal;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.agrona.DirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufEnum;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufField;
@@ -41,7 +41,7 @@ public final class ProtobufSchemaCompiler
     private static final int LABEL_REPEATED = 3;
 
     public ProtobufSchema compile(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length)
     {
@@ -68,7 +68,7 @@ public final class ProtobufSchemaCompiler
     }
 
     private void compileFile(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length,
         ProtobufSchema.Builder schema)
@@ -111,7 +111,7 @@ public final class ProtobufSchemaCompiler
     }
 
     private void compileMessage(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length,
         String prefix,
@@ -181,7 +181,7 @@ public final class ProtobufSchemaCompiler
     }
 
     private ProtobufField compileField(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length,
         List<String> oneofs)
@@ -273,7 +273,7 @@ public final class ProtobufSchemaCompiler
     }
 
     private void compileEnum(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length,
         String prefix,
@@ -312,7 +312,7 @@ public final class ProtobufSchemaCompiler
     }
 
     private void compileEnumValue(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length,
         ProtobufEnum.Builder enumeration)
@@ -342,7 +342,7 @@ public final class ProtobufSchemaCompiler
     }
 
     private String readOneofName(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int[] region)
     {
         String name = "";
@@ -365,7 +365,7 @@ public final class ProtobufSchemaCompiler
     }
 
     private boolean readMapEntry(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length)
     {
@@ -389,7 +389,7 @@ public final class ProtobufSchemaCompiler
     }
 
     private Boolean readPacked(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length)
     {

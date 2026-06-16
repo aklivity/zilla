@@ -16,8 +16,8 @@ package io.aklivity.zilla.runtime.common.protobuf.internal;
 
 import java.nio.ByteOrder;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufException;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
@@ -31,20 +31,20 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
  */
 public final class ProtobufWriter
 {
-    private MutableDirectBuffer buffer;
+    private MutableDirectBufferEx buffer;
     private int start;
     private int offset;
     private int limit;
 
     public ProtobufWriter wrap(
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         int offset)
     {
         return wrap(buffer, offset, Integer.MAX_VALUE);
     }
 
     public ProtobufWriter wrap(
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         int offset,
         int limit)
     {
@@ -126,7 +126,7 @@ public final class ProtobufWriter
     }
 
     public void writeBytes(
-        DirectBuffer source,
+        DirectBufferEx source,
         int index,
         int length)
     {
@@ -150,7 +150,7 @@ public final class ProtobufWriter
      * unknown field through unchanged, tag and value together.
      */
     public void writeRaw(
-        DirectBuffer source,
+        DirectBufferEx source,
         int index,
         int length)
     {

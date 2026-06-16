@@ -19,8 +19,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Map;
 
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import org.junit.jupiter.api.Test;
 
 class JsonSourceContractTest
@@ -65,7 +65,7 @@ class JsonSourceContractTest
         JsonSink.Delivery delivery)
     {
         JsonGeneratorEx generator = JsonEx.createGenerator();
-        MutableDirectBuffer output = new UnsafeBuffer(new byte[256]);
+        MutableDirectBufferEx output = new UnsafeBufferEx(new byte[256]);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(probe)
             .into(JsonEx.createSink(generator, Map.of(JsonSink.DELIVERY, delivery)));
@@ -73,6 +73,6 @@ class JsonSourceContractTest
         pipeline.reset();
 
         byte[] bytes = (json + " ").getBytes(UTF_8);
-        pipeline.feed(new UnsafeBuffer(bytes), 0, bytes.length);
+        pipeline.feed(new UnsafeBufferEx(bytes), 0, bytes.length);
     }
 }

@@ -20,8 +20,8 @@ import java.math.BigInteger;
 import jakarta.json.JsonValue;
 import jakarta.json.stream.JsonGenerator;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 
 /**
  * A {@link JsonGenerator} extended with the streaming-to-buffer surface the standard
@@ -58,7 +58,7 @@ public interface JsonGeneratorEx extends JsonGenerator
      * single instance per thread across values.
      */
     JsonGeneratorEx wrap(
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         int offset,
         int limit);
 
@@ -122,7 +122,7 @@ public interface JsonGeneratorEx extends JsonGenerator
      * re-encoding.
      */
     JsonGeneratorEx writeRaw(
-        DirectBuffer source,
+        DirectBufferEx source,
         int index,
         int length);
 
@@ -136,7 +136,7 @@ public interface JsonGeneratorEx extends JsonGenerator
      * on resume from the unconsumed remainder.
      */
     JsonGeneratorEx writeSegment(
-        DirectBuffer source,
+        DirectBufferEx source,
         int index,
         int length);
 
@@ -151,7 +151,7 @@ public interface JsonGeneratorEx extends JsonGenerator
      * equivalent to {@link #writeRaw(DirectBuffer, int, int)}.
      */
     JsonGeneratorEx writeSegment(
-        DirectBuffer source,
+        DirectBufferEx source,
         int index,
         int length,
         Completion completion);

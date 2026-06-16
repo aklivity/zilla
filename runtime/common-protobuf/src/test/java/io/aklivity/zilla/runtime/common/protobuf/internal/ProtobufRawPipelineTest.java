@@ -23,8 +23,8 @@ import java.util.List;
 import java.util.function.Consumer;
 
 import org.agrona.ExpandableArrayBuffer;
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import org.junit.jupiter.api.Test;
 
 import io.aklivity.zilla.runtime.common.protobuf.Protobuf;
@@ -131,7 +131,7 @@ public class ProtobufRawPipelineTest
         byte[] message,
         ProtobufTransform transform)
     {
-        MutableDirectBuffer out = new UnsafeBuffer(new byte[4096]);
+        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[4096]);
         ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, out.capacity());
         ProtobufStream stream = Protobuf.stream(Protobuf.parser());
         if (transform != null)
@@ -152,7 +152,7 @@ public class ProtobufRawPipelineTest
         ProtobufPipeline pipeline,
         byte[] message)
     {
-        return pipeline.feed(new UnsafeBuffer(message), 0, message.length);
+        return pipeline.feed(new UnsafeBufferEx(message), 0, message.length);
     }
 
     private static byte[] wire(

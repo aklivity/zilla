@@ -16,8 +16,8 @@ package io.aklivity.zilla.runtime.common.avro.internal;
 
 import static java.nio.ByteOrder.LITTLE_ENDIAN;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 
 import io.aklivity.zilla.runtime.common.avro.AvroGenerator;
 import io.aklivity.zilla.runtime.common.avro.AvroKind;
@@ -28,7 +28,7 @@ public final class AvroGeneratorImpl implements AvroGenerator
 {
     private final AvroNode root;
 
-    private MutableDirectBuffer buffer;
+    private MutableDirectBufferEx buffer;
     private int base;
     private int bound;
     private AvroNode[] nodeStack;
@@ -48,7 +48,7 @@ public final class AvroGeneratorImpl implements AvroGenerator
 
     @Override
     public AvroGenerator wrap(
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         int offset,
         int limit)
     {
@@ -135,7 +135,7 @@ public final class AvroGeneratorImpl implements AvroGenerator
 
     @Override
     public void writeKey(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length)
     {
@@ -224,7 +224,7 @@ public final class AvroGeneratorImpl implements AvroGenerator
 
     @Override
     public void writeString(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length)
     {
@@ -236,7 +236,7 @@ public final class AvroGeneratorImpl implements AvroGenerator
 
     @Override
     public void writeBytes(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length)
     {
@@ -248,7 +248,7 @@ public final class AvroGeneratorImpl implements AvroGenerator
 
     @Override
     public void writeFixed(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length)
     {
@@ -272,7 +272,7 @@ public final class AvroGeneratorImpl implements AvroGenerator
 
     @Override
     public void writeRaw(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length)
     {
@@ -283,7 +283,7 @@ public final class AvroGeneratorImpl implements AvroGenerator
 
     @Override
     public int writeSegment(
-        DirectBuffer source,
+        DirectBufferEx source,
         int offset,
         int length,
         int deferred)
@@ -355,7 +355,7 @@ public final class AvroGeneratorImpl implements AvroGenerator
     }
 
     private void writeLengthPrefixed(
-        DirectBuffer source,
+        DirectBufferEx source,
         int offset,
         int length)
     {

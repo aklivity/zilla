@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.common.avro;
 
-import org.agrona.DirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 /**
  * A runnable, resumable {@code common-avro} pipeline assembled from an {@link AvroStream} description
@@ -57,7 +57,7 @@ public interface AvroPipeline
      * Feeds the whole datum, or the final window of a streamed one ({@code last == true}).
      */
     default Status feed(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit)
     {
@@ -72,7 +72,7 @@ public interface AvroPipeline
      * malformed or — under {@code last == true} — truncated input.
      */
     Status feed(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit,
         boolean last);

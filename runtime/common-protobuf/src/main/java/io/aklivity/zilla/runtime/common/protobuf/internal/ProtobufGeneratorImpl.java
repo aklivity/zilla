@@ -17,8 +17,8 @@ package io.aklivity.zilla.runtime.common.protobuf.internal;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufException;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufGenerator;
@@ -68,7 +68,7 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
 
     @Override
     public ProtobufGenerator wrap(
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         int offset,
         int limit)
     {
@@ -292,7 +292,7 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
     @Override
     public ProtobufGenerator writeBytes(
         int field,
-        DirectBuffer value,
+        DirectBufferEx value,
         int offset,
         int length)
     {
@@ -305,7 +305,7 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
     @Override
     public ProtobufGenerator writeMessage(
         int field,
-        DirectBuffer message,
+        DirectBufferEx message,
         int offset,
         int length)
     {
@@ -318,7 +318,7 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
     @Override
     public ProtobufGenerator writeSegment(
         int field,
-        DirectBuffer value,
+        DirectBufferEx value,
         int offset,
         int length,
         int deferred)
@@ -420,7 +420,7 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
 
     @Override
     public ProtobufGenerator writeRaw(
-        DirectBuffer source,
+        DirectBufferEx source,
         int offset,
         int length)
     {
@@ -433,7 +433,7 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
     public ProtobufGenerator writeValue(
         int field,
         ProtobufWireType wireType,
-        DirectBuffer value,
+        DirectBufferEx value,
         int offset,
         int length)
     {

@@ -24,8 +24,8 @@ import java.util.function.Consumer;
 
 import jakarta.json.stream.JsonParser;
 
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import org.junit.jupiter.api.Test;
 
 class JsonGeneratorEscapeTest
@@ -88,7 +88,7 @@ class JsonGeneratorEscapeTest
     @Test
     void shouldEscapeWriteRawContent()
     {
-        MutableDirectBuffer source = new UnsafeBuffer("\"x\"".getBytes(UTF_8));
+        MutableDirectBufferEx source = new UnsafeBufferEx("\"x\"".getBytes(UTF_8));
         assertEquals("[\\\"x\\\"]", escaped(g -> g
             .writeStartArray()
             .writeRaw(source, 0, 3)
@@ -105,8 +105,8 @@ class JsonGeneratorEscapeTest
     @Test
     void shouldConsumeSegmentAtomicallyByEscapedWidth()
     {
-        MutableDirectBuffer source = new UnsafeBuffer(new byte[] { 0x01 });
-        MutableDirectBuffer out = new UnsafeBuffer(new byte[16]);
+        MutableDirectBufferEx source = new UnsafeBufferEx(new byte[] { 0x01 });
+        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[16]);
         JsonGeneratorEx generator = JsonEx.createGenerator(Map.of(JsonGeneratorEx.GENERATE_ESCAPED, true)).wrap(out, 0, 5);
         generator.writeSegment(source, 0, 1);
         assertEquals(0, generator.consumed());
@@ -154,8 +154,8 @@ class JsonGeneratorEscapeTest
         byte[] raw,
         int bound)
     {
-        MutableDirectBuffer source = new UnsafeBuffer(raw);
-        MutableDirectBuffer out = new UnsafeBuffer(new byte[raw.length * 6 + 16]);
+        MutableDirectBufferEx source = new UnsafeBufferEx(raw);
+        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[raw.length * 6 + 16]);
         JsonGeneratorEx generator = JsonEx.createGenerator(Map.of(JsonGeneratorEx.GENERATE_ESCAPED, true));
         StringBuilder result = new StringBuilder();
         int index = 0;
@@ -177,7 +177,7 @@ class JsonGeneratorEscapeTest
         Consumer<JsonGeneratorEx> writer,
         boolean escape)
     {
-        MutableDirectBuffer buffer = new UnsafeBuffer(new byte[512]);
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[512]);
         Map<String, ?> config = escape ? Map.of(JsonGeneratorEx.GENERATE_ESCAPED, true) : Map.of();
         JsonGeneratorEx generator = JsonEx.createGenerator(config).wrap(buffer, 0, buffer.capacity());
         writer.accept(generator);

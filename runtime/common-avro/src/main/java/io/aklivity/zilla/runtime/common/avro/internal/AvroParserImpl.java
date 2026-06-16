@@ -39,8 +39,8 @@ import static io.aklivity.zilla.runtime.common.avro.AvroEvent.UNION_BRANCH;
 import static java.nio.ByteOrder.LITTLE_ENDIAN;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import org.agrona.DirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 import io.aklivity.zilla.runtime.common.avro.AvroEvent;
 import io.aklivity.zilla.runtime.common.avro.AvroKind;
@@ -78,17 +78,17 @@ public final class AvroParserImpl implements AvroParser
         DONE
     }
 
-    private static final DirectBuffer EMPTY = new UnsafeBuffer(0, 0);
+    private static final DirectBufferEx EMPTY = new UnsafeBufferEx(0, 0);
 
     private final AvroNode root;
-    private final UnsafeBuffer segmentView;
+    private final UnsafeBufferEx segmentView;
     private final AvroLocationImpl location;
 
-    private DirectBuffer buffer;
-    private int offset;
+    private DirectBufferEx buffer;
+    private int base;
     private int limit;
-    private int progress;
-    private long start;
+    private int pos;
+    private long origin;
     private boolean last;
 
     private AvroNode[] nodeStack;
@@ -124,7 +124,7 @@ public final class AvroParserImpl implements AvroParser
         AvroSchema schema)
     {
         this.root = (AvroNode) schema.type();
-        this.segmentView = new UnsafeBuffer(0, 0);
+        this.segmentView = new UnsafeBufferEx(0, 0);
         this.location = new AvroLocationImpl();
         this.nodeStack = new AvroNode[16];
         this.stateStack = new int[16];
@@ -134,16 +134,16 @@ public final class AvroParserImpl implements AvroParser
 
     @Override
     public void wrap(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
-        int limit,
+        int length,
         boolean last)
     {
-        start += progress - this.offset;
+        origin += pos - base;
         this.buffer = buffer;
-        this.offset = offset;
-        this.progress = offset;
-        this.limit = limit;
+        this.base = offset;
+        this.pos = offset;
+        this.limit = offset + length;
         this.last = last;
     }
 
@@ -180,10 +180,10 @@ public final class AvroParserImpl implements AvroParser
     public void reset()
     {
         depth = 0;
-        offset = 0;
-        progress = 0;
+        base = 0;
+        pos = 0;
         limit = 0;
-        start = 0;
+        origin = 0;
         buffer = EMPTY;
         phase = Phase.NEW;
         pending = null;
@@ -197,15 +197,9 @@ public final class AvroParserImpl implements AvroParser
         push(root);
     }
 
-    @Override
-    public int remaining()
-    {
-        return limit - progress;
-    }
-
     private long position()
     {
-        return start + (progress - offset);
+        return origin + (pos - base);
     }
 
     private void advance(
@@ -289,7 +283,7 @@ public final class AvroParserImpl implements AvroParser
     private int segmentStep()
     {
         int result;
-        int scanStart = progress;
+        int scanStart = pos;
         int scan = STEP_CONTINUE;
         while (scan == STEP_CONTINUE && depth > 0)
         {
@@ -302,16 +296,16 @@ public final class AvroParserImpl implements AvroParser
         else if (depth == 0)
         {
             // the whole datum is consumed: the final SEGMENT (deferredBytes 0) ends the run, then END
-            setSegment(scanStart, progress - scanStart);
+            setSegment(scanStart, pos - scanStart);
             deferred = 0;
             pending = SEGMENT;
             phase = Phase.END;
             result = STEP_EVENT;
         }
-        else if (progress > scanStart)
+        else if (pos > scanStart)
         {
             // more of the datum to come, total unknown
-            setSegment(scanStart, progress - scanStart);
+            setSegment(scanStart, pos - scanStart);
             deferred = AvroSource.UNBOUNDED;
             pending = SEGMENT;
             result = STEP_EVENT;
@@ -388,20 +382,20 @@ public final class AvroParserImpl implements AvroParser
     private int stepBoolean()
     {
         int result;
-        if (progress >= limit)
+        if (pos >= limit)
         {
             result = STEP_UNDERFLOW;
         }
         else
         {
-            int b = buffer.getByte(progress) & 0xff;
+            int b = buffer.getByte(pos) & 0xff;
             if (b > 1)
             {
                 result = STEP_REJECTED;
             }
             else
             {
-                progress++;
+                pos++;
                 booleanValue = b != 0;
                 clearValue();
                 pop();
@@ -415,11 +409,11 @@ public final class AvroParserImpl implements AvroParser
         AvroNode node)
     {
         boolean isInt = node.kind == AvroKind.INT;
-        int read = readVarint(progress, isInt ? 5 : 10);
+        int read = readVarint(pos, isInt ? 5 : 10);
         int result;
         if (read == READ_OK)
         {
-            progress = scratchNext;
+            pos = scratchNext;
             long decoded = zigzag(scratchValue);
             AvroEvent event;
             if (isInt)
@@ -446,14 +440,14 @@ public final class AvroParserImpl implements AvroParser
     private int stepFloat()
     {
         int result;
-        if (progress + Float.BYTES > limit)
+        if (pos + Float.BYTES > limit)
         {
             result = STEP_UNDERFLOW;
         }
         else
         {
-            floatValue = buffer.getFloat(progress, LITTLE_ENDIAN);
-            progress += Float.BYTES;
+            floatValue = buffer.getFloat(pos, LITTLE_ENDIAN);
+            pos += Float.BYTES;
             clearValue();
             pop();
             result = produced(FLOAT);
@@ -464,14 +458,14 @@ public final class AvroParserImpl implements AvroParser
     private int stepDouble()
     {
         int result;
-        if (progress + Double.BYTES > limit)
+        if (pos + Double.BYTES > limit)
         {
             result = STEP_UNDERFLOW;
         }
         else
         {
-            doubleValue = buffer.getDouble(progress, LITTLE_ENDIAN);
-            progress += Double.BYTES;
+            doubleValue = buffer.getDouble(pos, LITTLE_ENDIAN);
+            pos += Double.BYTES;
             clearValue();
             pop();
             result = produced(DOUBLE);
@@ -489,7 +483,7 @@ public final class AvroParserImpl implements AvroParser
         }
         else
         {
-            int read = readVarint(progress, 10);
+            int read = readVarint(pos, 10);
             if (read == READ_OK)
             {
                 long length = zigzag(scratchValue);
@@ -499,7 +493,7 @@ public final class AvroParserImpl implements AvroParser
                 }
                 else
                 {
-                    progress = scratchNext;
+                    pos = scratchNext;
                     valueRemaining = (int) length;
                     valueStreaming = true;
                     result = emitValueChunk(node);
@@ -531,7 +525,7 @@ public final class AvroParserImpl implements AvroParser
         AvroNode node)
     {
         int result;
-        int available = limit - progress;
+        int available = limit - pos;
         if (available <= 0 && valueRemaining > 0)
         {
             result = STEP_UNDERFLOW;
@@ -539,19 +533,9 @@ public final class AvroParserImpl implements AvroParser
         else
         {
             int chunk = Math.min(available, valueRemaining);
-            if (chunk < valueRemaining && !segmenting)
+            if (chunk < valueRemaining && !segmenting && node.kind == AvroKind.STRING)
             {
-                if (node.kind == AvroKind.STRING)
-                {
-                    chunk = utf8Boundary(progress, chunk);
-                }
-                else if (node.kind == AvroKind.BYTES || node.kind == AvroKind.FIXED)
-                {
-                    // base64 renders a whole 3-byte group at a time, so a non-final bytes/fixed chunk must end on
-                    // a 3-byte boundary — the bytes analog of utf8Boundary — withholding a 1-2 byte tail until the
-                    // next input window so a base64 group is never split across windows
-                    chunk = chunk / 3 * 3;
-                }
+                chunk = utf8Boundary(pos, chunk);
             }
             if (chunk == 0 && valueRemaining > 0)
             {
@@ -559,8 +543,8 @@ public final class AvroParserImpl implements AvroParser
             }
             else
             {
-                setValueBytes(progress, chunk);
-                progress += chunk;
+                setValueBytes(pos, chunk);
+                pos += chunk;
                 valueRemaining -= chunk;
                 deferred = valueRemaining;
                 if (valueRemaining == 0)
@@ -642,7 +626,7 @@ public final class AvroParserImpl implements AvroParser
     private int stepEnum(
         AvroNode node)
     {
-        int read = readVarint(progress, 5);
+        int read = readVarint(pos, 5);
         int result;
         if (read == READ_OK)
         {
@@ -653,7 +637,7 @@ public final class AvroParserImpl implements AvroParser
             }
             else
             {
-                progress = scratchNext;
+                pos = scratchNext;
                 intValue = (int) index;
                 string = node.symbols[(int) index];
                 valueLength = 0;
@@ -766,7 +750,7 @@ public final class AvroParserImpl implements AvroParser
         int result;
         if (countStack[frame] > 0)
         {
-            int read = readVarint(progress, 10);
+            int read = readVarint(pos, 10);
             if (read == READ_OK)
             {
                 long length = zigzag(scratchValue);
@@ -782,7 +766,7 @@ public final class AvroParserImpl implements AvroParser
                 else
                 {
                     setValueBytes(dataStart, (int) length);
-                    progress = dataStart + (int) length;
+                    pos = dataStart + (int) length;
                     cursorType = nodeStack[frame].children[0];
                     stateStack[frame] = 3;
                     result = produced(MAP_KEY);
@@ -805,11 +789,11 @@ public final class AvroParserImpl implements AvroParser
         int frame,
         AvroEvent endEvent)
     {
-        int read = readBlockHeader(progress);
+        int read = readBlockHeader(pos);
         int result;
         if (read == READ_OK)
         {
-            progress = scratchNext;
+            pos = scratchNext;
             if (scratchValue == 0)
             {
                 pop();
@@ -838,7 +822,7 @@ public final class AvroParserImpl implements AvroParser
         int result;
         if (state == 0)
         {
-            int read = readVarint(progress, 10);
+            int read = readVarint(pos, 10);
             if (read == READ_OK)
             {
                 long index = zigzag(scratchValue);
@@ -848,7 +832,7 @@ public final class AvroParserImpl implements AvroParser
                 }
                 else
                 {
-                    progress = scratchNext;
+                    pos = scratchNext;
                     intValue = (int) index;
                     cursorType = node.children[(int) index];
                     clearValue();
@@ -967,7 +951,7 @@ public final class AvroParserImpl implements AvroParser
     }
 
     @Override
-    public DirectBuffer getSegment()
+    public DirectBufferEx getSegment()
     {
         segmentView.wrap(buffer, valueOffset + valueConsumed, valueLength - valueConsumed);
         return segmentView;

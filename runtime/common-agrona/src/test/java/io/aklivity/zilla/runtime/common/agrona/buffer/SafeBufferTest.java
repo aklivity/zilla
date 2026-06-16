@@ -27,7 +27,7 @@ import static org.junit.Assert.assertTrue;
 import java.lang.foreign.MemorySegment;
 import java.nio.ByteBuffer;
 
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import org.junit.Test;
 
 public class SafeBufferTest
@@ -1024,7 +1024,7 @@ public class SafeBufferTest
     }
 
     // -----------------------------------------------------------------------
-    // Copy from SafeBuffer to UnsafeBuffer (UnsafeBuffer controls the copy)
+    // Copy from SafeBuffer to UnsafeBufferEx (UnsafeBufferEx controls the copy)
     // -----------------------------------------------------------------------
 
     @Test
@@ -1034,7 +1034,7 @@ public class SafeBufferTest
         safe.putInt(0, 0xDEADBEEF);
         safe.putLong(8, 0x1234567890ABCDEFL);
 
-        final UnsafeBuffer unsafe = new UnsafeBuffer(new byte[64]);
+        final UnsafeBufferEx unsafe = new UnsafeBufferEx(new byte[64]);
         unsafe.putBytes(0, safe, 0, 16);
 
         assertEquals(0xDEADBEEF, unsafe.getInt(0));
@@ -1048,7 +1048,7 @@ public class SafeBufferTest
         safe.putInt(4, 42);
         safe.putInt(8, 99);
 
-        final UnsafeBuffer unsafe = new UnsafeBuffer(new byte[64]);
+        final UnsafeBufferEx unsafe = new UnsafeBufferEx(new byte[64]);
         unsafe.putBytes(16, safe, 4, 8);
 
         assertEquals(42, unsafe.getInt(16));
@@ -1062,7 +1062,7 @@ public class SafeBufferTest
         safe.putInt(0, 0xCAFEBABE);
         safe.putLong(8, 0xFEEDFACEFEEDFACEL);
 
-        final UnsafeBuffer unsafe = new UnsafeBuffer(new byte[64]);
+        final UnsafeBufferEx unsafe = new UnsafeBufferEx(new byte[64]);
         unsafe.putBytes(0, safe, 0, 16);
 
         assertEquals(0xCAFEBABE, unsafe.getInt(0));
@@ -1072,7 +1072,7 @@ public class SafeBufferTest
     @Test
     public void shouldCopyUnsafeBufferToHeapSafeBuffer()
     {
-        final UnsafeBuffer unsafe = new UnsafeBuffer(new byte[64]);
+        final UnsafeBufferEx unsafe = new UnsafeBufferEx(new byte[64]);
         unsafe.putInt(0, 0xDEADC0DE);
         unsafe.putLong(8, 0xABCDABCDABCDABCDL);
 
@@ -1086,7 +1086,7 @@ public class SafeBufferTest
     @Test
     public void shouldCopyUnsafeBufferToDirectSafeBuffer()
     {
-        final UnsafeBuffer unsafe = new UnsafeBuffer(new byte[64]);
+        final UnsafeBufferEx unsafe = new UnsafeBufferEx(new byte[64]);
         unsafe.putInt(0, 12345);
         unsafe.putInt(4, 67890);
 

@@ -17,8 +17,8 @@ package io.aklivity.zilla.runtime.common.protobuf.internal;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.agrona.DirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufEvent;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufException;
@@ -92,8 +92,8 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
     private long longValue;
     private double doubleValue;
     private float floatValue;
-    private final UnsafeBuffer segment = new UnsafeBuffer(new byte[0]);
-    private DirectBuffer segmentBuffer;
+    private final UnsafeBufferEx segment = new UnsafeBufferEx(new byte[0]);
+    private DirectBufferEx segmentBuffer;
     private int segmentOffset;
     private int segmentLength;
     private int deferred;
@@ -115,7 +115,7 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
 
     @Override
     public ProtobufParser wrap(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit,
         boolean last)
@@ -135,7 +135,7 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
 
     @Override
     public ProtobufParser resume(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit,
         boolean last)
@@ -265,7 +265,7 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
     }
 
     @Override
-    public DirectBuffer segment()
+    public DirectBufferEx segment()
     {
         // the value/segment slice on a VALUE (length-delimited leaf or raw scalar) or a SEGMENT (raw composite),
         // and the message extent on START_MESSAGE so a sink can size the enclosing nested record
@@ -850,7 +850,7 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
     }
 
     private static int utf8SafeLength(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length)
     {
@@ -904,7 +904,7 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
     }
 
     private void slice(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length)
     {

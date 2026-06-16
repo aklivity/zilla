@@ -20,15 +20,15 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.util.List;
 import java.util.Map;
 
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import org.junit.jupiter.api.Test;
 
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
 class JsonProjectorSegmentHardeningTest
 {
-    private final MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
+    private final MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[1024]);
 
     @Test
     void shouldSegmentDeeplyNestedKeptSubtreeAsSingleVerbatimValue()
@@ -89,6 +89,6 @@ class JsonProjectorSegmentHardeningTest
     {
         byte[] bytes = text.getBytes(UTF_8);
         pipeline.reset();
-        return pipeline.feed(new UnsafeBuffer(bytes), 0, bytes.length);
+        return pipeline.feed(new UnsafeBufferEx(bytes), 0, bytes.length);
     }
 }

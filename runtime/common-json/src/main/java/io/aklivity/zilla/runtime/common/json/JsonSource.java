@@ -18,7 +18,7 @@ import java.math.BigDecimal;
 
 import jakarta.json.stream.JsonLocation;
 
-import org.agrona.DirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 /**
  * Immutable, read-only view of the value observed at the current event as a {@link JsonStream}
@@ -60,7 +60,7 @@ public interface JsonSource
      * Valid only when the current event is {@link JsonEvent#segmented()}; non-owning view of the
      * current contiguous slice, valid on-stack only.
      */
-    DirectBuffer getSegment();
+    DirectBufferEx getSegment();
 
     /**
      * Whether the current value has bytes still deferred to later events — {@code true} while more of
