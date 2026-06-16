@@ -23,6 +23,7 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.sameInstance;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
@@ -49,6 +50,7 @@ import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiCatalogCon
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiConditionConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiSpecificationConfig;
+import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiToolConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiWithConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config.McpOpenapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config.McpOpenapiCompositeConfig;
@@ -56,8 +58,10 @@ import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
+import io.aklivity.zilla.runtime.model.core.config.StringModelConfig;
 
 public class McpOpenapiCompositeGeneratorTest
 {
@@ -92,6 +96,17 @@ public class McpOpenapiCompositeGeneratorTest
         "        \"parameters\": [" +
         "          { \"name\": \"owner\", \"in\": \"path\", \"required\": true, \"schema\": { \"type\": \"string\" } }," +
         "          { \"name\": \"repo\", \"in\": \"path\", \"required\": true, \"schema\": { \"type\": \"string\" } }" +
+        "        ]," +
+        "        \"responses\": { \"200\": { \"description\": \"ok\"," +
+        "          \"content\": { \"application/json\": { \"schema\": { \"type\": \"object\" } } } } }" +
+        "      }" +
+        "    }," +
+        "    \"/search/code\": {" +
+        "      \"get\": {" +
+        "        \"operationId\": \"search/code\"," +
+        "        \"parameters\": [" +
+        "          { \"name\": \"q\", \"in\": \"query\", \"required\": true, \"schema\": { \"type\": \"string\" } }," +
+        "          { \"name\": \"page\", \"in\": \"query\", \"schema\": { \"type\": \"integer\" } }" +
         "        ]," +
         "        \"responses\": { \"200\": { \"description\": \"ok\"," +
         "          \"content\": { \"application/json\": { \"schema\": { \"type\": \"object\" } } } } }" +
@@ -194,15 +209,86 @@ public class McpOpenapiCompositeGeneratorTest
         assertThat(required, not(hasItem("owner_body")));
     }
 
-    private BindingConfig bindingWithRoutes(
-        RouteConfig... routes)
+    @Test
+    public void shouldOverrideOutputSchema()
     {
+        ModelConfig override = StringModelConfig.builder().build();
         McpOpenapiOptionsConfig options = McpOpenapiOptionsConfig.builder()
             .spec(new McpOpenapiSpecificationConfig("openapi_github0",
                 of("https://api.github.com"),
                 of(new McpOpenapiCatalogConfig("catalog0", "rest-api", "latest"))))
+            .tool(new McpOpenapiToolConfig("create_pr", "Create a pull request.", override))
             .build();
 
+        BindingConfig binding = bindingOf(options, route(0, "create_pr", null, "pulls/create"));
+        McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
+
+        McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp(composite).options;
+        McpHttpToolConfig tool = mcpHttpOptions.tools.stream()
+            .filter(t -> "create_pr".equals(t.name))
+            .findFirst()
+            .orElse(null);
+        assertThat(tool, notNullValue());
+        assertThat(tool.description, equalTo("Create a pull request."));
+        assertThat(tool.output, sameInstance(override));
+    }
+
+    @Test
+    public void shouldInterpolateQueryParameters()
+    {
+        BindingConfig binding = bindingWithRoutes(route(0, "search_code", null, "search/code"));
+        McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
+
+        McpHttpWithConfig with = withForMethod(mcpHttp(composite), "GET");
+        assertThat(with, notNullValue());
+        assertThat(with.headers.get(":path"), equalTo("/search/code?q=${args.q}&page=${args.page}"));
+    }
+
+    @Test
+    public void shouldAggregateMultipleSpecs()
+    {
+        lenient().when(catalog.resolve(eq("other-api"), eq("latest"))).thenReturn(9);
+
+        McpOpenapiOptionsConfig options = McpOpenapiOptionsConfig.builder()
+            .spec(new McpOpenapiSpecificationConfig("api_a",
+                of("https://api.github.com"),
+                of(new McpOpenapiCatalogConfig("catalog0", "rest-api", "latest"))))
+            .spec(new McpOpenapiSpecificationConfig("api_b",
+                of("https://api.github.com"),
+                of(new McpOpenapiCatalogConfig("catalog0", "other-api", "latest"))))
+            .build();
+
+        BindingConfig binding = bindingOf(options,
+            route(0, "api_a", "create_pr", null, "pulls/create"),
+            route(1, "api_b", "search_code", null, "search/code"));
+        McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
+
+        assertThat(composite.namespaces.size(), equalTo(1));
+        assertThat(composite.routes.size(), equalTo(1));
+
+        McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp(composite).options;
+        List<String> toolNames = mcpHttpOptions.tools.stream().map(t -> t.name).toList();
+        assertThat(toolNames, hasItem("create_pr"));
+        assertThat(toolNames, hasItem("search_code"));
+
+        NamespaceConfig namespace = composite.namespaces.get(0);
+        assertThat(inlineSubjectSchema(namespace, "create_pr-input"), notNullValue());
+        assertThat(inlineSubjectSchema(namespace, "search_code-input"), notNullValue());
+    }
+
+    private static BindingConfig mcpHttp(
+        McpOpenapiCompositeConfig composite)
+    {
+        return composite.namespaces.get(0).bindings.stream()
+            .filter(b -> "mcp_http0".equals(b.name))
+            .findFirst()
+            .orElse(null);
+    }
+
+    private BindingConfig bindingOf(
+        McpOpenapiOptionsConfig options,
+        RouteConfig... routes)
+    {
         BindingConfig binding = BindingConfig.builder()
             .namespace("test")
             .name("mcp_openapi0")
@@ -216,8 +302,30 @@ public class McpOpenapiCompositeGeneratorTest
         return binding;
     }
 
+    private BindingConfig bindingWithRoutes(
+        RouteConfig... routes)
+    {
+        McpOpenapiOptionsConfig options = McpOpenapiOptionsConfig.builder()
+            .spec(new McpOpenapiSpecificationConfig("openapi_github0",
+                of("https://api.github.com"),
+                of(new McpOpenapiCatalogConfig("catalog0", "rest-api", "latest"))))
+            .build();
+
+        return bindingOf(options, routes);
+    }
+
     private RouteConfig route(
         int order,
+        String tool,
+        String resource,
+        String operationId)
+    {
+        return route(order, "openapi_github0", tool, resource, operationId);
+    }
+
+    private RouteConfig route(
+        int order,
+        String apiId,
         String tool,
         String resource,
         String operationId)
@@ -225,7 +333,7 @@ public class McpOpenapiCompositeGeneratorTest
         return RouteConfig.builder()
             .order(order)
             .when(new McpOpenapiConditionConfig(tool, resource))
-            .with(new McpOpenapiWithConfig("openapi_github0", operationId))
+            .with(new McpOpenapiWithConfig(apiId, operationId))
             .build();
     }
 
