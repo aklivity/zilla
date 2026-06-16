@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.common.avro.internal.json;
 
 import static io.aklivity.zilla.runtime.common.avro.internal.json.AvroJsonUnion.branchName;
+import static io.aklivity.zilla.runtime.common.avro.internal.json.AvroJsonUnion.nullableSingle;
 
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -67,6 +68,7 @@ public final class AvroJsonGeneratorImpl implements AvroGenerator
     private static final int RESERVE = 24;
 
     private final JsonGeneratorEx json;
+    private final boolean canonical;
     private final AvroType rootType;
     private final Map<AvroType, List<AvroField>> fieldsByType;
     private final Map<AvroType, List<AvroType>> branchesByType;
@@ -86,7 +88,16 @@ public final class AvroJsonGeneratorImpl implements AvroGenerator
         AvroSchema schema,
         JsonGeneratorEx json)
     {
+        this(schema, json, false);
+    }
+
+    public AvroJsonGeneratorImpl(
+        AvroSchema schema,
+        JsonGeneratorEx json,
+        boolean canonical)
+    {
         this.json = json;
+        this.canonical = canonical;
         this.rootType = schema.type();
         this.fieldsByType = new IdentityHashMap<>();
         this.branchesByType = new IdentityHashMap<>();
@@ -180,8 +191,9 @@ public final class AvroJsonGeneratorImpl implements AvroGenerator
         int index)
     {
         value();
-        AvroType branch = branches(valueType).get(index);
-        boolean wrapped = branch.kind() != AvroKind.NULL;
+        List<AvroType> branches = branches(valueType);
+        AvroType branch = branches.get(index);
+        boolean wrapped = branch.kind() != AvroKind.NULL && !(canonical && nullableSingle(branches));
         if (wrapped)
         {
             json.writeStartObject();

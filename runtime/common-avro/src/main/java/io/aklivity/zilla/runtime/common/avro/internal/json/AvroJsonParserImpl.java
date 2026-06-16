@@ -65,6 +65,7 @@ public final class AvroJsonParserImpl implements AvroParser, AvroLocation
     private static final int DONE = 2;
 
     private final JsonParserEx json;
+    private final boolean canonical;
     private final AvroType rootType;
     private final UnsafeBuffer segment;
     private final UnsafeBuffer segmentView;
@@ -96,7 +97,16 @@ public final class AvroJsonParserImpl implements AvroParser, AvroLocation
         AvroSchema schema,
         JsonParserEx json)
     {
+        this(schema, json, false);
+    }
+
+    public AvroJsonParserImpl(
+        AvroSchema schema,
+        JsonParserEx json,
+        boolean canonical)
+    {
         this.json = json;
+        this.canonical = canonical;
         this.rootType = schema.type();
         this.segment = new UnsafeBuffer(0, 0);
         this.segmentView = new UnsafeBuffer(0, 0);
@@ -429,6 +439,14 @@ public final class AvroJsonParserImpl implements AvroParser, AvroLocation
                     throw reject("union has no null branch");
                 }
                 event = selectBranch(type, index, false);
+            }
+            else if (canonical && AvroJsonUnion.nullableSingle(branches))
+            {
+                if (next != null)
+                {
+                    int index = AvroJsonUnion.nullBranchIndex(branches) ^ 1;
+                    event = selectBranch(type, index, false);
+                }
             }
             else if (next == JsonEvent.START_OBJECT)
             {

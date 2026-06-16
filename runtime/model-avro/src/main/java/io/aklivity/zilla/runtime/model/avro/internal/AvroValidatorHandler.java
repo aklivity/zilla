@@ -14,15 +14,8 @@
  */
 package io.aklivity.zilla.runtime.model.avro.internal;
 
-import java.io.IOException;
-import java.io.InputStream;
-
 import org.agrona.DirectBuffer;
 import org.agrona.ExpandableDirectByteBuffer;
-import org.apache.avro.AvroRuntimeException;
-import org.apache.avro.Schema;
-import org.apache.avro.generic.GenericDatumReader;
-import org.apache.avro.generic.GenericRecord;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
@@ -32,6 +25,8 @@ import io.aklivity.zilla.runtime.model.avro.config.AvroModelConfig;
 public class AvroValidatorHandler extends AvroModelHandler implements ValidatorHandler
 {
     private final ExpandableDirectByteBuffer buffer;
+
+    private int progress;
 
     public AvroValidatorHandler(
         AvroModelConfiguration config,
@@ -72,13 +67,11 @@ public class AvroValidatorHandler extends AvroModelHandler implements ValidatorH
                 }
                 else
                 {
-                    in.wrap(buffer, 0, progress);
-
                     int schemaId = catalog != null && catalog.id > 0
                         ? catalog.id
                         : handler.resolve(subject, catalog.version);
 
-                    status = validate(traceId, bindingId, schemaId, in);
+                    status = validate(traceId, bindingId, schemaId, buffer, 0, progress);
                 }
             }
         }
@@ -100,36 +93,6 @@ public class AvroValidatorHandler extends AvroModelHandler implements ValidatorH
         int length,
         ValueConsumer next)
     {
-        in.wrap(data, index, length);
-        return validate(traceId, bindingId, schemaId, in);
-    }
-
-    private boolean validate(
-        long traceId,
-        long bindingId,
-        int schemaId,
-        InputStream in)
-    {
-        boolean status = false;
-        try
-        {
-            Schema schema = supplySchema(schemaId);
-            if (schema != null)
-            {
-                GenericRecord record = supplyRecord(schemaId);
-                GenericDatumReader<GenericRecord> reader = supplyReader(schemaId);
-                if (reader != null)
-                {
-                    decoderFactory.binaryDecoder(in, decoder);
-                    reader.read(record, decoder);
-                    status = true;
-                }
-            }
-        }
-        catch (IOException | AvroRuntimeException ex)
-        {
-            event.validationFailure(traceId, bindingId, ex.getMessage());
-        }
-        return status;
+        return validate(traceId, bindingId, schemaId, data, index, length);
     }
 }

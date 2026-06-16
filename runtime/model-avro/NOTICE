@@ -10,13 +10,8 @@ WARRANTIES OF ANY KIND, either express or implied.  See the License for the
 specific language governing permissions and limitations under the License.
 
 This project includes:
-  Apache Avro under Apache-2.0
-  Apache Commons Codec under Apache-2.0
-  Apache Commons Compress under Apache-2.0
-  Apache Commons IO under Apache License, Version 2.0
-  Apache Commons Lang under Apache License, Version 2.0
-  Jackson-annotations under The Apache Software License, Version 2.0
-  Jackson-core under The Apache Software License, Version 2.0
-  jackson-databind under The Apache Software License, Version 2.0
-  SLF4J API Module under MIT
+  agrona under The Apache License, Version 2.0
+  Jakarta JSON Processing API under Eclipse Public License 2.0 or GNU General Public License, version 2 with the GNU Classpath Exception
+  zilla::runtime::common-avro under Aklivity Community License Agreement
+  zilla::runtime::common-json under Aklivity Community License Agreement
 

@@ -19,14 +19,27 @@ import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.model.avro.internal.types.OctetsFW;
 
-public class AvroField
+public final class AvroField
 {
+    private static final int INITIAL_CAPACITY = 24;
+
     public final OctetsFW value;
-    public final MutableDirectBuffer buffer;
+
+    private MutableDirectBuffer buffer;
 
     public AvroField()
     {
         this.value = new OctetsFW();
-        this.buffer = new UnsafeBuffer(new byte[24]);
+        this.buffer = new UnsafeBuffer(new byte[INITIAL_CAPACITY]);
+    }
+
+    public MutableDirectBuffer buffer(
+        int capacity)
+    {
+        if (capacity > buffer.capacity())
+        {
+            buffer = new UnsafeBuffer(new byte[Math.max(buffer.capacity() * 2, capacity)]);
+        }
+        return buffer;
     }
 }
