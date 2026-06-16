@@ -40,9 +40,10 @@ public interface AvroTransform
     default AvroPipeline.Status resume(
         AvroController control,
         AvroSource source,
+        AvroEvent event,
         AvroSink sink)
     {
-        return sink.resume(control, source);
+        return sink.resume(control, source, event);
     }
 
     default void reset()

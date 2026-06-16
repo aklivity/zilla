@@ -50,6 +50,7 @@ final class AvroPipelineImpl implements AvroPipeline
     private final AvroSink root;
 
     private boolean suspended;
+    private AvroEvent suspendedEvent;
 
     AvroPipelineImpl(
         AvroParser parser,
@@ -83,11 +84,12 @@ final class AvroPipelineImpl implements AvroPipeline
         boolean last)
     {
         Status status = ADVANCED;
+        AvroEvent event = null;
         try
         {
             if (suspended)
             {
-                status = root.resume(control, source);
+                status = root.resume(control, source, suspendedEvent);
             }
             else
             {
@@ -95,7 +97,7 @@ final class AvroPipelineImpl implements AvroPipeline
             }
             while (status == ADVANCED)
             {
-                AvroEvent event = parser.nextEvent(control.mode());
+                event = parser.nextEvent(control.mode());
                 if (event == null)
                 {
                     break;
@@ -114,6 +116,12 @@ final class AvroPipelineImpl implements AvroPipeline
             status = REJECTED;
         }
         suspended = status == SUSPENDED;
+        // the pump remembers which event suspended (so the sink keeps no resume state); a re-suspend on
+        // resume leaves event null, keeping the prior suspendedEvent
+        if (suspended && event != null)
+        {
+            suspendedEvent = event;
+        }
         return status;
     }
 

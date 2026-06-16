@@ -84,9 +84,10 @@ public final class AvroStreamImpl implements AvroStream
         @Override
         public Status resume(
             AvroController control,
-            AvroSource source)
+            AvroSource source,
+            AvroEvent event)
         {
-            return transform.resume(control, source, downstream);
+            return transform.resume(control, source, event, downstream);
         }
 
         @Override
