@@ -46,6 +46,8 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
 
     private boolean suspended;
     private boolean starved;
+    // the event in flight across an output suspend, handed to head.resume() so no sink stores it
+    private ProtobufEvent resumeEvent;
 
     public ProtobufPipelineImpl(
         ProtobufParser parser,
@@ -72,6 +74,7 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
         head.reset();
         suspended = false;
         starved = false;
+        resumeEvent = null;
     }
 
     @Override
@@ -93,7 +96,7 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
             if (suspended)
             {
                 // output back-pressure: continue the suspended work on the same window without replaying it
-                status = head.resume(control, source);
+                status = head.resume(control, source, resumeEvent);
             }
             else if (starved)
             {
@@ -114,6 +117,11 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
                 else
                 {
                     status = head.feed(control, source, event);
+                    if (status == Status.SUSPENDED)
+                    {
+                        // the pump owns the resume cursor: remember the in-flight event for the next entry
+                        resumeEvent = event;
+                    }
                 }
             }
             suspended = status == Status.SUSPENDED;
@@ -151,9 +159,10 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
         @Override
         public Status resume(
             ProtobufController control,
-            ProtobufSource source)
+            ProtobufSource source,
+            ProtobufEvent event)
         {
-            return transform.resume(control, source, downstream);
+            return transform.resume(control, source, event, downstream);
         }
 
         @Override

@@ -42,7 +42,6 @@ public final class ProtobufUntypedSinkImpl implements ProtobufSink
     private int depth;
     private int valueWritten;
     private int valueTotal;
-    private ProtobufEvent suspended;
 
     public ProtobufUntypedSinkImpl(
         ProtobufGenerator generator)
@@ -56,20 +55,16 @@ public final class ProtobufUntypedSinkImpl implements ProtobufSink
         ProtobufSource source,
         ProtobufEvent event)
     {
-        ProtobufPipeline.Status status = dispatch(source, event);
-        if (status == ProtobufPipeline.Status.SUSPENDED)
-        {
-            suspended = event;
-        }
-        return status;
+        return dispatch(source, event);
     }
 
     @Override
     public ProtobufPipeline.Status resume(
         ProtobufController control,
-        ProtobufSource source)
+        ProtobufSource source,
+        ProtobufEvent event)
     {
-        return dispatch(source, suspended);
+        return dispatch(source, event);
     }
 
     @Override
@@ -78,7 +73,6 @@ public final class ProtobufUntypedSinkImpl implements ProtobufSink
         depth = 0;
         valueWritten = 0;
         valueTotal = 0;
-        suspended = null;
     }
 
     private ProtobufPipeline.Status dispatch(
