@@ -410,9 +410,27 @@ class YamlStreamScannerTest
     }
 
     @Test
-    void shouldBailOnTabs()
+    void shouldAcceptTabsInContent()
     {
+        for (String doc : new String[] {
+            "a: b\tc\n",
+            "text: |\n  line\twith\ttabs\n",
+            "quoted: \"has\ttab\"\n",
+            "list: [a,\tb]\n"})
+        {
+            YamlStreamScanner scanner = new YamlStreamScanner();
+            assertTrue(scanner.scan(doc), "scanner should accept tabs in content: " + doc);
+            assertEquals(eager(doc), scanned(scanner), doc);
+        }
+    }
+
+    @Test
+    void shouldBailOnTabsInIndentation()
+    {
+        // a tab indenting a structural line or after an indicator is invalid YAML indentation
         assertFalse(new YamlStreamScanner().scan("name:\n\tvalue\n"));
+        assertFalse(new YamlStreamScanner().scan("a:\n\tb: c\n"));
+        assertFalse(new YamlStreamScanner().scan("-\t- x\n"));
     }
 
     @Test
@@ -421,7 +439,7 @@ class YamlStreamScannerTest
         long accepted = fixtures()
             .filter(path -> accepts(path.resolve("in.yaml")))
             .count();
-        assertEquals(159, accepted,
+        assertEquals(198, accepted,
             "accepted-fixture count changed; feasibility gate may over-reject or over-accept");
     }
 

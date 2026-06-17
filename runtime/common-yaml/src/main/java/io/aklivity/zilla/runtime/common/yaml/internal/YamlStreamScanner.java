@@ -116,10 +116,6 @@ public final class YamlStreamScanner
         boolean scanned;
         try
         {
-            if (text.indexOf('\t') != -1)
-            {
-                throw BAIL;
-            }
             int first = firstContent(text);
             if (first < text.length() && (text.charAt(first) == '{' || text.charAt(first) == '['))
             {
@@ -445,6 +441,11 @@ public final class YamlStreamScanner
         {
             throw BAIL;
         }
+        if (tabInIndent(line))
+        {
+            // a tab indenting a nested block is not valid indentation
+            throw BAIL;
+        }
 
         if (isSequence(line, indent))
         {
@@ -494,6 +495,11 @@ public final class YamlStreamScanner
             {
                 break;
             }
+            if (tabInIndent(line))
+            {
+                // YAML indentation is spaces only; a tab indenting a structural line is invalid
+                throw BAIL;
+            }
             if (isExplicitKey(line))
             {
                 scanExplicitEntry(indent, line);
@@ -509,6 +515,11 @@ public final class YamlStreamScanner
         int indent,
         int line)
     {
+        if (contentStart[line] + 1 < contentEnd[line] && text.charAt(contentStart[line] + 1) == '\t')
+        {
+            // a tab after the ? explicit-key indicator is not valid separation
+            throw BAIL;
+        }
         int keyStart = skipSpace(contentStart[line] + 1, contentEnd[line]);
         int keyEnd = contentEnd[line];
         char keyFirst = keyStart < keyEnd ? text.charAt(keyStart) : 0;
@@ -539,6 +550,11 @@ public final class YamlStreamScanner
         boolean valued = cursor < lineCount && lineIndent[cursor] == indent &&
             contentStart[cursor] < contentEnd[cursor] && text.charAt(contentStart[cursor]) == ':' &&
             (contentEnd[cursor] == contentStart[cursor] + 1 || isSpace(text.charAt(contentStart[cursor] + 1)));
+        if (valued && contentStart[cursor] + 1 < contentEnd[cursor] && text.charAt(contentStart[cursor] + 1) == '\t')
+        {
+            // a tab after the : explicit-value indicator is not valid separation
+            throw BAIL;
+        }
         if (valued)
         {
             int valueLine = cursor;
@@ -652,6 +668,10 @@ public final class YamlStreamScanner
             {
                 break;
             }
+            if (tabInIndent(line))
+            {
+                throw BAIL;
+            }
 
             int start = contentStart[line];
             int end = contentEnd[line];
@@ -659,6 +679,11 @@ public final class YamlStreamScanner
             while (itemAt < end && isSpace(text.charAt(itemAt)))
             {
                 itemAt++;
+            }
+            if (hasTab(start + 1, itemAt))
+            {
+                // a tab between the - indicator and the item is not valid indentation
+                throw BAIL;
             }
 
             if (itemAt == end)
@@ -1018,7 +1043,7 @@ public final class YamlStreamScanner
         {
             int lineStartAt = lineStart[cursor];
             int lineEndAt = rawEnd(cursor);
-            int indent = lineIndent[cursor];
+            int indent = spaceIndent(cursor);
             boolean spaceOnly = spaceOnlyLine(cursor);
             if (lineStartAt >= text.length())
             {
@@ -1059,7 +1084,8 @@ public final class YamlStreamScanner
             }
             else
             {
-                boolean moreIndented = !spaceOnly && indent > contentIndent;
+                boolean moreIndented = !spaceOnly && (indent > contentIndent ||
+                    lineEndAt > contentAt && text.charAt(contentAt) == '\t');
                 if (blankLines != 0)
                 {
                     appendLineBreaks(builder, blankLines + (!firstFolded && (previousMoreIndented || moreIndented) ? 1 : 0));
@@ -1112,7 +1138,7 @@ public final class YamlStreamScanner
         {
             if (!spaceOnlyLine(at))
             {
-                int indent = lineIndent[at];
+                int indent = spaceIndent(at);
                 if (allowSameIndent || indent > keyIndent)
                 {
                     contentIndent = indent;
@@ -1167,6 +1193,39 @@ public final class YamlStreamScanner
             at++;
         }
         return spaceOnly;
+    }
+
+    /**
+     * The count of leading spaces (tabs excluded), which determines block scalar content indentation — YAML
+     * indentation is spaces only, so a tab at or past this column is content, not indentation.
+     */
+    private int spaceIndent(
+        int line)
+    {
+        int at = lineStart[line];
+        while (at < text.length() && text.charAt(at) == ' ')
+        {
+            at++;
+        }
+        return at - lineStart[line];
+    }
+
+    private boolean tabInIndent(
+        int line)
+    {
+        return hasTab(lineStart[line], contentStart[line]);
+    }
+
+    private boolean hasTab(
+        int start,
+        int end)
+    {
+        boolean tab = false;
+        for (int at = start; at < end && !tab; at++)
+        {
+            tab = text.charAt(at) == '\t';
+        }
+        return tab;
     }
 
     private static String stripTrailingLineBreaks(
@@ -1363,10 +1422,10 @@ public final class YamlStreamScanner
         {
             throw BAIL;
         }
-        // continuation lines of a flow nested in a block must be indented past the block
+        // continuation lines of a flow nested in a block must be indented past the block, with spaces
         for (int at = startLine + 1; at <= closeLine; at++)
         {
-            if (lineIndent[at] <= refIndent)
+            if (lineIndent[at] <= refIndent || tabInIndent(at))
             {
                 throw BAIL;
             }
@@ -2004,13 +2063,20 @@ public final class YamlStreamScanner
         boolean allowSameIndent)
     {
         StringBuilder interior = new StringBuilder();
-        interior.append(text, openStart + 1, openEnd);
+        // the opening line's trailing whitespace is significant (e.g. an escaped tab), so use its raw end
+        interior.append(text, openStart + 1, rawEnd(lineOf(openStart)));
 
         boolean closed = false;
         while (!closed)
         {
             if (cursor >= lineCount || documentMarker(cursor, '-') || documentMarker(cursor, '.'))
             {
+                throw BAIL;
+            }
+            if (!allowSameIndent && contentStart[cursor] > lineStart[cursor] &&
+                text.charAt(lineStart[cursor]) == '\t')
+            {
+                // a tab indenting a quoted continuation is not valid indentation
                 throw BAIL;
             }
 
@@ -2026,7 +2092,8 @@ public final class YamlStreamScanner
                 int close = quotedCloseEsc(cs, ce, quote);
                 if (close == -1)
                 {
-                    interior.append(text, cs, ce);
+                    // a non-closing continuation keeps its trailing whitespace (raw end)
+                    interior.append(text, cs, rawEnd(cursor));
                 }
                 else if (close == ce - 1)
                 {
@@ -2287,6 +2354,11 @@ public final class YamlStreamScanner
         int end = value.length();
         while (end > 0 && isSpace(value.charAt(end - 1)))
         {
+            if (value.charAt(end - 1) == '\t' && end > 1 && value.charAt(end - 2) == '\\')
+            {
+                // an escaped tab (\<tab>) at the end of a line is preserved, not stripped
+                break;
+            }
             end--;
         }
         return value.substring(0, end);
