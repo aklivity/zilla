@@ -245,18 +245,18 @@ public class JsonPipelineBM
         generator.wrap(outputBuffer, 0, outputBuffer.capacity());
         pipeline.reset();
         int committed = 0;
-        int offset = 0;
+        int limit = 0;
         Status status = Status.STARVED;
-        while (offset < length)
+        while (limit < length)
         {
-            offset = Math.min(offset + window, length);
-            boolean last = offset >= length;
-            status = pipeline.feed(buffer, committed, offset, last);
+            limit = Math.min(limit + window, length);
+            boolean last = limit >= length;
+            status = pipeline.feed(buffer, committed, limit, last);
             if (status != Status.STARVED)
             {
                 break;
             }
-            committed = offset - pipeline.remaining();
+            committed = limit - pipeline.remaining();
         }
         return status == Status.COMPLETED ? generator.length() : -1;
     }
