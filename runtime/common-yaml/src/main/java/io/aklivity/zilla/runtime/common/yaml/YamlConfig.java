@@ -28,7 +28,6 @@ public final class YamlConfig
     public static final String FEATURE_UNIQUE_KEYS = "io.aklivity.zilla.yaml.feature.unique.keys";
     public static final String FEATURE_MULTI_DOCUMENT_STREAMS = "io.aklivity.zilla.yaml.feature.multi.document.streams";
     public static final String SCALAR_RESOLUTION = "io.aklivity.zilla.yaml.scalar.resolution";
-    public static final String RESOLVE_REFERENCES = "io.aklivity.zilla.yaml.resolve.references";
     public static final String PRESERVE_SOURCE = "io.aklivity.zilla.yaml.preserve.source";
     public static final String PRESERVE_COMMENTS = "io.aklivity.zilla.yaml.preserve.comments";
 

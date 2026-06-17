@@ -264,9 +264,7 @@ public final class YamlJsonParser implements JsonParser
     {
         try
         {
-            Map<String, Object> raw = new HashMap<>(config);
-            raw.put(YamlConfig.RESOLVE_REFERENCES, false);
-            YamlDocumentParser.Result result = YamlDocumentParser.parse(text.substring((int) offset), raw);
+            YamlDocumentParser.Result result = YamlDocumentParser.parse(text.substring((int) offset), config);
             YamlNode node = YamlReferences.resolve(result.node, config);
             rejectJsonUnsupported(node, offset);
             if (uniqueKeys)

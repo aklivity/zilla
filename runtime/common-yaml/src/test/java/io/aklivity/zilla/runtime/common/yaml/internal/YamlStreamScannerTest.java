@@ -33,8 +33,6 @@ import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
 
-import io.aklivity.zilla.runtime.common.yaml.YamlConfig;
-
 /**
  * Validates the conservative streaming scanner. The scanner only has to be correct for the subset
  * it accepts; everything else falls back to {@link YamlDocumentParser}. So the core guarantee tested
@@ -426,8 +424,7 @@ class YamlStreamScannerTest
         String text)
     {
         StringBuilder builder = new StringBuilder();
-        projectRaw(YamlDocumentParser.parse(text, new YamlConfiguration(
-            Map.of(YamlConfig.RESOLVE_REFERENCES, false))).node, builder);
+        projectRaw(YamlDocumentParser.parse(text, YamlConfiguration.DEFAULT).node, builder);
         return builder.toString();
     }
 

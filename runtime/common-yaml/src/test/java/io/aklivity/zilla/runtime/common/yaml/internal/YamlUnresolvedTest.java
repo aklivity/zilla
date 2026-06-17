@@ -23,8 +23,6 @@ import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
-import io.aklivity.zilla.runtime.common.yaml.YamlConfig;
-
 class YamlUnresolvedTest
 {
     private static final String DOCUMENT = """
@@ -36,8 +34,7 @@ class YamlUnresolvedTest
         typed: !!str 42
         """;
 
-    private static final YamlConfiguration RAW =
-        new YamlConfiguration(Map.of(YamlConfig.RESOLVE_REFERENCES, false));
+    private static final YamlConfiguration RAW = YamlConfiguration.DEFAULT;
 
     @Test
     void shouldRetainAnchorAliasMergeAndTagWhenUnresolved()
