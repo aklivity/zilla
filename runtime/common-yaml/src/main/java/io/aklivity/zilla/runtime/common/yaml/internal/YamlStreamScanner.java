@@ -741,7 +741,7 @@ public final class YamlStreamScanner
             // an empty mapping key (`: value`) is the empty scalar, matching the eager parseKeySpec("")
             emit(KEY_NAME, start, 0, null);
         }
-        else if (isReservedStart(keyFirst) || isMergeKey(start, keyEnd) && !raw)
+        else if (isReservedStart(keyFirst) && !questionPlainStart(start, keyEnd) || isMergeKey(start, keyEnd) && !raw)
         {
             throw BAIL;
         }
@@ -1026,8 +1026,8 @@ public final class YamlStreamScanner
                 emit(VALUE_STRING, start, 0, value);
             }
         }
-        else if (isReservedStart(first) || isCompactSequence(start, end) || mappingColon(start, end) != -1 ||
-            isNonFinite(start, end))
+        else if (isReservedStart(first) && !questionPlainStart(start, end) || isCompactSequence(start, end) ||
+            mappingColon(start, end) != -1 || isNonFinite(start, end))
         {
             throw BAIL;
         }
@@ -1061,7 +1061,8 @@ public final class YamlStreamScanner
             scanQuotedScalar(start, end, refIndent, line, allowSameIndent);
             return;
         }
-        if (isReservedStart(first) || isCompactSequence(start, end) || mappingColon(start, end) != -1)
+        if (isReservedStart(first) && !questionPlainStart(start, end) || isCompactSequence(start, end) ||
+            mappingColon(start, end) != -1)
         {
             throw BAIL;
         }
@@ -3046,6 +3047,14 @@ public final class YamlStreamScanner
             c == '#' || c == '%' || c == '@' || c == '`' || c == ',';
     }
 
+    private boolean questionPlainStart(
+        int start,
+        int end)
+    {
+        // a ? followed by a non-space begins a plain scalar (e.g. ?foo), not the `? ` explicit-key indicator
+        return text.charAt(start) == '?' && start + 1 < end && !isSpace(text.charAt(start + 1));
+    }
+
     private boolean equalsIgnoreCase(
         int start,
         int end,
@@ -3332,7 +3341,8 @@ public final class YamlStreamScanner
         char keyFirst = text.charAt(start);
         boolean decoratedKey = raw && (keyFirst == '&' || keyFirst == '!');
         boolean flowKey = raw && (keyFirst == '{' || keyFirst == '[');
-        if (keyEnd != start && (blockedStart(keyFirst) && !decoratedKey && !flowKey || isMergeKey(start, keyEnd) && !raw))
+        boolean blocked = blockedStart(keyFirst) && !decoratedKey && !flowKey && !questionPlainStart(start, keyEnd);
+        if (keyEnd != start && (blocked || isMergeKey(start, keyEnd) && !raw))
         {
             // an empty key (keyEnd == start) is the empty scalar and is feasible; scanEntry handles it
             throw BAIL;
