@@ -1043,7 +1043,7 @@ public final class YamlStreamScanner
         char first = text.charAt(start);
         if (raw && (first == '&' || first == '*' || first == '!'))
         {
-            scanRef(start, end, refIndent, line);
+            scanRef(start, end, refIndent, line, allowSameIndent);
             return;
         }
         if (first == '{' || first == '[')
@@ -1445,7 +1445,8 @@ public final class YamlStreamScanner
         int start,
         int end,
         int refIndent,
-        int line)
+        int line,
+        boolean allowSameIndent)
     {
         int at = start;
         boolean node = false;
@@ -1496,7 +1497,15 @@ public final class YamlStreamScanner
             {
                 throw BAIL;
             }
-            scanScalar(at, end, refIndent, line, false, false);
+            if ((r == '|' || r == '>') && blockIndicator(at, end))
+            {
+                // a block scalar node carrying the consumed anchor/tag (e.g. !tag >1\n value)
+                scanBlockScalar(at, end, refIndent, allowSameIndent);
+            }
+            else
+            {
+                scanScalar(at, end, refIndent, line, false, false);
+            }
         }
         else if (pendingAnchor != null || pendingTag != null)
         {

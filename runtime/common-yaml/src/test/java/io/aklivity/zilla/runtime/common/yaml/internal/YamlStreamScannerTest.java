@@ -579,7 +579,7 @@ class YamlStreamScannerTest
         long accepted = fixtures()
             .filter(path -> accepts(path.resolve("in.yaml"), true))
             .count();
-        assertEquals(272, accepted,
+        assertEquals(274, accepted,
             "raw accepted-fixture count changed; a drop is a regression, a rise should bump this baseline");
     }
 
