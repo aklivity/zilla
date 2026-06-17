@@ -98,6 +98,7 @@ public final class YamlStreamScanner
     private int flowAt;
     private int flowTokenStart;
     private int flowTokenEnd;
+    private String flowText;
 
     public boolean scan(
         String text)
@@ -1897,7 +1898,14 @@ public final class YamlStreamScanner
         if (c == '"' || c == '\'')
         {
             flowReadQuoted();
-            emit(KEY_NAME, flowTokenStart, flowTokenEnd - flowTokenStart, null);
+            if (flowText != null)
+            {
+                emit(KEY_NAME, flowTokenStart, 0, flowText);
+            }
+            else
+            {
+                emit(KEY_NAME, flowTokenStart, flowTokenEnd - flowTokenStart, null);
+            }
         }
         else if (raw && (c == '{' || c == '['))
         {
@@ -2020,46 +2028,69 @@ public final class YamlStreamScanner
     private void flowQuotedValue()
     {
         flowReadQuoted();
-        emit(VALUE_STRING, flowTokenStart, flowTokenEnd - flowTokenStart, null);
+        if (flowText != null)
+        {
+            emit(VALUE_STRING, flowTokenStart, 0, flowText);
+        }
+        else
+        {
+            emit(VALUE_STRING, flowTokenStart, flowTokenEnd - flowTokenStart, null);
+        }
     }
 
+    /**
+     * Reads a quoted scalar in flow, spanning physical lines and honoring escapes. A single-line
+     * escape-free scalar leaves {@code flowText} null so the caller can emit the verbatim slice; otherwise
+     * the value is materialized — multi-line scalars fold their line breaks the way
+     * {@code YamlDocumentParser.foldQuotedLines} does, then double-quote escapes / single-quote {@code ''}
+     * pairs are applied.
+     */
     private void flowReadQuoted()
     {
         char quote = text.charAt(flowAt);
-        int inner = flowAt + 1;
-        int i = inner;
-        boolean closed = false;
-        while (i < text.length() && !closed)
+        int open = flowAt;
+        int i = open + 1;
+        int close = -1;
+        while (i < text.length() && close == -1)
         {
             char c = text.charAt(i);
-            if (isLineBreak(c))
-            {
-                throw BAIL;
-            }
             if (quote == '"' && c == '\\')
             {
-                throw BAIL;
+                i += 2;
             }
-            if (c == quote)
+            else if (c == quote)
             {
                 if (quote == '\'' && i + 1 < text.length() && text.charAt(i + 1) == '\'')
                 {
-                    throw BAIL;
+                    i += 2;
                 }
-                closed = true;
+                else
+                {
+                    close = i;
+                }
             }
             else
             {
                 i++;
             }
         }
-        if (!closed)
+        if (close == -1)
         {
             throw BAIL;
         }
-        flowTokenStart = inner;
-        flowTokenEnd = i;
-        flowAt = i + 1;
+        flowTokenStart = open + 1;
+        flowTokenEnd = close;
+        flowAt = close + 1;
+        if (containsLineBreak(open + 1, close))
+        {
+            String token = quote + foldQuoted(text.substring(open + 1, close)) + quote;
+            String value = quote == '"' ? unquoteDouble(token, 0, token.length()) : unquoteSingle(token, 0, token.length());
+            flowText = value != null ? value : token.substring(1, token.length() - 1);
+        }
+        else
+        {
+            flowText = quote == '"' ? unquoteDouble(text, open, close + 1) : unquoteSingle(text, open, close + 1);
+        }
     }
 
     private boolean isFlowScalarMarker(

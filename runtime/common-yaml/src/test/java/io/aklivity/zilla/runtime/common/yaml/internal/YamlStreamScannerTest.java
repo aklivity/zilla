@@ -136,6 +136,20 @@ class YamlStreamScannerTest
     }
 
     @Test
+    void shouldAcceptMultiLineQuotedScalarInFlow()
+    {
+        for (String doc : new String[] {
+            "[\"double\n quoted\", 'single\n quoted', plain]\n",
+            "{ k: \"a\n b\" }\n",
+            "[\"esc \\n here\nand more\"]\n"})
+        {
+            YamlStreamScanner scanner = new YamlStreamScanner();
+            assertTrue(scanner.scan(doc), "scanner should accept a multi-line quoted scalar in flow: " + doc);
+            assertEquals(eager(doc), scanned(scanner), doc);
+        }
+    }
+
+    @Test
     void shouldAcceptQuestionLedPlainScalarInFlow()
     {
         for (String doc : new String[] {
@@ -537,7 +551,7 @@ class YamlStreamScannerTest
         long accepted = fixtures()
             .filter(path -> accepts(path.resolve("in.yaml")))
             .count();
-        assertEquals(209, accepted,
+        assertEquals(212, accepted,
             "accepted-fixture count changed; feasibility gate may over-reject or over-accept");
     }
 
