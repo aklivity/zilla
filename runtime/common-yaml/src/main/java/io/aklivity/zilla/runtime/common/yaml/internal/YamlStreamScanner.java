@@ -796,7 +796,7 @@ public final class YamlStreamScanner
             {
                 throw BAIL;
             }
-            String value = first == '"' ? unquoteDouble(start, end) : unquoteSingle(start, end);
+            String value = first == '"' ? unquoteDouble(text, start, end) : unquoteSingle(text, start, end);
             if (value == null)
             {
                 emit(VALUE_STRING, start + 1, end - start - 2, null);
@@ -838,7 +838,7 @@ public final class YamlStreamScanner
         }
         if (first == '"' || first == '\'')
         {
-            scanQuotedScalar(start, end, refIndent, line);
+            scanQuotedScalar(start, end, refIndent, line, allowSameIndent);
             return;
         }
         if (isReservedStart(first) || isCompactSequence(start, end) || mappingColon(start, end) != -1)
@@ -1784,13 +1784,14 @@ public final class YamlStreamScanner
         int start,
         int end,
         int refIndent,
-        int line)
+        int line,
+        boolean allowSameIndent)
     {
         char quote = text.charAt(start);
         int close = quotedCloseEsc(start + 1, end, quote);
         if (close == -1)
         {
-            scanMultiLineQuoted(start, end, refIndent, quote);
+            scanMultiLineQuoted(start, end, refIndent, quote, allowSameIndent);
         }
         else
         {
@@ -1803,7 +1804,7 @@ public final class YamlStreamScanner
             {
                 throw BAIL;
             }
-            String value = quote == '"' ? unquoteDouble(start, end) : unquoteSingle(start, end);
+            String value = quote == '"' ? unquoteDouble(text, start, end) : unquoteSingle(text, start, end);
             if (value == null)
             {
                 emit(VALUE_STRING, start + 1, end - start - 2, null);
@@ -1816,29 +1817,19 @@ public final class YamlStreamScanner
     }
 
     /**
-     * Collects an escape-free quoted scalar that spans physical lines, requiring each continuation to be
-     * indented past {@code refIndent} (mirroring the eager parser, which errors on same-or-less indent),
-     * folds the interior the way {@code YamlDocumentParser.foldQuotedLines} does, and emits the materialized
-     * value. A document marker, a wrong-indented continuation or anything after the closing quote bails so
-     * the eager parser can produce the authoritative result (or error).
+     * Collects a quoted scalar that spans physical lines, folds the interior the way
+     * {@code YamlDocumentParser.foldQuotedLines} does, then unquotes it (double-quote escapes, single-quote
+     * {@code ''} pairs). Unless {@code allowSameIndent} (the document-root context) each continuation must be
+     * indented past {@code refIndent}, mirroring the eager parser which errors on same-or-less indent. A
+     * document marker or anything after the closing quote bails so the eager parser stays authoritative.
      */
     private void scanMultiLineQuoted(
         int openStart,
         int openEnd,
         int refIndent,
-        char quote)
+        char quote,
+        boolean allowSameIndent)
     {
-        // multi-line folding is only supported escape-free; an escape on the opening line bails
-        for (int i = openStart + 1; i < openEnd; i++)
-        {
-            char c = text.charAt(i);
-            if (quote == '"' && c == '\\' ||
-                quote == '\'' && c == '\'' && i + 1 < openEnd && text.charAt(i + 1) == '\'')
-            {
-                throw BAIL;
-            }
-        }
-
         StringBuilder interior = new StringBuilder();
         interior.append(text, openStart + 1, openEnd);
 
@@ -1855,11 +1846,11 @@ public final class YamlStreamScanner
             interior.append('\n');
             if (cs < ce)
             {
-                if (lineIndent[cursor] <= refIndent)
+                if (!allowSameIndent && lineIndent[cursor] <= refIndent)
                 {
                     throw BAIL;
                 }
-                int close = quotedClose(cs, ce, quote);
+                int close = quotedCloseEsc(cs, ce, quote);
                 if (close == -1)
                 {
                     interior.append(text, cs, ce);
@@ -1877,7 +1868,9 @@ public final class YamlStreamScanner
             cursor++;
         }
 
-        String value = foldQuoted(interior.toString());
+        String folded = foldQuoted(interior.toString());
+        String token = quote + folded + quote;
+        String value = quote == '"' ? unquoteDouble(token, 0, token.length()) : unquoteSingle(token, 0, token.length());
 
         skipIgnorable();
         if (cursor < lineCount && lineIndent[cursor] > refIndent)
@@ -1885,44 +1878,13 @@ public final class YamlStreamScanner
             throw BAIL;
         }
 
-        emit(VALUE_STRING, openStart, 0, value);
-    }
-
-    /**
-     * Returns the index of the closing quote within {@code [from, end)}, or {@code -1} when an escape-free
-     * quote does not close on this line. Bails on a {@code \} inside a double quote or a {@code ''} pair
-     * inside a single quote, since those would need materializing rather than emitting the verbatim slice.
-     */
-    private int quotedClose(
-        int from,
-        int end,
-        char quote)
-    {
-        int close = -1;
-        for (int i = from; i < end && close == -1; i++)
-        {
-            char c = text.charAt(i);
-            if (quote == '"' && c == '\\')
-            {
-                throw BAIL;
-            }
-            else if (c == quote)
-            {
-                if (quote == '\'' && i + 1 < end && text.charAt(i + 1) == '\'')
-                {
-                    throw BAIL;
-                }
-                close = i;
-            }
-        }
-        return close;
+        emit(VALUE_STRING, openStart, 0, value != null ? value : folded);
     }
 
     /**
      * Returns the index of the closing quote within {@code [from, end)} honoring escapes — a {@code \X}
      * inside a double quote and a {@code ''} pair inside a single quote do not close — or {@code -1} when
-     * the quote does not close on this line. Unlike {@link #quotedClose} this never bails; the caller
-     * materializes the value via {@link #unquoteDouble} / {@link #unquoteSingle} when escapes are present.
+     * the quote does not close on this line.
      */
     private int quotedCloseEsc(
         int from,
@@ -1953,34 +1915,35 @@ public final class YamlStreamScanner
     }
 
     /**
-     * Materializes a single-line double-quoted scalar's interior {@code [start+1, end-1)}, returning
-     * {@code null} when it is escape-free so the caller can emit the verbatim slice instead. Mirrors
-     * {@code YamlDocumentParser.unquoteDouble}; an unterminated escape bails to the eager parser.
+     * Materializes a double-quoted scalar token {@code src[tokenStart, tokenEnd)} (quotes included),
+     * returning {@code null} when its interior is escape-free so the caller can emit the verbatim slice.
+     * Mirrors {@code YamlDocumentParser.unquoteDouble}; an unterminated escape bails to the eager parser.
      */
     private String unquoteDouble(
-        int start,
-        int end)
+        CharSequence src,
+        int tokenStart,
+        int tokenEnd)
     {
         boolean escaped = false;
-        for (int i = start + 1; i < end - 1 && !escaped; i++)
+        for (int i = tokenStart + 1; i < tokenEnd - 1 && !escaped; i++)
         {
-            escaped = text.charAt(i) == '\\';
+            escaped = src.charAt(i) == '\\';
         }
         String result = null;
         if (escaped)
         {
             StringBuilder value = new StringBuilder();
-            for (int i = start + 1; i < end - 1; i++)
+            for (int i = tokenStart + 1; i < tokenEnd - 1; i++)
             {
-                char c = text.charAt(i);
+                char c = src.charAt(i);
                 if (c == '\\')
                 {
                     i++;
-                    if (i >= end - 1)
+                    if (i >= tokenEnd - 1)
                     {
                         throw BAIL;
                     }
-                    i = appendEscape(value, i);
+                    i = appendEscape(value, src, i, tokenEnd);
                 }
                 else
                 {
@@ -1993,27 +1956,27 @@ public final class YamlStreamScanner
     }
 
     /**
-     * Materializes a single-line single-quoted scalar's interior, collapsing each {@code ''} pair to a
-     * single quote, or {@code null} when no pair is present so the verbatim slice can be emitted. Mirrors
-     * {@code YamlDocumentParser.unquoteSingle}; a lone interior quote cannot occur since it would have
-     * closed the scalar.
+     * Materializes a single-quoted scalar token {@code src[tokenStart, tokenEnd)} (quotes included),
+     * collapsing each {@code ''} pair to a single quote, or {@code null} when no pair is present so the
+     * verbatim slice can be emitted. Mirrors {@code YamlDocumentParser.unquoteSingle}.
      */
     private String unquoteSingle(
-        int start,
-        int end)
+        CharSequence src,
+        int tokenStart,
+        int tokenEnd)
     {
         boolean doubled = false;
-        for (int i = start + 1; i < end - 1 && !doubled; i++)
+        for (int i = tokenStart + 1; i < tokenEnd - 1 && !doubled; i++)
         {
-            doubled = text.charAt(i) == '\'';
+            doubled = src.charAt(i) == '\'';
         }
         String result = null;
         if (doubled)
         {
             StringBuilder value = new StringBuilder();
-            for (int i = start + 1; i < end - 1; i++)
+            for (int i = tokenStart + 1; i < tokenEnd - 1; i++)
             {
-                char c = text.charAt(i);
+                char c = src.charAt(i);
                 value.append(c);
                 if (c == '\'')
                 {
@@ -2027,10 +1990,12 @@ public final class YamlStreamScanner
 
     private int appendEscape(
         StringBuilder value,
-        int at)
+        CharSequence src,
+        int at,
+        int end)
     {
         int next = at;
-        char escaped = text.charAt(at);
+        char escaped = src.charAt(at);
         switch (escaped)
         {
         case '0' -> value.append('\0');
@@ -2050,9 +2015,9 @@ public final class YamlStreamScanner
         case 'N' -> value.append('\u0085');
         case 'L' -> value.append('\u2028');
         case 'P' -> value.append('\u2029');
-        case 'x' -> next = appendHexEscape(value, at, 2);
-        case 'u' -> next = appendHexEscape(value, at, 4);
-        case 'U' -> next = appendHexEscape(value, at, 8);
+        case 'x' -> next = appendHexEscape(value, src, at, 2, end);
+        case 'u' -> next = appendHexEscape(value, src, at, 4, end);
+        case 'U' -> next = appendHexEscape(value, src, at, 8, end);
         default -> throw BAIL;
         }
         return next;
@@ -2060,17 +2025,19 @@ public final class YamlStreamScanner
 
     private int appendHexEscape(
         StringBuilder value,
+        CharSequence src,
         int at,
-        int digits)
+        int digits,
+        int end)
     {
-        if (at + digits >= text.length())
+        if (at + digits >= end)
         {
             throw BAIL;
         }
         int next;
         try
         {
-            int codePoint = Integer.parseUnsignedInt(text.substring(at + 1, at + 1 + digits), 16);
+            int codePoint = Integer.parseUnsignedInt(src.subSequence(at + 1, at + 1 + digits).toString(), 16);
             value.appendCodePoint(codePoint);
             next = at + digits;
         }

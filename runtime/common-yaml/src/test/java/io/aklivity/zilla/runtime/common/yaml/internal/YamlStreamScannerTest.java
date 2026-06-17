@@ -234,6 +234,20 @@ class YamlStreamScannerTest
     }
 
     @Test
+    void shouldAcceptMultiLineQuotedWithEscapesAndSameIndent()
+    {
+        for (String doc : new String[] {
+            "quoted: \"So does this\n  quoted scalar.\\n\"\n",
+            "---\n\"\n  foo \n \n    bar\n\n  baz\n\"\n",
+            "--- \"quoted\nstring\"\n--- &node foo\n"})
+        {
+            YamlStreamScanner scanner = new YamlStreamScanner();
+            assertTrue(scanner.scan(doc, true), "scanner should accept a multi-line quoted scalar: " + doc);
+            assertEquals(eagerRaw(doc), scannedRaw(scanner), doc);
+        }
+    }
+
+    @Test
     void shouldAcceptMultiLineQuoted()
     {
         for (String doc : new String[] {
@@ -363,7 +377,7 @@ class YamlStreamScannerTest
         long accepted = fixtures()
             .filter(path -> accepts(path.resolve("in.yaml")))
             .count();
-        assertEquals(139, accepted,
+        assertEquals(147, accepted,
             "accepted-fixture count changed; feasibility gate may over-reject or over-accept");
     }
 

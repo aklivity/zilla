@@ -112,7 +112,11 @@ final class YamlJsonResolver
     private void resolve()
     {
         cursor = 0;
-        emitValue();
+        // a stream may hold several documents; resolve each top-level value in turn
+        while (cursor < scanner.count())
+        {
+            emitValue();
+        }
     }
 
     private void emitValue()
