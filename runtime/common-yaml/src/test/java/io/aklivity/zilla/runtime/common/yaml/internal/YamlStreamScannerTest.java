@@ -108,9 +108,12 @@ class YamlStreamScannerTest
     }
 
     @Test
-    void shouldBailOnMultiLineFlowValueInBlock()
+    void shouldAcceptMultiLineFlowValueInBlock()
     {
-        assertFalse(new YamlStreamScanner().scan("items: [1,\n  2, 3]\n"));
+        String doc = "items: [1,\n  2, 3]\nnested: {a: 1,\n  b: 2}\n";
+        YamlStreamScanner scanner = new YamlStreamScanner();
+        assertTrue(scanner.scan(doc), "scanner should accept multi-line flow values in a block");
+        assertEquals(eager(doc), scanned(scanner));
     }
 
     @Test
@@ -243,7 +246,7 @@ class YamlStreamScannerTest
         long accepted = fixtures()
             .filter(path -> accepts(path.resolve("in.yaml")))
             .count();
-        assertEquals(77, accepted,
+        assertEquals(78, accepted,
             "accepted-fixture count changed; feasibility gate may over-reject or over-accept");
     }
 

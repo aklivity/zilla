@@ -538,7 +538,7 @@ public final class YamlStreamScanner
         }
         if (first == '{' || first == '[')
         {
-            scanFlowValue(start, end, refIndent);
+            scanFlowValue(start, refIndent);
             return;
         }
         if (first == '"' || first == '\'')
@@ -953,15 +953,26 @@ public final class YamlStreamScanner
      */
     private void scanFlowValue(
         int start,
-        int end,
         int refIndent)
     {
+        int startLine = lineOf(start);
         flowAt = start;
         flowValue();
-        if (flowAt != end)
+        // the flow collection may span lines; resync the block line cursor past its closing line
+        int closeLine = lineOf(flowAt - 1);
+        if (flowAt < contentEnd[closeLine])
         {
             throw BAIL;
         }
+        // continuation lines of a flow nested in a block must be indented past the block
+        for (int at = startLine + 1; at <= closeLine; at++)
+        {
+            if (lineIndent[at] <= refIndent)
+            {
+                throw BAIL;
+            }
+        }
+        cursor = closeLine + 1;
 
         skipIgnorable();
         if (cursor < lineCount && lineIndent[cursor] > refIndent)
