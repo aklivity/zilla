@@ -343,7 +343,7 @@ public final class YamlStreamScanner
         {
             scanNestedValue(indent, line);
         }
-        else if (text.charAt(valueStart) == '|' && literalBlockIndicator(valueStart, end))
+        else if (blockIndicator(valueStart, end))
         {
             scanBlockScalar(valueStart, end, indent);
         }
@@ -505,12 +505,13 @@ public final class YamlStreamScanner
         emitClassifiedScalar(start, end);
     }
 
-    private boolean literalBlockIndicator(
+    private boolean blockIndicator(
         int valueStart,
         int end)
     {
         boolean result = false;
-        if (text.charAt(valueStart) == '|')
+        char style = text.charAt(valueStart);
+        if (style == '|' || style == '>')
         {
             int at = valueStart + 1;
             if (at < end && (text.charAt(at) == '-' || text.charAt(at) == '+'))
@@ -527,10 +528,14 @@ public final class YamlStreamScanner
         int end,
         int keyIndent)
     {
+        char style = text.charAt(valueStart);
         char chomp = valueStart + 1 < end ? text.charAt(valueStart + 1) : 0;
         int contentIndent = blockScalarIndent(keyIndent);
         StringBuilder builder = new StringBuilder();
         boolean seenContent = false;
+        boolean previousMoreIndented = false;
+        boolean firstFolded = true;
+        int blankLines = 0;
         while (cursor < lineCount)
         {
             int lineStartAt = lineStart[cursor];
@@ -553,13 +558,43 @@ public final class YamlStreamScanner
             {
                 throw BAIL;
             }
-            if (lineEndAt - lineStartAt >= contentIndent)
+
+            int contentAt = lineStartAt + contentIndent;
+            boolean empty = lineEndAt - lineStartAt <= contentIndent;
+            if (style == '|')
             {
-                builder.append(text, lineStartAt + contentIndent, lineEndAt);
+                if (!empty)
+                {
+                    builder.append(text, contentAt, lineEndAt);
+                }
+                builder.append('\n');
             }
-            builder.append('\n');
+            else if (empty)
+            {
+                blankLines++;
+            }
+            else
+            {
+                boolean moreIndented = !spaceOnly && indent > contentIndent;
+                if (blankLines != 0)
+                {
+                    appendLineBreaks(builder, blankLines + (!firstFolded && (previousMoreIndented || moreIndented) ? 1 : 0));
+                }
+                else if (!firstFolded)
+                {
+                    builder.append(previousMoreIndented || moreIndented ? '\n' : ' ');
+                }
+                builder.append(text, contentAt, lineEndAt);
+                previousMoreIndented = moreIndented;
+                firstFolded = false;
+                blankLines = 0;
+            }
             seenContent |= !spaceOnly;
             cursor++;
+        }
+        if (style == '>')
+        {
+            appendLineBreaks(builder, blankLines);
         }
 
         String value = builder.toString();
@@ -572,6 +607,16 @@ public final class YamlStreamScanner
             value = clipTrailingLineBreaks(value);
         }
         emit(VALUE_STRING, valueStart, 0, value);
+    }
+
+    private static void appendLineBreaks(
+        StringBuilder value,
+        int count)
+    {
+        for (int at = 0; at < count; at++)
+        {
+            value.append('\n');
+        }
     }
 
     private int blockScalarIndent(
@@ -1731,7 +1776,7 @@ public final class YamlStreamScanner
         if (valueStart < end)
         {
             char value = text.charAt(valueStart);
-            if (value == '|' && literalBlockIndicator(valueStart, end))
+            if (blockIndicator(valueStart, end))
             {
                 blockIndent = indent;
             }
