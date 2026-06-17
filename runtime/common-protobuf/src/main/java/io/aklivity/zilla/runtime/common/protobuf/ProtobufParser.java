@@ -88,7 +88,7 @@ public interface ProtobufParser
     /**
      * The number of bytes at the tail of the current window not yet consumed — what the driver retains and
      * re-presents, contiguous, at the front of the next window via {@link #resume}. The window-relative peer
-     * of the absolute {@code getLocation().position()}: a driver buffering across windows keeps exactly this
+     * of the absolute {@code getLocation().getStreamOffset()}: a driver buffering across windows keeps exactly this
      * many bytes without tracking the window's absolute base. Reported at a whole-unit boundary; zero once the
      * window is fully consumed.
      */

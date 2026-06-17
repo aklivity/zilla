@@ -26,8 +26,8 @@ import org.agrona.DirectBuffer;
  * status:
  * <ul>
  * <li><b>Input</b> — {@link Status#STARVED}: the input window was consumed but the datum is not yet
- * complete. The caller drops the consumed prefix (up to {@link #position()}) and re-presents the
- * remainder plus newly arrived bytes, passing {@code last == true} only on the final window. The
+ * complete. The caller keeps the unconsumed tail ({@link #remaining()} bytes) and re-presents it,
+ * contiguous with newly arrived bytes, passing {@code last == true} only on the final window. The
  * pipeline holds no input buffer of its own.</li>
  * <li><b>Output</b> — {@link Status#SUSPENDED}: the bounded generator filled mid-datum. The caller
  * drains the output, resets the generator, and calls {@code feed} again with the <em>same</em> input

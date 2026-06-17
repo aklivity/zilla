@@ -16,9 +16,9 @@ package io.aklivity.zilla.runtime.common.protobuf;
 
 /**
  * The position of the current event within the message, for diagnostics. Protobuf binary has no line or
- * column, so a location reports the byte {@link #position()} from the start of the message.
+ * column, so a location reports the byte {@link #getStreamOffset()} from the start of the message.
  */
 public interface ProtobufLocation
 {
-    long position();
+    long getStreamOffset();
 }

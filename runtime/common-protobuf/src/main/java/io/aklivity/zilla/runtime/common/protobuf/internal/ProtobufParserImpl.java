@@ -142,7 +142,7 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource,
     }
 
     @Override
-    public long position()
+    public long getStreamOffset()
     {
         return reader.position();
     }

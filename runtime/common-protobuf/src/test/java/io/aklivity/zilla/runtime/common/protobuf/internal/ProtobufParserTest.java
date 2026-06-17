@@ -318,9 +318,9 @@ public class ProtobufParserTest
 
             if (parser.hasNext())
             {
-                int consumed = (int) (parser.getLocation().position() - committed);
+                int consumed = (int) (parser.getLocation().getStreamOffset() - committed);
                 retained = Arrays.copyOfRange(feed, consumed, feed.length);
-                committed = parser.getLocation().position();
+                committed = parser.getLocation().getStreamOffset();
             }
             else
             {
@@ -480,7 +480,7 @@ public class ProtobufParserTest
     }
 
     // drives the parser window-by-window the way a real caller does: on starvation it retains the
-    // unconsumed tail (everything at or after position()) and re-presents it contiguous with the next window
+    // unconsumed tail (everything at or after getStreamOffset()) and re-presents it contiguous with the next window
     private static void driveWindows(
         ProtobufParser parser,
         byte[] message,
@@ -527,9 +527,9 @@ public class ProtobufParserTest
 
             if (parser.hasNext())
             {
-                int consumed = (int) (parser.getLocation().position() - committed);
+                int consumed = (int) (parser.getLocation().getStreamOffset() - committed);
                 retained = Arrays.copyOfRange(feed, consumed, feed.length);
-                committed = parser.getLocation().position();
+                committed = parser.getLocation().getStreamOffset();
             }
             else
             {

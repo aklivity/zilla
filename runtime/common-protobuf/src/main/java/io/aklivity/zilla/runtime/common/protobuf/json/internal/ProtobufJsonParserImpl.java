@@ -181,7 +181,7 @@ public final class ProtobufJsonParserImpl implements ProtobufParser, ProtobufLoc
     }
 
     @Override
-    public long position()
+    public long getStreamOffset()
     {
         return parser.getLocation().getStreamOffset();
     }

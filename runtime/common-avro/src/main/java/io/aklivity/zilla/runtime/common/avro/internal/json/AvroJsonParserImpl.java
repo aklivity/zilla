@@ -257,7 +257,7 @@ public final class AvroJsonParserImpl implements AvroParser, AvroLocation
     }
 
     @Override
-    public long position()
+    public long getStreamOffset()
     {
         return json.getLocation().getStreamOffset();
     }

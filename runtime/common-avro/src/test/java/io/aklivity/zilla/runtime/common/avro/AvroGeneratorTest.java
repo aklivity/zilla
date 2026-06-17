@@ -84,7 +84,7 @@ public class AvroGeneratorTest
             }
 
             @Override
-            public long position()
+            public long getStreamOffset()
             {
                 return 0L;
             }
