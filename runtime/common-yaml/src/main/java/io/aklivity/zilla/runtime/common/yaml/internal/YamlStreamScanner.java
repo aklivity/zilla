@@ -461,6 +461,10 @@ public final class YamlStreamScanner
         {
             scanBlockScalar(valueStart, end, indent, false);
         }
+        else if (isCompactSequence(valueStart, end))
+        {
+            scanCompactSequence(valueStart, end, indent, line);
+        }
         else
         {
             scanScalar(valueStart, end, indent, line, false, false);
@@ -527,7 +531,8 @@ public final class YamlStreamScanner
             }
             else if (isCompactSequence(itemAt, end))
             {
-                throw BAIL;
+                cursor++;
+                scanCompactSequence(itemAt, end, indent, line);
             }
             else if (mappingColon(itemAt, end) != -1)
             {
@@ -587,6 +592,93 @@ public final class YamlStreamScanner
         }
 
         emit(END_OBJECT, start, 0, null);
+    }
+
+    /**
+     * A compact sequence value ({@code key: - a} or a sequence item {@code - - a}) — mirrors
+     * {@code YamlDocumentParser.parseCompactSequenceValue}. The single inline element opened by the {@code -}
+     * is parsed in place (no cursor movement), then following sequence items indented at {@code indent + 2}
+     * extend it. The caller has already advanced the cursor past the opening line.
+     */
+    private void scanCompactSequence(
+        int seqStart,
+        int end,
+        int indent,
+        int line)
+    {
+        emit(START_ARRAY, seqStart, 0, null);
+        int elemStart = skipSpace(seqStart + 1, end);
+        scanCompactNode(elemStart, end, indent + 2, line);
+        scanSequenceItems(indent + 2);
+        emit(END_ARRAY, seqStart, 0, null);
+    }
+
+    /**
+     * The single node opened inline by a compact sequence {@code -} indicator: an empty item is null, a
+     * further {@code -} nests another compact sequence (inline only — nested compacts have no line-level
+     * continuation), and anything else is an inline scalar. A compact mapping node bails to the eager parser.
+     */
+    private void scanCompactNode(
+        int elemStart,
+        int end,
+        int childIndent,
+        int line)
+    {
+        if (elemStart == end)
+        {
+            emit(VALUE_NULL, elemStart, 0, null);
+        }
+        else if (isCompactSequence(elemStart, end))
+        {
+            emit(START_ARRAY, elemStart, 0, null);
+            scanCompactNode(skipSpace(elemStart + 1, end), end, childIndent + 2, line);
+            emit(END_ARRAY, elemStart, 0, null);
+        }
+        else if (mappingColon(elemStart, end) != -1)
+        {
+            throw BAIL;
+        }
+        else
+        {
+            scanInlineScalar(elemStart, end);
+        }
+    }
+
+    /**
+     * Emits a single-line scalar that occupies {@code [start, end)} with no folding or cursor movement —
+     * used for compact sequence elements. Escape-free quoted scalars emit the verbatim slice, escaped ones
+     * are materialized; flow collections, references, block scalars and other reserved starts bail.
+     */
+    private void scanInlineScalar(
+        int start,
+        int end)
+    {
+        char first = text.charAt(start);
+        if (first == '"' || first == '\'')
+        {
+            if (quotedCloseEsc(start + 1, end, first) != end - 1)
+            {
+                throw BAIL;
+            }
+            String value = first == '"' ? unquoteDouble(start, end) : unquoteSingle(start, end);
+            if (value == null)
+            {
+                emit(VALUE_STRING, start + 1, end - start - 2, null);
+            }
+            else
+            {
+                emit(VALUE_STRING, start, 0, value);
+            }
+        }
+        else if (isReservedStart(first) || isCompactSequence(start, end) || mappingColon(start, end) != -1 ||
+            isNonFinite(start, end))
+        {
+            throw BAIL;
+        }
+        else
+        {
+            emitClassifiedScalar(start, end);
+        }
     }
 
     private void scanScalar(
@@ -2357,12 +2449,9 @@ public final class YamlStreamScanner
             if (item < end)
             {
                 char it = text.charAt(item);
-                if (it != '{' && it != '[' && !(raw && (it == '&' || it == '*' || it == '!')))
+                if (it != '{' && it != '[' && !(raw && (it == '&' || it == '*' || it == '!')) &&
+                    !isCompactSequence(item, end))
                 {
-                    if (isCompactSequence(item, end))
-                    {
-                        throw BAIL;
-                    }
                     int colon = mappingColon(item, end);
                     if (colon != -1)
                     {
@@ -2413,7 +2502,8 @@ public final class YamlStreamScanner
                 blockIndent = indent;
             }
             else if (value != '{' && value != '[' && !(raw && (value == '&' || value == '*' || value == '!')) &&
-                (blockedStart(value) || isCompactSequence(valueStart, end) || mappingColon(valueStart, end) != -1))
+                !isCompactSequence(valueStart, end) &&
+                (blockedStart(value) || mappingColon(valueStart, end) != -1))
             {
                 throw BAIL;
             }
