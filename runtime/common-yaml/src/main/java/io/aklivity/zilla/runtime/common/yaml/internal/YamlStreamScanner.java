@@ -910,7 +910,9 @@ public final class YamlStreamScanner
             else if ((first == '|' || first == '>') && blockIndicator(start, end))
             {
                 cursor++;
-                scanBlockScalar(start, end, lineIndent[at], true);
+                // a block scalar indicator shallower than the decorating property line re-bases to indent 0,
+                // mirroring the eager parser's nextAnchoredValue next.atIndent(0)
+                scanBlockScalar(start, end, lineIndent[at] < refIndent ? 0 : lineIndent[at], true);
             }
             else if (isSequence(at, lineIndent[at]))
             {
