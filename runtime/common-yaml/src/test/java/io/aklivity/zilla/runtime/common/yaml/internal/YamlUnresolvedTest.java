@@ -89,6 +89,24 @@ class YamlUnresolvedTest
         assertTrue(resolved, "unresolved mode must not dereference (or fail on) a dangling alias");
     }
 
+    @Test
+    void shouldParseBareExplicitKeyBlock()
+    {
+        // a bare ? explicit-key indicator with the (non-scalar) key on the following block lines (6PBE);
+        // previously this threw StringIndexOutOfBoundsException via content.substring(2)
+        YamlObjectNode root = (YamlObjectNode) YamlDocumentParser.parse("---\n?\n- a\n- b\n:\n- c\n- d\n", RAW).node;
+
+        assertEquals(1, root.entries.size());
+        YamlEntry entry = root.entries.get(0);
+        assertNull(entry.name, "non-scalar key has no scalar name");
+        YamlArrayNode key = (YamlArrayNode) entry.key;
+        assertEquals("a", ((YamlScalarNode) key.values.get(0)).value);
+        assertEquals("b", ((YamlScalarNode) key.values.get(1)).value);
+        YamlArrayNode value = (YamlArrayNode) entry.value;
+        assertEquals("c", ((YamlScalarNode) value.values.get(0)).value);
+        assertEquals("d", ((YamlScalarNode) value.values.get(1)).value);
+    }
+
     private static YamlEntry entry(
         YamlObjectNode object,
         String name)

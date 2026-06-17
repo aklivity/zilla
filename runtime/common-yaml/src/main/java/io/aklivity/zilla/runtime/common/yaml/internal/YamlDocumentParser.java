@@ -449,11 +449,22 @@ public final class YamlDocumentParser
         {
             throw error("Tabs are not supported after explicit key indicators", line);
         }
-        String keyText = line.content.substring(2).trim();
+        String keyText = line.content.length() > 1 ? line.content.substring(2).trim() : "";
         YamlNode keyNode = null;
         String key = null;
         boolean advanced = false;
-        if (keyText.startsWith("{") || keyText.startsWith("["))
+        if (keyText.isEmpty())
+        {
+            // a bare ? indicator; the explicit key is a nested block on the following lines (or null)
+            index++;
+            advanced = true;
+            skipIgnorable();
+            keyNode = index < lines.size() && lines.get(index).indent >= indent &&
+                !(lines.get(index).indent == indent && lines.get(index).content.startsWith(":")) ?
+                parseBlock(lines.get(index).indent) :
+                YamlScalarNode.literal(YamlScalarType.NULL, line.line, line.column, line.offset);
+        }
+        else if (keyText.startsWith("{") || keyText.startsWith("["))
         {
             if (!config.nonScalarKeys())
             {
