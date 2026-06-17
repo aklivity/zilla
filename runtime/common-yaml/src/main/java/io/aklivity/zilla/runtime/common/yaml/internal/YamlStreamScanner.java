@@ -1749,10 +1749,11 @@ public final class YamlStreamScanner
         {
             throw BAIL;
         }
-        // continuation lines of a flow nested in a block must be indented past the block, with spaces
+        // continuation lines of a flow nested in a block must be indented past the block, with spaces;
+        // a blank (or whitespace-only) line inside the flow is insignificant and carries no indent constraint
         for (int at = startLine + 1; at <= closeLine; at++)
         {
-            if (lineIndent[at] <= refIndent || tabInIndent(at))
+            if (contentStart[at] < contentEnd[at] && (lineIndent[at] <= refIndent || tabInIndent(at)))
             {
                 throw BAIL;
             }
