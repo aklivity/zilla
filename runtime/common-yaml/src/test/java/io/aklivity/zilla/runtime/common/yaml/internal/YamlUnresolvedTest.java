@@ -60,9 +60,10 @@ class YamlUnresolvedTest
     }
 
     @Test
-    void shouldResolveByDefault()
+    void shouldResolveViaReferences()
     {
-        YamlObjectNode root = (YamlObjectNode) YamlDocumentParser.parse(DOCUMENT, YamlConfiguration.DEFAULT).node;
+        YamlObjectNode root = (YamlObjectNode)
+            YamlReferences.resolve(YamlDocumentParser.parse(DOCUMENT, RAW).node, Map.of());
 
         YamlObjectNode use = (YamlObjectNode) entry(root, "use").value;
         assertNull(entry(use, "<<"), "merge key consumed when resolved");

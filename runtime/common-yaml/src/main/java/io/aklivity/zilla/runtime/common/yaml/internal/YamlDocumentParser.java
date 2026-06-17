@@ -28,13 +28,9 @@ public final class YamlDocumentParser
     private static final Pattern NUMBER_PATTERN = Pattern.compile(
         "-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?:[eE][+-]?[0-9]+)?");
     private static final Pattern HEX_INTEGER_PATTERN = Pattern.compile("-?0x[0-9a-fA-F]+");
-    private static final Pattern INTEGER_PATTERN = Pattern.compile("-?(?:0|[1-9][0-9]*)");
-    private static final Pattern FLOAT_PATTERN = Pattern.compile(
-        "-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?:[eE][+-]?[0-9]+)|-?(?:0|[1-9][0-9]*)\\.[0-9]+");
     private static final Pattern FLOW_FOLD_PATTERN = Pattern.compile("[ \\t]*\\R[ \\t]*");
 
     private final List<Line> lines;
-    private final Map<String, YamlNode> anchors;
     private final Map<String, String> tagHandles;
     private final YamlLocation end;
     private final String source;
@@ -42,15 +38,12 @@ public final class YamlDocumentParser
     private final List<String> comments;
     private Matcher numberMatcher;
     private Matcher hexIntegerMatcher;
-    private Matcher integerMatcher;
-    private Matcher floatMatcher;
     private int index;
 
     private YamlDocumentParser(
         Document document)
     {
         this.lines = document.lines;
-        this.anchors = new HashMap<>();
         this.tagHandles = document.tagHandles;
         this.end = document.end;
         this.source = document.source;
@@ -166,7 +159,7 @@ public final class YamlDocumentParser
             flow.append(next.raw.substring(Math.min(next.indent, next.raw.length())));
         }
         index = lines.size();
-        return new FlowParser(flow.toString(), line, anchors, tagHandles, config).parse();
+        return new FlowParser(flow.toString(), line, tagHandles, config).parse();
     }
 
     private YamlNode parseBlock(
@@ -465,7 +458,7 @@ public final class YamlDocumentParser
             {
                 throw error("YAML non-scalar mapping keys are disabled", line);
             }
-            keyNode = new FlowParser(keyText, line, anchors, tagHandles, config).parse();
+            keyNode = new FlowParser(keyText, line, tagHandles, config).parse();
         }
         else if (keyText.startsWith("|") || keyText.startsWith(">"))
         {
@@ -571,23 +564,11 @@ public final class YamlDocumentParser
         attachComments(value, line);
         storeAnchor(spec.anchor, value, line);
 
-        if ("<<".equals(key) && config.resolveReferences())
+        if ("<<".equals(key) && !config.mergeKeys())
         {
-            if (!config.mergeKeys())
-            {
-                throw error("YAML merge keys are disabled", line);
-            }
-            merge(object, value, line);
+            throw error("YAML merge keys are disabled", line);
         }
-        else
-        {
-            if ("<<".equals(key) && !config.mergeKeys())
-            {
-                throw error("YAML merge keys are disabled", line);
-            }
-            object.removeMerged(key);
-            object.add(new YamlEntry(key, value, line.line, line.column, line.offset));
-        }
+        object.add(new YamlEntry(key, value, line.line, line.column, line.offset));
     }
 
     private void addMappingEntry(
@@ -815,7 +796,7 @@ public final class YamlDocumentParser
                 throw error("YAML flow collections are disabled", line);
             }
             String flow = collectFlowText(text, line);
-            return applyTag(new FlowParser(flow, line, anchors, tagHandles, config).parse(), tag, flow, line);
+            return applyTag(new FlowParser(flow, line, tagHandles, config).parse(), tag, flow, line);
         }
         return parseScalar(text, tag, line);
     }
@@ -1224,24 +1205,6 @@ public final class YamlDocumentParser
         return hexIntegerMatcher;
     }
 
-    private Matcher integerMatcher()
-    {
-        if (integerMatcher == null)
-        {
-            integerMatcher = INTEGER_PATTERN.matcher("");
-        }
-        return integerMatcher;
-    }
-
-    private Matcher floatMatcher()
-    {
-        if (floatMatcher == null)
-        {
-            floatMatcher = FLOAT_PATTERN.matcher("");
-        }
-        return floatMatcher;
-    }
-
     private YamlScalarNode parseScalar(
         String text,
         String tag,
@@ -1298,38 +1261,12 @@ public final class YamlDocumentParser
         {
             YamlNode key = spec.alias != null ? resolveAlias(spec.alias, line) :
                 spec.value.startsWith("{") || spec.value.startsWith("[") ?
-                    applyTag(new FlowParser(spec.value, line, anchors, tagHandles, config).parse(), spec.tag, spec.value, line) :
+                    applyTag(new FlowParser(spec.value, line, tagHandles, config).parse(), spec.tag, spec.value, line) :
                     parseScalar(spec.value, spec.tag, line);
             storeAnchor(spec.anchor, key, line);
             return new KeySpec(null, key);
         }
         return new KeySpec(spec.value, null);
-    }
-
-    private void merge(
-        YamlObjectNode target,
-        YamlNode value,
-        Line line)
-    {
-        if (value instanceof YamlObjectNode object)
-        {
-            mergeObject(target, object);
-        }
-        else if (value instanceof YamlArrayNode array)
-        {
-            for (YamlNode element : array.values)
-            {
-                if (!(element instanceof YamlObjectNode object))
-                {
-                    throw error("Merge aliases must resolve to objects", line);
-                }
-                mergeObject(target, object);
-            }
-        }
-        else
-        {
-            throw error("Merge aliases must resolve to objects", line);
-        }
     }
 
     static void mergeObject(
@@ -1358,83 +1295,15 @@ public final class YamlDocumentParser
         String text,
         Line line)
     {
-        if (tag == null)
+        if (tag != null)
         {
-            return value;
-        }
-        if (!config.tags())
-        {
-            throw error("YAML tags are disabled", line);
-        }
-        if (!config.resolveReferences())
-        {
+            if (!config.tags())
+            {
+                throw error("YAML tags are disabled", line);
+            }
             value.tag = tag;
-            return value;
         }
-        if ("!".equals(tag))
-        {
-            YamlNode tagged = value instanceof YamlScalarNode ?
-                YamlScalarNode.string(scalarText(value, text), line.line, line.column, line.offset) :
-                value;
-            tagged.tag = tag;
-            tagged.style = value.style;
-            return tagged;
-        }
-
-        YamlNode tagged = switch (tag)
-        {
-        case "tag:yaml.org,2002:str" -> YamlScalarNode.string(scalarText(value, text), line.line, line.column, line.offset);
-        case "tag:yaml.org,2002:int" ->
-        {
-            String scalar = scalarText(value, text);
-            if (!hexIntegerMatcher().reset(scalar).matches() && !integerMatcher().reset(scalar).matches())
-            {
-                throw error("Invalid tagged integer scalar", line);
-            }
-            yield YamlScalarNode.number(numberText(scalar), line.line, line.column, line.offset);
-        }
-        case "tag:yaml.org,2002:float" ->
-        {
-            String scalar = scalarText(value, text);
-            rejectNonFinite(scalar, line);
-            if (!floatMatcher().reset(scalar).matches() && !integerMatcher().reset(scalar).matches())
-            {
-                throw error("Invalid tagged float scalar", line);
-            }
-            yield YamlScalarNode.number(scalar, line.line, line.column, line.offset);
-        }
-        case "tag:yaml.org,2002:bool" ->
-        {
-            String scalar = scalarText(value, text).toLowerCase(Locale.ROOT);
-            if (!"true".equals(scalar) && !"false".equals(scalar))
-            {
-                throw error("Invalid tagged boolean scalar", line);
-            }
-            yield YamlScalarNode.literal("true".equals(scalar) ? YamlScalarType.TRUE : YamlScalarType.FALSE,
-                line.line, line.column, line.offset);
-        }
-        case "tag:yaml.org,2002:null" -> YamlScalarNode.literal(YamlScalarType.NULL, line.line, line.column, line.offset);
-        case "tag:yaml.org,2002:map" ->
-        {
-            if (!(value instanceof YamlObjectNode))
-            {
-                throw error("Tagged value is not a map", line);
-            }
-            yield value;
-        }
-        case "tag:yaml.org,2002:seq" ->
-        {
-            if (!(value instanceof YamlArrayNode))
-            {
-                throw error("Tagged value is not a sequence", line);
-            }
-            yield value;
-        }
-        default -> value;
-        };
-        tagged.tag = tag;
-        tagged.style = value.style;
-        return tagged;
+        return value;
     }
 
     private static String scalarText(
@@ -1479,10 +1348,6 @@ public final class YamlDocumentParser
                 throw error("YAML anchors are disabled", line);
             }
             value.anchor = anchor;
-            if (config.resolveReferences())
-            {
-                anchors.put(anchor, copy(value));
-            }
         }
     }
 
@@ -1494,24 +1359,9 @@ public final class YamlDocumentParser
         {
             throw error("YAML aliases are disabled", line);
         }
-        if (!config.resolveReferences())
-        {
-            YamlNode reference = YamlScalarNode.literal(YamlScalarType.NULL, line.line, line.column, line.offset);
-            reference.alias = alias;
-            return reference;
-        }
-        YamlNode value = anchors.get(alias);
-        if (value == null)
-        {
-            throw error("Unresolved YAML alias", line);
-        }
-        YamlNode resolved = copy(value);
-        resolved.source = null;
-        resolved.anchor = null;
-        resolved.alias = alias;
-        resolved.leadingComments = null;
-        resolved.lineComment = null;
-        return resolved;
+        YamlNode reference = YamlScalarNode.literal(YamlScalarType.NULL, line.line, line.column, line.offset);
+        reference.alias = alias;
+        return reference;
     }
 
     static YamlNode copy(
@@ -2601,7 +2451,6 @@ public final class YamlDocumentParser
     {
         private final String text;
         private final Line line;
-        private final Map<String, YamlNode> anchors;
         private final Map<String, String> tagHandles;
         private final YamlConfiguration config;
         private int cursor;
@@ -2610,13 +2459,11 @@ public final class YamlDocumentParser
         private FlowParser(
             String text,
             Line line,
-            Map<String, YamlNode> anchors,
             Map<String, String> tagHandles,
             YamlConfiguration config)
         {
             this.text = text;
             this.line = line;
-            this.anchors = anchors;
             this.tagHandles = tagHandles;
             this.config = config;
         }
@@ -2687,7 +2534,6 @@ public final class YamlDocumentParser
                         throw error("YAML anchors are disabled", line);
                     }
                     value.anchor = spec.anchor;
-                    anchors.put(spec.anchor, copy(value));
                 }
             }
             return value;
@@ -2786,24 +2632,13 @@ public final class YamlDocumentParser
                 YamlNode value = cursor < text.length() && (text.charAt(cursor) == ',' || text.charAt(cursor) == '}') ?
                     YamlScalarNode.literal(YamlScalarType.NULL, line.line, line.column + cursor, line.offset + cursor) :
                     parseValue();
-                if ("<<".equals(key.name) && config.resolveReferences())
+                if ("<<".equals(key.name) && !config.mergeKeys())
                 {
-                    if (!config.mergeKeys())
-                    {
-                        throw error("YAML merge keys are disabled", line);
-                    }
-                    delegate().merge(object, value, line);
+                    throw error("YAML merge keys are disabled", line);
                 }
-                else
-                {
-                    if ("<<".equals(key.name) && !config.mergeKeys())
-                    {
-                        throw error("YAML merge keys are disabled", line);
-                    }
-                    object.add(key.key != null ?
-                        new YamlEntry(key.key, value, line.line, line.column + cursor, line.offset + cursor) :
-                        new YamlEntry(key.name, value, line.line, line.column + cursor, line.offset + cursor));
-                }
+                object.add(key.key != null ?
+                    new YamlEntry(key.key, value, line.line, line.column + cursor, line.offset + cursor) :
+                    new YamlEntry(key.name, value, line.line, line.column + cursor, line.offset + cursor));
                 skipWhitespaceAndComments();
                 if (!consume(','))
                 {
@@ -3016,7 +2851,6 @@ public final class YamlDocumentParser
                         throw error("YAML anchors are disabled", line);
                     }
                     key.anchor = spec.anchor;
-                    anchors.put(spec.anchor, copy(key));
                 }
                 return new KeySpec(null, key);
             }
@@ -3151,22 +2985,9 @@ public final class YamlDocumentParser
             {
                 throw error("YAML aliases are disabled", line);
             }
-            if (!config.resolveReferences())
-            {
-                YamlNode reference = YamlScalarNode.literal(YamlScalarType.NULL, line.line, line.column, line.offset);
-                reference.alias = alias;
-                return reference;
-            }
-            YamlNode value = anchors.get(alias);
-            if (value == null)
-            {
-                throw error("Unresolved YAML alias", line);
-            }
-            YamlNode resolved = copy(value);
-            resolved.source = null;
-            resolved.anchor = null;
-            resolved.alias = alias;
-            return resolved;
+            YamlNode reference = YamlScalarNode.literal(YamlScalarType.NULL, line.line, line.column, line.offset);
+            reference.alias = alias;
+            return reference;
         }
 
         private boolean consume(

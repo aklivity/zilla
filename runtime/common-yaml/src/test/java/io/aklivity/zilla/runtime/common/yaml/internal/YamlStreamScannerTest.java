@@ -230,7 +230,7 @@ class YamlStreamScannerTest
         String text)
     {
         StringBuilder builder = new StringBuilder();
-        project(YamlDocumentParser.parse(text).node, builder);
+        project(YamlReferences.resolve(YamlDocumentParser.parse(text).node, Map.of()), builder);
         return builder.toString();
     }
 
