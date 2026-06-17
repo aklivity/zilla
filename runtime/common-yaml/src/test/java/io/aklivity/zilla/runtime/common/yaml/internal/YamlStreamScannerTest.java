@@ -178,10 +178,17 @@ class YamlStreamScannerTest
     }
 
     @Test
-    void shouldBailOnInlineMarkerBlockScalar()
+    void shouldAcceptInlineMarkerBlockScalar()
     {
-        assertFalse(new YamlStreamScanner().scan("--- |\n  text\n"));
-        assertFalse(new YamlStreamScanner().scan("--- |\n%!PS-Adobe-2.0\n...\n"));
+        for (String doc : new String[] {
+            "--- |\n  text\n",
+            "--- |\n%!PS-Adobe-2.0\n...\n",
+            "--- >\n  folded\n  text\n"})
+        {
+            YamlStreamScanner scanner = new YamlStreamScanner();
+            assertTrue(scanner.scan(doc), "scanner should accept an inline marker block scalar: " + doc);
+            assertEquals(eager(doc), scanned(scanner), doc);
+        }
     }
 
     @Test
@@ -356,7 +363,7 @@ class YamlStreamScannerTest
         long accepted = fixtures()
             .filter(path -> accepts(path.resolve("in.yaml")))
             .count();
-        assertEquals(126, accepted,
+        assertEquals(139, accepted,
             "accepted-fixture count changed; feasibility gate may over-reject or over-accept");
     }
 

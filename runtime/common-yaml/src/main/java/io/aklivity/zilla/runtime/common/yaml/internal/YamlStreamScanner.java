@@ -366,22 +366,24 @@ public final class YamlStreamScanner
     /**
      * A document whose root value sits on the {@code ---} line itself ({@code --- value}). The eager parser
      * treats the inline content as a document line at indent zero, so the value is scanned at the document
-     * root context as a scalar / quoted / flow value. An inline block scalar bails — at root indent its
-     * content has no indentation to bound it against a following {@code ...} or {@code ---} document marker.
-     * An inline mapping or sequence body bails too, since its members' physical columns no longer match the
-     * uniform-indent block model.
+     * root context as a block scalar or a scalar / quoted / flow value. A block scalar is safe now that
+     * {@link #scanBlockScalar} stops at a top-level {@code ...} / {@code ---} marker. An inline mapping or
+     * sequence body bails, since its members' physical columns no longer match the uniform-indent block model.
      */
     private void scanInlineMarkerValue()
     {
         int line = cursor;
         int valueStart = skipSpace(contentStart[line] + 3, contentEnd[line]);
         int valueEnd = contentEnd[line];
+        cursor++;
         if (blockIndicator(valueStart, valueEnd))
         {
-            throw BAIL;
+            scanBlockScalar(valueStart, valueEnd, 0, true);
         }
-        cursor++;
-        scanScalar(valueStart, valueEnd, 0, line, true, true);
+        else
+        {
+            scanScalar(valueStart, valueEnd, 0, line, true, true);
+        }
     }
 
     /**
