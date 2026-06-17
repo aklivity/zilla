@@ -148,10 +148,33 @@ public final class YamlJsonParser implements JsonParser
         {
             parseDocument(0);
         }
-        else if (uniqueKeys)
+        else
         {
-            rejectDuplicateScanKeys();
+            if (uniqueKeys)
+            {
+                rejectDuplicateScanKeys();
+            }
+            this.end = scanEndLocation();
         }
+    }
+
+    private YamlJsonLocation scanEndLocation()
+    {
+        int line = 1;
+        int column = 1;
+        for (int index = 0; index < text.length(); index++)
+        {
+            if (text.charAt(index) == '\n')
+            {
+                line++;
+                column = 1;
+            }
+            else
+            {
+                column++;
+            }
+        }
+        return new YamlJsonLocation(new YamlLocation(line, column, text.length()));
     }
 
     static boolean scannerEligible(
@@ -401,7 +424,7 @@ public final class YamlJsonParser implements JsonParser
         JsonLocation location;
         if (scanner != null)
         {
-            location = scanLocation();
+            location = scanCursor >= ecount() ? end : scanLocation();
         }
         else
         {

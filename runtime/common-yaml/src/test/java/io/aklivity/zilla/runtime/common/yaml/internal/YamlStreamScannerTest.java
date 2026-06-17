@@ -177,9 +177,24 @@ class YamlStreamScannerTest
     }
 
     @Test
-    void shouldBailOnDocumentMarkers()
+    void shouldAcceptSingleDocumentMarkers()
     {
-        assertFalse(new YamlStreamScanner().scan("---\nname: example\n"));
+        String doc = "---\nname: example\nport: 7114\n...\n";
+        YamlStreamScanner scanner = new YamlStreamScanner();
+        assertTrue(scanner.scan(doc), "scanner should accept a single document with markers");
+        assertEquals(eager(doc), scanned(scanner));
+    }
+
+    @Test
+    void shouldBailOnMultiDocumentStream()
+    {
+        assertFalse(new YamlStreamScanner().scan("---\nname: one\n---\nname: two\n"));
+    }
+
+    @Test
+    void shouldBailOnDirectives()
+    {
+        assertFalse(new YamlStreamScanner().scan("%YAML 1.2\n---\nname: example\n"));
     }
 
     @Test
@@ -194,7 +209,7 @@ class YamlStreamScannerTest
         long accepted = fixtures()
             .filter(path -> accepts(path.resolve("in.yaml")))
             .count();
-        assertEquals(49, accepted,
+        assertEquals(56, accepted,
             "accepted-fixture count changed; feasibility gate may over-reject or over-accept");
     }
 

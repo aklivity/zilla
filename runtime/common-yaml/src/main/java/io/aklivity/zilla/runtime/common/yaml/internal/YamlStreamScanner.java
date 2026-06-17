@@ -230,6 +230,11 @@ public final class YamlStreamScanner
     private void scanRoot()
     {
         skipIgnorable();
+        if (cursor < lineCount && documentMarker(cursor, '-'))
+        {
+            cursor++;
+            skipIgnorable();
+        }
         if (cursor >= lineCount)
         {
             throw BAIL;
@@ -237,7 +242,7 @@ public final class YamlStreamScanner
 
         int line = cursor;
         char first = text.charAt(contentStart[line]);
-        if (first == '{' || first == '[')
+        if (first == '{' || first == '[' || documentMarker(line, '-') || documentMarker(line, '.'))
         {
             throw BAIL;
         }
@@ -245,10 +250,24 @@ public final class YamlStreamScanner
         scanBlock(lineIndent[line]);
 
         skipIgnorable();
+        if (cursor < lineCount && documentMarker(cursor, '.'))
+        {
+            cursor++;
+            skipIgnorable();
+        }
         if (cursor < lineCount)
         {
             throw BAIL;
         }
+    }
+
+    private boolean documentMarker(
+        int line,
+        char c)
+    {
+        int start = contentStart[line];
+        int end = contentEnd[line];
+        return end - start == 3 && text.charAt(start) == c && text.charAt(start + 1) == c && text.charAt(start + 2) == c;
     }
 
     private void scanBlock(
@@ -296,7 +315,8 @@ public final class YamlStreamScanner
             }
 
             int line = cursor;
-            if (lineIndent[line] != indent || isSequence(line, indent))
+            if (lineIndent[line] != indent || isSequence(line, indent) ||
+                documentMarker(line, '-') || documentMarker(line, '.'))
             {
                 break;
             }
@@ -1710,12 +1730,19 @@ public final class YamlStreamScanner
     {
         int blockIndent = -1;
         char first = text.charAt(start);
-        if (first == '%' || isMarker(start, end, '-') || isMarker(start, end, '.'))
+        if (isMarker(start, end, '-') || isMarker(start, end, '.'))
+        {
+            // a bare document marker (--- or ...) is framing; inline marker content is not yet supported
+            if (end - start != 3)
+            {
+                throw BAIL;
+            }
+        }
+        else if (first == '%')
         {
             throw BAIL;
         }
-
-        if (first == '-' && (end - start == 1 || isSpace(text.charAt(start + 1))))
+        else if (first == '-' && (end - start == 1 || isSpace(text.charAt(start + 1))))
         {
             int item = start + 1;
             while (item < end && isSpace(text.charAt(item)))
