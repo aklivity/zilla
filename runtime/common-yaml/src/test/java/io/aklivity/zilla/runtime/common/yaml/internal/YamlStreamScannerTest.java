@@ -183,6 +183,19 @@ class YamlStreamScannerTest
     }
 
     @Test
+    void shouldAcceptDecoratedExplicitKeys()
+    {
+        for (String doc : new String[] {
+            "? !!str a\n: !!int 47\n? c\n: d\n",
+            "? &a key\n: value\nuse: *a\n"})
+        {
+            YamlStreamScanner scanner = new YamlStreamScanner();
+            assertTrue(scanner.scan(doc, true), "raw scanner should accept a decorated explicit key: " + doc);
+            assertEquals(eagerRaw(doc), scannedRaw(scanner), doc);
+        }
+    }
+
+    @Test
     void shouldAcceptDecoratedBlockMappingKeys()
     {
         for (String doc : new String[] {

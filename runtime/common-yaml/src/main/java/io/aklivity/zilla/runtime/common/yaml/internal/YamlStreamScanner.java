@@ -523,9 +523,15 @@ public final class YamlStreamScanner
         int keyStart = skipSpace(contentStart[line] + 1, contentEnd[line]);
         int keyEnd = contentEnd[line];
         char keyFirst = keyStart < keyEnd ? text.charAt(keyStart) : 0;
+        int nodeStart = keyStart;
+        if (raw && (keyFirst == '&' || keyFirst == '!'))
+        {
+            nodeStart = scanKeyDecorators(keyStart, keyEnd);
+            keyFirst = text.charAt(nodeStart);
+        }
         // only a simple single-line scalar key (plain or escape-free quoted) is supported
-        if (keyStart == keyEnd || keyFirst == '{' || keyFirst == '[' || keyFirst == '|' || keyFirst == '>' ||
-            keyFirst != '"' && keyFirst != '\'' && blockedStart(keyFirst) || mappingColon(keyStart, keyEnd) != -1)
+        if (nodeStart == keyEnd || keyFirst == '{' || keyFirst == '[' || keyFirst == '|' || keyFirst == '>' ||
+            keyFirst != '"' && keyFirst != '\'' && blockedStart(keyFirst) || mappingColon(nodeStart, keyEnd) != -1)
         {
             throw BAIL;
         }
@@ -539,12 +545,12 @@ public final class YamlStreamScanner
 
         if (keyFirst == '"' || keyFirst == '\'')
         {
-            validateQuoted(keyStart, keyEnd);
-            emit(KEY_NAME, keyStart + 1, keyEnd - keyStart - 2, null);
+            validateQuoted(nodeStart, keyEnd);
+            emit(KEY_NAME, nodeStart + 1, keyEnd - nodeStart - 2, null);
         }
         else
         {
-            emit(KEY_NAME, keyStart, keyEnd - keyStart, null);
+            emit(KEY_NAME, nodeStart, keyEnd - nodeStart, null);
         }
 
         boolean valued = cursor < lineCount && lineIndent[cursor] == indent &&
