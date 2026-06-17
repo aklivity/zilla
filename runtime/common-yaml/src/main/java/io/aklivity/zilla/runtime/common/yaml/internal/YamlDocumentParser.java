@@ -128,7 +128,8 @@ public final class YamlDocumentParser
         }
 
         Line line = peek();
-        YamlNode node = line.content.startsWith("{") || line.content.startsWith("[") ?
+        YamlNode node = (line.content.startsWith("{") || line.content.startsWith("[")) &&
+            mappingColon(line.content) == -1 ?
             parseFlowDocument(line) :
             parseBlock(line.indent);
 
@@ -1249,7 +1250,11 @@ public final class YamlDocumentParser
         }
         if (text.startsWith("{") || text.startsWith("["))
         {
-            throw error("Non-scalar YAML mapping keys are not supported", line);
+            if (!config.nonScalarKeys())
+            {
+                throw error("YAML non-scalar mapping keys are disabled", line);
+            }
+            return new KeySpec(null, new FlowParser(text, line, tagHandles, config).parse());
         }
         ValueSpec spec = ValueSpec.parse(text, line, tagHandles);
         validateSpec(spec, line);

@@ -266,6 +266,21 @@ class YamlStreamScannerTest
     }
 
     @Test
+    void shouldRepresentNonScalarBlockKeyInRawLayer()
+    {
+        // a flow collection used as a block mapping key is valid YAML; the raw layer preserves it
+        for (String doc : new String[] {
+            "[flow]: block\n",
+            "{ first: Sammy, last: Sosa }:\n  hr: 65\n  avg: 0.278\n",
+            "[a, b]: c\nd: e\n"})
+        {
+            YamlStreamScanner scanner = new YamlStreamScanner();
+            assertTrue(scanner.scan(doc, true), "raw scanner should accept a non-scalar block key: " + doc);
+            assertEquals(eagerRaw(doc), scannedRaw(scanner), doc);
+        }
+    }
+
+    @Test
     void shouldAcceptDecoratedBlockMappingKeys()
     {
         for (String doc : new String[] {

@@ -123,15 +123,18 @@ public final class YamlStreamScanner
         try
         {
             int first = firstContent(text);
-            if (first < text.length() && (text.charAt(first) == '{' || text.charAt(first) == '['))
+            boolean flow = first < text.length() && (text.charAt(first) == '{' || text.charAt(first) == '[');
+            splitLines(text);
+            int firstLine = first < text.length() ? lineOf(first) : lineCount;
+            boolean flowKeyedRoot = flow && raw &&
+                mappingColon(contentStart[firstLine], contentEnd[firstLine]) != -1;
+            if (flow && !flowKeyedRoot)
             {
-                splitLines(text);
                 scanFlowDocument(first);
             }
             else
             {
                 feasible(text);
-                splitLines(text);
                 scanRoot();
             }
             scanned = true;
@@ -329,13 +332,13 @@ public final class YamlStreamScanner
                 int line = cursor;
                 char first = text.charAt(contentStart[line]);
                 int indent = lineIndent[line];
-                if (first == '{' || first == '[')
+                int rootColon = mappingColon(contentStart[line], contentEnd[line]);
+                if ((first == '{' || first == '[') && rootColon == -1)
                 {
                     // a document whose root value is a flow collection
                     scanFlowBody(contentStart[line]);
                 }
-                else if (isSequence(line, indent) || isExplicitKey(line) ||
-                    mappingColon(contentStart[line], contentEnd[line]) != -1)
+                else if (isSequence(line, indent) || isExplicitKey(line) || rootColon != -1)
                 {
                     scanBlock(indent);
                 }
@@ -640,6 +643,16 @@ public final class YamlStreamScanner
             else
             {
                 emit(KEY_NAME, nodeStart, keyEnd - nodeStart, null);
+            }
+        }
+        else if (raw && (keyFirst == '{' || keyFirst == '['))
+        {
+            // a block mapping whose key is a flow collection (a non-scalar key); emit the flow structure
+            flowAt = start;
+            flowValue();
+            if (flowAt != keyEnd)
+            {
+                throw BAIL;
             }
         }
         else if (keyEnd == start || isReservedStart(keyFirst) || isMergeKey(start, keyEnd) && !raw)
@@ -3027,7 +3040,8 @@ public final class YamlStreamScanner
         int keyEnd = trimEnd(start, colon);
         char keyFirst = text.charAt(start);
         boolean decoratedKey = raw && (keyFirst == '&' || keyFirst == '!');
-        if (keyEnd == start || blockedStart(keyFirst) && !decoratedKey || isMergeKey(start, keyEnd) && !raw)
+        boolean flowKey = raw && (keyFirst == '{' || keyFirst == '[');
+        if (keyEnd == start || blockedStart(keyFirst) && !decoratedKey && !flowKey || isMergeKey(start, keyEnd) && !raw)
         {
             throw BAIL;
         }
