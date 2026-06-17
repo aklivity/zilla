@@ -76,7 +76,9 @@ public final class YamlStreamScanner
     // sparse per-event reference metadata, only populated in raw mode
     private String[] anchors;
     private String[] aliases;
+    private String[] tags;
     private String pendingAnchor;
+    private String pendingTag;
     private int eventCount;
 
     private boolean raw;
@@ -100,6 +102,7 @@ public final class YamlStreamScanner
         this.cursor = 0;
         this.raw = rawReferences;
         this.pendingAnchor = null;
+        this.pendingTag = null;
 
         boolean scanned;
         try
@@ -156,6 +159,12 @@ public final class YamlStreamScanner
         int index)
     {
         return aliases == null ? null : aliases[index];
+    }
+
+    public String tag(
+        int index)
+    {
+        return tags == null ? null : tags[index];
     }
 
     public int line(
@@ -457,7 +466,7 @@ public final class YamlStreamScanner
         int line)
     {
         char first = text.charAt(start);
-        if (raw && (first == '&' || first == '*'))
+        if (raw && (first == '&' || first == '*' || first == '!'))
         {
             scanRef(start, end, refIndent, line);
             return;
@@ -513,13 +522,23 @@ public final class YamlStreamScanner
             else if (c == '*')
             {
                 int nameEnd = tokenEnd(at + 1, end);
-                if (nameEnd == at + 1 || pendingAnchor != null || skipSpace(nameEnd, end) != end)
+                if (nameEnd == at + 1 || pendingAnchor != null || pendingTag != null || skipSpace(nameEnd, end) != end)
                 {
                     throw BAIL;
                 }
                 emitAlias(at + 1, text.substring(at + 1, nameEnd));
                 foldGuard(refIndent);
                 at = end;
+            }
+            else if (c == '!')
+            {
+                int tagEnd = tagEnd(at, end);
+                if (pendingTag != null)
+                {
+                    throw BAIL;
+                }
+                pendingTag = normalizeTag(at, tagEnd);
+                at = skipSpace(tagEnd, end);
             }
             else
             {
@@ -536,7 +555,7 @@ public final class YamlStreamScanner
             }
             scanScalar(at, end, refIndent, line);
         }
-        else if (pendingAnchor != null)
+        else if (pendingAnchor != null || pendingTag != null)
         {
             scanNestedValue(refIndent, line);
         }
@@ -563,6 +582,74 @@ public final class YamlStreamScanner
             at++;
         }
         return at;
+    }
+
+    private int tagEnd(
+        int start,
+        int end)
+    {
+        int at;
+        if (start + 1 < end && text.charAt(start + 1) == '<')
+        {
+            int close = start + 2;
+            while (close < end && text.charAt(close) != '>')
+            {
+                close++;
+            }
+            at = close < end ? close + 1 : end;
+        }
+        else if (start + 1 < end && text.charAt(start + 1) == '!')
+        {
+            at = tokenEnd(start + 2, end);
+        }
+        else
+        {
+            at = tokenEnd(start + 1, end);
+        }
+        return at;
+    }
+
+    /**
+     * Mirrors {@code YamlDocumentParser.normalizeTag} with the default tag handles ({@code !!} ->
+     * {@code tag:yaml.org,2002:}); bails on malformed tags or unknown handles, since {@code %TAG}
+     * directives are rejected before the scan.
+     */
+    private String normalizeTag(
+        int start,
+        int end)
+    {
+        String normalized;
+        if (end - start == 1)
+        {
+            normalized = "!";
+        }
+        else if (text.charAt(start + 1) == '<' && text.charAt(end - 1) == '>')
+        {
+            normalized = text.substring(start + 2, end - 1);
+        }
+        else if (text.charAt(start + 1) == '!')
+        {
+            normalized = "tag:yaml.org,2002:" + text.substring(start + 2, end);
+        }
+        else
+        {
+            boolean malformed = false;
+            for (int at = start + 1; at < end; at++)
+            {
+                char c = text.charAt(at);
+                if (c == '!' || c == '{' || c == '}')
+                {
+                    malformed = true;
+                    break;
+                }
+            }
+            if (malformed)
+            {
+                throw BAIL;
+            }
+            normalized = text.substring(start, end);
+        }
+        return normalized;
     }
 
     /**
@@ -1281,7 +1368,9 @@ public final class YamlStreamScanner
         {
             anchors[eventCount] = pendingAnchor;
             aliases[eventCount] = null;
+            tags[eventCount] = pendingTag;
             pendingAnchor = null;
+            pendingTag = null;
         }
         eventCount++;
     }
@@ -1297,7 +1386,9 @@ public final class YamlStreamScanner
         texts[eventCount] = null;
         anchors[eventCount] = pendingAnchor;
         aliases[eventCount] = alias;
+        tags[eventCount] = pendingTag;
         pendingAnchor = null;
+        pendingTag = null;
         eventCount++;
     }
 
@@ -1313,6 +1404,7 @@ public final class YamlStreamScanner
             {
                 anchors = new String[INITIAL_EVENTS];
                 aliases = new String[INITIAL_EVENTS];
+                tags = new String[INITIAL_EVENTS];
             }
         }
         else if (eventCount == kinds.length)
@@ -1326,6 +1418,7 @@ public final class YamlStreamScanner
             {
                 anchors = copyOf(anchors, size);
                 aliases = copyOf(aliases, size);
+                tags = copyOf(tags, size);
             }
         }
     }
@@ -1401,7 +1494,7 @@ public final class YamlStreamScanner
             if (item < end)
             {
                 char it = text.charAt(item);
-                if (it != '{' && it != '[' && !(raw && (it == '&' || it == '*')))
+                if (it != '{' && it != '[' && !(raw && (it == '&' || it == '*' || it == '!')))
                 {
                     if (isCompactSequence(item, end))
                     {
@@ -1449,7 +1542,7 @@ public final class YamlStreamScanner
         if (valueStart < end)
         {
             char value = text.charAt(valueStart);
-            if (value != '{' && value != '[' && !(raw && (value == '&' || value == '*')) &&
+            if (value != '{' && value != '[' && !(raw && (value == '&' || value == '*' || value == '!')) &&
                 (blockedStart(value) || isCompactSequence(valueStart, end) || mappingColon(valueStart, end) != -1))
             {
                 throw BAIL;

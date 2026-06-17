@@ -262,7 +262,8 @@ public final class YamlParserImpl implements YamlParser
     @Override
     public String getTag()
     {
-        return scanner == null && currentNode != null ? currentNode.tag : null;
+        return scanner != null ? scanCurrent < 0 ? null : scanner.tag(scanCurrent) :
+            currentNode != null ? currentNode.tag : null;
     }
 
     @Override

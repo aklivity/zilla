@@ -283,9 +283,18 @@ class YamlStreamScannerTest
     }
 
     @Test
-    void shouldBailOnTagsEvenInRawMode()
+    void shouldAcceptTagsInRawMode()
     {
-        assertFalse(new YamlStreamScanner().scan("typed: !!str 42\n", true));
+        String doc = "typed: !!str 42\nverbatim: !<tag:x> hi\ncustom: !foo bar\ntagged: !!map\n  a: 1\n";
+        YamlStreamScanner scanner = new YamlStreamScanner();
+        assertTrue(scanner.scan(doc, true), "raw scanner should accept tags");
+        assertEquals(eagerRaw(doc), scannedRaw(scanner));
+    }
+
+    @Test
+    void shouldBailOnTagsInNonRawMode()
+    {
+        assertFalse(new YamlStreamScanner().scan("typed: !!str 42\n"));
     }
 
     @TestFactory
@@ -324,6 +333,10 @@ class YamlStreamScannerTest
             if (scanner.anchor(index) != null)
             {
                 builder.append('&').append(scanner.anchor(index));
+            }
+            if (scanner.tag(index) != null)
+            {
+                builder.append('!').append(scanner.tag(index));
             }
             builder.append('\n');
         }
@@ -385,7 +398,7 @@ class YamlStreamScannerTest
     private static String anchorOf(
         YamlNode node)
     {
-        return node.anchor != null ? "&" + node.anchor : "";
+        return (node.anchor != null ? "&" + node.anchor : "") + (node.tag != null ? "!" + node.tag : "");
     }
 
     private static String token(
