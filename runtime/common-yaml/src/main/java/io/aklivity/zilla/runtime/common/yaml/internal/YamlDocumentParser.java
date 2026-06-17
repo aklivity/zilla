@@ -1253,7 +1253,8 @@ public final class YamlDocumentParser
     {
         if (text.isEmpty())
         {
-            throw error("Expected mapping key", line);
+            // an empty mapping key (e.g. `: value`) is the empty scalar, matching parseScalar("")
+            return new KeySpec("", null);
         }
         if (text.startsWith("\"") || text.startsWith("'"))
         {

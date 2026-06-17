@@ -736,7 +736,12 @@ public final class YamlStreamScanner
                 throw BAIL;
             }
         }
-        else if (keyEnd == start || isReservedStart(keyFirst) || isMergeKey(start, keyEnd) && !raw)
+        else if (keyEnd == start)
+        {
+            // an empty mapping key (`: value`) is the empty scalar, matching the eager parseKeySpec("")
+            emit(KEY_NAME, start, 0, null);
+        }
+        else if (isReservedStart(keyFirst) || isMergeKey(start, keyEnd) && !raw)
         {
             throw BAIL;
         }

@@ -107,6 +107,18 @@ class YamlUnresolvedTest
         assertEquals("d", ((YamlScalarNode) value.values.get(1)).value);
     }
 
+    @Test
+    void shouldParseEmptyMappingKey()
+    {
+        // an empty mapping key (`: value`) is the empty scalar, not a parse error (2JQS, NHX8, S3PD, ...)
+        YamlObjectNode root = (YamlObjectNode) YamlDocumentParser.parse(": a\n", RAW).node;
+
+        assertEquals(1, root.entries.size());
+        YamlEntry entry = root.entries.get(0);
+        assertEquals("", entry.name, "empty key is the empty scalar");
+        assertEquals("a", ((YamlScalarNode) entry.value).value);
+    }
+
     private static YamlEntry entry(
         YamlObjectNode object,
         String name)
