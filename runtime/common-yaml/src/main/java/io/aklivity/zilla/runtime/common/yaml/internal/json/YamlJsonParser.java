@@ -154,6 +154,7 @@ public final class YamlJsonParser implements JsonParser
         }
         else
         {
+            rejectNonScalarScanKeys();
             if (uniqueKeys)
             {
                 rejectDuplicateScanKeys();
@@ -206,6 +207,48 @@ public final class YamlJsonParser implements JsonParser
             }
         }
         return eligible;
+    }
+
+    private void rejectNonScalarScanKeys()
+    {
+        // a non-scalar mapping key is valid YAML (and preserved by the raw scanner) but cannot be a JSON
+        // key, so the JSON projection rejects it here, matching the eager projection
+        int total = ecount();
+        boolean[] object = new boolean[total + 2];
+        boolean[] expectKey = new boolean[total + 2];
+        int depth = 0;
+        for (int index = 0; index < total; index++)
+        {
+            byte kind = ekind(index);
+            boolean keySlot = depth > 0 && object[depth] && expectKey[depth];
+            if (kind == YamlStreamScanner.START_OBJECT || kind == YamlStreamScanner.START_ARRAY)
+            {
+                if (keySlot)
+                {
+                    throw new JsonParsingException("Non-scalar YAML mapping keys are not supported",
+                        new YamlJsonLocation(new YamlLocation(eline(index), ecolumn(index), eoffset(index))));
+                }
+                depth++;
+                object[depth] = kind == YamlStreamScanner.START_OBJECT;
+                expectKey[depth] = kind == YamlStreamScanner.START_OBJECT;
+            }
+            else if (kind == YamlStreamScanner.END_OBJECT || kind == YamlStreamScanner.END_ARRAY)
+            {
+                depth--;
+                if (depth > 0 && object[depth])
+                {
+                    expectKey[depth] = true;
+                }
+            }
+            else if (kind == YamlStreamScanner.KEY_NAME)
+            {
+                expectKey[depth] = false;
+            }
+            else if (depth > 0 && object[depth])
+            {
+                expectKey[depth] = true;
+            }
+        }
     }
 
     private void rejectDuplicateScanKeys()

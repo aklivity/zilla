@@ -238,6 +238,20 @@ class YamlStreamScannerTest
     }
 
     @Test
+    void shouldRepresentNonScalarFlowKeyInRawLayer()
+    {
+        // a non-scalar mapping key is valid YAML; the raw layer preserves it (the JSON projection rejects it)
+        for (String doc : new String[] {
+            "{a: [b, c], [d, e]: f}\n",
+            "{ {x: 1}: y }\n"})
+        {
+            YamlStreamScanner scanner = new YamlStreamScanner();
+            assertTrue(scanner.scan(doc, true), "raw scanner should accept a non-scalar flow key: " + doc);
+            assertEquals(eagerRaw(doc), scannedRaw(scanner), doc);
+        }
+    }
+
+    @Test
     void shouldAcceptDecoratedBlockMappingKeys()
     {
         for (String doc : new String[] {
@@ -717,13 +731,21 @@ class YamlStreamScannerTest
             builder.append("START_OBJECT").append(anchorOf(object)).append('\n');
             for (YamlEntry entry : object.entries)
             {
-                String name = entry.name != null ? entry.name : ((YamlScalarNode) entry.key).value;
-                builder.append("KEY_NAME").append('(').append(name).append(')');
-                if (entry.name == null && entry.key != null)
+                if (entry.name == null && entry.key != null && !(entry.key instanceof YamlScalarNode))
                 {
-                    builder.append(anchorOf(entry.key));
+                    // a non-scalar mapping key is projected as its own structure
+                    projectRaw(entry.key, builder);
                 }
-                builder.append('\n');
+                else
+                {
+                    String name = entry.name != null ? entry.name : ((YamlScalarNode) entry.key).value;
+                    builder.append("KEY_NAME").append('(').append(name).append(')');
+                    if (entry.name == null && entry.key != null)
+                    {
+                        builder.append(anchorOf(entry.key));
+                    }
+                    builder.append('\n');
+                }
                 projectRaw(entry.value, builder);
             }
             builder.append("END_OBJECT").append('\n');

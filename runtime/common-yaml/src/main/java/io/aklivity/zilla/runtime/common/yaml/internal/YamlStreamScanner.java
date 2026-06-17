@@ -1899,6 +1899,12 @@ public final class YamlStreamScanner
             flowReadQuoted();
             emit(KEY_NAME, flowTokenStart, flowTokenEnd - flowTokenStart, null);
         }
+        else if (raw && (c == '{' || c == '['))
+        {
+            // a non-scalar (flow collection) key is preserved as its structure for the YAML layer;
+            // the JSON projection rejects it (the resolver bails on a non-KEY_NAME key)
+            flowValue();
+        }
         else if ((flowReserved(c) || c == '{' || c == '[') && !(c == '?' && flowPlainQuestion()))
         {
             throw BAIL;
