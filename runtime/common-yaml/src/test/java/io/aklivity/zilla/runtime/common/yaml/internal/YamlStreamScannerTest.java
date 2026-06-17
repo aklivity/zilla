@@ -192,9 +192,29 @@ class YamlStreamScannerTest
     }
 
     @Test
-    void shouldBailOnDirectives()
+    void shouldAcceptYamlDirective()
     {
-        assertFalse(new YamlStreamScanner().scan("%YAML 1.2\n---\nname: example\n"));
+        String doc = "%YAML 1.2\n---\nname: example\n";
+        YamlStreamScanner scanner = new YamlStreamScanner();
+        assertTrue(scanner.scan(doc), "scanner should accept a %YAML directive");
+        assertEquals(eager(doc), scanned(scanner));
+    }
+
+    @Test
+    void shouldBailOnTagDirective()
+    {
+        assertFalse(new YamlStreamScanner().scan("%TAG ! tag:example.com,2000:\n---\nname: example\n"));
+    }
+
+    @Test
+    void shouldAcceptRootScalarDocument()
+    {
+        for (String doc : new String[] {"\"foo\"\n", "plain text\n", "42\n", "true\n"})
+        {
+            YamlStreamScanner scanner = new YamlStreamScanner();
+            assertTrue(scanner.scan(doc), "scanner should accept root scalar: " + doc);
+            assertEquals(eager(doc), scanned(scanner), doc);
+        }
     }
 
     @Test
@@ -209,7 +229,7 @@ class YamlStreamScannerTest
         long accepted = fixtures()
             .filter(path -> accepts(path.resolve("in.yaml")))
             .count();
-        assertEquals(56, accepted,
+        assertEquals(60, accepted,
             "accepted-fixture count changed; feasibility gate may over-reject or over-accept");
     }
 

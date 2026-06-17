@@ -230,10 +230,23 @@ public final class YamlStreamScanner
     private void scanRoot()
     {
         skipIgnorable();
-        if (cursor < lineCount && documentMarker(cursor, '-'))
+        boolean directives = false;
+        while (cursor < lineCount && text.charAt(contentStart[cursor]) == '%')
         {
             cursor++;
             skipIgnorable();
+            directives = true;
+        }
+        boolean marker = cursor < lineCount && documentMarker(cursor, '-');
+        if (marker)
+        {
+            cursor++;
+            skipIgnorable();
+        }
+        else if (directives)
+        {
+            // a directives block must be terminated by a --- document-start marker
+            throw BAIL;
         }
         if (cursor >= lineCount)
         {
@@ -247,7 +260,17 @@ public final class YamlStreamScanner
             throw BAIL;
         }
 
-        scanBlock(lineIndent[line]);
+        int indent = lineIndent[line];
+        if (isSequence(line, indent) || mappingColon(contentStart[line], contentEnd[line]) != -1)
+        {
+            scanBlock(indent);
+        }
+        else
+        {
+            // a document that is a single scalar; scanScalar bails on any non-scalar root
+            cursor++;
+            scanScalar(contentStart[line], contentEnd[line], indent, line);
+        }
 
         skipIgnorable();
         if (cursor < lineCount && documentMarker(cursor, '.'))
@@ -1740,7 +1763,11 @@ public final class YamlStreamScanner
         }
         else if (first == '%')
         {
-            throw BAIL;
+            // %YAML and unknown directives are ignorable; %TAG changes tag handles, so bail
+            if (text.startsWith("%TAG", start))
+            {
+                throw BAIL;
+            }
         }
         else if (first == '-' && (end - start == 1 || isSpace(text.charAt(start + 1))))
         {
@@ -1776,12 +1803,12 @@ public final class YamlStreamScanner
         }
         else
         {
+            // a no-colon line may be a root scalar (or invalid); defer the decision to the structural scan
             int colon = mappingColon(start, end);
-            if (colon == -1)
+            if (colon != -1)
             {
-                throw BAIL;
+                blockIndent = feasibleEntry(start, end, colon, indent);
             }
-            blockIndent = feasibleEntry(start, end, colon, indent);
         }
         return blockIndent;
     }
