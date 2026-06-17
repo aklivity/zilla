@@ -275,7 +275,7 @@ public final class YamlStreamScanner
         {
             // a document that is a single scalar; scanScalar bails on any non-scalar root
             cursor++;
-            scanScalar(contentStart[line], contentEnd[line], indent, line);
+            scanScalar(contentStart[line], contentEnd[line], indent, line, true, true);
         }
 
         skipIgnorable();
@@ -406,7 +406,7 @@ public final class YamlStreamScanner
             }
             else
             {
-                scanScalar(valueStart, valueEnd, indent, valueLine);
+                scanScalar(valueStart, valueEnd, indent, valueLine, false, false);
             }
         }
         else
@@ -455,7 +455,7 @@ public final class YamlStreamScanner
         }
         else
         {
-            scanScalar(valueStart, end, indent, line);
+            scanScalar(valueStart, end, indent, line, false, false);
         }
     }
 
@@ -533,7 +533,7 @@ public final class YamlStreamScanner
             else
             {
                 cursor++;
-                scanScalar(itemAt, end, indent, line);
+                scanScalar(itemAt, end, indent, line, false, true);
             }
         }
     }
@@ -585,7 +585,9 @@ public final class YamlStreamScanner
         int start,
         int end,
         int refIndent,
-        int line)
+        int line,
+        boolean allowSameIndent,
+        boolean allowIndentedSequence)
     {
         char first = text.charAt(start);
         if (raw && (first == '&' || first == '*' || first == '!'))
@@ -612,8 +614,105 @@ public final class YamlStreamScanner
             throw BAIL;
         }
 
-        foldGuard(refIndent);
-        emitClassifiedScalar(start, end);
+        scanPlainScalar(start, end, refIndent, line, allowSameIndent, allowIndentedSequence);
+    }
+
+    /**
+     * Folds a plain scalar that may continue onto more-indented (or, when {@code allowSameIndent}, equally
+     * indented) following lines, mirroring {@code YamlDocumentParser.foldPlainScalar}: a single line break
+     * between content folds to a space, a run of blank lines to that many line breaks. A folded multi-line
+     * plain scalar always projects as a string. With no continuation the single-line classification path is
+     * used unchanged. A continuation after a trailing comment bails so the eager parser reports the error.
+     */
+    private void scanPlainScalar(
+        int start,
+        int end,
+        int refIndent,
+        int line,
+        boolean allowSameIndent,
+        boolean allowIndentedSequence)
+    {
+        StringBuilder value = null;
+        boolean commentTerminated = lineHasComment(line);
+        while (cursor < lineCount)
+        {
+            int blankAt = cursor;
+            int blankLines = 0;
+            boolean blankComment = false;
+            while (cursor < lineCount && contentStart[cursor] >= contentEnd[cursor])
+            {
+                blankComment |= lineHasComment(cursor);
+                blankLines++;
+                cursor++;
+            }
+            if (cursor >= lineCount || !plainContinuation(cursor, refIndent, allowSameIndent, allowIndentedSequence))
+            {
+                cursor = blankAt;
+                break;
+            }
+            if (commentTerminated || blankComment)
+            {
+                throw BAIL;
+            }
+            if (value == null)
+            {
+                value = new StringBuilder(text.substring(start, end));
+            }
+            if (blankLines == 0)
+            {
+                value.append(' ');
+            }
+            else
+            {
+                appendLineBreaks(value, blankLines);
+            }
+            value.append(text, contentStart[cursor], contentEnd[cursor]);
+            commentTerminated = lineHasComment(cursor);
+            cursor++;
+        }
+
+        if (value == null)
+        {
+            foldGuard(refIndent);
+            emitClassifiedScalar(start, end);
+        }
+        else
+        {
+            emit(VALUE_STRING, start, 0, value.toString());
+        }
+    }
+
+    private boolean plainContinuation(
+        int line,
+        int indent,
+        boolean allowSameIndent,
+        boolean allowIndentedSequence)
+    {
+        boolean result;
+        if (documentMarker(line, '-') || documentMarker(line, '.') || lineIndent[line] < indent)
+        {
+            result = false;
+        }
+        else if (lineIndent[line] == indent)
+        {
+            result = allowSameIndent && !isSequence(line, indent) && !isExplicitKey(line) &&
+                mappingColon(contentStart[line], contentEnd[line]) == -1;
+        }
+        else if (!allowIndentedSequence && isSequence(line, lineIndent[line]))
+        {
+            result = false;
+        }
+        else
+        {
+            result = mappingColon(contentStart[line], contentEnd[line]) == -1;
+        }
+        return result;
+    }
+
+    private boolean lineHasComment(
+        int line)
+    {
+        return commentIndex(contentStart[line], rawEnd(line)) != -1;
     }
 
     private boolean blockIndicator(
@@ -904,7 +1003,7 @@ public final class YamlStreamScanner
             {
                 throw BAIL;
             }
-            scanScalar(at, end, refIndent, line);
+            scanScalar(at, end, refIndent, line, false, false);
         }
         else if (pendingAnchor != null || pendingTag != null)
         {

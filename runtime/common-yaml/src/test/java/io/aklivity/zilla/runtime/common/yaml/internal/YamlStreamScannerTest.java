@@ -151,6 +151,21 @@ class YamlStreamScannerTest
     }
 
     @Test
+    void shouldAcceptMultiLinePlain()
+    {
+        for (String doc : new String[] {
+            "name: this is\n  a long value\n",
+            "name: first\n\n  second\n",
+            "- item one\n  item two\n- plain\n",
+            "this is\na root scalar\n"})
+        {
+            YamlStreamScanner scanner = new YamlStreamScanner();
+            assertTrue(scanner.scan(doc), "scanner should accept a multi-line plain scalar: " + doc);
+            assertEquals(eager(doc), scanned(scanner), doc);
+        }
+    }
+
+    @Test
     void shouldAcceptMultiLineQuoted()
     {
         for (String doc : new String[] {
@@ -262,7 +277,7 @@ class YamlStreamScannerTest
         long accepted = fixtures()
             .filter(path -> accepts(path.resolve("in.yaml")))
             .count();
-        assertEquals(86, accepted,
+        assertEquals(94, accepted,
             "accepted-fixture count changed; feasibility gate may over-reject or over-accept");
     }
 
