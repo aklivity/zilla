@@ -21,12 +21,12 @@ import java.io.InputStream;
 import java.io.Reader;
 import java.nio.charset.Charset;
 import java.util.ArrayDeque;
+import java.util.Arrays;
 import java.util.Deque;
 import java.util.List;
 
 import io.aklivity.zilla.runtime.common.yaml.YamlArray;
 import io.aklivity.zilla.runtime.common.yaml.YamlEvent;
-import io.aklivity.zilla.runtime.common.yaml.YamlEvent.EventType;
 import io.aklivity.zilla.runtime.common.yaml.YamlObject;
 import io.aklivity.zilla.runtime.common.yaml.YamlParser;
 import io.aklivity.zilla.runtime.common.yaml.YamlScalar;
@@ -38,13 +38,30 @@ public final class YamlParserImpl implements YamlParser
     private final String text;
     private final YamlConfiguration config;
     private final CharSequenceView stringView;
+
+    private boolean streaming;
+    private boolean parsed;
+
+    // streaming via the tree-free scanner fast path (default config only)
+    private YamlStreamScanner scanner;
+    private int scanCursor;
+    private int scanCurrent;
+    private int buildCursor;
+
+    // streaming via the eager DOM (fallback)
     private Deque<Frame> stack;
     private YamlNode root;
-    private YamlEvent current;
-    private YamlEvent next;
-    private boolean parsed;
-    private boolean streaming;
+    private YamlEvent pending;
+    private YamlNode pendingNode;
+    private String pendingString;
+    private boolean pendingValid;
     private boolean exhausted;
+
+    // currently exposed event
+    private YamlEvent current;
+    private YamlNode currentNode;
+    private String currentString;
+    private YamlValue currentValue;
 
     public YamlParserImpl(
         Reader reader)
@@ -59,6 +76,7 @@ public final class YamlParserImpl implements YamlParser
         this.text = readAll(reader);
         this.config = config;
         this.stringView = new CharSequenceView();
+        this.scanCurrent = -1;
     }
 
     public YamlParserImpl(
@@ -89,23 +107,45 @@ public final class YamlParserImpl implements YamlParser
         this.text = readAll(in, charset);
         this.config = config;
         this.stringView = new CharSequenceView();
+        this.scanCurrent = -1;
     }
 
     @Override
     public boolean hasNext()
     {
+        boolean hasNext;
         if (parsed)
         {
-            return false;
+            hasNext = false;
         }
-        if (next == null && !exhausted)
+        else
         {
-            streaming = true;
-            ensureStack();
-            next = nextEvent();
-            exhausted = next == null;
+            if (!streaming)
+            {
+                streaming = true;
+                scanner = scanner();
+                if (scanner == null)
+                {
+                    ensureStack();
+                }
+            }
+
+            if (scanner != null)
+            {
+                hasNext = scanCursor < scanner.count();
+            }
+            else
+            {
+                if (!pendingValid && !exhausted)
+                {
+                    pending = eagerAdvance();
+                    pendingValid = pending != null;
+                    exhausted = !pendingValid;
+                }
+                hasNext = pendingValid;
+            }
         }
-        return next != null;
+        return hasNext;
     }
 
     @Override
@@ -115,10 +155,21 @@ public final class YamlParserImpl implements YamlParser
         {
             throw new IllegalStateException("No more YAML events");
         }
-        YamlEvent event = next;
-        next = null;
-        current = event;
-        return event;
+
+        currentValue = null;
+        if (scanner != null)
+        {
+            scanCurrent = scanCursor++;
+            current = event(scanner.kind(scanCurrent));
+        }
+        else
+        {
+            current = pending;
+            currentNode = pendingNode;
+            currentString = pendingString;
+            pendingValid = false;
+        }
+        return current;
     }
 
     @Override
@@ -135,7 +186,11 @@ public final class YamlParserImpl implements YamlParser
     @Override
     public YamlValue getValue()
     {
-        return current != null ? current.getValue() : null;
+        if (currentValue == null && current != null)
+        {
+            currentValue = scanner != null ? scanValue() : currentNode != null ? YamlValues.wrap(currentNode) : null;
+        }
+        return currentValue;
     }
 
     @Override
@@ -159,14 +214,31 @@ public final class YamlParserImpl implements YamlParser
     @Override
     public String getString()
     {
-        return current != null ? current.getString() : null;
+        String value;
+        if (scanner != null)
+        {
+            value = scanCurrent < 0 ? null : scanner.string(scanCurrent);
+        }
+        else
+        {
+            value = currentString;
+        }
+        return value;
     }
 
     @Override
     public CharSequence getStringView()
     {
-        String value = current != null ? current.getString() : null;
-        return value != null ? stringView.wrap(value, 0, value.length()) : null;
+        CharSequence view;
+        if (scanner != null)
+        {
+            view = scanCurrent < 0 ? null : scanner.stringView(scanCurrent);
+        }
+        else
+        {
+            view = currentString != null ? stringView.wrap(currentString, 0, currentString.length()) : null;
+        }
+        return view;
     }
 
     @Override
@@ -187,6 +259,125 @@ public final class YamlParserImpl implements YamlParser
         return YamlValues.stream(nodes);
     }
 
+    private YamlStreamScanner scanner()
+    {
+        YamlStreamScanner candidate = null;
+        if (config == null || config.isDefault())
+        {
+            YamlStreamScanner streamScanner = new YamlStreamScanner();
+            if (streamScanner.scan(text))
+            {
+                candidate = streamScanner;
+            }
+        }
+        return candidate;
+    }
+
+    private YamlEvent event(
+        byte kind)
+    {
+        return switch (kind)
+        {
+        case YamlStreamScanner.START_OBJECT -> YamlEvent.START_OBJECT;
+        case YamlStreamScanner.END_OBJECT -> YamlEvent.END_OBJECT;
+        case YamlStreamScanner.START_ARRAY -> YamlEvent.START_ARRAY;
+        case YamlStreamScanner.END_ARRAY -> YamlEvent.END_ARRAY;
+        case YamlStreamScanner.KEY_NAME -> YamlEvent.KEY_NAME;
+        case YamlStreamScanner.VALUE_STRING -> YamlEvent.VALUE_STRING;
+        case YamlStreamScanner.VALUE_NUMBER -> YamlEvent.VALUE_NUMBER;
+        case YamlStreamScanner.VALUE_TRUE -> YamlEvent.VALUE_TRUE;
+        case YamlStreamScanner.VALUE_FALSE -> YamlEvent.VALUE_FALSE;
+        case YamlStreamScanner.VALUE_NULL -> YamlEvent.VALUE_NULL;
+        default -> throw new IllegalStateException("Unexpected scanner event: " + kind);
+        };
+    }
+
+    private YamlValue scanValue()
+    {
+        YamlValue value;
+        byte kind = scanner.kind(scanCurrent);
+        if (kind == YamlStreamScanner.END_OBJECT || kind == YamlStreamScanner.END_ARRAY)
+        {
+            value = null;
+        }
+        else if (kind == YamlStreamScanner.KEY_NAME)
+        {
+            value = YamlValues.wrap(YamlScalarNode.string(scanner.string(scanCurrent),
+                scanner.line(scanCurrent), scanner.column(scanCurrent), scanner.offset(scanCurrent)));
+        }
+        else
+        {
+            buildCursor = scanCurrent;
+            value = YamlValues.wrap(buildNode());
+        }
+        return value;
+    }
+
+    private YamlNode buildNode()
+    {
+        byte kind = scanner.kind(buildCursor);
+        int line = scanner.line(buildCursor);
+        int column = scanner.column(buildCursor);
+        int offset = scanner.offset(buildCursor);
+        YamlNode node;
+        switch (kind)
+        {
+        case YamlStreamScanner.START_OBJECT ->
+        {
+            YamlObjectNode object = new YamlObjectNode(line, column, offset);
+            buildCursor++;
+            while (scanner.kind(buildCursor) != YamlStreamScanner.END_OBJECT)
+            {
+                int keyLine = scanner.line(buildCursor);
+                int keyColumn = scanner.column(buildCursor);
+                int keyOffset = scanner.offset(buildCursor);
+                String name = scanner.string(buildCursor);
+                buildCursor++;
+                object.add(new YamlEntry(name, buildNode(), keyLine, keyColumn, keyOffset));
+            }
+            buildCursor++;
+            node = object;
+        }
+        case YamlStreamScanner.START_ARRAY ->
+        {
+            YamlArrayNode array = new YamlArrayNode(line, column, offset);
+            buildCursor++;
+            while (scanner.kind(buildCursor) != YamlStreamScanner.END_ARRAY)
+            {
+                array.add(buildNode());
+            }
+            buildCursor++;
+            node = array;
+        }
+        case YamlStreamScanner.VALUE_NUMBER ->
+        {
+            node = YamlScalarNode.number(scanner.string(buildCursor), line, column, offset);
+            buildCursor++;
+        }
+        case YamlStreamScanner.VALUE_TRUE ->
+        {
+            node = YamlScalarNode.literal(YamlScalarType.TRUE, line, column, offset);
+            buildCursor++;
+        }
+        case YamlStreamScanner.VALUE_FALSE ->
+        {
+            node = YamlScalarNode.literal(YamlScalarType.FALSE, line, column, offset);
+            buildCursor++;
+        }
+        case YamlStreamScanner.VALUE_NULL ->
+        {
+            node = YamlScalarNode.literal(YamlScalarType.NULL, line, column, offset);
+            buildCursor++;
+        }
+        default ->
+        {
+            node = YamlScalarNode.string(scanner.string(buildCursor), line, column, offset);
+            buildCursor++;
+        }
+        }
+        return node;
+    }
+
     private YamlNode root()
     {
         if (root == null)
@@ -205,9 +396,10 @@ public final class YamlParserImpl implements YamlParser
         }
     }
 
-    private YamlEvent nextEvent()
+    private YamlEvent eagerAdvance()
     {
-        while (!stack.isEmpty())
+        YamlEvent event = null;
+        while (event == null && !stack.isEmpty())
         {
             Frame frame = stack.peek();
             if (frame.node instanceof YamlObjectNode object)
@@ -215,64 +407,75 @@ public final class YamlParserImpl implements YamlParser
                 if (!frame.started)
                 {
                     frame.started = true;
-                    return new YamlEvent(EventType.START_OBJECT, null, YamlValues.wrap(object));
+                    pendingNode = object;
+                    pendingString = null;
+                    event = YamlEvent.START_OBJECT;
                 }
-                if (frame.value)
+                else if (frame.value)
                 {
                     frame.value = false;
                     stack.push(new Frame(object.entries.get(frame.index++).value));
-                    continue;
                 }
-                if (frame.index < object.entries.size())
+                else if (frame.index < object.entries.size())
                 {
                     YamlEntry entry = object.entries.get(frame.index);
                     frame.value = true;
-                    YamlValue key = entry.key != null ? YamlValues.wrap(entry.key) :
-                        YamlValues.wrap(YamlScalarNode.string(entry.name, entry.line, entry.column, entry.offset));
-                    return new YamlEvent(EventType.KEY_NAME, entry.name,
-                        key);
+                    pendingNode = entry.key != null ? entry.key :
+                        YamlScalarNode.string(entry.name, entry.line, entry.column, entry.offset);
+                    pendingString = entry.name;
+                    event = YamlEvent.KEY_NAME;
                 }
-
-                stack.pop();
-                return new YamlEvent(EventType.END_OBJECT, null, null);
+                else
+                {
+                    stack.pop();
+                    pendingNode = null;
+                    pendingString = null;
+                    event = YamlEvent.END_OBJECT;
+                }
             }
-
-            if (frame.node instanceof YamlArrayNode array)
+            else if (frame.node instanceof YamlArrayNode array)
             {
                 if (!frame.started)
                 {
                     frame.started = true;
-                    return new YamlEvent(EventType.START_ARRAY, null, YamlValues.wrap(array));
+                    pendingNode = array;
+                    pendingString = null;
+                    event = YamlEvent.START_ARRAY;
                 }
-                if (frame.index < array.values.size())
+                else if (frame.index < array.values.size())
                 {
                     stack.push(new Frame(array.values.get(frame.index++)));
-                    continue;
                 }
-
-                stack.pop();
-                return new YamlEvent(EventType.END_ARRAY, null, null);
+                else
+                {
+                    stack.pop();
+                    pendingNode = null;
+                    pendingString = null;
+                    event = YamlEvent.END_ARRAY;
+                }
             }
-
-            stack.pop();
-            return scalarEvent((YamlScalarNode) frame.node);
+            else
+            {
+                stack.pop();
+                event = eagerScalar((YamlScalarNode) frame.node);
+            }
         }
-
-        return null;
+        return event;
     }
 
-    private YamlEvent scalarEvent(
+    private YamlEvent eagerScalar(
         YamlScalarNode scalar)
     {
-        EventType eventType = switch (scalar.type)
+        pendingNode = scalar;
+        pendingString = scalar.value;
+        return switch (scalar.type)
         {
-        case STRING -> EventType.VALUE_STRING;
-        case NUMBER -> EventType.VALUE_NUMBER;
-        case TRUE -> EventType.VALUE_TRUE;
-        case FALSE -> EventType.VALUE_FALSE;
-        case NULL -> EventType.VALUE_NULL;
+        case STRING -> YamlEvent.VALUE_STRING;
+        case NUMBER -> YamlEvent.VALUE_NUMBER;
+        case TRUE -> YamlEvent.VALUE_TRUE;
+        case FALSE -> YamlEvent.VALUE_FALSE;
+        case NULL -> YamlEvent.VALUE_NULL;
         };
-        return new YamlEvent(eventType, scalar.value, YamlValues.wrap(scalar));
     }
 
     private static String readAll(
@@ -280,14 +483,18 @@ public final class YamlParserImpl implements YamlParser
     {
         try
         {
-            StringBuilder builder = new StringBuilder();
-            char[] buffer = new char[4096];
+            char[] buffer = new char[1024];
+            int length = 0;
             int read;
-            while ((read = reader.read(buffer)) != -1)
+            while ((read = reader.read(buffer, length, buffer.length - length)) != -1)
             {
-                builder.append(buffer, 0, read);
+                length += read;
+                if (length == buffer.length)
+                {
+                    buffer = Arrays.copyOf(buffer, buffer.length << 1);
+                }
             }
-            return builder.toString();
+            return new String(buffer, 0, length);
         }
         catch (IOException ex)
         {

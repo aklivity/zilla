@@ -42,8 +42,8 @@ class YamlStringViewTest
         List<String> viewed = new ArrayList<>();
         while (parser.hasNext())
         {
-            YamlEvent event = parser.next();
-            String string = event.getString();
+            parser.next();
+            String string = parser.getString();
             CharSequence view = parser.getStringView();
             if (string != null)
             {
@@ -63,5 +63,44 @@ class YamlStringViewTest
         assertTrue(viewed.contains("example"));
         assertTrue(viewed.contains("7114"));
         assertTrue(viewed.contains("a value"));
+    }
+
+    @Test
+    void shouldStreamFlowDocumentWithZeroCopyViews()
+    {
+        YamlParser parser = Yaml.createParser(new StringReader(
+            "{\"name\":\"test\",\"port\":7114,\"items\":[1,true,null]}\n"));
+
+        assertEquals(YamlEvent.START_OBJECT, parser.next());
+        assertEquals(YamlValue.ValueType.OBJECT, parser.getValue().getValueType());
+
+        List<String> events = new ArrayList<>();
+        while (parser.hasNext())
+        {
+            YamlEvent event = parser.next();
+            String string = parser.getString();
+            events.add(string != null ? event + ":" + string : event.toString());
+            if (string != null)
+            {
+                assertEquals(string, parser.getStringView().toString());
+            }
+            else
+            {
+                assertNull(parser.getStringView());
+            }
+        }
+
+        assertEquals(List.of(
+            "KEY_NAME:name",
+            "VALUE_STRING:test",
+            "KEY_NAME:port",
+            "VALUE_NUMBER:7114",
+            "KEY_NAME:items",
+            "START_ARRAY",
+            "VALUE_NUMBER:1",
+            "VALUE_TRUE",
+            "VALUE_NULL",
+            "END_ARRAY",
+            "END_OBJECT"), events);
     }
 }

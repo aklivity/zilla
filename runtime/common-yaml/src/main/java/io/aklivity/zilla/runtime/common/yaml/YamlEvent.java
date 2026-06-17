@@ -14,48 +14,23 @@
  */
 package io.aklivity.zilla.runtime.common.yaml;
 
-public final class YamlEvent
+/**
+ * The event currency of the streaming {@link YamlParser}: {@link YamlParser#next()} returns the next
+ * event as a plain enum and the caller pulls the associated scalar or value through the parser
+ * accessors ({@link YamlParser#getString()}, {@link YamlParser#getStringView()},
+ * {@link YamlParser#getValue()}, …). This pull model mirrors {@code jakarta.json.stream.JsonParser} and
+ * lets a streaming source expose the current token without materializing a {@code YamlValue} per event.
+ */
+public enum YamlEvent
 {
-    private final EventType eventType;
-    private final String string;
-    private final YamlValue value;
-
-    public YamlEvent(
-        EventType eventType,
-        String string,
-        YamlValue value)
-    {
-        this.eventType = eventType;
-        this.string = string;
-        this.value = value;
-    }
-
-    public EventType getEventType()
-    {
-        return eventType;
-    }
-
-    public String getString()
-    {
-        return string;
-    }
-
-    public YamlValue getValue()
-    {
-        return value;
-    }
-
-    public enum EventType
-    {
-        START_OBJECT,
-        END_OBJECT,
-        START_ARRAY,
-        END_ARRAY,
-        KEY_NAME,
-        VALUE_STRING,
-        VALUE_NUMBER,
-        VALUE_TRUE,
-        VALUE_FALSE,
-        VALUE_NULL
-    }
+    START_OBJECT,
+    END_OBJECT,
+    START_ARRAY,
+    END_ARRAY,
+    KEY_NAME,
+    VALUE_STRING,
+    VALUE_NUMBER,
+    VALUE_TRUE,
+    VALUE_FALSE,
+    VALUE_NULL
 }

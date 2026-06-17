@@ -34,7 +34,6 @@ import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 import io.aklivity.zilla.runtime.common.yaml.Yaml;
-import io.aklivity.zilla.runtime.common.yaml.YamlEvent;
 import io.aklivity.zilla.runtime.common.yaml.YamlGenerator;
 import io.aklivity.zilla.runtime.common.yaml.YamlParser;
 import io.aklivity.zilla.runtime.common.yaml.YamlValue;
@@ -232,8 +231,8 @@ public class YamlBM
         int hash = 0;
         while (parser.hasNext())
         {
-            YamlEvent event = parser.next();
-            String value = event.getString();
+            parser.next();
+            String value = parser.getString();
             if (value != null)
             {
                 hash += value.hashCode();

@@ -559,18 +559,17 @@ class YamlTest
         while (parser.hasNext())
         {
             YamlEvent event = parser.next();
-            events.add(event.getEventType() + (event.getString() != null ? ":" + event.getString() : ""));
-            assertSame(event.getValue(), parser.getValue());
-            assertEquals(event.getString(), parser.getString());
-            if (event.getValue() != null && event.getEventType() == YamlEvent.EventType.START_OBJECT)
+            events.add(event + (parser.getString() != null ? ":" + parser.getString() : ""));
+            assertSame(parser.getValue(), parser.getValue());
+            if (event == YamlEvent.START_OBJECT)
             {
                 assertEquals(YamlValue.ValueType.OBJECT, parser.getObject().getValueType());
             }
-            if (event.getValue() != null && event.getEventType() == YamlEvent.EventType.START_ARRAY)
+            if (event == YamlEvent.START_ARRAY)
             {
                 assertEquals(YamlValue.ValueType.ARRAY, parser.getArray().getValueType());
             }
-            if (event.getEventType() == YamlEvent.EventType.VALUE_NUMBER)
+            if (event == YamlEvent.VALUE_NUMBER)
             {
                 assertEquals(YamlScalarType.NUMBER, parser.getScalar().getType());
             }
@@ -708,11 +707,11 @@ class YamlTest
         assertEquals(yaml, generated.toString());
 
         YamlParser parser = Yaml.createParser(new StringReader(yaml));
-        assertEquals(YamlEvent.EventType.START_OBJECT, parser.next().getEventType());
+        assertEquals(YamlEvent.START_OBJECT, parser.next());
         YamlEvent key = parser.next();
-        assertEquals(YamlEvent.EventType.KEY_NAME, key.getEventType());
-        assertNull(key.getString());
-        assertEquals(YamlValue.ValueType.ARRAY, key.getValue().getValueType());
+        assertEquals(YamlEvent.KEY_NAME, key);
+        assertNull(parser.getString());
+        assertEquals(YamlValue.ValueType.ARRAY, parser.getValue().getValueType());
     }
 
     @Test
@@ -729,11 +728,11 @@ class YamlTest
         assertEquals(yaml, generated.toString());
 
         YamlParser parser = Yaml.createParser(new StringReader(yaml));
-        assertEquals(YamlEvent.EventType.START_OBJECT, parser.next().getEventType());
+        assertEquals(YamlEvent.START_OBJECT, parser.next());
         YamlEvent key = parser.next();
-        assertEquals(YamlEvent.EventType.KEY_NAME, key.getEventType());
-        assertNull(key.getString());
-        assertEquals(YamlValue.ValueType.ARRAY, key.getValue().getValueType());
+        assertEquals(YamlEvent.KEY_NAME, key);
+        assertNull(parser.getString());
+        assertEquals(YamlValue.ValueType.ARRAY, parser.getValue().getValueType());
     }
 
     @Test
@@ -990,15 +989,16 @@ class YamlTest
               : - value
                 -
             """));
-        assertEquals(YamlEvent.EventType.START_OBJECT, parser.next().getEventType());
-        assertEquals(YamlEvent.EventType.KEY_NAME, parser.next().getEventType());
-        assertEquals(YamlEvent.EventType.START_OBJECT, parser.next().getEventType());
+        assertEquals(YamlEvent.START_OBJECT, parser.next());
+        assertEquals(YamlEvent.KEY_NAME, parser.next());
+        assertEquals(YamlEvent.START_OBJECT, parser.next());
         YamlEvent key = parser.next();
-        assertEquals(YamlEvent.EventType.KEY_NAME, key.getEventType());
-        assertEquals(YamlValue.ValueType.ARRAY, key.getValue().getValueType());
-        assertEquals(YamlEvent.EventType.START_ARRAY, parser.next().getEventType());
-        assertEquals("value", parser.next().getString());
-        assertEquals(YamlEvent.EventType.VALUE_NULL, parser.next().getEventType());
+        assertEquals(YamlEvent.KEY_NAME, key);
+        assertEquals(YamlValue.ValueType.ARRAY, parser.getValue().getValueType());
+        assertEquals(YamlEvent.START_ARRAY, parser.next());
+        parser.next();
+        assertEquals("value", parser.getString());
+        assertEquals(YamlEvent.VALUE_NULL, parser.next());
     }
 
     @Test

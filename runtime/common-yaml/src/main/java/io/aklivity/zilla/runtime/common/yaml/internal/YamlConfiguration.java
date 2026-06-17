@@ -35,6 +35,11 @@ final class YamlConfiguration
         return config;
     }
 
+    boolean isDefault()
+    {
+        return config.isEmpty();
+    }
+
     boolean directives()
     {
         return enabled(YamlConfig.FEATURE_DIRECTIVES, true);
