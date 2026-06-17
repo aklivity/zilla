@@ -318,9 +318,9 @@ public class ProtobufParserTest
 
             if (parser.hasNext())
             {
-                int consumed = (int) (parser.position() - committed);
+                int consumed = (int) (parser.getLocation().position() - committed);
                 retained = Arrays.copyOfRange(feed, consumed, feed.length);
-                committed = parser.position();
+                committed = parser.getLocation().position();
             }
             else
             {
@@ -527,9 +527,9 @@ public class ProtobufParserTest
 
             if (parser.hasNext())
             {
-                int consumed = (int) (parser.position() - committed);
+                int consumed = (int) (parser.getLocation().position() - committed);
                 retained = Arrays.copyOfRange(feed, consumed, feed.length);
-                committed = parser.position();
+                committed = parser.getLocation().position();
             }
             else
             {

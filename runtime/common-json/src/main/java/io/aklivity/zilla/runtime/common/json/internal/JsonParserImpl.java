@@ -147,12 +147,6 @@ public final class JsonParserImpl implements JsonParserEx
     }
 
     @Override
-    public long position()
-    {
-        return tokenizer.streamOffset();
-    }
-
-    @Override
     public int remaining()
     {
         return (int)(frameEndStreamOffset - tokenizer.streamOffset());

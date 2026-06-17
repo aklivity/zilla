@@ -25,6 +25,7 @@ import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufEvent;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufException;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufField;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufLocation;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufMessage;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufParser;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSchema;
@@ -52,7 +53,7 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
  * into the value buffer — so no per-value {@code String}/{@code byte[]} is materialized (floats, enum names by
  * string, and {@code bytes} base64 still round-trip through a {@code String}).
  */
-public final class ProtobufJsonParserImpl implements ProtobufParser
+public final class ProtobufJsonParserImpl implements ProtobufParser, ProtobufLocation
 {
     private static final int ESTIMATE = 1 << 16;
 
@@ -171,6 +172,12 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
     public boolean hasNext()
     {
         return queueSize > 0 || !finished;
+    }
+
+    @Override
+    public ProtobufLocation getLocation()
+    {
+        return this;
     }
 
     @Override

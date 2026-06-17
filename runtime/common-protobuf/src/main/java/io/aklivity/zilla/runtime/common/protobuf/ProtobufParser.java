@@ -86,19 +86,11 @@ public interface ProtobufParser
     boolean hasNext();
 
     /**
-     * The number of input bytes committed since {@link #wrap} — always at a whole-unit boundary, never
-     * mid-primitive, mid-code-point, or mid-skip. When {@link #nextEvent(Mode)} returns {@code null}
-     * (starvation), everything at or after this position is the unconsumed tail: the driver retains those
-     * bytes and re-presents them, contiguous with the next window, via {@link #resume}. The cursor itself
-     * never copies or buffers input.
-     */
-    long position();
-
-    /**
      * The number of bytes at the tail of the current window not yet consumed — what the driver retains and
      * re-presents, contiguous, at the front of the next window via {@link #resume}. The window-relative peer
-     * of {@link #position()}: a driver buffering across windows keeps exactly this many bytes without tracking
-     * the window's absolute base. Reported at a whole-unit boundary; zero once the window is fully consumed.
+     * of the absolute {@code getLocation().position()}: a driver buffering across windows keeps exactly this
+     * many bytes without tracking the window's absolute base. Reported at a whole-unit boundary; zero once the
+     * window is fully consumed.
      */
     int remaining();
 
@@ -182,4 +174,9 @@ public interface ProtobufParser
         int sourceBytes)
     {
     }
+
+    /**
+     * @return the location of the current event within the message, for diagnostics
+     */
+    ProtobufLocation getLocation();
 }

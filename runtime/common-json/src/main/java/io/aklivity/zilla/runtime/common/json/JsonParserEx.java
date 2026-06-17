@@ -36,7 +36,7 @@ public interface JsonParserEx extends JsonParser
      * The window is also the fragmentation bound: a value that fits the window is delivered whole; a
      * value whose own bytes fill the window without completing is delivered as fragments — the same
      * structured event repeated with {@code deferredBytes()} {@code true} until the value completes.
-     * The caller carries any unconsumed tail (up to {@code position()}) into the next window, so a
+     * The caller carries any unconsumed tail ({@code remaining()} bytes) into the next window, so a
      * value that merely straddles a window boundary is reassembled whole. Consequently a single whole
      * {@code getString()} and {@code getInt()}/{@code getLong()} are valid only for a value that fits
      * one window; a larger value is read by accumulating {@code getString()} fragments (or splicing
@@ -69,18 +69,12 @@ public interface JsonParserEx extends JsonParser
     void reset();
 
     /**
-     * The number of input bytes committed since the document began — always at a whole-token boundary. On
-     * starvation (a window consumed before the value completes) everything at or after this position is the
-     * unconsumed tail the caller retains and re-presents, contiguous, in the next window.
-     */
-    long position();
-
-    /**
      * The number of bytes at the tail of the current window not yet consumed — what the caller retains and
-     * re-presents, contiguous, at the front of the next window. The window-relative peer of {@link #position()}:
-     * a caller buffering across windows keeps exactly this many bytes without tracking the window's absolute
-     * base. Reported at a whole-token boundary, so on starvation it is the length of the partial trailing unit
-     * (e.g. a multibyte character split across the window); zero once the window is fully consumed.
+     * re-presents, contiguous, at the front of the next window. The window-relative peer of the absolute
+     * {@code getLocation().getStreamOffset()}: a caller buffering across windows keeps exactly this many bytes
+     * without tracking the window's absolute base. Reported at a whole-token boundary, so on starvation it is
+     * the length of the partial trailing unit (e.g. a multibyte character split across the window); zero once
+     * the window is fully consumed.
      */
     int remaining();
 
@@ -147,10 +141,10 @@ public interface JsonParserEx extends JsonParser
     boolean deferredBytes();
 
     /**
-     * Reports {@code sourceBytes} source bytes consumed by a verbatim segment write so the parser advances its
-     * {@link #position()} and re-exposes the value remainder on resume — the output-side pushback that lets a
-     * terminal sink stream a length-delimited value without keeping its own offset. The default does nothing,
-     * for a parser whose values are never delivered in bounded pieces.
+     * Reports {@code sourceBytes} source bytes consumed by a verbatim segment write so the parser advances
+     * its {@code getLocation().getStreamOffset()} and re-exposes the value remainder on resume — the
+     * output-side pushback that lets a terminal sink stream a length-delimited value without keeping its own
+     * offset. The default does nothing, for a parser whose values are never delivered in bounded pieces.
      */
     default void consumed(
         int sourceBytes)

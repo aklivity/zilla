@@ -2091,12 +2091,6 @@ public final class JsonSchemaImpl implements JsonSchema
         }
 
         @Override
-        public long position()
-        {
-            return delegateEx.position();
-        }
-
-        @Override
         public int remaining()
         {
             return delegateEx.remaining();

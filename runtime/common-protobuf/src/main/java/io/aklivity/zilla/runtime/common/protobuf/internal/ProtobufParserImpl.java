@@ -23,6 +23,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufEvent;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufException;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufField;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufLocation;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufMessage;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufParser;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSchema;
@@ -50,7 +51,7 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
  * window swap; when a window is exhausted before the message completes, {@link #nextEvent} rewinds to the
  * last unit boundary, stashes the partial unit as carry, and returns {@code null} to signal starvation.
  */
-public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
+public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource, ProtobufLocation
 {
     private static final int MAX_DEPTH = 64;
 
@@ -132,6 +133,12 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
     public boolean hasNext()
     {
         return !done;
+    }
+
+    @Override
+    public ProtobufLocation getLocation()
+    {
+        return this;
     }
 
     @Override
