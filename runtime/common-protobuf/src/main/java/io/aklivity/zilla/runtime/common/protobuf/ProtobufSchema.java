@@ -14,7 +14,10 @@
  */
 package io.aklivity.zilla.runtime.common.protobuf;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.agrona.DirectBuffer;
@@ -33,13 +36,101 @@ public final class ProtobufSchema
 {
     private final Map<String, ProtobufMessage> messages;
     private final Map<String, ProtobufEnum> enums;
+    private final Map<String, int[]> indexesByRecord;
+    private final Map<String, ProtobufMessage> messageByIndexes;
 
     private ProtobufSchema(
         Map<String, ProtobufMessage> messages,
-        Map<String, ProtobufEnum> enums)
+        Map<String, ProtobufEnum> enums,
+        List<ProtobufMessage> ordered)
     {
         this.messages = messages;
         this.enums = enums;
+        this.indexesByRecord = new LinkedHashMap<>();
+        this.messageByIndexes = new LinkedHashMap<>();
+        index(ordered);
+    }
+
+    /**
+     * The schema-registry message-index path (declaration-order indices from the file's top-level
+     * messages down through nested types, synthetic {@code map_entry} messages ordered after explicit
+     * nested types as {@code protoc} emits them) for the message named {@code record} — accepted either
+     * as a package-relative dotted name (e.g. {@code Outer.Inner}) or as a dotless full name. Returns
+     * {@code null} when no such message exists.
+     */
+    public int[] messageIndexes(
+        String record)
+    {
+        int[] indexes = indexesByRecord.get(record);
+        return indexes != null ? indexes.clone() : null;
+    }
+
+    /**
+     * The message at the given schema-registry message-index path, or {@code null} when the path does
+     * not resolve to a message in this schema.
+     */
+    public ProtobufMessage messageByIndexes(
+        int[] indexes)
+    {
+        return indexes != null ? messageByIndexes.get(Arrays.toString(indexes)) : null;
+    }
+
+    private void index(
+        List<ProtobufMessage> ordered)
+    {
+        Map<String, List<ProtobufMessage>> childrenOf = new LinkedHashMap<>();
+        List<ProtobufMessage> roots = new ArrayList<>();
+        for (ProtobufMessage message : ordered)
+        {
+            int dot = message.name().lastIndexOf('.');
+            String parent = dot < 0 ? null : message.name().substring(0, dot);
+            if (parent != null && messages.containsKey(parent))
+            {
+                childrenOf.computeIfAbsent(parent, k -> new ArrayList<>()).add(message);
+            }
+            else
+            {
+                roots.add(message);
+            }
+        }
+        index(roots, new int[0], "", childrenOf);
+    }
+
+    private void index(
+        List<ProtobufMessage> siblings,
+        int[] prefix,
+        String simplePrefix,
+        Map<String, List<ProtobufMessage>> childrenOf)
+    {
+        List<ProtobufMessage> sorted = new ArrayList<>(siblings.size());
+        for (ProtobufMessage sibling : siblings)
+        {
+            if (!sibling.mapEntry())
+            {
+                sorted.add(sibling);
+            }
+        }
+        for (ProtobufMessage sibling : siblings)
+        {
+            if (sibling.mapEntry())
+            {
+                sorted.add(sibling);
+            }
+        }
+
+        for (int i = 0; i < sorted.size(); i++)
+        {
+            ProtobufMessage message = sorted.get(i);
+            int[] path = Arrays.copyOf(prefix, prefix.length + 1);
+            path[prefix.length] = i;
+            int dot = message.name().lastIndexOf('.');
+            String simpleName = dot < 0 ? message.name() : message.name().substring(dot + 1);
+            String simplePath = simplePrefix.isEmpty() ? simpleName : simplePrefix + "." + simpleName;
+            indexesByRecord.put(message.name(), path);
+            indexesByRecord.put(simplePath, path);
+            messageByIndexes.put(Arrays.toString(path), message);
+            index(childrenOf.getOrDefault(message.name(), List.of()), path, simplePath, childrenOf);
+        }
     }
 
     public ProtobufMessage message(
@@ -156,7 +247,7 @@ public final class ProtobufSchema
                     }
                 }
             }
-            return new ProtobufSchema(resolvedMessages, resolvedEnums);
+            return new ProtobufSchema(resolvedMessages, resolvedEnums, new ArrayList<>(messages.values()));
         }
     }
 }

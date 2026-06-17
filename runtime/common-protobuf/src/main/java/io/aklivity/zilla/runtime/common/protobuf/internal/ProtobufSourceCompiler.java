@@ -45,7 +45,7 @@ import io.aklivity.zilla.runtime.common.protobuf.internal.parser.Protobuf3Parser
 
 /**
  * Compiles {@code .proto} source text into a {@link ProtobufSchema}, decoded with this library's own
- * ANTLR grammars so there is no {@code protobuf-java} dependency. A single file is parsed (proto2 or
+ * ANTLR grammars so there is no third-party protobuf dependency. A single file is parsed (proto2 or
  * proto3, detected from its {@code syntax} statement); composite field type references are resolved
  * by the proto scoping rules (innermost enclosing scope outward) to the dotless full names this model
  * keys on, and {@code map} fields are expanded into the synthetic {@code map_entry} message and a
@@ -178,6 +178,10 @@ public final class ProtobufSourceCompiler
         {
             builder.oneof(field.oneofName);
         }
+        if (field.defaultValue != null)
+        {
+            builder.defaultValue(field.defaultValue);
+        }
         boolean packed = field.packed != null
             ? field.packed
             : proto3 && field.repeated && type.packable();
@@ -303,6 +307,7 @@ public final class ProtobufSourceCompiler
         private Boolean packed;
         private String jsonName;
         private String oneofName;
+        private String defaultValue;
         private Set<String> enumNames;
     }
 
@@ -354,13 +359,13 @@ public final class ProtobufSourceCompiler
             DraftMessage message = new DraftMessage(qualify(name), false);
             draft.messages.add(message);
             messages.push(message);
-            scope.push(name);
+            scope.addLast(name);
         }
 
         private void exitMessage()
         {
             messages.pop();
-            scope.pop();
+            scope.removeLast();
         }
 
         private void addEnum(
@@ -554,6 +559,10 @@ public final class ProtobufSourceCompiler
                     {
                         field.jsonName = stripQuotes(value);
                     }
+                    else if ("default".equals(name))
+                    {
+                        field.defaultValue = stripQuotes(value);
+                    }
                 }
             }
         }
@@ -689,6 +698,10 @@ public final class ProtobufSourceCompiler
                     else if ("json_name".equals(name))
                     {
                         field.jsonName = stripQuotes(value);
+                    }
+                    else if ("default".equals(name))
+                    {
+                        field.defaultValue = stripQuotes(value);
                     }
                 }
             }
