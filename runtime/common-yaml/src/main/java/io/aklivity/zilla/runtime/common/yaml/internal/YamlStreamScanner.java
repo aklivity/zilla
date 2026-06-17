@@ -3358,7 +3358,7 @@ public final class YamlStreamScanner
                 blockIndent = indent;
             }
             else if (value != '{' && value != '[' && !(raw && (value == '&' || value == '*' || value == '!')) &&
-                !isCompactSequence(valueStart, end) &&
+                !isCompactSequence(valueStart, end) && !questionPlainStart(valueStart, end) &&
                 (blockedStart(value) || mappingColon(valueStart, end) != -1))
             {
                 throw BAIL;
