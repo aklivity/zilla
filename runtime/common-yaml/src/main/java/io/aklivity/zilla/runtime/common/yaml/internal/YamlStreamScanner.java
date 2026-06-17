@@ -763,7 +763,7 @@ public final class YamlStreamScanner
             }
             else if (isCompactSequence(valueStart, valueEnd))
             {
-                scanCompactSequence(valueStart, valueEnd, indent, valueLine);
+                scanCompactSequence(valueStart, valueEnd, indent + 2, valueLine);
             }
             else
             {
@@ -858,7 +858,7 @@ public final class YamlStreamScanner
         }
         else if (isCompactSequence(valueStart, end))
         {
-            scanCompactSequence(valueStart, end, indent, line);
+            scanCompactSequence(valueStart, end, indent + 2, line);
         }
         else
         {
@@ -990,7 +990,9 @@ public final class YamlStreamScanner
             else if (isCompactSequence(itemAt, end))
             {
                 cursor++;
-                scanCompactSequence(itemAt, end, indent, line);
+                // a compact sequence item nests at the column of its inline - indicator (mirroring the eager
+                // parser's line.indent + itemAt), which may exceed indent + 2 when extra spaces or a tab follow
+                scanCompactSequence(itemAt, end, itemAt - lineStart[line], line);
             }
             else if (mappingColon(itemAt, end) != -1)
             {
@@ -1078,19 +1080,19 @@ public final class YamlStreamScanner
     /**
      * A compact sequence value ({@code key: - a} or a sequence item {@code - - a}) — mirrors
      * {@code YamlDocumentParser.parseCompactSequenceValue}. The single inline element opened by the {@code -}
-     * is parsed in place (no cursor movement), then following sequence items indented at {@code indent + 2}
+     * is parsed in place (no cursor movement), then following sequence items indented at {@code seqIndent}
      * extend it. The caller has already advanced the cursor past the opening line.
      */
     private void scanCompactSequence(
         int seqStart,
         int end,
-        int indent,
+        int seqIndent,
         int line)
     {
         emit(START_ARRAY, seqStart, 0, null);
         int elemStart = skipSpace(seqStart + 1, end);
-        scanCompactNode(elemStart, end, indent + 2, line);
-        scanSequenceItems(indent + 2);
+        scanCompactNode(elemStart, end, seqIndent, line);
+        scanSequenceItems(seqIndent);
         emit(END_ARRAY, seqStart, 0, null);
     }
 
