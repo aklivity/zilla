@@ -14,9 +14,12 @@
  */
 package io.aklivity.zilla.runtime.common.yaml.internal.json;
 
+import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import jakarta.json.stream.JsonParsingException;
 
@@ -36,6 +39,20 @@ import io.aklivity.zilla.runtime.common.yaml.internal.YamlStreamScanner;
  */
 final class YamlJsonResolver
 {
+    private static final String STR_TAG = "tag:yaml.org,2002:str";
+    private static final String INT_TAG = "tag:yaml.org,2002:int";
+    private static final String FLOAT_TAG = "tag:yaml.org,2002:float";
+    private static final String BOOL_TAG = "tag:yaml.org,2002:bool";
+    private static final String NULL_TAG = "tag:yaml.org,2002:null";
+    private static final String MAP_TAG = "tag:yaml.org,2002:map";
+    private static final String SEQ_TAG = "tag:yaml.org,2002:seq";
+    private static final String NON_SPECIFIC_TAG = "!";
+
+    private static final Pattern HEX_INTEGER_PATTERN = Pattern.compile("-?0x[0-9a-fA-F]+");
+    private static final Pattern INTEGER_PATTERN = Pattern.compile("-?(?:0|[1-9][0-9]*)");
+    private static final Pattern FLOAT_PATTERN = Pattern.compile(
+        "-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?:[eE][+-]?[0-9]+)|-?(?:0|[1-9][0-9]*)\\.[0-9]+");
+
     private final YamlStreamScanner scanner;
     private final Map<String, int[]> anchors;
 
@@ -101,22 +118,33 @@ final class YamlJsonResolver
     private void emitValue()
     {
         int at = cursor;
-        if (scanner.tag(at) != null)
-        {
-            throw new Unsupported();
-        }
-
+        String tag = scanner.tag(at);
         String anchor = scanner.anchor(at);
         int start = count;
         byte kind = scanner.kind(at);
         switch (kind)
         {
-        case YamlStreamScanner.ALIAS -> emitAlias(at);
-        case YamlStreamScanner.START_OBJECT -> emitObject(at);
-        case YamlStreamScanner.START_ARRAY -> emitArray(at);
+        case YamlStreamScanner.ALIAS ->
+        {
+            if (tag != null)
+            {
+                throw new Unsupported();
+            }
+            emitAlias(at);
+        }
+        case YamlStreamScanner.START_OBJECT ->
+        {
+            requireContainerTag(tag, kind);
+            emitObject(at);
+        }
+        case YamlStreamScanner.START_ARRAY ->
+        {
+            requireContainerTag(tag, kind);
+            emitArray(at);
+        }
         default ->
         {
-            append(kind, scalarValue(kind, at), at);
+            emitScalar(kind, at, tag);
             cursor++;
         }
         }
@@ -125,6 +153,142 @@ final class YamlJsonResolver
         {
             anchors.put(anchor, new int[] {start, count});
         }
+    }
+
+    private void emitScalar(
+        byte kind,
+        int at,
+        String tag)
+    {
+        if (tag == null)
+        {
+            append(kind, scalarValue(kind, at), at);
+        }
+        else
+        {
+            String text = scalarText(kind, at);
+            switch (tag)
+            {
+            case STR_TAG, NON_SPECIFIC_TAG -> append(YamlStreamScanner.VALUE_STRING, text, at);
+            case NULL_TAG -> append(YamlStreamScanner.VALUE_NULL, null, at);
+            case BOOL_TAG -> emitBool(text, at);
+            case INT_TAG -> emitInteger(text, at);
+            case FLOAT_TAG -> emitFloat(text, at);
+            default ->
+            {
+                if (MAP_TAG.equals(tag) || SEQ_TAG.equals(tag))
+                {
+                    throw new Unsupported();
+                }
+                append(kind, scalarValue(kind, at), at);
+            }
+            }
+        }
+    }
+
+    private void emitBool(
+        String text,
+        int at)
+    {
+        String lower = text.toLowerCase(Locale.ROOT);
+        if ("true".equals(lower))
+        {
+            append(YamlStreamScanner.VALUE_TRUE, null, at);
+        }
+        else if ("false".equals(lower))
+        {
+            append(YamlStreamScanner.VALUE_FALSE, null, at);
+        }
+        else
+        {
+            throw new Unsupported();
+        }
+    }
+
+    private void emitInteger(
+        String text,
+        int at)
+    {
+        if (HEX_INTEGER_PATTERN.matcher(text).matches() || INTEGER_PATTERN.matcher(text).matches())
+        {
+            append(YamlStreamScanner.VALUE_NUMBER, numberText(text), at);
+        }
+        else
+        {
+            throw new Unsupported();
+        }
+    }
+
+    private void emitFloat(
+        String text,
+        int at)
+    {
+        if (!nonFinite(text) && (FLOAT_PATTERN.matcher(text).matches() || INTEGER_PATTERN.matcher(text).matches()))
+        {
+            append(YamlStreamScanner.VALUE_NUMBER, text, at);
+        }
+        else
+        {
+            throw new Unsupported();
+        }
+    }
+
+    private void requireContainerTag(
+        String tag,
+        byte kind)
+    {
+        if (tag != null)
+        {
+            boolean supported = switch (tag)
+            {
+            case MAP_TAG -> kind == YamlStreamScanner.START_OBJECT;
+            case SEQ_TAG -> kind == YamlStreamScanner.START_ARRAY;
+            case STR_TAG, INT_TAG, FLOAT_TAG, BOOL_TAG, NULL_TAG, NON_SPECIFIC_TAG -> false;
+            default -> true;
+            };
+            if (!supported)
+            {
+                throw new Unsupported();
+            }
+        }
+    }
+
+    private String scalarText(
+        byte kind,
+        int at)
+    {
+        return switch (kind)
+        {
+        case YamlStreamScanner.VALUE_STRING, YamlStreamScanner.VALUE_NUMBER -> scanner.string(at);
+        case YamlStreamScanner.VALUE_TRUE -> "true";
+        case YamlStreamScanner.VALUE_FALSE -> "false";
+        default -> "";
+        };
+    }
+
+    private static String numberText(
+        String text)
+    {
+        boolean negative = text.startsWith("-");
+        String scalar = negative ? text.substring(1) : text;
+        String result;
+        if (scalar.startsWith("0x"))
+        {
+            String value = new BigInteger(scalar.substring(2), 16).toString();
+            result = negative ? "-" + value : value;
+        }
+        else
+        {
+            result = text;
+        }
+        return result;
+    }
+
+    private static boolean nonFinite(
+        String text)
+    {
+        String lower = text.toLowerCase(Locale.ROOT);
+        return ".nan".equals(lower) || ".inf".equals(lower) || "+.inf".equals(lower) || "-.inf".equals(lower);
     }
 
     private void emitAlias(

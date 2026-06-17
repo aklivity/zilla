@@ -119,10 +119,38 @@ class YamlJsonResolverTest
     }
 
     @Test
-    void shouldBailToEagerOnTags()
+    void shouldCoerceJsonSchemaTags()
     {
         YamlStreamScanner scanner = new YamlStreamScanner();
-        assertTrue(scanner.scan("typed: !!str 42\n", true));
+        assertTrue(scanner.scan("""
+            s: !!str 42
+            i: !!int "0x10"
+            f: !!float "1.5"
+            b: !!bool true
+            n: !!null ~
+            """, true));
+
+        YamlJsonResolver resolver = new YamlJsonResolver(scanner);
+        assertEquals(List.of(
+            "START_OBJECT",
+            "KEY_NAME:s",
+            "VALUE_STRING:42",
+            "KEY_NAME:i",
+            "VALUE_NUMBER:16",
+            "KEY_NAME:f",
+            "VALUE_NUMBER:1.5",
+            "KEY_NAME:b",
+            "VALUE_TRUE",
+            "KEY_NAME:n",
+            "VALUE_NULL",
+            "END_OBJECT"), project(resolver));
+    }
+
+    @Test
+    void shouldBailToEagerOnContainerTagMismatch()
+    {
+        YamlStreamScanner scanner = new YamlStreamScanner();
+        assertTrue(scanner.scan("x: !!seq foo\n", true));
         assertThrows(YamlJsonResolver.Unsupported.class, () -> new YamlJsonResolver(scanner));
     }
 
