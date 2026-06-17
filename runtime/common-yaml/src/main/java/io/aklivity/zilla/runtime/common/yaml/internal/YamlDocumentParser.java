@@ -564,10 +564,6 @@ public final class YamlDocumentParser
         attachComments(value, line);
         storeAnchor(spec.anchor, value, line);
 
-        if ("<<".equals(key) && !config.mergeKeys())
-        {
-            throw error("YAML merge keys are disabled", line);
-        }
         object.add(new YamlEntry(key, value, line.line, line.column, line.offset));
     }
 
@@ -1269,26 +1265,6 @@ public final class YamlDocumentParser
         return new KeySpec(spec.value, null);
     }
 
-    static void mergeObject(
-        YamlObjectNode target,
-        YamlObjectNode source)
-    {
-        for (YamlEntry entry : source.entries)
-        {
-            if (entry.name != null && !containsKey(target, entry.name))
-            {
-                target.add(new YamlEntry(entry.name, copy(entry.value), entry.line, entry.column, entry.offset, true));
-            }
-        }
-    }
-
-    static boolean containsKey(
-        YamlObjectNode object,
-        String name)
-    {
-        return object.entries.stream().anyMatch(e -> name.equals(e.name));
-    }
-
     private YamlNode applyTag(
         YamlNode value,
         String tag,
@@ -1409,7 +1385,7 @@ public final class YamlDocumentParser
         {
             copy.add(entry.key != null ?
                 new YamlEntry(copy(entry.key), copy(entry.value), entry.line, entry.column, entry.offset) :
-                new YamlEntry(entry.name, copy(entry.value), entry.line, entry.column, entry.offset, entry.merged));
+                new YamlEntry(entry.name, copy(entry.value), entry.line, entry.column, entry.offset));
         }
         return copy;
     }
@@ -2632,10 +2608,6 @@ public final class YamlDocumentParser
                 YamlNode value = cursor < text.length() && (text.charAt(cursor) == ',' || text.charAt(cursor) == '}') ?
                     YamlScalarNode.literal(YamlScalarType.NULL, line.line, line.column + cursor, line.offset + cursor) :
                     parseValue();
-                if ("<<".equals(key.name) && !config.mergeKeys())
-                {
-                    throw error("YAML merge keys are disabled", line);
-                }
                 object.add(key.key != null ?
                     new YamlEntry(key.key, value, line.line, line.column + cursor, line.offset + cursor) :
                     new YamlEntry(key.name, value, line.line, line.column + cursor, line.offset + cursor));

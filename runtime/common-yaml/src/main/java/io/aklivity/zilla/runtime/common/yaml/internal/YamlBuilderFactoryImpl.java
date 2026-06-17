@@ -54,7 +54,7 @@ public final class YamlBuilderFactoryImpl implements YamlBuilderFactory
         {
             builder.object.add(entry.key != null ?
                 new YamlEntry(entry.key, entry.value, entry.line, entry.column, entry.offset) :
-                new YamlEntry(entry.name, entry.value, entry.line, entry.column, entry.offset, entry.merged));
+                new YamlEntry(entry.name, entry.value, entry.line, entry.column, entry.offset));
         }
         return builder;
     }

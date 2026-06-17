@@ -576,10 +576,6 @@ public final class YamlEmitter
     {
         for (YamlEntry entry : object.entries)
         {
-            if (!config.mergeKeys() && entry.merged)
-            {
-                throw new IllegalStateException("YAML merge keys are disabled");
-            }
             if (!config.nonScalarKeys() && entry.key != null)
             {
                 throw new IllegalStateException("YAML non-scalar keys are disabled");

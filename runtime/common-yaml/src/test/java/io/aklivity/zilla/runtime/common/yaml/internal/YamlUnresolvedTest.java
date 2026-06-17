@@ -66,8 +66,11 @@ class YamlUnresolvedTest
             YamlReferences.resolve(YamlDocumentParser.parse(DOCUMENT, RAW).node, Map.of());
 
         YamlObjectNode use = (YamlObjectNode) entry(root, "use").value;
-        assertNull(entry(use, "<<"), "merge key consumed when resolved");
-        assertNotNull(entry(use, "host"), "merge applied when resolved");
+        YamlEntry merge = entry(use, "<<");
+        assertNotNull(merge, "merge key retained as a literal key (not in JSON Schema)");
+        YamlObjectNode merged = (YamlObjectNode) merge.value;
+        assertNotNull(entry(merged, "host"), "alias still expanded under the literal merge key");
+        assertNull(entry(use, "host"), "merge not flattened into the parent");
         assertNotNull(entry(use, "port"));
 
         YamlScalarNode typed = (YamlScalarNode) entry(root, "typed").value;

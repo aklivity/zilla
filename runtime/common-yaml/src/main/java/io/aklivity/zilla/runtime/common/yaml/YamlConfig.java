@@ -22,7 +22,6 @@ public final class YamlConfig
     public static final String FEATURE_FLOW_COLLECTIONS = "io.aklivity.zilla.yaml.feature.flow.collections";
     public static final String FEATURE_ANCHORS = "io.aklivity.zilla.yaml.feature.anchors";
     public static final String FEATURE_ALIASES = "io.aklivity.zilla.yaml.feature.aliases";
-    public static final String FEATURE_MERGE_KEYS = "io.aklivity.zilla.yaml.feature.merge.keys";
     public static final String FEATURE_TAGS = "io.aklivity.zilla.yaml.feature.tags";
     public static final String FEATURE_COMMENTS = "io.aklivity.zilla.yaml.feature.comments";
     public static final String FEATURE_NON_SCALAR_KEYS = "io.aklivity.zilla.yaml.feature.non.scalar.keys";

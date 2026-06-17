@@ -70,11 +70,6 @@ final class YamlConfiguration
         return enabled(YamlConfig.FEATURE_ALIASES, true);
     }
 
-    boolean mergeKeys()
-    {
-        return enabled(YamlConfig.FEATURE_MERGE_KEYS, true);
-    }
-
     boolean tags()
     {
         return enabled(YamlConfig.FEATURE_TAGS, true);

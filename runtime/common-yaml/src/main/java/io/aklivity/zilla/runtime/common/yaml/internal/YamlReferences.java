@@ -22,9 +22,10 @@ import java.util.regex.Pattern;
 
 /**
  * Resolves a raw (unresolved) parse tree into a resolved one: dereferences aliases against the
- * anchors declared earlier in document order, applies {@code <<} merge keys, and coerces tags.
- * This is the compose/construct pass extracted out of {@link YamlDocumentParser}'s inline
- * resolved mode so that the parse layer can stay reference-neutral.
+ * anchors declared earlier in document order and coerces tags. Merge keys ({@code <<}) are not
+ * part of the YAML 1.2 JSON Schema and are treated as ordinary mapping keys. This is the
+ * compose/construct pass extracted out of {@link YamlDocumentParser}'s inline resolved mode so
+ * that the parse layer can stay reference-neutral.
  */
 public final class YamlReferences
 {
@@ -120,30 +121,12 @@ public final class YamlReferences
         result.leadingComments = object.leadingComments;
         result.lineComment = object.lineComment;
 
-        boolean flow = "flow".equals(object.style);
         for (YamlEntry entry : object.entries)
         {
             YamlNode value = resolveNode(entry.value);
-            if (entry.name != null && "<<".equals(entry.name))
-            {
-                if (!config.mergeKeys())
-                {
-                    throw error("YAML merge keys are disabled", entry.value);
-                }
-                merge(result, value);
-            }
-            else if (entry.key != null)
-            {
-                result.add(new YamlEntry(resolveNode(entry.key), value, entry.line, entry.column, entry.offset));
-            }
-            else
-            {
-                if (!flow)
-                {
-                    result.removeMerged(entry.name);
-                }
-                result.add(new YamlEntry(entry.name, value, entry.line, entry.column, entry.offset));
-            }
+            result.add(entry.key != null ?
+                new YamlEntry(resolveNode(entry.key), value, entry.line, entry.column, entry.offset) :
+                new YamlEntry(entry.name, value, entry.line, entry.column, entry.offset));
         }
         return result;
     }
@@ -161,31 +144,6 @@ public final class YamlReferences
             result.add(resolveNode(value));
         }
         return result;
-    }
-
-    private void merge(
-        YamlObjectNode target,
-        YamlNode value)
-    {
-        if (value instanceof YamlObjectNode object)
-        {
-            YamlDocumentParser.mergeObject(target, object);
-        }
-        else if (value instanceof YamlArrayNode array)
-        {
-            for (YamlNode element : array.values)
-            {
-                if (!(element instanceof YamlObjectNode object))
-                {
-                    throw error("Merge aliases must resolve to objects", value);
-                }
-                YamlDocumentParser.mergeObject(target, object);
-            }
-        }
-        else
-        {
-            throw error("Merge aliases must resolve to objects", value);
-        }
     }
 
     private YamlNode applyTag(

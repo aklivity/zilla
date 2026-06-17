@@ -134,12 +134,6 @@ class YamlTest
         assertFeatureDisabled(YamlConfig.FEATURE_FLOW_COLLECTIONS, "items: [one, two]\n");
         assertFeatureDisabled(YamlConfig.FEATURE_ANCHORS, "value: &value test\n");
         assertFeatureDisabled(YamlConfig.FEATURE_ALIASES, "value: &value test\nalias: *value\n");
-        assertFeatureDisabled(YamlConfig.FEATURE_MERGE_KEYS, """
-            defaults: &defaults
-              name: test
-            item:
-              <<: *defaults
-            """);
         assertFeatureDisabled(YamlConfig.FEATURE_TAGS, "value: !!str 42\n");
         assertFeatureDisabled(YamlConfig.FEATURE_COMMENTS, "name: test # comment\n");
         assertFeatureDisabled(YamlConfig.FEATURE_NON_SCALAR_KEYS, "? [a, b]\n: value\n");
@@ -214,12 +208,6 @@ class YamlTest
         assertGeneratorFeatureDisabled(YamlConfig.FEATURE_FLOW_COLLECTIONS, "items: [one, two]\n");
         assertGeneratorFeatureDisabled(YamlConfig.FEATURE_ANCHORS, "value: &value test\n");
         assertGeneratorFeatureDisabled(YamlConfig.FEATURE_ALIASES, "value: &value test\nalias: *value\n");
-        assertGeneratorFeatureDisabled(YamlConfig.FEATURE_MERGE_KEYS, """
-            defaults: &defaults
-              name: test
-            item:
-              <<: *defaults
-            """);
         assertGeneratorFeatureDisabled(YamlConfig.FEATURE_TAGS, "value: !!str 42\n");
         assertGeneratorFeatureDisabled(YamlConfig.FEATURE_COMMENTS, "name: test # comment\n");
         assertGeneratorFeatureDisabled(YamlConfig.FEATURE_NON_SCALAR_KEYS, "? [a, b]\n: value\n");
@@ -652,7 +640,8 @@ class YamlTest
             typed: !!str 42
             """)).readObject();
 
-        assertEquals("localhost", object.getObject("use").getString("host"));
+        // merge key is not in the YAML 1.2 JSON Schema; "<<" is a literal key holding the resolved alias
+        assertEquals("localhost", object.getObject("use").getObject("<<").getString("host"));
         assertEquals(YamlScalarType.STRING, object.getScalar("typed").getType());
     }
 
@@ -944,82 +933,6 @@ class YamlTest
     }
 
     @Test
-    void shouldResolveNativeMergePrecedenceAndExplicitOverrides()
-    {
-        YamlObject object = Yaml.createReaderFactory(Map.of(YamlConfig.PRESERVE_SOURCE, false))
-            .createReader(new StringReader("""
-            base: &base
-              host: localhost
-              port: 7114
-              nested:
-                base: true
-            tls: &tls
-              port: 443
-              secure: true
-              nested:
-                tls: true
-            route:
-              <<: [*base, *tls]
-              host: example.com
-              nested:
-                route: true
-            """))
-            .readObject();
-
-        YamlObject route = object.getObject("route");
-        assertEquals("example.com", route.getString("host"));
-        assertEquals(7114, route.getInt("port"));
-        assertTrue(route.getBoolean("secure"));
-        assertTrue(route.getObject("nested").getBoolean("route"));
-        assertFalse(route.getObject("nested").containsKey("base"));
-        assertFalse(route.getObject("nested").containsKey("tls"));
-
-        StringWriter generated = new StringWriter();
-        Yaml.createWriterFactory(Map.of(YamlConfig.PRESERVE_SOURCE, false))
-            .createWriter(generated)
-            .writeObject(object);
-
-        assertEquals("""
-            base:
-              host: localhost
-              port: 7114
-              nested:
-                base: true
-            tls:
-              port: 443
-              secure: true
-              nested:
-                tls: true
-            route:
-              port: 7114
-              secure: true
-              host: example.com
-              nested:
-                route: true
-            """, generated.toString());
-    }
-
-    @Test
-    void shouldResolveNativeSequenceOfMergeAliases()
-    {
-        YamlObject object = Yaml.createReader(new StringReader("""
-            one: &one
-              first: true
-              shared: one
-            two: &two
-              second: true
-              shared: two
-            route:
-              <<: [*one, *two]
-            """)).readObject();
-
-        YamlObject route = object.getObject("route");
-        assertTrue(route.getBoolean("first"));
-        assertTrue(route.getBoolean("second"));
-        assertEquals("one", route.getString("shared"));
-    }
-
-    @Test
     void shouldParseNativeAnchoredValuesAndCompactSequences()
     {
         YamlValue anchored = Yaml.createReader(new StringReader("""
@@ -1128,21 +1041,9 @@ class YamlTest
     }
 
     @Test
-    void shouldRejectInvalidNativeAliasAndMergeDocuments()
+    void shouldRejectInvalidNativeAliasDocuments()
     {
         assertThrows(RuntimeException.class, () -> Yaml.createReader(new StringReader("value: *missing\n")).readValue());
-        assertThrows(RuntimeException.class, () -> Yaml.createReader(new StringReader("""
-            defaults: &defaults scalar
-            route:
-              <<: *defaults
-            """)).readValue());
-        assertThrows(RuntimeException.class, () -> Yaml.createReader(new StringReader("""
-            defaults: &defaults
-              - name: one
-              - two
-            route:
-              <<: *defaults
-            """)).readValue());
     }
 
     @Test

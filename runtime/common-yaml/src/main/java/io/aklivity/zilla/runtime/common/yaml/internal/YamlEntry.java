@@ -22,7 +22,6 @@ public final class YamlEntry
     public final int line;
     public final int column;
     public final long offset;
-    public final boolean merged;
 
     public YamlEntry(
         String name,
@@ -31,18 +30,7 @@ public final class YamlEntry
         int column,
         long offset)
     {
-        this(name, value, line, column, offset, false);
-    }
-
-    public YamlEntry(
-        String name,
-        YamlNode value,
-        int line,
-        int column,
-        long offset,
-        boolean merged)
-    {
-        this(name, null, value, line, column, offset, merged);
+        this(name, null, value, line, column, offset);
     }
 
     public YamlEntry(
@@ -52,7 +40,7 @@ public final class YamlEntry
         int column,
         long offset)
     {
-        this(null, key, value, line, column, offset, false);
+        this(null, key, value, line, column, offset);
     }
 
     private YamlEntry(
@@ -61,8 +49,7 @@ public final class YamlEntry
         YamlNode value,
         int line,
         int column,
-        long offset,
-        boolean merged)
+        long offset)
     {
         this.name = name;
         this.key = key;
@@ -70,6 +57,5 @@ public final class YamlEntry
         this.line = line;
         this.column = column;
         this.offset = offset;
-        this.merged = merged;
     }
 }
