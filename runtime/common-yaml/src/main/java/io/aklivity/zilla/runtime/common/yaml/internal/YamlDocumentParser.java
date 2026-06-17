@@ -3151,6 +3151,12 @@ public final class YamlDocumentParser
             {
                 throw error("YAML aliases are disabled", line);
             }
+            if (!config.resolveReferences())
+            {
+                YamlNode reference = YamlScalarNode.literal(YamlScalarType.NULL, line.line, line.column, line.offset);
+                reference.alias = alias;
+                return reference;
+            }
             YamlNode value = anchors.get(alias);
             if (value == null)
             {

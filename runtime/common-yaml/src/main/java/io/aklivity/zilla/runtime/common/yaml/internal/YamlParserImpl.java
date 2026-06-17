@@ -248,13 +248,15 @@ public final class YamlParserImpl implements YamlParser
     @Override
     public String getAnchor()
     {
-        return scanner == null && currentNode != null ? currentNode.anchor : null;
+        return scanner != null ? scanCurrent < 0 ? null : scanner.anchor(scanCurrent) :
+            currentNode != null ? currentNode.anchor : null;
     }
 
     @Override
     public String getAlias()
     {
-        return scanner == null && currentNode != null ? currentNode.alias : null;
+        return scanner != null ? scanCurrent < 0 ? null : scanner.alias(scanCurrent) :
+            currentNode != null ? currentNode.alias : null;
     }
 
     @Override
@@ -287,7 +289,7 @@ public final class YamlParserImpl implements YamlParser
         if (config == null || config.isDefault())
         {
             YamlStreamScanner streamScanner = new YamlStreamScanner();
-            if (streamScanner.scan(text))
+            if (streamScanner.scan(text, true))
             {
                 candidate = streamScanner;
             }
@@ -310,6 +312,7 @@ public final class YamlParserImpl implements YamlParser
         case YamlStreamScanner.VALUE_TRUE -> YamlEvent.VALUE_TRUE;
         case YamlStreamScanner.VALUE_FALSE -> YamlEvent.VALUE_FALSE;
         case YamlStreamScanner.VALUE_NULL -> YamlEvent.VALUE_NULL;
+        case YamlStreamScanner.ALIAS -> YamlEvent.ALIAS;
         default -> throw new IllegalStateException("Unexpected scanner event: " + kind);
         };
     }
@@ -333,6 +336,15 @@ public final class YamlParserImpl implements YamlParser
             value = YamlValues.wrap(buildNode());
         }
         return value;
+    }
+
+    private YamlNode buildAlias()
+    {
+        YamlScalarNode marker = YamlScalarNode.literal(YamlScalarType.NULL,
+            scanner.line(buildCursor), scanner.column(buildCursor), scanner.offset(buildCursor));
+        marker.alias = scanner.alias(buildCursor);
+        buildCursor++;
+        return marker;
     }
 
     private YamlNode buildNode()
@@ -391,6 +403,7 @@ public final class YamlParserImpl implements YamlParser
             node = YamlScalarNode.literal(YamlScalarType.NULL, line, column, offset);
             buildCursor++;
         }
+        case YamlStreamScanner.ALIAS -> node = buildAlias();
         default ->
         {
             node = YamlScalarNode.string(scanner.string(buildCursor), line, column, offset);

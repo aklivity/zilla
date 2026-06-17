@@ -44,6 +44,7 @@ public final class YamlStreamScanner
     public static final byte VALUE_TRUE = 8;
     public static final byte VALUE_FALSE = 9;
     public static final byte VALUE_NULL = 10;
+    public static final byte ALIAS = 11;
 
     private static final int INITIAL_EVENTS = 48;
 
@@ -72,8 +73,13 @@ public final class YamlStreamScanner
     private int[] offsets;
     private int[] lengths;
     private String[] texts;
+    // sparse per-event reference metadata, only populated in raw mode
+    private String[] anchors;
+    private String[] aliases;
+    private String pendingAnchor;
     private int eventCount;
 
+    private boolean raw;
     private int cursor;
     private int flowAt;
     private int flowTokenStart;
@@ -82,9 +88,18 @@ public final class YamlStreamScanner
     public boolean scan(
         String text)
     {
+        return scan(text, false);
+    }
+
+    public boolean scan(
+        String text,
+        boolean rawReferences)
+    {
         this.text = text;
         this.eventCount = 0;
         this.cursor = 0;
+        this.raw = rawReferences;
+        this.pendingAnchor = null;
 
         boolean scanned;
         try
@@ -129,6 +144,18 @@ public final class YamlStreamScanner
         int index)
     {
         return offsets[index];
+    }
+
+    public String anchor(
+        int index)
+    {
+        return anchors == null ? null : anchors[index];
+    }
+
+    public String alias(
+        int index)
+    {
+        return aliases == null ? null : aliases[index];
     }
 
     public int line(
@@ -285,7 +312,7 @@ public final class YamlStreamScanner
             validateQuoted(start, keyEnd);
             emit(KEY_NAME, start + 1, keyEnd - start - 2, null);
         }
-        else if (keyEnd == start || isReservedStart(keyFirst) || isMergeKey(start, keyEnd))
+        else if (keyEnd == start || isReservedStart(keyFirst) || isMergeKey(start, keyEnd) && !raw)
         {
             throw BAIL;
         }
@@ -430,6 +457,11 @@ public final class YamlStreamScanner
         int line)
     {
         char first = text.charAt(start);
+        if (raw && (first == '&' || first == '*'))
+        {
+            scanRef(start, end, refIndent, line);
+            return;
+        }
         if (first == '{' || first == '[')
         {
             scanFlowValue(start, end, refIndent);
@@ -449,13 +481,88 @@ public final class YamlStreamScanner
             throw BAIL;
         }
 
+        foldGuard(refIndent);
+        emitClassifiedScalar(start, end);
+    }
+
+    /**
+     * A node decorated with anchors/aliases ({@code &name}, {@code *name}), tokenized RAW for the
+     * unresolved Parse layer (no dereferencing). Tags ({@code !}) and anchor+alias combinations bail.
+     */
+    private void scanRef(
+        int start,
+        int end,
+        int refIndent,
+        int line)
+    {
+        int at = start;
+        boolean node = false;
+        while (!node && at < end)
+        {
+            char c = text.charAt(at);
+            if (c == '&')
+            {
+                int nameEnd = tokenEnd(at + 1, end);
+                if (nameEnd == at + 1 || pendingAnchor != null)
+                {
+                    throw BAIL;
+                }
+                pendingAnchor = text.substring(at + 1, nameEnd);
+                at = skipSpace(nameEnd, end);
+            }
+            else if (c == '*')
+            {
+                int nameEnd = tokenEnd(at + 1, end);
+                if (nameEnd == at + 1 || pendingAnchor != null || skipSpace(nameEnd, end) != end)
+                {
+                    throw BAIL;
+                }
+                emitAlias(at + 1, text.substring(at + 1, nameEnd));
+                foldGuard(refIndent);
+                at = end;
+            }
+            else
+            {
+                node = true;
+            }
+        }
+
+        if (node)
+        {
+            char r = text.charAt(at);
+            if (r == '&' || r == '*' || r == '!')
+            {
+                throw BAIL;
+            }
+            scanScalar(at, end, refIndent, line);
+        }
+        else if (pendingAnchor != null)
+        {
+            scanNestedValue(refIndent, line);
+        }
+    }
+
+    private void foldGuard(
+        int refIndent)
+    {
         skipIgnorable();
         if (cursor < lineCount && lineIndent[cursor] > refIndent)
         {
             throw BAIL;
         }
+    }
 
-        emitClassifiedScalar(start, end);
+    private int tokenEnd(
+        int start,
+        int end)
+    {
+        int at = start;
+        while (at < end && !Character.isWhitespace(text.charAt(at)) &&
+            text.charAt(at) != ',' && text.charAt(at) != ']' && text.charAt(at) != '}')
+        {
+            at++;
+        }
+        return at;
     }
 
     /**
@@ -553,13 +660,41 @@ public final class YamlStreamScanner
         case '"', '\'' -> flowQuotedValue();
         default ->
         {
-            if (flowReserved(c))
+            if (raw && c == '*')
+            {
+                flowAlias();
+            }
+            else if (flowReserved(c))
             {
                 throw BAIL;
             }
-            flowBareScalar();
+            else
+            {
+                flowBareScalar();
+            }
         }
         }
+    }
+
+    private void flowAlias()
+    {
+        int start = flowAt + 1;
+        int at = start;
+        while (at < text.length())
+        {
+            char c = text.charAt(at);
+            if (c == ',' || c == ']' || c == '}' || Character.isWhitespace(c))
+            {
+                break;
+            }
+            at++;
+        }
+        if (at == start)
+        {
+            throw BAIL;
+        }
+        emitAlias(start, text.substring(start, at));
+        flowAt = at;
     }
 
     private void flowObject()
@@ -1137,12 +1272,48 @@ public final class YamlStreamScanner
         int length,
         String materialized)
     {
+        ensureEventCapacity();
+        kinds[eventCount] = kind;
+        offsets[eventCount] = offset;
+        lengths[eventCount] = length;
+        texts[eventCount] = materialized;
+        if (raw)
+        {
+            anchors[eventCount] = pendingAnchor;
+            aliases[eventCount] = null;
+            pendingAnchor = null;
+        }
+        eventCount++;
+    }
+
+    private void emitAlias(
+        int offset,
+        String alias)
+    {
+        ensureEventCapacity();
+        kinds[eventCount] = ALIAS;
+        offsets[eventCount] = offset;
+        lengths[eventCount] = 0;
+        texts[eventCount] = null;
+        anchors[eventCount] = pendingAnchor;
+        aliases[eventCount] = alias;
+        pendingAnchor = null;
+        eventCount++;
+    }
+
+    private void ensureEventCapacity()
+    {
         if (kinds == null)
         {
             kinds = new byte[INITIAL_EVENTS];
             offsets = new int[INITIAL_EVENTS];
             lengths = new int[INITIAL_EVENTS];
             texts = new String[INITIAL_EVENTS];
+            if (raw)
+            {
+                anchors = new String[INITIAL_EVENTS];
+                aliases = new String[INITIAL_EVENTS];
+            }
         }
         else if (eventCount == kinds.length)
         {
@@ -1151,13 +1322,12 @@ public final class YamlStreamScanner
             offsets = copyOf(offsets, size);
             lengths = copyOf(lengths, size);
             texts = copyOf(texts, size);
+            if (raw)
+            {
+                anchors = copyOf(anchors, size);
+                aliases = copyOf(aliases, size);
+            }
         }
-
-        kinds[eventCount] = kind;
-        offsets[eventCount] = offset;
-        lengths[eventCount] = length;
-        texts[eventCount] = materialized;
-        eventCount++;
     }
 
     private static int firstContent(
@@ -1231,7 +1401,7 @@ public final class YamlStreamScanner
             if (item < end)
             {
                 char it = text.charAt(item);
-                if (it != '{' && it != '[')
+                if (it != '{' && it != '[' && !(raw && (it == '&' || it == '*')))
                 {
                     if (isCompactSequence(item, end))
                     {
@@ -1270,7 +1440,7 @@ public final class YamlStreamScanner
         int colon)
     {
         int keyEnd = trimEnd(start, colon);
-        if (keyEnd == start || blockedStart(text.charAt(start)) || isMergeKey(start, keyEnd))
+        if (keyEnd == start || blockedStart(text.charAt(start)) || isMergeKey(start, keyEnd) && !raw)
         {
             throw BAIL;
         }
@@ -1279,7 +1449,7 @@ public final class YamlStreamScanner
         if (valueStart < end)
         {
             char value = text.charAt(valueStart);
-            if (value != '{' && value != '[' &&
+            if (value != '{' && value != '[' && !(raw && (value == '&' || value == '*')) &&
                 (blockedStart(value) || isCompactSequence(valueStart, end) || mappingColon(valueStart, end) != -1))
             {
                 throw BAIL;

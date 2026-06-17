@@ -26,11 +26,14 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
+
+import io.aklivity.zilla.runtime.common.yaml.YamlConfig;
 
 /**
  * Validates the conservative streaming scanner. The scanner only has to be correct for the subset
@@ -270,6 +273,121 @@ class YamlStreamScannerTest
         }
     }
 
+    @Test
+    void shouldAcceptAnchorsAliasesMerge()
+    {
+        String doc = "base: &base\n  host: localhost\nuse:\n  <<: *base\n  port: 7114\nrefs: [*base, plain]\n";
+        YamlStreamScanner scanner = new YamlStreamScanner();
+        assertTrue(scanner.scan(doc, true), "raw scanner should accept anchors/aliases/merge");
+        assertEquals(eagerRaw(doc), scannedRaw(scanner));
+    }
+
+    @Test
+    void shouldBailOnTagsEvenInRawMode()
+    {
+        assertFalse(new YamlStreamScanner().scan("typed: !!str 42\n", true));
+    }
+
+    @TestFactory
+    Stream<DynamicTest> shouldMatchRawEagerForEveryAcceptedRawFixture() throws Exception
+    {
+        return fixtures()
+            .map(path -> DynamicTest.dynamicTest(SUITE_DIR.relativize(path).toString(), () ->
+            {
+                String text = Files.readString(path.resolve("in.yaml"));
+                YamlStreamScanner scanner = new YamlStreamScanner();
+                if (scanner.scan(text, true))
+                {
+                    assertEquals(eagerRaw(text), scannedRaw(scanner),
+                        "raw scanner accepted but diverged from unresolved eager parser");
+                }
+            }));
+    }
+
+    private static String scannedRaw(
+        YamlStreamScanner scanner)
+    {
+        StringBuilder builder = new StringBuilder();
+        for (int index = 0; index < scanner.count(); index++)
+        {
+            if (scanner.kind(index) == YamlStreamScanner.ALIAS)
+            {
+                builder.append("ALIAS*").append(scanner.alias(index)).append('\n');
+                continue;
+            }
+            builder.append(token(scanner.kind(index)));
+            CharSequence view = scanner.stringView(index);
+            if (view != null)
+            {
+                builder.append('(').append(view).append(')');
+            }
+            if (scanner.anchor(index) != null)
+            {
+                builder.append('&').append(scanner.anchor(index));
+            }
+            builder.append('\n');
+        }
+        return builder.toString();
+    }
+
+    private static String eagerRaw(
+        String text)
+    {
+        StringBuilder builder = new StringBuilder();
+        projectRaw(YamlDocumentParser.parse(text, new YamlConfiguration(
+            Map.of(YamlConfig.RESOLVE_REFERENCES, false))).node, builder);
+        return builder.toString();
+    }
+
+    private static void projectRaw(
+        YamlNode node,
+        StringBuilder builder)
+    {
+        if (node.alias != null)
+        {
+            builder.append("ALIAS*").append(node.alias).append('\n');
+        }
+        else if (node instanceof YamlObjectNode object)
+        {
+            builder.append("START_OBJECT").append(anchorOf(object)).append('\n');
+            for (YamlEntry entry : object.entries)
+            {
+                String name = entry.name != null ? entry.name : ((YamlScalarNode) entry.key).value;
+                builder.append("KEY_NAME").append('(').append(name).append(')').append('\n');
+                projectRaw(entry.value, builder);
+            }
+            builder.append("END_OBJECT").append('\n');
+        }
+        else if (node instanceof YamlArrayNode array)
+        {
+            builder.append("START_ARRAY").append(anchorOf(array)).append('\n');
+            for (YamlNode value : array.values)
+            {
+                projectRaw(value, builder);
+            }
+            builder.append("END_ARRAY").append('\n');
+        }
+        else
+        {
+            YamlScalarNode scalar = (YamlScalarNode) node;
+            switch (scalar.type)
+            {
+            case STRING -> builder.append("VALUE_STRING").append('(').append(scalar.value).append(')');
+            case NUMBER -> builder.append("VALUE_NUMBER").append('(').append(scalar.value).append(')');
+            case TRUE -> builder.append("VALUE_TRUE");
+            case FALSE -> builder.append("VALUE_FALSE");
+            case NULL -> builder.append("VALUE_NULL");
+            }
+            builder.append(anchorOf(scalar)).append('\n');
+        }
+    }
+
+    private static String anchorOf(
+        YamlNode node)
+    {
+        return node.anchor != null ? "&" + node.anchor : "";
+    }
+
     private static String token(
         byte kind)
     {
@@ -285,6 +403,7 @@ class YamlStreamScannerTest
         case YamlStreamScanner.VALUE_TRUE -> "VALUE_TRUE";
         case YamlStreamScanner.VALUE_FALSE -> "VALUE_FALSE";
         case YamlStreamScanner.VALUE_NULL -> "VALUE_NULL";
+        case YamlStreamScanner.ALIAS -> "ALIAS";
         default -> throw new IllegalStateException("Unexpected kind: " + kind);
         };
     }
