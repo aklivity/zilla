@@ -1079,8 +1079,10 @@ public final class YamlStreamScanner
         boolean allowIndentedSequence)
     {
         boolean result;
-        if (documentMarker(line, '-') || documentMarker(line, '.') || lineIndent[line] < indent)
+        if (isMarker(contentStart[line], contentEnd[line], '-') || isMarker(contentStart[line], contentEnd[line], '.') ||
+            lineIndent[line] < indent)
         {
+            // a document marker line (bare --- / ... or an inline --- value) never continues a plain scalar
             result = false;
         }
         else if (lineIndent[line] == indent)
