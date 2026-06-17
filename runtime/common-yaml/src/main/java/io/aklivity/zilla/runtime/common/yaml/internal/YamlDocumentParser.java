@@ -1332,7 +1332,7 @@ public final class YamlDocumentParser
         }
     }
 
-    private static void mergeObject(
+    static void mergeObject(
         YamlObjectNode target,
         YamlObjectNode source)
     {
@@ -1345,7 +1345,7 @@ public final class YamlDocumentParser
         }
     }
 
-    private static boolean containsKey(
+    static boolean containsKey(
         YamlObjectNode object,
         String name)
     {
@@ -1514,7 +1514,7 @@ public final class YamlDocumentParser
         return resolved;
     }
 
-    private static YamlNode copy(
+    static YamlNode copy(
         YamlNode value)
     {
         if (value instanceof YamlScalarNode scalar)
