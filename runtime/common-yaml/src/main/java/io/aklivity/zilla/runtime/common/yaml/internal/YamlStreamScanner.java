@@ -47,6 +47,7 @@ public final class YamlStreamScanner
     public static final byte ALIAS = 11;
 
     private static final int INITIAL_EVENTS = 48;
+    private static final int INITIAL_DOCUMENTS = 4;
 
     private static final Pattern NUMBER_PATTERN = Pattern.compile(
         "-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?:[eE][+-]?[0-9]+)?");
@@ -81,6 +82,10 @@ public final class YamlStreamScanner
     private String pendingTag;
     private int eventCount;
 
+    // per-document boundary offsets — the start of the document following each scanned document
+    private int[] documentBoundaries;
+    private int documentCount;
+
     private boolean raw;
     private boolean references;
     private int cursor;
@@ -100,6 +105,7 @@ public final class YamlStreamScanner
     {
         this.text = text;
         this.eventCount = 0;
+        this.documentCount = 0;
         this.cursor = 0;
         this.raw = rawReferences;
         this.references = false;
@@ -132,6 +138,12 @@ public final class YamlStreamScanner
             scanned = false;
         }
         return scanned;
+    }
+
+    public int documentBoundary(
+        int document)
+    {
+        return documentBoundaries[document];
     }
 
     public int count()
@@ -229,18 +241,59 @@ public final class YamlStreamScanner
 
     private void scanRoot()
     {
+        boolean bareAllowed = true;
         skipIgnorable();
+        while (cursor < lineCount)
+        {
+            bareAllowed = scanDocument(bareAllowed);
+            skipIgnorable();
+        }
+        if (eventCount == 0)
+        {
+            // an empty stream (blank or comment-only) projects as a single null, matching the eager parser
+            emit(VALUE_NULL, 0, 0, null);
+        }
+    }
+
+    /**
+     * Scans one document of a (possibly multi-document) stream into the event buffer and returns whether a
+     * following document may omit its {@code ---} marker — true only when this document closed with a
+     * {@code ...} end marker. Documents are separated by {@code ---} / {@code ...} markers; the eager parser
+     * bounds each document at the next marker and emits the stream as a flat sequence of top-level values,
+     * which this mirrors. The leading document may be bare; any later document must open with {@code ---}
+     * (optionally preceded by directives) unless it follows a {@code ...}. The document's root-terminal event
+     * offset is patched to the next document's start so {@code getLocation} reports the boundary the way the
+     * eager path does.
+     */
+    private boolean scanDocument(
+        boolean bareAllowed)
+    {
         boolean directives = false;
+        boolean yamlDirective = false;
         while (cursor < lineCount && text.charAt(contentStart[cursor]) == '%')
         {
+            yamlDirective = scanDirective(cursor, yamlDirective);
             cursor++;
             skipIgnorable();
             directives = true;
         }
+
+        if (cursor < lineCount && documentMarker(cursor, '.'))
+        {
+            // a standalone ... end marker is not a document
+            if (directives)
+            {
+                throw BAIL;
+            }
+            cursor++;
+            skipIgnorable();
+            return true;
+        }
+
         if (cursor < lineCount && !documentMarker(cursor, '-') &&
             isMarker(contentStart[cursor], contentEnd[cursor], '-'))
         {
-            scanInlineMarkerDocument();
+            scanInlineMarkerValue();
         }
         else
         {
@@ -250,54 +303,75 @@ public final class YamlStreamScanner
                 cursor++;
                 skipIgnorable();
             }
-            else if (directives)
+            else if (directives || !bareAllowed)
             {
-                // a directives block must be terminated by a --- document-start marker
-                throw BAIL;
-            }
-            if (cursor >= lineCount)
-            {
+                // directives need an explicit ---, and only a leading (or post-...) document may be bare
                 throw BAIL;
             }
 
-            int line = cursor;
-            char first = text.charAt(contentStart[line]);
-            if (first == '{' || first == '[' || documentMarker(line, '-') || documentMarker(line, '.'))
+            if (cursor >= lineCount || documentMarker(cursor, '-') || documentMarker(cursor, '.'))
             {
-                throw BAIL;
-            }
-
-            int indent = lineIndent[line];
-            if (isSequence(line, indent) || isExplicitKey(line) || mappingColon(contentStart[line], contentEnd[line]) != -1)
-            {
-                scanBlock(indent);
-            }
-            else if ((first == '|' || first == '>') && blockIndicator(contentStart[line], contentEnd[line]))
-            {
-                // a document that is a block scalar
-                cursor++;
-                scanBlockScalar(contentStart[line], contentEnd[line], indent, true);
+                // an empty document (--- followed by a marker or the end of the stream) projects as null
+                emit(VALUE_NULL, cursor < lineCount ? contentStart[cursor] : text.length(), 0, null);
             }
             else
             {
-                // a document that is a single scalar; scanScalar bails on any non-scalar root
-                cursor++;
-                scanScalar(contentStart[line], contentEnd[line], indent, line, true, true);
-            }
+                int line = cursor;
+                char first = text.charAt(contentStart[line]);
+                if (first == '{' || first == '[')
+                {
+                    throw BAIL;
+                }
 
-            scanDocumentEnd();
+                int indent = lineIndent[line];
+                if (isSequence(line, indent) || isExplicitKey(line) ||
+                    mappingColon(contentStart[line], contentEnd[line]) != -1)
+                {
+                    scanBlock(indent);
+                }
+                else if ((first == '|' || first == '>') && blockIndicator(contentStart[line], contentEnd[line]))
+                {
+                    // a document that is a block scalar
+                    cursor++;
+                    scanBlockScalar(contentStart[line], contentEnd[line], indent, true);
+                }
+                else
+                {
+                    // a document that is a single scalar; scanScalar bails on any non-scalar root
+                    cursor++;
+                    scanScalar(contentStart[line], contentEnd[line], indent, line, true, true);
+                }
+            }
         }
+
+        boolean ended = consumeDocumentEnd();
+        recordDocumentBoundary(cursor < lineCount ? lineStart[cursor] : text.length());
+        return ended;
+    }
+
+    private void recordDocumentBoundary(
+        int boundary)
+    {
+        if (documentBoundaries == null)
+        {
+            documentBoundaries = new int[INITIAL_DOCUMENTS];
+        }
+        else if (documentCount == documentBoundaries.length)
+        {
+            documentBoundaries = copyOf(documentBoundaries, documentBoundaries.length << 1);
+        }
+        documentBoundaries[documentCount++] = boundary;
     }
 
     /**
      * A document whose root value sits on the {@code ---} line itself ({@code --- value}). The eager parser
      * treats the inline content as a document line at indent zero, so the value is scanned at the document
      * root context as a scalar / quoted / flow value. An inline block scalar bails — at root indent its
-     * content has no indentation to bound it against a following {@code ...} or {@code ---} document marker,
-     * which the streaming scanner (unlike the eager parser) does not split on. An inline mapping or sequence
-     * body bails too, since its members' physical columns no longer match the uniform-indent block model.
+     * content has no indentation to bound it against a following {@code ...} or {@code ---} document marker.
+     * An inline mapping or sequence body bails too, since its members' physical columns no longer match the
+     * uniform-indent block model.
      */
-    private void scanInlineMarkerDocument()
+    private void scanInlineMarkerValue()
     {
         int line = cursor;
         int valueStart = skipSpace(contentStart[line] + 3, contentEnd[line]);
@@ -308,21 +382,46 @@ public final class YamlStreamScanner
         }
         cursor++;
         scanScalar(valueStart, valueEnd, 0, line, true, true);
-        scanDocumentEnd();
     }
 
-    private void scanDocumentEnd()
+    /**
+     * Validates a {@code %}-directive line the way {@code YamlDocumentParser.readDirective} does: a
+     * {@code %YAML} directive must be exactly {@code %YAML <major.minor>} and may appear once per document.
+     * Other directives (e.g. {@code %TAG}, already rejected by the feasibility gate, or unknown ones) are
+     * ignored. Returns whether a {@code %YAML} directive has now been seen in this document.
+     */
+    private boolean scanDirective(
+        int line,
+        boolean yamlSeen)
+    {
+        boolean seen = yamlSeen;
+        if (text.startsWith("%YAML", contentStart[line]))
+        {
+            if (yamlSeen)
+            {
+                throw BAIL;
+            }
+            String[] parts = text.substring(contentStart[line], contentEnd[line]).split("\\s+");
+            if (parts.length != 2 || !parts[1].matches("[0-9]+\\.[0-9]+"))
+            {
+                throw BAIL;
+            }
+            seen = true;
+        }
+        return seen;
+    }
+
+    private boolean consumeDocumentEnd()
     {
         skipIgnorable();
+        boolean ended = false;
         if (cursor < lineCount && documentMarker(cursor, '.'))
         {
             cursor++;
             skipIgnorable();
+            ended = true;
         }
-        if (cursor < lineCount)
-        {
-            throw BAIL;
-        }
+        return ended;
     }
 
     private boolean documentMarker(
@@ -920,6 +1019,12 @@ public final class YamlStreamScanner
             boolean spaceOnly = spaceOnlyLine(cursor);
             if (lineStartAt >= text.length())
             {
+                break;
+            }
+            if (!spaceOnly && indent == 0 && (documentMarker(cursor, '-') || documentMarker(cursor, '.')))
+            {
+                // a top-level document marker ends the scalar and the document (the eager parser splits
+                // documents before scanning, so it never folds a marker into block scalar content)
                 break;
             }
             if (!spaceOnly && indent < contentIndent)

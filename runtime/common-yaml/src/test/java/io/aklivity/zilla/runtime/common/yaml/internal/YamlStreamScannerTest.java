@@ -295,9 +295,27 @@ class YamlStreamScannerTest
     }
 
     @Test
-    void shouldBailOnMultiDocumentStream()
+    void shouldAcceptMultiDocumentStream()
     {
-        assertFalse(new YamlStreamScanner().scan("---\nname: one\n---\nname: two\n"));
+        for (String doc : new String[] {
+            "---\nname: one\n---\nname: two\n",
+            "name: one\n---\nname: two\n",
+            "---\nname: one\n...\n---\nname: two\nvalues: [1, 2]\n",
+            "doc one\n---\ndoc two\n",
+            "---\n---\nname: two\n",
+            "%YAML 1.2\n---\nname: one\n---\nname: two\n"})
+        {
+            YamlStreamScanner scanner = new YamlStreamScanner();
+            assertTrue(scanner.scan(doc), "scanner should accept a multi-document stream: " + doc);
+            assertEquals(eager(doc), scanned(scanner), doc);
+        }
+    }
+
+    @Test
+    void shouldBailOnMalformedYamlDirective()
+    {
+        assertFalse(new YamlStreamScanner().scan("%YAML 1.2 foo\n---\n"));
+        assertFalse(new YamlStreamScanner().scan("%YAML 1.2\n%YAML 1.2\n---\n"));
     }
 
     @Test
@@ -338,7 +356,7 @@ class YamlStreamScannerTest
         long accepted = fixtures()
             .filter(path -> accepts(path.resolve("in.yaml")))
             .count();
-        assertEquals(108, accepted,
+        assertEquals(126, accepted,
             "accepted-fixture count changed; feasibility gate may over-reject or over-accept");
     }
 
@@ -392,7 +410,10 @@ class YamlStreamScannerTest
         String text)
     {
         StringBuilder builder = new StringBuilder();
-        project(YamlReferences.resolve(YamlDocumentParser.parse(text).node, Map.of()), builder);
+        for (YamlDocumentParser.Result result : YamlDocumentParser.parseAll(text, YamlConfiguration.DEFAULT))
+        {
+            project(YamlReferences.resolve(result.node, Map.of()), builder);
+        }
         return builder.toString();
     }
 
@@ -509,7 +530,10 @@ class YamlStreamScannerTest
         String text)
     {
         StringBuilder builder = new StringBuilder();
-        projectRaw(YamlDocumentParser.parse(text, YamlConfiguration.DEFAULT).node, builder);
+        for (YamlDocumentParser.Result result : YamlDocumentParser.parseAll(text, YamlConfiguration.DEFAULT))
+        {
+            projectRaw(result.node, builder);
+        }
         return builder.toString();
     }
 

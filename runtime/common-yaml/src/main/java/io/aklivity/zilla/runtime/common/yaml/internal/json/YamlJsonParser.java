@@ -71,6 +71,9 @@ public final class YamlJsonParser implements JsonParser
     private int scanCursor;
     private int scanCurrent;
     private int buildCursor;
+    private int scanDepth;
+    private int scanDocument;
+    private int scanBoundary;
 
     public YamlJsonParser(
         Reader reader)
@@ -115,6 +118,7 @@ public final class YamlJsonParser implements JsonParser
         this.config = jsonAsYamlConfig(config);
         this.uniqueKeys = Boolean.TRUE.equals(this.config.get(YamlConfig.FEATURE_UNIQUE_KEYS));
         this.scanCurrent = -1;
+        this.scanBoundary = -1;
 
         YamlStreamScanner candidate = null;
         YamlJsonResolver resolved = null;
@@ -160,9 +164,15 @@ public final class YamlJsonParser implements JsonParser
 
     private YamlJsonLocation scanEndLocation()
     {
+        return scanLocationAt(text.length());
+    }
+
+    private YamlJsonLocation scanLocationAt(
+        int offset)
+    {
         int line = 1;
         int column = 1;
-        for (int index = 0; index < text.length(); index++)
+        for (int index = 0; index < offset; index++)
         {
             if (text.charAt(index) == '\n')
             {
@@ -174,7 +184,7 @@ public final class YamlJsonParser implements JsonParser
                 column++;
             }
         }
-        return new YamlJsonLocation(new YamlLocation(line, column, text.length()));
+        return new YamlJsonLocation(new YamlLocation(line, column, offset));
     }
 
     static boolean scannerEligible(
@@ -330,7 +340,25 @@ public final class YamlJsonParser implements JsonParser
         if (scanner != null)
         {
             scanCurrent = scanCursor++;
-            event = scanEvent(ekind(scanCurrent));
+            byte kind = ekind(scanCurrent);
+            event = scanEvent(kind);
+            if (kind == YamlStreamScanner.START_OBJECT || kind == YamlStreamScanner.START_ARRAY)
+            {
+                scanDepth++;
+            }
+            else if (kind == YamlStreamScanner.END_OBJECT || kind == YamlStreamScanner.END_ARRAY)
+            {
+                scanDepth--;
+            }
+            boolean terminal = scanDepth == 0 &&
+                kind != YamlStreamScanner.START_OBJECT && kind != YamlStreamScanner.START_ARRAY;
+            // a root-terminal event of a non-final document reports its location at the next document's
+            // start, mirroring the eager path; the final document falls through to the stream end location
+            scanBoundary = terminal && scanCursor < ecount() ? scanner.documentBoundary(scanDocument) : -1;
+            if (terminal)
+            {
+                scanDocument++;
+            }
         }
         else
         {
@@ -422,7 +450,8 @@ public final class YamlJsonParser implements JsonParser
         JsonLocation location;
         if (scanner != null)
         {
-            location = scanCursor >= ecount() ? end : scanLocation();
+            location = scanCursor >= ecount() ? end :
+                scanBoundary >= 0 ? scanLocationAt(scanBoundary) : scanLocation();
         }
         else
         {
