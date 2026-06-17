@@ -237,47 +237,82 @@ public final class YamlStreamScanner
             skipIgnorable();
             directives = true;
         }
-        boolean marker = cursor < lineCount && documentMarker(cursor, '-');
-        if (marker)
+        if (cursor < lineCount && !documentMarker(cursor, '-') &&
+            isMarker(contentStart[cursor], contentEnd[cursor], '-'))
         {
-            cursor++;
-            skipIgnorable();
-        }
-        else if (directives)
-        {
-            // a directives block must be terminated by a --- document-start marker
-            throw BAIL;
-        }
-        if (cursor >= lineCount)
-        {
-            throw BAIL;
-        }
-
-        int line = cursor;
-        char first = text.charAt(contentStart[line]);
-        if (first == '{' || first == '[' || documentMarker(line, '-') || documentMarker(line, '.'))
-        {
-            throw BAIL;
-        }
-
-        int indent = lineIndent[line];
-        if (isSequence(line, indent) || isExplicitKey(line) || mappingColon(contentStart[line], contentEnd[line]) != -1)
-        {
-            scanBlock(indent);
-        }
-        else if ((first == '|' || first == '>') && blockIndicator(contentStart[line], contentEnd[line]))
-        {
-            // a document that is a block scalar
-            cursor++;
-            scanBlockScalar(contentStart[line], contentEnd[line], indent, true);
+            scanInlineMarkerDocument();
         }
         else
         {
-            // a document that is a single scalar; scanScalar bails on any non-scalar root
-            cursor++;
-            scanScalar(contentStart[line], contentEnd[line], indent, line, true, true);
-        }
+            boolean marker = cursor < lineCount && documentMarker(cursor, '-');
+            if (marker)
+            {
+                cursor++;
+                skipIgnorable();
+            }
+            else if (directives)
+            {
+                // a directives block must be terminated by a --- document-start marker
+                throw BAIL;
+            }
+            if (cursor >= lineCount)
+            {
+                throw BAIL;
+            }
 
+            int line = cursor;
+            char first = text.charAt(contentStart[line]);
+            if (first == '{' || first == '[' || documentMarker(line, '-') || documentMarker(line, '.'))
+            {
+                throw BAIL;
+            }
+
+            int indent = lineIndent[line];
+            if (isSequence(line, indent) || isExplicitKey(line) || mappingColon(contentStart[line], contentEnd[line]) != -1)
+            {
+                scanBlock(indent);
+            }
+            else if ((first == '|' || first == '>') && blockIndicator(contentStart[line], contentEnd[line]))
+            {
+                // a document that is a block scalar
+                cursor++;
+                scanBlockScalar(contentStart[line], contentEnd[line], indent, true);
+            }
+            else
+            {
+                // a document that is a single scalar; scanScalar bails on any non-scalar root
+                cursor++;
+                scanScalar(contentStart[line], contentEnd[line], indent, line, true, true);
+            }
+
+            scanDocumentEnd();
+        }
+    }
+
+    /**
+     * A document whose root value sits on the {@code ---} line itself ({@code --- value}). The eager parser
+     * treats the inline content as a document line at indent zero, so the value is scanned at the document
+     * root context as a scalar / quoted / flow value. An inline block scalar bails — at root indent its
+     * content has no indentation to bound it against a following {@code ...} or {@code ---} document marker,
+     * which the streaming scanner (unlike the eager parser) does not split on. An inline mapping or sequence
+     * body bails too, since its members' physical columns no longer match the uniform-indent block model.
+     */
+    private void scanInlineMarkerDocument()
+    {
+        int line = cursor;
+        int valueStart = skipSpace(contentStart[line] + 3, contentEnd[line]);
+        int valueEnd = contentEnd[line];
+        if (blockIndicator(valueStart, valueEnd))
+        {
+            throw BAIL;
+        }
+        cursor++;
+        scanScalar(valueStart, valueEnd, 0, line, true, true);
+        scanDocumentEnd();
+    }
+
+    private void scanDocumentEnd()
+    {
         skipIgnorable();
         if (cursor < lineCount && documentMarker(cursor, '.'))
         {
@@ -2418,13 +2453,17 @@ public final class YamlStreamScanner
     {
         int blockIndent = -1;
         char first = text.charAt(start);
-        if (isMarker(start, end, '-') || isMarker(start, end, '.'))
+        if (isMarker(start, end, '.'))
         {
-            // a bare document marker (--- or ...) is framing; inline marker content is not yet supported
+            // a document-end marker (...) carries no inline content
             if (end - start != 3)
             {
                 throw BAIL;
             }
+        }
+        else if (isMarker(start, end, '-'))
+        {
+            // a bare --- or a --- with inline root content; defer the content to the structural scan
         }
         else if (first == '%')
         {

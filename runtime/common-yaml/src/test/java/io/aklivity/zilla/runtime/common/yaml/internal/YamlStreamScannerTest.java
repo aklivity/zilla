@@ -163,6 +163,28 @@ class YamlStreamScannerTest
     }
 
     @Test
+    void shouldAcceptInlineMarkerScalar()
+    {
+        for (String doc : new String[] {
+            "--- text\n",
+            "%YAML 1.2\n--- example\n",
+            "--- \"quoted value\"\n",
+            "--- scalar\n  folded over lines\n"})
+        {
+            YamlStreamScanner scanner = new YamlStreamScanner();
+            assertTrue(scanner.scan(doc), "scanner should accept an inline marker scalar: " + doc);
+            assertEquals(eager(doc), scanned(scanner), doc);
+        }
+    }
+
+    @Test
+    void shouldBailOnInlineMarkerBlockScalar()
+    {
+        assertFalse(new YamlStreamScanner().scan("--- |\n  text\n"));
+        assertFalse(new YamlStreamScanner().scan("--- |\n%!PS-Adobe-2.0\n...\n"));
+    }
+
+    @Test
     void shouldAcceptCompactSequence()
     {
         for (String doc : new String[] {
@@ -316,7 +338,7 @@ class YamlStreamScannerTest
         long accepted = fixtures()
             .filter(path -> accepts(path.resolve("in.yaml")))
             .count();
-        assertEquals(106, accepted,
+        assertEquals(108, accepted,
             "accepted-fixture count changed; feasibility gate may over-reject or over-accept");
     }
 
