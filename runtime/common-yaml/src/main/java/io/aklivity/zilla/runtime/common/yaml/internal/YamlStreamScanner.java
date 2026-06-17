@@ -799,6 +799,58 @@ public final class YamlStreamScanner
         }
     }
 
+    /**
+     * The node decorated by an anchor/tag that carried no inline value, mirroring
+     * {@code YamlDocumentParser.nextAnchoredValue}: a more-indented block, a block scalar, a block sequence at
+     * its own (possibly shallower) indent, or a same-indent mapping or plain scalar; otherwise a null node.
+     */
+    private void scanAnchoredValue(
+        int refIndent,
+        int line,
+        boolean ownLine)
+    {
+        skipIgnorable();
+        boolean done = cursor < lineCount;
+        if (done)
+        {
+            int at = cursor;
+            int start = contentStart[at];
+            int end = contentEnd[at];
+            char first = text.charAt(start);
+            if (lineIndent[at] > refIndent)
+            {
+                scanBlock(lineIndent[at]);
+            }
+            else if ((first == '|' || first == '>') && blockIndicator(start, end))
+            {
+                cursor++;
+                scanBlockScalar(start, end, lineIndent[at], true);
+            }
+            else if (isSequence(at, lineIndent[at]))
+            {
+                scanSequence(lineIndent[at]);
+            }
+            else if (ownLine && lineIndent[at] == refIndent && (isExplicitKey(at) || mappingColon(start, end) != -1))
+            {
+                // a same-indent mapping is the value only when the anchor stood on its own line
+                scanMapping(lineIndent[at]);
+            }
+            else if (ownLine && lineIndent[at] == refIndent)
+            {
+                cursor++;
+                scanScalar(start, end, lineIndent[at], at, true, true);
+            }
+            else
+            {
+                done = false;
+            }
+        }
+        if (!done)
+        {
+            emit(VALUE_NULL, contentStart[line], 0, null);
+        }
+    }
+
     private void scanSequence(
         int indent)
     {
@@ -1525,7 +1577,7 @@ public final class YamlStreamScanner
         }
         else if (pendingAnchor != null || pendingTag != null)
         {
-            scanNestedValue(refIndent, line);
+            scanAnchoredValue(refIndent, line, start == contentStart[line]);
         }
     }
 
