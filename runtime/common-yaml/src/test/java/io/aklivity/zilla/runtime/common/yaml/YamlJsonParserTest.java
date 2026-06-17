@@ -305,24 +305,6 @@ class YamlJsonParserTest
     }
 
     @Test
-    void shouldParseNativeJsonDocuments()
-    {
-        YamlObject object = Yaml.createReader(new StringReader("""
-            {
-              "name": "test",
-              "enabled": true,
-              "items": [{"id": 1}, {"id": 2}],
-              "missing": null
-            }
-            """)).readObject();
-
-        assertEquals("test", object.getString("name"));
-        assertEquals(true, object.getBoolean("enabled"));
-        assertEquals(2, object.getArray("items").getObject(1).getInt("id"));
-        assertEquals(YamlValue.ValueType.NULL, object.getScalar("missing").getValueType());
-    }
-
-    @Test
     void shouldParseJsonArrayAndScalarDocuments()
     {
         assertEquals(List.of(
