@@ -593,39 +593,77 @@ public final class YamlStreamScanner
         }
         int keyStart = skipSpace(contentStart[line] + 1, contentEnd[line]);
         int keyEnd = contentEnd[line];
-        char keyFirst = keyStart < keyEnd ? text.charAt(keyStart) : 0;
-        int nodeStart = keyStart;
-        if (raw && (keyFirst == '&' || keyFirst == '!'))
+        if (keyStart == keyEnd)
         {
-            nodeStart = scanKeyDecorators(keyStart, keyEnd);
-            keyFirst = text.charAt(nodeStart);
-        }
-        // only a simple single-line scalar key (plain or escape-free quoted) is supported
-        if (nodeStart == keyEnd || keyFirst == '{' || keyFirst == '[' || keyFirst == '|' || keyFirst == '>' ||
-            keyFirst != '"' && keyFirst != '\'' && blockedStart(keyFirst) || mappingColon(nodeStart, keyEnd) != -1)
-        {
-            throw BAIL;
-        }
-        cursor++;
-        skipIgnorable();
-        // a more-indented line before the value indicator is a key continuation, which is unsupported
-        if (cursor < lineCount && lineIndent[cursor] > indent)
-        {
-            throw BAIL;
-        }
-
-        if (keyFirst == '"' || keyFirst == '\'')
-        {
-            emitQuotedKey(nodeStart, keyEnd);
+            // a bare ? indicator: the explicit key is a nested block (non-scalar) on the following lines,
+            // or null when a value indicator (or nothing) follows
+            cursor++;
+            skipIgnorable();
+            if (cursor < lineCount && lineIndent[cursor] >= indent && !valueIndicator(cursor, indent))
+            {
+                if (!raw)
+                {
+                    // a non-scalar block key is only representable in raw (YAML-layer) mode; the JSON
+                    // projection has no scalar name for it
+                    throw BAIL;
+                }
+                scanBlock(lineIndent[cursor]);
+            }
+            else
+            {
+                emit(VALUE_NULL, contentStart[line], 0, null);
+            }
         }
         else
         {
-            emit(KEY_NAME, nodeStart, keyEnd - nodeStart, null);
+            char keyFirst = text.charAt(keyStart);
+            int nodeStart = keyStart;
+            if (raw && (keyFirst == '&' || keyFirst == '!'))
+            {
+                nodeStart = scanKeyDecorators(keyStart, keyEnd);
+                keyFirst = text.charAt(nodeStart);
+            }
+            // only a simple single-line scalar key (plain or escape-free quoted) is supported inline
+            if (nodeStart == keyEnd || keyFirst == '{' || keyFirst == '[' || keyFirst == '|' || keyFirst == '>' ||
+                keyFirst != '"' && keyFirst != '\'' && blockedStart(keyFirst) || mappingColon(nodeStart, keyEnd) != -1)
+            {
+                throw BAIL;
+            }
+            cursor++;
+            skipIgnorable();
+            // a more-indented line before the value indicator is a key continuation, which is unsupported
+            if (cursor < lineCount && lineIndent[cursor] > indent)
+            {
+                throw BAIL;
+            }
+
+            if (keyFirst == '"' || keyFirst == '\'')
+            {
+                emitQuotedKey(nodeStart, keyEnd);
+            }
+            else
+            {
+                emit(KEY_NAME, nodeStart, keyEnd - nodeStart, null);
+            }
         }
 
-        boolean valued = cursor < lineCount && lineIndent[cursor] == indent &&
-            contentStart[cursor] < contentEnd[cursor] && text.charAt(contentStart[cursor]) == ':' &&
-            (contentEnd[cursor] == contentStart[cursor] + 1 || isSpace(text.charAt(contentStart[cursor] + 1)));
+        scanExplicitValue(indent, line);
+    }
+
+    private boolean valueIndicator(
+        int line,
+        int indent)
+    {
+        return lineIndent[line] == indent && contentStart[line] < contentEnd[line] &&
+            text.charAt(contentStart[line]) == ':' &&
+            (contentEnd[line] == contentStart[line] + 1 || isSpace(text.charAt(contentStart[line] + 1)));
+    }
+
+    private void scanExplicitValue(
+        int indent,
+        int line)
+    {
+        boolean valued = cursor < lineCount && valueIndicator(cursor, indent);
         if (valued && contentStart[cursor] + 1 < contentEnd[cursor] && text.charAt(contentStart[cursor] + 1) == '\t')
         {
             // a tab after the : explicit-value indicator is not valid separation
