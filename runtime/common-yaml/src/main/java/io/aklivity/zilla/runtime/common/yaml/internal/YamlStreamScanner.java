@@ -3354,7 +3354,7 @@ public final class YamlStreamScanner
     {
         int keyEnd = trimEnd(start, colon);
         char keyFirst = text.charAt(start);
-        boolean decoratedKey = raw && (keyFirst == '&' || keyFirst == '!');
+        boolean decoratedKey = raw && (keyFirst == '&' || keyFirst == '!' || keyFirst == '*');
         boolean flowKey = raw && (keyFirst == '{' || keyFirst == '[');
         boolean blocked = blockedStart(keyFirst) && !decoratedKey && !flowKey && !questionPlainStart(start, keyEnd);
         if (keyEnd != start && (blocked || isMergeKey(start, keyEnd) && !raw))
