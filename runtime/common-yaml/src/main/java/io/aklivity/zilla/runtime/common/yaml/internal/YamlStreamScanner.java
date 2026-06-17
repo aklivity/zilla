@@ -595,6 +595,25 @@ public final class YamlStreamScanner
             validateQuoted(start, keyEnd);
             emit(KEY_NAME, start + 1, keyEnd - start - 2, null);
         }
+        else if (raw && (keyFirst == '&' || keyFirst == '!'))
+        {
+            // a block mapping key decorated with an anchor and/or tag; emit the key scalar carrying them
+            int nodeStart = scanKeyDecorators(start, keyEnd);
+            char nodeFirst = text.charAt(nodeStart);
+            if (nodeFirst == '"' || nodeFirst == '\'')
+            {
+                validateQuoted(nodeStart, keyEnd);
+                emit(KEY_NAME, nodeStart + 1, keyEnd - nodeStart - 2, null);
+            }
+            else if (isReservedStart(nodeFirst) || isMergeKey(nodeStart, keyEnd))
+            {
+                throw BAIL;
+            }
+            else
+            {
+                emit(KEY_NAME, nodeStart, keyEnd - nodeStart, null);
+            }
+        }
         else if (keyEnd == start || isReservedStart(keyFirst) || isMergeKey(start, keyEnd) && !raw)
         {
             throw BAIL;
@@ -1311,6 +1330,53 @@ public final class YamlStreamScanner
         {
             scanNestedValue(refIndent, line);
         }
+    }
+
+    /**
+     * Consumes anchor ({@code &name}) and tag ({@code !tag}) decorators preceding a block mapping key within
+     * {@code [start, end)}, setting the pending anchor/tag the way {@link #scanRef} does, and returns the
+     * offset of the key scalar that follows. An alias-as-key, a bare decorator with no scalar, or a repeated
+     * decorator bails to the eager parser.
+     */
+    private int scanKeyDecorators(
+        int start,
+        int end)
+    {
+        int at = start;
+        boolean node = false;
+        while (!node && at < end)
+        {
+            char c = text.charAt(at);
+            if (c == '&')
+            {
+                int nameEnd = tokenEnd(at + 1, end);
+                if (nameEnd == at + 1 || pendingAnchor != null)
+                {
+                    throw BAIL;
+                }
+                pendingAnchor = text.substring(at + 1, nameEnd);
+                at = skipSpace(nameEnd, end);
+            }
+            else if (c == '!')
+            {
+                int tagEnd = tagEnd(at, end);
+                if (pendingTag != null)
+                {
+                    throw BAIL;
+                }
+                pendingTag = normalizeTag(at, tagEnd);
+                at = skipSpace(tagEnd, end);
+            }
+            else
+            {
+                node = true;
+            }
+        }
+        if (!node)
+        {
+            throw BAIL;
+        }
+        return at;
     }
 
     private void foldGuard(
@@ -2845,7 +2911,9 @@ public final class YamlStreamScanner
         int indent)
     {
         int keyEnd = trimEnd(start, colon);
-        if (keyEnd == start || blockedStart(text.charAt(start)) || isMergeKey(start, keyEnd) && !raw)
+        char keyFirst = text.charAt(start);
+        boolean decoratedKey = raw && (keyFirst == '&' || keyFirst == '!');
+        if (keyEnd == start || blockedStart(keyFirst) && !decoratedKey || isMergeKey(start, keyEnd) && !raw)
         {
             throw BAIL;
         }

@@ -306,9 +306,12 @@ final class YamlJsonResolver
             throw new JsonParsingException("Unresolved YAML alias",
                 new YamlJsonLocation(new YamlLocation(scanner.line(at), scanner.column(at), scanner.offset(at))));
         }
+        boolean keyAnchor = range[1] - range[0] == 1 && kinds[range[0]] == YamlStreamScanner.KEY_NAME;
         for (int index = range[0]; index < range[1]; index++)
         {
-            append(kinds[index], values[index], sources[index]);
+            // an alias to an anchored key resolves to that key's string in value position
+            byte kind = keyAnchor ? YamlStreamScanner.VALUE_STRING : kinds[index];
+            append(kind, values[index], sources[index]);
         }
     }
 
@@ -320,12 +323,17 @@ final class YamlJsonResolver
         while (scanner.kind(cursor) != YamlStreamScanner.END_OBJECT)
         {
             int key = cursor;
-            if (scanner.kind(key) != YamlStreamScanner.KEY_NAME ||
-                scanner.anchor(key) != null || scanner.tag(key) != null)
+            if (scanner.kind(key) != YamlStreamScanner.KEY_NAME)
             {
                 throw new Unsupported();
             }
+            String keyAnchor = scanner.anchor(key);
+            int keyStart = count;
             append(YamlStreamScanner.KEY_NAME, scanner.string(key), key);
+            if (keyAnchor != null)
+            {
+                anchors.put(keyAnchor, new int[] {keyStart, count});
+            }
             cursor++;
             emitValue();
         }

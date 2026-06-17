@@ -183,6 +183,20 @@ class YamlStreamScannerTest
     }
 
     @Test
+    void shouldAcceptDecoratedBlockMappingKeys()
+    {
+        for (String doc : new String[] {
+            "!!str a: b\nc: d\n",
+            "&k1 key1: one\nuse: *k1\n",
+            "!!str 23: !!bool false\n"})
+        {
+            YamlStreamScanner scanner = new YamlStreamScanner();
+            assertTrue(scanner.scan(doc, true), "raw scanner should accept a decorated mapping key: " + doc);
+            assertEquals(eagerRaw(doc), scannedRaw(scanner), doc);
+        }
+    }
+
+    @Test
     void shouldAcceptEscapedQuotedScalar()
     {
         for (String doc : new String[] {
@@ -634,7 +648,12 @@ class YamlStreamScannerTest
             for (YamlEntry entry : object.entries)
             {
                 String name = entry.name != null ? entry.name : ((YamlScalarNode) entry.key).value;
-                builder.append("KEY_NAME").append('(').append(name).append(')').append('\n');
+                builder.append("KEY_NAME").append('(').append(name).append(')');
+                if (entry.name == null && entry.key != null)
+                {
+                    builder.append(anchorOf(entry.key));
+                }
+                builder.append('\n');
                 projectRaw(entry.value, builder);
             }
             builder.append("END_OBJECT").append('\n');
