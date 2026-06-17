@@ -25,6 +25,7 @@ import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.protobuf.Protobuf;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufGenerator;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufMessage;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufParser;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSchema;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSink;
@@ -156,7 +157,8 @@ public class ProtobufWriteConverterHandler extends ProtobufModelHandler implemen
                 }
                 else
                 {
-                    event.validationFailure(traceId, bindingId, "Invalid Protobuf event");
+                    String reason = state.pipeline.reason();
+                    event.validationFailure(traceId, bindingId, reason != null ? reason : "Invalid Protobuf event");
                 }
             }
         }
@@ -197,7 +199,9 @@ public class ProtobufWriteConverterHandler extends ProtobufModelHandler implemen
         {
             this.generator = Protobuf.generator();
             JsonParserEx jsonParser = JsonEx.createParser();
-            this.pipeline = Protobuf.stream(ProtobufJson.parser(jsonParser, schema, messageName))
+            ProtobufParser protobufParser = ProtobufJson.parser(jsonParser, schema, messageName,
+                Map.of(ProtobufJson.REJECT_UNKNOWN_FIELDS, Boolean.TRUE));
+            this.pipeline = Protobuf.stream(protobufParser)
                 .into(ProtobufSink.of(generator, schema, messageName));
         }
     }

@@ -21,12 +21,15 @@ import static org.mockito.Mockito.when;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.agrona.DirectBuffer;
+import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
@@ -252,6 +255,45 @@ public class ProtobufModelTest
     }
 
     @Test
+    public void shouldReadInvalidProtobufEvent()
+    {
+        ProtobufModelConfig model = ProtobufModelConfig.builder()
+            .catalog()
+                .name("test0")
+                .schema()
+                    .strategy("topic")
+                    .version("latest")
+                    .subject("test-value")
+                    .build()
+                .build()
+            .build();
+
+        when(context.clock()).thenReturn(Clock.systemUTC());
+        AtomicReference<DirectBuffer> captured = new AtomicReference<>();
+        MessageConsumer writer = (msgTypeId, buffer, index, length) ->
+        {
+            MutableDirectBuffer copy = new UnsafeBuffer(new byte[length]);
+            copy.putBytes(0, buffer, index, length);
+            captured.set(copy);
+        };
+        when(context.supplyEventWriter()).thenReturn(writer);
+
+        ProtobufReadConverterHandler converter = new ProtobufReadConverterHandler(model, context);
+
+        DirectBuffer data = new UnsafeBuffer();
+
+        byte[] bytes = {0x00, 0x0a, 0x08, 0x4f, 0x4b};
+        data.wrap(bytes, 0, bytes.length);
+        assertEquals(-1, converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
+
+        ProtobufModelEventFormatter formatter =
+            new ProtobufModelEventFormatterFactory().create(new Configuration());
+        DirectBuffer event = captured.get();
+        assertEquals("A message payload failed validation. truncated field: need 8 bytes.",
+            formatter.format(event, 0, event.capacity()));
+    }
+
+    @Test
     public void shouldReadValidProtobufEventNestedMessage()
     {
         ProtobufModelConfig model = ProtobufModelConfig.builder()
@@ -374,7 +416,9 @@ public class ProtobufModelTest
         String json =
             "{" +
                 "\"content\":\"OK\"," +
-                "\"date_time\":\"01012024\"";
+                "\"date_time\":\"01012024\"," +
+                "\"unexpected\":\"value\"" +
+            "}";
         data.wrap(json.getBytes(), 0, json.getBytes().length);
 
         assertEquals(-1, converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
