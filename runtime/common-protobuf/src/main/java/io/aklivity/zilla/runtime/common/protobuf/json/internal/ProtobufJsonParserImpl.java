@@ -67,6 +67,7 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
     private final JsonParserEx parser;
     private final ProtobufSchema schema;
     private final String messageName;
+    private final boolean rejectUnknownFields;
     private final UnsafeBuffer estimateView;
     private final ExpandableArrayBuffer valueBuffer;
     private final UnsafeBuffer valueView;
@@ -101,9 +102,19 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
         ProtobufSchema schema,
         String messageName)
     {
+        this(parser, schema, messageName, false);
+    }
+
+    public ProtobufJsonParserImpl(
+        JsonParserEx parser,
+        ProtobufSchema schema,
+        String messageName,
+        boolean rejectUnknownFields)
+    {
         this.parser = parser;
         this.schema = schema;
         this.messageName = messageName;
+        this.rejectUnknownFields = rejectUnknownFields;
         this.estimateView = new UnsafeBuffer(new byte[ESTIMATE]);
         this.valueBuffer = new ExpandableArrayBuffer();
         this.valueView = new UnsafeBuffer();
@@ -345,6 +356,10 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
                 ProtobufField field = frame.message.field(parser.getStringView());
                 if (field == null)
                 {
+                    if (rejectUnknownFields)
+                    {
+                        throw new ProtobufException("unknown field " + parser.getStringView());
+                    }
                     beginSkip();
                 }
                 else
