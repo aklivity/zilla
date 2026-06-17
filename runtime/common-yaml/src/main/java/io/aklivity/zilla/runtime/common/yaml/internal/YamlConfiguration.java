@@ -100,6 +100,11 @@ final class YamlConfiguration
         return enabled(YamlConfig.SCALAR_RESOLUTION, true);
     }
 
+    boolean resolveReferences()
+    {
+        return enabled(YamlConfig.RESOLVE_REFERENCES, true);
+    }
+
     boolean preserveSource()
     {
         return enabled(YamlConfig.PRESERVE_SOURCE, true);

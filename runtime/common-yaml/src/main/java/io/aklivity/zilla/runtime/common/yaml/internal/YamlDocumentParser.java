@@ -571,7 +571,7 @@ public final class YamlDocumentParser
         attachComments(value, line);
         storeAnchor(spec.anchor, value, line);
 
-        if ("<<".equals(key))
+        if ("<<".equals(key) && config.resolveReferences())
         {
             if (!config.mergeKeys())
             {
@@ -581,6 +581,10 @@ public final class YamlDocumentParser
         }
         else
         {
+            if ("<<".equals(key) && !config.mergeKeys())
+            {
+                throw error("YAML merge keys are disabled", line);
+            }
             object.removeMerged(key);
             object.add(new YamlEntry(key, value, line.line, line.column, line.offset));
         }
@@ -1362,6 +1366,11 @@ public final class YamlDocumentParser
         {
             throw error("YAML tags are disabled", line);
         }
+        if (!config.resolveReferences())
+        {
+            value.tag = tag;
+            return value;
+        }
         if ("!".equals(tag))
         {
             YamlNode tagged = value instanceof YamlScalarNode ?
@@ -1470,7 +1479,10 @@ public final class YamlDocumentParser
                 throw error("YAML anchors are disabled", line);
             }
             value.anchor = anchor;
-            anchors.put(anchor, copy(value));
+            if (config.resolveReferences())
+            {
+                anchors.put(anchor, copy(value));
+            }
         }
     }
 
@@ -1481,6 +1493,12 @@ public final class YamlDocumentParser
         if (!config.aliases())
         {
             throw error("YAML aliases are disabled", line);
+        }
+        if (!config.resolveReferences())
+        {
+            YamlNode reference = YamlScalarNode.literal(YamlScalarType.NULL, line.line, line.column, line.offset);
+            reference.alias = alias;
+            return reference;
         }
         YamlNode value = anchors.get(alias);
         if (value == null)
@@ -2768,7 +2786,7 @@ public final class YamlDocumentParser
                 YamlNode value = cursor < text.length() && (text.charAt(cursor) == ',' || text.charAt(cursor) == '}') ?
                     YamlScalarNode.literal(YamlScalarType.NULL, line.line, line.column + cursor, line.offset + cursor) :
                     parseValue();
-                if ("<<".equals(key.name))
+                if ("<<".equals(key.name) && config.resolveReferences())
                 {
                     if (!config.mergeKeys())
                     {
@@ -2778,6 +2796,10 @@ public final class YamlDocumentParser
                 }
                 else
                 {
+                    if ("<<".equals(key.name) && !config.mergeKeys())
+                    {
+                        throw error("YAML merge keys are disabled", line);
+                    }
                     object.add(key.key != null ?
                         new YamlEntry(key.key, value, line.line, line.column + cursor, line.offset + cursor) :
                         new YamlEntry(key.name, value, line.line, line.column + cursor, line.offset + cursor));
