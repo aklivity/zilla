@@ -782,9 +782,11 @@ public final class YamlStreamScanner
             {
                 itemAt++;
             }
-            if (hasTab(start + 1, itemAt))
+            if (hasTab(start + 1, itemAt) && !plainSequenceItem(itemAt, end))
             {
-                // a tab between the - indicator and the item is not valid indentation
+                // a tab between the - indicator and a structural item (nested sequence, explicit key,
+                // mapping or block scalar) is invalid indentation; only separation before a plain
+                // scalar item tolerates a tab
                 throw BAIL;
             }
 
@@ -813,6 +815,29 @@ public final class YamlStreamScanner
                 scanScalar(itemAt, end, indent, line, false, true);
             }
         }
+    }
+
+    /**
+     * Whether the sequence item at {@code itemAt} is a plain or quoted scalar rather than a structural node
+     * (a nested sequence {@code -}, an explicit key {@code ?}, a block scalar, a flow collection, or a mapping).
+     * Only a scalar item tolerates a tab in the separation after the {@code -} indicator; a tab before any
+     * structural node is invalid indentation.
+     */
+    private boolean plainSequenceItem(
+        int itemAt,
+        int end)
+    {
+        boolean plain = itemAt < end;
+        if (plain)
+        {
+            char c = text.charAt(itemAt);
+            boolean sequence = c == '-' && (itemAt + 1 == end || isSpace(text.charAt(itemAt + 1)));
+            boolean explicit = c == '?' && (itemAt + 1 == end || isSpace(text.charAt(itemAt + 1)));
+            boolean block = (c == '|' || c == '>') && blockIndicator(itemAt, end);
+            boolean flow = c == '{' || c == '[';
+            plain = !sequence && !explicit && !block && !flow && mappingColon(itemAt, end) == -1;
+        }
+        return plain;
     }
 
     private void scanNestedSequenceValue(

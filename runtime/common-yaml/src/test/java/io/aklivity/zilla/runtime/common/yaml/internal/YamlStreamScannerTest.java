@@ -566,7 +566,7 @@ class YamlStreamScannerTest
         long accepted = fixtures()
             .filter(path -> accepts(path.resolve("in.yaml"), false))
             .count();
-        assertEquals(216, accepted,
+        assertEquals(218, accepted,
             "accepted-fixture count changed; feasibility gate may over-reject or over-accept");
     }
 
@@ -579,7 +579,7 @@ class YamlStreamScannerTest
         long accepted = fixtures()
             .filter(path -> accepts(path.resolve("in.yaml"), true))
             .count();
-        assertEquals(267, accepted,
+        assertEquals(269, accepted,
             "raw accepted-fixture count changed; a drop is a regression, a rise should bump this baseline");
     }
 
