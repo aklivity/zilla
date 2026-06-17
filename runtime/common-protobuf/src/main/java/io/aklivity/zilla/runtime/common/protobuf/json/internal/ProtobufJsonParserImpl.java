@@ -53,7 +53,7 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
  * into the value buffer — so no per-value {@code String}/{@code byte[]} is materialized (floats, enum names by
  * string, and {@code bytes} base64 still round-trip through a {@code String}).
  */
-public final class ProtobufJsonParserImpl implements ProtobufParser, ProtobufLocation
+public final class ProtobufJsonParserImpl implements ProtobufParser
 {
     private static final int ESTIMATE = 1 << 16;
 
@@ -72,6 +72,14 @@ public final class ProtobufJsonParserImpl implements ProtobufParser, ProtobufLoc
     private final UnsafeBuffer estimateView;
     private final ExpandableArrayBuffer valueBuffer;
     private final UnsafeBuffer valueView;
+    private final ProtobufLocation location = new ProtobufLocation()
+    {
+        @Override
+        public long getStreamOffset()
+        {
+            return parser.getLocation().getStreamOffset();
+        }
+    };
 
     private Frame[] frames;
     private int depth;
@@ -177,13 +185,7 @@ public final class ProtobufJsonParserImpl implements ProtobufParser, ProtobufLoc
     @Override
     public ProtobufLocation getLocation()
     {
-        return this;
-    }
-
-    @Override
-    public long getStreamOffset()
-    {
-        return parser.getLocation().getStreamOffset();
+        return location;
     }
 
     @Override

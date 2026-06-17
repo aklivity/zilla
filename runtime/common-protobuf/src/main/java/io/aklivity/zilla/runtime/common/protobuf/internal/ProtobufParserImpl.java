@@ -51,7 +51,7 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
  * window swap; when a window is exhausted before the message completes, {@link #nextEvent} rewinds to the
  * last unit boundary, stashes the partial unit as carry, and returns {@code null} to signal starvation.
  */
-public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource, ProtobufLocation
+public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
 {
     private static final int MAX_DEPTH = 64;
 
@@ -65,6 +65,14 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource,
     private final String messageName;
     private final List<Frame> frames;
     private final ProtobufReader reader;
+    private final ProtobufLocation location = new ProtobufLocation()
+    {
+        @Override
+        public long getStreamOffset()
+        {
+            return reader.position();
+        }
+    };
 
     private boolean started;
     private boolean done;
@@ -138,13 +146,7 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource,
     @Override
     public ProtobufLocation getLocation()
     {
-        return this;
-    }
-
-    @Override
-    public long getStreamOffset()
-    {
-        return reader.position();
+        return location;
     }
 
     @Override
