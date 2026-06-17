@@ -82,6 +82,7 @@ public final class YamlStreamScanner
     private int eventCount;
 
     private boolean raw;
+    private boolean references;
     private int cursor;
     private int flowAt;
     private int flowTokenStart;
@@ -101,6 +102,7 @@ public final class YamlStreamScanner
         this.eventCount = 0;
         this.cursor = 0;
         this.raw = rawReferences;
+        this.references = false;
         this.pendingAnchor = null;
         this.pendingTag = null;
 
@@ -135,6 +137,11 @@ public final class YamlStreamScanner
     public int count()
     {
         return eventCount;
+    }
+
+    public boolean hasReferences()
+    {
+        return references;
     }
 
     public byte kind(
@@ -1369,6 +1376,7 @@ public final class YamlStreamScanner
             anchors[eventCount] = pendingAnchor;
             aliases[eventCount] = null;
             tags[eventCount] = pendingTag;
+            references |= pendingAnchor != null || pendingTag != null;
             pendingAnchor = null;
             pendingTag = null;
         }
@@ -1387,6 +1395,7 @@ public final class YamlStreamScanner
         anchors[eventCount] = pendingAnchor;
         aliases[eventCount] = alias;
         tags[eventCount] = pendingTag;
+        references = true;
         pendingAnchor = null;
         pendingTag = null;
         eventCount++;

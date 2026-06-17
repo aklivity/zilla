@@ -67,6 +67,7 @@ public final class YamlJsonParser implements JsonParser
     private boolean exhausted;
 
     private final YamlStreamScanner scanner;
+    private final YamlJsonResolver resolver;
     private int scanCursor;
     private int scanCurrent;
     private int buildCursor;
@@ -116,20 +117,72 @@ public final class YamlJsonParser implements JsonParser
         this.scanCurrent = -1;
 
         YamlStreamScanner candidate = null;
+        YamlJsonResolver resolved = null;
         if (config == null || config.isEmpty())
         {
             YamlStreamScanner streaming = new YamlStreamScanner();
-            if (streaming.scan(text))
+            if (streaming.scan(text, true))
             {
-                candidate = streaming;
+                if (streaming.hasReferences())
+                {
+                    try
+                    {
+                        resolved = new YamlJsonResolver(streaming);
+                        candidate = streaming;
+                    }
+                    catch (YamlJsonResolver.Unsupported unsupported)
+                    {
+                        // references beyond the streaming resolver's scope; fall back to the eager path
+                    }
+                }
+                else
+                {
+                    candidate = streaming;
+                }
             }
         }
         this.scanner = candidate;
+        this.resolver = resolved;
 
         if (scanner == null)
         {
             parseDocument(0);
         }
+    }
+
+    private byte ekind(
+        int index)
+    {
+        return resolver != null ? resolver.kind(index) : scanner.kind(index);
+    }
+
+    private String estring(
+        int index)
+    {
+        return resolver != null ? resolver.value(index) : scanner.string(index);
+    }
+
+    private int ecount()
+    {
+        return resolver != null ? resolver.count() : scanner.count();
+    }
+
+    private int eline(
+        int index)
+    {
+        return resolver != null ? resolver.line(index) : scanner.line(index);
+    }
+
+    private int ecolumn(
+        int index)
+    {
+        return resolver != null ? resolver.column(index) : scanner.column(index);
+    }
+
+    private int eoffset(
+        int index)
+    {
+        return resolver != null ? resolver.offset(index) : scanner.offset(index);
     }
 
     private void parseDocument(
@@ -179,7 +232,7 @@ public final class YamlJsonParser implements JsonParser
         boolean hasNext;
         if (scanner != null)
         {
-            hasNext = scanCursor < scanner.count();
+            hasNext = scanCursor < ecount();
         }
         else
         {
@@ -205,7 +258,7 @@ public final class YamlJsonParser implements JsonParser
         if (scanner != null)
         {
             scanCurrent = scanCursor++;
-            event = scanEvent(scanner.kind(scanCurrent));
+            event = scanEvent(ekind(scanCurrent));
         }
         else
         {
@@ -226,7 +279,7 @@ public final class YamlJsonParser implements JsonParser
             {
                 throw new IllegalStateException("No current event");
             }
-            event = scanEvent(scanner.kind(scanCurrent));
+            event = scanEvent(ekind(scanCurrent));
         }
         else if (current != null)
         {
@@ -332,9 +385,9 @@ public final class YamlJsonParser implements JsonParser
             {
                 throw new IllegalStateException("No value is available for current event");
             }
-            if (scanner.kind(scanCurrent) == YamlStreamScanner.KEY_NAME)
+            if (ekind(scanCurrent) == YamlStreamScanner.KEY_NAME)
             {
-                value = YamlJsonValues.string(scanner.string(scanCurrent));
+                value = YamlJsonValues.string(estring(scanCurrent));
             }
             else
             {
@@ -402,7 +455,7 @@ public final class YamlJsonParser implements JsonParser
         Event expected)
     {
         Event positioned = scanner != null ?
-            scanCurrent < 0 ? null : scanEvent(scanner.kind(scanCurrent)) :
+            scanCurrent < 0 ? null : scanEvent(ekind(scanCurrent)) :
             current != null ? current.event : null;
         if (positioned != expected)
         {
@@ -429,11 +482,11 @@ public final class YamlJsonParser implements JsonParser
         String value;
         if (scanner != null)
         {
-            if (scanCurrent < 0 || scanner.kind(scanCurrent) != YamlStreamScanner.VALUE_NUMBER)
+            if (scanCurrent < 0 || ekind(scanCurrent) != YamlStreamScanner.VALUE_NUMBER)
             {
                 throw new IllegalStateException("Not a number");
             }
-            value = scanner.string(scanCurrent);
+            value = estring(scanCurrent);
         }
         else
         {
@@ -467,26 +520,26 @@ public final class YamlJsonParser implements JsonParser
 
     private String scanString()
     {
-        byte kind = scanCurrent < 0 ? 0 : scanner.kind(scanCurrent);
+        byte kind = scanCurrent < 0 ? 0 : ekind(scanCurrent);
         if (kind != YamlStreamScanner.KEY_NAME &&
             kind != YamlStreamScanner.VALUE_STRING &&
             kind != YamlStreamScanner.VALUE_NUMBER)
         {
             throw new IllegalStateException("No string value is available for current event");
         }
-        return scanner.string(scanCurrent);
+        return estring(scanCurrent);
     }
 
     private YamlJsonLocation scanLocation()
     {
-        int index = scanCurrent >= 0 && scanCursor <= scanner.count() ? scanCurrent : scanner.count() - 1;
+        int index = scanCurrent >= 0 && scanCursor <= ecount() ? scanCurrent : ecount() - 1;
         return index < 0 ? new YamlJsonLocation(new YamlLocation(1, 1, 0)) :
-            new YamlJsonLocation(new YamlLocation(scanner.line(index), scanner.column(index), scanner.offset(index)));
+            new YamlJsonLocation(new YamlLocation(eline(index), ecolumn(index), eoffset(index)));
     }
 
     private JsonValue scanValue()
     {
-        byte kind = scanner.kind(buildCursor);
+        byte kind = ekind(buildCursor);
         JsonValue value;
         switch (kind)
         {
@@ -494,9 +547,9 @@ public final class YamlJsonParser implements JsonParser
         {
             buildCursor++;
             JsonObjectBuilder builder = YamlJsonValues.objectBuilder();
-            while (scanner.kind(buildCursor) != YamlStreamScanner.END_OBJECT)
+            while (ekind(buildCursor) != YamlStreamScanner.END_OBJECT)
             {
-                String name = scanner.string(buildCursor);
+                String name = estring(buildCursor);
                 buildCursor++;
                 builder.add(name, scanValue());
             }
@@ -507,7 +560,7 @@ public final class YamlJsonParser implements JsonParser
         {
             buildCursor++;
             JsonArrayBuilder builder = YamlJsonValues.arrayBuilder();
-            while (scanner.kind(buildCursor) != YamlStreamScanner.END_ARRAY)
+            while (ekind(buildCursor) != YamlStreamScanner.END_ARRAY)
             {
                 builder.add(scanValue());
             }
@@ -516,12 +569,12 @@ public final class YamlJsonParser implements JsonParser
         }
         case YamlStreamScanner.VALUE_STRING ->
         {
-            value = YamlJsonValues.string(scanner.string(buildCursor));
+            value = YamlJsonValues.string(estring(buildCursor));
             buildCursor++;
         }
         case YamlStreamScanner.VALUE_NUMBER ->
         {
-            value = YamlJsonValues.number(new BigDecimal(scanner.string(buildCursor)));
+            value = YamlJsonValues.number(new BigDecimal(estring(buildCursor)));
             buildCursor++;
         }
         case YamlStreamScanner.VALUE_TRUE ->
