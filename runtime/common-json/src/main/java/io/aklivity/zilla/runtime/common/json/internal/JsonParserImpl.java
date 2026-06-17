@@ -55,7 +55,6 @@ public final class JsonParserImpl implements JsonParserEx
     private DocState docState = DocState.NOT_STARTED;
     private SegmentState segmentState = SegmentState.NONE;
     private long frameBaseStreamOffset;
-    private long frameEndStreamOffset;
     private long segmentStartOffset;
     private int segmentSliceOffset;
     private int segmentSliceLength;
@@ -126,7 +125,6 @@ public final class JsonParserImpl implements JsonParserEx
         int limit)
     {
         frameBaseStreamOffset = tokenizer.streamOffset();
-        frameEndStreamOffset = frameBaseStreamOffset + (limit - offset);
         tokenizer.window(limit - offset);
         ownedInput.wrap(buffer, offset, limit - offset);
         return this;
@@ -149,7 +147,7 @@ public final class JsonParserImpl implements JsonParserEx
     @Override
     public int remaining()
     {
-        return (int)(frameEndStreamOffset - tokenizer.streamOffset());
+        return (int)(frameBaseStreamOffset + ownedInput.length() - tokenizer.streamOffset());
     }
 
     @Override
