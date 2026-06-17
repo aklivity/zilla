@@ -153,9 +153,18 @@ class YamlStreamScannerTest
     }
 
     @Test
-    void shouldBailOnBlockScalar()
+    void shouldAcceptLiteralBlockScalar()
     {
-        assertFalse(new YamlStreamScanner().scan("text: |\n  line one\n  line two\n"));
+        String doc = "text: |\n  line one\n  line two\n";
+        YamlStreamScanner scanner = new YamlStreamScanner();
+        assertTrue(scanner.scan(doc), "scanner should accept a literal block scalar");
+        assertEquals(eager(doc), scanned(scanner), "scanner events must match eager projection");
+    }
+
+    @Test
+    void shouldBailOnFoldedBlockScalar()
+    {
+        assertFalse(new YamlStreamScanner().scan("text: >\n  line one\n  line two\n"));
     }
 
     @Test
@@ -176,7 +185,7 @@ class YamlStreamScannerTest
         long accepted = fixtures()
             .filter(path -> accepts(path.resolve("in.yaml")))
             .count();
-        assertEquals(41, accepted,
+        assertEquals(46, accepted,
             "accepted-fixture count changed; feasibility gate may over-reject or over-accept");
     }
 

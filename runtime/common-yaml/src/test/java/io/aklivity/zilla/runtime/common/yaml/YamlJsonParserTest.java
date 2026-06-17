@@ -479,6 +479,25 @@ class YamlJsonParserTest
     }
 
     @Test
+    void shouldProjectLiteralBlockScalar()
+    {
+        JsonObject object = YamlJson.provider().createReader(new StringReader("""
+            literal: |
+              line one
+              line two
+            strip: |-
+              text
+            keep: |+
+              text
+
+            """)).readObject();
+
+        assertEquals("line one\nline two\n", object.getString("literal"));
+        assertEquals("text", object.getString("strip"));
+        assertEquals("text\n\n", object.getString("keep"));
+    }
+
+    @Test
     void shouldProjectAliasesAsExpandedJsonValues()
     {
         JsonObject object = YamlJson.provider().createReader(new StringReader("""

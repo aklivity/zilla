@@ -343,6 +343,10 @@ public final class YamlStreamScanner
         {
             scanNestedValue(indent, line);
         }
+        else if (text.charAt(valueStart) == '|' && literalBlockIndicator(valueStart, end))
+        {
+            scanBlockScalar(valueStart, end, indent);
+        }
         else
         {
             scanScalar(valueStart, end, indent, line);
@@ -499,6 +503,158 @@ public final class YamlStreamScanner
 
         foldGuard(refIndent);
         emitClassifiedScalar(start, end);
+    }
+
+    private boolean literalBlockIndicator(
+        int valueStart,
+        int end)
+    {
+        boolean result = false;
+        if (text.charAt(valueStart) == '|')
+        {
+            int at = valueStart + 1;
+            if (at < end && (text.charAt(at) == '-' || text.charAt(at) == '+'))
+            {
+                at++;
+            }
+            result = at == end;
+        }
+        return result;
+    }
+
+    private void scanBlockScalar(
+        int valueStart,
+        int end,
+        int keyIndent)
+    {
+        char chomp = valueStart + 1 < end ? text.charAt(valueStart + 1) : 0;
+        int contentIndent = blockScalarIndent(keyIndent);
+        StringBuilder builder = new StringBuilder();
+        boolean seenContent = false;
+        while (cursor < lineCount)
+        {
+            int lineStartAt = lineStart[cursor];
+            int lineEndAt = rawEnd(cursor);
+            int indent = lineIndent[cursor];
+            boolean spaceOnly = spaceOnlyLine(cursor);
+            if (lineStartAt >= text.length())
+            {
+                break;
+            }
+            if (!spaceOnly && indent < contentIndent)
+            {
+                break;
+            }
+            if (!spaceOnly && indent <= keyIndent)
+            {
+                break;
+            }
+            if (!seenContent && spaceOnly && lineEndAt > lineStartAt && indent > contentIndent)
+            {
+                throw BAIL;
+            }
+            if (lineEndAt - lineStartAt >= contentIndent)
+            {
+                builder.append(text, lineStartAt + contentIndent, lineEndAt);
+            }
+            builder.append('\n');
+            seenContent |= !spaceOnly;
+            cursor++;
+        }
+
+        String value = builder.toString();
+        if (chomp == '-')
+        {
+            value = stripTrailingLineBreaks(value);
+        }
+        else if (chomp != '+')
+        {
+            value = clipTrailingLineBreaks(value);
+        }
+        emit(VALUE_STRING, valueStart, 0, value);
+    }
+
+    private int blockScalarIndent(
+        int keyIndent)
+    {
+        int contentIndent = -1;
+        for (int at = cursor; at < lineCount && contentIndent == -1; at++)
+        {
+            if (!spaceOnlyLine(at))
+            {
+                int indent = lineIndent[at];
+                if (indent > keyIndent)
+                {
+                    contentIndent = indent;
+                }
+                else if (isSequence(at, indent) || isExplicitKey(at) ||
+                    mappingColon(contentStart[at], contentEnd[at]) != -1 ||
+                    isMarker(contentStart[at], contentEnd[at], '-') || isMarker(contentStart[at], contentEnd[at], '.'))
+                {
+                    contentIndent = keyIndent + 2;
+                }
+                else
+                {
+                    throw BAIL;
+                }
+            }
+        }
+        if (contentIndent == -1)
+        {
+            int blankIndent = -1;
+            for (int at = cursor; at < lineCount && spaceOnlyLine(at); at++)
+            {
+                if (rawEnd(at) > lineStart[at])
+                {
+                    blankIndent = Math.max(blankIndent, lineIndent[at]);
+                }
+            }
+            contentIndent = blankIndent != -1 ? blankIndent : keyIndent + 2;
+        }
+        return contentIndent;
+    }
+
+    private int rawEnd(
+        int line)
+    {
+        int at = line + 1 < lineCount ? lineStart[line + 1] - 1 : text.length();
+        if (at > lineStart[line] && text.charAt(at - 1) == '\r')
+        {
+            at--;
+        }
+        return at;
+    }
+
+    private boolean spaceOnlyLine(
+        int line)
+    {
+        boolean spaceOnly = true;
+        int at = lineStart[line];
+        int lineEndAt = rawEnd(line);
+        while (spaceOnly && at < lineEndAt)
+        {
+            spaceOnly = text.charAt(at) == ' ';
+            at++;
+        }
+        return spaceOnly;
+    }
+
+    private static String stripTrailingLineBreaks(
+        String value)
+    {
+        int end = value.length();
+        while (end > 0 && value.charAt(end - 1) == '\n')
+        {
+            end--;
+        }
+        return value.substring(0, end);
+    }
+
+    private static String clipTrailingLineBreaks(
+        String value)
+    {
+        String stripped = stripTrailingLineBreaks(value);
+        return stripped.isEmpty() ? stripped : stripped + "\n";
     }
 
     /**
@@ -1456,37 +1612,58 @@ public final class YamlStreamScanner
     {
         int start = 0;
         int length = text.length();
+        int blockSkipIndent = -1;
         while (start < length)
         {
             int eol = text.indexOf('\n', start);
-            int rawEnd = eol == -1 ? length : eol;
-            int trimmedEnd = rawEnd > start && text.charAt(rawEnd - 1) == '\r' ? rawEnd - 1 : rawEnd;
+            int lineRawEnd = eol == -1 ? length : eol;
+            int trimmedEnd = lineRawEnd > start && text.charAt(lineRawEnd - 1) == '\r' ? lineRawEnd - 1 : lineRawEnd;
 
             int cs = start;
             while (cs < trimmedEnd && isSpace(text.charAt(cs)))
             {
                 cs++;
             }
-            int comment = commentIndex(cs, trimmedEnd);
-            int ce = comment == -1 ? trimmedEnd : comment;
-            while (ce > cs && isSpace(text.charAt(ce - 1)))
+            int indent = cs - start;
+            boolean spaceOnly = cs == trimmedEnd;
+
+            boolean skip = false;
+            if (blockSkipIndent >= 0)
             {
-                ce--;
+                if (spaceOnly || indent > blockSkipIndent)
+                {
+                    skip = true;
+                }
+                else
+                {
+                    blockSkipIndent = -1;
+                }
             }
 
-            if (cs < ce)
+            if (!skip)
             {
-                feasibleLine(cs, ce);
+                int comment = commentIndex(cs, trimmedEnd);
+                int ce = comment == -1 ? trimmedEnd : comment;
+                while (ce > cs && isSpace(text.charAt(ce - 1)))
+                {
+                    ce--;
+                }
+                if (cs < ce)
+                {
+                    blockSkipIndent = feasibleLine(cs, ce, indent);
+                }
             }
 
             start = eol == -1 ? length : eol + 1;
         }
     }
 
-    private void feasibleLine(
+    private int feasibleLine(
         int start,
-        int end)
+        int end,
+        int indent)
     {
+        int blockIndent = -1;
         char first = text.charAt(start);
         if (first == '%' || isMarker(start, end, '-') || isMarker(start, end, '.'))
         {
@@ -1512,7 +1689,7 @@ public final class YamlStreamScanner
                     int colon = mappingColon(item, end);
                     if (colon != -1)
                     {
-                        feasibleEntry(item, end, colon);
+                        blockIndent = feasibleEntry(item, end, colon, indent);
                     }
                     else if (blockedStart(it))
                     {
@@ -1532,14 +1709,16 @@ public final class YamlStreamScanner
             {
                 throw BAIL;
             }
-            feasibleEntry(start, end, colon);
+            blockIndent = feasibleEntry(start, end, colon, indent);
         }
+        return blockIndent;
     }
 
-    private void feasibleEntry(
+    private int feasibleEntry(
         int start,
         int end,
-        int colon)
+        int colon,
+        int indent)
     {
         int keyEnd = trimEnd(start, colon);
         if (keyEnd == start || blockedStart(text.charAt(start)) || isMergeKey(start, keyEnd) && !raw)
@@ -1547,16 +1726,22 @@ public final class YamlStreamScanner
             throw BAIL;
         }
 
+        int blockIndent = -1;
         int valueStart = skipSpace(colon + 1, end);
         if (valueStart < end)
         {
             char value = text.charAt(valueStart);
-            if (value != '{' && value != '[' && !(raw && (value == '&' || value == '*' || value == '!')) &&
+            if (value == '|' && literalBlockIndicator(valueStart, end))
+            {
+                blockIndent = indent;
+            }
+            else if (value != '{' && value != '[' && !(raw && (value == '&' || value == '*' || value == '!')) &&
                 (blockedStart(value) || isCompactSequence(valueStart, end) || mappingColon(valueStart, end) != -1))
             {
                 throw BAIL;
             }
         }
+        return blockIndent;
     }
 
     private static boolean blockedStart(
