@@ -858,6 +858,11 @@ public final class YamlStreamScanner
             scanCompactNode(skipSpace(elemStart + 1, end), end, childIndent + 2, line);
             emit(END_ARRAY, elemStart, 0, null);
         }
+        else if (text.charAt(elemStart) == '{' || text.charAt(elemStart) == '[')
+        {
+            // a flow collection opened inline by a compact - indicator (e.g. - - - [])
+            scanInlineFlow(elemStart, end);
+        }
         else if (mappingColon(elemStart, end) != -1)
         {
             throw BAIL;
@@ -865,6 +870,24 @@ public final class YamlStreamScanner
         else
         {
             scanInlineScalar(elemStart, end);
+        }
+    }
+
+    /**
+     * Scans a flow collection that occupies {@code [start, end)} on the current line without moving the block
+     * line cursor — used for a compact sequence element. The flow must open and close within the slice;
+     * trailing content (other than spaces or a comment) bails to the eager parser.
+     */
+    private void scanInlineFlow(
+        int start,
+        int end)
+    {
+        flowAt = start;
+        flowValue();
+        flowSkipWhitespace();
+        if (flowAt < end)
+        {
+            throw BAIL;
         }
     }
 
