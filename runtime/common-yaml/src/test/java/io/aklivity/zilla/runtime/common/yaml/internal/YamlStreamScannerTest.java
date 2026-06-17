@@ -136,6 +136,20 @@ class YamlStreamScannerTest
     }
 
     @Test
+    void shouldAcceptQuestionLedPlainScalarInFlow()
+    {
+        for (String doc : new String[] {
+            "{ ?foo: bar, bar: 42 }\n",
+            "[?x]\n",
+            "list: [?a, ?b]\n"})
+        {
+            YamlStreamScanner scanner = new YamlStreamScanner();
+            assertTrue(scanner.scan(doc), "scanner should accept a ?-led plain scalar in flow: " + doc);
+            assertEquals(eager(doc), scanned(scanner), doc);
+        }
+    }
+
+    @Test
     void shouldAcceptFlowDocumentBodyAndComments()
     {
         for (String doc : new String[] {
@@ -496,7 +510,7 @@ class YamlStreamScannerTest
         long accepted = fixtures()
             .filter(path -> accepts(path.resolve("in.yaml")))
             .count();
-        assertEquals(205, accepted,
+        assertEquals(207, accepted,
             "accepted-fixture count changed; feasibility gate may over-reject or over-accept");
     }
 

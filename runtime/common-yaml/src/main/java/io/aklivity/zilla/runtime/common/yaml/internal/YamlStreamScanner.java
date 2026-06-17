@@ -1633,6 +1633,11 @@ public final class YamlStreamScanner
             {
                 flowAlias();
             }
+            else if (c == '?' && flowPlainQuestion())
+            {
+                // a ? not followed by a separator starts a plain scalar (not an explicit-key indicator)
+                flowBareScalar();
+            }
             else if (flowReserved(c))
             {
                 throw BAIL;
@@ -1883,7 +1888,7 @@ public final class YamlStreamScanner
             flowReadQuoted();
             emit(KEY_NAME, flowTokenStart, flowTokenEnd - flowTokenStart, null);
         }
-        else if (flowReserved(c) || c == '{' || c == '[')
+        else if ((flowReserved(c) || c == '{' || c == '[') && !(c == '?' && flowPlainQuestion()))
         {
             throw BAIL;
         }
@@ -2090,6 +2095,14 @@ public final class YamlStreamScanner
                 done = true;
             }
         }
+    }
+
+    private boolean flowPlainQuestion()
+    {
+        // a ? at flowAt begins a plain scalar (e.g. ?foo) when it is not the `? ` explicit-key indicator
+        // and is not standing alone before a flow separator
+        char next = flowAt + 1 < text.length() ? text.charAt(flowAt + 1) : 0;
+        return next != 0 && !Character.isWhitespace(next) && next != ',' && next != ']' && next != '}';
     }
 
     private static boolean flowReserved(
