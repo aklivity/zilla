@@ -324,39 +324,7 @@ public final class YamlStreamScanner
                 throw BAIL;
             }
 
-            if (cursor >= lineCount || documentMarker(cursor, '-') || documentMarker(cursor, '.'))
-            {
-                // an empty document (--- followed by a marker or the end of the stream) projects as null
-                emit(VALUE_NULL, cursor < lineCount ? contentStart[cursor] : text.length(), 0, null);
-            }
-            else
-            {
-                int line = cursor;
-                char first = text.charAt(contentStart[line]);
-                int indent = lineIndent[line];
-                int rootColon = mappingColon(contentStart[line], contentEnd[line]);
-                if ((first == '{' || first == '[') && rootColon == -1)
-                {
-                    // a document whose root value is a flow collection
-                    scanFlowBody(contentStart[line]);
-                }
-                else if (isSequence(line, indent) || isExplicitKey(line) || rootColon != -1)
-                {
-                    scanBlock(indent);
-                }
-                else if ((first == '|' || first == '>') && blockIndicator(contentStart[line], contentEnd[line]))
-                {
-                    // a document that is a block scalar
-                    cursor++;
-                    scanBlockScalar(contentStart[line], contentEnd[line], indent, true);
-                }
-                else
-                {
-                    // a document that is a single scalar; scanScalar bails on any non-scalar root
-                    cursor++;
-                    scanScalar(contentStart[line], contentEnd[line], indent, line, true, true);
-                }
-            }
+            scanRootBody();
         }
 
         boolean ended = consumeDocumentEnd();
@@ -379,6 +347,64 @@ public final class YamlStreamScanner
     }
 
     /**
+     * Scans the document root node. In raw mode, leading lines that are entirely anchor/tag node properties
+     * decorate the root node that follows (the pending anchor/tag attach to its first emitted event); this is
+     * the document-root analogue of {@link #scanRef}. The node itself is a flow collection, a block sequence
+     * or mapping, a block scalar, or a single scalar.
+     */
+    private void scanRootBody()
+    {
+        while (raw && cursor < lineCount && rootPropertyOnly(cursor))
+        {
+            consumeProperties(contentStart[cursor], contentEnd[cursor]);
+            cursor++;
+            skipIgnorable();
+        }
+
+        if (cursor >= lineCount || documentMarker(cursor, '-') || documentMarker(cursor, '.'))
+        {
+            // an empty document (--- followed by a marker or the end of the stream) projects as null
+            emit(VALUE_NULL, cursor < lineCount ? contentStart[cursor] : text.length(), 0, null);
+        }
+        else
+        {
+            int line = cursor;
+            char first = text.charAt(contentStart[line]);
+            int indent = lineIndent[line];
+            int rootColon = mappingColon(contentStart[line], contentEnd[line]);
+            int decorated = raw && (first == '&' || first == '!') ? propertiesEnd(contentStart[line], contentEnd[line]) : -1;
+            char decoratedFirst = decorated > 0 && decorated < contentEnd[line] ? text.charAt(decorated) : 0;
+            if (decoratedFirst == '{' || decoratedFirst == '[')
+            {
+                // node properties decorating a flow collection at the document root (e.g. &seq [ ... ])
+                consumeProperties(contentStart[line], contentEnd[line]);
+                scanFlowBody(decorated);
+            }
+            else if ((first == '{' || first == '[') && rootColon == -1)
+            {
+                // a document whose root value is a flow collection
+                scanFlowBody(contentStart[line]);
+            }
+            else if (isSequence(line, indent) || isExplicitKey(line) || rootColon != -1)
+            {
+                scanBlock(indent);
+            }
+            else if ((first == '|' || first == '>') && blockIndicator(contentStart[line], contentEnd[line]))
+            {
+                // a document that is a block scalar
+                cursor++;
+                scanBlockScalar(contentStart[line], contentEnd[line], indent, true);
+            }
+            else
+            {
+                // a document that is a single scalar; scanScalar bails on any non-scalar root
+                cursor++;
+                scanScalar(contentStart[line], contentEnd[line], indent, line, true, true);
+            }
+        }
+    }
+
+    /**
      * A document whose root value sits on the {@code ---} line itself ({@code --- value}). The eager parser
      * treats the inline content as a document line at indent zero, so the value is scanned at the document
      * root context as a block scalar or a scalar / quoted / flow value. A block scalar is safe now that
@@ -391,7 +417,24 @@ public final class YamlStreamScanner
         int valueStart = skipSpace(contentStart[line] + 3, contentEnd[line]);
         int valueEnd = contentEnd[line];
         cursor++;
-        if (blockIndicator(valueStart, valueEnd))
+        if (raw && valueStart < valueEnd && (text.charAt(valueStart) == '&' || text.charAt(valueStart) == '!'))
+        {
+            int nodeStart = consumeProperties(valueStart, valueEnd);
+            if (nodeStart == valueEnd)
+            {
+                // the marker carries only node properties; the decorated root node follows on later lines
+                scanRootBody();
+            }
+            else if (blockIndicator(nodeStart, valueEnd))
+            {
+                scanBlockScalar(nodeStart, valueEnd, 0, true);
+            }
+            else
+            {
+                scanScalar(nodeStart, valueEnd, 0, line, true, true);
+            }
+        }
+        else if (blockIndicator(valueStart, valueEnd))
         {
             scanBlockScalar(valueStart, valueEnd, 0, true);
         }
@@ -1443,6 +1486,88 @@ public final class YamlStreamScanner
             throw BAIL;
         }
         return at;
+    }
+
+    /**
+     * Consumes anchor ({@code &name}) and tag ({@code !tag}) node properties over {@code [start, end)},
+     * setting the pending anchor/tag, and returns the offset just past them. Unlike {@link #scanKeyDecorators}
+     * a trailing-only property run (no following node on the slice) is permitted: the decorated node follows
+     * on subsequent lines. A repeated anchor or tag bails.
+     */
+    private int consumeProperties(
+        int start,
+        int end)
+    {
+        int at = start;
+        boolean more = true;
+        while (more && at < end)
+        {
+            char c = text.charAt(at);
+            if (c == '&')
+            {
+                int nameEnd = tokenEnd(at + 1, end);
+                if (nameEnd == at + 1 || pendingAnchor != null)
+                {
+                    throw BAIL;
+                }
+                pendingAnchor = text.substring(at + 1, nameEnd);
+                at = skipSpace(nameEnd, end);
+            }
+            else if (c == '!')
+            {
+                int tagEnd = tagEnd(at, end);
+                if (pendingTag != null)
+                {
+                    throw BAIL;
+                }
+                pendingTag = normalizeTag(at, tagEnd);
+                at = skipSpace(tagEnd, end);
+            }
+            else
+            {
+                more = false;
+            }
+        }
+        return at;
+    }
+
+    /**
+     * A pure (non-mutating) scan of the leading anchor/tag property run over {@code [start, end)}, returning
+     * the offset just past it. Used to detect a property-only line at the document root.
+     */
+    private int propertiesEnd(
+        int start,
+        int end)
+    {
+        int at = start;
+        boolean more = true;
+        while (more && at < end)
+        {
+            char c = text.charAt(at);
+            if (c == '&')
+            {
+                int nameEnd = tokenEnd(at + 1, end);
+                more = nameEnd != at + 1;
+                at = more ? skipSpace(nameEnd, end) : at;
+            }
+            else if (c == '!')
+            {
+                at = skipSpace(tagEnd(at, end), end);
+            }
+            else
+            {
+                more = false;
+            }
+        }
+        return at;
+    }
+
+    private boolean rootPropertyOnly(
+        int line)
+    {
+        int start = contentStart[line];
+        char c = text.charAt(start);
+        return (c == '&' || c == '!') && propertiesEnd(start, contentEnd[line]) == contentEnd[line];
     }
 
     private void foldGuard(
