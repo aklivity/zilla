@@ -1545,7 +1545,7 @@ public final class YamlStreamScanner
         int line)
     {
         char quote = text.charAt(start);
-        int close = quotedClose(start + 1, end, quote);
+        int close = quotedCloseEsc(start + 1, end, quote);
         if (close == -1)
         {
             scanMultiLineQuoted(start, end, refIndent, quote);
@@ -1561,7 +1561,15 @@ public final class YamlStreamScanner
             {
                 throw BAIL;
             }
-            emit(VALUE_STRING, start + 1, end - start - 2, null);
+            String value = quote == '"' ? unquoteDouble(start, end) : unquoteSingle(start, end);
+            if (value == null)
+            {
+                emit(VALUE_STRING, start + 1, end - start - 2, null);
+            }
+            else
+            {
+                emit(VALUE_STRING, start, 0, value);
+            }
         }
     }
 
@@ -1578,6 +1586,17 @@ public final class YamlStreamScanner
         int refIndent,
         char quote)
     {
+        // multi-line folding is only supported escape-free; an escape on the opening line bails
+        for (int i = openStart + 1; i < openEnd; i++)
+        {
+            char c = text.charAt(i);
+            if (quote == '"' && c == '\\' ||
+                quote == '\'' && c == '\'' && i + 1 < openEnd && text.charAt(i + 1) == '\'')
+            {
+                throw BAIL;
+            }
+        }
+
         StringBuilder interior = new StringBuilder();
         interior.append(text, openStart + 1, openEnd);
 
@@ -1655,6 +1674,169 @@ public final class YamlStreamScanner
             }
         }
         return close;
+    }
+
+    /**
+     * Returns the index of the closing quote within {@code [from, end)} honoring escapes — a {@code \X}
+     * inside a double quote and a {@code ''} pair inside a single quote do not close — or {@code -1} when
+     * the quote does not close on this line. Unlike {@link #quotedClose} this never bails; the caller
+     * materializes the value via {@link #unquoteDouble} / {@link #unquoteSingle} when escapes are present.
+     */
+    private int quotedCloseEsc(
+        int from,
+        int end,
+        char quote)
+    {
+        int close = -1;
+        for (int i = from; i < end && close == -1; i++)
+        {
+            char c = text.charAt(i);
+            if (quote == '"' && c == '\\')
+            {
+                i++;
+            }
+            else if (c == quote)
+            {
+                if (quote == '\'' && i + 1 < end && text.charAt(i + 1) == '\'')
+                {
+                    i++;
+                }
+                else
+                {
+                    close = i;
+                }
+            }
+        }
+        return close;
+    }
+
+    /**
+     * Materializes a single-line double-quoted scalar's interior {@code [start+1, end-1)}, returning
+     * {@code null} when it is escape-free so the caller can emit the verbatim slice instead. Mirrors
+     * {@code YamlDocumentParser.unquoteDouble}; an unterminated escape bails to the eager parser.
+     */
+    private String unquoteDouble(
+        int start,
+        int end)
+    {
+        boolean escaped = false;
+        for (int i = start + 1; i < end - 1 && !escaped; i++)
+        {
+            escaped = text.charAt(i) == '\\';
+        }
+        String result = null;
+        if (escaped)
+        {
+            StringBuilder value = new StringBuilder();
+            for (int i = start + 1; i < end - 1; i++)
+            {
+                char c = text.charAt(i);
+                if (c == '\\')
+                {
+                    i++;
+                    if (i >= end - 1)
+                    {
+                        throw BAIL;
+                    }
+                    i = appendEscape(value, i);
+                }
+                else
+                {
+                    value.append(c);
+                }
+            }
+            result = value.toString();
+        }
+        return result;
+    }
+
+    /**
+     * Materializes a single-line single-quoted scalar's interior, collapsing each {@code ''} pair to a
+     * single quote, or {@code null} when no pair is present so the verbatim slice can be emitted. Mirrors
+     * {@code YamlDocumentParser.unquoteSingle}; a lone interior quote cannot occur since it would have
+     * closed the scalar.
+     */
+    private String unquoteSingle(
+        int start,
+        int end)
+    {
+        boolean doubled = false;
+        for (int i = start + 1; i < end - 1 && !doubled; i++)
+        {
+            doubled = text.charAt(i) == '\'';
+        }
+        String result = null;
+        if (doubled)
+        {
+            StringBuilder value = new StringBuilder();
+            for (int i = start + 1; i < end - 1; i++)
+            {
+                char c = text.charAt(i);
+                value.append(c);
+                if (c == '\'')
+                {
+                    i++;
+                }
+            }
+            result = value.toString();
+        }
+        return result;
+    }
+
+    private int appendEscape(
+        StringBuilder value,
+        int at)
+    {
+        int next = at;
+        char escaped = text.charAt(at);
+        switch (escaped)
+        {
+        case '0' -> value.append('\0');
+        case 'a' -> value.append('\u0007');
+        case '"' -> value.append('"');
+        case '\\' -> value.append('\\');
+        case '/' -> value.append('/');
+        case 'b' -> value.append('\b');
+        case 'e' -> value.append('\u001b');
+        case 'f' -> value.append('\f');
+        case 'n' -> value.append('\n');
+        case 'r' -> value.append('\r');
+        case 't', '\t' -> value.append('\t');
+        case 'v' -> value.append('\u000b');
+        case ' ' -> value.append(' ');
+        case '_' -> value.append('\u00a0');
+        case 'N' -> value.append('\u0085');
+        case 'L' -> value.append('\u2028');
+        case 'P' -> value.append('\u2029');
+        case 'x' -> next = appendHexEscape(value, at, 2);
+        case 'u' -> next = appendHexEscape(value, at, 4);
+        case 'U' -> next = appendHexEscape(value, at, 8);
+        default -> throw BAIL;
+        }
+        return next;
+    }
+
+    private int appendHexEscape(
+        StringBuilder value,
+        int at,
+        int digits)
+    {
+        if (at + digits >= text.length())
+        {
+            throw BAIL;
+        }
+        int next;
+        try
+        {
+            int codePoint = Integer.parseUnsignedInt(text.substring(at + 1, at + 1 + digits), 16);
+            value.appendCodePoint(codePoint);
+            next = at + digits;
+        }
+        catch (IllegalArgumentException ex)
+        {
+            throw BAIL;
+        }
+        return next;
     }
 
     private static String foldQuoted(

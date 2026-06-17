@@ -139,15 +139,27 @@ class YamlStreamScannerTest
     }
 
     @Test
-    void shouldBailOnEscapedQuotedScalar()
+    void shouldAcceptEscapedQuotedScalar()
     {
-        assertFalse(new YamlStreamScanner().scan("name: \"a\\tb\"\n"));
+        for (String doc : new String[] {
+            "name: \"a\\tb\"\n",
+            "name: \"line\\none\\ttwo\"\n",
+            "name: \"quote \\\" and \\\\ slash\"\n",
+            "name: \"unicode \\u00e9 \\x41\"\n"})
+        {
+            YamlStreamScanner scanner = new YamlStreamScanner();
+            assertTrue(scanner.scan(doc), "scanner should accept an escaped double-quoted scalar: " + doc);
+            assertEquals(eager(doc), scanned(scanner), doc);
+        }
     }
 
     @Test
-    void shouldBailOnSingleQuoteEscape()
+    void shouldAcceptSingleQuoteEscape()
     {
-        assertFalse(new YamlStreamScanner().scan("name: 'it''s here'\n"));
+        String doc = "name: 'it''s here'\n";
+        YamlStreamScanner scanner = new YamlStreamScanner();
+        assertTrue(scanner.scan(doc), "scanner should accept a single-quoted scalar with a '' pair");
+        assertEquals(eager(doc), scanned(scanner), doc);
     }
 
     @Test
@@ -277,7 +289,7 @@ class YamlStreamScannerTest
         long accepted = fixtures()
             .filter(path -> accepts(path.resolve("in.yaml")))
             .count();
-        assertEquals(94, accepted,
+        assertEquals(101, accepted,
             "accepted-fixture count changed; feasibility gate may over-reject or over-accept");
     }
 
