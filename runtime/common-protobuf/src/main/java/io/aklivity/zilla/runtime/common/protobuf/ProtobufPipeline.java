@@ -86,13 +86,13 @@ public interface ProtobufPipeline
     }
 
     /**
-     * The number of input bytes committed since the message began — always at a whole-unit boundary. On
-     * {@link Status#STARVED} everything at or after this position is the unconsumed tail: the caller
-     * retains it (typically in its own reassembly slot) and re-presents it, contiguous with the next
-     * window, on the following {@link #feed}. The pipeline holds no input buffer of its own. The value is
-     * unspecified after {@link Status#SUSPENDED} (re-feed the same window) and need not be consulted then.
+     * The number of bytes at the tail of the most recently fed window not yet consumed — exactly what the
+     * caller retains (typically in its own reassembly slot) and re-presents, contiguous, at the front of the
+     * next {@link #feed}. A caller buffering across windows keeps this many bytes without tracking the
+     * window's absolute base. On {@link Status#STARVED} it is the unconsumed tail; held steady while
+     * {@link Status#SUSPENDED} (re-feed the same window), since output back-pressure consumes no further input.
      */
-    long position();
+    int remaining();
 
     /**
      * Feeds a whole message in one shot (equivalent to {@link #feed(DirectBuffer, int, int, boolean)} with

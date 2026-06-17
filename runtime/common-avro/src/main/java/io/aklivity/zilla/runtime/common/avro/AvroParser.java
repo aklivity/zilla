@@ -74,6 +74,15 @@ public interface AvroParser
         boolean last);
 
     /**
+     * The number of bytes at the tail of the current window not yet consumed — what the caller retains and
+     * re-presents, contiguous, at the front of the next window. The window-relative peer of the
+     * {@link #getLocation()} position: a caller buffering across windows keeps exactly this many bytes without
+     * tracking the window's absolute base. Reported at a whole-unit boundary; zero once the window is fully
+     * consumed.
+     */
+    int remaining();
+
+    /**
      * {@code true} while an event is available from the buffered bytes; {@code false} once they are
      * exhausted (feed more and continue) or the root {@link AvroEvent#END_MESSAGE} has been pulled.
      */

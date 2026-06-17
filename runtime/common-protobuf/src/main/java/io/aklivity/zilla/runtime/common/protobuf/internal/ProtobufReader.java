@@ -106,6 +106,11 @@ public final class ProtobufReader
         return positionBase + (offset - base);
     }
 
+    public int remaining()
+    {
+        return limit - offset;
+    }
+
     public boolean last()
     {
         return last;

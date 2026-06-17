@@ -67,9 +67,9 @@ public final class JsonPipelineImpl implements JsonPipeline
     }
 
     @Override
-    public long position()
+    public int remaining()
     {
-        return parser.position();
+        return parser.remaining();
     }
 
     @Override

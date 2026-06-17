@@ -76,6 +76,15 @@ public interface JsonParserEx extends JsonParser
     long position();
 
     /**
+     * The number of bytes at the tail of the current window not yet consumed — what the caller retains and
+     * re-presents, contiguous, at the front of the next window. The window-relative peer of {@link #position()}:
+     * a caller buffering across windows keeps exactly this many bytes without tracking the window's absolute
+     * base. Reported at a whole-token boundary, so on starvation it is the length of the partial trailing unit
+     * (e.g. a multibyte character split across the window); zero once the window is fully consumed.
+     */
+    int remaining();
+
+    /**
      * Whether another {@link #nextEvent()} is available — {@code true} until the document's
      * {@link JsonEvent#END_DOCUMENT} has been pulled, {@code false} when the window is consumed mid-document
      * (more input is needed).

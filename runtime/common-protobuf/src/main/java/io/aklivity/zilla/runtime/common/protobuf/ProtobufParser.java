@@ -95,6 +95,14 @@ public interface ProtobufParser
     long position();
 
     /**
+     * The number of bytes at the tail of the current window not yet consumed — what the driver retains and
+     * re-presents, contiguous, at the front of the next window via {@link #resume}. The window-relative peer
+     * of {@link #position()}: a driver buffering across windows keeps exactly this many bytes without tracking
+     * the window's absolute base. Reported at a whole-unit boundary; zero once the window is fully consumed.
+     */
+    int remaining();
+
+    /**
      * Advances the cursor and returns the next event in {@link Mode#STRUCTURED} mode.
      */
     default ProtobufEvent nextEvent()

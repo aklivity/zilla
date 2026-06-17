@@ -374,7 +374,7 @@ public class ProtobufJsonTest
             status = pipeline.feed(in, committed, offset - committed, last);
             if (status == Status.STARVED)
             {
-                committed = (int) pipeline.position();
+                committed = offset - pipeline.remaining();
             }
             else
             {

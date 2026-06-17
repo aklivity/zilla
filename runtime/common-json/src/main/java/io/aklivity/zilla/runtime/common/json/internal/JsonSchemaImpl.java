@@ -2097,6 +2097,12 @@ public final class JsonSchemaImpl implements JsonSchema
         }
 
         @Override
+        public int remaining()
+        {
+            return delegateEx.remaining();
+        }
+
+        @Override
         public boolean hasNextEvent()
         {
             return delegateEx.hasNextEvent();

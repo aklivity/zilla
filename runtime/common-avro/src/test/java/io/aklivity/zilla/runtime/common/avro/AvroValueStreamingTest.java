@@ -137,6 +137,7 @@ public class AvroValueStreamingTest
         generator.wrap(out, 0, out.capacity());
         UnsafeBuffer in = new UnsafeBuffer(datum);
         int consumed = 0;
+        int length = 0;
         Status status = pipeline.feed(in, 0, 0, false);
         while (status != COMPLETED && status != REJECTED)
         {
@@ -144,15 +145,14 @@ public class AvroValueStreamingTest
             {
                 output.add(drain(out, generator.length()));
                 generator.wrap(out, 0, out.capacity());
-                int length = Math.min(16, datum.length - consumed);
-                status = pipeline.feed(in, consumed, length, consumed + length == datum.length);
             }
             else
             {
-                consumed = (int) pipeline.position();
-                int length = Math.min(16, datum.length - consumed);
-                status = pipeline.feed(in, consumed, length, consumed + length == datum.length);
+                // STARVED: drop the consumed prefix of the last window, keeping its unconsumed tail
+                consumed += length - pipeline.remaining();
             }
+            length = Math.min(16, datum.length - consumed);
+            status = pipeline.feed(in, consumed, length, consumed + length == datum.length);
         }
         assertEquals(COMPLETED, status);
         output.add(drain(out, generator.length()));
@@ -196,13 +196,13 @@ public class AvroValueStreamingTest
         pipeline.reset();
         UnsafeBuffer buffer = new UnsafeBuffer(datum);
         Status status = pipeline.feed(buffer, 0, 0, false);
-        int consumed = (int) pipeline.position();
+        int consumed = 0;
         int guard = datum.length * 2 + 8;
         while (status != COMPLETED && status != REJECTED && guard-- > 0)
         {
             int length = Math.min(8, datum.length - consumed);
             status = pipeline.feed(buffer, consumed, length, consumed + length == datum.length);
-            consumed = (int) pipeline.position();
+            consumed += length - pipeline.remaining();
         }
         assertEquals(COMPLETED, status);
 
@@ -252,13 +252,13 @@ public class AvroValueStreamingTest
         collector.reset();
         UnsafeBuffer buffer = new UnsafeBuffer(datum);
         Status status = pipeline.feed(buffer, 0, 0, false);
-        int consumed = (int) pipeline.position();
+        int consumed = 0;
         int guard = datum.length * 2 + 8;
         while (status != COMPLETED && status != REJECTED && guard-- > 0)
         {
             int length = Math.min(window, datum.length - consumed);
             status = pipeline.feed(buffer, consumed, length, consumed + length == datum.length);
-            consumed = (int) pipeline.position();
+            consumed += length - pipeline.remaining();
         }
         return status;
     }

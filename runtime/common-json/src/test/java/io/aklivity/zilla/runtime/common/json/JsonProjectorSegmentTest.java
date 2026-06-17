@@ -162,7 +162,7 @@ class JsonProjectorSegmentTest
             offset = Math.min(offset + 8, bytes.length);
             boolean last = offset >= bytes.length;
             status = pipeline.feed(new UnsafeBuffer(bytes), committed, offset - committed, last);
-            committed = (int) pipeline.position();
+            committed = offset - pipeline.remaining();
             if (status == Status.COMPLETED || status == Status.REJECTED)
             {
                 break;
@@ -226,7 +226,7 @@ class JsonProjectorSegmentTest
             byte[] chunk = new byte[gen.length()];
             out.getBytes(0, chunk);
             result.append(new String(chunk, UTF_8));
-            committed = (int) pipeline.position();
+            committed = offset - pipeline.remaining();
             if (status == Status.SUSPENDED)
             {
                 gen.wrap(out, 0, outBound);
@@ -287,7 +287,7 @@ class JsonProjectorSegmentTest
             byte[] chunk = new byte[gen.length()];
             out.getBytes(0, chunk);
             result.append(new String(chunk, UTF_8));
-            committed = (int) pipeline.position();
+            committed = offset - pipeline.remaining();
             if (status == Status.SUSPENDED)
             {
                 gen.wrap(out, 0, outBound);

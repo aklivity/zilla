@@ -256,7 +256,7 @@ public class JsonPipelineBM
             {
                 break;
             }
-            committed = (int) pipeline.position();
+            committed = offset - pipeline.remaining();
         }
         return status == Status.COMPLETED ? generator.length() : -1;
     }

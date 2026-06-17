@@ -141,6 +141,12 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
     }
 
     @Override
+    public int remaining()
+    {
+        return reader.remaining();
+    }
+
+    @Override
     public ProtobufEvent nextEvent(
         Mode mode)
     {

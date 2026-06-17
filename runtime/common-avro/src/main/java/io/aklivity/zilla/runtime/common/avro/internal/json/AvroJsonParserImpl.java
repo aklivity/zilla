@@ -262,6 +262,12 @@ public final class AvroJsonParserImpl implements AvroParser, AvroLocation
         return json.position();
     }
 
+    @Override
+    public int remaining()
+    {
+        return json.remaining();
+    }
+
     private AvroEvent step()
     {
         AvroEvent event = null;

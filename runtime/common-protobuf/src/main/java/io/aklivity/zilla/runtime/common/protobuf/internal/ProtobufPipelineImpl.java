@@ -80,9 +80,9 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
     }
 
     @Override
-    public long position()
+    public int remaining()
     {
-        return parser.position();
+        return parser.remaining();
     }
 
     @Override

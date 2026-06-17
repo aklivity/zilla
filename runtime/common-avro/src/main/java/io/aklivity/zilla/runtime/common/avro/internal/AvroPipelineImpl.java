@@ -71,9 +71,9 @@ final class AvroPipelineImpl implements AvroPipeline
     }
 
     @Override
-    public long position()
+    public int remaining()
     {
-        return parser.getLocation().position();
+        return parser.remaining();
     }
 
     @Override

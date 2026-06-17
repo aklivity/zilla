@@ -197,6 +197,12 @@ public final class AvroParserImpl implements AvroParser
         push(root);
     }
 
+    @Override
+    public int remaining()
+    {
+        return limit - pos;
+    }
+
     private long position()
     {
         return origin + (pos - base);

@@ -180,6 +180,12 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
     }
 
     @Override
+    public int remaining()
+    {
+        return parser.remaining();
+    }
+
+    @Override
     public ProtobufEvent nextEvent(
         Mode mode)
     {

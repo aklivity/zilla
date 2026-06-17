@@ -302,7 +302,8 @@ class JsonPipelineChunkingTest
         }
 
         assertEquals(Status.STARVED, pipeline.feed(new UnsafeBuffer(msg), 0, w1, false));
-        int committed = (int) pipeline.position();
+        assertEquals(1, pipeline.remaining(), "the split 'é' lead byte is the unconsumed partial unit");
+        int committed = w1 - pipeline.remaining();
         assertEquals(Status.COMPLETED,
             pipeline.feed(new UnsafeBuffer(msg), committed, msg.length - committed, true));
 
@@ -369,14 +370,14 @@ class JsonPipelineChunkingTest
                 break;
             }
             assertFalse(last, "last window must not starve");
-            committed = (int) pipeline.position();
+            committed = offset - pipeline.remaining();
         }
         assertEquals(Status.COMPLETED, status);
         assertEquals(new BigDecimal(bigNumber), wholes.get(0));
         assertTrue(intRejected.get(0), "getInt() must reject a fragmented number");
     }
 
-    // Feeds the document in fixed-size windows, carrying the unconsumed tail (up to position()) across
+    // Feeds the document in fixed-size windows, carrying the unconsumed tail (remaining() bytes) across
     // feeds the way a real caller does; a value that fills a window is fragmented and reconstructed.
     private static String feedWindowed(
         String json,
@@ -405,7 +406,7 @@ class JsonPipelineChunkingTest
                 break;
             }
             assertFalse(last, "last window must not starve");
-            committed = (int) pipeline.position();
+            committed = offset - pipeline.remaining();
         }
         assertEquals(Status.COMPLETED, status);
         byte[] out = new byte[generator.length()];
@@ -456,7 +457,7 @@ class JsonPipelineChunkingTest
             {
                 assertFalse(last, "last window must not starve");
                 starves++;
-                committed = (int) pipeline.position();
+                committed = offset - pipeline.remaining();
             }
             else
             {
