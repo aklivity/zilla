@@ -579,7 +579,7 @@ class YamlStreamScannerTest
         long accepted = fixtures()
             .filter(path -> accepts(path.resolve("in.yaml"), true))
             .count();
-        assertEquals(283, accepted,
+        assertEquals(284, accepted,
             "raw accepted-fixture count changed; a drop is a regression, a rise should bump this baseline");
     }
 
@@ -774,9 +774,10 @@ class YamlStreamScannerTest
             builder.append("START_OBJECT").append(anchorOf(object)).append('\n');
             for (YamlEntry entry : object.entries)
             {
-                if (entry.name == null && entry.key != null && !(entry.key instanceof YamlScalarNode))
+                if (entry.name == null && entry.key != null &&
+                    (!(entry.key instanceof YamlScalarNode) || entry.key.alias != null))
                 {
-                    // a non-scalar mapping key is projected as its own structure
+                    // a non-scalar (or alias) mapping key is projected as its own structure / reference
                     projectRaw(entry.key, builder);
                 }
                 else

@@ -736,6 +736,16 @@ public final class YamlStreamScanner
                 throw BAIL;
             }
         }
+        else if (raw && keyFirst == '*')
+        {
+            // a block mapping key that is an alias reference (e.g. *anchor : value)
+            int nameEnd = tokenEnd(start + 1, keyEnd);
+            if (nameEnd == start + 1 || nameEnd != keyEnd)
+            {
+                throw BAIL;
+            }
+            emitAlias(start + 1, text.substring(start + 1, nameEnd));
+        }
         else if (keyEnd == start)
         {
             // an empty mapping key (`: value`) is the empty scalar, matching the eager parseKeySpec("")
@@ -2205,6 +2215,11 @@ public final class YamlStreamScanner
             // a non-scalar (flow collection) key is preserved as its structure for the YAML layer;
             // the JSON projection rejects it (the resolver bails on a non-KEY_NAME key)
             flowValue();
+        }
+        else if (raw && c == '*')
+        {
+            // a flow mapping key that is an alias reference (e.g. *anchor : value)
+            flowAlias();
         }
         else if ((c == 0 || c == ':' || c == ',' || c == ']' || c == '}') &&
             (explicit || pendingAnchor != null || pendingTag != null))
