@@ -371,7 +371,7 @@ public class ProtobufJsonTest
             int take = Math.min(window, length - offset);
             offset += take;
             boolean last = offset >= length;
-            status = pipeline.feed(in, committed, offset - committed, last);
+            status = pipeline.feed(in, committed, offset, last);
             if (status == Status.STARVED)
             {
                 committed = offset - pipeline.remaining();

@@ -130,9 +130,10 @@ out:
   `feed` again with the **same** input window to resume the in-flight message from where it paused.
 - **Input — `STARVED`** (the input window was consumed before the message completed): retain the
   unconsumed tail and call `feed` again with it prepended to the **next** window. End of input is
-  signalled by the caller via the `last` flag on `feed(buffer, offset, length, last)`; pass
-  `last == true` only on the final window. The three-argument `feed(buffer, offset, length)` is the
-  whole-buffer shorthand (`last == true`) and never returns `STARVED`.
+  signalled by the caller via the `last` flag on `feed(buffer, offset, limit, last)`, which feeds the
+  half-open range `[offset, limit)`; pass `last == true` only on the final window. The three-argument
+  `feed(buffer, offset, limit)` is the whole-buffer shorthand (`last == true`) and never returns
+  `STARVED`.
 
 `STARVED` is returned only when `last == false`; under `last == true` a clean message end yields
 `COMPLETED` and an incomplete one (a primitive, length-prefix, or nested message that runs past the

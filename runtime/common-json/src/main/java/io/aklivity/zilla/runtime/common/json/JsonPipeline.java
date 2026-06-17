@@ -52,23 +52,23 @@ public interface JsonPipeline
     default Status feed(
         DirectBuffer buffer,
         int offset,
-        int length)
+        int limit)
     {
-        return feed(buffer, offset, length, true);
+        return feed(buffer, offset, limit, true);
     }
 
     /**
-     * Feeds one input window; {@code last} marks the final window. Returns {@link Status#STARVED} when the
-     * window is consumed before the value completes (input back-pressure — feed the next window),
-     * {@link Status#SUSPENDED} when the bounded output fills (output back-pressure — drain and re-feed the
-     * same window), {@link Status#COMPLETED} on a clean value end, or {@link Status#REJECTED} on malformed
-     * or truncated input. {@code STARVED} is returned only when {@code last == false}; an incomplete value
-     * under {@code last == true} yields {@code REJECTED}.
+     * Feeds one input window {@code [offset, limit)}; {@code last} marks the final window. Returns
+     * {@link Status#STARVED} when the window is consumed before the value completes (input back-pressure —
+     * feed the next window), {@link Status#SUSPENDED} when the bounded output fills (output back-pressure —
+     * drain and re-feed the same window), {@link Status#COMPLETED} on a clean value end, or
+     * {@link Status#REJECTED} on malformed or truncated input. {@code STARVED} is returned only when
+     * {@code last == false}; an incomplete value under {@code last == true} yields {@code REJECTED}.
      */
     Status feed(
         DirectBuffer buffer,
         int offset,
-        int length,
+        int limit,
         boolean last);
 
     /**

@@ -95,7 +95,7 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
     public Status feed(
         DirectBuffer buffer,
         int offset,
-        int length,
+        int limit,
         boolean last)
     {
         Status status = Status.ADVANCED;
@@ -109,11 +109,11 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
             else if (starved)
             {
                 // input back-pressure: continue the in-flight message with the next window
-                parser.resume(buffer, offset, length, last);
+                parser.resume(buffer, offset, limit, last);
             }
             else
             {
-                parser.wrap(buffer, offset, length, last);
+                parser.wrap(buffer, offset, limit, last);
             }
             while (status == Status.ADVANCED && parser.hasNext())
             {

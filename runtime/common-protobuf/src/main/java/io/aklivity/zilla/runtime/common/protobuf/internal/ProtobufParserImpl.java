@@ -112,10 +112,10 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
     public ProtobufParser wrap(
         DirectBuffer buffer,
         int offset,
-        int length,
+        int limit,
         boolean last)
     {
-        reader.wrap(buffer, offset, length, last);
+        reader.wrap(buffer, offset, limit, last);
         this.started = false;
         this.done = false;
         this.depth = -1;
@@ -130,10 +130,10 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
     public ProtobufParser resume(
         DirectBuffer buffer,
         int offset,
-        int length,
+        int limit,
         boolean last)
     {
-        reader.resume(buffer, offset, length, last);
+        reader.resume(buffer, offset, limit, last);
         return this;
     }
 

@@ -305,7 +305,7 @@ class JsonPipelineChunkingTest
         assertEquals(1, pipeline.remaining(), "the split 'é' lead byte is the unconsumed partial unit");
         int committed = w1 - pipeline.remaining();
         assertEquals(Status.COMPLETED,
-            pipeline.feed(new UnsafeBuffer(msg), committed, msg.length - committed, true));
+            pipeline.feed(new UnsafeBuffer(msg), committed, msg.length, true));
 
         byte[] out = new byte[generator.length()];
         output.getBytes(0, out);
@@ -364,7 +364,7 @@ class JsonPipelineChunkingTest
         {
             offset = Math.min(offset + 8, msg.length);
             boolean last = offset >= msg.length;
-            status = pipeline.feed(new UnsafeBuffer(msg), committed, offset - committed, last);
+            status = pipeline.feed(new UnsafeBuffer(msg), committed, offset, last);
             if (status != Status.STARVED)
             {
                 break;
@@ -400,7 +400,7 @@ class JsonPipelineChunkingTest
         {
             offset = Math.min(offset + window, msg.length);
             boolean last = offset >= msg.length;
-            status = pipeline.feed(new UnsafeBuffer(msg), committed, offset - committed, last);
+            status = pipeline.feed(new UnsafeBuffer(msg), committed, offset, last);
             if (status != Status.STARVED)
             {
                 break;
@@ -445,7 +445,7 @@ class JsonPipelineChunkingTest
                 offset = Math.min(offset + inWindow, msg.length);
             }
             boolean last = offset >= msg.length;
-            status = pipeline.feed(new UnsafeBuffer(msg), committed, offset - committed, last);
+            status = pipeline.feed(new UnsafeBuffer(msg), committed, offset, last);
             byte[] chunk = new byte[generator.length()];
             output.getBytes(0, chunk);
             result.append(new String(chunk, UTF_8));

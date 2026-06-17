@@ -141,7 +141,7 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
     public ProtobufParser wrap(
         DirectBuffer buffer,
         int offset,
-        int length,
+        int limit,
         boolean last)
     {
         if (schema.message(messageName) == null)
@@ -160,7 +160,7 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
         currentMessage = null;
         // a fresh document rewinds the reused JSON parser to DOC_START; window swaps (resume) do not
         parser.reset();
-        parser.wrap(buffer, offset, length);
+        parser.wrap(buffer, offset, limit);
         return this;
     }
 
@@ -168,11 +168,11 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
     public ProtobufParser resume(
         DirectBuffer buffer,
         int offset,
-        int length,
+        int limit,
         boolean last)
     {
         this.last = last;
-        parser.wrap(buffer, offset, length);
+        parser.wrap(buffer, offset, limit);
         return this;
     }
 

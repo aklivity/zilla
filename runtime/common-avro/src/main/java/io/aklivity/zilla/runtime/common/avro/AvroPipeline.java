@@ -59,9 +59,9 @@ public interface AvroPipeline
     default Status feed(
         DirectBuffer buffer,
         int offset,
-        int length)
+        int limit)
     {
-        return feed(buffer, offset, length, true);
+        return feed(buffer, offset, limit, true);
     }
 
     /**
@@ -74,7 +74,7 @@ public interface AvroPipeline
     Status feed(
         DirectBuffer buffer,
         int offset,
-        int length,
+        int limit,
         boolean last);
 
     /**

@@ -51,14 +51,14 @@ public interface ProtobufParser
     default ProtobufParser wrap(
         DirectBuffer buffer,
         int offset,
-        int length)
+        int limit)
     {
-        return wrap(buffer, offset, length, true);
+        return wrap(buffer, offset, limit, true);
     }
 
     /**
-     * Borrows {@code buffer} as the first (or only) input window of a message, the bytes occupying
-     * {@code [offset, offset + length)}, and rewinds the cursor to before the root
+     * Borrows {@code buffer} as the first (or only) input window of a message, the bytes occupying the
+     * half-open range {@code [offset, limit)}, and rewinds the cursor to before the root
      * {@link ProtobufEvent#START_MESSAGE}. {@code last} marks the final window: when {@code false} and the
      * window is exhausted mid-message, {@link #nextEvent(Mode)} returns {@code null} to signal starvation,
      * and the next window is supplied via {@link #resume}.
@@ -66,18 +66,18 @@ public interface ProtobufParser
     ProtobufParser wrap(
         DirectBuffer buffer,
         int offset,
-        int length,
+        int limit,
         boolean last);
 
     /**
-     * Continues an in-flight message with its next input window after {@link #nextEvent(Mode)} returned
-     * {@code null} (starvation); {@code last} marks the final window. The cursor's position within the
-     * message is preserved across the window swap.
+     * Continues an in-flight message with its next input window {@code [offset, limit)} after
+     * {@link #nextEvent(Mode)} returned {@code null} (starvation); {@code last} marks the final window. The
+     * cursor's position within the message is preserved across the window swap.
      */
     ProtobufParser resume(
         DirectBuffer buffer,
         int offset,
-        int length,
+        int limit,
         boolean last);
 
     /**

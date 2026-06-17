@@ -101,21 +101,21 @@ public interface ProtobufPipeline
     default Status feed(
         DirectBuffer buffer,
         int offset,
-        int length)
+        int limit)
     {
-        return feed(buffer, offset, length, true);
+        return feed(buffer, offset, limit, true);
     }
 
     /**
-     * Feeds one input window of a message; {@code last} marks the final window. Returns
-     * {@link Status#STARVED} when the window is consumed before the message completes (input
-     * back-pressure), {@link Status#SUSPENDED} when the bounded output fills (output back-pressure),
-     * {@link Status#COMPLETED} on a clean message end, or {@link Status#REJECTED} on malformed or
-     * truncated input.
+     * Feeds one input window of a message, the bytes occupying the half-open range {@code [offset, limit)};
+     * {@code last} marks the final window. Returns {@link Status#STARVED} when the window is consumed before
+     * the message completes (input back-pressure), {@link Status#SUSPENDED} when the bounded output fills
+     * (output back-pressure), {@link Status#COMPLETED} on a clean message end, or {@link Status#REJECTED} on
+     * malformed or truncated input.
      */
     Status feed(
         DirectBuffer buffer,
         int offset,
-        int length,
+        int limit,
         boolean last);
 }

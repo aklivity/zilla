@@ -152,7 +152,7 @@ public class AvroValueStreamingTest
                 consumed += length - pipeline.remaining();
             }
             length = Math.min(16, datum.length - consumed);
-            status = pipeline.feed(in, consumed, length, consumed + length == datum.length);
+            status = pipeline.feed(in, consumed, consumed + length, consumed + length == datum.length);
         }
         assertEquals(COMPLETED, status);
         output.add(drain(out, generator.length()));
@@ -201,7 +201,7 @@ public class AvroValueStreamingTest
         while (status != COMPLETED && status != REJECTED && guard-- > 0)
         {
             int length = Math.min(8, datum.length - consumed);
-            status = pipeline.feed(buffer, consumed, length, consumed + length == datum.length);
+            status = pipeline.feed(buffer, consumed, consumed + length, consumed + length == datum.length);
             consumed += length - pipeline.remaining();
         }
         assertEquals(COMPLETED, status);
@@ -257,7 +257,7 @@ public class AvroValueStreamingTest
         while (status != COMPLETED && status != REJECTED && guard-- > 0)
         {
             int length = Math.min(window, datum.length - consumed);
-            status = pipeline.feed(buffer, consumed, length, consumed + length == datum.length);
+            status = pipeline.feed(buffer, consumed, consumed + length, consumed + length == datum.length);
             consumed += length - pipeline.remaining();
         }
         return status;

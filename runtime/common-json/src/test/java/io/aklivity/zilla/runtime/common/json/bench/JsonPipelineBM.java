@@ -251,7 +251,7 @@ public class JsonPipelineBM
         {
             offset = Math.min(offset + window, length);
             boolean last = offset >= length;
-            status = pipeline.feed(buffer, committed, offset - committed, last);
+            status = pipeline.feed(buffer, committed, offset, last);
             if (status != Status.STARVED)
             {
                 break;

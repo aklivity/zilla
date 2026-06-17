@@ -46,7 +46,7 @@ public final class ProtobufSchemaCompiler
         int length)
     {
         ProtobufSchema.Builder schema = ProtobufSchema.builder();
-        ProtobufReader reader = new ProtobufReader().wrap(buffer, offset, length);
+        ProtobufReader reader = new ProtobufReader().wrap(buffer, offset, offset + length);
         while (reader.hasRemaining())
         {
             int tag = reader.readVarint32();
@@ -77,7 +77,7 @@ public final class ProtobufSchemaCompiler
         List<int[]> messages = new ArrayList<>();
         List<int[]> enums = new ArrayList<>();
 
-        ProtobufReader reader = new ProtobufReader().wrap(buffer, offset, length);
+        ProtobufReader reader = new ProtobufReader().wrap(buffer, offset, offset + length);
         while (reader.hasRemaining())
         {
             int tag = reader.readVarint32();
@@ -125,7 +125,7 @@ public final class ProtobufSchemaCompiler
         List<int[]> enums = new ArrayList<>();
         int[] options = null;
 
-        ProtobufReader reader = new ProtobufReader().wrap(buffer, offset, length);
+        ProtobufReader reader = new ProtobufReader().wrap(buffer, offset, offset + length);
         while (reader.hasRemaining())
         {
             int tag = reader.readVarint32();
@@ -197,7 +197,7 @@ public final class ProtobufSchemaCompiler
         boolean proto3Optional = false;
         Boolean packed = null;
 
-        ProtobufReader reader = new ProtobufReader().wrap(buffer, offset, length);
+        ProtobufReader reader = new ProtobufReader().wrap(buffer, offset, offset + length);
         while (reader.hasRemaining())
         {
             int tag = reader.readVarint32();
@@ -282,7 +282,7 @@ public final class ProtobufSchemaCompiler
         String name = "";
         List<int[]> values = new ArrayList<>();
 
-        ProtobufReader reader = new ProtobufReader().wrap(buffer, offset, length);
+        ProtobufReader reader = new ProtobufReader().wrap(buffer, offset, offset + length);
         while (reader.hasRemaining())
         {
             int tag = reader.readVarint32();
@@ -319,7 +319,7 @@ public final class ProtobufSchemaCompiler
     {
         String name = "";
         int number = 0;
-        ProtobufReader reader = new ProtobufReader().wrap(buffer, offset, length);
+        ProtobufReader reader = new ProtobufReader().wrap(buffer, offset, offset + length);
         while (reader.hasRemaining())
         {
             int tag = reader.readVarint32();
@@ -346,7 +346,7 @@ public final class ProtobufSchemaCompiler
         int[] region)
     {
         String name = "";
-        ProtobufReader reader = new ProtobufReader().wrap(buffer, region[0], region[1]);
+        ProtobufReader reader = new ProtobufReader().wrap(buffer, region[0], region[0] + region[1]);
         while (reader.hasRemaining())
         {
             int tag = reader.readVarint32();
@@ -370,7 +370,7 @@ public final class ProtobufSchemaCompiler
         int length)
     {
         boolean mapEntry = false;
-        ProtobufReader reader = new ProtobufReader().wrap(buffer, offset, length);
+        ProtobufReader reader = new ProtobufReader().wrap(buffer, offset, offset + length);
         while (reader.hasRemaining())
         {
             int tag = reader.readVarint32();
@@ -394,7 +394,7 @@ public final class ProtobufSchemaCompiler
         int length)
     {
         Boolean packed = null;
-        ProtobufReader reader = new ProtobufReader().wrap(buffer, offset, length);
+        ProtobufReader reader = new ProtobufReader().wrap(buffer, offset, offset + length);
         while (reader.hasRemaining())
         {
             int tag = reader.readVarint32();

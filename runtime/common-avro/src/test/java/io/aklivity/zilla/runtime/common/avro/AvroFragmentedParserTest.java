@@ -42,7 +42,7 @@ public class AvroFragmentedParserTest
         int consumed = 0;
         for (int available = 1; available <= binary.length && status != COMPLETED; available++)
         {
-            status = pipeline.feed(buffer, consumed, available - consumed, available == binary.length);
+            status = pipeline.feed(buffer, consumed, available, available == binary.length);
             consumed = available - pipeline.remaining();
         }
         assertEquals(COMPLETED, status);
@@ -126,7 +126,7 @@ public class AvroFragmentedParserTest
         int consumed = 0;
         for (int available = 1; available <= binary.length && status != COMPLETED; available++)
         {
-            status = pipeline.feed(buffer, consumed, available - consumed, available == binary.length);
+            status = pipeline.feed(buffer, consumed, available, available == binary.length);
             consumed = available - pipeline.remaining();
         }
         assertEquals(COMPLETED, status);

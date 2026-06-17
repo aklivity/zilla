@@ -30,8 +30,8 @@ import org.agrona.DirectBuffer;
 public interface JsonParserEx extends JsonParser
 {
     /**
-     * Borrows {@code buffer} as the input window for the next pump, starting at {@code offset} for
-     * {@code length} bytes. The buffer is read in place for the duration of the pump.
+     * Borrows {@code buffer} as the input window for the next pump, the half-open range
+     * {@code [offset, limit)}. The buffer is read in place for the duration of the pump.
      * <p>
      * The window is also the fragmentation bound: a value that fits the window is delivered whole; a
      * value whose own bytes fill the window without completing is delivered as fragments — the same
@@ -45,18 +45,18 @@ public interface JsonParserEx extends JsonParser
     JsonParserEx wrap(
         DirectBuffer buffer,
         int offset,
-        int length);
+        int limit);
 
     /**
-     * Wraps the next input window of a chunked feed; {@code last} marks the final window, so its EOF is the
-     * terminal delimiter (completing a trailing scalar, rejecting a truncated value) rather than a frame
-     * boundary with more bytes to come. The three-argument {@link #wrap(DirectBuffer, int, int)} is the
-     * {@code last == true} shorthand.
+     * Wraps the next input window {@code [offset, limit)} of a chunked feed; {@code last} marks the final
+     * window, so its EOF is the terminal delimiter (completing a trailing scalar, rejecting a truncated
+     * value) rather than a frame boundary with more bytes to come. The three-argument
+     * {@link #wrap(DirectBuffer, int, int)} is the {@code last == true} shorthand.
      */
     JsonParserEx wrap(
         DirectBuffer buffer,
         int offset,
-        int length,
+        int limit,
         boolean last);
 
     /**

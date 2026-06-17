@@ -136,10 +136,10 @@ public final class AvroJsonParserImpl implements AvroParser
     public void wrap(
         DirectBuffer buffer,
         int offset,
-        int length,
+        int limit,
         boolean last)
     {
-        json.wrap(buffer, offset, length, last);
+        json.wrap(buffer, offset, limit, last);
         this.last = last;
         this.havePending = false;
         this.starved = false;

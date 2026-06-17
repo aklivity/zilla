@@ -896,7 +896,7 @@ public final class McpHttpProxyFactory implements BindingHandler
             // RESPONSE_GEN_BOUND, pushes the source bytes taken back via consumed() so the parser advances
             // position() by exactly that count, and returns SUSPENDED when the bound fills mid-value
             responseGenerator.wrap(projectBuffer, 0, RESPONSE_GEN_BOUND);
-            final JsonPipeline.Status status = responsePipeline.feed(buffer, offset, length, last);
+            final JsonPipeline.Status status = responsePipeline.feed(buffer, offset, offset + length, last);
             final int produced = responseGenerator.length();
             if (produced > 0)
             {
@@ -1953,7 +1953,7 @@ public final class McpHttpProxyFactory implements BindingHandler
         projectGenerator.wrap(projectBuffer, 0, projectBuffer.capacity());
         pipeline.reset();
 
-        final JsonPipeline.Status status = pipeline.feed(buffer, offset, length);
+        final JsonPipeline.Status status = pipeline.feed(buffer, offset, offset + length);
 
         String result = null;
         if (status == JsonPipeline.Status.COMPLETED)
