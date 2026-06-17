@@ -76,6 +76,16 @@ public interface ProtobufPipeline
     void reset();
 
     /**
+     * A short, human-readable reason for the most recent {@link Status#REJECTED} — e.g. an unknown
+     * field, an unknown enum value, or truncated input — or {@code null} when the last feed did not
+     * reject. Cleared by {@link #reset()}.
+     */
+    default String reason()
+    {
+        return null;
+    }
+
+    /**
      * The number of input bytes committed since the message began — always at a whole-unit boundary. On
      * {@link Status#STARVED} everything at or after this position is the unconsumed tail: the caller
      * retains it (typically in its own reassembly slot) and re-presents it, contiguous with the next
