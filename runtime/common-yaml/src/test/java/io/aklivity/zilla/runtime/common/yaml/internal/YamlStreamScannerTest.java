@@ -106,6 +106,20 @@ class YamlStreamScannerTest
     }
 
     @Test
+    void shouldAcceptMultiLineFlowScalar()
+    {
+        for (String doc : new String[] {
+            "---\n- { multi\n  line: value}\n",
+            "Sammy Sosa: {\n    hr: 63,\n    avg: 0.288\n  }\n",
+            "list: [a\n  b, c]\n"})
+        {
+            YamlStreamScanner scanner = new YamlStreamScanner();
+            assertTrue(scanner.scan(doc), "scanner should accept a multi-line flow scalar: " + doc);
+            assertEquals(eager(doc), scanned(scanner), doc);
+        }
+    }
+
+    @Test
     void shouldAcceptMultiLineFlowValueInBlock()
     {
         String doc = "items: [1,\n  2, 3]\nnested: {a: 1,\n  b: 2}\n";
@@ -377,7 +391,7 @@ class YamlStreamScannerTest
         long accepted = fixtures()
             .filter(path -> accepts(path.resolve("in.yaml")))
             .count();
-        assertEquals(147, accepted,
+        assertEquals(152, accepted,
             "accepted-fixture count changed; feasibility gate may over-reject or over-accept");
     }
 

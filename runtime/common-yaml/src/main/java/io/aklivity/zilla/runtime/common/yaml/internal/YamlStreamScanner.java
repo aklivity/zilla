@@ -52,6 +52,7 @@ public final class YamlStreamScanner
     private static final Pattern NUMBER_PATTERN = Pattern.compile(
         "-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?:[eE][+-]?[0-9]+)?");
     private static final Pattern HEX_INTEGER_PATTERN = Pattern.compile("-?0x[0-9a-fA-F]+");
+    private static final Pattern FLOW_FOLD_PATTERN = Pattern.compile("[ \\t]*\\R[ \\t]*");
 
     private static final Bail BAIL = new Bail();
 
@@ -1592,22 +1593,25 @@ public final class YamlStreamScanner
             while (flowAt < text.length())
             {
                 char ch = text.charAt(flowAt);
-                if (ch == ',' || ch == '}' || ch == ':' && flowMappingColon(flowAt))
+                if (ch == ',' || ch == '}' || ch == ']' || ch == ':' && flowMappingColon(flowAt))
                 {
                     break;
                 }
-                if (isLineBreak(ch))
-                {
-                    throw BAIL;
-                }
                 flowAt++;
             }
-            int end = trimEnd(start, flowAt);
+            int end = flowTrimEnd(start, flowAt);
             if (end == start || isMergeKey(start, end))
             {
                 throw BAIL;
             }
-            emit(KEY_NAME, start, end - start, null);
+            if (containsLineBreak(start, end))
+            {
+                emit(KEY_NAME, start, 0, flowFold(start, end));
+            }
+            else
+            {
+                emit(KEY_NAME, start, end - start, null);
+            }
         }
     }
 
@@ -1629,19 +1633,54 @@ public final class YamlStreamScanner
             {
                 break;
             }
-            if (isLineBreak(c))
-            {
-                throw BAIL;
-            }
             flowAt++;
         }
 
-        int end = trimEnd(start, flowAt);
+        int end = flowTrimEnd(start, flowAt);
         if (end == start || isFlowScalarMarker(start, end) || isNonFinite(start, end))
         {
             throw BAIL;
         }
-        emitClassifiedScalar(start, end);
+        if (containsLineBreak(start, end))
+        {
+            // a plain flow scalar that spans lines folds its line breaks to single spaces
+            emit(VALUE_STRING, start, 0, flowFold(start, end));
+        }
+        else
+        {
+            emitClassifiedScalar(start, end);
+        }
+    }
+
+    private int flowTrimEnd(
+        int start,
+        int end)
+    {
+        int at = end;
+        while (at > start && Character.isWhitespace(text.charAt(at - 1)))
+        {
+            at--;
+        }
+        return at;
+    }
+
+    private boolean containsLineBreak(
+        int start,
+        int end)
+    {
+        boolean found = false;
+        for (int i = start; i < end && !found; i++)
+        {
+            found = isLineBreak(text.charAt(i));
+        }
+        return found;
+    }
+
+    private String flowFold(
+        int start,
+        int end)
+    {
+        return FLOW_FOLD_PATTERN.matcher(text.substring(start, end)).replaceAll(" ");
     }
 
     private void flowQuotedValue()
