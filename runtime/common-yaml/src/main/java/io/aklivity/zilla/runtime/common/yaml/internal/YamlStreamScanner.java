@@ -556,12 +556,29 @@ public final class YamlStreamScanner
         char style = text.charAt(valueStart);
         if (style == '|' || style == '>')
         {
+            boolean ok = true;
+            boolean chomp = false;
+            boolean indent = false;
             int at = valueStart + 1;
-            if (at < end && (text.charAt(at) == '-' || text.charAt(at) == '+'))
+            while (ok && at < end)
             {
-                at++;
+                char c = text.charAt(at);
+                if ((c == '-' || c == '+') && !chomp)
+                {
+                    chomp = true;
+                    at++;
+                }
+                else if (c >= '1' && c <= '9' && !indent)
+                {
+                    indent = true;
+                    at++;
+                }
+                else
+                {
+                    ok = false;
+                }
             }
-            result = at == end;
+            result = ok;
         }
         return result;
     }
@@ -572,8 +589,21 @@ public final class YamlStreamScanner
         int keyIndent)
     {
         char style = text.charAt(valueStart);
-        char chomp = valueStart + 1 < end ? text.charAt(valueStart + 1) : 0;
-        int contentIndent = blockScalarIndent(keyIndent);
+        char chomp = 0;
+        int explicitIndent = -1;
+        for (int at = valueStart + 1; at < end; at++)
+        {
+            char c = text.charAt(at);
+            if (c == '-' || c == '+')
+            {
+                chomp = c;
+            }
+            else if (c >= '1' && c <= '9')
+            {
+                explicitIndent = c - '0';
+            }
+        }
+        int contentIndent = explicitIndent != -1 ? keyIndent + explicitIndent : blockScalarIndent(keyIndent);
         StringBuilder builder = new StringBuilder();
         boolean seenContent = false;
         boolean previousMoreIndented = false;

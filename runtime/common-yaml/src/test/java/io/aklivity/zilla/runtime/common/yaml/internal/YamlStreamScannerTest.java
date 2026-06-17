@@ -171,9 +171,12 @@ class YamlStreamScannerTest
     }
 
     @Test
-    void shouldBailOnExplicitIndentBlockScalar()
+    void shouldAcceptExplicitIndentBlockScalar()
     {
-        assertFalse(new YamlStreamScanner().scan("text: |2\n    line\n"));
+        String doc = "text: |2\n    line\nmore: >1-\n  folded\n";
+        YamlStreamScanner scanner = new YamlStreamScanner();
+        assertTrue(scanner.scan(doc), "scanner should accept explicit-indent block scalars");
+        assertEquals(eager(doc), scanned(scanner));
     }
 
     @Test
@@ -229,7 +232,7 @@ class YamlStreamScannerTest
         long accepted = fixtures()
             .filter(path -> accepts(path.resolve("in.yaml")))
             .count();
-        assertEquals(60, accepted,
+        assertEquals(62, accepted,
             "accepted-fixture count changed; feasibility gate may over-reject or over-accept");
     }
 
