@@ -264,11 +264,20 @@ public final class YamlStreamScanner
         }
 
         int keyEnd = trimEnd(start, colon);
-        if (keyEnd == start || isReservedStart(text.charAt(start)) || isMergeKey(start, keyEnd))
+        char keyFirst = text.charAt(start);
+        if (keyFirst == '"' || keyFirst == '\'')
+        {
+            validateQuoted(start, keyEnd);
+            emit(KEY_NAME, start + 1, keyEnd - start - 2, null);
+        }
+        else if (keyEnd == start || isReservedStart(keyFirst) || isMergeKey(start, keyEnd))
         {
             throw BAIL;
         }
-        emit(KEY_NAME, start, keyEnd - start, null);
+        else
+        {
+            emit(KEY_NAME, start, keyEnd - start, null);
+        }
 
         int valueStart = skipSpace(colon + 1, end);
         cursor++;
@@ -406,6 +415,11 @@ public final class YamlStreamScanner
         int line)
     {
         char first = text.charAt(start);
+        if (first == '"' || first == '\'')
+        {
+            scanQuotedScalar(start, end, refIndent, line);
+            return;
+        }
         if (isReservedStart(first) || isCompactSequence(start, end) || mappingColon(start, end) != -1)
         {
             throw BAIL;
@@ -479,6 +493,48 @@ public final class YamlStreamScanner
             classifyView = new CharSequenceView();
         }
         return classifyView.wrap(text, start, end - start);
+    }
+
+    private void scanQuotedScalar(
+        int start,
+        int end,
+        int refIndent,
+        int line)
+    {
+        validateQuoted(start, end);
+
+        skipIgnorable();
+        if (cursor < lineCount && lineIndent[cursor] > refIndent)
+        {
+            throw BAIL;
+        }
+
+        emit(VALUE_STRING, start + 1, end - start - 2, null);
+    }
+
+    /**
+     * Accepts only an escape-free, single-line quoted scalar whose value is the verbatim interior —
+     * a double quote with no {@code \} or interior {@code "}, or a single quote with no interior
+     * {@code '}. Anything with escapes or a {@code ''} pair (which the eager {@code unquote} would
+     * transform) bails so the value is never misrepresented and never needs materializing here.
+     */
+    private void validateQuoted(
+        int start,
+        int end)
+    {
+        char quote = text.charAt(start);
+        if (end - start < 2 || text.charAt(end - 1) != quote)
+        {
+            throw BAIL;
+        }
+        for (int i = start + 1; i < end - 1; i++)
+        {
+            char c = text.charAt(i);
+            if (c == quote || quote == '"' && c == '\\')
+            {
+                throw BAIL;
+            }
+        }
     }
 
     private String numberText(
@@ -831,7 +887,7 @@ public final class YamlStreamScanner
                 {
                     feasibleEntry(item, end, colon);
                 }
-                else if (isReservedStart(text.charAt(item)))
+                else if (blockedStart(text.charAt(item)))
                 {
                     throw BAIL;
                 }
@@ -858,19 +914,25 @@ public final class YamlStreamScanner
         int colon)
     {
         int keyEnd = trimEnd(start, colon);
-        if (keyEnd == start || isReservedStart(text.charAt(start)) || isMergeKey(start, keyEnd))
+        if (keyEnd == start || blockedStart(text.charAt(start)) || isMergeKey(start, keyEnd))
         {
             throw BAIL;
         }
 
         int valueStart = skipSpace(colon + 1, end);
         if (valueStart < end &&
-            (isReservedStart(text.charAt(valueStart)) ||
+            (blockedStart(text.charAt(valueStart)) ||
                 isCompactSequence(valueStart, end) ||
                 mappingColon(valueStart, end) != -1))
         {
             throw BAIL;
         }
+    }
+
+    private static boolean blockedStart(
+        char c)
+    {
+        return isReservedStart(c) && c != '"' && c != '\'';
     }
 
     private boolean isMarker(

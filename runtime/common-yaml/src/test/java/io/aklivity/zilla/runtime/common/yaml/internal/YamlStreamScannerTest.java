@@ -72,9 +72,30 @@ class YamlStreamScannerTest
     }
 
     @Test
-    void shouldBailOnQuotedScalar()
+    void shouldAcceptEscapeFreeQuotedScalars()
     {
-        assertFalse(new YamlStreamScanner().scan("name: \"quoted value\"\n"));
+        String doc = "name: \"quoted value\"\nkind: 'literal'\n\"quoted key\": 7114\nflag: \"true\"\n";
+        YamlStreamScanner scanner = new YamlStreamScanner();
+        assertTrue(scanner.scan(doc), "scanner should accept escape-free quoted scalars");
+        assertEquals(eager(doc), scanned(scanner), "scanner events must match eager projection");
+    }
+
+    @Test
+    void shouldBailOnEscapedQuotedScalar()
+    {
+        assertFalse(new YamlStreamScanner().scan("name: \"a\\tb\"\n"));
+    }
+
+    @Test
+    void shouldBailOnSingleQuoteEscape()
+    {
+        assertFalse(new YamlStreamScanner().scan("name: 'it''s here'\n"));
+    }
+
+    @Test
+    void shouldBailOnMultiLineQuoted()
+    {
+        assertFalse(new YamlStreamScanner().scan("name: \"line one\n  line two\"\n"));
     }
 
     @Test
@@ -107,7 +128,7 @@ class YamlStreamScannerTest
         long accepted = fixtures()
             .filter(path -> accepts(path.resolve("in.yaml")))
             .count();
-        assertEquals(21, accepted,
+        assertEquals(23, accepted,
             "accepted-fixture count changed; feasibility gate may over-reject or over-accept");
     }
 
