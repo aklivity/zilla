@@ -106,6 +106,20 @@ class YamlStreamScannerTest
     }
 
     @Test
+    void shouldAcceptImplicitMapInFlowSequence()
+    {
+        for (String doc : new String[] {
+            "seq: [ a: 1 ]\n",
+            "seq: [ a: 1, b: 2 ]\n",
+            "seq: [ plain, k: v, other ]\n"})
+        {
+            YamlStreamScanner scanner = new YamlStreamScanner();
+            assertTrue(scanner.scan(doc), "scanner should accept an implicit map in a flow sequence: " + doc);
+            assertEquals(eager(doc), scanned(scanner), doc);
+        }
+    }
+
+    @Test
     void shouldAcceptFlowMappingOmittedAndEmptyValues()
     {
         for (String doc : new String[] {
@@ -406,7 +420,7 @@ class YamlStreamScannerTest
         long accepted = fixtures()
             .filter(path -> accepts(path.resolve("in.yaml")))
             .count();
-        assertEquals(155, accepted,
+        assertEquals(159, accepted,
             "accepted-fixture count changed; feasibility gate may over-reject or over-accept");
     }
 

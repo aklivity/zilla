@@ -1556,7 +1556,32 @@ public final class YamlStreamScanner
             boolean closed = false;
             while (!closed)
             {
-                flowValue();
+                if (flowEntryMapping())
+                {
+                    // a sequence entry of the form `key: value` is an implicit single-pair mapping
+                    emit(START_OBJECT, flowAt, 0, null);
+                    flowKey();
+                    flowSkipWhitespace();
+                    if (!flowConsume(':'))
+                    {
+                        throw BAIL;
+                    }
+                    flowSkipWhitespace();
+                    char c = flowAt < text.length() ? text.charAt(flowAt) : 0;
+                    if (c == ',' || c == ']')
+                    {
+                        emit(VALUE_NULL, flowAt, 0, null);
+                    }
+                    else
+                    {
+                        flowValue();
+                    }
+                    emit(END_OBJECT, flowAt, 0, null);
+                }
+                else
+                {
+                    flowValue();
+                }
                 flowSkipWhitespace();
                 if (flowConsume(','))
                 {
@@ -1574,6 +1599,96 @@ public final class YamlStreamScanner
             }
             emit(END_ARRAY, flowAt - 1, 0, null);
         }
+    }
+
+    /**
+     * Looks ahead from {@code flowAt} for a top-level {@code :} value indicator before the next top-level
+     * {@code ,} / {@code ]} / {@code }} — marking a flow sequence entry as an implicit single-pair mapping
+     * ({@code [a: b]} is {@code [{a: b}]}). Mirrors {@code YamlDocumentParser.flowEntryMapping}; a blank key,
+     * or a multi-line key that is not an explicit {@code ?} key, is not an implicit mapping.
+     */
+    private boolean flowEntryMapping()
+    {
+        boolean single = false;
+        boolean doub = false;
+        boolean escaped = false;
+        int depth = 0;
+        boolean result = false;
+        boolean done = false;
+        for (int i = flowAt; i < text.length() && !done; i++)
+        {
+            char c = text.charAt(i);
+            if (doub)
+            {
+                if (escaped)
+                {
+                    escaped = false;
+                }
+                else if (c == '\\')
+                {
+                    escaped = true;
+                }
+                else if (c == '"')
+                {
+                    doub = false;
+                }
+            }
+            else if (single)
+            {
+                if (c == '\'')
+                {
+                    if (i + 1 < text.length() && text.charAt(i + 1) == '\'')
+                    {
+                        i++;
+                    }
+                    else
+                    {
+                        single = false;
+                    }
+                }
+            }
+            else
+            {
+                switch (c)
+                {
+                case '\'' -> single = true;
+                case '"' -> doub = true;
+                case '{', '[' -> depth++;
+                case '}', ']' ->
+                {
+                    if (depth == 0)
+                    {
+                        done = true;
+                    }
+                    else
+                    {
+                        depth--;
+                    }
+                }
+                case ',' ->
+                {
+                    if (depth == 0)
+                    {
+                        done = true;
+                    }
+                }
+                case ':' ->
+                {
+                    if (depth == 0 && flowMappingColon(i))
+                    {
+                        String key = text.substring(flowAt, i);
+                        result = !key.isBlank() && (key.indexOf('\n') == -1 || key.stripLeading().startsWith("?"));
+                        done = true;
+                    }
+                }
+                default ->
+                {
+                    // continue
+                }
+                }
+            }
+        }
+        return result;
     }
 
     private void flowKey()
