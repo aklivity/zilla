@@ -15,6 +15,8 @@
 package io.aklivity.zilla.runtime.common.yaml.internal;
 
 import java.math.BigInteger;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -86,6 +88,9 @@ public final class YamlStreamScanner
     // per-document boundary offsets — the start of the document following each scanned document
     private int[] documentBoundaries;
     private int documentCount;
+
+    // per-document tag handle prefixes from %TAG directives (plus the default !! handle)
+    private final Map<String, String> tagHandles = new HashMap<>();
 
     private boolean raw;
     private boolean references;
@@ -265,6 +270,8 @@ public final class YamlStreamScanner
     private boolean scanDocument(
         boolean bareAllowed)
     {
+        tagHandles.clear();
+        tagHandles.put("!!", "tag:yaml.org,2002:");
         boolean directives = false;
         boolean yamlDirective = false;
         while (cursor < lineCount && text.charAt(contentStart[cursor]) == '%')
@@ -273,6 +280,11 @@ public final class YamlStreamScanner
             cursor++;
             skipIgnorable();
             directives = true;
+        }
+        if (directives && !bareAllowed)
+        {
+            // directives are valid only at the stream start or after a ... end marker
+            throw BAIL;
         }
 
         if (cursor < lineCount && documentMarker(cursor, '.'))
@@ -386,7 +398,7 @@ public final class YamlStreamScanner
     /**
      * Validates a {@code %}-directive line the way {@code YamlDocumentParser.readDirective} does: a
      * {@code %YAML} directive must be exactly {@code %YAML <major.minor>} and may appear once per document.
-     * Other directives (e.g. {@code %TAG}, already rejected by the feasibility gate, or unknown ones) are
+     * A {@code %TAG} directive registers a tag handle prefix for the document. Unknown directives are
      * ignored. Returns whether a {@code %YAML} directive has now been seen in this document.
      */
     private boolean scanDirective(
@@ -406,6 +418,15 @@ public final class YamlStreamScanner
                 throw BAIL;
             }
             seen = true;
+        }
+        else if (text.startsWith("%TAG", contentStart[line]))
+        {
+            String[] parts = text.substring(contentStart[line], contentEnd[line]).split("\\s+");
+            if (parts.length != 3 || !parts[1].startsWith("!") || !parts[1].endsWith("!"))
+            {
+                throw BAIL;
+            }
+            tagHandles.put(parts[1], parts[2]);
         }
         return seen;
     }
@@ -1442,36 +1463,43 @@ public final class YamlStreamScanner
         int start,
         int end)
     {
+        String tag = text.substring(start, end);
         String normalized;
-        if (end - start == 1)
+        if ("!".equals(tag))
         {
             normalized = "!";
         }
-        else if (text.charAt(start + 1) == '<' && text.charAt(end - 1) == '>')
+        else if (tag.indexOf('{') != -1 || tag.indexOf('}') != -1)
         {
-            normalized = text.substring(start + 2, end - 1);
+            throw BAIL;
         }
-        else if (text.charAt(start + 1) == '!')
+        else if (tag.startsWith("!<") && tag.endsWith(">"))
         {
-            normalized = "tag:yaml.org,2002:" + text.substring(start + 2, end);
+            normalized = tag.substring(2, tag.length() - 1);
         }
         else
         {
-            boolean malformed = false;
-            for (int at = start + 1; at < end; at++)
+            String handle = null;
+            for (String candidate : tagHandles.keySet())
             {
-                char c = text.charAt(at);
-                if (c == '!' || c == '{' || c == '}')
+                if (tag.startsWith(candidate) && (handle == null || candidate.length() > handle.length()))
                 {
-                    malformed = true;
-                    break;
+                    handle = candidate;
                 }
             }
-            if (malformed)
+            if (handle != null)
             {
+                normalized = tagHandles.get(handle) + tag.substring(handle.length());
+            }
+            else if (tag.indexOf('!', 1) != -1)
+            {
+                // a named handle (!x!...) that no %TAG directive defined
                 throw BAIL;
             }
-            normalized = text.substring(start, end);
+            else
+            {
+                normalized = tag;
+            }
         }
         return normalized;
     }
@@ -2858,11 +2886,7 @@ public final class YamlStreamScanner
         }
         else if (first == '%')
         {
-            // %YAML and unknown directives are ignorable; %TAG changes tag handles, so bail
-            if (text.startsWith("%TAG", start))
-            {
-                throw BAIL;
-            }
+            // %YAML, %TAG and unknown directives are handled by the structural scan
         }
         else if (first == ':' && (end - start == 1 || isSpace(text.charAt(start + 1))))
         {

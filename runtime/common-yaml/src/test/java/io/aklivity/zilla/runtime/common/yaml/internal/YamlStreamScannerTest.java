@@ -420,9 +420,24 @@ class YamlStreamScannerTest
     }
 
     @Test
-    void shouldBailOnTagDirective()
+    void shouldAcceptTagDirectives()
     {
-        assertFalse(new YamlStreamScanner().scan("%TAG ! tag:example.com,2000:\n---\nname: example\n"));
+        for (String doc : new String[] {
+            "%TAG !e! tag:example.com,2000:app/\n---\n- !e!foo \"bar\"\n",
+            "%TAG !! tag:example.com,2000:app/\n---\n!!int 1 - 3\n",
+            "!<tag:yaml.org,2002:str> foo: bar\n"})
+        {
+            YamlStreamScanner scanner = new YamlStreamScanner();
+            assertTrue(scanner.scan(doc, true), "raw scanner should accept tag directives/verbatim tags: " + doc);
+            assertEquals(eagerRaw(doc), scannedRaw(scanner), doc);
+        }
+    }
+
+    @Test
+    void shouldBailOnMalformedTagDirective()
+    {
+        // a directive after content (not at stream start or after ...) is invalid
+        assertFalse(new YamlStreamScanner().scan("foo\n%TAG ! tag:x,2000:\n---\nbar\n", true));
     }
 
     @Test
