@@ -615,8 +615,7 @@ public final class YamlStreamScanner
 
         if (keyFirst == '"' || keyFirst == '\'')
         {
-            validateQuoted(nodeStart, keyEnd);
-            emit(KEY_NAME, nodeStart + 1, keyEnd - nodeStart - 2, null);
+            emitQuotedKey(nodeStart, keyEnd);
         }
         else
         {
@@ -668,8 +667,7 @@ public final class YamlStreamScanner
         char keyFirst = text.charAt(start);
         if (keyFirst == '"' || keyFirst == '\'')
         {
-            validateQuoted(start, keyEnd);
-            emit(KEY_NAME, start + 1, keyEnd - start - 2, null);
+            emitQuotedKey(start, keyEnd);
         }
         else if (raw && (keyFirst == '&' || keyFirst == '!'))
         {
@@ -678,8 +676,7 @@ public final class YamlStreamScanner
             char nodeFirst = text.charAt(nodeStart);
             if (nodeFirst == '"' || nodeFirst == '\'')
             {
-                validateQuoted(nodeStart, keyEnd);
-                emit(KEY_NAME, nodeStart + 1, keyEnd - nodeStart - 2, null);
+                emitQuotedKey(nodeStart, keyEnd);
             }
             else if (isReservedStart(nodeFirst) || isMergeKey(nodeStart, keyEnd))
             {
@@ -2775,22 +2772,28 @@ public final class YamlStreamScanner
      * {@code '}. Anything with escapes or a {@code ''} pair (which the eager {@code unquote} would
      * transform) bails so the value is never misrepresented and never needs materializing here.
      */
-    private void validateQuoted(
+    /**
+     * Emits a single-line quoted mapping key over {@code [start, end)}, materializing escape sequences the way
+     * {@link #scanInlineScalar} does for quoted values: an escape-free key emits its verbatim inner slice, an
+     * escaped key emits the unquoted string. A malformed (unterminated) quote bails.
+     */
+    private void emitQuotedKey(
         int start,
         int end)
     {
         char quote = text.charAt(start);
-        if (end - start < 2 || text.charAt(end - 1) != quote)
+        if (end - start < 2 || quotedCloseEsc(start + 1, end, quote) != end - 1)
         {
             throw BAIL;
         }
-        for (int i = start + 1; i < end - 1; i++)
+        String value = quote == '"' ? unquoteDouble(text, start, end) : unquoteSingle(text, start, end);
+        if (value == null)
         {
-            char c = text.charAt(i);
-            if (c == quote || quote == '"' && c == '\\')
-            {
-                throw BAIL;
-            }
+            emit(KEY_NAME, start + 1, end - start - 2, null);
+        }
+        else
+        {
+            emit(KEY_NAME, start, 0, value);
         }
     }
 
