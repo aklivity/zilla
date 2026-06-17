@@ -117,6 +117,15 @@ class YamlStreamScannerTest
     }
 
     @Test
+    void shouldAcceptExplicitKeys()
+    {
+        String doc = "? a\n: 1.3\n? b\n: c\nplain: x\n";
+        YamlStreamScanner scanner = new YamlStreamScanner();
+        assertTrue(scanner.scan(doc), "scanner should accept explicit keys");
+        assertEquals(eager(doc), scanned(scanner));
+    }
+
+    @Test
     void shouldBailOnFlowAnchor()
     {
         assertFalse(new YamlStreamScanner().scan("{a: &x 1, b: *x}\n"));
@@ -246,7 +255,7 @@ class YamlStreamScannerTest
         long accepted = fixtures()
             .filter(path -> accepts(path.resolve("in.yaml")))
             .count();
-        assertEquals(78, accepted,
+        assertEquals(83, accepted,
             "accepted-fixture count changed; feasibility gate may over-reject or over-accept");
     }
 

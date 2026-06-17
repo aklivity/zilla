@@ -261,7 +261,7 @@ public final class YamlStreamScanner
         }
 
         int indent = lineIndent[line];
-        if (isSequence(line, indent) || mappingColon(contentStart[line], contentEnd[line]) != -1)
+        if (isSequence(line, indent) || isExplicitKey(line) || mappingColon(contentStart[line], contentEnd[line]) != -1)
         {
             scanBlock(indent);
         }
@@ -313,13 +313,13 @@ public final class YamlStreamScanner
         {
             scanSequence(indent);
         }
-        else if (isExplicitKey(line) || mappingColon(contentStart[line], contentEnd[line]) == -1)
+        else if (isExplicitKey(line) || mappingColon(contentStart[line], contentEnd[line]) != -1)
         {
-            throw BAIL;
+            scanMapping(indent);
         }
         else
         {
-            scanMapping(indent);
+            throw BAIL;
         }
     }
 
@@ -351,10 +351,67 @@ public final class YamlStreamScanner
             }
             if (isExplicitKey(line))
             {
-                throw BAIL;
+                scanExplicitEntry(indent, line);
             }
+            else
+            {
+                scanEntry(contentStart[line], contentEnd[line], indent, line);
+            }
+        }
+    }
 
-            scanEntry(contentStart[line], contentEnd[line], indent, line);
+    private void scanExplicitEntry(
+        int indent,
+        int line)
+    {
+        int keyStart = skipSpace(contentStart[line] + 1, contentEnd[line]);
+        int keyEnd = contentEnd[line];
+        char keyFirst = keyStart < keyEnd ? text.charAt(keyStart) : 0;
+        // only a simple single-line scalar key (plain or escape-free quoted) is supported
+        if (keyStart == keyEnd || keyFirst == '{' || keyFirst == '[' || keyFirst == '|' || keyFirst == '>' ||
+            keyFirst != '"' && keyFirst != '\'' && blockedStart(keyFirst) || mappingColon(keyStart, keyEnd) != -1)
+        {
+            throw BAIL;
+        }
+        cursor++;
+        skipIgnorable();
+        // a more-indented line before the value indicator is a key continuation, which is unsupported
+        if (cursor < lineCount && lineIndent[cursor] > indent)
+        {
+            throw BAIL;
+        }
+
+        if (keyFirst == '"' || keyFirst == '\'')
+        {
+            validateQuoted(keyStart, keyEnd);
+            emit(KEY_NAME, keyStart + 1, keyEnd - keyStart - 2, null);
+        }
+        else
+        {
+            emit(KEY_NAME, keyStart, keyEnd - keyStart, null);
+        }
+
+        boolean valued = cursor < lineCount && lineIndent[cursor] == indent &&
+            contentStart[cursor] < contentEnd[cursor] && text.charAt(contentStart[cursor]) == ':' &&
+            (contentEnd[cursor] == contentStart[cursor] + 1 || isSpace(text.charAt(contentStart[cursor] + 1)));
+        if (valued)
+        {
+            int valueLine = cursor;
+            int valueStart = skipSpace(contentStart[valueLine] + 1, contentEnd[valueLine]);
+            int valueEnd = contentEnd[valueLine];
+            cursor++;
+            if (valueStart == valueEnd)
+            {
+                scanNestedValue(indent, valueLine);
+            }
+            else
+            {
+                scanScalar(valueStart, valueEnd, indent, valueLine);
+            }
+        }
+        else
+        {
+            emit(VALUE_NULL, contentStart[line], 0, null);
         }
     }
 
@@ -1823,6 +1880,11 @@ public final class YamlStreamScanner
                 throw BAIL;
             }
         }
+        else if (first == ':' && (end - start == 1 || isSpace(text.charAt(start + 1))))
+        {
+            // an explicit-key value indicator line; defer to the structural scan
+            blockIndent = -1;
+        }
         else if (first == '-' && (end - start == 1 || isSpace(text.charAt(start + 1))))
         {
             int item = start + 1;
@@ -1855,13 +1917,9 @@ public final class YamlStreamScanner
                 }
             }
         }
-        else if (first == '?' && (end - start == 1 || isSpace(text.charAt(start + 1))))
-        {
-            throw BAIL;
-        }
         else
         {
-            // a no-colon line may be a root scalar (or invalid); defer the decision to the structural scan
+            // a no-colon line may be an explicit key, a root scalar (or invalid); defer to the structural scan
             int colon = mappingColon(start, end);
             if (colon != -1)
             {
