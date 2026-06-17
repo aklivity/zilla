@@ -1445,7 +1445,79 @@ public final class YamlStreamScanner
         int refIndent,
         int line)
     {
-        validateQuoted(start, end);
+        char quote = text.charAt(start);
+        int close = quotedClose(start + 1, end, quote);
+        if (close == -1)
+        {
+            scanMultiLineQuoted(start, end, refIndent, quote);
+        }
+        else
+        {
+            if (close != end - 1)
+            {
+                throw BAIL;
+            }
+            skipIgnorable();
+            if (cursor < lineCount && lineIndent[cursor] > refIndent)
+            {
+                throw BAIL;
+            }
+            emit(VALUE_STRING, start + 1, end - start - 2, null);
+        }
+    }
+
+    /**
+     * Collects an escape-free quoted scalar that spans physical lines, requiring each continuation to be
+     * indented past {@code refIndent} (mirroring the eager parser, which errors on same-or-less indent),
+     * folds the interior the way {@code YamlDocumentParser.foldQuotedLines} does, and emits the materialized
+     * value. A document marker, a wrong-indented continuation or anything after the closing quote bails so
+     * the eager parser can produce the authoritative result (or error).
+     */
+    private void scanMultiLineQuoted(
+        int openStart,
+        int openEnd,
+        int refIndent,
+        char quote)
+    {
+        StringBuilder interior = new StringBuilder();
+        interior.append(text, openStart + 1, openEnd);
+
+        boolean closed = false;
+        while (!closed)
+        {
+            if (cursor >= lineCount || documentMarker(cursor, '-') || documentMarker(cursor, '.'))
+            {
+                throw BAIL;
+            }
+
+            int cs = contentStart[cursor];
+            int ce = contentEnd[cursor];
+            interior.append('\n');
+            if (cs < ce)
+            {
+                if (lineIndent[cursor] <= refIndent)
+                {
+                    throw BAIL;
+                }
+                int close = quotedClose(cs, ce, quote);
+                if (close == -1)
+                {
+                    interior.append(text, cs, ce);
+                }
+                else if (close == ce - 1)
+                {
+                    interior.append(text, cs, close);
+                    closed = true;
+                }
+                else
+                {
+                    throw BAIL;
+                }
+            }
+            cursor++;
+        }
+
+        String value = foldQuoted(interior.toString());
 
         skipIgnorable();
         if (cursor < lineCount && lineIndent[cursor] > refIndent)
@@ -1453,7 +1525,108 @@ public final class YamlStreamScanner
             throw BAIL;
         }
 
-        emit(VALUE_STRING, start + 1, end - start - 2, null);
+        emit(VALUE_STRING, openStart, 0, value);
+    }
+
+    /**
+     * Returns the index of the closing quote within {@code [from, end)}, or {@code -1} when an escape-free
+     * quote does not close on this line. Bails on a {@code \} inside a double quote or a {@code ''} pair
+     * inside a single quote, since those would need materializing rather than emitting the verbatim slice.
+     */
+    private int quotedClose(
+        int from,
+        int end,
+        char quote)
+    {
+        int close = -1;
+        for (int i = from; i < end && close == -1; i++)
+        {
+            char c = text.charAt(i);
+            if (quote == '"' && c == '\\')
+            {
+                throw BAIL;
+            }
+            else if (c == quote)
+            {
+                if (quote == '\'' && i + 1 < end && text.charAt(i + 1) == '\'')
+                {
+                    throw BAIL;
+                }
+                close = i;
+            }
+        }
+        return close;
+    }
+
+    private static String foldQuoted(
+        String value)
+    {
+        StringBuilder folded = new StringBuilder();
+        String[] lines = value.split("\\R", -1);
+        folded.append(stripTrailingSpace(lines[0]));
+        int blankLines = 0;
+        for (int i = 1; i < lines.length; i++)
+        {
+            boolean last = i == lines.length - 1;
+            String line = stripLeadingSpace(lines[i]);
+            if (line.isEmpty())
+            {
+                if (last && blankLines == 0)
+                {
+                    folded.append(' ');
+                }
+                else if (last)
+                {
+                    appendLineBreaks(folded, blankLines);
+                }
+                else
+                {
+                    blankLines++;
+                }
+            }
+            else
+            {
+                boolean separated = blankLines > 0;
+                if (separated)
+                {
+                    appendLineBreaks(folded, blankLines);
+                    blankLines = 0;
+                }
+                String normalized = last ? line : stripTrailingSpace(line);
+                if (folded.length() > 0 && folded.charAt(folded.length() - 1) == '\\')
+                {
+                    folded.setLength(folded.length() - 1);
+                }
+                else if (!separated)
+                {
+                    folded.append(' ');
+                }
+                folded.append(normalized);
+            }
+        }
+        return folded.toString();
+    }
+
+    private static String stripLeadingSpace(
+        String value)
+    {
+        int start = 0;
+        while (start < value.length() && isSpace(value.charAt(start)))
+        {
+            start++;
+        }
+        return value.substring(start);
+    }
+
+    private static String stripTrailingSpace(
+        String value)
+    {
+        int end = value.length();
+        while (end > 0 && isSpace(value.charAt(end - 1)))
+        {
+            end--;
+        }
+        return value.substring(0, end);
     }
 
     /**
