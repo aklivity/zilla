@@ -130,6 +130,8 @@ public final class YamlStreamScanner
                 mappingColon(contentStart[firstLine], contentEnd[firstLine]) != -1;
             if (flow && !flowKeyedRoot)
             {
+                tagHandles.clear();
+                tagHandles.put("!!", "tag:yaml.org,2002:");
                 scanFlowDocument(first);
             }
             else
@@ -1630,12 +1632,20 @@ public final class YamlStreamScanner
     private void flowValue()
     {
         flowSkipWhitespace();
+        flowProperties();
         if (flowAt >= text.length())
         {
             throw BAIL;
         }
 
         char c = text.charAt(flowAt);
+        if ((c == ',' || c == ']' || c == '}') && (pendingAnchor != null || pendingTag != null))
+        {
+            // node properties with no node before a separator: the eager parser resolves the empty
+            // scalar as an empty string (parseScalar("")), so the decorated node projects as a string
+            emit(VALUE_STRING, flowAt, 0, null);
+            return;
+        }
         switch (c)
         {
         case '{' -> flowObject();
@@ -1661,6 +1671,48 @@ public final class YamlStreamScanner
                 flowBareScalar();
             }
         }
+        }
+    }
+
+    /**
+     * Consumes anchor ({@code &name}) and tag ({@code !tag}) node properties preceding a flow node in raw
+     * mode, the way {@link #scanRef} does for block nodes: the pending anchor/tag are attached to the next
+     * emitted event. A repeated anchor or tag bails. When only properties precede a {@code , ] }} separator
+     * the caller emits a (decorated) null node.
+     */
+    private void flowProperties()
+    {
+        boolean more = raw;
+        while (more)
+        {
+            char c = flowAt < text.length() ? text.charAt(flowAt) : 0;
+            if (c == '&')
+            {
+                int start = flowAt + 1;
+                int at = tokenEnd(start, text.length());
+                if (at == start || pendingAnchor != null)
+                {
+                    throw BAIL;
+                }
+                pendingAnchor = text.substring(start, at);
+                flowAt = at;
+                flowSkipWhitespace();
+            }
+            else if (c == '!')
+            {
+                int at = tagEnd(flowAt, text.length());
+                if (pendingTag != null)
+                {
+                    throw BAIL;
+                }
+                pendingTag = normalizeTag(flowAt, at);
+                flowAt = at;
+                flowSkipWhitespace();
+            }
+            else
+            {
+                more = false;
+            }
         }
     }
 
@@ -1895,19 +1947,19 @@ public final class YamlStreamScanner
         {
             throw BAIL;
         }
+        boolean explicit = false;
         if (text.charAt(flowAt) == '?' &&
             (flowAt + 1 >= text.length() || Character.isWhitespace(text.charAt(flowAt + 1))))
         {
-            // an explicit-key indicator in flow; the key scalar follows
+            // an explicit-key indicator in flow; the key node (possibly null) follows
+            explicit = true;
             flowAt++;
             flowSkipWhitespace();
-            if (flowAt >= text.length())
-            {
-                throw BAIL;
-            }
         }
+        flowProperties();
+        flowSkipWhitespace();
 
-        char c = text.charAt(flowAt);
+        char c = flowAt < text.length() ? text.charAt(flowAt) : 0;
         if (c == '"' || c == '\'')
         {
             flowReadQuoted();
@@ -1925,6 +1977,12 @@ public final class YamlStreamScanner
             // a non-scalar (flow collection) key is preserved as its structure for the YAML layer;
             // the JSON projection rejects it (the resolver bails on a non-KEY_NAME key)
             flowValue();
+        }
+        else if ((c == 0 || c == ':' || c == ',' || c == ']' || c == '}') &&
+            (explicit || pendingAnchor != null || pendingTag != null))
+        {
+            // an explicit or decorated key with no key scalar is a (possibly decorated) null key
+            emit(KEY_NAME, flowAt, 0, null);
         }
         else if ((flowReserved(c) || c == '{' || c == '[') && !(c == '?' && flowPlainQuestion()))
         {

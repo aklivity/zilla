@@ -564,18 +564,32 @@ class YamlStreamScannerTest
     void shouldAcceptExpectedFixtureCount() throws Exception
     {
         long accepted = fixtures()
-            .filter(path -> accepts(path.resolve("in.yaml")))
+            .filter(path -> accepts(path.resolve("in.yaml"), false))
             .count();
-        assertEquals(212, accepted,
+        assertEquals(213, accepted,
             "accepted-fixture count changed; feasibility gate may over-reject or over-accept");
     }
 
+    @Test
+    void shouldAcceptExpectedRawFixtureCount() throws Exception
+    {
+        // a ratchet toward full raw (YAML-layer) conformance: this count only ever rises as the scanner
+        // widens. A drop means a regression bailed a previously accepted fixture (the differential only
+        // checks fixtures the scanner accepts, so it would not otherwise catch a lost acceptance).
+        long accepted = fixtures()
+            .filter(path -> accepts(path.resolve("in.yaml"), true))
+            .count();
+        assertEquals(260, accepted,
+            "raw accepted-fixture count changed; a drop is a regression, a rise should bump this baseline");
+    }
+
     private static boolean accepts(
-        Path path)
+        Path path,
+        boolean rawReferences)
     {
         try
         {
-            return new YamlStreamScanner().scan(Files.readString(path));
+            return new YamlStreamScanner().scan(Files.readString(path), rawReferences);
         }
         catch (IOException ex)
         {
