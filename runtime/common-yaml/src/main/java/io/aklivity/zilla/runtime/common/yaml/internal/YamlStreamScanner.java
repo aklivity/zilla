@@ -561,8 +561,9 @@ public final class YamlStreamScanner
 
             int line = cursor;
             if (lineIndent[line] != indent || isSequence(line, indent) ||
-                documentMarker(line, '-') || documentMarker(line, '.'))
+                isMarker(contentStart[line], contentEnd[line], '-') || isMarker(contentStart[line], contentEnd[line], '.'))
             {
+                // a bare --- / ... or an inline --- value marker ends the current mapping
                 break;
             }
             if (tabInIndent(line))
