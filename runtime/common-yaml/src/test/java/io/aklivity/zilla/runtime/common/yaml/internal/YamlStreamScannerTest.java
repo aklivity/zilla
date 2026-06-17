@@ -150,6 +150,19 @@ class YamlStreamScannerTest
     }
 
     @Test
+    void shouldAcceptExplicitKeyIndicatorInFlow()
+    {
+        for (String doc : new String[] {
+            "[\n? foo\n bar : baz\n]\n",
+            "{ ? key : value, ? other : 2 }\n"})
+        {
+            YamlStreamScanner scanner = new YamlStreamScanner();
+            assertTrue(scanner.scan(doc), "scanner should accept a ? explicit key in flow: " + doc);
+            assertEquals(eager(doc), scanned(scanner), doc);
+        }
+    }
+
+    @Test
     void shouldAcceptFlowDocumentBodyAndComments()
     {
         for (String doc : new String[] {
@@ -510,7 +523,7 @@ class YamlStreamScannerTest
         long accepted = fixtures()
             .filter(path -> accepts(path.resolve("in.yaml")))
             .count();
-        assertEquals(207, accepted,
+        assertEquals(209, accepted,
             "accepted-fixture count changed; feasibility gate may over-reject or over-accept");
     }
 

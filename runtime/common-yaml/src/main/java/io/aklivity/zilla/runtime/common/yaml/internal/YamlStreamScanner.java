@@ -1881,6 +1881,17 @@ public final class YamlStreamScanner
         {
             throw BAIL;
         }
+        if (text.charAt(flowAt) == '?' &&
+            (flowAt + 1 >= text.length() || Character.isWhitespace(text.charAt(flowAt + 1))))
+        {
+            // an explicit-key indicator in flow; the key scalar follows
+            flowAt++;
+            flowSkipWhitespace();
+            if (flowAt >= text.length())
+            {
+                throw BAIL;
+            }
+        }
 
         char c = text.charAt(flowAt);
         if (c == '"' || c == '\'')
