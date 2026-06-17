@@ -101,6 +101,29 @@ class YamlStreamScannerTest
         assertFalse(new YamlStreamScanner().scan("name:\n\tvalue\n"));
     }
 
+    @Test
+    void shouldAcceptExpectedFixtureCount() throws Exception
+    {
+        long accepted = fixtures()
+            .filter(path -> accepts(path.resolve("in.yaml")))
+            .count();
+        assertEquals(21, accepted,
+            "accepted-fixture count changed; feasibility gate may over-reject or over-accept");
+    }
+
+    private static boolean accepts(
+        Path path)
+    {
+        try
+        {
+            return new YamlStreamScanner().scan(Files.readString(path));
+        }
+        catch (IOException ex)
+        {
+            throw new IllegalStateException(ex);
+        }
+    }
+
     @TestFactory
     Stream<DynamicTest> shouldMatchEagerForEveryAcceptedFixture() throws Exception
     {

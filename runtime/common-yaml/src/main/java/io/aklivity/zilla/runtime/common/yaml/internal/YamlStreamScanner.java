@@ -87,8 +87,8 @@ public final class YamlStreamScanner
         try
         {
             reject(text);
+            feasible(text);
             splitLines(text);
-            rejectMarkers();
             scanRoot();
             scanned = true;
         }
@@ -763,21 +763,113 @@ public final class YamlStreamScanner
         }
     }
 
-    private void rejectMarkers()
+    /**
+     * Allocation-free gate run before any array is allocated. It walks each line computing its content
+     * bounds inline (no line model, no event buffer) and rejects the cheap, common out-of-subset cases —
+     * quoted/block scalars, flow collections, anchors, aliases, merge keys, tags, explicit keys, document
+     * markers and directives — by applying the same per-line token checks {@link #scanScalar} and
+     * {@link #scanEntry} apply. A line that passes here may still be rejected by the structural scan
+     * (indentation, multi-line folding), but the expensive fallback documents bail here for free.
+     */
+    private void feasible(
+        String text)
     {
-        for (int line = 0; line < lineCount; line++)
+        int start = 0;
+        int length = text.length();
+        while (start < length)
         {
-            int start = contentStart[line];
-            int end = contentEnd[line];
-            if (start == end)
+            int eol = text.indexOf('\n', start);
+            int rawEnd = eol == -1 ? length : eol;
+            int trimmedEnd = rawEnd > start && text.charAt(rawEnd - 1) == '\r' ? rawEnd - 1 : rawEnd;
+
+            int cs = start;
+            while (cs < trimmedEnd && isSpace(text.charAt(cs)))
             {
-                continue;
+                cs++;
             }
-            char first = text.charAt(start);
-            if (first == '%' || isMarker(start, end, '-') || isMarker(start, end, '.'))
+            int comment = commentIndex(cs, trimmedEnd);
+            int ce = comment == -1 ? trimmedEnd : comment;
+            while (ce > cs && isSpace(text.charAt(ce - 1)))
+            {
+                ce--;
+            }
+
+            if (cs < ce)
+            {
+                feasibleLine(cs, ce);
+            }
+
+            start = eol == -1 ? length : eol + 1;
+        }
+    }
+
+    private void feasibleLine(
+        int start,
+        int end)
+    {
+        char first = text.charAt(start);
+        if (first == '%' || isMarker(start, end, '-') || isMarker(start, end, '.'))
+        {
+            throw BAIL;
+        }
+
+        if (first == '-' && (end - start == 1 || isSpace(text.charAt(start + 1))))
+        {
+            int item = start + 1;
+            while (item < end && isSpace(text.charAt(item)))
+            {
+                item++;
+            }
+            if (item < end)
+            {
+                if (isCompactSequence(item, end))
+                {
+                    throw BAIL;
+                }
+                int colon = mappingColon(item, end);
+                if (colon != -1)
+                {
+                    feasibleEntry(item, end, colon);
+                }
+                else if (isReservedStart(text.charAt(item)))
+                {
+                    throw BAIL;
+                }
+            }
+        }
+        else if (first == '?' && (end - start == 1 || isSpace(text.charAt(start + 1))))
+        {
+            throw BAIL;
+        }
+        else
+        {
+            int colon = mappingColon(start, end);
+            if (colon == -1)
             {
                 throw BAIL;
             }
+            feasibleEntry(start, end, colon);
+        }
+    }
+
+    private void feasibleEntry(
+        int start,
+        int end,
+        int colon)
+    {
+        int keyEnd = trimEnd(start, colon);
+        if (keyEnd == start || isReservedStart(text.charAt(start)) || isMergeKey(start, keyEnd))
+        {
+            throw BAIL;
+        }
+
+        int valueStart = skipSpace(colon + 1, end);
+        if (valueStart < end &&
+            (isReservedStart(text.charAt(valueStart)) ||
+                isCompactSequence(valueStart, end) ||
+                mappingColon(valueStart, end) != -1))
+        {
+            throw BAIL;
         }
     }
 
