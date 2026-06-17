@@ -14,17 +14,21 @@
  */
 package io.aklivity.zilla.runtime.model.protobuf.internal;
 
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
-import org.agrona.io.DirectBufferInputStream;
 
-import com.google.protobuf.Descriptors;
-import com.google.protobuf.DynamicMessage;
-import com.google.protobuf.util.JsonFormat;
-
+import io.aklivity.zilla.runtime.common.json.JsonEx;
+import io.aklivity.zilla.runtime.common.json.JsonParserEx;
+import io.aklivity.zilla.runtime.common.protobuf.Protobuf;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufGenerator;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufMessage;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufSchema;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufSink;
+import io.aklivity.zilla.runtime.common.protobuf.json.ProtobufJson;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
@@ -33,9 +37,7 @@ import io.aklivity.zilla.runtime.model.protobuf.config.ProtobufModelConfig;
 public class ProtobufWriteConverterHandler extends ProtobufModelHandler implements ConverterHandler
 {
     private final DirectBuffer indexesRO;
-    private final InputStreamReader input;
-    private final DirectBufferInputStream in;
-    private final JsonFormat.Parser parser;
+    private final Map<String, JsonState> jsonStates;
 
     public ProtobufWriteConverterHandler(
         ProtobufModelConfig config,
@@ -43,9 +45,7 @@ public class ProtobufWriteConverterHandler extends ProtobufModelHandler implemen
     {
         super(config, context);
         this.indexesRO = new UnsafeBuffer();
-        this.in =  new DirectBufferInputStream();
-        this.input = new InputStreamReader(in);
-        this.parser = JsonFormat.parser();
+        this.jsonStates = new HashMap<>();
     }
 
     @Override
@@ -80,53 +80,14 @@ public class ProtobufWriteConverterHandler extends ProtobufModelHandler implemen
         {
             valLength = handler.encode(traceId, bindingId, schemaId, data, index, length, next, this::serializeJsonRecord);
         }
-        else if (validate(traceId, bindingId, schemaId, data, index, length))
+        else
         {
-            valLength = handler.encode(traceId, bindingId, schemaId, data, index, length, next, this::encode);
+            valLength = handler.encode(traceId, bindingId, schemaId, data, index, length, next, this::serializeRecord);
         }
         return valLength;
     }
 
-    private boolean validate(
-        long traceId,
-        long bindingId,
-        int schemaId,
-        DirectBuffer buffer,
-        int index,
-        int length)
-    {
-        boolean status = false;
-        DescriptorTree trees = supplyDescriptorTree(schemaId);
-        if (trees != null && catalog.record != null)
-        {
-            DescriptorTree tree = trees.findByName(catalog.record);
-            if (tree != null)
-            {
-                Descriptors.Descriptor descriptor = tree.descriptor;
-                indexes.clear();
-                indexes.add(tree.indexes.size());
-                indexes.addAll(tree.indexes);
-                in.wrap(buffer, index, length);
-                DynamicMessage.Builder builder = supplyDynamicMessageBuilder(descriptor);
-                try
-                {
-                    DynamicMessage message = builder.mergeFrom(in).build();
-                    status = message.getUnknownFields().asMap().isEmpty();
-                }
-                catch (IOException ex)
-                {
-                    event.validationFailure(traceId, bindingId, ex.getMessage());
-                }
-                finally
-                {
-                    builder.clear();
-                }
-            }
-        }
-        return status;
-    }
-
-    private int encode(
+    private int serializeRecord(
         long traceId,
         long bindingId,
         int schemaId,
@@ -136,6 +97,79 @@ public class ProtobufWriteConverterHandler extends ProtobufModelHandler implemen
         ValueConsumer next)
     {
         int valLength = -1;
+        ProtobufSchema schema = supplySchema(schemaId);
+        if (schema != null && catalog.record != null)
+        {
+            int[] path = schema.messageIndexes(catalog.record);
+            ProtobufMessage message = schema.messageByIndexes(path);
+            if (message != null)
+            {
+                if (schema.validate(message.name(), buffer, index, length))
+                {
+                    encodeIndexes(path);
+                    valLength = encode(buffer, index, length, next);
+                }
+                else
+                {
+                    event.validationFailure(traceId, bindingId, "Invalid Protobuf event");
+                }
+            }
+        }
+        return valLength;
+    }
+
+    private int serializeJsonRecord(
+        long traceId,
+        long bindingId,
+        int schemaId,
+        DirectBuffer buffer,
+        int index,
+        int length,
+        ValueConsumer next)
+    {
+        int valLength = -1;
+        ProtobufSchema schema = supplySchema(schemaId);
+        if (schema != null && catalog.record != null)
+        {
+            int[] path = schema.messageIndexes(catalog.record);
+            ProtobufMessage message = schema.messageByIndexes(path);
+            if (message != null)
+            {
+                String messageName = message.name();
+                JsonState state = jsonStates.computeIfAbsent(messageName, name -> new JsonState(schema, name));
+                out.wrap(out.buffer());
+                state.generator.wrap(out.buffer(), 0, out.buffer().capacity());
+                state.pipeline.reset();
+                ProtobufPipeline.Status status;
+                try
+                {
+                    status = state.pipeline.feed(buffer, index, length);
+                }
+                catch (Exception ex)
+                {
+                    status = ProtobufPipeline.Status.REJECTED;
+                }
+                if (status == ProtobufPipeline.Status.COMPLETED)
+                {
+                    encodeIndexes(path);
+                    valLength = encode(out.buffer(), 0, state.generator.length(), next);
+                }
+                else
+                {
+                    event.validationFailure(traceId, bindingId, "Invalid Protobuf event");
+                }
+            }
+        }
+        return valLength;
+    }
+
+    private int encode(
+        DirectBuffer buffer,
+        int index,
+        int length,
+        ValueConsumer next)
+    {
+        int valLength;
         if (indexes.size() == 2 && indexes.get(0) == 1 && indexes.get(1) == 0)
         {
             indexesRO.wrap(ZERO_INDEX);
@@ -152,49 +186,19 @@ public class ProtobufWriteConverterHandler extends ProtobufModelHandler implemen
         return valLength + length;
     }
 
-    private int serializeJsonRecord(
-        long traceId,
-        long bindingId,
-        int schemaId,
-        DirectBuffer buffer,
-        int index,
-        int length,
-        ValueConsumer next)
+    private final class JsonState
     {
-        int valLength = -1;
-        DescriptorTree tree = supplyDescriptorTree(schemaId);
-        if (tree != null && catalog.record != null)
+        private final ProtobufGenerator generator;
+        private final ProtobufPipeline pipeline;
+
+        private JsonState(
+            ProtobufSchema schema,
+            String messageName)
         {
-            tree = tree.findByName(catalog.record);
-            if (tree != null)
-            {
-                Descriptors.Descriptor descriptor = tree.descriptor;
-                indexes.clear();
-                indexes.add(tree.indexes.size());
-                indexes.addAll(tree.indexes);
-                DynamicMessage.Builder builder = supplyDynamicMessageBuilder(descriptor);
-                in.wrap(buffer, index, length);
-                try
-                {
-                    parser.merge(input, builder);
-                    DynamicMessage message = builder.build();
-                    if (message.isInitialized() && message.getUnknownFields().asMap().isEmpty())
-                    {
-                        out.wrap(out.buffer());
-                        message.writeTo(out);
-                        valLength = encode(traceId, bindingId, schemaId, out.buffer(), 0, out.position(), next);
-                    }
-                }
-                catch (IOException ex)
-                {
-                    event.validationFailure(traceId, bindingId, ex.getMessage());
-                }
-                finally
-                {
-                    builder.clear();
-                }
-            }
+            this.generator = Protobuf.generator();
+            JsonParserEx jsonParser = JsonEx.createParser();
+            this.pipeline = Protobuf.stream(ProtobufJson.parser(jsonParser, schema, messageName))
+                .into(ProtobufSink.of(generator, schema, messageName));
         }
-        return valLength;
     }
 }

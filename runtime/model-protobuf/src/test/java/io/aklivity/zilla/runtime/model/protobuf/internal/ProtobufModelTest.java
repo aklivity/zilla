@@ -374,8 +374,7 @@ public class ProtobufModelTest
         String json =
             "{" +
                 "\"content\":\"OK\"," +
-                "\"date\":\"01012024\"" +
-            "}";
+                "\"date_time\":\"01012024\"";
         data.wrap(json.getBytes(), 0, json.getBytes().length);
 
         assertEquals(-1, converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));

@@ -14,41 +14,26 @@
  */
 package io.aklivity.zilla.runtime.model.protobuf.internal;
 
-import java.net.URL;
-
 import io.aklivity.zilla.runtime.engine.Configuration;
-import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.model.Model;
-import io.aklivity.zilla.runtime.engine.model.ModelContext;
 
-public class ProtobufModel implements Model
+public class ProtobufModelConfiguration extends Configuration
 {
-    public static final String NAME = "protobuf";
+    private static final ConfigurationDef PROTOBUF_MODEL_CONFIG;
 
-    private final Configuration config;
+    static
+    {
+        final ConfigurationDef config = new ConfigurationDef("zilla.model.protobuf");
+        PROTOBUF_MODEL_CONFIG = config;
+    }
 
-    public ProtobufModel(
+    public ProtobufModelConfiguration()
+    {
+        super(PROTOBUF_MODEL_CONFIG, new Configuration());
+    }
+
+    public ProtobufModelConfiguration(
         Configuration config)
     {
-        this.config = config;
-    }
-
-    @Override
-    public String name()
-    {
-        return NAME;
-    }
-
-    @Override
-    public ModelContext supply(
-        EngineContext context)
-    {
-        return new ProtobufModelContext(config, context);
-    }
-
-    @Override
-    public URL type()
-    {
-        return getClass().getResource("schema/protobuf.schema.patch.json");
+        super(PROTOBUF_MODEL_CONFIG, config);
     }
 }
