@@ -623,15 +623,22 @@ public final class YamlStreamScanner
                 nodeStart = scanKeyDecorators(keyStart, keyEnd);
                 keyFirst = text.charAt(nodeStart);
             }
-            // only a simple single-line scalar key (plain or escape-free quoted) is supported inline
-            if (nodeStart == keyEnd || keyFirst == '{' || keyFirst == '[' || keyFirst == '|' || keyFirst == '>' ||
+            if (nodeStart == keyStart && (keyFirst == '|' || keyFirst == '>') && blockIndicator(nodeStart, keyEnd))
+            {
+                // a block scalar explicit key; emit its folded content as the key name
+                cursor++;
+                emit(KEY_NAME, nodeStart, 0, foldBlockScalar(nodeStart, keyEnd, indent, false));
+                skipIgnorable();
+            }
+            // otherwise only a simple single-line scalar key (plain or escape-free quoted) is supported inline
+            else if (nodeStart == keyEnd || keyFirst == '{' || keyFirst == '[' || keyFirst == '|' || keyFirst == '>' ||
                 keyFirst != '"' && keyFirst != '\'' && blockedStart(keyFirst) || mappingColon(nodeStart, keyEnd) != -1)
             {
                 throw BAIL;
             }
-            cursor++;
-            if (keyFirst == '"' || keyFirst == '\'' || nodeStart != keyStart)
+            else if (keyFirst == '"' || keyFirst == '\'' || nodeStart != keyStart)
             {
+                cursor++;
                 skipIgnorable();
                 // a more-indented line before the value indicator is a key continuation, which is unsupported
                 if (cursor < lineCount && lineIndent[cursor] > indent)
@@ -650,6 +657,7 @@ public final class YamlStreamScanner
             else
             {
                 // a plain scalar key may fold onto more-indented continuation lines
+                cursor++;
                 scanFoldedKey(nodeStart, keyEnd, line, indent);
                 skipIgnorable();
             }
@@ -748,6 +756,14 @@ public final class YamlStreamScanner
             if (valueStart == valueEnd)
             {
                 scanNestedValue(indent, valueLine);
+            }
+            else if (blockIndicator(valueStart, valueEnd))
+            {
+                scanBlockScalar(valueStart, valueEnd, indent, false);
+            }
+            else if (isCompactSequence(valueStart, valueEnd))
+            {
+                scanCompactSequence(valueStart, valueEnd, indent, valueLine);
             }
             else
             {
@@ -1347,6 +1363,15 @@ public final class YamlStreamScanner
         int keyIndent,
         boolean allowSameIndent)
     {
+        emit(VALUE_STRING, valueStart, 0, foldBlockScalar(valueStart, end, keyIndent, allowSameIndent));
+    }
+
+    private String foldBlockScalar(
+        int valueStart,
+        int end,
+        int keyIndent,
+        boolean allowSameIndent)
+    {
         char style = text.charAt(valueStart);
         char chomp = 0;
         int explicitIndent = -1;
@@ -1445,7 +1470,7 @@ public final class YamlStreamScanner
         {
             value = clipTrailingLineBreaks(value);
         }
-        emit(VALUE_STRING, valueStart, 0, value);
+        return value;
     }
 
     private static void appendLineBreaks(
