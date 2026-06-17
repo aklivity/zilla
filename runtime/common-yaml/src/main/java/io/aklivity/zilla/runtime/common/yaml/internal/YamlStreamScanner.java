@@ -327,13 +327,13 @@ public final class YamlStreamScanner
             {
                 int line = cursor;
                 char first = text.charAt(contentStart[line]);
+                int indent = lineIndent[line];
                 if (first == '{' || first == '[')
                 {
-                    throw BAIL;
+                    // a document whose root value is a flow collection
+                    scanFlowBody(contentStart[line]);
                 }
-
-                int indent = lineIndent[line];
-                if (isSequence(line, indent) || isExplicitKey(line) ||
+                else if (isSequence(line, indent) || isExplicitKey(line) ||
                     mappingColon(contentStart[line], contentEnd[line]) != -1)
                 {
                     scanBlock(indent);
@@ -1594,6 +1594,25 @@ public final class YamlStreamScanner
         }
     }
 
+    /**
+     * A document whose root value is a flow collection following a {@code ---} marker (or in a multi-document
+     * stream). Walks the flow from {@code start} and resyncs the line cursor past its closing line; there is
+     * no enclosing block, so (unlike {@link #scanFlowValue}) continuation lines carry no indent constraint.
+     * Trailing content after the close bails.
+     */
+    private void scanFlowBody(
+        int start)
+    {
+        flowAt = start;
+        flowValue();
+        int closeLine = lineOf(flowAt - 1);
+        if (flowAt < contentEnd[closeLine])
+        {
+            throw BAIL;
+        }
+        cursor = closeLine + 1;
+    }
+
     private void flowValue()
     {
         flowSkipWhitespace();
@@ -1918,7 +1937,7 @@ public final class YamlStreamScanner
             {
                 break;
             }
-            if (c == '#' && isSpace(text.charAt(flowAt - 1)))
+            if (c == '#' && (isSpace(text.charAt(flowAt - 1)) || isLineBreak(text.charAt(flowAt - 1))))
             {
                 break;
             }
@@ -2060,7 +2079,11 @@ public final class YamlStreamScanner
             }
             else if (c == '#' && (flowAt == 0 || Character.isWhitespace(text.charAt(flowAt - 1))))
             {
-                throw BAIL;
+                // a comment between flow tokens runs to the end of the line
+                while (flowAt < text.length() && text.charAt(flowAt) != '\n')
+                {
+                    flowAt++;
+                }
             }
             else
             {

@@ -136,6 +136,21 @@ class YamlStreamScannerTest
     }
 
     @Test
+    void shouldAcceptFlowDocumentBodyAndComments()
+    {
+        for (String doc : new String[] {
+            "---\n{ a: [b, c, { d: [e, f] } ] }\n",
+            "---\n{\n a: [\n  b, c, {\n   d: [e, f]\n  }\n ]\n}\n",
+            "[ word1\n# comment\n, word2]\n",
+            "---\n[1, 2]\n...\n---\n[3, 4]\n"})
+        {
+            YamlStreamScanner scanner = new YamlStreamScanner();
+            assertTrue(scanner.scan(doc), "scanner should accept a flow document body: " + doc);
+            assertEquals(eager(doc), scanned(scanner), doc);
+        }
+    }
+
+    @Test
     void shouldAcceptMultiLineFlowScalar()
     {
         for (String doc : new String[] {
@@ -481,7 +496,7 @@ class YamlStreamScannerTest
         long accepted = fixtures()
             .filter(path -> accepts(path.resolve("in.yaml")))
             .count();
-        assertEquals(198, accepted,
+        assertEquals(205, accepted,
             "accepted-fixture count changed; feasibility gate may over-reject or over-accept");
     }
 
