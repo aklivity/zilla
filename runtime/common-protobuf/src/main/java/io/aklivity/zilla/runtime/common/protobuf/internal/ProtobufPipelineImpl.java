@@ -46,6 +46,7 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
 
     private boolean suspended;
     private boolean starved;
+    private String reason;
     // the event in flight across an output suspend, handed to head.resume() so no sink stores it
     private ProtobufEvent resumeEvent;
 
@@ -74,6 +75,7 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
         head.reset();
         suspended = false;
         starved = false;
+        reason = null;
         resumeEvent = null;
     }
 
@@ -81,6 +83,12 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
     public long position()
     {
         return parser.position();
+    }
+
+    @Override
+    public String reason()
+    {
+        return reason;
     }
 
     @Override
@@ -130,6 +138,7 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
         catch (ProtobufException ex)
         {
             status = Status.REJECTED;
+            reason = ex.getMessage();
         }
         return status;
     }

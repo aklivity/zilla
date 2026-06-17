@@ -85,12 +85,35 @@ public final class ProtobufJson
      * encodes it. Streams windowed JSON input, returning {@code null} from {@code nextEvent} on a partial
      * window and continuing via {@code resume}.
      */
+    /**
+     * Generator/parser config key (a {@link Boolean}): when {@code true}, the parser rejects unknown JSON
+     * fields (the message reaches {@link io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline.Status#REJECTED}
+     * with a reason) instead of silently ignoring them. Absent or {@code false} keeps the default of ignoring
+     * unknown fields. Reject mirrors the proto3 JSON mapping's default for a strict parser.
+     */
+    public static final String REJECT_UNKNOWN_FIELDS =
+        "io.aklivity.zilla.runtime.common.protobuf.json.reject.unknown.fields";
+
     public static ProtobufParser parser(
         JsonParserEx parser,
         ProtobufSchema schema,
         String messageName)
     {
         return new ProtobufJsonParserImpl(parser, schema, messageName);
+    }
+
+    /**
+     * As {@link #parser(JsonParserEx, ProtobufSchema, String)}, configured via {@code config} — see
+     * {@link #REJECT_UNKNOWN_FIELDS}.
+     */
+    public static ProtobufParser parser(
+        JsonParserEx parser,
+        ProtobufSchema schema,
+        String messageName,
+        Map<String, ?> config)
+    {
+        boolean rejectUnknownFields = Boolean.TRUE.equals(config.get(REJECT_UNKNOWN_FIELDS));
+        return new ProtobufJsonParserImpl(parser, schema, messageName, rejectUnknownFields);
     }
 
     /**
