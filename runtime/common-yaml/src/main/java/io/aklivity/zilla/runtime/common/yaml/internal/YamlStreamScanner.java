@@ -1722,11 +1722,23 @@ public final class YamlStreamScanner
                 flowAt++;
             }
             int end = flowTrimEnd(start, flowAt);
-            if (end == start || isMergeKey(start, end))
+            if (end == start)
+            {
+                // an empty key is permitted only when a value indicator immediately follows
+                if (flowAt < text.length() && text.charAt(flowAt) == ':')
+                {
+                    emit(KEY_NAME, start, 0, null);
+                }
+                else
+                {
+                    throw BAIL;
+                }
+            }
+            else if (isMergeKey(start, end))
             {
                 throw BAIL;
             }
-            if (containsLineBreak(start, end))
+            else if (containsLineBreak(start, end))
             {
                 emit(KEY_NAME, start, 0, flowFold(start, end));
             }

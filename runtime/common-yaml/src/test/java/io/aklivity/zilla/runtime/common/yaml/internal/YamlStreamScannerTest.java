@@ -126,7 +126,8 @@ class YamlStreamScannerTest
             "---\n- { single line, a: b}\n",
             "m: {key, other: val}\n",
             "m: {a: , b: 2}\n",
-            "m: {\"x\":adjacent}\n"})
+            "m: {\"x\":adjacent}\n",
+            "m: {: empty key, a: b}\n"})
         {
             YamlStreamScanner scanner = new YamlStreamScanner();
             assertTrue(scanner.scan(doc), "scanner should accept omitted/empty flow values: " + doc);
