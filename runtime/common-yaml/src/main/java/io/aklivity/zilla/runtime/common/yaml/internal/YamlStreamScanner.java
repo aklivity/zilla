@@ -630,24 +630,94 @@ public final class YamlStreamScanner
                 throw BAIL;
             }
             cursor++;
-            skipIgnorable();
-            // a more-indented line before the value indicator is a key continuation, which is unsupported
-            if (cursor < lineCount && lineIndent[cursor] > indent)
+            if (keyFirst == '"' || keyFirst == '\'' || nodeStart != keyStart)
             {
-                throw BAIL;
-            }
-
-            if (keyFirst == '"' || keyFirst == '\'')
-            {
-                emitQuotedKey(nodeStart, keyEnd);
+                skipIgnorable();
+                // a more-indented line before the value indicator is a key continuation, which is unsupported
+                if (cursor < lineCount && lineIndent[cursor] > indent)
+                {
+                    throw BAIL;
+                }
+                if (keyFirst == '"' || keyFirst == '\'')
+                {
+                    emitQuotedKey(nodeStart, keyEnd);
+                }
+                else
+                {
+                    emit(KEY_NAME, nodeStart, keyEnd - nodeStart, null);
+                }
             }
             else
             {
-                emit(KEY_NAME, nodeStart, keyEnd - nodeStart, null);
+                // a plain scalar key may fold onto more-indented continuation lines
+                scanFoldedKey(nodeStart, keyEnd, line, indent);
+                skipIgnorable();
             }
         }
 
         scanExplicitValue(indent, line);
+    }
+
+    /**
+     * Emits a plain scalar explicit key that may fold onto more-indented continuation lines, mirroring
+     * {@code YamlDocumentParser.foldPlainScalar} with {@code allowSameIndent=false} and
+     * {@code allowIndentedSequence=true}: a single line break folds to a space, a run of blank lines to that
+     * many line breaks. With no continuation the verbatim single-line slice is emitted. A continuation after a
+     * trailing comment bails so the eager parser reports the error.
+     */
+    private void scanFoldedKey(
+        int start,
+        int end,
+        int keyLine,
+        int indent)
+    {
+        StringBuilder value = null;
+        boolean commentTerminated = lineHasComment(keyLine);
+        while (cursor < lineCount)
+        {
+            int blankAt = cursor;
+            int blankLines = 0;
+            boolean blankComment = false;
+            while (cursor < lineCount && contentStart[cursor] >= contentEnd[cursor])
+            {
+                blankComment |= lineHasComment(cursor);
+                blankLines++;
+                cursor++;
+            }
+            if (cursor >= lineCount || !plainContinuation(cursor, indent, false, true))
+            {
+                cursor = blankAt;
+                break;
+            }
+            if (commentTerminated || blankComment)
+            {
+                throw BAIL;
+            }
+            if (value == null)
+            {
+                value = new StringBuilder(text.substring(start, end));
+            }
+            if (blankLines == 0)
+            {
+                value.append(' ');
+            }
+            else
+            {
+                appendLineBreaks(value, blankLines);
+            }
+            value.append(text, contentStart[cursor], contentEnd[cursor]);
+            commentTerminated = lineHasComment(cursor);
+            cursor++;
+        }
+
+        if (value == null)
+        {
+            emit(KEY_NAME, start, end - start, null);
+        }
+        else
+        {
+            emit(KEY_NAME, start, 0, value.toString());
+        }
     }
 
     private boolean valueIndicator(
