@@ -75,6 +75,9 @@ public final class YamlStreamScanner
     private int eventCount;
 
     private int cursor;
+    private int flowAt;
+    private int flowTokenStart;
+    private int flowTokenEnd;
 
     public boolean scan(
         String text)
@@ -86,10 +89,22 @@ public final class YamlStreamScanner
         boolean scanned;
         try
         {
-            reject(text);
-            feasible(text);
-            splitLines(text);
-            scanRoot();
+            if (text.indexOf('\t') != -1)
+            {
+                throw BAIL;
+            }
+            int first = firstContent(text);
+            if (first < text.length() && (text.charAt(first) == '{' || text.charAt(first) == '['))
+            {
+                splitLines(text);
+                scanFlowDocument(first);
+            }
+            else
+            {
+                feasible(text);
+                splitLines(text);
+                scanRoot();
+            }
             scanned = true;
         }
         catch (Bail ignore)
@@ -435,6 +450,14 @@ public final class YamlStreamScanner
             throw BAIL;
         }
 
+        emitClassifiedScalar(start, end);
+    }
+
+    private void emitClassifiedScalar(
+        int start,
+        int end)
+    {
+        char first = text.charAt(start);
         byte kind;
         String materialized = null;
         if (equalsIgnoreCase(start, end, "true"))
@@ -464,6 +487,314 @@ public final class YamlStreamScanner
         }
 
         emit(kind, start, end - start, materialized);
+    }
+
+    /**
+     * Walks a single-document flow collection ({@code {...}} or {@code [...]}) over the raw text from
+     * {@code first}, treating line breaks and spaces as separators so multi-line JSON-style documents
+     * parse in one pass. Restricted to the JSON-shaped subset: nested flow mappings and sequences,
+     * escape-free single-line quoted scalars, and JSON-typed bare scalars. Decorators ({@code & * !}),
+     * tags, comments, explicit keys, merge keys, implicit-null entries and multi-line scalars bail.
+     */
+    private void scanFlowDocument(
+        int first)
+    {
+        flowAt = first;
+        flowValue();
+        flowSkipWhitespace();
+        if (flowAt != text.length())
+        {
+            throw BAIL;
+        }
+    }
+
+    private void flowValue()
+    {
+        flowSkipWhitespace();
+        if (flowAt >= text.length())
+        {
+            throw BAIL;
+        }
+
+        char c = text.charAt(flowAt);
+        switch (c)
+        {
+        case '{' -> flowObject();
+        case '[' -> flowArray();
+        case '"', '\'' -> flowQuotedValue();
+        default ->
+        {
+            if (flowReserved(c))
+            {
+                throw BAIL;
+            }
+            flowBareScalar();
+        }
+        }
+    }
+
+    private void flowObject()
+    {
+        emit(START_OBJECT, flowAt, 0, null);
+        flowAt++;
+        flowSkipWhitespace();
+        if (flowConsume('}'))
+        {
+            emit(END_OBJECT, flowAt - 1, 0, null);
+        }
+        else
+        {
+            boolean closed = false;
+            while (!closed)
+            {
+                flowKey();
+                flowSkipWhitespace();
+                if (flowAt >= text.length() || text.charAt(flowAt) != ':')
+                {
+                    throw BAIL;
+                }
+                flowAt++;
+                flowSkipWhitespace();
+                char c = flowAt < text.length() ? text.charAt(flowAt) : 0;
+                if (c == ',' || c == '}')
+                {
+                    throw BAIL;
+                }
+                flowValue();
+                flowSkipWhitespace();
+                if (flowConsume(','))
+                {
+                    flowSkipWhitespace();
+                    closed = flowConsume('}');
+                }
+                else if (flowConsume('}'))
+                {
+                    closed = true;
+                }
+                else
+                {
+                    throw BAIL;
+                }
+            }
+            emit(END_OBJECT, flowAt - 1, 0, null);
+        }
+    }
+
+    private void flowArray()
+    {
+        emit(START_ARRAY, flowAt, 0, null);
+        flowAt++;
+        flowSkipWhitespace();
+        if (flowConsume(']'))
+        {
+            emit(END_ARRAY, flowAt - 1, 0, null);
+        }
+        else
+        {
+            boolean closed = false;
+            while (!closed)
+            {
+                flowValue();
+                flowSkipWhitespace();
+                if (flowConsume(','))
+                {
+                    flowSkipWhitespace();
+                    closed = flowConsume(']');
+                }
+                else if (flowConsume(']'))
+                {
+                    closed = true;
+                }
+                else
+                {
+                    throw BAIL;
+                }
+            }
+            emit(END_ARRAY, flowAt - 1, 0, null);
+        }
+    }
+
+    private void flowKey()
+    {
+        flowSkipWhitespace();
+        if (flowAt >= text.length())
+        {
+            throw BAIL;
+        }
+
+        char c = text.charAt(flowAt);
+        if (c == '"' || c == '\'')
+        {
+            flowReadQuoted();
+            emit(KEY_NAME, flowTokenStart, flowTokenEnd - flowTokenStart, null);
+        }
+        else if (flowReserved(c) || c == '{' || c == '[')
+        {
+            throw BAIL;
+        }
+        else
+        {
+            int start = flowAt;
+            while (flowAt < text.length())
+            {
+                char ch = text.charAt(flowAt);
+                if (ch == ',' || ch == '}' || ch == ':' && flowMappingColon(flowAt))
+                {
+                    break;
+                }
+                if (isLineBreak(ch))
+                {
+                    throw BAIL;
+                }
+                flowAt++;
+            }
+            int end = trimEnd(start, flowAt);
+            if (end == start || isMergeKey(start, end))
+            {
+                throw BAIL;
+            }
+            emit(KEY_NAME, start, end - start, null);
+        }
+    }
+
+    private void flowBareScalar()
+    {
+        int start = flowAt;
+        while (flowAt < text.length())
+        {
+            char c = text.charAt(flowAt);
+            if (c == ',' || c == ']' || c == '}')
+            {
+                break;
+            }
+            if (c == '#' && isSpace(text.charAt(flowAt - 1)))
+            {
+                break;
+            }
+            if (c == ':' && flowMappingColon(flowAt))
+            {
+                break;
+            }
+            if (isLineBreak(c))
+            {
+                throw BAIL;
+            }
+            flowAt++;
+        }
+
+        int end = trimEnd(start, flowAt);
+        if (end == start || isFlowScalarMarker(start, end) || isNonFinite(start, end))
+        {
+            throw BAIL;
+        }
+        emitClassifiedScalar(start, end);
+    }
+
+    private void flowQuotedValue()
+    {
+        flowReadQuoted();
+        emit(VALUE_STRING, flowTokenStart, flowTokenEnd - flowTokenStart, null);
+    }
+
+    private void flowReadQuoted()
+    {
+        char quote = text.charAt(flowAt);
+        int inner = flowAt + 1;
+        int i = inner;
+        boolean closed = false;
+        while (i < text.length() && !closed)
+        {
+            char c = text.charAt(i);
+            if (isLineBreak(c))
+            {
+                throw BAIL;
+            }
+            if (quote == '"' && c == '\\')
+            {
+                throw BAIL;
+            }
+            if (c == quote)
+            {
+                if (quote == '\'' && i + 1 < text.length() && text.charAt(i + 1) == '\'')
+                {
+                    throw BAIL;
+                }
+                closed = true;
+            }
+            else
+            {
+                i++;
+            }
+        }
+        if (!closed)
+        {
+            throw BAIL;
+        }
+        flowTokenStart = inner;
+        flowTokenEnd = i;
+        flowAt = i + 1;
+    }
+
+    private boolean isFlowScalarMarker(
+        int start,
+        int end)
+    {
+        return end - start == 1 && text.charAt(start) == '-' ||
+            isMarker(start, end, '-') || isMarker(start, end, '.');
+    }
+
+    private boolean flowMappingColon(
+        int index)
+    {
+        char next = index + 1 >= text.length() ? 0 : text.charAt(index + 1);
+        return index + 1 >= text.length() || Character.isWhitespace(next) ||
+            next == ',' || next == ']' || next == '}';
+    }
+
+    private boolean flowConsume(
+        char expected)
+    {
+        boolean match = flowAt < text.length() && text.charAt(flowAt) == expected;
+        if (match)
+        {
+            flowAt++;
+        }
+        return match;
+    }
+
+    private void flowSkipWhitespace()
+    {
+        boolean done = false;
+        while (flowAt < text.length() && !done)
+        {
+            char c = text.charAt(flowAt);
+            if (Character.isWhitespace(c))
+            {
+                flowAt++;
+            }
+            else if (c == '#' && (flowAt == 0 || Character.isWhitespace(text.charAt(flowAt - 1))))
+            {
+                throw BAIL;
+            }
+            else
+            {
+                done = true;
+            }
+        }
+    }
+
+    private static boolean flowReserved(
+        char c)
+    {
+        return c == ',' || c == ']' || c == '}' || c == '&' || c == '*' ||
+            c == '!' || c == '?' || c == '#' || c == '@' || c == '`' || c == '%';
+    }
+
+    private static boolean isLineBreak(
+        char c)
+    {
+        return c == '\n' || c == '\r' || c == '\f' || c == '\u000b' ||
+            c == '\u0085' || c == '\u2028' || c == '\u2029';
     }
 
     private Matcher numberMatcher()
@@ -800,23 +1131,15 @@ public final class YamlStreamScanner
         eventCount++;
     }
 
-    private void reject(
+    private static int firstContent(
         String text)
     {
-        if (text.indexOf('\t') != -1)
-        {
-            throw BAIL;
-        }
-
         int at = 0;
         while (at < text.length() && Character.isWhitespace(text.charAt(at)))
         {
             at++;
         }
-        if (at < text.length() && (text.charAt(at) == '{' || text.charAt(at) == '['))
-        {
-            throw BAIL;
-        }
+        return at;
     }
 
     /**

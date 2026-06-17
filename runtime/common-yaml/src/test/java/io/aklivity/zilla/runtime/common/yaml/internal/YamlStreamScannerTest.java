@@ -66,9 +66,36 @@ class YamlStreamScannerTest
     }
 
     @Test
-    void shouldBailOnFlowCollection()
+    void shouldAcceptFlowDocument()
+    {
+        String doc = """
+            {"name":"test","enabled":true,"items":[{"id":1,"name":"a"},{"id":2,"name":"b"}],
+             "nested":{"x":1,"y":2},"missing":null}
+            """;
+        YamlStreamScanner scanner = new YamlStreamScanner();
+        assertTrue(scanner.scan(doc), "scanner should accept a JSON-style flow document");
+        assertEquals(eager(doc), scanned(scanner), "scanner events must match eager projection");
+    }
+
+    @Test
+    void shouldAcceptFlowSequenceDocument()
+    {
+        String doc = "[1, two, true, null, {a: 1}]\n";
+        YamlStreamScanner scanner = new YamlStreamScanner();
+        assertTrue(scanner.scan(doc));
+        assertEquals(eager(doc), scanned(scanner));
+    }
+
+    @Test
+    void shouldBailOnFlowValueInBlockMapping()
     {
         assertFalse(new YamlStreamScanner().scan("items: [1, 2, 3]\n"));
+    }
+
+    @Test
+    void shouldBailOnFlowAnchor()
+    {
+        assertFalse(new YamlStreamScanner().scan("{a: &x 1, b: *x}\n"));
     }
 
     @Test
@@ -128,7 +155,7 @@ class YamlStreamScannerTest
         long accepted = fixtures()
             .filter(path -> accepts(path.resolve("in.yaml")))
             .count();
-        assertEquals(23, accepted,
+        assertEquals(31, accepted,
             "accepted-fixture count changed; feasibility gate may over-reject or over-accept");
     }
 
