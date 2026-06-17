@@ -453,8 +453,8 @@ public class ProtobufPipelineTest
 
         // the value 300 is a two-byte varint; split the window between its bytes
         assertEquals(Status.STARVED, pipeline.feed(buffer, 0, message.length - 1, false));
-        int committed = (message.length - 1) - pipeline.remaining();
-        assertEquals(Status.COMPLETED, pipeline.feed(buffer, committed, message.length, true));
+        int progress = (message.length - 1) - pipeline.remaining();
+        assertEquals(Status.COMPLETED, pipeline.feed(buffer, progress, message.length, true));
         assertEquals(List.of("{", "F2", "V300", "}"), sink.events);
     }
 
@@ -482,8 +482,8 @@ public class ProtobufPipelineTest
         UnsafeBuffer buffer = new UnsafeBuffer(message);
         int split = message.length - 2;
         assertEquals(Status.STARVED, pipeline.feed(buffer, 0, split, false));
-        int committed = split - pipeline.remaining();
-        assertEquals(Status.COMPLETED, pipeline.feed(buffer, committed, message.length, true));
+        int progress = split - pipeline.remaining();
+        assertEquals(Status.COMPLETED, pipeline.feed(buffer, progress, message.length, true));
         assertEquals(expected, sink.events);
     }
 
@@ -554,8 +554,8 @@ public class ProtobufPipelineTest
         pipeline.reset();
 
         assertEquals(Status.STARVED, pipeline.feed(buffer, 0, split, false));
-        int committed = split - pipeline.remaining();
-        assertEquals(Status.COMPLETED, pipeline.feed(buffer, committed, message.length, true));
+        int progress = split - pipeline.remaining();
+        assertEquals(Status.COMPLETED, pipeline.feed(buffer, progress, message.length, true));
         assertEquals(List.of("{", "F1", "Vneo", "F2", "V7", "}"), sink.events);
     }
 
@@ -658,7 +658,7 @@ public class ProtobufPipelineTest
         pipeline.reset();
 
         int window = 6;
-        int committed = 0;
+        int progress = 0;
         int limit = 0;
         int maxRetained = 0;
         Status status = Status.STARVED;
@@ -668,11 +668,11 @@ public class ProtobufPipelineTest
             int take = Math.min(window, message.length - limit);
             limit += take;
             boolean last = limit >= message.length;
-            status = pipeline.feed(new UnsafeBuffer(message), committed, limit, last);
+            status = pipeline.feed(new UnsafeBuffer(message), progress, limit, last);
             if (status == Status.STARVED)
             {
-                committed = limit - pipeline.remaining();
-                maxRetained = Math.max(maxRetained, limit - committed);
+                progress = limit - pipeline.remaining();
+                maxRetained = Math.max(maxRetained, limit - progress);
             }
             else
             {
@@ -740,7 +740,7 @@ public class ProtobufPipelineTest
         pipeline.reset();
 
         UnsafeBuffer in = new UnsafeBuffer(message);
-        int committed = 0;
+        int progress = 0;
         int limit = 0;
         boolean completed = false;
         while (!completed)
@@ -748,11 +748,11 @@ public class ProtobufPipelineTest
             int take = Math.min(window, message.length - limit);
             limit += take;
             boolean last = limit >= message.length;
-            Status status = pipeline.feed(in, committed, limit, last);
+            Status status = pipeline.feed(in, progress, limit, last);
             switch (status)
             {
             case STARVED:
-                committed = limit - pipeline.remaining();
+                progress = limit - pipeline.remaining();
                 break;
             case COMPLETED:
                 completed = true;
@@ -786,7 +786,7 @@ public class ProtobufPipelineTest
         int drainedLength = 0;
 
         UnsafeBuffer in = new UnsafeBuffer(message);
-        int committed = 0;
+        int progress = 0;
         int limit = 0;
         boolean completed = false;
         int guard = 0;
@@ -799,21 +799,21 @@ public class ProtobufPipelineTest
             int take = Math.min(window, message.length - limit);
             limit += take;
             boolean last = limit >= message.length;
-            // the retained tail [committed, oldLimit) plus the new window is just message[committed, limit)
-            Status status = pipeline.feed(in, committed, limit, last);
+            // the retained tail [progress, oldLimit) plus the new window is just message[progress, limit)
+            Status status = pipeline.feed(in, progress, limit, last);
             while (status == Status.SUSPENDED)
             {
                 sawSuspended = true;
                 drained.putBytes(drainedLength, output, 0, generator.length());
                 drainedLength += generator.length();
                 generator.wrap(output, 0, cap);
-                status = pipeline.feed(in, committed, limit, last);
+                status = pipeline.feed(in, progress, limit, last);
             }
             switch (status)
             {
             case STARVED:
                 sawStarved = true;
-                committed = limit - pipeline.remaining();
+                progress = limit - pipeline.remaining();
                 break;
             case COMPLETED:
                 drained.putBytes(drainedLength, output, 0, generator.length());
@@ -855,21 +855,21 @@ public class ProtobufPipelineTest
         byte[] message,
         int window)
     {
-        int committed = 0;
+        int progress = 0;
         int limit = 0;
         Status status = Status.STARVED;
         boolean done = false;
         while (!done)
         {
             int take = Math.min(window, message.length - limit);
-            // the retained tail is message[committed, limit); appending the next window keeps it contiguous
+            // the retained tail is message[progress, limit); appending the next window keeps it contiguous
             limit += take;
             boolean last = limit >= message.length;
-            status = pipeline.feed(new UnsafeBuffer(message), committed, limit, last);
+            status = pipeline.feed(new UnsafeBuffer(message), progress, limit, last);
             if (status == Status.STARVED)
             {
                 assertFalse(last, "last window must not starve");
-                committed = limit - pipeline.remaining();
+                progress = limit - pipeline.remaining();
             }
             else
             {

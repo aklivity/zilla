@@ -303,9 +303,9 @@ class JsonPipelineChunkingTest
 
         assertEquals(Status.STARVED, pipeline.feed(new UnsafeBuffer(msg), 0, w1, false));
         assertEquals(1, pipeline.remaining(), "the split 'é' lead byte is the unconsumed partial unit");
-        int committed = w1 - pipeline.remaining();
+        int progress = w1 - pipeline.remaining();
         assertEquals(Status.COMPLETED,
-            pipeline.feed(new UnsafeBuffer(msg), committed, msg.length, true));
+            pipeline.feed(new UnsafeBuffer(msg), progress, msg.length, true));
 
         byte[] out = new byte[generator.length()];
         output.getBytes(0, out);
@@ -356,7 +356,7 @@ class JsonPipelineChunkingTest
         pipeline.reset();
 
         byte[] msg = (json + " ").getBytes(UTF_8);
-        int committed = 0;
+        int progress = 0;
         int limit = 0;
         Status status = Status.STARVED;
         int guard = 0;
@@ -364,13 +364,13 @@ class JsonPipelineChunkingTest
         {
             limit = Math.min(limit + 8, msg.length);
             boolean last = limit >= msg.length;
-            status = pipeline.feed(new UnsafeBuffer(msg), committed, limit, last);
+            status = pipeline.feed(new UnsafeBuffer(msg), progress, limit, last);
             if (status != Status.STARVED)
             {
                 break;
             }
             assertFalse(last, "last window must not starve");
-            committed = limit - pipeline.remaining();
+            progress = limit - pipeline.remaining();
         }
         assertEquals(Status.COMPLETED, status);
         assertEquals(new BigDecimal(bigNumber), wholes.get(0));
@@ -392,7 +392,7 @@ class JsonPipelineChunkingTest
         pipeline.reset();
 
         byte[] msg = (json + " ").getBytes(UTF_8);
-        int committed = 0;
+        int progress = 0;
         int limit = 0;
         Status status = Status.STARVED;
         int guard = 0;
@@ -400,13 +400,13 @@ class JsonPipelineChunkingTest
         {
             limit = Math.min(limit + window, msg.length);
             boolean last = limit >= msg.length;
-            status = pipeline.feed(new UnsafeBuffer(msg), committed, limit, last);
+            status = pipeline.feed(new UnsafeBuffer(msg), progress, limit, last);
             if (status != Status.STARVED)
             {
                 break;
             }
             assertFalse(last, "last window must not starve");
-            committed = limit - pipeline.remaining();
+            progress = limit - pipeline.remaining();
         }
         assertEquals(Status.COMPLETED, status);
         byte[] out = new byte[generator.length()];
@@ -432,7 +432,7 @@ class JsonPipelineChunkingTest
         StringBuilder result = new StringBuilder();
         pipeline.reset();
         generator.wrap(output, 0, outBound);
-        int committed = 0;
+        int progress = 0;
         int limit = 0;
         int suspends = 0;
         int starves = 0;
@@ -445,7 +445,7 @@ class JsonPipelineChunkingTest
                 limit = Math.min(limit + inWindow, msg.length);
             }
             boolean last = limit >= msg.length;
-            status = pipeline.feed(new UnsafeBuffer(msg), committed, limit, last);
+            status = pipeline.feed(new UnsafeBuffer(msg), progress, limit, last);
             byte[] chunk = new byte[generator.length()];
             output.getBytes(0, chunk);
             result.append(new String(chunk, UTF_8));
@@ -457,7 +457,7 @@ class JsonPipelineChunkingTest
             {
                 assertFalse(last, "last window must not starve");
                 starves++;
-                committed = limit - pipeline.remaining();
+                progress = limit - pipeline.remaining();
             }
             else
             {

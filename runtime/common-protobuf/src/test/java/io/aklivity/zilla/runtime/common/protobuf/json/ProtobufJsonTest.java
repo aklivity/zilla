@@ -362,7 +362,7 @@ public class ProtobufJsonTest
 
         UnsafeBuffer in = new UnsafeBuffer(json.getBytes(UTF_8));
         int length = in.capacity();
-        int committed = 0;
+        int progress = 0;
         int limit = 0;
         Status status = Status.STARVED;
         boolean done = false;
@@ -371,10 +371,10 @@ public class ProtobufJsonTest
             int take = Math.min(window, length - limit);
             limit += take;
             boolean last = limit >= length;
-            status = pipeline.feed(in, committed, limit, last);
+            status = pipeline.feed(in, progress, limit, last);
             if (status == Status.STARVED)
             {
-                committed = limit - pipeline.remaining();
+                progress = limit - pipeline.remaining();
             }
             else
             {

@@ -39,11 +39,11 @@ public class AvroFragmentedParserTest
         UnsafeBuffer buffer = new UnsafeBuffer(binary);
         // simulate byte-by-byte arrival: each feed presents the unconsumed remainder plus one new byte
         Status status = pipeline.feed(buffer, 0, 0, false);
-        int consumed = 0;
+        int progress = 0;
         for (int available = 1; available <= binary.length && status != COMPLETED; available++)
         {
-            status = pipeline.feed(buffer, consumed, available, available == binary.length);
-            consumed = available - pipeline.remaining();
+            status = pipeline.feed(buffer, progress, available, available == binary.length);
+            progress = available - pipeline.remaining();
         }
         assertEquals(COMPLETED, status);
         return recorder.events;
@@ -123,11 +123,11 @@ public class AvroFragmentedParserTest
         pipeline.reset();
         UnsafeBuffer buffer = new UnsafeBuffer(binary);
         Status status = pipeline.feed(buffer, 0, 0, false);
-        int consumed = 0;
+        int progress = 0;
         for (int available = 1; available <= binary.length && status != COMPLETED; available++)
         {
-            status = pipeline.feed(buffer, consumed, available, available == binary.length);
-            consumed = available - pipeline.remaining();
+            status = pipeline.feed(buffer, progress, available, available == binary.length);
+            progress = available - pipeline.remaining();
         }
         assertEquals(COMPLETED, status);
         byte[] result = new byte[generator.length()];
