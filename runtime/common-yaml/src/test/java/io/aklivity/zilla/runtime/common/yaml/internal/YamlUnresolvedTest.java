@@ -119,6 +119,18 @@ class YamlUnresolvedTest
         assertEquals("a", ((YamlScalarNode) entry.value).value);
     }
 
+    @Test
+    void shouldParseEmptyKeyInFlowSequence()
+    {
+        // an implicit single-pair mapping with an empty key inside a flow sequence (CFD4: [ : x ])
+        YamlArrayNode root = (YamlArrayNode) YamlDocumentParser.parse("[ : x ]\n", RAW).node;
+
+        YamlObjectNode pair = (YamlObjectNode) root.values.get(0);
+        YamlEntry entry = pair.entries.get(0);
+        assertEquals("", entry.name, "empty flow key is the empty scalar");
+        assertEquals("x", ((YamlScalarNode) entry.value).value);
+    }
+
     private static YamlEntry entry(
         YamlObjectNode object,
         String name)

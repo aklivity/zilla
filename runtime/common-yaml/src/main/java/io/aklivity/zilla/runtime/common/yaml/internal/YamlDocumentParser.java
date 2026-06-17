@@ -2768,8 +2768,9 @@ public final class YamlDocumentParser
                     {
                         if (depth == 0 && isFlowMappingColon(i))
                         {
+                            // a blank key before a flow mapping colon is the empty scalar key (e.g. [ : x ])
                             String key = text.substring(cursor, i);
-                            return !key.isBlank() && (key.indexOf('\n') == -1 || key.stripLeading().startsWith("?"));
+                            return key.indexOf('\n') == -1 || key.stripLeading().startsWith("?");
                         }
                     }
                     default ->

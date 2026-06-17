@@ -2151,8 +2151,9 @@ public final class YamlStreamScanner
                 {
                     if (depth == 0 && flowMappingColon(i))
                     {
+                        // a blank key before a flow mapping colon is the empty scalar key (e.g. [ : x ])
                         String key = text.substring(flowAt, i);
-                        result = !key.isBlank() && (key.indexOf('\n') == -1 || key.stripLeading().startsWith("?"));
+                        result = key.indexOf('\n') == -1 || key.stripLeading().startsWith("?");
                         done = true;
                     }
                 }
