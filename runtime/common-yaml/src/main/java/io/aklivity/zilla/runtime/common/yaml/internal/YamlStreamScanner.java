@@ -3331,8 +3331,9 @@ public final class YamlStreamScanner
         char keyFirst = text.charAt(start);
         boolean decoratedKey = raw && (keyFirst == '&' || keyFirst == '!');
         boolean flowKey = raw && (keyFirst == '{' || keyFirst == '[');
-        if (keyEnd == start || blockedStart(keyFirst) && !decoratedKey && !flowKey || isMergeKey(start, keyEnd) && !raw)
+        if (keyEnd != start && (blockedStart(keyFirst) && !decoratedKey && !flowKey || isMergeKey(start, keyEnd) && !raw))
         {
+            // an empty key (keyEnd == start) is the empty scalar and is feasible; scanEntry handles it
             throw BAIL;
         }
 
