@@ -319,7 +319,15 @@ public final class YamlStreamScanner
         }
         else
         {
-            throw BAIL;
+            // a block that is a bare scalar value, possibly folded across lines (eager parseBlock ->
+            // parsePlainLine); the document-root fold context applies at the value's own indent
+            char first = text.charAt(contentStart[line]);
+            if (first == '|' || first == '>')
+            {
+                throw BAIL;
+            }
+            cursor++;
+            scanScalar(contentStart[line], contentEnd[line], indent, line, true, true);
         }
     }
 

@@ -163,6 +163,19 @@ class YamlStreamScannerTest
     }
 
     @Test
+    void shouldAcceptNestedPlainScalarValue()
+    {
+        for (String doc : new String[] {
+            "plain:\n  this unquoted scalar\n  spans many lines\n",
+            "outer:\n  inner:\n    folded value\n    over lines\n"})
+        {
+            YamlStreamScanner scanner = new YamlStreamScanner();
+            assertTrue(scanner.scan(doc), "scanner should accept a nested plain scalar value: " + doc);
+            assertEquals(eager(doc), scanned(scanner), doc);
+        }
+    }
+
+    @Test
     void shouldAcceptMultiLinePlain()
     {
         for (String doc : new String[] {
@@ -289,7 +302,7 @@ class YamlStreamScannerTest
         long accepted = fixtures()
             .filter(path -> accepts(path.resolve("in.yaml")))
             .count();
-        assertEquals(101, accepted,
+        assertEquals(104, accepted,
             "accepted-fixture count changed; feasibility gate may over-reject or over-accept");
     }
 
