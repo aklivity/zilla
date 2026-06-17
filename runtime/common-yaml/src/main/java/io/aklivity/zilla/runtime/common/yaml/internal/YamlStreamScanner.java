@@ -3284,6 +3284,7 @@ public final class YamlStreamScanner
         int start = 0;
         int length = text.length();
         int blockSkipIndent = -1;
+        int flowDepth = 0;
         while (start < length)
         {
             int eol = text.indexOf('\n', start);
@@ -3298,8 +3299,12 @@ public final class YamlStreamScanner
             int indent = cs - start;
             boolean spaceOnly = cs == trimmedEnd;
 
-            boolean skip = false;
-            if (blockSkipIndent >= 0)
+            // a multi-line flow collection's interior lines are not block entries; the flow scanner validates
+            // them, so the feasibility pre-filter skips them rather than mistaking flow content for a mapping
+            boolean inFlow = flowDepth > 0;
+
+            boolean skip = inFlow;
+            if (!inFlow && blockSkipIndent >= 0)
             {
                 if (spaceOnly || indent > blockSkipIndent)
                 {
@@ -3325,8 +3330,69 @@ public final class YamlStreamScanner
                 }
             }
 
+            flowDepth = flowDepthAfter(cs, trimmedEnd, flowDepth);
             start = eol == -1 ? length : eol + 1;
         }
+    }
+
+    /**
+     * Updates the running flow-collection nesting depth across a line's content {@code [cs, end)}, counting
+     * {@code [ {} unquoted opens and {@code ] }} closes while skipping quoted regions. Used by the feasibility
+     * pre-filter to recognise (and skip) the interior lines of a multi-line flow collection.
+     */
+    private int flowDepthAfter(
+        int cs,
+        int end,
+        int depth)
+    {
+        int result = depth;
+        int at = cs;
+        boolean single = false;
+        boolean doub = false;
+        while (at < end)
+        {
+            char c = text.charAt(at);
+            if (doub)
+            {
+                if (c == '\\')
+                {
+                    at++;
+                }
+                else if (c == '"')
+                {
+                    doub = false;
+                }
+            }
+            else if (single)
+            {
+                if (c == '\'')
+                {
+                    single = false;
+                }
+            }
+            else if (c == '#' && at > cs && isSpace(text.charAt(at - 1)))
+            {
+                at = end;
+            }
+            else if (c == '"')
+            {
+                doub = true;
+            }
+            else if (c == '\'')
+            {
+                single = true;
+            }
+            else if (c == '[' || c == '{')
+            {
+                result++;
+            }
+            else if ((c == ']' || c == '}') && result > 0)
+            {
+                result--;
+            }
+            at++;
+        }
+        return result;
     }
 
     private int feasibleLine(
