@@ -265,6 +265,12 @@ public final class YamlStreamScanner
         {
             scanBlock(indent);
         }
+        else if ((first == '|' || first == '>') && blockIndicator(contentStart[line], contentEnd[line]))
+        {
+            // a document that is a block scalar
+            cursor++;
+            scanBlockScalar(contentStart[line], contentEnd[line], indent, true);
+        }
         else
         {
             // a document that is a single scalar; scanScalar bails on any non-scalar root
@@ -388,7 +394,7 @@ public final class YamlStreamScanner
         }
         else if (blockIndicator(valueStart, end))
         {
-            scanBlockScalar(valueStart, end, indent);
+            scanBlockScalar(valueStart, end, indent, false);
         }
         else
         {
@@ -461,6 +467,11 @@ public final class YamlStreamScanner
             else if (mappingColon(itemAt, end) != -1)
             {
                 scanSequenceItemMapping(indent, itemAt, end, line);
+            }
+            else if ((text.charAt(itemAt) == '|' || text.charAt(itemAt) == '>') && blockIndicator(itemAt, end))
+            {
+                cursor++;
+                scanBlockScalar(itemAt, end, indent, true);
             }
             else
             {
@@ -586,7 +597,8 @@ public final class YamlStreamScanner
     private void scanBlockScalar(
         int valueStart,
         int end,
-        int keyIndent)
+        int keyIndent,
+        boolean allowSameIndent)
     {
         char style = text.charAt(valueStart);
         char chomp = 0;
@@ -603,7 +615,7 @@ public final class YamlStreamScanner
                 explicitIndent = c - '0';
             }
         }
-        int contentIndent = explicitIndent != -1 ? keyIndent + explicitIndent : blockScalarIndent(keyIndent);
+        int contentIndent = explicitIndent != -1 ? keyIndent + explicitIndent : blockScalarIndent(keyIndent, allowSameIndent);
         StringBuilder builder = new StringBuilder();
         boolean seenContent = false;
         boolean previousMoreIndented = false;
@@ -623,7 +635,7 @@ public final class YamlStreamScanner
             {
                 break;
             }
-            if (!spaceOnly && indent <= keyIndent)
+            if (!allowSameIndent && !spaceOnly && indent <= keyIndent)
             {
                 break;
             }
@@ -693,7 +705,8 @@ public final class YamlStreamScanner
     }
 
     private int blockScalarIndent(
-        int keyIndent)
+        int keyIndent,
+        boolean allowSameIndent)
     {
         int contentIndent = -1;
         for (int at = cursor; at < lineCount && contentIndent == -1; at++)
@@ -701,7 +714,7 @@ public final class YamlStreamScanner
             if (!spaceOnlyLine(at))
             {
                 int indent = lineIndent[at];
-                if (indent > keyIndent)
+                if (allowSameIndent || indent > keyIndent)
                 {
                     contentIndent = indent;
                 }
@@ -1819,6 +1832,10 @@ public final class YamlStreamScanner
                     if (colon != -1)
                     {
                         blockIndent = feasibleEntry(item, end, colon, indent);
+                    }
+                    else if ((it == '|' || it == '>') && blockIndicator(item, end))
+                    {
+                        blockIndent = indent;
                     }
                     else if (blockedStart(it))
                     {

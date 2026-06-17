@@ -180,6 +180,17 @@ class YamlStreamScannerTest
     }
 
     @Test
+    void shouldAcceptBlockScalarInSequenceAndRoot()
+    {
+        for (String doc : new String[] {"- |\n  one\n  two\n- plain\n", "- >\n  folded text\n", ">\n  root folded\n  scalar\n"})
+        {
+            YamlStreamScanner scanner = new YamlStreamScanner();
+            assertTrue(scanner.scan(doc), "scanner should accept block scalar: " + doc);
+            assertEquals(eager(doc), scanned(scanner), doc);
+        }
+    }
+
+    @Test
     void shouldAcceptSingleDocumentMarkers()
     {
         String doc = "---\nname: example\nport: 7114\n...\n";
@@ -232,7 +243,7 @@ class YamlStreamScannerTest
         long accepted = fixtures()
             .filter(path -> accepts(path.resolve("in.yaml")))
             .count();
-        assertEquals(62, accepted,
+        assertEquals(77, accepted,
             "accepted-fixture count changed; feasibility gate may over-reject or over-accept");
     }
 
