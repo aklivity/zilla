@@ -430,6 +430,11 @@ public final class YamlStreamScanner
         int line)
     {
         char first = text.charAt(start);
+        if (first == '{' || first == '[')
+        {
+            scanFlowValue(start, end, refIndent);
+            return;
+        }
         if (first == '"' || first == '\'')
         {
             scanQuotedScalar(start, end, refIndent, line);
@@ -451,6 +456,30 @@ public final class YamlStreamScanner
         }
 
         emitClassifiedScalar(start, end);
+    }
+
+    /**
+     * A flow collection used as a block mapping value or sequence item, restricted to a single line —
+     * the flow must open and close within {@code [start, end)} (the current line's content). Multi-line
+     * nested flow bails so the block line cursor never has to resync across the flow region.
+     */
+    private void scanFlowValue(
+        int start,
+        int end,
+        int refIndent)
+    {
+        flowAt = start;
+        flowValue();
+        if (flowAt != end)
+        {
+            throw BAIL;
+        }
+
+        skipIgnorable();
+        if (cursor < lineCount && lineIndent[cursor] > refIndent)
+        {
+            throw BAIL;
+        }
     }
 
     private void emitClassifiedScalar(
@@ -1201,18 +1230,22 @@ public final class YamlStreamScanner
             }
             if (item < end)
             {
-                if (isCompactSequence(item, end))
+                char it = text.charAt(item);
+                if (it != '{' && it != '[')
                 {
-                    throw BAIL;
-                }
-                int colon = mappingColon(item, end);
-                if (colon != -1)
-                {
-                    feasibleEntry(item, end, colon);
-                }
-                else if (blockedStart(text.charAt(item)))
-                {
-                    throw BAIL;
+                    if (isCompactSequence(item, end))
+                    {
+                        throw BAIL;
+                    }
+                    int colon = mappingColon(item, end);
+                    if (colon != -1)
+                    {
+                        feasibleEntry(item, end, colon);
+                    }
+                    else if (blockedStart(it))
+                    {
+                        throw BAIL;
+                    }
                 }
             }
         }
@@ -1243,12 +1276,14 @@ public final class YamlStreamScanner
         }
 
         int valueStart = skipSpace(colon + 1, end);
-        if (valueStart < end &&
-            (blockedStart(text.charAt(valueStart)) ||
-                isCompactSequence(valueStart, end) ||
-                mappingColon(valueStart, end) != -1))
+        if (valueStart < end)
         {
-            throw BAIL;
+            char value = text.charAt(valueStart);
+            if (value != '{' && value != '[' &&
+                (blockedStart(value) || isCompactSequence(valueStart, end) || mappingColon(valueStart, end) != -1))
+            {
+                throw BAIL;
+            }
         }
     }
 
