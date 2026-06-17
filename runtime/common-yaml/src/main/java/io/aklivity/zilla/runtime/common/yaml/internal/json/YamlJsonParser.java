@@ -46,6 +46,7 @@ import io.aklivity.zilla.runtime.common.yaml.internal.YamlLocation;
 import io.aklivity.zilla.runtime.common.yaml.internal.YamlNode;
 import io.aklivity.zilla.runtime.common.yaml.internal.YamlObjectNode;
 import io.aklivity.zilla.runtime.common.yaml.internal.YamlParseException;
+import io.aklivity.zilla.runtime.common.yaml.internal.YamlReferences;
 import io.aklivity.zilla.runtime.common.yaml.internal.YamlScalarNode;
 import io.aklivity.zilla.runtime.common.yaml.internal.YamlStreamScanner;
 
@@ -136,15 +137,18 @@ public final class YamlJsonParser implements JsonParser
     {
         try
         {
-            YamlDocumentParser.Result result = YamlDocumentParser.parse(text.substring((int) offset), config);
-            rejectJsonUnsupported(result.node, offset);
+            Map<String, Object> raw = new HashMap<>(config);
+            raw.put(YamlConfig.RESOLVE_REFERENCES, false);
+            YamlDocumentParser.Result result = YamlDocumentParser.parse(text.substring((int) offset), raw);
+            YamlNode node = YamlReferences.resolve(result.node, config);
+            rejectJsonUnsupported(node, offset);
             if (uniqueKeys)
             {
-                rejectDuplicateKeys(result.node, offset);
+                rejectDuplicateKeys(node, offset);
             }
             this.documentOffset = offset;
             this.end = location(result.end, offset);
-            stack.push(new Frame(result.node));
+            stack.push(new Frame(node));
         }
         catch (YamlParseException ex)
         {

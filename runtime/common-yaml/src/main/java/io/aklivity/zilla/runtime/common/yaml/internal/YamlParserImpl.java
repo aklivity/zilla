@@ -278,8 +278,8 @@ public final class YamlParserImpl implements YamlParser
             throw new IllegalStateException("YAML document has already been parsed");
         }
         parsed = true;
-        List<YamlNode> nodes = YamlDocumentParser.parseAll(text, config).stream()
-            .map(r -> r.node)
+        List<YamlNode> nodes = YamlDocumentParser.parseAll(text, rawConfig()).stream()
+            .map(r -> YamlReferences.resolve(r.node, config.config()))
             .toList();
         return YamlValues.stream(nodes);
     }
@@ -418,7 +418,7 @@ public final class YamlParserImpl implements YamlParser
     {
         if (root == null)
         {
-            root = YamlDocumentParser.parse(text, config).node;
+            root = YamlReferences.resolve(rawRoot(), config.config());
         }
         return root;
     }
@@ -427,11 +427,16 @@ public final class YamlParserImpl implements YamlParser
     {
         if (rawRoot == null)
         {
-            Map<String, Object> raw = new HashMap<>(config.config());
-            raw.put(YamlConfig.RESOLVE_REFERENCES, false);
-            rawRoot = YamlDocumentParser.parse(text, new YamlConfiguration(raw)).node;
+            rawRoot = YamlDocumentParser.parse(text, rawConfig()).node;
         }
         return rawRoot;
+    }
+
+    private YamlConfiguration rawConfig()
+    {
+        Map<String, Object> raw = new HashMap<>(config.config());
+        raw.put(YamlConfig.RESOLVE_REFERENCES, false);
+        return new YamlConfiguration(raw);
     }
 
     private void ensureStack()

@@ -26,7 +26,7 @@ import java.util.regex.Pattern;
  * This is the compose/construct pass extracted out of {@link YamlDocumentParser}'s inline
  * resolved mode so that the parse layer can stay reference-neutral.
  */
-final class YamlReferences
+public final class YamlReferences
 {
     private static final Pattern HEX_INTEGER_PATTERN = Pattern.compile("-?0x[0-9a-fA-F]+");
     private static final Pattern INTEGER_PATTERN = Pattern.compile("-?(?:0|[1-9][0-9]*)");
@@ -43,11 +43,11 @@ final class YamlReferences
         this.anchors = new HashMap<>();
     }
 
-    static YamlNode resolve(
+    public static YamlNode resolve(
         YamlNode node,
-        YamlConfiguration config)
+        Map<String, ?> config)
     {
-        return new YamlReferences(config).resolveNode(node);
+        return new YamlReferences(new YamlConfiguration(config)).resolveNode(node);
     }
 
     private YamlNode resolveNode(

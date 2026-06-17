@@ -54,7 +54,7 @@ class YamlReferencesTest
                 String text = Files.readString(path.resolve("in.yaml"));
                 YamlNode inline = YamlDocumentParser.parse(text).node;
                 YamlNode resolved = YamlReferences.resolve(
-                    YamlDocumentParser.parse(text, RAW).node, YamlConfiguration.DEFAULT);
+                    YamlDocumentParser.parse(text, RAW).node, Map.of());
                 assertEquals(project(inline), project(resolved),
                     "resolver diverged from inline resolution");
             }));
