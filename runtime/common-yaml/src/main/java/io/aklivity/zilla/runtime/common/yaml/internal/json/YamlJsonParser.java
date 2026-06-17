@@ -118,7 +118,7 @@ public final class YamlJsonParser implements JsonParser
 
         YamlStreamScanner candidate = null;
         YamlJsonResolver resolved = null;
-        if (config == null || config.isEmpty())
+        if (scannerEligible(config))
         {
             YamlStreamScanner streaming = new YamlStreamScanner();
             if (streaming.scan(text, true))
@@ -147,6 +147,57 @@ public final class YamlJsonParser implements JsonParser
         if (scanner == null)
         {
             parseDocument(0);
+        }
+        else if (uniqueKeys)
+        {
+            rejectDuplicateScanKeys();
+        }
+    }
+
+    static boolean scannerEligible(
+        Map<String, ?> config)
+    {
+        boolean eligible = true;
+        if (config != null)
+        {
+            for (Map.Entry<String, ?> entry : config.entrySet())
+            {
+                String key = entry.getKey();
+                boolean ok = YamlConfig.FEATURE_UNIQUE_KEYS.equals(key) ||
+                    YamlConfig.FEATURE_NON_SCALAR_KEYS.equals(key) && Boolean.FALSE.equals(entry.getValue());
+                if (!ok)
+                {
+                    eligible = false;
+                    break;
+                }
+            }
+        }
+        return eligible;
+    }
+
+    private void rejectDuplicateScanKeys()
+    {
+        Deque<Set<String>> scopes = new ArrayDeque<>();
+        int total = ecount();
+        for (int index = 0; index < total; index++)
+        {
+            switch (ekind(index))
+            {
+            case YamlStreamScanner.START_OBJECT -> scopes.push(new HashSet<>());
+            case YamlStreamScanner.END_OBJECT -> scopes.pop();
+            case YamlStreamScanner.KEY_NAME ->
+            {
+                String name = estring(index);
+                if (!scopes.peek().add(name))
+                {
+                    throw new JsonParsingException("Duplicate YAML mapping key: " + name,
+                        new YamlJsonLocation(new YamlLocation(eline(index), ecolumn(index), eoffset(index))));
+                }
+            }
+            default ->
+            {
+            }
+            }
         }
     }
 

@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.common.yaml.internal.json;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -49,8 +50,8 @@ class YamlJsonResolverTest
 {
     private static final String SUITE_TAG = "data-2022-01-17";
 
-    // any non-empty config disables the streaming scanner but is semantically the JSON-as-YAML default
-    private static final Map<String, Object> FORCE_EAGER = Map.of(YamlConfig.FEATURE_NON_SCALAR_KEYS, false);
+    // PRESERVE_SOURCE forces the eager path (not scanner-eligible) but does not affect JSON projection
+    private static final Map<String, Object> FORCE_EAGER = Map.of(YamlConfig.PRESERVE_SOURCE, true);
 
     @Test
     void shouldExpandBlockAliasToAnchoredObject()
@@ -152,6 +153,24 @@ class YamlJsonResolverTest
         YamlStreamScanner scanner = new YamlStreamScanner();
         assertTrue(scanner.scan("x: !!seq foo\n", true));
         assertThrows(YamlJsonResolver.Unsupported.class, () -> new YamlJsonResolver(scanner));
+    }
+
+    @Test
+    void shouldEngageScannerForEngineConfig()
+    {
+        // the engine reads zilla.yaml with unique keys enabled; that must use the streaming path
+        assertTrue(YamlJsonParser.scannerEligible(Map.of(YamlConfig.FEATURE_UNIQUE_KEYS, true)));
+        assertTrue(YamlJsonParser.scannerEligible(Map.of(YamlConfig.FEATURE_NON_SCALAR_KEYS, false)));
+        assertTrue(YamlJsonParser.scannerEligible(Map.of()));
+        assertTrue(YamlJsonParser.scannerEligible(null));
+    }
+
+    @Test
+    void shouldNotEngageScannerForSemanticConfig()
+    {
+        assertFalse(YamlJsonParser.scannerEligible(Map.of(YamlConfig.FEATURE_ANCHORS, false)));
+        assertFalse(YamlJsonParser.scannerEligible(Map.of(YamlConfig.FEATURE_NON_SCALAR_KEYS, true)));
+        assertFalse(YamlJsonParser.scannerEligible(Map.of(YamlConfig.PRESERVE_SOURCE, true)));
     }
 
     @TestFactory
