@@ -1504,18 +1504,25 @@ public final class YamlStreamScanner
             {
                 flowKey();
                 flowSkipWhitespace();
-                if (flowAt >= text.length() || text.charAt(flowAt) != ':')
+                if (flowConsume(':'))
                 {
-                    throw BAIL;
+                    flowSkipWhitespace();
+                    char c = flowAt < text.length() ? text.charAt(flowAt) : 0;
+                    if (c == ',' || c == '}')
+                    {
+                        // an empty value after the indicator is null
+                        emit(VALUE_NULL, flowAt, 0, null);
+                    }
+                    else
+                    {
+                        flowValue();
+                    }
                 }
-                flowAt++;
-                flowSkipWhitespace();
-                char c = flowAt < text.length() ? text.charAt(flowAt) : 0;
-                if (c == ',' || c == '}')
+                else
                 {
-                    throw BAIL;
+                    // an entry with no value indicator has a null value
+                    emit(VALUE_NULL, flowAt, 0, null);
                 }
-                flowValue();
                 flowSkipWhitespace();
                 if (flowConsume(','))
                 {

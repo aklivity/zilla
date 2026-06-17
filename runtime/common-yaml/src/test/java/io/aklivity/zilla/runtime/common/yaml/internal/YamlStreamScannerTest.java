@@ -106,6 +106,21 @@ class YamlStreamScannerTest
     }
 
     @Test
+    void shouldAcceptFlowMappingOmittedAndEmptyValues()
+    {
+        for (String doc : new String[] {
+            "---\n- { single line, a: b}\n",
+            "m: {key, other: val}\n",
+            "m: {a: , b: 2}\n",
+            "m: {\"x\":adjacent}\n"})
+        {
+            YamlStreamScanner scanner = new YamlStreamScanner();
+            assertTrue(scanner.scan(doc), "scanner should accept omitted/empty flow values: " + doc);
+            assertEquals(eager(doc), scanned(scanner), doc);
+        }
+    }
+
+    @Test
     void shouldAcceptMultiLineFlowScalar()
     {
         for (String doc : new String[] {
@@ -391,7 +406,7 @@ class YamlStreamScannerTest
         long accepted = fixtures()
             .filter(path -> accepts(path.resolve("in.yaml")))
             .count();
-        assertEquals(152, accepted,
+        assertEquals(155, accepted,
             "accepted-fixture count changed; feasibility gate may over-reject or over-accept");
     }
 
