@@ -22,6 +22,7 @@ import java.io.Reader;
 import java.math.BigDecimal;
 import java.nio.charset.Charset;
 import java.util.ArrayDeque;
+import java.util.Arrays;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -805,14 +806,18 @@ public final class YamlJsonParser implements JsonParser
     {
         try
         {
-            StringBuilder builder = new StringBuilder();
-            char[] buffer = new char[4096];
+            char[] buffer = new char[1024];
+            int length = 0;
             int read;
-            while ((read = reader.read(buffer)) != -1)
+            while ((read = reader.read(buffer, length, buffer.length - length)) != -1)
             {
-                builder.append(buffer, 0, read);
+                length += read;
+                if (length == buffer.length)
+                {
+                    buffer = Arrays.copyOf(buffer, buffer.length << 1);
+                }
             }
-            return builder.toString();
+            return new String(buffer, 0, length);
         }
         catch (IOException ex)
         {
