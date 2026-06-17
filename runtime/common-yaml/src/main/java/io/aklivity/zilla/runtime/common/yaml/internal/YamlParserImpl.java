@@ -23,9 +23,12 @@ import java.nio.charset.Charset;
 import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import io.aklivity.zilla.runtime.common.yaml.YamlArray;
+import io.aklivity.zilla.runtime.common.yaml.YamlConfig;
 import io.aklivity.zilla.runtime.common.yaml.YamlEvent;
 import io.aklivity.zilla.runtime.common.yaml.YamlObject;
 import io.aklivity.zilla.runtime.common.yaml.YamlParser;
@@ -48,8 +51,9 @@ public final class YamlParserImpl implements YamlParser
     private int scanCurrent;
     private int buildCursor;
 
-    // streaming via the eager DOM (fallback)
+    // streaming via the eager DOM (fallback) — unresolved (raw) tree so the Parse layer stays unresolved
     private Deque<Frame> stack;
+    private YamlNode rawRoot;
     private YamlNode root;
     private YamlEvent pending;
     private YamlNode pendingNode;
@@ -242,6 +246,24 @@ public final class YamlParserImpl implements YamlParser
     }
 
     @Override
+    public String getAnchor()
+    {
+        return scanner == null && currentNode != null ? currentNode.anchor : null;
+    }
+
+    @Override
+    public String getAlias()
+    {
+        return scanner == null && currentNode != null ? currentNode.alias : null;
+    }
+
+    @Override
+    public String getTag()
+    {
+        return scanner == null && currentNode != null ? currentNode.tag : null;
+    }
+
+    @Override
     public void close()
     {
     }
@@ -387,12 +409,23 @@ public final class YamlParserImpl implements YamlParser
         return root;
     }
 
+    private YamlNode rawRoot()
+    {
+        if (rawRoot == null)
+        {
+            Map<String, Object> raw = new HashMap<>(config.config());
+            raw.put(YamlConfig.RESOLVE_REFERENCES, false);
+            rawRoot = YamlDocumentParser.parse(text, new YamlConfiguration(raw)).node;
+        }
+        return rawRoot;
+    }
+
     private void ensureStack()
     {
         if (stack == null)
         {
             stack = new ArrayDeque<>();
-            stack.push(new Frame(root()));
+            stack.push(new Frame(rawRoot()));
         }
     }
 
@@ -402,7 +435,14 @@ public final class YamlParserImpl implements YamlParser
         while (event == null && !stack.isEmpty())
         {
             Frame frame = stack.peek();
-            if (frame.node instanceof YamlObjectNode object)
+            if (frame.node.alias != null)
+            {
+                stack.pop();
+                pendingNode = frame.node;
+                pendingString = null;
+                event = YamlEvent.ALIAS;
+            }
+            else if (frame.node instanceof YamlObjectNode object)
             {
                 if (!frame.started)
                 {

@@ -32,5 +32,6 @@ public enum YamlEvent
     VALUE_NUMBER,
     VALUE_TRUE,
     VALUE_FALSE,
-    VALUE_NULL
+    VALUE_NULL,
+    ALIAS
 }

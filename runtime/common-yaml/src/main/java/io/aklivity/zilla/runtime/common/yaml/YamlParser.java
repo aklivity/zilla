@@ -31,6 +31,23 @@ public interface YamlParser extends AutoCloseable
      */
     CharSequence getStringView();
 
+    /**
+     * The anchor name (without {@code &}) declared on the current node, or {@code null}. Surfaced raw —
+     * the streaming Parse layer does not dereference; resolution is the reader's responsibility.
+     */
+    String getAnchor();
+
+    /**
+     * The alias name (without {@code *}) on an {@link YamlEvent#ALIAS} event, or {@code null}. Surfaced
+     * raw — the reference is not dereferenced by the Parse layer.
+     */
+    String getAlias();
+
+    /**
+     * The tag (e.g. {@code !!str}) on the current node, or {@code null}. Surfaced raw without coercion.
+     */
+    String getTag();
+
     YamlValue getValue();
 
     YamlObject getObject();

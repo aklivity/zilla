@@ -591,6 +591,72 @@ class YamlTest
     }
 
     @Test
+    void shouldStreamRawReferences()
+    {
+        YamlParser parser = Yaml.createParser(new StringReader("""
+            base: &base
+              host: localhost
+            use:
+              <<: *base
+            typed: !!str 42
+            """));
+        List<String> events = new ArrayList<>();
+        while (parser.hasNext())
+        {
+            YamlEvent event = parser.next();
+            StringBuilder token = new StringBuilder(event.toString());
+            if (parser.getString() != null)
+            {
+                token.append(':').append(parser.getString());
+            }
+            if (parser.getAlias() != null)
+            {
+                token.append('*').append(parser.getAlias());
+            }
+            if (parser.getAnchor() != null)
+            {
+                token.append('&').append(parser.getAnchor());
+            }
+            if (parser.getTag() != null)
+            {
+                token.append('!').append(parser.getTag());
+            }
+            events.add(token.toString());
+        }
+
+        assertEquals(List.of(
+            "START_OBJECT",
+            "KEY_NAME:base",
+            "START_OBJECT&base",
+            "KEY_NAME:host",
+            "VALUE_STRING:localhost",
+            "END_OBJECT",
+            "KEY_NAME:use",
+            "START_OBJECT",
+            "KEY_NAME:<<",
+            "ALIAS*base",
+            "END_OBJECT",
+            "KEY_NAME:typed",
+            "VALUE_NUMBER:42!tag:yaml.org,2002:str",
+            "END_OBJECT"), events);
+    }
+
+    @Test
+    void shouldResolveReferencesViaReader()
+    {
+        YamlObject object = Yaml.createReader(new StringReader("""
+            base: &base
+              host: localhost
+            use:
+              <<: *base
+            typed: !!str 42
+            """)).readObject();
+
+        assertEquals("localhost", object.getObject("use").getString("host"));
+        assertEquals(YamlScalarType.STRING, object.getScalar("typed").getType());
+    }
+
+    @Test
     void shouldGenerateNativeValues()
     {
         YamlObject object = Yaml.createReader(new StringReader("""
