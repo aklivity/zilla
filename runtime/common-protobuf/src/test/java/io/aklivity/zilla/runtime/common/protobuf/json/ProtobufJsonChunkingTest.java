@@ -20,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.util.Base64;
 import java.util.function.Consumer;
 
@@ -135,6 +136,132 @@ public class ProtobufJsonChunkingTest
         JsonObject object = parse(whole.json);
         assertEquals("hi \"there\"\n", object.getString("st"));
         assertArrayEquals(new byte[]{1, 2, 3, 4, 5}, Base64.getDecoder().decode(object.getString("by")));
+    }
+
+    @Test
+    public void shouldFragmentLargeStringAndBytesFromJsonAcrossTinyWindows()
+    {
+        // a string and a bytes value whose wire rendering each far exceed a tiny output window, driving
+        // JSON -> wire so the parser must push back the unconsumed remainder of each value on every suspend
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < 4000; i++)
+        {
+            builder.append("ab\"c\nd");
+        }
+        String text = builder.toString();
+
+        byte[] blob = new byte[15000];
+        for (int i = 0; i < blob.length; i++)
+        {
+            blob[i] = (byte) (i * 31 + 7);
+        }
+
+        String json = json(1, true, text, blob);
+
+        WireDrained drained = fromJsonWindowed("Scalars", json.getBytes(UTF_8), 64);
+
+        assertTrue(drained.suspends >= 1, "expected at least one SUSPENDED chunk boundary");
+
+        JsonObject object = parse(toJson("Scalars", drained.wire));
+        assertEquals(1, object.getInt("i32"));
+        assertEquals(true, object.getBoolean("bo"));
+        assertEquals(text, object.getString("st"));
+        assertArrayEquals(blob, Base64.getDecoder().decode(object.getString("by")));
+    }
+
+    @Test
+    public void shouldRenderSmallValueFromJsonIdenticallyInOneFeed()
+    {
+        String text = "hi \"there\"\n";
+        byte[] blob = new byte[]{1, 2, 3, 4, 5};
+        String json = json(-5, true, text, blob);
+
+        // a single feed through a generous window must not suspend
+        WireDrained whole = fromJsonWindowed("Scalars", json.getBytes(UTF_8), 8192);
+        assertEquals(0, whole.suspends, "small value must not suspend with a generous window");
+
+        // a small window forces chunking; the concatenated wire must match the whole-window result
+        WireDrained bounded = fromJsonWindowed("Scalars", json.getBytes(UTF_8), 16);
+        assertArrayEquals(whole.wire, bounded.wire, "chunked wire must concatenate to the same bytes");
+
+        JsonObject object = parse(toJson("Scalars", whole.wire));
+        assertEquals(-5, object.getInt("i32"));
+        assertEquals(true, object.getBoolean("bo"));
+        assertEquals(text, object.getString("st"));
+        assertArrayEquals(blob, Base64.getDecoder().decode(object.getString("by")));
+    }
+
+    private WireDrained fromJsonWindowed(
+        String messageName,
+        byte[] json,
+        int window)
+    {
+        MutableDirectBuffer out = new UnsafeBuffer(new byte[window]);
+        ProtobufGenerator generator = Protobuf.generator();
+        generator.wrap(out, 0, window);
+        ProtobufPipeline pipeline = Protobuf.stream(ProtobufJson.parser(JsonEx.createParser(), schema, messageName))
+            .into(ProtobufSink.of(generator, schema, messageName));
+        pipeline.reset();
+
+        ByteArrayOutputStream result = new ByteArrayOutputStream();
+        UnsafeBuffer in = new UnsafeBuffer(json);
+        int suspends = 0;
+        int guard = 0;
+        Status status = pipeline.feed(in, 0, json.length);
+        while (status == Status.SUSPENDED && guard < 1_000_000)
+        {
+            assertTrue(generator.length() <= window, "chunk exceeded the generator limit");
+            result.writeBytes(bytes(out, generator.length()));
+            generator.wrap(out, 0, window);
+            suspends++;
+            guard++;
+            status = pipeline.feed(in, 0, json.length);
+        }
+        assertEquals(Status.COMPLETED, status);
+        generator.flush();
+        result.writeBytes(bytes(out, generator.length()));
+
+        return new WireDrained(result.toByteArray(), suspends);
+    }
+
+    private String toJson(
+        String messageName,
+        byte[] wire)
+    {
+        MutableDirectBuffer out = new UnsafeBuffer(new byte[65536]);
+        ProtobufGenerator generator = ProtobufJson.generator(JsonEx.createGenerator(), schema, messageName);
+        generator.wrap(out, 0, out.capacity());
+        ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, messageName))
+            .into(ProtobufSink.of(generator, schema, messageName));
+        pipeline.reset();
+        Status status = pipeline.feed(new UnsafeBuffer(wire), 0, wire.length);
+        assertEquals(Status.COMPLETED, status);
+        generator.flush();
+        return chunk(out, generator.length());
+    }
+
+    private static String json(
+        int i32,
+        boolean bo,
+        String st,
+        byte[] by)
+    {
+        return Json.createObjectBuilder()
+            .add("i32", i32)
+            .add("bo", bo)
+            .add("st", st)
+            .add("by", Base64.getEncoder().encodeToString(by))
+            .build()
+            .toString();
+    }
+
+    private static byte[] bytes(
+        MutableDirectBuffer buffer,
+        int length)
+    {
+        byte[] bytes = new byte[length];
+        buffer.getBytes(0, bytes);
+        return bytes;
     }
 
     private Drained toJsonWindowed(
@@ -279,6 +406,20 @@ public class ProtobufJsonChunkingTest
             int suspends)
         {
             this.json = json;
+            this.suspends = suspends;
+        }
+    }
+
+    private static final class WireDrained
+    {
+        private final byte[] wire;
+        private final int suspends;
+
+        private WireDrained(
+            byte[] wire,
+            int suspends)
+        {
+            this.wire = wire;
             this.suspends = suspends;
         }
     }
