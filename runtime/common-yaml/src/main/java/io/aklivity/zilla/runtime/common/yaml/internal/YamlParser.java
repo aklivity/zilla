@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.common.yaml.internal;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * A pull parser over a full YAML 1.2 stream. {@link #next()} returns the next {@link YamlEvent} kind; the
@@ -40,15 +41,16 @@ public final class YamlParser
     public YamlParser(
         String text)
     {
-        this(text, YamlConfiguration.DEFAULT);
+        this(text, Map.of(), true);
     }
 
     public YamlParser(
         String text,
-        YamlConfiguration config)
+        Map<String, ?> config,
+        boolean allowScanner)
     {
         this.steps = new ArrayList<>();
-        build(text, config);
+        build(text, new YamlConfiguration(config), allowScanner);
     }
 
     public boolean hasNext()
@@ -94,13 +96,14 @@ public final class YamlParser
 
     private void build(
         String text,
-        YamlConfiguration config)
+        YamlConfiguration config,
+        boolean allowScanner)
     {
         add(YamlEvent.STREAM_START, null, null, null, null, null, locationAt(text, 0));
         YamlStreamScanner scanner = new YamlStreamScanner();
-        // the scanner fast path frames a single document; multi-document framing from the flat token stream
-        // is deferred to the eager parser, which delineates each document's root node cleanly
-        if (scanner.scan(text) && scanner.documentCount() <= 1)
+        // the scanner fast path frames a single document and cannot honor parsing options (e.g. scalar
+        // resolution, source preservation); multi-document framing and those options defer to the eager parser
+        if (allowScanner && scanner.scan(text) && scanner.documentCount() <= 1)
         {
             buildFromScanner(scanner, text);
         }

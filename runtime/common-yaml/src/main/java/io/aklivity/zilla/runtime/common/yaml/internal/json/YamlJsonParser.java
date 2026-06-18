@@ -20,14 +20,17 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.nio.charset.Charset;
-import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.Set;
+import java.util.TreeMap;
 
 import jakarta.json.JsonArray;
 import jakarta.json.JsonArrayBuilder;
@@ -39,41 +42,35 @@ import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParsingException;
 
 import io.aklivity.zilla.runtime.common.yaml.YamlConfig;
-import io.aklivity.zilla.runtime.common.yaml.internal.YamlArrayNode;
-import io.aklivity.zilla.runtime.common.yaml.internal.YamlDocumentParser;
-import io.aklivity.zilla.runtime.common.yaml.internal.YamlEntry;
+import io.aklivity.zilla.runtime.common.yaml.internal.YamlEvent;
 import io.aklivity.zilla.runtime.common.yaml.internal.YamlLocation;
-import io.aklivity.zilla.runtime.common.yaml.internal.YamlNode;
-import io.aklivity.zilla.runtime.common.yaml.internal.YamlObjectNode;
 import io.aklivity.zilla.runtime.common.yaml.internal.YamlParseException;
-import io.aklivity.zilla.runtime.common.yaml.internal.YamlReferences;
-import io.aklivity.zilla.runtime.common.yaml.internal.YamlScalarNode;
-import io.aklivity.zilla.runtime.common.yaml.internal.YamlStreamScanner;
+import io.aklivity.zilla.runtime.common.yaml.internal.YamlParser;
+import io.aklivity.zilla.runtime.common.yaml.internal.YamlScalarType;
 
+/**
+ * A {@link JsonParser} over a YAML 1.2 stream restricted to the YAML JSON Schema. It is layered on the
+ * {@link YamlParser} event stream: the YAML events are projected to JSON parser events, aliases are resolved
+ * against their anchored values, JSON Schema tags ({@code !!str}, {@code !!int}, {@code !!float},
+ * {@code !!bool}, {@code !!null}) are coerced, and constructs JSON cannot represent (non-scalar or duplicate
+ * mapping keys) are rejected. The underlying parser remains full YAML 1.2; the JSON restriction lives here.
+ */
 public final class YamlJsonParser implements JsonParser
 {
-    private static final Map<String, ?> JSON_AS_YAML_DEFAULTS = Map.of(YamlConfig.FEATURE_NON_SCALAR_KEYS, false);
+    private static final String STR_TAG = "tag:yaml.org,2002:str";
+    private static final String INT_TAG = "tag:yaml.org,2002:int";
+    private static final String FLOAT_TAG = "tag:yaml.org,2002:float";
+    private static final String BOOL_TAG = "tag:yaml.org,2002:bool";
+    private static final String NULL_TAG = "tag:yaml.org,2002:null";
+    private static final String NON_SPECIFIC_TAG = "!";
 
-    private final Deque<Frame> stack;
-    private final String text;
-    private final Map<String, ?> config;
     private final boolean uniqueKeys;
-    private final YamlJsonEvent eventA = new YamlJsonEvent();
-    private final YamlJsonEvent eventB = new YamlJsonEvent();
+    private final List<Yev> events;
+    private final Map<String, NavigableMap<Long, int[]>> anchors;
+    private final List<Step> steps;
     private YamlJsonLocation end;
-    private long documentOffset;
-    private YamlJsonEvent current;
-    private YamlJsonEvent next;
-    private boolean exhausted;
-
-    private final YamlStreamScanner scanner;
-    private final YamlJsonResolver resolver;
-    private int scanCursor;
-    private int scanCurrent;
-    private int buildCursor;
-    private int scanDepth;
-    private int scanDocument;
-    private int scanBoundary;
+    private int cursor;
+    private int current;
 
     public YamlJsonParser(
         Reader reader)
@@ -113,79 +110,26 @@ public final class YamlJsonParser implements JsonParser
         String text,
         Map<String, ?> config)
     {
-        this.stack = new ArrayDeque<>();
-        this.text = text;
-        this.config = jsonAsYamlConfig(config);
-        this.uniqueKeys = Boolean.TRUE.equals(this.config.get(YamlConfig.FEATURE_UNIQUE_KEYS));
-        this.scanCurrent = -1;
-        this.scanBoundary = -1;
-
-        YamlStreamScanner candidate = null;
-        YamlJsonResolver resolved = null;
-        if (scannerEligible(config))
+        this.uniqueKeys = config != null && Boolean.TRUE.equals(config.get(YamlConfig.FEATURE_UNIQUE_KEYS));
+        this.events = new ArrayList<>();
+        this.anchors = new HashMap<>();
+        this.steps = new ArrayList<>();
+        this.current = -1;
+        try
         {
-            YamlStreamScanner streaming = new YamlStreamScanner();
-            if (streaming.scan(text))
-            {
-                if (streaming.hasReferences())
-                {
-                    try
-                    {
-                        resolved = new YamlJsonResolver(streaming);
-                        candidate = streaming;
-                    }
-                    catch (YamlJsonResolver.Unsupported unsupported)
-                    {
-                        // references beyond the streaming resolver's scope; fall back to the eager path
-                    }
-                }
-                else
-                {
-                    candidate = streaming;
-                }
-            }
+            capture(new YamlParser(text, config != null ? config : Map.of(), scannerEligible(config)));
+            indexAnchors();
+            project();
         }
-        this.scanner = candidate;
-        this.resolver = resolved;
-
-        if (scanner == null)
+        catch (YamlParseException ex)
         {
-            parseDocument(0);
+            throw new JsonParsingException(ex.getMessage(),
+                new YamlJsonLocation(ex.location() != null ? ex.location() : new YamlLocation(1, 1, 0)));
         }
-        else
+        if (end == null)
         {
-            rejectNonScalarScanKeys();
-            if (uniqueKeys)
-            {
-                rejectDuplicateScanKeys();
-            }
-            this.end = scanEndLocation();
+            end = new YamlJsonLocation(new YamlLocation(1, 1, 0));
         }
-    }
-
-    private YamlJsonLocation scanEndLocation()
-    {
-        return scanLocationAt(text.length());
-    }
-
-    private YamlJsonLocation scanLocationAt(
-        int offset)
-    {
-        int line = 1;
-        int column = 1;
-        for (int index = 0; index < offset; index++)
-        {
-            if (text.charAt(index) == '\n')
-            {
-                line++;
-                column = 1;
-            }
-            else
-            {
-                column++;
-            }
-        }
-        return new YamlJsonLocation(new YamlLocation(line, column, offset));
     }
 
     static boolean scannerEligible(
@@ -209,166 +153,10 @@ public final class YamlJsonParser implements JsonParser
         return eligible;
     }
 
-    private void rejectNonScalarScanKeys()
-    {
-        // a non-scalar mapping key is valid YAML (and preserved by the raw scanner) but cannot be a JSON
-        // key, so the JSON projection rejects it here, matching the eager projection
-        int total = ecount();
-        boolean[] object = new boolean[total + 2];
-        boolean[] expectKey = new boolean[total + 2];
-        int depth = 0;
-        for (int index = 0; index < total; index++)
-        {
-            byte kind = ekind(index);
-            boolean keySlot = depth > 0 && object[depth] && expectKey[depth];
-            if (kind == YamlStreamScanner.START_OBJECT || kind == YamlStreamScanner.START_ARRAY)
-            {
-                if (keySlot)
-                {
-                    throw new JsonParsingException("Non-scalar YAML mapping keys are not supported",
-                        new YamlJsonLocation(new YamlLocation(eline(index), ecolumn(index), eoffset(index))));
-                }
-                depth++;
-                object[depth] = kind == YamlStreamScanner.START_OBJECT;
-                expectKey[depth] = kind == YamlStreamScanner.START_OBJECT;
-            }
-            else if (kind == YamlStreamScanner.END_OBJECT || kind == YamlStreamScanner.END_ARRAY)
-            {
-                depth--;
-                if (depth > 0 && object[depth])
-                {
-                    expectKey[depth] = true;
-                }
-            }
-            else if (kind == YamlStreamScanner.KEY_NAME)
-            {
-                expectKey[depth] = false;
-            }
-            else if (depth > 0 && object[depth])
-            {
-                expectKey[depth] = true;
-            }
-        }
-    }
-
-    private void rejectDuplicateScanKeys()
-    {
-        Deque<Set<String>> scopes = new ArrayDeque<>();
-        int total = ecount();
-        for (int index = 0; index < total; index++)
-        {
-            switch (ekind(index))
-            {
-            case YamlStreamScanner.START_OBJECT -> scopes.push(new HashSet<>());
-            case YamlStreamScanner.END_OBJECT -> scopes.pop();
-            case YamlStreamScanner.KEY_NAME ->
-            {
-                String name = estring(index);
-                if (!scopes.peek().add(name))
-                {
-                    throw new JsonParsingException("Duplicate YAML mapping key: " + name,
-                        new YamlJsonLocation(new YamlLocation(eline(index), ecolumn(index), eoffset(index))));
-                }
-            }
-            default ->
-            {
-            }
-            }
-        }
-    }
-
-    private byte ekind(
-        int index)
-    {
-        return resolver != null ? resolver.kind(index) : scanner.kind(index);
-    }
-
-    private String estring(
-        int index)
-    {
-        return resolver != null ? resolver.value(index) : scanner.string(index);
-    }
-
-    private int ecount()
-    {
-        return resolver != null ? resolver.count() : scanner.count();
-    }
-
-    private int eline(
-        int index)
-    {
-        return resolver != null ? resolver.line(index) : scanner.line(index);
-    }
-
-    private int ecolumn(
-        int index)
-    {
-        return resolver != null ? resolver.column(index) : scanner.column(index);
-    }
-
-    private int eoffset(
-        int index)
-    {
-        return resolver != null ? resolver.offset(index) : scanner.offset(index);
-    }
-
-    private void parseDocument(
-        long offset)
-    {
-        try
-        {
-            YamlDocumentParser.Result result = YamlDocumentParser.parse(text.substring((int) offset), config);
-            YamlNode node = YamlReferences.resolve(result.node, config);
-            rejectJsonUnsupported(node, offset);
-            if (uniqueKeys)
-            {
-                rejectDuplicateKeys(node, offset);
-            }
-            this.documentOffset = offset;
-            this.end = location(result.end, offset);
-            stack.push(new Frame(node));
-        }
-        catch (YamlParseException ex)
-        {
-            throw new JsonParsingException(ex.getMessage(), location(ex.location(), offset));
-        }
-    }
-
-    private static Map<String, ?> jsonAsYamlConfig(
-        Map<String, ?> config)
-    {
-        Map<String, ?> effective;
-        if (config == null || config.isEmpty())
-        {
-            effective = JSON_AS_YAML_DEFAULTS;
-        }
-        else
-        {
-            Map<String, Object> merged = new HashMap<>(config);
-            merged.put(YamlConfig.FEATURE_NON_SCALAR_KEYS, false);
-            effective = Map.copyOf(merged);
-        }
-        return effective;
-    }
-
     @Override
     public boolean hasNext()
     {
-        boolean hasNext;
-        if (scanner != null)
-        {
-            hasNext = scanCursor < ecount();
-        }
-        else
-        {
-            if (next == null && !exhausted)
-            {
-                next = nextEvent();
-                exhausted = next == null;
-            }
-            hasNext = next != null;
-        }
-        return hasNext;
+        return cursor < steps.size();
     }
 
     @Override
@@ -378,95 +166,41 @@ public final class YamlJsonParser implements JsonParser
         {
             throw new JsonParsingException("No more events", getLocation());
         }
-
-        Event event;
-        if (scanner != null)
-        {
-            scanCurrent = scanCursor++;
-            byte kind = ekind(scanCurrent);
-            event = scanEvent(kind);
-            if (kind == YamlStreamScanner.START_OBJECT || kind == YamlStreamScanner.START_ARRAY)
-            {
-                scanDepth++;
-            }
-            else if (kind == YamlStreamScanner.END_OBJECT || kind == YamlStreamScanner.END_ARRAY)
-            {
-                scanDepth--;
-            }
-            boolean terminal = scanDepth == 0 &&
-                kind != YamlStreamScanner.START_OBJECT && kind != YamlStreamScanner.START_ARRAY;
-            // a root-terminal event of a non-final document reports its location at the next document's
-            // start, mirroring the eager path; the final document falls through to the stream end location
-            scanBoundary = terminal && scanCursor < ecount() ? scanner.documentBoundary(scanDocument) : -1;
-            if (terminal)
-            {
-                scanDocument++;
-            }
-        }
-        else
-        {
-            current = next;
-            next = null;
-            event = current.event;
-        }
-        return event;
+        current = cursor++;
+        return steps.get(current).event;
     }
 
     @Override
     public Event currentEvent()
     {
-        Event event;
-        if (scanner != null)
-        {
-            if (scanCurrent < 0)
-            {
-                throw new IllegalStateException("No current event");
-            }
-            event = scanEvent(ekind(scanCurrent));
-        }
-        else if (current != null)
-        {
-            event = current.event;
-        }
-        else
+        if (current < 0)
         {
             throw new IllegalStateException("No current event");
         }
-        return event;
+        return steps.get(current).event;
     }
 
     @Override
     public String getString()
     {
-        String value;
-        if (scanner != null)
-        {
-            value = scanString();
-        }
-        else if (current != null && current.value != null)
-        {
-            value = current.value;
-        }
-        else
+        if (current < 0 || steps.get(current).value == null)
         {
             throw new IllegalStateException("No string value is available for current event");
         }
-        return value;
+        return steps.get(current).value;
     }
 
     @Override
     public boolean isIntegralNumber()
     {
         String value = numberValue();
-        for (int i = 0; i < value.length(); i++)
+        boolean integral = true;
+        for (int i = 0; i < value.length() && integral; i++)
         {
             char c = value.charAt(i);
-            if (c == '.' || c == 'e' || c == 'E')
-            {
-                return false;
-            }
+            integral = c != '.' && c != 'e' && c != 'E';
         }
-        return true;
+        return integral;
     }
 
     @Override
@@ -490,17 +224,7 @@ public final class YamlJsonParser implements JsonParser
     @Override
     public JsonLocation getLocation()
     {
-        JsonLocation location;
-        if (scanner != null)
-        {
-            location = scanCursor >= ecount() ? end :
-                scanBoundary >= 0 ? scanLocationAt(scanBoundary) : scanLocation();
-        }
-        else
-        {
-            location = exhausted ? end : current != null ? current.location() : end;
-        }
-        return location;
+        return current < 0 ? new YamlJsonLocation(new YamlLocation(1, 1, 0)) : steps.get(current).location;
     }
 
     @Override
@@ -522,36 +246,11 @@ public final class YamlJsonParser implements JsonParser
     @Override
     public JsonValue getValue()
     {
-        JsonValue value;
-        if (scanner != null)
-        {
-            if (scanCurrent < 0)
-            {
-                throw new IllegalStateException("No value is available for current event");
-            }
-            if (ekind(scanCurrent) == YamlStreamScanner.KEY_NAME)
-            {
-                value = YamlJsonValues.string(estring(scanCurrent));
-            }
-            else
-            {
-                buildCursor = scanCurrent;
-                value = scanValue();
-            }
-        }
-        else if (current != null && current.node != null)
-        {
-            value = toJsonValue(current.node);
-        }
-        else if (current != null && current.event == Event.KEY_NAME && current.value != null)
-        {
-            value = YamlJsonValues.string(current.value);
-        }
-        else
+        if (current < 0)
         {
             throw new IllegalStateException("No value is available for current event");
         }
-        return value;
+        return value(new int[] {current});
     }
 
     @Override
@@ -572,7 +271,7 @@ public final class YamlJsonParser implements JsonParser
     }
 
     @Override
-    public java.util.stream.Stream<java.util.Map.Entry<String, JsonValue>> getObjectStream()
+    public java.util.stream.Stream<Map.Entry<String, JsonValue>> getObjectStream()
     {
         return getObject().entrySet().stream();
     }
@@ -598,19 +297,14 @@ public final class YamlJsonParser implements JsonParser
     private void skip(
         Event expected)
     {
-        Event positioned = scanner != null ?
-            scanCurrent < 0 ? null : scanEvent(ekind(scanCurrent)) :
-            current != null ? current.event : null;
-        if (positioned != expected)
+        if (current < 0 || steps.get(current).event != expected)
         {
             throw new IllegalStateException("Parser is not positioned on " + expected);
         }
-
         int depth = 1;
         while (depth != 0)
         {
-            Event event = next();
-            switch (event)
+            switch (next())
             {
             case START_OBJECT, START_ARRAY -> depth++;
             case END_OBJECT, END_ARRAY -> depth--;
@@ -623,195 +317,361 @@ public final class YamlJsonParser implements JsonParser
 
     private String numberValue()
     {
-        String value;
-        if (scanner != null)
+        if (current < 0 || steps.get(current).event != Event.VALUE_NUMBER)
         {
-            if (scanCurrent < 0 || ekind(scanCurrent) != YamlStreamScanner.VALUE_NUMBER)
+            throw new IllegalStateException("Not a number");
+        }
+        return steps.get(current).value;
+    }
+
+    private JsonValue value(
+        int[] at)
+    {
+        Step step = steps.get(at[0]);
+        JsonValue value;
+        switch (step.event)
+        {
+        case START_OBJECT ->
+        {
+            at[0]++;
+            JsonObjectBuilder builder = YamlJsonValues.objectBuilder();
+            while (steps.get(at[0]).event != Event.END_OBJECT)
             {
-                throw new IllegalStateException("Not a number");
+                String name = steps.get(at[0]).value;
+                at[0]++;
+                builder.add(name, value(at));
             }
-            value = estring(scanCurrent);
+            at[0]++;
+            value = builder.build();
+        }
+        case START_ARRAY ->
+        {
+            at[0]++;
+            JsonArrayBuilder builder = YamlJsonValues.arrayBuilder();
+            while (steps.get(at[0]).event != Event.END_ARRAY)
+            {
+                builder.add(value(at));
+            }
+            at[0]++;
+            value = builder.build();
+        }
+        case VALUE_STRING, KEY_NAME ->
+        {
+            value = YamlJsonValues.string(step.value);
+            at[0]++;
+        }
+        case VALUE_NUMBER ->
+        {
+            value = YamlJsonValues.number(new BigDecimal(step.value));
+            at[0]++;
+        }
+        case VALUE_TRUE ->
+        {
+            value = JsonValue.TRUE;
+            at[0]++;
+        }
+        case VALUE_FALSE ->
+        {
+            value = JsonValue.FALSE;
+            at[0]++;
+        }
+        default ->
+        {
+            value = JsonValue.NULL;
+            at[0]++;
+        }
+        }
+        return value;
+    }
+
+    private void capture(
+        YamlParser parser)
+    {
+        while (parser.hasNext())
+        {
+            YamlEvent event = parser.next();
+            CharSequence value = parser.value();
+            events.add(new Yev(event, value != null ? value.toString() : null, parser.scalarType(),
+                parser.anchor(), parser.tag(), parser.alias(), parser.location()));
+        }
+    }
+
+    private void indexAnchors()
+    {
+        for (int index = 0; index < events.size(); index++)
+        {
+            Yev event = events.get(index);
+            if (event.anchor != null)
+            {
+                // an anchor name may be redefined; key each definition by its source offset so an alias can
+                // resolve to the nearest preceding definition (YAML 1.2 anchor scoping)
+                anchors.computeIfAbsent(event.anchor, name -> new TreeMap<>())
+                    .put(event.location.offset(), new int[] {index, nodeEnd(index)});
+            }
+        }
+    }
+
+    private int nodeEnd(
+        int index)
+    {
+        YamlEvent kind = events.get(index).event;
+        int end;
+        if (kind == YamlEvent.MAPPING_START || kind == YamlEvent.SEQUENCE_START)
+        {
+            int depth = 0;
+            int at = index;
+            do
+            {
+                YamlEvent event = events.get(at).event;
+                if (event == YamlEvent.MAPPING_START || event == YamlEvent.SEQUENCE_START)
+                {
+                    depth++;
+                }
+                else if (event == YamlEvent.MAPPING_END || event == YamlEvent.SEQUENCE_END)
+                {
+                    depth--;
+                }
+                at++;
+            }
+            while (depth != 0);
+            end = at;
         }
         else
         {
-            if (current == null || current.event != Event.VALUE_NUMBER)
+            end = index + 1;
+        }
+        return end;
+    }
+
+    private void project()
+    {
+        int index = 0;
+        while (index < events.size())
+        {
+            YamlEvent event = events.get(index).event;
+            if (event == YamlEvent.DOCUMENT_START)
             {
-                throw new IllegalStateException("Not a number");
+                index = projectValue(index + 1, new HashSet<>());
+                YamlJsonLocation boundary = location(events.get(index).location);
+                if (!steps.isEmpty())
+                {
+                    steps.get(steps.size() - 1).location = boundary;
+                }
+                end = boundary;
+                index++;
             }
-            value = current.value;
-        }
-        return value;
-    }
-
-    private Event scanEvent(
-        byte kind)
-    {
-        return switch (kind)
-        {
-        case YamlStreamScanner.START_OBJECT -> Event.START_OBJECT;
-        case YamlStreamScanner.END_OBJECT -> Event.END_OBJECT;
-        case YamlStreamScanner.START_ARRAY -> Event.START_ARRAY;
-        case YamlStreamScanner.END_ARRAY -> Event.END_ARRAY;
-        case YamlStreamScanner.KEY_NAME -> Event.KEY_NAME;
-        case YamlStreamScanner.VALUE_STRING -> Event.VALUE_STRING;
-        case YamlStreamScanner.VALUE_NUMBER -> Event.VALUE_NUMBER;
-        case YamlStreamScanner.VALUE_TRUE -> Event.VALUE_TRUE;
-        case YamlStreamScanner.VALUE_FALSE -> Event.VALUE_FALSE;
-        case YamlStreamScanner.VALUE_NULL -> Event.VALUE_NULL;
-        default -> throw new IllegalStateException("Unexpected scanner event: " + kind);
-        };
-    }
-
-    private String scanString()
-    {
-        byte kind = scanCurrent < 0 ? 0 : ekind(scanCurrent);
-        if (kind != YamlStreamScanner.KEY_NAME &&
-            kind != YamlStreamScanner.VALUE_STRING &&
-            kind != YamlStreamScanner.VALUE_NUMBER)
-        {
-            throw new IllegalStateException("No string value is available for current event");
-        }
-        return estring(scanCurrent);
-    }
-
-    private YamlJsonLocation scanLocation()
-    {
-        int index = scanCurrent >= 0 && scanCursor <= ecount() ? scanCurrent : ecount() - 1;
-        return index < 0 ? new YamlJsonLocation(new YamlLocation(1, 1, 0)) :
-            new YamlJsonLocation(new YamlLocation(eline(index), ecolumn(index), eoffset(index)));
-    }
-
-    private JsonValue scanValue()
-    {
-        byte kind = ekind(buildCursor);
-        JsonValue value;
-        switch (kind)
-        {
-        case YamlStreamScanner.START_OBJECT ->
-        {
-            buildCursor++;
-            JsonObjectBuilder builder = YamlJsonValues.objectBuilder();
-            while (ekind(buildCursor) != YamlStreamScanner.END_OBJECT)
+            else
             {
-                String name = estring(buildCursor);
-                buildCursor++;
-                builder.add(name, scanValue());
+                index++;
             }
-            buildCursor++;
-            value = builder.build();
         }
-        case YamlStreamScanner.START_ARRAY ->
-        {
-            buildCursor++;
-            JsonArrayBuilder builder = YamlJsonValues.arrayBuilder();
-            while (ekind(buildCursor) != YamlStreamScanner.END_ARRAY)
-            {
-                builder.add(scanValue());
-            }
-            buildCursor++;
-            value = builder.build();
-        }
-        case YamlStreamScanner.VALUE_STRING ->
-        {
-            value = YamlJsonValues.string(estring(buildCursor));
-            buildCursor++;
-        }
-        case YamlStreamScanner.VALUE_NUMBER ->
-        {
-            value = YamlJsonValues.number(new BigDecimal(estring(buildCursor)));
-            buildCursor++;
-        }
-        case YamlStreamScanner.VALUE_TRUE ->
-        {
-            value = JsonValue.TRUE;
-            buildCursor++;
-        }
-        case YamlStreamScanner.VALUE_FALSE ->
-        {
-            value = JsonValue.FALSE;
-            buildCursor++;
-        }
-        case YamlStreamScanner.VALUE_NULL ->
-        {
-            value = JsonValue.NULL;
-            buildCursor++;
-        }
-        default -> throw new IllegalStateException("Unexpected scanner event: " + kind);
-        }
-        return value;
     }
 
-    private YamlJsonEvent nextEvent()
+    private int projectValue(
+        int index,
+        Set<String> active)
     {
-        while (!stack.isEmpty())
+        Yev event = events.get(index);
+        int next;
+        switch (event.event)
         {
-            Frame frame = stack.peek();
-            if (frame.node instanceof YamlObjectNode object)
-            {
-                if (!frame.started)
-                {
-                    frame.started = true;
-                    return event(Event.START_OBJECT, null, object, object.line, object.column, object.offset);
-                }
-                if (frame.value)
-                {
-                    frame.value = false;
-                    stack.push(new Frame(object.entries.get(frame.index++).value));
-                    continue;
-                }
-                if (frame.index < object.entries.size())
-                {
-                    YamlEntry entry = object.entries.get(frame.index);
-                    String name = jsonKeyName(entry);
-                    frame.value = true;
-                    return event(Event.KEY_NAME, name, null, entry.line, entry.column, entry.offset);
-                }
-
-                boolean root = stack.size() == 1;
-                stack.pop();
-                return root ? eventAtEnd(Event.END_OBJECT, null, object) :
-                    event(Event.END_OBJECT, null, object, object.line, object.column, object.offset);
-            }
-
-            if (frame.node instanceof YamlArrayNode array)
-            {
-                if (!frame.started)
-                {
-                    frame.started = true;
-                    return event(Event.START_ARRAY, null, array, array.line, array.column, array.offset);
-                }
-                if (frame.index < array.values.size())
-                {
-                    stack.push(new Frame(array.values.get(frame.index++)));
-                    continue;
-                }
-
-                boolean root = stack.size() == 1;
-                stack.pop();
-                return root ? eventAtEnd(Event.END_ARRAY, null, array) :
-                    event(Event.END_ARRAY, null, array, array.line, array.column, array.offset);
-            }
-
-            boolean root = stack.size() == 1;
-            stack.pop();
-            return scalarEvent((YamlScalarNode) frame.node, root);
-        }
-
-        long offset = end.getStreamOffset();
-        if (offset < text.length() && hasDocumentContent(text, (int) offset))
+        case MAPPING_START ->
         {
-            parseDocument(offset);
-            return nextEvent();
+            emit(Event.START_OBJECT, null, event.location);
+            int at = index + 1;
+            Set<String> keys = uniqueKeys ? new HashSet<>() : null;
+            while (events.get(at).event != YamlEvent.MAPPING_END)
+            {
+                at = projectKey(at, keys);
+                at = projectValue(at, active);
+            }
+            emit(Event.END_OBJECT, null, event.location);
+            next = at + 1;
         }
-
-        return null;
+        case SEQUENCE_START ->
+        {
+            emit(Event.START_ARRAY, null, event.location);
+            int at = index + 1;
+            while (events.get(at).event != YamlEvent.SEQUENCE_END)
+            {
+                at = projectValue(at, active);
+            }
+            emit(Event.END_ARRAY, null, event.location);
+            next = at + 1;
+        }
+        case ALIAS ->
+        {
+            projectAliasValue(event, active);
+            next = index + 1;
+        }
+        default ->
+        {
+            emitScalar(event);
+            next = index + 1;
+        }
+        }
+        return next;
     }
 
-    private YamlJsonEvent scalarEvent(
-        YamlScalarNode scalar,
-        boolean root)
+    private int projectKey(
+        int index,
+        Set<String> keys)
     {
-        Event event = switch (scalar.type)
+        Yev event = events.get(index);
+        int next;
+        if (event.event == YamlEvent.SCALAR)
+        {
+            emitKey(scalarText(event), event.location, keys);
+            next = index + 1;
+        }
+        else if (event.event == YamlEvent.ALIAS)
+        {
+            int[] span = resolve(event);
+            Yev anchored = events.get(span[0]);
+            if (span[1] - span[0] == 1 && anchored.event == YamlEvent.SCALAR)
+            {
+                emitKey(scalarText(anchored), event.location, keys);
+            }
+            else
+            {
+                throw error("Non-scalar YAML mapping keys are not supported", event.location);
+            }
+            next = index + 1;
+        }
+        else
+        {
+            throw error("Non-scalar YAML mapping keys are not supported", event.location);
+        }
+        return next;
+    }
+
+    private void projectAliasValue(
+        Yev alias,
+        Set<String> active)
+    {
+        int[] span = resolve(alias);
+        Yev anchored = events.get(span[0]);
+        if (span[1] - span[0] == 1 && anchored.event == YamlEvent.SCALAR && anchored.scalarType == null)
+        {
+            // an alias to an anchored key resolves to that key's text in value position
+            emit(Event.VALUE_STRING, scalarText(anchored), anchored.location);
+        }
+        else if (active.add(alias.alias))
+        {
+            projectValue(span[0], active);
+            active.remove(alias.alias);
+        }
+        else
+        {
+            throw error("Recursive YAML alias: " + alias.alias, alias.location);
+        }
+    }
+
+    private int[] resolve(
+        Yev alias)
+    {
+        NavigableMap<Long, int[]> defined = anchors.get(alias.alias);
+        Map.Entry<Long, int[]> nearest = defined != null ? defined.floorEntry(alias.location.offset()) : null;
+        if (nearest == null)
+        {
+            throw error("Unresolved YAML alias: " + alias.alias, alias.location);
+        }
+        return nearest.getValue();
+    }
+
+    private void emitKey(
+        String name,
+        YamlLocation location,
+        Set<String> keys)
+    {
+        if (keys != null && !keys.add(name))
+        {
+            throw error("Duplicate YAML mapping key: " + name, location);
+        }
+        emit(Event.KEY_NAME, name, location);
+    }
+
+    private void emitScalar(
+        Yev scalar)
+    {
+        String tag = scalar.tag;
+        if (tag == null)
+        {
+            emit(scalarEvent(scalar.scalarType), scalarData(scalar), scalar.location);
+        }
+        else
+        {
+            String text = scalarText(scalar);
+            switch (tag)
+            {
+            case STR_TAG, NON_SPECIFIC_TAG -> emit(Event.VALUE_STRING, text, scalar.location);
+            case NULL_TAG -> emit(Event.VALUE_NULL, null, scalar.location);
+            case BOOL_TAG -> emitBool(text, scalar);
+            case INT_TAG -> emitInteger(text, scalar);
+            case FLOAT_TAG -> emitFloat(text, scalar);
+            default -> emit(scalarEvent(scalar.scalarType), scalarData(scalar), scalar.location);
+            }
+        }
+    }
+
+    private void emitBool(
+        String text,
+        Yev scalar)
+    {
+        if ("true".equals(text))
+        {
+            emit(Event.VALUE_TRUE, null, scalar.location);
+        }
+        else if ("false".equals(text))
+        {
+            emit(Event.VALUE_FALSE, null, scalar.location);
+        }
+        else
+        {
+            emit(scalarEvent(scalar.scalarType), scalarData(scalar), scalar.location);
+        }
+    }
+
+    private void emitInteger(
+        String text,
+        Yev scalar)
+    {
+        if (text.matches("-?0x[0-9a-fA-F]+") || text.matches("-?(?:0|[1-9][0-9]*)"))
+        {
+            emit(Event.VALUE_NUMBER, numberText(text), scalar.location);
+        }
+        else
+        {
+            emit(scalarEvent(scalar.scalarType), scalarData(scalar), scalar.location);
+        }
+    }
+
+    private void emitFloat(
+        String text,
+        Yev scalar)
+    {
+        if (text.matches("-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?:[eE][-+]?[0-9]+)?"))
+        {
+            emit(Event.VALUE_NUMBER, text, scalar.location);
+        }
+        else
+        {
+            emit(scalarEvent(scalar.scalarType), scalarData(scalar), scalar.location);
+        }
+    }
+
+    private void emit(
+        Event event,
+        String value,
+        YamlLocation location)
+    {
+        steps.add(new Step(event, value, location(location)));
+    }
+
+    private static Event scalarEvent(
+        YamlScalarType type)
+    {
+        return switch (type)
         {
         case STRING -> Event.VALUE_STRING;
         case NUMBER -> Event.VALUE_NUMBER;
@@ -819,187 +679,64 @@ public final class YamlJsonParser implements JsonParser
         case FALSE -> Event.VALUE_FALSE;
         case NULL -> Event.VALUE_NULL;
         };
-        return root ? eventAtEnd(event, scalar.value, scalar) :
-            event(event, scalar.value, scalar, scalar.line, scalar.column, scalar.offset);
     }
 
-    private JsonValue toJsonValue(
-        YamlNode node)
+    private static String scalarData(
+        Yev scalar)
     {
-        if (node instanceof YamlObjectNode object)
-        {
-            JsonObjectBuilder builder = YamlJsonValues.objectBuilder();
-            for (YamlEntry entry : object.entries)
-            {
-                builder.add(jsonKeyName(entry), toJsonValue(entry.value));
-            }
-            return builder.build();
-        }
-        if (node instanceof YamlArrayNode array)
-        {
-            JsonArrayBuilder builder = YamlJsonValues.arrayBuilder();
-            for (YamlNode value : array.values)
-            {
-                builder.add(toJsonValue(value));
-            }
-            return builder.build();
-        }
-
-        YamlScalarNode scalar = (YamlScalarNode) node;
-        return switch (scalar.type)
-        {
-        case STRING -> YamlJsonValues.string(scalar.value);
-        case NUMBER -> YamlJsonValues.number(new BigDecimal(scalar.value));
-        case TRUE -> JsonValue.TRUE;
-        case FALSE -> JsonValue.FALSE;
-        case NULL -> JsonValue.NULL;
-        };
-    }
-
-    private static void rejectJsonUnsupported(
-        YamlNode node,
-        long offset)
-    {
-        if (node instanceof YamlObjectNode object)
-        {
-            for (YamlEntry entry : object.entries)
-            {
-                if (entry.key != null)
-                {
-                    if (!(entry.key instanceof YamlScalarNode))
-                    {
-                        throw new JsonParsingException("Non-scalar YAML mapping keys are not supported",
-                            new YamlJsonLocation(new YamlLocation(entry.line, entry.column, offset + entry.offset)));
-                    }
-                }
-                rejectJsonUnsupported(entry.value, offset);
-            }
-        }
-        else if (node instanceof YamlArrayNode array)
-        {
-            for (YamlNode value : array.values)
-            {
-                rejectJsonUnsupported(value, offset);
-            }
-        }
-    }
-
-    private static void rejectDuplicateKeys(
-        YamlNode node,
-        long offset)
-    {
-        if (node instanceof YamlObjectNode object)
-        {
-            Set<String> names = new HashSet<>();
-            for (YamlEntry entry : object.entries)
-            {
-                String name = jsonKeyName(entry);
-                if (!names.add(name))
-                {
-                    throw new JsonParsingException("Duplicate YAML mapping key: " + name,
-                        new YamlJsonLocation(new YamlLocation(entry.line, entry.column, offset + entry.offset)));
-                }
-                rejectDuplicateKeys(entry.value, offset);
-            }
-        }
-        else if (node instanceof YamlArrayNode array)
-        {
-            for (YamlNode value : array.values)
-            {
-                rejectDuplicateKeys(value, offset);
-            }
-        }
-    }
-
-    private static String jsonKeyName(
-        YamlEntry entry)
-    {
-        if (entry.name != null)
-        {
-            return entry.name;
-        }
-        if (entry.key instanceof YamlScalarNode scalar)
-        {
-            return scalarText(scalar);
-        }
-        throw new JsonParsingException("Non-scalar YAML mapping keys are not supported",
-            new YamlJsonLocation(new YamlLocation(entry.line, entry.column, entry.offset)));
-    }
-
-    private YamlJsonEvent event(
-        Event event,
-        String value,
-        YamlNode node,
-        int line,
-        int column,
-        long offset)
-    {
-        return freeEvent().set(event, value, node, line, column, documentOffset + offset);
-    }
-
-    private YamlJsonEvent eventAtEnd(
-        Event event,
-        String value,
-        YamlNode node)
-    {
-        return freeEvent().set(event, value, node, end);
-    }
-
-    private YamlJsonEvent freeEvent()
-    {
-        return current == eventA ? eventB : eventA;
-    }
-
-    private static YamlJsonLocation location(
-        YamlLocation location,
-        long offset)
-    {
-        return new YamlJsonLocation(new YamlLocation((int) location.line(), (int) location.column(),
-            offset + location.offset()));
-    }
-
-    private static boolean hasDocumentContent(
-        String text,
-        int offset)
-    {
-        while (offset < text.length())
-        {
-            int lineEnd = text.indexOf('\n', offset);
-            if (lineEnd == -1)
-            {
-                lineEnd = text.length();
-            }
-            String raw = text.substring(offset, lineEnd);
-            if (raw.endsWith("\r"))
-            {
-                raw = raw.substring(0, raw.length() - 1);
-            }
-            String content = raw.stripLeading();
-            int commentAt = content.indexOf('#');
-            if (commentAt == 0)
-            {
-                content = "";
-            }
-            content = content.strip();
-            if (!content.isEmpty() && !"...".equals(content))
-            {
-                return true;
-            }
-            offset = lineEnd == text.length() ? lineEnd : lineEnd + 1;
-        }
-        return false;
+        return scalar.scalarType == YamlScalarType.STRING || scalar.scalarType == YamlScalarType.NUMBER ?
+            scalar.value : null;
     }
 
     private static String scalarText(
-        YamlScalarNode scalar)
+        Yev scalar)
     {
-        return scalar.value != null ? scalar.value : switch (scalar.type)
+        String text;
+        if (scalar.value != null)
         {
-        case TRUE -> "true";
-        case FALSE -> "false";
-        case NULL -> "null";
-        default -> "";
-        };
+            text = scalar.value;
+        }
+        else
+        {
+            text = switch (scalar.scalarType)
+            {
+            case TRUE -> "true";
+            case FALSE -> "false";
+            default -> "";
+            };
+        }
+        return text;
+    }
+
+    private static String numberText(
+        String text)
+    {
+        boolean negative = text.startsWith("-");
+        String scalar = negative ? text.substring(1) : text;
+        String result;
+        if (scalar.startsWith("0x"))
+        {
+            String value = new BigInteger(scalar.substring(2), 16).toString();
+            result = negative ? "-" + value : value;
+        }
+        else
+        {
+            result = text;
+        }
+        return result;
+    }
+
+    private static YamlJsonLocation location(
+        YamlLocation location)
+    {
+        return new YamlJsonLocation(location);
+    }
+
+    private static JsonParsingException error(
+        String message,
+        YamlLocation location)
+    {
+        return new JsonParsingException(message, new YamlJsonLocation(location));
     }
 
     private static String readAll(
@@ -1022,8 +759,7 @@ public final class YamlJsonParser implements JsonParser
         }
         catch (IOException ex)
         {
-            throw new JsonParsingException(ex.getMessage(), ex,
-                new YamlJsonLocation(new YamlLocation(1, 1, 0)));
+            throw new JsonParsingException(ex.getMessage(), ex, new YamlJsonLocation(new YamlLocation(1, 1, 0)));
         }
     }
 
@@ -1037,22 +773,53 @@ public final class YamlJsonParser implements JsonParser
         }
         catch (IOException ex)
         {
-            throw new JsonParsingException(ex.getMessage(), ex,
-                new YamlJsonLocation(new YamlLocation(1, 1, 0)));
+            throw new JsonParsingException(ex.getMessage(), ex, new YamlJsonLocation(new YamlLocation(1, 1, 0)));
         }
     }
 
-    private static final class Frame
+    private static final class Yev
     {
-        final YamlNode node;
-        int index;
-        boolean started;
-        boolean value;
+        private final YamlEvent event;
+        private final String value;
+        private final YamlScalarType scalarType;
+        private final String anchor;
+        private final String tag;
+        private final String alias;
+        private final YamlLocation location;
 
-        private Frame(
-            YamlNode node)
+        private Yev(
+            YamlEvent event,
+            String value,
+            YamlScalarType scalarType,
+            String anchor,
+            String tag,
+            String alias,
+            YamlLocation location)
         {
-            this.node = node;
+            this.event = event;
+            this.value = value;
+            this.scalarType = scalarType;
+            this.anchor = anchor;
+            this.tag = tag;
+            this.alias = alias;
+            this.location = location;
+        }
+    }
+
+    private static final class Step
+    {
+        private final Event event;
+        private final String value;
+        private YamlJsonLocation location;
+
+        private Step(
+            Event event,
+            String value,
+            YamlJsonLocation location)
+        {
+            this.event = event;
+            this.value = value;
+            this.location = location;
         }
     }
 }
