@@ -75,8 +75,6 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
     private boolean segmentActive;
     private boolean segmentOpened;
     private int segmentLength;
-    private final byte[] bytesCarry;
-    private int bytesCarryLength;
     private int consumed;
     private boolean flushed;
 
@@ -103,7 +101,6 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
         this.scratch = new StringBuilder();
         this.accumulator = new ExpandableArrayBuffer();
         this.byteView = new UnsafeBuffer();
-        this.bytesCarry = new byte[2];
         this.scopes = new Scope[8];
         for (int i = 0; i < scopes.length; i++)
         {
@@ -131,7 +128,6 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
             segmentActive = false;
             segmentOpened = false;
             segmentLength = 0;
-            bytesCarryLength = 0;
         }
         consumed = 0;
         return this;
@@ -416,7 +412,6 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
             segmentActive = true;
             segmentOpened = false;
             segmentLength = 0;
-            bytesCarryLength = 0;
         }
         if (scalarKey)
         {
@@ -785,33 +780,32 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
         int length,
         int deferred)
     {
-        int available = bytesCarryLength + length;
         int reserve = (segmentOpened ? 0 : 1) + (deferred == 0 ? 1 : 0);
         int groupsFit = Math.max(0, json.remaining() - reserve) / 4;
-        int wholeGroups = Math.min(groupsFit, available / 3);
+        int wholeGroups = Math.min(groupsFit, length / 3);
 
         scratch.setLength(0);
         int taken = 0;
         for (int g = 0; g < wholeGroups; g++)
         {
-            int b0 = byteAt(value, offset, taken++);
-            int b1 = byteAt(value, offset, taken++);
-            int b2 = byteAt(value, offset, taken++);
+            int b0 = value.getByte(offset + taken++) & 0xff;
+            int b1 = value.getByte(offset + taken++) & 0xff;
+            int b2 = value.getByte(offset + taken++) & 0xff;
             appendBase64Group(b0, b1, b2);
         }
 
-        int rem = available - taken;
+        int rem = length - taken;
         boolean complete = false;
         if (deferred == 0 && rem > 0 && rem < 3 && wholeGroups < groupsFit)
         {
             // the final delivery's 1-2 byte tail forms one padded group when it still fits the bound
-            int b0 = byteAt(value, offset, taken++);
-            int b1 = rem == 2 ? byteAt(value, offset, taken++) : -1;
+            int b0 = value.getByte(offset + taken++) & 0xff;
+            int b1 = rem == 2 ? value.getByte(offset + taken++) & 0xff : -1;
             appendBase64Group(b0, b1, -1);
             rem = 0;
             complete = true;
         }
-        else if (deferred == 0 && rem == 0 && wholeGroups == available / 3)
+        else if (deferred == 0 && rem == 0 && wholeGroups == length / 3)
         {
             complete = true;
         }
@@ -822,55 +816,15 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
             json.write(scratch, completion);
             segmentOpened = true;
         }
-
-        int oldCarry = bytesCarryLength;
-        if (groupsFit == 0 && taken == 0)
-        {
-            // pure output back-pressure: nothing emitted, keep the existing carry and consume no new bytes so
-            // the sink suspends, drains, and resumes this same slice against a fresh window
-            bytesCarryLength = oldCarry;
-        }
-        else if (deferred > 0 && rem < 3)
-        {
-            // not enough bytes left to form a whole group: carry the 0-2 byte tail and advance so the pipeline
-            // pulls the next input window, where the tail combines with the following bytes
-            for (int i = 0; i < rem; i++)
-            {
-                bytesCarry[i] = (byte) byteAt(value, offset, taken + i);
-            }
-            bytesCarryLength = rem;
-            consumed += length;
-        }
-        else if (rem == 0)
-        {
-            // every available byte was emitted
-            bytesCarryLength = 0;
-            consumed += length;
-        }
-        else
-        {
-            // output back-pressure with a >=3 byte remainder (or a final tail that did not fit): leave it in the
-            // source, carry nothing, and consume only the bytes actually emitted from this slice
-            bytesCarryLength = 0;
-            consumed += taken - oldCarry;
-        }
+        // consume only the source bytes whose whole base64 groups were emitted; any sub-group tail is left
+        // unconsumed for the source to re-present (output back-pressure), so the adapter holds no carry buffer
+        consumed += taken;
 
         if (complete)
         {
             segmentActive = false;
             segmentLength = 0;
-            bytesCarryLength = 0;
         }
-    }
-
-    private int byteAt(
-        DirectBuffer value,
-        int offset,
-        int index)
-    {
-        return index < bytesCarryLength
-            ? bytesCarry[index] & 0xff
-            : value.getByte(offset + index - bytesCarryLength) & 0xff;
     }
 
     private void appendBase64Group(
