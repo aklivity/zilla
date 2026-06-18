@@ -21,7 +21,6 @@ import static org.mockito.Mockito.when;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
-import java.util.concurrent.atomic.AtomicReference;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
@@ -29,7 +28,6 @@ import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
@@ -269,14 +267,7 @@ public class ProtobufModelTest
             .build();
 
         when(context.clock()).thenReturn(Clock.systemUTC());
-        AtomicReference<DirectBuffer> captured = new AtomicReference<>();
-        MessageConsumer writer = (msgTypeId, buffer, index, length) ->
-        {
-            MutableDirectBuffer copy = new UnsafeBuffer(new byte[length]);
-            copy.putBytes(0, buffer, index, length);
-            captured.set(copy);
-        };
-        when(context.supplyEventWriter()).thenReturn(writer);
+        when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
 
         ProtobufReadConverterHandler converter = new ProtobufReadConverterHandler(model, context);
 
@@ -285,12 +276,6 @@ public class ProtobufModelTest
         byte[] bytes = {0x00, 0x0a, 0x08, 0x4f, 0x4b};
         data.wrap(bytes, 0, bytes.length);
         assertEquals(-1, converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
-
-        ProtobufModelEventFormatter formatter =
-            new ProtobufModelEventFormatterFactory().create(new Configuration());
-        DirectBuffer event = captured.get();
-        assertEquals("A message payload failed validation. truncated field: need 8 bytes.",
-            formatter.format(event, 0, event.capacity()));
     }
 
     @Test

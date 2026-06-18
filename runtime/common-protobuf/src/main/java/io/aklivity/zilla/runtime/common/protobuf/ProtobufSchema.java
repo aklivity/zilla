@@ -183,8 +183,8 @@ public final class ProtobufSchema
      * One-shot validation of a fully-buffered message named {@code messageName} against this schema:
      * returns {@code true} when the wire decodes structurally and every proto2 {@code required} field
      * is present. A convenience over the pipeline (it builds a per-call validating pipeline); for
-     * repeated validation on the hot path, build a pipeline once with {@link #validatorPipeline(String)}
-     * and reuse it — its {@link ProtobufPipeline#reason()} also carries why a message was rejected.
+     * repeated validation on the hot path, build a pipeline once with {@link #validator(String)} and
+     * reuse it.
      */
     public boolean validate(
         String messageName,
@@ -192,24 +192,11 @@ public final class ProtobufSchema
         int offset,
         int length)
     {
-        ProtobufPipeline pipeline = validatorPipeline(messageName);
-        pipeline.reset();
-        return pipeline.feed(buffer, offset, offset + length) == ProtobufPipeline.Status.COMPLETED;
-    }
-
-    /**
-     * A reusable validating pipeline for the message named {@code messageName}: it decodes and validates
-     * the wire while discarding output, so {@link ProtobufPipeline#feed} returns
-     * {@link ProtobufPipeline.Status#COMPLETED} on success or {@link ProtobufPipeline.Status#REJECTED}
-     * (with {@link ProtobufPipeline#reason()} set) otherwise. Call {@link ProtobufPipeline#reset()}
-     * before each message.
-     */
-    public ProtobufPipeline validatorPipeline(
-        String messageName)
-    {
-        return new ProtobufStreamImpl(new ProtobufParserImpl(this, messageName))
+        ProtobufPipeline pipeline = new ProtobufStreamImpl(new ProtobufParserImpl(this, messageName))
             .transform(new ProtobufValidatorImpl(this, messageName))
             .into(new ProtobufDiscardSinkImpl());
+        pipeline.reset();
+        return pipeline.feed(buffer, offset, offset + length) == ProtobufPipeline.Status.COMPLETED;
     }
 
     public static Builder builder()

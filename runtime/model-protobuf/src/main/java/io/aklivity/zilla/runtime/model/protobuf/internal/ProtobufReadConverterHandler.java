@@ -51,7 +51,6 @@ public class ProtobufReadConverterHandler extends ProtobufModelHandler implement
     private final Matcher matcher;
     private final Map<String, ProtobufFieldValue> extracted;
     private final Map<String, JsonState> jsonStates;
-    private final Map<String, ProtobufPipeline> validators;
 
     private int progress;
 
@@ -63,7 +62,6 @@ public class ProtobufReadConverterHandler extends ProtobufModelHandler implement
         this.matcher = PATH_PATTERN.matcher("");
         this.extracted = new HashMap<>();
         this.jsonStates = new HashMap<>();
-        this.validators = new HashMap<>();
     }
 
     @Override
@@ -184,9 +182,7 @@ public class ProtobufReadConverterHandler extends ProtobufModelHandler implement
             if (message != null)
             {
                 String messageName = message.name();
-                ProtobufPipeline validator = validators.computeIfAbsent(messageName, name -> schema.validatorPipeline(name));
-                validator.reset();
-                if (validator.feed(data, index, index + length) == ProtobufPipeline.Status.COMPLETED)
+                if (schema.validate(messageName, data, index, length))
                 {
                     progress = index;
                     extractFields(data, index + length, message);
@@ -203,8 +199,7 @@ public class ProtobufReadConverterHandler extends ProtobufModelHandler implement
                 }
                 else
                 {
-                    String reason = validator.reason();
-                    event.validationFailure(traceId, bindingId, reason != null ? reason : "Invalid Protobuf event");
+                    event.validationFailure(traceId, bindingId, "Invalid Protobuf event");
                 }
             }
         }
