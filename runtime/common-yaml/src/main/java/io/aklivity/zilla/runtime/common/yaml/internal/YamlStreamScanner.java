@@ -374,9 +374,10 @@ public final class YamlStreamScanner
             int rootColon = mappingColon(contentStart[line], contentEnd[line]);
             int decorated = raw && (first == '&' || first == '!') ? propertiesEnd(contentStart[line], contentEnd[line]) : -1;
             char decoratedFirst = decorated > 0 && decorated < contentEnd[line] ? text.charAt(decorated) : 0;
-            if (decoratedFirst == '{' || decoratedFirst == '[')
+            if ((decoratedFirst == '{' || decoratedFirst == '[') && rootColon == -1)
             {
-                // node properties decorating a flow collection at the document root (e.g. &seq [ ... ])
+                // node properties decorating a flow collection at the document root (e.g. &seq [ ... ]); a
+                // trailing colon instead makes the decorated flow a mapping key, handled by scanBlock below
                 consumeProperties(contentStart[line], contentEnd[line]);
                 scanFlowBody(decorated);
             }
@@ -820,6 +821,16 @@ public final class YamlStreamScanner
                 if (nodeFirst == '"' || nodeFirst == '\'')
                 {
                     emitQuotedKey(nodeStart, keyEnd);
+                }
+                else if (nodeFirst == '{' || nodeFirst == '[')
+                {
+                    // a flow collection key carrying the consumed anchor/tag (e.g. &key [ ... ]: value)
+                    flowAt = nodeStart;
+                    flowValue();
+                    if (flowAt != keyEnd)
+                    {
+                        throw BAIL;
+                    }
                 }
                 else if (isReservedStart(nodeFirst) || isMergeKey(nodeStart, keyEnd))
                 {
