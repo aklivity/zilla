@@ -133,12 +133,20 @@ public class JsonValidatorHandler extends JsonModelHandler implements ValidatorH
         int payloadLength = length;
         if ((flags & FLAGS_INIT) != 0x00)
         {
-            // the schema framing prefix appears only on the first fragment; let the catalog skip it in a
-            // catalog-specific way and hand back the embedded schema id plus the post-prefix payload, which
-            // then streams through the pipeline like any other fragment — no whole-payload buffering
+            // the schema framing prefix appears only on the first fragment; defer to the catalog's decode to
+            // skip it in a catalog-specific way and hand back any embedded schema id plus the post-prefix
+            // payload, which then streams through the pipeline like any other fragment — no whole-payload
+            // buffering. Resolve the schema id the same way the read converter does when the catalog embeds none.
             encodedSchemaId = NO_SCHEMA_ID;
-            handler.validate(traceId, bindingId, data, index, length, next, this::resolveEncoded);
-            active = encodedSchemaId != NO_SCHEMA_ID ? supplyValidator(encodedSchemaId) : null;
+            encodedIndex = index;
+            encodedLength = length;
+            handler.decode(traceId, bindingId, data, index, length, next, this::decodeEncoded);
+            int schemaId = encodedSchemaId != NO_SCHEMA_ID
+                ? encodedSchemaId
+                : catalog.id != NO_SCHEMA_ID
+                    ? catalog.id
+                    : handler.resolve(subject, catalog.version);
+            active = supplyValidator(schemaId);
             if (active != null)
             {
                 active.pipeline.reset();
@@ -166,9 +174,9 @@ public class JsonValidatorHandler extends JsonModelHandler implements ValidatorH
         return valid;
     }
 
-    // CatalogHandler.Validator callback: captures the embedded schema id and the post-prefix payload
-    // region the catalog unwrapped, so the encoded fragment can stream rather than buffer whole.
-    private boolean resolveEncoded(
+    // CatalogHandler.Decoder callback: captures any embedded schema id and the post-prefix payload region
+    // the catalog unwrapped, so the encoded fragment can stream rather than buffer whole.
+    private int decodeEncoded(
         long traceId,
         long bindingId,
         int schemaId,
@@ -180,7 +188,7 @@ public class JsonValidatorHandler extends JsonModelHandler implements ValidatorH
         encodedSchemaId = schemaId;
         encodedIndex = index;
         encodedLength = length;
-        return true;
+        return length;
     }
 
     private boolean stream(

@@ -66,6 +66,10 @@ public class JsonValidatorTest
             OBJECT_SCHEMA +
             "}";
 
+    // a 4-byte schema-id framing prefix; the test catalog strips it by length via decode and resolves the
+    // schema via catalog.id, modeling how a real catalog embeds the schema id on the wire
+    private static final String ENCODED_PREFIX = "sid9";
+
     private EngineContext context;
 
     @Before
@@ -393,6 +397,7 @@ public class JsonValidatorTest
             .options(TestCatalogOptionsConfig::builder)
                 .id(9)
                 .schema(OBJECT_SCHEMA)
+                .prefix(ENCODED_PREFIX)
                 .build()
             .build();
 
@@ -434,6 +439,7 @@ public class JsonValidatorTest
             .options(TestCatalogOptionsConfig::builder)
                 .id(9)
                 .schema(OBJECT_SCHEMA)
+                .prefix(ENCODED_PREFIX)
                 .build()
             .build();
 
@@ -451,14 +457,18 @@ public class JsonValidatorTest
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
         JsonValidatorHandler validator = new JsonValidatorHandler(model, context);
 
+        byte[] encoded = {0x00, 0x00, 0x00, 0x09};
         byte[] event = """
             {
-              "id": "123",
+              "id": 123,
               "status": "OK"
             }""".getBytes();
 
-        DirectBuffer data = new UnsafeBuffer();
-        data.wrap(event, 0, event.length);
+        int length = encoded.length + event.length;
+
+        ExpandableDirectByteBuffer data = new ExpandableDirectByteBuffer(length);
+        data.putBytes(0, encoded, 0, encoded.length);
+        data.putBytes(encoded.length, event, 0, event.length);
 
         assertFalse(validator.validate(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
@@ -473,6 +483,7 @@ public class JsonValidatorTest
             .options(TestCatalogOptionsConfig::builder)
                 .id(9)
                 .schema(OBJECT_SCHEMA)
+                .prefix(ENCODED_PREFIX)
                 .build()
             .build();
 
@@ -511,6 +522,7 @@ public class JsonValidatorTest
             .options(TestCatalogOptionsConfig::builder)
                 .id(9)
                 .schema(OBJECT_SCHEMA)
+                .prefix(ENCODED_PREFIX)
                 .build()
             .build();
 
