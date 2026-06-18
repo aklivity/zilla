@@ -20,6 +20,7 @@ import java.util.List;
 
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufController;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufEvent;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufException;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufField;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufMessage;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline;
@@ -33,7 +34,9 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufTransform;
  * every event unchanged. The driver already rejects malformed wire and wire-type/declared-type
  * mismatches; this stage adds descriptor-level semantic validation — proto2 {@code required}-field
  * presence per message scope — and reports failure at the message boundary, after the events are
- * forwarded, so callers abort on {@link ProtobufPipeline.Status#REJECTED} (emit-then-abort).
+ * forwarded (emit-then-abort). It throws a descriptive {@link ProtobufException} at the point of detection
+ * so the pipeline maps it to {@link ProtobufPipeline.Status#REJECTED} and pushes the named missing field to
+ * the reporter, rather than rejecting structurally with no message.
  */
 public final class ProtobufValidatorImpl implements ProtobufTransform
 {
@@ -80,7 +83,9 @@ public final class ProtobufValidatorImpl implements ProtobufTransform
         case END_GROUP:
             if (status != ProtobufPipeline.Status.REJECTED && !scope(depth).satisfied())
             {
-                status = ProtobufPipeline.Status.REJECTED;
+                // the validator knows precisely which required field is missing — describe it at the point of
+                // detection so the pipeline pushes a descriptive diagnostic, not a generic structural reject
+                throw new ProtobufException(scope(depth).describe());
             }
             depth--;
             break;
@@ -109,6 +114,7 @@ public final class ProtobufValidatorImpl implements ProtobufTransform
 
     private static final class Scope
     {
+        private String messageName;
         private List<ProtobufField> required;
         private boolean[] seen;
         private int count;
@@ -116,6 +122,7 @@ public final class ProtobufValidatorImpl implements ProtobufTransform
         private void reset(
             ProtobufMessage message)
         {
+            messageName = message.name();
             required = message.requiredFields();
             count = required.size();
             if (seen == null || seen.length < count)
@@ -123,6 +130,21 @@ public final class ProtobufValidatorImpl implements ProtobufTransform
                 seen = new boolean[Math.max(count, 4)];
             }
             Arrays.fill(seen, 0, count, false);
+        }
+
+        private String describe()
+        {
+            ProtobufField missing = null;
+            for (int i = 0; missing == null && i < count; i++)
+            {
+                if (!seen[i])
+                {
+                    missing = required.get(i);
+                }
+            }
+            return missing == null
+                ? String.format("message %s missing a required field", messageName)
+                : String.format("message %s missing required field %s (%d)", messageName, missing.name(), missing.number());
         }
 
         private void see(

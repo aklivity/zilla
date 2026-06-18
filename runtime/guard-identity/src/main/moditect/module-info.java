@@ -15,7 +15,12 @@
 module io.aklivity.zilla.runtime.guard.identity
 {
     requires io.aklivity.zilla.runtime.engine;
+    requires jakarta.json;
+    requires jakarta.json.bind;
 
     provides io.aklivity.zilla.runtime.engine.guard.GuardFactorySpi
         with io.aklivity.zilla.runtime.guard.identity.internal.IdentityGuardFactorySpi;
+
+    provides io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi
+        with io.aklivity.zilla.runtime.guard.identity.internal.config.IdentityOptionsConfigAdapter;
 }

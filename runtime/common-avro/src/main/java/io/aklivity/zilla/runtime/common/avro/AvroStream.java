@@ -17,14 +17,22 @@ package io.aklivity.zilla.runtime.common.avro;
 /**
  * A description of a {@code common-avro} pipeline — the schema-bound parse driver (from
  * {@link AvroSchema#parser()}) plus an ordered list of {@link AvroTransform} stages. Append stages with
- * {@link #transform(AvroTransform)} (left-to-right, in data-flow order); terminate with
- * {@link #into(AvroSink)} to obtain the runnable, resumable {@link AvroPipeline}. An {@code AvroStream}
- * carries no state and is not itself runnable.
+ * {@link #transform(AvroTransform)} (left-to-right, in data-flow order); optionally attach an
+ * {@link AvroReporter} with {@link #reporting(AvroReporter)}; terminate with {@link #into(AvroSink)} to
+ * obtain the runnable, resumable {@link AvroPipeline}. An {@code AvroStream} carries no state and is not
+ * itself runnable.
  */
 public interface AvroStream
 {
     AvroStream transform(
         AvroTransform transform);
+
+    /**
+     * Attaches the {@link AvroReporter} the pipeline pushes an {@link AvroDiagnostic} to on a terminal
+     * {@link AvroPipeline.Status#REJECTED}. The last attached reporter wins; the default is none.
+     */
+    AvroStream reporting(
+        AvroReporter reporter);
 
     AvroPipeline into(
         AvroSink sink);
