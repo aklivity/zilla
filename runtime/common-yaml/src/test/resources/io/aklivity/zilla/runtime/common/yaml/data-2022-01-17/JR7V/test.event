@@ -1,0 +1,30 @@
++STR
++DOC
++SEQ
+=VAL :a?string
+=VAL :another ? string
++MAP
+=VAL :key
+=VAL :value?
+-MAP
++SEQ []
+=VAL :a?string
+-SEQ
++SEQ []
+=VAL :another ? string
+-SEQ
++MAP {}
+=VAL :key
+=VAL :value?
+-MAP
++MAP {}
+=VAL :key
+=VAL :value?
+-MAP
++MAP {}
+=VAL :key?
+=VAL :value
+-MAP
+-SEQ
+-DOC
+-STR

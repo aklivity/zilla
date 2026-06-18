@@ -1,0 +1,9 @@
++STR
++DOC
++SEQ []
+=VAL :1
+=VAL :2
+=VAL :3
+-SEQ
+-DOC
+-STR
