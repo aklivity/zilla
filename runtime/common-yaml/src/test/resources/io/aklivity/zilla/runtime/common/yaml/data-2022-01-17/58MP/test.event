@@ -1,0 +1,8 @@
++STR
++DOC
++MAP {}
+=VAL :x
+=VAL ::x
+-MAP
+-DOC
+-STR
