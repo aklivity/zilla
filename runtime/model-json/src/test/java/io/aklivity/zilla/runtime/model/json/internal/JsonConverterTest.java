@@ -131,6 +131,49 @@ public class JsonConverterTest
     }
 
     @Test
+    public void shouldVerifyValidJsonObjectAtOffset()
+    {
+        TestCatalogConfig catalog = CatalogConfig.builder(TestCatalogConfig::new)
+            .namespace("test")
+            .name("test0")
+            .type("test")
+            .options(TestCatalogOptionsConfig::builder)
+                .id(9)
+                .schema(OBJECT_SCHEMA)
+                .build()
+            .build();
+
+        JsonModelConfig model = JsonModelConfig.builder()
+            .catalog()
+                .name("test0")
+                .schema()
+                    .strategy("topic")
+                    .subject(null)
+                    .version("latest")
+                    .id(0)
+                    .build()
+                .build()
+            .build();
+
+        when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
+        JsonReadConverterHandler converter = new JsonReadConverterHandler(model, context);
+
+        String payload =
+                "{" +
+                    "\"id\": \"123\"," +
+                    "\"status\": \"OK\"" +
+                "}";
+        byte[] bytes = payload.getBytes();
+        int offset = 5;
+        MutableDirectBuffer framed = new UnsafeBuffer(new byte[offset + bytes.length]);
+        framed.putBytes(offset, bytes);
+
+        String expected = "{\"id\":\"123\",\"status\":\"OK\"}";
+        assertEquals(expected.length(), converter.convert(0L, 0L, framed, offset, bytes.length, capture));
+        assertEquals(expected, captured());
+    }
+
+    @Test
     public void shouldVerifyValidJsonArray()
     {
         TestCatalogConfig catalog = CatalogConfig.builder(TestCatalogConfig::new)

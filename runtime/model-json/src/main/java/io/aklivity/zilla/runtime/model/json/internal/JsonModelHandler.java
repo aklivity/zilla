@@ -108,7 +108,7 @@ public abstract class JsonModelHandler
             generator.wrap(projectBuffer, 0, projectBuffer.capacity());
             pipeline.reset();
 
-            JsonPipeline.Status status = pipeline.feed(buffer, index, length);
+            JsonPipeline.Status status = pipeline.feed(buffer, index, index + length);
             if (status == JsonPipeline.Status.COMPLETED)
             {
                 projected = generator.length();
