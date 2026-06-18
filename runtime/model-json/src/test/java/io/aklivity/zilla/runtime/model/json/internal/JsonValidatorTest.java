@@ -285,6 +285,102 @@ public class JsonValidatorTest
     }
 
     @Test
+    public void shouldVerifyValidJsonObjectFragmentedPerByte()
+    {
+        JsonValidatorHandler validator = newValidator(OBJECT_SCHEMA);
+
+        byte[] bytes =
+                ("{" +
+                    "\"id\": \"123\"," +
+                    "\"status\": \"OK\"" +
+                "}").getBytes();
+        DirectBuffer data = new UnsafeBuffer(bytes);
+
+        boolean valid = true;
+        for (int i = 0; i < bytes.length; i++)
+        {
+            int flags = 0;
+            if (i == 0)
+            {
+                flags |= FLAGS_INIT;
+            }
+            if (i == bytes.length - 1)
+            {
+                flags |= FLAGS_FIN;
+            }
+            valid = validator.validate(0L, 0L, flags, data, i, 1, ValueConsumer.NOP);
+            assertTrue("fragment " + i + " rejected", valid);
+        }
+    }
+
+    @Test
+    public void shouldVerifyInvalidJsonObjectFragmentedPerByte()
+    {
+        when(context.clock()).thenReturn(Clock.systemUTC());
+        when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
+        JsonValidatorHandler validator = newValidator(OBJECT_SCHEMA);
+
+        byte[] bytes =
+                ("{" +
+                    "\"id\": 123," +
+                    "\"status\": \"OK\"" +
+                "}").getBytes();
+        DirectBuffer data = new UnsafeBuffer(bytes);
+
+        boolean valid = true;
+        for (int i = 0; i < bytes.length; i++)
+        {
+            int flags = 0;
+            if (i == 0)
+            {
+                flags |= FLAGS_INIT;
+            }
+            if (i == bytes.length - 1)
+            {
+                flags |= FLAGS_FIN;
+            }
+            valid = validator.validate(0L, 0L, flags, data, i, 1, ValueConsumer.NOP);
+        }
+
+        assertFalse(valid);
+    }
+
+    @Test
+    public void shouldVerifyValidJsonObjectWithMultibyteFragmented()
+    {
+        JsonValidatorHandler validator = newValidator(OBJECT_SCHEMA);
+
+        DirectBuffer data = new UnsafeBuffer();
+
+        String payload =
+                "{" +
+                    "\"id\": \"状態値\"," +
+                    "\"status\": \"OK\"" +
+                "}";
+        byte[] bytes = payload.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        data.wrap(bytes, 0, bytes.length);
+
+        boolean valid = true;
+        int window = 3;
+        for (int offset = 0; offset < bytes.length; offset += window)
+        {
+            int length = Math.min(window, bytes.length - offset);
+            int flags = 0;
+            if (offset == 0)
+            {
+                flags |= FLAGS_INIT;
+            }
+            if (offset + length >= bytes.length)
+            {
+                flags |= FLAGS_FIN;
+            }
+            valid = validator.validate(0L, 0L, flags, data, offset, length, ValueConsumer.NOP);
+        }
+
+        assertTrue(valid);
+    }
+
+    @Test
     public void shouldVerifyValidCompleteJsonObjectWithEncoded()
     {
         TestCatalogConfig catalog = CatalogConfig.builder(TestCatalogConfig::new)
@@ -360,5 +456,34 @@ public class JsonValidatorTest
         data.wrap(event, 0, event.length);
 
         assertFalse(validator.validate(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
+    }
+
+    private JsonValidatorHandler newValidator(
+        String schema)
+    {
+        TestCatalogConfig catalog = CatalogConfig.builder(TestCatalogConfig::new)
+            .namespace("test")
+            .name("test0")
+            .type("test")
+            .options(TestCatalogOptionsConfig::builder)
+                .id(1)
+                .schema(schema)
+                .build()
+            .build();
+
+        JsonModelConfig model = JsonModelConfig.builder()
+            .catalog()
+            .name("test0")
+                .schema()
+                    .strategy("topic")
+                    .subject(null)
+                    .version("latest")
+                    .id(1)
+                    .build()
+                .build()
+            .build();
+
+        when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
+        return new JsonValidatorHandler(model, context);
     }
 }

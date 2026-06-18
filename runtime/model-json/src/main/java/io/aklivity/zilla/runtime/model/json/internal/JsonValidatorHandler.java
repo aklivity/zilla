@@ -20,8 +20,15 @@ import jakarta.json.stream.JsonParsingException;
 
 import org.agrona.DirectBuffer;
 import org.agrona.ExpandableDirectByteBuffer;
+import org.agrona.MutableDirectBuffer;
+import org.agrona.collections.Int2ObjectCache;
+import org.agrona.concurrent.UnsafeBuffer;
 import org.agrona.io.DirectBufferInputStream;
 
+import io.aklivity.zilla.runtime.common.json.JsonEx;
+import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
+import io.aklivity.zilla.runtime.common.json.JsonPipeline;
+import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
@@ -30,22 +37,127 @@ import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
 public class JsonValidatorHandler extends JsonModelHandler implements ValidatorHandler
 {
-    private final DirectBufferInputStream in;
-    private final ExpandableDirectByteBuffer buffer;
+    private static final String ENCODED = "encoded";
+    private static final int OUTPUT_CAPACITY = 8192;
 
-    private int progress;
+    private final Int2ObjectCache<Validator> validators;
+    private final ExpandableDirectByteBuffer carry;
+    private final ExpandableDirectByteBuffer assembly;
+
+    private final DirectBufferInputStream in;
+    private final ExpandableDirectByteBuffer encoded;
+
+    private Validator active;
+    private int carryLength;
+    private int encodedProgress;
 
     public JsonValidatorHandler(
         JsonModelConfig config,
         EngineContext context)
     {
         super(config, context);
-        this.buffer = new ExpandableDirectByteBuffer();
-        this.in = new DirectBufferInputStream(buffer);
+        this.validators = new Int2ObjectCache<>(1, 16, v -> {});
+        this.carry = new ExpandableDirectByteBuffer();
+        this.assembly = new ExpandableDirectByteBuffer();
+        this.in = new DirectBufferInputStream();
+        this.encoded = new ExpandableDirectByteBuffer();
     }
 
     @Override
     public boolean validate(
+        long traceId,
+        long bindingId,
+        int flags,
+        DirectBuffer data,
+        int index,
+        int length,
+        ValueConsumer next)
+    {
+        boolean valid = catalog != null && ENCODED.equals(catalog.strategy)
+            ? validateEncoded(traceId, bindingId, flags, data, index, length, next)
+            : validateStreaming(traceId, bindingId, flags, data, index, length);
+        return valid;
+    }
+
+    private boolean validateStreaming(
+        long traceId,
+        long bindingId,
+        int flags,
+        DirectBuffer data,
+        int index,
+        int length)
+    {
+        boolean valid;
+
+        if ((flags & FLAGS_INIT) != 0x00)
+        {
+            int schemaId = catalog != null && catalog.id > 0
+                ? catalog.id
+                : handler.resolve(subject, catalog.version);
+            active = supplyValidator(schemaId);
+            if (active != null)
+            {
+                active.pipeline.reset();
+            }
+            carryLength = 0;
+        }
+
+        boolean last = (flags & FLAGS_FIN) != 0x00;
+
+        if (active == null)
+        {
+            valid = !last;
+            if (last)
+            {
+                event.validationFailure(traceId, bindingId, JsonModel.NAME);
+            }
+        }
+        else
+        {
+            DirectBuffer buffer;
+            int offset;
+            int limit;
+            if (carryLength == 0)
+            {
+                buffer = data;
+                offset = index;
+                limit = index + length;
+            }
+            else
+            {
+                assembly.putBytes(0, carry, 0, carryLength);
+                assembly.putBytes(carryLength, data, index, length);
+                buffer = assembly;
+                offset = 0;
+                limit = carryLength + length;
+            }
+
+            Status status = feed(buffer, offset, limit, last);
+
+            switch (status)
+            {
+            case COMPLETED:
+                valid = true;
+                carryLength = 0;
+                break;
+            case STARVED:
+                int remaining = active.pipeline.remaining();
+                carry.putBytes(0, buffer, limit - remaining, remaining);
+                carryLength = remaining;
+                valid = true;
+                break;
+            default:
+                valid = false;
+                carryLength = 0;
+                event.validationFailure(traceId, bindingId, JsonModel.NAME);
+                break;
+            }
+        }
+
+        return valid;
+    }
+
+    private boolean validateEncoded(
         long traceId,
         long bindingId,
         int flags,
@@ -60,28 +172,15 @@ public class JsonValidatorHandler extends JsonModelHandler implements ValidatorH
         {
             if ((flags & FLAGS_INIT) != 0x00)
             {
-                this.progress = 0;
+                this.encodedProgress = 0;
             }
 
-            buffer.putBytes(progress, data, index, length);
-            progress += length;
+            encoded.putBytes(encodedProgress, data, index, length);
+            encodedProgress += length;
 
             if ((flags & FLAGS_FIN) != 0x00)
             {
-                if (catalog != null && "encoded".equals(catalog.strategy))
-                {
-                    status = handler.validate(traceId, bindingId, buffer, 0, progress, next, this::validatePayload);
-                }
-                else
-                {
-                    in.wrap(buffer, 0, progress);
-
-                    int schemaId = catalog != null && catalog.id > 0
-                        ? catalog.id
-                        : handler.resolve(subject, catalog.version);
-
-                    status = validatePayload(schemaId, in);
-                }
+                status = handler.validate(traceId, bindingId, encoded, 0, encodedProgress, next, this::validatePayload);
             }
         }
         catch (JsonParsingException ex)
@@ -90,6 +189,22 @@ public class JsonValidatorHandler extends JsonModelHandler implements ValidatorH
             event.validationFailure(traceId, bindingId, ex.getMessage());
         }
 
+        return status;
+    }
+
+    private Status feed(
+        DirectBuffer buffer,
+        int offset,
+        int limit,
+        boolean last)
+    {
+        Status status;
+        do
+        {
+            active.generator.wrap(active.output, 0, OUTPUT_CAPACITY);
+            status = active.pipeline.feed(buffer, offset, limit, last);
+        }
+        while (status == Status.SUSPENDED);
         return status;
     }
 
@@ -118,5 +233,29 @@ public class JsonValidatorHandler extends JsonModelHandler implements ValidatorH
             status = schema.validate(schemaProvider.createParser(in));
         }
         return status;
+    }
+
+    private Validator supplyValidator(
+        int schemaId)
+    {
+        JsonSchema schema = supplySchema(schemaId);
+        return schema != null ? validators.computeIfAbsent(schemaId, id -> new Validator(schema)) : null;
+    }
+
+    private static final class Validator
+    {
+        private final JsonPipeline pipeline;
+        private final JsonGeneratorEx generator;
+        private final MutableDirectBuffer output;
+
+        private Validator(
+            JsonSchema schema)
+        {
+            this.output = new UnsafeBuffer(new byte[OUTPUT_CAPACITY]);
+            this.generator = JsonEx.createGenerator();
+            this.pipeline = JsonEx.stream(JsonEx.createParser())
+                .transform(schema.validator())
+                .into(JsonEx.createSink(generator));
+        }
     }
 }
