@@ -15,20 +15,35 @@
 package io.aklivity.zilla.runtime.model.json.internal;
 
 import org.agrona.DirectBuffer;
+import org.agrona.MutableDirectBuffer;
+import org.agrona.concurrent.UnsafeBuffer;
 
+import io.aklivity.zilla.runtime.common.json.JsonEx;
+import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
+import io.aklivity.zilla.runtime.common.json.JsonPipeline;
+import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
 public class JsonWriteConverterHandler extends JsonModelHandler implements ConverterHandler
 {
+    private static final int OUTPUT_CAPACITY = 8192;
+
+    private final JsonGeneratorEx generator;
+    private final MutableDirectBuffer output;
+    private final JsonPipeline serializer;
+
     public JsonWriteConverterHandler(
         JsonModelConfig config,
         EngineContext context)
     {
         super(config, context);
+        this.output = new UnsafeBuffer(new byte[OUTPUT_CAPACITY]);
+        this.generator = JsonEx.createGenerator();
+        this.serializer = JsonEx.stream(JsonEx.createParser())
+            .into(JsonEx.createSink(generator));
     }
 
     @Override
@@ -57,8 +72,37 @@ public class JsonWriteConverterHandler extends JsonModelHandler implements Conve
 
         if (validate(traceId, bindingId, schemaId, data, index, length))
         {
-            valLength = handler.encode(traceId, bindingId, schemaId, data, index, length, next, CatalogHandler.Encoder.IDENTITY);
+            valLength = handler.encode(traceId, bindingId, schemaId, data, index, length, next, this::encode);
         }
         return valLength;
+    }
+
+    private int encode(
+        long traceId,
+        long bindingId,
+        int schemaId,
+        DirectBuffer data,
+        int index,
+        int length,
+        ValueConsumer next)
+    {
+        serializer.reset();
+
+        int produced = 0;
+        Status status;
+        do
+        {
+            generator.wrap(output, 0, OUTPUT_CAPACITY);
+            status = serializer.feed(data, index, index + length, true);
+            int chunk = generator.length();
+            if (chunk > 0 && status != Status.REJECTED)
+            {
+                next.accept(output, 0, chunk);
+                produced += chunk;
+            }
+        }
+        while (status == Status.SUSPENDED);
+
+        return status == Status.COMPLETED ? produced : -1;
     }
 }
