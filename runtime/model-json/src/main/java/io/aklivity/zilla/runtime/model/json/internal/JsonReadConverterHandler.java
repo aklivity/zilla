@@ -24,6 +24,7 @@ import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2ObjectCache;
 import org.agrona.concurrent.UnsafeBuffer;
 
+import io.aklivity.zilla.runtime.common.json.JsonDiagnostic;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
@@ -45,6 +46,8 @@ public class JsonReadConverterHandler extends JsonModelHandler implements Conver
     private final JsonGeneratorEx generator;
     private final MutableDirectBuffer output;
     private final Int2ObjectCache<JsonPipeline> pipelines;
+
+    private String diagnostic;
 
     public JsonReadConverterHandler(
         JsonModelConfig config,
@@ -136,14 +139,13 @@ public class JsonReadConverterHandler extends JsonModelHandler implements Conver
         JsonPipeline pipeline = schemaId != NO_SCHEMA_ID ? supplyPipeline(schemaId) : null;
 
         return pipeline != null
-            ? serialize(traceId, bindingId, schemaId, pipeline, data, index, length, next)
+            ? serialize(traceId, bindingId, pipeline, data, index, length, next)
             : -1;
     }
 
     private int serialize(
         long traceId,
         long bindingId,
-        int schemaId,
         JsonPipeline pipeline,
         DirectBuffer data,
         int index,
@@ -151,6 +153,7 @@ public class JsonReadConverterHandler extends JsonModelHandler implements Conver
         ValueConsumer next)
     {
         pipeline.reset();
+        diagnostic = null;
 
         int produced = 0;
         Status status;
@@ -174,9 +177,15 @@ public class JsonReadConverterHandler extends JsonModelHandler implements Conver
         }
         else
         {
-            validate(traceId, bindingId, schemaId, data, index, length);
+            event.validationFailure(traceId, bindingId, diagnostic != null ? diagnostic : JsonModel.NAME);
         }
         return valLength;
+    }
+
+    private void onRejected(
+        JsonDiagnostic diagnostic)
+    {
+        this.diagnostic = diagnostic.message();
     }
 
     private JsonPipeline supplyPipeline(
@@ -192,6 +201,7 @@ public class JsonReadConverterHandler extends JsonModelHandler implements Conver
         return JsonEx.stream(JsonEx.createParser())
             .transform(schema.validator())
             .transform(extractor)
+            .reporting(this::onRejected)
             .into(JsonEx.createSink(generator));
     }
 }

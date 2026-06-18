@@ -19,6 +19,7 @@ import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2ObjectCache;
 import org.agrona.concurrent.UnsafeBuffer;
 
+import io.aklivity.zilla.runtime.common.json.JsonDiagnostic;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
@@ -36,6 +37,8 @@ public class JsonWriteConverterHandler extends JsonModelHandler implements Conve
     private final JsonGeneratorEx generator;
     private final MutableDirectBuffer output;
     private final Int2ObjectCache<JsonPipeline> pipelines;
+
+    private String diagnostic;
 
     public JsonWriteConverterHandler(
         JsonModelConfig config,
@@ -87,6 +90,7 @@ public class JsonWriteConverterHandler extends JsonModelHandler implements Conve
         if (pipeline != null)
         {
             pipeline.reset();
+            diagnostic = null;
 
             int produced = 0;
             Status status;
@@ -109,10 +113,16 @@ public class JsonWriteConverterHandler extends JsonModelHandler implements Conve
             }
             else
             {
-                validate(traceId, bindingId, schemaId, data, index, length);
+                event.validationFailure(traceId, bindingId, diagnostic != null ? diagnostic : JsonModel.NAME);
             }
         }
         return valLength;
+    }
+
+    private void onRejected(
+        JsonDiagnostic diagnostic)
+    {
+        this.diagnostic = diagnostic.message();
     }
 
     private JsonPipeline supplyPipeline(
@@ -127,6 +137,7 @@ public class JsonWriteConverterHandler extends JsonModelHandler implements Conve
     {
         return JsonEx.stream(JsonEx.createParser())
             .transform(schema.validator())
+            .reporting(this::onRejected)
             .into(JsonEx.createSink(generator));
     }
 }

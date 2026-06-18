@@ -25,10 +25,12 @@ import org.agrona.collections.Int2ObjectCache;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.agrona.io.DirectBufferInputStream;
 
+import io.aklivity.zilla.runtime.common.json.JsonDiagnostic;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
+import io.aklivity.zilla.runtime.common.json.JsonReporter;
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
@@ -50,6 +52,7 @@ public class JsonValidatorHandler extends JsonModelHandler implements ValidatorH
     private Validator active;
     private int carryLength;
     private int encodedProgress;
+    private String diagnostic;
 
     public JsonValidatorHandler(
         JsonModelConfig config,
@@ -150,7 +153,7 @@ public class JsonValidatorHandler extends JsonModelHandler implements ValidatorH
             default:
                 valid = false;
                 carryLength = 0;
-                event.validationFailure(traceId, bindingId, JsonModel.NAME);
+                event.validationFailure(traceId, bindingId, diagnostic != null ? diagnostic : JsonModel.NAME);
                 break;
             }
         }
@@ -200,6 +203,7 @@ public class JsonValidatorHandler extends JsonModelHandler implements ValidatorH
         boolean last,
         ValueConsumer next)
     {
+        diagnostic = null;
         Status status;
         do
         {
@@ -213,6 +217,12 @@ public class JsonValidatorHandler extends JsonModelHandler implements ValidatorH
         }
         while (status == Status.SUSPENDED);
         return status;
+    }
+
+    private void onRejected(
+        JsonDiagnostic diagnostic)
+    {
+        this.diagnostic = diagnostic.message();
     }
 
     private boolean validatePayload(
@@ -246,7 +256,7 @@ public class JsonValidatorHandler extends JsonModelHandler implements ValidatorH
         int schemaId)
     {
         JsonSchema schema = supplySchema(schemaId);
-        return schema != null ? validators.computeIfAbsent(schemaId, id -> new Validator(schema)) : null;
+        return schema != null ? validators.computeIfAbsent(schemaId, id -> new Validator(schema, this::onRejected)) : null;
     }
 
     private static final class Validator
@@ -256,12 +266,14 @@ public class JsonValidatorHandler extends JsonModelHandler implements ValidatorH
         private final MutableDirectBuffer output;
 
         private Validator(
-            JsonSchema schema)
+            JsonSchema schema,
+            JsonReporter reporter)
         {
             this.output = new UnsafeBuffer(new byte[OUTPUT_CAPACITY]);
             this.generator = JsonEx.createGenerator();
             this.pipeline = JsonEx.stream(JsonEx.createParser())
                 .transform(schema.validator())
+                .reporting(reporter)
                 .into(JsonEx.createSink(generator));
         }
     }
