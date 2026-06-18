@@ -48,15 +48,6 @@ final class YamlConformanceTest
     // valid fixtures whose canonical test.event differs only in presentation detail the resolving parser does
     // not round-trip; for these we assert the parser accepts the input rather than matching the event text
     private static final Set<String> PRESENTATION_ONLY = Set.of(
-        // an empty, comment-only or bare end-marker stream projects as a single null document (mirroring the
-        // eager parser), where the canonical event stream frames no document at all
-        "8G76",
-        "98YD",
-        "AVM7",
-        "HWV9",
-        "QT73",
-        // a %TAG handle prefix is not URI percent-decoded (canonical resolves tag%21 to tag!)
-        "6CK3",
         // a node tag on an empty block-mapping key decorates the mapping rather than the key node
         "FH7J",
         // the compact "- ? : x" explicit-key indicator is read as a plain "?" scalar key

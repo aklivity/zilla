@@ -73,8 +73,8 @@ public final class YamlParser
         {
             throw new YamlParseException(scanner.bailMessage(), scanner.bailLocation());
         }
-        // a successful scan always classifies at least one event (an empty stream projects as a single null),
-        // so there is always at least one document to frame
+        // an empty stream (blank, comment-only or a bare end marker) classifies no events and frames no
+        // document; otherwise each balanced root in the event buffer is one document
         this.count = scanner.count();
         this.documentCount = scanner.documentCount();
         this.phase = Phase.STREAM_START;
@@ -94,7 +94,7 @@ public final class YamlParser
         {
             event = YamlEvent.STREAM_START;
             location = locationAt(0);
-            phase = Phase.DOCUMENT_START;
+            phase = count > 0 ? Phase.DOCUMENT_START : Phase.STREAM_END;
         }
         case DOCUMENT_START ->
         {

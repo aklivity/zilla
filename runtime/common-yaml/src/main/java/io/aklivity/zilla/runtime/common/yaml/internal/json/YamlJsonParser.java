@@ -425,10 +425,12 @@ public final class YamlJsonParser implements JsonParser
     private void project()
     {
         int index = 0;
+        boolean documented = false;
         while (index < events.size())
         {
             if (events.get(index).event == YamlEvent.DOCUMENT_START)
             {
+                documented = true;
                 int rootStart = index + 1;
                 int rootEnd = nodeEnd(rootStart);
                 projectNode(new YamlAlias(events, rootStart, rootEnd), new HashSet<>());
@@ -446,6 +448,11 @@ public final class YamlJsonParser implements JsonParser
             {
                 index++;
             }
+        }
+        if (!documented)
+        {
+            // an empty YAML stream frames no document; the JSON projection of an empty stream is a null value
+            emit(Event.VALUE_NULL, null, new YamlLocation(1, 1, 0));
         }
     }
 

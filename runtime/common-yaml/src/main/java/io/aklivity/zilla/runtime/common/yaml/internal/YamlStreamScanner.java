@@ -328,11 +328,8 @@ public final class YamlStreamScanner
             bareAllowed = scanDocument(bareAllowed);
             skipIgnorable();
         }
-        if (eventCount == 0)
-        {
-            // an empty stream (blank or comment-only) projects as a single null, matching the eager parser
-            emit(VALUE_NULL, 0, 0, null);
-        }
+        // an empty stream (blank, comment-only or a bare end marker) frames no document at all, as the
+        // canonical YAML event stream does; the JSON layer applies its own empty-stream-is-null policy
     }
 
     /**
@@ -2181,7 +2178,7 @@ public final class YamlStreamScanner
             }
             if (handle != null)
             {
-                normalized = tagHandles.get(handle) + tag.substring(handle.length());
+                normalized = percentDecode(tagHandles.get(handle) + tag.substring(handle.length()));
             }
             else if (tag.indexOf('!', 1) != -1)
             {
@@ -2190,10 +2187,46 @@ public final class YamlStreamScanner
             }
             else
             {
-                normalized = tag;
+                normalized = percentDecode(tag);
             }
         }
         return normalized;
+    }
+
+    /**
+     * Resolves {@code %XX} URI escape sequences in a tag shorthand to their character the way YAML 1.2 tag
+     * resolution requires (e.g. {@code tag%21} becomes {@code tag!}). A {@code %} not followed by two hex
+     * digits is left verbatim.
+     */
+    private static String percentDecode(
+        String tag)
+    {
+        String decoded = tag;
+        if (tag.indexOf('%') != -1)
+        {
+            StringBuilder builder = new StringBuilder(tag.length());
+            for (int at = 0; at < tag.length(); at++)
+            {
+                char c = tag.charAt(at);
+                if (c == '%' && at + 2 < tag.length() && isHex(tag.charAt(at + 1)) && isHex(tag.charAt(at + 2)))
+                {
+                    builder.append((char) Integer.parseInt(tag.substring(at + 1, at + 3), 16));
+                    at += 2;
+                }
+                else
+                {
+                    builder.append(c);
+                }
+            }
+            decoded = builder.toString();
+        }
+        return decoded;
+    }
+
+    private static boolean isHex(
+        char c)
+    {
+        return c >= '0' && c <= '9' || c >= 'a' && c <= 'f' || c >= 'A' && c <= 'F';
     }
 
     /**
