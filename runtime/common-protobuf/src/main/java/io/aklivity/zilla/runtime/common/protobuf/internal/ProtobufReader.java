@@ -142,6 +142,18 @@ public final class ProtobufReader
         this.progress = mark;
     }
 
+    /**
+     * Moves the cursor back over {@code length} already-committed bytes so they are read again. Used when a
+     * driver consumed fewer bytes of a delivered slice than were committed: the unconsumed tail is given back
+     * to {@link #available()}/{@link #position()} so it is re-presented, contiguous with the next window, on
+     * {@link #resume}.
+     */
+    public void unread(
+        int length)
+    {
+        this.progress -= length;
+    }
+
     public int readVarint32()
     {
         return (int) readVarint64();

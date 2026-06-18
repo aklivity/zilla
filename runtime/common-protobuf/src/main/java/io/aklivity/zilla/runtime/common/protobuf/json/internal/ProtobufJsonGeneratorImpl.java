@@ -76,6 +76,7 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
     private boolean segmentOpened;
     private int segmentLength;
     private int consumed;
+    private boolean deferring;
     private boolean flushed;
 
     public ProtobufJsonGeneratorImpl(
@@ -130,6 +131,7 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
             segmentLength = 0;
         }
         consumed = 0;
+        deferring = false;
         return this;
     }
 
@@ -143,6 +145,12 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
     public int consumed()
     {
         return consumed;
+    }
+
+    @Override
+    public boolean deferring()
+    {
+        return deferring;
     }
 
     @Override
@@ -415,10 +423,12 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
         }
         if (scalarKey)
         {
+            deferring = false;
             writeKeySegment(value, offset, length, deferred);
         }
         else if (scalarField.type() == ProtobufType.STRING)
         {
+            deferring = false;
             writeStringSegment(value, offset, length, deferred);
         }
         else
@@ -771,9 +781,12 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
     }
 
     // The source bytes are base64-encoded a whole 3-byte group at a time so a 4-char group never splits across
-    // a window. Whole groups (carry + slice) that fit the output bound are emitted; a 1-2 byte tail short of a
-    // group is carried to the next window (counted as consumed now), except on the final delivery where it is
-    // padded and emitted. The chars go through the same consumption-driven json string write for quoting.
+    // a window. Whole groups that fit the output bound are emitted; a 1-2 byte tail short of a group is left
+    // unconsumed for the source to re-present, except on the final delivery (deferred == 0) where it is padded
+    // and emitted. When the tail short of a group needs more input to complete it (deferred > 0 and all whole
+    // groups this input could form were emitted), the generator reports {@link #deferring()} so the driver
+    // fetches the next input window rather than draining and replaying the same one. The chars go through the
+    // same consumption-driven json string write for quoting.
     private void writeBytesSegment(
         DirectBuffer value,
         int offset,
@@ -817,8 +830,13 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
             segmentOpened = true;
         }
         // consume only the source bytes whose whole base64 groups were emitted; any sub-group tail is left
-        // unconsumed for the source to re-present (output back-pressure), so the adapter holds no carry buffer
+        // unconsumed for the source to re-present, so the adapter holds no carry buffer
         consumed += taken;
+
+        // input-bound when every whole group this input could form was emitted yet a 1-2 byte tail remains
+        // that only the next input window can complete (output did not limit the whole groups); the driver
+        // must then fetch the next window rather than drain and replay this one
+        deferring = deferred > 0 && rem > 0 && rem < 3 && wholeGroups == length / 3;
 
         if (complete)
         {

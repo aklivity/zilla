@@ -213,7 +213,15 @@ public final class ProtobufTypedSinkImpl implements ProtobufSink
         ProtobufPipeline.Status status;
         if (written < available)
         {
-            if (generator.length() > 0)
+            if (generator.deferring())
+            {
+                // input-bound: the generator wrote every whole unit it could and holds a sub-unit tail that
+                // only the next input window can complete; STARVE so the driver feeds the next window with the
+                // unconsumed tail re-presented to combine with it. No flush — the output is not drained here;
+                // the in-flight value (and its open string) keeps streaming into the same output window
+                status = ProtobufPipeline.Status.STARVED;
+            }
+            else if (generator.length() > 0)
             {
                 // output filled before this chunk drained; drain and replay against a fresh buffer
                 generator.flush();

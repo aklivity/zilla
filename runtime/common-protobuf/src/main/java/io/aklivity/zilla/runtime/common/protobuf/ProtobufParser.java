@@ -176,6 +176,17 @@ public interface ProtobufParser
     }
 
     /**
+     * Reconciles the cursor for input back-pressure when a downstream sink reported {@code STARVED} after
+     * consuming only part of a streaming value chunk (see {@link #consumed(int)}): the unconsumed tail, which
+     * the chunk delivery committed past, is returned to {@link #remaining()} and to the value body still to
+     * come, so it is re-presented contiguous with the next window on {@link #resume}. The default is a no-op
+     * for cursors that do not stream values across windows.
+     */
+    default void giveback()
+    {
+    }
+
+    /**
      * @return the location of the current event within the message, for diagnostics
      */
     ProtobufLocation getLocation();

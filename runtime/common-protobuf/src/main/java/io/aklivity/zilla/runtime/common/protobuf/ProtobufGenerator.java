@@ -69,6 +69,20 @@ public interface ProtobufGenerator
      */
     int consumed();
 
+    /**
+     * Whether the most recent {@link #writeSegment} left a sub-unit tail unconsumed because it needs
+     * <em>more input</em> to complete it, rather than because the bounded output filled. A generator that
+     * groups its encoding (e.g. base64, which encodes a whole 3-byte group at a time) cannot emit a 1-2 byte
+     * tail until the next input window supplies the bytes that complete the group; it leaves that tail
+     * unconsumed and reports {@code true} here so the driver fetches the next input window (input
+     * back-pressure) rather than draining and replaying the same one. A generator that writes its body
+     * verbatim is never input-bound and always reports {@code false}.
+     */
+    default boolean deferring()
+    {
+        return false;
+    }
+
     ProtobufGenerator writeInt32(
         int field,
         int value);

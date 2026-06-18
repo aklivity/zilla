@@ -96,6 +96,8 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
     private int deferred;
     private int leafRemaining;
     private boolean leafString;
+    private boolean leafStreaming;
+    private int leafGiveback;
     private int skipRemaining;
 
     public ProtobufParserImpl(
@@ -122,6 +124,8 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
         this.phase = PHASE_NONE;
         this.deferred = 0;
         this.leafRemaining = -1;
+        this.leafStreaming = false;
+        this.leafGiveback = 0;
         this.skipRemaining = 0;
         return this;
     }
@@ -255,6 +259,25 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
         segmentOffset += sourceBytes;
         segmentLength -= sourceBytes;
         segment.wrap(segmentBuffer, segmentOffset, segmentLength);
+        // record the unconsumed tail of a streaming leaf chunk; under output back-pressure (SUSPENDED) the
+        // segment view re-presents it within the same window, but under input back-pressure (STARVED) the
+        // pump calls starve() to give it back to the reader so the next window re-presents it contiguous
+        leafGiveback = leafStreaming ? segmentLength : 0;
+    }
+
+    @Override
+    public void giveback()
+    {
+        if (leafGiveback > 0)
+        {
+            // the streaming leaf chunk was only partly consumed before the sink reported input back-pressure:
+            // leafChunk's eager skip committed past the unconsumed tail, so rewind the reader over it and
+            // restore it to the leaf body remaining — remaining()/resume() then re-present it contiguous with
+            // the next window and the next leafChunk re-reads it (no loss, no duplication)
+            reader.unread(leafGiveback);
+            leafRemaining += leafGiveback;
+            leafGiveback = 0;
+        }
     }
 
     private ProtobufEvent value()
@@ -316,6 +339,7 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
             slice(reader.buffer(), reader.offset(), leafRemaining);
             reader.skip(leafRemaining);
             leafRemaining = -1;
+            leafStreaming = false;
             deferred = 0;
             phase = PHASE_NONE;
             event = ProtobufEvent.VALUE;
@@ -336,6 +360,10 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
                 reader.skip(chunk);
                 leafRemaining -= chunk;
                 deferred = leafRemaining;
+                // a streaming leaf chunk may be only partly consumed: the sink takes the bytes whose whole
+                // encoding units fit and leaves a sub-unit tail, reconciled in consumed() so the unconsumed
+                // tail stays unread and is re-presented (combined with the next window) on resume
+                leafStreaming = true;
                 event = ProtobufEvent.VALUE;
             }
         }
