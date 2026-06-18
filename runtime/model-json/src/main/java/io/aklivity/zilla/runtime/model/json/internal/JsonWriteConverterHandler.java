@@ -16,12 +16,14 @@ package io.aklivity.zilla.runtime.model.json.internal;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
+import org.agrona.collections.Int2ObjectCache;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
+import io.aklivity.zilla.runtime.common.json.JsonSchema;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
@@ -33,7 +35,7 @@ public class JsonWriteConverterHandler extends JsonModelHandler implements Conve
 
     private final JsonGeneratorEx generator;
     private final MutableDirectBuffer output;
-    private final JsonPipeline serializer;
+    private final Int2ObjectCache<JsonPipeline> pipelines;
 
     public JsonWriteConverterHandler(
         JsonModelConfig config,
@@ -42,8 +44,7 @@ public class JsonWriteConverterHandler extends JsonModelHandler implements Conve
         super(config, context);
         this.output = new UnsafeBuffer(new byte[OUTPUT_CAPACITY]);
         this.generator = JsonEx.createGenerator();
-        this.serializer = JsonEx.stream(JsonEx.createParser())
-            .into(JsonEx.createSink(generator));
+        this.pipelines = new Int2ObjectCache<>(1, 16, p -> {});
     }
 
     @Override
@@ -64,17 +65,11 @@ public class JsonWriteConverterHandler extends JsonModelHandler implements Conve
         int length,
         ValueConsumer next)
     {
-        int valLength = -1;
-
         int schemaId = catalog != null && catalog.id > 0
             ? catalog.id
             : handler.resolve(subject, catalog.version);
 
-        if (validate(traceId, bindingId, schemaId, data, index, length))
-        {
-            valLength = handler.encode(traceId, bindingId, schemaId, data, index, length, next, this::encode);
-        }
-        return valLength;
+        return handler.encode(traceId, bindingId, schemaId, data, index, length, next, this::encode);
     }
 
     private int encode(
@@ -86,23 +81,52 @@ public class JsonWriteConverterHandler extends JsonModelHandler implements Conve
         int length,
         ValueConsumer next)
     {
-        serializer.reset();
+        JsonPipeline pipeline = supplyPipeline(schemaId);
 
-        int produced = 0;
-        Status status;
-        do
+        int valLength = -1;
+        if (pipeline != null)
         {
-            generator.wrap(output, 0, OUTPUT_CAPACITY);
-            status = serializer.feed(data, index, index + length, true);
-            int chunk = generator.length();
-            if (chunk > 0 && status != Status.REJECTED)
+            pipeline.reset();
+
+            int produced = 0;
+            Status status;
+            do
             {
-                next.accept(output, 0, chunk);
-                produced += chunk;
+                generator.wrap(output, 0, OUTPUT_CAPACITY);
+                status = pipeline.feed(data, index, index + length, true);
+                int chunk = generator.length();
+                if (chunk > 0 && status != Status.REJECTED)
+                {
+                    next.accept(output, 0, chunk);
+                    produced += chunk;
+                }
+            }
+            while (status == Status.SUSPENDED);
+
+            if (status == Status.COMPLETED)
+            {
+                valLength = produced;
+            }
+            else
+            {
+                validate(traceId, bindingId, schemaId, data, index, length);
             }
         }
-        while (status == Status.SUSPENDED);
+        return valLength;
+    }
 
-        return status == Status.COMPLETED ? produced : -1;
+    private JsonPipeline supplyPipeline(
+        int schemaId)
+    {
+        JsonSchema schema = supplySchema(schemaId);
+        return schema != null ? pipelines.computeIfAbsent(schemaId, id -> newPipeline(schema)) : null;
+    }
+
+    private JsonPipeline newPipeline(
+        JsonSchema schema)
+    {
+        return JsonEx.stream(JsonEx.createParser())
+            .transform(schema.validator())
+            .into(JsonEx.createSink(generator));
     }
 }

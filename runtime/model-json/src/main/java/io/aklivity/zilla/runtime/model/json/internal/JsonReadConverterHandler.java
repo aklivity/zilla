@@ -136,13 +136,14 @@ public class JsonReadConverterHandler extends JsonModelHandler implements Conver
         JsonPipeline pipeline = schemaId != NO_SCHEMA_ID ? supplyPipeline(schemaId) : null;
 
         return pipeline != null
-            ? serialize(traceId, bindingId, pipeline, data, index, length, next)
+            ? serialize(traceId, bindingId, schemaId, pipeline, data, index, length, next)
             : -1;
     }
 
     private int serialize(
         long traceId,
         long bindingId,
+        int schemaId,
         JsonPipeline pipeline,
         DirectBuffer data,
         int index,
@@ -173,7 +174,7 @@ public class JsonReadConverterHandler extends JsonModelHandler implements Conver
         }
         else
         {
-            event.validationFailure(traceId, bindingId, JsonModel.NAME);
+            validate(traceId, bindingId, schemaId, data, index, length);
         }
         return valLength;
     }
