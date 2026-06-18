@@ -1,0 +1,12 @@
++STR
++DOC
++SEQ
++MAP
+=VAL :aaa
+=VAL |xxx\n
+=VAL :bbb
+=VAL |xxx\n
+-MAP
+-SEQ
+-DOC
+-STR

@@ -1,0 +1,30 @@
++STR
++DOC ---
++MAP
+=VAL :key
+=VAL :value
+=VAL :
+=VAL :empty key
+-MAP
+-DOC
++DOC ---
++MAP {}
+=VAL :key
+=VAL :value
+=VAL :
+=VAL :empty key
+-MAP
+-DOC
++DOC ---
++MAP
+=VAL :
+=VAL :
+-MAP
+-DOC
++DOC ---
++MAP {}
+=VAL :
+=VAL :
+-MAP
+-DOC
+-STR
