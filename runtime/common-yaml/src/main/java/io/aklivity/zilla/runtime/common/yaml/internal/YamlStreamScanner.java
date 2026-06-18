@@ -1052,6 +1052,10 @@ public final class YamlStreamScanner
                 // parser's line.indent + itemAt), which may exceed indent + 2 when extra spaces or a tab follow
                 scanCompactSequence(itemAt, end, itemAt - lineStart[line], line);
             }
+            else if (isExplicitInlineItem(itemAt, end))
+            {
+                scanExplicitInlineItem(itemAt, end, line);
+            }
             else if (mappingColon(itemAt, end) != -1)
             {
                 scanSequenceItemMapping(indent, itemAt, end, line);
@@ -1140,6 +1144,119 @@ public final class YamlStreamScanner
         }
 
         emit(END_OBJECT, start, 0, null);
+    }
+
+    /**
+     * A sequence item whose explicit key is an inline single-pair mapping ({@code - ? earth: blue} with a
+     * {@code : moon: white} value line) — mirrors the eager parser's {@code parseExplicitInlineItem}. The
+     * item is a single-entry mapping whose key and value are each an inline mapping (or scalar). Only
+     * representable in raw (YAML-layer) mode, since the non-scalar key has no JSON name.
+     */
+    private void scanExplicitInlineItem(
+        int start,
+        int end,
+        int line)
+    {
+        if (!raw)
+        {
+            throw BAIL;
+        }
+        int nestedIndent = start - lineStart[line];
+        int keyStart = skipSpace(start + 1, end);
+        emit(START_OBJECT, start, 0, null);
+        scanInlineNode(keyStart, end);
+        cursor++;
+        skipIgnorable();
+        if (cursor < lineCount && valueIndicator(cursor, nestedIndent))
+        {
+            int valueLine = cursor;
+            int valueStart = skipSpace(contentStart[valueLine] + 1, contentEnd[valueLine]);
+            int valueEnd = contentEnd[valueLine];
+            cursor++;
+            scanInlineNode(valueStart, valueEnd);
+        }
+        else
+        {
+            emit(VALUE_NULL, start, 0, null);
+        }
+        emit(END_OBJECT, start, 0, null);
+    }
+
+    /**
+     * An explicit key or value node that may be an inline single-pair mapping ({@code k: v}), a flow
+     * collection, an empty (null) node, or a plain/quoted scalar — mirrors the eager parser's
+     * {@code parseInlineMappingOrScalar}. Scans within {@code [start, end)} without moving the line cursor.
+     */
+    private void scanInlineNode(
+        int start,
+        int end)
+    {
+        if (start == end)
+        {
+            emit(VALUE_NULL, start, 0, null);
+        }
+        else if (text.charAt(start) == '{' || text.charAt(start) == '[')
+        {
+            scanInlineFlow(start, end);
+        }
+        else if (mappingColon(start, end) != -1)
+        {
+            emit(START_OBJECT, start, 0, null);
+            scanInlinePair(start, end);
+            emit(END_OBJECT, start, 0, null);
+        }
+        else
+        {
+            scanInlineScalar(start, end);
+        }
+    }
+
+    /**
+     * A single {@code key: value} pair occupying {@code [start, end)} on one line, scanned in place — the key
+     * may be a flow collection or scalar, the value a flow collection, scalar, or null. Mirrors the eager
+     * parser's {@code addCompactMappingEntry}: the value is never itself a block mapping.
+     */
+    private void scanInlinePair(
+        int start,
+        int end)
+    {
+        int colon = mappingColon(start, end);
+        int keyEnd = trimEnd(start, colon);
+        char keyFirst = text.charAt(start);
+        if (keyEnd == start)
+        {
+            emit(KEY_NAME, start, 0, null);
+        }
+        else if (keyFirst == '{' || keyFirst == '[')
+        {
+            scanInlineFlow(start, keyEnd);
+        }
+        else if (keyFirst == '"' || keyFirst == '\'')
+        {
+            emitQuotedKey(start, keyEnd);
+        }
+        else if (isReservedStart(keyFirst) && !questionPlainStart(start, keyEnd) || isMergeKey(start, keyEnd))
+        {
+            throw BAIL;
+        }
+        else
+        {
+            emit(KEY_NAME, start, keyEnd - start, null);
+        }
+
+        int valueStart = skipSpace(colon + 1, end);
+        if (valueStart == end)
+        {
+            emit(VALUE_NULL, end, 0, null);
+        }
+        else if (text.charAt(valueStart) == '{' || text.charAt(valueStart) == '[')
+        {
+            scanInlineFlow(valueStart, end);
+        }
+        else
+        {
+            scanInlineScalar(valueStart, end);
+        }
     }
 
     /**
@@ -3166,6 +3283,24 @@ public final class YamlStreamScanner
         return end - start > 1 && text.charAt(start) == '-' && isSpace(text.charAt(start + 1));
     }
 
+    /**
+     * Whether the slice opens with a {@code ? } explicit-key indicator followed by an inline single-pair
+     * mapping (e.g. {@code ? earth: blue}) rather than a lone {@code ?} or a plain {@code ? : x} key — the
+     * explicit key is itself a mapping, mirroring the eager parser's {@code isExplicitInlineItem}.
+     */
+    private boolean isExplicitInlineItem(
+        int start,
+        int end)
+    {
+        boolean result = false;
+        if (end - start > 1 && text.charAt(start) == '?' && isSpace(text.charAt(start + 1)))
+        {
+            int keyStart = skipSpace(start + 1, end);
+            result = keyStart < end && text.charAt(keyStart) != ':' && mappingColon(keyStart, end) != -1;
+        }
+        return result;
+    }
+
     private boolean isMergeKey(
         int start,
         int end)
@@ -3608,7 +3743,12 @@ public final class YamlStreamScanner
             if (item < end)
             {
                 char it = text.charAt(item);
-                if (it != '{' && it != '[' && !(raw && (it == '&' || it == '*' || it == '!')) &&
+                if (raw && isExplicitInlineItem(item, end))
+                {
+                    // a sequence-item explicit key that is an inline mapping; defer to the structural scan
+                    blockIndent = -1;
+                }
+                else if (it != '{' && it != '[' && !(raw && (it == '&' || it == '*' || it == '!')) &&
                     !isCompactSequence(item, end))
                 {
                     int colon = mappingColon(item, end);
