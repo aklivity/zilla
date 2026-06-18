@@ -621,9 +621,20 @@ public final class YamlStreamScanner
             if (raw && (keyFirst == '&' || keyFirst == '!'))
             {
                 nodeStart = scanKeyDecorators(keyStart, keyEnd);
-                keyFirst = text.charAt(nodeStart);
+                keyFirst = nodeStart == keyEnd ? 0 : text.charAt(nodeStart);
             }
-            if (nodeStart == keyStart && (keyFirst == '|' || keyFirst == '>') && blockIndicator(nodeStart, keyEnd))
+            if (nodeStart == keyEnd && nodeStart != keyStart)
+            {
+                // an anchor/tag-only explicit key is the empty scalar carrying the decorators
+                cursor++;
+                skipIgnorable();
+                if (cursor < lineCount && lineIndent[cursor] > indent)
+                {
+                    throw BAIL;
+                }
+                emit(KEY_NAME, keyEnd, 0, null);
+            }
+            else if (nodeStart == keyStart && (keyFirst == '|' || keyFirst == '>') && blockIndicator(nodeStart, keyEnd))
             {
                 // a block scalar explicit key; emit its folded content as the key name
                 cursor++;
@@ -798,18 +809,26 @@ public final class YamlStreamScanner
         {
             // a block mapping key decorated with an anchor and/or tag; emit the key scalar carrying them
             int nodeStart = scanKeyDecorators(start, keyEnd);
-            char nodeFirst = text.charAt(nodeStart);
-            if (nodeFirst == '"' || nodeFirst == '\'')
+            if (nodeStart == keyEnd)
             {
-                emitQuotedKey(nodeStart, keyEnd);
-            }
-            else if (isReservedStart(nodeFirst) || isMergeKey(nodeStart, keyEnd))
-            {
-                throw BAIL;
+                // an anchor/tag-only key is the empty scalar carrying the decorators
+                emit(KEY_NAME, keyEnd, 0, null);
             }
             else
             {
-                emit(KEY_NAME, nodeStart, keyEnd - nodeStart, null);
+                char nodeFirst = text.charAt(nodeStart);
+                if (nodeFirst == '"' || nodeFirst == '\'')
+                {
+                    emitQuotedKey(nodeStart, keyEnd);
+                }
+                else if (isReservedStart(nodeFirst) || isMergeKey(nodeStart, keyEnd))
+                {
+                    throw BAIL;
+                }
+                else
+                {
+                    emit(KEY_NAME, nodeStart, keyEnd - nodeStart, null);
+                }
             }
         }
         else if (raw && (keyFirst == '{' || keyFirst == '['))
@@ -889,11 +908,14 @@ public final class YamlStreamScanner
      * The node decorated by an anchor/tag that carried no inline value, mirroring
      * {@code YamlDocumentParser.nextAnchoredValue}: a more-indented block, a block scalar, a block sequence at
      * its own (possibly shallower) indent, or a same-indent mapping or plain scalar; otherwise a null node.
+     * In {@code nestedSequence} (sequence-item) context only a more-indented block is taken — mirroring
+     * {@code nextNestedSequenceValue} — so a following same-indent sequence item is not swallowed.
      */
     private void scanAnchoredValue(
         int refIndent,
         int line,
-        boolean ownLine)
+        boolean ownLine,
+        boolean nestedSequence)
     {
         skipIgnorable();
         boolean done = cursor < lineCount;
@@ -907,6 +929,10 @@ public final class YamlStreamScanner
             {
                 scanBlock(lineIndent[at]);
             }
+            else if (nestedSequence)
+            {
+                done = false;
+            }
             else if ((first == '|' || first == '>') && blockIndicator(start, end))
             {
                 cursor++;
@@ -914,8 +940,10 @@ public final class YamlStreamScanner
                 // mirroring the eager parser's nextAnchoredValue next.atIndent(0)
                 scanBlockScalar(start, end, lineIndent[at] < refIndent ? 0 : lineIndent[at], true);
             }
-            else if (isSequence(at, lineIndent[at]))
+            else if ((ownLine || lineIndent[at] == refIndent) && isSequence(at, lineIndent[at]))
             {
+                // a value-context anchor (not own-line) takes only a same-indent sequence, mirroring
+                // nextNestedValue; an own-line anchor takes a sequence at its own (possibly shallower) indent
                 scanSequence(lineIndent[at]);
             }
             else if (ownLine && lineIndent[at] == refIndent && (isExplicitKey(at) || mappingColon(start, end) != -1))
@@ -1057,8 +1085,15 @@ public final class YamlStreamScanner
         int end,
         int line)
     {
+        int mapStart = start;
+        if (raw && (text.charAt(start) == '&' || text.charAt(start) == '!'))
+        {
+            // a leading anchor/tag on a compact (single-line) seq-item mapping decorates the mapping object,
+            // not its first key — the eager parser's ValueSpec strips it as the sequence item's own decorator
+            mapStart = consumeProperties(start, end);
+        }
         emit(START_OBJECT, start, 0, null);
-        scanEntry(start, end, indent + 2, line);
+        scanEntry(mapStart, end, indent + 2, line);
 
         while (true)
         {
@@ -1200,7 +1235,7 @@ public final class YamlStreamScanner
         char first = text.charAt(start);
         if (raw && (first == '&' || first == '*' || first == '!'))
         {
-            scanRef(start, end, refIndent, line, allowSameIndent);
+            scanRef(start, end, refIndent, line, allowSameIndent, allowIndentedSequence);
             return;
         }
         if (first == '{' || first == '[')
@@ -1613,7 +1648,8 @@ public final class YamlStreamScanner
         int end,
         int refIndent,
         int line,
-        boolean allowSameIndent)
+        boolean allowSameIndent,
+        boolean allowIndentedSequence)
     {
         int at = start;
         boolean node = false;
@@ -1676,14 +1712,18 @@ public final class YamlStreamScanner
         }
         else if (pendingAnchor != null || pendingTag != null)
         {
-            scanAnchoredValue(refIndent, line, start == contentStart[line]);
+            // a sequence-item decorator (allowSameIndent=false, allowIndentedSequence=true) descends only on a
+            // deeper-indented block, mirroring the eager parser's nextNestedSequenceValue, so a following
+            // same-indent sequence item is not swallowed as the anchored value
+            scanAnchoredValue(refIndent, line, start == contentStart[line], !allowSameIndent && allowIndentedSequence);
         }
     }
 
     /**
      * Consumes anchor ({@code &name}) and tag ({@code !tag}) decorators preceding a block mapping key within
      * {@code [start, end)}, setting the pending anchor/tag the way {@link #scanRef} does, and returns the
-     * offset of the key scalar that follows. An alias-as-key, a bare decorator with no scalar, or a repeated
+     * offset of the key scalar that follows, or {@code end} when the slice is all decorators (an anchor/tag-only
+     * key, which the caller emits as the empty scalar carrying the decorators). A bad anchor name or a repeated
      * decorator bails to the eager parser.
      */
     private int scanKeyDecorators(
@@ -1720,10 +1760,8 @@ public final class YamlStreamScanner
                 node = true;
             }
         }
-        if (!node)
-        {
-            throw BAIL;
-        }
+        // an all-decorator slice (no following scalar) returns end: the caller treats it as the empty scalar
+        // key carrying the consumed anchor/tag
         return at;
     }
 
