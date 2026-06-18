@@ -77,6 +77,14 @@ public final class JsonTokenizer
     private long streamOffset;
     private long valueStreamStart;
     private long valueStreamEnd;
+    // 1-based line/column of the next byte to read; snapshots restore them when the scan rewinds the
+    // stream offset to a value start (value*) or a complete-unit boundary (unit*) at a window edge
+    private long line = 1;
+    private long column = 1;
+    private long valueLine = 1;
+    private long valueColumn = 1;
+    private long unitLine = 1;
+    private long unitColumn = 1;
     // raw stream offset where the current value (string or number) fragment began; getSegment() of a
     // fragmented value returns [fragmentStart, valueStreamEnd] so each fragment's verbatim bytes splice
     // back to the whole token (fragment 1 includes the opening quote, the final fragment the closing one)
@@ -145,6 +153,12 @@ public final class JsonTokenizer
         pendingString = null;
         valuePending = false;
         streamOffset = 0;
+        line = 1;
+        column = 1;
+        valueLine = 1;
+        valueColumn = 1;
+        unitLine = 1;
+        unitColumn = 1;
         fragmentStart = 0;
         segmenting = false;
         scalarSegment = false;
@@ -248,6 +262,8 @@ public final class JsonTokenizer
             {
                 // rewind to the last complete code-point/escape boundary, leaving the partial unit for the caller
                 streamOffset = unitStartOffset;
+                line = unitLine;
+                column = unitColumn;
                 resumeEscape = false;
                 resumeUnicodePending = 0;
                 resumeUnicodeValue = 0;
@@ -285,6 +301,8 @@ public final class JsonTokenizer
             {
                 // value fits a window (or terminal): rewind to its start and reassemble whole next window
                 streamOffset = valueStreamStart;
+                line = valueLine;
+                column = valueColumn;
                 scratch.setLength(0);
                 resumeOp = ResumeOp.NONE;
                 resumeEscape = false;
@@ -327,6 +345,16 @@ public final class JsonTokenizer
     public long streamOffset()
     {
         return streamOffset;
+    }
+
+    public long line()
+    {
+        return line;
+    }
+
+    public long column()
+    {
+        return column;
     }
 
     // Stream-offset span of the most recent readable scalar token (a VALUE_STRING including its
@@ -705,6 +733,8 @@ public final class JsonTokenizer
         case '"':
             valueStreamStart = streamOffset - 1;
             fragmentStart = streamOffset - 1;
+            valueLine = line;
+            valueColumn = column - 1;
             scratch.setLength(0);
             resumeEscape = false;
             resumeUnicodePending = 0;
@@ -753,6 +783,8 @@ public final class JsonTokenizer
             {
                 valueStreamStart = streamOffset - 1;
                 fragmentStart = streamOffset - 1;
+                valueLine = line;
+                valueColumn = column - 1;
                 numberLexeme.setLength(0);
                 numberFragmented = false;
                 scratch.setLength(0);
@@ -923,6 +955,8 @@ public final class JsonTokenizer
             if (!resumeEscape && resumeUnicodePending == 0)
             {
                 unitStartOffset = streamOffset;
+                unitLine = line;
+                unitColumn = column;
             }
             int c = readByte(in);
             if (!starved)
@@ -1097,6 +1131,7 @@ public final class JsonTokenizer
             else if (c >= '0' && c <= '9' || c == '.' || c == '-' || c == '+' || c == 'e' || c == 'E')
             {
                 streamOffset++;
+                advance(c);
                 appendScratch((char) c);
             }
             else
@@ -1180,8 +1215,25 @@ public final class JsonTokenizer
         else
         {
             streamOffset++;
+            advance(c);
         }
         return c;
+    }
+
+    // Advances line/column for one consumed byte: a newline opens the next line; every other byte that
+    // begins a character (i.e. not a UTF-8 continuation byte) advances the column by one.
+    private void advance(
+        int c)
+    {
+        if (c == '\n')
+        {
+            line++;
+            column = 1;
+        }
+        else if ((c & 0xC0) != 0x80)
+        {
+            column++;
+        }
     }
 
     private static String describe(
