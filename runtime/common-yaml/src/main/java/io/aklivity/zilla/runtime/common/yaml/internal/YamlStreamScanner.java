@@ -154,6 +154,11 @@ public final class YamlStreamScanner
         return documentBoundaries[document];
     }
 
+    public int documentCount()
+    {
+        return documentCount;
+    }
+
     public int count()
     {
         return eventCount;
