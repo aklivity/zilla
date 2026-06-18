@@ -27,6 +27,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.DynamicTest;
@@ -42,6 +43,12 @@ import org.junit.jupiter.api.TestFactory;
 class YamlStreamScannerTest
 {
     private static final String SUITE_TAG = "data-2022-01-17";
+
+    // invalid fixtures rejected at a catch-all bail site, where the scanner's located message is more
+    // general than the eager parser's specific one (the precise cause is determined past the bail point)
+    private static final Set<String> CATCH_ALL_REJECTS = Set.of(
+        "2G84/00", "2G84/01", "9MMA", "9MQT/01", "CXX2", "JY7Z", "KS4U", "MUS6/01",
+        "N782", "S4GJ", "SU5Z", "SY6V", "U99R", "X4QW", "Y79Y/003", "ZL4Z");
 
     private static final String BLOCK_CONFIG = """
         name: example
@@ -809,10 +816,22 @@ class YamlStreamScannerTest
             .map(path -> DynamicTest.dynamicTest(SUITE_DIR.relativize(path).toString(), () ->
             {
                 String text = Files.readString(path.resolve("in.yaml"));
+                String fixture = SUITE_DIR.relativize(path).toString();
                 YamlStreamScanner scanner = new YamlStreamScanner();
                 assertFalse(scanner.scan(text), "scanner should reject an invalid document");
                 assertNotNull(eagerMessage(text), "eager parser should also reject the invalid document");
-                assertNotNull(scanner.bailMessage(), "scanner should record a bail message");
+                if (CATCH_ALL_REJECTS.contains(fixture))
+                {
+                    // a few inputs are rejected at a catch-all bail site (the feasibility pre-pass or the
+                    // scalar reserved-start guard) that detects invalidity before the specific cause; the
+                    // scanner reports a located but more general message than the eager parser
+                    assertNotNull(scanner.bailMessage(), "scanner should record a bail message");
+                }
+                else
+                {
+                    assertEquals(eagerMessage(text), scanner.bailMessage(),
+                        "scanner bail message diverged from the eager parser");
+                }
             }));
     }
 

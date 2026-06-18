@@ -290,7 +290,7 @@ public final class YamlStreamScanner
         if (directives && !bareAllowed)
         {
             // directives are valid only at the stream start or after a ... end marker
-            throw bail("Invalid YAML document");
+            throw bail("Unexpected indentation");
         }
 
         if (cursor < lineCount && documentMarker(cursor, '.'))
@@ -298,7 +298,7 @@ public final class YamlStreamScanner
             // a standalone ... end marker is not a document
             if (directives)
             {
-                throw bail("Invalid YAML document");
+                throw bail("YAML directives require an explicit document");
             }
             cursor++;
             skipIgnorable();
@@ -321,7 +321,7 @@ public final class YamlStreamScanner
             else if (directives || !bareAllowed)
             {
                 // directives need an explicit ---, and only a leading (or post-...) document may be bare
-                throw bail("Invalid YAML document");
+                throw bail("Unexpected indentation");
             }
 
             scanRootBody();
@@ -462,12 +462,12 @@ public final class YamlStreamScanner
         {
             if (yamlSeen)
             {
-                throw bail("Invalid YAML document");
+                throw bail("Duplicate YAML directive");
             }
             String[] parts = text.substring(contentStart[line], contentEnd[line]).split("\\s+");
             if (parts.length != 2 || !parts[1].matches("[0-9]+\\.[0-9]+"))
             {
-                throw bail("Invalid YAML document");
+                throw bail("Malformed YAML directive");
             }
             seen = true;
         }
@@ -520,7 +520,7 @@ public final class YamlStreamScanner
             // a tab indenting a nested sequence, explicit key or mapping is not valid indentation, nor is a
             // tab-first indent; but a tab after at least one space before a plain scalar block is content
             // separation (eager parseBlock tabIndented gate)
-            throw bail("Invalid YAML document");
+            throw bail("Tabs are not supported in block indentation");
         }
 
         if (isSequence(line, indent))
@@ -595,7 +595,7 @@ public final class YamlStreamScanner
         if (contentStart[line] + 1 < contentEnd[line] && text.charAt(contentStart[line] + 1) == '\t')
         {
             // a tab after the ? explicit-key indicator is not valid separation
-            throw bail("Invalid YAML document");
+            throw bail("Tabs are not supported after explicit key indicators");
         }
         int keyStart = skipSpace(contentStart[line] + 1, contentEnd[line]);
         int keyEnd = contentEnd[line];
@@ -778,7 +778,7 @@ public final class YamlStreamScanner
         if (valued && contentStart[cursor] + 1 < contentEnd[cursor] && text.charAt(contentStart[cursor] + 1) == '\t')
         {
             // a tab after the : explicit-value indicator is not valid separation
-            throw bail("Invalid YAML document");
+            throw bail("Tabs are not supported after explicit value indicators");
         }
         if (valued)
         {
@@ -818,7 +818,7 @@ public final class YamlStreamScanner
         int colon = mappingColon(start, end);
         if (colon == -1)
         {
-            throw bail("Invalid YAML document");
+            throw bail("Expected mapping entry");
         }
 
         int keyEnd = trimEnd(start, colon);
@@ -855,7 +855,7 @@ public final class YamlStreamScanner
                 }
                 else if (isReservedStart(nodeFirst) || isMergeKey(nodeStart, keyEnd))
                 {
-                    throw bail("Invalid YAML document");
+                    throw bail("YAML alias cannot also define an anchor");
                 }
                 else
                 {
@@ -1043,7 +1043,7 @@ public final class YamlStreamScanner
                 // a tab between the - indicator and a structural item (nested sequence, explicit key,
                 // mapping or block scalar) is invalid indentation; only separation before a plain
                 // scalar item tolerates a tab
-                throw bail("Invalid YAML document");
+                throw bail("Tabs are not supported after sequence indicators");
             }
 
             if (itemAt == end)
@@ -1144,7 +1144,7 @@ public final class YamlStreamScanner
             int next = cursor;
             if (isSequence(next, lineIndent[next]) || mappingColon(contentStart[next], contentEnd[next]) == -1)
             {
-                throw bail("Invalid YAML document");
+                throw bail("Unexpected sequence item continuation");
             }
             scanMappingEntries(lineIndent[next]);
         }
@@ -1350,7 +1350,7 @@ public final class YamlStreamScanner
         {
             if (quotedCloseEsc(start + 1, end, first) != end - 1)
             {
-                throw bail("Invalid YAML document");
+                throw bail("Wrong indented quoted scalar");
             }
             String value = first == '"' ? unquoteDouble(text, start, end) : unquoteSingle(text, start, end);
             if (value == null)
@@ -1400,7 +1400,7 @@ public final class YamlStreamScanner
         if (isReservedStart(first) && !questionPlainStart(start, end) || isCompactSequence(start, end) ||
             mappingColon(start, end) != -1)
         {
-            throw bail("Invalid YAML document");
+            throw bail("Unexpected indentation");
         }
         if (isNonFinite(start, end))
         {
@@ -1445,7 +1445,7 @@ public final class YamlStreamScanner
             }
             if (commentTerminated || blankComment)
             {
-                throw bail("Invalid YAML document");
+                throw bail("Plain scalar cannot continue after a comment");
             }
             if (value == null)
             {
@@ -1607,7 +1607,7 @@ public final class YamlStreamScanner
             }
             if (!seenContent && spaceOnly && lineEndAt > lineStartAt && indent > contentIndent)
             {
-                throw bail("Invalid YAML document");
+                throw bail("Wrong indented block scalar line");
             }
 
             int contentAt = lineStartAt + contentIndent;
@@ -1693,7 +1693,7 @@ public final class YamlStreamScanner
                 }
                 else
                 {
-                    throw bail("Invalid YAML document");
+                    throw bail("Expected indented block scalar content");
                 }
             }
         }
@@ -1810,7 +1810,7 @@ public final class YamlStreamScanner
                 int nameEnd = tokenEnd(at + 1, end);
                 if (nameEnd == at + 1 || pendingAnchor != null)
                 {
-                    throw bail("Invalid YAML document");
+                    throw bail("YAML node cannot define multiple anchors");
                 }
                 pendingAnchor = text.substring(at + 1, nameEnd);
                 at = skipSpace(nameEnd, end);
@@ -1820,7 +1820,7 @@ public final class YamlStreamScanner
                 int nameEnd = tokenEnd(at + 1, end);
                 if (nameEnd == at + 1 || pendingAnchor != null || pendingTag != null || skipSpace(nameEnd, end) != end)
                 {
-                    throw bail("Invalid YAML document");
+                    throw bail("YAML alias cannot also define an anchor");
                 }
                 emitAlias(at + 1, text.substring(at + 1, nameEnd));
                 foldGuard(refIndent);
@@ -2002,7 +2002,7 @@ public final class YamlStreamScanner
         skipIgnorable();
         if (cursor < lineCount && lineIndent[cursor] > refIndent)
         {
-            throw bail("Invalid YAML document");
+            throw bail("Unexpected indentation");
         }
     }
 
@@ -2061,7 +2061,7 @@ public final class YamlStreamScanner
         }
         else if (tag.indexOf('{') != -1 || tag.indexOf('}') != -1)
         {
-            throw bail("Invalid YAML document");
+            throw bail("Malformed YAML tag");
         }
         else if (tag.startsWith("!<") && tag.endsWith(">"))
         {
@@ -2084,7 +2084,7 @@ public final class YamlStreamScanner
             else if (tag.indexOf('!', 1) != -1)
             {
                 // a named handle (!x!...) that no %TAG directive defined
-                throw bail("Invalid YAML document");
+                throw bail("Unknown YAML tag handle");
             }
             else
             {
@@ -2110,7 +2110,7 @@ public final class YamlStreamScanner
         int closeLine = lineOf(flowAt - 1);
         if (flowAt < contentEnd[closeLine])
         {
-            throw bail("Invalid YAML document");
+            throw bail("Unexpected flow content");
         }
         // continuation lines of a flow nested in a block must be indented past the block, mirroring the eager
         // parser's collectFlowText: a line starting with a tab is invalid, and an under-indented line is invalid
@@ -2123,7 +2123,7 @@ public final class YamlStreamScanner
                 boolean closer = firstContent == ']' || firstContent == '}';
                 if (text.charAt(lineStart[at]) == '\t' || lineIndent[at] <= refIndent && !closer)
                 {
-                    throw bail("Invalid YAML document");
+                    throw bail("Wrong indented flow collection");
                 }
             }
         }
@@ -2187,7 +2187,7 @@ public final class YamlStreamScanner
         flowSkipWhitespace();
         if (flowAt != text.length())
         {
-            throw bail("Invalid YAML document");
+            throw bail("Unexpected flow content");
         }
     }
 
@@ -2205,7 +2205,7 @@ public final class YamlStreamScanner
         int closeLine = lineOf(flowAt - 1);
         if (flowAt < contentEnd[closeLine])
         {
-            throw bail("Invalid YAML document");
+            throw bail("Unexpected flow content");
         }
         cursor = closeLine + 1;
     }
@@ -2245,7 +2245,7 @@ public final class YamlStreamScanner
             }
             else if (flowReserved(c))
             {
-                throw bail("Invalid YAML document");
+                throw bail("Expected flow value");
             }
             else
             {
@@ -2365,7 +2365,7 @@ public final class YamlStreamScanner
                 }
                 else
                 {
-                    throw bail("Invalid YAML document");
+                    throw bail("Expected '}' in flow mapping");
                 }
             }
             emit(END_OBJECT, flowAt - 1, 0, null);
@@ -2424,7 +2424,7 @@ public final class YamlStreamScanner
                 }
                 else
                 {
-                    throw bail("Invalid YAML document");
+                    throw bail("Expected ']' in flow sequence");
                 }
             }
             emit(END_ARRAY, flowAt - 1, 0, null);
@@ -2639,7 +2639,7 @@ public final class YamlStreamScanner
         int end = flowTrimEnd(start, flowAt);
         if (end == start || isFlowScalarMarker(start, end) || isNonFinite(start, end))
         {
-            throw bail("Invalid YAML document");
+            throw bail("Expected flow value");
         }
         if (containsLineBreak(start, end))
         {
@@ -2875,12 +2875,12 @@ public final class YamlStreamScanner
         {
             if (close != end - 1)
             {
-                throw bail("Invalid YAML document");
+                throw bail("Wrong indented quoted scalar");
             }
             skipIgnorable();
             if (cursor < lineCount && lineIndent[cursor] > refIndent)
             {
-                throw bail("Invalid YAML document");
+                throw bail("Unexpected indentation");
             }
             String value = quote == '"' ? unquoteDouble(text, start, end) : unquoteSingle(text, start, end);
             if (value == null)
@@ -2917,13 +2917,13 @@ public final class YamlStreamScanner
         {
             if (cursor >= lineCount || documentMarker(cursor, '-') || documentMarker(cursor, '.'))
             {
-                throw bail("Invalid YAML document");
+                throw bail("Unterminated quoted scalar");
             }
             if (!allowSameIndent && contentStart[cursor] > lineStart[cursor] &&
                 text.charAt(lineStart[cursor]) == '\t')
             {
                 // a tab indenting a quoted continuation is not valid indentation
-                throw bail("Invalid YAML document");
+                throw bail("Tabs are not supported in quoted scalar indentation");
             }
 
             int cs = contentStart[cursor];
@@ -2933,7 +2933,7 @@ public final class YamlStreamScanner
             {
                 if (!allowSameIndent && lineIndent[cursor] <= refIndent)
                 {
-                    throw bail("Invalid YAML document");
+                    throw bail("Wrong indented quoted scalar");
                 }
                 int close = quotedCloseEsc(cs, ce, quote);
                 if (close == -1)
@@ -3123,7 +3123,7 @@ public final class YamlStreamScanner
         case 'x' -> next = appendHexEscape(value, src, at, 2, end);
         case 'u' -> next = appendHexEscape(value, src, at, 4, end);
         case 'U' -> next = appendHexEscape(value, src, at, 8, end);
-        default -> throw bail("Invalid YAML document");
+        default -> throw bail("Unsupported escape sequence");
         }
         return next;
     }
@@ -3731,7 +3731,7 @@ public final class YamlStreamScanner
             // a document-end marker (...) carries no inline content
             if (end - start != 3)
             {
-                throw bail("Invalid YAML document");
+                throw bail("Expected mapping entry");
             }
         }
         else if (isMarker(start, end, '-'))
@@ -3832,7 +3832,7 @@ public final class YamlStreamScanner
                 !isCompactSequence(valueStart, end) && !questionPlainStart(valueStart, end) &&
                 (blockedStart(value) || mappingColon(valueStart, end) != -1))
             {
-                throw bail("Invalid YAML document");
+                throw bail("Invalid mapping in plain scalar");
             }
         }
         return blockIndent;
