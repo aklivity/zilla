@@ -26,7 +26,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.DynamicTest;
@@ -597,7 +596,7 @@ class YamlStreamScannerTest
         StringBuilder builder = new StringBuilder();
         for (YamlDocumentParser.Result result : YamlDocumentParser.parseAll(text, YamlConfiguration.DEFAULT))
         {
-            project(YamlReferences.resolve(result.node, Map.of()), builder);
+            project(result.node, builder);
         }
         return builder.toString();
     }

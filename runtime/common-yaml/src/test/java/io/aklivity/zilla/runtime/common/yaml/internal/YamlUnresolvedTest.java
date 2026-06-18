@@ -19,8 +19,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.Map;
-
 import org.junit.jupiter.api.Test;
 
 class YamlUnresolvedTest
@@ -54,24 +52,6 @@ class YamlUnresolvedTest
         YamlScalarNode typed = (YamlScalarNode) entry(root, "typed").value;
         assertEquals("tag:yaml.org,2002:str", typed.tag);
         assertEquals(YamlScalarType.NUMBER, typed.type, "tag not coerced when unresolved");
-    }
-
-    @Test
-    void shouldResolveViaReferences()
-    {
-        YamlObjectNode root = (YamlObjectNode)
-            YamlReferences.resolve(YamlDocumentParser.parse(DOCUMENT, RAW).node, Map.of());
-
-        YamlObjectNode use = (YamlObjectNode) entry(root, "use").value;
-        YamlEntry merge = entry(use, "<<");
-        assertNotNull(merge, "merge key retained as a literal key (not in JSON Schema)");
-        YamlObjectNode merged = (YamlObjectNode) merge.value;
-        assertNotNull(entry(merged, "host"), "alias still expanded under the literal merge key");
-        assertNull(entry(use, "host"), "merge not flattened into the parent");
-        assertNotNull(entry(use, "port"));
-
-        YamlScalarNode typed = (YamlScalarNode) entry(root, "typed").value;
-        assertEquals(YamlScalarType.STRING, typed.type, "tag coerced when resolved");
     }
 
     @Test

@@ -38,15 +38,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
 
 import io.aklivity.zilla.runtime.common.yaml.YamlConfig;
-import io.aklivity.zilla.runtime.common.yaml.internal.YamlStreamScanner;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 
 /**
- * Validates the streaming reference resolver. White-box tests pin the resolved event buffer it builds
- * from the raw scanner; the differential asserts that wherever the streaming path engages, the JSON it
- * projects is identical to the eager path (forced by a non-default config, which disables the scanner).
+ * Validates reference resolution and JSON Schema tag coercion through {@link YamlJsonParser} (which is layered
+ * on the YamlParser event stream). The differential asserts that the scanner and eager parser paths project
+ * identical JSON for every fixture, the eager path being forced by a non-default config.
  */
-class YamlJsonResolverTest
+class YamlJsonResolutionTest
 {
     private static final String SUITE_TAG = "data-2022-01-17";
 
@@ -56,15 +55,6 @@ class YamlJsonResolverTest
     @Test
     void shouldExpandBlockAliasToAnchoredObject()
     {
-        YamlStreamScanner scanner = new YamlStreamScanner();
-        assertTrue(scanner.scan("""
-            base: &b
-              host: localhost
-            use: *b
-            """));
-        assertTrue(scanner.hasReferences());
-
-        YamlJsonResolver resolver = new YamlJsonResolver(scanner);
         assertEquals(List.of(
             "START_OBJECT",
             "KEY_NAME:base",
@@ -77,21 +67,12 @@ class YamlJsonResolverTest
             "KEY_NAME:host",
             "VALUE_STRING:localhost",
             "END_OBJECT",
-            "END_OBJECT"), project(resolver));
+            "END_OBJECT"), events("base: &b\n  host: localhost\nuse: *b\n", Map.of()));
     }
 
     @Test
     void shouldExpandScalarAndArrayAliases()
     {
-        YamlStreamScanner scanner = new YamlStreamScanner();
-        assertTrue(scanner.scan("""
-            scalar: &s value
-            list: &l [one, two]
-            scalarAlias: *s
-            listAlias: *l
-            """));
-
-        YamlJsonResolver resolver = new YamlJsonResolver(scanner);
         assertEquals(List.of(
             "START_OBJECT",
             "KEY_NAME:scalar",
@@ -108,30 +89,34 @@ class YamlJsonResolverTest
             "VALUE_STRING:one",
             "VALUE_STRING:two",
             "END_ARRAY",
-            "END_OBJECT"), project(resolver));
+            "END_OBJECT"), events("scalar: &s value\nlist: &l [one, two]\nscalarAlias: *s\nlistAlias: *l\n", Map.of()));
     }
 
     @Test
     void shouldThrowUnresolvedForDanglingAlias()
     {
-        YamlStreamScanner scanner = new YamlStreamScanner();
-        assertTrue(scanner.scan("use: *missing\n"));
-        assertThrows(RuntimeException.class, () -> new YamlJsonResolver(scanner));
+        assertThrows(RuntimeException.class, () -> events("use: *missing\n", Map.of()));
+    }
+
+    @Test
+    void shouldResolveNearestPrecedingAnchorDefinition()
+    {
+        assertEquals(List.of(
+            "START_OBJECT",
+            "KEY_NAME:first",
+            "VALUE_STRING:Foo",
+            "KEY_NAME:second",
+            "VALUE_STRING:Foo",
+            "KEY_NAME:third",
+            "VALUE_STRING:Bar",
+            "KEY_NAME:reuse",
+            "VALUE_STRING:Bar",
+            "END_OBJECT"), events("first: &a Foo\nsecond: *a\nthird: &a Bar\nreuse: *a\n", Map.of()));
     }
 
     @Test
     void shouldCoerceJsonSchemaTags()
     {
-        YamlStreamScanner scanner = new YamlStreamScanner();
-        assertTrue(scanner.scan("""
-            s: !!str 42
-            i: !!int "0x10"
-            f: !!float "1.5"
-            b: !!bool true
-            n: !!null ~
-            """));
-
-        YamlJsonResolver resolver = new YamlJsonResolver(scanner);
         assertEquals(List.of(
             "START_OBJECT",
             "KEY_NAME:s",
@@ -144,15 +129,7 @@ class YamlJsonResolverTest
             "VALUE_TRUE",
             "KEY_NAME:n",
             "VALUE_NULL",
-            "END_OBJECT"), project(resolver));
-    }
-
-    @Test
-    void shouldBailToEagerOnContainerTagMismatch()
-    {
-        YamlStreamScanner scanner = new YamlStreamScanner();
-        assertTrue(scanner.scan("x: !!seq foo\n"));
-        assertThrows(YamlJsonResolver.Unsupported.class, () -> new YamlJsonResolver(scanner));
+            "END_OBJECT"), events("s: !!str 42\ni: !!int \"0x10\"\nf: !!float \"1.5\"\nb: !!bool true\nn: !!null ~\n", Map.of()));
     }
 
     @Test
@@ -181,7 +158,7 @@ class YamlJsonResolverTest
             {
                 String text = Files.readString(path.resolve("in.yaml"));
                 assertEquals(events(text, FORCE_EAGER), events(text, Map.of()),
-                    "streaming projection diverged from eager projection");
+                    "scanner projection diverged from eager projection");
             }));
     }
 
@@ -204,31 +181,6 @@ class YamlJsonResolverTest
         return events;
     }
 
-    private static List<String> project(
-        YamlJsonResolver resolver)
-    {
-        List<String> events = new ArrayList<>();
-        for (int index = 0; index < resolver.count(); index++)
-        {
-            String token = switch (resolver.kind(index))
-            {
-            case YamlStreamScanner.START_OBJECT -> "START_OBJECT";
-            case YamlStreamScanner.END_OBJECT -> "END_OBJECT";
-            case YamlStreamScanner.START_ARRAY -> "START_ARRAY";
-            case YamlStreamScanner.END_ARRAY -> "END_ARRAY";
-            case YamlStreamScanner.KEY_NAME -> "KEY_NAME:" + resolver.value(index);
-            case YamlStreamScanner.VALUE_STRING -> "VALUE_STRING:" + resolver.value(index);
-            case YamlStreamScanner.VALUE_NUMBER -> "VALUE_NUMBER:" + resolver.value(index);
-            case YamlStreamScanner.VALUE_TRUE -> "VALUE_TRUE";
-            case YamlStreamScanner.VALUE_FALSE -> "VALUE_FALSE";
-            case YamlStreamScanner.VALUE_NULL -> "VALUE_NULL";
-            default -> throw new IllegalStateException("Unexpected kind: " + resolver.kind(index));
-            };
-            events.add(token);
-        }
-        return events;
-    }
-
     private static final Path SUITE_DIR = resolveSuite();
 
     private static Stream<Path> fixtures() throws IOException
@@ -244,7 +196,7 @@ class YamlJsonResolverTest
 
     private static Path resolveSuite()
     {
-        URL resource = YamlJsonResolverTest.class.getResource("/io/aklivity/zilla/runtime/common/yaml/" + SUITE_TAG);
+        URL resource = YamlJsonResolutionTest.class.getResource("/io/aklivity/zilla/runtime/common/yaml/" + SUITE_TAG);
         if (resource == null)
         {
             throw new IllegalStateException("Missing vendored YAML test suite: " + SUITE_TAG);
