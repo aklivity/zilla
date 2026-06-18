@@ -131,6 +131,22 @@ class YamlUnresolvedTest
         assertEquals("x", ((YamlScalarNode) entry.value).value);
     }
 
+    @Test
+    void shouldParseFlowKeyWithAdjacentValue()
+    {
+        // a colon adjacent to a quoted scalar or flow collection key is a mapping colon (9MMW)
+        YamlArrayNode quoted = (YamlArrayNode) YamlDocumentParser.parse("[ \"JSON like\":adjacent ]\n", RAW).node;
+        YamlObjectNode quotedPair = (YamlObjectNode) quoted.values.get(0);
+        assertEquals("JSON like", quotedPair.entries.get(0).name);
+        assertEquals("adjacent", ((YamlScalarNode) quotedPair.entries.get(0).value).value);
+
+        YamlArrayNode flow = (YamlArrayNode) YamlDocumentParser.parse("[ {JSON: like}:adjacent ]\n", RAW).node;
+        YamlObjectNode flowPair = (YamlObjectNode) flow.values.get(0);
+        YamlEntry flowEntry = flowPair.entries.get(0);
+        assertEquals("like", ((YamlScalarNode) ((YamlObjectNode) flowEntry.key).entries.get(0).value).value);
+        assertEquals("adjacent", ((YamlScalarNode) flowEntry.value).value);
+    }
+
     private static YamlEntry entry(
         YamlObjectNode object,
         String name)

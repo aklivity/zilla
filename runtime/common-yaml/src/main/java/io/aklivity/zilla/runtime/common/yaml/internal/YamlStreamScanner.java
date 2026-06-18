@@ -2629,8 +2629,12 @@ public final class YamlStreamScanner
         int index)
     {
         char next = index + 1 >= text.length() ? 0 : text.charAt(index + 1);
+        char prev = index == 0 ? 0 : text.charAt(index - 1);
+        // a colon adjacent to a quoted scalar or flow collection key is a mapping colon even with no separating
+        // space (YAML c-ns-flow-map-adjacent-value), mirroring YamlDocumentParser.isFlowMappingColon
+        boolean adjacentKey = prev == '"' || prev == '\'' || prev == '}' || prev == ']';
         return index + 1 >= text.length() || Character.isWhitespace(next) ||
-            next == ',' || next == ']' || next == '}';
+            next == ',' || next == ']' || next == '}' || adjacentKey;
     }
 
     private boolean flowConsume(
