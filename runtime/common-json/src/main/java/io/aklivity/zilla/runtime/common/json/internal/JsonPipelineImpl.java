@@ -16,8 +16,8 @@ package io.aklivity.zilla.runtime.common.json.internal;
 
 import java.math.BigDecimal;
 
+import jakarta.json.JsonException;
 import jakarta.json.stream.JsonLocation;
-import jakarta.json.stream.JsonParsingException;
 
 import org.agrona.DirectBuffer;
 
@@ -122,7 +122,7 @@ public final class JsonPipelineImpl implements JsonPipeline
                 status = last ? Status.REJECTED : Status.STARVED;
             }
         }
-        catch (JsonParsingException ex)
+        catch (JsonException ex)
         {
             status = Status.REJECTED;
             diagnostic.message = ex.getMessage();
