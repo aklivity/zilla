@@ -1211,8 +1211,14 @@ public final class YamlStreamScanner
         if (text.charAt(start) == '&' || text.charAt(start) == '!')
         {
             // a leading anchor/tag on a compact (single-line) seq-item mapping decorates the mapping object,
-            // not its first key — the eager parser's ValueSpec strips it as the sequence item's own decorator
-            mapStart = consumeProperties(start, end);
+            // not its first key — unless the key it precedes is empty (e.g. `- !!str : value`), in which case
+            // the property belongs to the empty key node and is left for scanEntry to bind
+            int colon = mappingColon(start, end);
+            boolean emptyKey = colon != -1 && propertiesEnd(start, colon) >= trimEnd(start, colon);
+            if (!emptyKey)
+            {
+                mapStart = consumeProperties(start, end);
+            }
         }
         emit(START_OBJECT, start, 0, null);
         scanEntry(mapStart, end, indent + 2, line);
@@ -3462,8 +3468,10 @@ public final class YamlStreamScanner
         boolean result = false;
         if (end - start > 1 && text.charAt(start) == '?' && isSpace(text.charAt(start + 1)))
         {
+            // the explicit key node is an inline single-pair mapping; its own key may be empty (e.g. `? : x`,
+            // whose explicit key is the mapping `: x`), so a leading colon still qualifies
             int keyStart = skipSpace(start + 1, end);
-            result = keyStart < end && text.charAt(keyStart) != ':' && mappingColon(keyStart, end) != -1;
+            result = keyStart < end && mappingColon(keyStart, end) != -1;
         }
         return result;
     }

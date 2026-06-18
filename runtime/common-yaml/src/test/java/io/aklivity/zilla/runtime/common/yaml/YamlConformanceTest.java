@@ -23,7 +23,6 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
-import java.util.Set;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.DynamicTest;
@@ -36,22 +35,12 @@ import io.aklivity.zilla.runtime.common.yaml.internal.YamlScalarStyle;
 /**
  * Validates the {@link YamlParser} event layer against the canonical {@code test.event} fixtures vendored from
  * the YAML test suite. For every valid fixture the parser's events are rendered into the canonical event text
- * and compared verbatim; every invalid fixture must be rejected. A small allowlist relaxes the comparison to
- * accept-only for fixtures whose canonical event text carries presentation nuances this parser does not
- * preserve (it resolves rather than round-trips), mirroring the scanner's reject-consistency allowlist.
+ * and compared verbatim; every invalid fixture must be rejected.
  */
 final class YamlConformanceTest
 {
     private static final String SUITE_TAG = "data-2022-01-17";
     private static final Path SUITE_DIR = resolveSuite();
-
-    // valid fixtures whose canonical test.event differs only in presentation detail the resolving parser does
-    // not round-trip; for these we assert the parser accepts the input rather than matching the event text
-    private static final Set<String> PRESENTATION_ONLY = Set.of(
-        // a node tag on an empty block-mapping key decorates the mapping rather than the key node
-        "FH7J",
-        // the compact "- ? : x" explicit-key indicator is read as a plain "?" scalar key
-        "M2N8/00");
 
     @TestFactory
     Stream<DynamicTest> shouldMatchCanonicalEventsForValidCases() throws Exception
@@ -61,15 +50,8 @@ final class YamlConformanceTest
             .map(c -> DynamicTest.dynamicTest(c.displayName(), () ->
             {
                 String yaml = Files.readString(c.path.resolve("in.yaml"));
-                if (PRESENTATION_ONLY.contains(c.id))
-                {
-                    render(yaml);
-                }
-                else
-                {
-                    String expected = Files.readString(c.path.resolve("test.event"));
-                    assertEquals(normalize(expected), render(yaml), c.id);
-                }
+                String expected = Files.readString(c.path.resolve("test.event"));
+                assertEquals(normalize(expected), render(yaml), c.id);
             }));
     }
 
