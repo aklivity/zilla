@@ -40,6 +40,10 @@ public class JsonValidatorHandler extends JsonModelHandler implements ValidatorH
     private static final int OUTPUT_CAPACITY = 8192;
 
     private final Int2ObjectCache<Validator> validators;
+    // TODO(validator/converter API unification): these hold the partial-token residue across fragments here, on a
+    // per-worker-shared handler. Once validate() can report consumed bytes (progress) instead of a pass/reject
+    // boolean, push the unconsumed tail back to the caller so it lives in the caller's per-stream decode slot —
+    // BufferPool-bounded, real back-pressure, and no per-message state on the shared handler.
     private final ExpandableDirectByteBuffer carry;
     private final ExpandableDirectByteBuffer assembly;
 
