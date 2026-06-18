@@ -18,21 +18,24 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * A pull parser over a full YAML 1.2 stream, emitting {@link YamlEvent}s in the YAML representation model
- * (stream, documents, mappings, sequences, scalars, aliases). It is a facade over the conservative
- * {@link YamlStreamScanner} fast path: when the scanner accepts the input its token stream is projected to
- * events directly; otherwise the parser falls back to the eager {@link YamlDocumentParser} and walks the
- * resulting document tree. The eager parser remains the independent reference against which this parser's
- * scanner path is differentially tested.
+ * A pull parser over a full YAML 1.2 stream. {@link #next()} returns the next {@link YamlEvent} kind; the
+ * current event's state (scalar value and type, node anchor / tag, alias name, source location) is read
+ * through the accessor methods, the way {@code jakarta.json.stream.JsonParser} exposes its current event.
+ *
+ * <p>It is a facade over the conservative {@link YamlStreamScanner} fast path: when the scanner accepts the
+ * input its token stream is projected to events directly; otherwise the parser falls back to the eager
+ * {@link YamlDocumentParser} and walks the resulting document tree. The eager parser remains the independent
+ * reference against which this parser's scanner path is differentially tested.
  *
  * <p>The JSON-restricting {@code YamlJsonParser} is layered on top of this stream — this parser itself does
- * not reject non-scalar keys, tags or other constructs that are valid YAML but not representable in JSON.
+ * not reject non-scalar keys, tags or other constructs that are valid YAML but not representable in JSON, and
+ * it does not resolve aliases (it emits {@link YamlEvent#ALIAS} events verbatim).
  */
 public final class YamlParser
 {
     private final List<Step> steps;
-    private final YamlEvent event;
     private int cursor;
+    private Step current;
 
     public YamlParser(
         String text)
@@ -45,7 +48,6 @@ public final class YamlParser
         YamlConfiguration config)
     {
         this.steps = new ArrayList<>();
-        this.event = new YamlEvent();
         build(text, config);
     }
 
@@ -56,15 +58,45 @@ public final class YamlParser
 
     public YamlEvent next()
     {
-        Step step = steps.get(cursor++);
-        return event.reset(step.type, step.value, step.scalarType, step.anchor, step.tag, step.alias);
+        current = steps.get(cursor++);
+        return current.event;
+    }
+
+    public CharSequence value()
+    {
+        return current.value;
+    }
+
+    public YamlScalarType scalarType()
+    {
+        return current.scalarType;
+    }
+
+    public String anchor()
+    {
+        return current.anchor;
+    }
+
+    public String tag()
+    {
+        return current.tag;
+    }
+
+    public String alias()
+    {
+        return current.alias;
+    }
+
+    public YamlLocation location()
+    {
+        return current.location;
     }
 
     private void build(
         String text,
         YamlConfiguration config)
     {
-        add(YamlEventType.STREAM_START, null, null, null, null, null);
+        add(YamlEvent.STREAM_START, null, null, null, null, null, ORIGIN);
         YamlStreamScanner scanner = new YamlStreamScanner();
         // the scanner fast path frames a single document; multi-document framing from the flat token stream
         // is deferred to the eager parser, which delineates each document's root node cleanly
@@ -76,19 +108,19 @@ public final class YamlParser
         {
             buildFromEager(text, config);
         }
-        add(YamlEventType.STREAM_END, null, null, null, null, null);
+        add(YamlEvent.STREAM_END, null, null, null, null, null, ORIGIN);
     }
 
     private void buildFromScanner(
         YamlStreamScanner scanner)
     {
         int count = scanner.count();
-        add(YamlEventType.DOCUMENT_START, null, null, null, null, null);
+        add(YamlEvent.DOCUMENT_START, null, null, null, null, null, ORIGIN);
         for (int index = 0; index < count; index++)
         {
             addScanEvent(scanner, index);
         }
-        add(YamlEventType.DOCUMENT_END, null, null, null, null, null);
+        add(YamlEvent.DOCUMENT_END, null, null, null, null, null, ORIGIN);
     }
 
     private void addScanEvent(
@@ -98,21 +130,23 @@ public final class YamlParser
         byte kind = scanner.kind(index);
         String anchor = scanner.anchor(index);
         String tag = scanner.tag(index);
+        YamlLocation location = new YamlLocation(scanner.line(index), scanner.column(index), scanner.offset(index));
         switch (kind)
         {
-        case YamlStreamScanner.START_OBJECT -> add(YamlEventType.MAPPING_START, null, null, anchor, tag, null);
-        case YamlStreamScanner.END_OBJECT -> add(YamlEventType.MAPPING_END, null, null, null, null, null);
-        case YamlStreamScanner.START_ARRAY -> add(YamlEventType.SEQUENCE_START, null, null, anchor, tag, null);
-        case YamlStreamScanner.END_ARRAY -> add(YamlEventType.SEQUENCE_END, null, null, null, null, null);
-        case YamlStreamScanner.KEY_NAME -> add(YamlEventType.SCALAR, viewText(scanner, index), null, anchor, tag, null);
+        case YamlStreamScanner.START_OBJECT -> add(YamlEvent.MAPPING_START, null, null, anchor, tag, null, location);
+        case YamlStreamScanner.END_OBJECT -> add(YamlEvent.MAPPING_END, null, null, null, null, null, location);
+        case YamlStreamScanner.START_ARRAY -> add(YamlEvent.SEQUENCE_START, null, null, anchor, tag, null, location);
+        case YamlStreamScanner.END_ARRAY -> add(YamlEvent.SEQUENCE_END, null, null, null, null, null, location);
+        case YamlStreamScanner.KEY_NAME -> add(YamlEvent.SCALAR, viewText(scanner, index), null, anchor, tag, null, location);
         case YamlStreamScanner.VALUE_STRING ->
-            add(YamlEventType.SCALAR, viewText(scanner, index), YamlScalarType.STRING, anchor, tag, null);
+            add(YamlEvent.SCALAR, viewText(scanner, index), YamlScalarType.STRING, anchor, tag, null, location);
         case YamlStreamScanner.VALUE_NUMBER ->
-            add(YamlEventType.SCALAR, viewText(scanner, index), YamlScalarType.NUMBER, anchor, tag, null);
-        case YamlStreamScanner.VALUE_TRUE -> add(YamlEventType.SCALAR, null, YamlScalarType.TRUE, anchor, tag, null);
-        case YamlStreamScanner.VALUE_FALSE -> add(YamlEventType.SCALAR, null, YamlScalarType.FALSE, anchor, tag, null);
-        case YamlStreamScanner.VALUE_NULL -> add(YamlEventType.SCALAR, null, YamlScalarType.NULL, anchor, tag, null);
-        case YamlStreamScanner.ALIAS -> add(YamlEventType.ALIAS, null, null, null, null, scanner.alias(index));
+            add(YamlEvent.SCALAR, viewText(scanner, index), YamlScalarType.NUMBER, anchor, tag, null, location);
+        case YamlStreamScanner.VALUE_TRUE -> add(YamlEvent.SCALAR, null, YamlScalarType.TRUE, anchor, tag, null, location);
+        case YamlStreamScanner.VALUE_FALSE -> add(YamlEvent.SCALAR, null, YamlScalarType.FALSE, anchor, tag, null, location);
+        case YamlStreamScanner.VALUE_NULL -> add(YamlEvent.SCALAR, null, YamlScalarType.NULL, anchor, tag, null, location);
+        case YamlStreamScanner.ALIAS ->
+            add(YamlEvent.ALIAS, null, null, null, null, scanner.alias(index), location);
         default -> throw new IllegalStateException("Unexpected scanner event kind: " + kind);
         }
     }
@@ -123,22 +157,23 @@ public final class YamlParser
     {
         for (YamlDocumentParser.Result result : YamlDocumentParser.parseAll(text, config))
         {
-            add(YamlEventType.DOCUMENT_START, null, null, null, null, null);
+            add(YamlEvent.DOCUMENT_START, null, null, null, null, null, ORIGIN);
             walk(result.node);
-            add(YamlEventType.DOCUMENT_END, null, null, null, null, null);
+            add(YamlEvent.DOCUMENT_END, null, null, null, null, null, ORIGIN);
         }
     }
 
     private void walk(
         YamlNode node)
     {
+        YamlLocation location = new YamlLocation(node.line, node.column, node.offset);
         if (node.alias != null)
         {
-            add(YamlEventType.ALIAS, null, null, null, null, node.alias);
+            add(YamlEvent.ALIAS, null, null, null, null, node.alias, location);
         }
         else if (node instanceof YamlObjectNode object)
         {
-            add(YamlEventType.MAPPING_START, null, null, node.anchor, node.tag, null);
+            add(YamlEvent.MAPPING_START, null, null, node.anchor, node.tag, null, location);
             for (YamlEntry entry : object.entries)
             {
                 if (entry.name == null && entry.key != null &&
@@ -148,30 +183,32 @@ public final class YamlParser
                 }
                 else if (entry.name != null)
                 {
-                    add(YamlEventType.SCALAR, entry.name, null, null, null, null);
+                    add(YamlEvent.SCALAR, entry.name, null, null, null, null,
+                        new YamlLocation(entry.line, entry.column, entry.offset));
                 }
                 else
                 {
                     YamlScalarNode key = (YamlScalarNode) entry.key;
-                    add(YamlEventType.SCALAR, key.value, null, key.anchor, key.tag, null);
+                    add(YamlEvent.SCALAR, key.value, null, key.anchor, key.tag, null,
+                        new YamlLocation(key.line, key.column, key.offset));
                 }
                 walk(entry.value);
             }
-            add(YamlEventType.MAPPING_END, null, null, null, null, null);
+            add(YamlEvent.MAPPING_END, null, null, null, null, null, location);
         }
         else if (node instanceof YamlArrayNode array)
         {
-            add(YamlEventType.SEQUENCE_START, null, null, node.anchor, node.tag, null);
+            add(YamlEvent.SEQUENCE_START, null, null, node.anchor, node.tag, null, location);
             for (YamlNode value : array.values)
             {
                 walk(value);
             }
-            add(YamlEventType.SEQUENCE_END, null, null, null, null, null);
+            add(YamlEvent.SEQUENCE_END, null, null, null, null, null, location);
         }
         else
         {
             YamlScalarNode scalar = (YamlScalarNode) node;
-            add(YamlEventType.SCALAR, scalar.value, scalar.type, scalar.anchor, scalar.tag, null);
+            add(YamlEvent.SCALAR, scalar.value, scalar.type, scalar.anchor, scalar.tag, null, location);
         }
     }
 
@@ -184,39 +221,45 @@ public final class YamlParser
     }
 
     private void add(
-        YamlEventType type,
+        YamlEvent event,
         CharSequence value,
         YamlScalarType scalarType,
         String anchor,
         String tag,
-        String alias)
+        String alias,
+        YamlLocation location)
     {
-        steps.add(new Step(type, value, scalarType, anchor, tag, alias));
+        steps.add(new Step(event, value, scalarType, anchor, tag, alias, location));
     }
+
+    private static final YamlLocation ORIGIN = new YamlLocation(1, 1, 0);
 
     private static final class Step
     {
-        private final YamlEventType type;
+        private final YamlEvent event;
         private final CharSequence value;
         private final YamlScalarType scalarType;
         private final String anchor;
         private final String tag;
         private final String alias;
+        private final YamlLocation location;
 
         private Step(
-            YamlEventType type,
+            YamlEvent event,
             CharSequence value,
             YamlScalarType scalarType,
             String anchor,
             String tag,
-            String alias)
+            String alias,
+            YamlLocation location)
         {
-            this.type = type;
+            this.event = event;
             this.value = value;
             this.scalarType = scalarType;
             this.anchor = anchor;
             this.tag = tag;
             this.alias = alias;
+            this.location = location;
         }
     }
 }

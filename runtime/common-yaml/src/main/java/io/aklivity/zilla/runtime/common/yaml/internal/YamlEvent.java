@@ -15,68 +15,24 @@
 package io.aklivity.zilla.runtime.common.yaml.internal;
 
 /**
- * A reusable cursor over a single {@link YamlParser} event. The parser mutates and returns the same instance
- * on every step to avoid per-event allocation on the hot path, so a caller must read an event's properties
- * before advancing the parser. Scalar and alias text is exposed as a {@link CharSequence} view; structural
- * events carry only their {@link #type()} and any node {@link #anchor()} / {@link #tag()} properties.
+ * The events emitted by {@link YamlParser} over a YAML 1.2 stream, mirroring the YAML representation graph: a
+ * stream wraps one or more documents, each document wraps a single root node, and nodes are mappings,
+ * sequences, scalars or alias references. A mapping's children alternate key node, value node.
+ *
+ * <p>This is the event kind only; the associated state for the current event (scalar value and type, node
+ * anchor / tag, alias name, source location) is read through accessor methods on {@link YamlParser}, the way
+ * {@code jakarta.json.stream.JsonParser} exposes the current event's data.
  */
-public final class YamlEvent
+public enum YamlEvent
 {
-    private YamlEventType type;
-    private CharSequence value;
-    private YamlScalarType scalarType;
-    private String anchor;
-    private String tag;
-    private String alias;
-
-    YamlEvent()
-    {
-    }
-
-    public YamlEventType type()
-    {
-        return type;
-    }
-
-    public CharSequence value()
-    {
-        return value;
-    }
-
-    public YamlScalarType scalarType()
-    {
-        return scalarType;
-    }
-
-    public String anchor()
-    {
-        return anchor;
-    }
-
-    public String tag()
-    {
-        return tag;
-    }
-
-    public String alias()
-    {
-        return alias;
-    }
-
-    YamlEvent reset(
-        YamlEventType type,
-        CharSequence value,
-        YamlScalarType scalarType,
-        String anchor,
-        String tag,
-        String alias)
-    {
-        this.type = type;
-        this.value = value;
-        this.scalarType = scalarType;
-        this.anchor = anchor;
-        this.tag = tag;
-        this.alias = alias;
-        return this;
-    }
+    STREAM_START,
+    STREAM_END,
+    DOCUMENT_START,
+    DOCUMENT_END,
+    MAPPING_START,
+    MAPPING_END,
+    SEQUENCE_START,
+    SEQUENCE_END,
+    SCALAR,
+    ALIAS
 }

@@ -121,7 +121,7 @@ class YamlParserTest
         while (parser.hasNext())
         {
             YamlEvent event = parser.next();
-            render(builder, event.type(), event.value(), event.scalarType(), event.anchor(), event.tag(), event.alias());
+            render(builder, event, parser.value(), parser.scalarType(), parser.anchor(), parser.tag(), parser.alias());
         }
         return builder.toString();
     }
@@ -130,14 +130,14 @@ class YamlParserTest
         String text)
     {
         StringBuilder builder = new StringBuilder();
-        render(builder, YamlEventType.STREAM_START, null, null, null, null, null);
+        render(builder, YamlEvent.STREAM_START, null, null, null, null, null);
         for (YamlDocumentParser.Result result : YamlDocumentParser.parseAll(text, YamlConfiguration.DEFAULT))
         {
-            render(builder, YamlEventType.DOCUMENT_START, null, null, null, null, null);
+            render(builder, YamlEvent.DOCUMENT_START, null, null, null, null, null);
             walk(builder, result.node);
-            render(builder, YamlEventType.DOCUMENT_END, null, null, null, null, null);
+            render(builder, YamlEvent.DOCUMENT_END, null, null, null, null, null);
         }
-        render(builder, YamlEventType.STREAM_END, null, null, null, null, null);
+        render(builder, YamlEvent.STREAM_END, null, null, null, null, null);
         return builder.toString();
     }
 
@@ -147,11 +147,11 @@ class YamlParserTest
     {
         if (node.alias != null)
         {
-            render(builder, YamlEventType.ALIAS, null, null, null, null, node.alias);
+            render(builder, YamlEvent.ALIAS, null, null, null, null, node.alias);
         }
         else if (node instanceof YamlObjectNode object)
         {
-            render(builder, YamlEventType.MAPPING_START, null, null, node.anchor, node.tag, null);
+            render(builder, YamlEvent.MAPPING_START, null, null, node.anchor, node.tag, null);
             for (YamlEntry entry : object.entries)
             {
                 if (entry.name == null && entry.key != null &&
@@ -161,36 +161,36 @@ class YamlParserTest
                 }
                 else if (entry.name != null)
                 {
-                    render(builder, YamlEventType.SCALAR, entry.name, null, null, null, null);
+                    render(builder, YamlEvent.SCALAR, entry.name, null, null, null, null);
                 }
                 else
                 {
                     YamlScalarNode key = (YamlScalarNode) entry.key;
-                    render(builder, YamlEventType.SCALAR, key.value, null, key.anchor, key.tag, null);
+                    render(builder, YamlEvent.SCALAR, key.value, null, key.anchor, key.tag, null);
                 }
                 walk(builder, entry.value);
             }
-            render(builder, YamlEventType.MAPPING_END, null, null, null, null, null);
+            render(builder, YamlEvent.MAPPING_END, null, null, null, null, null);
         }
         else if (node instanceof YamlArrayNode array)
         {
-            render(builder, YamlEventType.SEQUENCE_START, null, null, node.anchor, node.tag, null);
+            render(builder, YamlEvent.SEQUENCE_START, null, null, node.anchor, node.tag, null);
             for (YamlNode value : array.values)
             {
                 walk(builder, value);
             }
-            render(builder, YamlEventType.SEQUENCE_END, null, null, null, null, null);
+            render(builder, YamlEvent.SEQUENCE_END, null, null, null, null, null);
         }
         else
         {
             YamlScalarNode scalar = (YamlScalarNode) node;
-            render(builder, YamlEventType.SCALAR, scalar.value, scalar.type, scalar.anchor, scalar.tag, null);
+            render(builder, YamlEvent.SCALAR, scalar.value, scalar.type, scalar.anchor, scalar.tag, null);
         }
     }
 
     private static void render(
         StringBuilder builder,
-        YamlEventType type,
+        YamlEvent type,
         CharSequence value,
         YamlScalarType scalarType,
         String anchor,
