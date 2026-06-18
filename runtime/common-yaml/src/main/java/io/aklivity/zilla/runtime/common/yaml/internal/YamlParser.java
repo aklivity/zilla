@@ -96,31 +96,33 @@ public final class YamlParser
         String text,
         YamlConfiguration config)
     {
-        add(YamlEvent.STREAM_START, null, null, null, null, null, ORIGIN);
+        add(YamlEvent.STREAM_START, null, null, null, null, null, locationAt(text, 0));
         YamlStreamScanner scanner = new YamlStreamScanner();
         // the scanner fast path frames a single document; multi-document framing from the flat token stream
         // is deferred to the eager parser, which delineates each document's root node cleanly
         if (scanner.scan(text) && scanner.documentCount() <= 1)
         {
-            buildFromScanner(scanner);
+            buildFromScanner(scanner, text);
         }
         else
         {
             buildFromEager(text, config);
         }
-        add(YamlEvent.STREAM_END, null, null, null, null, null, ORIGIN);
+        add(YamlEvent.STREAM_END, null, null, null, null, null, locationAt(text, text.length()));
     }
 
     private void buildFromScanner(
-        YamlStreamScanner scanner)
+        YamlStreamScanner scanner,
+        String text)
     {
         int count = scanner.count();
-        add(YamlEvent.DOCUMENT_START, null, null, null, null, null, ORIGIN);
+        add(YamlEvent.DOCUMENT_START, null, null, null, null, null, locationAt(text, 0));
         for (int index = 0; index < count; index++)
         {
             addScanEvent(scanner, index);
         }
-        add(YamlEvent.DOCUMENT_END, null, null, null, null, null, ORIGIN);
+        // the document's boundary is the end of the stream; the JSON layer reports the root-terminal event here
+        add(YamlEvent.DOCUMENT_END, null, null, null, null, null, locationAt(text, text.length()));
     }
 
     private void addScanEvent(
@@ -155,18 +157,30 @@ public final class YamlParser
         String text,
         YamlConfiguration config)
     {
-        for (YamlDocumentParser.Result result : YamlDocumentParser.parseAll(text, config))
+        int offset = 0;
+        do
         {
-            add(YamlEvent.DOCUMENT_START, null, null, null, null, null, ORIGIN);
-            walk(result.node);
-            add(YamlEvent.DOCUMENT_END, null, null, null, null, null, ORIGIN);
+            String remaining = text.substring(offset);
+            YamlDocumentParser.Result result = YamlDocumentParser.parse(remaining, config);
+            int read = (int) result.end.offset();
+            int boundary = read <= 0 ? text.length() : offset + read;
+            add(YamlEvent.DOCUMENT_START, null, null, null, null, null, locationAt(text, offset));
+            walk(result.node, offset);
+            add(YamlEvent.DOCUMENT_END, null, null, null, null, null, locationAt(text, boundary));
+            if (read <= 0)
+            {
+                break;
+            }
+            offset = boundary;
         }
+        while (offset < text.length() && !text.substring(offset).isBlank());
     }
 
     private void walk(
-        YamlNode node)
+        YamlNode node,
+        long base)
     {
-        YamlLocation location = new YamlLocation(node.line, node.column, node.offset);
+        YamlLocation location = new YamlLocation(node.line, node.column, base + node.offset);
         if (node.alias != null)
         {
             add(YamlEvent.ALIAS, null, null, null, null, node.alias, location);
@@ -179,20 +193,20 @@ public final class YamlParser
                 if (entry.name == null && entry.key != null &&
                     (!(entry.key instanceof YamlScalarNode) || entry.key.alias != null))
                 {
-                    walk(entry.key);
+                    walk(entry.key, base);
                 }
                 else if (entry.name != null)
                 {
                     add(YamlEvent.SCALAR, entry.name, null, null, null, null,
-                        new YamlLocation(entry.line, entry.column, entry.offset));
+                        new YamlLocation(entry.line, entry.column, base + entry.offset));
                 }
                 else
                 {
                     YamlScalarNode key = (YamlScalarNode) entry.key;
                     add(YamlEvent.SCALAR, key.value, null, key.anchor, key.tag, null,
-                        new YamlLocation(key.line, key.column, key.offset));
+                        new YamlLocation(key.line, key.column, base + key.offset));
                 }
-                walk(entry.value);
+                walk(entry.value, base);
             }
             add(YamlEvent.MAPPING_END, null, null, null, null, null, location);
         }
@@ -201,7 +215,7 @@ public final class YamlParser
             add(YamlEvent.SEQUENCE_START, null, null, node.anchor, node.tag, null, location);
             for (YamlNode value : array.values)
             {
-                walk(value);
+                walk(value, base);
             }
             add(YamlEvent.SEQUENCE_END, null, null, null, null, null, location);
         }
@@ -210,6 +224,28 @@ public final class YamlParser
             YamlScalarNode scalar = (YamlScalarNode) node;
             add(YamlEvent.SCALAR, scalar.value, scalar.type, scalar.anchor, scalar.tag, null, location);
         }
+    }
+
+    private static YamlLocation locationAt(
+        String text,
+        int offset)
+    {
+        int line = 1;
+        int column = 1;
+        int limit = Math.min(offset, text.length());
+        for (int index = 0; index < limit; index++)
+        {
+            if (text.charAt(index) == '\n')
+            {
+                line++;
+                column = 1;
+            }
+            else
+            {
+                column++;
+            }
+        }
+        return new YamlLocation(line, column, offset);
     }
 
     private static String viewText(
@@ -231,8 +267,6 @@ public final class YamlParser
     {
         steps.add(new Step(event, value, scalarType, anchor, tag, alias, location));
     }
-
-    private static final YamlLocation ORIGIN = new YamlLocation(1, 1, 0);
 
     private static final class Step
     {
