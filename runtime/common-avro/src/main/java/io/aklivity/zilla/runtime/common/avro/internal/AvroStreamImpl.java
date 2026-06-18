@@ -22,6 +22,7 @@ import io.aklivity.zilla.runtime.common.avro.AvroEvent;
 import io.aklivity.zilla.runtime.common.avro.AvroParser;
 import io.aklivity.zilla.runtime.common.avro.AvroPipeline;
 import io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status;
+import io.aklivity.zilla.runtime.common.avro.AvroReporter;
 import io.aklivity.zilla.runtime.common.avro.AvroSink;
 import io.aklivity.zilla.runtime.common.avro.AvroSource;
 import io.aklivity.zilla.runtime.common.avro.AvroStream;
@@ -31,6 +32,8 @@ public final class AvroStreamImpl implements AvroStream
 {
     private final AvroParser driver;
     private final List<AvroTransform> transforms;
+
+    private AvroReporter reporter;
 
     public AvroStreamImpl(
         AvroParser driver)
@@ -48,6 +51,14 @@ public final class AvroStreamImpl implements AvroStream
     }
 
     @Override
+    public AvroStream reporting(
+        AvroReporter reporter)
+    {
+        this.reporter = reporter;
+        return this;
+    }
+
+    @Override
     public AvroPipeline into(
         AvroSink sink)
     {
@@ -56,7 +67,7 @@ public final class AvroStreamImpl implements AvroStream
         {
             head = new BoundSink(transforms.get(i), head);
         }
-        return new AvroPipelineImpl(driver, head);
+        return new AvroPipelineImpl(driver, head, reporter);
     }
 
     private static final class BoundSink implements AvroSink

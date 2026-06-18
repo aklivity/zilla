@@ -76,16 +76,6 @@ public interface ProtobufPipeline
     void reset();
 
     /**
-     * A short, human-readable reason for the most recent {@link Status#REJECTED} — e.g. an unknown
-     * field, an unknown enum value, or truncated input — or {@code null} when the last feed did not
-     * reject. Cleared by {@link #reset()}.
-     */
-    default String reason()
-    {
-        return null;
-    }
-
-    /**
      * The number of bytes at the tail of the most recently fed window not yet consumed — exactly what the
      * caller retains (typically in its own reassembly slot) and re-presents, contiguous, at the front of the
      * next {@link #feed}. A caller buffering across windows keeps this many bytes without tracking the
