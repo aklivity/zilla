@@ -278,26 +278,27 @@ public class ProtobufParserTest
         boolean[] sawNull = {false};
         int window = 2;
         byte[] retained = new byte[0];
-        long committed = 0;
+        int progress = 0;
         int offset = 0;
         boolean started = false;
         boolean done = false;
         while (!done)
         {
-            int take = Math.min(window, message.length - offset);
-            byte[] feed = new byte[retained.length + take];
-            System.arraycopy(retained, 0, feed, 0, retained.length);
-            System.arraycopy(message, offset, feed, retained.length, take);
-            offset += take;
-            boolean last = offset >= message.length;
-            UnsafeBuffer buffer = new UnsafeBuffer(feed);
+            int take = Math.min(window, message.length - progress);
+            byte[] buffer = new byte[retained.length + take];
+            System.arraycopy(retained, 0, buffer, 0, retained.length);
+            System.arraycopy(message, progress, buffer, retained.length, take);
+            progress += take;
+            boolean last = progress >= message.length;
+            int limit = buffer.length;
+            UnsafeBuffer view = new UnsafeBuffer(buffer);
             if (started)
             {
-                parser.resume(buffer, 0, feed.length, last);
+                parser.resume(view, offset, limit, last);
             }
             else
             {
-                parser.wrap(buffer, 0, feed.length, last);
+                parser.wrap(view, offset, limit, last);
                 started = true;
             }
 
@@ -318,9 +319,8 @@ public class ProtobufParserTest
 
             if (parser.hasNext())
             {
-                int consumed = (int) (parser.position() - committed);
-                retained = Arrays.copyOfRange(feed, consumed, feed.length);
-                committed = parser.position();
+                int parsed = limit - parser.remaining();
+                retained = Arrays.copyOfRange(buffer, parsed, limit);
             }
             else
             {
@@ -480,7 +480,7 @@ public class ProtobufParserTest
     }
 
     // drives the parser window-by-window the way a real caller does: on starvation it retains the
-    // unconsumed tail (everything at or after position()) and re-presents it contiguous with the next window
+    // unconsumed tail (the bytes the parser did not parse) and re-presents it contiguous with the next window
     private static void driveWindows(
         ProtobufParser parser,
         byte[] message,
@@ -488,26 +488,27 @@ public class ProtobufParserTest
         BiConsumer<ProtobufParser, ProtobufEvent> consumer)
     {
         byte[] retained = new byte[0];
-        long committed = 0;
+        int progress = 0;
         int offset = 0;
         boolean started = false;
         boolean done = false;
         while (!done)
         {
-            int take = Math.min(window, message.length - offset);
-            byte[] feed = new byte[retained.length + take];
-            System.arraycopy(retained, 0, feed, 0, retained.length);
-            System.arraycopy(message, offset, feed, retained.length, take);
-            offset += take;
-            boolean last = offset >= message.length;
-            UnsafeBuffer buffer = new UnsafeBuffer(feed);
+            int take = Math.min(window, message.length - progress);
+            byte[] buffer = new byte[retained.length + take];
+            System.arraycopy(retained, 0, buffer, 0, retained.length);
+            System.arraycopy(message, progress, buffer, retained.length, take);
+            progress += take;
+            boolean last = progress >= message.length;
+            int limit = buffer.length;
+            UnsafeBuffer view = new UnsafeBuffer(buffer);
             if (started)
             {
-                parser.resume(buffer, 0, feed.length, last);
+                parser.resume(view, offset, limit, last);
             }
             else
             {
-                parser.wrap(buffer, 0, feed.length, last);
+                parser.wrap(view, offset, limit, last);
                 started = true;
             }
 
@@ -527,9 +528,8 @@ public class ProtobufParserTest
 
             if (parser.hasNext())
             {
-                int consumed = (int) (parser.position() - committed);
-                retained = Arrays.copyOfRange(feed, consumed, feed.length);
-                committed = parser.position();
+                int parsed = limit - parser.remaining();
+                retained = Arrays.copyOfRange(buffer, parsed, limit);
             }
             else
             {

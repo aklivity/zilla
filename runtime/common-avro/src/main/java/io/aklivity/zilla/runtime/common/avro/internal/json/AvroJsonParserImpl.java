@@ -58,7 +58,7 @@ import io.aklivity.zilla.runtime.common.json.JsonParserEx;
  * {@code fixed} of the wrong size) raises {@link AvroValidationException}, reported as a clean reject. Reuse
  * a single instance per worker thread; not thread-safe.
  */
-public final class AvroJsonParserImpl implements AvroParser, AvroLocation
+public final class AvroJsonParserImpl implements AvroParser
 {
     private static final int NOT_STARTED = 0;
     private static final int RUNNING = 1;
@@ -72,6 +72,20 @@ public final class AvroJsonParserImpl implements AvroParser, AvroLocation
     private final Map<AvroType, List<AvroField>> fieldsByType;
     private final Map<AvroType, List<AvroType>> branchesByType;
     private final Map<AvroType, List<String>> symbolsByType;
+    private final AvroLocation location = new AvroLocation()
+    {
+        @Override
+        public int depth()
+        {
+            return top;
+        }
+
+        @Override
+        public long getStreamOffset()
+        {
+            return json.getLocation().getStreamOffset();
+        }
+    };
 
     private Frame[] stack;
     private int top;
@@ -132,10 +146,10 @@ public final class AvroJsonParserImpl implements AvroParser, AvroLocation
     public void wrap(
         DirectBuffer buffer,
         int offset,
-        int length,
+        int limit,
         boolean last)
     {
-        json.wrap(buffer, offset, length, last);
+        json.wrap(buffer, offset, limit, last);
         this.last = last;
         this.havePending = false;
         this.starved = false;
@@ -257,19 +271,13 @@ public final class AvroJsonParserImpl implements AvroParser, AvroLocation
     @Override
     public AvroLocation getLocation()
     {
-        return this;
+        return location;
     }
 
     @Override
-    public int depth()
+    public int remaining()
     {
-        return top;
-    }
-
-    @Override
-    public long position()
-    {
-        return json.position();
+        return json.remaining();
     }
 
     private AvroEvent step()

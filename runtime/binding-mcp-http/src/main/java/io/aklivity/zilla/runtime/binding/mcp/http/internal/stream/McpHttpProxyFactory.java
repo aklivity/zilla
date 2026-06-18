@@ -896,7 +896,7 @@ public final class McpHttpProxyFactory implements BindingHandler
             // RESPONSE_GEN_BOUND, pushes the source bytes taken back via consumed() so the parser advances
             // position() by exactly that count, and returns SUSPENDED when the bound fills mid-value
             responseGenerator.wrap(projectBuffer, 0, RESPONSE_GEN_BOUND);
-            final JsonPipeline.Status status = responsePipeline.feed(buffer, offset, length, last);
+            final JsonPipeline.Status status = responsePipeline.feed(buffer, offset, offset + length, last);
             final int produced = responseGenerator.length();
             if (produced > 0)
             {
@@ -905,9 +905,9 @@ public final class McpHttpProxyFactory implements BindingHandler
             return status;
         }
 
-        private long responsePosition()
+        private int responseRemaining()
         {
-            return responsePipeline.position();
+            return responsePipeline.remaining();
         }
 
         private void responseComplete(
@@ -1184,7 +1184,6 @@ public final class McpHttpProxyFactory implements BindingHandler
 
         private int responseSlot = NO_SLOT;
         private int responseOffset;
-        private long responseBasePos;
         private String responseStatus;
         private String responseContentType;
         private boolean responseStreaming;
@@ -1541,16 +1540,15 @@ public final class McpHttpProxyFactory implements BindingHandler
                 final JsonPipeline.Status status = server.responseStep(slot, 0, responseOffset, responseEnded);
                 if (status != JsonPipeline.Status.SUSPENDED)
                 {
-                    // compact only at a terminal status: the parser stays wrapped at the window base
-                    // (slot offset 0 == responseBasePos) across suspend cycles, so dropping consumed bytes
-                    // mid-cycle would corrupt its positioning; drop the whole window's consumed prefix here
-                    final int consumed = (int)(server.responsePosition() - responseBasePos);
+                    // compact only at a terminal status: across suspend cycles the pipeline re-feeds the same
+                    // window, so dropping consumed bytes mid-cycle would corrupt its positioning; here the
+                    // window-relative remaining() is the tail to keep, so the consumed prefix is the rest
+                    final int consumed = responseOffset - server.responseRemaining();
                     if (consumed > 0 && consumed < responseOffset)
                     {
                         slot.putBytes(0, slot, consumed, responseOffset - consumed);
                     }
                     responseOffset -= consumed;
-                    responseBasePos = server.responsePosition();
                 }
                 switch (status)
                 {
@@ -1955,7 +1953,7 @@ public final class McpHttpProxyFactory implements BindingHandler
         projectGenerator.wrap(projectBuffer, 0, projectBuffer.capacity());
         pipeline.reset();
 
-        final JsonPipeline.Status status = pipeline.feed(buffer, offset, length);
+        final JsonPipeline.Status status = pipeline.feed(buffer, offset, offset + length);
 
         String result = null;
         if (status == JsonPipeline.Status.COMPLETED)

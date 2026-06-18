@@ -121,7 +121,7 @@ class JsonProjectorTest
 
         pipeline.reset();
         assertEquals(Status.STARVED, pipeline.feed(in, 0, 7, false));
-        Status status = pipeline.feed(in, 7, bytes.length - 7);
+        Status status = pipeline.feed(in, 7, bytes.length);
 
         assertEquals(Status.COMPLETED, status);
         byte[] out = new byte[gen.length()];

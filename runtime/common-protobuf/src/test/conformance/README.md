@@ -11,7 +11,7 @@ length-prefixed `ConformanceRequest` / `ConformanceResponse` protobufs. Our test
 (`ConformanceTestee`, in test sources) is that program:
 
 - It reads/writes the conformance frames with `common-protobuf`'s own reader and writer (the
-  conformance messages are themselves Protobuf — more dogfooding), no `protobuf-java`.
+  conformance messages are themselves Protobuf — more dogfooding), no third-party protobuf library.
 - For the binary category (`protobuf_payload` in, `PROTOBUF` out) it canonicalizes against the
   schema compiled from the conformance `FileDescriptorSet` (via `Protobuf.schema(...)`).
 - JSON/text formats return `skipped` — the conformance runner exercises only the binary category here;

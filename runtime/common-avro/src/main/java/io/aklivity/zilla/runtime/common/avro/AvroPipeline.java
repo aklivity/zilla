@@ -26,8 +26,8 @@ import org.agrona.DirectBuffer;
  * status:
  * <ul>
  * <li><b>Input</b> — {@link Status#STARVED}: the input window was consumed but the datum is not yet
- * complete. The caller drops the consumed prefix (up to {@link #position()}) and re-presents the
- * remainder plus newly arrived bytes, passing {@code last == true} only on the final window. The
+ * complete. The caller keeps the unconsumed tail ({@link #remaining()} bytes) and re-presents it,
+ * contiguous with newly arrived bytes, passing {@code last == true} only on the final window. The
  * pipeline holds no input buffer of its own.</li>
  * <li><b>Output</b> — {@link Status#SUSPENDED}: the bounded generator filled mid-datum. The caller
  * drains the output, resets the generator, and calls {@code feed} again with the <em>same</em> input
@@ -59,9 +59,9 @@ public interface AvroPipeline
     default Status feed(
         DirectBuffer buffer,
         int offset,
-        int length)
+        int limit)
     {
-        return feed(buffer, offset, length, true);
+        return feed(buffer, offset, limit, true);
     }
 
     /**
@@ -74,13 +74,15 @@ public interface AvroPipeline
     Status feed(
         DirectBuffer buffer,
         int offset,
-        int length,
+        int limit,
         boolean last);
 
     /**
-     * The aggregate count of input bytes consumed since {@link #reset()} — the watermark up to which the
-     * caller may drop bytes before re-presenting the remainder. Advances on {@link Status#STARVED}; held
-     * steady while {@link Status#SUSPENDED}.
+     * The number of bytes at the tail of the most recently fed window not yet consumed — exactly what the
+     * caller retains and re-presents, contiguous, at the front of the next {@link #feed}. A caller buffering
+     * across windows keeps this many bytes without tracking the window's absolute base. On {@link Status#STARVED}
+     * it is the partial trailing unit left unconsumed; held steady while {@link Status#SUSPENDED}, since output
+     * back-pressure consumes no further input.
      */
-    long position();
+    int remaining();
 }
