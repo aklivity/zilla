@@ -26,12 +26,39 @@ import org.junit.jupiter.api.Test;
 class JsonLocationTest
 {
     @Test
-    void shouldReturnMinusOneForLineAndColumn()
+    void shouldStartAtLineOneColumnOne()
     {
         JsonLocation location = parserFor("{}").getLocation();
 
-        assertEquals(-1L, location.getLineNumber());
-        assertEquals(-1L, location.getColumnNumber());
+        assertEquals(1L, location.getLineNumber());
+        assertEquals(1L, location.getColumnNumber());
+    }
+
+    @Test
+    void shouldTrackColumnOnSingleLine()
+    {
+        JsonParser parser = parserFor("[1,2]");
+
+        parser.next();
+        assertEquals(1L, parser.getLocation().getLineNumber());
+        assertEquals(2L, parser.getLocation().getColumnNumber());
+        parser.next();
+        assertEquals(1L, parser.getLocation().getLineNumber());
+        assertEquals(3L, parser.getLocation().getColumnNumber());
+    }
+
+    @Test
+    void shouldTrackLineAcrossNewlines()
+    {
+        JsonParser parser = parserFor("{\n\"a\":1\n}");
+
+        parser.next();
+        parser.next();
+        assertEquals(2L, parser.getLocation().getLineNumber());
+        assertEquals(4L, parser.getLocation().getColumnNumber());
+        parser.next();
+        assertEquals(2L, parser.getLocation().getLineNumber());
+        assertEquals(6L, parser.getLocation().getColumnNumber());
     }
 
     @Test

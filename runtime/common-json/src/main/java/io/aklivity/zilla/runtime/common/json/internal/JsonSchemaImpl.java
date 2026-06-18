@@ -2157,13 +2157,14 @@ public final class JsonSchemaImpl implements JsonSchema
         }
 
         private final JsonController decline = new Decline();
+        private final List<JsonSchemaDiagnostic> diagnostics = new ArrayList<>();
 
         private JsonController upstreamControl;
         private Eval eval;
 
         private Validator()
         {
-            this.eval = eval();
+            this.eval = eval(new Trace(diagnostics::add));
         }
 
         @Override
@@ -2184,7 +2185,13 @@ public final class JsonSchemaImpl implements JsonSchema
             else
             {
                 Verdict verdict = eval.feed(toEvent(event), source);
-                if (downstream == Status.REJECTED || verdict == Verdict.INVALID)
+                // throw a descriptive exception at the point of detection so the pipeline maps it to REJECTED
+                // and pushes the diagnostic to the reporter, rather than rejecting structurally with no message
+                if (verdict == Verdict.INVALID)
+                {
+                    throw new JsonValidationException(diagnostics);
+                }
+                else if (downstream == Status.REJECTED)
                 {
                     status = Status.REJECTED;
                 }
@@ -2203,7 +2210,8 @@ public final class JsonSchemaImpl implements JsonSchema
         @Override
         public void reset()
         {
-            eval = eval();
+            diagnostics.clear();
+            eval = eval(new Trace(diagnostics::add));
         }
     }
 

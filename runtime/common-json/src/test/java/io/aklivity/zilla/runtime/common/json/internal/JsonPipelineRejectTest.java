@@ -28,6 +28,7 @@ import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonReporter;
+import io.aklivity.zilla.runtime.common.json.JsonSchema;
 
 class JsonPipelineRejectTest
 {
@@ -68,6 +69,47 @@ class JsonPipelineRejectTest
 
         assertEquals(Status.REJECTED, pipeline.feed(new UnsafeBuffer(bytes), 0, bytes.length));
         assertNotNull(reason[0]);
+    }
+
+    // A schema violation is well-formed JSON the validator rejects; the validator throws a descriptive
+    // JsonValidationException at the point of detection so the pipeline pushes the verbatim diagnostic —
+    // including the accurate line/column — to the reporter, rather than rejecting with no message.
+    @Test
+    void shouldReportSchemaViolationWithLocation()
+    {
+        JsonSchema schema = JsonSchema.of("{\"properties\":{\"id\":{\"type\":\"string\"}}}");
+        JsonGeneratorEx generator = JsonEx.createGenerator();
+        MutableDirectBuffer output = new UnsafeBuffer(new byte[128]);
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(schema.validator())
+            .reporting(reporter)
+            .into(JsonEx.createSink(generator));
+
+        byte[] bytes = "{\"id\": 123}".getBytes(UTF_8);
+        generator.wrap(output, 0, output.capacity());
+        pipeline.reset();
+
+        assertEquals(Status.REJECTED, pipeline.feed(new UnsafeBuffer(bytes), 0, bytes.length));
+        assertEquals("[1,11][/id] expected string but was number", reason[0]);
+    }
+
+    @Test
+    void shouldReportSchemaViolationLocationAcrossNewlines()
+    {
+        JsonSchema schema = JsonSchema.of("{\"properties\":{\"id\":{\"type\":\"string\"}}}");
+        JsonGeneratorEx generator = JsonEx.createGenerator();
+        MutableDirectBuffer output = new UnsafeBuffer(new byte[128]);
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(schema.validator())
+            .reporting(reporter)
+            .into(JsonEx.createSink(generator));
+
+        byte[] bytes = "{\n  \"id\": 123\n}".getBytes(UTF_8);
+        generator.wrap(output, 0, output.capacity());
+        pipeline.reset();
+
+        assertEquals(Status.REJECTED, pipeline.feed(new UnsafeBuffer(bytes), 0, bytes.length));
+        assertEquals("[2,12][/id] expected string but was number", reason[0]);
     }
 
     @Test
