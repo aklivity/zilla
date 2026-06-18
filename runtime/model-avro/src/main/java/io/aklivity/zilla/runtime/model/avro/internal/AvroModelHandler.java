@@ -116,7 +116,7 @@ public abstract class AvroModelHandler
             if (parser != null)
             {
                 parser.reset();
-                parser.wrap(buffer, index, length, true);
+                parser.wrap(buffer, index, index + length, true);
                 walk(parser);
                 status = true;
             }

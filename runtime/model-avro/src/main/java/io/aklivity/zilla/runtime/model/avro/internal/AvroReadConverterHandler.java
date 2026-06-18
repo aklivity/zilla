@@ -194,7 +194,7 @@ public class AvroReadConverterHandler extends AvroModelHandler implements Conver
             int accumulated = 0;
             pipeline.generator.wrap(out, 0, limit);
             pipeline.pipeline.reset();
-            Status status = pipeline.pipeline.feed(data, index, length, true);
+            Status status = pipeline.pipeline.feed(data, index, index + length, true);
             while (status == Status.SUSPENDED)
             {
                 pipeline.json.flush();
@@ -202,7 +202,7 @@ public class AvroReadConverterHandler extends AvroModelHandler implements Conver
                 accumulator.putBytes(accumulated, out, 0, chunk);
                 accumulated += chunk;
                 pipeline.generator.wrap(out, 0, limit);
-                status = pipeline.pipeline.feed(data, index, length, true);
+                status = pipeline.pipeline.feed(data, index, index + length, true);
             }
 
             if (status == Status.COMPLETED)

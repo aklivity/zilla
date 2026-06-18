@@ -98,7 +98,7 @@ public class AvroWriteConverterHandler extends AvroModelHandler implements Conve
             // one-character number), so the bounded window admits the whole datum and the feed completes once
             pipeline.generator.wrap(out, 0, outLimit(length));
             pipeline.pipeline.reset();
-            Status status = pipeline.pipeline.feed(data, index, length, true);
+            Status status = pipeline.pipeline.feed(data, index, index + length, true);
             if (status == Status.COMPLETED)
             {
                 int chunk = pipeline.generator.length();
