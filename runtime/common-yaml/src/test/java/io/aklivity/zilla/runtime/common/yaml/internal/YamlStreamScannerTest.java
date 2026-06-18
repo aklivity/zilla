@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.common.yaml.internal;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
@@ -798,6 +799,39 @@ class YamlStreamScannerTest
         };
     }
 
+    @TestFactory
+    Stream<DynamicTest> shouldRejectInvalidConsistentlyWithEager() throws Exception
+    {
+        // every input the scanner rejects is also rejected by the eager parser, and vice versa — the scanner
+        // is complete for valid YAML, so it can carry the rejection diagnostics once the eager parser is
+        // retired. The scanner records a specific, located bail message for each.
+        return invalidFixtures()
+            .map(path -> DynamicTest.dynamicTest(SUITE_DIR.relativize(path).toString(), () ->
+            {
+                String text = Files.readString(path.resolve("in.yaml"));
+                YamlStreamScanner scanner = new YamlStreamScanner();
+                assertFalse(scanner.scan(text), "scanner should reject an invalid document");
+                assertNotNull(eagerMessage(text), "eager parser should also reject the invalid document");
+                assertNotNull(scanner.bailMessage(), "scanner should record a bail message");
+            }));
+    }
+
+    private static String eagerMessage(
+        String text)
+    {
+        String message;
+        try
+        {
+            YamlDocumentParser.parseAll(text, YamlConfiguration.DEFAULT);
+            message = null;
+        }
+        catch (YamlParseException ex)
+        {
+            message = ex.getMessage();
+        }
+        return message;
+    }
+
     private static final Path SUITE_DIR = resolveSuite();
 
     private static Stream<Path> fixtures() throws IOException
@@ -806,6 +840,17 @@ class YamlStreamScannerTest
         Files.find(SUITE_DIR, 3, (p, a) -> a.isRegularFile() && "in.yaml".equals(p.getFileName().toString()))
             .map(Path::getParent)
             .filter(p -> !Files.exists(p.resolve("error")))
+            .sorted(Comparator.comparing(p -> SUITE_DIR.relativize(p).toString()))
+            .forEach(directories::add);
+        return directories.stream();
+    }
+
+    private static Stream<Path> invalidFixtures() throws IOException
+    {
+        List<Path> directories = new ArrayList<>();
+        Files.find(SUITE_DIR, 3, (p, a) -> a.isRegularFile() && "in.yaml".equals(p.getFileName().toString()))
+            .map(Path::getParent)
+            .filter(p -> Files.exists(p.resolve("error")))
             .sorted(Comparator.comparing(p -> SUITE_DIR.relativize(p).toString()))
             .forEach(directories::add);
         return directories.stream();
