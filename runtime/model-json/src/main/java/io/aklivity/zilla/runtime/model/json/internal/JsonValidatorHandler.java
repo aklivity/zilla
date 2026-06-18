@@ -133,10 +133,12 @@ public class JsonValidatorHandler extends JsonModelHandler implements ValidatorH
         int payloadLength = length;
         if ((flags & FLAGS_INIT) != 0x00)
         {
-            // the schema framing prefix appears only on the first fragment; defer to the catalog's decode to
-            // skip it in a catalog-specific way and hand back any embedded schema id plus the post-prefix
-            // payload, which then streams through the pipeline like any other fragment — no whole-payload
-            // buffering. Resolve the schema id the same way the read converter does when the catalog embeds none.
+            // the framing prefix sits at the message start, so strip it once on the first fragment via the
+            // catalog's decode (which skips it catalog-specifically and returns any embedded schema id plus the
+            // post-prefix payload); later fragments stream straight through. This assumes the prefix arrives
+            // whole within the first fragment — holds under normal flow control, and the planned validator /
+            // converter API unification removes the need for this per-fragment special-casing. Resolve the
+            // schema id the same way the read converter does when the catalog embeds none.
             encodedSchemaId = NO_SCHEMA_ID;
             encodedIndex = index;
             encodedLength = length;
