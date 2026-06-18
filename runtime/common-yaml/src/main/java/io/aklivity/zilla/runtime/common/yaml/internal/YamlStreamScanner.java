@@ -644,6 +644,19 @@ public final class YamlStreamScanner
                 emit(KEY_NAME, nodeStart, 0, foldBlockScalar(nodeStart, keyEnd, indent, false));
                 skipIgnorable();
             }
+            else if (nodeStart == keyStart && isCompactSequence(nodeStart, keyEnd))
+            {
+                if (!raw)
+                {
+                    // a non-scalar sequence key is only representable in raw (YAML-layer) mode
+                    throw BAIL;
+                }
+                // a compact block sequence explicit key, opening inline at the ? indicator and continuing
+                // on following lines at the key's indent (mirrors the : - x explicit-value form)
+                cursor++;
+                scanCompactSequence(nodeStart, keyEnd, indent + 2, line);
+                skipIgnorable();
+            }
             // otherwise only a simple single-line scalar key (plain or escape-free quoted) is supported inline
             else if (nodeStart == keyEnd || keyFirst == '{' || keyFirst == '[' || keyFirst == '|' || keyFirst == '>' ||
                 keyFirst != '"' && keyFirst != '\'' && blockedStart(keyFirst) || mappingColon(nodeStart, keyEnd) != -1)

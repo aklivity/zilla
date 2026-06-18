@@ -284,6 +284,14 @@ public final class YamlDocumentParser
                 storeAnchor(spec.anchor, value, line);
                 array.add(value);
             }
+            else if (isExplicitInlineItem(spec.value))
+            {
+                int nestedIndent = line.indent + itemAt;
+                YamlObjectNode object = parseExplicitInlineItem(spec.value, nestedIndent, line);
+                attachComments(object, line);
+                storeAnchor(spec.anchor, object, line);
+                array.add(object);
+            }
             else if (mappingColon(spec.value) != -1)
             {
                 List<String> itemComments = takeComments();
@@ -326,6 +334,66 @@ public final class YamlDocumentParser
         }
 
         return array;
+    }
+
+    private static boolean isExplicitInlineItem(
+        String value)
+    {
+        boolean result = false;
+        if (value.length() > 1 && value.charAt(0) == '?' && Character.isWhitespace(value.charAt(1)))
+        {
+            String keyText = value.substring(1).trim();
+            result = !keyText.startsWith(":") && mappingColon(keyText) != -1;
+        }
+        return result;
+    }
+
+    private YamlObjectNode parseExplicitInlineItem(
+        String content,
+        int indent,
+        Line line)
+    {
+        YamlObjectNode object = new YamlObjectNode(line.line, line.column, line.offset);
+        String keyText = content.substring(1).trim();
+        index++;
+        YamlNode keyNode = parseInlineMappingOrScalar(keyText, line);
+        skipIgnorable();
+        YamlNode valueNode;
+        if (index < lines.size() && lines.get(index).indent == indent && lines.get(index).content.startsWith(":"))
+        {
+            Line valueLine = lines.get(index);
+            String valueText = valueLine.content.length() == 1 ? "" : valueLine.content.substring(1).trim();
+            index++;
+            valueNode = parseInlineMappingOrScalar(valueText, valueLine);
+        }
+        else
+        {
+            valueNode = YamlScalarNode.literal(YamlScalarType.NULL, line.line, line.column, line.offset);
+        }
+        object.add(new YamlEntry(keyNode, valueNode, line.line, line.column, line.offset));
+        return object;
+    }
+
+    private YamlNode parseInlineMappingOrScalar(
+        String text,
+        Line line)
+    {
+        YamlNode node;
+        if (text.isEmpty())
+        {
+            node = YamlScalarNode.literal(YamlScalarType.NULL, line.line, line.column, line.offset);
+        }
+        else if (mappingColon(text) != -1)
+        {
+            YamlObjectNode object = new YamlObjectNode(line.line, line.column, line.offset);
+            addCompactMappingEntry(object, text, line);
+            node = object;
+        }
+        else
+        {
+            node = parseInlineValue(foldPlainScalar(text, line, false, false), null, line);
+        }
+        return node;
     }
 
     private YamlNode parsePlainLine()
@@ -464,13 +532,26 @@ public final class YamlDocumentParser
                 parseBlock(lines.get(index).indent) :
                 YamlScalarNode.literal(YamlScalarType.NULL, line.line, line.column, line.offset);
         }
+        else if (isCompactSequence(keyText))
+        {
+            index++;
+            advanced = true;
+            keyNode = parseCompactSequenceValue(keyText, indent, line);
+        }
+        else if (!keyText.startsWith(":") && mappingColon(keyText) != -1)
+        {
+            keyNode = parseInlineMappingOrScalar(keyText, line);
+        }
         else if (keyText.startsWith("{") || keyText.startsWith("["))
         {
             if (!config.nonScalarKeys())
             {
                 throw error("YAML non-scalar mapping keys are disabled", line);
             }
-            keyNode = new FlowParser(keyText, line, tagHandles, config).parse();
+            index++;
+            advanced = true;
+            String flow = collectFlowText(keyText, line);
+            keyNode = new FlowParser(flow, line, tagHandles, config).parse();
         }
         else if (keyText.startsWith("|") || keyText.startsWith(">"))
         {
@@ -836,7 +917,38 @@ public final class YamlDocumentParser
             quoted.append(next.raw.substring(Math.min(next.indent, next.raw.length())));
             index++;
         }
-        return quoted.toString();
+        String result = quoted.toString();
+        int closeAt = quotedEnd(result);
+        return closeAt != -1 && isQuotedTrailing(result, closeAt + 1) ? result.substring(0, closeAt + 1) : result;
+    }
+
+    private static int quotedEnd(
+        String text)
+    {
+        char quote = text.charAt(0);
+        boolean escaped = false;
+        int end = -1;
+        for (int i = 1; i < text.length() && end == -1; i++)
+        {
+            char c = text.charAt(i);
+            if (quote == '"' && escaped)
+            {
+                escaped = false;
+            }
+            else if (quote == '"' && c == '\\')
+            {
+                escaped = true;
+            }
+            else if (quote == '\'' && c == '\'' && i + 1 < text.length() && text.charAt(i + 1) == '\'')
+            {
+                i++;
+            }
+            else if (c == quote)
+            {
+                end = i;
+            }
+        }
+        return end;
     }
 
     private static boolean isQuotedComplete(
@@ -861,10 +973,24 @@ public final class YamlDocumentParser
             }
             else if (c == quote)
             {
-                return i == text.length() - 1;
+                return isQuotedTrailing(text, i + 1);
             }
         }
         return false;
+    }
+
+    private static boolean isQuotedTrailing(
+        String text,
+        int after)
+    {
+        boolean space = false;
+        int i = after;
+        while (i < text.length() && (text.charAt(i) == ' ' || text.charAt(i) == '\t'))
+        {
+            space = true;
+            i++;
+        }
+        return i == text.length() || space && text.charAt(i) == '#';
     }
 
     private String collectFlowText(

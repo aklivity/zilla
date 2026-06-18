@@ -147,6 +147,42 @@ class YamlUnresolvedTest
         assertEquals("adjacent", ((YamlScalarNode) flowEntry.value).value);
     }
 
+    @Test
+    void shouldParseExplicitInlineMappingSequenceItem()
+    {
+        // a `? k: v` sequence item key and a `: k: v` value are each single-pair inline block mappings (V9D5)
+        YamlArrayNode root = (YamlArrayNode) YamlDocumentParser.parse(
+            "- sun: yellow\n- ? earth: blue\n  : moon: white\n", RAW).node;
+
+        YamlObjectNode first = (YamlObjectNode) root.values.get(0);
+        assertEquals("yellow", ((YamlScalarNode) entry(first, "sun").value).value);
+
+        YamlObjectNode second = (YamlObjectNode) root.values.get(1);
+        YamlEntry explicit = second.entries.get(0);
+        assertNull(explicit.name, "non-scalar key has no name");
+        YamlObjectNode key = (YamlObjectNode) explicit.key;
+        assertEquals("blue", ((YamlScalarNode) entry(key, "earth").value).value);
+        YamlObjectNode value = (YamlObjectNode) explicit.value;
+        assertEquals("white", ((YamlScalarNode) entry(value, "moon").value).value);
+    }
+
+    @Test
+    void shouldParseExplicitInlineMappingKeyWithFlowKey()
+    {
+        // `? []: x` is an explicit key that is itself the inline mapping {[]: x}, with a null outer value (M2N8/01)
+        YamlObjectNode root = (YamlObjectNode) YamlDocumentParser.parse("? []: x\n", RAW).node;
+
+        YamlEntry outer = root.entries.get(0);
+        assertNull(outer.name, "non-scalar key has no name");
+        assertEquals(YamlScalarType.NULL, ((YamlScalarNode) outer.value).type, "outer value is null");
+
+        YamlObjectNode key = (YamlObjectNode) outer.key;
+        YamlEntry inner = key.entries.get(0);
+        assertNull(inner.name, "empty-seq key has no name");
+        assertTrue(inner.key instanceof YamlArrayNode, "inner key is an empty sequence");
+        assertEquals("x", ((YamlScalarNode) inner.value).value);
+    }
+
     private static YamlEntry entry(
         YamlObjectNode object,
         String name)

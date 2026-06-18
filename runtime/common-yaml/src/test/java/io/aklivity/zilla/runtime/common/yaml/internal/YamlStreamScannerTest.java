@@ -566,7 +566,7 @@ class YamlStreamScannerTest
         long accepted = fixtures()
             .filter(path -> accepts(path.resolve("in.yaml"), false))
             .count();
-        assertEquals(235, accepted,
+        assertEquals(234, accepted,
             "accepted-fixture count changed; feasibility gate may over-reject or over-accept");
     }
 
