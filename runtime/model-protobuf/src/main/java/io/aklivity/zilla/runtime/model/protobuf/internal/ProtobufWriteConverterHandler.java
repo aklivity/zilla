@@ -144,7 +144,7 @@ public class ProtobufWriteConverterHandler extends ProtobufModelHandler implemen
                 ProtobufPipeline.Status status;
                 try
                 {
-                    status = state.pipeline.feed(buffer, index, length);
+                    status = state.pipeline.feed(buffer, index, index + length);
                 }
                 catch (Exception ex)
                 {

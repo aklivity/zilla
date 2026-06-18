@@ -186,7 +186,7 @@ public class ProtobufReadConverterHandler extends ProtobufModelHandler implement
                 String messageName = message.name();
                 ProtobufPipeline validator = validators.computeIfAbsent(messageName, name -> schema.validatorPipeline(name));
                 validator.reset();
-                if (validator.feed(data, index, length) == ProtobufPipeline.Status.COMPLETED)
+                if (validator.feed(data, index, index + length) == ProtobufPipeline.Status.COMPLETED)
                 {
                     progress = index;
                     extractFields(data, index + length, message);
@@ -225,7 +225,7 @@ public class ProtobufReadConverterHandler extends ProtobufModelHandler implement
         out.wrap(out.buffer());
         state.generator.wrap(out.buffer(), 0, out.buffer().capacity());
         state.pipeline.reset();
-        if (state.pipeline.feed(data, index, length) == ProtobufPipeline.Status.COMPLETED)
+        if (state.pipeline.feed(data, index, index + length) == ProtobufPipeline.Status.COMPLETED)
         {
             state.generator.flush();
             valLength = state.generator.length();
