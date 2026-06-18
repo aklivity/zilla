@@ -32,10 +32,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
 
 /**
- * Validates the {@link YamlParser} YAML 1.2 event layer. Targeted tests pin the event stream for
- * representative inputs; the differential factory tests assert that for every conformance fixture the
- * parser's events are identical to an independent walk of the eager {@link YamlDocumentParser} tree (the
- * reference), and that every invalid fixture is rejected.
+ * Validates the {@link YamlParser} YAML 1.2 event layer. Targeted tests pin the event stream, scalar views,
+ * styles and document markers for representative inputs; the factory test asserts that every invalid
+ * conformance fixture is rejected. End-to-end event correctness across the whole corpus is verified against
+ * the canonical {@code test.event} fixtures by {@code YamlConformanceTest}.
  */
 class YamlParserTest
 {
@@ -178,18 +178,6 @@ class YamlParserTest
     }
 
     @TestFactory
-    Stream<DynamicTest> shouldMatchEagerForEveryValidFixture() throws Exception
-    {
-        return validFixtures()
-            .map(path -> DynamicTest.dynamicTest(SUITE_DIR.relativize(path).toString(), () ->
-            {
-                String text = Files.readString(path.resolve("in.yaml"));
-                assertEquals(eagerEvents(text), events(text),
-                    "parser events diverged from the eager reference");
-            }));
-    }
-
-    @TestFactory
     Stream<DynamicTest> shouldRejectEveryInvalidFixture() throws Exception
     {
         return invalidFixtures()
@@ -211,68 +199,6 @@ class YamlParserTest
             render(builder, event, parser.value(), parser.scalarType(), parser.anchor(), parser.tag(), parser.alias());
         }
         return builder.toString();
-    }
-
-    private static String eagerEvents(
-        String text)
-    {
-        StringBuilder builder = new StringBuilder();
-        render(builder, YamlEvent.STREAM_START, null, null, null, null, null);
-        for (YamlDocumentParser.Result result : YamlDocumentParser.parseAll(text, YamlConfiguration.DEFAULT))
-        {
-            render(builder, YamlEvent.DOCUMENT_START, null, null, null, null, null);
-            walk(builder, result.node);
-            render(builder, YamlEvent.DOCUMENT_END, null, null, null, null, null);
-        }
-        render(builder, YamlEvent.STREAM_END, null, null, null, null, null);
-        return builder.toString();
-    }
-
-    private static void walk(
-        StringBuilder builder,
-        YamlNode node)
-    {
-        if (node.alias != null)
-        {
-            render(builder, YamlEvent.ALIAS, null, null, null, null, node.alias);
-        }
-        else if (node instanceof YamlObjectNode object)
-        {
-            render(builder, YamlEvent.MAPPING_START, null, null, node.anchor, node.tag, null);
-            for (YamlEntry entry : object.entries)
-            {
-                if (entry.name == null && entry.key != null &&
-                    (!(entry.key instanceof YamlScalarNode) || entry.key.alias != null))
-                {
-                    walk(builder, entry.key);
-                }
-                else if (entry.name != null)
-                {
-                    render(builder, YamlEvent.SCALAR, entry.name, null, null, null, null);
-                }
-                else
-                {
-                    YamlScalarNode key = (YamlScalarNode) entry.key;
-                    render(builder, YamlEvent.SCALAR, key.value, null, key.anchor, key.tag, null);
-                }
-                walk(builder, entry.value);
-            }
-            render(builder, YamlEvent.MAPPING_END, null, null, null, null, null);
-        }
-        else if (node instanceof YamlArrayNode array)
-        {
-            render(builder, YamlEvent.SEQUENCE_START, null, null, node.anchor, node.tag, null);
-            for (YamlNode value : array.values)
-            {
-                walk(builder, value);
-            }
-            render(builder, YamlEvent.SEQUENCE_END, null, null, null, null, null);
-        }
-        else
-        {
-            YamlScalarNode scalar = (YamlScalarNode) node;
-            render(builder, YamlEvent.SCALAR, scalar.value, scalar.type, scalar.anchor, scalar.tag, null);
-        }
     }
 
     private static void render(
@@ -308,11 +234,6 @@ class YamlParserTest
     }
 
     private static final Path SUITE_DIR = resolveSuite();
-
-    private static Stream<Path> validFixtures() throws IOException
-    {
-        return fixtures().filter(p -> !Files.exists(p.resolve("error")));
-    }
 
     private static Stream<Path> invalidFixtures() throws IOException
     {

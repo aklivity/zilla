@@ -16,7 +16,6 @@ package io.aklivity.zilla.runtime.common.yaml.internal;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
@@ -26,8 +25,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.DynamicTest;
@@ -35,20 +35,15 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
 
 /**
- * Validates the conservative streaming scanner. The scanner only has to be correct for the subset
- * it accepts; everything else falls back to {@link YamlDocumentParser}. So the core guarantee tested
- * here is differential: for every conformance fixture the scanner ACCEPTS, its projected event stream
- * must be byte-identical to the eager parser's. Any divergence means the gate is too loose.
+ * Validates the conservative streaming scanner. The scanner is complete for valid YAML 1.2, so the guarantees
+ * tested here are that it accepts every valid construct it is meant to and rejects every invalid one with a
+ * stable, located bail message. Event-projection correctness is verified end-to-end against the canonical
+ * {@code test.event} fixtures by {@code YamlConformanceTest}; rejection messages are pinned against a vendored
+ * snapshot so a regression in the diagnostics is caught here.
  */
 class YamlStreamScannerTest
 {
     private static final String SUITE_TAG = "data-2022-01-17";
-
-    // invalid fixtures rejected at a catch-all bail site, where the scanner's located message is more
-    // general than the eager parser's specific one (the precise cause is determined past the bail point)
-    private static final Set<String> CATCH_ALL_REJECTS = Set.of(
-        "2G84/00", "2G84/01", "9MMA", "9MQT/01", "CXX2", "JY7Z", "KS4U", "MUS6/01",
-        "N782", "S4GJ", "SU5Z", "SY6V", "U99R", "X4QW", "Y79Y/003", "ZL4Z");
 
     private static final String BLOCK_CONFIG = """
         name: example
@@ -70,7 +65,6 @@ class YamlStreamScannerTest
     {
         YamlStreamScanner scanner = new YamlStreamScanner();
         assertTrue(scanner.scan(BLOCK_CONFIG), "scanner should accept the block config subset");
-        assertEquals(eager(BLOCK_CONFIG), scanned(scanner), "scanner events must match eager projection");
     }
 
     @Test
@@ -80,36 +74,26 @@ class YamlStreamScannerTest
             {"name":"test","enabled":true,"items":[{"id":1,"name":"a"},{"id":2,"name":"b"}],
              "nested":{"x":1,"y":2},"missing":null}
             """;
-        YamlStreamScanner scanner = new YamlStreamScanner();
-        assertTrue(scanner.scan(doc), "scanner should accept a JSON-style flow document");
-        assertEquals(eager(doc), scanned(scanner), "scanner events must match eager projection");
+        assertTrue(new YamlStreamScanner().scan(doc), "scanner should accept a JSON-style flow document");
     }
 
     @Test
     void shouldAcceptFlowSequenceDocument()
     {
-        String doc = "[1, two, true, null, {a: 1}]\n";
-        YamlStreamScanner scanner = new YamlStreamScanner();
-        assertTrue(scanner.scan(doc));
-        assertEquals(eager(doc), scanned(scanner));
+        assertTrue(new YamlStreamScanner().scan("[1, two, true, null, {a: 1}]\n"));
     }
 
     @Test
     void shouldAcceptSingleLineFlowValueInBlock()
     {
         String doc = "items: [1, two, true, null]\nnested: {a: 1, b: two}\nmatrix: [[1, 2], [3, 4]]\n";
-        YamlStreamScanner scanner = new YamlStreamScanner();
-        assertTrue(scanner.scan(doc), "scanner should accept single-line flow values in a block mapping");
-        assertEquals(eager(doc), scanned(scanner));
+        assertTrue(new YamlStreamScanner().scan(doc), "scanner should accept single-line flow values in a block mapping");
     }
 
     @Test
     void shouldAcceptFlowValueInSequenceItem()
     {
-        String doc = "routes:\n- [a, b]\n- {exit: http0}\n";
-        YamlStreamScanner scanner = new YamlStreamScanner();
-        assertTrue(scanner.scan(doc));
-        assertEquals(eager(doc), scanned(scanner));
+        assertTrue(new YamlStreamScanner().scan("routes:\n- [a, b]\n- {exit: http0}\n"));
     }
 
     @Test
@@ -120,9 +104,7 @@ class YamlStreamScannerTest
             "seq: [ a: 1, b: 2 ]\n",
             "seq: [ plain, k: v, other ]\n"})
         {
-            YamlStreamScanner scanner = new YamlStreamScanner();
-            assertTrue(scanner.scan(doc), "scanner should accept an implicit map in a flow sequence: " + doc);
-            assertEquals(eager(doc), scanned(scanner), doc);
+            assertTrue(new YamlStreamScanner().scan(doc), "scanner should accept an implicit map in a flow sequence: " + doc);
         }
     }
 
@@ -136,9 +118,7 @@ class YamlStreamScannerTest
             "m: {\"x\":adjacent}\n",
             "m: {: empty key, a: b}\n"})
         {
-            YamlStreamScanner scanner = new YamlStreamScanner();
-            assertTrue(scanner.scan(doc), "scanner should accept omitted/empty flow values: " + doc);
-            assertEquals(eager(doc), scanned(scanner), doc);
+            assertTrue(new YamlStreamScanner().scan(doc), "scanner should accept omitted/empty flow values: " + doc);
         }
     }
 
@@ -150,9 +130,7 @@ class YamlStreamScannerTest
             "{ k: \"a\n b\" }\n",
             "[\"esc \\n here\nand more\"]\n"})
         {
-            YamlStreamScanner scanner = new YamlStreamScanner();
-            assertTrue(scanner.scan(doc), "scanner should accept a multi-line quoted scalar in flow: " + doc);
-            assertEquals(eager(doc), scanned(scanner), doc);
+            assertTrue(new YamlStreamScanner().scan(doc), "scanner should accept a multi-line quoted scalar in flow: " + doc);
         }
     }
 
@@ -164,9 +142,7 @@ class YamlStreamScannerTest
             "[?x]\n",
             "list: [?a, ?b]\n"})
         {
-            YamlStreamScanner scanner = new YamlStreamScanner();
-            assertTrue(scanner.scan(doc), "scanner should accept a ?-led plain scalar in flow: " + doc);
-            assertEquals(eager(doc), scanned(scanner), doc);
+            assertTrue(new YamlStreamScanner().scan(doc), "scanner should accept a ?-led plain scalar in flow: " + doc);
         }
     }
 
@@ -177,9 +153,7 @@ class YamlStreamScannerTest
             "[\n? foo\n bar : baz\n]\n",
             "{ ? key : value, ? other : 2 }\n"})
         {
-            YamlStreamScanner scanner = new YamlStreamScanner();
-            assertTrue(scanner.scan(doc), "scanner should accept a ? explicit key in flow: " + doc);
-            assertEquals(eager(doc), scanned(scanner), doc);
+            assertTrue(new YamlStreamScanner().scan(doc), "scanner should accept a ? explicit key in flow: " + doc);
         }
     }
 
@@ -192,9 +166,7 @@ class YamlStreamScannerTest
             "[ word1\n# comment\n, word2]\n",
             "---\n[1, 2]\n...\n---\n[3, 4]\n"})
         {
-            YamlStreamScanner scanner = new YamlStreamScanner();
-            assertTrue(scanner.scan(doc), "scanner should accept a flow document body: " + doc);
-            assertEquals(eager(doc), scanned(scanner), doc);
+            assertTrue(new YamlStreamScanner().scan(doc), "scanner should accept a flow document body: " + doc);
         }
     }
 
@@ -206,9 +178,7 @@ class YamlStreamScannerTest
             "Sammy Sosa: {\n    hr: 63,\n    avg: 0.288\n  }\n",
             "list: [a\n  b, c]\n"})
         {
-            YamlStreamScanner scanner = new YamlStreamScanner();
-            assertTrue(scanner.scan(doc), "scanner should accept a multi-line flow scalar: " + doc);
-            assertEquals(eager(doc), scanned(scanner), doc);
+            assertTrue(new YamlStreamScanner().scan(doc), "scanner should accept a multi-line flow scalar: " + doc);
         }
     }
 
@@ -216,27 +186,20 @@ class YamlStreamScannerTest
     void shouldAcceptMultiLineFlowValueInBlock()
     {
         String doc = "items: [1,\n  2, 3]\nnested: {a: 1,\n  b: 2}\n";
-        YamlStreamScanner scanner = new YamlStreamScanner();
-        assertTrue(scanner.scan(doc), "scanner should accept multi-line flow values in a block");
-        assertEquals(eager(doc), scanned(scanner));
+        assertTrue(new YamlStreamScanner().scan(doc), "scanner should accept multi-line flow values in a block");
     }
 
     @Test
     void shouldAcceptExplicitKeys()
     {
-        String doc = "? a\n: 1.3\n? b\n: c\nplain: x\n";
-        YamlStreamScanner scanner = new YamlStreamScanner();
-        assertTrue(scanner.scan(doc), "scanner should accept explicit keys");
-        assertEquals(eager(doc), scanned(scanner));
+        assertTrue(new YamlStreamScanner().scan("? a\n: 1.3\n? b\n: c\nplain: x\n"), "scanner should accept explicit keys");
     }
 
     @Test
     void shouldAcceptEscapeFreeQuotedScalars()
     {
         String doc = "name: \"quoted value\"\nkind: 'literal'\n\"quoted key\": 7114\nflag: \"true\"\n";
-        YamlStreamScanner scanner = new YamlStreamScanner();
-        assertTrue(scanner.scan(doc), "scanner should accept escape-free quoted scalars");
-        assertEquals(eager(doc), scanned(scanner), "scanner events must match eager projection");
+        assertTrue(new YamlStreamScanner().scan(doc), "scanner should accept escape-free quoted scalars");
     }
 
     @Test
@@ -246,38 +209,32 @@ class YamlStreamScannerTest
             "? !!str a\n: !!int 47\n? c\n: d\n",
             "? &a key\n: value\nuse: *a\n"})
         {
-            YamlStreamScanner scanner = new YamlStreamScanner();
-            assertTrue(scanner.scan(doc), "raw scanner should accept a decorated explicit key: " + doc);
-            assertEquals(eagerRaw(doc), scannedRaw(scanner), doc);
+            assertTrue(new YamlStreamScanner().scan(doc), "scanner should accept a decorated explicit key: " + doc);
         }
     }
 
     @Test
-    void shouldRepresentNonScalarFlowKeyInRawLayer()
+    void shouldRepresentNonScalarFlowKey()
     {
-        // a non-scalar mapping key is valid YAML; the raw layer preserves it (the JSON projection rejects it)
+        // a non-scalar mapping key is valid YAML; the scanner preserves it (the JSON projection rejects it)
         for (String doc : new String[] {
             "{a: [b, c], [d, e]: f}\n",
             "{ {x: 1}: y }\n"})
         {
-            YamlStreamScanner scanner = new YamlStreamScanner();
-            assertTrue(scanner.scan(doc), "raw scanner should accept a non-scalar flow key: " + doc);
-            assertEquals(eagerRaw(doc), scannedRaw(scanner), doc);
+            assertTrue(new YamlStreamScanner().scan(doc), "scanner should accept a non-scalar flow key: " + doc);
         }
     }
 
     @Test
-    void shouldRepresentNonScalarBlockKeyInRawLayer()
+    void shouldRepresentNonScalarBlockKey()
     {
-        // a flow collection used as a block mapping key is valid YAML; the raw layer preserves it
+        // a flow collection used as a block mapping key is valid YAML; the scanner preserves it
         for (String doc : new String[] {
             "[flow]: block\n",
             "{ first: Sammy, last: Sosa }:\n  hr: 65\n  avg: 0.278\n",
             "[a, b]: c\nd: e\n"})
         {
-            YamlStreamScanner scanner = new YamlStreamScanner();
-            assertTrue(scanner.scan(doc), "raw scanner should accept a non-scalar block key: " + doc);
-            assertEquals(eagerRaw(doc), scannedRaw(scanner), doc);
+            assertTrue(new YamlStreamScanner().scan(doc), "scanner should accept a non-scalar block key: " + doc);
         }
     }
 
@@ -289,9 +246,7 @@ class YamlStreamScannerTest
             "&k1 key1: one\nuse: *k1\n",
             "!!str 23: !!bool false\n"})
         {
-            YamlStreamScanner scanner = new YamlStreamScanner();
-            assertTrue(scanner.scan(doc), "raw scanner should accept a decorated mapping key: " + doc);
-            assertEquals(eagerRaw(doc), scannedRaw(scanner), doc);
+            assertTrue(new YamlStreamScanner().scan(doc), "scanner should accept a decorated mapping key: " + doc);
         }
     }
 
@@ -304,19 +259,14 @@ class YamlStreamScannerTest
             "name: \"quote \\\" and \\\\ slash\"\n",
             "name: \"unicode \\u00e9 \\x41\"\n"})
         {
-            YamlStreamScanner scanner = new YamlStreamScanner();
-            assertTrue(scanner.scan(doc), "scanner should accept an escaped double-quoted scalar: " + doc);
-            assertEquals(eager(doc), scanned(scanner), doc);
+            assertTrue(new YamlStreamScanner().scan(doc), "scanner should accept an escaped double-quoted scalar: " + doc);
         }
     }
 
     @Test
     void shouldAcceptSingleQuoteEscape()
     {
-        String doc = "name: 'it''s here'\n";
-        YamlStreamScanner scanner = new YamlStreamScanner();
-        assertTrue(scanner.scan(doc), "scanner should accept a single-quoted scalar with a '' pair");
-        assertEquals(eager(doc), scanned(scanner), doc);
+        assertTrue(new YamlStreamScanner().scan("name: 'it''s here'\n"), "scanner should accept a single-quoted scalar");
     }
 
     @Test
@@ -328,9 +278,7 @@ class YamlStreamScannerTest
             "--- \"quoted value\"\n",
             "--- scalar\n  folded over lines\n"})
         {
-            YamlStreamScanner scanner = new YamlStreamScanner();
-            assertTrue(scanner.scan(doc), "scanner should accept an inline marker scalar: " + doc);
-            assertEquals(eager(doc), scanned(scanner), doc);
+            assertTrue(new YamlStreamScanner().scan(doc), "scanner should accept an inline marker scalar: " + doc);
         }
     }
 
@@ -342,9 +290,7 @@ class YamlStreamScannerTest
             "--- |\n%!PS-Adobe-2.0\n...\n",
             "--- >\n  folded\n  text\n"})
         {
-            YamlStreamScanner scanner = new YamlStreamScanner();
-            assertTrue(scanner.scan(doc), "scanner should accept an inline marker block scalar: " + doc);
-            assertEquals(eager(doc), scanned(scanner), doc);
+            assertTrue(new YamlStreamScanner().scan(doc), "scanner should accept an inline marker block scalar: " + doc);
         }
     }
 
@@ -356,9 +302,7 @@ class YamlStreamScannerTest
             "key: - a\n",
             "matrix:\n  - - 1\n    - 2\n  - - 3\n    - 4\n"})
         {
-            YamlStreamScanner scanner = new YamlStreamScanner();
-            assertTrue(scanner.scan(doc), "scanner should accept a compact sequence: " + doc);
-            assertEquals(eager(doc), scanned(scanner), doc);
+            assertTrue(new YamlStreamScanner().scan(doc), "scanner should accept a compact sequence: " + doc);
         }
     }
 
@@ -369,9 +313,7 @@ class YamlStreamScannerTest
             "plain:\n  this unquoted scalar\n  spans many lines\n",
             "outer:\n  inner:\n    folded value\n    over lines\n"})
         {
-            YamlStreamScanner scanner = new YamlStreamScanner();
-            assertTrue(scanner.scan(doc), "scanner should accept a nested plain scalar value: " + doc);
-            assertEquals(eager(doc), scanned(scanner), doc);
+            assertTrue(new YamlStreamScanner().scan(doc), "scanner should accept a nested plain scalar value: " + doc);
         }
     }
 
@@ -384,9 +326,7 @@ class YamlStreamScannerTest
             "- item one\n  item two\n- plain\n",
             "this is\na root scalar\n"})
         {
-            YamlStreamScanner scanner = new YamlStreamScanner();
-            assertTrue(scanner.scan(doc), "scanner should accept a multi-line plain scalar: " + doc);
-            assertEquals(eager(doc), scanned(scanner), doc);
+            assertTrue(new YamlStreamScanner().scan(doc), "scanner should accept a multi-line plain scalar: " + doc);
         }
     }
 
@@ -398,9 +338,7 @@ class YamlStreamScannerTest
             "---\n\"\n  foo \n \n    bar\n\n  baz\n\"\n",
             "--- \"quoted\nstring\"\n--- &node foo\n"})
         {
-            YamlStreamScanner scanner = new YamlStreamScanner();
-            assertTrue(scanner.scan(doc), "scanner should accept a multi-line quoted scalar: " + doc);
-            assertEquals(eagerRaw(doc), scannedRaw(scanner), doc);
+            assertTrue(new YamlStreamScanner().scan(doc), "scanner should accept a multi-line quoted scalar: " + doc);
         }
     }
 
@@ -413,37 +351,29 @@ class YamlStreamScannerTest
             "name: \"first\n\n  second\"\n",
             "- \"item one\n  item two\"\n- plain\n"})
         {
-            YamlStreamScanner scanner = new YamlStreamScanner();
-            assertTrue(scanner.scan(doc), "scanner should accept a multi-line quoted scalar: " + doc);
-            assertEquals(eager(doc), scanned(scanner), doc);
+            assertTrue(new YamlStreamScanner().scan(doc), "scanner should accept a multi-line quoted scalar: " + doc);
         }
     }
 
     @Test
     void shouldAcceptLiteralBlockScalar()
     {
-        String doc = "text: |\n  line one\n  line two\n";
-        YamlStreamScanner scanner = new YamlStreamScanner();
-        assertTrue(scanner.scan(doc), "scanner should accept a literal block scalar");
-        assertEquals(eager(doc), scanned(scanner), "scanner events must match eager projection");
+        assertTrue(new YamlStreamScanner().scan("text: |\n  line one\n  line two\n"),
+            "scanner should accept a literal block scalar");
     }
 
     @Test
     void shouldAcceptFoldedBlockScalar()
     {
-        String doc = "text: >\n  line one\n  line two\n\n  next para\n";
-        YamlStreamScanner scanner = new YamlStreamScanner();
-        assertTrue(scanner.scan(doc), "scanner should accept a folded block scalar");
-        assertEquals(eager(doc), scanned(scanner), "scanner events must match eager projection");
+        assertTrue(new YamlStreamScanner().scan("text: >\n  line one\n  line two\n\n  next para\n"),
+            "scanner should accept a folded block scalar");
     }
 
     @Test
     void shouldAcceptExplicitIndentBlockScalar()
     {
-        String doc = "text: |2\n    line\nmore: >1-\n  folded\n";
-        YamlStreamScanner scanner = new YamlStreamScanner();
-        assertTrue(scanner.scan(doc), "scanner should accept explicit-indent block scalars");
-        assertEquals(eager(doc), scanned(scanner));
+        assertTrue(new YamlStreamScanner().scan("text: |2\n    line\nmore: >1-\n  folded\n"),
+            "scanner should accept explicit-indent block scalars");
     }
 
     @Test
@@ -451,19 +381,15 @@ class YamlStreamScannerTest
     {
         for (String doc : new String[] {"- |\n  one\n  two\n- plain\n", "- >\n  folded text\n", ">\n  root folded\n  scalar\n"})
         {
-            YamlStreamScanner scanner = new YamlStreamScanner();
-            assertTrue(scanner.scan(doc), "scanner should accept block scalar: " + doc);
-            assertEquals(eager(doc), scanned(scanner), doc);
+            assertTrue(new YamlStreamScanner().scan(doc), "scanner should accept block scalar: " + doc);
         }
     }
 
     @Test
     void shouldAcceptSingleDocumentMarkers()
     {
-        String doc = "---\nname: example\nport: 7114\n...\n";
-        YamlStreamScanner scanner = new YamlStreamScanner();
-        assertTrue(scanner.scan(doc), "scanner should accept a single document with markers");
-        assertEquals(eager(doc), scanned(scanner));
+        assertTrue(new YamlStreamScanner().scan("---\nname: example\nport: 7114\n...\n"),
+            "scanner should accept a single document with markers");
     }
 
     @Test
@@ -477,9 +403,7 @@ class YamlStreamScannerTest
             "---\n---\nname: two\n",
             "%YAML 1.2\n---\nname: one\n---\nname: two\n"})
         {
-            YamlStreamScanner scanner = new YamlStreamScanner();
-            assertTrue(scanner.scan(doc), "scanner should accept a multi-document stream: " + doc);
-            assertEquals(eager(doc), scanned(scanner), doc);
+            assertTrue(new YamlStreamScanner().scan(doc), "scanner should accept a multi-document stream: " + doc);
         }
     }
 
@@ -493,10 +417,7 @@ class YamlStreamScannerTest
     @Test
     void shouldAcceptYamlDirective()
     {
-        String doc = "%YAML 1.2\n---\nname: example\n";
-        YamlStreamScanner scanner = new YamlStreamScanner();
-        assertTrue(scanner.scan(doc), "scanner should accept a %YAML directive");
-        assertEquals(eager(doc), scanned(scanner));
+        assertTrue(new YamlStreamScanner().scan("%YAML 1.2\n---\nname: example\n"), "scanner should accept a %YAML directive");
     }
 
     @Test
@@ -507,9 +428,7 @@ class YamlStreamScannerTest
             "%TAG !! tag:example.com,2000:app/\n---\n!!int 1 - 3\n",
             "!<tag:yaml.org,2002:str> foo: bar\n"})
         {
-            YamlStreamScanner scanner = new YamlStreamScanner();
-            assertTrue(scanner.scan(doc), "raw scanner should accept tag directives/verbatim tags: " + doc);
-            assertEquals(eagerRaw(doc), scannedRaw(scanner), doc);
+            assertTrue(new YamlStreamScanner().scan(doc), "scanner should accept tag directives/verbatim tags: " + doc);
         }
     }
 
@@ -525,9 +444,7 @@ class YamlStreamScannerTest
     {
         for (String doc : new String[] {"\"foo\"\n", "plain text\n", "42\n", "true\n"})
         {
-            YamlStreamScanner scanner = new YamlStreamScanner();
-            assertTrue(scanner.scan(doc), "scanner should accept root scalar: " + doc);
-            assertEquals(eager(doc), scanned(scanner), doc);
+            assertTrue(new YamlStreamScanner().scan(doc), "scanner should accept root scalar: " + doc);
         }
     }
 
@@ -540,9 +457,7 @@ class YamlStreamScannerTest
             "quoted: \"has\ttab\"\n",
             "list: [a,\tb]\n"})
         {
-            YamlStreamScanner scanner = new YamlStreamScanner();
-            assertTrue(scanner.scan(doc), "scanner should accept tabs in content: " + doc);
-            assertEquals(eager(doc), scanned(scanner), doc);
+            assertTrue(new YamlStreamScanner().scan(doc), "scanner should accept tabs in content: " + doc);
         }
     }
 
@@ -556,16 +471,76 @@ class YamlStreamScannerTest
     }
 
     @Test
+    void shouldAcceptAnchorsAliasesMerge()
+    {
+        String doc = "base: &base\n  host: localhost\nuse:\n  <<: *base\n  port: 7114\nrefs: [*base, plain]\n";
+        assertTrue(new YamlStreamScanner().scan(doc), "scanner should accept anchors/aliases/merge");
+    }
+
+    @Test
+    void shouldAcceptTags()
+    {
+        String doc = "typed: !!str 42\nverbatim: !<tag:x> hi\ncustom: !foo bar\ntagged: !!map\n  a: 1\n";
+        assertTrue(new YamlStreamScanner().scan(doc), "scanner should accept tags");
+    }
+
+    @Test
     void shouldAcceptExpectedFixtureCount() throws Exception
     {
         // a ratchet toward full YAML 1.2 conformance: this count only ever rises as the scanner widens. A
-        // drop means a regression bailed a previously accepted fixture (the differential only checks fixtures
-        // the scanner accepts, so it would not otherwise catch a lost acceptance).
+        // drop means a regression bailed a previously accepted fixture.
         long accepted = fixtures()
             .filter(path -> accepts(path.resolve("in.yaml")))
             .count();
         assertEquals(308, accepted,
             "accepted-fixture count changed; a drop is a regression, a rise should bump this baseline");
+    }
+
+    @TestFactory
+    Stream<DynamicTest> shouldRejectInvalidWithVendoredMessage() throws Exception
+    {
+        // every invalid fixture is rejected with a stable, located bail message pinned against a vendored
+        // snapshot; the scanner is the sole rejection authority now that the eager parser is retired
+        Map<String, String> expected = rejectMessages();
+        return invalidFixtures()
+            .map(path -> DynamicTest.dynamicTest(SUITE_DIR.relativize(path).toString(), () ->
+            {
+                String text = Files.readString(path.resolve("in.yaml"));
+                String fixture = SUITE_DIR.relativize(path).toString();
+                YamlStreamScanner scanner = new YamlStreamScanner();
+                assertFalse(scanner.scan(text), "scanner should reject an invalid document");
+                assertEquals(expected.get(fixture), scanner.bailMessage(),
+                    "scanner bail message diverged from the vendored snapshot");
+            }));
+    }
+
+    private static Map<String, String> rejectMessages() throws IOException
+    {
+        Map<String, String> messages = new HashMap<>();
+        URL resource = YamlStreamScannerTest.class.getResource(
+            "/io/aklivity/zilla/runtime/common/yaml/" + SUITE_TAG + "-reject-messages.tsv");
+        if (resource == null)
+        {
+            throw new IllegalStateException("Missing vendored reject-message snapshot for " + SUITE_TAG);
+        }
+        try
+        {
+            for (String line : Files.readAllLines(Path.of(resource.toURI())))
+            {
+                if (!line.isEmpty())
+                {
+                    int tab = line.indexOf('\t');
+                    String message = line.substring(tab + 1)
+                        .replace("\\n", "\n").replace("\\t", "\t").replace("\\\\", "\\");
+                    messages.put(line.substring(0, tab), message);
+                }
+            }
+        }
+        catch (URISyntaxException ex)
+        {
+            throw new IllegalStateException("Invalid vendored reject-message location: " + resource, ex);
+        }
+        return messages;
     }
 
     private static boolean accepts(
@@ -579,276 +554,6 @@ class YamlStreamScannerTest
         {
             throw new IllegalStateException(ex);
         }
-    }
-
-    private static String scanned(
-        YamlStreamScanner scanner)
-    {
-        StringBuilder builder = new StringBuilder();
-        for (int index = 0; index < scanner.count(); index++)
-        {
-            builder.append(token(scanner.kind(index)));
-            CharSequence view = scanner.stringView(index);
-            if (view != null)
-            {
-                builder.append('(').append(view).append(')');
-            }
-            builder.append('\n');
-        }
-        return builder.toString();
-    }
-
-    private static String eager(
-        String text)
-    {
-        StringBuilder builder = new StringBuilder();
-        for (YamlDocumentParser.Result result : YamlDocumentParser.parseAll(text, YamlConfiguration.DEFAULT))
-        {
-            project(result.node, builder);
-        }
-        return builder.toString();
-    }
-
-    private static void project(
-        YamlNode node,
-        StringBuilder builder)
-    {
-        if (node instanceof YamlObjectNode object)
-        {
-            builder.append("START_OBJECT").append('\n');
-            for (YamlEntry entry : object.entries)
-            {
-                String name = entry.name != null ? entry.name : ((YamlScalarNode) entry.key).value;
-                builder.append("KEY_NAME").append('(').append(name).append(')').append('\n');
-                project(entry.value, builder);
-            }
-            builder.append("END_OBJECT").append('\n');
-        }
-        else if (node instanceof YamlArrayNode array)
-        {
-            builder.append("START_ARRAY").append('\n');
-            for (YamlNode value : array.values)
-            {
-                project(value, builder);
-            }
-            builder.append("END_ARRAY").append('\n');
-        }
-        else
-        {
-            YamlScalarNode scalar = (YamlScalarNode) node;
-            switch (scalar.type)
-            {
-            case STRING -> builder.append("VALUE_STRING").append('(').append(scalar.value).append(')');
-            case NUMBER -> builder.append("VALUE_NUMBER").append('(').append(scalar.value).append(')');
-            case TRUE -> builder.append("VALUE_TRUE");
-            case FALSE -> builder.append("VALUE_FALSE");
-            case NULL -> builder.append("VALUE_NULL");
-            }
-            builder.append('\n');
-        }
-    }
-
-    @Test
-    void shouldAcceptAnchorsAliasesMerge()
-    {
-        String doc = "base: &base\n  host: localhost\nuse:\n  <<: *base\n  port: 7114\nrefs: [*base, plain]\n";
-        YamlStreamScanner scanner = new YamlStreamScanner();
-        assertTrue(scanner.scan(doc), "raw scanner should accept anchors/aliases/merge");
-        assertEquals(eagerRaw(doc), scannedRaw(scanner));
-    }
-
-    @Test
-    void shouldAcceptTagsInRawMode()
-    {
-        String doc = "typed: !!str 42\nverbatim: !<tag:x> hi\ncustom: !foo bar\ntagged: !!map\n  a: 1\n";
-        YamlStreamScanner scanner = new YamlStreamScanner();
-        assertTrue(scanner.scan(doc), "raw scanner should accept tags");
-        assertEquals(eagerRaw(doc), scannedRaw(scanner));
-    }
-
-    @TestFactory
-    Stream<DynamicTest> shouldMatchRawEagerForEveryAcceptedRawFixture() throws Exception
-    {
-        return fixtures()
-            .map(path -> DynamicTest.dynamicTest(SUITE_DIR.relativize(path).toString(), () ->
-            {
-                String text = Files.readString(path.resolve("in.yaml"));
-                YamlStreamScanner scanner = new YamlStreamScanner();
-                if (scanner.scan(text))
-                {
-                    assertEquals(eagerRaw(text), scannedRaw(scanner),
-                        "raw scanner accepted but diverged from unresolved eager parser");
-                }
-            }));
-    }
-
-    private static String scannedRaw(
-        YamlStreamScanner scanner)
-    {
-        StringBuilder builder = new StringBuilder();
-        for (int index = 0; index < scanner.count(); index++)
-        {
-            if (scanner.kind(index) == YamlStreamScanner.ALIAS)
-            {
-                builder.append("ALIAS*").append(scanner.alias(index)).append('\n');
-                continue;
-            }
-            builder.append(token(scanner.kind(index)));
-            CharSequence view = scanner.stringView(index);
-            if (view != null)
-            {
-                builder.append('(').append(view).append(')');
-            }
-            if (scanner.anchor(index) != null)
-            {
-                builder.append('&').append(scanner.anchor(index));
-            }
-            if (scanner.tag(index) != null)
-            {
-                builder.append('!').append(scanner.tag(index));
-            }
-            builder.append('\n');
-        }
-        return builder.toString();
-    }
-
-    private static String eagerRaw(
-        String text)
-    {
-        StringBuilder builder = new StringBuilder();
-        for (YamlDocumentParser.Result result : YamlDocumentParser.parseAll(text, YamlConfiguration.DEFAULT))
-        {
-            projectRaw(result.node, builder);
-        }
-        return builder.toString();
-    }
-
-    private static void projectRaw(
-        YamlNode node,
-        StringBuilder builder)
-    {
-        if (node.alias != null)
-        {
-            builder.append("ALIAS*").append(node.alias).append('\n');
-        }
-        else if (node instanceof YamlObjectNode object)
-        {
-            builder.append("START_OBJECT").append(anchorOf(object)).append('\n');
-            for (YamlEntry entry : object.entries)
-            {
-                if (entry.name == null && entry.key != null &&
-                    (!(entry.key instanceof YamlScalarNode) || entry.key.alias != null))
-                {
-                    // a non-scalar (or alias) mapping key is projected as its own structure / reference
-                    projectRaw(entry.key, builder);
-                }
-                else
-                {
-                    String name = entry.name != null ? entry.name : ((YamlScalarNode) entry.key).value;
-                    builder.append("KEY_NAME").append('(').append(name).append(')');
-                    if (entry.name == null && entry.key != null)
-                    {
-                        builder.append(anchorOf(entry.key));
-                    }
-                    builder.append('\n');
-                }
-                projectRaw(entry.value, builder);
-            }
-            builder.append("END_OBJECT").append('\n');
-        }
-        else if (node instanceof YamlArrayNode array)
-        {
-            builder.append("START_ARRAY").append(anchorOf(array)).append('\n');
-            for (YamlNode value : array.values)
-            {
-                projectRaw(value, builder);
-            }
-            builder.append("END_ARRAY").append('\n');
-        }
-        else
-        {
-            YamlScalarNode scalar = (YamlScalarNode) node;
-            switch (scalar.type)
-            {
-            case STRING -> builder.append("VALUE_STRING").append('(').append(scalar.value).append(')');
-            case NUMBER -> builder.append("VALUE_NUMBER").append('(').append(scalar.value).append(')');
-            case TRUE -> builder.append("VALUE_TRUE");
-            case FALSE -> builder.append("VALUE_FALSE");
-            case NULL -> builder.append("VALUE_NULL");
-            }
-            builder.append(anchorOf(scalar)).append('\n');
-        }
-    }
-
-    private static String anchorOf(
-        YamlNode node)
-    {
-        return (node.anchor != null ? "&" + node.anchor : "") + (node.tag != null ? "!" + node.tag : "");
-    }
-
-    private static String token(
-        byte kind)
-    {
-        return switch (kind)
-        {
-        case YamlStreamScanner.START_OBJECT -> "START_OBJECT";
-        case YamlStreamScanner.END_OBJECT -> "END_OBJECT";
-        case YamlStreamScanner.START_ARRAY -> "START_ARRAY";
-        case YamlStreamScanner.END_ARRAY -> "END_ARRAY";
-        case YamlStreamScanner.KEY_NAME -> "KEY_NAME";
-        case YamlStreamScanner.VALUE_STRING -> "VALUE_STRING";
-        case YamlStreamScanner.VALUE_NUMBER -> "VALUE_NUMBER";
-        case YamlStreamScanner.VALUE_TRUE -> "VALUE_TRUE";
-        case YamlStreamScanner.VALUE_FALSE -> "VALUE_FALSE";
-        case YamlStreamScanner.VALUE_NULL -> "VALUE_NULL";
-        case YamlStreamScanner.ALIAS -> "ALIAS";
-        default -> throw new IllegalStateException("Unexpected kind: " + kind);
-        };
-    }
-
-    @TestFactory
-    Stream<DynamicTest> shouldRejectInvalidConsistentlyWithEager() throws Exception
-    {
-        // every input the scanner rejects is also rejected by the eager parser, and vice versa — the scanner
-        // is complete for valid YAML, so it can carry the rejection diagnostics once the eager parser is
-        // retired. The scanner records a specific, located bail message for each.
-        return invalidFixtures()
-            .map(path -> DynamicTest.dynamicTest(SUITE_DIR.relativize(path).toString(), () ->
-            {
-                String text = Files.readString(path.resolve("in.yaml"));
-                String fixture = SUITE_DIR.relativize(path).toString();
-                YamlStreamScanner scanner = new YamlStreamScanner();
-                assertFalse(scanner.scan(text), "scanner should reject an invalid document");
-                assertNotNull(eagerMessage(text), "eager parser should also reject the invalid document");
-                if (CATCH_ALL_REJECTS.contains(fixture))
-                {
-                    // a few inputs are rejected at a catch-all bail site (the feasibility pre-pass or the
-                    // scalar reserved-start guard) that detects invalidity before the specific cause; the
-                    // scanner reports a located but more general message than the eager parser
-                    assertNotNull(scanner.bailMessage(), "scanner should record a bail message");
-                }
-                else
-                {
-                    assertEquals(eagerMessage(text), scanner.bailMessage(),
-                        "scanner bail message diverged from the eager parser");
-                }
-            }));
-    }
-
-    private static String eagerMessage(
-        String text)
-    {
-        String message;
-        try
-        {
-            YamlDocumentParser.parseAll(text, YamlConfiguration.DEFAULT);
-            message = null;
-        }
-        catch (YamlParseException ex)
-        {
-            message = ex.getMessage();
-        }
-        return message;
     }
 
     private static final Path SUITE_DIR = resolveSuite();

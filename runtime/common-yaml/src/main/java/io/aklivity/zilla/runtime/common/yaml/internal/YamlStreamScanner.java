@@ -24,7 +24,7 @@ import java.util.regex.Pattern;
  * Tree-free, buffer-backed streaming scanner over a YAML 1.2 document. A single forward pass classifies
  * lines into a compact event buffer (parallel arrays indexing into the source {@code text}) without
  * building the {@link YamlNode} tree, the intermediate {@code Line} objects, or the per-scalar
- * {@code String}s that the eager {@link YamlDocumentParser} allocates. Plain scalars stay as zero-copy
+ * {@code String}s that an eager tree parser allocates. Plain scalars stay as zero-copy
  * slices; only hex integers — which JSON renders in decimal — are materialized.
  * <p>
  * The scanner aims to accept all valid YAML 1.2 (anchors, aliases, tags, flow collections, block and
