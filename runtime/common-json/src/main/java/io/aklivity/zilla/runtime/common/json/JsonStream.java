@@ -17,13 +17,21 @@ package io.aklivity.zilla.runtime.common.json;
 /**
  * A description of a {@code common-json} pipeline — a driver bound by {@link JsonEx#stream(JsonParserEx)} plus
  * an ordered list of {@link JsonTransform} stages. Append stages with {@link #transform(JsonTransform)}
- * (left-to-right, in data-flow order); terminate with {@link #into(JsonSink)} to obtain the runnable,
+ * (left-to-right, in data-flow order); optionally attach a {@link JsonReporter} with
+ * {@link #reporting(JsonReporter)}; terminate with {@link #into(JsonSink)} to obtain the runnable,
  * resumable {@link JsonPipeline}. A {@code JsonStream} carries no state and is not itself runnable.
  */
 public interface JsonStream
 {
     JsonStream transform(
         JsonTransform transform);
+
+    /**
+     * Attaches the {@link JsonReporter} the pipeline pushes a {@link JsonDiagnostic} to on a terminal
+     * {@link JsonPipeline.Status#REJECTED}. The last attached reporter wins; the default is none.
+     */
+    JsonStream reporting(
+        JsonReporter reporter);
 
     JsonPipeline into(
         JsonSink sink);
