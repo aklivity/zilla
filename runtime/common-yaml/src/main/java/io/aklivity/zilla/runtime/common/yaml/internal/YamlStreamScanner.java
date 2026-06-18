@@ -514,9 +514,12 @@ public final class YamlStreamScanner
         {
             throw BAIL;
         }
-        if (tabInIndent(line))
+        if (tabInIndent(line) && (isSequence(line, indent) || isExplicitKey(line) ||
+            mappingColon(contentStart[line], contentEnd[line]) != -1 || text.charAt(lineStart[line]) == '\t'))
         {
-            // a tab indenting a nested block is not valid indentation
+            // a tab indenting a nested sequence, explicit key or mapping is not valid indentation, nor is a
+            // tab-first indent; but a tab after at least one space before a plain scalar block is content
+            // separation (eager parseBlock tabIndented gate)
             throw BAIL;
         }
 
