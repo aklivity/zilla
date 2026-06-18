@@ -22,6 +22,7 @@ import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
+import io.aklivity.zilla.runtime.common.json.JsonReporter;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonSource;
 import io.aklivity.zilla.runtime.common.json.JsonStream;
@@ -37,6 +38,8 @@ public final class JsonStreamImpl implements JsonStream
 {
     private final JsonParserEx parser;
     private final List<JsonTransform> transforms;
+
+    private JsonReporter reporter;
 
     public JsonStreamImpl(
         JsonParserEx parser)
@@ -54,6 +57,14 @@ public final class JsonStreamImpl implements JsonStream
     }
 
     @Override
+    public JsonStream reporting(
+        JsonReporter reporter)
+    {
+        this.reporter = reporter;
+        return this;
+    }
+
+    @Override
     public JsonPipeline into(
         JsonSink sink)
     {
@@ -62,7 +73,7 @@ public final class JsonStreamImpl implements JsonStream
         {
             root = new BoundSink(transforms.get(i), root);
         }
-        return new JsonPipelineImpl(parser, root);
+        return new JsonPipelineImpl(parser, root, reporter);
     }
 
     private static final class BoundSink implements JsonSink
