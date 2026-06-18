@@ -29,7 +29,7 @@ public interface JsonController
 
     /**
      * Reports {@code sourceBytes} source bytes consumed by a verbatim segment write so the upstream
-     * advances its {@code position()} and re-exposes the value remainder on resume.
+     * advances its consumed stream position and re-exposes the value remainder on resume.
      */
     default void consumed(
         int sourceBytes)

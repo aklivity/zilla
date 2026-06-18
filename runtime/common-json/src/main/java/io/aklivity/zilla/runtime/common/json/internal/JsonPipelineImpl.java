@@ -14,6 +14,9 @@
  */
 package io.aklivity.zilla.runtime.common.json.internal;
 
+import java.math.BigDecimal;
+
+import jakarta.json.stream.JsonLocation;
 import jakarta.json.stream.JsonParsingException;
 
 import org.agrona.DirectBuffer;
@@ -21,6 +24,7 @@ import org.agrona.DirectBuffer;
 import io.aklivity.zilla.runtime.common.json.JsonController;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
+import io.aklivity.zilla.runtime.common.json.JsonParserEx.Mode;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonSource;
@@ -28,14 +32,14 @@ import io.aklivity.zilla.runtime.common.json.JsonSource;
 /**
  * Backs {@link JsonPipeline}: holds the bound root {@link JsonSink} and the {@link JsonParserEx}
  * driver. {@link #feed(DirectBuffer, int, int)} re-targets the parser at the frame buffer then pumps
- * each parsed event through the root sink, passing the parser itself as the immutable
- * {@code JsonSource} view and the {@link JsonController}.
+ * each parsed event through the root sink, passing a {@link Source} view that adapts the parser to the
+ * immutable {@code JsonSource} surface and a {@link Control} that adapts it to the {@link JsonController}.
  */
 public final class JsonPipelineImpl implements JsonPipeline
 {
     private final JsonParserEx parser;
-    private final JsonSource source;
-    private final JsonController control;
+    private final Source source;
+    private final Control control;
     private final JsonSink root;
 
     private boolean suspended;
@@ -47,9 +51,9 @@ public final class JsonPipelineImpl implements JsonPipeline
         JsonSink root)
     {
         this.parser = parser;
-        // the parser is also the per-event source view and the upstream controller a stage steers
-        this.source = (JsonSource) parser;
-        this.control = (JsonController) parser;
+        // the source view and the upstream controller a stage steers are adapters over the parser surface
+        this.source = new Source(parser);
+        this.control = new Control(parser);
         this.root = root;
     }
 
@@ -63,16 +67,16 @@ public final class JsonPipelineImpl implements JsonPipeline
     }
 
     @Override
-    public long position()
+    public int remaining()
     {
-        return parser.position();
+        return parser.remaining();
     }
 
     @Override
     public Status feed(
         DirectBuffer buffer,
         int offset,
-        int length,
+        int limit,
         boolean last)
     {
         Status status = Status.ADVANCED;
@@ -84,11 +88,18 @@ public final class JsonPipelineImpl implements JsonPipeline
             }
             else
             {
-                parser.wrap(buffer, offset, length, last);
+                parser.wrap(buffer, offset, limit, last);
             }
-            while (status == Status.ADVANCED && parser.hasNextEvent())
+            while (status == Status.ADVANCED)
             {
-                final JsonEvent event = parser.nextEvent();
+                // pull with the requested mode before any tokenizer advance, so a segmentable() request lands
+                // on the just-delivered boundary; a null event means the window is consumed (no hasNextEvent()
+                // gate here, which would advance the tokenizer past the boundary before the mode is applied)
+                final JsonEvent event = parser.nextEvent(control.mode());
+                if (event == null)
+                {
+                    break;
+                }
                 status = root.feed(control, source, event);
                 if (status == Status.SUSPENDED)
                 {
@@ -109,5 +120,107 @@ public final class JsonPipelineImpl implements JsonPipeline
         }
         suspended = status == Status.SUSPENDED;
         return status;
+    }
+
+    // Adapts the parser to the non-advancing JsonSource view a stage reads off the current event.
+    private static final class Source implements JsonSource
+    {
+        private final JsonParserEx parser;
+
+        private Source(
+            JsonParserEx parser)
+        {
+            this.parser = parser;
+        }
+
+        @Override
+        public String getString()
+        {
+            return parser.getString();
+        }
+
+        @Override
+        public CharSequence getStringView()
+        {
+            return parser.getStringView();
+        }
+
+        @Override
+        public BigDecimal getBigDecimal()
+        {
+            return parser.getBigDecimal();
+        }
+
+        @Override
+        public boolean isIntegralNumber()
+        {
+            return parser.isIntegralNumber();
+        }
+
+        @Override
+        public int getInt()
+        {
+            return parser.getInt();
+        }
+
+        @Override
+        public long getLong()
+        {
+            return parser.getLong();
+        }
+
+        @Override
+        public JsonLocation getLocation()
+        {
+            return parser.getLocation();
+        }
+
+        @Override
+        public DirectBuffer getSegment()
+        {
+            return parser.getSegment();
+        }
+
+        @Override
+        public boolean deferredBytes()
+        {
+            return parser.deferredBytes();
+        }
+    }
+
+    // Adapts the parser to the JsonController a stage uses to steer its immediate upstream: a segmentable()
+    // request becomes a one-shot SEGMENTED mode the pump threads into the parser's next pull, so the segment
+    // request need not narrow onto the parser surface; consumed() pushback forwards to the parser's cursor.
+    private static final class Control implements JsonController
+    {
+        private final JsonParserEx parser;
+
+        private boolean segmented;
+
+        private Control(
+            JsonParserEx parser)
+        {
+            this.parser = parser;
+        }
+
+        @Override
+        public void segmentable()
+        {
+            segmented = true;
+        }
+
+        @Override
+        public void consumed(
+            int sourceBytes)
+        {
+            parser.consumed(sourceBytes);
+        }
+
+        private Mode mode()
+        {
+            Mode mode = segmented ? Mode.SEGMENTED : Mode.STRUCTURED;
+            segmented = false;
+            return mode;
+        }
     }
 }

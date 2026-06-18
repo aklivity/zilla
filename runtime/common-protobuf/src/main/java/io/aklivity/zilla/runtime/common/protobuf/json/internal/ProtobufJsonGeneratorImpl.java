@@ -16,6 +16,8 @@ package io.aklivity.zilla.runtime.common.protobuf.json.internal;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.util.BitSet;
+
 import org.agrona.DirectBuffer;
 import org.agrona.ExpandableArrayBuffer;
 import org.agrona.MutableDirectBuffer;
@@ -56,6 +58,8 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
     private final JsonGeneratorEx json;
     private final ProtobufSchema schema;
     private final String messageName;
+    private final boolean protoFieldNames;
+    private final boolean includeDefaults;
     private final StringBuilder scratch;
     private final ExpandableArrayBuffer accumulator;
     private final UnsafeBuffer byteView;
@@ -76,9 +80,21 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
         ProtobufSchema schema,
         String messageName)
     {
+        this(json, schema, messageName, false, false);
+    }
+
+    public ProtobufJsonGeneratorImpl(
+        JsonGeneratorEx json,
+        ProtobufSchema schema,
+        String messageName,
+        boolean protoFieldNames,
+        boolean includeDefaults)
+    {
         this.json = json;
         this.schema = schema;
         this.messageName = messageName;
+        this.protoFieldNames = protoFieldNames;
+        this.includeDefaults = includeDefaults;
         this.scratch = new StringBuilder();
         this.accumulator = new ExpandableArrayBuffer();
         this.byteView = new UnsafeBuffer();
@@ -459,6 +475,7 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
             {
                 closeContainer(scope);
             }
+            emitDefaults(scope);
             depth--;
             if (!scope.mapEntry)
             {
@@ -499,6 +516,7 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
             ProtobufField field = scope.message.field(number);
             scalarField = field;
             scalarKey = false;
+            scope.written.set(number);
             if (scope.openField != -1 && scope.openField != number)
             {
                 closeContainer(scope);
@@ -507,14 +525,14 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
             {
                 if (scope.openField != number)
                 {
-                    json.writeKey(field.jsonName());
+                    json.writeKey(key(field));
                     json.writeStartArray();
                     scope.openField = number;
                 }
             }
             else
             {
-                json.writeKey(field.jsonName());
+                json.writeKey(key(field));
             }
         }
     }
@@ -534,6 +552,7 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
         else
         {
             ProtobufField field = scope.message.field(number);
+            scope.written.set(number);
             if (scope.openField != -1 && scope.openField != number)
             {
                 closeContainer(scope);
@@ -542,7 +561,7 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
             {
                 if (scope.openField != number)
                 {
-                    json.writeKey(field.jsonName());
+                    json.writeKey(key(field));
                     json.writeStartObject();
                     scope.openField = number;
                 }
@@ -552,7 +571,7 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
             {
                 if (scope.openField != number)
                 {
-                    json.writeKey(field.jsonName());
+                    json.writeKey(key(field));
                     json.writeStartArray();
                     scope.openField = number;
                 }
@@ -561,7 +580,7 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
             }
             else
             {
-                json.writeKey(field.jsonName());
+                json.writeKey(key(field));
                 json.writeStartObject();
                 pushScope(field.message(), false);
             }
@@ -575,10 +594,109 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
         {
             closeContainer(scope);
         }
+        emitDefaults(scope);
         depth--;
         if (!scope.mapEntry)
         {
             json.writeEnd();
+        }
+    }
+
+    private String key(
+        ProtobufField field)
+    {
+        return protoFieldNames ? field.name() : field.jsonName();
+    }
+
+    private void emitDefaults(
+        Scope scope)
+    {
+        if (includeDefaults && !scope.mapEntry && scope.message != null)
+        {
+            for (ProtobufField field : scope.message.sortedFields())
+            {
+                int number = field.number();
+                boolean omit = scope.written.get(number) ||
+                    field.oneofName() != null ||
+                    field.proto3Optional() ||
+                    !field.repeated() && (field.type() == ProtobufType.MESSAGE || field.type() == ProtobufType.GROUP);
+                if (!omit)
+                {
+                    json.writeKey(key(field));
+                    if (map(field))
+                    {
+                        json.writeStartObject();
+                        json.writeEnd();
+                    }
+                    else if (field.repeated())
+                    {
+                        json.writeStartArray();
+                        json.writeEnd();
+                    }
+                    else
+                    {
+                        emitScalarDefault(field);
+                    }
+                }
+            }
+        }
+    }
+
+    private void emitScalarDefault(
+        ProtobufField field)
+    {
+        String value = field.defaultValue();
+        switch (field.type())
+        {
+        case INT32:
+        case UINT32:
+        case SINT32:
+        case FIXED32:
+        case SFIXED32:
+            json.writeNumber(value != null ? value : "0");
+            break;
+        case INT64:
+        case UINT64:
+        case SINT64:
+        case FIXED64:
+        case SFIXED64:
+            json.write(value != null ? value : "0");
+            break;
+        case DOUBLE:
+        case FLOAT:
+            json.writeNumber(value != null ? value : "0.0");
+            break;
+        case BOOL:
+            json.write(value != null && Boolean.parseBoolean(value));
+            break;
+        case STRING:
+            json.write(value != null ? value : "");
+            break;
+        case BYTES:
+            json.write(value != null ? value : "");
+            break;
+        case ENUM:
+            emitEnumDefault(field, value);
+            break;
+        default:
+            json.write("");
+            break;
+        }
+    }
+
+    private void emitEnumDefault(
+        ProtobufField field,
+        String value)
+    {
+        ProtobufEnum enumeration = field.enumeration();
+        String name = value != null ? value : enumeration != null ? enumeration.name(0) : null;
+        if (name != null)
+        {
+            json.write(name);
+        }
+        else
+        {
+            json.writeNumber("0");
         }
     }
 
@@ -759,6 +877,8 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
 
     private static final class Scope
     {
+        private final BitSet written = new BitSet();
+
         private ProtobufMessage message;
         private boolean mapEntry;
         private int openField;
@@ -772,6 +892,7 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
             this.mapEntry = mapEntry;
             this.openField = -1;
             this.pendingKey = null;
+            this.written.clear();
         }
     }
 }

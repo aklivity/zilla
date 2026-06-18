@@ -25,6 +25,7 @@ import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufEvent;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufException;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufField;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufLocation;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufMessage;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufParser;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSchema;
@@ -67,9 +68,18 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
     private final JsonParserEx parser;
     private final ProtobufSchema schema;
     private final String messageName;
+    private final boolean rejectUnknownFields;
     private final UnsafeBuffer estimateView;
     private final ExpandableArrayBuffer valueBuffer;
     private final UnsafeBuffer valueView;
+    private final ProtobufLocation location = new ProtobufLocation()
+    {
+        @Override
+        public long getStreamOffset()
+        {
+            return parser.getLocation().getStreamOffset();
+        }
+    };
 
     private Frame[] frames;
     private int depth;
@@ -101,9 +111,19 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
         ProtobufSchema schema,
         String messageName)
     {
+        this(parser, schema, messageName, false);
+    }
+
+    public ProtobufJsonParserImpl(
+        JsonParserEx parser,
+        ProtobufSchema schema,
+        String messageName,
+        boolean rejectUnknownFields)
+    {
         this.parser = parser;
         this.schema = schema;
         this.messageName = messageName;
+        this.rejectUnknownFields = rejectUnknownFields;
         this.estimateView = new UnsafeBuffer(new byte[ESTIMATE]);
         this.valueBuffer = new ExpandableArrayBuffer();
         this.valueView = new UnsafeBuffer();
@@ -121,7 +141,7 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
     public ProtobufParser wrap(
         DirectBuffer buffer,
         int offset,
-        int length,
+        int limit,
         boolean last)
     {
         if (schema.message(messageName) == null)
@@ -140,7 +160,7 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
         currentMessage = null;
         // a fresh document rewinds the reused JSON parser to DOC_START; window swaps (resume) do not
         parser.reset();
-        parser.wrap(buffer, offset, length);
+        parser.wrap(buffer, offset, limit);
         return this;
     }
 
@@ -148,11 +168,11 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
     public ProtobufParser resume(
         DirectBuffer buffer,
         int offset,
-        int length,
+        int limit,
         boolean last)
     {
         this.last = last;
-        parser.wrap(buffer, offset, length);
+        parser.wrap(buffer, offset, limit);
         return this;
     }
 
@@ -163,9 +183,15 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
     }
 
     @Override
-    public long position()
+    public ProtobufLocation getLocation()
     {
-        return parser.getLocation().getStreamOffset();
+        return location;
+    }
+
+    @Override
+    public int remaining()
+    {
+        return parser.remaining();
     }
 
     @Override
@@ -345,6 +371,10 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
                 ProtobufField field = frame.message.field(parser.getStringView());
                 if (field == null)
                 {
+                    if (rejectUnknownFields)
+                    {
+                        throw new ProtobufException("unknown field " + parser.getStringView());
+                    }
                     beginSkip();
                 }
                 else

@@ -199,7 +199,7 @@ public class AvroSchemaTest
             {
                 AvroLocation location = source.getLocation();
                 depth[0] = location.depth();
-                position[0] = location.position();
+                position[0] = location.getStreamOffset();
             }
             return event == AvroEvent.END_MESSAGE ? Status.COMPLETED : Status.ADVANCED;
         };

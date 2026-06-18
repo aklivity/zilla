@@ -563,7 +563,7 @@ public final class McpServerFactory implements McpStreamFactory
         server.decodedProgressToken = null;
         server.decodedAction = null;
         server.decodableJson = JsonEx.createParser(Map.of());
-        server.decodableJson.wrap(buffer, progress, limit - progress);
+        server.decodableJson.wrap(buffer, progress, limit);
         server.decoder = decodeJsonRpcStart;
         // Map parser stream-offset 0 to buffer position `progress`.
         // The decodeJsonRpc* methods use offset + decodedX - decodedParserProgress as buffer position,
@@ -1572,7 +1572,7 @@ public final class McpServerFactory implements McpStreamFactory
                 if (decodableJson != null)
                 {
                     final int delta = (int) (decodableJson.getLocation().getStreamOffset() - decodedParserProgress);
-                    decodableJson.wrap(buffer, offset + delta, limit - offset - delta);
+                    decodableJson.wrap(buffer, offset + delta, limit);
                 }
 
                 decodeNet(traceId, authorization, budgetId, reserved, buffer, offset, limit);

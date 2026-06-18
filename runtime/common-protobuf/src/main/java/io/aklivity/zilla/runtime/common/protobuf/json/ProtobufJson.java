@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.common.protobuf.json;
 
+import java.util.Map;
+
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufGenerator;
@@ -49,18 +51,69 @@ import io.aklivity.zilla.runtime.common.protobuf.json.internal.ProtobufJsonParse
 public final class ProtobufJson
 {
     /**
+     * Generator config key whose value is a {@link FieldNames} selecting which name renders as each JSON
+     * object key (absent ⇒ {@link FieldNames#JSON}). {@link FieldNames#PROTO} mirrors the Protobuf
+     * {@code JsonFormat} printer's {@code preservingProtoFieldNames()}.
+     */
+    public static final String FIELD_NAMES =
+        "io.aklivity.zilla.runtime.common.protobuf.json.field.names";
+
+    /**
+     * Generator config key (a {@link Boolean}): when {@code true}, every field is emitted — unset
+     * implicit-presence scalars and enums as their declared (proto2) or type default, empty {@code repeated}
+     * as {@code []}, empty {@code map} as {@code {}} — while fields with explicit presence (proto3
+     * {@code optional}, message, {@code oneof}) stay omitted when unset. Mirrors the Protobuf
+     * {@code JsonFormat} printer's {@code includingDefaultValueFields()}.
+     */
+    public static final String INCLUDE_DEFAULTS =
+        "io.aklivity.zilla.runtime.common.protobuf.json.include.defaults";
+
+    /**
+     * The name rendered as each JSON object key: the proto3 json name (lowerCamelCase) or the proto field
+     * name (snake_case). Value type of the {@link #FIELD_NAMES} config key.
+     */
+    public enum FieldNames
+    {
+        JSON,
+        PROTO
+    }
+
+    /**
      * A {@link ProtobufParser} that reads JSON through {@code parser}, mapping each JSON value onto the field
      * of the message named {@code messageName} in {@code schema} (by proto3 json name then proto name) and
      * presenting it as the matching protobuf event so a wire {@link ProtobufGenerator} (or a whole pipeline)
      * encodes it. Streams windowed JSON input, returning {@code null} from {@code nextEvent} on a partial
      * window and continuing via {@code resume}.
      */
+    /**
+     * Generator/parser config key (a {@link Boolean}): when {@code true}, the parser rejects unknown JSON
+     * fields (the message reaches {@link io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline.Status#REJECTED}
+     * with a reason) instead of silently ignoring them. Absent or {@code false} keeps the default of ignoring
+     * unknown fields. Reject mirrors the proto3 JSON mapping's default for a strict parser.
+     */
+    public static final String REJECT_UNKNOWN_FIELDS =
+        "io.aklivity.zilla.runtime.common.protobuf.json.reject.unknown.fields";
+
     public static ProtobufParser parser(
         JsonParserEx parser,
         ProtobufSchema schema,
         String messageName)
     {
         return new ProtobufJsonParserImpl(parser, schema, messageName);
+    }
+
+    /**
+     * As {@link #parser(JsonParserEx, ProtobufSchema, String)}, configured via {@code config} — see
+     * {@link #REJECT_UNKNOWN_FIELDS}.
+     */
+    public static ProtobufParser parser(
+        JsonParserEx parser,
+        ProtobufSchema schema,
+        String messageName,
+        Map<String, ?> config)
+    {
+        boolean rejectUnknownFields = Boolean.TRUE.equals(config.get(REJECT_UNKNOWN_FIELDS));
+        return new ProtobufJsonParserImpl(parser, schema, messageName, rejectUnknownFields);
     }
 
     /**
@@ -77,6 +130,23 @@ public final class ProtobufJson
         String messageName)
     {
         return new ProtobufJsonGeneratorImpl(generator, schema, messageName);
+    }
+
+    /**
+     * As {@link #generator(JsonGeneratorEx, ProtobufSchema, String)}, configured for Protobuf
+     * {@code JsonFormat} compatibility via {@code config} — see {@link #FIELD_NAMES} and
+     * {@link #INCLUDE_DEFAULTS}. Fields are emitted in wire order (not field-number order), which is
+     * semantically equivalent JSON.
+     */
+    public static ProtobufGenerator generator(
+        JsonGeneratorEx generator,
+        ProtobufSchema schema,
+        String messageName,
+        Map<String, ?> config)
+    {
+        boolean protoFieldNames = config.get(FIELD_NAMES) == FieldNames.PROTO;
+        boolean includeDefaults = Boolean.TRUE.equals(config.get(INCLUDE_DEFAULTS));
+        return new ProtobufJsonGeneratorImpl(generator, schema, messageName, protoFieldNames, includeDefaults);
     }
 
     private ProtobufJson()
