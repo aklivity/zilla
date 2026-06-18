@@ -67,16 +67,16 @@ public final class JsonPipelineImpl implements JsonPipeline
     }
 
     @Override
-    public long position()
+    public int remaining()
     {
-        return parser.position();
+        return parser.remaining();
     }
 
     @Override
     public Status feed(
         DirectBuffer buffer,
         int offset,
-        int length,
+        int limit,
         boolean last)
     {
         Status status = Status.ADVANCED;
@@ -88,7 +88,7 @@ public final class JsonPipelineImpl implements JsonPipeline
             }
             else
             {
-                parser.wrap(buffer, offset, length, last);
+                parser.wrap(buffer, offset, limit, last);
             }
             while (status == Status.ADVANCED)
             {

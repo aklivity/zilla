@@ -153,16 +153,16 @@ class JsonProjectorSegmentTest
         byte[] bytes = json.getBytes(UTF_8);
         pipeline.reset();
 
-        int committed = 0;
-        int offset = 0;
+        int progress = 0;
+        int limit = 0;
         Status status = Status.STARVED;
         int guard = 0;
         while (guard++ < 10_000)
         {
-            offset = Math.min(offset + 8, bytes.length);
-            boolean last = offset >= bytes.length;
-            status = pipeline.feed(new UnsafeBuffer(bytes), committed, offset - committed, last);
-            committed = (int) pipeline.position();
+            limit = Math.min(limit + 8, bytes.length);
+            boolean last = limit >= bytes.length;
+            status = pipeline.feed(new UnsafeBuffer(bytes), progress, limit, last);
+            progress = limit - pipeline.remaining();
             if (status == Status.COMPLETED || status == Status.REJECTED)
             {
                 break;
@@ -211,22 +211,22 @@ class JsonProjectorSegmentTest
         gen.wrap(out, 0, outBound);
 
         StringBuilder result = new StringBuilder();
-        int committed = 0;
-        int offset = 0;
+        int progress = 0;
+        int limit = 0;
         Status status = Status.STARVED;
         int guard = 0;
         while (guard++ < 1_000_000)
         {
             if (status != Status.SUSPENDED)
             {
-                offset = Math.min(offset + inStep, bytes.length);
+                limit = Math.min(limit + inStep, bytes.length);
             }
-            boolean last = offset >= bytes.length;
-            status = pipeline.feed(new UnsafeBuffer(bytes), committed, offset - committed, last);
+            boolean last = limit >= bytes.length;
+            status = pipeline.feed(new UnsafeBuffer(bytes), progress, limit, last);
             byte[] chunk = new byte[gen.length()];
             out.getBytes(0, chunk);
             result.append(new String(chunk, UTF_8));
-            committed = (int) pipeline.position();
+            progress = limit - pipeline.remaining();
             if (status == Status.SUSPENDED)
             {
                 gen.wrap(out, 0, outBound);
@@ -272,22 +272,22 @@ class JsonProjectorSegmentTest
         gen.wrap(out, 0, outBound);
 
         StringBuilder result = new StringBuilder();
-        int committed = 0;
-        int offset = 0;
+        int progress = 0;
+        int limit = 0;
         Status status = Status.STARVED;
         int guard = 0;
         while (guard++ < 1_000_000)
         {
             if (status != Status.SUSPENDED)
             {
-                offset = Math.min(offset + inStep, bytes.length);
+                limit = Math.min(limit + inStep, bytes.length);
             }
-            boolean last = offset >= bytes.length;
-            status = pipeline.feed(new UnsafeBuffer(bytes), committed, offset - committed, last);
+            boolean last = limit >= bytes.length;
+            status = pipeline.feed(new UnsafeBuffer(bytes), progress, limit, last);
             byte[] chunk = new byte[gen.length()];
             out.getBytes(0, chunk);
             result.append(new String(chunk, UTF_8));
-            committed = (int) pipeline.position();
+            progress = limit - pipeline.remaining();
             if (status == Status.SUSPENDED)
             {
                 gen.wrap(out, 0, outBound);

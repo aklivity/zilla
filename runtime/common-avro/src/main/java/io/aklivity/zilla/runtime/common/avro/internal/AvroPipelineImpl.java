@@ -71,16 +71,16 @@ final class AvroPipelineImpl implements AvroPipeline
     }
 
     @Override
-    public long position()
+    public int remaining()
     {
-        return parser.getLocation().position();
+        return parser.remaining();
     }
 
     @Override
     public Status feed(
         DirectBuffer buffer,
         int offset,
-        int length,
+        int limit,
         boolean last)
     {
         Status status = ADVANCED;
@@ -93,7 +93,7 @@ final class AvroPipelineImpl implements AvroPipeline
             }
             else
             {
-                parser.wrap(buffer, offset, length, last);
+                parser.wrap(buffer, offset, limit, last);
             }
             while (status == ADVANCED)
             {

@@ -18,7 +18,7 @@ fragmentation bound — a value that fits the window is delivered whole, while o
 window is delivered as `deferredBytes()` fragments rather than buffered whole.
 
 ```java
-JsonParserEx parser = JsonEx.createParser().wrap(buffer, offset, length);
+JsonParserEx parser = JsonEx.createParser().wrap(buffer, offset, limit);
 while (parser.hasNext())
 {
     switch (parser.next())
@@ -41,7 +41,7 @@ JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
     .transform(JsonEx.projector(List.of("/id", "/name")))
     .into(JsonSink.of(generator));
 pipeline.reset();
-if (pipeline.feed(in, off, len) == JsonPipeline.Status.COMPLETED)   // ADVANCED / SUSPENDED / COMPLETED / REJECTED
+if (pipeline.feed(in, off, limit) == JsonPipeline.Status.COMPLETED)   // ADVANCED / SUSPENDED / COMPLETED / REJECTED
 {
     int length = generator.length();    // projected JSON bytes in out
 }
@@ -99,12 +99,12 @@ JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
     .into(JsonSink.of(generator));
 pipeline.reset();
 
-JsonPipeline.Status status = pipeline.feed(in, off, len);
+JsonPipeline.Status status = pipeline.feed(in, off, limit);
 while (status == JsonPipeline.Status.SUSPENDED)   // output full
 {
     emitDataFrame(out, 0, generator.length());    // drain — flow-controlled
     generator.wrap(out, 0, limit);                // re-target output, structural context preserved
-    status = pipeline.feed(in, off, len);         // resume the in-flight value
+    status = pipeline.feed(in, off, limit);       // resume the in-flight value
 }
 // COMPLETED: emit the final generator.length() bytes
 ```

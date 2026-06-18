@@ -23,6 +23,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufEvent;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufException;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufField;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufLocation;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufMessage;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufParser;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSchema;
@@ -64,6 +65,14 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
     private final String messageName;
     private final List<Frame> frames;
     private final ProtobufReader reader;
+    private final ProtobufLocation location = new ProtobufLocation()
+    {
+        @Override
+        public long getStreamOffset()
+        {
+            return reader.position();
+        }
+    };
 
     private boolean started;
     private boolean done;
@@ -103,10 +112,10 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
     public ProtobufParser wrap(
         DirectBuffer buffer,
         int offset,
-        int length,
+        int limit,
         boolean last)
     {
-        reader.wrap(buffer, offset, length, last);
+        reader.wrap(buffer, offset, limit, last);
         this.started = false;
         this.done = false;
         this.depth = -1;
@@ -121,10 +130,10 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
     public ProtobufParser resume(
         DirectBuffer buffer,
         int offset,
-        int length,
+        int limit,
         boolean last)
     {
-        reader.resume(buffer, offset, length, last);
+        reader.resume(buffer, offset, limit, last);
         return this;
     }
 
@@ -135,9 +144,15 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
     }
 
     @Override
-    public long position()
+    public ProtobufLocation getLocation()
     {
-        return reader.position();
+        return location;
+    }
+
+    @Override
+    public int remaining()
+    {
+        return reader.remaining();
     }
 
     @Override

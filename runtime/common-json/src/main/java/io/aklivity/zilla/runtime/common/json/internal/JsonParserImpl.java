@@ -122,32 +122,32 @@ public final class JsonParserImpl implements JsonParserEx
     public JsonParserEx wrap(
         DirectBuffer buffer,
         int offset,
-        int length)
+        int limit)
     {
         frameBaseStreamOffset = tokenizer.streamOffset();
-        tokenizer.window(length);
-        ownedInput.wrap(buffer, offset, length);
+        tokenizer.window(limit - offset);
+        ownedInput.wrap(buffer, offset, limit - offset);
         return this;
     }
 
-    // Wraps the next input window of a chunked feed; last == true marks the final window, so its EOF is the
-    // terminal delimiter (completing a trailing scalar, rejecting a truncated value) rather than a frame
-    // boundary with more bytes to come.
+    // Wraps the next input window [offset, limit) of a chunked feed; last == true marks the final window, so
+    // its EOF is the terminal delimiter (completing a trailing scalar, rejecting a truncated value) rather
+    // than a frame boundary with more bytes to come.
     @Override
     public JsonParserEx wrap(
         DirectBuffer buffer,
         int offset,
-        int length,
+        int limit,
         boolean last)
     {
         tokenizer.terminal(last);
-        return wrap(buffer, offset, length);
+        return wrap(buffer, offset, limit);
     }
 
     @Override
-    public long position()
+    public int remaining()
     {
-        return tokenizer.streamOffset();
+        return (int)(frameBaseStreamOffset + ownedInput.length() - tokenizer.streamOffset());
     }
 
     @Override

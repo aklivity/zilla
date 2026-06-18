@@ -233,7 +233,7 @@ public class JsonPipelineBM
         return generator.length();
     }
 
-    // Feeds an over-window value in fixed window-sized steps, advancing the committed watermark to
+    // Feeds an over-window value in fixed window-sized steps, advancing the progress watermark to
     // position() on each STARVED so the trailing partial unit carries into the next window; reuses the
     // field buffer so the fragmenting path's only allocations are the ones under measurement.
     private int runWindowed(
@@ -244,19 +244,19 @@ public class JsonPipelineBM
     {
         generator.wrap(outputBuffer, 0, outputBuffer.capacity());
         pipeline.reset();
-        int committed = 0;
-        int offset = 0;
+        int progress = 0;
+        int limit = 0;
         Status status = Status.STARVED;
-        while (offset < length)
+        while (limit < length)
         {
-            offset = Math.min(offset + window, length);
-            boolean last = offset >= length;
-            status = pipeline.feed(buffer, committed, offset - committed, last);
+            limit = Math.min(limit + window, length);
+            boolean last = limit >= length;
+            status = pipeline.feed(buffer, progress, limit, last);
             if (status != Status.STARVED)
             {
                 break;
             }
-            committed = (int) pipeline.position();
+            progress = limit - pipeline.remaining();
         }
         return status == Status.COMPLETED ? generator.length() : -1;
     }

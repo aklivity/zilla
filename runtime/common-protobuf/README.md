@@ -130,24 +130,25 @@ out:
   `feed` again with the **same** input window to resume the in-flight message from where it paused.
 - **Input — `STARVED`** (the input window was consumed before the message completed): retain the
   unconsumed tail and call `feed` again with it prepended to the **next** window. End of input is
-  signalled by the caller via the `last` flag on `feed(buffer, offset, length, last)`; pass
-  `last == true` only on the final window. The three-argument `feed(buffer, offset, length)` is the
-  whole-buffer shorthand (`last == true`) and never returns `STARVED`.
+  signalled by the caller via the `last` flag on `feed(buffer, offset, limit, last)`, which feeds the
+  half-open range `[offset, limit)`; pass `last == true` only on the final window. The three-argument
+  `feed(buffer, offset, limit)` is the whole-buffer shorthand (`last == true`) and never returns
+  `STARVED`.
 
 `STARVED` is returned only when `last == false`; under `last == true` a clean message end yields
 `COMPLETED` and an incomplete one (a primitive, length-prefix, or nested message that runs past the
 bytes) yields `REJECTED`.
 
 The pipeline holds **no input buffer of its own** — it never copies or retains input. Instead it reports
-`position()`, the number of input bytes committed so far (always at a whole-unit boundary). On `STARVED`,
-everything at or after `position()` is the unconsumed tail; the caller retains those bytes — typically in
-the reassembly slot it already owns — and re-presents them, contiguous with the next window, on the
-following `feed`. Because the unknown-field skip and large leaf values both stream, that retained tail is
-only ever a partial primitive or a partial UTF-8 code point — a handful of bytes.
+`remaining()`, the number of bytes at the tail of the most recently fed window not yet consumed (always at
+a whole-unit boundary). On `STARVED`, those trailing `remaining()` bytes are the unconsumed tail; the caller
+retains them — typically in the reassembly slot it already owns — and re-presents them, contiguous with the
+next window, on the following `feed`. Because it is window-relative, the caller drops the consumed prefix
+without tracking the slot's absolute base. Because the unknown-field skip and large leaf values both stream,
+that retained tail is only ever a partial primitive or a partial UTF-8 code point — a handful of bytes.
 
 ```java
 pipeline.reset();
-long committed = 0;                                  // absolute position of slot[0]
 for (boolean done = false; !done; )
 {
     appendToSlot(nextWindowBytes());                 // grow the reassembly slot with new input
@@ -161,9 +162,7 @@ for (boolean done = false; !done; )
     switch (status)
     {
     case STARVED:
-        int consumed = (int) (pipeline.position() - committed);
-        compactSlot(consumed);                        // drop committed bytes, keep the tail at the front
-        committed = pipeline.position();
+        compactSlot(slotLength - pipeline.remaining()); // drop the consumed prefix, keep the tail at the front
         break;
     case COMPLETED: emitDataFrame(out, 0, generator.length()); done = true; break;
     case REJECTED: abort(); done = true; break;
@@ -279,7 +278,7 @@ by the message structure — the parser decodes over a per-depth frame stack who
 by a swap-safe position counter rather than the refillable byte limit, so a frame survives a window
 swap. Leaf `string`/`bytes` values and unknown-field skips both stream in window-sized pieces rather
 than being reassembled whole, and the cursor itself **never copies or retains input** — it reports
-`position()` and leaves any unconsumed tail (only ever a partial primitive or a partial UTF-8 code
+`remaining()` and leaves any unconsumed tail (only ever a partial primitive or a partial UTF-8 code
 point) for the caller to retain and re-present (see *Two back-pressure axes* above). The generator
 streams its output bounded by `limit`, fragmenting any value too large rather than buffering it. No
 unbounded document is buffered. Truncated or overlong varints, lengths that run past the message under

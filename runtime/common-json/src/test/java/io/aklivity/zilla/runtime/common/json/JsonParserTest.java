@@ -167,8 +167,8 @@ class JsonParserTest
             {
                 parser.next();
             }
-            int committed = (int) parser.getLocation().getStreamOffset();
-            in.wrap(buffer, committed, full.length - committed);
+            int progress = (int) parser.getLocation().getStreamOffset();
+            in.wrap(buffer, progress, full.length - progress);
             while (parser.hasNext())
             {
                 parser.next();
@@ -188,10 +188,10 @@ class JsonParserTest
         JsonParser parser = JsonEx.createParser(in);
 
         int events = 0;
-        for (int i = 1; i <= full.length; i++)
+        for (int limit = 1; limit <= full.length; limit++)
         {
-            int committed = (int) parser.getLocation().getStreamOffset();
-            in.wrap(buffer, committed, i - committed);
+            int progress = (int) parser.getLocation().getStreamOffset();
+            in.wrap(buffer, progress, limit - progress);
             while (parser.hasNext())
             {
                 parser.next();
@@ -749,8 +749,8 @@ class JsonParserTest
             {
                 parser.next();
             }
-            int committed = (int) parser.getLocation().getStreamOffset();
-            in.wrap(buffer, committed, full.length - committed);
+            int progress = (int) parser.getLocation().getStreamOffset();
+            in.wrap(buffer, progress, full.length - progress);
             assertTrue(parser.hasNext(), "failed at split=" + split);
             assertEquals(VALUE_STRING, parser.next());
             assertEquals("\u00e9!", parser.getString());
@@ -772,8 +772,8 @@ class JsonParserTest
             {
                 parser.next();
             }
-            int committed = (int) parser.getLocation().getStreamOffset();
-            in.wrap(buffer, committed, full.length - committed);
+            int progress = (int) parser.getLocation().getStreamOffset();
+            in.wrap(buffer, progress, full.length - progress);
             assertTrue(parser.hasNext(), "failed at split=" + split);
             assertEquals(VALUE_NUMBER, parser.next());
             assertEquals("-123.45e6", parser.getString());

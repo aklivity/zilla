@@ -194,7 +194,7 @@ public final class ProtobufSchema
     {
         ProtobufPipeline pipeline = validatorPipeline(messageName);
         pipeline.reset();
-        return pipeline.feed(buffer, offset, length) == ProtobufPipeline.Status.COMPLETED;
+        return pipeline.feed(buffer, offset, offset + length) == ProtobufPipeline.Status.COMPLETED;
     }
 
     /**

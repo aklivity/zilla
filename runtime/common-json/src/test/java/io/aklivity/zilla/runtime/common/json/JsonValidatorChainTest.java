@@ -114,7 +114,7 @@ class JsonValidatorChainTest
 
         pipeline.reset();
         assertEquals(Status.STARVED, pipeline.feed(in, 0, 8, false));
-        Status status = pipeline.feed(in, 8, bytes.length - 8);
+        Status status = pipeline.feed(in, 8, bytes.length);
 
         assertEquals(Status.COMPLETED, status);
         assertEquals("{\"id\":1,\"name\":\"x\"}", output(gen));
