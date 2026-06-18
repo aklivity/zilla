@@ -56,6 +56,7 @@ public final class YamlParser
     private CharSequence value;
     private String view;
     private YamlScalarStyle style;
+    private boolean flow;
     private YamlScalarType scalarType;
     private String anchor;
     private String tag;
@@ -173,6 +174,15 @@ public final class YamlParser
         return explicit;
     }
 
+    /**
+     * Whether the current {@link YamlEvent#MAPPING_START} or {@link YamlEvent#SEQUENCE_START} opens a flow
+     * collection ({@code {...}} / {@code [...]}) rather than a block collection. {@code false} for other events.
+     */
+    public boolean flow()
+    {
+        return flow;
+    }
+
     public YamlScalarType scalarType()
     {
         return scalarType;
@@ -204,6 +214,7 @@ public final class YamlParser
         value = null;
         view = null;
         style = null;
+        flow = false;
         scalarType = null;
         anchor = null;
         tag = null;
@@ -224,6 +235,7 @@ public final class YamlParser
             event = YamlEvent.MAPPING_START;
             anchor = scanner.anchor(at);
             tag = scanner.tag(at);
+            flow = scanner.style(at) == YamlStreamScanner.STYLE_FLOW;
         }
         case YamlStreamScanner.END_OBJECT -> event = YamlEvent.MAPPING_END;
         case YamlStreamScanner.START_ARRAY ->
@@ -231,6 +243,7 @@ public final class YamlParser
             event = YamlEvent.SEQUENCE_START;
             anchor = scanner.anchor(at);
             tag = scanner.tag(at);
+            flow = scanner.style(at) == YamlStreamScanner.STYLE_FLOW;
         }
         case YamlStreamScanner.END_ARRAY -> event = YamlEvent.SEQUENCE_END;
         case YamlStreamScanner.KEY_NAME ->

@@ -55,6 +55,8 @@ public final class YamlStreamScanner
     public static final byte STYLE_DOUBLE = 3;
     public static final byte STYLE_LITERAL = 4;
     public static final byte STYLE_FOLDED = 5;
+    // flow style marker for collection-start events (block collections carry no style)
+    public static final byte STYLE_FLOW = 6;
 
     private static final int INITIAL_EVENTS = 48;
     private static final int INITIAL_DOCUMENTS = 4;
@@ -275,7 +277,8 @@ public final class YamlStreamScanner
     public byte style(
         int index)
     {
-        return isScalar(kinds[index]) ? styles[index] : STYLE_NONE;
+        byte kind = kinds[index];
+        return isScalar(kind) || kind == START_OBJECT || kind == START_ARRAY ? styles[index] : STYLE_NONE;
     }
 
     /**
@@ -2419,6 +2422,7 @@ public final class YamlStreamScanner
 
     private void flowObject()
     {
+        pendingStyle = STYLE_FLOW;
         emit(START_OBJECT, flowAt, 0, null);
         flowAt++;
         flowSkipWhitespace();
@@ -2473,6 +2477,7 @@ public final class YamlStreamScanner
 
     private void flowArray()
     {
+        pendingStyle = STYLE_FLOW;
         emit(START_ARRAY, flowAt, 0, null);
         flowAt++;
         flowSkipWhitespace();
@@ -2488,6 +2493,7 @@ public final class YamlStreamScanner
                 if (flowEntryMapping())
                 {
                     // a sequence entry of the form `key: value` is an implicit single-pair mapping
+                    pendingStyle = STYLE_FLOW;
                     emit(START_OBJECT, flowAt, 0, null);
                     flowKey();
                     flowSkipWhitespace();
@@ -2644,6 +2650,7 @@ public final class YamlStreamScanner
         if (c == '"' || c == '\'')
         {
             flowReadQuoted();
+            pendingStyle = quoteStyle(c);
             if (flowText != null)
             {
                 emit(KEY_NAME, flowTokenStart, 0, flowText);
