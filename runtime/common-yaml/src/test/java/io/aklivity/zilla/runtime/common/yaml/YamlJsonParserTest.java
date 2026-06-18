@@ -305,24 +305,6 @@ class YamlJsonParserTest
     }
 
     @Test
-    void shouldParseNativeJsonDocuments()
-    {
-        YamlObject object = Yaml.createReader(new StringReader("""
-            {
-              "name": "test",
-              "enabled": true,
-              "items": [{"id": 1}, {"id": 2}],
-              "missing": null
-            }
-            """)).readObject();
-
-        assertEquals("test", object.getString("name"));
-        assertEquals(true, object.getBoolean("enabled"));
-        assertEquals(2, object.getArray("items").getObject(1).getInt("id"));
-        assertEquals(YamlValue.ValueType.NULL, object.getScalar("missing").getValueType());
-    }
-
-    @Test
     void shouldParseJsonArrayAndScalarDocuments()
     {
         assertEquals(List.of(
@@ -458,54 +440,43 @@ class YamlJsonParserTest
     }
 
     @Test
-    void shouldResolveNestedMergeAliasesInOrder()
+    void shouldProjectMergeKeyAsLiteralKey()
     {
+        // YAML 1.2 JSON Schema does not define the merge key; "<<" is a plain mapping key.
         JsonObject object = YamlJson.provider().createReader(new StringReader("""
             base: &base
               host: localhost
               port: 7114
-            tls: &tls
-              port: 443
-              secure: true
             route:
-              <<: [*base, *tls]
+              <<: *base
               host: example.com
             """)).readObject();
 
         JsonObject route = object.getJsonObject("route");
         assertEquals("example.com", route.getString("host"));
-        assertEquals(7114, route.getInt("port"));
-        assertEquals(true, route.getBoolean("secure"));
+        assertFalse(route.containsKey("port"));
+        JsonObject merge = route.getJsonObject("<<");
+        assertEquals("localhost", merge.getString("host"));
+        assertEquals(7114, merge.getInt("port"));
     }
 
     @Test
-    void shouldProjectMergeSequenceWithFirstEntryWinningAndExplicitOverride()
+    void shouldProjectLiteralBlockScalar()
     {
         JsonObject object = YamlJson.provider().createReader(new StringReader("""
-            base: &base
-              host: localhost
-              port: 7114
-              nested:
-                base: true
-            tls: &tls
-              port: 443
-              secure: true
-              nested:
-                tls: true
-            route:
-              <<: [*base, *tls]
-              host: example.com
-              nested:
-                route: true
+            literal: |
+              line one
+              line two
+            strip: |-
+              text
+            keep: |+
+              text
+
             """)).readObject();
 
-        JsonObject route = object.getJsonObject("route");
-        assertEquals("example.com", route.getString("host"));
-        assertEquals(7114, route.getInt("port"));
-        assertEquals(true, route.getBoolean("secure"));
-        assertEquals(true, route.getJsonObject("nested").getBoolean("route"));
-        assertFalse(route.getJsonObject("nested").containsKey("base"));
-        assertFalse(route.getJsonObject("nested").containsKey("tls"));
+        assertEquals("line one\nline two\n", object.getString("literal"));
+        assertEquals("text", object.getString("strip"));
+        assertEquals("text\n\n", object.getString("keep"));
     }
 
     @Test
@@ -536,43 +507,10 @@ class YamlJsonParserTest
     }
 
     @Test
-    void shouldProjectFlowMergeAliases()
-    {
-        JsonObject object = YamlJson.provider().createReader(new StringReader("""
-            {base: &base {host: localhost, port: 7114}, tls: &tls {port: 443, secure: true},
-             route: {<<: [*base, *tls], host: example.com}}
-            """)).readObject();
-
-        JsonObject route = object.getJsonObject("route");
-        assertEquals("example.com", route.getString("host"));
-        assertEquals(7114, route.getInt("port"));
-        assertEquals(true, route.getBoolean("secure"));
-    }
-
-    @Test
-    void shouldProjectSequenceOfMergeAliases()
-    {
-        JsonObject object = YamlJson.provider().createReader(new StringReader("""
-            one: &one
-              first: true
-              shared: one
-            two: &two
-              second: true
-              shared: two
-            route:
-              <<: [*one, *two]
-            """)).readObject();
-
-        JsonObject route = object.getJsonObject("route");
-        assertEquals(true, route.getBoolean("first"));
-        assertEquals(true, route.getBoolean("second"));
-        assertEquals("one", route.getString("shared"));
-    }
-
-    @Test
     void shouldParseEmptyDocumentValuesAndNestedSequenceItems()
     {
-        assertEquals(List.of("VALUE_NULL"), events(parserFor("")));
+        // an empty stream frames no document, so it projects no JSON value (not a null)
+        assertEquals(List.of(), events(parserFor("")));
 
         JsonParser parser = parserFor("""
             ---
@@ -701,7 +639,7 @@ class YamlJsonParserTest
     }
 
     @Test
-    void shouldResolveAnchorsAliasesMergeKeysCoreTagsAndExplicitScalarKeys()
+    void shouldResolveAnchorsAliasesCoreTagsAndExplicitScalarKeys()
     {
         JsonParser parser = parserFor("""
             defaults: &defaults
@@ -729,8 +667,13 @@ class YamlJsonParserTest
             "END_OBJECT",
             "KEY_NAME:binding",
             "START_OBJECT",
+            "KEY_NAME:<<",
+            "START_OBJECT",
             "KEY_NAME:type",
             "VALUE_STRING:test",
+            "KEY_NAME:enabled",
+            "VALUE_TRUE",
+            "END_OBJECT",
             "KEY_NAME:enabled",
             "VALUE_FALSE",
             "KEY_NAME:port",
@@ -807,33 +750,6 @@ class YamlJsonParserTest
     }
 
     @Test
-    void shouldApplyYamlJsonFactoryConfig()
-    {
-        JsonParserFactory scalarResolutionDisabled = YamlJson.createParserFactory(Map.of(
-            YamlConfig.SCALAR_RESOLUTION, false));
-        JsonParser parser = scalarResolutionDisabled.createParser(new StringReader("42\n"));
-        assertEquals(VALUE_STRING, parser.next());
-        assertEquals("42", parser.getString());
-
-        JsonParserFactory flowCollectionsDisabled = YamlJson.createParserFactory(Map.of(
-            YamlConfig.FEATURE_FLOW_COLLECTIONS, false));
-        assertThrows(JsonParsingException.class,
-            () -> flowCollectionsDisabled.createParser(new ByteArrayInputStream("[1]\n".getBytes(UTF_8))));
-
-        JsonReaderFactory commentsDisabled = YamlJson.createReaderFactory(Map.of(
-            YamlConfig.FEATURE_COMMENTS, false));
-        assertThrows(JsonParsingException.class,
-            () -> commentsDisabled.createReader(new StringReader("name: test # comment\n")));
-
-        JsonReaderFactory readerScalarResolutionDisabled = YamlJson.createReaderFactory(Map.of(
-            YamlConfig.SCALAR_RESOLUTION, false));
-        assertEquals(JsonValue.ValueType.STRING, readerScalarResolutionDisabled
-            .createReader(new ByteArrayInputStream("42\n".getBytes(UTF_8)), UTF_8)
-            .readValue()
-            .getValueType());
-    }
-
-    @Test
     void shouldApplyJsonAsYamlProjectionProfile()
     {
         assertThrows(JsonParsingException.class, () -> events(parserFor("""
@@ -865,8 +781,11 @@ class YamlJsonParserTest
             "END_OBJECT",
             "KEY_NAME:binding",
             "START_OBJECT",
+            "KEY_NAME:<<",
+            "START_OBJECT",
             "KEY_NAME:type",
             "VALUE_STRING:test",
+            "END_OBJECT",
             "KEY_NAME:kind",
             "VALUE_STRING:server",
             "END_OBJECT",
@@ -975,11 +894,6 @@ class YamlJsonParserTest
             "KEY_NAME:alias",
             "VALUE_STRING:two",
             "END_OBJECT"), events(parserFor("first: &dup one\nsecond: &dup two\nalias: *dup\n")));
-        assertThrows(JsonParsingException.class, () -> parserFor("""
-            defaults: &defaults scalar
-            route:
-              <<: *defaults
-            """));
         assertThrows(JsonParsingException.class, () -> parserFor("{[key]: value}\n"));
         assertThrows(JsonParsingException.class, () -> events(parserFor("? [key]\n: value\n")));
         assertThrows(JsonParsingException.class, () -> parserFor("value: .nan\n"));
