@@ -85,6 +85,21 @@ public class YamlJsonBM
           host: example.com
         """;
 
+    private static final String QUOTED_CONFIG = """
+        name: "example service"
+        bindings:
+          tcp0:
+            type: tcp
+            kind: server
+            options:
+              host: "0.0.0.0"
+              port: 7114
+            routes:
+            - exit: 'http0'
+              when:
+              - port: 7114
+        """;
+
     private static final String QUOTED_VALUE = "value: with #special \"chars\" and \\backslash";
 
     private static final String[] SCALAR_ITEMS = scalarItems();
@@ -106,6 +121,12 @@ public class YamlJsonBM
     public int parseAnchorsMerge()
     {
         return parse(ANCHORS_MERGE);
+    }
+
+    @Benchmark
+    public int parseQuotedConfig()
+    {
+        return parse(QUOTED_CONFIG);
     }
 
     @Benchmark

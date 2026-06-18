@@ -1,0 +1,14 @@
++STR
++DOC
++SEQ
++MAP {}
+=VAL "key
+=VAL :value
+-MAP
++MAP {}
+=VAL "key
+=VAL ::value
+-MAP
+-SEQ
+-DOC
+-STR
