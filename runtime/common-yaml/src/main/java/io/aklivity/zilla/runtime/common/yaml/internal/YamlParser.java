@@ -19,11 +19,11 @@ package io.aklivity.zilla.runtime.common.yaml.internal;
  * current event's state (scalar value and type, node anchor / tag, alias name, source location) is read
  * through the accessor methods, the way {@code jakarta.json.stream.JsonParser} exposes its current event.
  *
- * <p>It is a thin streaming cursor over the {@link YamlStreamScanner}: the scanner classifies the whole
+ * <p>It is a thin streaming cursor over the {@link YamlScanner}: the scanner classifies the whole
  * stream into a flat event buffer in one pass, and this parser frames that buffer into the YAML
  * representation graph — a stream wrapping one or more documents, each document a single balanced root node.
  * Documents are split depth-first: a scalar root is one event, a mapping or sequence root spans its balanced
- * {@code START} / {@code END} pair. The scanner rejects invalid input by failing {@link YamlStreamScanner#scan},
+ * {@code START} / {@code END} pair. The scanner rejects invalid input by failing {@link YamlScanner#scan},
  * which this parser surfaces as a {@link YamlParseException} carrying the scanner's located bail message.
  *
  * <p>The JSON-restricting {@code YamlJsonParser} is layered on top of this stream — this parser itself does
@@ -43,7 +43,7 @@ public final class YamlParser
     }
 
     private final String text;
-    private final YamlStreamScanner scanner;
+    private final YamlScanner scanner;
     private final int count;
     private final int documentCount;
 
@@ -68,7 +68,7 @@ public final class YamlParser
         String text)
     {
         this.text = text;
-        this.scanner = new YamlStreamScanner();
+        this.scanner = new YamlScanner();
         if (!scanner.scan(text))
         {
             throw new YamlParseException(scanner.bailMessage(), scanner.bailLocation());
@@ -108,11 +108,11 @@ public final class YamlParser
         {
             setScanEvent(index);
             byte kind = scanner.kind(index);
-            if (kind == YamlStreamScanner.START_OBJECT || kind == YamlStreamScanner.START_ARRAY)
+            if (kind == YamlScanner.START_OBJECT || kind == YamlScanner.START_ARRAY)
             {
                 depth++;
             }
-            else if (kind == YamlStreamScanner.END_OBJECT || kind == YamlStreamScanner.END_ARRAY)
+            else if (kind == YamlScanner.END_OBJECT || kind == YamlScanner.END_ARRAY)
             {
                 depth--;
             }
@@ -149,7 +149,7 @@ public final class YamlParser
 
     /**
      * The raw, presentation-preserving source text of the current scalar event (see
-     * {@link YamlStreamScanner#view}), or {@code null} when the current event is not a scalar.
+     * {@link YamlScanner#view}), or {@code null} when the current event is not a scalar.
      */
     public String view()
     {
@@ -230,35 +230,35 @@ public final class YamlParser
         location = new YamlLocation(scanner.line(at), scanner.column(at), scanner.offset(at));
         switch (kind)
         {
-        case YamlStreamScanner.START_OBJECT ->
+        case YamlScanner.START_OBJECT ->
         {
             event = YamlEvent.MAPPING_START;
             anchor = scanner.anchor(at);
             tag = scanner.tag(at);
-            flow = scanner.style(at) == YamlStreamScanner.STYLE_FLOW;
+            flow = scanner.style(at) == YamlScanner.STYLE_FLOW;
         }
-        case YamlStreamScanner.END_OBJECT -> event = YamlEvent.MAPPING_END;
-        case YamlStreamScanner.START_ARRAY ->
+        case YamlScanner.END_OBJECT -> event = YamlEvent.MAPPING_END;
+        case YamlScanner.START_ARRAY ->
         {
             event = YamlEvent.SEQUENCE_START;
             anchor = scanner.anchor(at);
             tag = scanner.tag(at);
-            flow = scanner.style(at) == YamlStreamScanner.STYLE_FLOW;
+            flow = scanner.style(at) == YamlScanner.STYLE_FLOW;
         }
-        case YamlStreamScanner.END_ARRAY -> event = YamlEvent.SEQUENCE_END;
-        case YamlStreamScanner.KEY_NAME ->
+        case YamlScanner.END_ARRAY -> event = YamlEvent.SEQUENCE_END;
+        case YamlScanner.KEY_NAME ->
         {
             event = YamlEvent.SCALAR;
             value = viewText(at);
             anchor = scanner.anchor(at);
             tag = scanner.tag(at);
         }
-        case YamlStreamScanner.VALUE_STRING -> setScalar(at, viewText(at), YamlScalarType.STRING);
-        case YamlStreamScanner.VALUE_NUMBER -> setScalar(at, viewText(at), YamlScalarType.NUMBER);
-        case YamlStreamScanner.VALUE_TRUE -> setScalar(at, null, YamlScalarType.TRUE);
-        case YamlStreamScanner.VALUE_FALSE -> setScalar(at, null, YamlScalarType.FALSE);
-        case YamlStreamScanner.VALUE_NULL -> setScalar(at, null, YamlScalarType.NULL);
-        case YamlStreamScanner.ALIAS ->
+        case YamlScanner.VALUE_STRING -> setScalar(at, viewText(at), YamlScalarType.STRING);
+        case YamlScanner.VALUE_NUMBER -> setScalar(at, viewText(at), YamlScalarType.NUMBER);
+        case YamlScanner.VALUE_TRUE -> setScalar(at, null, YamlScalarType.TRUE);
+        case YamlScanner.VALUE_FALSE -> setScalar(at, null, YamlScalarType.FALSE);
+        case YamlScanner.VALUE_NULL -> setScalar(at, null, YamlScalarType.NULL);
+        case YamlScanner.ALIAS ->
         {
             event = YamlEvent.ALIAS;
             alias = scanner.alias(at);
@@ -277,10 +277,10 @@ public final class YamlParser
     {
         return switch (style)
         {
-        case YamlStreamScanner.STYLE_SINGLE -> YamlScalarStyle.SINGLE;
-        case YamlStreamScanner.STYLE_DOUBLE -> YamlScalarStyle.DOUBLE;
-        case YamlStreamScanner.STYLE_LITERAL -> YamlScalarStyle.LITERAL;
-        case YamlStreamScanner.STYLE_FOLDED -> YamlScalarStyle.FOLDED;
+        case YamlScanner.STYLE_SINGLE -> YamlScalarStyle.SINGLE;
+        case YamlScanner.STYLE_DOUBLE -> YamlScalarStyle.DOUBLE;
+        case YamlScanner.STYLE_LITERAL -> YamlScalarStyle.LITERAL;
+        case YamlScanner.STYLE_FOLDED -> YamlScalarStyle.FOLDED;
         default -> YamlScalarStyle.PLAIN;
         };
     }

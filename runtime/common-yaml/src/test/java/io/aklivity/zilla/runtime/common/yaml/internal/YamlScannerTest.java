@@ -41,7 +41,7 @@ import org.junit.jupiter.api.TestFactory;
  * {@code test.event} fixtures by {@code YamlConformanceTest}; rejection messages are pinned against a vendored
  * snapshot so a regression in the diagnostics is caught here.
  */
-class YamlStreamScannerTest
+class YamlScannerTest
 {
     private static final String SUITE_TAG = "data-2022-01-17";
 
@@ -63,7 +63,7 @@ class YamlStreamScannerTest
     @Test
     void shouldAcceptBlockConfig()
     {
-        YamlStreamScanner scanner = new YamlStreamScanner();
+        YamlScanner scanner = new YamlScanner();
         assertTrue(scanner.scan(BLOCK_CONFIG), "scanner should accept the block config subset");
     }
 
@@ -74,26 +74,26 @@ class YamlStreamScannerTest
             {"name":"test","enabled":true,"items":[{"id":1,"name":"a"},{"id":2,"name":"b"}],
              "nested":{"x":1,"y":2},"missing":null}
             """;
-        assertTrue(new YamlStreamScanner().scan(doc), "scanner should accept a JSON-style flow document");
+        assertTrue(new YamlScanner().scan(doc), "scanner should accept a JSON-style flow document");
     }
 
     @Test
     void shouldAcceptFlowSequenceDocument()
     {
-        assertTrue(new YamlStreamScanner().scan("[1, two, true, null, {a: 1}]\n"));
+        assertTrue(new YamlScanner().scan("[1, two, true, null, {a: 1}]\n"));
     }
 
     @Test
     void shouldAcceptSingleLineFlowValueInBlock()
     {
         String doc = "items: [1, two, true, null]\nnested: {a: 1, b: two}\nmatrix: [[1, 2], [3, 4]]\n";
-        assertTrue(new YamlStreamScanner().scan(doc), "scanner should accept single-line flow values in a block mapping");
+        assertTrue(new YamlScanner().scan(doc), "scanner should accept single-line flow values in a block mapping");
     }
 
     @Test
     void shouldAcceptFlowValueInSequenceItem()
     {
-        assertTrue(new YamlStreamScanner().scan("routes:\n- [a, b]\n- {exit: http0}\n"));
+        assertTrue(new YamlScanner().scan("routes:\n- [a, b]\n- {exit: http0}\n"));
     }
 
     @Test
@@ -104,7 +104,7 @@ class YamlStreamScannerTest
             "seq: [ a: 1, b: 2 ]\n",
             "seq: [ plain, k: v, other ]\n"})
         {
-            assertTrue(new YamlStreamScanner().scan(doc), "scanner should accept an implicit map in a flow sequence: " + doc);
+            assertTrue(new YamlScanner().scan(doc), "scanner should accept an implicit map in a flow sequence: " + doc);
         }
     }
 
@@ -118,7 +118,7 @@ class YamlStreamScannerTest
             "m: {\"x\":adjacent}\n",
             "m: {: empty key, a: b}\n"})
         {
-            assertTrue(new YamlStreamScanner().scan(doc), "scanner should accept omitted/empty flow values: " + doc);
+            assertTrue(new YamlScanner().scan(doc), "scanner should accept omitted/empty flow values: " + doc);
         }
     }
 
@@ -130,7 +130,7 @@ class YamlStreamScannerTest
             "{ k: \"a\n b\" }\n",
             "[\"esc \\n here\nand more\"]\n"})
         {
-            assertTrue(new YamlStreamScanner().scan(doc), "scanner should accept a multi-line quoted scalar in flow: " + doc);
+            assertTrue(new YamlScanner().scan(doc), "scanner should accept a multi-line quoted scalar in flow: " + doc);
         }
     }
 
@@ -142,7 +142,7 @@ class YamlStreamScannerTest
             "[?x]\n",
             "list: [?a, ?b]\n"})
         {
-            assertTrue(new YamlStreamScanner().scan(doc), "scanner should accept a ?-led plain scalar in flow: " + doc);
+            assertTrue(new YamlScanner().scan(doc), "scanner should accept a ?-led plain scalar in flow: " + doc);
         }
     }
 
@@ -153,7 +153,7 @@ class YamlStreamScannerTest
             "[\n? foo\n bar : baz\n]\n",
             "{ ? key : value, ? other : 2 }\n"})
         {
-            assertTrue(new YamlStreamScanner().scan(doc), "scanner should accept a ? explicit key in flow: " + doc);
+            assertTrue(new YamlScanner().scan(doc), "scanner should accept a ? explicit key in flow: " + doc);
         }
     }
 
@@ -166,7 +166,7 @@ class YamlStreamScannerTest
             "[ word1\n# comment\n, word2]\n",
             "---\n[1, 2]\n...\n---\n[3, 4]\n"})
         {
-            assertTrue(new YamlStreamScanner().scan(doc), "scanner should accept a flow document body: " + doc);
+            assertTrue(new YamlScanner().scan(doc), "scanner should accept a flow document body: " + doc);
         }
     }
 
@@ -178,7 +178,7 @@ class YamlStreamScannerTest
             "Sammy Sosa: {\n    hr: 63,\n    avg: 0.288\n  }\n",
             "list: [a\n  b, c]\n"})
         {
-            assertTrue(new YamlStreamScanner().scan(doc), "scanner should accept a multi-line flow scalar: " + doc);
+            assertTrue(new YamlScanner().scan(doc), "scanner should accept a multi-line flow scalar: " + doc);
         }
     }
 
@@ -186,20 +186,20 @@ class YamlStreamScannerTest
     void shouldAcceptMultiLineFlowValueInBlock()
     {
         String doc = "items: [1,\n  2, 3]\nnested: {a: 1,\n  b: 2}\n";
-        assertTrue(new YamlStreamScanner().scan(doc), "scanner should accept multi-line flow values in a block");
+        assertTrue(new YamlScanner().scan(doc), "scanner should accept multi-line flow values in a block");
     }
 
     @Test
     void shouldAcceptExplicitKeys()
     {
-        assertTrue(new YamlStreamScanner().scan("? a\n: 1.3\n? b\n: c\nplain: x\n"), "scanner should accept explicit keys");
+        assertTrue(new YamlScanner().scan("? a\n: 1.3\n? b\n: c\nplain: x\n"), "scanner should accept explicit keys");
     }
 
     @Test
     void shouldAcceptEscapeFreeQuotedScalars()
     {
         String doc = "name: \"quoted value\"\nkind: 'literal'\n\"quoted key\": 7114\nflag: \"true\"\n";
-        assertTrue(new YamlStreamScanner().scan(doc), "scanner should accept escape-free quoted scalars");
+        assertTrue(new YamlScanner().scan(doc), "scanner should accept escape-free quoted scalars");
     }
 
     @Test
@@ -209,7 +209,7 @@ class YamlStreamScannerTest
             "? !!str a\n: !!int 47\n? c\n: d\n",
             "? &a key\n: value\nuse: *a\n"})
         {
-            assertTrue(new YamlStreamScanner().scan(doc), "scanner should accept a decorated explicit key: " + doc);
+            assertTrue(new YamlScanner().scan(doc), "scanner should accept a decorated explicit key: " + doc);
         }
     }
 
@@ -221,7 +221,7 @@ class YamlStreamScannerTest
             "{a: [b, c], [d, e]: f}\n",
             "{ {x: 1}: y }\n"})
         {
-            assertTrue(new YamlStreamScanner().scan(doc), "scanner should accept a non-scalar flow key: " + doc);
+            assertTrue(new YamlScanner().scan(doc), "scanner should accept a non-scalar flow key: " + doc);
         }
     }
 
@@ -234,7 +234,7 @@ class YamlStreamScannerTest
             "{ first: Sammy, last: Sosa }:\n  hr: 65\n  avg: 0.278\n",
             "[a, b]: c\nd: e\n"})
         {
-            assertTrue(new YamlStreamScanner().scan(doc), "scanner should accept a non-scalar block key: " + doc);
+            assertTrue(new YamlScanner().scan(doc), "scanner should accept a non-scalar block key: " + doc);
         }
     }
 
@@ -246,7 +246,7 @@ class YamlStreamScannerTest
             "&k1 key1: one\nuse: *k1\n",
             "!!str 23: !!bool false\n"})
         {
-            assertTrue(new YamlStreamScanner().scan(doc), "scanner should accept a decorated mapping key: " + doc);
+            assertTrue(new YamlScanner().scan(doc), "scanner should accept a decorated mapping key: " + doc);
         }
     }
 
@@ -259,14 +259,14 @@ class YamlStreamScannerTest
             "name: \"quote \\\" and \\\\ slash\"\n",
             "name: \"unicode \\u00e9 \\x41\"\n"})
         {
-            assertTrue(new YamlStreamScanner().scan(doc), "scanner should accept an escaped double-quoted scalar: " + doc);
+            assertTrue(new YamlScanner().scan(doc), "scanner should accept an escaped double-quoted scalar: " + doc);
         }
     }
 
     @Test
     void shouldAcceptSingleQuoteEscape()
     {
-        assertTrue(new YamlStreamScanner().scan("name: 'it''s here'\n"), "scanner should accept a single-quoted scalar");
+        assertTrue(new YamlScanner().scan("name: 'it''s here'\n"), "scanner should accept a single-quoted scalar");
     }
 
     @Test
@@ -278,7 +278,7 @@ class YamlStreamScannerTest
             "--- \"quoted value\"\n",
             "--- scalar\n  folded over lines\n"})
         {
-            assertTrue(new YamlStreamScanner().scan(doc), "scanner should accept an inline marker scalar: " + doc);
+            assertTrue(new YamlScanner().scan(doc), "scanner should accept an inline marker scalar: " + doc);
         }
     }
 
@@ -290,7 +290,7 @@ class YamlStreamScannerTest
             "--- |\n%!PS-Adobe-2.0\n...\n",
             "--- >\n  folded\n  text\n"})
         {
-            assertTrue(new YamlStreamScanner().scan(doc), "scanner should accept an inline marker block scalar: " + doc);
+            assertTrue(new YamlScanner().scan(doc), "scanner should accept an inline marker block scalar: " + doc);
         }
     }
 
@@ -302,7 +302,7 @@ class YamlStreamScannerTest
             "key: - a\n",
             "matrix:\n  - - 1\n    - 2\n  - - 3\n    - 4\n"})
         {
-            assertTrue(new YamlStreamScanner().scan(doc), "scanner should accept a compact sequence: " + doc);
+            assertTrue(new YamlScanner().scan(doc), "scanner should accept a compact sequence: " + doc);
         }
     }
 
@@ -313,7 +313,7 @@ class YamlStreamScannerTest
             "plain:\n  this unquoted scalar\n  spans many lines\n",
             "outer:\n  inner:\n    folded value\n    over lines\n"})
         {
-            assertTrue(new YamlStreamScanner().scan(doc), "scanner should accept a nested plain scalar value: " + doc);
+            assertTrue(new YamlScanner().scan(doc), "scanner should accept a nested plain scalar value: " + doc);
         }
     }
 
@@ -326,7 +326,7 @@ class YamlStreamScannerTest
             "- item one\n  item two\n- plain\n",
             "this is\na root scalar\n"})
         {
-            assertTrue(new YamlStreamScanner().scan(doc), "scanner should accept a multi-line plain scalar: " + doc);
+            assertTrue(new YamlScanner().scan(doc), "scanner should accept a multi-line plain scalar: " + doc);
         }
     }
 
@@ -338,7 +338,7 @@ class YamlStreamScannerTest
             "---\n\"\n  foo \n \n    bar\n\n  baz\n\"\n",
             "--- \"quoted\nstring\"\n--- &node foo\n"})
         {
-            assertTrue(new YamlStreamScanner().scan(doc), "scanner should accept a multi-line quoted scalar: " + doc);
+            assertTrue(new YamlScanner().scan(doc), "scanner should accept a multi-line quoted scalar: " + doc);
         }
     }
 
@@ -351,28 +351,28 @@ class YamlStreamScannerTest
             "name: \"first\n\n  second\"\n",
             "- \"item one\n  item two\"\n- plain\n"})
         {
-            assertTrue(new YamlStreamScanner().scan(doc), "scanner should accept a multi-line quoted scalar: " + doc);
+            assertTrue(new YamlScanner().scan(doc), "scanner should accept a multi-line quoted scalar: " + doc);
         }
     }
 
     @Test
     void shouldAcceptLiteralBlockScalar()
     {
-        assertTrue(new YamlStreamScanner().scan("text: |\n  line one\n  line two\n"),
+        assertTrue(new YamlScanner().scan("text: |\n  line one\n  line two\n"),
             "scanner should accept a literal block scalar");
     }
 
     @Test
     void shouldAcceptFoldedBlockScalar()
     {
-        assertTrue(new YamlStreamScanner().scan("text: >\n  line one\n  line two\n\n  next para\n"),
+        assertTrue(new YamlScanner().scan("text: >\n  line one\n  line two\n\n  next para\n"),
             "scanner should accept a folded block scalar");
     }
 
     @Test
     void shouldAcceptExplicitIndentBlockScalar()
     {
-        assertTrue(new YamlStreamScanner().scan("text: |2\n    line\nmore: >1-\n  folded\n"),
+        assertTrue(new YamlScanner().scan("text: |2\n    line\nmore: >1-\n  folded\n"),
             "scanner should accept explicit-indent block scalars");
     }
 
@@ -381,14 +381,14 @@ class YamlStreamScannerTest
     {
         for (String doc : new String[] {"- |\n  one\n  two\n- plain\n", "- >\n  folded text\n", ">\n  root folded\n  scalar\n"})
         {
-            assertTrue(new YamlStreamScanner().scan(doc), "scanner should accept block scalar: " + doc);
+            assertTrue(new YamlScanner().scan(doc), "scanner should accept block scalar: " + doc);
         }
     }
 
     @Test
     void shouldAcceptSingleDocumentMarkers()
     {
-        assertTrue(new YamlStreamScanner().scan("---\nname: example\nport: 7114\n...\n"),
+        assertTrue(new YamlScanner().scan("---\nname: example\nport: 7114\n...\n"),
             "scanner should accept a single document with markers");
     }
 
@@ -403,21 +403,21 @@ class YamlStreamScannerTest
             "---\n---\nname: two\n",
             "%YAML 1.2\n---\nname: one\n---\nname: two\n"})
         {
-            assertTrue(new YamlStreamScanner().scan(doc), "scanner should accept a multi-document stream: " + doc);
+            assertTrue(new YamlScanner().scan(doc), "scanner should accept a multi-document stream: " + doc);
         }
     }
 
     @Test
     void shouldBailOnMalformedYamlDirective()
     {
-        assertFalse(new YamlStreamScanner().scan("%YAML 1.2 foo\n---\n"));
-        assertFalse(new YamlStreamScanner().scan("%YAML 1.2\n%YAML 1.2\n---\n"));
+        assertFalse(new YamlScanner().scan("%YAML 1.2 foo\n---\n"));
+        assertFalse(new YamlScanner().scan("%YAML 1.2\n%YAML 1.2\n---\n"));
     }
 
     @Test
     void shouldAcceptYamlDirective()
     {
-        assertTrue(new YamlStreamScanner().scan("%YAML 1.2\n---\nname: example\n"), "scanner should accept a %YAML directive");
+        assertTrue(new YamlScanner().scan("%YAML 1.2\n---\nname: example\n"), "scanner should accept a %YAML directive");
     }
 
     @Test
@@ -428,7 +428,7 @@ class YamlStreamScannerTest
             "%TAG !! tag:example.com,2000:app/\n---\n!!int 1 - 3\n",
             "!<tag:yaml.org,2002:str> foo: bar\n"})
         {
-            assertTrue(new YamlStreamScanner().scan(doc), "scanner should accept tag directives/verbatim tags: " + doc);
+            assertTrue(new YamlScanner().scan(doc), "scanner should accept tag directives/verbatim tags: " + doc);
         }
     }
 
@@ -436,7 +436,7 @@ class YamlStreamScannerTest
     void shouldBailOnMalformedTagDirective()
     {
         // a directive after content (not at stream start or after ...) is invalid
-        assertFalse(new YamlStreamScanner().scan("foo\n%TAG ! tag:x,2000:\n---\nbar\n"));
+        assertFalse(new YamlScanner().scan("foo\n%TAG ! tag:x,2000:\n---\nbar\n"));
     }
 
     @Test
@@ -444,7 +444,7 @@ class YamlStreamScannerTest
     {
         for (String doc : new String[] {"\"foo\"\n", "plain text\n", "42\n", "true\n"})
         {
-            assertTrue(new YamlStreamScanner().scan(doc), "scanner should accept root scalar: " + doc);
+            assertTrue(new YamlScanner().scan(doc), "scanner should accept root scalar: " + doc);
         }
     }
 
@@ -457,7 +457,7 @@ class YamlStreamScannerTest
             "quoted: \"has\ttab\"\n",
             "list: [a,\tb]\n"})
         {
-            assertTrue(new YamlStreamScanner().scan(doc), "scanner should accept tabs in content: " + doc);
+            assertTrue(new YamlScanner().scan(doc), "scanner should accept tabs in content: " + doc);
         }
     }
 
@@ -465,23 +465,23 @@ class YamlStreamScannerTest
     void shouldBailOnTabsInIndentation()
     {
         // a tab indenting a structural line or after an indicator is invalid YAML indentation
-        assertFalse(new YamlStreamScanner().scan("name:\n\tvalue\n"));
-        assertFalse(new YamlStreamScanner().scan("a:\n\tb: c\n"));
-        assertFalse(new YamlStreamScanner().scan("-\t- x\n"));
+        assertFalse(new YamlScanner().scan("name:\n\tvalue\n"));
+        assertFalse(new YamlScanner().scan("a:\n\tb: c\n"));
+        assertFalse(new YamlScanner().scan("-\t- x\n"));
     }
 
     @Test
     void shouldAcceptAnchorsAliasesMerge()
     {
         String doc = "base: &base\n  host: localhost\nuse:\n  <<: *base\n  port: 7114\nrefs: [*base, plain]\n";
-        assertTrue(new YamlStreamScanner().scan(doc), "scanner should accept anchors/aliases/merge");
+        assertTrue(new YamlScanner().scan(doc), "scanner should accept anchors/aliases/merge");
     }
 
     @Test
     void shouldAcceptTags()
     {
         String doc = "typed: !!str 42\nverbatim: !<tag:x> hi\ncustom: !foo bar\ntagged: !!map\n  a: 1\n";
-        assertTrue(new YamlStreamScanner().scan(doc), "scanner should accept tags");
+        assertTrue(new YamlScanner().scan(doc), "scanner should accept tags");
     }
 
     @Test
@@ -507,7 +507,7 @@ class YamlStreamScannerTest
             {
                 String text = Files.readString(path.resolve("in.yaml"));
                 String fixture = SUITE_DIR.relativize(path).toString();
-                YamlStreamScanner scanner = new YamlStreamScanner();
+                YamlScanner scanner = new YamlScanner();
                 assertFalse(scanner.scan(text), "scanner should reject an invalid document");
                 assertEquals(expected.get(fixture), scanner.bailMessage(),
                     "scanner bail message diverged from the vendored snapshot");
@@ -517,7 +517,7 @@ class YamlStreamScannerTest
     private static Map<String, String> rejectMessages() throws IOException
     {
         Map<String, String> messages = new HashMap<>();
-        URL resource = YamlStreamScannerTest.class.getResource(
+        URL resource = YamlScannerTest.class.getResource(
             "/io/aklivity/zilla/runtime/common/yaml/" + SUITE_TAG + "-reject-messages.tsv");
         if (resource == null)
         {
@@ -548,7 +548,7 @@ class YamlStreamScannerTest
     {
         try
         {
-            return new YamlStreamScanner().scan(Files.readString(path));
+            return new YamlScanner().scan(Files.readString(path));
         }
         catch (IOException ex)
         {
@@ -582,7 +582,7 @@ class YamlStreamScannerTest
 
     private static Path resolveSuite()
     {
-        URL resource = YamlStreamScannerTest.class.getResource("/io/aklivity/zilla/runtime/common/yaml/" + SUITE_TAG);
+        URL resource = YamlScannerTest.class.getResource("/io/aklivity/zilla/runtime/common/yaml/" + SUITE_TAG);
         if (resource == null)
         {
             throw new IllegalStateException("Missing vendored YAML test suite: " + SUITE_TAG);

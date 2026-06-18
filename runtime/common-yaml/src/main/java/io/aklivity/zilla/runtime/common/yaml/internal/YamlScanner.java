@@ -34,7 +34,7 @@ import java.util.regex.Pattern;
  * fallback the scanner only has to be correct for what it accepts; it never has to be complete. JSON-layer
  * restrictions (e.g. rejecting non-scalar keys) are applied above this scanner, not here.
  */
-public final class YamlStreamScanner
+public final class YamlScanner
 {
     public static final byte START_OBJECT = 1;
     public static final byte END_OBJECT = 2;
