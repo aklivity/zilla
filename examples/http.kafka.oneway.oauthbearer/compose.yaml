@@ -1,0 +1,122 @@
+name: ${NAMESPACE:-zilla-http-kafka-oneway-oauthbearer}
+services:
+  zilla:
+    image: ghcr.io/aklivity/zilla:${ZILLA_VERSION:-latest}
+    restart: unless-stopped
+    ports:
+      - 7114:7114
+    healthcheck:
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      test: ["CMD", "bash", "-c", "echo -n '' > /dev/tcp/127.0.0.1/7114"]
+    environment:
+      KAFKA_BOOTSTRAP_SERVER: kafka.examples.dev:9092
+      ZILLA_INCUBATOR_ENABLED: "true"
+      KAFKA_SASL_TOKEN: ${KAFKA_SASL_TOKEN:-eyJhbGciOiJSUzI1NiIsImtpZCI6ImV4YW1wbGUiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2F1dGguZXhhbXBsZS5jb20iLCJhdWQiOiJodHRwczovL2FwaS5leGFtcGxlLmNvbSIsInN1YiI6InppbGxhLXNlcnZpY2UtYWNjb3VudCIsImlhdCI6MTc4MTUxOTMzNywiZXhwIjoyMDk2ODc5MzM3LCJzY29wZSI6ImthZmthIn0.LER-Vgfm21VqzBLsr4nELW74lj-qtCyPUTDAFeYrWs2QARTZYikKm3AIsSCbSVRd3yxWkz7cN0l1ltDuOUQWyB2LASJaqKGTOdY6qcqVd1ABu7fOzbzDl4hbhdz-RuffD8XNw4oaOpXRtyBoqJKxcoMyb2mXGX2kautVUXtKilRSrfPQAr6fFisvI96uwTZUw0d8VVs3BKr1iZS_4951Cu1-ZaLNIPrGYPoIJB-x1evsp2ZN35esttBZE8615-SB0tu5ZoBaTlUff4XGoMRVsSTcw8ySSem4mba33Uq5OizeIgG-A47-sp77wr8j0Eytj7II72ikAoporHRZbeDd7A}
+    volumes:
+      - ./etc:/etc/zilla
+    command: start -v -e
+
+  kafka:
+    image: apache/kafka:4.1.1
+    restart: unless-stopped
+    hostname: kafka.examples.dev
+    ports:
+      - 9092:9092
+    depends_on:
+      jwks:
+        condition: service_healthy
+    healthcheck:
+      test: /opt/kafka/bin/kafka-cluster.sh cluster-id --bootstrap-server kafka.examples.dev:29092 || exit 1
+      interval: 1s
+      timeout: 60s
+      retries: 60
+    environment:
+      KAFKA_NODE_ID: "1"
+      KAFKA_BROKER_ID: "1"
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: "0"
+      KAFKA_PROCESS_ROLES: "broker,controller"
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@127.0.0.1:9093"
+      KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      KAFKA_LISTENERS: "CLIENT://0.0.0.0:9092,INTERNAL://0.0.0.0:29092,CONTROLLER://0.0.0.0:9093"
+      KAFKA_ADVERTISED_LISTENERS: "CLIENT://kafka.examples.dev:9092,INTERNAL://kafka.examples.dev:29092"
+      KAFKA_INTER_BROKER_LISTENER_NAME: "INTERNAL"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "CLIENT:SASL_PLAINTEXT,INTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT"
+      KAFKA_LOG_DIRS: "/tmp/logs"
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_SASL_ENABLED_MECHANISMS: "OAUTHBEARER"
+      KAFKA_LISTENER_NAME_CLIENT_SASL_ENABLED_MECHANISMS: "OAUTHBEARER"
+      KAFKA_LISTENER_NAME_CLIENT_OAUTHBEARER_SASL_JAAS_CONFIG: "org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required;"
+      KAFKA_LISTENER_NAME_CLIENT_OAUTHBEARER_SASL_SERVER_CALLBACK_HANDLER_CLASS: "org.apache.kafka.common.security.oauthbearer.OAuthBearerValidatorCallbackHandler"
+      KAFKA_SASL_OAUTHBEARER_JWKS_ENDPOINT_URL: "http://jwks.examples.dev/jwks.json"
+      KAFKA_SASL_OAUTHBEARER_EXPECTED_AUDIENCE: "https://api.example.com"
+      KAFKA_SASL_OAUTHBEARER_EXPECTED_ISSUER: "https://auth.example.com"
+
+  jwks:
+    image: nginx:alpine
+    restart: unless-stopped
+    hostname: jwks.examples.dev
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost/jwks.json"]
+      interval: 1s
+      timeout: 3s
+      retries: 5
+    volumes:
+      - ./jwks:/usr/share/nginx/html
+
+  kafka-init:
+    image: apache/kafka:4.1.1
+    user: root
+    depends_on:
+      kafka:
+        condition: service_healthy
+        restart: true
+    deploy:
+      restart_policy:
+        condition: none
+        max_attempts: 0
+    entrypoint: ["/bin/sh", "-c"]
+    environment:
+      KAFKA_BOOTSTRAP_SERVER: kafka.examples.dev:29092
+    command:
+      - |
+        echo "Creating kafka topic";
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server $${KAFKA_BOOTSTRAP_SERVER} --create --if-not-exists --topic events
+        echo "Successfully created the following topics:";
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server $${KAFKA_BOOTSTRAP_SERVER} --list --exclude-internal;
+
+  kafka-ui:
+    image: ghcr.io/kafbat/kafka-ui:v1.0.0
+    restart: unless-stopped
+    ports:
+      - 8080:8080
+    depends_on:
+      kafka:
+        condition: service_healthy
+        restart: true
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka.examples.dev:29092
+
+  kafkacat:
+    image: confluentinc/cp-kafkacat:7.1.9
+    command: "bash"
+    stdin_open: true
+    tty: true
+
+  jwt-cli:
+    image: bitnamilegacy/jwt-cli
+    stdin_open: true
+    tty: true
+    profiles:
+      - on-demand
+    volumes:
+      - ./private.pem:/private.pem
+
+networks:
+  default:
+    driver: bridge

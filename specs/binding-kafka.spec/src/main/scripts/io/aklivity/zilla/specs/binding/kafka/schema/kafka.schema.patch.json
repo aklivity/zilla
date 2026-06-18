@@ -222,27 +222,49 @@
                             {
                                 "title": "Credentials",
                                 "type": "object",
-                                "properties":
-                                {
-                                    "mechanism":
+                                "oneOf":
+                                [
                                     {
-                                        "title": "Mechanism",
-                                        "type": "string",
-                                        "enum": [ "plain", "scram-sha-1", "scram-sha-256", "scram-sha-512" ]
+                                        "additionalProperties": false,
+                                        "properties":
+                                        {
+                                            "mechanism":
+                                            {
+                                                "title": "Mechanism",
+                                                "type": "string",
+                                                "enum": [ "plain", "scram-sha-1", "scram-sha-256", "scram-sha-512" ]
+                                            },
+                                            "username":
+                                            {
+                                                "title": "Username",
+                                                "type": "string"
+                                            },
+                                            "password":
+                                            {
+                                                "title": "Password",
+                                                "type": "string"
+                                            }
+                                        },
+                                        "required": [ "mechanism", "username", "password" ]
                                     },
-                                    "username":
                                     {
-                                        "title": "Username",
-                                        "type": "string"
-                                    },
-                                    "password":
-                                    {
-                                        "title": "Password",
-                                        "type": "string"
+                                        "additionalProperties": false,
+                                        "properties":
+                                        {
+                                            "mechanism":
+                                            {
+                                                "title": "Mechanism",
+                                                "const": "oauthbearer"
+                                            },
+                                            "token":
+                                            {
+                                                "title": "Token",
+                                                "type": "string"
+                                            }
+                                        },
+                                        "required": [ "mechanism", "token" ]
                                     }
-                                },
-                                "required": [ "mechanism", "username", "password" ],
-                                "additionalProperties": false
+                                ]
                             }
                         },
                         "required": [ "credentials" ],
