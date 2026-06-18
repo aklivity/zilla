@@ -354,6 +354,8 @@ public final class YamlStreamScanner
      */
     private void scanRootBody()
     {
+        // skip any leading comment-only or blank lines before the root node (e.g. --- !tag\n # comment\n node)
+        skipIgnorable();
         while (raw && cursor < lineCount && rootPropertyOnly(cursor))
         {
             consumeProperties(contentStart[cursor], contentEnd[cursor]);
