@@ -869,8 +869,10 @@ public final class YamlStreamScanner
             // an empty mapping key (`: value`) is the empty scalar, matching the eager parseKeySpec("")
             emit(KEY_NAME, start, 0, null);
         }
-        else if (isReservedStart(keyFirst) && !questionPlainStart(start, keyEnd) || isMergeKey(start, keyEnd) && !raw)
+        else if (isReservedStart(keyFirst) && !questionPlainStart(start, keyEnd) &&
+            !(keyFirst == '?' && keyEnd == start + 1) || isMergeKey(start, keyEnd) && !raw)
         {
+            // a lone ? key (the compact `- ? : x`) is a plain scalar, not the explicit-key indicator
             throw BAIL;
         }
         else
@@ -3630,7 +3632,11 @@ public final class YamlStreamScanner
         char keyFirst = text.charAt(start);
         boolean decoratedKey = raw && (keyFirst == '&' || keyFirst == '!' || keyFirst == '*');
         boolean flowKey = raw && (keyFirst == '{' || keyFirst == '[');
-        boolean blocked = blockedStart(keyFirst) && !decoratedKey && !flowKey && !questionPlainStart(start, keyEnd);
+        // a lone ? before the value indicator is a plain scalar key (e.g. the compact `- ? : x`), not the
+        // `? ` explicit-key indicator, matching the eager parser's mappingColon handling
+        boolean loneQuestion = keyFirst == '?' && keyEnd == start + 1;
+        boolean blocked = blockedStart(keyFirst) && !decoratedKey && !flowKey &&
+            !questionPlainStart(start, keyEnd) && !loneQuestion;
         if (keyEnd != start && (blocked || isMergeKey(start, keyEnd) && !raw))
         {
             // an empty key (keyEnd == start) is the empty scalar and is feasible; scanEntry handles it
