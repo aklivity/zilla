@@ -355,6 +355,53 @@ public class ProtobufModelTest
     }
 
     @Test
+    public void shouldReadLargeValidProtobufEventFormatJson()
+    {
+        ProtobufModelConfig model = ProtobufModelConfig.builder()
+            .view("json")
+            .catalog()
+                .name("test0")
+                .schema()
+                    .strategy("topic")
+                    .version("latest")
+                    .subject("test-value")
+                    .build()
+                .build()
+            .build();
+
+        ProtobufReadConverterHandler converter = new ProtobufReadConverterHandler(model, context);
+
+        String content = "A".repeat(300);
+        byte[] contentBytes = content.getBytes(StandardCharsets.UTF_8);
+        byte[] dateBytes = "01012024".getBytes(StandardCharsets.UTF_8);
+        byte[] buf = new byte[contentBytes.length + 16];
+        MutableDirectBuffer builder = new UnsafeBuffer(buf);
+        int p = 0;
+        builder.putByte(p++, (byte) 0x00);                  // message index 0
+        builder.putByte(p++, (byte) 0x0a);                  // field 1 (content), wire type LEN
+        builder.putByte(p++, (byte) 0xac);                  // length 300 varint, low 7 bits + continuation
+        builder.putByte(p++, (byte) 0x02);                  // length 300 varint, high bits
+        builder.putBytes(p, contentBytes);
+        p += contentBytes.length;
+        builder.putByte(p++, (byte) 0x12);                  // field 2 (date_time), wire type LEN
+        builder.putByte(p++, (byte) 0x08);                  // length 8
+        builder.putBytes(p, dateBytes);
+        p += dateBytes.length;
+
+        DirectBuffer data = new UnsafeBuffer();
+        data.wrap(buf, 0, p);
+
+        String json = "{\"content\":\"" + content + "\",\"date_time\":\"01012024\"}";
+        final ValueConsumer consumer = (buffer, index, length) ->
+        {
+            byte[] jsonBytes = new byte[length];
+            buffer.getBytes(index, jsonBytes);
+            assertEquals(json, new String(jsonBytes, StandardCharsets.UTF_8));
+        };
+        assertEquals(json.length(), converter.convert(0L, 0L, data, 0, data.capacity(), consumer));
+    }
+
+    @Test
     public void shouldWriteValidProtobufEventFormatJson()
     {
         ProtobufModelConfig model = ProtobufModelConfig.builder()
@@ -388,6 +435,34 @@ public class ProtobufModelTest
         assertEquals(expected.capacity(), converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
 
         assertEquals(expected.capacity(), converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
+    }
+
+    @Test
+    public void shouldWriteLargeValidProtobufEventFormatJson()
+    {
+        ProtobufModelConfig model = ProtobufModelConfig.builder()
+            .view("json")
+            .catalog()
+                .name("test0")
+                .schema()
+                    .strategy("topic")
+                    .version("latest")
+                    .subject("test-value")
+                    .record("SimpleMessage")
+                    .build()
+                .build()
+            .build();
+
+        ProtobufWriteConverterHandler converter = new ProtobufWriteConverterHandler(model, context);
+
+        String content = "A".repeat(300);
+        String json = "{\"content\":\"" + content + "\",\"date_time\":\"01012024\"}";
+        DirectBuffer data = new UnsafeBuffer();
+        data.wrap(json.getBytes(StandardCharsets.UTF_8), 0, json.getBytes(StandardCharsets.UTF_8).length);
+
+        int result = converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP);
+
+        assertTrue(result > 300);
     }
 
     @Test

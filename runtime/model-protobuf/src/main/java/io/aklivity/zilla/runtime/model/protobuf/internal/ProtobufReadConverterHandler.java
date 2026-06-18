@@ -222,14 +222,11 @@ public class ProtobufReadConverterHandler extends ProtobufModelHandler implement
     {
         int valLength = -1;
         JsonState state = jsonStates.computeIfAbsent(messageName, name -> new JsonState(schema, name));
-        out.wrap(out.buffer());
-        state.generator.wrap(out.buffer(), 0, out.buffer().capacity());
-        state.pipeline.reset();
-        if (state.pipeline.feed(data, index, index + length) == ProtobufPipeline.Status.COMPLETED)
+        int produced = project(state.pipeline, state.generator, data, index, length);
+        if (produced != -1)
         {
-            state.generator.flush();
-            valLength = state.generator.length();
-            next.accept(out.buffer(), 0, valLength);
+            next.accept(out, 0, produced);
+            valLength = produced;
         }
         return valLength;
     }

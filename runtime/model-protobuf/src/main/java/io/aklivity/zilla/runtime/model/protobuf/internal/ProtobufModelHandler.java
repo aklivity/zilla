@@ -20,14 +20,16 @@ import java.util.List;
 
 import org.agrona.BitUtil;
 import org.agrona.DirectBuffer;
-import org.agrona.ExpandableDirectByteBuffer;
+import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.Int2ObjectCache;
-import org.agrona.io.ExpandableDirectBufferOutputStream;
+import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.common.protobuf.Protobuf;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufField;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufGenerator;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufMessage;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSchema;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
@@ -43,16 +45,24 @@ public class ProtobufModelHandler
     private static final int JSON_FIELD_STRUCTURE_LENGTH = "\"\":\"\",".length();
     private static final int JSON_OBJECT_CURLY_BRACES = 2;
 
+    // the streaming output window the pipeline generator fills: sized to OUT_SCALE * input + OUT_SLACK so a
+    // whole message ordinarily transcodes in one feed, and grown-and-retried if a feed reports SUSPENDED
+    private static final int OUT_SCALE = 8;
+    private static final int OUT_SLACK = 1024;
+    private static final int OUT_INITIAL = 8192;
+
     protected final SchemaConfig catalog;
     protected final CatalogHandler handler;
     protected final String subject;
     protected final String view;
     protected final List<Integer> indexes;
-    protected final ExpandableDirectBufferOutputStream out;
+    protected final MutableDirectBuffer out;
     protected final ProtobufModelEventContext event;
 
     private final Int2ObjectCache<ProtobufSchema> schemas;
     private final Int2IntHashMap paddings;
+
+    private byte[] outBytes;
 
     protected ProtobufModelHandler(
         ProtobufModelConfig config,
@@ -68,8 +78,62 @@ public class ProtobufModelHandler
         this.schemas = new Int2ObjectCache<>(1, 1024, i -> {});
         this.indexes = new LinkedList<>();
         this.paddings = new Int2IntHashMap(-1);
-        this.out = new ExpandableDirectBufferOutputStream(new ExpandableDirectByteBuffer());
+        this.outBytes = new byte[OUT_INITIAL];
+        this.out = new UnsafeBuffer(outBytes);
         this.event = new ProtobufModelEventContext(context);
+    }
+
+    // Drives one whole message through the pipeline into the reused output window {@code out}, returning the
+    // number of bytes produced (in {@code out[0, len)}) or -1 when the message is rejected. The window is sized
+    // up front; if a feed reports SUSPENDED (output exceeded the estimate) the window is doubled and the feed is
+    // retried from the start, so a valid message of any size completes in a single feed rather than being
+    // wrongly rejected. On rejection {@code pipeline.reason()} carries why.
+    protected final int project(
+        ProtobufPipeline pipeline,
+        ProtobufGenerator generator,
+        DirectBuffer data,
+        int index,
+        int length)
+    {
+        int produced = -1;
+        int limit = length * OUT_SCALE + OUT_SLACK;
+        try
+        {
+            ProtobufPipeline.Status status;
+            do
+            {
+                ensureOut(limit);
+                generator.wrap(out, 0, limit);
+                pipeline.reset();
+                status = pipeline.feed(data, index, index + length);
+                if (status == ProtobufPipeline.Status.SUSPENDED)
+                {
+                    limit *= 2;
+                }
+            }
+            while (status == ProtobufPipeline.Status.SUSPENDED);
+
+            if (status == ProtobufPipeline.Status.COMPLETED)
+            {
+                generator.flush();
+                produced = generator.length();
+            }
+        }
+        catch (Exception ex)
+        {
+            produced = -1;
+        }
+        return produced;
+    }
+
+    private void ensureOut(
+        int capacity)
+    {
+        if (outBytes.length < capacity)
+        {
+            outBytes = new byte[capacity];
+            out.wrap(outBytes);
+        }
     }
 
     protected ProtobufSchema supplySchema(

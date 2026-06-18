@@ -138,22 +138,11 @@ public class ProtobufWriteConverterHandler extends ProtobufModelHandler implemen
             {
                 String messageName = message.name();
                 JsonState state = jsonStates.computeIfAbsent(messageName, name -> new JsonState(schema, name));
-                out.wrap(out.buffer());
-                state.generator.wrap(out.buffer(), 0, out.buffer().capacity());
-                state.pipeline.reset();
-                ProtobufPipeline.Status status;
-                try
-                {
-                    status = state.pipeline.feed(buffer, index, index + length);
-                }
-                catch (Exception ex)
-                {
-                    status = ProtobufPipeline.Status.REJECTED;
-                }
-                if (status == ProtobufPipeline.Status.COMPLETED)
+                int produced = project(state.pipeline, state.generator, buffer, index, length);
+                if (produced != -1)
                 {
                     encodeIndexes(path);
-                    valLength = encode(out.buffer(), 0, state.generator.length(), next);
+                    valLength = encode(out, 0, produced, next);
                 }
                 else
                 {
