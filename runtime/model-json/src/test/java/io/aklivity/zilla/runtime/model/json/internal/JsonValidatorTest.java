@@ -16,6 +16,8 @@ package io.aklivity.zilla.runtime.model.json.internal;
 
 import static io.aklivity.zilla.runtime.engine.model.ValidatorHandler.FLAGS_FIN;
 import static io.aklivity.zilla.runtime.engine.model.ValidatorHandler.FLAGS_INIT;
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -25,6 +27,7 @@ import java.time.Clock;
 
 import org.agrona.DirectBuffer;
 import org.agrona.ExpandableDirectByteBuffer;
+import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Before;
 import org.junit.Test;
@@ -458,6 +461,54 @@ public class JsonValidatorTest
         assertFalse(validator.validate(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
+    @Test
+    public void shouldForwardValidatedBytesToConsumer()
+    {
+        JsonValidatorHandler validator = newValidator(OBJECT_SCHEMA);
+
+        Capture capture = new Capture();
+        String payload = "{\"id\":\"123\",\"status\":\"OK\"}";
+        byte[] bytes = payload.getBytes(UTF_8);
+        DirectBuffer data = new UnsafeBuffer(bytes);
+
+        assertTrue(validator.validate(0L, 0L, data, 0, bytes.length, capture));
+        assertEquals(payload, capture.text());
+    }
+
+    @Test
+    public void shouldForwardValidatedBytesIncrementallyWhenFragmented()
+    {
+        JsonValidatorHandler validator = newValidator(OBJECT_SCHEMA);
+
+        Capture capture = new Capture();
+        byte[] head = "{\"id\":\"123\",".getBytes(UTF_8);
+        byte[] tail = "\"status\":\"OK\"}".getBytes(UTF_8);
+
+        assertTrue(validator.validate(0L, 0L, FLAGS_INIT, new UnsafeBuffer(head), 0, head.length, capture));
+        int forwardedAfterInit = capture.length;
+        assertTrue(validator.validate(0L, 0L, FLAGS_FIN, new UnsafeBuffer(tail), 0, tail.length, capture));
+
+        assertTrue("expected bytes forwarded before the final fragment", forwardedAfterInit > 0);
+        assertEquals("{\"id\":\"123\",\"status\":\"OK\"}", capture.text());
+    }
+
+    @Test
+    public void shouldForwardEarlierFragmentsThenRejectInvalidLater()
+    {
+        when(context.clock()).thenReturn(Clock.systemUTC());
+        when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
+        JsonValidatorHandler validator = newValidator(OBJECT_SCHEMA);
+
+        Capture capture = new Capture();
+        byte[] head = "{\"id\":\"123\",".getBytes(UTF_8);
+        byte[] tail = "\"status\":123}".getBytes(UTF_8);
+
+        assertTrue(validator.validate(0L, 0L, FLAGS_INIT, new UnsafeBuffer(head), 0, head.length, capture));
+        assertFalse(validator.validate(0L, 0L, FLAGS_FIN, new UnsafeBuffer(tail), 0, tail.length, capture));
+
+        assertTrue("earlier valid fragment should have been forwarded", capture.length > 0);
+    }
+
     private JsonValidatorHandler newValidator(
         String schema)
     {
@@ -485,5 +536,29 @@ public class JsonValidatorTest
 
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
         return new JsonValidatorHandler(model, context);
+    }
+
+    private static final class Capture implements ValueConsumer
+    {
+        private final MutableDirectBuffer buffer = new ExpandableDirectByteBuffer();
+
+        private int length;
+
+        @Override
+        public void accept(
+            DirectBuffer data,
+            int index,
+            int length)
+        {
+            buffer.putBytes(this.length, data, index, length);
+            this.length += length;
+        }
+
+        private String text()
+        {
+            byte[] bytes = new byte[length];
+            buffer.getBytes(0, bytes);
+            return new String(bytes, UTF_8);
+        }
     }
 }

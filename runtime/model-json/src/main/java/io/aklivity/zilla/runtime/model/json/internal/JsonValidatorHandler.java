@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.model.json.internal;
 
 import java.io.InputStream;
+import java.util.Map;
 
 import jakarta.json.stream.JsonParsingException;
 
@@ -30,6 +31,7 @@ import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
+import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
@@ -75,7 +77,7 @@ public class JsonValidatorHandler extends JsonModelHandler implements ValidatorH
     {
         boolean valid = catalog != null && ENCODED.equals(catalog.strategy)
             ? validateEncoded(traceId, bindingId, flags, data, index, length, next)
-            : validateStreaming(traceId, bindingId, flags, data, index, length);
+            : validateStreaming(traceId, bindingId, flags, data, index, length, next);
         return valid;
     }
 
@@ -85,7 +87,8 @@ public class JsonValidatorHandler extends JsonModelHandler implements ValidatorH
         int flags,
         DirectBuffer data,
         int index,
-        int length)
+        int length,
+        ValueConsumer next)
     {
         boolean valid;
 
@@ -132,7 +135,7 @@ public class JsonValidatorHandler extends JsonModelHandler implements ValidatorH
                 limit = carryLength + length;
             }
 
-            Status status = feed(buffer, offset, limit, last);
+            Status status = feed(buffer, offset, limit, last, next);
 
             switch (status)
             {
@@ -196,13 +199,19 @@ public class JsonValidatorHandler extends JsonModelHandler implements ValidatorH
         DirectBuffer buffer,
         int offset,
         int limit,
-        boolean last)
+        boolean last,
+        ValueConsumer next)
     {
         Status status;
         do
         {
             active.generator.wrap(active.output, 0, OUTPUT_CAPACITY);
             status = active.pipeline.feed(buffer, offset, limit, last);
+            int produced = active.generator.length();
+            if (produced > 0 && status != Status.REJECTED)
+            {
+                next.accept(active.output, 0, produced);
+            }
         }
         while (status == Status.SUSPENDED);
         return status;
@@ -255,7 +264,7 @@ public class JsonValidatorHandler extends JsonModelHandler implements ValidatorH
             this.generator = JsonEx.createGenerator();
             this.pipeline = JsonEx.stream(JsonEx.createParser())
                 .transform(schema.validator())
-                .into(JsonEx.createSink(generator));
+                .into(JsonEx.createSink(generator, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.SEGMENTABLE)));
         }
     }
 }
