@@ -2073,9 +2073,9 @@ public final class JsonSchemaImpl implements JsonSchema
         public JsonParserEx wrap(
             DirectBuffer buffer,
             int offset,
-            int length)
+            int limit)
         {
-            delegateEx.wrap(buffer, offset, length);
+            delegateEx.wrap(buffer, offset, limit);
             return this;
         }
 
@@ -2083,17 +2083,17 @@ public final class JsonSchemaImpl implements JsonSchema
         public JsonParserEx wrap(
             DirectBuffer buffer,
             int offset,
-            int length,
+            int limit,
             boolean last)
         {
-            delegateEx.wrap(buffer, offset, length, last);
+            delegateEx.wrap(buffer, offset, limit, last);
             return this;
         }
 
         @Override
-        public long position()
+        public int remaining()
         {
-            return delegateEx.position();
+            return delegateEx.remaining();
         }
 
         @Override

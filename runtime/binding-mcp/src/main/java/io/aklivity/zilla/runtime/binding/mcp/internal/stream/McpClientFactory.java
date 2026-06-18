@@ -392,13 +392,13 @@ public final class McpClientFactory implements McpStreamFactory
         if (stream.paramsParser == null)
         {
             stream.paramsParser = JsonEx.createParser(Map.of());
-            stream.paramsParser.wrap(buffer, progress, limit - progress);
+            stream.paramsParser.wrap(buffer, progress, limit);
             stream.paramsParserProgress = offset - progress;
         }
         else
         {
             final int delta = (int) (stream.paramsParser.getLocation().getStreamOffset() - stream.paramsParserProgress);
-            stream.paramsParser.wrap(buffer, offset + delta, limit - offset - delta);
+            stream.paramsParser.wrap(buffer, offset + delta, limit);
         }
         final JsonParserEx parser = stream.paramsParser;
         while (stream.decoder != decodeRequestEnd && parser.hasNext())
@@ -460,7 +460,7 @@ public final class McpClientFactory implements McpStreamFactory
         int limit)
     {
         http.decodableJson = JsonEx.createParser(Map.of());
-        http.decodableJson.wrap(buffer, progress, limit - progress);
+        http.decodableJson.wrap(buffer, progress, limit);
         http.decoder = decodeJsonRpcStart;
         // Map parser stream-offset 0 to buffer position `progress`.
         // The decodeJsonRpc* methods use offset + decodedX - decodedParserProgress as buffer position,
@@ -3748,7 +3748,7 @@ public final class McpClientFactory implements McpStreamFactory
                 if (decodableJson != null)
                 {
                     final int delta = (int) (decodableJson.getLocation().getStreamOffset() - decodedParserProgress);
-                    decodableJson.wrap(buffer, offset + delta, limit - offset - delta);
+                    decodableJson.wrap(buffer, offset + delta, limit);
                 }
 
                 decodeNet(traceId, authorization, budgetId, reserved, buffer, offset, limit);
@@ -4605,7 +4605,7 @@ public final class McpClientFactory implements McpStreamFactory
                 if (decodableJson != null)
                 {
                     final int delta = (int) (decodableJson.getLocation().getStreamOffset() - decodedParserProgress);
-                    decodableJson.wrap(buffer, offset + delta, limit - offset - delta);
+                    decodableJson.wrap(buffer, offset + delta, limit);
                 }
 
                 decodeNet(traceId, authorization, budgetId, reserved, buffer, offset, limit);

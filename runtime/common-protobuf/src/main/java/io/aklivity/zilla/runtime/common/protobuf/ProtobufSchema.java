@@ -196,7 +196,7 @@ public final class ProtobufSchema
             .transform(new ProtobufValidatorImpl(this, messageName))
             .into(new ProtobufDiscardSinkImpl());
         pipeline.reset();
-        return pipeline.feed(buffer, offset, length) == ProtobufPipeline.Status.COMPLETED;
+        return pipeline.feed(buffer, offset, offset + length) == ProtobufPipeline.Status.COMPLETED;
     }
 
     public static Builder builder()

@@ -596,7 +596,7 @@ abstract class McpProxyListFactory implements BindingHandler
             if (decodableJson != null)
             {
                 final int delta = (int) (decodableJson.getLocation().getStreamOffset() - decodedParserProgress);
-                decodableJson.wrap(buffer, offset + delta, limit - offset - delta);
+                decodableJson.wrap(buffer, offset + delta, limit);
             }
 
             McpListClientDecoder previous = null;
@@ -728,7 +728,7 @@ abstract class McpProxyListFactory implements BindingHandler
         }
 
         client.decodableJson = JsonEx.createParser(Map.of());
-        client.decodableJson.wrap(buffer, progress, limit - progress);
+        client.decodableJson.wrap(buffer, progress, limit);
         client.arrayKey = arrayKey();
         client.idKey = idKey();
         client.decoder = decodeReply;
