@@ -15,7 +15,6 @@
 package io.aklivity.zilla.runtime.model.json.internal;
 
 import java.io.InputStream;
-import java.util.Map;
 
 import jakarta.json.stream.JsonParsingException;
 
@@ -31,7 +30,6 @@ import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
-import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
@@ -264,7 +262,7 @@ public class JsonValidatorHandler extends JsonModelHandler implements ValidatorH
             this.generator = JsonEx.createGenerator();
             this.pipeline = JsonEx.stream(JsonEx.createParser())
                 .transform(schema.validator())
-                .into(JsonEx.createSink(generator, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.SEGMENTABLE)));
+                .into(JsonEx.createSink(generator));
         }
     }
 }
