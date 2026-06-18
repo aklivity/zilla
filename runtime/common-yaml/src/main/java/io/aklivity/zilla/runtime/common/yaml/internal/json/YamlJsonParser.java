@@ -66,7 +66,7 @@ public final class YamlJsonParser implements JsonParser
 
     private final boolean uniqueKeys;
     private final List<Yev> events;
-    private final Map<String, NavigableMap<Long, int[]>> anchors;
+    private final Map<String, NavigableMap<Long, YamlAlias>> anchors;
     private final List<Step> steps;
     private YamlJsonLocation end;
     private int cursor;
@@ -406,7 +406,7 @@ public final class YamlJsonParser implements JsonParser
                 // an anchor name may be redefined; key each definition by its source offset so an alias can
                 // resolve to the nearest preceding definition (YAML 1.2 anchor scoping)
                 anchors.computeIfAbsent(event.anchor, name -> new TreeMap<>())
-                    .put(event.location.offset(), new int[] {index, nodeEnd(index)});
+                    .put(event.location.offset(), new YamlAlias(events, index, nodeEnd(index)));
             }
         }
     }
@@ -448,17 +448,20 @@ public final class YamlJsonParser implements JsonParser
         int index = 0;
         while (index < events.size())
         {
-            YamlEvent event = events.get(index).event;
-            if (event == YamlEvent.DOCUMENT_START)
+            if (events.get(index).event == YamlEvent.DOCUMENT_START)
             {
-                index = projectValue(index + 1, new HashSet<>());
-                YamlJsonLocation boundary = location(events.get(index).location);
+                int rootStart = index + 1;
+                int rootEnd = nodeEnd(rootStart);
+                projectNode(new YamlAlias(events, rootStart, rootEnd), new HashSet<>());
+                // the root-terminal event reports the document boundary (the next document's start or the
+                // stream end), which YamlParser frames on DOCUMENT_END
+                YamlJsonLocation boundary = location(events.get(rootEnd).location);
                 if (!steps.isEmpty())
                 {
                     steps.get(steps.size() - 1).location = boundary;
                 }
                 end = boundary;
-                index++;
+                index = rootEnd + 1;
             }
             else
             {
@@ -467,114 +470,88 @@ public final class YamlJsonParser implements JsonParser
         }
     }
 
-    private int projectValue(
-        int index,
+    private void projectNode(
+        YamlAlias cursor,
         Set<String> active)
     {
-        Yev event = events.get(index);
-        int next;
-        switch (event.event)
+        Yev node = cursor.next();
+        switch (node.event)
         {
         case MAPPING_START ->
         {
-            emit(Event.START_OBJECT, null, event.location);
-            int at = index + 1;
+            emit(Event.START_OBJECT, null, node.location);
             Set<String> keys = uniqueKeys ? new HashSet<>() : null;
-            while (events.get(at).event != YamlEvent.MAPPING_END)
+            while (cursor.peek() != YamlEvent.MAPPING_END)
             {
-                at = projectKey(at, keys);
-                at = projectValue(at, active);
+                projectKey(cursor, keys);
+                projectNode(cursor, active);
             }
-            emit(Event.END_OBJECT, null, event.location);
-            next = at + 1;
+            cursor.next();
+            emit(Event.END_OBJECT, null, node.location);
         }
         case SEQUENCE_START ->
         {
-            emit(Event.START_ARRAY, null, event.location);
-            int at = index + 1;
-            while (events.get(at).event != YamlEvent.SEQUENCE_END)
+            emit(Event.START_ARRAY, null, node.location);
+            while (cursor.peek() != YamlEvent.SEQUENCE_END)
             {
-                at = projectValue(at, active);
+                projectNode(cursor, active);
             }
-            emit(Event.END_ARRAY, null, event.location);
-            next = at + 1;
+            cursor.next();
+            emit(Event.END_ARRAY, null, node.location);
         }
-        case ALIAS ->
-        {
-            projectAliasValue(event, active);
-            next = index + 1;
+        case ALIAS -> projectAlias(node, active);
+        default -> emitScalar(node);
         }
-        default ->
-        {
-            emitScalar(event);
-            next = index + 1;
-        }
-        }
-        return next;
     }
 
-    private int projectKey(
-        int index,
+    private void projectKey(
+        YamlAlias cursor,
         Set<String> keys)
     {
-        Yev event = events.get(index);
-        int next;
-        if (event.event == YamlEvent.SCALAR)
+        Yev key = cursor.next();
+        if (key.event == YamlEvent.SCALAR)
         {
-            emitKey(scalarText(event), event.location, keys);
-            next = index + 1;
+            emitKey(scalarText(key), key.location, keys);
         }
-        else if (event.event == YamlEvent.ALIAS)
+        else if (key.event == YamlEvent.ALIAS && resolve(key).scalar())
         {
-            int[] span = resolve(event);
-            Yev anchored = events.get(span[0]);
-            if (span[1] - span[0] == 1 && anchored.event == YamlEvent.SCALAR)
-            {
-                emitKey(scalarText(anchored), event.location, keys);
-            }
-            else
-            {
-                throw error("Non-scalar YAML mapping keys are not supported", event.location);
-            }
-            next = index + 1;
+            emitKey(scalarText(resolve(key).first()), key.location, keys);
         }
         else
         {
-            throw error("Non-scalar YAML mapping keys are not supported", event.location);
+            throw error("Non-scalar YAML mapping keys are not supported", key.location);
         }
-        return next;
     }
 
-    private void projectAliasValue(
-        Yev alias,
+    private void projectAlias(
+        Yev reference,
         Set<String> active)
     {
-        int[] span = resolve(alias);
-        Yev anchored = events.get(span[0]);
-        if (span[1] - span[0] == 1 && anchored.event == YamlEvent.SCALAR && anchored.scalarType == null)
+        YamlAlias alias = resolve(reference);
+        if (alias.scalar() && alias.first().scalarType == null)
         {
             // an alias to an anchored key resolves to that key's text in value position
-            emit(Event.VALUE_STRING, scalarText(anchored), anchored.location);
+            emit(Event.VALUE_STRING, scalarText(alias.first()), alias.first().location);
         }
-        else if (active.add(alias.alias))
+        else if (active.add(reference.alias))
         {
-            projectValue(span[0], active);
-            active.remove(alias.alias);
+            projectNode(alias.open(), active);
+            active.remove(reference.alias);
         }
         else
         {
-            throw error("Recursive YAML alias: " + alias.alias, alias.location);
+            throw error("Recursive YAML alias: " + reference.alias, reference.location);
         }
     }
 
-    private int[] resolve(
-        Yev alias)
+    private YamlAlias resolve(
+        Yev reference)
     {
-        NavigableMap<Long, int[]> defined = anchors.get(alias.alias);
-        Map.Entry<Long, int[]> nearest = defined != null ? defined.floorEntry(alias.location.offset()) : null;
+        NavigableMap<Long, YamlAlias> defined = anchors.get(reference.alias);
+        Map.Entry<Long, YamlAlias> nearest = defined != null ? defined.floorEntry(reference.location.offset()) : null;
         if (nearest == null)
         {
-            throw error("Unresolved YAML alias: " + alias.alias, alias.location);
+            throw error("Unresolved YAML alias: " + reference.alias, reference.location);
         }
         return nearest.getValue();
     }
@@ -774,6 +751,55 @@ public final class YamlJsonParser implements JsonParser
         catch (IOException ex)
         {
             throw new JsonParsingException(ex.getMessage(), ex, new YamlJsonLocation(new YamlLocation(1, 1, 0)));
+        }
+    }
+
+    /**
+     * A replayable cursor over the captured events of an anchored node (its {@code &name} definition spanning
+     * {@code [from, to)}). An alias to the anchor resolves to a fresh {@link #open()} cursor that the projector
+     * pulls the anchored value from, the way it pulls from the underlying parser.
+     */
+    private static final class YamlAlias
+    {
+        private final List<Yev> events;
+        private final int from;
+        private final int to;
+        private int at;
+
+        private YamlAlias(
+            List<Yev> events,
+            int from,
+            int to)
+        {
+            this.events = events;
+            this.from = from;
+            this.to = to;
+            this.at = from;
+        }
+
+        private YamlAlias open()
+        {
+            return new YamlAlias(events, from, to);
+        }
+
+        private boolean scalar()
+        {
+            return to - from == 1 && events.get(from).event == YamlEvent.SCALAR;
+        }
+
+        private Yev first()
+        {
+            return events.get(from);
+        }
+
+        private YamlEvent peek()
+        {
+            return events.get(at).event;
+        }
+
+        private Yev next()
+        {
+            return events.get(at++);
         }
     }
 
