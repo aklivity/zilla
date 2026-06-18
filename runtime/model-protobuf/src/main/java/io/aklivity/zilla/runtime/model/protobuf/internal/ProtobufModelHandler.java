@@ -84,8 +84,8 @@ public class ProtobufModelHandler
     // the total number of bytes emitted or -1 when the message is rejected. The fixed window {@code out} is
     // filled, flushed downstream, then re-wrapped and the feed resumed each time it fills, so output of any size
     // streams in bounded chunks with no per-message allocation and no re-parse. A late rejection (after some
-    // chunks have already been emitted) returns -1 so the caller aborts the downstream stream; on rejection
-    // {@code pipeline.reason()} carries why.
+    // chunks have already been emitted) returns -1 so the caller aborts the downstream stream; the pipeline's
+    // configured reporter receives the diagnostic on rejection.
     protected final int transcode(
         ProtobufPipeline pipeline,
         ProtobufGenerator generator,

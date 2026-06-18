@@ -138,6 +138,7 @@ public class ProtobufWriteConverterHandler extends ProtobufModelHandler implemen
             {
                 String messageName = message.name();
                 JsonState state = jsonStates.computeIfAbsent(messageName, name -> new JsonState(schema, name));
+                state.reason = null;
                 encodeIndexes(path);
                 int prefix = emitIndexes(next);
                 int wire = transcode(state.pipeline, state.generator, buffer, index, length, next);
@@ -147,8 +148,8 @@ public class ProtobufWriteConverterHandler extends ProtobufModelHandler implemen
                 }
                 else
                 {
-                    String reason = state.pipeline.reason();
-                    event.validationFailure(traceId, bindingId, reason != null ? reason : "Invalid Protobuf event");
+                    event.validationFailure(traceId, bindingId,
+                        state.reason != null ? state.reason : "Invalid Protobuf event");
                 }
             }
         }
@@ -190,6 +191,8 @@ public class ProtobufWriteConverterHandler extends ProtobufModelHandler implemen
         private final ProtobufGenerator generator;
         private final ProtobufPipeline pipeline;
 
+        private String reason;
+
         private JsonState(
             ProtobufSchema schema,
             String messageName)
@@ -199,6 +202,7 @@ public class ProtobufWriteConverterHandler extends ProtobufModelHandler implemen
             ProtobufParser protobufParser = ProtobufJson.parser(jsonParser, schema, messageName,
                 Map.of(ProtobufJson.REJECT_UNKNOWN_FIELDS, Boolean.TRUE));
             this.pipeline = Protobuf.stream(protobufParser)
+                .reporting(diagnostic -> reason = diagnostic.message())
                 .into(ProtobufSink.of(generator, schema, messageName));
         }
     }
