@@ -1976,13 +1976,19 @@ public final class YamlStreamScanner
         {
             throw BAIL;
         }
-        // continuation lines of a flow nested in a block must be indented past the block, with spaces;
-        // a blank (or whitespace-only) line inside the flow is insignificant and carries no indent constraint
+        // continuation lines of a flow nested in a block must be indented past the block, mirroring the eager
+        // parser's collectFlowText: a line starting with a tab is invalid, and an under-indented line is invalid
+        // unless it begins with the closing bracket; a blank line inside the flow carries no indent constraint
         for (int at = startLine + 1; at <= closeLine; at++)
         {
-            if (contentStart[at] < contentEnd[at] && (lineIndent[at] <= refIndent || tabInIndent(at)))
+            if (contentStart[at] < contentEnd[at])
             {
-                throw BAIL;
+                char firstContent = text.charAt(contentStart[at]);
+                boolean closer = firstContent == ']' || firstContent == '}';
+                if (text.charAt(lineStart[at]) == '\t' || lineIndent[at] <= refIndent && !closer)
+                {
+                    throw BAIL;
+                }
             }
         }
         cursor = closeLine + 1;
