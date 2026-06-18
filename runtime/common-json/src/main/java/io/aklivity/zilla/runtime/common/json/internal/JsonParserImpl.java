@@ -37,13 +37,12 @@ import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.common.json.DirectBufferInputStreamEx;
-import io.aklivity.zilla.runtime.common.json.JsonController;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
-import io.aklivity.zilla.runtime.common.json.JsonSource;
+import io.aklivity.zilla.runtime.common.json.JsonParserEx.Mode;
 import io.aklivity.zilla.runtime.common.json.internal.json.JsonValues;
 
-public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonController
+public final class JsonParserImpl implements JsonParserEx
 {
     private final InputStream in;
     private final DirectBufferInputStreamEx ownedInput;
@@ -123,32 +122,32 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
     public JsonParserEx wrap(
         DirectBuffer buffer,
         int offset,
-        int length)
+        int limit)
     {
         frameBaseStreamOffset = tokenizer.streamOffset();
-        tokenizer.window(length);
-        ownedInput.wrap(buffer, offset, length);
+        tokenizer.window(limit - offset);
+        ownedInput.wrap(buffer, offset, limit - offset);
         return this;
     }
 
-    // Wraps the next input window of a chunked feed; last == true marks the final window, so its EOF is the
-    // terminal delimiter (completing a trailing scalar, rejecting a truncated value) rather than a frame
-    // boundary with more bytes to come.
+    // Wraps the next input window [offset, limit) of a chunked feed; last == true marks the final window, so
+    // its EOF is the terminal delimiter (completing a trailing scalar, rejecting a truncated value) rather
+    // than a frame boundary with more bytes to come.
     @Override
     public JsonParserEx wrap(
         DirectBuffer buffer,
         int offset,
-        int length,
+        int limit,
         boolean last)
     {
         tokenizer.terminal(last);
-        return wrap(buffer, offset, length);
+        return wrap(buffer, offset, limit);
     }
 
     @Override
-    public long position()
+    public int remaining()
     {
-        return tokenizer.streamOffset();
+        return (int)(frameBaseStreamOffset + ownedInput.length() - tokenizer.streamOffset());
     }
 
     @Override
@@ -227,10 +226,39 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
     }
 
     @Override
-    public JsonEvent nextEvent()
+    public JsonEvent nextEvent(
+        Mode mode)
     {
+        if (mode == Mode.SEGMENTED)
+        {
+            // arm the just-delivered boundary to stream verbatim before pulling its events (the mode-driven
+            // peer of a stage's JsonController.segmentable(); keyed off the previously delivered event)
+            if (lastEvent == JsonEvent.START_OBJECT || lastEvent == JsonEvent.START_ARRAY)
+            {
+                segmentStartOffset = tokenizer.streamOffset() - 1;
+                segmentState = SegmentState.PENDING_START;
+                segmentDepth = 1;
+                tokenizer.segmenting(true);
+            }
+            else if (lastEvent == JsonEvent.START_DOCUMENT)
+            {
+                armNextValue = true;
+                // a bare top-level string then streams verbatim too; cleared by the tokenizer for a non-string
+                tokenizer.scalarSegment(true);
+            }
+            else if (lastEvent == JsonEvent.KEY_NAME)
+            {
+                // arm the upcoming value-string to stream verbatim; the tokenizer clears it for a non-string
+                tokenizer.scalarSegment(true);
+            }
+        }
         JsonEvent event;
-        if (docState == DocState.NOT_STARTED)
+        if (!hasNextEvent())
+        {
+            // window consumed mid-document, or the document already ended: no event this pull
+            event = null;
+        }
+        else if (docState == DocState.NOT_STARTED)
         {
             docState = DocState.STARTED;
             event = JsonEvent.START_DOCUMENT;
@@ -244,11 +272,14 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
         {
             event = nextToken();
         }
-        // lastEvent is the canonical delivered event (the basis for the streaming-only accessor asserts);
-        // currentEvent is its jakarta projection (null for a segment or document framing), keeping the
-        // shared jakarta getters' asserts valid whether driven by the pipeline or the raw parser
-        lastEvent = event;
-        currentEvent = toEvent(event);
+        if (event != null)
+        {
+            // lastEvent is the canonical delivered event (the basis for the streaming-only accessor asserts);
+            // currentEvent is its jakarta projection (null for a segment or document framing), keeping the
+            // shared jakarta getters' asserts valid whether driven by the pipeline or the raw parser
+            lastEvent = event;
+            currentEvent = toEvent(event);
+        }
         return event;
     }
 
@@ -397,29 +428,6 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
     }
 
     @Override
-    public void segmentable()
-    {
-        if (lastEvent == JsonEvent.START_OBJECT || lastEvent == JsonEvent.START_ARRAY)
-        {
-            segmentStartOffset = tokenizer.streamOffset() - 1;
-            segmentState = SegmentState.PENDING_START;
-            segmentDepth = 1;
-            tokenizer.segmenting(true);
-        }
-        else if (lastEvent == JsonEvent.START_DOCUMENT)
-        {
-            armNextValue = true;
-            // a bare top-level string then streams verbatim too; cleared by the tokenizer for any non-string
-            tokenizer.scalarSegment(true);
-        }
-        else if (lastEvent == JsonEvent.KEY_NAME)
-        {
-            // arm the upcoming value-string to stream verbatim; the tokenizer clears it for a non-string
-            tokenizer.scalarSegment(true);
-        }
-    }
-
-    @Override
     public void consumed(
         int sourceUnits)
     {
@@ -450,8 +458,11 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
     @Override
     public CharSequence getStringView()
     {
+        // valid on both drives: the pump tracks lastEvent, a jakarta next() tracks currentEvent
         assert lastEvent == JsonEvent.VALUE_STRING || lastEvent == JsonEvent.VALUE_NUMBER ||
-            lastEvent == JsonEvent.KEY_NAME;
+            lastEvent == JsonEvent.KEY_NAME ||
+            currentEvent == Event.VALUE_STRING || currentEvent == Event.VALUE_NUMBER ||
+            currentEvent == Event.KEY_NAME;
         // while rendering a structured scalar, expose the unconsumed char remainder so a resumed write
         // continues from where the bounded output left off; otherwise (a key, or a fresh value) the full
         // decoded view
@@ -517,11 +528,11 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
         return new BigDecimal(numberLexeme().toString());
     }
 
-    // The current number's full lexeme: a fragmented number's is accumulated in the tokenizer across
-    // its fragments; an unfragmented one is the current scratch value.
+    // the current number's full lexeme; the char view (not stringValue()), so a caller that only scans
+    // it — e.g. isIntegralNumber() — materializes no String
     private CharSequence numberLexeme()
     {
-        return tokenizer.numberFragmented() ? tokenizer.numberLexeme() : tokenizer.stringValue();
+        return tokenizer.numberFragmented() ? tokenizer.numberLexeme() : tokenizer.stringView();
     }
 
     @Override
@@ -556,7 +567,7 @@ public final class JsonParserImpl implements JsonParserEx, JsonSource, JsonContr
         case START_OBJECT -> getObject();
         case START_ARRAY -> getArray();
         case VALUE_STRING, KEY_NAME -> JsonValues.string(getString());
-        case VALUE_NUMBER -> JsonValues.number(getBigDecimal());
+        case VALUE_NUMBER -> JsonValues.numberLiteral(numberLexeme().toString());
         case VALUE_TRUE -> JsonValue.TRUE;
         case VALUE_FALSE -> JsonValue.FALSE;
         case VALUE_NULL -> JsonValue.NULL;

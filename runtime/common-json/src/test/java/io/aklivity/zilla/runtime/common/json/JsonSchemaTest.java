@@ -73,6 +73,19 @@ class JsonSchemaTest
     }
 
     @Test
+    void shouldValidateScalarStringConstAndEnumAgainstNonStrings()
+    {
+        // a non-string or structural instance never equals a scalar-string const/enum
+        assertFalse(valid("{\"const\":\"fixed\"}", "5"));
+        assertFalse(valid("{\"const\":\"fixed\"}", "true"));
+        assertFalse(valid("{\"const\":\"fixed\"}", "{\"fixed\":1}"));
+        assertFalse(valid("{\"const\":\"fixed\"}", "[\"fixed\"]"));
+        assertFalse(valid("{\"enum\":[\"a\",\"b\"]}", "5"));
+        assertFalse(valid("{\"enum\":[\"a\",\"b\"]}", "{}"));
+        assertTrue(valid("{\"enum\":[\"a\",\"b\"]}", "\"a\""));
+    }
+
+    @Test
     void shouldValidateNumericBounds()
     {
         assertTrue(valid("{\"minimum\":5,\"maximum\":10}", "5"));
@@ -223,6 +236,24 @@ class JsonSchemaTest
         assertTrue(valid(schema, "\"x\""));
         assertFalse(valid(schema, "{\"a\":2}"));
         assertFalse(valid(schema, "[2,1]"));
+    }
+
+    @Test
+    void shouldReuseEvaluatorAcrossValidations()
+    {
+        // validating one schema repeatedly exercises the reset-between-calls evaluator reuse; interleave
+        // valid and invalid instances across cycles to catch any state carried between calls
+        JsonSchema schema = JsonSchema.of("{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"integer\"}," +
+            "\"tags\":{\"type\":\"array\",\"uniqueItems\":true}},\"required\":[\"id\"],\"additionalProperties\":false}");
+        for (int i = 0; i < 3; i++)
+        {
+            assertTrue(schema.validate(parserFor("{\"id\":1,\"tags\":[1,2,3]} ")));
+            assertFalse(schema.validate(parserFor("{\"id\":1,\"tags\":[2,2]} ")));
+            assertFalse(schema.validate(parserFor("{\"tags\":[1]} ")));
+            assertFalse(schema.validate(parserFor("{\"id\":\"x\"} ")));
+            assertFalse(schema.validate(parserFor("{\"id\":1,\"extra\":true} ")));
+            assertTrue(schema.validate(parserFor("{\"id\":2} ")));
+        }
     }
 
     private static boolean valid(

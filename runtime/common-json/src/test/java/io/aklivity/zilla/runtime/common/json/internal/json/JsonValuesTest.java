@@ -142,6 +142,38 @@ class JsonValuesTest
     }
 
     @Test
+    void shouldPreserveLexemeWithoutCanonicalizing()
+    {
+        assertEquals("100.0", JsonValues.numberLiteral("100.0").toString());
+        assertEquals("6.022e23", JsonValues.numberLiteral("6.022e23").toString());
+        assertEquals("-0.5", JsonValues.numberLiteral("-0.5").toString());
+    }
+
+    @Test
+    void shouldDeferDecimalFromLexeme()
+    {
+        JsonNumber fraction = JsonValues.numberLiteral("1.5");
+        assertFalse(fraction.isIntegral());
+        assertEquals(new BigDecimal("1.5"), fraction.bigDecimalValue());
+        assertEquals(1.5, fraction.doubleValue(), 0.0);
+
+        JsonNumber integral = JsonValues.numberLiteral("42.0");
+        assertTrue(integral.isIntegral());
+        assertEquals(42, integral.intValueExact());
+        assertEquals(1234L, JsonValues.numberLiteral("1.234e3").longValue());
+    }
+
+    @Test
+    void shouldMatchEagerNumberFromLexeme()
+    {
+        JsonNumber lexeme = JsonValues.numberLiteral("1.50");
+        JsonNumber eager = JsonValues.number(new BigDecimal("1.5"));
+        assertEquals(eager, lexeme);
+        assertEquals(lexeme, eager);
+        assertEquals(eager.hashCode(), lexeme.hashCode());
+    }
+
+    @Test
     void shouldConvertNumberForms()
     {
         assertTrue(JsonValues.number(7).isIntegral());

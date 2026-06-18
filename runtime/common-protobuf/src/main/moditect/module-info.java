@@ -15,6 +15,9 @@
 module io.aklivity.zilla.runtime.common.protobuf
 {
     requires transitive org.agrona;
+    requires transitive io.aklivity.zilla.runtime.common.json;
+    requires org.antlr.antlr4.runtime;
 
     exports io.aklivity.zilla.runtime.common.protobuf;
+    exports io.aklivity.zilla.runtime.common.protobuf.json;
 }

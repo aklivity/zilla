@@ -21,22 +21,16 @@ import io.aklivity.zilla.runtime.common.yaml.internal.YamlNode;
 
 final class YamlJsonEvent
 {
-    final JsonParser.Event event;
-    final String value;
-    final YamlNode node;
-    final YamlJsonLocation location;
+    JsonParser.Event event;
+    String value;
+    YamlNode node;
 
-    YamlJsonEvent(
-        JsonParser.Event event,
-        String value,
-        int line,
-        int column,
-        long offset)
-    {
-        this(event, value, null, line, column, offset);
-    }
+    private int line;
+    private int column;
+    private long offset;
+    private YamlJsonLocation location;
 
-    YamlJsonEvent(
+    YamlJsonEvent set(
         JsonParser.Event event,
         String value,
         YamlNode node,
@@ -47,10 +41,14 @@ final class YamlJsonEvent
         this.event = event;
         this.value = value;
         this.node = node;
-        this.location = new YamlJsonLocation(new YamlLocation(line, column, offset));
+        this.line = line;
+        this.column = column;
+        this.offset = offset;
+        this.location = null;
+        return this;
     }
 
-    YamlJsonEvent(
+    YamlJsonEvent set(
         JsonParser.Event event,
         String value,
         YamlNode node,
@@ -60,5 +58,18 @@ final class YamlJsonEvent
         this.value = value;
         this.node = node;
         this.location = location;
+        this.line = (int) location.getLineNumber();
+        this.column = (int) location.getColumnNumber();
+        this.offset = location.getStreamOffset();
+        return this;
+    }
+
+    YamlJsonLocation location()
+    {
+        if (location == null)
+        {
+            location = new YamlJsonLocation(new YamlLocation(line, column, offset));
+        }
+        return location;
     }
 }

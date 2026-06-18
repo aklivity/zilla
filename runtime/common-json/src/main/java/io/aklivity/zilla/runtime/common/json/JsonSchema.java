@@ -23,10 +23,9 @@ import jakarta.json.stream.JsonParser;
 import io.aklivity.zilla.runtime.common.json.internal.JsonSchemaImpl;
 
 /**
- * A compiled, immutable JSON Schema validating a streaming {@link JsonParser} event stream
- * without materialising a DOM. Compile once per schema and reuse for the lifetime of the
- * binding; each {@link #validate(JsonParser)} call creates a per-call evaluator and may be
- * called repeatedly on the owning worker thread.
+ * A compiled, immutable JSON Schema validating a streaming {@link JsonParser} event stream without
+ * materialising a DOM. Compile once and reuse; {@link #validate(JsonParser)} holds no per-call state
+ * on the schema, so a compiled schema may be shared and validated concurrently.
  * <p>
  * Drafts 04, 06, and 07 are supported; {@link Draft} selects the dialect and is otherwise
  * auto-detected from a top-level {@code $schema} URI (defaulting to draft-07).

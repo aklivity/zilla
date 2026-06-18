@@ -2,16 +2,18 @@
 
 A format-native, provider-free Protobuf wire library for the hot path: a descriptor-bound streaming
 parser and generator over Agrona `DirectBuffer`s, composable into validating, transforming pipelines.
-It owns the Protobuf wire side only and has **no JSON dependency**.
+The core wire layer (package `io.aklivity.zilla.runtime.common.protobuf`) owns the Protobuf wire side
+only and carries **no JSON dependency**.
 
-The protobuf ↔ JSON mapping is **not** here — it is owned by the `model-protobuf` converter, which
-composes this wire layer with a JSON layer. Keeping that mapping out lets `common-protobuf` stay
-single-format and dependency-light.
+The protobuf ↔ JSON mapping lives apart from that core in the `io.aklivity.zilla.runtime.common.protobuf.json`
+package (`ProtobufJson`), which composes the wire layer with the `common-json` transcoder — see
+[protobuf ↔ JSON](#protobuf--json) below. The wire core stays single-format and dependency-light; only
+the `.json` package pulls in `common-json`.
 
 ## Descriptor model
 
 `ProtobufSchema` is a compiled, immutable model — build one per `schemaId` and cache it. It is
-**provider-free**: there is no dependency on `protobuf-java`. Construct the model with the public
+**provider-free**: there is no dependency on a third-party protobuf library. Construct the model with the public
 builders (`ProtobufSchema.Builder`, `ProtobufMessage.Builder`, `ProtobufField.Builder`,
 `ProtobufEnum.Builder`); a consumer such as `model-protobuf` populates field metadata from its own
 `.proto` compilation.
@@ -30,7 +32,7 @@ synthetic map-entry message (`mapEntry(true)`) with `key` as field 1 and `value`
 
 A compiled `google.protobuf.FileDescriptorSet` (e.g. from `protoc --descriptor_set_out`) can be
 turned into a `ProtobufSchema` directly — `descriptor.proto` is itself Protobuf, so it is decoded
-with this library's own wire reader and needs no `protobuf-java`:
+with this library's own wire reader and needs no third-party protobuf library:
 
 ```java
 ProtobufSchema schema = Protobuf.schema(descriptorSet, offset, length);
@@ -128,24 +130,25 @@ out:
   `feed` again with the **same** input window to resume the in-flight message from where it paused.
 - **Input — `STARVED`** (the input window was consumed before the message completed): retain the
   unconsumed tail and call `feed` again with it prepended to the **next** window. End of input is
-  signalled by the caller via the `last` flag on `feed(buffer, offset, length, last)`; pass
-  `last == true` only on the final window. The three-argument `feed(buffer, offset, length)` is the
-  whole-buffer shorthand (`last == true`) and never returns `STARVED`.
+  signalled by the caller via the `last` flag on `feed(buffer, offset, limit, last)`, which feeds the
+  half-open range `[offset, limit)`; pass `last == true` only on the final window. The three-argument
+  `feed(buffer, offset, limit)` is the whole-buffer shorthand (`last == true`) and never returns
+  `STARVED`.
 
 `STARVED` is returned only when `last == false`; under `last == true` a clean message end yields
 `COMPLETED` and an incomplete one (a primitive, length-prefix, or nested message that runs past the
 bytes) yields `REJECTED`.
 
 The pipeline holds **no input buffer of its own** — it never copies or retains input. Instead it reports
-`position()`, the number of input bytes committed so far (always at a whole-unit boundary). On `STARVED`,
-everything at or after `position()` is the unconsumed tail; the caller retains those bytes — typically in
-the reassembly slot it already owns — and re-presents them, contiguous with the next window, on the
-following `feed`. Because the unknown-field skip and large leaf values both stream, that retained tail is
-only ever a partial primitive or a partial UTF-8 code point — a handful of bytes.
+`remaining()`, the number of bytes at the tail of the most recently fed window not yet consumed (always at
+a whole-unit boundary). On `STARVED`, those trailing `remaining()` bytes are the unconsumed tail; the caller
+retains them — typically in the reassembly slot it already owns — and re-presents them, contiguous with the
+next window, on the following `feed`. Because it is window-relative, the caller drops the consumed prefix
+without tracking the slot's absolute base. Because the unknown-field skip and large leaf values both stream,
+that retained tail is only ever a partial primitive or a partial UTF-8 code point — a handful of bytes.
 
 ```java
 pipeline.reset();
-long committed = 0;                                  // absolute position of slot[0]
 for (boolean done = false; !done; )
 {
     appendToSlot(nextWindowBytes());                 // grow the reassembly slot with new input
@@ -159,9 +162,7 @@ for (boolean done = false; !done; )
     switch (status)
     {
     case STARVED:
-        int consumed = (int) (pipeline.position() - committed);
-        compactSlot(consumed);                        // drop committed bytes, keep the tail at the front
-        committed = pipeline.position();
+        compactSlot(slotLength - pipeline.remaining()); // drop the consumed prefix, keep the tail at the front
         break;
     case COMPLETED: emitDataFrame(out, 0, generator.length()); done = true; break;
     case REJECTED: abort(); done = true; break;
@@ -277,11 +278,74 @@ by the message structure — the parser decodes over a per-depth frame stack who
 by a swap-safe position counter rather than the refillable byte limit, so a frame survives a window
 swap. Leaf `string`/`bytes` values and unknown-field skips both stream in window-sized pieces rather
 than being reassembled whole, and the cursor itself **never copies or retains input** — it reports
-`position()` and leaves any unconsumed tail (only ever a partial primitive or a partial UTF-8 code
+`remaining()` and leaves any unconsumed tail (only ever a partial primitive or a partial UTF-8 code
 point) for the caller to retain and re-present (see *Two back-pressure axes* above). The generator
 streams its output bounded by `limit`, fragmenting any value too large rather than buffering it. No
 unbounded document is buffered. Truncated or overlong varints, lengths that run past the message under
 `last`, and unterminated or mismatched groups are rejected with a `ProtobufException`.
+
+## protobuf ↔ JSON
+
+`ProtobufJson` (package `io.aklivity.zilla.runtime.common.protobuf.json`) bridges the wire layer to the
+`common-json` transcoder by **adapting the wire `ProtobufParser` and `ProtobufGenerator` to a `JsonParserEx`
+and `JsonGeneratorEx`** — so both directions drop into the existing pipeline machinery unchanged, as a pure
+`ProtobufParser` ↔ `ProtobufGenerator` pair or via `Protobuf.stream(...).into(ProtobufSink.of(...))`. It applies
+the proto3 JSON mapping: a message is a JSON object keyed by each field's proto3 json name, a `repeated` field a
+JSON array, a `map` a JSON object, 64-bit and unsigned-64-bit integers JSON strings, `bytes` a base64 string, an
+`enum` its value name (its number when unknown), and `float`/`double` JSON numbers (`"NaN"`/`"Infinity"`/
+`"-Infinity"` as strings).
+
+**JSON → protobuf** — `ProtobufJson.parser(JsonParserEx, schema, messageName)` is a `ProtobufParser` that reads
+JSON and maps each value onto its descriptor field, so a wire `ProtobufGenerator` (or a whole pipeline) encodes it:
+
+```java
+ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, out.capacity());
+ProtobufPipeline pipeline = Protobuf.stream(ProtobufJson.parser(JsonEx.createParser(), schema, "Person"))
+    .into(ProtobufSink.of(generator, schema, "Person"));
+pipeline.reset();
+if (pipeline.feed(jsonIn, off, len) == ProtobufPipeline.Status.COMPLETED)
+{
+    int length = generator.length();   // Person wire bytes in out
+}
+```
+
+It streams windowed JSON input the same way the wire parser does — `nextEvent` returns `null` on a partial window
+and `resume` continues with the next — pulling one JSON token at a time with no document buffer (only the bounded
+per-message frame stack). One JSON leaf value must fit a single input window; message structure may split across
+windows at any token boundary.
+
+**protobuf → JSON** — `ProtobufJson.generator(JsonGeneratorEx, schema, messageName)` is a `ProtobufGenerator` that
+renders the wire write calls as JSON, resolving each field by number against the schema:
+
+```java
+ProtobufGenerator json = ProtobufJson.generator(JsonEx.createGenerator(), schema, "Person");
+json.wrap(out, 0, out.capacity());
+ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, "Person"))
+    .into(ProtobufSink.of(json, schema, "Person"));
+pipeline.reset();
+if (pipeline.feed(in, off, len) == ProtobufPipeline.Status.COMPLETED)
+{
+    json.flush();                 // finalize the root object (the protobuf root carries no end event)
+    int length = json.length();   // Person rendered as JSON in out
+}
+```
+
+The root object opens on the first write and is finalized by `flush()`; protobuf input may stream across windows,
+while the JSON output buffer must hold the whole document.
+
+Numbers are formatted into a reused `StringBuilder` and emitted via `writeNumber`/`write`, so the generator side
+adds no per-message allocation (`ProtobufJsonPipelineBM.protobufToJson` measures ≈ 0 B/op). The
+`ProtobufJsonParser` likewise reuses its frame stack and value buffers, and reads scalars and keys through the
+parser's non-owning `getStringView()` / `getKey()` char views — parsing integers with
+`Long.parseLong(CharSequence, …)`, resolving field names with the allocation-free `ProtobufMessage.field(
+CharSequence)`, and UTF-8-encoding strings straight into the reused value buffer — so no per-value
+`String`/`byte[]` is materialized. The small residual (`ProtobufJsonPipelineBM.jsonToProtobuf`, ≈ 100 B/op) is
+`float`/`double` values, which round-trip through a `String` because the JDK has no `CharSequence` floating-point
+parse.
+
+Bounded-buffer contract: no unbounded document is buffered either way. Malformed JSON, a non-object root, an
+unknown message, and an unknown enum value are rejected with a `ProtobufException` (the pipeline reports
+`REJECTED`). Unknown JSON fields are ignored and `null` values omitted, per the proto3 JSON mapping.
 
 ## Conformance
 

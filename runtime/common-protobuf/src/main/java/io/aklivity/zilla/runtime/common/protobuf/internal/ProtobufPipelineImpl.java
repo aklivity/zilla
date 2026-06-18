@@ -46,6 +46,7 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
 
     private boolean suspended;
     private boolean starved;
+    private String reason;
     // the event in flight across an output suspend, handed to head.resume() so no sink stores it
     private ProtobufEvent resumeEvent;
 
@@ -74,20 +75,27 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
         head.reset();
         suspended = false;
         starved = false;
+        reason = null;
         resumeEvent = null;
     }
 
     @Override
-    public long position()
+    public int remaining()
     {
-        return parser.position();
+        return parser.remaining();
+    }
+
+    @Override
+    public String reason()
+    {
+        return reason;
     }
 
     @Override
     public Status feed(
         DirectBuffer buffer,
         int offset,
-        int length,
+        int limit,
         boolean last)
     {
         Status status = Status.ADVANCED;
@@ -101,11 +109,11 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
             else if (starved)
             {
                 // input back-pressure: continue the in-flight message with the next window
-                parser.resume(buffer, offset, length, last);
+                parser.resume(buffer, offset, limit, last);
             }
             else
             {
-                parser.wrap(buffer, offset, length, last);
+                parser.wrap(buffer, offset, limit, last);
             }
             while (status == Status.ADVANCED && parser.hasNext())
             {
@@ -130,6 +138,7 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
         catch (ProtobufException ex)
         {
             status = Status.REJECTED;
+            reason = ex.getMessage();
         }
         return status;
     }

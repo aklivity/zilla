@@ -28,10 +28,12 @@ import static jakarta.json.stream.JsonParser.Event.VALUE_TRUE;
 import java.math.BigDecimal;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -49,6 +51,8 @@ import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.common.json.JsonController;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
+import io.aklivity.zilla.runtime.common.json.JsonParserEx;
+import io.aklivity.zilla.runtime.common.json.JsonParserEx.Mode;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonRefResolver;
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
@@ -61,10 +65,9 @@ import io.aklivity.zilla.runtime.common.json.JsonValidationException;
 
 /**
  * An immutable, compiled JSON Schema that validates an instance by consuming a streaming
- * {@link JsonParser} event stream without materializing a DOM. Compile once per schema and
- * reuse for the lifetime of the binding; {@link #validate(JsonParser)} and
- * {@link #validate(JsonParser, Consumer)} each create a per-call evaluator and may be called
- * repeatedly on the owning worker thread.
+ * {@link JsonParser} event stream without materializing a DOM. Compile once and reuse;
+ * {@link #validate(JsonParser)} and {@link #validate(JsonParser, Consumer)} hold no per-call
+ * state on the schema, so a compiled schema may be shared and validated concurrently.
  * <p>
  * Validation is event-driven and push-based: each event is fed to every live evaluator, so
  * combinators evaluate their candidate subschemas concurrently over the single stream without
@@ -79,6 +82,14 @@ public final class JsonSchemaImpl implements JsonSchema
 {
     private static final JsonSchemaImpl ANY = new JsonSchemaImpl(false);
     private static final JsonSchemaImpl NONE = new JsonSchemaImpl(true);
+
+    private static final String[] NO_KEYS = new String[0];
+    private static final JsonSchemaImpl[] NO_SCHEMAS = new JsonSchemaImpl[0];
+
+    // a lexeme of at most this many characters is always within long range, so getLong() is safe
+    private static final int LONG_DIGITS = 18;
+    private static final BigDecimal LONG_MIN = BigDecimal.valueOf(Long.MIN_VALUE);
+    private static final BigDecimal LONG_MAX = BigDecimal.valueOf(Long.MAX_VALUE);
 
     private static final JsonRefResolver LOCAL_ONLY = ref -> null;
 
@@ -113,11 +124,18 @@ public final class JsonSchemaImpl implements JsonSchema
     private final Set<JsonType> types;
     private final Set<String> enumCanons;
     private final String constantCanon;
+    // scalar-string const/enum: the decoded candidate(s), so a string instance is compared as a
+    // CharSequence without materializing its canonical (set only when no canonical fallback is needed)
+    private final String constString;
+    private final String[] enumStrings;
     private final BigDecimal minimum;
     private final BigDecimal maximum;
     private final BigDecimal exclusiveMinimum;
     private final BigDecimal exclusiveMaximum;
     private final BigDecimal multipleOf;
+    // every present numeric bound is an integer within long range (and multipleOf is non-zero): an
+    // integer instance can then be checked with long arithmetic instead of a BigDecimal per value
+    private final boolean integerBounds;
     private final int minLength;
     private final int maxLength;
     private final Pattern pattern;
@@ -143,6 +161,12 @@ public final class JsonSchemaImpl implements JsonSchema
     private final JsonSchemaImpl propertyNames;
     private final Map<String, Set<String>> dependentRequired;
     private final Map<String, JsonSchemaImpl> dependentSchemas;
+    // an object using only properties/required/additionalProperties: its keys can be matched as a
+    // CharSequence against these arrays, so a key is not materialized into a String to look up or track
+    private final boolean simpleObject;
+    private final String[] propertyKeys;
+    private final JsonSchemaImpl[] propertySchemas;
+    private final String[] requiredKeys;
     private final List<JsonSchemaImpl> allOf;
     private final List<JsonSchemaImpl> anyOf;
     private final List<JsonSchemaImpl> oneOf;
@@ -200,32 +224,28 @@ public final class JsonSchemaImpl implements JsonSchema
         return refs;
     }
 
+    // stateless so the schema stays immutable and shareable; a caller validating repeatedly reuses the
+    // validating parser from newParser(), which carries the mutable per-validation state
     @Override
     public boolean validate(
         JsonParser parser)
     {
-        Eval eval = eval();
-        ParserSource source = new ParserSource(parser);
-        Verdict verdict = Verdict.PENDING;
-        while (parser.hasNext() && verdict == Verdict.PENDING)
-        {
-            verdict = eval.feed(parser.next(), source);
-        }
-        return verdict == Verdict.VALID;
+        return drive(eval(), new ParserSource().wrap(parser), parser);
     }
 
-    /**
-     * Validates and reports each failing keyword + instance JSON-Pointer + message via
-     * {@code reporter}. Returns {@code true} iff every diagnostic-bearing failure cleared.
-     */
     @Override
     public boolean validate(
         JsonParser parser,
         Consumer<JsonSchemaDiagnostic> reporter)
     {
-        Trace trace = new Trace(reporter);
-        Eval eval = eval(trace);
-        ParserSource source = new ParserSource(parser);
+        return drive(eval(new Trace(reporter)), new ParserSource().wrap(parser), parser);
+    }
+
+    private static boolean drive(
+        Eval eval,
+        JsonSource source,
+        JsonParser parser)
+    {
         Verdict verdict = Verdict.PENDING;
         while (parser.hasNext() && verdict == Verdict.PENDING)
         {
@@ -310,6 +330,10 @@ public final class JsonSchemaImpl implements JsonSchema
         this.types = parseTypes(schema.get("type"));
         this.enumCanons = parseEnumCanons(schema.get("enum"));
         this.constantCanon = schema.has("const") ? canonicalizeNode(schema.get("const")) : null;
+        JsonNode constNode = schema.get("const");
+        this.constString = enumCanons == null && constNode != null && constNode.kind() == JsonNode.Kind.STRING
+            ? constNode.string() : null;
+        this.enumStrings = constantCanon == null ? enumStrings(schema.get("enum")) : null;
         BigDecimal minimumValue = number(schema, "minimum");
         BigDecimal maximumValue = number(schema, "maximum");
         BigDecimal exclusiveMin = exclusiveBound(schema, "exclusiveMinimum", minimumValue, context.draft());
@@ -323,6 +347,9 @@ public final class JsonSchemaImpl implements JsonSchema
         this.exclusiveMinimum = exclusiveMin;
         this.exclusiveMaximum = exclusiveMax;
         this.multipleOf = number(schema, "multipleOf");
+        this.integerBounds = longInteger(this.minimum) && longInteger(this.maximum) &&
+            longInteger(this.exclusiveMinimum) && longInteger(this.exclusiveMaximum) &&
+            (this.multipleOf == null || longInteger(this.multipleOf) && this.multipleOf.signum() != 0);
         this.minLength = integer(schema, "minLength");
         this.maxLength = integer(schema, "maxLength");
         this.pattern = schema.has("pattern") ? compilePattern(schema.get("pattern").string()) : null;
@@ -352,6 +379,11 @@ public final class JsonSchemaImpl implements JsonSchema
         this.propertyNames = schema.has("propertyNames") ? from(schema.get("propertyNames"), context) : null;
         this.dependentRequired = parseDependentRequired(schema);
         this.dependentSchemas = parseDependentSchemas(schema, context);
+        this.simpleObject = patternProperties == null && propertyNames == null &&
+            unevaluatedProperties == null && dependentRequired == null && dependentSchemas == null;
+        this.requiredKeys = required != null ? required.toArray(NO_KEYS) : NO_KEYS;
+        this.propertyKeys = properties != null ? properties.keySet().toArray(NO_KEYS) : NO_KEYS;
+        this.propertySchemas = properties != null ? properties.values().toArray(NO_SCHEMAS) : NO_SCHEMAS;
         this.allOf = parseSchemaArray(schema.get("allOf"), context);
         this.anyOf = parseSchemaArray(schema.get("anyOf"), context);
         this.oneOf = parseSchemaArray(schema.get("oneOf"), context);
@@ -374,11 +406,14 @@ public final class JsonSchemaImpl implements JsonSchema
         this.types = null;
         this.enumCanons = null;
         this.constantCanon = null;
+        this.constString = null;
+        this.enumStrings = null;
         this.minimum = null;
         this.maximum = null;
         this.exclusiveMinimum = null;
         this.exclusiveMaximum = null;
         this.multipleOf = null;
+        this.integerBounds = false;
         this.minLength = -1;
         this.maxLength = -1;
         this.pattern = null;
@@ -404,6 +439,10 @@ public final class JsonSchemaImpl implements JsonSchema
         this.propertyNames = null;
         this.dependentRequired = null;
         this.dependentSchemas = null;
+        this.simpleObject = false;
+        this.requiredKeys = NO_KEYS;
+        this.propertyKeys = NO_KEYS;
+        this.propertySchemas = NO_SCHEMAS;
         this.allOf = null;
         this.anyOf = null;
         this.oneOf = null;
@@ -425,11 +464,14 @@ public final class JsonSchemaImpl implements JsonSchema
         this.types = null;
         this.enumCanons = null;
         this.constantCanon = null;
+        this.constString = null;
+        this.enumStrings = null;
         this.minimum = null;
         this.maximum = null;
         this.exclusiveMinimum = null;
         this.exclusiveMaximum = null;
         this.multipleOf = null;
+        this.integerBounds = false;
         this.minLength = -1;
         this.maxLength = -1;
         this.pattern = null;
@@ -455,6 +497,10 @@ public final class JsonSchemaImpl implements JsonSchema
         this.propertyNames = null;
         this.dependentRequired = null;
         this.dependentSchemas = null;
+        this.simpleObject = false;
+        this.requiredKeys = NO_KEYS;
+        this.propertyKeys = NO_KEYS;
+        this.propertySchemas = NO_SCHEMAS;
         this.allOf = null;
         this.anyOf = null;
         this.oneOf = null;
@@ -761,6 +807,44 @@ public final class JsonSchemaImpl implements JsonSchema
         return result;
     }
 
+    // the decoded enum candidates when every one is a scalar string, else null (canonical path)
+    private static String[] enumStrings(
+        JsonNode enumNode)
+    {
+        String[] result = null;
+        if (enumNode != null)
+        {
+            List<String> strings = new ArrayList<>();
+            boolean allStrings = true;
+            for (JsonNode candidate : enumNode.elements())
+            {
+                if (candidate.kind() == JsonNode.Kind.STRING)
+                {
+                    strings.add(candidate.string());
+                }
+                else
+                {
+                    allStrings = false;
+                    break;
+                }
+            }
+            result = allStrings ? strings.toArray(NO_KEYS) : null;
+        }
+        return result;
+    }
+
+    private static boolean containsString(
+        String[] candidates,
+        CharSequence value)
+    {
+        boolean found = false;
+        for (int i = 0; !found && i < candidates.length; i++)
+        {
+            found = charsEqual(candidates[i], value);
+        }
+        return found;
+    }
+
     private static String canonicalizeNode(
         JsonNode node)
     {
@@ -955,12 +1039,16 @@ public final class JsonSchemaImpl implements JsonSchema
 
     private static final class ParserSource implements JsonSource
     {
-        private final JsonParser parser;
+        private JsonParser parser;
+        // non-null only when the delegate offers the zero-alloc char view; else getStringView falls back
+        private JsonParserEx parserEx;
 
-        private ParserSource(
+        private ParserSource wrap(
             JsonParser parser)
         {
             this.parser = parser;
+            this.parserEx = parser instanceof JsonParserEx ex ? ex : null;
+            return this;
         }
 
         @Override
@@ -972,7 +1060,7 @@ public final class JsonSchemaImpl implements JsonSchema
         @Override
         public CharSequence getStringView()
         {
-            return parser.getString();
+            return parserEx != null ? parserEx.getStringView() : parser.getString();
         }
 
         @Override
@@ -1018,57 +1106,6 @@ public final class JsonSchemaImpl implements JsonSchema
         }
     }
 
-    private static String canonicalize(
-        List<Token> tokens,
-        int[] position)
-    {
-        Token token = tokens.get(position[0]++);
-        String result;
-        switch (token.event)
-        {
-        case START_OBJECT:
-        {
-            List<String> members = new ArrayList<>();
-            while (tokens.get(position[0]).event != END_OBJECT)
-            {
-                String key = tokens.get(position[0]++).text;
-                members.add(quote(key) + ":" + canonicalize(tokens, position));
-            }
-            position[0]++;
-            members.sort(null);
-            result = "{" + String.join(",", members) + "}";
-            break;
-        }
-        case START_ARRAY:
-        {
-            List<String> elements = new ArrayList<>();
-            while (tokens.get(position[0]).event != END_ARRAY)
-            {
-                elements.add(canonicalize(tokens, position));
-            }
-            position[0]++;
-            result = "[" + String.join(",", elements) + "]";
-            break;
-        }
-        case VALUE_STRING:
-            result = quote(token.text);
-            break;
-        case VALUE_NUMBER:
-            result = normalizeNumber(token.text);
-            break;
-        case VALUE_TRUE:
-            result = "true";
-            break;
-        case VALUE_FALSE:
-            result = "false";
-            break;
-        default:
-            result = "null";
-            break;
-        }
-        return result;
-    }
-
     private static String quote(
         String value)
     {
@@ -1076,10 +1113,61 @@ public final class JsonSchemaImpl implements JsonSchema
     }
 
     private static String normalizeNumber(
-        String text)
+        CharSequence text)
     {
-        BigDecimal value = new BigDecimal(text);
-        return value.signum() == 0 ? "0" : value.stripTrailingZeros().toPlainString();
+        String result;
+        if (canonicalInteger(text))
+        {
+            // a plain integer literal is already canonical, so no BigDecimal
+            result = text.toString();
+        }
+        else
+        {
+            BigDecimal value = new BigDecimal(text.toString());
+            result = value.signum() == 0 ? "0" : value.stripTrailingZeros().toPlainString();
+        }
+        return result;
+    }
+
+    private static boolean canonicalInteger(
+        CharSequence text)
+    {
+        int length = text.length();
+        boolean digits = length > 0;
+        for (int i = 0; digits && i < length; i++)
+        {
+            char c = text.charAt(i);
+            digits = c >= '0' && c <= '9' || i == 0 && c == '-';
+        }
+        boolean canonical = digits;
+        if (canonical && text.charAt(0) == '-')
+        {
+            // "-0" normalizes to "0", so it is not canonical as-is
+            canonical = length >= 2 && !(length == 2 && text.charAt(1) == '0');
+        }
+        return canonical;
+    }
+
+    private static boolean charsEqual(
+        String name,
+        CharSequence key)
+    {
+        int length = name.length();
+        boolean equal = length == key.length();
+        for (int i = 0; equal && i < length; i++)
+        {
+            equal = name.charAt(i) == key.charAt(i);
+        }
+        return equal;
+    }
+
+    // absent, or an integer within long range
+    private static boolean longInteger(
+        BigDecimal value)
+    {
+        return value == null ||
+            value.stripTrailingZeros().scale() <= 0 &&
+            value.compareTo(LONG_MIN) >= 0 && value.compareTo(LONG_MAX) <= 0;
     }
 
     private static URI baseOf(
@@ -1435,6 +1523,293 @@ public final class JsonSchemaImpl implements JsonSchema
         }
     }
 
+    // Builds an array element's canonical text incrementally (no retained Token list, no recursive pass)
+    // for uniqueItems. Output matches canonicalize(List<Token>), so duplicate detection is unchanged.
+    private static final class UniqueCanon
+    {
+        private static final int MAX_DEPTH = 64;
+
+        private final Frame[] frames = new Frame[MAX_DEPTH];
+        private final StringBuilder quoted = new StringBuilder();
+        private int depth;
+        private String result;
+
+        private void reset()
+        {
+            depth = 0;
+            result = null;
+        }
+
+        private void feed(
+            Event event,
+            JsonSource parser)
+        {
+            switch (event)
+            {
+            case START_OBJECT:
+                frame(depth++).begin(true);
+                break;
+            case START_ARRAY:
+                frame(depth++).begin(false);
+                break;
+            case END_OBJECT:
+            case END_ARRAY:
+                emit(frames[--depth].render());
+                break;
+            case KEY_NAME:
+                frames[depth - 1].key(quoted(parser.getStringView()));
+                break;
+            case VALUE_STRING:
+                emit(quoted(parser.getStringView()));
+                break;
+            case VALUE_NUMBER:
+                emit(normalizeNumber(parser.getStringView()));
+                break;
+            case VALUE_TRUE:
+                emit("true");
+                break;
+            case VALUE_FALSE:
+                emit("false");
+                break;
+            default:
+                emit("null");
+                break;
+            }
+        }
+
+        private void emit(
+            String canon)
+        {
+            if (depth == 0)
+            {
+                result = canon;
+            }
+            else
+            {
+                frames[depth - 1].add(canon);
+            }
+        }
+
+        private Frame frame(
+            int index)
+        {
+            Frame frame = frames[index];
+            if (frame == null)
+            {
+                frame = new Frame();
+                frames[index] = frame;
+            }
+            return frame;
+        }
+
+        // mirrors quote(String): escapes only backslash and double-quote
+        private String quoted(
+            CharSequence value)
+        {
+            StringBuilder out = quoted;
+            out.setLength(0);
+            out.append('"');
+            for (int i = 0; i < value.length(); i++)
+            {
+                char c = value.charAt(i);
+                if (c == '"' || c == '\\')
+                {
+                    out.append('\\');
+                }
+                out.append(c);
+            }
+            out.append('"');
+            return out.toString();
+        }
+    }
+
+    private static final class Frame
+    {
+        // arrays stream into buffer in order; objects collect members as parallel key/value lists and
+        // assemble them sorted at render, so only one canonical String per container is allocated
+        private final StringBuilder buffer = new StringBuilder();
+        private final List<String> keys = new ArrayList<>();
+        private final List<String> values = new ArrayList<>();
+        private int[] order = new int[16];
+        private boolean object;
+        private boolean first;
+        private String key;
+
+        private void begin(
+            boolean object)
+        {
+            this.object = object;
+            this.first = true;
+            this.key = null;
+            buffer.setLength(0);
+            if (object)
+            {
+                keys.clear();
+                values.clear();
+            }
+            else
+            {
+                buffer.append('[');
+            }
+        }
+
+        private void key(
+            String quotedKey)
+        {
+            this.key = quotedKey;
+        }
+
+        private void add(
+            String canon)
+        {
+            if (object)
+            {
+                keys.add(key);
+                values.add(canon);
+                key = null;
+            }
+            else
+            {
+                if (!first)
+                {
+                    buffer.append(',');
+                }
+                buffer.append(canon);
+                first = false;
+            }
+        }
+
+        private String render()
+        {
+            String result;
+            if (object)
+            {
+                int count = keys.size();
+                sortMembers(count);
+                buffer.append('{');
+                for (int i = 0; i < count; i++)
+                {
+                    if (i > 0)
+                    {
+                        buffer.append(',');
+                    }
+                    int member = order[i];
+                    buffer.append(keys.get(member)).append(':').append(values.get(member));
+                }
+                buffer.append('}');
+            }
+            else
+            {
+                buffer.append(']');
+            }
+            result = buffer.toString();
+            return result;
+        }
+
+        // sort member indices by (quoted key, then value); a quoted key is self-delimiting, so this
+        // matches sorting the "key:value" members — the canonical form is unchanged
+        private void sortMembers(
+            int count)
+        {
+            if (count > order.length)
+            {
+                order = new int[Math.max(count, order.length << 1)];
+            }
+            for (int i = 0; i < count; i++)
+            {
+                order[i] = i;
+            }
+            for (int i = 1; i < count; i++)
+            {
+                int current = order[i];
+                int j = i - 1;
+                while (j >= 0 && compareMembers(order[j], current) > 0)
+                {
+                    order[j + 1] = order[j];
+                    j--;
+                }
+                order[j + 1] = current;
+            }
+        }
+
+        private int compareMembers(
+            int left,
+            int right)
+        {
+            int result = keys.get(left).compareTo(keys.get(right));
+            if (result == 0)
+            {
+                result = values.get(left).compareTo(values.get(right));
+            }
+            return result;
+        }
+    }
+
+    // Open-addressed set of canonical uniqueItems strings: probe table rather than HashSet, so no node
+    // per element. The string is kept and compared, so a hash collision never reports a false duplicate.
+    private static final class CanonSet
+    {
+        private String[] table;
+        private int mask;
+        private int size;
+
+        private CanonSet()
+        {
+            table = new String[16];
+            mask = table.length - 1;
+        }
+
+        private void clear()
+        {
+            Arrays.fill(table, null);
+            size = 0;
+        }
+
+        // false if an equal value was already present (a duplicate element)
+        private boolean add(
+            String value)
+        {
+            if (size + 1 > (table.length >> 1) + (table.length >> 2))
+            {
+                resize();
+            }
+            int index = value.hashCode() & mask;
+            String existing = table[index];
+            boolean added = true;
+            while (existing != null)
+            {
+                if (existing.equals(value))
+                {
+                    added = false;
+                    break;
+                }
+                index = index + 1 & mask;
+                existing = table[index];
+            }
+            if (added)
+            {
+                table[index] = value;
+                size++;
+            }
+            return added;
+        }
+
+        private void resize()
+        {
+            String[] old = table;
+            table = new String[old.length << 1];
+            mask = table.length - 1;
+            size = 0;
+            for (String value : old)
+            {
+                if (value != null)
+                {
+                    add(value);
+                }
+            }
+        }
+    }
+
     private boolean validateTokens(
         List<Token> tokens,
         DynScope scope)
@@ -1585,9 +1960,12 @@ public final class JsonSchemaImpl implements JsonSchema
         }
     }
 
-    private final class ValidatingParser implements JsonParser
+    // wraps a delegate parser, validating as the caller pulls via next(); a single thread reuses one
+    // instance across documents by re-wrapping the delegate and calling reset()
+    private final class ValidatingParser implements JsonParserEx
     {
         private final JsonParser delegate;
+        private final JsonParserEx delegateEx;
         private final boolean throwing;
         private final Consumer<JsonSchemaDiagnostic> reporter;
         private final List<JsonSchemaDiagnostic> diagnostics;
@@ -1602,11 +1980,12 @@ public final class JsonSchemaImpl implements JsonSchema
             Consumer<JsonSchemaDiagnostic> reporter)
         {
             this.delegate = delegate;
+            this.delegateEx = delegate instanceof JsonParserEx ex ? ex : null;
             this.throwing = throwing;
             this.reporter = reporter;
             this.diagnostics = throwing || reporter != null ? new ArrayList<>() : null;
             this.eval = diagnostics != null ? eval(new Trace(this::report)) : eval();
-            this.source = new ParserSource(delegate);
+            this.source = new ParserSource().wrap(delegate);
             this.verdict = Verdict.PENDING;
         }
 
@@ -1671,6 +2050,81 @@ public final class JsonSchemaImpl implements JsonSchema
         public void close()
         {
             delegate.close();
+        }
+
+        // rearms for the next document: resets the delegate's parse state and this validation pass
+        @Override
+        public void reset()
+        {
+            if (delegateEx != null)
+            {
+                delegateEx.reset();
+            }
+            eval.reset();
+            verdict = Verdict.PENDING;
+            if (diagnostics != null)
+            {
+                diagnostics.clear();
+            }
+        }
+
+        // streaming-over-buffers surface, delegated; validation runs on the next()/getString() pull path
+        @Override
+        public JsonParserEx wrap(
+            DirectBuffer buffer,
+            int offset,
+            int limit)
+        {
+            delegateEx.wrap(buffer, offset, limit);
+            return this;
+        }
+
+        @Override
+        public JsonParserEx wrap(
+            DirectBuffer buffer,
+            int offset,
+            int limit,
+            boolean last)
+        {
+            delegateEx.wrap(buffer, offset, limit, last);
+            return this;
+        }
+
+        @Override
+        public int remaining()
+        {
+            return delegateEx.remaining();
+        }
+
+        @Override
+        public boolean hasNextEvent()
+        {
+            return delegateEx.hasNextEvent();
+        }
+
+        @Override
+        public JsonEvent nextEvent(
+            Mode mode)
+        {
+            return delegateEx.nextEvent(mode);
+        }
+
+        @Override
+        public CharSequence getStringView()
+        {
+            return delegateEx != null ? delegateEx.getStringView() : delegate.getString();
+        }
+
+        @Override
+        public DirectBuffer getSegment()
+        {
+            return delegateEx.getSegment();
+        }
+
+        @Override
+        public boolean deferredBytes()
+        {
+            return delegateEx.deferredBytes();
         }
 
         private void report(
@@ -1800,13 +2254,27 @@ public final class JsonSchemaImpl implements JsonSchema
         private Eval[] directChildren;
         private Eval containsChild;
         private int containsMatched;
-        private Set<String> uniqueSeen;
-        private List<Token> uniqueTokens;
-        private final List<Token> valueTokens;
+        private CanonSet uniqueSeen;
+        private UniqueCanon uniqueCanon;
+        private boolean uniqueElement;
+        private final UniqueCanon constCanon;
+        private boolean scalarStringOk;
         private Eval refEval;
         private Eval dynEval;
+        // items/contains evals reused across this array's elements (reset on next use, not by reset())
+        private Eval itemEval;
+        private JsonSchemaImpl itemEvalSchema;
+        private Eval containsEval;
+        // property evals reused across an object's keys, by applicable schema; gated on reused so a
+        // single-use object never pays for the map
+        private Map<JsonSchemaImpl, Eval> propEvals;
+        private boolean reused;
 
         private final boolean annotate;
+        // keys matched/tracked as a CharSequence (no String): a simple object, with neither annotation
+        // nor diagnostics needing the materialized key
+        private final boolean fastKeys;
+        private boolean[] requiredSeen;
         private Set<String> evaluatedProps;
         private BitSet evaluatedItems;
         private String currentKey;
@@ -1823,7 +2291,8 @@ public final class JsonSchemaImpl implements JsonSchema
             this.trace = trace;
             this.dynScope = context != null ? parentScope.push(context.base.toString()) : parentScope;
             this.annotate = context != null && is2019Plus(context.draft());
-            this.valueTokens = constantCanon != null || enumCanons != null ? new ArrayList<>() : null;
+            this.constCanon = (constantCanon != null || enumCanons != null) && constString == null && enumStrings == null
+                ? new UniqueCanon() : null;
             // allOf branches must all match, so a failing branch is a genuine failure and reports
             // through the shared trace; the remaining combinators select among candidate branches
             // where a non-matching branch is expected, so they evaluate under Trace.NONE and only
@@ -1837,6 +2306,149 @@ public final class JsonSchemaImpl implements JsonSchema
             this.elseEval = elseSchema != null ? elseSchema.eval(Trace.NONE, dynScope) : null;
             this.dependentSchemaEvals = evalsOfMap(dependentSchemas, Trace.NONE);
             this.trackKeys = required != null || dependentRequired != null || dependentSchemaEvals != null;
+            this.fastKeys = simpleObject && !annotate && !trace.active();
+        }
+
+        // resets to pre-feed state for reuse: eager combinator children reset in place, lazy children
+        // (directChild, refEval, dynEval) dropped, the itemEval/containsEval/propEvals caches left intact
+        private void reset()
+        {
+            reused = true;
+            started = false;
+            done = false;
+            result = null;
+            depth = 0;
+            directInvalid = false;
+            object = false;
+            array = false;
+            count = 0;
+            currentIndex = 0;
+            directChild = null;
+            directChildMark = 0;
+            directChildren = null;
+            containsChild = null;
+            containsMatched = 0;
+            uniqueElement = false;
+            scalarStringOk = false;
+            refEval = null;
+            dynEval = null;
+            currentKey = null;
+            childTokens = null;
+            // per-instance collections are cleared and reused, allocated once lazily in onOpen
+            if (seen != null)
+            {
+                seen.clear();
+            }
+            if (uniqueSeen != null)
+            {
+                uniqueSeen.clear();
+            }
+            if (constCanon != null)
+            {
+                constCanon.reset();
+            }
+            if (evaluatedProps != null)
+            {
+                evaluatedProps.clear();
+            }
+            if (evaluatedItems != null)
+            {
+                evaluatedItems.clear();
+            }
+            if (propValues != null)
+            {
+                propValues.clear();
+            }
+            if (itemValues != null)
+            {
+                itemValues.clear();
+            }
+            resetEach(allOfEvals);
+            resetEach(anyOfEvals);
+            resetEach(oneOfEvals);
+            resetOne(notEval);
+            resetOne(ifEval);
+            resetOne(thenEval);
+            resetOne(elseEval);
+            if (dependentSchemaEvals != null)
+            {
+                for (Eval eval : dependentSchemaEvals.values())
+                {
+                    eval.reset();
+                }
+            }
+        }
+
+        private static void resetOne(
+            Eval eval)
+        {
+            if (eval != null)
+            {
+                eval.reset();
+            }
+        }
+
+        private static void resetEach(
+            Eval[] evals)
+        {
+            if (evals != null)
+            {
+                for (Eval eval : evals)
+                {
+                    eval.reset();
+                }
+            }
+        }
+
+        // reuses the cached element eval when the item schema is index-independent (a single items schema
+        // or the ANY fallback); a prefixItems tuple varies per index and falls through to a fresh eval
+        private Eval itemEvalFor(
+            JsonSchemaImpl schema)
+        {
+            Eval result;
+            if (itemEval != null && itemEvalSchema == schema)
+            {
+                itemEval.reset();
+                result = itemEval;
+            }
+            else
+            {
+                result = schema.eval(trace, dynScope);
+                itemEval = result;
+                itemEvalSchema = schema;
+            }
+            return result;
+        }
+
+        // reuses the cached eval for a property's applicable schema, so object keys (and the same keys
+        // across array-of-object elements) need no fresh eval per key
+        private Eval propEvalFor(
+            JsonSchemaImpl schema)
+        {
+            Eval result;
+            if (reused)
+            {
+                if (propEvals == null)
+                {
+                    propEvals = new IdentityHashMap<>();
+                }
+                result = propEvals.get(schema);
+                if (result == null)
+                {
+                    result = schema.eval(trace, dynScope);
+                    propEvals.put(schema, result);
+                }
+                else
+                {
+                    result.reset();
+                }
+            }
+            else
+            {
+                // single-use object: no reuse to amortize a cache, so evaluate fresh
+                result = schema.eval(trace, dynScope);
+            }
+            return result;
         }
 
         private Verdict feed(
@@ -1850,9 +2462,9 @@ public final class JsonSchemaImpl implements JsonSchema
             }
             else
             {
-                if (valueTokens != null)
+                if (constCanon != null)
                 {
-                    valueTokens.add(new Token(event, tokenText(event, parser)));
+                    constCanon.feed(event, parser);
                 }
                 if (refApplicator != null && refEval == null)
                 {
@@ -1921,12 +2533,26 @@ public final class JsonSchemaImpl implements JsonSchema
             {
             case START_OBJECT:
                 object = true;
-                seen = trackKeys ? new HashSet<>() : null;
-                if (annotate)
+                if (fastKeys)
+                {
+                    if (requiredSeen == null)
+                    {
+                        requiredSeen = new boolean[requiredKeys.length];
+                    }
+                    else
+                    {
+                        Arrays.fill(requiredSeen, false);
+                    }
+                }
+                else if (trackKeys && seen == null)
+                {
+                    seen = new HashSet<>();
+                }
+                if (annotate && evaluatedProps == null)
                 {
                     evaluatedProps = new HashSet<>();
                 }
-                if (unevaluatedProperties != null)
+                if (unevaluatedProperties != null && propValues == null)
                 {
                     propValues = new LinkedHashMap<>();
                 }
@@ -1938,11 +2564,11 @@ public final class JsonSchemaImpl implements JsonSchema
                 break;
             case START_ARRAY:
                 array = true;
-                if (annotate)
+                if (annotate && evaluatedItems == null)
                 {
                     evaluatedItems = new BitSet();
                 }
-                if (unevaluatedItems != null)
+                if (unevaluatedItems != null && itemValues == null)
                 {
                     itemValues = new ArrayList<>();
                 }
@@ -1954,6 +2580,13 @@ public final class JsonSchemaImpl implements JsonSchema
                 break;
             case VALUE_STRING:
                 checkStringReport(parser);
+                if (constString != null || enumStrings != null)
+                {
+                    CharSequence value = parser.getStringView();
+                    scalarStringOk = constString != null
+                        ? charsEqual(constString, value)
+                        : containsString(enumStrings, value);
+                }
                 break;
             case VALUE_NUMBER:
                 checkNumberReport(parser);
@@ -2013,8 +2646,8 @@ public final class JsonSchemaImpl implements JsonSchema
         private void checkStringReport(
             JsonSource parser)
         {
-            String value = parser.getString();
-            int length = value.codePointCount(0, value.length());
+            CharSequence value = parser.getStringView();
+            int length = Character.codePointCount(value, 0, value.length());
             if (types != null && !types.contains(JsonType.STRING))
             {
                 directInvalid = true;
@@ -2040,10 +2673,69 @@ public final class JsonSchemaImpl implements JsonSchema
         private void checkNumberReport(
             JsonSource parser)
         {
-            BigDecimal value = parser.getBigDecimal();
-            boolean integral = context != null && context.draft() != Draft.DRAFT_04
+            boolean lexicalIntegral = parser.isIntegralNumber();
+            boolean bounded = minimum != null || maximum != null ||
+                exclusiveMinimum != null || exclusiveMaximum != null || multipleOf != null;
+            if (bounded && integerBounds && lexicalIntegral && parser.getStringView().length() <= LONG_DIGITS)
+            {
+                // integer instance against integer bounds: compare with long arithmetic, no BigDecimal
+                checkIntegerBounds(parser, parser.getLong());
+            }
+            else
+            {
+                checkDecimalReport(parser, lexicalIntegral, bounded);
+            }
+        }
+
+        private void checkIntegerBounds(
+            JsonSource parser,
+            long value)
+        {
+            boolean typeOk = types == null || types.contains(JsonType.NUMBER) || types.contains(JsonType.INTEGER);
+            if (!typeOk)
+            {
+                directInvalid = true;
+                trace.report("type", "expected " + typesText() + " but was number", parser);
+            }
+            else if (minimum != null && value < minimum.longValue())
+            {
+                directInvalid = true;
+                trace.report("minimum", value + " < minimum " + minimum, parser);
+            }
+            else if (maximum != null && value > maximum.longValue())
+            {
+                directInvalid = true;
+                trace.report("maximum", value + " > maximum " + maximum, parser);
+            }
+            else if (exclusiveMinimum != null && value <= exclusiveMinimum.longValue())
+            {
+                directInvalid = true;
+                trace.report("exclusiveMinimum", value + " <= exclusiveMinimum " + exclusiveMinimum, parser);
+            }
+            else if (exclusiveMaximum != null && value >= exclusiveMaximum.longValue())
+            {
+                directInvalid = true;
+                trace.report("exclusiveMaximum", value + " >= exclusiveMaximum " + exclusiveMaximum, parser);
+            }
+            else if (multipleOf != null && value % multipleOf.longValue() != 0)
+            {
+                directInvalid = true;
+                trace.report("multipleOf", value + " is not a multiple of " + multipleOf, parser);
+            }
+        }
+
+        private void checkDecimalReport(
+            JsonSource parser,
+            boolean lexicalIntegral,
+            boolean bounded)
+        {
+            boolean modernDraft = context != null && context.draft() != Draft.DRAFT_04;
+            // a BigDecimal is needed only for a bounds check, or to decide integrality of a
+            // fractional-looking lexeme (1.0, 6e2) under a modern draft — never for an unbounded integer
+            BigDecimal value = bounded || modernDraft && !lexicalIntegral ? parser.getBigDecimal() : null;
+            boolean integral = modernDraft && value != null
                 ? value.signum() == 0 || value.stripTrailingZeros().scale() <= 0
-                : parser.isIntegralNumber();
+                : lexicalIntegral;
             boolean typeOk = types == null ||
                 types.contains(JsonType.NUMBER) ||
                 integral && types.contains(JsonType.INTEGER);
@@ -2103,7 +2795,11 @@ public final class JsonSchemaImpl implements JsonSchema
         {
             if (event == END_OBJECT)
             {
-                if (required != null && !seen.containsAll(required))
+                if (fastKeys)
+                {
+                    checkRequiredFast();
+                }
+                else if (required != null && !seen.containsAll(required))
                 {
                     directInvalid = true;
                     Set<String> missing = new LinkedHashSet<>(required);
@@ -2120,6 +2816,10 @@ public final class JsonSchemaImpl implements JsonSchema
                     directInvalid = true;
                     trace.report("maxProperties", count + " > maxProperties " + maxProperties, parser);
                 }
+            }
+            else if (fastKeys)
+            {
+                onFastKey(parser);
             }
             else
             {
@@ -2140,6 +2840,51 @@ public final class JsonSchemaImpl implements JsonSchema
                     trace.report("propertyNames", "property name '" + key + "' violates propertyNames", parser);
                 }
                 setApplicableFor(key);
+            }
+        }
+
+        // matches the key as a CharSequence against the schema's property and required key arrays, so a
+        // simple object's keys are validated and required-tracked without materializing a String
+        private void onFastKey(
+            JsonSource parser)
+        {
+            CharSequence key = parser.getStringView();
+            count++;
+            for (int i = 0; i < requiredKeys.length; i++)
+            {
+                if (charsEqual(requiredKeys[i], key))
+                {
+                    requiredSeen[i] = true;
+                    break;
+                }
+            }
+            JsonSchemaImpl schema = null;
+            for (int i = 0; i < propertyKeys.length; i++)
+            {
+                if (charsEqual(propertyKeys[i], key))
+                {
+                    schema = propertySchemas[i];
+                    break;
+                }
+            }
+            if (schema == null)
+            {
+                schema = additionalSchema != null ? additionalSchema : additionalAllowed ? ANY : NONE;
+            }
+            directChildMark = 0;
+            directChild = propEvalFor(schema);
+            directChildren = null;
+        }
+
+        private void checkRequiredFast()
+        {
+            for (int i = 0; i < requiredKeys.length; i++)
+            {
+                if (!requiredSeen[i])
+                {
+                    directInvalid = true;
+                    break;
+                }
             }
         }
 
@@ -2182,22 +2927,32 @@ public final class JsonSchemaImpl implements JsonSchema
                 count++;
                 currentIndex = index;
                 directChildMark = trace.push(index);
-                directChild = elementSchema(index).eval(trace, dynScope);
+                directChild = itemEvalFor(elementSchema(index));
                 if (annotate && coversItem(index))
                 {
                     evaluatedItems.set(index);
                 }
                 if (contains != null)
                 {
-                    containsChild = contains.eval(Trace.NONE, dynScope);
+                    if (containsEval == null)
+                    {
+                        containsEval = contains.eval(Trace.NONE, dynScope);
+                    }
+                    else
+                    {
+                        containsEval.reset();
+                    }
+                    containsChild = containsEval;
                 }
                 if (uniqueItems)
                 {
                     if (uniqueSeen == null)
                     {
-                        uniqueSeen = new HashSet<>();
+                        uniqueSeen = new CanonSet();
+                        uniqueCanon = new UniqueCanon();
                     }
-                    uniqueTokens = new ArrayList<>();
+                    uniqueCanon.reset();
+                    uniqueElement = true;
                 }
                 if (itemValues != null)
                 {
@@ -2239,9 +2994,9 @@ public final class JsonSchemaImpl implements JsonSchema
             Event event,
             JsonSource parser)
         {
-            if (uniqueTokens != null)
+            if (uniqueElement)
             {
-                uniqueTokens.add(new Token(event, tokenText(event, parser)));
+                uniqueCanon.feed(event, parser);
             }
             if (childTokens != null)
             {
@@ -2295,14 +3050,14 @@ public final class JsonSchemaImpl implements JsonSchema
             {
                 directChild = null;
                 directChildren = null;
-                if (uniqueTokens != null)
+                if (uniqueElement)
                 {
-                    if (!uniqueSeen.add(canonicalize(uniqueTokens, new int[] {0})))
+                    if (!uniqueSeen.add(uniqueCanon.result))
                     {
                         directInvalid = true;
                         trace.report("uniqueItems", "duplicate array element", parser);
                     }
-                    uniqueTokens = null;
+                    uniqueElement = false;
                 }
                 if (childTokens != null)
                 {
@@ -2332,7 +3087,7 @@ public final class JsonSchemaImpl implements JsonSchema
                 {
                     schema = additionalSchema != null ? additionalSchema : additionalAllowed ? ANY : NONE;
                 }
-                directChild = schema.eval(trace, dynScope);
+                directChild = propEvalFor(schema);
                 directChildren = null;
             }
             else
@@ -2369,7 +3124,7 @@ public final class JsonSchemaImpl implements JsonSchema
         {
             if (applicable.size() == 1)
             {
-                directChild = applicable.get(0).eval(trace, dynScope);
+                directChild = propEvalFor(applicable.get(0));
                 directChildren = null;
             }
             else
@@ -2440,9 +3195,25 @@ public final class JsonSchemaImpl implements JsonSchema
                 valid = false;
                 trace.report("$dynamicRef", "instance failed dynamically referenced schema", parser);
             }
-            if (valid && valueTokens != null)
+            if (valid && constString != null)
             {
-                String canon = canonicalize(valueTokens, new int[] {0});
+                valid = scalarStringOk;
+                if (!valid)
+                {
+                    trace.report("const", "value does not equal const", parser);
+                }
+            }
+            else if (valid && enumStrings != null)
+            {
+                valid = scalarStringOk;
+                if (!valid)
+                {
+                    trace.report("enum", "value not in enum", parser);
+                }
+            }
+            else if (valid && constCanon != null)
+            {
+                String canon = constCanon.result;
                 if (constantCanon != null && !constantCanon.equals(canon))
                 {
                     valid = false;

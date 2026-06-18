@@ -24,19 +24,19 @@ import org.agrona.DirectBuffer;
  * a sub-interface of the standard type that drives a {@link JsonStream} pipeline.
  * <p>
  * Obtain an instance from {@link JsonEx#createParser()} (the implementation is internal). Reuse a
- * single instance per worker thread, calling {@link #wrap(DirectBuffer, int, int)} to borrow each frame's
+ * single instance per thread, calling {@link #wrap(DirectBuffer, int, int)} to borrow each frame's
  * buffer before pumping.
  */
 public interface JsonParserEx extends JsonParser
 {
     /**
-     * Borrows {@code buffer} as the input window for the next pump, starting at {@code offset} for
-     * {@code length} bytes. The buffer is read in place for the duration of the pump.
+     * Borrows {@code buffer} as the input window for the next pump, the half-open range
+     * {@code [offset, limit)}. The buffer is read in place for the duration of the pump.
      * <p>
      * The window is also the fragmentation bound: a value that fits the window is delivered whole; a
      * value whose own bytes fill the window without completing is delivered as fragments — the same
      * structured event repeated with {@code deferredBytes()} {@code true} until the value completes.
-     * The caller carries any unconsumed tail (up to {@code position()}) into the next window, so a
+     * The caller carries any unconsumed tail ({@code remaining()} bytes) into the next window, so a
      * value that merely straddles a window boundary is reassembled whole. Consequently a single whole
      * {@code getString()} and {@code getInt()}/{@code getLong()} are valid only for a value that fits
      * one window; a larger value is read by accumulating {@code getString()} fragments (or splicing
@@ -45,18 +45,18 @@ public interface JsonParserEx extends JsonParser
     JsonParserEx wrap(
         DirectBuffer buffer,
         int offset,
-        int length);
+        int limit);
 
     /**
-     * Wraps the next input window of a chunked feed; {@code last} marks the final window, so its EOF is the
-     * terminal delimiter (completing a trailing scalar, rejecting a truncated value) rather than a frame
-     * boundary with more bytes to come. The three-argument {@link #wrap(DirectBuffer, int, int)} is the
-     * {@code last == true} shorthand.
+     * Wraps the next input window {@code [offset, limit)} of a chunked feed; {@code last} marks the final
+     * window, so its EOF is the terminal delimiter (completing a trailing scalar, rejecting a truncated
+     * value) rather than a frame boundary with more bytes to come. The three-argument
+     * {@link #wrap(DirectBuffer, int, int)} is the {@code last == true} shorthand.
      */
     JsonParserEx wrap(
         DirectBuffer buffer,
         int offset,
-        int length,
+        int limit,
         boolean last);
 
     /**
@@ -69,11 +69,14 @@ public interface JsonParserEx extends JsonParser
     void reset();
 
     /**
-     * The number of input bytes committed since the document began — always at a whole-token boundary. On
-     * starvation (a window consumed before the value completes) everything at or after this position is the
-     * unconsumed tail the caller retains and re-presents, contiguous, in the next window.
+     * The number of bytes at the tail of the current window not yet consumed — what the caller retains and
+     * re-presents, contiguous, at the front of the next window. The window-relative peer of the absolute
+     * {@code getLocation().getStreamOffset()}: a caller buffering across windows keeps exactly this many bytes
+     * without tracking the window's absolute base. Reported at a whole-token boundary, so on starvation it is
+     * the length of the partial trailing unit (e.g. a multibyte character split across the window); zero once
+     * the window is fully consumed.
      */
-    long position();
+    int remaining();
 
     /**
      * Whether another {@link #nextEvent()} is available — {@code true} until the document's
@@ -83,10 +86,34 @@ public interface JsonParserEx extends JsonParser
     boolean hasNextEvent();
 
     /**
-     * Advances and returns the next {@link JsonEvent} of the pipeline event stream — a superset of the
-     * standard {@code jakarta.json.stream.JsonParser.Event} adding document framing and segment delivery.
+     * How {@link #nextEvent(Mode)} delivers the value at the current boundary: {@code STRUCTURED} emits the
+     * typed event stream; {@code SEGMENTED} opts the value (and its descendants) in to verbatim delivery as a
+     * {@link JsonEvent#segmented()} run, read via {@link #getSegment()}. Best-effort and consulted only at a
+     * value boundary; for every other event it is ignored.
      */
-    JsonEvent nextEvent();
+    enum Mode
+    {
+        STRUCTURED,
+        SEGMENTED
+    }
+
+    /**
+     * Advances and returns the next {@link JsonEvent} in {@link Mode#STRUCTURED} mode.
+     */
+    default JsonEvent nextEvent()
+    {
+        return nextEvent(Mode.STRUCTURED);
+    }
+
+    /**
+     * Advances and returns the next {@link JsonEvent} of the pipeline event stream — a superset of the
+     * standard {@code jakarta.json.stream.JsonParser.Event} adding document framing and segment delivery. At a
+     * value boundary {@code mode} chooses structured events ({@link Mode#STRUCTURED}) or a verbatim segment run
+     * ({@link Mode#SEGMENTED}); elsewhere it is ignored. This is the mode-driven peer of a stage's
+     * {@link JsonController#segmentable()}, so the segment request need not narrow onto the parser surface.
+     */
+    JsonEvent nextEvent(
+        Mode mode);
 
     /**
      * A non-owning, on-stack {@link CharSequence} view of the current scalar token — a string value, a
@@ -97,4 +124,30 @@ public interface JsonParserEx extends JsonParser
      * so a caller holding a {@code JsonParserEx} reads scalars without narrowing to {@link JsonSource}.
      */
     CharSequence getStringView();
+
+    /**
+     * Valid only when the current event is {@link JsonEvent#segmented()}; non-owning view of the current
+     * contiguous slice, valid on-stack only. The {@link JsonSource#getSegment()} accessor promoted onto the
+     * parser surface so a pipeline exposes it to a stage without narrowing to {@link JsonSource}.
+     */
+    DirectBuffer getSegment();
+
+    /**
+     * Whether the current value has bytes still deferred to later events — {@code true} while more of this same
+     * value follows (the value is being streamed across input frames because it exceeds the input window),
+     * {@code false} when this event completes it. The {@link JsonSource#deferredBytes()} accessor promoted onto
+     * the parser surface.
+     */
+    boolean deferredBytes();
+
+    /**
+     * Reports {@code sourceBytes} source bytes consumed by a verbatim segment write so the parser advances
+     * its {@code getLocation().getStreamOffset()} and re-exposes the value remainder on resume — the
+     * output-side pushback that lets a terminal sink stream a length-delimited value without keeping its own
+     * offset. The default does nothing, for a parser whose values are never delivered in bounded pieces.
+     */
+    default void consumed(
+        int sourceBytes)
+    {
+    }
 }

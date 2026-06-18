@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public final class YamlDocumentParser
@@ -30,6 +31,7 @@ public final class YamlDocumentParser
     private static final Pattern INTEGER_PATTERN = Pattern.compile("-?(?:0|[1-9][0-9]*)");
     private static final Pattern FLOAT_PATTERN = Pattern.compile(
         "-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?:[eE][+-]?[0-9]+)|-?(?:0|[1-9][0-9]*)\\.[0-9]+");
+    private static final Pattern FLOW_FOLD_PATTERN = Pattern.compile("[ \\t]*\\R[ \\t]*");
 
     private final List<Line> lines;
     private final Map<String, YamlNode> anchors;
@@ -38,6 +40,10 @@ public final class YamlDocumentParser
     private final String source;
     private final YamlConfiguration config;
     private final List<String> comments;
+    private Matcher numberMatcher;
+    private Matcher hexIntegerMatcher;
+    private Matcher integerMatcher;
+    private Matcher floatMatcher;
     private int index;
 
     private YamlDocumentParser(
@@ -1196,6 +1202,42 @@ public final class YamlDocumentParser
         return value.isEmpty() ? value : value + "\n";
     }
 
+    private Matcher numberMatcher()
+    {
+        if (numberMatcher == null)
+        {
+            numberMatcher = NUMBER_PATTERN.matcher("");
+        }
+        return numberMatcher;
+    }
+
+    private Matcher hexIntegerMatcher()
+    {
+        if (hexIntegerMatcher == null)
+        {
+            hexIntegerMatcher = HEX_INTEGER_PATTERN.matcher("");
+        }
+        return hexIntegerMatcher;
+    }
+
+    private Matcher integerMatcher()
+    {
+        if (integerMatcher == null)
+        {
+            integerMatcher = INTEGER_PATTERN.matcher("");
+        }
+        return integerMatcher;
+    }
+
+    private Matcher floatMatcher()
+    {
+        if (floatMatcher == null)
+        {
+            floatMatcher = FLOAT_PATTERN.matcher("");
+        }
+        return floatMatcher;
+    }
+
     private YamlScalarNode parseScalar(
         String text,
         String tag,
@@ -1223,7 +1265,7 @@ public final class YamlDocumentParser
         case "true" -> YamlScalarNode.literal(YamlScalarType.TRUE, line.line, line.column, line.offset);
         case "false" -> YamlScalarNode.literal(YamlScalarType.FALSE, line.line, line.column, line.offset);
         case "null", "~" -> YamlScalarNode.literal(YamlScalarType.NULL, line.line, line.column, line.offset);
-        default -> HEX_INTEGER_PATTERN.matcher(text).matches() || NUMBER_PATTERN.matcher(text).matches() ?
+        default -> hexIntegerMatcher().reset(text).matches() || numberMatcher().reset(text).matches() ?
             YamlScalarNode.number(numberText(text), line.line, line.column, line.offset) :
             YamlScalarNode.string(text, line.line, line.column, line.offset);
         };
@@ -1336,7 +1378,7 @@ public final class YamlDocumentParser
         case "tag:yaml.org,2002:int" ->
         {
             String scalar = scalarText(value, text);
-            if (!HEX_INTEGER_PATTERN.matcher(scalar).matches() && !INTEGER_PATTERN.matcher(scalar).matches())
+            if (!hexIntegerMatcher().reset(scalar).matches() && !integerMatcher().reset(scalar).matches())
             {
                 throw error("Invalid tagged integer scalar", line);
             }
@@ -1346,7 +1388,7 @@ public final class YamlDocumentParser
         {
             String scalar = scalarText(value, text);
             rejectNonFinite(scalar, line);
-            if (!FLOAT_PATTERN.matcher(scalar).matches() && !INTEGER_PATTERN.matcher(scalar).matches())
+            if (!floatMatcher().reset(scalar).matches() && !integerMatcher().reset(scalar).matches())
             {
                 throw error("Invalid tagged float scalar", line);
             }
@@ -2545,6 +2587,7 @@ public final class YamlDocumentParser
         private final Map<String, String> tagHandles;
         private final YamlConfiguration config;
         private int cursor;
+        private YamlDocumentParser delegate;
 
         private FlowParser(
             String text,
@@ -2558,6 +2601,24 @@ public final class YamlDocumentParser
             this.anchors = anchors;
             this.tagHandles = tagHandles;
             this.config = config;
+        }
+
+        private YamlDocumentParser delegate()
+        {
+            if (delegate == null)
+            {
+                delegate = new YamlDocumentParser(new Document(List.of(), new YamlLocation(1, 1, 0), "",
+                    DocumentScanner.defaultTagHandles(), config));
+            }
+            return delegate;
+        }
+
+        private YamlNode applyFlowTag(
+            YamlNode value,
+            String tag,
+            Line line)
+        {
+            return delegate().applyTag(value, tag, scalarText(value, ""), line);
         }
 
         private YamlNode parse()
@@ -2585,9 +2646,7 @@ public final class YamlDocumentParser
             }
 
             ValueSpec spec = parseFlowDecorators();
-            new YamlDocumentParser(new Document(List.of(), new YamlLocation(1, 1, 0), "",
-                DocumentScanner.defaultTagHandles(), config))
-                .validateSpec(spec, line);
+            delegate().validateSpec(spec, line);
             YamlNode value;
             if (spec.alias != null)
             {
@@ -2602,7 +2661,7 @@ public final class YamlDocumentParser
                 case '\'', '"' -> parseQuotedScalar();
                 default -> parseBareScalar();
                 };
-                value = applyFlowTag(value, spec.tag, line, config);
+                value = applyFlowTag(value, spec.tag, line);
                 if (spec.anchor != null)
                 {
                     if (!config.anchors())
@@ -2715,9 +2774,7 @@ public final class YamlDocumentParser
                     {
                         throw error("YAML merge keys are disabled", line);
                     }
-                    new YamlDocumentParser(new Document(List.of(), new YamlLocation(1, 1, text.length()), "",
-                        DocumentScanner.defaultTagHandles(), config))
-                        .merge(object, value, line);
+                    delegate().merge(object, value, line);
                 }
                 else
                 {
@@ -2916,9 +2973,7 @@ public final class YamlDocumentParser
 
             int mark = cursor;
             ValueSpec spec = parseFlowDecorators();
-            new YamlDocumentParser(new Document(List.of(), new YamlLocation(1, 1, 0), "",
-                DocumentScanner.defaultTagHandles(), config))
-                .validateSpec(spec, line);
+            delegate().validateSpec(spec, line);
             if (spec.alias != null)
             {
                 return new KeySpec(null, resolve(spec.alias));
@@ -2931,7 +2986,7 @@ public final class YamlDocumentParser
                 case '{', '[' -> parseValue();
                 default -> parseBareKeyScalar();
                 };
-                key = applyFlowTag(key, spec.tag, line, config);
+                key = applyFlowTag(key, spec.tag, line);
                 if (spec.anchor != null)
                 {
                     if (!config.anchors())
@@ -2980,15 +3035,30 @@ public final class YamlDocumentParser
             {
                 throw error("Document markers are not allowed in flow collection", line);
             }
-            return new YamlDocumentParser(new Document(List.of(), new YamlLocation(1, 1, text.length()), "",
-                DocumentScanner.defaultTagHandles(), config))
-                .parseScalar(value, null, line);
+            return delegate().parseScalar(value, null, line);
         }
 
         private static String foldFlowScalar(
             String value)
         {
-            return value.replaceAll("[ \\t]*\\R[ \\t]*", " ");
+            return hasLineBreak(value) ? FLOW_FOLD_PATTERN.matcher(value).replaceAll(" ") : value;
+        }
+
+        private static boolean hasLineBreak(
+            String value)
+        {
+            boolean found = false;
+            for (int i = 0; i < value.length(); i++)
+            {
+                char c = value.charAt(i);
+                if (c == '\n' || c == '\r' || c == '\f' || c == '\u000B' ||
+                    c == '\u0085' || c == '\u2028' || c == '\u2029')
+                {
+                    found = true;
+                    break;
+                }
+            }
+            return found;
         }
 
         private YamlScalarNode parseQuotedScalar()
@@ -3043,9 +3113,7 @@ public final class YamlDocumentParser
             {
                 throw error("Document markers are not allowed in flow collection", line);
             }
-            return new YamlDocumentParser(new Document(List.of(), new YamlLocation(1, 1, text.length()), "",
-                DocumentScanner.defaultTagHandles(), config))
-                .parseScalar(value, null, line);
+            return delegate().parseScalar(value, null, line);
         }
 
         private static boolean isFlowDocumentMarker(
@@ -3131,17 +3199,6 @@ public final class YamlDocumentParser
         {
             return text.charAt(index) == '#' && (index == 0 || Character.isWhitespace(text.charAt(index - 1)));
         }
-    }
-
-    private static YamlNode applyFlowTag(
-        YamlNode value,
-        String tag,
-        Line line,
-        YamlConfiguration config)
-    {
-        return new YamlDocumentParser(new Document(List.of(), new YamlLocation(1, 1, 0), "",
-            DocumentScanner.defaultTagHandles(), config))
-            .applyTag(value, tag, scalarText(value, ""), line);
     }
 
     private static final class Line

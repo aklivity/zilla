@@ -47,19 +47,19 @@ public interface AvroParser
     void reset();
 
     /**
-     * Presents {@code [offset, offset + length)} of the caller-owned {@code buffer} as the next contiguous
+     * Presents {@code [offset, limit)} of the caller-owned {@code buffer} as the next contiguous
      * run of datum bytes with {@code last == true} — the whole datum, or the final window of a streamed one.
      */
     default void wrap(
         DirectBuffer buffer,
         int offset,
-        int length)
+        int limit)
     {
-        wrap(buffer, offset, length, true);
+        wrap(buffer, offset, limit, true);
     }
 
     /**
-     * Presents {@code [offset, offset + length)} of the caller-owned {@code buffer} as the next contiguous
+     * Presents {@code [offset, limit)} of the caller-owned {@code buffer} as the next contiguous
      * run of datum bytes — the parser's not-yet-consumed remainder plus any newly arrived bytes — and reads
      * it in place without copying. A datum fed in fragments is re-presented each call from the consumed
      * watermark ({@link #getLocation()} position), the cursor resuming where it underflowed. When
@@ -70,8 +70,17 @@ public interface AvroParser
     void wrap(
         DirectBuffer buffer,
         int offset,
-        int length,
+        int limit,
         boolean last);
+
+    /**
+     * The number of bytes at the tail of the current window not yet consumed — what the caller retains and
+     * re-presents, contiguous, at the front of the next window. The window-relative peer of the
+     * {@link #getLocation()} stream offset: a caller buffering across windows keeps exactly this many bytes without
+     * tracking the window's absolute base. Reported at a whole-unit boundary; zero once the window is fully
+     * consumed.
+     */
+    int remaining();
 
     /**
      * {@code true} while an event is available from the buffered bytes; {@code false} once they are
