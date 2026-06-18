@@ -509,7 +509,8 @@ class YamlJsonParserTest
     @Test
     void shouldParseEmptyDocumentValuesAndNestedSequenceItems()
     {
-        assertEquals(List.of("VALUE_NULL"), events(parserFor("")));
+        // an empty stream frames no document, so it projects no JSON value (not a null)
+        assertEquals(List.of(), events(parserFor("")));
 
         JsonParser parser = parserFor("""
             ---
