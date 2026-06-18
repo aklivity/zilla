@@ -48,6 +48,14 @@ public final class YamlStreamScanner
     public static final byte VALUE_NULL = 10;
     public static final byte ALIAS = 11;
 
+    // scalar presentation styles, mirroring the canonical test.event style indicators (: ' " | >)
+    public static final byte STYLE_NONE = 0;
+    public static final byte STYLE_PLAIN = 1;
+    public static final byte STYLE_SINGLE = 2;
+    public static final byte STYLE_DOUBLE = 3;
+    public static final byte STYLE_LITERAL = 4;
+    public static final byte STYLE_FOLDED = 5;
+
     private static final int INITIAL_EVENTS = 48;
     private static final int INITIAL_DOCUMENTS = 4;
 
@@ -77,6 +85,9 @@ public final class YamlStreamScanner
     private int[] offsets;
     private int[] lengths;
     private String[] texts;
+    // per-event scalar presentation style; STYLE_NONE for structural and alias events
+    private byte[] styles;
+    private byte pendingStyle = STYLE_PLAIN;
     // per-event reference metadata: anchor, alias and tag, indexed alongside the event arrays
     private String[] anchors;
     private String[] aliases;
@@ -87,6 +98,9 @@ public final class YamlStreamScanner
 
     // per-document boundary offsets — the start of the document following each scanned document
     private int[] documentBoundaries;
+    // per-document explicit marker flags — whether the document opened with --- and closed with ...
+    private boolean[] documentExplicitStarts;
+    private boolean[] documentExplicitEnds;
     private int documentCount;
 
     // per-document tag handle prefixes from %TAG directives (plus the default !! handle)
@@ -111,6 +125,7 @@ public final class YamlStreamScanner
         this.references = false;
         this.pendingAnchor = null;
         this.pendingTag = null;
+        this.pendingStyle = STYLE_PLAIN;
         this.bailReason = null;
         this.bailOffset = 0;
 
@@ -147,6 +162,18 @@ public final class YamlStreamScanner
         int document)
     {
         return documentBoundaries[document];
+    }
+
+    public boolean documentExplicitStart(
+        int document)
+    {
+        return documentExplicitStarts != null && documentExplicitStarts[document];
+    }
+
+    public boolean documentExplicitEnd(
+        int document)
+    {
+        return documentExplicitEnds != null && documentExplicitEnds[document];
     }
 
     public int documentCount()
@@ -241,10 +268,52 @@ public final class YamlStreamScanner
         return value;
     }
 
+    /**
+     * The presentation style of the scalar (or key) event, or {@link #STYLE_NONE} for structural and alias
+     * events. Unlike {@link #string}, this is independent of how the value was resolved or materialized.
+     */
+    public byte style(
+        int index)
+    {
+        return isScalar(kinds[index]) ? styles[index] : STYLE_NONE;
+    }
+
+    /**
+     * The raw, presentation-preserving source text of a scalar (or key) event: the verbatim slice for a
+     * single-line scalar (so a hex integer reads as its source {@code 0x..} form, not its decimal value), or
+     * the folded / unescaped value when the scalar spans lines or carries escapes and has no contiguous slice.
+     * An absent (implicit null) value views as the empty string. Non-scalar events view as {@code null}.
+     */
+    public String view(
+        int index)
+    {
+        String result;
+        if (!isScalar(kinds[index]))
+        {
+            result = null;
+        }
+        else if (lengths[index] > 0)
+        {
+            result = text.substring(offsets[index], offsets[index] + lengths[index]);
+        }
+        else
+        {
+            result = texts[index] != null ? texts[index] : "";
+        }
+        return result;
+    }
+
     private static boolean hasSlice(
         byte kind)
     {
         return kind == KEY_NAME || kind == VALUE_STRING || kind == VALUE_NUMBER;
+    }
+
+    private static boolean isScalar(
+        byte kind)
+    {
+        return kind == KEY_NAME || kind == VALUE_STRING || kind == VALUE_NUMBER ||
+            kind == VALUE_TRUE || kind == VALUE_FALSE || kind == VALUE_NULL;
     }
 
     private void scanRoot()
@@ -305,14 +374,18 @@ public final class YamlStreamScanner
             return true;
         }
 
+        boolean explicitStart;
         if (cursor < lineCount && !documentMarker(cursor, '-') &&
             isMarker(contentStart[cursor], contentEnd[cursor], '-'))
         {
+            // a --- marker carrying the root value inline on the same line
+            explicitStart = true;
             scanInlineMarkerValue();
         }
         else
         {
             boolean marker = cursor < lineCount && documentMarker(cursor, '-');
+            explicitStart = marker;
             if (marker)
             {
                 cursor++;
@@ -328,21 +401,30 @@ public final class YamlStreamScanner
         }
 
         boolean ended = consumeDocumentEnd();
-        recordDocumentBoundary(cursor < lineCount ? lineStart[cursor] : text.length());
+        recordDocumentBoundary(cursor < lineCount ? lineStart[cursor] : text.length(), explicitStart, ended);
         return ended;
     }
 
     private void recordDocumentBoundary(
-        int boundary)
+        int boundary,
+        boolean explicitStart,
+        boolean explicitEnd)
     {
         if (documentBoundaries == null)
         {
             documentBoundaries = new int[INITIAL_DOCUMENTS];
+            documentExplicitStarts = new boolean[INITIAL_DOCUMENTS];
+            documentExplicitEnds = new boolean[INITIAL_DOCUMENTS];
         }
         else if (documentCount == documentBoundaries.length)
         {
-            documentBoundaries = copyOf(documentBoundaries, documentBoundaries.length << 1);
+            int size = documentBoundaries.length << 1;
+            documentBoundaries = copyOf(documentBoundaries, size);
+            documentExplicitStarts = copyOf(documentExplicitStarts, size);
+            documentExplicitEnds = copyOf(documentExplicitEnds, size);
         }
+        documentExplicitStarts[documentCount] = explicitStart;
+        documentExplicitEnds[documentCount] = explicitEnd;
         documentBoundaries[documentCount++] = boundary;
     }
 
@@ -638,7 +720,9 @@ public final class YamlStreamScanner
             {
                 // a block scalar explicit key; emit its folded content as the key name
                 cursor++;
-                emit(KEY_NAME, nodeStart, 0, foldBlockScalar(nodeStart, keyEnd, indent, false));
+                String folded = foldBlockScalar(nodeStart, keyEnd, indent, false);
+                pendingStyle = blockStyle(text.charAt(nodeStart));
+                emit(KEY_NAME, nodeStart, 0, folded);
                 skipIgnorable();
             }
             else if (nodeStart == keyStart && isCompactSequence(nodeStart, keyEnd))
@@ -1353,6 +1437,7 @@ public final class YamlStreamScanner
                 throw bail("Wrong indented quoted scalar");
             }
             String value = first == '"' ? unquoteDouble(text, start, end) : unquoteSingle(text, start, end);
+            pendingStyle = quoteStyle(first);
             if (value == null)
             {
                 emit(VALUE_STRING, start + 1, end - start - 2, null);
@@ -1551,7 +1636,21 @@ public final class YamlStreamScanner
         int keyIndent,
         boolean allowSameIndent)
     {
-        emit(VALUE_STRING, valueStart, 0, foldBlockScalar(valueStart, end, keyIndent, allowSameIndent));
+        String folded = foldBlockScalar(valueStart, end, keyIndent, allowSameIndent);
+        pendingStyle = blockStyle(text.charAt(valueStart));
+        emit(VALUE_STRING, valueStart, 0, folded);
+    }
+
+    private static byte blockStyle(
+        char indicator)
+    {
+        return indicator == '|' ? STYLE_LITERAL : STYLE_FOLDED;
+    }
+
+    private static byte quoteStyle(
+        char quote)
+    {
+        return quote == '"' ? STYLE_DOUBLE : STYLE_SINGLE;
     }
 
     private String foldBlockScalar(
@@ -2685,7 +2784,9 @@ public final class YamlStreamScanner
 
     private void flowQuotedValue()
     {
+        char quote = text.charAt(flowAt);
         flowReadQuoted();
+        pendingStyle = quoteStyle(quote);
         if (flowText != null)
         {
             emit(VALUE_STRING, flowTokenStart, 0, flowText);
@@ -2883,6 +2984,7 @@ public final class YamlStreamScanner
                 throw bail("Unexpected indentation");
             }
             String value = quote == '"' ? unquoteDouble(text, start, end) : unquoteSingle(text, start, end);
+            pendingStyle = quoteStyle(quote);
             if (value == null)
             {
                 emit(VALUE_STRING, start + 1, end - start - 2, null);
@@ -2965,6 +3067,7 @@ public final class YamlStreamScanner
             throw bail("Invalid YAML document");
         }
 
+        pendingStyle = quoteStyle(quote);
         emit(VALUE_STRING, openStart, 0, value != null ? value : folded);
     }
 
@@ -3250,6 +3353,7 @@ public final class YamlStreamScanner
             throw bail("Invalid YAML document");
         }
         String value = quote == '"' ? unquoteDouble(text, start, end) : unquoteSingle(text, start, end);
+        pendingStyle = quoteStyle(quote);
         if (value == null)
         {
             emit(KEY_NAME, start + 1, end - start - 2, null);
@@ -3534,9 +3638,12 @@ public final class YamlStreamScanner
         anchors[eventCount] = pendingAnchor;
         aliases[eventCount] = null;
         tags[eventCount] = pendingTag;
+        // structural events carry no style; their slot is never read, so the pending plain default is harmless
+        styles[eventCount] = pendingStyle;
         references |= pendingAnchor != null || pendingTag != null;
         pendingAnchor = null;
         pendingTag = null;
+        pendingStyle = STYLE_PLAIN;
         eventCount++;
     }
 
@@ -3552,9 +3659,11 @@ public final class YamlStreamScanner
         anchors[eventCount] = pendingAnchor;
         aliases[eventCount] = alias;
         tags[eventCount] = pendingTag;
+        styles[eventCount] = STYLE_NONE;
         references = true;
         pendingAnchor = null;
         pendingTag = null;
+        pendingStyle = STYLE_PLAIN;
         eventCount++;
     }
 
@@ -3569,6 +3678,7 @@ public final class YamlStreamScanner
             anchors = new String[INITIAL_EVENTS];
             aliases = new String[INITIAL_EVENTS];
             tags = new String[INITIAL_EVENTS];
+            styles = new byte[INITIAL_EVENTS];
         }
         else if (eventCount == kinds.length)
         {
@@ -3580,6 +3690,7 @@ public final class YamlStreamScanner
             anchors = copyOf(anchors, size);
             aliases = copyOf(aliases, size);
             tags = copyOf(tags, size);
+            styles = copyOf(styles, size);
         }
     }
 
@@ -3988,6 +4099,15 @@ public final class YamlStreamScanner
         int size)
     {
         String[] target = new String[size];
+        System.arraycopy(source, 0, target, 0, source.length);
+        return target;
+    }
+
+    private static boolean[] copyOf(
+        boolean[] source,
+        int size)
+    {
+        boolean[] target = new boolean[size];
         System.arraycopy(source, 0, target, 0, source.length);
         return target;
     }

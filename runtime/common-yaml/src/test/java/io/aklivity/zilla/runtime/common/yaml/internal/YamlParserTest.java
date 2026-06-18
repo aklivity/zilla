@@ -90,6 +90,93 @@ class YamlParserTest
             events("---\n- a\n---\n- b\n"));
     }
 
+    @Test
+    void shouldExposePlainScalarViewAndStyle()
+    {
+        YamlParser parser = scalarAt("42\n");
+        assertEquals("42", parser.value());
+        assertEquals("42", parser.view());
+        assertEquals(YamlScalarStyle.PLAIN, parser.style());
+    }
+
+    @Test
+    void shouldViewHexIntegerInSourceFormWhileValueResolvesToDecimal()
+    {
+        YamlParser parser = scalarAt("0x10\n");
+        assertEquals(YamlScalarType.NUMBER, parser.scalarType());
+        assertEquals("16", parser.value());
+        assertEquals("0x10", parser.view());
+        assertEquals(YamlScalarStyle.PLAIN, parser.style());
+    }
+
+    @Test
+    void shouldExposeBooleanAndNullViews()
+    {
+        YamlParser yes = scalarAt("true\n");
+        assertEquals(YamlScalarType.TRUE, yes.scalarType());
+        assertEquals("true", yes.view());
+
+        YamlParser nil = scalarAt("~\n");
+        assertEquals(YamlScalarType.NULL, nil.scalarType());
+        assertEquals("~", nil.view());
+    }
+
+    @Test
+    void shouldExposeQuotedScalarStyles()
+    {
+        YamlParser single = scalarAt("'abc'\n");
+        assertEquals("abc", single.view());
+        assertEquals(YamlScalarStyle.SINGLE, single.style());
+
+        YamlParser doubled = scalarAt("\"a\\nb\"\n");
+        assertEquals("a\nb", doubled.view());
+        assertEquals(YamlScalarStyle.DOUBLE, doubled.style());
+    }
+
+    @Test
+    void shouldExposeBlockScalarStyles()
+    {
+        YamlParser literal = scalarAt("|\n  a\n  b\n");
+        assertEquals("a\nb\n", literal.view());
+        assertEquals(YamlScalarStyle.LITERAL, literal.style());
+
+        YamlParser folded = scalarAt(">\n  a\n  b\n");
+        assertEquals("a b\n", folded.view());
+        assertEquals(YamlScalarStyle.FOLDED, folded.style());
+    }
+
+    @Test
+    void shouldExposeExplicitDocumentMarkers()
+    {
+        YamlParser explicit = new YamlParser("---\nfoo\n...\n");
+        assertEquals(YamlEvent.STREAM_START, explicit.next());
+        assertEquals(YamlEvent.DOCUMENT_START, explicit.next());
+        assertEquals(true, explicit.explicit());
+        assertEquals(YamlEvent.SCALAR, explicit.next());
+        assertEquals(YamlEvent.DOCUMENT_END, explicit.next());
+        assertEquals(true, explicit.explicit());
+
+        YamlParser bare = new YamlParser("foo\n");
+        assertEquals(YamlEvent.STREAM_START, bare.next());
+        assertEquals(YamlEvent.DOCUMENT_START, bare.next());
+        assertEquals(false, bare.explicit());
+        assertEquals(YamlEvent.SCALAR, bare.next());
+        assertEquals(YamlEvent.DOCUMENT_END, bare.next());
+        assertEquals(false, bare.explicit());
+    }
+
+    private static YamlParser scalarAt(
+        String text)
+    {
+        YamlParser parser = new YamlParser(text);
+        YamlEvent event = parser.next();
+        while (event != YamlEvent.SCALAR && parser.hasNext())
+        {
+            event = parser.next();
+        }
+        return parser;
+    }
+
     @TestFactory
     Stream<DynamicTest> shouldMatchEagerForEveryValidFixture() throws Exception
     {

@@ -54,10 +54,13 @@ public final class YamlParser
 
     private YamlEvent event;
     private CharSequence value;
+    private String view;
+    private YamlScalarStyle style;
     private YamlScalarType scalarType;
     private String anchor;
     private String tag;
     private String alias;
+    private boolean explicit;
     private YamlLocation location;
 
     public YamlParser(
@@ -96,6 +99,7 @@ public final class YamlParser
         {
             event = YamlEvent.DOCUMENT_START;
             location = locationAt(scanner.offset(index));
+            explicit = scanner.documentExplicitStart(document);
             depth = 0;
             phase = Phase.NODE;
         }
@@ -122,6 +126,7 @@ public final class YamlParser
             event = YamlEvent.DOCUMENT_END;
             int boundary = document < documentCount ? scanner.documentBoundary(document) : text.length();
             location = locationAt(boundary);
+            explicit = scanner.documentExplicitEnd(document);
             document++;
             phase = index < count ? Phase.DOCUMENT_START : Phase.STREAM_END;
         }
@@ -139,6 +144,33 @@ public final class YamlParser
     public CharSequence value()
     {
         return value;
+    }
+
+    /**
+     * The raw, presentation-preserving source text of the current scalar event (see
+     * {@link YamlStreamScanner#view}), or {@code null} when the current event is not a scalar.
+     */
+    public String view()
+    {
+        return view;
+    }
+
+    /**
+     * The presentation style of the current scalar event, or {@code null} when the current event is not a
+     * scalar.
+     */
+    public YamlScalarStyle style()
+    {
+        return style;
+    }
+
+    /**
+     * Whether the current {@link YamlEvent#DOCUMENT_START} carried an explicit {@code ---} marker, or the
+     * current {@link YamlEvent#DOCUMENT_END} an explicit {@code ...} marker. {@code false} for other events.
+     */
+    public boolean explicit()
+    {
+        return explicit;
     }
 
     public YamlScalarType scalarType()
@@ -170,10 +202,13 @@ public final class YamlParser
     {
         event = null;
         value = null;
+        view = null;
+        style = null;
         scalarType = null;
         anchor = null;
         tag = null;
         alias = null;
+        explicit = false;
         location = null;
     }
 
@@ -217,6 +252,24 @@ public final class YamlParser
         }
         default -> throw new IllegalStateException("Unexpected scanner event kind: " + kind);
         }
+        if (event == YamlEvent.SCALAR)
+        {
+            view = scanner.view(at);
+            style = mapStyle(scanner.style(at));
+        }
+    }
+
+    private static YamlScalarStyle mapStyle(
+        byte style)
+    {
+        return switch (style)
+        {
+        case YamlStreamScanner.STYLE_SINGLE -> YamlScalarStyle.SINGLE;
+        case YamlStreamScanner.STYLE_DOUBLE -> YamlScalarStyle.DOUBLE;
+        case YamlStreamScanner.STYLE_LITERAL -> YamlScalarStyle.LITERAL;
+        case YamlStreamScanner.STYLE_FOLDED -> YamlScalarStyle.FOLDED;
+        default -> YamlScalarStyle.PLAIN;
+        };
     }
 
     private void setScalar(
