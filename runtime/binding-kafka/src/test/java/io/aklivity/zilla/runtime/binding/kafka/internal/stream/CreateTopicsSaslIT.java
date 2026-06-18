@@ -71,6 +71,16 @@ public class CreateTopicsSaslIT
         k3po.finish();
     }
 
+    @Test
+    @Configuration("client.options.authorization.oauthbearer.yaml")
+    @Specification({
+        "${app}/create.topics/client",
+        "${net}/create.topics.sasl.oauthbearer/server"})
+    public void shouldCreateTopicsWithSaslOauthBearerWithGuard() throws Exception
+    {
+        k3po.finish();
+    }
+
     public static String supplyNonce()
     {
         return "fyko+d2lbbFgONRv9qkxdawL";
