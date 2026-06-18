@@ -82,6 +82,9 @@ public abstract class KafkaClientSaslHandshaker
 
     private static final String CLIENT_KEY = "Client Key";
     private static final String SERVER_KEY = "Server Key";
+    private static final byte[] SASL_OAUTHBEARER_GS2_HEADER = "n,,".getBytes(StandardCharsets.US_ASCII);
+    private static final byte[] SASL_OAUTHBEARER_AUTH_BEARER = "auth=Bearer ".getBytes(StandardCharsets.US_ASCII);
+    private static final byte[] SASL_OAUTHBEARER_END = new byte[]{0x01, 0x01};
     private static final String PRINTABLE = "[\\x21-\\x7E&&[^,]]+";
     private static final String BASE64_CHAR = "[a-zA-Z0-9/+]";
     private static final String BASE64 = String.format("(?:%s{4})*(?:%s{3}=|%s{2}==)?", BASE64_CHAR, BASE64_CHAR, BASE64_CHAR);
@@ -112,6 +115,7 @@ public abstract class KafkaClientSaslHandshaker
     private KafkaSaslClientDecoder decodeSaslPlainAuthenticate = this::decodeSaslPlainAuthenticate;
     private KafkaSaslClientDecoder decodeSaslScramAuthenticateFirst = this::decodeSaslScramAuthenticateFirst;
     private KafkaSaslClientDecoder decodeSaslScramAuthenticateFinal = this::decodeSaslScramAuthenticateFinal;
+    private KafkaSaslClientDecoder decodeSaslOauthBearerAuthenticate = this::decodeSaslOauthBearerAuthenticate;
 
     private final SecureRandom random = new SecureRandom();
 
@@ -170,6 +174,8 @@ public abstract class KafkaClientSaslHandshaker
         private long guardSession;
         private final GuardHandler guard;
 
+        protected long saslAuthorization;
+
         protected KafkaSaslClient(
             List<KafkaServerConfig> servers,
             KafkaSaslConfig sasl,
@@ -204,9 +210,11 @@ public abstract class KafkaClientSaslHandshaker
             long traceId,
             long budgetId)
         {
-            if (guard != null)
+            if (guard != null &&
+                (CREDENTIALS_TEMPLATE.equals(sasl.token) || CREDENTIALS_TEMPLATE.equals(sasl.password)))
             {
-                guardSession = guard.reauthorize(traceId, routedId, initialId, null);
+                final String credentials = guard.credentials(saslAuthorization);
+                guardSession = guard.reauthorize(traceId, routedId, initialId, credentials);
             }
 
             final MutableDirectBuffer encodeBuffer = writeBuffer;
@@ -516,6 +524,81 @@ public abstract class KafkaClientSaslHandshaker
             return password;
         }
 
+        private String resolveToken()
+        {
+            String token = sasl.token;
+            if (guard != null && CREDENTIALS_TEMPLATE.equals(token))
+            {
+                final String credentials = guard.credentials(guardSession);
+                if (credentials != null)
+                {
+                    token = credentials;
+                }
+            }
+            return token;
+        }
+
+        private void doEncodeSaslOauthBearerAuthenticateRequest(
+            long traceId,
+            long budgetId)
+        {
+            final MutableDirectBuffer encodeBuffer = writeBuffer;
+            final int encodeOffset = DataFW.FIELD_OFFSET_PAYLOAD;
+            final int encodeLimit = encodeBuffer.capacity();
+
+            int encodeProgress = encodeOffset;
+
+            final RequestHeaderFW requestHeader = requestHeaderRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
+                    .length(0)
+                    .apiKey(SASL_AUTHENTICATE_API_KEY)
+                    .apiVersion(SASL_AUTHENTICATE_API_VERSION)
+                    .correlationId(0)
+                    .clientId(clientId)
+                    .build();
+
+            encodeProgress = requestHeader.limit();
+
+            final String token = resolveToken();
+
+            final SaslAuthenticateRequestFW authenticateRequest =
+                    saslAuthenticateRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
+                            .authBytes(a -> a.put((b, o, l) ->
+                            {
+                                int p = o;
+                                b.putBytes(p, SASL_OAUTHBEARER_GS2_HEADER);
+                                p += SASL_OAUTHBEARER_GS2_HEADER.length;
+                                b.putByte(p++, (byte) 0x01);
+                                b.putBytes(p, SASL_OAUTHBEARER_AUTH_BEARER);
+                                p += SASL_OAUTHBEARER_AUTH_BEARER.length;
+                                p += b.putStringWithoutLengthUtf8(p, token);
+                                b.putBytes(p, SASL_OAUTHBEARER_END);
+                                p += SASL_OAUTHBEARER_END.length;
+                                return p - o;
+                            }))
+                            .build();
+            encodeProgress = authenticateRequest.limit();
+
+            final int requestId = nextRequestId++;
+            final int requestSize = encodeProgress - encodeOffset - RequestHeaderFW.FIELD_OFFSET_API_KEY;
+
+            requestHeaderRW.wrap(encodeBuffer, requestHeader.offset(), requestHeader.limit())
+                    .length(requestSize)
+                    .apiKey(requestHeader.apiKey())
+                    .apiVersion(requestHeader.apiVersion())
+                    .correlationId(requestId)
+                    .clientId(requestHeader.clientId())
+                    .build();
+
+            if (KafkaConfiguration.DEBUG)
+            {
+                System.out.format("[0x%016x] SASL AUTHENTICATE oauthbearer\n", replyId);
+            }
+
+            doNetworkData(traceId, budgetId, encodeBuffer, encodeOffset, encodeProgress);
+
+            doDecodeSaslAuthenticateResponse(traceId);
+        }
+
         protected abstract void doNetworkData(
             long traceId,
             long budgetId,
@@ -645,6 +728,10 @@ public abstract class KafkaClientSaslHandshaker
                     case "scram-sha-512" :
                         client.encodeSaslAuthenticate = client::doEncodeSaslScramFirstAuthenticateRequest;
                         client.decodeSaslAuthenticate = decodeSaslScramAuthenticateFirst;
+                        break;
+                    case "oauthbearer" :
+                        client.encodeSaslAuthenticate = client::doEncodeSaslOauthBearerAuthenticateRequest;
+                        client.decodeSaslAuthenticate = decodeSaslOauthBearerAuthenticate;
                         break;
                     }
                 }
@@ -795,6 +882,58 @@ public abstract class KafkaClientSaslHandshaker
 
                 client.onDecodeSaslResponse(traceId);
                 client.onDecodeSaslAuthenticateResponse(traceId, authorization, errorCode);
+            }
+        }
+
+        return progress;
+    }
+
+    private int decodeSaslOauthBearerAuthenticate(
+        KafkaSaslClient client,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBuffer buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final int length = limit - progress;
+
+        if (length != 0)
+        {
+            final SaslAuthenticateResponseFW authenticateResponse = saslAuthenticateResponseRO.tryWrap(buffer, progress, limit);
+
+            if (authenticateResponse != null)
+            {
+                final int errorCode = authenticateResponse.errorCode();
+                final int authBytesLen = authenticateResponse.authBytesLen();
+                final int authErrorCode = errorCode == ERROR_NONE && authBytesLen > 0
+                    ? ERROR_SASL_AUTHENTICATION_FAILED
+                    : errorCode;
+                if (authErrorCode != ERROR_NONE)
+                {
+                    final String errorDetail;
+                    if (authBytesLen > 0)
+                    {
+                        final DirectBuffer errorBytes = authenticateResponse.authBytes().value();
+                        errorDetail = errorBytes.getStringWithoutLengthUtf8(0, errorBytes.capacity());
+                    }
+                    else
+                    {
+                        errorDetail = authenticateResponse.errorMessage().asString();
+                    }
+                    event.saslAuthenticationFailed(traceId, client.originId, null, errorDetail);
+                }
+
+                progress = authenticateResponse.limit();
+
+                client.decodableResponseBytes -= authenticateResponse.sizeof();
+                assert client.decodableResponseBytes >= 0;
+
+                client.onDecodeSaslResponse(traceId);
+                client.onDecodeSaslAuthenticateResponse(traceId, authorization, authErrorCode);
             }
         }
 

@@ -12,15 +12,20 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-module io.aklivity.zilla.runtime.guard.identity
+package io.aklivity.zilla.runtime.guard.identity.internal.config;
+
+import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
+
+public final class IdentityOptionsConfig extends OptionsConfig
 {
-    requires io.aklivity.zilla.runtime.engine;
-    requires jakarta.json;
-    requires jakarta.json.bind;
+    public final String identity;
+    public final String credentials;
 
-    provides io.aklivity.zilla.runtime.engine.guard.GuardFactorySpi
-        with io.aklivity.zilla.runtime.guard.identity.internal.IdentityGuardFactorySpi;
-
-    provides io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi
-        with io.aklivity.zilla.runtime.guard.identity.internal.config.IdentityOptionsConfigAdapter;
+    public IdentityOptionsConfig(
+        String identity,
+        String credentials)
+    {
+        this.identity = identity;
+        this.credentials = credentials;
+    }
 }

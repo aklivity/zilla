@@ -22,6 +22,7 @@ public final class KafkaSaslCredentialsConfig
     public final String mechanism;
     public final String username;
     public final String password;
+    public final String token;
 
     public static KafkaSaslCredentialsConfigBuilder<KafkaSaslCredentialsConfig> builder()
     {
@@ -37,10 +38,12 @@ public final class KafkaSaslCredentialsConfig
     KafkaSaslCredentialsConfig(
         String mechanism,
         String username,
-        String password)
+        String password,
+        String token)
     {
         this.mechanism = mechanism;
         this.username = username;
         this.password = password;
+        this.token = token;
     }
 }

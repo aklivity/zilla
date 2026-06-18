@@ -22,19 +22,25 @@ import java.util.function.LongSupplier;
 import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
+import io.aklivity.zilla.runtime.guard.identity.internal.config.IdentityOptionsConfig;
 
 public class IdentityGuardHandler implements GuardHandler
 {
     private final Long2ObjectHashMap<IdentitySession> sessionsById;
     private final LongSupplier supplyAuthorizedId;
     private final Long2ObjectHashMap<IdentitySessionStore> sessionStoresByContextId;
+    private final String identity;
+    private final String credentials;
 
     public IdentityGuardHandler(
-        LongSupplier supplyAuthorizedId)
+        LongSupplier supplyAuthorizedId,
+        IdentityOptionsConfig options)
     {
         this.supplyAuthorizedId = supplyAuthorizedId;
         this.sessionsById = new Long2ObjectHashMap<>();
         this.sessionStoresByContextId = new Long2ObjectHashMap<>();
+        this.identity = options != null ? options.identity : null;
+        this.credentials = options != null ? options.credentials : null;
     }
 
     @Override
@@ -78,7 +84,7 @@ public class IdentityGuardHandler implements GuardHandler
         long sessionId)
     {
         IdentitySession session = sessionsById.get(sessionId);
-        return session != null ? session.identity : null;
+        return session != null ? session.identity : identity;
     }
 
     @Override
@@ -94,7 +100,7 @@ public class IdentityGuardHandler implements GuardHandler
         long sessionId)
     {
         IdentitySession session = sessionsById.get(sessionId);
-        return session != null ? session.identity : null;
+        return session != null ? session.identity : credentials;
     }
 
     @Override
