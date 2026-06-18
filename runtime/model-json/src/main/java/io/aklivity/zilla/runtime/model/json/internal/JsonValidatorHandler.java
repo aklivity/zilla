@@ -14,16 +14,13 @@
  */
 package io.aklivity.zilla.runtime.model.json.internal;
 
-import java.io.InputStream;
-
-import jakarta.json.stream.JsonParsingException;
+import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
 
 import org.agrona.DirectBuffer;
 import org.agrona.ExpandableDirectByteBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2ObjectCache;
 import org.agrona.concurrent.UnsafeBuffer;
-import org.agrona.io.DirectBufferInputStream;
 
 import io.aklivity.zilla.runtime.common.json.JsonDiagnostic;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
@@ -46,12 +43,11 @@ public class JsonValidatorHandler extends JsonModelHandler implements ValidatorH
     private final ExpandableDirectByteBuffer carry;
     private final ExpandableDirectByteBuffer assembly;
 
-    private final DirectBufferInputStream in;
-    private final ExpandableDirectByteBuffer encoded;
-
     private Validator active;
     private int carryLength;
-    private int encodedProgress;
+    private int encodedSchemaId;
+    private int encodedIndex;
+    private int encodedLength;
     private String diagnostic;
 
     public JsonValidatorHandler(
@@ -62,8 +58,6 @@ public class JsonValidatorHandler extends JsonModelHandler implements ValidatorH
         this.validators = new Int2ObjectCache<>(1, 16, v -> {});
         this.carry = new ExpandableDirectByteBuffer();
         this.assembly = new ExpandableDirectByteBuffer();
-        this.in = new DirectBufferInputStream();
-        this.encoded = new ExpandableDirectByteBuffer();
     }
 
     @Override
@@ -118,44 +112,7 @@ public class JsonValidatorHandler extends JsonModelHandler implements ValidatorH
         }
         else
         {
-            DirectBuffer buffer;
-            int offset;
-            int limit;
-            if (carryLength == 0)
-            {
-                buffer = data;
-                offset = index;
-                limit = index + length;
-            }
-            else
-            {
-                assembly.putBytes(0, carry, 0, carryLength);
-                assembly.putBytes(carryLength, data, index, length);
-                buffer = assembly;
-                offset = 0;
-                limit = carryLength + length;
-            }
-
-            Status status = feed(buffer, offset, limit, last, next);
-
-            switch (status)
-            {
-            case COMPLETED:
-                valid = true;
-                carryLength = 0;
-                break;
-            case STARVED:
-                int remaining = active.pipeline.remaining();
-                carry.putBytes(0, buffer, limit - remaining, remaining);
-                carryLength = remaining;
-                valid = true;
-                break;
-            default:
-                valid = false;
-                carryLength = 0;
-                event.validationFailure(traceId, bindingId, diagnostic != null ? diagnostic : JsonModel.NAME);
-                break;
-            }
+            valid = stream(traceId, bindingId, last, data, index, length, next);
         }
 
         return valid;
@@ -170,30 +127,113 @@ public class JsonValidatorHandler extends JsonModelHandler implements ValidatorH
         int length,
         ValueConsumer next)
     {
-        boolean status = true;
+        boolean valid;
 
-        try
+        int payloadIndex = index;
+        int payloadLength = length;
+        if ((flags & FLAGS_INIT) != 0x00)
         {
-            if ((flags & FLAGS_INIT) != 0x00)
+            // the schema framing prefix appears only on the first fragment; let the catalog skip it in a
+            // catalog-specific way and hand back the embedded schema id plus the post-prefix payload, which
+            // then streams through the pipeline like any other fragment — no whole-payload buffering
+            encodedSchemaId = NO_SCHEMA_ID;
+            handler.validate(traceId, bindingId, data, index, length, next, this::resolveEncoded);
+            active = encodedSchemaId != NO_SCHEMA_ID ? supplyValidator(encodedSchemaId) : null;
+            if (active != null)
             {
-                this.encodedProgress = 0;
+                active.pipeline.reset();
             }
-
-            encoded.putBytes(encodedProgress, data, index, length);
-            encodedProgress += length;
-
-            if ((flags & FLAGS_FIN) != 0x00)
-            {
-                status = handler.validate(traceId, bindingId, encoded, 0, encodedProgress, next, this::validatePayload);
-            }
-        }
-        catch (JsonParsingException ex)
-        {
-            status = false;
-            event.validationFailure(traceId, bindingId, ex.getMessage());
+            carryLength = 0;
+            payloadIndex = encodedIndex;
+            payloadLength = encodedLength;
         }
 
-        return status;
+        boolean last = (flags & FLAGS_FIN) != 0x00;
+
+        if (active == null)
+        {
+            valid = !last;
+            if (last)
+            {
+                event.validationFailure(traceId, bindingId, JsonModel.NAME);
+            }
+        }
+        else
+        {
+            valid = stream(traceId, bindingId, last, data, payloadIndex, payloadLength, next);
+        }
+
+        return valid;
+    }
+
+    // CatalogHandler.Validator callback: captures the embedded schema id and the post-prefix payload
+    // region the catalog unwrapped, so the encoded fragment can stream rather than buffer whole.
+    private boolean resolveEncoded(
+        long traceId,
+        long bindingId,
+        int schemaId,
+        DirectBuffer data,
+        int index,
+        int length,
+        ValueConsumer next)
+    {
+        encodedSchemaId = schemaId;
+        encodedIndex = index;
+        encodedLength = length;
+        return true;
+    }
+
+    private boolean stream(
+        long traceId,
+        long bindingId,
+        boolean last,
+        DirectBuffer data,
+        int index,
+        int length,
+        ValueConsumer next)
+    {
+        boolean valid;
+
+        DirectBuffer buffer;
+        int offset;
+        int limit;
+        if (carryLength == 0)
+        {
+            buffer = data;
+            offset = index;
+            limit = index + length;
+        }
+        else
+        {
+            assembly.putBytes(0, carry, 0, carryLength);
+            assembly.putBytes(carryLength, data, index, length);
+            buffer = assembly;
+            offset = 0;
+            limit = carryLength + length;
+        }
+
+        Status status = feed(buffer, offset, limit, last, next);
+
+        switch (status)
+        {
+        case COMPLETED:
+            valid = true;
+            carryLength = 0;
+            break;
+        case STARVED:
+            int remaining = active.pipeline.remaining();
+            carry.putBytes(0, buffer, limit - remaining, remaining);
+            carryLength = remaining;
+            valid = true;
+            break;
+        default:
+            valid = false;
+            carryLength = 0;
+            event.validationFailure(traceId, bindingId, diagnostic != null ? diagnostic : JsonModel.NAME);
+            break;
+        }
+
+        return valid;
     }
 
     private Status feed(
@@ -223,33 +263,6 @@ public class JsonValidatorHandler extends JsonModelHandler implements ValidatorH
         JsonDiagnostic diagnostic)
     {
         this.diagnostic = diagnostic.message();
-    }
-
-    private boolean validatePayload(
-        long traceId,
-        long bindingId,
-        int schemaId,
-        DirectBuffer data,
-        int index,
-        int length,
-        ValueConsumer next)
-    {
-        in.wrap(data, index, length);
-        return validatePayload(schemaId, in);
-    }
-
-    private boolean validatePayload(
-        int schemaId,
-        InputStream in)
-    {
-        JsonSchema schema = supplySchema(schemaId);
-        boolean status = schema != null;
-
-        if (status)
-        {
-            status = schema.validate(schemaProvider.createParser(in));
-        }
-        return status;
     }
 
     private Validator supplyValidator(

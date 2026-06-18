@@ -447,6 +447,8 @@ public class JsonValidatorTest
             .build();
 
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
+        when(context.clock()).thenReturn(Clock.systemUTC());
+        when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
         JsonValidatorHandler validator = new JsonValidatorHandler(model, context);
 
         byte[] event = """
@@ -459,6 +461,84 @@ public class JsonValidatorTest
         data.wrap(event, 0, event.length);
 
         assertFalse(validator.validate(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
+    }
+
+    @Test
+    public void shouldVerifyValidFragmentedJsonObjectWithEncoded()
+    {
+        TestCatalogConfig catalog = CatalogConfig.builder(TestCatalogConfig::new)
+            .namespace("test")
+            .name("test0")
+            .type("test")
+            .options(TestCatalogOptionsConfig::builder)
+                .id(9)
+                .schema(OBJECT_SCHEMA)
+                .build()
+            .build();
+
+        JsonModelConfig model = JsonModelConfig.builder()
+            .catalog()
+            .name("test0")
+                .schema()
+                    .strategy("encoded")
+                    .build()
+                .build()
+            .build();
+
+        when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
+        JsonValidatorHandler validator = new JsonValidatorHandler(model, context);
+
+        byte[] encoded = {0x00, 0x00, 0x00, 0x09};
+        byte[] event = "{\"id\": \"123\",\"status\": \"OK\"}".getBytes();
+        int total = encoded.length + event.length;
+
+        ExpandableDirectByteBuffer data = new ExpandableDirectByteBuffer(total);
+        data.putBytes(0, encoded, 0, encoded.length);
+        data.putBytes(encoded.length, event, 0, event.length);
+
+        int split = encoded.length + 8;
+        assertTrue(validator.validate(0L, 0L, FLAGS_INIT, data, 0, split, ValueConsumer.NOP));
+        assertTrue(validator.validate(0L, 0L, FLAGS_FIN, data, split, total - split, ValueConsumer.NOP));
+    }
+
+    @Test
+    public void shouldVerifyInvalidFragmentedJsonObjectWithEncoded()
+    {
+        TestCatalogConfig catalog = CatalogConfig.builder(TestCatalogConfig::new)
+            .namespace("test")
+            .name("test0")
+            .type("test")
+            .options(TestCatalogOptionsConfig::builder)
+                .id(9)
+                .schema(OBJECT_SCHEMA)
+                .build()
+            .build();
+
+        JsonModelConfig model = JsonModelConfig.builder()
+            .catalog()
+            .name("test0")
+                .schema()
+                    .strategy("encoded")
+                    .build()
+                .build()
+            .build();
+
+        when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
+        when(context.clock()).thenReturn(Clock.systemUTC());
+        when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
+        JsonValidatorHandler validator = new JsonValidatorHandler(model, context);
+
+        byte[] encoded = {0x00, 0x00, 0x00, 0x09};
+        byte[] event = "{\"id\": 123,\"status\": \"OK\"}".getBytes();
+        int total = encoded.length + event.length;
+
+        ExpandableDirectByteBuffer data = new ExpandableDirectByteBuffer(total);
+        data.putBytes(0, encoded, 0, encoded.length);
+        data.putBytes(encoded.length, event, 0, event.length);
+
+        int split = encoded.length + 7;
+        assertTrue(validator.validate(0L, 0L, FLAGS_INIT, data, 0, split, ValueConsumer.NOP));
+        assertFalse(validator.validate(0L, 0L, FLAGS_FIN, data, split, total - split, ValueConsumer.NOP));
     }
 
     @Test

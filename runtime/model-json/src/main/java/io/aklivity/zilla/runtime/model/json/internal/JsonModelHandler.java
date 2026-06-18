@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.runtime.model.json.internal;
 
-import jakarta.json.spi.JsonProvider;
-
 import org.agrona.collections.Int2ObjectCache;
 
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
@@ -32,15 +30,12 @@ public abstract class JsonModelHandler
     protected final String subject;
     protected final JsonModelEventContext event;
 
-    protected final JsonProvider schemaProvider;
-
     private final Int2ObjectCache<JsonSchema> schemas;
 
     public JsonModelHandler(
         JsonModelConfig config,
         EngineContext context)
     {
-        this.schemaProvider = JsonProvider.provider();
         CatalogedConfig cataloged = config.cataloged.get(0);
         this.catalog = cataloged.schemas.size() != 0 ? cataloged.schemas.get(0) : null;
         this.handler = context.supplyCatalog(cataloged.id);
