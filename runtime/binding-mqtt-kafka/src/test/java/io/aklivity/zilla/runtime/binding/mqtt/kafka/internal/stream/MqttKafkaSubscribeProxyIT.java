@@ -376,6 +376,17 @@ public class MqttKafkaSubscribeProxyIT
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
+        "${mqtt}/subscribe.receive.message.third.party/client",
+        "${kafka}/subscribe.receive.message.third.party/server"})
+    public void shouldReceiveThirdPartyMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
         "${mqtt}/subscribe.receive.message.wildcard/client",
         "${kafka}/subscribe.receive.message.wildcard/server"})
     public void shouldReceiveOneMessageWithPatternTopic() throws Exception

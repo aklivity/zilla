@@ -13,21 +13,38 @@
 # specific language governing permissions and limitations under the License.
 #
 
-accept "zilla://streams/kafka0"
-        option zilla:window 8192
-        option zilla:transmission "duplex"
+connect "zilla://streams/kafka0"
+         option zilla:window 8192
+         option zilla:transmission "duplex"
 
-accepted
-
-read zilla:begin.ext ${kafka:matchBeginEx()
+write zilla:begin.ext ${kafka:beginEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
                                 .capabilities("FETCH_ONLY")
                                 .topic("mqtt-messages")
+                                .filter()
+                                    .key("sensor/one")
+                                    .build()
                                 .evaluation("EAGER")
                                 .build()
                             .build()}
 
 connected
 
-read aborted
+read zilla:data.ext ${kafka:matchDataEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                              .fetch()
+                                .timestamp(kafka:timestamp())
+                                .filters(2)
+                                .partition(0, 1, 2)
+                                .progress(0, 2)
+                                .progress(1, 1)
+                                .key("sensor/one")
+                                .build()
+                            .build()}
+read "message"
+read notify DATA_RECEIVED
+
+close
+closed
