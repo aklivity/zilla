@@ -35,6 +35,7 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
+import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 import io.aklivity.zilla.runtime.model.protobuf.config.ProtobufModelConfig;
 
 public class ProtobufModelHandler
@@ -45,11 +46,10 @@ public class ProtobufModelHandler
     private static final int JSON_FIELD_STRUCTURE_LENGTH = "\"\":\"\",".length();
     private static final int JSON_OBJECT_CURLY_BRACES = 2;
 
-    // the streaming output window the pipeline generator fills: sized to OUT_SCALE * input + OUT_SLACK so a
-    // whole message ordinarily transcodes in one feed, and grown-and-retried if a feed reports SUSPENDED
-    private static final int OUT_SCALE = 8;
-    private static final int OUT_SLACK = 1024;
-    private static final int OUT_INITIAL = 8192;
+    // a fixed, reused output window the pipeline generator fills; when a feed fills it the chunk is emitted
+    // downstream and the feed resumes into the same window, so output of any size streams in bounded chunks
+    // with no per-message allocation (the common-protobuf generators fragment a single value across windows)
+    private static final int OUT_WINDOW = 8192;
 
     protected final SchemaConfig catalog;
     protected final CatalogHandler handler;
@@ -61,8 +61,6 @@ public class ProtobufModelHandler
 
     private final Int2ObjectCache<ProtobufSchema> schemas;
     private final Int2IntHashMap paddings;
-
-    private byte[] outBytes;
 
     protected ProtobufModelHandler(
         ProtobufModelConfig config,
@@ -78,45 +76,48 @@ public class ProtobufModelHandler
         this.schemas = new Int2ObjectCache<>(1, 1024, i -> {});
         this.indexes = new LinkedList<>();
         this.paddings = new Int2IntHashMap(-1);
-        this.outBytes = new byte[OUT_INITIAL];
-        this.out = new UnsafeBuffer(outBytes);
+        this.out = new UnsafeBuffer(new byte[OUT_WINDOW]);
         this.event = new ProtobufModelEventContext(context);
     }
 
-    // Drives one whole message through the pipeline into the reused output window {@code out}, returning the
-    // number of bytes produced (in {@code out[0, len)}) or -1 when the message is rejected. The window is sized
-    // up front; if a feed reports SUSPENDED (output exceeded the estimate) the window is doubled and the feed is
-    // retried from the start, so a valid message of any size completes in a single feed rather than being
-    // wrongly rejected. On rejection {@code pipeline.reason()} carries why.
-    protected final int project(
+    // Streams a whole message through the pipeline as bounded output chunks emitted via {@code next}, returning
+    // the total number of bytes emitted or -1 when the message is rejected. The fixed window {@code out} is
+    // filled, flushed downstream, then re-wrapped and the feed resumed each time it fills, so output of any size
+    // streams in bounded chunks with no per-message allocation and no re-parse. A late rejection (after some
+    // chunks have already been emitted) returns -1 so the caller aborts the downstream stream; on rejection
+    // {@code pipeline.reason()} carries why.
+    protected final int transcode(
         ProtobufPipeline pipeline,
         ProtobufGenerator generator,
         DirectBuffer data,
         int index,
-        int length)
+        int length,
+        ValueConsumer next)
     {
         int produced = -1;
-        int limit = length * OUT_SCALE + OUT_SLACK;
         try
         {
-            ProtobufPipeline.Status status;
-            do
+            int emitted = 0;
+            generator.wrap(out, 0, out.capacity());
+            pipeline.reset();
+            ProtobufPipeline.Status status = pipeline.feed(data, index, index + length);
+            // each filled window is a finished chunk (the sink backfills any open length slots before
+            // suspending); emit it as-is and resume into the same window — flush() is only for completion
+            while (status == ProtobufPipeline.Status.SUSPENDED)
             {
-                ensureOut(limit);
-                generator.wrap(out, 0, limit);
-                pipeline.reset();
+                int chunk = generator.length();
+                next.accept(out, 0, chunk);
+                emitted += chunk;
+                generator.wrap(out, 0, out.capacity());
                 status = pipeline.feed(data, index, index + length);
-                if (status == ProtobufPipeline.Status.SUSPENDED)
-                {
-                    limit *= 2;
-                }
             }
-            while (status == ProtobufPipeline.Status.SUSPENDED);
-
             if (status == ProtobufPipeline.Status.COMPLETED)
             {
                 generator.flush();
-                produced = generator.length();
+                int chunk = generator.length();
+                next.accept(out, 0, chunk);
+                emitted += chunk;
+                produced = emitted;
             }
         }
         catch (Exception ex)
@@ -124,16 +125,6 @@ public class ProtobufModelHandler
             produced = -1;
         }
         return produced;
-    }
-
-    private void ensureOut(
-        int capacity)
-    {
-        if (outBytes.length < capacity)
-        {
-            outBytes = new byte[capacity];
-            out.wrap(outBytes);
-        }
     }
 
     protected ProtobufSchema supplySchema(

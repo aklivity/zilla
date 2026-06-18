@@ -138,11 +138,12 @@ public class ProtobufWriteConverterHandler extends ProtobufModelHandler implemen
             {
                 String messageName = message.name();
                 JsonState state = jsonStates.computeIfAbsent(messageName, name -> new JsonState(schema, name));
-                int produced = project(state.pipeline, state.generator, buffer, index, length);
-                if (produced != -1)
+                encodeIndexes(path);
+                int prefix = emitIndexes(next);
+                int wire = transcode(state.pipeline, state.generator, buffer, index, length, next);
+                if (wire != -1)
                 {
-                    encodeIndexes(path);
-                    valLength = encode(out, 0, produced, next);
+                    valLength = prefix + wire;
                 }
                 else
                 {
@@ -160,6 +161,14 @@ public class ProtobufWriteConverterHandler extends ProtobufModelHandler implemen
         int length,
         ValueConsumer next)
     {
+        int prefix = emitIndexes(next);
+        next.accept(buffer, index, length);
+        return prefix + length;
+    }
+
+    private int emitIndexes(
+        ValueConsumer next)
+    {
         int valLength;
         if (indexes.size() == 2 && indexes.get(0) == 1 && indexes.get(1) == 0)
         {
@@ -173,8 +182,7 @@ public class ProtobufWriteConverterHandler extends ProtobufModelHandler implemen
         }
         indexes.clear();
         next.accept(indexesRO, 0, valLength);
-        next.accept(buffer, index, length);
-        return valLength + length;
+        return valLength;
     }
 
     private final class JsonState

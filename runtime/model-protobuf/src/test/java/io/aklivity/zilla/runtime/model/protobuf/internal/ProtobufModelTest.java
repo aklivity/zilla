@@ -371,7 +371,9 @@ public class ProtobufModelTest
 
         ProtobufReadConverterHandler converter = new ProtobufReadConverterHandler(model, context);
 
-        String content = "A".repeat(300);
+        // 20000-byte content forces the JSON output past the fixed 8192-byte window, exercising the
+        // bounded-chunk streaming drain (multiple next.accept calls), which the consumer reassembles
+        String content = "A".repeat(20000);
         byte[] contentBytes = content.getBytes(StandardCharsets.UTF_8);
         byte[] dateBytes = "01012024".getBytes(StandardCharsets.UTF_8);
         byte[] buf = new byte[contentBytes.length + 16];
@@ -379,8 +381,9 @@ public class ProtobufModelTest
         int p = 0;
         builder.putByte(p++, (byte) 0x00);                  // message index 0
         builder.putByte(p++, (byte) 0x0a);                  // field 1 (content), wire type LEN
-        builder.putByte(p++, (byte) 0xac);                  // length 300 varint, low 7 bits + continuation
-        builder.putByte(p++, (byte) 0x02);                  // length 300 varint, high bits
+        builder.putByte(p++, (byte) 0xa0);                  // length 20000 varint, byte 0
+        builder.putByte(p++, (byte) 0x9c);                  // length 20000 varint, byte 1
+        builder.putByte(p++, (byte) 0x01);                  // length 20000 varint, byte 2
         builder.putBytes(p, contentBytes);
         p += contentBytes.length;
         builder.putByte(p++, (byte) 0x12);                  // field 2 (date_time), wire type LEN
@@ -392,13 +395,19 @@ public class ProtobufModelTest
         data.wrap(buf, 0, p);
 
         String json = "{\"content\":\"" + content + "\",\"date_time\":\"01012024\"}";
+        MutableDirectBuffer sink = new UnsafeBuffer(new byte[64 * 1024]);
+        int[] sunk = {0};
         final ValueConsumer consumer = (buffer, index, length) ->
         {
-            byte[] jsonBytes = new byte[length];
-            buffer.getBytes(index, jsonBytes);
-            assertEquals(json, new String(jsonBytes, StandardCharsets.UTF_8));
+            buffer.getBytes(index, sink, sunk[0], length);
+            sunk[0] += length;
         };
-        assertEquals(json.length(), converter.convert(0L, 0L, data, 0, data.capacity(), consumer));
+        int result = converter.convert(0L, 0L, data, 0, data.capacity(), consumer);
+
+        assertEquals(json.length(), result);
+        byte[] assembled = new byte[sunk[0]];
+        sink.getBytes(0, assembled);
+        assertEquals(json, new String(assembled, StandardCharsets.UTF_8));
     }
 
     @Test
@@ -455,14 +464,16 @@ public class ProtobufModelTest
 
         ProtobufWriteConverterHandler converter = new ProtobufWriteConverterHandler(model, context);
 
-        String content = "A".repeat(300);
+        // 20000-byte content forces the wire output past the fixed 8192-byte window, exercising the
+        // bounded-chunk streaming drain on the write path
+        String content = "A".repeat(20000);
         String json = "{\"content\":\"" + content + "\",\"date_time\":\"01012024\"}";
         DirectBuffer data = new UnsafeBuffer();
         data.wrap(json.getBytes(StandardCharsets.UTF_8), 0, json.getBytes(StandardCharsets.UTF_8).length);
 
         int result = converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP);
 
-        assertTrue(result > 300);
+        assertTrue(result > 20000);
     }
 
     @Test
