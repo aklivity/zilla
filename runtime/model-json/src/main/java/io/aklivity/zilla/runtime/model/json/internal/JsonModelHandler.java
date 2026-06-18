@@ -15,21 +15,16 @@
 package io.aklivity.zilla.runtime.model.json.internal;
 
 import java.util.HashMap;
-import java.util.IdentityHashMap;
 import java.util.Map;
 
 import jakarta.json.spi.JsonProvider;
 import jakarta.json.stream.JsonParser;
 
 import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2ObjectCache;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.agrona.io.DirectBufferInputStream;
 
-import io.aklivity.zilla.runtime.common.json.JsonEx;
-import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
-import io.aklivity.zilla.runtime.common.json.JsonPipeline;
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
 import io.aklivity.zilla.runtime.common.json.JsonValidationException;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -43,8 +38,6 @@ public abstract class JsonModelHandler
 {
     private static final DirectBuffer EMPTY_BUFFER = new UnsafeBuffer();
     private static final int DOUBLE_QUOTE_LENGTH = 1;
-    private static final int PROJECT_HEADROOM = 64;
-    private static final int PROJECT_CAPACITY_MIN = 1024;
 
     protected final SchemaConfig catalog;
     protected final CatalogHandler handler;
@@ -53,15 +46,11 @@ public abstract class JsonModelHandler
     protected final Map<String, OctetsFW> extracted;
 
     protected final JsonProvider schemaProvider;
-    protected final MutableDirectBuffer projectBuffer;
 
     private final Int2ObjectCache<JsonSchema> schemas;
-    private final Map<JsonSchema, JsonPipeline> projectors;
-    private final JsonGeneratorEx generator;
-    private final DirectBufferInputStream in;
 
-    private byte[] projectBytes;
     private JsonParser parser;
+    private DirectBufferInputStream in;
 
     public JsonModelHandler(
         JsonModelConfig config,
@@ -75,16 +64,12 @@ public abstract class JsonModelHandler
                 ? catalog.subject
                 : config.subject;
         this.schemas = new Int2ObjectCache<>(1, 1024, i -> {});
-        this.projectors = new IdentityHashMap<>();
-        this.generator = JsonEx.createGenerator();
-        this.projectBytes = new byte[1024];
-        this.projectBuffer = new UnsafeBuffer(projectBytes);
         this.in = new DirectBufferInputStream();
         this.event = new JsonModelEventContext(context);
         this.extracted = new HashMap<>();
     }
 
-    protected final int project(
+    protected final boolean validate(
         long traceId,
         long bindingId,
         int schemaId,
@@ -92,120 +77,64 @@ public abstract class JsonModelHandler
         int index,
         int length)
     {
-        int projected = -1;
-
-        JsonSchema schema = supplySchema(schemaId);
-        if (schema != null)
-        {
-            int capacity = Math.max(PROJECT_CAPACITY_MIN, length + PROJECT_HEADROOM);
-            if (projectBytes.length < capacity)
-            {
-                projectBytes = new byte[capacity];
-                projectBuffer.wrap(projectBytes);
-            }
-
-            JsonPipeline pipeline = projectors.computeIfAbsent(schema, this::newProjector);
-            generator.wrap(projectBuffer, 0, projectBuffer.capacity());
-            pipeline.reset();
-
-            JsonPipeline.Status status = pipeline.feed(buffer, index, index + length);
-            if (status == JsonPipeline.Status.COMPLETED)
-            {
-                projected = generator.length();
-            }
-            else
-            {
-                diagnose(traceId, bindingId, schema, buffer, index, length);
-            }
-        }
-
-        return projected;
-    }
-
-    protected final void extract(
-        DirectBuffer buffer,
-        int index,
-        int length)
-    {
-        for (OctetsFW value : extracted.values())
-        {
-            value.wrap(EMPTY_BUFFER, 0, 0);
-        }
-
-        in.wrap(buffer, index, length);
-        parser = schemaProvider.createParser(in);
-        OctetsFW valueBytes = null;
-        while (parser.hasNext())
-        {
-            JsonParser.Event next = parser.next();
-            switch (next)
-            {
-            case KEY_NAME:
-                String key = parser.getString();
-                valueBytes = extracted.get(key);
-                break;
-            case VALUE_STRING:
-                if (valueBytes != null)
-                {
-                    int offset = (int) parser.getLocation().getStreamOffset() - DOUBLE_QUOTE_LENGTH;
-                    offset += index;
-                    int valLength = calculateValueLength();
-                    valueBytes.wrap(buffer, offset - valLength, offset);
-                    valueBytes = null;
-                }
-                break;
-            case VALUE_NUMBER:
-                if (valueBytes != null)
-                {
-                    int offset = (int) parser.getLocation().getStreamOffset();
-                    offset += index;
-                    int valLength = calculateValueLength();
-                    valueBytes.wrap(buffer, offset - valLength, offset);
-                    valueBytes = null;
-                }
-                break;
-            default:
-                break;
-            }
-        }
-    }
-
-    protected JsonSchema supplySchema(
-        int schemaId)
-    {
-        return schemas.computeIfAbsent(schemaId, this::resolveSchema);
-    }
-
-    private JsonPipeline newProjector(
-        JsonSchema schema)
-    {
-        return JsonEx.stream(JsonEx.createParser())
-            .transform(schema.validator())
-            .transform(JsonEx.projector(schema))
-            .into(JsonEx.createSink(generator));
-    }
-
-    private void diagnose(
-        long traceId,
-        long bindingId,
-        JsonSchema schema,
-        DirectBuffer buffer,
-        int index,
-        int length)
-    {
+        boolean status = true;
         try
         {
-            in.wrap(buffer, index, length);
-            JsonParser diagnostic = schema.newParser(true, schemaProvider.createParser(in));
-            while (diagnostic.hasNext())
+            JsonSchema schema = supplySchema(schemaId);
+            status &= schema != null;
+            if (status)
             {
-                diagnostic.next();
+                for (OctetsFW value: extracted.values())
+                {
+                    value.wrap(EMPTY_BUFFER, 0, 0);
+                }
+                in.wrap(buffer, index, length);
+                parser = schema.newParser(true, schemaProvider.createParser(in));
+                OctetsFW valueBytes = null;
+                while (parser.hasNext())
+                {
+                    JsonParser.Event event = parser.next();
+                    if (!extracted.isEmpty())
+                    {
+                        switch (event)
+                        {
+                        case KEY_NAME:
+                            String key = parser.getString();
+                            valueBytes = extracted.get(key);
+                            break;
+                        case VALUE_STRING:
+                            if (valueBytes != null)
+                            {
+                                int offset = (int) parser.getLocation().getStreamOffset() - DOUBLE_QUOTE_LENGTH;
+                                offset += index;
+                                int valLength = calculateValueLength();
+                                valueBytes.wrap(in.buffer(), offset - valLength, offset);
+                                valueBytes = null;
+                            }
+                            break;
+                        case VALUE_NUMBER:
+                            if (valueBytes != null)
+                            {
+                                int offset = (int) parser.getLocation().getStreamOffset();
+                                offset += index;
+                                int valLength = calculateValueLength();
+                                valueBytes.wrap(in.buffer(), offset - valLength, offset);
+                                valueBytes = null;
+                            }
+                            break;
+                        default:
+                            break;
+                        }
+                    }
+                }
             }
         }
         catch (JsonValidationException ex)
         {
+            status = false;
             event.validationFailure(traceId, bindingId, ex.getMessage());
         }
+        return status;
     }
 
     private int calculateValueLength()
@@ -235,6 +164,12 @@ public abstract class JsonModelHandler
             }
         }
         return length;
+    }
+
+    protected JsonSchema supplySchema(
+        int schemaId)
+    {
+        return schemas.computeIfAbsent(schemaId, this::resolveSchema);
     }
 
     private JsonSchema resolveSchema(

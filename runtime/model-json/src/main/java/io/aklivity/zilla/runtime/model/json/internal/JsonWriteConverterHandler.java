@@ -55,11 +55,9 @@ public class JsonWriteConverterHandler extends JsonModelHandler implements Conve
             ? catalog.id
             : handler.resolve(subject, catalog.version);
 
-        int projected = project(traceId, bindingId, schemaId, data, index, length);
-        if (projected != -1)
+        if (validate(traceId, bindingId, schemaId, data, index, length))
         {
-            valLength = handler.encode(traceId, bindingId, schemaId, projectBuffer, 0, projected, next,
-                CatalogHandler.Encoder.IDENTITY);
+            valLength = handler.encode(traceId, bindingId, schemaId, data, index, length, next, CatalogHandler.Encoder.IDENTITY);
         }
         return valLength;
     }

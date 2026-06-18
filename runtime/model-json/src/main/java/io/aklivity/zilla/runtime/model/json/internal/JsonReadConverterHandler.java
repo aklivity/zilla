@@ -123,18 +123,11 @@ public class JsonReadConverterHandler extends JsonModelHandler implements Conver
             }
         }
 
-        if (schemaId != NO_SCHEMA_ID)
+        if (schemaId != NO_SCHEMA_ID &&
+            validate(traceId, bindingId, schemaId, data, index, length))
         {
-            int projected = project(traceId, bindingId, schemaId, data, index, length);
-            if (projected != -1)
-            {
-                if (!extracted.isEmpty())
-                {
-                    extract(data, index, length);
-                }
-                next.accept(projectBuffer, 0, projected);
-                valLength = projected;
-            }
+            next.accept(data, index, length);
+            valLength = length;
         }
 
         return valLength;
