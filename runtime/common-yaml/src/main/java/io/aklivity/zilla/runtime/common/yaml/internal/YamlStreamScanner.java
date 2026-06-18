@@ -670,6 +670,17 @@ public final class YamlStreamScanner
                 scanInlineNode(nodeStart, keyEnd);
                 skipIgnorable();
             }
+            else if (nodeStart == keyStart && (keyFirst == '{' || keyFirst == '['))
+            {
+                if (!raw)
+                {
+                    // a flow-collection key is a non-scalar key, only representable in raw mode
+                    throw BAIL;
+                }
+                // an explicit key that is a (possibly multi-line) flow collection (e.g. ? [ a,\n  b ])
+                scanFlowValue(nodeStart, indent);
+                skipIgnorable();
+            }
             // otherwise only a simple single-line scalar key (plain or escape-free quoted) is supported inline
             else if (nodeStart == keyEnd || keyFirst == '{' || keyFirst == '[' || keyFirst == '|' || keyFirst == '>' ||
                 keyFirst != '"' && keyFirst != '\'' && blockedStart(keyFirst) || mappingColon(nodeStart, keyEnd) != -1)
