@@ -32,6 +32,7 @@ public final class ProtobufField
     private final boolean proto3Optional;
     private final String typeName;
     private final String oneofName;
+    private final String defaultValue;
 
     private ProtobufMessage message;
     private ProtobufEnum enumeration;
@@ -46,7 +47,8 @@ public final class ProtobufField
         boolean packed,
         boolean proto3Optional,
         String typeName,
-        String oneofName)
+        String oneofName,
+        String defaultValue)
     {
         this.number = number;
         this.name = name;
@@ -58,6 +60,7 @@ public final class ProtobufField
         this.proto3Optional = proto3Optional;
         this.typeName = typeName;
         this.oneofName = oneofName;
+        this.defaultValue = defaultValue;
     }
 
     public int number()
@@ -111,6 +114,16 @@ public final class ProtobufField
     public String oneofName()
     {
         return oneofName;
+    }
+
+    /**
+     * The declared proto2 {@code [default = ...]} value as an unquoted token (the value literal for
+     * numbers and {@code bool}, the raw text for {@code string}/{@code bytes}, the value name for an
+     * {@code enum}), or {@code null} when none was declared. proto3 has no field defaults.
+     */
+    public String defaultValue()
+    {
+        return defaultValue;
     }
 
     public boolean composite()
@@ -195,6 +208,7 @@ public final class ProtobufField
         private boolean proto3Optional;
         private String typeName;
         private String oneofName;
+        private String defaultValue;
 
         public Builder number(
             int number)
@@ -266,6 +280,13 @@ public final class ProtobufField
             return this;
         }
 
+        public Builder defaultValue(
+            String defaultValue)
+        {
+            this.defaultValue = defaultValue;
+            return this;
+        }
+
         public ProtobufField build()
         {
             Objects.requireNonNull(name, "field name");
@@ -273,7 +294,7 @@ public final class ProtobufField
             String resolvedJsonName = jsonName != null ? jsonName : toJsonName(name);
             boolean resolvedPacked = packed != null ? packed : repeated && type.packable();
             return new ProtobufField(number, name, resolvedJsonName, type, repeated, required, resolvedPacked,
-                proto3Optional, typeName, oneofName);
+                proto3Optional, typeName, oneofName, defaultValue);
         }
     }
 }

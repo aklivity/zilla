@@ -76,13 +76,23 @@ public interface ProtobufPipeline
     void reset();
 
     /**
-     * The number of input bytes committed since the message began — always at a whole-unit boundary. On
-     * {@link Status#STARVED} everything at or after this position is the unconsumed tail: the caller
-     * retains it (typically in its own reassembly slot) and re-presents it, contiguous with the next
-     * window, on the following {@link #feed}. The pipeline holds no input buffer of its own. The value is
-     * unspecified after {@link Status#SUSPENDED} (re-feed the same window) and need not be consulted then.
+     * A short, human-readable reason for the most recent {@link Status#REJECTED} — e.g. an unknown
+     * field, an unknown enum value, or truncated input — or {@code null} when the last feed did not
+     * reject. Cleared by {@link #reset()}.
      */
-    long position();
+    default String reason()
+    {
+        return null;
+    }
+
+    /**
+     * The number of bytes at the tail of the most recently fed window not yet consumed — exactly what the
+     * caller retains (typically in its own reassembly slot) and re-presents, contiguous, at the front of the
+     * next {@link #feed}. A caller buffering across windows keeps this many bytes without tracking the
+     * window's absolute base. On {@link Status#STARVED} it is the unconsumed tail; held steady while
+     * {@link Status#SUSPENDED} (re-feed the same window), since output back-pressure consumes no further input.
+     */
+    int remaining();
 
     /**
      * Feeds a whole message in one shot (equivalent to {@link #feed(DirectBuffer, int, int, boolean)} with
@@ -91,21 +101,21 @@ public interface ProtobufPipeline
     default Status feed(
         DirectBuffer buffer,
         int offset,
-        int length)
+        int limit)
     {
-        return feed(buffer, offset, length, true);
+        return feed(buffer, offset, limit, true);
     }
 
     /**
-     * Feeds one input window of a message; {@code last} marks the final window. Returns
-     * {@link Status#STARVED} when the window is consumed before the message completes (input
-     * back-pressure), {@link Status#SUSPENDED} when the bounded output fills (output back-pressure),
-     * {@link Status#COMPLETED} on a clean message end, or {@link Status#REJECTED} on malformed or
-     * truncated input.
+     * Feeds one input window of a message, the bytes occupying the half-open range {@code [offset, limit)};
+     * {@code last} marks the final window. Returns {@link Status#STARVED} when the window is consumed before
+     * the message completes (input back-pressure), {@link Status#SUSPENDED} when the bounded output fills
+     * (output back-pressure), {@link Status#COMPLETED} on a clean message end, or {@link Status#REJECTED} on
+     * malformed or truncated input.
      */
     Status feed(
         DirectBuffer buffer,
         int offset,
-        int length,
+        int limit,
         boolean last);
 }

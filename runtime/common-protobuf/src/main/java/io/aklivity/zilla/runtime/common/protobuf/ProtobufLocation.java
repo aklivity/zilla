@@ -12,32 +12,13 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.common.avro.internal;
+package io.aklivity.zilla.runtime.common.protobuf;
 
-import io.aklivity.zilla.runtime.common.avro.AvroLocation;
-
-final class AvroLocationImpl implements AvroLocation
+/**
+ * The position of the current event within the message, for diagnostics. Protobuf binary has no line or
+ * column, so a location reports the byte {@link #getStreamOffset()} from the start of the message.
+ */
+public interface ProtobufLocation
 {
-    private int depth;
-    private long streamOffset;
-
-    void locate(
-        int depth,
-        long streamOffset)
-    {
-        this.depth = depth;
-        this.streamOffset = streamOffset;
-    }
-
-    @Override
-    public int depth()
-    {
-        return depth;
-    }
-
-    @Override
-    public long getStreamOffset()
-    {
-        return streamOffset;
-    }
+    long getStreamOffset();
 }
