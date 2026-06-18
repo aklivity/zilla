@@ -14,9 +14,13 @@
  */
 package io.aklivity.zilla.runtime.common.avro;
 
+import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.COMPLETED;
 import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.REJECTED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
+import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
 
 public class AvroMalformedTest
@@ -26,6 +30,37 @@ public class AvroMalformedTest
         byte[] binary)
     {
         return AvroValues.record(Avro.schema(schemaText), binary).status;
+    }
+
+    @Test
+    public void shouldReportReasonWhenRejected()
+    {
+        String[] reason = new String[1];
+        AvroReporter reporter = d -> reason[0] = d.message();
+        AvroPipeline pipeline = Avro.stream(Avro.parser(Avro.schema("\"int\"")))
+            .reporting(reporter)
+            .into(new AvroValues.Recorder());
+        pipeline.reset();
+
+        byte[] overlong = { (byte) 0x80, (byte) 0x80, (byte) 0x80, (byte) 0x80, (byte) 0x80, 0x01 };
+        assertEquals(REJECTED, pipeline.feed(new UnsafeBuffer(overlong), 0, overlong.length));
+        assertNotNull(reason[0]);
+    }
+
+    @Test
+    public void shouldNotReportWhenAccepted()
+    {
+        String[] reason = new String[1];
+        AvroReporter reporter = d -> reason[0] = d.message();
+        AvroPipeline pipeline = Avro.stream(
+                Avro.parser(Avro.schema("{\"type\":\"enum\",\"name\":\"Suit\",\"symbols\":[\"SPADES\",\"HEARTS\"]}")))
+            .reporting(reporter)
+            .into(new AvroValues.Recorder());
+        pipeline.reset();
+
+        byte[] spades = { 0x00 };
+        assertEquals(COMPLETED, pipeline.feed(new UnsafeBuffer(spades), 0, spades.length));
+        assertNull(reason[0]);
     }
 
     @Test
