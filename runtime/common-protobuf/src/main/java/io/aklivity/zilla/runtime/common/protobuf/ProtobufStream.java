@@ -17,13 +17,21 @@ package io.aklivity.zilla.runtime.common.protobuf;
 /**
  * A description of a {@code common-protobuf} pipeline — a descriptor-bound driver plus an ordered list
  * of {@link ProtobufTransform} stages. Append stages with {@link #transform(ProtobufTransform)}
- * (left-to-right, in data-flow order); terminate with {@link #into(ProtobufSink)} to obtain the runnable
+ * (left-to-right, in data-flow order); optionally attach a {@link ProtobufReporter} with
+ * {@link #reporting(ProtobufReporter)}; terminate with {@link #into(ProtobufSink)} to obtain the runnable
  * {@link ProtobufPipeline}. A {@code ProtobufStream} carries no state and is not itself runnable.
  */
 public interface ProtobufStream
 {
     ProtobufStream transform(
         ProtobufTransform transform);
+
+    /**
+     * Attaches the {@link ProtobufReporter} the pipeline pushes a {@link ProtobufDiagnostic} to on a terminal
+     * {@link ProtobufPipeline.Status#REJECTED}. The last attached reporter wins; the default is none.
+     */
+    ProtobufStream reporting(
+        ProtobufReporter reporter);
 
     ProtobufPipeline into(
         ProtobufSink sink);

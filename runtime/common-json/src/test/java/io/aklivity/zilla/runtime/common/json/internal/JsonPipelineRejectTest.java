@@ -16,6 +16,8 @@ package io.aklivity.zilla.runtime.common.json.internal;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -25,9 +27,14 @@ import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
+import io.aklivity.zilla.runtime.common.json.JsonReporter;
 
 class JsonPipelineRejectTest
 {
+    // captures the call-scoped diagnostic the pipeline pushes on a terminal REJECTED, copying the message out
+    private final String[] reason = new String[1];
+    private final JsonReporter reporter = d -> reason[0] = d.message();
+
     // Malformed JSON is a rejection of the value, surfaced as the terminal REJECTED status rather than
     // an exception escaping feed() — mirroring how the protobuf pipeline maps a decode failure.
     @Test
@@ -44,5 +51,39 @@ class JsonPipelineRejectTest
         Status status = pipeline.feed(new UnsafeBuffer(bytes), 0, bytes.length);
 
         assertEquals(Status.REJECTED, status);
+    }
+
+    @Test
+    void shouldReportReasonOnMalformedJson()
+    {
+        JsonGeneratorEx generator = JsonEx.createGenerator();
+        MutableDirectBuffer output = new UnsafeBuffer(new byte[128]);
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+            .reporting(reporter)
+            .into(JsonEx.createSink(generator));
+
+        byte[] bytes = "[1 2]".getBytes(UTF_8);
+        generator.wrap(output, 0, output.capacity());
+        pipeline.reset();
+
+        assertEquals(Status.REJECTED, pipeline.feed(new UnsafeBuffer(bytes), 0, bytes.length));
+        assertNotNull(reason[0]);
+    }
+
+    @Test
+    void shouldNotReportOnValidJson()
+    {
+        JsonGeneratorEx generator = JsonEx.createGenerator();
+        MutableDirectBuffer output = new UnsafeBuffer(new byte[128]);
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+            .reporting(reporter)
+            .into(JsonEx.createSink(generator));
+
+        byte[] bytes = "[1,2]".getBytes(UTF_8);
+        generator.wrap(output, 0, output.capacity());
+        pipeline.reset();
+
+        assertEquals(Status.COMPLETED, pipeline.feed(new UnsafeBuffer(bytes), 0, bytes.length));
+        assertNull(reason[0]);
     }
 }
