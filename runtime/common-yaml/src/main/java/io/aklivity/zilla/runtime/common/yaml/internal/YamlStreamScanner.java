@@ -2963,8 +2963,9 @@ public final class YamlStreamScanner
                     // a non-closing continuation keeps its trailing whitespace (raw end)
                     interior.append(text, cs, rawEnd(cursor));
                 }
-                else if (close == ce - 1)
+                else if (isQuotedTrailing(close + 1, ce))
                 {
+                    // the closing quote may be followed only by whitespace or a comment (e.g. "x" # c)
                     interior.append(text, cs, close);
                     closed = true;
                 }
@@ -2987,6 +2988,24 @@ public final class YamlStreamScanner
         }
 
         emit(VALUE_STRING, openStart, 0, value != null ? value : folded);
+    }
+
+    /**
+     * Whether {@code [from, end)} following a closing quote is valid trailing separation: only whitespace, or
+     * whitespace then a comment, mirroring the eager parser's {@code isQuotedTrailing}.
+     */
+    private boolean isQuotedTrailing(
+        int from,
+        int end)
+    {
+        boolean space = false;
+        int i = from;
+        while (i < end && isSpace(text.charAt(i)))
+        {
+            space = true;
+            i++;
+        }
+        return i == end || space && text.charAt(i) == '#';
     }
 
     /**
