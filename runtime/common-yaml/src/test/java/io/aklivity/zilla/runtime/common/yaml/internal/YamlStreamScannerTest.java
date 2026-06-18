@@ -224,12 +224,6 @@ class YamlStreamScannerTest
     }
 
     @Test
-    void shouldBailOnFlowAnchor()
-    {
-        assertFalse(new YamlStreamScanner().scan("{a: &x 1, b: *x}\n"));
-    }
-
-    @Test
     void shouldAcceptEscapeFreeQuotedScalars()
     {
         String doc = "name: \"quoted value\"\nkind: 'literal'\n\"quoted key\": 7114\nflag: \"true\"\n";
@@ -246,7 +240,7 @@ class YamlStreamScannerTest
             "? &a key\n: value\nuse: *a\n"})
         {
             YamlStreamScanner scanner = new YamlStreamScanner();
-            assertTrue(scanner.scan(doc, true), "raw scanner should accept a decorated explicit key: " + doc);
+            assertTrue(scanner.scan(doc), "raw scanner should accept a decorated explicit key: " + doc);
             assertEquals(eagerRaw(doc), scannedRaw(scanner), doc);
         }
     }
@@ -260,7 +254,7 @@ class YamlStreamScannerTest
             "{ {x: 1}: y }\n"})
         {
             YamlStreamScanner scanner = new YamlStreamScanner();
-            assertTrue(scanner.scan(doc, true), "raw scanner should accept a non-scalar flow key: " + doc);
+            assertTrue(scanner.scan(doc), "raw scanner should accept a non-scalar flow key: " + doc);
             assertEquals(eagerRaw(doc), scannedRaw(scanner), doc);
         }
     }
@@ -275,7 +269,7 @@ class YamlStreamScannerTest
             "[a, b]: c\nd: e\n"})
         {
             YamlStreamScanner scanner = new YamlStreamScanner();
-            assertTrue(scanner.scan(doc, true), "raw scanner should accept a non-scalar block key: " + doc);
+            assertTrue(scanner.scan(doc), "raw scanner should accept a non-scalar block key: " + doc);
             assertEquals(eagerRaw(doc), scannedRaw(scanner), doc);
         }
     }
@@ -289,7 +283,7 @@ class YamlStreamScannerTest
             "!!str 23: !!bool false\n"})
         {
             YamlStreamScanner scanner = new YamlStreamScanner();
-            assertTrue(scanner.scan(doc, true), "raw scanner should accept a decorated mapping key: " + doc);
+            assertTrue(scanner.scan(doc), "raw scanner should accept a decorated mapping key: " + doc);
             assertEquals(eagerRaw(doc), scannedRaw(scanner), doc);
         }
     }
@@ -398,7 +392,7 @@ class YamlStreamScannerTest
             "--- \"quoted\nstring\"\n--- &node foo\n"})
         {
             YamlStreamScanner scanner = new YamlStreamScanner();
-            assertTrue(scanner.scan(doc, true), "scanner should accept a multi-line quoted scalar: " + doc);
+            assertTrue(scanner.scan(doc), "scanner should accept a multi-line quoted scalar: " + doc);
             assertEquals(eagerRaw(doc), scannedRaw(scanner), doc);
         }
     }
@@ -416,12 +410,6 @@ class YamlStreamScannerTest
             assertTrue(scanner.scan(doc), "scanner should accept a multi-line quoted scalar: " + doc);
             assertEquals(eager(doc), scanned(scanner), doc);
         }
-    }
-
-    @Test
-    void shouldBailOnAnchorsAndMerge()
-    {
-        assertFalse(new YamlStreamScanner().scan("base: &b\n  host: localhost\nuse:\n  <<: *b\n"));
     }
 
     @Test
@@ -513,7 +501,7 @@ class YamlStreamScannerTest
             "!<tag:yaml.org,2002:str> foo: bar\n"})
         {
             YamlStreamScanner scanner = new YamlStreamScanner();
-            assertTrue(scanner.scan(doc, true), "raw scanner should accept tag directives/verbatim tags: " + doc);
+            assertTrue(scanner.scan(doc), "raw scanner should accept tag directives/verbatim tags: " + doc);
             assertEquals(eagerRaw(doc), scannedRaw(scanner), doc);
         }
     }
@@ -522,7 +510,7 @@ class YamlStreamScannerTest
     void shouldBailOnMalformedTagDirective()
     {
         // a directive after content (not at stream start or after ...) is invalid
-        assertFalse(new YamlStreamScanner().scan("foo\n%TAG ! tag:x,2000:\n---\nbar\n", true));
+        assertFalse(new YamlStreamScanner().scan("foo\n%TAG ! tag:x,2000:\n---\nbar\n"));
     }
 
     @Test
@@ -563,54 +551,27 @@ class YamlStreamScannerTest
     @Test
     void shouldAcceptExpectedFixtureCount() throws Exception
     {
+        // a ratchet toward full YAML 1.2 conformance: this count only ever rises as the scanner widens. A
+        // drop means a regression bailed a previously accepted fixture (the differential only checks fixtures
+        // the scanner accepts, so it would not otherwise catch a lost acceptance).
         long accepted = fixtures()
-            .filter(path -> accepts(path.resolve("in.yaml"), false))
-            .count();
-        assertEquals(235, accepted,
-            "accepted-fixture count changed; feasibility gate may over-reject or over-accept");
-    }
-
-    @Test
-    void shouldAcceptExpectedRawFixtureCount() throws Exception
-    {
-        // a ratchet toward full raw (YAML-layer) conformance: this count only ever rises as the scanner
-        // widens. A drop means a regression bailed a previously accepted fixture (the differential only
-        // checks fixtures the scanner accepts, so it would not otherwise catch a lost acceptance).
-        long accepted = fixtures()
-            .filter(path -> accepts(path.resolve("in.yaml"), true))
+            .filter(path -> accepts(path.resolve("in.yaml")))
             .count();
         assertEquals(308, accepted,
-            "raw accepted-fixture count changed; a drop is a regression, a rise should bump this baseline");
+            "accepted-fixture count changed; a drop is a regression, a rise should bump this baseline");
     }
 
     private static boolean accepts(
-        Path path,
-        boolean rawReferences)
+        Path path)
     {
         try
         {
-            return new YamlStreamScanner().scan(Files.readString(path), rawReferences);
+            return new YamlStreamScanner().scan(Files.readString(path));
         }
         catch (IOException ex)
         {
             throw new IllegalStateException(ex);
         }
-    }
-
-    @TestFactory
-    Stream<DynamicTest> shouldMatchEagerForEveryAcceptedFixture() throws Exception
-    {
-        return fixtures()
-            .map(path -> DynamicTest.dynamicTest(SUITE_DIR.relativize(path).toString(), () ->
-            {
-                String text = Files.readString(path.resolve("in.yaml"));
-                YamlStreamScanner scanner = new YamlStreamScanner();
-                if (scanner.scan(text))
-                {
-                    assertEquals(eager(text), scanned(scanner),
-                        "scanner accepted but diverged from eager parser");
-                }
-            }));
     }
 
     private static String scanned(
@@ -685,7 +646,7 @@ class YamlStreamScannerTest
     {
         String doc = "base: &base\n  host: localhost\nuse:\n  <<: *base\n  port: 7114\nrefs: [*base, plain]\n";
         YamlStreamScanner scanner = new YamlStreamScanner();
-        assertTrue(scanner.scan(doc, true), "raw scanner should accept anchors/aliases/merge");
+        assertTrue(scanner.scan(doc), "raw scanner should accept anchors/aliases/merge");
         assertEquals(eagerRaw(doc), scannedRaw(scanner));
     }
 
@@ -694,14 +655,8 @@ class YamlStreamScannerTest
     {
         String doc = "typed: !!str 42\nverbatim: !<tag:x> hi\ncustom: !foo bar\ntagged: !!map\n  a: 1\n";
         YamlStreamScanner scanner = new YamlStreamScanner();
-        assertTrue(scanner.scan(doc, true), "raw scanner should accept tags");
+        assertTrue(scanner.scan(doc), "raw scanner should accept tags");
         assertEquals(eagerRaw(doc), scannedRaw(scanner));
-    }
-
-    @Test
-    void shouldBailOnTagsInNonRawMode()
-    {
-        assertFalse(new YamlStreamScanner().scan("typed: !!str 42\n"));
     }
 
     @TestFactory
@@ -712,7 +667,7 @@ class YamlStreamScannerTest
             {
                 String text = Files.readString(path.resolve("in.yaml"));
                 YamlStreamScanner scanner = new YamlStreamScanner();
-                if (scanner.scan(text, true))
+                if (scanner.scan(text))
                 {
                     assertEquals(eagerRaw(text), scannedRaw(scanner),
                         "raw scanner accepted but diverged from unresolved eager parser");

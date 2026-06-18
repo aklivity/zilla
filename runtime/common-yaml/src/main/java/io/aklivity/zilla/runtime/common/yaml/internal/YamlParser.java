@@ -68,7 +68,7 @@ public final class YamlParser
         YamlStreamScanner scanner = new YamlStreamScanner();
         // the scanner fast path frames a single document; multi-document framing from the flat token stream
         // is deferred to the eager parser, which delineates each document's root node cleanly
-        if (scanner.scan(text, true) && scanner.documentCount() <= 1)
+        if (scanner.scan(text) && scanner.documentCount() <= 1)
         {
             buildFromScanner(scanner);
         }

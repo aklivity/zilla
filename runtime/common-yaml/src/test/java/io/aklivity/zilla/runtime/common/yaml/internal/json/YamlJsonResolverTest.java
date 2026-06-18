@@ -61,7 +61,7 @@ class YamlJsonResolverTest
             base: &b
               host: localhost
             use: *b
-            """, true));
+            """));
         assertTrue(scanner.hasReferences());
 
         YamlJsonResolver resolver = new YamlJsonResolver(scanner);
@@ -89,7 +89,7 @@ class YamlJsonResolverTest
             list: &l [one, two]
             scalarAlias: *s
             listAlias: *l
-            """, true));
+            """));
 
         YamlJsonResolver resolver = new YamlJsonResolver(scanner);
         assertEquals(List.of(
@@ -115,7 +115,7 @@ class YamlJsonResolverTest
     void shouldThrowUnresolvedForDanglingAlias()
     {
         YamlStreamScanner scanner = new YamlStreamScanner();
-        assertTrue(scanner.scan("use: *missing\n", true));
+        assertTrue(scanner.scan("use: *missing\n"));
         assertThrows(RuntimeException.class, () -> new YamlJsonResolver(scanner));
     }
 
@@ -129,7 +129,7 @@ class YamlJsonResolverTest
             f: !!float "1.5"
             b: !!bool true
             n: !!null ~
-            """, true));
+            """));
 
         YamlJsonResolver resolver = new YamlJsonResolver(scanner);
         assertEquals(List.of(
@@ -151,7 +151,7 @@ class YamlJsonResolverTest
     void shouldBailToEagerOnContainerTagMismatch()
     {
         YamlStreamScanner scanner = new YamlStreamScanner();
-        assertTrue(scanner.scan("x: !!seq foo\n", true));
+        assertTrue(scanner.scan("x: !!seq foo\n"));
         assertThrows(YamlJsonResolver.Unsupported.class, () -> new YamlJsonResolver(scanner));
     }
 

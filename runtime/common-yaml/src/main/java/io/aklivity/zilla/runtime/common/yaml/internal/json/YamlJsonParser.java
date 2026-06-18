@@ -125,7 +125,7 @@ public final class YamlJsonParser implements JsonParser
         if (scannerEligible(config))
         {
             YamlStreamScanner streaming = new YamlStreamScanner();
-            if (streaming.scan(text, true))
+            if (streaming.scan(text))
             {
                 if (streaming.hasReferences())
                 {

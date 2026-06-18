@@ -21,18 +21,18 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Tree-free, buffer-backed streaming scanner over a YAML document. A single forward pass classifies
+ * Tree-free, buffer-backed streaming scanner over a YAML 1.2 document. A single forward pass classifies
  * lines into a compact event buffer (parallel arrays indexing into the source {@code text}) without
  * building the {@link YamlNode} tree, the intermediate {@code Line} objects, or the per-scalar
  * {@code String}s that the eager {@link YamlDocumentParser} allocates. Plain scalars stay as zero-copy
  * slices; only hex integers — which JSON renders in decimal — are materialized.
  * <p>
- * The scanner is deliberately conservative: it accepts only single-document block mappings, block
- * sequences and plain scalars (with comments, blank lines and JSON-style scalar typing). The moment it
- * encounters anything outside that subset — quoted or block scalars, flow collections, anchors, aliases,
- * merge keys, tags, explicit keys, document markers, directives or tabs — {@link #scan(String)} returns
- * {@code false} and the caller re-parses the whole document with the eager parser. Because of that
- * fallback the scanner only has to be correct for what it accepts; it never has to be complete.
+ * The scanner aims to accept all valid YAML 1.2 (anchors, aliases, tags, flow collections, block and
+ * quoted scalars, explicit and non-scalar keys, document markers and directives are all carried through),
+ * but is allowed to be incomplete: when it meets a construct it does not yet handle, {@link #scan(String)}
+ * returns {@code false} and the caller re-parses the whole document with the eager parser. Because of that
+ * fallback the scanner only has to be correct for what it accepts; it never has to be complete. JSON-layer
+ * restrictions (e.g. rejecting non-scalar keys) are applied above this scanner, not here.
  */
 public final class YamlStreamScanner
 {
@@ -77,7 +77,7 @@ public final class YamlStreamScanner
     private int[] offsets;
     private int[] lengths;
     private String[] texts;
-    // sparse per-event reference metadata, only populated in raw mode
+    // per-event reference metadata: anchor, alias and tag, indexed alongside the event arrays
     private String[] anchors;
     private String[] aliases;
     private String[] tags;
@@ -92,7 +92,6 @@ public final class YamlStreamScanner
     // per-document tag handle prefixes from %TAG directives (plus the default !! handle)
     private final Map<String, String> tagHandles = new HashMap<>();
 
-    private boolean raw;
     private boolean references;
     private int cursor;
     private int flowAt;
@@ -103,18 +102,10 @@ public final class YamlStreamScanner
     public boolean scan(
         String text)
     {
-        return scan(text, false);
-    }
-
-    public boolean scan(
-        String text,
-        boolean rawReferences)
-    {
         this.text = text;
         this.eventCount = 0;
         this.documentCount = 0;
         this.cursor = 0;
-        this.raw = rawReferences;
         this.references = false;
         this.pendingAnchor = null;
         this.pendingTag = null;
@@ -126,7 +117,7 @@ public final class YamlStreamScanner
             boolean flow = first < text.length() && (text.charAt(first) == '{' || text.charAt(first) == '[');
             splitLines(text);
             int firstLine = first < text.length() ? lineOf(first) : lineCount;
-            boolean flowKeyedRoot = flow && raw &&
+            boolean flowKeyedRoot = flow &&
                 mappingColon(contentStart[firstLine], contentEnd[firstLine]) != -1;
             if (flow && !flowKeyedRoot)
             {
@@ -352,7 +343,7 @@ public final class YamlStreamScanner
     }
 
     /**
-     * Scans the document root node. In raw mode, leading lines that are entirely anchor/tag node properties
+     * Scans the document root node. Leading lines that are entirely anchor/tag node properties
      * decorate the root node that follows (the pending anchor/tag attach to its first emitted event); this is
      * the document-root analogue of {@link #scanRef}. The node itself is a flow collection, a block sequence
      * or mapping, a block scalar, or a single scalar.
@@ -361,7 +352,7 @@ public final class YamlStreamScanner
     {
         // skip any leading comment-only or blank lines before the root node (e.g. --- !tag\n # comment\n node)
         skipIgnorable();
-        while (raw && cursor < lineCount && rootPropertyOnly(cursor))
+        while (cursor < lineCount && rootPropertyOnly(cursor))
         {
             consumeProperties(contentStart[cursor], contentEnd[cursor]);
             cursor++;
@@ -379,7 +370,7 @@ public final class YamlStreamScanner
             char first = text.charAt(contentStart[line]);
             int indent = lineIndent[line];
             int rootColon = mappingColon(contentStart[line], contentEnd[line]);
-            int decorated = raw && (first == '&' || first == '!') ? propertiesEnd(contentStart[line], contentEnd[line]) : -1;
+            int decorated = (first == '&' || first == '!') ? propertiesEnd(contentStart[line], contentEnd[line]) : -1;
             char decoratedFirst = decorated > 0 && decorated < contentEnd[line] ? text.charAt(decorated) : 0;
             if ((decoratedFirst == '{' || decoratedFirst == '[') && rootColon == -1)
             {
@@ -425,7 +416,7 @@ public final class YamlStreamScanner
         int valueStart = skipSpace(contentStart[line] + 3, contentEnd[line]);
         int valueEnd = contentEnd[line];
         cursor++;
-        if (raw && valueStart < valueEnd && (text.charAt(valueStart) == '&' || text.charAt(valueStart) == '!'))
+        if (valueStart < valueEnd && (text.charAt(valueStart) == '&' || text.charAt(valueStart) == '!'))
         {
             int nodeStart = consumeProperties(valueStart, valueEnd);
             if (nodeStart == valueEnd)
@@ -612,12 +603,6 @@ public final class YamlStreamScanner
             skipIgnorable();
             if (cursor < lineCount && lineIndent[cursor] >= indent && !valueIndicator(cursor, indent))
             {
-                if (!raw)
-                {
-                    // a non-scalar block key is only representable in raw (YAML-layer) mode; the JSON
-                    // projection has no scalar name for it
-                    throw BAIL;
-                }
                 scanBlock(lineIndent[cursor]);
             }
             else
@@ -629,7 +614,7 @@ public final class YamlStreamScanner
         {
             char keyFirst = text.charAt(keyStart);
             int nodeStart = keyStart;
-            if (raw && (keyFirst == '&' || keyFirst == '!'))
+            if (keyFirst == '&' || keyFirst == '!')
             {
                 nodeStart = scanKeyDecorators(keyStart, keyEnd);
                 keyFirst = nodeStart == keyEnd ? 0 : text.charAt(nodeStart);
@@ -654,11 +639,6 @@ public final class YamlStreamScanner
             }
             else if (nodeStart == keyStart && isCompactSequence(nodeStart, keyEnd))
             {
-                if (!raw)
-                {
-                    // a non-scalar sequence key is only representable in raw (YAML-layer) mode
-                    throw BAIL;
-                }
                 // a compact block sequence explicit key, opening inline at the ? indicator and continuing
                 // on following lines at the key's indent (mirrors the : - x explicit-value form)
                 cursor++;
@@ -667,11 +647,6 @@ public final class YamlStreamScanner
             }
             else if (nodeStart == keyStart && mappingColon(nodeStart, keyEnd) != -1)
             {
-                if (!raw)
-                {
-                    // an inline-mapping key is a non-scalar key, only representable in raw mode
-                    throw BAIL;
-                }
                 // an explicit key that is itself an inline single-pair mapping (e.g. ? []: x or ? earth: blue),
                 // mirroring the eager parser's parseInlineMappingOrScalar
                 cursor++;
@@ -680,11 +655,6 @@ public final class YamlStreamScanner
             }
             else if (nodeStart == keyStart && (keyFirst == '{' || keyFirst == '['))
             {
-                if (!raw)
-                {
-                    // a flow-collection key is a non-scalar key, only representable in raw mode
-                    throw BAIL;
-                }
                 // an explicit key that is a (possibly multi-line) flow collection (e.g. ? [ a,\n  b ])
                 scanFlowValue(nodeStart, indent);
                 skipIgnorable();
@@ -853,7 +823,7 @@ public final class YamlStreamScanner
         {
             emitQuotedKey(start, keyEnd);
         }
-        else if (raw && (keyFirst == '&' || keyFirst == '!'))
+        else if (keyFirst == '&' || keyFirst == '!')
         {
             // a block mapping key decorated with an anchor and/or tag; emit the key scalar carrying them
             int nodeStart = scanKeyDecorators(start, keyEnd);
@@ -889,7 +859,7 @@ public final class YamlStreamScanner
                 }
             }
         }
-        else if (raw && (keyFirst == '{' || keyFirst == '['))
+        else if (keyFirst == '{' || keyFirst == '[')
         {
             // a block mapping whose key is a flow collection (a non-scalar key); emit the flow structure
             flowAt = start;
@@ -899,7 +869,7 @@ public final class YamlStreamScanner
                 throw BAIL;
             }
         }
-        else if (raw && keyFirst == '*')
+        else if (keyFirst == '*')
         {
             // a block mapping key that is an alias reference (e.g. *anchor : value)
             int nameEnd = tokenEnd(start + 1, keyEnd);
@@ -915,7 +885,7 @@ public final class YamlStreamScanner
             emit(KEY_NAME, start, 0, null);
         }
         else if (isReservedStart(keyFirst) && !questionPlainStart(start, keyEnd) &&
-            !(keyFirst == '?' && keyEnd == start + 1) || isMergeKey(start, keyEnd) && !raw)
+            !(keyFirst == '?' && keyEnd == start + 1))
         {
             // a lone ? key (the compact `- ? : x`) is a plain scalar, not the explicit-key indicator
             throw BAIL;
@@ -1150,7 +1120,7 @@ public final class YamlStreamScanner
         int line)
     {
         int mapStart = start;
-        if (raw && (text.charAt(start) == '&' || text.charAt(start) == '!'))
+        if (text.charAt(start) == '&' || text.charAt(start) == '!')
         {
             // a leading anchor/tag on a compact (single-line) seq-item mapping decorates the mapping object,
             // not its first key — the eager parser's ValueSpec strips it as the sequence item's own decorator
@@ -1182,17 +1152,13 @@ public final class YamlStreamScanner
      * A sequence item whose explicit key is an inline single-pair mapping ({@code - ? earth: blue} with a
      * {@code : moon: white} value line) — mirrors the eager parser's {@code parseExplicitInlineItem}. The
      * item is a single-entry mapping whose key and value are each an inline mapping (or scalar). Only
-     * representable in raw (YAML-layer) mode, since the non-scalar key has no JSON name.
+     * a non-scalar key, which the JSON layer above this scanner rejects since it has no JSON name.
      */
     private void scanExplicitInlineItem(
         int start,
         int end,
         int line)
     {
-        if (!raw)
-        {
-            throw BAIL;
-        }
         int nestedIndent = start - lineStart[line];
         int keyStart = skipSpace(start + 1, end);
         emit(START_OBJECT, start, 0, null);
@@ -1412,7 +1378,7 @@ public final class YamlStreamScanner
         boolean allowIndentedSequence)
     {
         char first = text.charAt(start);
-        if (raw && (first == '&' || first == '*' || first == '!'))
+        if (first == '&' || first == '*' || first == '!')
         {
             scanRef(start, end, refIndent, line, allowSameIndent, allowIndentedSequence);
             return;
@@ -2264,7 +2230,7 @@ public final class YamlStreamScanner
         case '"', '\'' -> flowQuotedValue();
         default ->
         {
-            if (raw && c == '*')
+            if (c == '*')
             {
                 flowAlias();
             }
@@ -2286,14 +2252,14 @@ public final class YamlStreamScanner
     }
 
     /**
-     * Consumes anchor ({@code &name}) and tag ({@code !tag}) node properties preceding a flow node in raw
-     * mode, the way {@link #scanRef} does for block nodes: the pending anchor/tag are attached to the next
+     * Consumes anchor ({@code &name}) and tag ({@code !tag}) node properties preceding a flow node, the way
+     * {@link #scanRef} does for block nodes: the pending anchor/tag are attached to the next
      * emitted event. A repeated anchor or tag bails. When only properties precede a {@code , ] }} separator
      * the caller emits a (decorated) null node.
      */
     private void flowProperties()
     {
-        boolean more = raw;
+        boolean more = true;
         while (more)
         {
             char c = flowAt < text.length() ? text.charAt(flowAt) : 0;
@@ -2584,13 +2550,13 @@ public final class YamlStreamScanner
                 emit(KEY_NAME, flowTokenStart, flowTokenEnd - flowTokenStart, null);
             }
         }
-        else if (raw && (c == '{' || c == '['))
+        else if (c == '{' || c == '[')
         {
             // a non-scalar (flow collection) key is preserved as its structure for the YAML layer;
             // the JSON projection rejects it (the resolver bails on a non-KEY_NAME key)
             flowValue();
         }
-        else if (raw && c == '*')
+        else if (c == '*')
         {
             // a flow mapping key that is an alias reference (e.g. *anchor : value)
             flowAlias();
@@ -3561,15 +3527,12 @@ public final class YamlStreamScanner
         offsets[eventCount] = offset;
         lengths[eventCount] = length;
         texts[eventCount] = materialized;
-        if (raw)
-        {
-            anchors[eventCount] = pendingAnchor;
-            aliases[eventCount] = null;
-            tags[eventCount] = pendingTag;
-            references |= pendingAnchor != null || pendingTag != null;
-            pendingAnchor = null;
-            pendingTag = null;
-        }
+        anchors[eventCount] = pendingAnchor;
+        aliases[eventCount] = null;
+        tags[eventCount] = pendingTag;
+        references |= pendingAnchor != null || pendingTag != null;
+        pendingAnchor = null;
+        pendingTag = null;
         eventCount++;
     }
 
@@ -3599,12 +3562,9 @@ public final class YamlStreamScanner
             offsets = new int[INITIAL_EVENTS];
             lengths = new int[INITIAL_EVENTS];
             texts = new String[INITIAL_EVENTS];
-            if (raw)
-            {
-                anchors = new String[INITIAL_EVENTS];
-                aliases = new String[INITIAL_EVENTS];
-                tags = new String[INITIAL_EVENTS];
-            }
+            anchors = new String[INITIAL_EVENTS];
+            aliases = new String[INITIAL_EVENTS];
+            tags = new String[INITIAL_EVENTS];
         }
         else if (eventCount == kinds.length)
         {
@@ -3613,12 +3573,9 @@ public final class YamlStreamScanner
             offsets = copyOf(offsets, size);
             lengths = copyOf(lengths, size);
             texts = copyOf(texts, size);
-            if (raw)
-            {
-                anchors = copyOf(anchors, size);
-                aliases = copyOf(aliases, size);
-                tags = copyOf(tags, size);
-            }
+            anchors = copyOf(anchors, size);
+            aliases = copyOf(aliases, size);
+            tags = copyOf(tags, size);
         }
     }
 
@@ -3796,12 +3753,12 @@ public final class YamlStreamScanner
             if (item < end)
             {
                 char it = text.charAt(item);
-                if (raw && isExplicitInlineItem(item, end))
+                if (isExplicitInlineItem(item, end))
                 {
                     // a sequence-item explicit key that is an inline mapping; defer to the structural scan
                     blockIndent = -1;
                 }
-                else if (it != '{' && it != '[' && !(raw && (it == '&' || it == '*' || it == '!')) &&
+                else if (it != '{' && it != '[' && !((it == '&' || it == '*' || it == '!')) &&
                     !isCompactSequence(item, end))
                 {
                     int colon = mappingColon(item, end);
@@ -3820,7 +3777,7 @@ public final class YamlStreamScanner
                 }
             }
         }
-        else if (raw && isExplicitInlineItem(start, end))
+        else if (isExplicitInlineItem(start, end))
         {
             // an explicit key that is itself an inline mapping (e.g. ? []: x); defer to the structural scan
             blockIndent = -1;
@@ -3845,14 +3802,14 @@ public final class YamlStreamScanner
     {
         int keyEnd = trimEnd(start, colon);
         char keyFirst = text.charAt(start);
-        boolean decoratedKey = raw && (keyFirst == '&' || keyFirst == '!' || keyFirst == '*');
-        boolean flowKey = raw && (keyFirst == '{' || keyFirst == '[');
+        boolean decoratedKey = keyFirst == '&' || keyFirst == '!' || keyFirst == '*';
+        boolean flowKey = keyFirst == '{' || keyFirst == '[';
         // a lone ? before the value indicator is a plain scalar key (e.g. the compact `- ? : x`), not the
         // `? ` explicit-key indicator, matching the eager parser's mappingColon handling
         boolean loneQuestion = keyFirst == '?' && keyEnd == start + 1;
         boolean blocked = blockedStart(keyFirst) && !decoratedKey && !flowKey &&
             !questionPlainStart(start, keyEnd) && !loneQuestion;
-        if (keyEnd != start && (blocked || isMergeKey(start, keyEnd) && !raw))
+        if (keyEnd != start && blocked)
         {
             // an empty key (keyEnd == start) is the empty scalar and is feasible; scanEntry handles it
             throw BAIL;
@@ -3867,7 +3824,7 @@ public final class YamlStreamScanner
             {
                 blockIndent = indent;
             }
-            else if (value != '{' && value != '[' && !(raw && (value == '&' || value == '*' || value == '!')) &&
+            else if (value != '{' && value != '[' && !((value == '&' || value == '*' || value == '!')) &&
                 !isCompactSequence(valueStart, end) && !questionPlainStart(valueStart, end) &&
                 (blockedStart(value) || mappingColon(valueStart, end) != -1))
             {
