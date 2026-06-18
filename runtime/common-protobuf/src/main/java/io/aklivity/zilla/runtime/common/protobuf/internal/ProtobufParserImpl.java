@@ -78,6 +78,9 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
     private boolean done;
     private int depth;
     private int phase;
+    // the last event nextEvent() returned: the basis for the streaming-value accessor asserts, which document
+    // the event each accessor is legitimately positioned on (mirrors JsonParserImpl's lastEvent)
+    private ProtobufEvent lastEvent;
 
     private ProtobufField compositeField;
     private int regionOffset;
@@ -125,6 +128,7 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
         this.leafRemaining = -1;
         this.leafUncommitted = 0;
         this.skipRemaining = 0;
+        this.lastEvent = null;
         return this;
     }
 
@@ -196,24 +200,36 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
                 break;
             }
         }
+        // track the delivered event (null on starvation) as the basis for the accessor asserts
+        if (event != null)
+        {
+            lastEvent = event;
+        }
         return event;
     }
 
     @Override
     public ProtobufField field()
     {
+        // positions on a field (FIELD) and is re-read on its VALUE to discover the value's declared type
+        assert lastEvent == ProtobufEvent.FIELD || lastEvent == ProtobufEvent.VALUE;
         return field;
     }
 
     @Override
     public ProtobufMessage message()
     {
+        // the current frame's message, freshly meaningful at a frame open (START_MESSAGE / START_GROUP)
+        assert lastEvent == ProtobufEvent.START_MESSAGE || lastEvent == ProtobufEvent.START_GROUP;
         return depth >= 0 ? frames.get(depth).message : null;
     }
 
     @Override
     public int fieldNumber()
     {
+        // the schema-free path identifies a field by number at FIELD and on its VALUE; a raw composite delivered
+        // as a SEGMENT carries its field number too
+        assert lastEvent == ProtobufEvent.FIELD || lastEvent == ProtobufEvent.VALUE || lastEvent == ProtobufEvent.SEGMENT;
         return fieldNumber;
     }
 
@@ -226,30 +242,42 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
     @Override
     public long longValue()
     {
+        // a decoded scalar is delivered on its VALUE event
+        assert lastEvent == ProtobufEvent.VALUE;
         return longValue;
     }
 
     @Override
     public double doubleValue()
     {
+        // a decoded scalar is delivered on its VALUE event
+        assert lastEvent == ProtobufEvent.VALUE;
         return doubleValue;
     }
 
     @Override
     public float floatValue()
     {
+        // a decoded scalar is delivered on its VALUE event
+        assert lastEvent == ProtobufEvent.VALUE;
         return floatValue;
     }
 
     @Override
     public DirectBuffer segment()
     {
+        // the value/segment slice on a VALUE (length-delimited leaf or raw scalar) or a SEGMENT (raw composite),
+        // and the message extent on START_MESSAGE so a sink can size the enclosing nested record
+        assert lastEvent == ProtobufEvent.VALUE || lastEvent == ProtobufEvent.SEGMENT ||
+            lastEvent == ProtobufEvent.START_MESSAGE;
         return segment;
     }
 
     @Override
     public int deferredBytes()
     {
+        // how much of a streaming value is still to come: reported on each VALUE chunk and each SEGMENT chunk
+        assert lastEvent == ProtobufEvent.VALUE || lastEvent == ProtobufEvent.SEGMENT;
         return deferred;
     }
 
@@ -257,6 +285,9 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
     public void consumed(
         int sourceBytes)
     {
+        // the pushback advances the read cursor within a length-delimited value, the only state where advancing
+        // is meaningful: a VALUE leaf chunk or a raw composite SEGMENT
+        assert lastEvent == ProtobufEvent.VALUE || lastEvent == ProtobufEvent.SEGMENT;
         if (leafRemaining >= 0)
         {
             // a streaming leaf chunk is delivered uncommitted: commit exactly what the sink took here, advancing
