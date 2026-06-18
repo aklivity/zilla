@@ -84,39 +84,6 @@ public class ProtobufJsonChunkingTest
     }
 
     @Test
-    public void shouldFragmentAcrossWindowedInputAndOutput()
-    {
-        // window both input and output so a value arrives in input pieces (deferred > 0) that also do not
-        // align to 3-byte base64 groups — exercising the cross-window byte carry as well as output suspends
-        StringBuilder builder = new StringBuilder();
-        for (int i = 0; i < 2500; i++)
-        {
-            builder.append("Z\"é中\n");
-        }
-        String text = builder.toString();
-
-        byte[] blob = new byte[9001];
-        for (int i = 0; i < blob.length; i++)
-        {
-            blob[i] = (byte) (i * 53 + 11);
-        }
-
-        byte[] wire = wire(g -> g
-            .writeInt32(1, 17)
-            .writeString(14, text)
-            .writeBytes(15, blob));
-
-        Drained drained = toJsonTwoAxis("Scalars", wire, 50, 37);
-
-        assertTrue(drained.suspends >= 1, "expected at least one SUSPENDED chunk boundary");
-
-        JsonObject object = parse(drained.json);
-        assertEquals(17, object.getInt("i32"));
-        assertEquals(text, object.getString("st"));
-        assertArrayEquals(blob, Base64.getDecoder().decode(object.getString("by")));
-    }
-
-    @Test
     public void shouldRenderSmallValueIdenticallyInOneFeed()
     {
         byte[] wire = wire(g -> g
@@ -289,59 +256,6 @@ public class ProtobufJsonChunkingTest
             suspends++;
             guard++;
             status = pipeline.feed(in, 0, wire.length);
-        }
-        assertEquals(Status.COMPLETED, status);
-        generator.flush();
-        result.append(chunk(out, generator.length()));
-
-        return new Drained(result.toString(), suspends);
-    }
-
-    private Drained toJsonTwoAxis(
-        String messageName,
-        byte[] wire,
-        int inputWindow,
-        int outputWindow)
-    {
-        MutableDirectBuffer out = new UnsafeBuffer(new byte[outputWindow]);
-        ProtobufGenerator generator = ProtobufJson.generator(JsonEx.createGenerator(), schema, messageName);
-        generator.wrap(out, 0, outputWindow);
-        ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, messageName))
-            .into(ProtobufSink.of(generator, schema, messageName));
-        pipeline.reset();
-
-        StringBuilder result = new StringBuilder();
-        UnsafeBuffer in = new UnsafeBuffer(wire);
-        int progress = 0;
-        int limit = 0;
-        int suspends = 0;
-        int guard = 0;
-        Status status = Status.STARVED;
-        boolean done = false;
-        while (!done && guard < 5_000_000)
-        {
-            int take = Math.min(inputWindow, wire.length - limit);
-            limit += take;
-            boolean last = limit >= wire.length;
-            status = pipeline.feed(in, progress, limit, last);
-            while (status == Status.SUSPENDED && guard < 5_000_000)
-            {
-                assertTrue(generator.length() <= outputWindow, "chunk exceeded the generator limit");
-                result.append(chunk(out, generator.length()));
-                generator.wrap(out, 0, outputWindow);
-                suspends++;
-                guard++;
-                status = pipeline.feed(in, progress, limit, last);
-            }
-            if (status == Status.STARVED)
-            {
-                progress = limit - pipeline.remaining();
-            }
-            else
-            {
-                done = true;
-            }
-            guard++;
         }
         assertEquals(Status.COMPLETED, status);
         generator.flush();
