@@ -657,6 +657,19 @@ public final class YamlStreamScanner
                 scanCompactSequence(nodeStart, keyEnd, indent + 2, line);
                 skipIgnorable();
             }
+            else if (nodeStart == keyStart && mappingColon(nodeStart, keyEnd) != -1)
+            {
+                if (!raw)
+                {
+                    // an inline-mapping key is a non-scalar key, only representable in raw mode
+                    throw BAIL;
+                }
+                // an explicit key that is itself an inline single-pair mapping (e.g. ? []: x or ? earth: blue),
+                // mirroring the eager parser's parseInlineMappingOrScalar
+                cursor++;
+                scanInlineNode(nodeStart, keyEnd);
+                skipIgnorable();
+            }
             // otherwise only a simple single-line scalar key (plain or escape-free quoted) is supported inline
             else if (nodeStart == keyEnd || keyFirst == '{' || keyFirst == '[' || keyFirst == '|' || keyFirst == '>' ||
                 keyFirst != '"' && keyFirst != '\'' && blockedStart(keyFirst) || mappingColon(nodeStart, keyEnd) != -1)
@@ -1195,15 +1208,17 @@ public final class YamlStreamScanner
         {
             emit(VALUE_NULL, start, 0, null);
         }
-        else if (text.charAt(start) == '{' || text.charAt(start) == '[')
-        {
-            scanInlineFlow(start, end);
-        }
         else if (mappingColon(start, end) != -1)
         {
+            // mapping colon takes precedence so a flow-collection key (e.g. []: x) opens an inline mapping
+            // rather than a bare flow collection, mirroring the eager parseInlineMappingOrScalar
             emit(START_OBJECT, start, 0, null);
             scanInlinePair(start, end);
             emit(END_OBJECT, start, 0, null);
+        }
+        else if (text.charAt(start) == '{' || text.charAt(start) == '[')
+        {
+            scanInlineFlow(start, end);
         }
         else
         {
@@ -3766,6 +3781,11 @@ public final class YamlStreamScanner
                     }
                 }
             }
+        }
+        else if (raw && isExplicitInlineItem(start, end))
+        {
+            // an explicit key that is itself an inline mapping (e.g. ? []: x); defer to the structural scan
+            blockIndent = -1;
         }
         else
         {
