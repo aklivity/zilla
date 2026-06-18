@@ -65,8 +65,7 @@ public final class YamlJsonParser implements JsonParser
     private static final String NON_SPECIFIC_TAG = "!";
 
     private final boolean uniqueKeys;
-    private final List<Yev> events;
-    private final Map<String, NavigableMap<Long, YamlAlias>> anchors;
+    private final Map<String, NavigableMap<Long, int[]>> anchors;
     private final List<Step> steps;
     private YamlJsonLocation end;
     private int cursor;
@@ -111,15 +110,12 @@ public final class YamlJsonParser implements JsonParser
         Map<String, ?> config)
     {
         this.uniqueKeys = config != null && Boolean.TRUE.equals(config.get(YamlConfig.FEATURE_UNIQUE_KEYS));
-        this.events = new ArrayList<>();
         this.anchors = new HashMap<>();
         this.steps = new ArrayList<>();
         this.current = -1;
         try
         {
-            capture(new YamlParser(text));
-            indexAnchors();
-            project();
+            project(new YamlParser(text));
         }
         catch (YamlParseException ex)
         {
@@ -363,176 +359,155 @@ public final class YamlJsonParser implements JsonParser
         return value;
     }
 
-    private void capture(
+    private void project(
         YamlParser parser)
     {
         while (parser.hasNext())
         {
             YamlEvent event = parser.next();
-            CharSequence value = parser.value();
-            events.add(new Yev(event, value != null ? value.toString() : null, parser.scalarType(),
-                parser.anchor(), parser.tag(), parser.alias(), parser.location()));
-        }
-    }
-
-    private void indexAnchors()
-    {
-        for (int index = 0; index < events.size(); index++)
-        {
-            Yev event = events.get(index);
-            if (event.anchor != null)
+            if (event == YamlEvent.DOCUMENT_START)
             {
-                // an anchor name may be redefined; key each definition by its source offset so an alias can
-                // resolve to the nearest preceding definition (YAML 1.2 anchor scoping)
-                anchors.computeIfAbsent(event.anchor, name -> new TreeMap<>())
-                    .put(event.location.offset(), new YamlAlias(events, index, nodeEnd(index)));
+                projectNode(parser, parser.next());
             }
-        }
-    }
-
-    private int nodeEnd(
-        int index)
-    {
-        YamlEvent kind = events.get(index).event;
-        int end;
-        if (kind == YamlEvent.MAPPING_START || kind == YamlEvent.SEQUENCE_START)
-        {
-            int depth = 0;
-            int at = index;
-            do
+            else if (event == YamlEvent.DOCUMENT_END)
             {
-                YamlEvent event = events.get(at).event;
-                if (event == YamlEvent.MAPPING_START || event == YamlEvent.SEQUENCE_START)
-                {
-                    depth++;
-                }
-                else if (event == YamlEvent.MAPPING_END || event == YamlEvent.SEQUENCE_END)
-                {
-                    depth--;
-                }
-                at++;
-            }
-            while (depth != 0);
-            end = at;
-        }
-        else
-        {
-            end = index + 1;
-        }
-        return end;
-    }
-
-    private void project()
-    {
-        int index = 0;
-        while (index < events.size())
-        {
-            if (events.get(index).event == YamlEvent.DOCUMENT_START)
-            {
-                int rootStart = index + 1;
-                int rootEnd = nodeEnd(rootStart);
-                projectNode(new YamlAlias(events, rootStart, rootEnd), new HashSet<>());
-                // the root-terminal event reports the document boundary (the next document's start or the
-                // stream end), which YamlParser frames on DOCUMENT_END
-                YamlJsonLocation boundary = location(events.get(rootEnd).location);
+                // the document boundary (the next document's start or the stream end) is reported on the
+                // root-terminal step, the way the underlying parser frames it on DOCUMENT_END
+                YamlJsonLocation boundary = location(parser.location());
                 if (!steps.isEmpty())
                 {
                     steps.get(steps.size() - 1).location = boundary;
                 }
                 end = boundary;
-                index = rootEnd + 1;
-            }
-            else
-            {
-                index++;
             }
         }
         // an empty YAML stream frames no document, so it projects no JSON value at all (mirroring YamlParser);
         // it is not turned into a null
     }
 
+    /**
+     * Projects one YAML node — whose opening {@code event} the caller has already pulled from the parser —
+     * into JSON parser events, consuming the node's remaining events from the cursor. A node carrying an
+     * anchor records the {@code [start, end)} range of its projected steps so a later alias can replay it;
+     * the range is left open ({@code end == -1}) while the node is being projected, so a self-referential
+     * alias is detected as recursive.
+     */
     private void projectNode(
-        YamlAlias cursor,
-        Set<String> active)
+        YamlParser parser,
+        YamlEvent event)
     {
-        Yev node = cursor.next();
-        switch (node.event)
+        YamlLocation location = parser.location();
+        int[] range = null;
+        if (event != YamlEvent.ALIAS && parser.anchor() != null)
+        {
+            range = new int[] {steps.size(), -1};
+            anchors.computeIfAbsent(parser.anchor(), name -> new TreeMap<>()).put(location.offset(), range);
+        }
+        switch (event)
         {
         case MAPPING_START ->
         {
-            emit(Event.START_OBJECT, null, node.location);
+            emit(Event.START_OBJECT, null, location);
             Set<String> keys = uniqueKeys ? new HashSet<>() : null;
-            while (cursor.peek() != YamlEvent.MAPPING_END)
+            YamlEvent key = parser.next();
+            while (key != YamlEvent.MAPPING_END)
             {
-                projectKey(cursor, keys);
-                projectNode(cursor, active);
+                projectKey(parser, key, keys);
+                projectNode(parser, parser.next());
+                key = parser.next();
             }
-            cursor.next();
-            emit(Event.END_OBJECT, null, node.location);
+            emit(Event.END_OBJECT, null, location);
         }
         case SEQUENCE_START ->
         {
-            emit(Event.START_ARRAY, null, node.location);
-            while (cursor.peek() != YamlEvent.SEQUENCE_END)
+            emit(Event.START_ARRAY, null, location);
+            YamlEvent item = parser.next();
+            while (item != YamlEvent.SEQUENCE_END)
             {
-                projectNode(cursor, active);
+                projectNode(parser, item);
+                item = parser.next();
             }
-            cursor.next();
-            emit(Event.END_ARRAY, null, node.location);
+            emit(Event.END_ARRAY, null, location);
         }
-        case ALIAS -> projectAlias(node, active);
-        default -> emitScalar(node);
+        case ALIAS -> projectAlias(parser.alias(), location);
+        default -> emitScalar(parser.value(), parser.scalarType(), parser.tag(), location);
+        }
+        if (range != null)
+        {
+            range[1] = steps.size();
         }
     }
 
     private void projectKey(
-        YamlAlias cursor,
+        YamlParser parser,
+        YamlEvent event,
         Set<String> keys)
     {
-        Yev key = cursor.next();
-        if (key.event == YamlEvent.SCALAR)
+        YamlLocation location = parser.location();
+        if (event == YamlEvent.SCALAR)
         {
-            emitKey(scalarText(key), key.location, keys);
+            String anchor = parser.anchor();
+            int at = steps.size();
+            emitKey(scalarText(text(parser.value()), parser.scalarType()), location, keys);
+            if (anchor != null)
+            {
+                // an anchored key is a single step a later alias may resolve to in value or key position
+                anchors.computeIfAbsent(anchor, name -> new TreeMap<>()).put(location.offset(), new int[] {at, at + 1});
+            }
         }
-        else if (key.event == YamlEvent.ALIAS && resolve(key).scalar())
+        else if (event == YamlEvent.ALIAS)
         {
-            emitKey(scalarText(resolve(key).first()), key.location, keys);
+            int[] range = resolve(parser.alias(), location);
+            if (range[1] - range[0] == 1 && isScalarStep(steps.get(range[0]).event))
+            {
+                emitKey(stepText(steps.get(range[0])), location, keys);
+            }
+            else
+            {
+                throw error("Non-scalar YAML mapping keys are not supported", location);
+            }
         }
         else
         {
-            throw error("Non-scalar YAML mapping keys are not supported", key.location);
+            throw error("Non-scalar YAML mapping keys are not supported", location);
         }
     }
 
     private void projectAlias(
-        Yev reference,
-        Set<String> active)
+        String name,
+        YamlLocation location)
     {
-        YamlAlias alias = resolve(reference);
-        if (alias.scalar() && alias.first().scalarType == null)
+        int[] range = resolve(name, location);
+        if (range[1] == -1)
+        {
+            throw error("Recursive YAML alias: " + name, location);
+        }
+        if (range[1] - range[0] == 1 && steps.get(range[0]).event == Event.KEY_NAME)
         {
             // an alias to an anchored key resolves to that key's text in value position
-            emit(Event.VALUE_STRING, scalarText(alias.first()), alias.first().location);
-        }
-        else if (active.add(reference.alias))
-        {
-            projectNode(alias.open(), active);
-            active.remove(reference.alias);
+            Step key = steps.get(range[0]);
+            steps.add(new Step(Event.VALUE_STRING, key.value, key.location));
         }
         else
         {
-            throw error("Recursive YAML alias: " + reference.alias, reference.location);
+            // replay the anchored node's already-projected (and already alias-resolved) steps
+            for (int at = range[0]; at < range[1]; at++)
+            {
+                Step step = steps.get(at);
+                steps.add(new Step(step.event, step.value, step.location));
+            }
         }
     }
 
-    private YamlAlias resolve(
-        Yev reference)
+    private int[] resolve(
+        String name,
+        YamlLocation location)
     {
-        NavigableMap<Long, YamlAlias> defined = anchors.get(reference.alias);
-        Map.Entry<Long, YamlAlias> nearest = defined != null ? defined.floorEntry(reference.location.offset()) : null;
+        NavigableMap<Long, int[]> defined = anchors.get(name);
+        Map.Entry<Long, int[]> nearest = defined != null ? defined.floorEntry(location.offset()) : null;
         if (nearest == null)
         {
-            throw error("Unresolved YAML alias: " + reference.alias, reference.location);
+            throw error("Unresolved YAML alias: " + name, location);
         }
         return nearest.getValue();
     }
@@ -550,71 +525,80 @@ public final class YamlJsonParser implements JsonParser
     }
 
     private void emitScalar(
-        Yev scalar)
+        CharSequence rawValue,
+        YamlScalarType scalarType,
+        String tag,
+        YamlLocation location)
     {
-        String tag = scalar.tag;
+        String value = text(rawValue);
         if (tag == null)
         {
-            emit(scalarEvent(scalar.scalarType), scalarData(scalar), scalar.location);
+            emit(scalarEvent(scalarType), scalarData(value, scalarType), location);
         }
         else
         {
-            String text = scalarText(scalar);
+            String text = scalarText(value, scalarType);
             switch (tag)
             {
-            case STR_TAG, NON_SPECIFIC_TAG -> emit(Event.VALUE_STRING, text, scalar.location);
-            case NULL_TAG -> emit(Event.VALUE_NULL, null, scalar.location);
-            case BOOL_TAG -> emitBool(text, scalar);
-            case INT_TAG -> emitInteger(text, scalar);
-            case FLOAT_TAG -> emitFloat(text, scalar);
-            default -> emit(scalarEvent(scalar.scalarType), scalarData(scalar), scalar.location);
+            case STR_TAG, NON_SPECIFIC_TAG -> emit(Event.VALUE_STRING, text, location);
+            case NULL_TAG -> emit(Event.VALUE_NULL, null, location);
+            case BOOL_TAG -> emitBool(text, value, scalarType, location);
+            case INT_TAG -> emitInteger(text, value, scalarType, location);
+            case FLOAT_TAG -> emitFloat(text, value, scalarType, location);
+            default -> emit(scalarEvent(scalarType), scalarData(value, scalarType), location);
             }
         }
     }
 
     private void emitBool(
         String text,
-        Yev scalar)
+        String value,
+        YamlScalarType scalarType,
+        YamlLocation location)
     {
         if ("true".equals(text))
         {
-            emit(Event.VALUE_TRUE, null, scalar.location);
+            emit(Event.VALUE_TRUE, null, location);
         }
         else if ("false".equals(text))
         {
-            emit(Event.VALUE_FALSE, null, scalar.location);
+            emit(Event.VALUE_FALSE, null, location);
         }
         else
         {
-            emit(scalarEvent(scalar.scalarType), scalarData(scalar), scalar.location);
+            emit(scalarEvent(scalarType), scalarData(value, scalarType), location);
         }
     }
 
     private void emitInteger(
         String text,
-        Yev scalar)
+        String value,
+        YamlScalarType scalarType,
+        YamlLocation location)
     {
         if (text.matches("-?0x[0-9a-fA-F]+") || text.matches("-?(?:0|[1-9][0-9]*)"))
         {
-            emit(Event.VALUE_NUMBER, numberText(text), scalar.location);
+            emit(Event.VALUE_NUMBER, numberText(text), location);
         }
         else
         {
-            emit(scalarEvent(scalar.scalarType), scalarData(scalar), scalar.location);
+            emit(scalarEvent(scalarType), scalarData(value, scalarType), location);
         }
     }
 
     private void emitFloat(
         String text,
-        Yev scalar)
+        String value,
+        YamlScalarType scalarType,
+        YamlLocation location)
     {
         if (text.matches("-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?:[eE][-+]?[0-9]+)?"))
         {
-            emit(Event.VALUE_NUMBER, text, scalar.location);
+            emit(Event.VALUE_NUMBER, text, location);
         }
         else
         {
-            emit(scalarEvent(scalar.scalarType), scalarData(scalar), scalar.location);
+            emit(scalarEvent(scalarType), scalarData(value, scalarType), location);
         }
     }
 
@@ -640,23 +624,24 @@ public final class YamlJsonParser implements JsonParser
     }
 
     private static String scalarData(
-        Yev scalar)
+        String value,
+        YamlScalarType scalarType)
     {
-        return scalar.scalarType == YamlScalarType.STRING || scalar.scalarType == YamlScalarType.NUMBER ?
-            scalar.value : null;
+        return scalarType == YamlScalarType.STRING || scalarType == YamlScalarType.NUMBER ? value : null;
     }
 
     private static String scalarText(
-        Yev scalar)
+        String value,
+        YamlScalarType scalarType)
     {
         String text;
-        if (scalar.value != null)
+        if (value != null)
         {
-            text = scalar.value;
+            text = value;
         }
         else
         {
-            text = switch (scalar.scalarType)
+            text = switch (scalarType)
             {
             case TRUE -> "true";
             case FALSE -> "false";
@@ -664,6 +649,33 @@ public final class YamlJsonParser implements JsonParser
             };
         }
         return text;
+    }
+
+    private static String text(
+        CharSequence value)
+    {
+        return value != null ? value.toString() : null;
+    }
+
+    private static boolean isScalarStep(
+        Event event)
+    {
+        return switch (event)
+        {
+        case KEY_NAME, VALUE_STRING, VALUE_NUMBER, VALUE_TRUE, VALUE_FALSE, VALUE_NULL -> true;
+        default -> false;
+        };
+    }
+
+    private static String stepText(
+        Step step)
+    {
+        return switch (step.event)
+        {
+        case VALUE_TRUE -> "true";
+        case VALUE_FALSE -> "false";
+        default -> step.value != null ? step.value : "";
+        };
     }
 
     private static String numberText(
@@ -732,84 +744,6 @@ public final class YamlJsonParser implements JsonParser
         catch (IOException ex)
         {
             throw new JsonParsingException(ex.getMessage(), ex, new YamlJsonLocation(new YamlLocation(1, 1, 0)));
-        }
-    }
-
-    /**
-     * A replayable cursor over the captured events of an anchored node (its {@code &name} definition spanning
-     * {@code [from, to)}). An alias to the anchor resolves to a fresh {@link #open()} cursor that the projector
-     * pulls the anchored value from, the way it pulls from the underlying parser.
-     */
-    private static final class YamlAlias
-    {
-        private final List<Yev> events;
-        private final int from;
-        private final int to;
-        private int at;
-
-        private YamlAlias(
-            List<Yev> events,
-            int from,
-            int to)
-        {
-            this.events = events;
-            this.from = from;
-            this.to = to;
-            this.at = from;
-        }
-
-        private YamlAlias open()
-        {
-            return new YamlAlias(events, from, to);
-        }
-
-        private boolean scalar()
-        {
-            return to - from == 1 && events.get(from).event == YamlEvent.SCALAR;
-        }
-
-        private Yev first()
-        {
-            return events.get(from);
-        }
-
-        private YamlEvent peek()
-        {
-            return events.get(at).event;
-        }
-
-        private Yev next()
-        {
-            return events.get(at++);
-        }
-    }
-
-    private static final class Yev
-    {
-        private final YamlEvent event;
-        private final String value;
-        private final YamlScalarType scalarType;
-        private final String anchor;
-        private final String tag;
-        private final String alias;
-        private final YamlLocation location;
-
-        private Yev(
-            YamlEvent event,
-            String value,
-            YamlScalarType scalarType,
-            String anchor,
-            String tag,
-            String alias,
-            YamlLocation location)
-        {
-            this.event = event;
-            this.value = value;
-            this.scalarType = scalarType;
-            this.anchor = anchor;
-            this.tag = tag;
-            this.alias = alias;
-            this.location = location;
         }
     }
 
