@@ -18,6 +18,8 @@ import static io.aklivity.zilla.runtime.engine.model.ValidatorHandler.FLAGS_FIN;
 import static io.aklivity.zilla.runtime.engine.model.ValidatorHandler.FLAGS_INIT;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -40,6 +42,9 @@ import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalogHandler
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalogConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalogOptionsConfig;
 import io.aklivity.zilla.runtime.model.avro.config.AvroModelConfig;
+import io.aklivity.zilla.runtime.model.avro.internal.types.OctetsFW;
+import io.aklivity.zilla.runtime.model.avro.internal.types.event.AvroModelEventExFW;
+import io.aklivity.zilla.runtime.model.avro.internal.types.event.EventFW;
 
 public class AvroValidatorTest
 {
@@ -365,6 +370,55 @@ public class AvroValidatorTest
         assertFalse(validator.validate(0L, 0L, FLAGS_FIN, new UnsafeBuffer(tail), 0, tail.length, capture));
 
         assertTrue("earlier valid fragment should have been forwarded", capture.length > 0);
+    }
+
+    @Test
+    public void shouldReportVerbatimReasonOnValidationFailure()
+    {
+        TestCatalogConfig catalog = CatalogConfig.builder(TestCatalogConfig::new)
+            .namespace("test")
+            .name("test0")
+            .type("test")
+            .options(TestCatalogOptionsConfig::builder)
+                .id(1)
+                .schema("\"int\"")
+                .build()
+            .build();
+
+        AvroModelConfig model = AvroModelConfig.builder()
+            .catalog()
+                .name("test0")
+                .schema()
+                    .strategy("topic")
+                    .subject(null)
+                    .version("latest")
+                    .id(1)
+                    .build()
+                .build()
+            .build();
+
+        String[] captured = new String[1];
+        EventFW eventRO = new EventFW();
+        AvroModelEventExFW eventExRO = new AvroModelEventExFW();
+        MessageConsumer eventWriter = (msgTypeId, buffer, index, length) ->
+        {
+            EventFW event = eventRO.wrap(buffer, index, index + length);
+            OctetsFW extension = event.extension();
+            AvroModelEventExFW eventEx = eventExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
+            captured[0] = eventEx.validationFailed().error().asString();
+        };
+
+        when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
+        when(context.clock()).thenReturn(Clock.systemUTC());
+        when(context.supplyEventWriter()).thenReturn(eventWriter);
+        AvroValidatorHandler validator = new AvroValidatorHandler(config, model, context);
+
+        byte[] overlong = {(byte) 0x80, (byte) 0x80, (byte) 0x80, (byte) 0x80, (byte) 0x80, 0x01};
+        DirectBuffer data = new UnsafeBuffer(overlong);
+
+        assertFalse(validator.validate(0L, 0L, data, 0, overlong.length, ValueConsumer.NOP));
+        assertNotNull("expected a verbatim rejection reason", captured[0]);
+        assertNotEquals("Invalid Avro encoding", captured[0]);
     }
 
     private AvroValidatorHandler newValidator()

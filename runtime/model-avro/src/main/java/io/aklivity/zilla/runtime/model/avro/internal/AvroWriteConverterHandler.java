@@ -18,6 +18,7 @@ import org.agrona.DirectBuffer;
 import org.agrona.collections.Int2ObjectCache;
 
 import io.aklivity.zilla.runtime.common.avro.Avro;
+import io.aklivity.zilla.runtime.common.avro.AvroDiagnostic;
 import io.aklivity.zilla.runtime.common.avro.AvroGenerator;
 import io.aklivity.zilla.runtime.common.avro.AvroPipeline;
 import io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status;
@@ -35,6 +36,8 @@ import io.aklivity.zilla.runtime.model.avro.config.AvroModelConfig;
 public class AvroWriteConverterHandler extends AvroModelHandler implements ConverterHandler
 {
     private final Int2ObjectCache<JsonToAvro> pipelines;
+
+    private String reason;
 
     public AvroWriteConverterHandler(
         AvroModelConfiguration config,
@@ -107,10 +110,16 @@ public class AvroWriteConverterHandler extends AvroModelHandler implements Conve
             }
             else
             {
-                event.validationFailure(traceId, bindingId, "Invalid JSON encoding");
+                event.validationFailure(traceId, bindingId, reason);
             }
         }
         return valLength;
+    }
+
+    private void onRejected(
+        AvroDiagnostic diagnostic)
+    {
+        reason = diagnostic.message();
     }
 
     private JsonToAvro supplyPipeline(
@@ -128,7 +137,9 @@ public class AvroWriteConverterHandler extends AvroModelHandler implements Conve
         {
             JsonParserEx parser = JsonEx.createParser();
             AvroGenerator generator = Avro.generator(schema, out, 0);
-            AvroPipeline avro = AvroJson.stream(schema, parser, true).into(AvroSink.of(generator));
+            AvroPipeline avro = AvroJson.stream(schema, parser, true)
+                .reporting(this::onRejected)
+                .into(AvroSink.of(generator));
             pipeline = new JsonToAvro(avro, generator);
         }
         return pipeline;

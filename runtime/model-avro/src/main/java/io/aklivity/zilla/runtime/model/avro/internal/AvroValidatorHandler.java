@@ -21,6 +21,7 @@ import org.agrona.collections.Int2ObjectCache;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.common.avro.Avro;
+import io.aklivity.zilla.runtime.common.avro.AvroDiagnostic;
 import io.aklivity.zilla.runtime.common.avro.AvroGenerator;
 import io.aklivity.zilla.runtime.common.avro.AvroPipeline;
 import io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status;
@@ -45,6 +46,7 @@ public class AvroValidatorHandler extends AvroModelHandler implements ValidatorH
     private Validator active;
     private int carryLength;
     private int encodedProgress;
+    private String reason;
 
     public AvroValidatorHandler(
         AvroModelConfiguration config,
@@ -144,7 +146,7 @@ public class AvroValidatorHandler extends AvroModelHandler implements ValidatorH
             default:
                 valid = false;
                 carryLength = 0;
-                event.validationFailure(traceId, bindingId, INVALID);
+                event.validationFailure(traceId, bindingId, reason);
                 break;
             }
         }
@@ -209,6 +211,12 @@ public class AvroValidatorHandler extends AvroModelHandler implements ValidatorH
         return status;
     }
 
+    private void onRejected(
+        AvroDiagnostic diagnostic)
+    {
+        reason = diagnostic.message();
+    }
+
     private boolean validatePayload(
         long traceId,
         long bindingId,
@@ -228,7 +236,7 @@ public class AvroValidatorHandler extends AvroModelHandler implements ValidatorH
         return schema != null ? validators.computeIfAbsent(schemaId, id -> new Validator(schema)) : null;
     }
 
-    private static final class Validator
+    private final class Validator
     {
         private final AvroPipeline pipeline;
         private final AvroGenerator generator;
@@ -239,7 +247,9 @@ public class AvroValidatorHandler extends AvroModelHandler implements ValidatorH
         {
             this.output = new UnsafeBuffer(new byte[OUTPUT_CAPACITY]);
             this.generator = Avro.generator(schema, output, 0);
-            this.pipeline = Avro.stream(Avro.parser(schema)).into(AvroSink.of(generator));
+            this.pipeline = Avro.stream(Avro.parser(schema))
+                .reporting(AvroValidatorHandler.this::onRejected)
+                .into(AvroSink.of(generator));
         }
     }
 }
