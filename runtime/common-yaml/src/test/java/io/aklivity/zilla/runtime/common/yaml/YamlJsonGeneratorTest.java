@@ -259,7 +259,6 @@ class YamlJsonGeneratorTest
             Map.entry(YamlConfig.FEATURE_FLOW_COLLECTIONS, false),
             Map.entry(YamlConfig.FEATURE_ANCHORS, false),
             Map.entry(YamlConfig.FEATURE_ALIASES, false),
-            Map.entry(YamlConfig.FEATURE_MERGE_KEYS, false),
             Map.entry(YamlConfig.FEATURE_TAGS, false),
             Map.entry(YamlConfig.FEATURE_COMMENTS, false),
             Map.entry(YamlConfig.FEATURE_NON_SCALAR_KEYS, false),

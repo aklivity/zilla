@@ -1,0 +1,94 @@
+236B	Expected mapping entry
+2CMS	Unexpected indentation
+2G84/00	Unexpected indentation
+2G84/01	Unexpected indentation
+3HFZ	Expected mapping entry
+4EJS	Tabs are not supported in block indentation
+4H7K	Unexpected flow content
+4HVU	Unexpected indentation
+4JVG	YAML node cannot define multiple anchors
+55WF	Unsupported escape sequence
+5LLU	Wrong indented block scalar line
+5TRB	Unterminated quoted scalar
+5U3A	Unexpected indentation
+62EZ	Unexpected flow content
+6JTT	Expected ']' in flow sequence
+6S55	Unexpected indentation
+7LBH	Expected mapping entry
+7MNF	Expected mapping entry
+8XDJ	Plain scalar cannot continue after a comment
+9C9N	Wrong indented flow collection
+9CWY	Expected mapping entry
+9HCY	Unexpected indentation
+9JBA	Unexpected flow content
+9KBC	Unexpected indentation
+9MAG	Expected flow value
+9MMA	Unexpected indentation
+9MQT/01	Expected mapping entry
+B63P	YAML directives require an explicit document
+BD7L	Unexpected indentation
+BF9H	Plain scalar cannot continue after a comment
+BS4K	Plain scalar cannot continue after a comment
+C2SP	Unexpected flow content
+CML9	Expected ']' in flow sequence
+CQ3W	Unterminated quoted scalar
+CTN5	Expected flow value
+CVW2	Expected flow value
+CXX2	Unexpected indentation
+D49Q	Expected mapping entry
+DK4H	Expected ']' in flow sequence
+DK95/01	Tabs are not supported in quoted scalar indentation
+DK95/06	Unexpected indentation
+DMG6	Unexpected indentation
+EB22	Plain scalar cannot continue after a comment
+EW3V	Unexpected indentation
+G5U8	Expected flow value
+G7JE	Expected mapping entry
+G9HC	Expected mapping entry
+GDY7	Expected mapping entry
+GT5M	Unexpected indentation
+H7J7	Expected mapping entry
+H7TQ	Malformed YAML directive
+HRE5	Unsupported escape sequence
+HU3P	Unexpected indentation
+JKF3	Wrong indented quoted scalar
+JY7Z	Invalid mapping in plain scalar
+KS4U	Unexpected indentation
+LHL4	Malformed YAML tag
+MUS6/00	Malformed YAML directive
+MUS6/01	Unexpected indentation
+N4JP	Unexpected indentation
+N782	Expected flow value
+P2EQ	Unexpected flow content
+Q4CL	Wrong indented quoted scalar
+QB6E	Wrong indented quoted scalar
+QLJ7	Unknown YAML tag handle
+RHX7	Expected mapping entry
+RXY3	Unterminated quoted scalar
+S4GJ	Invalid mapping in plain scalar
+S98Z	Wrong indented block scalar line
+SF5V	Duplicate YAML directive
+SR86	YAML alias cannot also define an anchor
+SU5Z	Wrong indented quoted scalar
+SU74	YAML alias cannot also define an anchor
+SY6V	Unexpected indentation
+T833	Expected '}' in flow mapping
+TD5N	Unexpected indentation
+U44R	Unexpected indentation
+U99R	Unexpected indentation
+VJP3/00	Wrong indented flow collection
+W9L4	Wrong indented block scalar line
+X4QW	Invalid mapping in plain scalar
+Y79Y/000	Expected indented block scalar content
+Y79Y/003	Wrong indented flow collection
+Y79Y/004	Tabs are not supported after sequence indicators
+Y79Y/005	Tabs are not supported after sequence indicators
+Y79Y/006	Tabs are not supported after explicit key indicators
+Y79Y/007	Tabs are not supported after explicit value indicators
+Y79Y/008	Tabs are not supported after explicit key indicators
+Y79Y/009	Tabs are not supported after explicit value indicators
+YJV2	Expected flow value
+ZCZ6	Invalid mapping in plain scalar
+ZL4Z	Invalid mapping in plain scalar
+ZVH3	Unexpected sequence item continuation
+ZXT5	Expected ']' in flow sequence

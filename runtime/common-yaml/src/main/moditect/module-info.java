@@ -18,5 +18,4 @@ module io.aklivity.zilla.runtime.common.yaml
 
     exports io.aklivity.zilla.runtime.common.yaml;
     exports io.aklivity.zilla.runtime.common.yaml.json;
-    exports io.aklivity.zilla.runtime.common.yaml.spi;
 }
