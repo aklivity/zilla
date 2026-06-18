@@ -98,6 +98,7 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
     private double doubleValue;
     private float floatValue;
     private int valueLength;
+    private int valueConsumed;
 
     private boolean last;
     private boolean primed;
@@ -152,6 +153,7 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
         depth = -1;
         queueHead = 0;
         queueSize = 0;
+        valueConsumed = 0;
         primed = false;
         finished = false;
         skipping = false;
@@ -267,7 +269,7 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
         }
         else
         {
-            valueView.wrap(valueBuffer, 0, valueLength);
+            valueView.wrap(valueBuffer, valueConsumed, valueLength - valueConsumed);
             segment = valueView;
         }
         return segment;
@@ -277,6 +279,14 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
     public int deferredBytes()
     {
         return 0;
+    }
+
+    @Override
+    public void consumed(
+        int sourceBytes)
+    {
+        // advance past the written prefix so segment() re-exposes the value's unconsumed remainder on resume
+        valueConsumed += sourceBytes;
     }
 
     private boolean produce()
@@ -705,6 +715,8 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
     private void putUtf8(
         CharSequence value)
     {
+        // a fresh value: rewind the output-pushback cursor so segment() starts at the new value's first byte
+        valueConsumed = 0;
         int length = value.length();
         int index = 0;
         int i = 0;
@@ -773,6 +785,8 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
     private void putBytes(
         byte[] bytes)
     {
+        // a fresh value: rewind the output-pushback cursor so segment() starts at the new value's first byte
+        valueConsumed = 0;
         valueBuffer.putBytes(0, bytes);
         valueLength = bytes.length;
     }

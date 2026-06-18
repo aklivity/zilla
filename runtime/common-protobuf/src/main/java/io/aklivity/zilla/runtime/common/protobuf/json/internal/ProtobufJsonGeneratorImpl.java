@@ -24,6 +24,7 @@ import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
+import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx.Completion;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufEnum;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufException;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufField;
@@ -72,8 +73,10 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
     private boolean scalarKey;
 
     private boolean segmentActive;
+    private boolean segmentOpened;
     private int segmentLength;
     private int consumed;
+    private boolean flushed;
 
     public ProtobufJsonGeneratorImpl(
         JsonGeneratorEx json,
@@ -112,10 +115,20 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
         int limit)
     {
         json.wrap(buffer, offset, limit);
-        depth = -1;
-        rootOpened = false;
-        segmentActive = false;
-        segmentLength = 0;
+        if (flushed)
+        {
+            // continuation of a suspended document: the open scopes, the in-flight value, and the underlying
+            // json's open string persist across the drain — the chunks concatenate into one document
+            flushed = false;
+        }
+        else
+        {
+            depth = -1;
+            rootOpened = false;
+            segmentActive = false;
+            segmentOpened = false;
+            segmentLength = 0;
+        }
         consumed = 0;
         return this;
     }
@@ -397,17 +410,20 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
         {
             prepare(field);
             segmentActive = true;
+            segmentOpened = false;
             segmentLength = 0;
         }
-        accumulator.putBytes(segmentLength, value, offset, length);
-        segmentLength += length;
-        // the JSON output is unbounded for the document, so every offered byte is taken
-        consumed += length;
-        if (deferred == 0)
+        if (scalarKey)
         {
-            renderValue(scalarField, scalarKey, accumulator, 0, segmentLength);
-            segmentActive = false;
-            segmentLength = 0;
+            writeKeySegment(value, offset, length, deferred);
+        }
+        else if (scalarField.type() == ProtobufType.STRING)
+        {
+            writeStringSegment(value, offset, length, deferred);
+        }
+        else
+        {
+            writeBytesSegment(value, offset, length, deferred);
         }
         return this;
     }
@@ -466,23 +482,32 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
     @Override
     public ProtobufGenerator flush()
     {
-        // an empty message produced no field write, so open the root object here before closing it
-        ensureRoot();
-        while (depth >= 0)
+        if (segmentActive)
         {
-            Scope scope = scopes[depth];
-            if (scope.openField != -1)
-            {
-                closeContainer(scope);
-            }
-            emitDefaults(scope);
-            depth--;
-            if (!scope.mapEntry)
-            {
-                json.writeEnd();
-            }
+            // a value is in flight: the bounded output filled mid-value, so leave the open string and scopes
+            // untouched — this chunk drains and the next window resumes the same document by concatenation
+            flushed = true;
         }
-        rootOpened = false;
+        else
+        {
+            // an empty message produced no field write, so open the root object here before closing it
+            ensureRoot();
+            while (depth >= 0)
+            {
+                Scope scope = scopes[depth];
+                if (scope.openField != -1)
+                {
+                    closeContainer(scope);
+                }
+                emitDefaults(scope);
+                depth--;
+                if (!scope.mapEntry)
+                {
+                    json.writeEnd();
+                }
+            }
+            rootOpened = false;
+        }
         return this;
     }
 
@@ -700,32 +725,168 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
         }
     }
 
-    private void renderValue(
-        ProtobufField field,
-        boolean key,
+    // A map key is small and renders to no output until its value follows, so it is accumulated whole across
+    // its (rare) fragments and captured once complete — consuming every offered byte, so the key never suspends.
+    private void writeKeySegment(
         DirectBuffer value,
         int offset,
-        int length)
+        int length,
+        int deferred)
     {
-        if (key)
+        accumulator.putBytes(segmentLength, value, offset, length);
+        segmentLength += length;
+        consumed += length;
+        if (deferred == 0)
         {
-            byte[] bytes = new byte[length];
-            value.getBytes(offset, bytes);
+            byte[] bytes = new byte[segmentLength];
+            accumulator.getBytes(0, bytes);
             captureKey(new String(bytes, UTF_8));
+            segmentActive = false;
+            segmentLength = 0;
+        }
+    }
+
+    // The source slice is UTF-8: decode it to chars, drive the consumption-driven json string write (bounded,
+    // escaping, quoting), then map the chars json took back to source bytes (a code-point boundary, so exact)
+    // and consume only those — the unconsumed remainder streams in on resume with the string still open.
+    private void writeStringSegment(
+        DirectBuffer value,
+        int offset,
+        int length,
+        int deferred)
+    {
+        scratch.setLength(0);
+        appendUtf8(value, offset, length);
+        Completion completion = deferred == 0 ? Completion.COMPLETE : Completion.INCOMPLETE;
+        int before = json.consumed();
+        json.write(scratch, completion);
+        int charsWritten = json.consumed() - before;
+        segmentOpened = true;
+        consumed += utf8ByteLength(scratch, 0, charsWritten);
+        if (charsWritten == scratch.length() && deferred == 0)
+        {
+            segmentActive = false;
+            segmentLength = 0;
+        }
+    }
+
+    // The source bytes are base64-encoded a whole 3-byte group at a time so a 4-char group never splits across
+    // a window. Whole groups (carry + slice) that fit the output bound are emitted; a 1-2 byte tail short of a
+    // group is carried to the next window (counted as consumed now), except on the final delivery where it is
+    // padded and emitted. The chars go through the same consumption-driven json string write for quoting.
+    private void writeBytesSegment(
+        DirectBuffer value,
+        int offset,
+        int length,
+        int deferred)
+    {
+        int reserve = (segmentOpened ? 0 : 1) + (deferred == 0 ? 1 : 0);
+        int groupsFit = Math.max(0, json.remaining() - reserve) / 4;
+        int wholeGroups = Math.min(groupsFit, length / 3);
+
+        scratch.setLength(0);
+        int taken = 0;
+        for (int g = 0; g < wholeGroups; g++)
+        {
+            int b0 = value.getByte(offset + taken++) & 0xff;
+            int b1 = value.getByte(offset + taken++) & 0xff;
+            int b2 = value.getByte(offset + taken++) & 0xff;
+            appendBase64Group(b0, b1, b2);
+        }
+
+        int rem = length - taken;
+        boolean complete = false;
+        if (deferred == 0 && rem > 0 && rem < 3 && wholeGroups < groupsFit)
+        {
+            // the final delivery's 1-2 byte tail forms one padded group when it still fits the bound
+            int b0 = value.getByte(offset + taken++) & 0xff;
+            int b1 = rem == 2 ? value.getByte(offset + taken++) & 0xff : -1;
+            appendBase64Group(b0, b1, -1);
+            rem = 0;
+            complete = true;
+        }
+        else if (deferred == 0 && rem == 0 && wholeGroups == length / 3)
+        {
+            complete = true;
+        }
+
+        Completion completion = complete ? Completion.COMPLETE : Completion.INCOMPLETE;
+        if (scratch.length() > 0 || complete)
+        {
+            json.write(scratch, completion);
+            segmentOpened = true;
+        }
+        // consume only the source bytes whose whole base64 groups were emitted; any sub-group tail is left
+        // unconsumed for the source to re-present (output back-pressure), so the adapter holds no carry buffer
+        consumed += taken;
+
+        if (complete)
+        {
+            segmentActive = false;
+            segmentLength = 0;
+        }
+    }
+
+    private void appendBase64Group(
+        int b0,
+        int b1,
+        int b2)
+    {
+        if (b1 < 0)
+        {
+            int word = b0 << 16;
+            scratch.append(BASE64[word >> 18 & 0x3f]);
+            scratch.append(BASE64[word >> 12 & 0x3f]);
+            scratch.append('=');
+            scratch.append('=');
+        }
+        else if (b2 < 0)
+        {
+            int word = b0 << 16 | b1 << 8;
+            scratch.append(BASE64[word >> 18 & 0x3f]);
+            scratch.append(BASE64[word >> 12 & 0x3f]);
+            scratch.append(BASE64[word >> 6 & 0x3f]);
+            scratch.append('=');
         }
         else
         {
-            scratch.setLength(0);
-            if (field.type() == ProtobufType.STRING)
+            int word = b0 << 16 | b1 << 8 | b2;
+            scratch.append(BASE64[word >> 18 & 0x3f]);
+            scratch.append(BASE64[word >> 12 & 0x3f]);
+            scratch.append(BASE64[word >> 6 & 0x3f]);
+            scratch.append(BASE64[word & 0x3f]);
+        }
+    }
+
+    private static int utf8ByteLength(
+        CharSequence value,
+        int fromCharIndex,
+        int toCharIndex)
+    {
+        int bytes = 0;
+        int index = fromCharIndex;
+        while (index < toCharIndex)
+        {
+            int codePoint = Character.codePointAt(value, index);
+            index += Character.charCount(codePoint);
+            if (codePoint < 0x80)
             {
-                appendUtf8(value, offset, length);
+                bytes += 1;
+            }
+            else if (codePoint < 0x800)
+            {
+                bytes += 2;
+            }
+            else if (codePoint < 0x10000)
+            {
+                bytes += 3;
             }
             else
             {
-                appendBase64(value, offset, length);
+                bytes += 4;
             }
-            json.write(scratch);
         }
+        return bytes;
     }
 
     private void captureKey(
@@ -813,43 +974,6 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
             }
             index += count;
             scratch.appendCodePoint(codePoint);
-        }
-    }
-
-    private void appendBase64(
-        DirectBuffer buffer,
-        int offset,
-        int length)
-    {
-        int index = offset;
-        int end = offset + length;
-        while (end - index >= 3)
-        {
-            int word = (buffer.getByte(index) & 0xff) << 16
-                | (buffer.getByte(index + 1) & 0xff) << 8
-                | buffer.getByte(index + 2) & 0xff;
-            scratch.append(BASE64[word >> 18 & 0x3f]);
-            scratch.append(BASE64[word >> 12 & 0x3f]);
-            scratch.append(BASE64[word >> 6 & 0x3f]);
-            scratch.append(BASE64[word & 0x3f]);
-            index += 3;
-        }
-        int remaining = end - index;
-        if (remaining == 1)
-        {
-            int word = (buffer.getByte(index) & 0xff) << 16;
-            scratch.append(BASE64[word >> 18 & 0x3f]);
-            scratch.append(BASE64[word >> 12 & 0x3f]);
-            scratch.append('=');
-            scratch.append('=');
-        }
-        else if (remaining == 2)
-        {
-            int word = (buffer.getByte(index) & 0xff) << 16 | (buffer.getByte(index + 1) & 0xff) << 8;
-            scratch.append(BASE64[word >> 18 & 0x3f]);
-            scratch.append(BASE64[word >> 12 & 0x3f]);
-            scratch.append(BASE64[word >> 6 & 0x3f]);
-            scratch.append('=');
         }
     }
 
