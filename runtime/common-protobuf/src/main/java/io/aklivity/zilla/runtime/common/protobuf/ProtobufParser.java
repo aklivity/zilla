@@ -166,23 +166,15 @@ public interface ProtobufParser
 
     /**
      * Advances past {@code sourceBytes} of the current value's slice so {@link #segment()} re-exposes the
-     * unconsumed remainder — the pushback a bounded sink uses to stream a length-delimited value across
-     * output windows without tracking its own write cursor. The default is a no-op for cursors that need no
+     * unconsumed remainder — the pushback a bounded sink uses to stream a length-delimited value across output
+     * windows without tracking its own write cursor. For a value still streaming across input windows
+     * ({@link #deferredBytes()} {@code > 0}) it also commits the read cursor by exactly {@code sourceBytes}, so a
+     * sub-unit tail the sink leaves unconsumed stays uncommitted and {@link #remaining()} reports it for the next
+     * window — without over-committing the cursor at delivery. The default is a no-op for cursors that need no
      * pushback.
      */
     default void consumed(
         int sourceBytes)
-    {
-    }
-
-    /**
-     * Reconciles the cursor for input back-pressure when a downstream sink reported {@code STARVED} after
-     * consuming only part of a streaming value chunk (see {@link #consumed(int)}): the unconsumed tail, which
-     * the chunk delivery committed past, is returned to {@link #remaining()} and to the value body still to
-     * come, so it is re-presented contiguous with the next window on {@link #resume}. The default is a no-op
-     * for cursors that do not stream values across windows.
-     */
-    default void giveback()
     {
     }
 

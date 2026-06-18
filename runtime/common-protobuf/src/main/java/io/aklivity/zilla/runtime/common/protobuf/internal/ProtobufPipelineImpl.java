@@ -105,13 +105,6 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
             {
                 // output back-pressure: continue the suspended work on the same window without replaying it
                 status = head.resume(control, source, resumeEvent);
-                if (status == Status.STARVED)
-                {
-                    // the suspended value drained its whole-group output and now holds a sub-unit tail that
-                    // only the next input window can complete: reconcile the cursor (see below) and switch
-                    // from output to input back-pressure
-                    parser.giveback();
-                }
             }
             else if (starved)
             {
@@ -137,13 +130,8 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
                         // the pump owns the resume cursor: remember the in-flight event for the next entry
                         resumeEvent = event;
                     }
-                    else if (status == Status.STARVED)
-                    {
-                        // input back-pressure from the sink: it consumed only part of a streaming value chunk
-                        // (a sub-unit tail awaiting more input) — reconcile the cursor so the unconsumed tail
-                        // is re-presented contiguous with the next window
-                        parser.giveback();
-                    }
+                    // a sink STARVED leaves the unconsumed tail uncommitted (consumed() advanced the cursor by
+                    // only what the sink took), so remaining() already reports it for the next window — no rewind
                 }
             }
             suspended = status == Status.SUSPENDED;
