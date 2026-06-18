@@ -14,19 +14,17 @@
  */
 package io.aklivity.zilla.runtime.common.yaml.internal;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
 /**
  * A pull parser over a full YAML 1.2 stream. {@link #next()} returns the next {@link YamlEvent} kind; the
  * current event's state (scalar value and type, node anchor / tag, alias name, source location) is read
  * through the accessor methods, the way {@code jakarta.json.stream.JsonParser} exposes its current event.
  *
- * <p>It is a facade over the conservative {@link YamlStreamScanner} fast path: when the scanner accepts the
- * input its token stream is projected to events directly; otherwise the parser falls back to the eager
- * {@link YamlDocumentParser} and walks the resulting document tree. The eager parser remains the independent
- * reference against which this parser's scanner path is differentially tested.
+ * <p>It is a thin streaming cursor over the {@link YamlStreamScanner}: the scanner classifies the whole
+ * stream into a flat event buffer in one pass, and this parser frames that buffer into the YAML
+ * representation graph — a stream wrapping one or more documents, each document a single balanced root node.
+ * Documents are split depth-first: a scalar root is one event, a mapping or sequence root spans its balanced
+ * {@code START} / {@code END} pair. The scanner rejects invalid input by failing {@link YamlStreamScanner#scan},
+ * which this parser surfaces as a {@link YamlParseException} carrying the scanner's located bail message.
  *
  * <p>The JSON-restricting {@code YamlJsonParser} is layered on top of this stream — this parser itself does
  * not reject non-scalar keys, tags or other constructs that are valid YAML but not representable in JSON, and
@@ -34,211 +32,221 @@ import java.util.Map;
  */
 public final class YamlParser
 {
-    private final List<Step> steps;
-    private int cursor;
-    private Step current;
+    private enum Phase
+    {
+        STREAM_START,
+        DOCUMENT_START,
+        NODE,
+        DOCUMENT_END,
+        STREAM_END,
+        DONE
+    }
+
+    private final String text;
+    private final YamlStreamScanner scanner;
+    private final int count;
+    private final int documentCount;
+
+    private Phase phase;
+    private int index;
+    private int document;
+    private int depth;
+
+    private YamlEvent event;
+    private CharSequence value;
+    private YamlScalarType scalarType;
+    private String anchor;
+    private String tag;
+    private String alias;
+    private YamlLocation location;
 
     public YamlParser(
         String text)
     {
-        this(text, Map.of(), true);
-    }
-
-    public YamlParser(
-        String text,
-        Map<String, ?> config,
-        boolean allowScanner)
-    {
-        this.steps = new ArrayList<>();
-        build(text, new YamlConfiguration(config), allowScanner);
+        this.text = text;
+        this.scanner = new YamlStreamScanner();
+        if (!scanner.scan(text))
+        {
+            throw new YamlParseException(scanner.bailMessage(), scanner.bailLocation());
+        }
+        // a successful scan always classifies at least one event (an empty stream projects as a single null),
+        // so there is always at least one document to frame
+        this.count = scanner.count();
+        this.documentCount = scanner.documentCount();
+        this.phase = Phase.STREAM_START;
     }
 
     public boolean hasNext()
     {
-        return cursor < steps.size();
+        return phase != Phase.DONE;
     }
 
     public YamlEvent next()
     {
-        current = steps.get(cursor++);
-        return current.event;
+        clear();
+        switch (phase)
+        {
+        case STREAM_START ->
+        {
+            event = YamlEvent.STREAM_START;
+            location = locationAt(0);
+            phase = Phase.DOCUMENT_START;
+        }
+        case DOCUMENT_START ->
+        {
+            event = YamlEvent.DOCUMENT_START;
+            location = locationAt(scanner.offset(index));
+            depth = 0;
+            phase = Phase.NODE;
+        }
+        case NODE ->
+        {
+            setScanEvent(index);
+            byte kind = scanner.kind(index);
+            if (kind == YamlStreamScanner.START_OBJECT || kind == YamlStreamScanner.START_ARRAY)
+            {
+                depth++;
+            }
+            else if (kind == YamlStreamScanner.END_OBJECT || kind == YamlStreamScanner.END_ARRAY)
+            {
+                depth--;
+            }
+            index++;
+            if (depth == 0)
+            {
+                phase = Phase.DOCUMENT_END;
+            }
+        }
+        case DOCUMENT_END ->
+        {
+            event = YamlEvent.DOCUMENT_END;
+            int boundary = document < documentCount ? scanner.documentBoundary(document) : text.length();
+            location = locationAt(boundary);
+            document++;
+            phase = index < count ? Phase.DOCUMENT_START : Phase.STREAM_END;
+        }
+        case STREAM_END ->
+        {
+            event = YamlEvent.STREAM_END;
+            location = locationAt(text.length());
+            phase = Phase.DONE;
+        }
+        default -> throw new IllegalStateException("No more events");
+        }
+        return event;
     }
 
     public CharSequence value()
     {
-        return current.value;
+        return value;
     }
 
     public YamlScalarType scalarType()
     {
-        return current.scalarType;
+        return scalarType;
     }
 
     public String anchor()
     {
-        return current.anchor;
+        return anchor;
     }
 
     public String tag()
     {
-        return current.tag;
+        return tag;
     }
 
     public String alias()
     {
-        return current.alias;
+        return alias;
     }
 
     public YamlLocation location()
     {
-        return current.location;
+        return location;
     }
 
-    private void build(
-        String text,
-        YamlConfiguration config,
-        boolean allowScanner)
+    private void clear()
     {
-        add(YamlEvent.STREAM_START, null, null, null, null, null, locationAt(text, 0));
-        YamlStreamScanner scanner = new YamlStreamScanner();
-        // the scanner fast path frames a single document and cannot honor parsing options (e.g. scalar
-        // resolution, source preservation); multi-document framing and those options defer to the eager parser
-        if (allowScanner && scanner.scan(text) && scanner.documentCount() <= 1)
-        {
-            buildFromScanner(scanner, text);
-        }
-        else
-        {
-            buildFromEager(text, config);
-        }
-        add(YamlEvent.STREAM_END, null, null, null, null, null, locationAt(text, text.length()));
+        event = null;
+        value = null;
+        scalarType = null;
+        anchor = null;
+        tag = null;
+        alias = null;
+        location = null;
     }
 
-    private void buildFromScanner(
-        YamlStreamScanner scanner,
-        String text)
+    private void setScanEvent(
+        int at)
     {
-        int count = scanner.count();
-        add(YamlEvent.DOCUMENT_START, null, null, null, null, null, locationAt(text, 0));
-        for (int index = 0; index < count; index++)
-        {
-            addScanEvent(scanner, index);
-        }
-        // the document's boundary is the end of the stream; the JSON layer reports the root-terminal event here
-        add(YamlEvent.DOCUMENT_END, null, null, null, null, null, locationAt(text, text.length()));
-    }
-
-    private void addScanEvent(
-        YamlStreamScanner scanner,
-        int index)
-    {
-        byte kind = scanner.kind(index);
-        String anchor = scanner.anchor(index);
-        String tag = scanner.tag(index);
-        YamlLocation location = new YamlLocation(scanner.line(index), scanner.column(index), scanner.offset(index));
+        byte kind = scanner.kind(at);
+        location = new YamlLocation(scanner.line(at), scanner.column(at), scanner.offset(at));
         switch (kind)
         {
-        case YamlStreamScanner.START_OBJECT -> add(YamlEvent.MAPPING_START, null, null, anchor, tag, null, location);
-        case YamlStreamScanner.END_OBJECT -> add(YamlEvent.MAPPING_END, null, null, null, null, null, location);
-        case YamlStreamScanner.START_ARRAY -> add(YamlEvent.SEQUENCE_START, null, null, anchor, tag, null, location);
-        case YamlStreamScanner.END_ARRAY -> add(YamlEvent.SEQUENCE_END, null, null, null, null, null, location);
-        case YamlStreamScanner.KEY_NAME -> add(YamlEvent.SCALAR, viewText(scanner, index), null, anchor, tag, null, location);
-        case YamlStreamScanner.VALUE_STRING ->
-            add(YamlEvent.SCALAR, viewText(scanner, index), YamlScalarType.STRING, anchor, tag, null, location);
-        case YamlStreamScanner.VALUE_NUMBER ->
-            add(YamlEvent.SCALAR, viewText(scanner, index), YamlScalarType.NUMBER, anchor, tag, null, location);
-        case YamlStreamScanner.VALUE_TRUE -> add(YamlEvent.SCALAR, null, YamlScalarType.TRUE, anchor, tag, null, location);
-        case YamlStreamScanner.VALUE_FALSE -> add(YamlEvent.SCALAR, null, YamlScalarType.FALSE, anchor, tag, null, location);
-        case YamlStreamScanner.VALUE_NULL -> add(YamlEvent.SCALAR, null, YamlScalarType.NULL, anchor, tag, null, location);
+        case YamlStreamScanner.START_OBJECT ->
+        {
+            event = YamlEvent.MAPPING_START;
+            anchor = scanner.anchor(at);
+            tag = scanner.tag(at);
+        }
+        case YamlStreamScanner.END_OBJECT -> event = YamlEvent.MAPPING_END;
+        case YamlStreamScanner.START_ARRAY ->
+        {
+            event = YamlEvent.SEQUENCE_START;
+            anchor = scanner.anchor(at);
+            tag = scanner.tag(at);
+        }
+        case YamlStreamScanner.END_ARRAY -> event = YamlEvent.SEQUENCE_END;
+        case YamlStreamScanner.KEY_NAME ->
+        {
+            event = YamlEvent.SCALAR;
+            value = viewText(at);
+            anchor = scanner.anchor(at);
+            tag = scanner.tag(at);
+        }
+        case YamlStreamScanner.VALUE_STRING -> setScalar(at, viewText(at), YamlScalarType.STRING);
+        case YamlStreamScanner.VALUE_NUMBER -> setScalar(at, viewText(at), YamlScalarType.NUMBER);
+        case YamlStreamScanner.VALUE_TRUE -> setScalar(at, null, YamlScalarType.TRUE);
+        case YamlStreamScanner.VALUE_FALSE -> setScalar(at, null, YamlScalarType.FALSE);
+        case YamlStreamScanner.VALUE_NULL -> setScalar(at, null, YamlScalarType.NULL);
         case YamlStreamScanner.ALIAS ->
-            add(YamlEvent.ALIAS, null, null, null, null, scanner.alias(index), location);
+        {
+            event = YamlEvent.ALIAS;
+            alias = scanner.alias(at);
+        }
         default -> throw new IllegalStateException("Unexpected scanner event kind: " + kind);
         }
     }
 
-    private void buildFromEager(
-        String text,
-        YamlConfiguration config)
+    private void setScalar(
+        int at,
+        CharSequence value,
+        YamlScalarType scalarType)
     {
-        int offset = 0;
-        do
-        {
-            String remaining = text.substring(offset);
-            YamlDocumentParser.Result result = YamlDocumentParser.parse(remaining, config);
-            int read = (int) result.end.offset();
-            int boundary = read <= 0 ? text.length() : offset + read;
-            add(YamlEvent.DOCUMENT_START, null, null, null, null, null, locationAt(text, offset));
-            walk(result.node, offset);
-            add(YamlEvent.DOCUMENT_END, null, null, null, null, null, locationAt(text, boundary));
-            if (read <= 0)
-            {
-                break;
-            }
-            offset = boundary;
-        }
-        while (offset < text.length() && !text.substring(offset).isBlank());
+        this.event = YamlEvent.SCALAR;
+        this.value = value;
+        this.scalarType = scalarType;
+        this.anchor = scanner.anchor(at);
+        this.tag = scanner.tag(at);
     }
 
-    private void walk(
-        YamlNode node,
-        long base)
+    private String viewText(
+        int at)
     {
-        YamlLocation location = new YamlLocation(node.line, node.column, base + node.offset);
-        if (node.alias != null)
-        {
-            add(YamlEvent.ALIAS, null, null, null, null, node.alias, location);
-        }
-        else if (node instanceof YamlObjectNode object)
-        {
-            add(YamlEvent.MAPPING_START, null, null, node.anchor, node.tag, null, location);
-            for (YamlEntry entry : object.entries)
-            {
-                if (entry.name == null && entry.key != null &&
-                    (!(entry.key instanceof YamlScalarNode) || entry.key.alias != null))
-                {
-                    walk(entry.key, base);
-                }
-                else if (entry.name != null)
-                {
-                    add(YamlEvent.SCALAR, entry.name, null, null, null, null,
-                        new YamlLocation(entry.line, entry.column, base + entry.offset));
-                }
-                else
-                {
-                    YamlScalarNode key = (YamlScalarNode) entry.key;
-                    add(YamlEvent.SCALAR, key.value, null, key.anchor, key.tag, null,
-                        new YamlLocation(key.line, key.column, base + key.offset));
-                }
-                walk(entry.value, base);
-            }
-            add(YamlEvent.MAPPING_END, null, null, null, null, null, location);
-        }
-        else if (node instanceof YamlArrayNode array)
-        {
-            add(YamlEvent.SEQUENCE_START, null, null, node.anchor, node.tag, null, location);
-            for (YamlNode value : array.values)
-            {
-                walk(value, base);
-            }
-            add(YamlEvent.SEQUENCE_END, null, null, null, null, null, location);
-        }
-        else
-        {
-            YamlScalarNode scalar = (YamlScalarNode) node;
-            add(YamlEvent.SCALAR, scalar.value, scalar.type, scalar.anchor, scalar.tag, null, location);
-        }
+        CharSequence view = scanner.stringView(at);
+        return view != null ? view.toString() : "";
     }
 
-    private static YamlLocation locationAt(
-        String text,
+    private YamlLocation locationAt(
         int offset)
     {
         int line = 1;
         int column = 1;
         int limit = Math.min(offset, text.length());
-        for (int index = 0; index < limit; index++)
+        for (int at = 0; at < limit; at++)
         {
-            if (text.charAt(index) == '\n')
+            if (text.charAt(at) == '\n')
             {
                 line++;
                 column = 1;
@@ -249,54 +257,5 @@ public final class YamlParser
             }
         }
         return new YamlLocation(line, column, offset);
-    }
-
-    private static String viewText(
-        YamlStreamScanner scanner,
-        int index)
-    {
-        CharSequence view = scanner.stringView(index);
-        return view != null ? view.toString() : "";
-    }
-
-    private void add(
-        YamlEvent event,
-        CharSequence value,
-        YamlScalarType scalarType,
-        String anchor,
-        String tag,
-        String alias,
-        YamlLocation location)
-    {
-        steps.add(new Step(event, value, scalarType, anchor, tag, alias, location));
-    }
-
-    private static final class Step
-    {
-        private final YamlEvent event;
-        private final CharSequence value;
-        private final YamlScalarType scalarType;
-        private final String anchor;
-        private final String tag;
-        private final String alias;
-        private final YamlLocation location;
-
-        private Step(
-            YamlEvent event,
-            CharSequence value,
-            YamlScalarType scalarType,
-            String anchor,
-            String tag,
-            String alias,
-            YamlLocation location)
-        {
-            this.event = event;
-            this.value = value;
-            this.scalarType = scalarType;
-            this.anchor = anchor;
-            this.tag = tag;
-            this.alias = alias;
-            this.location = location;
-        }
     }
 }

@@ -749,33 +749,6 @@ class YamlJsonParserTest
     }
 
     @Test
-    void shouldApplyYamlJsonFactoryConfig()
-    {
-        JsonParserFactory scalarResolutionDisabled = YamlJson.createParserFactory(Map.of(
-            YamlConfig.SCALAR_RESOLUTION, false));
-        JsonParser parser = scalarResolutionDisabled.createParser(new StringReader("42\n"));
-        assertEquals(VALUE_STRING, parser.next());
-        assertEquals("42", parser.getString());
-
-        JsonParserFactory flowCollectionsDisabled = YamlJson.createParserFactory(Map.of(
-            YamlConfig.FEATURE_FLOW_COLLECTIONS, false));
-        assertThrows(JsonParsingException.class,
-            () -> flowCollectionsDisabled.createParser(new ByteArrayInputStream("[1]\n".getBytes(UTF_8))));
-
-        JsonReaderFactory commentsDisabled = YamlJson.createReaderFactory(Map.of(
-            YamlConfig.FEATURE_COMMENTS, false));
-        assertThrows(JsonParsingException.class,
-            () -> commentsDisabled.createReader(new StringReader("name: test # comment\n")));
-
-        JsonReaderFactory readerScalarResolutionDisabled = YamlJson.createReaderFactory(Map.of(
-            YamlConfig.SCALAR_RESOLUTION, false));
-        assertEquals(JsonValue.ValueType.STRING, readerScalarResolutionDisabled
-            .createReader(new ByteArrayInputStream("42\n".getBytes(UTF_8)), UTF_8)
-            .readValue()
-            .getValueType());
-    }
-
-    @Test
     void shouldApplyJsonAsYamlProjectionProfile()
     {
         assertThrows(JsonParsingException.class, () -> events(parserFor("""

@@ -117,7 +117,7 @@ public final class YamlJsonParser implements JsonParser
         this.current = -1;
         try
         {
-            capture(new YamlParser(text, config != null ? config : Map.of(), scannerEligible(config)));
+            capture(new YamlParser(text));
             indexAnchors();
             project();
         }
@@ -130,27 +130,6 @@ public final class YamlJsonParser implements JsonParser
         {
             end = new YamlJsonLocation(new YamlLocation(1, 1, 0));
         }
-    }
-
-    static boolean scannerEligible(
-        Map<String, ?> config)
-    {
-        boolean eligible = true;
-        if (config != null)
-        {
-            for (Map.Entry<String, ?> entry : config.entrySet())
-            {
-                String key = entry.getKey();
-                boolean ok = YamlConfig.FEATURE_UNIQUE_KEYS.equals(key) ||
-                    YamlConfig.FEATURE_NON_SCALAR_KEYS.equals(key) && Boolean.FALSE.equals(entry.getValue());
-                if (!ok)
-                {
-                    eligible = false;
-                    break;
-                }
-            }
-        }
-        return eligible;
     }
 
     @Override

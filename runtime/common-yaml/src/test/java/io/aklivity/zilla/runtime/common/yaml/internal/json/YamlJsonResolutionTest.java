@@ -15,43 +15,25 @@
 package io.aklivity.zilla.runtime.common.yaml.internal.json;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.IOException;
 import java.io.StringReader;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Stream;
 
 import jakarta.json.stream.JsonParser;
 
-import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestFactory;
 
-import io.aklivity.zilla.runtime.common.yaml.YamlConfig;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 
 /**
  * Validates reference resolution and JSON Schema tag coercion through {@link YamlJsonParser} (which is layered
- * on the YamlParser event stream). The differential asserts that the scanner and eager parser paths project
- * identical JSON for every fixture, the eager path being forced by a non-default config.
+ * on the YamlParser event stream).
  */
 class YamlJsonResolutionTest
 {
-    private static final String SUITE_TAG = "data-2022-01-17";
-
-    // PRESERVE_SOURCE forces the eager path (not scanner-eligible) but does not affect JSON projection
-    private static final Map<String, Object> FORCE_EAGER = Map.of(YamlConfig.PRESERVE_SOURCE, true);
-
     @Test
     void shouldExpandBlockAliasToAnchoredObject()
     {
@@ -132,36 +114,6 @@ class YamlJsonResolutionTest
             "END_OBJECT"), events("s: !!str 42\ni: !!int \"0x10\"\nf: !!float \"1.5\"\nb: !!bool true\nn: !!null ~\n", Map.of()));
     }
 
-    @Test
-    void shouldEngageScannerForEngineConfig()
-    {
-        // the engine reads zilla.yaml with unique keys enabled; that must use the streaming path
-        assertTrue(YamlJsonParser.scannerEligible(Map.of(YamlConfig.FEATURE_UNIQUE_KEYS, true)));
-        assertTrue(YamlJsonParser.scannerEligible(Map.of(YamlConfig.FEATURE_NON_SCALAR_KEYS, false)));
-        assertTrue(YamlJsonParser.scannerEligible(Map.of()));
-        assertTrue(YamlJsonParser.scannerEligible(null));
-    }
-
-    @Test
-    void shouldNotEngageScannerForSemanticConfig()
-    {
-        assertFalse(YamlJsonParser.scannerEligible(Map.of(YamlConfig.FEATURE_ANCHORS, false)));
-        assertFalse(YamlJsonParser.scannerEligible(Map.of(YamlConfig.FEATURE_NON_SCALAR_KEYS, true)));
-        assertFalse(YamlJsonParser.scannerEligible(Map.of(YamlConfig.PRESERVE_SOURCE, true)));
-    }
-
-    @TestFactory
-    Stream<DynamicTest> shouldMatchEagerProjectionForEveryFixture() throws Exception
-    {
-        return fixtures()
-            .map(path -> DynamicTest.dynamicTest(SUITE_DIR.relativize(path).toString(), () ->
-            {
-                String text = Files.readString(path.resolve("in.yaml"));
-                assertEquals(events(text, FORCE_EAGER), events(text, Map.of()),
-                    "scanner projection diverged from eager projection");
-            }));
-    }
-
     private static List<String> events(
         String text,
         Map<String, ?> config)
@@ -179,35 +131,5 @@ class YamlJsonResolutionTest
             }
         }
         return events;
-    }
-
-    private static final Path SUITE_DIR = resolveSuite();
-
-    private static Stream<Path> fixtures() throws IOException
-    {
-        List<Path> directories = new ArrayList<>();
-        Files.find(SUITE_DIR, 3, (p, a) -> a.isRegularFile() && "in.yaml".equals(p.getFileName().toString()))
-            .map(Path::getParent)
-            .filter(p -> Files.exists(p.resolve("in.json")) && !Files.exists(p.resolve("error")))
-            .sorted(Comparator.comparing(p -> SUITE_DIR.relativize(p).toString()))
-            .forEach(directories::add);
-        return directories.stream();
-    }
-
-    private static Path resolveSuite()
-    {
-        URL resource = YamlJsonResolutionTest.class.getResource("/io/aklivity/zilla/runtime/common/yaml/" + SUITE_TAG);
-        if (resource == null)
-        {
-            throw new IllegalStateException("Missing vendored YAML test suite: " + SUITE_TAG);
-        }
-        try
-        {
-            return Path.of(resource.toURI());
-        }
-        catch (URISyntaxException ex)
-        {
-            throw new IllegalStateException("Invalid vendored YAML test suite location: " + resource, ex);
-        }
     }
 }
