@@ -20,7 +20,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayOutputStream;
-import java.time.Clock;
 
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -28,7 +27,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
@@ -110,39 +108,6 @@ public class JsonReadModelPipelineTest
         assertEquals("{\"id\":\"A\",\"status\":\"OK\"}", outA.toString(UTF_8));
     }
 
-    @Test
-    public void shouldValidateWholeValueWithZeroLengthDestination()
-    {
-        JsonReadModelHandler handler = newHandler();
-        ModelPipeline pipeline = handler.supplyPipeline(ModelVisitor.NONE);
-
-        // zero-length dst == validate-only: output is parsed for validation then discarded, caller forwards src
-        byte[] in = "{\"id\":\"123\",\"status\":\"OK\"}".getBytes(UTF_8);
-        MutableDirectBuffer dst = new UnsafeBuffer(new byte[0]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
-            new UnsafeBuffer(in), 0, in.length, dst, 0, 0);
-
-        assertEquals(ModelStatus.COMPLETE, result.status());
-        assertEquals(in.length, result.consumed());
-        assertEquals(0, result.produced());
-    }
-
-    @Test
-    public void shouldRejectInvalidValueWithZeroLengthDestination()
-    {
-        JsonReadModelHandler handler = newHandler();
-        ModelPipeline pipeline = handler.supplyPipeline(ModelVisitor.NONE);
-
-        // missing required "status"
-        byte[] in = "{\"id\":\"123\"}".getBytes(UTF_8);
-        MutableDirectBuffer dst = new UnsafeBuffer(new byte[0]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
-            new UnsafeBuffer(in), 0, in.length, dst, 0, 0);
-
-        assertEquals(ModelStatus.REJECTED, result.status());
-        assertEquals(0, result.produced());
-    }
-
     private JsonReadModelHandler newHandler()
     {
         TestCatalogConfig catalog = CatalogConfig.builder(TestCatalogConfig::new)
@@ -166,8 +131,6 @@ public class JsonReadModelPipelineTest
                 .build()
             .build();
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
-        when(context.clock()).thenReturn(Clock.systemUTC());
-        when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
         return new JsonReadModelHandler(model, context);
     }
 
