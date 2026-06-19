@@ -102,8 +102,11 @@ import io.aklivity.zilla.runtime.engine.binding.BindingContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageReader;
+import io.aklivity.zilla.runtime.engine.budget.BudgetCredit;
 import io.aklivity.zilla.runtime.engine.budget.BudgetCreditor;
+import io.aklivity.zilla.runtime.engine.budget.BudgetDebit;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
+import io.aklivity.zilla.runtime.engine.budget.BudgetFlusher;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.catalog.Catalog;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
@@ -125,6 +128,8 @@ import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.internal.LabelManager;
 import io.aklivity.zilla.runtime.engine.internal.budget.DefaultBudgetCreditor;
 import io.aklivity.zilla.runtime.engine.internal.budget.DefaultBudgetDebitor;
+import io.aklivity.zilla.runtime.engine.internal.budget.FacadeBudgetCredit;
+import io.aklivity.zilla.runtime.engine.internal.budget.FacadeBudgetDebit;
 import io.aklivity.zilla.runtime.engine.internal.event.io.EventWriter;
 import io.aklivity.zilla.runtime.engine.internal.exporter.ExporterAgent;
 import io.aklivity.zilla.runtime.engine.internal.layouts.BindingsLayout;
@@ -640,6 +645,31 @@ public class EngineWorker implements EngineContext, Agent
     {
         final int ownerIndex = ownerIndex(budgetId);
         return debitorsByIndex.computeIfAbsent(ownerIndex, this::newBudgetDebitor);
+    }
+
+    @Override
+    public BudgetDebit supplyDebit(
+        long streamId,
+        long sharedStreamId,
+        BudgetFlusher onResume)
+    {
+        if (sharedStreamId == NO_BUDGET_ID)
+        {
+            throw new UnsupportedOperationException("unshared per-stream window debit lands in T2");
+        }
+        return new FacadeBudgetDebit(supplyDebitor(sharedStreamId), sharedStreamId, streamId, onResume);
+    }
+
+    @Override
+    public BudgetCredit supplyCredit(
+        long streamId,
+        long sharedStreamId)
+    {
+        if (sharedStreamId == NO_BUDGET_ID)
+        {
+            throw new UnsupportedOperationException("unshared per-stream window credit lands in T2");
+        }
+        return new FacadeBudgetCredit(creditor, sharedStreamId);
     }
 
     @Override

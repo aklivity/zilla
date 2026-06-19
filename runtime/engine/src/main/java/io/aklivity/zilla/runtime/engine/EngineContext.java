@@ -27,8 +27,11 @@ import org.agrona.MutableDirectBuffer;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageReader;
+import io.aklivity.zilla.runtime.engine.budget.BudgetCredit;
 import io.aklivity.zilla.runtime.engine.budget.BudgetCreditor;
+import io.aklivity.zilla.runtime.engine.budget.BudgetDebit;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
+import io.aklivity.zilla.runtime.engine.budget.BudgetFlusher;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
@@ -268,6 +271,44 @@ public interface EngineContext
      */
     BudgetDebitor supplyDebitor(
         long budgetId);
+
+    /**
+     * Returns a producer-side {@link BudgetDebit} handle for claiming send capacity on the
+     * given stream, unifying the per-stream window and the shared budget behind one handle.
+     * <p>
+     * When {@code sharedStreamId} identifies a shared stream the producer attaches to, the
+     * handle claims from that shared budget; the engine releases the handle's resources when
+     * the stream terminates.
+     * </p>
+     *
+     * @param streamId        the stream that will write frames using the handle
+     * @param sharedStreamId  the shared stream this producer attaches to, or {@code 0} for an
+     *                        unshared per-stream window
+     * @param onResume        callback invoked when previously unavailable capacity frees
+     * @return the debit handle for the stream
+     */
+    BudgetDebit supplyDebit(
+        long streamId,
+        long sharedStreamId,
+        BudgetFlusher onResume);
+
+    /**
+     * Returns a consumer-side {@link BudgetCredit} handle for granting downstream capacity on
+     * the given stream, replacing the per-binding credit translation.
+     * <p>
+     * When {@code sharedStreamId} identifies a shared stream the consumer attaches to, the
+     * handle grants into that shared budget; the engine releases the handle's resources when
+     * the stream terminates.
+     * </p>
+     *
+     * @param streamId        the stream that will grant capacity using the handle
+     * @param sharedStreamId  the shared stream this consumer attaches to, or {@code 0} for an
+     *                        unshared per-stream window
+     * @return the credit handle for the stream
+     */
+    BudgetCredit supplyCredit(
+        long streamId,
+        long sharedStreamId);
 
     /**
      * Returns the per-thread write buffer for staging outbound frames before sending.

@@ -46,8 +46,11 @@ import io.aklivity.zilla.runtime.engine.binding.BindingFactory;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageReader;
+import io.aklivity.zilla.runtime.engine.budget.BudgetCredit;
 import io.aklivity.zilla.runtime.engine.budget.BudgetCreditor;
+import io.aklivity.zilla.runtime.engine.budget.BudgetDebit;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
+import io.aklivity.zilla.runtime.engine.budget.BudgetFlusher;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
@@ -253,6 +256,18 @@ public class TlsWorker implements EngineContext
 
     @Override
     public BudgetDebitor supplyDebitor(long budgetId)
+    {
+        return null;
+    }
+
+    @Override
+    public BudgetDebit supplyDebit(long streamId, long sharedStreamId, BudgetFlusher onResume)
+    {
+        return null;
+    }
+
+    @Override
+    public BudgetCredit supplyCredit(long streamId, long sharedStreamId)
     {
         return null;
     }
