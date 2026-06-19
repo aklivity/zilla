@@ -13,4 +13,5 @@ This project includes:
   agrona under The Apache License, Version 2.0
   Jakarta JSON Processing API under Eclipse Public License 2.0 or GNU General Public License, version 2 with the GNU Classpath Exception
   zilla::runtime::common-json under Aklivity Community License Agreement
+  zilla::runtime::common-lang under Aklivity Community License Agreement
 
