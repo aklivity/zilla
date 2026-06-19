@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.common.avro;
 
 import org.agrona.DirectBuffer;
+import org.agrona.MutableDirectBuffer;
 
 /**
  * A runnable, resumable {@code common-avro} pipeline assembled from an {@link AvroStream} description
@@ -85,4 +86,25 @@ public interface AvroPipeline
      * back-pressure consumes no further input.
      */
     int remaining();
+
+    /**
+     * Transforms one input window {@code src[offset, limit)} into {@code dst[dstOffset, dstLimit)},
+     * re-targeting the terminal generator at {@code dst} before pumping (an {@code SSLEngine.unwrap}-style
+     * src/dst shape), and returns the reused {@link AvroPipelineResult} carrying the {@link Status} with the
+     * bytes {@link AvroPipelineResult#consumed() consumed} from the input window and
+     * {@link AvroPipelineResult#produced() produced} into the destination this call. Drive it in a loop:
+     * drain the produced output, advance the input by {@code consumed}, and call again — on
+     * {@link Status#SUSPENDED} with the same window (output back-pressure), on {@link Status#STARVED} with
+     * the unconsumed tail prepended to the next window (input back-pressure). Available only when the
+     * pipeline was terminated with {@link AvroStream#into(AvroGenerator)} so the pipeline owns the
+     * generator it re-targets.
+     */
+    AvroPipelineResult transform(
+        DirectBuffer src,
+        int offset,
+        int limit,
+        boolean last,
+        MutableDirectBuffer dst,
+        int dstOffset,
+        int dstLimit);
 }
