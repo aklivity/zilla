@@ -22,6 +22,7 @@ import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelContext;
+import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 import io.aklivity.zilla.runtime.engine.test.internal.model.config.TestModelConfig;
 
@@ -54,5 +55,19 @@ public class TestModelContext implements ModelContext
         ModelConfig config)
     {
         return new TestValidatorHandler(TestModelConfig.class.cast(config));
+    }
+
+    @Override
+    public ModelHandler supplyReadHandler(
+        ModelConfig config)
+    {
+        return new TestModelHandler(TestModelConfig.class.cast(config));
+    }
+
+    @Override
+    public ModelHandler supplyWriteHandler(
+        ModelConfig config)
+    {
+        return new TestModelHandler(TestModelConfig.class.cast(config));
     }
 }

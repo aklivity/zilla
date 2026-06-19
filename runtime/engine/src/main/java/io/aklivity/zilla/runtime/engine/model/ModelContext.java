@@ -80,11 +80,8 @@ public interface ModelContext
      * @param config  the model configuration
      * @return a {@link ModelHandler} for inbound transformation, or {@code null}
      */
-    default ModelHandler supplyReadHandler(
-        ModelConfig config)
-    {
-        return null;
-    }
+    ModelHandler supplyReadHandler(
+        ModelConfig config);
 
     /**
      * Returns a {@link ModelHandler} that vends per-stream pipelines transforming outbound (write)
@@ -94,9 +91,6 @@ public interface ModelContext
      * @param config  the model configuration
      * @return a {@link ModelHandler} for outbound transformation, or {@code null}
      */
-    default ModelHandler supplyWriteHandler(
-        ModelConfig config)
-    {
-        return null;
-    }
+    ModelHandler supplyWriteHandler(
+        ModelConfig config);
 }

@@ -65,6 +65,20 @@ public class ModelFactoryTest
             {
                 return null;
             }
+
+            @Override
+            public ModelHandler supplyReadHandler(
+                ModelConfig config)
+            {
+                return null;
+            }
+
+            @Override
+            public ModelHandler supplyWriteHandler(
+                ModelConfig config)
+            {
+                return null;
+            }
         };
         assertNull(context.supplyValidatorHandler(config));
     }
