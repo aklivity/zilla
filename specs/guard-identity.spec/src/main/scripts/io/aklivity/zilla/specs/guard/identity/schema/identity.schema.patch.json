@@ -27,6 +27,7 @@
                     {
                         "const": "identity"
                     },
+                    "kind": false,
                     "options": false
                 },
                 "additionalProperties": false
