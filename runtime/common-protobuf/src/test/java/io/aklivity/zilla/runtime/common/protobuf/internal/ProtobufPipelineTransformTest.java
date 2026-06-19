@@ -28,6 +28,8 @@ import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
 
+import io.aklivity.zilla.runtime.common.json.JsonEx;
+import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.protobuf.Protobuf;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufField;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufMessage;
@@ -37,6 +39,7 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipelineResult;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSchema;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufType;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
+import io.aklivity.zilla.runtime.common.protobuf.json.ProtobufJson;
 
 class ProtobufPipelineTransformTest
 {
@@ -160,6 +163,35 @@ class ProtobufPipelineTransformTest
         byte[] out = new byte[result.produced()];
         dst.getBytes(DST_OFFSET, out);
         assertArrayEquals(in, out);
+    }
+
+    @Test
+    void shouldTransformProtobufToJsonDocument()
+    {
+        ProtobufSchema schema = newSchema();
+        JsonGeneratorEx json = JsonEx.createGenerator();
+        // the JSON terminal writes its closing brace in flush(), which transform must call on COMPLETED so
+        // the produced document is well-formed (the wire generator's flush is a no-op at completion)
+        ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, "P"))
+            .into(ProtobufJson.generator(json, schema, "P"), schema, "P");
+        pipeline.reset();
+
+        byte[] in = wire(w ->
+        {
+            w.writeTag(1, ProtobufWireType.LEN);
+            w.writeBytes("neo".getBytes(UTF_8));
+            w.writeTag(2, ProtobufWireType.VARINT);
+            w.writeVarint64(5);
+        });
+        int dstCap = 128;
+        MutableDirectBuffer dst = new UnsafeBuffer(new byte[DST_OFFSET + dstCap]);
+        ProtobufPipelineResult result = pipeline.transform(srcOf(in), SRC_OFFSET, SRC_OFFSET + in.length, true,
+            dst, DST_OFFSET, DST_OFFSET + dstCap);
+
+        assertEquals(Status.COMPLETED, result.status());
+        byte[] out = new byte[result.produced()];
+        dst.getBytes(DST_OFFSET, out);
+        assertEquals("{\"name\":\"neo\",\"id\":5}", new String(out, UTF_8));
     }
 
     private byte[] drainToCompletion(

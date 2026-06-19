@@ -176,6 +176,12 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
         generator.wrap(dst, dstOffset, dstLimit - dstOffset);
         Status status = feed(src, offset, limit, last);
         boolean rejected = status == Status.REJECTED;
+        if (status == Status.COMPLETED)
+        {
+            // finalize the document: the wire generator's records are already closed (a no-op at completion),
+            // while the JSON generator writes its closing structure here so the produced bytes are well-formed
+            generator.flush();
+        }
         int produced = rejected ? 0 : generator.length();
         // SUSPENDED holds the input steady (drain and re-present the same window); otherwise the window
         // advanced by all but the unconsumed tail the caller re-presents at the front of the next window
