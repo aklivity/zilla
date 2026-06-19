@@ -119,4 +119,15 @@ final class AvroJsonUnion
         }
         return index;
     }
+
+    /**
+     * {@code true} when {@code branches} is a union of {@code null} and exactly one other type — the
+     * nullable-single shape whose non-null branch the canonical JSON encoding represents as a bare value
+     * rather than the {@code {"<branch>": value}} wrapper.
+     */
+    static boolean nullableSingle(
+        List<AvroType> branches)
+    {
+        return branches.size() == 2 && nullBranchIndex(branches) >= 0;
+    }
 }

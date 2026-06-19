@@ -12,8 +12,8 @@
     <relativePath>../pom.xml</relativePath>
   </parent>
 
-  <artifactId>common-avro</artifactId>
-  <name>zilla::runtime::common-avro</name>
+  <artifactId>common-lang</artifactId>
+  <name>zilla::runtime::common-lang</name>
 
   <licenses>
     <license>
@@ -30,44 +30,8 @@
 
   <dependencies>
     <dependency>
-      <groupId>org.agrona</groupId>
-      <artifactId>agrona</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>jakarta.json</groupId>
-      <artifactId>jakarta.json-api</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>common-json</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>common-lang</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.avro</groupId>
-      <artifactId>avro</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-engine</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.openjdk.jmh</groupId>
-      <artifactId>jmh-core</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.openjdk.jmh</groupId>
-      <artifactId>jmh-generator-annprocess</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.github.biboudis</groupId>
-      <artifactId>jmh-profilers</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -81,16 +45,6 @@
       <plugin>
         <groupId>com.mycila</groupId>
         <artifactId>license-maven-plugin</artifactId>
-        <configuration>
-          <excludes combine.children="append">
-            <exclude>src/**/*.avsc</exclude>
-            <exclude>src/**/*.schema</exclude>
-            <exclude>src/**/*.codec</exclude>
-            <exclude>src/**/*.bin</exclude>
-            <exclude>src/**/*.avro</exclude>
-            <exclude>src/**/*.json</exclude>
-          </excludes>
-        </configuration>
       </plugin>
       <plugin>
         <artifactId>maven-checkstyle-plugin</artifactId>
@@ -119,10 +73,6 @@
         </executions>
       </plugin>
       <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-failsafe-plugin</artifactId>
-      </plugin>
-      <plugin>
         <groupId>org.jacoco</groupId>
         <artifactId>jacoco-maven-plugin</artifactId>
         <configuration>
@@ -143,23 +93,6 @@
               </limits>
             </rule>
           </rules>
-        </configuration>
-      </plugin>
-      <plugin>
-        <groupId>io.gatling</groupId>
-        <artifactId>maven-shade-plugin</artifactId>
-        <configuration>
-          <artifactSet>
-            <includes>
-              <include>org.agrona:agrona</include>
-              <include>jakarta.json:jakarta.json-api</include>
-              <include>org.openjdk.jmh:jmh-core</include>
-              <include>net.sf.jopt-simple:jopt-simple</include>
-              <include>org.apache.commons:commons-math3</include>
-              <include>commons-cli:commons-cli</include>
-              <include>com.github.biboudis:jmh-profilers</include>
-            </includes>
-          </artifactSet>
         </configuration>
       </plugin>
     </plugins>
