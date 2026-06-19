@@ -18,6 +18,7 @@ package io.aklivity.zilla.runtime.engine.router;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
+import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 
 /**
  * Construction-tier context supplied to a {@link Router} during its setup.
@@ -82,4 +83,18 @@ public interface RouteableContext
      * @return the engine's base router context
      */
     RouterContext engineRouter();
+
+    /**
+     * Returns the shared-state store registered under the given qualified name, allowing a
+     * router to read cross-replica state during its setup and at runtime. The name format is
+     * {@code namespace:name}.
+     *
+     * @param name  the qualified store name
+     * @return the store handler, or {@code null} if no store is registered under that name
+     */
+    default StoreHandler supplyStore(
+        String name)
+    {
+        return null;
+    }
 }
