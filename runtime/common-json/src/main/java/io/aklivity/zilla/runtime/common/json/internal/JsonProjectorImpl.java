@@ -15,8 +15,9 @@
 package io.aklivity.zilla.runtime.common.json.internal;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import jakarta.json.stream.JsonLocation;
 
@@ -34,6 +35,12 @@ import io.aklivity.zilla.runtime.common.json.JsonTransform;
  * RFC 6901 pointers, forwarding the kept events to the downstream {@code sink} passed into each
  * {@link #feed(JsonController, JsonSource, JsonEvent, JsonSink)}. This class holds the per-value descent
  * state only; the downstream is bound once at assembly and supplied per event.
+ * <p>
+ * The retained pointer set is compiled once into a {@link Node trie}: each node has children keyed by
+ * segment plus a {@code keepAll} terminal flag (a pointer ends here, so the whole subtree is retained).
+ * Descent tracks a per-depth stack of node references ({@code frameNode}) rather than the absolute path,
+ * so matching a key is an {@code O(children)} lookup of the live {@link JsonSource#getStringView()} in the
+ * current node's children — no ancestor key chain is ever retained and no absolute pointer is manifested.
  */
 public final class JsonProjectorImpl implements JsonTransform
 {
@@ -45,28 +52,31 @@ public final class JsonProjectorImpl implements JsonTransform
         KEEP_ALL, DESCEND, SKIP
     }
 
-    private final List<String[]> retained;
-
-    // Per-depth reused key buffers — an object-key segment is captured here char-by-char (no String);
-    // segmentIsKey distinguishes an object key from an array index at this depth.
-    private final StringBuilder[] segmentKeys = new StringBuilder[MAX_DEPTH];
-    private final boolean[] segmentIsKey = new boolean[MAX_DEPTH];
-    private final int[] indexes = new int[MAX_DEPTH];
+    private final Node root;
 
     private final boolean[] frameInArray = new boolean[MAX_DEPTH];
     private final boolean[] frameEmit = new boolean[MAX_DEPTH];
     private final boolean[] frameKeepAll = new boolean[MAX_DEPTH];
     private final int[] frameNextIndex = new int[MAX_DEPTH];
-    private final int[] frameDepthAtOpen = new int[MAX_DEPTH];
+    // The trie node whose children are matched against the entries of this container — the node reference
+    // is the position in the path, replacing the retained ancestor key chain.
+    private final Node[] frameNode = new Node[MAX_DEPTH];
+
+    // Only a DESCEND key is deferred, and only as far as its value's first event: its value may be a
+    // container (forward the key) or a scalar under a deeper-only pointer (drop the key), so the key cannot
+    // be forwarded until the value's kind is seen. A KEEP_ALL key is forwarded live at onKey and never
+    // buffered. At most one key is ever pending — the value that follows consumes it before the next key.
+    private final StringBuilder pendingKeyBuffer = new StringBuilder();
 
     private final KeySource keySource = new KeySource();
 
     private final DownstreamControl downstreamControl = new DownstreamControl();
 
     private JsonController upstreamControl;
-    private int depth;
     private int containers;
     private Decision keyDecision;
+    private Node keyNode;
+    private Node valueNode;
     private CharSequence pendingKey;
     private boolean rootDone;
     private boolean downstreamDemand;
@@ -76,15 +86,9 @@ public final class JsonProjectorImpl implements JsonTransform
     private boolean scalarPending;
     private boolean scalarEmit;
     // true while a buffered key is being forwarded downstream: the parser delivered that key live and already
-    // moved on, so the sink's consumed() pushback advances the KeySource cursor rather than the parser's
+    // moved on, so the sink's consumed() pushback for it must be absorbed rather than relayed to the parser's
     // now-current (value) char cursor
     private boolean forwardingKey;
-    // a buffered key forward filled the bounded output mid-key: resume must drain its remainder before the
-    // held value (the event that triggered the forward) is processed
-    private boolean keyDraining;
-    private JsonEvent heldEvent;
-    private boolean heldStart;
-    private Decision heldDecision;
 
     private enum SegMode
     {
@@ -94,19 +98,16 @@ public final class JsonProjectorImpl implements JsonTransform
     public JsonProjectorImpl(
         List<String> pointers)
     {
-        this.retained = compileAll(pointers);
-        for (int i = 0; i < MAX_DEPTH; i++)
-        {
-            segmentKeys[i] = new StringBuilder();
-        }
+        this.root = compile(pointers);
     }
 
     @Override
     public void reset()
     {
-        depth = 0;
         containers = 0;
         keyDecision = null;
+        keyNode = null;
+        valueNode = null;
         pendingKey = null;
         rootDone = false;
         downstreamDemand = false;
@@ -115,10 +116,6 @@ public final class JsonProjectorImpl implements JsonTransform
         scalarPending = false;
         scalarEmit = false;
         forwardingKey = false;
-        keyDraining = false;
-        heldEvent = null;
-        heldStart = false;
-        heldDecision = null;
     }
 
     private void onDownstreamSegmentable()
@@ -140,14 +137,9 @@ public final class JsonProjectorImpl implements JsonTransform
         public void consumed(
             int sourceBytes)
         {
-            // a buffered key's pushback advances the KeySource's own cursor so its remainder is re-presented on
-            // resume (the parser already delivered that key live and moved on); a value's pushback relays to
-            // the parser so it re-exposes the value remainder on resume
-            if (forwardingKey)
-            {
-                keySource.consume(sourceBytes);
-            }
-            else
+            // a buffered key's pushback is absorbed (the parser already delivered that key live); a value's
+            // pushback relays to the parser so it re-exposes the value remainder on resume
+            if (!forwardingKey)
             {
                 upstreamControl.consumed(sourceBytes);
             }
@@ -175,50 +167,6 @@ public final class JsonProjectorImpl implements JsonTransform
         {
             route(control, source, event, sink);
         }
-        return mapStatus();
-    }
-
-    @Override
-    public Status resume(
-        JsonController control,
-        JsonSource source,
-        JsonEvent event,
-        JsonSink sink)
-    {
-        upstreamControl = control;
-        downstream = Status.ADVANCED;
-        if (keyDraining)
-        {
-            // continue draining the buffered key; once it fully drains, process the value that was held back
-            forwardPendingKey(sink);
-            if (pendingKey == null)
-            {
-                keyDraining = false;
-                JsonEvent held = heldEvent;
-                heldEvent = null;
-                if (heldStart)
-                {
-                    startEmit(control, source, held, sink, heldDecision);
-                }
-                else
-                {
-                    forwardScalarValue(source, held, sink);
-                }
-            }
-        }
-        else
-        {
-            Status status = sink.resume(control, source, event);
-            if (rank(status) > rank(downstream))
-            {
-                downstream = status;
-            }
-        }
-        return mapStatus();
-    }
-
-    private Status mapStatus()
-    {
         Status status;
         if (downstream == Status.REJECTED)
         {
@@ -279,7 +227,7 @@ public final class JsonProjectorImpl implements JsonTransform
             forward(sink, source, event);
             break;
         case KEY_NAME:
-            onKey(control, source);
+            onKey(control, source, sink);
             break;
         case START_OBJECT:
         case START_ARRAY:
@@ -297,30 +245,51 @@ public final class JsonProjectorImpl implements JsonTransform
 
     private void onKey(
         JsonController control,
-        JsonSource source)
+        JsonSource source,
+        JsonSink sink)
     {
-        StringBuilder key = segmentKeys[depth];
-        key.setLength(0);
-        key.append(source.getStringView());
-        segmentIsKey[depth] = true;
-        indexes[depth] = -1;
-        depth++;
         boolean parentKeepAll = containers > 0 && frameKeepAll[containers - 1];
-        Decision d = parentKeepAll ? Decision.KEEP_ALL : decide();
+        Node parentNode = containers > 0 ? frameNode[containers - 1] : root;
+        Decision d;
+        if (parentKeepAll)
+        {
+            keyNode = null;
+            d = Decision.KEEP_ALL;
+        }
+        else
+        {
+            keyNode = lookup(parentNode, source.getStringView());
+            d = decide(keyNode);
+        }
         keyDecision = d;
-        // A forwarded key reuses the char view already buffered above for path matching, so no key
-        // ever materializes a String — neither the SKIP majority nor the KEEP keys carried downstream.
-        pendingKey = d == Decision.SKIP ? null : key;
-        if (pendingKey != null)
-        {
-            keySource.with(key);
-        }
-        // arm the kept value for verbatim segment delivery; best-effort, demand-gated
         boolean parentEmit = containers == 0 || frameEmit[containers - 1];
-        if (parentEmit && d == Decision.KEEP_ALL && downstreamDemand)
+        if (parentEmit && d == Decision.KEEP_ALL)
         {
-            control.segmentable();
+            // A KEEP_ALL value is always emitted, so the key is forwarded live from the still-valid view —
+            // no copy and no deferral. The match above also used the live view, so no ancestor key is
+            // retained. Then arm the kept value for verbatim segment delivery (best-effort, demand-gated).
+            forward(sink, source, JsonEvent.KEY_NAME);
+            pendingKey = null;
+            if (downstreamDemand)
+            {
+                control.segmentable();
+            }
         }
+        else
+        {
+            // A DESCEND key is buffered for deferral: its value's kind is still unknown, and a scalar under a
+            // deeper-only pointer is dropped, so the key cannot be forwarded until the value event. A SKIP
+            // key copies nothing.
+            pendingKey = d == Decision.SKIP ? null : copyKey(source.getStringView());
+        }
+    }
+
+    private CharSequence copyKey(
+        CharSequence view)
+    {
+        pendingKeyBuffer.setLength(0);
+        pendingKeyBuffer.append(view);
+        return pendingKeyBuffer;
     }
 
     private void forwardPendingKey(
@@ -329,14 +298,9 @@ public final class JsonProjectorImpl implements JsonTransform
         if (pendingKey != null)
         {
             forwardingKey = true;
-            forward(sink, keySource, JsonEvent.KEY_NAME);
+            forward(sink, keySource.with(pendingKey), JsonEvent.KEY_NAME);
             forwardingKey = false;
-            // a bounded sink may have written only part of even a whole buffered key; clear pendingKey only
-            // once the key has fully drained, so resume re-presents the remainder
-            if (keySource.drained())
-            {
-                pendingKey = null;
-            }
+            pendingKey = null;
         }
     }
 
@@ -349,7 +313,7 @@ public final class JsonProjectorImpl implements JsonTransform
         frameEmit[containers] = emit;
         frameKeepAll[containers] = d == Decision.KEEP_ALL;
         frameNextIndex[containers] = 0;
-        frameDepthAtOpen[containers] = depth;
+        frameNode[containers] = valueNode;
         containers++;
     }
 
@@ -362,46 +326,23 @@ public final class JsonProjectorImpl implements JsonTransform
         Decision d = enterValue();
         boolean parentEmit = containers == 0 || frameEmit[containers - 1];
         boolean emit = parentEmit && d != Decision.SKIP;
-        if (emit)
+        if (emit && d == Decision.KEEP_ALL && downstreamDemand)
         {
             forwardPendingKey(sink);
-            if (pendingKey != null)
-            {
-                // the buffered key filled the bounded output; hold this start until the key drains on resume
-                keyDraining = true;
-                heldEvent = event;
-                heldStart = true;
-                heldDecision = d;
-            }
-            else
-            {
-                startEmit(control, source, event, sink, d);
-            }
+            control.segmentable();
+            segMode = SegMode.AWAITING;
+            deferredStart = event;
+        }
+        else if (emit)
+        {
+            forwardPendingKey(sink);
+            forward(sink, source, event);
+            pushFrame(event, true, d);
         }
         else
         {
             pendingKey = null;
             pushFrame(event, false, d);
-        }
-    }
-
-    private void startEmit(
-        JsonController control,
-        JsonSource source,
-        JsonEvent event,
-        JsonSink sink,
-        Decision d)
-    {
-        if (d == Decision.KEEP_ALL && downstreamDemand)
-        {
-            control.segmentable();
-            segMode = SegMode.AWAITING;
-            deferredStart = event;
-        }
-        else
-        {
-            forward(sink, source, event);
-            pushFrame(event, true, d);
         }
     }
 
@@ -450,10 +391,6 @@ public final class JsonProjectorImpl implements JsonTransform
         {
             rootDone = true;
         }
-        else
-        {
-            depth--;
-        }
     }
 
     private void onEnd(
@@ -468,12 +405,7 @@ public final class JsonProjectorImpl implements JsonTransform
         }
         if (containers == 0)
         {
-            depth = 0;
             rootDone = true;
-        }
-        else
-        {
-            depth = frameDepthAtOpen[containers] - 1;
         }
     }
 
@@ -504,46 +436,20 @@ public final class JsonProjectorImpl implements JsonTransform
             if (scalarEmit)
             {
                 forwardPendingKey(sink);
-                if (pendingKey != null)
-                {
-                    // the buffered key filled the bounded output; hold this scalar until the key drains
-                    keyDraining = true;
-                    heldEvent = event;
-                    heldStart = false;
-                }
-                else
-                {
-                    forwardScalarValue(source, event, sink);
-                }
+                forward(sink, source, event);
             }
             else
             {
                 pendingKey = null;
-                if (source.deferredBytes())
-                {
-                    scalarPending = true;
-                }
-                else
-                {
-                    finishScalar();
-                }
             }
-        }
-    }
-
-    private void forwardScalarValue(
-        JsonSource source,
-        JsonEvent event,
-        JsonSink sink)
-    {
-        forward(sink, source, event);
-        if (source.deferredBytes())
-        {
-            scalarPending = true;
-        }
-        else
-        {
-            finishScalar();
+            if (source.deferredBytes())
+            {
+                scalarPending = true;
+            }
+            else
+            {
+                finishScalar();
+            }
         }
     }
 
@@ -554,10 +460,6 @@ public final class JsonProjectorImpl implements JsonTransform
         {
             rootDone = true;
         }
-        else
-        {
-            depth--;
-        }
     }
 
     private Decision enterValue()
@@ -565,83 +467,118 @@ public final class JsonProjectorImpl implements JsonTransform
         Decision result;
         if (containers == 0)
         {
-            result = decide();
+            valueNode = root;
+            result = decide(root);
         }
         else
         {
             int parent = containers - 1;
             if (frameInArray[parent])
             {
-                segmentIsKey[depth] = false;
-                indexes[depth] = frameNextIndex[parent];
-                frameNextIndex[parent] = frameNextIndex[parent] + 1;
-                depth++;
-                result = frameKeepAll[parent] ? Decision.KEEP_ALL : decide();
+                int index = frameNextIndex[parent];
+                frameNextIndex[parent] = index + 1;
+                if (frameKeepAll[parent])
+                {
+                    valueNode = null;
+                    result = Decision.KEEP_ALL;
+                }
+                else
+                {
+                    valueNode = lookupIndex(frameNode[parent], index);
+                    result = decide(valueNode);
+                }
             }
             else
             {
+                valueNode = keyNode;
                 result = keyDecision;
+                keyNode = null;
                 keyDecision = null;
             }
         }
         return result;
     }
 
-    private Decision decide()
+    private static Decision decide(
+        Node node)
     {
-        boolean keepAll = false;
-        boolean descend = false;
-        for (String[] pointer : retained)
+        Decision result;
+        if (node == null)
         {
-            if (pointer.length <= depth)
+            result = Decision.SKIP;
+        }
+        else if (node.keepAll)
+        {
+            result = Decision.KEEP_ALL;
+        }
+        else if (node.keys.length > 0)
+        {
+            result = Decision.DESCEND;
+        }
+        else
+        {
+            result = Decision.SKIP;
+        }
+        return result;
+    }
+
+    // Matches an object key against a node's children by the live char view, allocation-free.
+    private static Node lookup(
+        Node node,
+        CharSequence key)
+    {
+        Node result = null;
+        if (node != null)
+        {
+            for (int i = 0; result == null && i < node.keys.length; i++)
             {
-                if (matchesPrefix(pointer, pointer.length))
+                if (charsEqual(node.keys[i], key))
                 {
-                    keepAll = true;
-                    break;
+                    result = node.nodes[i];
                 }
             }
-            else if (matchesPrefix(pointer, depth))
-            {
-                descend = true;
-            }
         }
-        return keepAll ? Decision.KEEP_ALL : descend ? Decision.DESCEND : Decision.SKIP;
+        return result;
     }
 
-    private boolean matchesPrefix(
-        String[] pointer,
-        int length)
+    // Matches an array index against a node's children, preferring an explicit canonical-index child over
+    // the "-" wildcard; the wildcard applies only to arrays, while an object key "-" matches via lookup.
+    private static Node lookupIndex(
+        Node node,
+        int index)
     {
-        boolean matches = true;
-        for (int i = 0; i < length; i++)
+        Node result = null;
+        if (node != null)
         {
-            if (!segmentMatches(pointer[i], i))
+            Node wildcard = null;
+            for (int i = 0; result == null && i < node.keys.length; i++)
             {
-                matches = false;
-                break;
+                String segment = node.keys[i];
+                if (WILDCARD.equals(segment))
+                {
+                    wildcard = node.nodes[i];
+                }
+                else if (matchesIndex(segment, index))
+                {
+                    result = node.nodes[i];
+                }
+            }
+            if (result == null)
+            {
+                result = wildcard;
             }
         }
-        return matches;
-    }
-
-    private boolean segmentMatches(
-        String pointerSegment,
-        int pathIndex)
-    {
-        return segmentIsKey[pathIndex]
-            ? charsEqual(pointerSegment, segmentKeys[pathIndex])
-            : WILDCARD.equals(pointerSegment) || matchesIndex(pointerSegment, indexes[pathIndex]);
+        return result;
     }
 
     private static boolean charsEqual(
-        String pointerSegment,
+        String segment,
         CharSequence key)
     {
-        boolean matches = pointerSegment.length() == key.length();
-        for (int i = 0; matches && i < pointerSegment.length(); i++)
+        boolean matches = segment.length() == key.length();
+        for (int i = 0; matches && i < segment.length(); i++)
         {
-            matches = pointerSegment.charAt(i) == key.charAt(i);
+            matches = segment.charAt(i) == key.charAt(i);
         }
         return matches;
     }
@@ -669,18 +606,23 @@ public final class JsonProjectorImpl implements JsonTransform
         return matches && value == index;
     }
 
-    private static List<String[]> compileAll(
+    private static Node compile(
         List<String> pointers)
     {
-        List<String[]> compiled = new ArrayList<>();
+        NodeBuilder builder = new NodeBuilder();
         for (String pointer : pointers)
         {
-            compiled.add(compile(pointer));
+            NodeBuilder node = builder;
+            for (String segment : segments(pointer))
+            {
+                node = node.child(segment);
+            }
+            node.keepAll = true;
         }
-        return compiled;
+        return builder.build();
     }
 
-    private static String[] compile(
+    private static String[] segments(
         String pointer)
     {
         String[] result;
@@ -700,74 +642,73 @@ public final class JsonProjectorImpl implements JsonTransform
         return result;
     }
 
+    // An immutable trie node: children are parallel key/node arrays scanned linearly (a handful of children
+    // per node), and keepAll marks a node where a retained pointer terminates.
+    private static final class Node
+    {
+        private final String[] keys;
+        private final Node[] nodes;
+        private final boolean keepAll;
+
+        private Node(
+            String[] keys,
+            Node[] nodes,
+            boolean keepAll)
+        {
+            this.keys = keys;
+            this.nodes = nodes;
+            this.keepAll = keepAll;
+        }
+    }
+
+    private static final class NodeBuilder
+    {
+        private final Map<String, NodeBuilder> children = new LinkedHashMap<>();
+        private boolean keepAll;
+
+        private NodeBuilder child(
+            String segment)
+        {
+            return children.computeIfAbsent(segment, ignored -> new NodeBuilder());
+        }
+
+        private Node build()
+        {
+            int size = children.size();
+            String[] keys = new String[size];
+            Node[] nodes = new Node[size];
+            int i = 0;
+            for (Map.Entry<String, NodeBuilder> entry : children.entrySet())
+            {
+                keys[i] = entry.getKey();
+                nodes[i] = entry.getValue().build();
+                i++;
+            }
+            return new Node(keys, nodes, keepAll);
+        }
+    }
+
     private static final class KeySource implements JsonSource
     {
-        private final View view = new View();
-
         private CharSequence key;
-        private int offset;
 
         private KeySource with(
             CharSequence key)
         {
             this.key = key;
-            this.offset = 0;
             return this;
-        }
-
-        // advance past the chars the sink wrote, so getStringView re-exposes the remainder on resume
-        private void consume(
-            int chars)
-        {
-            offset += chars;
-        }
-
-        private boolean drained()
-        {
-            return key == null || offset >= key.length();
         }
 
         @Override
         public String getString()
         {
-            return key == null ? null : view.toString();
+            return key == null ? null : key.toString();
         }
 
         @Override
         public CharSequence getStringView()
         {
-            return view;
-        }
-
-        // a non-allocating view of the unconsumed remainder of the buffered key
-        private final class View implements CharSequence
-        {
-            @Override
-            public int length()
-            {
-                return key.length() - offset;
-            }
-
-            @Override
-            public char charAt(
-                int index)
-            {
-                return key.charAt(offset + index);
-            }
-
-            @Override
-            public CharSequence subSequence(
-                int start,
-                int end)
-            {
-                return key.subSequence(offset + start, offset + end);
-            }
-
-            @Override
-            public String toString()
-            {
-                return key.subSequence(offset, key.length()).toString();
-            }
+            return key;
         }
 
         @Override
