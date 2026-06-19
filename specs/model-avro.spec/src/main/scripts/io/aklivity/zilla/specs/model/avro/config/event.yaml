@@ -28,7 +28,7 @@ telemetry:
           - qname: test:net0
             id: model.avro.validation.failed
             name: MODEL_AVRO_VALIDATION_FAILED
-            message: A message payload failed validation.
+            message: A message payload failed validation. truncated datum
 catalogs:
   test0:
     type: test
