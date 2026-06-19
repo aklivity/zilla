@@ -45,6 +45,7 @@
     "io.aklivity.zilla:catalog-karapace",
     "io.aklivity.zilla:catalog-schema-registry",
     "io.aklivity.zilla:common",
+    "io.aklivity.zilla:common-avro",
     "io.aklivity.zilla:common-json",
     "io.aklivity.zilla:common-lang",
     "io.aklivity.zilla:common-yaml",
