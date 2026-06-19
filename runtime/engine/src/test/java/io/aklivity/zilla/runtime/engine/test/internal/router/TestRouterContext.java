@@ -22,12 +22,16 @@ import io.aklivity.zilla.runtime.engine.router.RouterContext;
 
 public final class TestRouterContext implements RouterContext
 {
+    private static final long NODE_MARKER = 0x0000_0001_0000_0000L;
+
     private final BindingHandler streamFactory;
+    private final RouterContext engineRouter;
 
     public TestRouterContext(
         RouteableContext context)
     {
         this.streamFactory = context.streamFactory();
+        this.engineRouter = context.engineRouter();
     }
 
     @Override
@@ -41,5 +45,22 @@ public final class TestRouterContext implements RouterContext
     public void detach(
         long routerId)
     {
+    }
+
+    @Override
+    public long affinity(
+        long bindingId,
+        long affinity)
+    {
+        final long base = engineRouter.affinity(bindingId, affinity);
+        return NODE_MARKER | (base & 0xFFFF_FFFFL);
+    }
+
+    @Override
+    public boolean isLocalAffinity(
+        long bindingId,
+        long affinity)
+    {
+        return (affinity >>> 32) == 0L;
     }
 }

@@ -145,6 +145,31 @@ public interface EngineContext
         int hash);
 
     /**
+     * Resolves the stream affinity for the given binding. The encoding of the resolved affinity
+     * is router-specific; with the default router the affinity is returned unchanged.
+     *
+     * @param bindingId  the binding id whose affinity to resolve
+     * @param affinity   the affinity to resolve
+     * @return the resolved affinity
+     */
+    long affinity(
+        long bindingId,
+        long affinity);
+
+    /**
+     * Returns {@code true} if the given affinity is local to this engine, {@code false}
+     * otherwise. The interpretation of locality is router-specific; with the default router
+     * every affinity is local.
+     *
+     * @param bindingId  the binding id whose affinity to consult
+     * @param affinity   the affinity to test
+     * @return {@code true} if the affinity is local to this engine; otherwise {@code false}
+     */
+    boolean isLocalAffinity(
+        long bindingId,
+        long affinity);
+
+    /**
      * Returns the reply (outbound) stream id paired with the given initial stream id.
      *
      * @param initialId  the initial stream id

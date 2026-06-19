@@ -69,4 +69,17 @@ public interface RouteableContext
      */
     void detachComposite(
         NamespaceConfig composite);
+
+    /**
+     * Returns the engine's base {@link RouterContext}, whose affinity resolution is identity
+     * and whose locality is unconditional.
+     * <p>
+     * A composing router may hold this reference and delegate the portion of affinity resolution
+     * it does not itself determine, mirroring the {@link #streamFactory()} obtain-the-base-to-wrap
+     * pattern.
+     * </p>
+     *
+     * @return the engine's base router context
+     */
+    RouterContext engineRouter();
 }
