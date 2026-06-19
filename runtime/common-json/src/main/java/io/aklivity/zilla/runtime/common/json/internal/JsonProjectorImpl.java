@@ -62,10 +62,10 @@ public final class JsonProjectorImpl implements JsonTransform
     // is the position in the path, replacing the retained ancestor key chain.
     private final Node[] frameNode = new Node[MAX_DEPTH];
 
-    // A kept object key is deferred only as far as its value's first event, so a single reused buffer holds
-    // it: the descend/skip decision is known at the key, but a kept key whose value turns out to be a scalar
-    // under a deeper-only pointer is still dropped, so the key cannot be forwarded until the value's kind is
-    // seen. At most one key is ever pending — the value that follows consumes it before the next key.
+    // Only a DESCEND key is deferred, and only as far as its value's first event: its value may be a
+    // container (forward the key) or a scalar under a deeper-only pointer (drop the key), so the key cannot
+    // be forwarded until the value's kind is seen. A KEEP_ALL key is forwarded live at onKey and never
+    // buffered. At most one key is ever pending — the value that follows consumes it before the next key.
     private final StringBuilder pendingKeyBuffer = new StringBuilder();
 
     private final KeySource keySource = new KeySource();
@@ -217,7 +217,7 @@ public final class JsonProjectorImpl implements JsonTransform
             forward(sink, source, event);
             break;
         case KEY_NAME:
-            onKey(control, source);
+            onKey(control, source, sink);
             break;
         case START_OBJECT:
         case START_ARRAY:
@@ -235,7 +235,8 @@ public final class JsonProjectorImpl implements JsonTransform
 
     private void onKey(
         JsonController control,
-        JsonSource source)
+        JsonSource source,
+        JsonSink sink)
     {
         boolean parentKeepAll = containers > 0 && frameKeepAll[containers - 1];
         Node parentNode = containers > 0 ? frameNode[containers - 1] : root;
@@ -251,14 +252,25 @@ public final class JsonProjectorImpl implements JsonTransform
             d = decide(keyNode);
         }
         keyDecision = d;
-        // A kept key is buffered for its deferred forward at the value event; the SKIP majority copies
-        // nothing. No ancestor key is retained — the match used the live view above.
-        pendingKey = d == Decision.SKIP ? null : copyKey(source.getStringView());
-        // arm the kept value for verbatim segment delivery; best-effort, demand-gated
         boolean parentEmit = containers == 0 || frameEmit[containers - 1];
-        if (parentEmit && d == Decision.KEEP_ALL && downstreamDemand)
+        if (parentEmit && d == Decision.KEEP_ALL)
         {
-            control.segmentable();
+            // A KEEP_ALL value is always emitted, so the key is forwarded live from the still-valid view —
+            // no copy and no deferral. The match above also used the live view, so no ancestor key is
+            // retained. Then arm the kept value for verbatim segment delivery (best-effort, demand-gated).
+            forward(sink, source, JsonEvent.KEY_NAME);
+            pendingKey = null;
+            if (downstreamDemand)
+            {
+                control.segmentable();
+            }
+        }
+        else
+        {
+            // A DESCEND key is buffered for deferral: its value's kind is still unknown, and a scalar under a
+            // deeper-only pointer is dropped, so the key cannot be forwarded until the value event. A SKIP
+            // key copies nothing.
+            pendingKey = d == Decision.SKIP ? null : copyKey(source.getStringView());
         }
     }
 
