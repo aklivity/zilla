@@ -18,8 +18,6 @@ package io.aklivity.zilla.runtime.engine.model;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 
-import io.aklivity.zilla.runtime.engine.model.ModelStatus.Kind;
-
 /**
  * Pass-through pipeline that copies input to output unchanged. Backs {@link ModelHandler#NONE} and is
  * safe to use as a no-op; callers that only need the bytes forwarded should bypass the transform loop
@@ -27,10 +25,10 @@ import io.aklivity.zilla.runtime.engine.model.ModelStatus.Kind;
  */
 final class IdentityModelPipeline implements ModelPipeline
 {
-    private final ModelStatus status = new ModelStatus();
+    private final ModelPipelineResult result = new ModelPipelineResult();
 
     @Override
-    public ModelStatus transform(
+    public ModelPipelineResult transform(
         long traceId,
         long bindingId,
         int flags,
@@ -41,14 +39,14 @@ final class IdentityModelPipeline implements ModelPipeline
         int dstIndex,
         int dstLength)
     {
-        Kind kind;
+        ModelStatus status;
         int consumed;
         int produced;
         if (dstLength == 0)
         {
             consumed = srcLength;
             produced = 0;
-            kind = (flags & FLAGS_FIN) != 0 ? Kind.COMPLETE : Kind.OK;
+            status = (flags & FLAGS_FIN) != 0 ? ModelStatus.COMPLETE : ModelStatus.OK;
         }
         else
         {
@@ -56,11 +54,11 @@ final class IdentityModelPipeline implements ModelPipeline
             dst.putBytes(dstIndex, src, srcIndex, count);
             consumed = count;
             produced = count;
-            kind = count < srcLength
-                ? Kind.OVERFLOW
-                : (flags & FLAGS_FIN) != 0 ? Kind.COMPLETE : Kind.OK;
+            status = count < srcLength
+                ? ModelStatus.OVERFLOW
+                : (flags & FLAGS_FIN) != 0 ? ModelStatus.COMPLETE : ModelStatus.OK;
         }
-        return status.set(kind, consumed, produced);
+        return result.set(status, consumed, produced);
     }
 
     @Override

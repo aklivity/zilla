@@ -29,14 +29,15 @@ import org.agrona.MutableDirectBuffer;
  * <p>
  * The caller drives it with a loop modelled on {@code SSLEngine}: each {@link #transform} call
  * consumes from {@code src} and produces into {@code dst}, reporting progress in a reused
- * {@link ModelStatus}. On {@link ModelStatus.Kind#OVERFLOW} the caller drains {@code dst} and calls
- * again; on {@link ModelStatus.Kind#UNDERFLOW} it supplies the next input fragment; on
- * {@link ModelStatus.Kind#COMPLETE} the value is done and any extracted fields have been visited; on
- * {@link ModelStatus.Kind#REJECTED} the stream should be reset. A validate-only caller passes a
+ * {@link ModelPipelineResult}. On {@link ModelStatus#OVERFLOW} the caller drains {@code dst} and calls
+ * again; on {@link ModelStatus#UNDERFLOW} it supplies the next input fragment; on
+ * {@link ModelStatus#COMPLETE} the value is done and any extracted fields have been visited; on
+ * {@link ModelStatus#REJECTED} the stream should be reset. A validate-only caller passes a
  * zero-length {@code dst} and forwards the original {@code src} bytes on success.
  * </p>
  *
  * @see ModelHandler
+ * @see ModelPipelineResult
  * @see ModelStatus
  */
 public interface ModelPipeline
@@ -69,9 +70,9 @@ public interface ModelPipeline
      * @param dst        the destination buffer
      * @param dstIndex   the offset to write output at in {@code dst}
      * @param dstLength  the number of output bytes available in {@code dst}
-     * @return the reused {@link ModelStatus} describing the outcome, consumed, and produced bytes
+     * @return the reused {@link ModelPipelineResult} describing the outcome, consumed, and produced bytes
      */
-    ModelStatus transform(
+    ModelPipelineResult transform(
         long traceId,
         long bindingId,
         int flags,

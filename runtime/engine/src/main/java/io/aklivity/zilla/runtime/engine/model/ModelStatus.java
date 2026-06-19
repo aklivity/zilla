@@ -16,70 +16,21 @@
 package io.aklivity.zilla.runtime.engine.model;
 
 /**
- * The result of a single {@link ModelPipeline#transform} call.
- * <p>
- * A {@code ModelStatus} is a mutable holder owned by, and reused across every {@code transform}
- * call of, a single {@link ModelPipeline}. The caller reads its fields immediately after each
- * call and must not retain the instance beyond the next {@code transform}.
- * </p>
+ * The outcome of a single {@link ModelPipeline#transform} call, reported on a {@link ModelPipelineResult}.
  *
  * @see ModelPipeline
+ * @see ModelPipelineResult
  */
-public final class ModelStatus
+public enum ModelStatus
 {
-    /**
-     * The outcome of a {@link ModelPipeline#transform} call.
-     */
-    public enum Kind
-    {
-        /** progress was made; call {@code transform} again with the unconsumed input */
-        OK,
-        /** the output buffer filled before the value completed; drain it and call {@code transform} again */
-        OVERFLOW,
-        /** the input was consumed before the value completed; supply more input on the next call */
-        UNDERFLOW,
-        /** the current value completed and was accepted */
-        COMPLETE,
-        /** the current value was rejected; the stream should be reset */
-        REJECTED
-    }
-
-    private Kind kind;
-    private int consumed;
-    private int produced;
-
-    public Kind kind()
-    {
-        return kind;
-    }
-
-    public int consumed()
-    {
-        return consumed;
-    }
-
-    public int produced()
-    {
-        return produced;
-    }
-
-    /**
-     * Updates this status in place and returns it, for an implementation to report the outcome of a
-     * {@link ModelPipeline#transform} call without allocating.
-     *
-     * @param kind      the outcome
-     * @param consumed  the number of input bytes consumed
-     * @param produced  the number of output bytes produced
-     * @return this status
-     */
-    public ModelStatus set(
-        Kind kind,
-        int consumed,
-        int produced)
-    {
-        this.kind = kind;
-        this.consumed = consumed;
-        this.produced = produced;
-        return this;
-    }
+    /** progress was made; call {@code transform} again with the unconsumed input */
+    OK,
+    /** the output buffer filled before the value completed; drain it and call {@code transform} again */
+    OVERFLOW,
+    /** the input was consumed before the value completed; supply more input on the next call */
+    UNDERFLOW,
+    /** the current value completed and was accepted */
+    COMPLETE,
+    /** the current value was rejected; the stream should be reset */
+    REJECTED
 }
