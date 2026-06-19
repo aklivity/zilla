@@ -163,6 +163,39 @@ class JsonProjectorTest
         assertEquals("[\"a\",\"c\"]", project(List.of("/0", "/2"), "[\"a\",\"b\",\"c\"]"));
     }
 
+    @Test
+    void shouldMatchNumericObjectKeyByIndexPointer()
+    {
+        // an index-looking segment matches a literal object key with that name when the data is an object
+        assertEquals("{\"items\":{\"1\":\"x\"}}",
+            project(List.of("/items/1"), "{\"items\":{\"1\":\"x\",\"2\":\"y\"}}"));
+    }
+
+    @Test
+    void shouldRetainDeeplyNestedArrayWildcardLeaf()
+    {
+        assertEquals("{\"a\":[{\"b\":1},{\"b\":3}]}",
+            project(List.of("/a/-/b"), "{\"a\":[{\"b\":1,\"x\":2},{\"b\":3,\"y\":4}],\"z\":9}"));
+    }
+
+    @Test
+    void shouldRetainLiteralHyphenObjectKey()
+    {
+        // "-" is the array wildcard, but against an object it matches a literal "-" key, not every member
+        assertEquals("{\"-\":1}",
+            project(List.of("/-"), "{\"-\":1,\"b\":2}"));
+    }
+
+    @Test
+    void shouldNotDuplicateKeptKeysAcrossOutputBoundSuspends()
+    {
+        // kept keys are forwarded live at the key event, so a key write can land on an output-bound
+        // boundary and suspend; the drain/resume must advance to the value without re-emitting the key
+        assertEquals("{\"alpha\":1,\"gamma\":3,\"epsilon\":5}",
+            projectBounded(List.of("/alpha", "/gamma", "/epsilon"),
+                "{\"alpha\":1,\"beta\":2,\"gamma\":3,\"delta\":4,\"epsilon\":5}", 12));
+    }
+
     private static String project(
         List<String> retained,
         String input)
@@ -177,6 +210,43 @@ class JsonProjectorTest
         byte[] out = new byte[gen.length()];
         buffer.getBytes(0, out);
         return new String(out, UTF_8);
+    }
+
+    // Drives the projection through an output buffer bounded at outBound, draining and re-targeting the
+    // generator on each SUSPENDED and concatenating the drained chunks into one document.
+    private static String projectBounded(
+        List<String> retained,
+        String input,
+        int outBound)
+    {
+        JsonGeneratorEx gen = JsonEx.createGenerator();
+        MutableDirectBuffer buffer = new UnsafeBuffer(new byte[outBound]);
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(JsonEx.projector(retained))
+            .into(JsonEx.createSink(gen));
+
+        byte[] bytes = (input + " ").getBytes(UTF_8);
+        UnsafeBuffer in = new UnsafeBuffer(bytes);
+        StringBuilder result = new StringBuilder();
+        pipeline.reset();
+        gen.wrap(buffer, 0, outBound);
+        int guard = 0;
+        Status status;
+        do
+        {
+            status = pipeline.feed(in, 0, bytes.length);
+            byte[] chunk = new byte[gen.length()];
+            buffer.getBytes(0, chunk);
+            result.append(new String(chunk, UTF_8));
+            if (status == Status.SUSPENDED)
+            {
+                gen.wrap(buffer, 0, outBound);
+            }
+            guard++;
+        }
+        while (status == Status.SUSPENDED && guard < 10_000);
+        assertEquals(Status.COMPLETED, status);
+        return result.toString();
     }
 
     private static Status feed(
