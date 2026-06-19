@@ -76,6 +76,9 @@ public final class AvroJsonGeneratorImpl implements AvroGenerator
     private final Map<AvroType, List<AvroType>> branchesByType;
     private final Map<AvroType, List<String>> symbolsByType;
     private final CharText text;
+    // a reused StringBuilder: append(double)/append(float) formats through FloatingDecimal's thread-local
+    // buffer (no per-value String, unlike json.write(double)'s Double.toString), then writeNumber takes the chars
+    private final StringBuilder scratch;
 
     private Frame[] stack;
     private int top;
@@ -104,6 +107,7 @@ public final class AvroJsonGeneratorImpl implements AvroGenerator
         this.branchesByType = new IdentityHashMap<>();
         this.symbolsByType = new IdentityHashMap<>();
         this.text = new CharText(64);
+        this.scratch = new StringBuilder();
         this.stack = new Frame[16];
         this.datumComplete = true;
     }
@@ -246,7 +250,9 @@ public final class AvroJsonGeneratorImpl implements AvroGenerator
         float value)
     {
         value();
-        json.write((double) value);
+        scratch.setLength(0);
+        scratch.append((double) value);
+        json.writeNumber(scratch);
         complete();
     }
 
@@ -255,7 +261,9 @@ public final class AvroJsonGeneratorImpl implements AvroGenerator
         double value)
     {
         value();
-        json.write(value);
+        scratch.setLength(0);
+        scratch.append(value);
+        json.writeNumber(scratch);
         complete();
     }
 

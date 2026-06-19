@@ -617,28 +617,16 @@ public final class AvroJsonParserImpl implements AvroParser
     private long parseLong(
         CharSequence value)
     {
-        int length = value.length();
-        int index = 0;
-        boolean negative = length > 0 && value.charAt(0) == '-';
-        if (negative)
+        long result;
+        try
         {
-            index = 1;
+            result = Long.parseLong(value, 0, value.length(), 10);
         }
-        if (index == length)
+        catch (NumberFormatException ex)
         {
             throw reject("expected integer");
         }
-        long magnitude = 0;
-        for (; index < length; index++)
-        {
-            char ch = value.charAt(index);
-            if (ch < '0' || ch > '9')
-            {
-                throw reject("expected integer");
-            }
-            magnitude = magnitude * 10 + (ch - '0');
-        }
-        return negative ? -magnitude : magnitude;
+        return result;
     }
 
     private void segmentUtf8(
