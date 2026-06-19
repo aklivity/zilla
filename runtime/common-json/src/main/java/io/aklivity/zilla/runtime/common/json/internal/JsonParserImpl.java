@@ -525,6 +525,10 @@ public final class JsonParserImpl implements JsonParserEx
     public BigDecimal getBigDecimal()
     {
         assert currentEvent == Event.VALUE_NUMBER;
+        // getBigDecimal() yields the whole value, so the lexeme must be complete; a caller that needs a
+        // value still spanning windows must first gather it (e.g. push back via consumed(0)) and only
+        // read it once the deferred bytes have arrived
+        assert !deferredBytes();
         return new BigDecimal(numberLexeme().toString());
     }
 
