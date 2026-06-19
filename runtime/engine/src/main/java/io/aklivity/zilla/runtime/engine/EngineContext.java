@@ -259,7 +259,10 @@ public interface EngineContext
      * to upstream senders.
      *
      * @return the budget creditor
+     * @deprecated use {@link #supplyCredit(long, long)} instead; this accessor is removed once
+     *             every binding has migrated to the handle API
      */
+    @Deprecated
     BudgetCreditor creditor();
 
     /**
@@ -268,7 +271,10 @@ public interface EngineContext
      *
      * @param budgetId  the budget id to obtain a debitor for
      * @return the budget debitor
+     * @deprecated use {@link #supplyDebit(long, long, BudgetFlusher)} instead; this accessor is
+     *             removed once every binding has migrated to the handle API
      */
+    @Deprecated
     BudgetDebitor supplyDebitor(
         long budgetId);
 

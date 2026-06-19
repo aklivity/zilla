@@ -634,12 +634,14 @@ public class EngineWorker implements EngineContext, Agent
     }
 
     @Override
+    @Deprecated
     public BudgetCreditor creditor()
     {
         return creditor;
     }
 
     @Override
+    @Deprecated
     public BudgetDebitor supplyDebitor(
         long budgetId)
     {
@@ -657,7 +659,8 @@ public class EngineWorker implements EngineContext, Agent
         {
             throw new UnsupportedOperationException("unshared per-stream window debit lands in T2");
         }
-        return new FacadeBudgetDebit(supplyDebitor(sharedStreamId), sharedStreamId, streamId, onResume);
+        final DefaultBudgetDebitor debitor = debitorsByIndex.computeIfAbsent(ownerIndex(sharedStreamId), this::newBudgetDebitor);
+        return new FacadeBudgetDebit(debitor, sharedStreamId, streamId, onResume);
     }
 
     @Override

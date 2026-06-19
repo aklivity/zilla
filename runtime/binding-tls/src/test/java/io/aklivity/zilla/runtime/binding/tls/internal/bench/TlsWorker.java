@@ -249,12 +249,14 @@ public class TlsWorker implements EngineContext
     }
 
     @Override
+    @Deprecated
     public BudgetCreditor creditor()
     {
         return null;
     }
 
     @Override
+    @Deprecated
     public BudgetDebitor supplyDebitor(long budgetId)
     {
         return null;
