@@ -136,6 +136,81 @@ public class AvroJsonChunkingTest
         return new Drained(result.toString(), suspends);
     }
 
+    @Test
+    public void shouldFragmentBytesAcrossTinyInputAndOutputWindows()
+    {
+        // a bytes value whose base64 groups straddle a 64-byte input window boundary (64 is not a multiple of 3)
+        // plus a large escaped string, driven through a 50-byte output window — exercises both input-window
+        // reassembly (STARVED) and output back-pressure (SUSPENDED) on the avro -> JSON path
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < 4000; i++)
+        {
+            builder.append("ab\"c\nd");
+        }
+        String text = builder.toString();
+
+        byte[] blob = new byte[15001];
+        for (int i = 0; i < blob.length; i++)
+        {
+            blob[i] = (byte) (i * 31 + 7);
+        }
+
+        byte[] wire = jsonToAvro(json(text, blob));
+
+        Windowed drained = avroToJsonInputWindowed(wire, 64, 50);
+
+        assertTrue(drained.starves >= 1, "expected at least one STARVED input-window boundary");
+        assertTrue(drained.suspends >= 1, "expected at least one SUSPENDED output-window boundary");
+
+        JsonObject object = parse(drained.json);
+        assertEquals(text, object.getString("st"));
+        assertArrayEquals(blob, Base64.getDecoder().decode(object.getString("by")));
+    }
+
+    private Windowed avroToJsonInputWindowed(
+        byte[] wire,
+        int inputWindow,
+        int outputWindow)
+    {
+        MutableDirectBuffer out = new UnsafeBuffer(new byte[outputWindow]);
+        JsonGeneratorEx json = JsonEx.createGenerator();
+        AvroGenerator generator = AvroJson.generator(schema, json, false).wrap(out, 0, outputWindow);
+        AvroPipeline pipeline = Avro.stream(Avro.parser(schema)).into(AvroSink.of(generator));
+        pipeline.reset();
+
+        StringBuilder result = new StringBuilder();
+        UnsafeBuffer in = new UnsafeBuffer(wire);
+        int progress = 0;
+        int length = 0;
+        int suspends = 0;
+        int starves = 0;
+        int guard = 0;
+        Status status = pipeline.feed(in, 0, 0, false);
+        while (status != Status.COMPLETED && status != Status.REJECTED && guard < 10_000_000)
+        {
+            if (status == Status.SUSPENDED)
+            {
+                result.append(chunk(out, generator.length()));
+                generator.wrap(out, 0, outputWindow);
+                suspends++;
+            }
+            else
+            {
+                // STARVED: keep the unconsumed tail of the last window and slide forward over what was consumed
+                progress += length - pipeline.remaining();
+                starves++;
+            }
+            guard++;
+            length = Math.min(inputWindow, wire.length - progress);
+            status = pipeline.feed(in, progress, progress + length, progress + length == wire.length);
+        }
+        assertEquals(Status.COMPLETED, status);
+        json.flush();
+        result.append(chunk(out, generator.length()));
+
+        return new Windowed(result.toString(), suspends, starves);
+    }
+
     private byte[] jsonToAvro(
         String json)
     {
@@ -192,6 +267,23 @@ public class AvroJsonChunkingTest
         {
             this.json = json;
             this.suspends = suspends;
+        }
+    }
+
+    private static final class Windowed
+    {
+        private final String json;
+        private final int suspends;
+        private final int starves;
+
+        private Windowed(
+            String json,
+            int suspends,
+            int starves)
+        {
+            this.json = json;
+            this.suspends = suspends;
+            this.starves = starves;
         }
     }
 }
