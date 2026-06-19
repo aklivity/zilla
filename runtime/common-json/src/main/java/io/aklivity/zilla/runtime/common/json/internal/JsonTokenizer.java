@@ -49,6 +49,20 @@ public final class JsonTokenizer
         VALUE_NULL
     }
 
+    // states of the RFC 8259 number grammar, advanced one char at a time by validateNumberChar
+    private enum NumberState
+    {
+        START,
+        SIGN,
+        ZERO,
+        INT,
+        DOT,
+        FRAC,
+        EXP,
+        EXP_SIGN,
+        EXP_INT
+    }
+
     private static final int MAX_DEPTH = 64;
 
     private final Deque<ParseState> stack = new ArrayDeque<>();
@@ -108,6 +122,9 @@ public final class JsonTokenizer
     // true once the current/just-completed number was delivered in more than one fragment: getInt()/
     // getLong() then throw (the value would overflow) and getBigDecimal() reads the accumulated lexeme.
     private boolean numberFragmented;
+    // RFC 8259 number grammar validated incrementally as each char is scanned, so a number spanning
+    // windows needs no retained whole lexeme to validate; the state persists across fragments.
+    private NumberState numberState;
 
     // set at each VALUE_STRING delivery: true when the value-string was streamed verbatim as raw bytes
     // (a segment scan or an armed scalar leaf), so the caller splices its raw token bytes; false when it
@@ -151,6 +168,7 @@ public final class JsonTokenizer
         scratchConsumed = 0;
         numberLexeme.setLength(0);
         numberFragmented = false;
+        numberState = NumberState.START;
         stringVerbatim = false;
         pathDepth = 0;
         state = ParseState.DOC_START;
@@ -607,20 +625,16 @@ public final class JsonTokenizer
     }
 
     // Completes a VALUE_NUMBER scan: continueNumberContent only returns here once the number terminator
-    // (or the terminal window's EOF) is seen, so the number is whole. A fragmented number's full lexeme
-    // is validated from numberLexeme (the final fragment's digits appended); an unfragmented one from
-    // scratch. Captured lazily and the parse state advances.
+    // (or the terminal window's EOF) is seen, so the number is whole. The grammar was validated char by
+    // char as the lexeme was scanned; here only the accepting-state check remains. A fragmented number's
+    // full lexeme is still gathered in numberLexeme for getBigDecimal until the source accumulates it.
     private void finishNumberValue()
     {
         if (numberFragmented)
         {
             numberLexeme.append(scratch);
-            validateNumber(numberLexeme);
         }
-        else
-        {
-            validateNumber(scratch);
-        }
+        validateNumberComplete();
         valueStreamStart = fragmentStart;
         valueStreamEnd = streamOffset;
         pendingEvent = JsonParser.Event.VALUE_NUMBER;
@@ -806,7 +820,9 @@ public final class JsonTokenizer
                 numberLexeme.setLength(0);
                 numberFragmented = false;
                 scratch.setLength(0);
+                numberState = NumberState.START;
                 scratch.append((char) c);
+                validateNumberChar(c);
                 resumeOp = ResumeOp.VALUE_NUMBER;
                 continueNumberContent(in);
                 if (!starved)
@@ -1150,6 +1166,7 @@ public final class JsonTokenizer
             {
                 streamOffset++;
                 advance(c);
+                validateNumberChar(c);
                 appendScratch((char) c);
             }
             else
@@ -1160,60 +1177,67 @@ public final class JsonTokenizer
         }
     }
 
-    // RFC 8259 number grammar: -?(0|[1-9][0-9]*)(\.[0-9]+)?([eE][+-]?[0-9]+)?. scratch holds the
-    // complete lexeme (numbers are always retained in scratch for validation and lazy materialization).
-    private void validateNumber(
-        CharSequence lexeme)
+    // RFC 8259 number grammar -?(0|[1-9][0-9]*)(\.[0-9]+)?([eE][+-]?[0-9]+)? validated as a state machine,
+    // one char at a time as it is scanned. The state persists across windows, so a number spanning windows
+    // is validated without retaining its whole lexeme. continueNumberContent only feeds the number-class
+    // chars [0-9.+-eE], so this rejects any that are illegal in their position.
+    private void validateNumberChar(
+        int c)
     {
-        final int length = lexeme.length();
-        int index = 0;
-        boolean valid = length > 0;
-        if (valid && lexeme.charAt(index) == '-')
+        switch (numberState)
         {
-            index++;
+        case START:
+            numberState = c == '-' ? NumberState.SIGN : c == '0' ? NumberState.ZERO
+                : isDigit((char) c) ? NumberState.INT : rejectNumber(c);
+            break;
+        case SIGN:
+            numberState = c == '0' ? NumberState.ZERO : isDigit((char) c) ? NumberState.INT : rejectNumber(c);
+            break;
+        case ZERO:
+            numberState = c == '.' ? NumberState.DOT : c == 'e' || c == 'E' ? NumberState.EXP : rejectNumber(c);
+            break;
+        case INT:
+            numberState = isDigit((char) c) ? NumberState.INT : c == '.' ? NumberState.DOT
+                : c == 'e' || c == 'E' ? NumberState.EXP : rejectNumber(c);
+            break;
+        case DOT:
+            numberState = isDigit((char) c) ? NumberState.FRAC : rejectNumber(c);
+            break;
+        case FRAC:
+            numberState = isDigit((char) c) ? NumberState.FRAC : c == 'e' || c == 'E' ? NumberState.EXP : rejectNumber(c);
+            break;
+        case EXP:
+            numberState = c == '+' || c == '-' ? NumberState.EXP_SIGN
+                : isDigit((char) c) ? NumberState.EXP_INT : rejectNumber(c);
+            break;
+        case EXP_SIGN:
+            numberState = isDigit((char) c) ? NumberState.EXP_INT : rejectNumber(c);
+            break;
+        case EXP_INT:
+            numberState = isDigit((char) c) ? NumberState.EXP_INT : rejectNumber(c);
+            break;
+        default:
+            rejectNumber(c);
+            break;
         }
-        final int intStart = index;
-        if (index < length && lexeme.charAt(index) == '0')
+    }
+
+    // A complete number must end in an accepting state: an integer (with or without leading zero), a
+    // fractional part, or an exponent's digits — not a dangling sign, dot, or exponent marker.
+    private void validateNumberComplete()
+    {
+        boolean accepting = numberState == NumberState.ZERO || numberState == NumberState.INT ||
+            numberState == NumberState.FRAC || numberState == NumberState.EXP_INT;
+        if (!accepting)
         {
-            index++;
+            throw new JsonParsingException("Invalid JSON number: " + scratch, null);
         }
-        else
-        {
-            while (index < length && isDigit(lexeme.charAt(index)))
-            {
-                index++;
-            }
-        }
-        valid &= index > intStart;
-        if (valid && index < length && lexeme.charAt(index) == '.')
-        {
-            index++;
-            final int fracStart = index;
-            while (index < length && isDigit(lexeme.charAt(index)))
-            {
-                index++;
-            }
-            valid &= index > fracStart;
-        }
-        if (valid && index < length && (lexeme.charAt(index) == 'e' || lexeme.charAt(index) == 'E'))
-        {
-            index++;
-            if (index < length && (lexeme.charAt(index) == '+' || lexeme.charAt(index) == '-'))
-            {
-                index++;
-            }
-            final int expStart = index;
-            while (index < length && isDigit(lexeme.charAt(index)))
-            {
-                index++;
-            }
-            valid &= index > expStart;
-        }
-        valid &= index == length;
-        if (!valid)
-        {
-            throw new JsonParsingException("Invalid JSON number: " + lexeme, null);
-        }
+    }
+
+    private NumberState rejectNumber(
+        int c)
+    {
+        throw new JsonParsingException("Invalid JSON number char: " + describe(c), null);
     }
 
     private static boolean isDigit(
