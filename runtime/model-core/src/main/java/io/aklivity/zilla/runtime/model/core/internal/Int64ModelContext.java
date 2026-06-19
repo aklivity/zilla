@@ -18,6 +18,7 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelContext;
+import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 import io.aklivity.zilla.runtime.model.core.config.Int64ModelConfig;
 
@@ -52,9 +53,30 @@ public class Int64ModelContext implements ModelContext
         return new Int64ValidatorHandler(Int64ModelConfig.class.cast(config), context);
     }
 
+    @Override
+    public ModelHandler supplyReadHandler(
+        ModelConfig config)
+    {
+        return supplyHandler(config);
+    }
+
+    @Override
+    public ModelHandler supplyWriteHandler(
+        ModelConfig config)
+    {
+        return supplyHandler(config);
+    }
+
     private Int64ConverterHandler supply(
         ModelConfig config)
     {
         return new Int64ConverterHandler(Int64ModelConfig.class.cast(config), context);
+    }
+
+    private CoreModelHandler supplyHandler(
+        ModelConfig config)
+    {
+        return new CoreModelHandler(context, Int64Model.NAME,
+            Int64ModelValidator.supplier(Int64ModelConfig.class.cast(config)));
     }
 }
