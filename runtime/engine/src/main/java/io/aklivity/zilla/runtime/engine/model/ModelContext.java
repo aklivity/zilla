@@ -74,27 +74,29 @@ public interface ModelContext
 
     /**
      * Returns a {@link ModelHandler} that vends per-stream pipelines transforming inbound (read)
-     * values according to the given model configuration.
+     * values according to the given model configuration, or {@code null} if this model does not
+     * transform inbound values.
      *
      * @param config  the model configuration
-     * @return a {@link ModelHandler} for inbound transformation
+     * @return a {@link ModelHandler} for inbound transformation, or {@code null}
      */
     default ModelHandler supplyReadHandler(
         ModelConfig config)
     {
-        return ModelHandler.NONE;
+        return null;
     }
 
     /**
      * Returns a {@link ModelHandler} that vends per-stream pipelines transforming outbound (write)
-     * values according to the given model configuration.
+     * values according to the given model configuration, or {@code null} if this model does not
+     * transform outbound values.
      *
      * @param config  the model configuration
-     * @return a {@link ModelHandler} for outbound transformation
+     * @return a {@link ModelHandler} for outbound transformation, or {@code null}
      */
     default ModelHandler supplyWriteHandler(
         ModelConfig config)
     {
-        return ModelHandler.NONE;
+        return null;
     }
 }

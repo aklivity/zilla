@@ -26,20 +26,15 @@ import org.agrona.DirectBuffer;
  * stream via {@link #supplyPipeline}.
  * </p>
  * <p>
- * The sentinel {@link #NONE} supplies pass-through pipelines and is safe to use as a no-op placeholder.
+ * {@link ModelContext} returns {@code null} when no model is configured; a caller that holds a
+ * {@code null} handler forwards its bytes unchanged rather than driving a pipeline.
  * </p>
  *
  * @see ModelContext
  * @see ModelPipeline
  */
-@FunctionalInterface
 public interface ModelHandler
 {
-    /**
-     * No-op handler that supplies pass-through pipelines.
-     */
-    ModelHandler NONE = visitor -> new IdentityModelPipeline();
-
     /**
      * Supplies a new {@link ModelPipeline} for a single stream, wiring the given {@link ModelVisitor}
      * to receive any extracted field values as the pipeline transforms each value.
