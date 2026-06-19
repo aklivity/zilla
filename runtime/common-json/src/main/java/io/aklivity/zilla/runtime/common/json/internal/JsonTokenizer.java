@@ -273,7 +273,10 @@ public final class JsonTokenizer
                 resumeUnicodePending = 0;
                 resumeUnicodeValue = 0;
                 fragmenting = true;
-                if (scalarSegment ? streamOffset > fragmentStart : scratch.length() > 0)
+                // ship a fragment only when this round scanned new bytes; with consumed(0) accumulation the
+                // retained remainder keeps scratch non-empty, so a non-empty scratch alone is not progress and
+                // re-shipping it would spin the pump — require streamOffset to have advanced past fragmentStart
+                if (streamOffset > fragmentStart)
                 {
                     valueStreamStart = fragmentStart;
                     valueStreamEnd = streamOffset;
