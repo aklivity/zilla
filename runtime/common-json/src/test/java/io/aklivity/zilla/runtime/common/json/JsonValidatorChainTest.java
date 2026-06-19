@@ -55,6 +55,61 @@ class JsonValidatorChainTest
     }
 
     @Test
+    void shouldValidateWindowFragmentedStringAgainstPattern()
+    {
+        JsonSchema schema = JsonSchema.of("{\"type\":\"string\",\"pattern\":\"^a+$\"}");
+        JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(schema.validator())
+            .into(JsonEx.createSink(gen));
+        pipeline.reset();
+
+        // a string long enough to fragment across 8-byte windows; ^a+$ holds only when the whole value is
+        // reassembled, so the validator must decline the fragments and match the complete value
+        byte[] bytes = ("\"" + "a".repeat(40) + "\" ").getBytes(UTF_8);
+        Status status = feedWindowed(pipeline, bytes, 8);
+
+        assertEquals(Status.COMPLETED, status);
+    }
+
+    @Test
+    void shouldRejectWindowFragmentedStringViolatingPattern()
+    {
+        JsonSchema schema = JsonSchema.of("{\"type\":\"string\",\"pattern\":\"^a+$\"}");
+        JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(schema.validator())
+            .into(JsonEx.createSink(gen));
+        pipeline.reset();
+
+        // a 'b' buried deep in the value violates ^a+$, detectable only once the whole value is reassembled;
+        // validating any single fragment would miss it
+        byte[] bytes = ("\"" + "a".repeat(30) + "b" + "a".repeat(9) + "\" ").getBytes(UTF_8);
+        Status status = feedWindowed(pipeline, bytes, 8);
+
+        assertEquals(Status.REJECTED, status);
+    }
+
+    private static Status feedWindowed(
+        JsonPipeline pipeline,
+        byte[] bytes,
+        int step)
+    {
+        int progress = 0;
+        int limit = 0;
+        Status status = Status.STARVED;
+        int guard = 0;
+        while (guard++ < 100_000 && status == Status.STARVED)
+        {
+            limit = Math.min(limit + step, bytes.length);
+            boolean last = limit >= bytes.length;
+            status = pipeline.feed(new UnsafeBuffer(bytes), progress, limit, last);
+            progress = limit - pipeline.remaining();
+        }
+        return status;
+    }
+
+    @Test
     void shouldValidateFullStreamWhileProjectingSubset()
     {
         JsonSchema schema = JsonSchema.of(OBJECT_SCHEMA);
