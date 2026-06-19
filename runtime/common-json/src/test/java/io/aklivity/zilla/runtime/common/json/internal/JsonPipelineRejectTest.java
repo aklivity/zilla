@@ -58,7 +58,7 @@ class JsonPipelineRejectTest
     void shouldReportReasonOnMalformedJson()
     {
         JsonGeneratorEx generator = JsonEx.createGenerator();
-        MutableDirectBuffer output = new UnsafeBuffer(new byte[128]);
+        MutableDirectBufferEx output = new UnsafeBufferEx(new byte[128]);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .reporting(reporter)
             .into(JsonEx.createSink(generator));
@@ -67,7 +67,7 @@ class JsonPipelineRejectTest
         generator.wrap(output, 0, output.capacity());
         pipeline.reset();
 
-        assertEquals(Status.REJECTED, pipeline.feed(new UnsafeBuffer(bytes), 0, bytes.length));
+        assertEquals(Status.REJECTED, pipeline.feed(new UnsafeBufferEx(bytes), 0, bytes.length));
         assertNotNull(reason[0]);
     }
 
@@ -79,7 +79,7 @@ class JsonPipelineRejectTest
     {
         JsonSchema schema = JsonSchema.of("{\"properties\":{\"id\":{\"type\":\"string\"}}}");
         JsonGeneratorEx generator = JsonEx.createGenerator();
-        MutableDirectBuffer output = new UnsafeBuffer(new byte[128]);
+        MutableDirectBufferEx output = new UnsafeBufferEx(new byte[128]);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(schema.validator())
             .reporting(reporter)
@@ -89,7 +89,7 @@ class JsonPipelineRejectTest
         generator.wrap(output, 0, output.capacity());
         pipeline.reset();
 
-        assertEquals(Status.REJECTED, pipeline.feed(new UnsafeBuffer(bytes), 0, bytes.length));
+        assertEquals(Status.REJECTED, pipeline.feed(new UnsafeBufferEx(bytes), 0, bytes.length));
         assertEquals("[1,11][/id] expected string but was number", reason[0]);
     }
 
@@ -98,7 +98,7 @@ class JsonPipelineRejectTest
     {
         JsonSchema schema = JsonSchema.of("{\"properties\":{\"id\":{\"type\":\"string\"}}}");
         JsonGeneratorEx generator = JsonEx.createGenerator();
-        MutableDirectBuffer output = new UnsafeBuffer(new byte[128]);
+        MutableDirectBufferEx output = new UnsafeBufferEx(new byte[128]);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(schema.validator())
             .reporting(reporter)
@@ -108,7 +108,7 @@ class JsonPipelineRejectTest
         generator.wrap(output, 0, output.capacity());
         pipeline.reset();
 
-        assertEquals(Status.REJECTED, pipeline.feed(new UnsafeBuffer(bytes), 0, bytes.length));
+        assertEquals(Status.REJECTED, pipeline.feed(new UnsafeBufferEx(bytes), 0, bytes.length));
         assertEquals("[2,12][/id] expected string but was number", reason[0]);
     }
 
@@ -116,7 +116,7 @@ class JsonPipelineRejectTest
     void shouldNotReportOnValidJson()
     {
         JsonGeneratorEx generator = JsonEx.createGenerator();
-        MutableDirectBuffer output = new UnsafeBuffer(new byte[128]);
+        MutableDirectBufferEx output = new UnsafeBufferEx(new byte[128]);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .reporting(reporter)
             .into(JsonEx.createSink(generator));
@@ -125,7 +125,7 @@ class JsonPipelineRejectTest
         generator.wrap(output, 0, output.capacity());
         pipeline.reset();
 
-        assertEquals(Status.COMPLETED, pipeline.feed(new UnsafeBuffer(bytes), 0, bytes.length));
+        assertEquals(Status.COMPLETED, pipeline.feed(new UnsafeBufferEx(bytes), 0, bytes.length));
         assertNull(reason[0]);
     }
 }

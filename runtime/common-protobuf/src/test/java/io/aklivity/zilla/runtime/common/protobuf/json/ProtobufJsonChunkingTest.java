@@ -28,8 +28,8 @@ import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonReader;
 
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import org.junit.jupiter.api.Test;
 
 import io.aklivity.zilla.runtime.common.json.JsonEx;
@@ -226,7 +226,7 @@ public class ProtobufJsonChunkingTest
         byte[] json,
         int window)
     {
-        MutableDirectBuffer out = new UnsafeBuffer(new byte[window]);
+        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[window]);
         ProtobufGenerator generator = Protobuf.generator();
         generator.wrap(out, 0, window);
         ProtobufPipeline pipeline = Protobuf.stream(ProtobufJson.parser(JsonEx.createParser(), schema, messageName))
@@ -234,7 +234,7 @@ public class ProtobufJsonChunkingTest
         pipeline.reset();
 
         ByteArrayOutputStream result = new ByteArrayOutputStream();
-        UnsafeBuffer in = new UnsafeBuffer(json);
+        UnsafeBufferEx in = new UnsafeBufferEx(json);
         int suspends = 0;
         int guard = 0;
         Status status = pipeline.feed(in, 0, json.length);
@@ -258,13 +258,13 @@ public class ProtobufJsonChunkingTest
         String messageName,
         byte[] wire)
     {
-        MutableDirectBuffer out = new UnsafeBuffer(new byte[65536]);
+        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[65536]);
         ProtobufGenerator generator = ProtobufJson.generator(JsonEx.createGenerator(), schema, messageName);
         generator.wrap(out, 0, out.capacity());
         ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, messageName))
             .into(ProtobufSink.of(generator, schema, messageName));
         pipeline.reset();
-        Status status = pipeline.feed(new UnsafeBuffer(wire), 0, wire.length);
+        Status status = pipeline.feed(new UnsafeBufferEx(wire), 0, wire.length);
         assertEquals(Status.COMPLETED, status);
         generator.flush();
         return chunk(out, generator.length());
@@ -286,7 +286,7 @@ public class ProtobufJsonChunkingTest
     }
 
     private static byte[] bytes(
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         int length)
     {
         byte[] bytes = new byte[length];
@@ -299,7 +299,7 @@ public class ProtobufJsonChunkingTest
         byte[] wire,
         int window)
     {
-        MutableDirectBuffer out = new UnsafeBuffer(new byte[window]);
+        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[window]);
         ProtobufGenerator generator = ProtobufJson.generator(JsonEx.createGenerator(), schema, messageName);
         generator.wrap(out, 0, window);
         ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, messageName))
@@ -307,7 +307,7 @@ public class ProtobufJsonChunkingTest
         pipeline.reset();
 
         StringBuilder result = new StringBuilder();
-        UnsafeBuffer in = new UnsafeBuffer(wire);
+        UnsafeBufferEx in = new UnsafeBufferEx(wire);
         int suspends = 0;
         int guard = 0;
         Status status = pipeline.feed(in, 0, wire.length);
@@ -335,7 +335,7 @@ public class ProtobufJsonChunkingTest
         int inWindow,
         int outWindow)
     {
-        MutableDirectBuffer out = new UnsafeBuffer(new byte[outWindow]);
+        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[outWindow]);
         ProtobufGenerator generator = ProtobufJson.generator(JsonEx.createGenerator(), schema, messageName);
         generator.wrap(out, 0, outWindow);
         ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, messageName))
@@ -343,7 +343,7 @@ public class ProtobufJsonChunkingTest
         pipeline.reset();
 
         StringBuilder result = new StringBuilder();
-        UnsafeBuffer in = new UnsafeBuffer(wire);
+        UnsafeBufferEx in = new UnsafeBufferEx(wire);
         int progress = 0;
         int limit = 0;
         int suspends = 0;
@@ -389,7 +389,7 @@ public class ProtobufJsonChunkingTest
     }
 
     private static String chunk(
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         int length)
     {
         byte[] bytes = new byte[length];
@@ -409,7 +409,7 @@ public class ProtobufJsonChunkingTest
     private static byte[] wire(
         Consumer<ProtobufGenerator> body)
     {
-        MutableDirectBuffer buffer = new UnsafeBuffer(new byte[65536]);
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[65536]);
         ProtobufGenerator generator = Protobuf.generator().wrap(buffer, 0, buffer.capacity());
         body.accept(generator);
         byte[] bytes = new byte[generator.length()];

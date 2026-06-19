@@ -269,12 +269,12 @@ public class AvroJsonTest
         AvroSchema schema,
         byte[] binary)
     {
-        MutableDirectBuffer out = new UnsafeBuffer(new byte[Math.max(256, binary.length * 8)]);
+        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[Math.max(256, binary.length * 8)]);
         JsonGeneratorEx json = JsonEx.createGenerator();
         AvroGenerator generator = AvroJson.generator(schema, json, true).wrap(out, 0, out.capacity());
         AvroPipeline pipeline = Avro.stream(Avro.parser(schema)).into(AvroSink.of(generator));
         pipeline.reset();
-        Status status = pipeline.feed(new UnsafeBuffer(binary), 0, binary.length);
+        Status status = pipeline.feed(new UnsafeBufferEx(binary), 0, binary.length);
         if (status != Status.COMPLETED)
         {
             throw new AssertionError("avro -> json did not complete: " + status);
@@ -290,12 +290,12 @@ public class AvroJsonTest
         String json)
     {
         byte[] jsonBytes = json.getBytes(UTF_8);
-        MutableDirectBuffer out = new UnsafeBuffer(new byte[Math.max(256, jsonBytes.length * 4)]);
+        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[Math.max(256, jsonBytes.length * 4)]);
         AvroGenerator generator = Avro.generator(schema, out, 0);
         JsonParserEx parser = JsonEx.createParser();
         AvroPipeline pipeline = AvroJson.stream(schema, parser, true).into(AvroSink.of(generator));
         pipeline.reset();
-        Status status = pipeline.feed(new UnsafeBuffer(jsonBytes), 0, jsonBytes.length);
+        Status status = pipeline.feed(new UnsafeBufferEx(jsonBytes), 0, jsonBytes.length);
         if (status != Status.COMPLETED)
         {
             throw new AssertionError("json -> avro did not complete: " + status);

@@ -289,7 +289,7 @@ public class ProtobufPipelineTest
         pipeline.reset();
 
         // back-pressure is not failure: a value split mid-varint STARVES without firing the reporter
-        UnsafeBuffer buffer = new UnsafeBuffer(message);
+        UnsafeBufferEx buffer = new UnsafeBufferEx(message);
         assertEquals(Status.STARVED, pipeline.feed(buffer, 0, message.length - 1, false));
         assertNull(reason[0]);
     }

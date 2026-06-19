@@ -26,8 +26,8 @@ import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonReader;
 
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import org.junit.jupiter.api.Test;
 
 import io.aklivity.zilla.runtime.common.avro.Avro;
@@ -109,14 +109,14 @@ public class AvroJsonChunkingTest
         byte[] wire,
         int window)
     {
-        MutableDirectBuffer out = new UnsafeBuffer(new byte[window]);
+        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[window]);
         JsonGeneratorEx json = JsonEx.createGenerator();
         AvroGenerator generator = AvroJson.generator(schema, json, false).wrap(out, 0, window);
         AvroPipeline pipeline = Avro.stream(Avro.parser(schema)).into(AvroSink.of(generator));
         pipeline.reset();
 
         StringBuilder result = new StringBuilder();
-        UnsafeBuffer in = new UnsafeBuffer(wire);
+        UnsafeBufferEx in = new UnsafeBufferEx(wire);
         int suspends = 0;
         int guard = 0;
         Status status = pipeline.feed(in, 0, wire.length);
@@ -172,14 +172,14 @@ public class AvroJsonChunkingTest
         int inputWindow,
         int outputWindow)
     {
-        MutableDirectBuffer out = new UnsafeBuffer(new byte[outputWindow]);
+        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[outputWindow]);
         JsonGeneratorEx json = JsonEx.createGenerator();
         AvroGenerator generator = AvroJson.generator(schema, json, false).wrap(out, 0, outputWindow);
         AvroPipeline pipeline = Avro.stream(Avro.parser(schema)).into(AvroSink.of(generator));
         pipeline.reset();
 
         StringBuilder result = new StringBuilder();
-        UnsafeBuffer in = new UnsafeBuffer(wire);
+        UnsafeBufferEx in = new UnsafeBufferEx(wire);
         int progress = 0;
         int length = 0;
         int suspends = 0;
@@ -215,12 +215,12 @@ public class AvroJsonChunkingTest
         String json)
     {
         byte[] jsonBytes = json.getBytes(UTF_8);
-        MutableDirectBuffer out = new UnsafeBuffer(new byte[Math.max(256, jsonBytes.length * 4)]);
+        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[Math.max(256, jsonBytes.length * 4)]);
         AvroGenerator generator = Avro.generator(schema, out, 0);
         JsonParserEx parser = JsonEx.createParser();
         AvroPipeline pipeline = AvroJson.stream(schema, parser).into(AvroSink.of(generator));
         pipeline.reset();
-        Status status = pipeline.feed(new UnsafeBuffer(jsonBytes), 0, jsonBytes.length);
+        Status status = pipeline.feed(new UnsafeBufferEx(jsonBytes), 0, jsonBytes.length);
         assertEquals(Status.COMPLETED, status);
         byte[] avro = new byte[generator.length()];
         out.getBytes(0, avro);
@@ -239,7 +239,7 @@ public class AvroJsonChunkingTest
     }
 
     private static String chunk(
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         int length)
     {
         byte[] bytes = new byte[length];
