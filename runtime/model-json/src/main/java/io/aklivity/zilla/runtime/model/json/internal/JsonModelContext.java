@@ -58,4 +58,11 @@ public class JsonModelContext implements ModelContext
     {
         return new JsonReadModelHandler(JsonModelConfig.class.cast(config), context);
     }
+
+    @Override
+    public ModelHandler supplyWriteHandler(
+        ModelConfig config)
+    {
+        return new JsonWriteModelHandler(JsonModelConfig.class.cast(config), context);
+    }
 }
