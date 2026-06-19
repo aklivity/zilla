@@ -14,12 +14,9 @@
  */
 package io.aklivity.zilla.runtime.common.protobuf.json.internal;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import java.util.BitSet;
 
 import org.agrona.DirectBuffer;
-import org.agrona.ExpandableArrayBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
@@ -62,7 +59,6 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
     private final boolean protoFieldNames;
     private final boolean includeDefaults;
     private final StringBuilder scratch;
-    private final ExpandableArrayBuffer accumulator;
     private final UnsafeBuffer byteView;
 
     private Scope[] scopes;
@@ -74,7 +70,6 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
 
     private boolean segmentActive;
     private boolean segmentOpened;
-    private int segmentLength;
     private int consumed;
     private boolean flushed;
 
@@ -99,7 +94,6 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
         this.protoFieldNames = protoFieldNames;
         this.includeDefaults = includeDefaults;
         this.scratch = new StringBuilder();
-        this.accumulator = new ExpandableArrayBuffer();
         this.byteView = new UnsafeBuffer();
         this.scopes = new Scope[8];
         for (int i = 0; i < scopes.length; i++)
@@ -127,7 +121,6 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
             rootOpened = false;
             segmentActive = false;
             segmentOpened = false;
-            segmentLength = 0;
         }
         consumed = 0;
         return this;
@@ -411,7 +404,6 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
             prepare(field);
             segmentActive = true;
             segmentOpened = false;
-            segmentLength = 0;
         }
         if (scalarKey)
         {
@@ -733,16 +725,17 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
         int length,
         int deferred)
     {
-        accumulator.putBytes(segmentLength, value, offset, length);
-        segmentLength += length;
+        if (!segmentOpened)
+        {
+            scratch.setLength(0);
+            segmentOpened = true;
+        }
+        appendUtf8(value, offset, length);
         consumed += length;
         if (deferred == 0)
         {
-            byte[] bytes = new byte[segmentLength];
-            accumulator.getBytes(0, bytes);
-            captureKey(new String(bytes, UTF_8));
+            captureKey(scratch.toString());
             segmentActive = false;
-            segmentLength = 0;
         }
     }
 
@@ -766,7 +759,6 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
         if (charsWritten == scratch.length() && deferred == 0)
         {
             segmentActive = false;
-            segmentLength = 0;
         }
     }
 
@@ -824,7 +816,6 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
         if (complete)
         {
             segmentActive = false;
-            segmentLength = 0;
         }
     }
 
