@@ -51,14 +51,14 @@ public interface ProtobufParser
     default ProtobufParser wrap(
         DirectBuffer buffer,
         int offset,
-        int length)
+        int limit)
     {
-        return wrap(buffer, offset, length, true);
+        return wrap(buffer, offset, limit, true);
     }
 
     /**
-     * Borrows {@code buffer} as the first (or only) input window of a message, the bytes occupying
-     * {@code [offset, offset + length)}, and rewinds the cursor to before the root
+     * Borrows {@code buffer} as the first (or only) input window of a message, the bytes occupying the
+     * half-open range {@code [offset, limit)}, and rewinds the cursor to before the root
      * {@link ProtobufEvent#START_MESSAGE}. {@code last} marks the final window: when {@code false} and the
      * window is exhausted mid-message, {@link #nextEvent(Mode)} returns {@code null} to signal starvation,
      * and the next window is supplied via {@link #resume}.
@@ -66,18 +66,18 @@ public interface ProtobufParser
     ProtobufParser wrap(
         DirectBuffer buffer,
         int offset,
-        int length,
+        int limit,
         boolean last);
 
     /**
-     * Continues an in-flight message with its next input window after {@link #nextEvent(Mode)} returned
-     * {@code null} (starvation); {@code last} marks the final window. The cursor's position within the
-     * message is preserved across the window swap.
+     * Continues an in-flight message with its next input window {@code [offset, limit)} after
+     * {@link #nextEvent(Mode)} returned {@code null} (starvation); {@code last} marks the final window. The
+     * cursor's position within the message is preserved across the window swap.
      */
     ProtobufParser resume(
         DirectBuffer buffer,
         int offset,
-        int length,
+        int limit,
         boolean last);
 
     /**
@@ -86,13 +86,13 @@ public interface ProtobufParser
     boolean hasNext();
 
     /**
-     * The number of input bytes committed since {@link #wrap} — always at a whole-unit boundary, never
-     * mid-primitive, mid-code-point, or mid-skip. When {@link #nextEvent(Mode)} returns {@code null}
-     * (starvation), everything at or after this position is the unconsumed tail: the driver retains those
-     * bytes and re-presents them, contiguous with the next window, via {@link #resume}. The cursor itself
-     * never copies or buffers input.
+     * The number of bytes at the tail of the current window not yet consumed — what the driver retains and
+     * re-presents, contiguous, at the front of the next window via {@link #resume}. The window-relative peer
+     * of the absolute {@code getLocation().getStreamOffset()}: a driver buffering across windows keeps exactly this
+     * many bytes without tracking the window's absolute base. Reported at a whole-unit boundary; zero once the
+     * window is fully consumed.
      */
-    long position();
+    int remaining();
 
     /**
      * Advances the cursor and returns the next event in {@link Mode#STRUCTURED} mode.
@@ -166,12 +166,20 @@ public interface ProtobufParser
 
     /**
      * Advances past {@code sourceBytes} of the current value's slice so {@link #segment()} re-exposes the
-     * unconsumed remainder — the pushback a bounded sink uses to stream a length-delimited value across
-     * output windows without tracking its own write cursor. The default is a no-op for cursors that need no
+     * unconsumed remainder — the pushback a bounded sink uses to stream a length-delimited value across output
+     * windows without tracking its own write cursor. For a value still streaming across input windows
+     * ({@link #deferredBytes()} {@code > 0}) it also commits the read cursor by exactly {@code sourceBytes}, so a
+     * sub-unit tail the sink leaves unconsumed stays uncommitted and {@link #remaining()} reports it for the next
+     * window — without over-committing the cursor at delivery. The default is a no-op for cursors that need no
      * pushback.
      */
     default void consumed(
         int sourceBytes)
     {
     }
+
+    /**
+     * @return the location of the current event within the message, for diagnostics
+     */
+    ProtobufLocation getLocation();
 }

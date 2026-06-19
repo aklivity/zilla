@@ -31,6 +31,7 @@ import io.aklivity.zilla.runtime.common.avro.AvroType;
 import io.aklivity.zilla.runtime.common.avro.AvroValidationException;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
+import io.aklivity.zilla.runtime.common.lang.Numbers;
 
 /**
  * <b>JSON → Avro</b> adapter: an {@link AvroParser} that drives a {@link JsonParserEx} over its streaming
@@ -58,19 +59,34 @@ import io.aklivity.zilla.runtime.common.json.JsonParserEx;
  * {@code fixed} of the wrong size) raises {@link AvroValidationException}, reported as a clean reject. Reuse
  * a single instance per worker thread; not thread-safe.
  */
-public final class AvroJsonParserImpl implements AvroParser, AvroLocation
+public final class AvroJsonParserImpl implements AvroParser
 {
     private static final int NOT_STARTED = 0;
     private static final int RUNNING = 1;
     private static final int DONE = 2;
 
     private final JsonParserEx json;
+    private final boolean canonical;
     private final AvroType rootType;
     private final UnsafeBuffer segment;
     private final UnsafeBuffer segmentView;
     private final Map<AvroType, List<AvroField>> fieldsByType;
     private final Map<AvroType, List<AvroType>> branchesByType;
     private final Map<AvroType, List<String>> symbolsByType;
+    private final AvroLocation location = new AvroLocation()
+    {
+        @Override
+        public int depth()
+        {
+            return top;
+        }
+
+        @Override
+        public long getStreamOffset()
+        {
+            return json.getLocation().getStreamOffset();
+        }
+    };
 
     private Frame[] stack;
     private int top;
@@ -96,7 +112,16 @@ public final class AvroJsonParserImpl implements AvroParser, AvroLocation
         AvroSchema schema,
         JsonParserEx json)
     {
+        this(schema, json, false);
+    }
+
+    public AvroJsonParserImpl(
+        AvroSchema schema,
+        JsonParserEx json,
+        boolean canonical)
+    {
         this.json = json;
+        this.canonical = canonical;
         this.rootType = schema.type();
         this.segment = new UnsafeBuffer(0, 0);
         this.segmentView = new UnsafeBuffer(0, 0);
@@ -122,10 +147,10 @@ public final class AvroJsonParserImpl implements AvroParser, AvroLocation
     public void wrap(
         DirectBuffer buffer,
         int offset,
-        int length,
+        int limit,
         boolean last)
     {
-        json.wrap(buffer, offset, length, last);
+        json.wrap(buffer, offset, limit, last);
         this.last = last;
         this.havePending = false;
         this.starved = false;
@@ -247,19 +272,13 @@ public final class AvroJsonParserImpl implements AvroParser, AvroLocation
     @Override
     public AvroLocation getLocation()
     {
-        return this;
+        return location;
     }
 
     @Override
-    public int depth()
+    public int remaining()
     {
-        return top;
-    }
-
-    @Override
-    public long position()
-    {
-        return json.position();
+        return json.remaining();
     }
 
     private AvroEvent step()
@@ -430,6 +449,14 @@ public final class AvroJsonParserImpl implements AvroParser, AvroLocation
                 }
                 event = selectBranch(type, index, false);
             }
+            else if (canonical && AvroJsonUnion.nullableSingle(branches))
+            {
+                if (next != null)
+                {
+                    int index = AvroJsonUnion.nullBranchIndex(branches) ^ 1;
+                    event = selectBranch(type, index, false);
+                }
+            }
             else if (next == JsonEvent.START_OBJECT)
             {
                 consume();
@@ -525,13 +552,13 @@ public final class AvroJsonParserImpl implements AvroParser, AvroLocation
             break;
         case FLOAT:
             require(next == JsonEvent.VALUE_NUMBER, "expected number");
-            floatValue = json.getBigDecimal().floatValue();
+            floatValue = Numbers.parseFloat(json.getStringView());
             consume();
             event = AvroEvent.FLOAT;
             break;
         case DOUBLE:
             require(next == JsonEvent.VALUE_NUMBER, "expected number");
-            doubleValue = json.getBigDecimal().doubleValue();
+            doubleValue = Numbers.parseDouble(json.getStringView());
             consume();
             event = AvroEvent.DOUBLE;
             break;
@@ -590,28 +617,16 @@ public final class AvroJsonParserImpl implements AvroParser, AvroLocation
     private long parseLong(
         CharSequence value)
     {
-        int length = value.length();
-        int index = 0;
-        boolean negative = length > 0 && value.charAt(0) == '-';
-        if (negative)
+        long result;
+        try
         {
-            index = 1;
+            result = Long.parseLong(value, 0, value.length(), 10);
         }
-        if (index == length)
+        catch (NumberFormatException ex)
         {
             throw reject("expected integer");
         }
-        long magnitude = 0;
-        for (; index < length; index++)
-        {
-            char ch = value.charAt(index);
-            if (ch < '0' || ch > '9')
-            {
-                throw reject("expected integer");
-            }
-            magnitude = magnitude * 10 + (ch - '0');
-        }
-        return negative ? -magnitude : magnitude;
+        return result;
     }
 
     private void segmentUtf8(

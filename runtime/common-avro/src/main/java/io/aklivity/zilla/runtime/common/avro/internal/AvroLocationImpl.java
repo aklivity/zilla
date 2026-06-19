@@ -19,14 +19,14 @@ import io.aklivity.zilla.runtime.common.avro.AvroLocation;
 final class AvroLocationImpl implements AvroLocation
 {
     private int depth;
-    private long position;
+    private long streamOffset;
 
     void locate(
         int depth,
-        long position)
+        long streamOffset)
     {
         this.depth = depth;
-        this.position = position;
+        this.streamOffset = streamOffset;
     }
 
     @Override
@@ -36,8 +36,8 @@ final class AvroLocationImpl implements AvroLocation
     }
 
     @Override
-    public long position()
+    public long getStreamOffset()
     {
-        return position;
+        return streamOffset;
     }
 }

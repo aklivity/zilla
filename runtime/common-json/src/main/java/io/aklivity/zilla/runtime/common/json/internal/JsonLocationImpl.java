@@ -29,13 +29,13 @@ final class JsonLocationImpl implements JsonLocation
     @Override
     public long getLineNumber()
     {
-        return -1;
+        return tokenizer.line();
     }
 
     @Override
     public long getColumnNumber()
     {
-        return -1;
+        return tokenizer.column();
     }
 
     @Override

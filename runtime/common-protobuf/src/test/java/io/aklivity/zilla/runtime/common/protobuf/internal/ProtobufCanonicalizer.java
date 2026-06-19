@@ -130,7 +130,7 @@ public final class ProtobufCanonicalizer
         int length,
         int depth)
     {
-        ProtobufReader reader = reader(depth).wrap(buffer, offset, length);
+        ProtobufReader reader = reader(depth).wrap(buffer, offset, offset + length);
         int count = 0;
         while (reader.hasRemaining())
         {
@@ -153,7 +153,7 @@ public final class ProtobufCanonicalizer
         ProtobufWriter writer,
         int depth)
     {
-        ProtobufReader reader = reader(depth).wrap(buffer, offset, length);
+        ProtobufReader reader = reader(depth).wrap(buffer, offset, offset + length);
         while (reader.hasRemaining())
         {
             int tagOffset = reader.offset();
@@ -191,7 +191,7 @@ public final class ProtobufCanonicalizer
         ProtobufWriter writer,
         int depth)
     {
-        ProtobufReader reader = reader(depth).wrap(buffer, offset, length);
+        ProtobufReader reader = reader(depth).wrap(buffer, offset, offset + length);
         long region = -1;
         while (reader.hasRemaining())
         {
@@ -225,7 +225,7 @@ public final class ProtobufCanonicalizer
         if (field.type().packable())
         {
             ProtobufWriter block = acquire(depth).wrap(scratch(depth), 0);
-            ProtobufReader reader = reader(depth).wrap(buffer, offset, length);
+            ProtobufReader reader = reader(depth).wrap(buffer, offset, offset + length);
             while (reader.hasRemaining())
             {
                 int tag = reader.readVarint32();
@@ -260,7 +260,7 @@ public final class ProtobufCanonicalizer
         }
         else
         {
-            ProtobufReader reader = reader(depth).wrap(buffer, offset, length);
+            ProtobufReader reader = reader(depth).wrap(buffer, offset, offset + length);
             while (reader.hasRemaining())
             {
                 int tag = reader.readVarint32();
@@ -288,7 +288,7 @@ public final class ProtobufCanonicalizer
         int depth)
     {
         ProtobufMessage entry = schema.resolveMessage(field);
-        ProtobufReader reader = reader(depth).wrap(buffer, offset, length);
+        ProtobufReader reader = reader(depth).wrap(buffer, offset, offset + length);
         while (reader.hasRemaining())
         {
             int tag = reader.readVarint32();
@@ -338,7 +338,7 @@ public final class ProtobufCanonicalizer
         else
         {
             writer.writeTag(field.number(), field.type().wireType());
-            copyScalar(field, scalarReader.wrap(buffer, offset, length), writer);
+            copyScalar(field, scalarReader.wrap(buffer, offset, offset + length), writer);
         }
     }
 

@@ -25,5 +25,6 @@ bindings:
     options:
       authorization:
         guard0:
+          identity: user-identity
           credentials: authorization-token
     exit: app0

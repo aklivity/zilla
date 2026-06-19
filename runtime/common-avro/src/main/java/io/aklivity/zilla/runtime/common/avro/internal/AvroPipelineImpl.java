@@ -22,10 +22,12 @@ import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.SUSPENDE
 import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.common.avro.AvroController;
+import io.aklivity.zilla.runtime.common.avro.AvroDiagnostic;
 import io.aklivity.zilla.runtime.common.avro.AvroEvent;
 import io.aklivity.zilla.runtime.common.avro.AvroLocation;
 import io.aklivity.zilla.runtime.common.avro.AvroParser;
 import io.aklivity.zilla.runtime.common.avro.AvroPipeline;
+import io.aklivity.zilla.runtime.common.avro.AvroReporter;
 import io.aklivity.zilla.runtime.common.avro.AvroSink;
 import io.aklivity.zilla.runtime.common.avro.AvroSource;
 import io.aklivity.zilla.runtime.common.avro.AvroType;
@@ -48,18 +50,23 @@ final class AvroPipelineImpl implements AvroPipeline
     private final Source source;
     private final Control control;
     private final AvroSink root;
+    private final AvroReporter reporter;
+    private final Diagnostic diagnostic;
 
     private boolean suspended;
     private AvroEvent suspendedEvent;
 
     AvroPipelineImpl(
         AvroParser parser,
-        AvroSink root)
+        AvroSink root,
+        AvroReporter reporter)
     {
         this.parser = parser;
         this.source = new Source(parser);
         this.control = new Control(parser);
         this.root = root;
+        this.reporter = reporter;
+        this.diagnostic = new Diagnostic();
     }
 
     @Override
@@ -68,19 +75,20 @@ final class AvroPipelineImpl implements AvroPipeline
         parser.reset();
         root.reset();
         suspended = false;
+        diagnostic.message = null;
     }
 
     @Override
-    public long position()
+    public int remaining()
     {
-        return parser.getLocation().position();
+        return parser.remaining();
     }
 
     @Override
     public Status feed(
         DirectBuffer buffer,
         int offset,
-        int length,
+        int limit,
         boolean last)
     {
         Status status = ADVANCED;
@@ -93,7 +101,7 @@ final class AvroPipelineImpl implements AvroPipeline
             }
             else
             {
-                parser.wrap(buffer, offset, length, last);
+                parser.wrap(buffer, offset, limit, last);
             }
             while (status == ADVANCED)
             {
@@ -114,6 +122,13 @@ final class AvroPipelineImpl implements AvroPipeline
         catch (AvroValidationException ex)
         {
             status = REJECTED;
+            diagnostic.message = ex.getMessage();
+        }
+        if (status == REJECTED && reporter != null)
+        {
+            // terminal failure only — never STARVED/SUSPENDED back-pressure; the diagnostic is a reused,
+            // call-scoped view, so the reporter must copy out anything it needs before returning
+            reporter.rejected(diagnostic);
         }
         suspended = status == SUSPENDED;
         // the pump remembers which event suspended (so the sink keeps no resume state); a re-suspend on
@@ -243,6 +258,19 @@ final class AvroPipelineImpl implements AvroPipeline
             AvroParser.Mode mode = segmented ? AvroParser.Mode.SEGMENTED : AvroParser.Mode.STRUCTURED;
             segmented = false;
             return mode;
+        }
+    }
+
+    // the reused, call-scoped diagnostic pushed to the reporter: its message is whatever the rejecting
+    // component populated — here the parser's caught validation exception
+    private static final class Diagnostic implements AvroDiagnostic
+    {
+        private String message;
+
+        @Override
+        public String message()
+        {
+            return message;
         }
     }
 }
