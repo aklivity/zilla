@@ -46,4 +46,18 @@ public interface ProtobufStream
      */
     ProtobufPipeline into(
         ProtobufGenerator generator);
+
+    /**
+     * Terminates the pipeline with a schema-bound, generator-backed sink the pipeline owns and re-targets
+     * per {@link ProtobufPipeline#transform} call — the wire-encoding terminal of {@link ProtobufSink#of(
+     * ProtobufGenerator, ProtobufSchema, String)}, encoding each event against the message named
+     * {@code messageName} in {@code schema}. The generator need not be wrapped over the caller's destination
+     * beforehand — it is re-targeted at that destination on each {@code transform}. Use this terminal (rather
+     * than {@link #into(ProtobufSink)} over a caller-wrapped generator) when driving the pipeline with
+     * {@link ProtobufPipeline#transform}.
+     */
+    ProtobufPipeline into(
+        ProtobufGenerator generator,
+        ProtobufSchema schema,
+        String messageName);
 }

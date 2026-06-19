@@ -29,9 +29,13 @@ import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
 
 import io.aklivity.zilla.runtime.common.protobuf.Protobuf;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufField;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufMessage;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline.Status;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipelineResult;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufSchema;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufType;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
 
 class ProtobufPipelineTransformTest
@@ -129,6 +133,35 @@ class ProtobufPipelineTransformTest
         assertArrayEquals(expected, drained.toByteArray());
     }
 
+    @Test
+    void shouldTransformTypedRoundTripIntoDestination()
+    {
+        ProtobufSchema schema = newSchema();
+        ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, "P"))
+            .into(Protobuf.generator(), schema, "P");
+        pipeline.reset();
+
+        // fields in field-number order so a same-schema re-encode reproduces the input bytes exactly
+        byte[] in = wire(w ->
+        {
+            w.writeTag(1, ProtobufWireType.LEN);
+            w.writeBytes("neo".getBytes(UTF_8));
+            w.writeTag(2, ProtobufWireType.VARINT);
+            w.writeVarint64(5);
+        });
+        int dstCap = 64;
+        MutableDirectBuffer dst = new UnsafeBuffer(new byte[DST_OFFSET + dstCap]);
+        ProtobufPipelineResult result = pipeline.transform(srcOf(in), SRC_OFFSET, SRC_OFFSET + in.length, true,
+            dst, DST_OFFSET, DST_OFFSET + dstCap);
+
+        assertEquals(Status.COMPLETED, result.status());
+        assertEquals(in.length, result.consumed());
+        assertTrue(result.produced() <= dstCap);
+        byte[] out = new byte[result.produced()];
+        dst.getBytes(DST_OFFSET, out);
+        assertArrayEquals(in, out);
+    }
+
     private byte[] drainToCompletion(
         ProtobufPipeline pipeline,
         byte[] in,
@@ -181,5 +214,15 @@ class ProtobufPipelineTransformTest
         byte[] bytes = new byte[writer.length()];
         buffer.getBytes(0, bytes);
         return bytes;
+    }
+
+    private static ProtobufSchema newSchema()
+    {
+        return Protobuf.schema()
+            .message(ProtobufMessage.builder("P")
+                .field(ProtobufField.builder().number(1).name("name").type(ProtobufType.STRING).build())
+                .field(ProtobufField.builder().number(2).name("id").type(ProtobufType.INT32).build())
+                .build())
+            .build();
     }
 }
