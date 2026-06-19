@@ -53,6 +53,10 @@ public final class JsonTokenizer
 
     private final Deque<ParseState> stack = new ArrayDeque<>();
     private final StringBuilder scratch = new StringBuilder();
+    // chars of the current scratch the consumer has taken; on resume only this prefix is dropped so the
+    // unconsumed remainder accumulates, letting a consumer that declines fragments (consumed(0)) receive
+    // the value whole. Set by the parser from its consumed cursor before each resuming advance.
+    private int scratchConsumed;
     // accumulates the full lexeme of a fragmented number across its fragments (scratch holds only the
     // current fragment); getBigDecimal() reads this on the final fragment to read the value whole.
     private final StringBuilder numberLexeme = new StringBuilder();
@@ -144,6 +148,7 @@ public final class JsonTokenizer
     {
         stack.clear();
         scratch.setLength(0);
+        scratchConsumed = 0;
         numberLexeme.setLength(0);
         numberFragmented = false;
         stringVerbatim = false;
@@ -342,6 +347,14 @@ public final class JsonTokenizer
         return valuePending ? scratch : pendingString;
     }
 
+    // The parser reports, before a resuming advance, how many chars of the current fragment the consumer
+    // took, so resume keeps the unconsumed remainder rather than discarding the whole fragment.
+    void markScratchConsumed(
+        int consumed)
+    {
+        this.scratchConsumed = consumed;
+    }
+
     public long streamOffset()
     {
         return streamOffset;
@@ -514,9 +527,11 @@ public final class JsonTokenizer
             }
             break;
         case VALUE_STRING:
-            // discard the prior fragment's chars (already shipped, captured lazily) before decoding the
-            // next fragment into scratch
-            scratch.setLength(0);
+            // keep the part of the prior fragment the consumer did not take (a decliner keeps all of it
+            // via consumed(0)) so the next fragment accumulates onto the remainder and the value is
+            // re-presented whole; a consumer that took the whole fragment drops it all, as before
+            scratch.delete(0, Math.min(scratchConsumed, scratch.length()));
+            scratchConsumed = 0;
             fragmentStart = streamOffset;
             continueStringContent(in);
             if (!starved)

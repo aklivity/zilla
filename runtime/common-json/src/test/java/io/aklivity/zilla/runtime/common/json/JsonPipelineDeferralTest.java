@@ -19,7 +19,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
@@ -56,7 +55,6 @@ class JsonPipelineDeferralTest
     }
 
     @Test
-    @Disabled("pins the consumed(0) re-present contract; enabled when the source accumulation lands")
     void shouldAccumulateDeferredStringAcrossWindows()
     {
         JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());

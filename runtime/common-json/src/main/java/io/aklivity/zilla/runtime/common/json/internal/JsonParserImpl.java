@@ -188,6 +188,13 @@ public final class JsonParserImpl implements JsonParserEx
         }
         else
         {
+            // before resuming a value that spans windows, tell the tokenizer how much of the prior
+            // fragment the consumer took (the char cursor) so it keeps the unconsumed remainder and
+            // accumulates rather than discarding a declined fragment
+            if (tokenizer.fragmenting())
+            {
+                tokenizer.markScratchConsumed(stringViewOffset);
+            }
             try
             {
                 result = tokenizer.advance(in);
