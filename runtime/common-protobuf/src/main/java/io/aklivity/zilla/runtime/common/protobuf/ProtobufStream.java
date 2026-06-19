@@ -35,4 +35,15 @@ public interface ProtobufStream
 
     ProtobufPipeline into(
         ProtobufSink sink);
+
+    /**
+     * Terminates the pipeline with a schema-free, generator-backed sink the pipeline owns and re-targets
+     * per {@link ProtobufPipeline#transform} call (a lossless structural copy, as {@link ProtobufSink#of(
+     * ProtobufGenerator)}). The generator need not be wrapped over the caller's destination beforehand —
+     * it is re-targeted at that destination on each {@code transform}. Use this terminal (rather than
+     * {@link #into(ProtobufSink)} over a caller-wrapped generator) when driving the pipeline with
+     * {@link ProtobufPipeline#transform}.
+     */
+    ProtobufPipeline into(
+        ProtobufGenerator generator);
 }
