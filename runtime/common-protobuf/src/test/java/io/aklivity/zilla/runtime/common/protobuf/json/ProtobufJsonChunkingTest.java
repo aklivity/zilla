@@ -84,6 +84,46 @@ public class ProtobufJsonChunkingTest
     }
 
     @Test
+    public void shouldFragmentLargeBytesAndStringAcrossTinyInputAndOutputWindows()
+    {
+        // a bytes value larger than both the input and the output window, with per-window byte counts that
+        // are NOT aligned to 3, so a base64 group straddles the input-window boundary and the adapter holds a
+        // 1-2 byte sub-group tail that only the next input window can complete (input back-pressure, STARVED);
+        // a large string in the same message forces output back-pressure (SUSPENDED) as well
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < 4000; i++)
+        {
+            builder.append("ab\"c\nd");
+        }
+        String text = builder.toString();
+
+        byte[] blob = new byte[15001];
+        for (int i = 0; i < blob.length; i++)
+        {
+            blob[i] = (byte) (i * 31 + 7);
+        }
+
+        byte[] wire = wire(g -> g
+            .writeInt32(1, -5)
+            .writeBool(13, true)
+            .writeString(14, text)
+            .writeBytes(15, blob));
+
+        // a 64-byte input window is not a multiple of 3, so the bytes value re-aligns to a sub-group tail at
+        // many window boundaries; the 50-byte output window is far smaller than either large value
+        TwoAxisDrained drained = toJsonTwoAxis("Scalars", wire, 64, 50);
+
+        assertTrue(drained.starves >= 1, "expected at least one STARVED (input) chunk boundary");
+        assertTrue(drained.suspends >= 1, "expected at least one SUSPENDED (output) chunk boundary");
+
+        JsonObject object = parse(drained.json);
+        assertEquals(-5, object.getInt("i32"));
+        assertEquals(true, object.getBoolean("bo"));
+        assertEquals(text, object.getString("st"));
+        assertArrayEquals(blob, Base64.getDecoder().decode(object.getString("by")));
+    }
+
+    @Test
     public void shouldRenderSmallValueIdenticallyInOneFeed()
     {
         byte[] wire = wire(g -> g
@@ -156,6 +196,29 @@ public class ProtobufJsonChunkingTest
         assertEquals(true, object.getBoolean("bo"));
         assertEquals(text, object.getString("st"));
         assertArrayEquals(blob, Base64.getDecoder().decode(object.getString("by")));
+    }
+
+    @Test
+    public void shouldFragmentMapKeyAcrossTinyInputWindows()
+    {
+        // a string map key long enough that its wire bytes split across several tiny input windows, exercising
+        // the multi-fragment accumulation path that materializes the key once complete
+        String key = "the-quick-brown-fox-jumps-over-the-lazy-dog";
+
+        byte[] wire = wire(g -> g
+            .startMessage(1, 64)
+            .writeString(1, key)
+            .writeString(2, "v")
+            .endMessage());
+
+        // a 4-byte input window forces the key's wire bytes to arrive in many fragments (STARVED), while a
+        // generous output window keeps the whole document in one chunk
+        TwoAxisDrained drained = toJsonTwoAxis("Props", wire, 4, 8192);
+
+        assertTrue(drained.starves >= 1, "expected at least one STARVED (input) chunk boundary");
+
+        JsonObject object = parse(drained.json);
+        assertEquals("v", object.getJsonObject("props").getString(key));
     }
 
     private WireDrained fromJsonWindowed(
@@ -264,6 +327,67 @@ public class ProtobufJsonChunkingTest
         return new Drained(result.toString(), suspends);
     }
 
+    // drives the wire -> JSON pipeline across both input windows (advancing on STARVED) and output windows
+    // (draining on SUSPENDED), the canonical two-axis loop; collects the concatenated JSON document
+    private TwoAxisDrained toJsonTwoAxis(
+        String messageName,
+        byte[] wire,
+        int inWindow,
+        int outWindow)
+    {
+        MutableDirectBuffer out = new UnsafeBuffer(new byte[outWindow]);
+        ProtobufGenerator generator = ProtobufJson.generator(JsonEx.createGenerator(), schema, messageName);
+        generator.wrap(out, 0, outWindow);
+        ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, messageName))
+            .into(ProtobufSink.of(generator, schema, messageName));
+        pipeline.reset();
+
+        StringBuilder result = new StringBuilder();
+        UnsafeBuffer in = new UnsafeBuffer(wire);
+        int progress = 0;
+        int limit = 0;
+        int suspends = 0;
+        int starves = 0;
+        int guard = 0;
+        boolean completed = false;
+        while (!completed)
+        {
+            if (guard++ > 1_000_000)
+            {
+                throw new AssertionError("pipeline failed to converge");
+            }
+            int take = Math.min(inWindow, wire.length - limit);
+            limit += take;
+            boolean last = limit >= wire.length;
+            Status status = pipeline.feed(in, progress, limit, last);
+            while (status == Status.SUSPENDED)
+            {
+                assertTrue(generator.length() <= outWindow, "chunk exceeded the generator limit");
+                result.append(chunk(out, generator.length()));
+                generator.wrap(out, 0, outWindow);
+                suspends++;
+                status = pipeline.feed(in, progress, limit, last);
+            }
+            switch (status)
+            {
+            case STARVED:
+                assertTrue(!last, "last window must not starve");
+                progress = limit - pipeline.remaining();
+                starves++;
+                break;
+            case COMPLETED:
+                completed = true;
+                break;
+            default:
+                throw new AssertionError("unexpected status " + status);
+            }
+        }
+        generator.flush();
+        result.append(chunk(out, generator.length()));
+
+        return new TwoAxisDrained(result.toString(), suspends, starves);
+    }
+
     private static String chunk(
         MutableDirectBuffer buffer,
         int length)
@@ -307,6 +431,15 @@ public class ProtobufJsonChunkingTest
                 .field(ProtobufField.builder().number(14).name("st").type(ProtobufType.STRING).build())
                 .field(ProtobufField.builder().number(15).name("by").type(ProtobufType.BYTES).build())
                 .build())
+            .message(ProtobufMessage.builder("PropsEntry")
+                .mapEntry(true)
+                .field(ProtobufField.builder().number(1).name("key").type(ProtobufType.STRING).build())
+                .field(ProtobufField.builder().number(2).name("value").type(ProtobufType.STRING).build())
+                .build())
+            .message(ProtobufMessage.builder("Props")
+                .field(ProtobufField.builder().number(1).name("props").type(ProtobufType.MESSAGE).typeName("PropsEntry")
+                    .repeated(true).build())
+                .build())
             .build();
     }
 
@@ -321,6 +454,23 @@ public class ProtobufJsonChunkingTest
         {
             this.json = json;
             this.suspends = suspends;
+        }
+    }
+
+    private static final class TwoAxisDrained
+    {
+        private final String json;
+        private final int suspends;
+        private final int starves;
+
+        private TwoAxisDrained(
+            String json,
+            int suspends,
+            int starves)
+        {
+            this.json = json;
+            this.suspends = suspends;
+            this.starves = starves;
         }
     }
 

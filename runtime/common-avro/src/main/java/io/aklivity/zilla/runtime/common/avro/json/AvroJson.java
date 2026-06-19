@@ -74,6 +74,20 @@ public final class AvroJson
     }
 
     /**
+     * Variant of {@link #parser(AvroSchema, JsonParserEx)} that, when {@code canonical} is {@code true},
+     * reads a nullable-single union (a union of {@code null} and exactly one other type) from a bare JSON
+     * value — {@code null} or the unwrapped value — rather than the {@code {"<branch>": value}} wrapper.
+     * Every other union shape is unchanged.
+     */
+    public static AvroParser parser(
+        AvroSchema schema,
+        JsonParserEx parser,
+        boolean canonical)
+    {
+        return new AvroJsonParserImpl(schema, parser, canonical);
+    }
+
+    /**
      * Begins a <b>JSON → Avro</b> push pipeline driven by {@code parser}: the returned {@link AvroStream}
      * walks {@code schema} in lockstep with the JSON pull events and emits the Avro event stream. Append
      * stages with {@link AvroStream#transform} and terminate with {@link AvroStream#into(AvroSink)}; the
@@ -87,6 +101,18 @@ public final class AvroJson
     }
 
     /**
+     * Variant of {@link #stream(AvroSchema, JsonParserEx)} with the canonical nullable-single union reading
+     * of {@link #parser(AvroSchema, JsonParserEx, boolean)}.
+     */
+    public static AvroStream stream(
+        AvroSchema schema,
+        JsonParserEx parser,
+        boolean canonical)
+    {
+        return Avro.stream(parser(schema, parser, canonical));
+    }
+
+    /**
      * Returns a schema-bound <b>Avro → JSON</b> {@link AvroGenerator} that maps each positional Avro write
      * onto {@code generator}, applying the documented type mapping. Wrap it over the target buffer via
      * {@link AvroGenerator#wrap} (which re-targets {@code generator}), then drive it directly or behind an
@@ -97,5 +123,19 @@ public final class AvroJson
         JsonGeneratorEx generator)
     {
         return new AvroJsonGeneratorImpl(schema, generator);
+    }
+
+    /**
+     * Variant of {@link #generator(AvroSchema, JsonGeneratorEx)} that, when {@code canonical} is
+     * {@code true}, writes a nullable-single union (a union of {@code null} and exactly one other type) as a
+     * bare JSON value — {@code null} or the unwrapped value — rather than the {@code {"<branch>": value}}
+     * wrapper. Every other union shape is unchanged.
+     */
+    public static AvroGenerator generator(
+        AvroSchema schema,
+        JsonGeneratorEx generator,
+        boolean canonical)
+    {
+        return new AvroJsonGeneratorImpl(schema, generator, canonical);
     }
 }

@@ -130,6 +130,8 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
                         // the pump owns the resume cursor: remember the in-flight event for the next entry
                         resumeEvent = event;
                     }
+                    // a sink STARVED leaves the unconsumed tail uncommitted (consumed() advanced the cursor by
+                    // only what the sink took), so remaining() already reports it for the next window — no rewind
                 }
             }
             suspended = status == Status.SUSPENDED;

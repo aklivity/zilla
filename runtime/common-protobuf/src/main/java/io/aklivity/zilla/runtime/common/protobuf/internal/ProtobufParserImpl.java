@@ -78,6 +78,9 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
     private boolean done;
     private int depth;
     private int phase;
+    // the last event nextEvent() returned: the basis for the streaming-value accessor asserts, which document
+    // the event each accessor is legitimately positioned on (mirrors JsonParserImpl's lastEvent)
+    private ProtobufEvent lastEvent;
 
     private ProtobufField compositeField;
     private int regionOffset;
@@ -95,7 +98,9 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
     private int segmentLength;
     private int deferred;
     private int leafRemaining;
+    private int leafUncommitted;
     private boolean leafString;
+    private boolean leafBytes;
     private int skipRemaining;
 
     public ProtobufParserImpl(
@@ -122,7 +127,9 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
         this.phase = PHASE_NONE;
         this.deferred = 0;
         this.leafRemaining = -1;
+        this.leafUncommitted = 0;
         this.skipRemaining = 0;
+        this.lastEvent = null;
         return this;
     }
 
@@ -133,6 +140,10 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
         int limit,
         boolean last)
     {
+        // the driver re-presents the unconsumed tail at the front of the next window: any streaming-leaf bytes
+        // delivered-but-not-committed in the prior window are part of that tail and are re-read fresh here, so
+        // they must not be committed against this window — drop the pending commit
+        this.leafUncommitted = 0;
         reader.resume(buffer, offset, limit, last);
         return this;
     }
@@ -190,24 +201,36 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
                 break;
             }
         }
+        // track the delivered event (null on starvation) as the basis for the accessor asserts
+        if (event != null)
+        {
+            lastEvent = event;
+        }
         return event;
     }
 
     @Override
     public ProtobufField field()
     {
+        // positions on a field (FIELD) and is re-read on its VALUE to discover the value's declared type
+        assert lastEvent == ProtobufEvent.FIELD || lastEvent == ProtobufEvent.VALUE;
         return field;
     }
 
     @Override
     public ProtobufMessage message()
     {
+        // the current frame's message, freshly meaningful at a frame open (START_MESSAGE / START_GROUP)
+        assert lastEvent == ProtobufEvent.START_MESSAGE || lastEvent == ProtobufEvent.START_GROUP;
         return depth >= 0 ? frames.get(depth).message : null;
     }
 
     @Override
     public int fieldNumber()
     {
+        // the schema-free path identifies a field by number at FIELD and on its VALUE; a raw composite delivered
+        // as a SEGMENT carries its field number too
+        assert lastEvent == ProtobufEvent.FIELD || lastEvent == ProtobufEvent.VALUE || lastEvent == ProtobufEvent.SEGMENT;
         return fieldNumber;
     }
 
@@ -220,30 +243,42 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
     @Override
     public long longValue()
     {
+        // a decoded scalar is delivered on its VALUE event
+        assert lastEvent == ProtobufEvent.VALUE;
         return longValue;
     }
 
     @Override
     public double doubleValue()
     {
+        // a decoded scalar is delivered on its VALUE event
+        assert lastEvent == ProtobufEvent.VALUE;
         return doubleValue;
     }
 
     @Override
     public float floatValue()
     {
+        // a decoded scalar is delivered on its VALUE event
+        assert lastEvent == ProtobufEvent.VALUE;
         return floatValue;
     }
 
     @Override
     public DirectBuffer segment()
     {
+        // the value/segment slice on a VALUE (length-delimited leaf or raw scalar) or a SEGMENT (raw composite),
+        // and the message extent on START_MESSAGE so a sink can size the enclosing nested record
+        assert lastEvent == ProtobufEvent.VALUE || lastEvent == ProtobufEvent.SEGMENT ||
+            lastEvent == ProtobufEvent.START_MESSAGE;
         return segment;
     }
 
     @Override
     public int deferredBytes()
     {
+        // how much of a streaming value is still to come: reported on each VALUE chunk and each SEGMENT chunk
+        assert lastEvent == ProtobufEvent.VALUE || lastEvent == ProtobufEvent.SEGMENT;
         return deferred;
     }
 
@@ -251,7 +286,28 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
     public void consumed(
         int sourceBytes)
     {
-        // advance the current value slice so segment() re-exposes the remainder on resume
+        // the pushback advances the read cursor within a length-delimited value, the only state where advancing
+        // is meaningful: a VALUE leaf chunk or a raw composite SEGMENT
+        assert lastEvent == ProtobufEvent.VALUE || lastEvent == ProtobufEvent.SEGMENT;
+        if (leafRemaining >= 0)
+        {
+            // a streaming leaf chunk is delivered uncommitted: commit exactly what the sink took here, advancing
+            // the read cursor by that and no more. Any sub-unit tail the sink left (e.g. a base64 group short of
+            // 3 bytes) stays uncommitted, so remaining() reports it and the driver re-presents it contiguous with
+            // the next window — no eager over-commit, no rewind
+            reader.skip(sourceBytes);
+            leafRemaining -= sourceBytes;
+            leafUncommitted -= sourceBytes;
+            if (leafRemaining == 0)
+            {
+                // the leaf body is fully consumed; the next leaf() reads a fresh length prefix
+                leafRemaining = -1;
+                leafUncommitted = 0;
+            }
+        }
+        // re-wrap the current value slice so segment() re-exposes the remainder within this same window under
+        // output back-pressure (SUSPENDED/resume); for a whole leaf the read cursor was committed at delivery
+        // and is left untouched here
         segmentOffset += sourceBytes;
         segmentLength -= sourceBytes;
         segment.wrap(segmentBuffer, segmentOffset, segmentLength);
@@ -267,6 +323,15 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
     private ProtobufEvent leaf()
     {
         ProtobufEvent event;
+        if (leafUncommitted > 0)
+        {
+            // a prior non-final chunk was delivered uncommitted (deferred > 0). A bounded sink commits it via
+            // consumed(); a direct caller that took the whole slice does not, so commit it here before marking —
+            // advancing the read cursor and the body remaining by exactly the bytes delivered last time
+            reader.skip(leafUncommitted);
+            leafRemaining -= leafUncommitted;
+            leafUncommitted = 0;
+        }
         reader.mark();
         if (leafRemaining < 0)
         {
@@ -281,6 +346,10 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
             }
             else if (len <= reader.available())
             {
+                // the whole leaf is present in this window (deferred == 0): commit the read cursor past it now so
+                // a direct caller that takes the whole slice without calling consumed() still advances, and a
+                // bounded sink streams it across output back-pressure via the re-wrapped slice in consumed() —
+                // there is no future-input tail here, so the cursor is at the value end either way
                 slice(reader.buffer(), reader.offset(), len);
                 reader.skip(len);
                 longValue = len;
@@ -313,6 +382,9 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
         int available = reader.available();
         if (leafRemaining <= available)
         {
+            // the whole remaining body is present (deferred == 0): commit the read cursor past it now so a direct
+            // caller that takes the whole slice without consumed() still advances; mark the leaf complete so
+            // consumed() treats this as a whole leaf (re-wrapping the slice for output back-pressure only)
             slice(reader.buffer(), reader.offset(), leafRemaining);
             reader.skip(leafRemaining);
             leafRemaining = -1;
@@ -322,20 +394,34 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
         }
         else
         {
-            int chunk = leafString
-                ? utf8SafeLength(reader.buffer(), reader.offset(), available)
-                : available;
+            int chunk;
+            if (leafString)
+            {
+                chunk = utf8SafeLength(reader.buffer(), reader.offset(), available);
+            }
+            else if (leafBytes)
+            {
+                chunk = base64SafeLength(available);
+            }
+            else
+            {
+                // schema-free LEN body streams verbatim (wire -> wire), no rendering unit to align to
+                chunk = available;
+            }
             if (chunk == 0)
             {
-                // only a partial code point present; carry it and wait for the next window
+                // only a partial rendering unit present (a partial UTF-8 code point, or 1-2 leaf bytes short of a
+                // whole base64 group); carry it and wait for the next window
                 event = starve();
             }
             else
             {
+                // deliver this window's leaf bytes uncommitted: the read cursor and the body remaining advance by
+                // exactly what the sink takes (consumed()) or, for a direct caller, by the whole chunk on the next
+                // leafChunk re-entry — so a sub-unit tail the sink leaves stays uncommitted for the next window
                 slice(reader.buffer(), reader.offset(), chunk);
-                reader.skip(chunk);
-                leafRemaining -= chunk;
-                deferred = leafRemaining;
+                leafUncommitted = chunk;
+                deferred = leafRemaining - chunk;
                 event = ProtobufEvent.VALUE;
             }
         }
@@ -470,6 +556,7 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
                 fieldNumber = number;
                 wireType = wt;
                 leafString = false;
+                leafBytes = false;
                 phase = wt == ProtobufWireType.LEN ? PHASE_LEAF : PHASE_RAW_VALUE;
                 event = ProtobufEvent.FIELD;
             }
@@ -530,6 +617,7 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
             wireType = wt;
             boolean len = fld.type() == ProtobufType.STRING || fld.type() == ProtobufType.BYTES;
             leafString = fld.type() == ProtobufType.STRING;
+            leafBytes = fld.type() == ProtobufType.BYTES;
             phase = len ? PHASE_LEAF : PHASE_SCALAR_VALUE;
             event = ProtobufEvent.FIELD;
         }
@@ -748,6 +836,17 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
         fieldNumber = -1;
         wireType = null;
         deferred = 0;
+    }
+
+    // The proto3-JSON bytes rendering unit: base64 encodes a whole 3-byte group at a time, so a non-final bytes
+    // leaf chunk must end on a 3-byte boundary — the bytes analog of UTF-8 code-point alignment. A 1-2 byte tail
+    // short of a group is withheld (returned length excludes it) so it streams in contiguous with the next window,
+    // exactly as utf8SafeLength withholds a partial code point. Harmless for wire -> wire, where bytes are verbatim
+    // and this length is never consulted (only genuine BYTES leaves are aligned here).
+    private static int base64SafeLength(
+        int length)
+    {
+        return length / 3 * 3;
     }
 
     private static int utf8SafeLength(

@@ -14,12 +14,9 @@
  */
 package io.aklivity.zilla.runtime.common.protobuf.json.internal;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import java.util.BitSet;
 
 import org.agrona.DirectBuffer;
-import org.agrona.ExpandableArrayBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
@@ -62,7 +59,6 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
     private final boolean protoFieldNames;
     private final boolean includeDefaults;
     private final StringBuilder scratch;
-    private final ExpandableArrayBuffer accumulator;
     private final UnsafeBuffer byteView;
 
     private Scope[] scopes;
@@ -74,7 +70,6 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
 
     private boolean segmentActive;
     private boolean segmentOpened;
-    private int segmentLength;
     private int consumed;
     private boolean flushed;
 
@@ -99,7 +94,6 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
         this.protoFieldNames = protoFieldNames;
         this.includeDefaults = includeDefaults;
         this.scratch = new StringBuilder();
-        this.accumulator = new ExpandableArrayBuffer();
         this.byteView = new UnsafeBuffer();
         this.scopes = new Scope[8];
         for (int i = 0; i < scopes.length; i++)
@@ -127,7 +121,6 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
             rootOpened = false;
             segmentActive = false;
             segmentOpened = false;
-            segmentLength = 0;
         }
         consumed = 0;
         return this;
@@ -411,7 +404,6 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
             prepare(field);
             segmentActive = true;
             segmentOpened = false;
-            segmentLength = 0;
         }
         if (scalarKey)
         {
@@ -733,16 +725,17 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
         int length,
         int deferred)
     {
-        accumulator.putBytes(segmentLength, value, offset, length);
-        segmentLength += length;
+        if (!segmentOpened)
+        {
+            scratch.setLength(0);
+            segmentOpened = true;
+        }
+        appendUtf8(value, offset, length);
         consumed += length;
         if (deferred == 0)
         {
-            byte[] bytes = new byte[segmentLength];
-            accumulator.getBytes(0, bytes);
-            captureKey(new String(bytes, UTF_8));
+            captureKey(scratch.toString());
             segmentActive = false;
-            segmentLength = 0;
         }
     }
 
@@ -766,14 +759,15 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
         if (charsWritten == scratch.length() && deferred == 0)
         {
             segmentActive = false;
-            segmentLength = 0;
         }
     }
 
     // The source bytes are base64-encoded a whole 3-byte group at a time so a 4-char group never splits across
-    // a window. Whole groups (carry + slice) that fit the output bound are emitted; a 1-2 byte tail short of a
-    // group is carried to the next window (counted as consumed now), except on the final delivery where it is
-    // padded and emitted. The chars go through the same consumption-driven json string write for quoting.
+    // a window. The source aligns non-final bytes chunks to whole 3-byte groups, so a sub-group tail only ever
+    // appears on the final delivery (deferred == 0), where it is padded and emitted; a non-final chunk
+    // (deferred > 0) is always a whole number of groups. Whole groups that fit the output bound are emitted and
+    // their source bytes consumed; any groups that do not fit are left unconsumed for output back-pressure. The
+    // chars go through the same consumption-driven json string write for quoting.
     private void writeBytesSegment(
         DirectBuffer value,
         int offset,
@@ -802,7 +796,6 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
             int b0 = value.getByte(offset + taken++) & 0xff;
             int b1 = rem == 2 ? value.getByte(offset + taken++) & 0xff : -1;
             appendBase64Group(b0, b1, -1);
-            rem = 0;
             complete = true;
         }
         else if (deferred == 0 && rem == 0 && wholeGroups == length / 3)
@@ -816,14 +809,13 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
             json.write(scratch, completion);
             segmentOpened = true;
         }
-        // consume only the source bytes whose whole base64 groups were emitted; any sub-group tail is left
-        // unconsumed for the source to re-present (output back-pressure), so the adapter holds no carry buffer
+        // consume only the source bytes whose whole base64 groups were emitted; any groups that did not fit the
+        // output bound are left unconsumed for the source to re-present, so the adapter holds no carry buffer
         consumed += taken;
 
         if (complete)
         {
             segmentActive = false;
-            segmentLength = 0;
         }
     }
 
