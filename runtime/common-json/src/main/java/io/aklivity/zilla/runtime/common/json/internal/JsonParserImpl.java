@@ -44,6 +44,10 @@ import io.aklivity.zilla.runtime.common.json.internal.json.JsonValues;
 
 public final class JsonParserImpl implements JsonParserEx
 {
+    // a non-negative integer lexeme of at most this many digits is within long range; getInt()/getLong()
+    // reject anything longer as too large for a primitive, directing the caller to getBigDecimal()
+    private static final int LONG_DIGITS = 19;
+
     private final InputStream in;
     private final DirectBufferInputStreamEx ownedInput;
     private final JsonTokenizer tokenizer;
@@ -490,7 +494,9 @@ public final class JsonParserImpl implements JsonParserEx
     public boolean isIntegralNumber()
     {
         assert currentEvent == Event.VALUE_NUMBER;
-        final CharSequence v = numberLexeme();
+        // the current number's char view (not stringValue()), so scanning it materializes no String; with
+        // consumed(0) accumulation a value the caller needs whole is fully present in scratch by this point
+        final CharSequence v = tokenizer.stringView();
         if (v == null)
         {
             throw new IllegalStateException("Not a number");
@@ -508,11 +514,12 @@ public final class JsonParserImpl implements JsonParserEx
     public int getInt()
     {
         assert currentEvent == Event.VALUE_NUMBER;
-        if (tokenizer.numberFragmented())
-        {
-            throw new IllegalStateException("number spans multiple windows; use getBigDecimal()");
-        }
+        assert !deferredBytes();
         final CharSequence lexeme = tokenizer.stringView();
+        if (integerDigits(lexeme) > LONG_DIGITS)
+        {
+            throw new IllegalStateException("number exceeds long range; use getBigDecimal()");
+        }
         return Integer.parseInt(lexeme, 0, lexeme.length(), 10);
     }
 
@@ -520,11 +527,12 @@ public final class JsonParserImpl implements JsonParserEx
     public long getLong()
     {
         assert currentEvent == Event.VALUE_NUMBER;
-        if (tokenizer.numberFragmented())
-        {
-            throw new IllegalStateException("number spans multiple windows; use getBigDecimal()");
-        }
+        assert !deferredBytes();
         final CharSequence lexeme = tokenizer.stringView();
+        if (integerDigits(lexeme) > LONG_DIGITS)
+        {
+            throw new IllegalStateException("number exceeds long range; use getBigDecimal()");
+        }
         return Long.parseLong(lexeme, 0, lexeme.length(), 10);
     }
 
@@ -536,14 +544,22 @@ public final class JsonParserImpl implements JsonParserEx
         // value still spanning windows must first gather it (e.g. push back via consumed(0)) and only
         // read it once the deferred bytes have arrived
         assert !deferredBytes();
-        return new BigDecimal(numberLexeme().toString());
+        return new BigDecimal(tokenizer.stringView().toString());
     }
 
-    // the current number's full lexeme; the char view (not stringValue()), so a caller that only scans
-    // it — e.g. isIntegralNumber() — materializes no String
-    private CharSequence numberLexeme()
+    // count of leading integer digits after an optional sign; a longer integer lexeme cannot fit a long,
+    // so getInt()/getLong() reject it rather than overflow, directing the caller to getBigDecimal()
+    private static int integerDigits(
+        CharSequence lexeme)
     {
-        return tokenizer.numberFragmented() ? tokenizer.numberLexeme() : tokenizer.stringView();
+        int index = lexeme.length() > 0 && lexeme.charAt(0) == '-' ? 1 : 0;
+        int digits = 0;
+        while (index < lexeme.length() && lexeme.charAt(index) >= '0' && lexeme.charAt(index) <= '9')
+        {
+            index++;
+            digits++;
+        }
+        return digits;
     }
 
     @Override
@@ -578,7 +594,7 @@ public final class JsonParserImpl implements JsonParserEx
         case START_OBJECT -> getObject();
         case START_ARRAY -> getArray();
         case VALUE_STRING, KEY_NAME -> JsonValues.string(getString());
-        case VALUE_NUMBER -> JsonValues.numberLiteral(numberLexeme().toString());
+        case VALUE_NUMBER -> JsonValues.numberLiteral(tokenizer.stringView().toString());
         case VALUE_TRUE -> JsonValue.TRUE;
         case VALUE_FALSE -> JsonValue.FALSE;
         case VALUE_NULL -> JsonValue.NULL;

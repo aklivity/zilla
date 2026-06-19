@@ -71,9 +71,6 @@ public final class JsonTokenizer
     // unconsumed remainder accumulates, letting a consumer that declines fragments (consumed(0)) receive
     // the value whole. Set by the parser from its consumed cursor before each resuming advance.
     private int scratchConsumed;
-    // accumulates the full lexeme of a fragmented number across its fragments (scratch holds only the
-    // current fragment); getBigDecimal() reads this on the final fragment to read the value whole.
-    private final StringBuilder numberLexeme = new StringBuilder();
     private boolean terminalEof;
     // byte length of the current input window; a value whose own bytes reach this length without
     // completing fills the window and is delivered as fragments rather than reassembled across windows.
@@ -119,9 +116,6 @@ public final class JsonTokenizer
     // to unitStartOffset) for the caller to re-present, so no partial state crosses a wrap.
     private boolean fragmenting;
     private long unitStartOffset;
-    // true once the current/just-completed number was delivered in more than one fragment: getInt()/
-    // getLong() then throw (the value would overflow) and getBigDecimal() reads the accumulated lexeme.
-    private boolean numberFragmented;
     // RFC 8259 number grammar validated incrementally as each char is scanned, so a number spanning
     // windows needs no retained whole lexeme to validate; the state persists across fragments.
     private NumberState numberState;
@@ -166,8 +160,6 @@ public final class JsonTokenizer
         stack.clear();
         scratch.setLength(0);
         scratchConsumed = 0;
-        numberLexeme.setLength(0);
-        numberFragmented = false;
         numberState = NumberState.START;
         stringVerbatim = false;
         pathDepth = 0;
@@ -309,13 +301,11 @@ public final class JsonTokenizer
             }
             else if (fragment)
             {
-                // number: every digit is a complete unit so nothing is rewound; accumulate the whole
-                // lexeme and ship the digits scanned so far
+                // number: every digit is a complete unit so nothing is rewound; ship only when this round
+                // scanned new bytes (consumed(0) accumulation keeps the rest in scratch, re-presented whole)
                 fragmenting = true;
-                numberFragmented = true;
-                if (scratch.length() > 0)
+                if (streamOffset > fragmentStart)
                 {
-                    numberLexeme.append(scratch);
                     valueStreamStart = fragmentStart;
                     valueStreamEnd = streamOffset;
                     pendingEvent = JsonParser.Event.VALUE_NUMBER;
@@ -427,23 +417,11 @@ public final class JsonTokenizer
         return fragmenting;
     }
 
-    // True when the current/just-completed number was delivered in more than one fragment, so its whole
-    // lexeme is in numberLexeme() rather than the current scratch.
-    public boolean numberFragmented()
-    {
-        return numberFragmented;
-    }
-
     // True when the just-delivered value-string was streamed verbatim as raw bytes rather than decoded
     // into scratch; the parser then splices its raw token bytes instead of rendering canonically.
     public boolean stringVerbatim()
     {
         return stringVerbatim;
-    }
-
-    public CharSequence numberLexeme()
-    {
-        return numberLexeme;
     }
 
     public String currentPath()
@@ -561,7 +539,10 @@ public final class JsonTokenizer
             }
             break;
         case VALUE_NUMBER:
-            scratch.setLength(0);
+            // keep the unconsumed remainder (a decliner keeps all of it via consumed(0)) so the next
+            // fragment accumulates onto it and the number is re-presented whole; full consumption drops it
+            scratch.delete(0, Math.min(scratchConsumed, scratch.length()));
+            scratchConsumed = 0;
             fragmentStart = streamOffset;
             continueNumberContent(in);
             if (!starved)
@@ -626,14 +607,10 @@ public final class JsonTokenizer
 
     // Completes a VALUE_NUMBER scan: continueNumberContent only returns here once the number terminator
     // (or the terminal window's EOF) is seen, so the number is whole. The grammar was validated char by
-    // char as the lexeme was scanned; here only the accepting-state check remains. A fragmented number's
-    // full lexeme is still gathered in numberLexeme for getBigDecimal until the source accumulates it.
+    // char as the lexeme was scanned; here only the accepting-state check remains. The whole lexeme, when
+    // a consumer needs it, lives in scratch via consumed(0) accumulation — no separate retained buffer.
     private void finishNumberValue()
     {
-        if (numberFragmented)
-        {
-            numberLexeme.append(scratch);
-        }
         validateNumberComplete();
         valueStreamStart = fragmentStart;
         valueStreamEnd = streamOffset;
@@ -817,9 +794,8 @@ public final class JsonTokenizer
                 fragmentStart = streamOffset - 1;
                 valueLine = line;
                 valueColumn = column - 1;
-                numberLexeme.setLength(0);
-                numberFragmented = false;
                 scratch.setLength(0);
+                scratchConsumed = 0;
                 numberState = NumberState.START;
                 scratch.append((char) c);
                 validateNumberChar(c);
