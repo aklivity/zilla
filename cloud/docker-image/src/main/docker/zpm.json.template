@@ -46,6 +46,7 @@
     "io.aklivity.zilla:catalog-schema-registry",
     "io.aklivity.zilla:common",
     "io.aklivity.zilla:common-json",
+    "io.aklivity.zilla:common-lang",
     "io.aklivity.zilla:common-yaml",
     "io.aklivity.zilla:command",
     "io.aklivity.zilla:command-dump",

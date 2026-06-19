@@ -12,13 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-module io.aklivity.zilla.runtime.common.protobuf
+module io.aklivity.zilla.runtime.common.lang
 {
-    requires transitive org.agrona;
-    requires transitive io.aklivity.zilla.runtime.common.json;
-    requires io.aklivity.zilla.runtime.common.lang;
-    requires org.antlr.antlr4.runtime;
-
-    exports io.aklivity.zilla.runtime.common.protobuf;
-    exports io.aklivity.zilla.runtime.common.protobuf.json;
+    exports io.aklivity.zilla.runtime.common.lang;
 }

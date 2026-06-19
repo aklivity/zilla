@@ -31,6 +31,7 @@ import io.aklivity.zilla.runtime.common.avro.AvroType;
 import io.aklivity.zilla.runtime.common.avro.AvroValidationException;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
+import io.aklivity.zilla.runtime.common.lang.Numbers;
 
 /**
  * <b>JSON → Avro</b> adapter: an {@link AvroParser} that drives a {@link JsonParserEx} over its streaming
@@ -551,13 +552,13 @@ public final class AvroJsonParserImpl implements AvroParser
             break;
         case FLOAT:
             require(next == JsonEvent.VALUE_NUMBER, "expected number");
-            floatValue = json.getBigDecimal().floatValue();
+            floatValue = Numbers.parseFloat(json.getStringView());
             consume();
             event = AvroEvent.FLOAT;
             break;
         case DOUBLE:
             require(next == JsonEvent.VALUE_NUMBER, "expected number");
-            doubleValue = json.getBigDecimal().doubleValue();
+            doubleValue = Numbers.parseDouble(json.getStringView());
             consume();
             event = AvroEvent.DOUBLE;
             break;

@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.common.protobuf.json.internal;
+package io.aklivity.zilla.runtime.common.lang;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -20,13 +20,13 @@ import java.util.Random;
 
 import org.junit.jupiter.api.Test;
 
-public class ProtobufJsonNumberParseTest
+public class NumbersTest
 {
     private void assertDoubleBits(
         String value)
     {
         long expected = Double.doubleToLongBits(Double.parseDouble(value));
-        long actual = Double.doubleToLongBits(ProtobufJsonParserImpl.parseDouble(value));
+        long actual = Double.doubleToLongBits(Numbers.parseDouble(value));
         assertEquals(expected, actual, () -> "double mismatch for \"" + value + "\"");
     }
 
@@ -34,7 +34,7 @@ public class ProtobufJsonNumberParseTest
         String value)
     {
         int expected = Float.floatToIntBits(Float.parseFloat(value));
-        int actual = Float.floatToIntBits(ProtobufJsonParserImpl.parseFloat(value));
+        int actual = Float.floatToIntBits(Numbers.parseFloat(value));
         assertEquals(expected, actual, () -> "float mismatch for \"" + value + "\"");
     }
 
@@ -221,10 +221,9 @@ public class ProtobufJsonNumberParseTest
     @Test
     public void shouldParseCharSequenceSubviews()
     {
-        CharSequence view = new StringBuilder("1.5");
         assertEquals(Double.doubleToLongBits(1.5),
-            Double.doubleToLongBits(ProtobufJsonParserImpl.parseDouble(view)));
+            Double.doubleToLongBits(Numbers.parseDouble(new StringBuilder("1.5"))));
         assertEquals(Float.floatToIntBits(1.5f),
-            Float.floatToIntBits(ProtobufJsonParserImpl.parseFloat(new StringBuilder("1.5"))));
+            Float.floatToIntBits(Numbers.parseFloat(new StringBuilder("1.5"))));
     }
 }
