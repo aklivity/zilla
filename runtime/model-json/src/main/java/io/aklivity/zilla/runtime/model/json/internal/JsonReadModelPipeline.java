@@ -111,11 +111,32 @@ final class JsonReadModelPipeline implements ModelPipeline
         else
         {
             boolean last = (flags & FLAGS_FIN) != 0;
-            JsonPipelineResult json =
-                active.transform(src, srcIndex + prefix, srcIndex + srcLength, last, dst, dstIndex, dstIndex + dstLength);
-            status = map(json.status());
-            consumed = prefix + json.consumed();
-            produced = json.produced();
+            int from = srcIndex + prefix;
+            int limit = srcIndex + srcLength;
+            if (dstLength == 0)
+            {
+                // validate-only: there is no destination to drain, so parse the value into the shared scratch and
+                // discard the output, looping on OVERFLOW until the input is consumed or the value completes
+                MutableDirectBuffer scratch = handler.scratch();
+                Status raw;
+                do
+                {
+                    JsonPipelineResult json = active.transform(src, from, limit, last, scratch, 0, scratch.capacity());
+                    from += json.consumed();
+                    raw = json.status();
+                }
+                while (raw == Status.SUSPENDED);
+                status = map(raw);
+                produced = 0;
+            }
+            else
+            {
+                JsonPipelineResult json = active.transform(src, from, limit, last, dst, dstIndex, dstIndex + dstLength);
+                from += json.consumed();
+                status = map(json.status());
+                produced = json.produced();
+            }
+            consumed = from - srcIndex;
             if (status == ModelStatus.COMPLETE)
             {
                 visitExtracted();

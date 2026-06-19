@@ -22,6 +22,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.agrona.DirectBuffer;
+import org.agrona.MutableDirectBuffer;
+import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
@@ -39,10 +41,15 @@ public final class JsonReadModelHandler extends JsonModelHandler implements Mode
 {
     private static final String PATH = "^\\$\\.([A-Za-z_][A-Za-z0-9_]*)$";
     private static final Pattern PATH_PATTERN = Pattern.compile(PATH);
+    private static final int SCRATCH_CAPACITY = 8192;
 
     private final Matcher matcher;
     private final List<String> paths;
     private final List<String> names;
+    // shared per-worker sink for validate-only output, which is parsed for validation then discarded; safe to
+    // share because a pipeline drains it fully within a single transform call on the owning worker thread.
+    // TODO: remove once all callers validate via the ModelPipeline zero-length dst path.
+    private final MutableDirectBuffer scratch;
 
     public JsonReadModelHandler(
         JsonModelConfig config,
@@ -52,6 +59,12 @@ public final class JsonReadModelHandler extends JsonModelHandler implements Mode
         this.matcher = PATH_PATTERN.matcher("");
         this.paths = new ArrayList<>();
         this.names = new ArrayList<>();
+        this.scratch = new UnsafeBuffer(new byte[SCRATCH_CAPACITY]);
+    }
+
+    MutableDirectBuffer scratch()
+    {
+        return scratch;
     }
 
     @Override
