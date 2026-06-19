@@ -19,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayOutputStream;
+import java.util.List;
 
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -78,6 +79,23 @@ class JsonPipelineTransformTest
 
         // a key longer than the destination bound must fragment, not write past the bound
         String key = "k".repeat(40);
+        byte[] in = ("{\"" + key + "\":1}").getBytes(UTF_8);
+        String drained = drainToCompletion(pipeline, in, 16);
+
+        assertEquals(new String(in, UTF_8), drained);
+    }
+
+    @Test
+    void shouldNotOverrunDestinationOnLongKeyThroughProjector()
+    {
+        // a projector buffers the whole key and forwards it during the value's event; a bounded destination
+        // must still fragment that buffered key without overrunning or re-emitting
+        String key = "k".repeat(40);
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(JsonEx.projector(List.of("/" + key)))
+            .into(JsonEx.createGenerator());
+        pipeline.reset();
+
         byte[] in = ("{\"" + key + "\":1}").getBytes(UTF_8);
         String drained = drainToCompletion(pipeline, in, 16);
 

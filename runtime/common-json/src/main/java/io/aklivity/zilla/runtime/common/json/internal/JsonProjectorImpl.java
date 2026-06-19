@@ -76,9 +76,15 @@ public final class JsonProjectorImpl implements JsonTransform
     private boolean scalarPending;
     private boolean scalarEmit;
     // true while a buffered key is being forwarded downstream: the parser delivered that key live and already
-    // moved on, so the sink's consumed() pushback for it must be absorbed rather than relayed to the parser's
+    // moved on, so the sink's consumed() pushback advances the KeySource cursor rather than the parser's
     // now-current (value) char cursor
     private boolean forwardingKey;
+    // a buffered key forward filled the bounded output mid-key: resume must drain its remainder before the
+    // held value (the event that triggered the forward) is processed
+    private boolean keyDraining;
+    private JsonEvent heldEvent;
+    private boolean heldStart;
+    private Decision heldDecision;
 
     private enum SegMode
     {
@@ -109,6 +115,10 @@ public final class JsonProjectorImpl implements JsonTransform
         scalarPending = false;
         scalarEmit = false;
         forwardingKey = false;
+        keyDraining = false;
+        heldEvent = null;
+        heldStart = false;
+        heldDecision = null;
     }
 
     private void onDownstreamSegmentable()
@@ -130,9 +140,14 @@ public final class JsonProjectorImpl implements JsonTransform
         public void consumed(
             int sourceBytes)
         {
-            // a buffered key's pushback is absorbed (the parser already delivered that key live); a value's
-            // pushback relays to the parser so it re-exposes the value remainder on resume
-            if (!forwardingKey)
+            // a buffered key's pushback advances the KeySource's own cursor so its remainder is re-presented on
+            // resume (the parser already delivered that key live and moved on); a value's pushback relays to
+            // the parser so it re-exposes the value remainder on resume
+            if (forwardingKey)
+            {
+                keySource.consume(sourceBytes);
+            }
+            else
             {
                 upstreamControl.consumed(sourceBytes);
             }
@@ -160,6 +175,50 @@ public final class JsonProjectorImpl implements JsonTransform
         {
             route(control, source, event, sink);
         }
+        return mapStatus();
+    }
+
+    @Override
+    public Status resume(
+        JsonController control,
+        JsonSource source,
+        JsonEvent event,
+        JsonSink sink)
+    {
+        upstreamControl = control;
+        downstream = Status.ADVANCED;
+        if (keyDraining)
+        {
+            // continue draining the buffered key; once it fully drains, process the value that was held back
+            forwardPendingKey(sink);
+            if (pendingKey == null)
+            {
+                keyDraining = false;
+                JsonEvent held = heldEvent;
+                heldEvent = null;
+                if (heldStart)
+                {
+                    startEmit(control, source, held, sink, heldDecision);
+                }
+                else
+                {
+                    forwardScalarValue(source, held, sink);
+                }
+            }
+        }
+        else
+        {
+            Status status = sink.resume(control, source, event);
+            if (rank(status) > rank(downstream))
+            {
+                downstream = status;
+            }
+        }
+        return mapStatus();
+    }
+
+    private Status mapStatus()
+    {
         Status status;
         if (downstream == Status.REJECTED)
         {
@@ -252,6 +311,10 @@ public final class JsonProjectorImpl implements JsonTransform
         // A forwarded key reuses the char view already buffered above for path matching, so no key
         // ever materializes a String — neither the SKIP majority nor the KEEP keys carried downstream.
         pendingKey = d == Decision.SKIP ? null : key;
+        if (pendingKey != null)
+        {
+            keySource.with(key);
+        }
         // arm the kept value for verbatim segment delivery; best-effort, demand-gated
         boolean parentEmit = containers == 0 || frameEmit[containers - 1];
         if (parentEmit && d == Decision.KEEP_ALL && downstreamDemand)
@@ -266,9 +329,14 @@ public final class JsonProjectorImpl implements JsonTransform
         if (pendingKey != null)
         {
             forwardingKey = true;
-            forward(sink, keySource.with(pendingKey), JsonEvent.KEY_NAME);
+            forward(sink, keySource, JsonEvent.KEY_NAME);
             forwardingKey = false;
-            pendingKey = null;
+            // a bounded sink may have written only part of even a whole buffered key; clear pendingKey only
+            // once the key has fully drained, so resume re-presents the remainder
+            if (keySource.drained())
+            {
+                pendingKey = null;
+            }
         }
     }
 
@@ -294,23 +362,46 @@ public final class JsonProjectorImpl implements JsonTransform
         Decision d = enterValue();
         boolean parentEmit = containers == 0 || frameEmit[containers - 1];
         boolean emit = parentEmit && d != Decision.SKIP;
-        if (emit && d == Decision.KEEP_ALL && downstreamDemand)
+        if (emit)
         {
             forwardPendingKey(sink);
-            control.segmentable();
-            segMode = SegMode.AWAITING;
-            deferredStart = event;
-        }
-        else if (emit)
-        {
-            forwardPendingKey(sink);
-            forward(sink, source, event);
-            pushFrame(event, true, d);
+            if (pendingKey != null)
+            {
+                // the buffered key filled the bounded output; hold this start until the key drains on resume
+                keyDraining = true;
+                heldEvent = event;
+                heldStart = true;
+                heldDecision = d;
+            }
+            else
+            {
+                startEmit(control, source, event, sink, d);
+            }
         }
         else
         {
             pendingKey = null;
             pushFrame(event, false, d);
+        }
+    }
+
+    private void startEmit(
+        JsonController control,
+        JsonSource source,
+        JsonEvent event,
+        JsonSink sink,
+        Decision d)
+    {
+        if (d == Decision.KEEP_ALL && downstreamDemand)
+        {
+            control.segmentable();
+            segMode = SegMode.AWAITING;
+            deferredStart = event;
+        }
+        else
+        {
+            forward(sink, source, event);
+            pushFrame(event, true, d);
         }
     }
 
@@ -413,20 +504,46 @@ public final class JsonProjectorImpl implements JsonTransform
             if (scalarEmit)
             {
                 forwardPendingKey(sink);
-                forward(sink, source, event);
+                if (pendingKey != null)
+                {
+                    // the buffered key filled the bounded output; hold this scalar until the key drains
+                    keyDraining = true;
+                    heldEvent = event;
+                    heldStart = false;
+                }
+                else
+                {
+                    forwardScalarValue(source, event, sink);
+                }
             }
             else
             {
                 pendingKey = null;
+                if (source.deferredBytes())
+                {
+                    scalarPending = true;
+                }
+                else
+                {
+                    finishScalar();
+                }
             }
-            if (source.deferredBytes())
-            {
-                scalarPending = true;
-            }
-            else
-            {
-                finishScalar();
-            }
+        }
+    }
+
+    private void forwardScalarValue(
+        JsonSource source,
+        JsonEvent event,
+        JsonSink sink)
+    {
+        forward(sink, source, event);
+        if (source.deferredBytes())
+        {
+            scalarPending = true;
+        }
+        else
+        {
+            finishScalar();
         }
     }
 
@@ -585,25 +702,72 @@ public final class JsonProjectorImpl implements JsonTransform
 
     private static final class KeySource implements JsonSource
     {
+        private final View view = new View();
+
         private CharSequence key;
+        private int offset;
 
         private KeySource with(
             CharSequence key)
         {
             this.key = key;
+            this.offset = 0;
             return this;
+        }
+
+        // advance past the chars the sink wrote, so getStringView re-exposes the remainder on resume
+        private void consume(
+            int chars)
+        {
+            offset += chars;
+        }
+
+        private boolean drained()
+        {
+            return key == null || offset >= key.length();
         }
 
         @Override
         public String getString()
         {
-            return key == null ? null : key.toString();
+            return key == null ? null : view.toString();
         }
 
         @Override
         public CharSequence getStringView()
         {
-            return key;
+            return view;
+        }
+
+        // a non-allocating view of the unconsumed remainder of the buffered key
+        private final class View implements CharSequence
+        {
+            @Override
+            public int length()
+            {
+                return key.length() - offset;
+            }
+
+            @Override
+            public char charAt(
+                int index)
+            {
+                return key.charAt(offset + index);
+            }
+
+            @Override
+            public CharSequence subSequence(
+                int start,
+                int end)
+            {
+                return key.subSequence(offset + start, offset + end);
+            }
+
+            @Override
+            public String toString()
+            {
+                return key.subSequence(offset, key.length()).toString();
+            }
         }
 
         @Override
