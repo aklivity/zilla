@@ -771,9 +771,11 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
     }
 
     // The source bytes are base64-encoded a whole 3-byte group at a time so a 4-char group never splits across
-    // a window. Whole groups (carry + slice) that fit the output bound are emitted; a 1-2 byte tail short of a
-    // group is carried to the next window (counted as consumed now), except on the final delivery where it is
-    // padded and emitted. The chars go through the same consumption-driven json string write for quoting.
+    // a window. The source aligns non-final bytes chunks to whole 3-byte groups, so a sub-group tail only ever
+    // appears on the final delivery (deferred == 0), where it is padded and emitted; a non-final chunk
+    // (deferred > 0) is always a whole number of groups. Whole groups that fit the output bound are emitted and
+    // their source bytes consumed; any groups that do not fit are left unconsumed for output back-pressure. The
+    // chars go through the same consumption-driven json string write for quoting.
     private void writeBytesSegment(
         DirectBuffer value,
         int offset,
@@ -802,7 +804,6 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
             int b0 = value.getByte(offset + taken++) & 0xff;
             int b1 = rem == 2 ? value.getByte(offset + taken++) & 0xff : -1;
             appendBase64Group(b0, b1, -1);
-            rem = 0;
             complete = true;
         }
         else if (deferred == 0 && rem == 0 && wholeGroups == length / 3)
@@ -816,8 +817,8 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
             json.write(scratch, completion);
             segmentOpened = true;
         }
-        // consume only the source bytes whose whole base64 groups were emitted; any sub-group tail is left
-        // unconsumed for the source to re-present (output back-pressure), so the adapter holds no carry buffer
+        // consume only the source bytes whose whole base64 groups were emitted; any groups that did not fit the
+        // output bound are left unconsumed for the source to re-present, so the adapter holds no carry buffer
         consumed += taken;
 
         if (complete)

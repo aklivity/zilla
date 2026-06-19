@@ -215,7 +215,9 @@ public final class ProtobufTypedSinkImpl implements ProtobufSink
         {
             if (generator.length() > 0)
             {
-                // output filled before this chunk drained; drain and replay against a fresh buffer
+                // output filled before this chunk drained; drain and replay against a fresh buffer. STARVED for an
+                // input-windowed bytes value arises upstream — the parser aligns a non-final bytes leaf chunk to a
+                // whole base64 group and starves on the 1-2 byte sub-group tail — not here
                 generator.flush();
                 status = ProtobufPipeline.Status.SUSPENDED;
             }
