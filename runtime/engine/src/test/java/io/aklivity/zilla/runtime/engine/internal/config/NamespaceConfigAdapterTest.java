@@ -391,6 +391,51 @@ public class NamespaceConfigAdapterTest
     }
 
     @Test
+    public void shouldReadNamespaceWithGuardAndKind()
+    {
+        String text =
+                "{" +
+                    "\"name\": \"test\"," +
+                    "\"guards\":" +
+                    "{" +
+                        "\"default\":" +
+                        "{" +
+                            "\"type\": \"test\"," +
+                            "\"kind\": \"test\"" +
+                        "}" +
+                    "}" +
+                "}";
+
+        NamespaceConfig config = jsonb.fromJson(text, NamespaceConfig.class);
+
+        assertThat(config, not(nullValue()));
+        assertThat(config.guards, hasSize(1));
+        assertThat(config.guards.get(0).name, equalTo("default"));
+        assertThat(config.guards.get(0).type, equalTo("test"));
+        assertThat(config.guards.get(0).kind, equalTo("test"));
+    }
+
+    @Test
+    public void shouldWriteNamespaceWithGuardAndKind()
+    {
+        NamespaceConfig config = NamespaceConfig.builder()
+                .inject(identity())
+                .name("test")
+                .guard()
+                    .name("default")
+                    .type("test")
+                    .kind("test")
+                    .build()
+                .build();
+
+        String text = jsonb.toJson(config);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo("{\"name\":\"test\",\"guards\":{\"default\":{" +
+                "\"type\":\"test\",\"kind\":\"test\"}}}"));
+    }
+
+    @Test
     public void shouldReadNamespaceWithVault()
     {
         String text =

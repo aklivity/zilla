@@ -31,6 +31,7 @@ public class GuardConfig
     public final String name;
     public final String qname;
     public final String type;
+    public final String kind;
     public final String store;
     public final OptionsConfig options;
 
@@ -43,6 +44,7 @@ public class GuardConfig
         String namespace,
         String name,
         String type,
+        String kind,
         String store,
         OptionsConfig options)
     {
@@ -50,6 +52,7 @@ public class GuardConfig
         this.name = requireNonNull(name);
         this.qname = String.format("%s:%s", namespace, name);
         this.type = requireNonNull(type);
+        this.kind = kind;
         this.store = store;
         this.options = options;
     }
