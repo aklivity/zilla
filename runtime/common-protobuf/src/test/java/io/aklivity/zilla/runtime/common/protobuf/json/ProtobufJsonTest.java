@@ -252,6 +252,13 @@ public class ProtobufJsonTest
     }
 
     @Test
+    public void shouldRoundTripMultiCharacterMapKey()
+    {
+        assertEquals("{\"props\":{\"hello-world\":\"v\"}}",
+            roundTrip("Person", "{\"props\":{\"hello-world\":\"v\"}}"));
+    }
+
+    @Test
     public void shouldRoundTripNonFinite()
     {
         assertEquals("{\"fl\":\"NaN\",\"db\":\"-Infinity\"}",

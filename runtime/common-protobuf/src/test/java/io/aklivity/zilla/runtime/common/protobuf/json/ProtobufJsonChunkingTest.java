@@ -198,6 +198,29 @@ public class ProtobufJsonChunkingTest
         assertArrayEquals(blob, Base64.getDecoder().decode(object.getString("by")));
     }
 
+    @Test
+    public void shouldFragmentMapKeyAcrossTinyInputWindows()
+    {
+        // a string map key long enough that its wire bytes split across several tiny input windows, exercising
+        // the multi-fragment accumulation path that materializes the key once complete
+        String key = "the-quick-brown-fox-jumps-over-the-lazy-dog";
+
+        byte[] wire = wire(g -> g
+            .startMessage(1, 64)
+            .writeString(1, key)
+            .writeString(2, "v")
+            .endMessage());
+
+        // a 4-byte input window forces the key's wire bytes to arrive in many fragments (STARVED), while a
+        // generous output window keeps the whole document in one chunk
+        TwoAxisDrained drained = toJsonTwoAxis("Props", wire, 4, 8192);
+
+        assertTrue(drained.starves >= 1, "expected at least one STARVED (input) chunk boundary");
+
+        JsonObject object = parse(drained.json);
+        assertEquals("v", object.getJsonObject("props").getString(key));
+    }
+
     private WireDrained fromJsonWindowed(
         String messageName,
         byte[] json,
@@ -407,6 +430,15 @@ public class ProtobufJsonChunkingTest
                 .field(ProtobufField.builder().number(13).name("bo").type(ProtobufType.BOOL).build())
                 .field(ProtobufField.builder().number(14).name("st").type(ProtobufType.STRING).build())
                 .field(ProtobufField.builder().number(15).name("by").type(ProtobufType.BYTES).build())
+                .build())
+            .message(ProtobufMessage.builder("PropsEntry")
+                .mapEntry(true)
+                .field(ProtobufField.builder().number(1).name("key").type(ProtobufType.STRING).build())
+                .field(ProtobufField.builder().number(2).name("value").type(ProtobufType.STRING).build())
+                .build())
+            .message(ProtobufMessage.builder("Props")
+                .field(ProtobufField.builder().number(1).name("props").type(ProtobufType.MESSAGE).typeName("PropsEntry")
+                    .repeated(true).build())
                 .build())
             .build();
     }
