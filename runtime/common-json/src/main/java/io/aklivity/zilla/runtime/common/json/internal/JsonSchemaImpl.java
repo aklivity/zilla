@@ -2175,15 +2175,39 @@ public final class JsonSchemaImpl implements JsonSchema
             JsonSink sink)
         {
             upstreamControl = control;
-            Status downstream = sink.feed(decline, source, event);
             Status status;
+            boolean scalar = event == JsonEvent.VALUE_STRING || event == JsonEvent.VALUE_NUMBER;
             if (event.segmented() || event == JsonEvent.START_DOCUMENT || event == JsonEvent.END_DOCUMENT)
             {
+                Status downstream = sink.feed(decline, source, event);
                 status = downstream == Status.REJECTED ? Status.REJECTED
                     : downstream == Status.SUSPENDED ? Status.SUSPENDED : Status.ADVANCED;
             }
+            else if (scalar && source.deferredBytes())
+            {
+                // Eval is not fragment-aware: a value spanning windows must be reassembled before it can be
+                // validated against any keyword. Decline the fragment (consumed(0), do not forward) so the
+                // source accumulates it and re-presents the value whole on a later window; only then validate.
+                control.consumed(0);
+                status = Status.STARVED;
+            }
+            else if (scalar)
+            {
+                // a complete scalar: validate before forwarding, so eval reads the whole value rather than the
+                // remainder the sink leaves after advancing the consumed cursor
+                Verdict verdict = eval.feed(toEvent(event), source);
+                if (verdict == Verdict.INVALID)
+                {
+                    throw new JsonValidationException(diagnostics);
+                }
+                Status downstream = sink.feed(decline, source, event);
+                status = verdictStatus(verdict, downstream);
+            }
             else
             {
+                // structural events and keys forward first, preserving the emit-then-reject ordering (e.g. a
+                // missing required property is detected at END_OBJECT only after the object has been emitted)
+                Status downstream = sink.feed(decline, source, event);
                 Verdict verdict = eval.feed(toEvent(event), source);
                 // throw a descriptive exception at the point of detection so the pipeline maps it to REJECTED
                 // and pushes the diagnostic to the reporter, rather than rejecting structurally with no message
@@ -2191,20 +2215,18 @@ public final class JsonSchemaImpl implements JsonSchema
                 {
                     throw new JsonValidationException(diagnostics);
                 }
-                else if (downstream == Status.REJECTED)
-                {
-                    status = Status.REJECTED;
-                }
-                else if (verdict == Verdict.VALID)
-                {
-                    status = Status.COMPLETED;
-                }
-                else
-                {
-                    status = downstream == Status.SUSPENDED ? Status.SUSPENDED : Status.ADVANCED;
-                }
+                status = verdictStatus(verdict, downstream);
             }
             return status;
+        }
+
+        private Status verdictStatus(
+            Verdict verdict,
+            Status downstream)
+        {
+            return downstream == Status.REJECTED ? Status.REJECTED
+                : verdict == Verdict.VALID ? Status.COMPLETED
+                : downstream == Status.SUSPENDED ? Status.SUSPENDED : Status.ADVANCED;
         }
 
         @Override

@@ -322,8 +322,10 @@ class JsonPipelineChunkingTest
     @Test
     void shouldReadWindowFragmentedNumberAsBigDecimalAndRejectGetInt()
     {
-        // a number far longer than long range fragments across small windows; getBigDecimal() reads the
-        // whole value from the accumulated lexeme, while getInt()/getLong() reject the fragmented number
+        // a number far longer than long range fragments across small windows. A consumer that needs the
+        // whole value declines each fragment via consumed(0); the source accumulates the declined fragments
+        // and re-presents the value whole, so at completion getBigDecimal() reads it from scratch while
+        // getInt()/getLong() reject it as too large for a primitive
         String bigNumber = "12345678901234567890123456789012";
         String json = "{\"n\":" + bigNumber + "}";
 
@@ -333,21 +335,32 @@ class JsonPipelineChunkingTest
         List<Boolean> intRejected = new ArrayList<>();
         JsonTransform probe = (control, source, event, sink) ->
         {
-            if (event == JsonEvent.VALUE_NUMBER && !source.deferredBytes())
+            Status result;
+            if (event == JsonEvent.VALUE_NUMBER && source.deferredBytes())
             {
-                wholes.add(source.getBigDecimal());
-                boolean rejected = false;
-                try
-                {
-                    source.getInt();
-                }
-                catch (IllegalStateException ex)
-                {
-                    rejected = true;
-                }
-                intRejected.add(rejected);
+                // need the whole number; decline this fragment and wait for the rest
+                control.consumed(0);
+                result = Status.STARVED;
             }
-            return sink.feed(control, source, event);
+            else
+            {
+                if (event == JsonEvent.VALUE_NUMBER)
+                {
+                    wholes.add(source.getBigDecimal());
+                    boolean rejected = false;
+                    try
+                    {
+                        source.getInt();
+                    }
+                    catch (IllegalStateException ex)
+                    {
+                        rejected = true;
+                    }
+                    intRejected.add(rejected);
+                }
+                result = sink.feed(control, source, event);
+            }
+            return result;
         };
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(probe)
