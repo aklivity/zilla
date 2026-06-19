@@ -225,6 +225,86 @@ public class AvroJsonTest
         assertRejected("[\"int\",\"string\"]", "null");
     }
 
+    @Test
+    public void shouldEncodeCanonicalNullableUnionValue()
+    {
+        assertCanonicalJson("[\"null\",\"string\"]", new byte[] { 0x02, 0x02, 0x78 }, "\"x\"");
+    }
+
+    @Test
+    public void shouldEncodeCanonicalNullableUnionNull()
+    {
+        assertCanonicalJson("[\"null\",\"string\"]", new byte[] { 0x00 }, "null");
+    }
+
+    @Test
+    public void shouldEncodeCanonicalNullableUnionInRecord()
+    {
+        assertCanonicalJson("""
+            {"type":"record","name":"Event","fields":[
+            {"name":"id","type":"string"},
+            {"name":"status","type":["null","string"]}]}""",
+            new byte[] { 0x06, 0x69, 0x64, 0x30, 0x02, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65 },
+            "{\"id\":\"id0\",\"status\":\"positive\"}");
+    }
+
+    @Test
+    public void shouldWrapNonNullableSingleUnionInCanonicalMode()
+    {
+        // a union with more than one non-null branch keeps the wrapped encoding even in canonical mode
+        assertCanonicalJson("[\"null\",\"int\",\"string\"]", new byte[] { 0x04, 0x02, 0x78 }, "{\"string\":\"x\"}");
+    }
+
+    private void assertCanonicalJson(
+        String schemaText,
+        byte[] binary,
+        String expectedJson)
+    {
+        AvroSchema schema = Avro.schema(schemaText);
+        assertEquals(expectedJson, avroToJsonCanonical(schema, binary));
+        assertArrayEquals(binary, jsonToAvroCanonical(schema, expectedJson));
+    }
+
+    private static String avroToJsonCanonical(
+        AvroSchema schema,
+        byte[] binary)
+    {
+        MutableDirectBuffer out = new UnsafeBuffer(new byte[Math.max(256, binary.length * 8)]);
+        JsonGeneratorEx json = JsonEx.createGenerator();
+        AvroGenerator generator = AvroJson.generator(schema, json, true).wrap(out, 0, out.capacity());
+        AvroPipeline pipeline = Avro.stream(Avro.parser(schema)).into(AvroSink.of(generator));
+        pipeline.reset();
+        Status status = pipeline.feed(new UnsafeBuffer(binary), 0, binary.length);
+        if (status != Status.COMPLETED)
+        {
+            throw new AssertionError("avro -> json did not complete: " + status);
+        }
+        json.flush();
+        byte[] bytes = new byte[json.length()];
+        out.getBytes(0, bytes);
+        return new String(bytes, UTF_8);
+    }
+
+    private static byte[] jsonToAvroCanonical(
+        AvroSchema schema,
+        String json)
+    {
+        byte[] jsonBytes = json.getBytes(UTF_8);
+        MutableDirectBuffer out = new UnsafeBuffer(new byte[Math.max(256, jsonBytes.length * 4)]);
+        AvroGenerator generator = Avro.generator(schema, out, 0);
+        JsonParserEx parser = JsonEx.createParser();
+        AvroPipeline pipeline = AvroJson.stream(schema, parser, true).into(AvroSink.of(generator));
+        pipeline.reset();
+        Status status = pipeline.feed(new UnsafeBuffer(jsonBytes), 0, jsonBytes.length);
+        if (status != Status.COMPLETED)
+        {
+            throw new AssertionError("json -> avro did not complete: " + status);
+        }
+        byte[] avro = new byte[generator.length()];
+        out.getBytes(0, avro);
+        return avro;
+    }
+
     private void assertRejected(
         String schemaText,
         String json)

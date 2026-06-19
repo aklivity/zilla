@@ -12,13 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-module io.aklivity.zilla.runtime.common.avro
+module io.aklivity.zilla.runtime.common.lang
 {
-    requires transitive jakarta.json;
-    requires transitive org.agrona;
-    requires transitive io.aklivity.zilla.runtime.common.json;
-    requires io.aklivity.zilla.runtime.common.lang;
-
-    exports io.aklivity.zilla.runtime.common.avro;
-    exports io.aklivity.zilla.runtime.common.avro.json;
+    exports io.aklivity.zilla.runtime.common.lang;
 }
