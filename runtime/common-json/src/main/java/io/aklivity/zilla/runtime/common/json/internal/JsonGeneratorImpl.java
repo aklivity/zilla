@@ -26,6 +26,7 @@ import jakarta.json.JsonValue;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
+import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx.Completion;
@@ -44,13 +45,15 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
 {
     private static final int MAX_DEPTH = 64;
     private static final byte[] HEX = "0123456789abcdef".getBytes();
+    // a defensible initial target so a freshly constructed generator never NPEs on direct use before wrap
+    private static final MutableDirectBuffer EMPTY = new UnsafeBuffer(new byte[0]);
 
     private final boolean[] inArray = new boolean[MAX_DEPTH];
     private final boolean[] hasMembers = new boolean[MAX_DEPTH];
     private final IntConsumer putByte;
     private final SegmentWriter writeSegment;
 
-    private MutableDirectBuffer buffer;
+    private MutableDirectBuffer buffer = EMPTY;
     private int offset;
     private int progress;
     private int limit;
@@ -166,6 +169,37 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         writeString(name);
         putByte.accept(':');
         pending = Pending.AFTER_KEY;
+        return this;
+    }
+
+    @Override
+    public JsonGeneratorImpl writeKey(
+        CharSequence name,
+        Completion completion)
+    {
+        if (pending != Pending.KEY)
+        {
+            if (hasMembers[depth - 1])
+            {
+                putByte.accept(',');
+            }
+            hasMembers[depth - 1] = true;
+            putByte.accept('"');
+            pending = Pending.KEY;
+        }
+        // emit only the code points whose escaped form fits the output bound, reserving room on the final
+        // fragment for the closing quote and key separator; report the source chars taken via consumed() so a
+        // chunking driver advances its cursor and resumes from the remainder, the key-domain analog of
+        // write(CharSequence, Completion)
+        final int reserve = completion == Completion.COMPLETE ? 2 : 0;
+        final int written = writeStringBody(name, reserve);
+        consumed += written;
+        if (written == name.length() && completion == Completion.COMPLETE)
+        {
+            putByte.accept('"');
+            putByte.accept(':');
+            pending = Pending.AFTER_KEY;
+        }
         return this;
     }
 
@@ -908,6 +942,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     {
         NONE,
         AFTER_KEY,
+        KEY,
         STRING,
         NUMBER,
         SEGMENT

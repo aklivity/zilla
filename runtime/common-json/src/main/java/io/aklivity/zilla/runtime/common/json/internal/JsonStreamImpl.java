@@ -19,6 +19,7 @@ import java.util.List;
 
 import io.aklivity.zilla.runtime.common.json.JsonController;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
+import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
@@ -68,12 +69,27 @@ public final class JsonStreamImpl implements JsonStream
     public JsonPipeline into(
         JsonSink sink)
     {
+        return new JsonPipelineImpl(parser, bind(sink), reporter, null);
+    }
+
+    @Override
+    public JsonPipeline into(
+        JsonGeneratorEx generator)
+    {
+        // the generator self-wraps an empty buffer on construction, so it is already in a sink-safe
+        // state here; transform re-targets it at the caller's destination per call
+        return new JsonPipelineImpl(parser, bind(new JsonSinkImpl(generator)), reporter, generator);
+    }
+
+    private JsonSink bind(
+        JsonSink sink)
+    {
         JsonSink root = sink;
         for (int i = transforms.size() - 1; i >= 0; i--)
         {
             root = new BoundSink(transforms.get(i), root);
         }
-        return new JsonPipelineImpl(parser, root, reporter);
+        return root;
     }
 
     private static final class BoundSink implements JsonSink

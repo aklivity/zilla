@@ -20,13 +20,16 @@ import jakarta.json.JsonException;
 import jakarta.json.stream.JsonLocation;
 
 import org.agrona.DirectBuffer;
+import org.agrona.MutableDirectBuffer;
 
 import io.aklivity.zilla.runtime.common.json.JsonController;
 import io.aklivity.zilla.runtime.common.json.JsonDiagnostic;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
+import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx.Mode;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
+import io.aklivity.zilla.runtime.common.json.JsonPipelineResult;
 import io.aklivity.zilla.runtime.common.json.JsonReporter;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonSource;
@@ -45,6 +48,9 @@ public final class JsonPipelineImpl implements JsonPipeline
     private final JsonSink root;
     private final JsonReporter reporter;
     private final Diagnostic diagnostic;
+    // the terminal generator the pipeline re-targets per transform, or null for a non-generator terminal
+    private final JsonGeneratorEx generator;
+    private final JsonPipelineResult result;
 
     private boolean suspended;
     // the value event in flight across a suspend, handed to root.resume() so no stage stores it
@@ -53,7 +59,8 @@ public final class JsonPipelineImpl implements JsonPipeline
     public JsonPipelineImpl(
         JsonParserEx parser,
         JsonSink root,
-        JsonReporter reporter)
+        JsonReporter reporter,
+        JsonGeneratorEx generator)
     {
         this.parser = parser;
         // the source view and the upstream controller a stage steers are adapters over the parser surface
@@ -62,6 +69,8 @@ public final class JsonPipelineImpl implements JsonPipeline
         this.root = root;
         this.reporter = reporter;
         this.diagnostic = new Diagnostic();
+        this.generator = generator;
+        this.result = new JsonPipelineResult();
     }
 
     @Override
@@ -135,6 +144,28 @@ public final class JsonPipelineImpl implements JsonPipeline
         }
         suspended = status == Status.SUSPENDED;
         return status;
+    }
+
+    @Override
+    public JsonPipelineResult transform(
+        DirectBuffer src,
+        int offset,
+        int limit,
+        boolean last,
+        MutableDirectBuffer dst,
+        int dstOffset,
+        int dstLimit)
+    {
+        // re-target the terminal generator at the caller's output region, preserving structural context
+        // across a SUSPENDED drain, then pump the same window the existing feed contract expects
+        generator.wrap(dst, dstOffset, dstLimit);
+        Status status = feed(src, offset, limit, last);
+        boolean rejected = status == Status.REJECTED;
+        int produced = rejected ? 0 : generator.length();
+        // SUSPENDED holds the input steady (drain and re-present the same window); otherwise the window
+        // advanced by all but the unconsumed tail the caller re-presents at the front of the next window
+        int consumed = rejected || status == Status.SUSPENDED ? 0 : (limit - offset) - parser.remaining();
+        return result.set(status, consumed, produced);
     }
 
     // Adapts the parser to the non-advancing JsonSource view a stage reads off the current event.

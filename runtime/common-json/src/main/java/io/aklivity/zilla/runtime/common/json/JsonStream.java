@@ -35,4 +35,14 @@ public interface JsonStream
 
     JsonPipeline into(
         JsonSink sink);
+
+    /**
+     * Terminates the pipeline with a generator-backed sink the pipeline owns and re-targets per
+     * {@link JsonPipeline#transform} call. The generator need not be wrapped over a buffer beforehand —
+     * it is wrapped over an empty buffer at assembly and re-targeted at the caller's destination on each
+     * {@code transform}. Use this terminal (rather than {@link #into(JsonSink)} over a caller-wrapped
+     * generator) when driving the pipeline with {@link JsonPipeline#transform}.
+     */
+    JsonPipeline into(
+        JsonGeneratorEx generator);
 }

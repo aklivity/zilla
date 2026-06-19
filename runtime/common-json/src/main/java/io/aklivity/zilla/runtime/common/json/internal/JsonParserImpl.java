@@ -365,10 +365,12 @@ public final class JsonParserImpl implements JsonParserEx
         default:
             lastEvent = JsonEvent.of(next());
             if (lastEvent == JsonEvent.VALUE_NUMBER ||
+                lastEvent == JsonEvent.KEY_NAME ||
                 lastEvent == JsonEvent.VALUE_STRING && !tokenizer.stringVerbatim())
             {
-                // structured scalar (number lexeme or canonical string): the sink renders it from the
-                // decoded char view, so reset the char cursor; the raw segment slice is not used
+                // a decoded char-scalar (number lexeme, canonical string, or object key): the sink renders it
+                // from the decoded char view, so reset the shared char cursor as it is delivered; the raw
+                // segment slice is not used
                 stringViewOffset = 0;
             }
             else if (lastEvent == JsonEvent.VALUE_STRING)
@@ -453,7 +455,8 @@ public final class JsonParserImpl implements JsonParserEx
     public void consumed(
         int sourceUnits)
     {
-        // a decoded scalar advances its char cursor; a verbatim string or raw segment its byte cursor
+        // a decoded char-scalar (key or value) advances the shared char cursor; a verbatim string or raw
+        // segment advances its byte cursor
         if (charScalar())
         {
             stringViewOffset += sourceUnits;
@@ -485,20 +488,24 @@ public final class JsonParserImpl implements JsonParserEx
             lastEvent == JsonEvent.KEY_NAME ||
             currentEvent == Event.VALUE_STRING || currentEvent == Event.VALUE_NUMBER ||
             currentEvent == Event.KEY_NAME;
-        // while rendering a structured scalar, expose the unconsumed char remainder so a resumed write
-        // continues from where the bounded output left off; otherwise (a key, or a fresh value) the full
-        // decoded view
+        // while rendering a decoded char-scalar (key or value), expose the unconsumed char remainder from the
+        // shared cursor so a resumed write continues from where the bounded output left off; otherwise (a
+        // verbatim/segment value) the full decoded view
         return charScalar()
             ? stringViewRO.wrap(tokenizer.stringView(), stringViewOffset)
             : tokenizer.stringView();
     }
 
     // True while the current scalar is delivered decoded (rendered canonically by the sink from its char
-    // view): a number lexeme or a canonical string. A verbatim value-string is delivered as a SEGMENT, so
-    // any VALUE_STRING here is canonical; derived from the delivered event, valid while parked on resume.
+    // view): a number lexeme, a canonical string, or an object key — all share the one char cursor
+    // (stringViewOffset), which is reset as each is delivered, since only one is ever active at a time. A
+    // verbatim value-string is delivered as a SEGMENT, so any VALUE_STRING here is canonical; derived from the
+    // delivered event, valid while parked on resume.
     private boolean charScalar()
     {
-        return lastEvent == JsonEvent.VALUE_NUMBER || lastEvent == JsonEvent.VALUE_STRING;
+        return lastEvent == JsonEvent.VALUE_NUMBER ||
+            lastEvent == JsonEvent.VALUE_STRING ||
+            lastEvent == JsonEvent.KEY_NAME;
     }
 
     @Override

@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.common.json;
 
 import org.agrona.DirectBuffer;
+import org.agrona.MutableDirectBuffer;
 
 /**
  * A runnable, resumable {@code common-json} pipeline assembled from a {@link JsonStream} description
@@ -79,4 +80,25 @@ public interface JsonPipeline
      * steady while {@link Status#SUSPENDED}, since output back-pressure consumes no further input.
      */
     int remaining();
+
+    /**
+     * Transforms one input window {@code src[offset, limit)} into {@code dst[dstOffset, dstLimit)},
+     * re-targeting the terminal generator at {@code dst} before pumping so the caller owns the output buffer
+     * (the {@code SSLEngine.unwrap}-style {@code src}/{@code dst} shape). Returns a reused
+     * {@link JsonPipelineResult} carrying the {@link Status} along with the source bytes consumed and the
+     * output bytes produced this call, where {@code 0 <= consumed <= limit - offset} and
+     * {@code 0 <= produced <= dstLimit - dstOffset}. {@link Status#SUSPENDED} means the output filled — drain
+     * {@code produced} bytes from {@code dst} and call again with the same window; {@link Status#STARVED}
+     * means the window was consumed mid-value — advance the input by {@code consumed} and feed the next
+     * window; {@link Status#COMPLETED} ends the value. Available only when the pipeline was terminated with
+     * {@link JsonStream#into(JsonGeneratorEx)} so the pipeline owns the generator it re-targets.
+     */
+    JsonPipelineResult transform(
+        DirectBuffer src,
+        int offset,
+        int limit,
+        boolean last,
+        MutableDirectBuffer dst,
+        int dstOffset,
+        int dstLimit);
 }

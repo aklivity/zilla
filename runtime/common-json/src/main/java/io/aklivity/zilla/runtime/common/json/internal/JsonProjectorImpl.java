@@ -75,6 +75,10 @@ public final class JsonProjectorImpl implements JsonTransform
     private JsonEvent deferredStart;
     private boolean scalarPending;
     private boolean scalarEmit;
+    // true while a buffered key is being forwarded downstream: the parser delivered that key live and already
+    // moved on, so the sink's consumed() pushback for it must be absorbed rather than relayed to the parser's
+    // now-current (value) char cursor
+    private boolean forwardingKey;
 
     private enum SegMode
     {
@@ -104,6 +108,7 @@ public final class JsonProjectorImpl implements JsonTransform
         deferredStart = null;
         scalarPending = false;
         scalarEmit = false;
+        forwardingKey = false;
     }
 
     private void onDownstreamSegmentable()
@@ -125,7 +130,12 @@ public final class JsonProjectorImpl implements JsonTransform
         public void consumed(
             int sourceBytes)
         {
-            upstreamControl.consumed(sourceBytes);
+            // a buffered key's pushback is absorbed (the parser already delivered that key live); a value's
+            // pushback relays to the parser so it re-exposes the value remainder on resume
+            if (!forwardingKey)
+            {
+                upstreamControl.consumed(sourceBytes);
+            }
         }
     }
 
@@ -255,7 +265,9 @@ public final class JsonProjectorImpl implements JsonTransform
     {
         if (pendingKey != null)
         {
+            forwardingKey = true;
             forward(sink, keySource.with(pendingKey), JsonEvent.KEY_NAME);
+            forwardingKey = false;
             pendingKey = null;
         }
     }
