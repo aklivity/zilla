@@ -71,6 +71,9 @@ public final class JsonTokenizer
     // unconsumed remainder accumulates, letting a consumer that declines fragments (consumed(0)) receive
     // the value whole. Set by the parser from its consumed cursor before each resuming advance.
     private int scratchConsumed;
+    // cap on the decoded chars retained for one value/key; appendScratch fails closed past it so a
+    // consumer that declines fragments cannot grow scratch without bound
+    private final int maxValueSize;
     private boolean terminalEof;
     // byte length of the current input window; a value whose own bytes reach this length without
     // completing fills the window and is delivered as fragments rather than reassembled across windows.
@@ -141,14 +144,23 @@ public final class JsonTokenizer
         this(false);
     }
 
+    public JsonTokenizer(
+        boolean terminalEof)
+    {
+        this(terminalEof, Integer.MAX_VALUE);
+    }
+
     // terminalEof distinguishes a one-shot stream (EOF is the final delimiter) from the chunked
     // wrap()/feed model (EOF marks a frame boundary with more bytes possibly still to come). It
     // only matters for numbers, which unlike strings and the true/false/null literals are not
     // self-terminating and need a following non-digit byte to know they have ended.
+    // maxValueSize caps the decoded chars retained for one value/key; growth past it fails closed.
     public JsonTokenizer(
-        boolean terminalEof)
+        boolean terminalEof,
+        int maxValueSize)
     {
         this.terminalEof = terminalEof;
+        this.maxValueSize = maxValueSize;
         for (int i = 0; i < MAX_DEPTH; i++)
         {
             pathKeyChars[i] = new StringBuilder();
@@ -797,7 +809,7 @@ public final class JsonTokenizer
                 scratch.setLength(0);
                 scratchConsumed = 0;
                 numberState = NumberState.START;
-                scratch.append((char) c);
+                appendScratch((char) c);
                 validateNumberChar(c);
                 resumeOp = ResumeOp.VALUE_NUMBER;
                 continueNumberContent(in);
@@ -1046,6 +1058,10 @@ public final class JsonTokenizer
     {
         if (!streamingValue())
         {
+            if (scratch.length() >= maxValueSize)
+            {
+                throw resourceExhausted();
+            }
             scratch.append(c);
         }
     }
@@ -1055,8 +1071,20 @@ public final class JsonTokenizer
     {
         if (!streamingValue())
         {
+            if (scratch.length() >= maxValueSize)
+            {
+                throw resourceExhausted();
+            }
             scratch.appendCodePoint(codePoint);
         }
+    }
+
+    // fail closed when a retained value/key exceeds the cap: a consumer that declines fragments to gather
+    // a value whole must not be able to drive scratch past maxValueSize. Surfaced as REJECTED by the pump.
+    private JsonParsingException resourceExhausted()
+    {
+        return new JsonParsingException("JSON value exceeds the maximum retained size of " + maxValueSize +
+            " chars (resource exhausted)", null);
     }
 
     // A value-string being streamed as raw segment bytes is not retained in scratch; keys and numbers

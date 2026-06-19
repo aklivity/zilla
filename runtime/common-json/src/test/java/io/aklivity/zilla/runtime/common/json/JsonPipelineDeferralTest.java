@@ -17,6 +17,8 @@ package io.aklivity.zilla.runtime.common.json;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.util.Map;
+
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
@@ -73,5 +75,24 @@ class JsonPipelineDeferralTest
         byte[] out = new byte[gen.length()];
         buffer.getBytes(0, out);
         assertEquals("\"aaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbb\"", new String(out, UTF_8));
+    }
+
+    @Test
+    void shouldRejectWhenDeclinedValueExceedsCap()
+    {
+        JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
+        // cap the retained value at 16 chars; a decliner that grows the value past it must fail closed
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser(Map.of(JsonParserEx.MAX_VALUE_SIZE, 16)))
+            .transform(new WholeValueTransform())
+            .into(JsonEx.createSink(gen));
+        pipeline.reset();
+
+        // a bare string declined fragment by fragment grows past the 16-char cap on the second window
+        byte[] f1 = "\"aaaaaaaaaa".getBytes(UTF_8);
+        byte[] f2 = "bbbbbbbbbb".getBytes(UTF_8);
+        assertEquals(Status.STARVED, pipeline.feed(new UnsafeBuffer(f1), 0, f1.length, false));
+        Status status = pipeline.feed(new UnsafeBuffer(f2), 0, f2.length, false);
+
+        assertEquals(Status.REJECTED, status);
     }
 }

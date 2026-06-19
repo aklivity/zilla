@@ -48,6 +48,10 @@ public final class JsonParserImpl implements JsonParserEx
     // reject anything longer as too large for a primitive, directing the caller to getBigDecimal()
     private static final int LONG_DIGITS = 19;
 
+    // default cap on the decoded chars retained for one value/key when no MAX_VALUE_SIZE config is given:
+    // generous enough for any reasonable value, bounding only adversarial accumulation
+    private static final int DEFAULT_MAX_VALUE_SIZE = 1 << 24;
+
     private final InputStream in;
     private final DirectBufferInputStreamEx ownedInput;
     private final JsonTokenizer tokenizer;
@@ -95,7 +99,7 @@ public final class JsonParserImpl implements JsonParserEx
     {
         this.ownedInput = new DirectBufferInputStreamEx();
         this.in = ownedInput;
-        this.tokenizer = new JsonTokenizer();
+        this.tokenizer = new JsonTokenizer(false, maxValueSize(config));
         this.location = new JsonLocationImpl(tokenizer);
     }
 
@@ -118,8 +122,15 @@ public final class JsonParserImpl implements JsonParserEx
         // A DirectBufferInputStreamEx is a resumable frame source whose EOF is a frame boundary;
         // any other stream is one-shot, so its EOF is the terminal delimiter for a trailing number.
         this.tokenizer = new JsonTokenizer(
-            !(in instanceof DirectBufferInputStreamEx));
+            !(in instanceof DirectBufferInputStreamEx), maxValueSize(config));
         this.location = new JsonLocationImpl(tokenizer);
+    }
+
+    private static int maxValueSize(
+        Map<String, ?> config)
+    {
+        final Object value = config.get(JsonParserEx.MAX_VALUE_SIZE);
+        return value instanceof Integer size ? size : DEFAULT_MAX_VALUE_SIZE;
     }
 
     @Override
