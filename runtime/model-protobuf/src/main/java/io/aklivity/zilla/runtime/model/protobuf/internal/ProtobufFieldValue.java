@@ -19,12 +19,12 @@ import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.model.protobuf.internal.types.OctetsFW;
 
-public class ProtobufField
+public class ProtobufFieldValue
 {
     public final OctetsFW value;
     public final MutableDirectBuffer buffer;
 
-    public ProtobufField()
+    public ProtobufFieldValue()
     {
         this.value = new OctetsFW();
         this.buffer = new UnsafeBuffer(new byte[24]);
