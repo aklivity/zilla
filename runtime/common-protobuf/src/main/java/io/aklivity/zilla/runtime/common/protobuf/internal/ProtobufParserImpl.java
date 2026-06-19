@@ -100,6 +100,7 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
     private int leafRemaining;
     private int leafUncommitted;
     private boolean leafString;
+    private boolean leafBytes;
     private int skipRemaining;
 
     public ProtobufParserImpl(
@@ -393,12 +394,24 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
         }
         else
         {
-            int chunk = leafString
-                ? utf8SafeLength(reader.buffer(), reader.offset(), available)
-                : available;
+            int chunk;
+            if (leafString)
+            {
+                chunk = utf8SafeLength(reader.buffer(), reader.offset(), available);
+            }
+            else if (leafBytes)
+            {
+                chunk = base64SafeLength(available);
+            }
+            else
+            {
+                // schema-free LEN body streams verbatim (wire -> wire), no rendering unit to align to
+                chunk = available;
+            }
             if (chunk == 0)
             {
-                // only a partial code point present; carry it and wait for the next window
+                // only a partial rendering unit present (a partial UTF-8 code point, or 1-2 leaf bytes short of a
+                // whole base64 group); carry it and wait for the next window
                 event = starve();
             }
             else
@@ -543,6 +556,7 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
                 fieldNumber = number;
                 wireType = wt;
                 leafString = false;
+                leafBytes = false;
                 phase = wt == ProtobufWireType.LEN ? PHASE_LEAF : PHASE_RAW_VALUE;
                 event = ProtobufEvent.FIELD;
             }
@@ -603,6 +617,7 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
             wireType = wt;
             boolean len = fld.type() == ProtobufType.STRING || fld.type() == ProtobufType.BYTES;
             leafString = fld.type() == ProtobufType.STRING;
+            leafBytes = fld.type() == ProtobufType.BYTES;
             phase = len ? PHASE_LEAF : PHASE_SCALAR_VALUE;
             event = ProtobufEvent.FIELD;
         }
@@ -821,6 +836,17 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
         fieldNumber = -1;
         wireType = null;
         deferred = 0;
+    }
+
+    // The proto3-JSON bytes rendering unit: base64 encodes a whole 3-byte group at a time, so a non-final bytes
+    // leaf chunk must end on a 3-byte boundary — the bytes analog of UTF-8 code-point alignment. A 1-2 byte tail
+    // short of a group is withheld (returned length excludes it) so it streams in contiguous with the next window,
+    // exactly as utf8SafeLength withholds a partial code point. Harmless for wire -> wire, where bytes are verbatim
+    // and this length is never consulted (only genuine BYTES leaves are aligned here).
+    private static int base64SafeLength(
+        int length)
+    {
+        return length / 3 * 3;
     }
 
     private static int utf8SafeLength(
