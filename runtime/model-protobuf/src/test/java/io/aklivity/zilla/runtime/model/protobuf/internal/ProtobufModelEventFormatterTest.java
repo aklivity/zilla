@@ -21,9 +21,9 @@ import static org.mockito.Mockito.when;
 import java.time.Clock;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
@@ -41,7 +41,7 @@ public class ProtobufModelEventFormatterTest
         AtomicReference<DirectBuffer> captured = new AtomicReference<>();
         MessageConsumer writer = (msgTypeId, buffer, index, length) ->
         {
-            MutableDirectBuffer copy = new UnsafeBuffer(new byte[length]);
+            MutableDirectBufferEx copy = new UnsafeBufferEx(new byte[length]);
             copy.putBytes(0, buffer, index, length);
             captured.set(copy);
         };
@@ -54,7 +54,7 @@ public class ProtobufModelEventFormatterTest
         assertEquals(ProtobufModel.NAME, factory.type());
         ProtobufModelEventFormatter formatter = factory.create(new Configuration());
 
-        DirectBuffer event = captured.get();
+        DirectBufferEx event = captured.get();
         String formatted = formatter.format(event, 0, event.capacity());
 
         assertEquals("A message payload failed validation. boom.", formatted);

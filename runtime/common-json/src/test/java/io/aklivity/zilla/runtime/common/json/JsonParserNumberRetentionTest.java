@@ -22,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.math.BigDecimal;
 
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import org.junit.jupiter.api.Test;
 
 class JsonParserNumberRetentionTest
@@ -36,7 +36,7 @@ class JsonParserNumberRetentionTest
     void shouldAssertGetBigDecimalWhileValueDeferred()
     {
         JsonParserEx parser = JsonEx.createParser();
-        parser.wrap(new UnsafeBuffer(LONG_NUMBER), 0, LONG_NUMBER.length, false);
+        parser.wrap(new UnsafeBufferEx(LONG_NUMBER), 0, LONG_NUMBER.length, false);
 
         assertEquals(JsonEvent.START_DOCUMENT, parser.nextEvent());
         assertEquals(JsonEvent.VALUE_NUMBER, parser.nextEvent());
@@ -52,7 +52,7 @@ class JsonParserNumberRetentionTest
     {
         JsonParserEx parser = JsonEx.createParser();
         // last == true: terminal EOF completes the trailing number, so the whole value is present
-        parser.wrap(new UnsafeBuffer(LONG_NUMBER), 0, LONG_NUMBER.length, true);
+        parser.wrap(new UnsafeBufferEx(LONG_NUMBER), 0, LONG_NUMBER.length, true);
 
         assertEquals(JsonEvent.START_DOCUMENT, parser.nextEvent());
         assertEquals(JsonEvent.VALUE_NUMBER, parser.nextEvent());

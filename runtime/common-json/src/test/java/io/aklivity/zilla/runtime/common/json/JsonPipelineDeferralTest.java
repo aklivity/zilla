@@ -19,15 +19,15 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Map;
 
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import org.junit.jupiter.api.Test;
 
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
 class JsonPipelineDeferralTest
 {
-    private final MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
+    private final MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[1024]);
 
     // a transform that needs each scalar whole: while a value still has deferred bytes it pushes back via
     // consumed(0) and does not forward; once the value is complete it forwards it downstream. The source
@@ -68,8 +68,8 @@ class JsonPipelineDeferralTest
         // a bare string split across two windows: open-quote + 20 'a' (no close), then 20 'b' + close-quote
         byte[] f1 = "\"aaaaaaaaaaaaaaaaaaaa".getBytes(UTF_8);
         byte[] f2 = "bbbbbbbbbbbbbbbbbbbb\"".getBytes(UTF_8);
-        assertEquals(Status.STARVED, pipeline.feed(new UnsafeBuffer(f1), 0, f1.length, false));
-        Status status = pipeline.feed(new UnsafeBuffer(f2), 0, f2.length, true);
+        assertEquals(Status.STARVED, pipeline.feed(new UnsafeBufferEx(f1), 0, f1.length, false));
+        Status status = pipeline.feed(new UnsafeBufferEx(f2), 0, f2.length, true);
 
         assertEquals(Status.COMPLETED, status);
         byte[] out = new byte[gen.length()];
@@ -90,8 +90,8 @@ class JsonPipelineDeferralTest
         // a bare string declined fragment by fragment grows past the 16-char cap on the second window
         byte[] f1 = "\"aaaaaaaaaa".getBytes(UTF_8);
         byte[] f2 = "bbbbbbbbbb".getBytes(UTF_8);
-        assertEquals(Status.STARVED, pipeline.feed(new UnsafeBuffer(f1), 0, f1.length, false));
-        Status status = pipeline.feed(new UnsafeBuffer(f2), 0, f2.length, false);
+        assertEquals(Status.STARVED, pipeline.feed(new UnsafeBufferEx(f1), 0, f1.length, false));
+        Status status = pipeline.feed(new UnsafeBufferEx(f2), 0, f2.length, false);
 
         assertEquals(Status.REJECTED, status);
     }

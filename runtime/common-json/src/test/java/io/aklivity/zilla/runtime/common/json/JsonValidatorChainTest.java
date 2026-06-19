@@ -103,7 +103,7 @@ class JsonValidatorChainTest
         {
             limit = Math.min(limit + step, bytes.length);
             boolean last = limit >= bytes.length;
-            status = pipeline.feed(new UnsafeBuffer(bytes), progress, limit, last);
+            status = pipeline.feed(new UnsafeBufferEx(bytes), progress, limit, last);
             progress = limit - pipeline.remaining();
         }
         return status;

@@ -17,9 +17,9 @@ package io.aklivity.zilla.runtime.model.json.internal;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.agrona.DirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import org.agrona.ExpandableDirectByteBuffer;
-import org.agrona.MutableDirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 
 import io.aklivity.zilla.runtime.common.json.JsonController;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
@@ -60,7 +60,7 @@ final class JsonExtractor implements JsonTransform
         return field != null ? field.length : 0;
     }
 
-    DirectBuffer value(
+    DirectBufferEx value(
         String name)
     {
         Field field = find(name);
@@ -176,7 +176,7 @@ final class JsonExtractor implements JsonTransform
     private static final class Field
     {
         private final String name;
-        private final MutableDirectBuffer value;
+        private final MutableDirectBufferEx value;
 
         private int length;
 
