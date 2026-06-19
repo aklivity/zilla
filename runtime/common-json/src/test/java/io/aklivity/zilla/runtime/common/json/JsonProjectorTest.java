@@ -163,6 +163,29 @@ class JsonProjectorTest
         assertEquals("[\"a\",\"c\"]", project(List.of("/0", "/2"), "[\"a\",\"b\",\"c\"]"));
     }
 
+    @Test
+    void shouldMatchNumericObjectKeyByIndexPointer()
+    {
+        // an index-looking segment matches a literal object key with that name when the data is an object
+        assertEquals("{\"items\":{\"1\":\"x\"}}",
+            project(List.of("/items/1"), "{\"items\":{\"1\":\"x\",\"2\":\"y\"}}"));
+    }
+
+    @Test
+    void shouldRetainDeeplyNestedArrayWildcardLeaf()
+    {
+        assertEquals("{\"a\":[{\"b\":1},{\"b\":3}]}",
+            project(List.of("/a/-/b"), "{\"a\":[{\"b\":1,\"x\":2},{\"b\":3,\"y\":4}],\"z\":9}"));
+    }
+
+    @Test
+    void shouldRetainLiteralHyphenObjectKey()
+    {
+        // "-" is the array wildcard, but against an object it matches a literal "-" key, not every member
+        assertEquals("{\"-\":1}",
+            project(List.of("/-"), "{\"-\":1,\"b\":2}"));
+    }
+
     private static String project(
         List<String> retained,
         String input)
