@@ -1,5 +1,13 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.0.0-alpha-1...HEAD)
+
+**Closed issues:**
+
+- common-json: JSON Schema `pattern` compiled with Java Pattern rejects valid ECMA-262 regexes [\#1935](https://github.com/aklivity/zilla/issues/1935)
+
 ## [2.0.0-alpha-1](https://github.com/aklivity/zilla/tree/2.0.0-alpha-1) (2026-06-20)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/1.2.4...2.0.0-alpha-1)
