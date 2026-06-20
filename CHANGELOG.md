@@ -1,5 +1,55 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/1.2.4...HEAD)
+
+**Implemented enhancements:**
+
+- common-json: JSON Schema validator \(diagnostics + multi-draft parity\) — replace leadpony justify [\#1858](https://github.com/aklivity/zilla/issues/1858)
+- model-protobuf: streaming converter on common-protobuf + common-json transcoder [\#1857](https://github.com/aklivity/zilla/issues/1857)
+- model-avro: streaming converter on common-avro + common-json transcoder [\#1856](https://github.com/aklivity/zilla/issues/1856)
+- common-json: composable streaming JSON pipeline SPI \(validate + project, payload path\) [\#1855](https://github.com/aklivity/zilla/issues/1855)
+- feat\(binding-kafka\): add missing observability events for broker connectivity and protocol errors [\#1766](https://github.com/aklivity/zilla/issues/1766)
+- binding-mcp-http: implement mcp\_http · proxy binding [\#1675](https://github.com/aklivity/zilla/issues/1675)
+
+**Fixed bugs:**
+
+- Intermittent full reactor build failures on Java 25 due to missing generated ANTLR/flyweight sources [\#1849](https://github.com/aklivity/zilla/issues/1849)
+
+**Closed issues:**
+
+- common-json: trie-based pointer matching in JsonProjectorImpl to drop key-name buffering [\#1930](https://github.com/aklivity/zilla/issues/1930)
+- Surface verbatim schema-validation diagnostics through the streaming JSON pipeline \(validator-throws + line/column tracking\) [\#1919](https://github.com/aklivity/zilla/issues/1919)
+- Unify model validation-failure diagnostics behind a common-\* reporter SPI [\#1914](https://github.com/aklivity/zilla/issues/1914)
+- common-yaml: incremental, buffer-backed YAML parser to remove eager-parse allocation [\#1905](https://github.com/aklivity/zilla/issues/1905)
+- support `identity` guard `options` with static identity and credentials [\#1897](https://github.com/aklivity/zilla/issues/1897)
+- common-json: unify scalar value delivery — tighten getSegment contract, fold DECODED into STRUCTURED, propagate flow control to the parser [\#1887](https://github.com/aklivity/zilla/issues/1887)
+- common-json: streaming JSON-in-JSON escaping \(generator escape mode + consumption-driven segment writing\) [\#1878](https://github.com/aklivity/zilla/issues/1878)
+- feat\(binding-kafka\): support SASL/OAUTHBEARER mechanism for Kafka client [\#1868](https://github.com/aklivity/zilla/issues/1868)
+- common-yaml: self-contained streaming YAML parse + generate \(peer to common-json\) [\#1843](https://github.com/aklivity/zilla/issues/1843)
+- common-protobuf: streaming Protobuf decode/encode + descriptor validation, with JSON transcoding via common-json [\#1839](https://github.com/aklivity/zilla/issues/1839)
+- common-avro: streaming Avro decode/encode + schema validation, with JSON transcoding via common-json [\#1838](https://github.com/aklivity/zilla/issues/1838)
+- model-json: streaming projecting + validating JSON converter \(on common-json\) [\#1835](https://github.com/aklivity/zilla/issues/1835)
+- binding-mcp: per-route primitive-name allow-set filtering for mcp proxy [\#1833](https://github.com/aklivity/zilla/issues/1833)
+- metrics-mcp: instrument all MCP methods `initialize`, `tools/*`, `resources/*`, `prompts/*` [\#1825](https://github.com/aklivity/zilla/issues/1825)
+- feat\(binding-kafka\): support guard injection for kafka client credentials [\#1824](https://github.com/aklivity/zilla/issues/1824)
+- binding-mcp: offer MCP 2025-11-25 + negotiate elicitation.url capability to enable url-mode elicitation [\#1819](https://github.com/aklivity/zilla/issues/1819)
+- binding-mcp: proxy hydration/forwarding fixes + per-upstream bootstrap credential [\#1817](https://github.com/aklivity/zilla/issues/1817)
+- binding-mcp: single session-id contract, negotiated protocol-version, partial-success hydration [\#1815](https://github.com/aklivity/zilla/issues/1815)
+- binding-mcp: deterministic cache refresh startup/teardown + coalesced re-arming [\#1813](https://github.com/aklivity/zilla/issues/1813)
+- binding-http: client connection reuse per origin/authority + per-connection exchange/queue scope [\#1811](https://github.com/aklivity/zilla/issues/1811)
+- binding-mcp: per-toolkit elicitation for `mcp` proxy [\#1810](https://github.com/aklivity/zilla/issues/1810)
+- Split `Engine.start()` into `init()` + `start()` with optional `beforeStart` hook [\#1807](https://github.com/aklivity/zilla/issues/1807)
+- Deprecate Kafka-group session ownership in mqtt-kafka binding [\#1797](https://github.com/aklivity/zilla/issues/1797)
+- binding-mcp: propagate upstream auth challenges to inbound client [\#1795](https://github.com/aklivity/zilla/issues/1795)
+- binding-mcp: add missing peer-to-peer ApplicationIT coverage for 14 scenarios [\#1783](https://github.com/aklivity/zilla/issues/1783)
+- binding-http: translate Alt-Svc placeholder to wire-level ALPN, host, and physical port [\#1772](https://github.com/aklivity/zilla/issues/1772)
+- binding-mcp server: emit Alt-Svc header advertising engine service hostname [\#1770](https://github.com/aklivity/zilla/issues/1770)
+- binding-mcp: add cache option to mcp · proxy binding [\#1737](https://github.com/aklivity/zilla/issues/1737)
+- engine: add kind: cache as new binding kind [\#1736](https://github.com/aklivity/zilla/issues/1736)
+- Support routing based on TLS client certificate presence/signer for mixed-auth endpoints on shared port [\#1697](https://github.com/aklivity/zilla/issues/1697)
+
 ## [1.2.4](https://github.com/aklivity/zilla/tree/1.2.4) (2026-05-16)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/1.2.4-rc2...1.2.4)
