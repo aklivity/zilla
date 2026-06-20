@@ -15,6 +15,7 @@
 module io.aklivity.zilla.runtime.model.protobuf
 {
     requires io.aklivity.zilla.runtime.common.protobuf;
+    requires io.aklivity.zilla.runtime.common.json;
     requires io.aklivity.zilla.runtime.engine;
     requires java.logging;
 
