@@ -127,6 +127,36 @@ public class PublishIT
     }
 
     @Test
+    @Configuration("server.content.transform.grow.yaml")
+    @Specification({
+        "${net}/publish.message.transform.grow/client",
+        "${app}/publish.message.transform.grow/server"})
+    public void shouldPublishMessageTransformGrow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.content.transform.shrink.yaml")
+    @Specification({
+        "${net}/publish.message.transform.shrink/client",
+        "${app}/publish.message.transform.shrink/server"})
+    public void shouldPublishMessageTransformShrink() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.user.property.transform.yaml")
+    @Specification({
+        "${net}/publish.user.property.transform.shrink/client",
+        "${app}/publish.user.property.transform.shrink/server"})
+    public void shouldPublishUserPropertyTransformShrink() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.yaml")
     @Specification({
         "${net}/publish.retained/client",
