@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.specs.binding.http.streams.network.rfc7540;
+package io.aklivity.zilla.specs.binding.http.streams.application.rfc7230;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -27,40 +27,38 @@ import org.junit.rules.Timeout;
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 
-public class ValidationIT
+public class ModelIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/http/streams/network/rfc7540/validation");
+        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/http/streams/application/rfc7230/model");
 
-    private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
+    private final TestRule timeout = new DisableOnDebug(new Timeout(5, SECONDS));
 
     @Rule
     public final TestRule chain = outerRule(k3po).around(timeout);
 
     @Test
     @Specification({
-        "${net}/valid.request/client",
-        "${net}/valid.request/server" })
-    public void shouldProcessValidRequests() throws Exception
-    {
-        k3po.start();
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/invalid.request/client",
-        "${net}/invalid.request/server" })
+        "${app}/invalid.request/client",
+        "${app}/invalid.request/server" })
     public void shouldRejectInvalidRequests() throws Exception
     {
-        k3po.start();
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/invalid.response.header/client",
-        "${net}/invalid.response.header/server" })
+        "${app}/valid.request/client",
+        "${app}/valid.request/server" })
+    public void shouldProcessValidRequests() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/invalid.response.header/client",
+        "${app}/invalid.response.header/server" })
     public void shouldSendErrorForInvalidHeaderResponse() throws Exception
     {
         k3po.finish();
@@ -68,17 +66,17 @@ public class ValidationIT
 
     @Test
     @Specification({
-        "${net}/invalid.response.content/client",
-        "${net}/invalid.response.content/server" })
-    public void shouldAbortForInvalidResponse() throws Exception
+        "${app}/invalid.response.content/client",
+        "${app}/invalid.response.content/server" })
+    public void shouldAbortForInvalidContentResponse() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/valid.response/client",
-        "${net}/valid.response/server" })
+        "${app}/valid.response/client",
+        "${app}/valid.response/server" })
     public void shouldProcessValidResponse() throws Exception
     {
         k3po.finish();

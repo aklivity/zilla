@@ -13,9 +13,10 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.http.internal.streams.rfc7230.client;
+package io.aklivity.zilla.runtime.binding.http.internal.streams.rfc7540.client;
 
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_CONCURRENT_STREAMS;
+import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_STREAM_INITIAL_WINDOW_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -29,19 +30,20 @@ import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
-public class ValidationIT
+public class ModelIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/http/streams/network/rfc7230/validation")
-        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/http/streams/application/rfc7230/validation");
+        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/http/streams/network/rfc7540/model")
+        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/http/streams/application/rfc7540/model");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
     private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
         .countersBufferCapacity(8192)
-        .configurationRoot("io/aklivity/zilla/specs/binding/http/config/v1.1")
+        .configurationRoot("io/aklivity/zilla/specs/binding/http/config/v2")
         .configure(HTTP_CONCURRENT_STREAMS, 100)
         .external("net0")
         .clean();
@@ -50,31 +52,34 @@ public class ValidationIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("client.validation.yaml")
+    @Configuration("client.model.yaml")
     @Specification({
         "${app}/invalid.response.header/client",
         "${net}/invalid.response.header/server" })
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void shouldSendErrorForInvalidHeaderResponse() throws Exception
     {
         k3po.finish();
     }
 
     @Test
-    @Configuration("client.validation.yaml")
+    @Configuration("client.model.yaml")
     @Specification({
         "${app}/invalid.response.content/client",
         "${net}/invalid.response.content/server" })
-    public void shouldAbortForInvalidContentResponse() throws Exception
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
+    public void shouldAbortForInvalidResponse() throws Exception
     {
         k3po.finish();
     }
 
     @Test
-    @Configuration("client.validation.yaml")
+    @Configuration("client.model.yaml")
     @Specification({
         "${app}/valid.response/client",
         "${net}/valid.response/server" })
-    public void shouldProcessValidRequests() throws Exception
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
+    public void shouldProcessValidResponse() throws Exception
     {
         k3po.finish();
     }

@@ -34,6 +34,7 @@ import java.util.function.ToLongFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Object2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpAccessControlConfig;
@@ -51,7 +52,7 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
-import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
+import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 
 public final class HttpBindingConfig
 {
@@ -78,7 +79,8 @@ public final class HttpBindingConfig
 
     public HttpBindingConfig(
         EngineContext context,
-        BindingConfig binding)
+        BindingConfig binding,
+        MutableDirectBuffer modelBuffer)
     {
         this.id = binding.id;
         this.name = binding.name;
@@ -90,7 +92,7 @@ public final class HttpBindingConfig
         this.resolveId = binding.resolveId;
         this.credentials = options != null && options.authorization != null ?
                 asAccessor(options.authorization.credentials) : DEFAULT_CREDENTIALS;
-        this.requests = createRequestTypes(context::supplyValidator);
+        this.requests = createRequestTypes(context::supplyModel, modelBuffer);
     }
 
     public HttpRouteConfig resolve(
@@ -235,37 +237,41 @@ public final class HttpBindingConfig
     }
 
     private List<HttpRequestType> createRequestTypes(
-        Function<ModelConfig, ValidatorHandler> supplyValidator)
+        Function<ModelConfig, ModelHandler> supplyModel,
+        MutableDirectBuffer modelBuffer)
     {
         List<HttpRequestType> requestTypes = new LinkedList<>();
         if (this.options != null && this.options.requests != null)
         {
             for (HttpRequestConfig request : this.options.requests)
             {
-                Map<String8FW, ValidatorHandler> headers = new HashMap<>();
+                Map<String8FW, HttpModel> headers = new HashMap<>();
                 if (request.headers != null)
                 {
                     for (HttpParamConfig header : request.headers)
                     {
-                        headers.put(new String8FW(header.name), supplyValidator.apply(header.model));
+                        headers.put(new String8FW(header.name),
+                            HttpModel.decoder(supplyModel.apply(header.model), modelBuffer));
                     }
                 }
 
-                Map<String, ValidatorHandler> pathParams = new Object2ObjectHashMap<>();
+                Map<String, HttpModel> pathParams = new Object2ObjectHashMap<>();
                 if (request.pathParams != null)
                 {
                     for (HttpParamConfig pathParam : request.pathParams)
                     {
-                        pathParams.put(pathParam.name, supplyValidator.apply(pathParam.model));
+                        pathParams.put(pathParam.name,
+                            HttpModel.decoder(supplyModel.apply(pathParam.model), modelBuffer));
                     }
                 }
 
-                Map<String, ValidatorHandler> queryParams = new TreeMap<>(QUERY_STRING_COMPARATOR);
+                Map<String, HttpModel> queryParams = new TreeMap<>(QUERY_STRING_COMPARATOR);
                 if (request.queryParams != null)
                 {
                     for (HttpParamConfig queryParam : request.queryParams)
                     {
-                        queryParams.put(queryParam.name, supplyValidator.apply(queryParam.model));
+                        queryParams.put(queryParam.name,
+                            HttpModel.decoder(supplyModel.apply(queryParam.model), modelBuffer));
                     }
                 }
 
@@ -274,24 +280,30 @@ public final class HttpBindingConfig
                 {
                     for (HttpResponseConfig response0 : request.responses)
                     {
-                        Map<String8FW, ValidatorHandler> responseHeaderValidators = new HashMap<>();
+                        Map<String8FW, HttpModel> responseHeaderValidators = new HashMap<>();
                         if (response0.headers != null)
                         {
                             for (HttpParamConfig header : response0.headers)
                             {
                                 String8FW name = new String8FW(header.name);
-                                ValidatorHandler validator = supplyValidator.apply(header.model);
-                                if (validator != null)
+                                ModelHandler model = supplyModel.apply(header.model);
+                                if (model != null)
                                 {
-                                    responseHeaderValidators.put(name, validator);
+                                    responseHeaderValidators.put(name, HttpModel.decoder(model, modelBuffer));
                                 }
                             }
                         }
+                        ModelHandler responseContent = response0.content != null
+                            ? supplyModel.apply(response0.content)
+                            : null;
                         HttpRequestType.Response response = new HttpRequestType.Response(response0.status, response0.contentType,
-                            responseHeaderValidators, response0.content);
+                            responseHeaderValidators, responseContent);
                         responses.add(response);
                     }
                 }
+                ModelHandler content = request.content != null
+                    ? supplyModel.apply(request.content)
+                    : null;
                 HttpRequestType requestType = HttpRequestType.builder()
                     .path(request.path)
                     .method(request.method)
@@ -299,7 +311,7 @@ public final class HttpBindingConfig
                     .headers(headers)
                     .pathParams(pathParams)
                     .queryParams(queryParams)
-                    .content(request.content)
+                    .content(content)
                     .responses(responses)
                     .build();
                 requestTypes.add(requestType);

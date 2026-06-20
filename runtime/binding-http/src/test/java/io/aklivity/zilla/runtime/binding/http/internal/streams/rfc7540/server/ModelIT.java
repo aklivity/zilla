@@ -13,8 +13,9 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.specs.binding.http.streams.application.rfc7540;
+package io.aklivity.zilla.runtime.binding.http.internal.streams.rfc7540.server;
 
+import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_CONCURRENT_STREAMS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -26,20 +27,32 @@ import org.junit.rules.Timeout;
 
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
+import io.aklivity.zilla.runtime.engine.test.EngineRule;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
-public class ValidationIT
+public class ModelIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/http/streams/application/rfc7540/validation");
+        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/http/streams/network/rfc7540/model")
+        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/http/streams/application/rfc7540/model");
 
-    private final TestRule timeout = new DisableOnDebug(new Timeout(5, SECONDS));
+    private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
+
+    private final EngineRule engine = new EngineRule()
+        .directory("target/zilla-itests")
+        .countersBufferCapacity(8192)
+        .configurationRoot("io/aklivity/zilla/specs/binding/http/config/v2")
+        .configure(HTTP_CONCURRENT_STREAMS, 100)
+        .external("app0")
+        .clean();
 
     @Rule
-    public final TestRule chain = outerRule(k3po).around(timeout);
+    public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
+    @Configuration("server.model.yaml")
     @Specification({
-        "${app}/invalid.request/client",
+        "${net}/invalid.request/client",
         "${app}/invalid.request/server" })
     public void shouldRejectInvalidRequests() throws Exception
     {
@@ -47,37 +60,11 @@ public class ValidationIT
     }
 
     @Test
+    @Configuration("server.model.yaml")
     @Specification({
-        "${app}/valid.request/client",
+        "${net}/valid.request/client",
         "${app}/valid.request/server" })
     public void shouldProcessValidRequests() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/invalid.response.header/client",
-        "${app}/invalid.response.header/server" })
-    public void shouldSendErrorForInvalidHeaderResponse() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/invalid.response.content/client",
-        "${app}/invalid.response.content/server" })
-    public void shouldAbortForInvalidResponse() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/valid.response/client",
-        "${app}/valid.response/server" })
-    public void shouldProcessValidResponse() throws Exception
     {
         k3po.finish();
     }
