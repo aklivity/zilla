@@ -42,7 +42,7 @@ public final class HttpRequestType
     public final Matcher pathMatcher;
     public final Matcher queryMatcher;
 
-    // validators
+    // models
     public final Map<String8FW, HttpModel> headers;
     public final Map<String, HttpModel> pathParams;
     public final Map<String, HttpModel> queryParams;

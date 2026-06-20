@@ -234,6 +234,7 @@ public final class HttpClientFactory implements HttpStreamFactory
     private final AbortFW.Builder abortRW = new AbortFW.Builder();
 
     private final HttpBeginExFW.Builder beginExRW = new HttpBeginExFW.Builder();
+    private final HttpBeginExFW.Builder modelBeginExRW = new HttpBeginExFW.Builder();
     private final HttpFlushExFW.Builder flushExRW = new HttpFlushExFW.Builder();
     private final HttpEndExFW.Builder endExRW = new HttpEndExFW.Builder();
 
@@ -298,6 +299,8 @@ public final class HttpClientFactory implements HttpStreamFactory
     private final MutableInteger payloadRemaining = new MutableInteger(0);
 
     private final MutableDirectBuffer modelBuffer;
+    private final MutableDirectBuffer modelBeginExBuffer;
+    private final MutableBoolean modelValid = new MutableBoolean();
 
     private final EnumMap<Http2FrameType, HttpClientDecoder> decodersByFrameType;
     {
@@ -364,6 +367,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         this.frameBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.extBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.modelBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
+        this.modelBeginExBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.bufferPool = context.bufferPool();
         this.headersPool = bufferPool.duplicate();
         this.creditor = context.creditor();
@@ -2900,10 +2904,11 @@ public final class HttpClientFactory implements HttpStreamFactory
             else
             {
                 exchange.resolveResponse(beginEx);
-                boolean valid = exchange.validateResponseHeaders(beginEx);
+                final HttpBeginExFW transformedBeginEx = exchange.transformResponseBeginEx(beginEx);
+                boolean valid = transformedBeginEx != null;
                 if (valid)
                 {
-                    exchange.doResponseBegin(traceId, authorization, beginEx);
+                    exchange.doResponseBegin(traceId, authorization, transformedBeginEx);
 
                     final HttpHeaderFW connection = beginEx.headers().matchFirst(h -> HEADER_CONNECTION.equals(h.name()));
                     if (connection != null && connectionClose.reset(connection.value().asString()).matches())
@@ -3487,10 +3492,11 @@ public final class HttpClientFactory implements HttpStreamFactory
                         .build();
 
                 exchange.resolveResponse(beginEx);
-                boolean valid = exchange.validateResponseHeaders(beginEx);
+                final HttpBeginExFW transformedBeginEx = exchange.transformResponseBeginEx(beginEx);
+                boolean valid = transformedBeginEx != null;
                 if (valid)
                 {
-                    exchange.doResponseBegin(traceId, authorization, beginEx);
+                    exchange.doResponseBegin(traceId, authorization, transformedBeginEx);
                     if (endResponse)
                     {
                         exchange.doResponseEnd(traceId, authorization, EMPTY_OCTETS);
@@ -5237,28 +5243,48 @@ public final class HttpClientFactory implements HttpStreamFactory
                 : HttpModel.NONE;
         }
 
-        public boolean validateResponseHeaders(
+        public HttpBeginExFW transformResponseBeginEx(
             HttpBeginExFW beginEx)
         {
-            MutableBoolean valid = new MutableBoolean(true);
-            if (response != null && response.headers != null)
+            HttpBeginExFW result = beginEx;
+            if (response != null && response.headers != null && !response.headers.isEmpty())
             {
+                final long traceId = supplyTraceId.getAsLong();
+                final HttpBeginExFW.Builder builder =
+                    modelBeginExRW.wrap(modelBeginExBuffer, 0, modelBeginExBuffer.capacity())
+                        .compositeId(beginEx.compositeId())
+                        .typeId(beginEx.typeId());
+
+                modelValid.value = true;
                 beginEx.headers().forEach(header ->
                 {
-                    if (valid.value)
+                    if (modelValid.value)
                     {
-                        HttpModel validator = response.headers.get(header.name());
-                        if (validator != null)
+                        final String8FW name = header.name();
+                        final String16FW value = header.value();
+                        final HttpModel model = response.headers.get(name);
+                        if (model != null && model != HttpModel.NONE)
                         {
-                            String16FW value = header.value();
-                            valid.value &=
-                                validator.validate(supplyTraceId.getAsLong(), routedId, value.value(),
-                                    0, value.length());
+                            final int produced = model.transform(traceId, routedId, value.value(), 0, value.length());
+                            if (produced < 0)
+                            {
+                                modelValid.value = false;
+                            }
+                            else
+                            {
+                                builder.headersItem(item -> item.name(name).value(model.buffer(), 0, produced));
+                            }
+                        }
+                        else
+                        {
+                            builder.headersItem(item -> item.name(name).value(value));
                         }
                     }
                 });
+
+                result = modelValid.value ? builder.build() : null;
             }
-            return valid.value;
+            return result;
         }
 
         private void onResponseInvalid(

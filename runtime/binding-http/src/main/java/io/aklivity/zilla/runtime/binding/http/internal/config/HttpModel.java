@@ -26,10 +26,12 @@ import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 /**
  * Per-stream driver around a decode {@link ModelPipeline} for the http binding.
  * <p>
- * Scalar metadata (header, path and query values) is checked whole-value via {@link #validate}: the
- * value is driven through the pipeline and the stream is reset only when the model rejects it. Streaming
- * content is transformed via {@link #transform}: each fragment is driven through the pipeline and the
- * produced bytes are exposed via {@link #buffer} / {@link #produced} for the caller to forward downstream.
+ * Scalar metadata (header, path and query values) is transformed whole-value via the
+ * {@link #transform(long, long, DirectBuffer, int, int)} overload: the value is driven through the
+ * pipeline and the produced (possibly changed) bytes are exposed via {@link #buffer} / {@link #produced}
+ * for the caller to substitute downstream, or {@code -1} signals the model rejected it. Streaming content
+ * is transformed via {@link #transform(long, long, int, DirectBuffer, int, int, int)}: each fragment is
+ * driven through the pipeline and the produced bytes are exposed for the caller to forward downstream.
  * </p>
  */
 public final class HttpModel
@@ -64,16 +66,22 @@ public final class HttpModel
         this.scratch = scratch;
     }
 
-    public boolean validate(
+    public int transform(
         long traceId,
         long bindingId,
         DirectBuffer data,
         int index,
         int length)
     {
-        boolean valid = true;
-        if (pipeline != null)
+        int total;
+        if (pipeline == null)
         {
+            scratch.putBytes(0, data, index, length);
+            total = length;
+        }
+        else
+        {
+            total = 0;
             int srcAt = index;
             int srcRem = length;
             int flags = ModelPipeline.FLAGS_INIT | ModelPipeline.FLAGS_FIN;
@@ -81,30 +89,34 @@ public final class HttpModel
             while (!done)
             {
                 final ModelPipelineResult result = pipeline.transform(traceId, bindingId, flags,
-                    data, srcAt, srcRem, scratch, 0, scratch.capacity());
+                    data, srcAt, srcRem, scratch, total, scratch.capacity() - total);
                 final ModelStatus status = result.status();
-                final int consumed = result.consumed();
 
                 if (status == ModelStatus.REJECTED)
                 {
-                    valid = false;
-                    done = true;
-                }
-                else if (status == ModelStatus.COMPLETE)
-                {
+                    total = -1;
                     done = true;
                 }
                 else
                 {
-                    srcAt += consumed;
-                    srcRem -= consumed;
-                    flags = ModelPipeline.FLAGS_FIN;
+                    total += result.produced();
+
+                    if (status == ModelStatus.COMPLETE)
+                    {
+                        done = true;
+                    }
+                    else
+                    {
+                        srcAt += result.consumed();
+                        srcRem -= result.consumed();
+                        flags = ModelPipeline.FLAGS_FIN;
+                    }
                 }
             }
 
             pipeline.reset();
         }
-        return valid;
+        return total;
     }
 
     public int transform(

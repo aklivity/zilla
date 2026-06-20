@@ -55,7 +55,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.SortedSet;
+import java.util.TreeMap;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -455,6 +457,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
     private final HttpBeginExFW.Builder beginExRW = new HttpBeginExFW.Builder();
     private final HttpBeginExFW.Builder newBeginExRW = new HttpBeginExFW.Builder();
+    private final HttpBeginExFW.Builder modelBeginExRW = new HttpBeginExFW.Builder();
     private final HttpEndExFW.Builder endExRW = new HttpEndExFW.Builder();
 
     private final WindowFW windowRO = new WindowFW();
@@ -525,6 +528,9 @@ public final class HttpServerFactory implements HttpStreamFactory
 
     private final EnumMap<Http2FrameType, Http2ServerDecoder> decodersByFrameType;
     private final MutableDirectBuffer modelBuffer;
+    private final MutableDirectBuffer modelValueBuffer;
+    private final MutableDirectBuffer modelBeginExBuffer;
+    private final MutableBoolean modelValid = new MutableBoolean();
 
     {
         final EnumMap<Http2FrameType, Http2ServerDecoder> decodersByFrameType = new EnumMap<>(Http2FrameType.class);
@@ -594,6 +600,8 @@ public final class HttpServerFactory implements HttpStreamFactory
         this.frameBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.extBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.modelBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
+        this.modelValueBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
+        this.modelBeginExBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.httpTypeId = context.supplyTypeId(HttpBinding.NAME);
         this.proxyTypeId = context.supplyTypeId("proxy");
         this.requestLine = REQUEST_LINE_PATTERN.matcher("");
@@ -2360,10 +2368,11 @@ public final class HttpServerFactory implements HttpStreamFactory
         {
             final HttpExchange exchange = new HttpExchange(originId, routedId, requestId, affinity,
                 authorization, traceId, policy, origin, requestType);
-            boolean headersValid = exchange.validateHeaders(beginEx);
+            final HttpBeginExFW transformedBeginEx = transformRequestBeginEx(traceId, routedId, beginEx, requestType);
+            boolean headersValid = transformedBeginEx != null;
             if (headersValid)
             {
-                exchange.doRequestBegin(traceId, beginEx);
+                exchange.doRequestBegin(traceId, transformedBeginEx);
                 exchange.doResponseWindow(traceId);
 
                 final HttpHeaderFW connection = beginEx.headers().matchFirst(h -> HEADER_CONNECTION.equals(h.name()));
@@ -3397,85 +3406,6 @@ public final class HttpServerFactory implements HttpStreamFactory
                         traceId, sessionId, httpChallengeEx);
             }
 
-            private boolean validateHeaders(
-                HttpBeginExFW beginEx)
-            {
-                String path = beginEx.headers().matchFirst(h -> h.name().equals(HEADER_PATH)).value().asString();
-                return requestType == null ||
-                    validateHeaderValues(beginEx) &&
-                    validatePathParams(path) &&
-                    validateQueryParams(path);
-            }
-
-            private boolean validateHeaderValues(
-                HttpBeginExFW beginEx)
-            {
-                MutableBoolean valid = new MutableBoolean(true);
-                if (requestType != null && requestType.headers != null)
-                {
-                    beginEx.headers().forEach(header ->
-                    {
-                        if (valid.value)
-                        {
-                            HttpModel validator = requestType.headers.get(header.name());
-                            if (validator != null)
-                            {
-                                String16FW value = header.value();
-                                valid.value &=
-                                    validator.validate(traceId, routedId, value.value(),
-                                        0, value.length());
-                            }
-                        }
-                    });
-                }
-                return valid.value;
-            }
-
-            private boolean validatePathParams(
-                String path)
-            {
-                Matcher matcher = requestType.pathMatcher.reset(path);
-                boolean matches = matcher.matches();
-                assert matches;
-
-                boolean valid = true;
-                for (String name : requestType.pathParams.keySet())
-                {
-                    String value = matcher.group(name);
-                    if (value != null)
-                    {
-                        String8FW value0 = new String8FW(value);
-                        HttpModel validator = requestType.pathParams.get(name);
-                        if (!validator.validate(traceId, routedId, value0.value(),
-                            value0.offset(), value0.length()))
-                        {
-                            valid = false;
-                            break;
-                        }
-                    }
-                }
-                return valid;
-            }
-
-            private boolean validateQueryParams(
-                    String path)
-            {
-                Matcher matcher = requestType.queryMatcher.reset(path);
-                boolean valid = true;
-                while (valid && matcher.find())
-                {
-                    String name = matcher.group(1);
-                    HttpModel validator = requestType.queryParams.get(name);
-                    if (validator != null)
-                    {
-                        String8FW value = new String8FW(matcher.group(2));
-                        valid &= validator.validate(traceId, routedId, value.value(),
-                            0, value.length());
-                    }
-                }
-                return valid;
-            }
-
             private void cleanupExpiringIfNecessary()
             {
                 if (expiringId != NO_CANCEL_ID)
@@ -3485,6 +3415,152 @@ public final class HttpServerFactory implements HttpStreamFactory
                 }
             }
         }
+    }
+
+    private HttpBeginExFW transformRequestBeginEx(
+        long traceId,
+        long routedId,
+        HttpBeginExFW beginEx,
+        HttpRequestType requestType)
+    {
+        HttpBeginExFW result = beginEx;
+        if (requestType != null &&
+            (!requestType.headers.isEmpty() ||
+             !requestType.pathParams.isEmpty() ||
+             !requestType.queryParams.isEmpty()))
+        {
+            final HttpBeginExFW.Builder builder = modelBeginExRW.wrap(modelBeginExBuffer, 0, modelBeginExBuffer.capacity())
+                .compositeId(beginEx.compositeId())
+                .typeId(beginEx.typeId());
+
+            modelValid.value = true;
+            beginEx.headers().forEach(header ->
+            {
+                if (modelValid.value)
+                {
+                    final String8FW name = header.name();
+                    final String16FW value = header.value();
+                    if (HEADER_PATH.equals(name))
+                    {
+                        final String path = transformPath(traceId, routedId, value.asString(), requestType);
+                        if (path == null)
+                        {
+                            modelValid.value = false;
+                        }
+                        else
+                        {
+                            builder.headersItem(item -> item.name(name).value(path));
+                        }
+                    }
+                    else
+                    {
+                        final HttpModel model = requestType.headers.get(name);
+                        if (model != null && model != HttpModel.NONE)
+                        {
+                            final int produced = model.transform(traceId, routedId, value.value(), 0, value.length());
+                            if (produced < 0)
+                            {
+                                modelValid.value = false;
+                            }
+                            else
+                            {
+                                builder.headersItem(item -> item.name(name).value(model.buffer(), 0, produced));
+                            }
+                        }
+                        else
+                        {
+                            builder.headersItem(item -> item.name(name).value(value));
+                        }
+                    }
+                }
+            });
+
+            result = modelValid.value ? builder.build() : null;
+        }
+        return result;
+    }
+
+    private String transformPath(
+        long traceId,
+        long routedId,
+        String path,
+        HttpRequestType requestType)
+    {
+        boolean valid = true;
+        final SortedMap<Integer, String> replacements = new TreeMap<>();
+        final Map<Integer, Integer> ends = new HashMap<>();
+
+        final Matcher pathMatcher = requestType.pathMatcher.reset(path);
+        if (pathMatcher.matches())
+        {
+            for (Map.Entry<String, HttpModel> entry : requestType.pathParams.entrySet())
+            {
+                final HttpModel model = entry.getValue();
+                final int start = model != null && model != HttpModel.NONE ? pathMatcher.start(entry.getKey()) : -1;
+                if (start >= 0)
+                {
+                    final int end = pathMatcher.end(entry.getKey());
+                    final String produced = transformValue(traceId, routedId, model, path, start, end);
+                    valid = produced != null;
+                    if (!valid)
+                    {
+                        break;
+                    }
+                    replacements.put(start, produced);
+                    ends.put(start, end);
+                }
+            }
+        }
+
+        if (valid)
+        {
+            final Matcher queryMatcher = requestType.queryMatcher.reset(path);
+            while (valid && queryMatcher.find())
+            {
+                final HttpModel model = requestType.queryParams.get(queryMatcher.group(1));
+                if (model != null && model != HttpModel.NONE)
+                {
+                    final int start = queryMatcher.start(2);
+                    final int end = queryMatcher.end(2);
+                    final String produced = transformValue(traceId, routedId, model, path, start, end);
+                    valid = produced != null;
+                    if (valid)
+                    {
+                        replacements.put(start, produced);
+                        ends.put(start, end);
+                    }
+                }
+            }
+        }
+
+        String result = null;
+        if (valid)
+        {
+            final StringBuilder builder = new StringBuilder();
+            int last = 0;
+            for (Map.Entry<Integer, String> entry : replacements.entrySet())
+            {
+                final int start = entry.getKey();
+                builder.append(path, last, start).append(entry.getValue());
+                last = ends.get(start);
+            }
+            builder.append(path, last, path.length());
+            result = builder.toString();
+        }
+        return result;
+    }
+
+    private String transformValue(
+        long traceId,
+        long routedId,
+        HttpModel model,
+        String value,
+        int start,
+        int end)
+    {
+        final int length = modelValueBuffer.putStringWithoutLengthUtf8(0, value.substring(start, end));
+        final int produced = model.transform(traceId, routedId, modelValueBuffer, 0, length);
+        return produced < 0 ? null : model.buffer().getStringWithoutLengthUtf8(0, produced);
     }
 
     private int decodeHttp2Preface(
@@ -5261,10 +5337,12 @@ public final class HttpServerFactory implements HttpStreamFactory
                                 resolved.initialId(), resolved.affinity(),
                                 streamId, exchangeAuth, traceId, policy, origin, contentLength, requestType);
 
-                            boolean headersValid = exchange.validateHeaders(beginEx);
+                            final HttpBeginExFW transformedBeginEx =
+                                transformRequestBeginEx(traceId, routedId, beginEx, requestType);
+                            boolean headersValid = transformedBeginEx != null;
                             if (headersValid)
                             {
-                                exchange.doRequestBegin(traceId, beginEx);
+                                exchange.doRequestBegin(traceId, transformedBeginEx);
                                 if (endRequest)
                                 {
                                     exchange.doRequestEnd(traceId, EMPTY_OCTETS);
@@ -6653,84 +6731,6 @@ public final class HttpServerFactory implements HttpStreamFactory
                 removeStreamIfNecessary();
                 deauthorizeIfNecessary();
                 cleanupExpiringIfNecessary();
-            }
-
-            private boolean validateHeaders(
-                HttpBeginExFW beginEx)
-            {
-                String path = beginEx.headers().matchFirst(h -> h.name().equals(HEADER_PATH)).value().asString();
-                return requestType == null ||
-                        validateHeaderValues(beginEx) &&
-                                validatePathParams(path) &&
-                                validateQueryParams(path);
-            }
-
-            private boolean validateHeaderValues(
-                HttpBeginExFW beginEx)
-            {
-                MutableBoolean valid = new MutableBoolean(true);
-                if (requestType != null && requestType.headers != null)
-                {
-                    beginEx.headers().forEach(header ->
-                    {
-                        if (valid.value)
-                        {
-                            HttpModel validator = requestType.headers.get(header.name());
-                            if (validator != null)
-                            {
-                                String16FW value = header.value();
-                                valid.value &=
-                                    validator.validate(traceId, routedId, value.value(), 0, value.length());
-                            }
-                        }
-                    });
-                }
-                return valid.value;
-            }
-
-            private boolean validatePathParams(
-                String path)
-            {
-                Matcher matcher = requestType.pathMatcher.reset(path);
-                boolean matches = matcher.matches();
-                assert matches;
-
-                boolean valid = true;
-                for (String name : requestType.pathParams.keySet())
-                {
-                    String value = matcher.group(name);
-                    if (value != null)
-                    {
-                        String8FW value0 = new String8FW(value);
-                        HttpModel validator = requestType.pathParams.get(name);
-                        if (!validator.validate(traceId, routedId, value0.value(), value0.offset(),
-                            value0.length()))
-                        {
-                            valid = false;
-                            break;
-                        }
-                    }
-                }
-                return valid;
-            }
-
-            private boolean validateQueryParams(
-                String path)
-            {
-                Matcher matcher = requestType.queryMatcher.reset(path);
-                boolean valid = true;
-                while (valid && matcher.find())
-                {
-                    String name = matcher.group(1);
-                    HttpModel validator = requestType.queryParams.get(name);
-                    if (validator != null)
-                    {
-                        String8FW value = new String8FW(matcher.group(2));
-                        valid &= validator.validate(traceId, routedId, value.value(), 0,
-                            value.length());
-                    }
-                }
-                return valid;
             }
 
             private void removeStreamIfNecessary()

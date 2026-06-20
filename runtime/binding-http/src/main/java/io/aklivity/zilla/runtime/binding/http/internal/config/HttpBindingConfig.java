@@ -280,7 +280,7 @@ public final class HttpBindingConfig
                 {
                     for (HttpResponseConfig response0 : request.responses)
                     {
-                        Map<String8FW, HttpModel> responseHeaderValidators = new HashMap<>();
+                        Map<String8FW, HttpModel> responseHeaders = new HashMap<>();
                         if (response0.headers != null)
                         {
                             for (HttpParamConfig header : response0.headers)
@@ -289,7 +289,7 @@ public final class HttpBindingConfig
                                 ModelHandler model = supplyModel.apply(header.model);
                                 if (model != null)
                                 {
-                                    responseHeaderValidators.put(name, HttpModel.decoder(model, modelBuffer));
+                                    responseHeaders.put(name, HttpModel.decoder(model, modelBuffer));
                                 }
                             }
                         }
@@ -297,7 +297,7 @@ public final class HttpBindingConfig
                             ? supplyModel.apply(response0.content)
                             : null;
                         HttpRequestType.Response response = new HttpRequestType.Response(response0.status, response0.contentType,
-                            responseHeaderValidators, responseContent);
+                            responseHeaders, responseContent);
                         responses.add(response);
                     }
                 }

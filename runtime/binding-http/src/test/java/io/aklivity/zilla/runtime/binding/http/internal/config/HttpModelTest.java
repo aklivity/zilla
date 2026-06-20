@@ -21,9 +21,7 @@ import static io.aklivity.zilla.runtime.engine.model.ModelPipeline.FLAGS_INIT;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.emptyList;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
 
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -37,11 +35,14 @@ public class HttpModelTest
     private final MutableDirectBuffer value = new UnsafeBuffer(new byte[256]);
 
     @Test
-    public void shouldValidateWholeValue()
+    public void shouldTransformWholeValue()
     {
         HttpModel model = HttpModel.decoder(handler(5), new UnsafeBuffer(new byte[256]));
 
-        assertTrue(model.validate(0L, 0L, value("hello"), 0, 5));
+        int produced = model.transform(0L, 0L, value("hello"), 0, 5);
+
+        assertEquals(5, produced);
+        assertValue(model, produced, "hello");
     }
 
     @Test
@@ -49,22 +50,13 @@ public class HttpModelTest
     {
         HttpModel model = HttpModel.decoder(handler(5), new UnsafeBuffer(new byte[256]));
 
-        assertFalse(model.validate(0L, 0L, value("nope"), 0, 4));
+        assertEquals(-1, model.transform(0L, 0L, value("nope"), 0, 4));
     }
 
     @Test
-    public void shouldValidateAcrossOverflow()
-    {
-        HttpModel model = HttpModel.decoder(handler(5), new UnsafeBuffer(new byte[2]));
-
-        assertTrue(model.validate(0L, 0L, value("hello"), 0, 5));
-    }
-
-    @Test
-    public void shouldValidateWhenNone()
+    public void shouldSupplyNoneWhenNoHandler()
     {
         assertSame(HttpModel.NONE, HttpModel.decoder(null, new UnsafeBuffer(new byte[8])));
-        assertTrue(HttpModel.NONE.validate(0L, 0L, value("anything"), 0, 8));
     }
 
     @Test
@@ -139,6 +131,16 @@ public class HttpModelTest
         String expected)
     {
         byte[] actual = new byte[model.produced()];
+        model.buffer().getBytes(0, actual);
+        assertEquals(expected, new String(actual, UTF_8));
+    }
+
+    private static void assertValue(
+        HttpModel model,
+        int produced,
+        String expected)
+    {
+        byte[] actual = new byte[produced];
         model.buffer().getBytes(0, actual);
         assertEquals(expected, new String(actual, UTF_8));
     }
