@@ -15,6 +15,10 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.budget;
 
+import static io.aklivity.zilla.runtime.engine.budget.BudgetDebitor.NO_DEBITOR_INDEX;
+
+import java.util.function.LongConsumer;
+
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebit;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.budget.BudgetFlusher;
@@ -27,13 +31,24 @@ import io.aklivity.zilla.runtime.engine.budget.BudgetFlusher;
  * minimum with each claim, and delegates to the existing six-argument
  * {@link BudgetDebitor#claim} with {@code deferred} of {@code 0}.
  * </p>
+ * <p>
+ * {@link BudgetDebitor#acquire} returns {@link BudgetDebitor#NO_DEBITOR_INDEX} when the shared
+ * budget is not yet present in the debitor's storage. The hand-coded bindings handled this by
+ * guarding the claim on the acquired index and re-acquiring on each subsequent window until the
+ * budget appeared. This facade reproduces that: it re-attempts {@code acquire} on each
+ * {@link #claim} while still unacquired and grants the full requested {@code maximum} (no budget
+ * constraint) until the budget is present, then claims normally. A handle that never acquired is
+ * never released.
+ * </p>
  */
 public final class FacadeBudgetDebit implements BudgetDebit
 {
     private final BudgetDebitor debitor;
+    private final long budgetId;
     private final long watcherId;
-    private final long budgetIndex;
+    private final LongConsumer flusher;
 
+    private long budgetIndex;
     private int padding;
     private int minimum;
 
@@ -44,8 +59,10 @@ public final class FacadeBudgetDebit implements BudgetDebit
         BudgetFlusher onResume)
     {
         this.debitor = debitor;
+        this.budgetId = budgetId;
         this.watcherId = watcherId;
-        this.budgetIndex = debitor.acquire(budgetId, watcherId, onResume::onResume);
+        this.flusher = onResume::onResume;
+        this.budgetIndex = debitor.acquire(budgetId, watcherId, flusher);
     }
 
     @Override
@@ -64,15 +81,33 @@ public final class FacadeBudgetDebit implements BudgetDebit
         int minimum,
         int maximum)
     {
-        final int claimMinimum = Math.max(minimum, this.minimum) + padding;
-        final int claimMaximum = maximum + padding;
-        final int reserved = debitor.claim(traceId, budgetIndex, watcherId, claimMinimum, claimMaximum, 0);
-        return reserved == 0 ? 0 : reserved - padding;
+        if (budgetIndex == NO_DEBITOR_INDEX)
+        {
+            budgetIndex = debitor.acquire(budgetId, watcherId, flusher);
+        }
+
+        final int claimed;
+        if (budgetIndex == NO_DEBITOR_INDEX)
+        {
+            claimed = maximum;
+        }
+        else
+        {
+            final int claimMinimum = Math.max(minimum, this.minimum) + padding;
+            final int claimMaximum = maximum + padding;
+            final int reserved = debitor.claim(traceId, budgetIndex, watcherId, claimMinimum, claimMaximum, 0);
+            claimed = reserved == 0 ? 0 : reserved - padding;
+        }
+
+        return claimed;
     }
 
     @Override
     public void close()
     {
-        debitor.release(budgetIndex, watcherId);
+        if (budgetIndex != NO_DEBITOR_INDEX)
+        {
+            debitor.release(budgetIndex, watcherId);
+        }
     }
 }

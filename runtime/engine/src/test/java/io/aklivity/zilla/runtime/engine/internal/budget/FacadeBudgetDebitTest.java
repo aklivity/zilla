@@ -17,8 +17,12 @@ package io.aklivity.zilla.runtime.engine.internal.budget;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -124,5 +128,52 @@ public class FacadeBudgetDebitTest
         debit.close();
 
         verify(debitor).release(BUDGET_INDEX, WATCHER_ID);
+    }
+
+    @Test
+    public void shouldGrantMaximumWhenBudgetNotYetAcquired()
+    {
+        final BudgetDebitor debitor = mock(BudgetDebitor.class);
+        final BudgetFlusher onResume = mock(BudgetFlusher.class);
+        when(debitor.acquire(eq(BUDGET_ID), eq(WATCHER_ID), any())).thenReturn(BudgetDebitor.NO_DEBITOR_INDEX);
+
+        final FacadeBudgetDebit debit = new FacadeBudgetDebit(debitor, BUDGET_ID, WATCHER_ID, onResume);
+        final int granted = debit.claim(TRACE_ID, 100, 1000);
+
+        assertEquals(1000, granted);
+        verify(debitor, never()).claim(anyLong(), anyLong(), anyLong(), anyInt(), anyInt(), anyInt());
+    }
+
+    @Test
+    public void shouldReacquireOnClaimWhenBudgetBecomesAvailable()
+    {
+        final BudgetDebitor debitor = mock(BudgetDebitor.class);
+        final BudgetFlusher onResume = mock(BudgetFlusher.class);
+        when(debitor.acquire(eq(BUDGET_ID), eq(WATCHER_ID), any()))
+            .thenReturn(BudgetDebitor.NO_DEBITOR_INDEX)
+            .thenReturn(BUDGET_INDEX);
+        when(debitor.claim(TRACE_ID, BUDGET_INDEX, WATCHER_ID, 100, 1000, 0)).thenReturn(1000);
+
+        final FacadeBudgetDebit debit = new FacadeBudgetDebit(debitor, BUDGET_ID, WATCHER_ID, onResume);
+        final int grantedBefore = debit.claim(TRACE_ID, 100, 1000);
+        final int grantedAfter = debit.claim(TRACE_ID, 100, 1000);
+
+        assertEquals(1000, grantedBefore);
+        assertEquals(1000, grantedAfter);
+        verify(debitor, times(2)).acquire(eq(BUDGET_ID), eq(WATCHER_ID), any());
+        verify(debitor, times(2)).claim(TRACE_ID, BUDGET_INDEX, WATCHER_ID, 100, 1000, 0);
+    }
+
+    @Test
+    public void shouldNotReleaseWhenNeverAcquired()
+    {
+        final BudgetDebitor debitor = mock(BudgetDebitor.class);
+        final BudgetFlusher onResume = mock(BudgetFlusher.class);
+        when(debitor.acquire(eq(BUDGET_ID), eq(WATCHER_ID), any())).thenReturn(BudgetDebitor.NO_DEBITOR_INDEX);
+
+        final FacadeBudgetDebit debit = new FacadeBudgetDebit(debitor, BUDGET_ID, WATCHER_ID, onResume);
+        debit.close();
+
+        verify(debitor, never()).release(anyLong(), anyLong());
     }
 }
