@@ -220,6 +220,26 @@ class JsonSchemaTest
     }
 
     @Test
+    void shouldTreatNonQuantifierBraceAsLiteral()
+    {
+        // ECMA-262 treats a "{" that is not a well-formed quantifier as a literal; java.util.regex rejects it
+        assertTrue(valid("{\"pattern\":\"^a{z$\"}", "\"a{z\""));
+        assertFalse(valid("{\"pattern\":\"^a{z$\"}", "\"az\""));
+        assertTrue(valid("{\"pattern\":\"^x{2}y{z$\"}", "\"xxy{z\""));
+        assertFalse(valid("{\"pattern\":\"^x{2}y{z$\"}", "\"xy{z\""));
+    }
+
+    @Test
+    void shouldCompileEcmaLiteralBracePlaceholderPattern()
+    {
+        // valid ECMA-262 pattern with a literal "{...}" placeholder group, e.g. kafka-proxy host schema (issue #1935)
+        String schema = "{\"pattern\":\"^[^:]+(?:-({[^}]+}|[^.]+))?(?::(\\\\d+)\\\\+)?$\"}";
+        assertTrue(valid(schema, "\"broker-{node}\""));
+        assertTrue(valid(schema, "\"broker-0:9092+\""));
+        assertTrue(valid(schema, "\"localhost\""));
+    }
+
+    @Test
     void shouldTreatFormatAsAnnotationNotAssertion()
     {
         String schema = "{\"type\":\"string\",\"format\":\"email\"}";

@@ -43,6 +43,7 @@ import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
+import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapter;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
@@ -62,62 +63,41 @@ public class AsyncapiOptionsConfigAdapterTest
         adapter.adaptType("asyncapi");
         JsonbConfig config = new JsonbConfig()
             .withAdapters(adapter);
-        jsonb = JsonbBuilder.create(config);
+        jsonb = JsonbBuilder.newBuilder()
+            .withProvider(YamlJson.provider())
+            .withConfig(config)
+            .build();
     }
 
     @Test
     public void shouldReadOptionsMqtt() throws IOException
     {
-        String text =
-                "{" +
-                    "\"specs\":" +
-                    "{" +
-                        "\"mqtt-api\":" +
-                        "{" +
-                            "\"catalog\":" +
-                            "{" +
-                                "\"catalog0\":" +
-                                "{" +
-                                    "\"subject\": \"smartylighting\"," +
-                                    "\"version\": \"latest\"" +
-                                "}" +
-                            "}," +
-                            "\"servers\":" +
-                            "[" +
-                                "{" +
-                                    "\"host\":\"test.mosquitto.org:1883\"" +
-                                "}" +
-                            "]" +
-                        "}" +
-                    "}," +
-                    "\"tcp\":" +
-                    "{" +
-                        "\"host\":\"localhost\"," +
-                        "\"port\":7183" +
-                    "}," +
-                    "\"tls\":" +
-                    "{" +
-                        "\"keys\":" +
-                        "[" +
-                            "\"localhost\"" +
-                        "]," +
-                        "\"trust\":" +
-                        "[" +
-                            "\"serverca\"" +
-                        "]," +
-                        "\"trustcacerts\":true," +
-                        "\"sni\":" +
-                        "[" +
-                            "\"mqtt.example.net\"" +
-                        "]," +
-                        "\"alpn\":" +
-                        "[" +
-                            "\"mqtt\"" +
-                        "]" +
-                    "}" +
-                "}";
+        String yaml =
+                """
+                specs:
+                  mqtt-api:
+                    catalog:
+                      catalog0:
+                        subject: smartylighting
+                        version: latest
+                    servers:
+                      - host: test.mosquitto.org:1883
+                tcp:
+                  host: localhost
+                  port: 7183
+                tls:
+                  keys:
+                    - localhost
+                  trust:
+                    - serverca
+                  trustcacerts: true
+                  sni:
+                    - mqtt.example.net
+                  alpn:
+                    - mqtt
+                """;
 
-        AsyncapiOptionsConfig options = jsonb.fromJson(text, AsyncapiOptionsConfig.class);
+        AsyncapiOptionsConfig options = jsonb.fromJson(yaml, AsyncapiOptionsConfig.class);
 
         assertThat(options, not(nullValue()));
         AsyncapiSpecificationConfig asyncapi = options.specs.get(0);
@@ -169,129 +149,77 @@ public class AsyncapiOptionsConfigAdapterTest
                 .build())
             .build();
 
-        String text = jsonb.toJson(options);
+        String yaml = jsonb.toJson(options);
 
-        assertThat(text, not(nullValue()));
-        assertThat(text, equalTo(
-            "{" +
-                "\"specs\":" +
-                "{" +
-                    "\"mqtt-api\":" +
-                    "{" +
-                        "\"catalog\":" +
-                        "{" +
-                            "\"catalog0\":" +
-                            "{" +
-                                "\"subject\":\"smartylighting\"," +
-                                "\"version\":\"latest\"" +
-                            "}" +
-                        "}," +
-                        "\"servers\":" +
-                        "[" +
-                            "{" +
-                                "\"host\":\"test.mosquitto.org:1883\"" +
-                            "}" +
-                        "]" +
-                    "}" +
-                "}," +
-                "\"tcp\":" +
-                "{" +
-                    "\"host\":\"localhost\"," +
-                    "\"port\":7183" +
-                "}," +
-                "\"tls\":" +
-                "{" +
-                    "\"keys\":" +
-                    "[" +
-                        "\"localhost\"" +
-                    "]," +
-                    "\"trust\":" +
-                    "[" +
-                        "\"serverca\"" +
-                    "]," +
-                    "\"trustcacerts\":true," +
-                    "\"sni\":" +
-                    "[" +
-                        "\"mqtt.example.net\"" +
-                    "]," +
-                    "\"alpn\":" +
-                    "[" +
-                        "\"mqtt\"" +
-                    "]" +
-                "}," +
-                 "\"kafka\":" +
-                 "{" +
-                     "\"sasl\":" +
-                     "{" +
-                         "\"mechanism\":\"plain\"," +
-                         "\"username\":\"username\"," +
-                         "\"password\":\"password\"" +
-                     "}" +
-                 "}," +
-                "\"mqtt-kafka\":" +
-                "{" +
-                    "\"channels\":" +
-                    "{" +
-                        "\"sessions\":\"mqttSessions\"," +
-                        "\"messages\":\"mqttMessages\"," +
-                        "\"retained\":\"mqttRetained\"" +
-                    "}" +
-                "}" +
-            "}"));
+        assertThat(yaml, not(nullValue()));
+        assertThat(yaml, equalTo(
+            """
+            specs:
+              mqtt-api:
+                catalog:
+                  catalog0:
+                    subject: smartylighting
+                    version: latest
+                servers:
+                  - host: "test.mosquitto.org:1883"
+            tcp:
+              host: localhost
+              port: 7183
+            tls:
+              keys:
+                - localhost
+              trust:
+                - serverca
+              trustcacerts: true
+              sni:
+                - mqtt.example.net
+              alpn:
+                - mqtt
+            kafka:
+              sasl:
+                mechanism: plain
+                username: username
+                password: password
+            mqtt-kafka:
+              channels:
+                sessions: mqttSessions
+                messages: mqttMessages
+                retained: mqttRetained
+            """));
     }
 
     @Test
     public void shouldReadOptionsKafka() throws IOException
     {
-        String text =
-                "{" +
-                    "\"specs\": {" +
-                    "  \"kafka_api\": {" +
-                    "    \"catalog\": {" +
-                    "      \"catalog0\": {" +
-                    "        \"subject\": \"smartylighting\"," +
-                    "        \"version\": \"latest\"" +
-                    "      }" +
-                    "    }" +
-                    "  }" +
-                    "}," +
-                    "\"tcp\":" +
-                    "{" +
-                        "\"host\":\"localhost\"," +
-                        "\"port\":9092" +
-                    "}," +
-                    "\"tls\":" +
-                    "{" +
-                        "\"keys\":" +
-                        "[" +
-                            "\"localhost\"" +
-                        "]," +
-                        "\"trust\":" +
-                        "[" +
-                            "\"serverca\"" +
-                        "]," +
-                        "\"trustcacerts\":true," +
-                        "\"sni\":" +
-                        "[" +
-                            "\"kafka.example.net\"" +
-                        "]," +
-                        "\"alpn\":" +
-                        "[" +
-                            "\"kafka\"" +
-                        "]" +
-                    "}," +
-                    "\"kafka\":" +
-                    "{" +
-                        "\"sasl\":" +
-                        "{" +
-                            "\"mechanism\":\"plain\"," +
-                            "\"username\":\"username\"," +
-                            "\"password\":\"password\"" +
-                        "}" +
-                    "}" +
-                "}";
+        String yaml =
+                """
+                specs:
+                  kafka_api:
+                    catalog:
+                      catalog0:
+                        subject: smartylighting
+                        version: latest
+                tcp:
+                  host: localhost
+                  port: 9092
+                tls:
+                  keys:
+                    - localhost
+                  trust:
+                    - serverca
+                  trustcacerts: true
+                  sni:
+                    - kafka.example.net
+                  alpn:
+                    - kafka
+                kafka:
+                  sasl:
+                    mechanism: plain
+                    username: username
+                    password: password
+                """;
 
-        AsyncapiOptionsConfig options = jsonb.fromJson(text, AsyncapiOptionsConfig.class);
+        AsyncapiOptionsConfig options = jsonb.fromJson(yaml, AsyncapiOptionsConfig.class);
 
         assertThat(options, not(nullValue()));
         assertThat(options.tcp.host, equalTo("localhost"));
@@ -324,81 +252,53 @@ public class AsyncapiOptionsConfigAdapterTest
                 .build())
             .build();
 
-        String text = jsonb.toJson(options);
+        String yaml = jsonb.toJson(options);
 
-        assertThat(text, not(nullValue()));
-        assertThat(text, equalTo(
-            "{" +
-                "\"tcp\":" +
-                "{" +
-                    "\"host\":\"localhost\"," +
-                    "\"port\":7080" +
-                "}," +
-                "\"tls\":" +
-                "{" +
-                    "\"keys\":" +
-                    "[" +
-                        "\"localhost\"" +
-                    "]," +
-                    "\"trust\":" +
-                    "[" +
-                        "\"serverca\"" +
-                    "]," +
-                    "\"trustcacerts\":true," +
-                    "\"sni\":" +
-                    "[" +
-                        "\"http.example.net\"" +
-                    "]," +
-                    "\"alpn\":" +
-                    "[" +
-                        "\"http\"" +
-                    "]" +
-                "}," +
-                "\"mqtt-kafka\":" +
-                "{" +
-                    "\"channels\":" +
-                    "{" +
-                        "\"sessions\":\"mqttSessions\"," +
-                        "\"messages\":\"mqttMessages\"," +
-                        "\"retained\":\"mqttRetained\"" +
-                    "}" +
-                "}" +
-            "}"));
+        assertThat(yaml, not(nullValue()));
+        assertThat(yaml, equalTo(
+            """
+            tcp:
+              host: localhost
+              port: 7080
+            tls:
+              keys:
+                - localhost
+              trust:
+                - serverca
+              trustcacerts: true
+              sni:
+                - http.example.net
+              alpn:
+                - http
+            mqtt-kafka:
+              channels:
+                sessions: mqttSessions
+                messages: mqttMessages
+                retained: mqttRetained
+            """));
     }
 
     @Test
     public void shouldReadOptionsHttp() throws IOException
     {
-        String text =
-                "{" +
-                    "\"tcp\":" +
-                    "{" +
-                        "\"host\":\"localhost\"," +
-                        "\"port\":7080" +
-                    "}," +
-                    "\"tls\":" +
-                    "{" +
-                        "\"keys\":" +
-                        "[" +
-                            "\"localhost\"" +
-                        "]," +
-                        "\"trust\":" +
-                        "[" +
-                            "\"serverca\"" +
-                        "]," +
-                        "\"trustcacerts\":true," +
-                        "\"sni\":" +
-                        "[" +
-                            "\"http.example.net\"" +
-                        "]," +
-                        "\"alpn\":" +
-                        "[" +
-                            "\"http\"" +
-                        "]" +
-                    "}" +
-                "}";
+        String yaml =
+                """
+                tcp:
+                  host: localhost
+                  port: 7080
+                tls:
+                  keys:
+                    - localhost
+                  trust:
+                    - serverca
+                  trustcacerts: true
+                  sni:
+                    - http.example.net
+                  alpn:
+                    - http
+                """;
 
-        AsyncapiOptionsConfig options = jsonb.fromJson(text, AsyncapiOptionsConfig.class);
+        AsyncapiOptionsConfig options = jsonb.fromJson(yaml, AsyncapiOptionsConfig.class);
 
         assertThat(options, not(nullValue()));
         assertThat(options.tcp.host, equalTo("localhost"));
@@ -435,74 +335,50 @@ public class AsyncapiOptionsConfigAdapterTest
                 .build())
             .build();
 
-        String text = jsonb.toJson(options);
+        String yaml = jsonb.toJson(options);
 
-        assertThat(text, not(nullValue()));
-        assertThat(text, equalTo(
-            "{" +
-                "\"tcp\":" +
-                "{" +
-                    "\"host\":\"localhost\"," +
-                    "\"port\":9092" +
-                "}," +
-                "\"tls\":" +
-                "{" +
-                    "\"keys\":" +
-                    "[" +
-                        "\"localhost\"" +
-                    "]," +
-                    "\"trust\":" +
-                    "[" +
-                        "\"serverca\"" +
-                    "]," +
-                    "\"trustcacerts\":true," +
-                    "\"sni\":" +
-                    "[" +
-                        "\"kafka.example.net\"" +
-                    "]," +
-                    "\"alpn\":" +
-                    "[" +
-                        "\"kafka\"" +
-                    "]" +
-                "}," +
-                 "\"kafka\":" +
-                 "{" +
-                     "\"sasl\":" +
-                     "{" +
-                         "\"mechanism\":\"plain\"," +
-                         "\"username\":\"username\"," +
-                         "\"password\":\"password\"" +
-                     "}" +
-                 "}," +
-                "\"mqtt-kafka\":" +
-                "{" +
-                    "\"channels\":" +
-                    "{" +
-                        "\"sessions\":\"mqttSessions\"," +
-                        "\"messages\":\"mqttMessages\"," +
-                        "\"retained\":\"mqttRetained\"" +
-                    "}" +
-                "}" +
-            "}"));
+        assertThat(yaml, not(nullValue()));
+        assertThat(yaml, equalTo(
+            """
+            tcp:
+              host: localhost
+              port: 9092
+            tls:
+              keys:
+                - localhost
+              trust:
+                - serverca
+              trustcacerts: true
+              sni:
+                - kafka.example.net
+              alpn:
+                - kafka
+            kafka:
+              sasl:
+                mechanism: plain
+                username: username
+                password: password
+            mqtt-kafka:
+              channels:
+                sessions: mqttSessions
+                messages: mqttMessages
+                retained: mqttRetained
+            """));
     }
 
     @Test
     public void shouldReadOptionsMqttKafka() throws IOException
     {
-        String text =
-                "{" +
-                    "\"mqtt-kafka\":" +
-                    "{" +
-                        "\"channels\":" +
-                        "{" +
-                            "\"sessions\":\"sessionsChannel\"," +
-                            "\"messages\":\"messagesChannel\"," +
-                            "\"retained\":\"retainedChannel\"" +
-                        "}" +
-                    "}" +
-                "}";
+        String yaml =
+                """
+                mqtt-kafka:
+                  channels:
+                    sessions: sessionsChannel
+                    messages: messagesChannel
+                    retained: retainedChannel
+                """;
 
-        AsyncapiOptionsConfig options = jsonb.fromJson(text, AsyncapiOptionsConfig.class);
+        AsyncapiOptionsConfig options = jsonb.fromJson(yaml, AsyncapiOptionsConfig.class);
 
         assertThat(options, not(nullValue()));
         assertThat(options.mqttKafka.channels.sessions, equalTo("sessionsChannel"));
@@ -523,20 +399,16 @@ public class AsyncapiOptionsConfigAdapterTest
                 .build())
             .build();
 
-        String text = jsonb.toJson(options);
+        String yaml = jsonb.toJson(options);
 
-        assertThat(text, not(nullValue()));
-        assertThat(text, equalTo(
-            "{" +
-                    "\"mqtt-kafka\":" +
-                    "{" +
-                        "\"channels\":" +
-                        "{" +
-                            "\"sessions\":\"sessionsChannel\"," +
-                            "\"messages\":\"messagesChannel\"," +
-                            "\"retained\":\"retainedChannel\"" +
-                        "}" +
-                    "}" +
-                "}"));
+        assertThat(yaml, not(nullValue()));
+        assertThat(yaml, equalTo(
+            """
+            mqtt-kafka:
+              channels:
+                sessions: sessionsChannel
+                messages: messagesChannel
+                retained: retainedChannel
+            """));
     }
 }

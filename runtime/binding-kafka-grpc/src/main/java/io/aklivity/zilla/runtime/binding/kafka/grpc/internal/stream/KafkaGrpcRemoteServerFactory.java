@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.binding.kafka.grpc.internal.stream;
 import static io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.KafkaCapabilities.FETCH_ONLY;
 import static io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.KafkaCapabilities.PRODUCE_ONLY;
 import static io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.stream.GrpcType.BASE64;
-import static io.aklivity.zilla.runtime.engine.budget.BudgetDebitor.NO_DEBITOR_INDEX;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static java.lang.System.currentTimeMillis;
@@ -28,7 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.function.LongConsumer;
-import java.util.function.LongFunction;
 import java.util.function.LongPredicate;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
@@ -69,7 +67,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
-import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
+import io.aklivity.zilla.runtime.engine.budget.BudgetDebit;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
@@ -144,7 +142,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final LongSupplier supplyTraceId;
-    private final LongFunction<BudgetDebitor> supplyDebitor;
+    private final EngineContext context;
     private final Function<Long, String> supplyNamespace;
     private final LongPredicate activate;
     private final LongConsumer deactivate;
@@ -168,7 +166,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.signaler = context.signaler();
-        this.supplyDebitor = context::supplyDebitor;
+        this.context = context;
         this.supplyTraceId = context::supplyTraceId;
         this.supplyNamespace = context::supplyNamespace;
         this.activate = activate;
@@ -1352,8 +1350,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
         private int initialCap;
         private int initialAuth;
 
-        private BudgetDebitor initialDeb;
-        private long initialDebIndex = NO_DEBITOR_INDEX;
+        private BudgetDebit initialDebit;
 
         private int state;
 
@@ -1601,14 +1598,13 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
 
             assert initialAck <= initialSeq;
 
-            if (initialBudetId != 0L && initialDebIndex == NO_DEBITOR_INDEX)
+            if (initialBudetId != 0L && initialDebit == null)
             {
-                initialDeb = supplyDebitor.apply(budgetId);
-                initialDebIndex = initialDeb.acquire(budgetId, initialId, this::flushMessage);
-                assert initialDebIndex != NO_DEBITOR_INDEX;
+                initialDebit = context.supplyDebit(initialId, initialBudetId, this::flushMessage);
+                initialDebit.declare(traceId, 0, 0);
             }
 
-            if (initialBudetId != 0L && initialDebIndex == NO_DEBITOR_INDEX)
+            if (initialBudetId != 0L && !initialDebit.available())
             {
                 cleanup(traceId, authorization);
             }
@@ -1649,9 +1645,9 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
             deferred = (flags & DATA_FLAG_INIT) != 0x00 ? deferred : 0;
 
             int claimed = reserved;
-            if (length > 0 && initialDebIndex != NO_DEBITOR_INDEX)
+            if (length > 0 && initialDebit != null)
             {
-                claimed = initialDeb.claim(traceId, initialDebIndex, initialId, reserved, reserved, deferred);
+                claimed = initialDebit.claim(traceId, reserved, reserved, deferred);
             }
 
             final int flushableBytes = Math.max(claimed - initialPad, 0);
@@ -1714,11 +1710,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
 
         private void cleanupBudgetIfNecessary()
         {
-            if (initialDebIndex != NO_DEBITOR_INDEX)
-            {
-                initialDeb.release(initialDebIndex, initialId);
-                initialDebIndex = NO_DEBITOR_INDEX;
-            }
+            initialDebit = null;
         }
 
         private void metadata(

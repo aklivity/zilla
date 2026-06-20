@@ -28,8 +28,11 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageReader;
+import io.aklivity.zilla.runtime.engine.budget.BudgetCredit;
 import io.aklivity.zilla.runtime.engine.budget.BudgetCreditor;
+import io.aklivity.zilla.runtime.engine.budget.BudgetDebit;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
+import io.aklivity.zilla.runtime.engine.budget.BudgetFlusher;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
@@ -176,19 +179,37 @@ public class EchoWorker implements EngineContext
     }
 
     @Override
+    @Deprecated
     public BudgetCreditor creditor()
     {
         return null;
     }
 
     @Override
+    @Deprecated
     public BudgetDebitor supplyDebitor(long budgetId)
     {
         return null;
     }
 
     @Override
+<<<<<<< HEAD
     public MutableDirectBufferEx writeBuffer()
+=======
+    public BudgetDebit supplyDebit(long streamId, long sharedStreamId, BudgetFlusher onResume)
+    {
+        return null;
+    }
+
+    @Override
+    public BudgetCredit supplyCredit(long streamId, long sharedStreamId)
+    {
+        return null;
+    }
+
+    @Override
+    public MutableDirectBuffer writeBuffer()
+>>>>>>> origin/develop
     {
         return writeBuffer;
     }

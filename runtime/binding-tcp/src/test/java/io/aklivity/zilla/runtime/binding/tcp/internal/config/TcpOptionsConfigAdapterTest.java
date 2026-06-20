@@ -29,6 +29,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
+import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 
 public class TcpOptionsConfigAdapterTest
 {
@@ -39,19 +40,22 @@ public class TcpOptionsConfigAdapterTest
     {
         JsonbConfig config = new JsonbConfig()
                 .withAdapters(new TcpOptionsConfigAdapter());
-        jsonb = JsonbBuilder.create(config);
+        jsonb = JsonbBuilder.newBuilder()
+                .withProvider(YamlJson.provider())
+                .withConfig(config)
+                .build();
     }
 
     @Test
     public void shouldReadOptions()
     {
-        String text =
-                "{" +
-                    "\"host\": \"localhost\"," +
-                    "\"port\": 12345" +
-                "}";
+        String yaml =
+                """
+                host: localhost
+                port: 12345
+                """;
 
-        TcpOptionsConfig options = jsonb.fromJson(text, TcpOptionsConfig.class);
+        TcpOptionsConfig options = jsonb.fromJson(yaml, TcpOptionsConfig.class);
 
         assertThat(options, not(nullValue()));
         assertThat(options.host, equalTo("localhost"));
@@ -63,13 +67,13 @@ public class TcpOptionsConfigAdapterTest
     @Test
     public void shouldReadOptionsWithPortRange()
     {
-        String text =
-                "{" +
-                    "\"host\": \"localhost\"," +
-                    "\"port\": \"12345-12346\"" +
-                "}";
+        String yaml =
+                """
+                host: localhost
+                port: "12345-12346"
+                """;
 
-        TcpOptionsConfig options = jsonb.fromJson(text, TcpOptionsConfig.class);
+        TcpOptionsConfig options = jsonb.fromJson(yaml, TcpOptionsConfig.class);
 
         assertThat(options, not(nullValue()));
         assertThat(options.host, equalTo("localhost"));
@@ -82,13 +86,13 @@ public class TcpOptionsConfigAdapterTest
     @Test
     public void shouldReadOptionsWithPortRangeSingleton()
     {
-        String text =
-                "{" +
-                    "\"host\": \"localhost\"," +
-                    "\"port\": \"12345\"" +
-                "}";
+        String yaml =
+                """
+                host: localhost
+                port: "12345"
+                """;
 
-        TcpOptionsConfig options = jsonb.fromJson(text, TcpOptionsConfig.class);
+        TcpOptionsConfig options = jsonb.fromJson(yaml, TcpOptionsConfig.class);
 
         assertThat(options, not(nullValue()));
         assertThat(options.host, equalTo("localhost"));
@@ -106,23 +110,27 @@ public class TcpOptionsConfigAdapterTest
             .ports(new int[] { 12345 })
             .build();
 
-        String text = jsonb.toJson(options);
+        String yaml = jsonb.toJson(options);
 
-        assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"host\":\"localhost\",\"port\":12345}"));
+        assertThat(yaml, not(nullValue()));
+        assertThat(yaml, equalTo(
+                """
+                host: localhost
+                port: 12345
+                """));
     }
 
     @Test
     public void shouldReadOptionsWithBacklog()
     {
-        String text =
-                "{" +
-                    "\"host\": \"localhost\"," +
-                    "\"port\": 12345," +
-                    "\"backlog\": 1000" +
-                "}";
+        String yaml =
+                """
+                host: localhost
+                port: 12345
+                backlog: 1000
+                """;
 
-        TcpOptionsConfig options = jsonb.fromJson(text, TcpOptionsConfig.class);
+        TcpOptionsConfig options = jsonb.fromJson(yaml, TcpOptionsConfig.class);
 
         assertThat(options, not(nullValue()));
         assertThat(options.host, equalTo("localhost"));
@@ -142,9 +150,14 @@ public class TcpOptionsConfigAdapterTest
                 .backlog(1000)
                 .build();
 
-        String text = jsonb.toJson(options);
+        String yaml = jsonb.toJson(options);
 
-        assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"host\":\"localhost\",\"port\":12345,\"backlog\":1000}"));
+        assertThat(yaml, not(nullValue()));
+        assertThat(yaml, equalTo(
+                """
+                host: localhost
+                port: 12345
+                backlog: 1000
+                """));
     }
 }

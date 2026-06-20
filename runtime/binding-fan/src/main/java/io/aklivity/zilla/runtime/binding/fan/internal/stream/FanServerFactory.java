@@ -16,14 +16,11 @@
 package io.aklivity.zilla.runtime.binding.fan.internal.stream;
 
 import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_BUDGET_ID;
-import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_CREDITOR_INDEX;
-import static io.aklivity.zilla.runtime.engine.budget.BudgetDebitor.NO_DEBITOR_INDEX;
 import static java.util.function.UnaryOperator.identity;
 
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
-import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
 
@@ -43,8 +40,8 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
-import io.aklivity.zilla.runtime.engine.budget.BudgetCreditor;
-import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
+import io.aklivity.zilla.runtime.engine.budget.BudgetCredit;
+import io.aklivity.zilla.runtime.engine.budget.BudgetDebit;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 
@@ -72,8 +69,7 @@ public final class FanServerFactory implements FanStreamFactory
 
     private final MutableDirectBufferEx writeBuffer;
     private final BindingHandler streamFactory;
-    private final BudgetCreditor creditor;
-    private final LongFunction<BudgetDebitor> supplyDebitor;
+    private final EngineContext context;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final LongSupplier supplyTraceId;
@@ -87,8 +83,7 @@ public final class FanServerFactory implements FanStreamFactory
     {
         this.writeBuffer = context.writeBuffer();
         this.streamFactory = context.streamFactory();
-        this.creditor = context.creditor();
-        this.supplyDebitor = context::supplyDebitor;
+        this.context = context;
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.supplyTraceId = context::supplyTraceId;
@@ -175,7 +170,7 @@ public final class FanServerFactory implements FanStreamFactory
         private int initialMax;
         private int initialPad;
         private long initialBud;
-        private long initialBudIndex;
+        private BudgetCredit initialBudCredit;
 
         private long replySeq;
         private long replyAck;
@@ -365,22 +360,22 @@ public final class FanServerFactory implements FanStreamFactory
 
             if (!FanState.initialOpened(state))
             {
-                long initialBudIndex = NO_CREDITOR_INDEX;
+                BudgetCredit initialBudCredit = null;
                 long initialBud = budgetId;
                 if (initialBud == NO_BUDGET_ID)
                 {
                     initialBud = supplyBudgetId.getAsLong();
-                    initialBudIndex = creditor.acquire(initialBud);
+                    initialBudCredit = context.supplyCredit(initialId, initialBud);
                 }
                 this.initialBud = initialBud;
-                this.initialBudIndex = initialBudIndex;
+                this.initialBudCredit = initialBudCredit;
 
                 state = FanState.openedInitial(state);
             }
 
-            if (initialBudIndex != NO_CREDITOR_INDEX && credit > 0)
+            if (initialBudCredit != null && credit > 0)
             {
-                creditor.credit(traceId, initialBudIndex, credit);
+                initialBudCredit.capacity(traceId, (int) credit);
             }
 
             final int pendingAck = (int)(initialSeq - initialAck);
@@ -487,11 +482,7 @@ public final class FanServerFactory implements FanStreamFactory
 
         private void cleanupInitial()
         {
-            if (initialBudIndex != NO_CREDITOR_INDEX)
-            {
-                creditor.release(initialBudIndex);
-                initialBudIndex = NO_CREDITOR_INDEX;
-            }
+            initialBudCredit = null;
         }
 
         private void join(
@@ -525,8 +516,7 @@ public final class FanServerFactory implements FanStreamFactory
         private int replyMax;
         private int replyPad;
         private long replyBud;
-        private long replyBudIndex;
-        private BudgetDebitor replyDeb;
+        private BudgetDebit replyDebit;
 
         private int state;
 
@@ -693,9 +683,9 @@ public final class FanServerFactory implements FanStreamFactory
 
                 if (replyBud != NO_BUDGET_ID)
                 {
-                    replyDeb = supplyDebitor.apply(replyBud);
-                    replyBudIndex = replyDeb.acquire(replyBud, replyId,
-                        tid -> replyDeb.claim(tid, replyBudIndex, replyId, 0, 0, 0));
+                    replyDebit = context.supplyDebit(replyId, replyBud,
+                        tid -> replyDebit.claim(tid, 0, 0));
+                    replyDebit.declare(traceId, 0, 0);
                 }
             }
 
@@ -753,9 +743,9 @@ public final class FanServerFactory implements FanStreamFactory
             OctetsFW payload,
             OctetsFW extension)
         {
-            if (replyBud != NO_BUDGET_ID)
+            if (replyDebit != null)
             {
-                reserved = replyDeb.claim(traceId, replyBudIndex, replyId, reserved, reserved, 0);
+                reserved = replyDebit.claim(traceId, reserved, reserved);
             }
 
             // TODO: cache + replay
@@ -791,12 +781,7 @@ public final class FanServerFactory implements FanStreamFactory
 
         private void cleanupReply()
         {
-            if (replyBud != NO_BUDGET_ID)
-            {
-                replyDeb.release(replyBudIndex, replyId);
-                replyBudIndex = NO_DEBITOR_INDEX;
-                replyDeb = null;
-            }
+            replyDebit = null;
         }
     }
 

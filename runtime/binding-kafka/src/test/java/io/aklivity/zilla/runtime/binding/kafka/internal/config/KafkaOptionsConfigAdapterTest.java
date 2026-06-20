@@ -33,6 +33,7 @@ import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfig;
+import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 import io.aklivity.zilla.runtime.engine.test.internal.model.config.TestModelConfig;
 
 public class KafkaOptionsConfigAdapterTest
@@ -44,35 +45,30 @@ public class KafkaOptionsConfigAdapterTest
     {
         JsonbConfig config = new JsonbConfig()
                 .withAdapters(new KafkaOptionsConfigAdapter());
-        jsonb = JsonbBuilder.create(config);
+        jsonb = JsonbBuilder.newBuilder()
+                .withProvider(YamlJson.provider())
+                .withConfig(config)
+                .build();
     }
 
     @Test
     public void shouldReadOptions()
     {
-        String text =
-                "{" +
-                    "\"bootstrap\":" +
-                    "[" +
-                        "\"test\"" +
-                    "]," +
-                    "\"topics\":" +
-                    "[" +
-                        "{" +
-                            "\"name\": \"test\"," +
-                            "\"defaultOffset\": \"live\"," +
-                            "\"deltaType\": \"json_patch\"" +
-                        "}" +
-                    "]," +
-                    "\"sasl\":" +
-                    "{" +
-                        "\"mechanism\": \"plain\"," +
-                        "\"username\": \"username\"," +
-                        "\"password\": \"password\"" +
-                    "}" +
-                "}";
+        String yaml =
+                """
+                bootstrap:
+                  - test
+                topics:
+                  - name: test
+                    defaultOffset: live
+                    deltaType: json_patch
+                sasl:
+                  mechanism: plain
+                  username: username
+                  password: password
+                """;
 
-        KafkaOptionsConfig options = jsonb.fromJson(text, KafkaOptionsConfig.class);
+        KafkaOptionsConfig options = jsonb.fromJson(yaml, KafkaOptionsConfig.class);
 
         assertThat(options, not(nullValue()));
         assertThat(options.bootstrap, equalTo(singletonList("test")));
@@ -105,42 +101,45 @@ public class KafkaOptionsConfigAdapterTest
                 .build()
             .build();
 
-        String text = jsonb.toJson(options);
+        String yaml = jsonb.toJson(options);
 
-        assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"bootstrap\":[\"test\"]," +
-                "\"topics\":[{\"name\":\"test\",\"defaultOffset\":\"live\",\"deltaType\":\"json_patch\"," +
-                "\"value\":\"test\"}]," +
-                "\"servers\":[\"localhost:9092\"]," +
-                "\"sasl\":{\"mechanism\":\"plain\",\"username\":\"username\",\"password\":\"password\"}}"));
+        assertThat(yaml, not(nullValue()));
+        assertThat(yaml, equalTo(
+                """
+                bootstrap:
+                  - test
+                topics:
+                  - name: test
+                    defaultOffset: live
+                    deltaType: json_patch
+                    value: test
+                servers:
+                  - "localhost:9092"
+                sasl:
+                  mechanism: plain
+                  username: username
+                  password: password
+                """));
     }
 
     @Test
     public void shouldReadSaslScramOptions()
     {
-        String text =
-                "{" +
-                        "\"bootstrap\":" +
-                        "[" +
-                        "\"test\"" +
-                        "]," +
-                        "\"topics\":" +
-                        "[" +
-                        "{" +
-                        "\"name\": \"test\"," +
-                        "\"defaultOffset\": \"live\"," +
-                        "\"deltaType\": \"json_patch\"" +
-                        "}" +
-                        "]," +
-                        "\"sasl\":" +
-                        "{" +
-                        "\"mechanism\": \"scram-sha-256\"," +
-                        "\"username\": \"username\"," +
-                        "\"password\": \"password\"" +
-                        "}" +
-                        "}";
+        String yaml =
+                """
+                bootstrap:
+                  - test
+                topics:
+                  - name: test
+                    defaultOffset: live
+                    deltaType: json_patch
+                sasl:
+                  mechanism: scram-sha-256
+                  username: username
+                  password: password
+                """;
 
-        KafkaOptionsConfig options = jsonb.fromJson(text, KafkaOptionsConfig.class);
+        KafkaOptionsConfig options = jsonb.fromJson(yaml, KafkaOptionsConfig.class);
 
         assertThat(options, not(nullValue()));
         assertThat(options.bootstrap, equalTo(singletonList("test")));
@@ -172,13 +171,24 @@ public class KafkaOptionsConfigAdapterTest
                 .build()
             .build();
 
-        String text = jsonb.toJson(options);
+        String yaml = jsonb.toJson(options);
 
-        assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"bootstrap\":[\"test\"]," +
-                "\"topics\":[{\"name\":\"test\",\"defaultOffset\":\"live\",\"deltaType\":\"json_patch\"}]," +
-                "\"servers\":[\"localhost:9092\"]," +
-                "\"sasl\":{\"mechanism\":\"scram-sha-256\",\"username\":\"username\",\"password\":\"password\"}}"));
+        assertThat(yaml, not(nullValue()));
+        assertThat(yaml, equalTo(
+                """
+                bootstrap:
+                  - test
+                topics:
+                  - name: test
+                    defaultOffset: live
+                    deltaType: json_patch
+                servers:
+                  - "localhost:9092"
+                sasl:
+                  mechanism: scram-sha-256
+                  username: username
+                  password: password
+                """));
     }
 
     @Test
@@ -203,44 +213,43 @@ public class KafkaOptionsConfigAdapterTest
                 .build()
             .build();
 
-        String text = jsonb.toJson(options);
+        String yaml = jsonb.toJson(options);
 
-        assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"bootstrap\":[\"test\"]," +
-                "\"topics\":[{\"name\":\"test\",\"defaultOffset\":\"live\",\"deltaType\":\"json_patch\"," +
-                "\"value\":\"test\"}]," +
-                "\"servers\":[\"localhost:9092\"]," +
-                "\"sasl\":{\"mechanism\":\"plain\",\"username\":\"username\",\"password\":\"password\"}}"));
+        assertThat(yaml, not(nullValue()));
+        assertThat(yaml, equalTo(
+                """
+                bootstrap:
+                  - test
+                topics:
+                  - name: test
+                    defaultOffset: live
+                    deltaType: json_patch
+                    value: test
+                servers:
+                  - "localhost:9092"
+                sasl:
+                  mechanism: plain
+                  username: username
+                  password: password
+                """));
     }
 
     @Test
     public void shouldReadHeadersOptions()
     {
-        String text =
-            "{" +
-                "\"bootstrap\":" +
-                "[" +
-                    "\"test\"" +
-                "]," +
-                "\"topics\":" +
-                "[" +
-                    "{" +
-                        "\"name\": \"test\"," +
-                        "\"transforms\":" +
-                        "[" +
-                            "{" +
-                                "\"extract-key\": \"${message.key.id}\"," +
-                                "\"extract-headers\":" +
-                                "{" +
-                                    "\"correlation-id\": \"${message.value.correlationId}\"" +
-                                "}" +
-                            "}" +
-                        "]" +
-                    "}" +
-                "]" +
-            "}";
+        String yaml =
+            """
+            bootstrap:
+              - test
+            topics:
+              - name: test
+                transforms:
+                  - extract-key: ${message.key.id}
+                    extract-headers:
+                      correlation-id: ${message.value.correlationId}
+            """;
 
-        KafkaOptionsConfig options = jsonb.fromJson(text, KafkaOptionsConfig.class);
+        KafkaOptionsConfig options = jsonb.fromJson(yaml, KafkaOptionsConfig.class);
 
         assertThat(options, not(nullValue()));
         assertThat(options.bootstrap, equalTo(singletonList("test")));
@@ -262,33 +271,35 @@ public class KafkaOptionsConfigAdapterTest
                 .build()
             .build();
 
-        String text = jsonb.toJson(options);
+        String yaml = jsonb.toJson(options);
 
-        assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"bootstrap\":[\"test\"],\"topics\":[{\"name\":\"test\",\"value\":\"test\"," +
-            "\"transforms\":{\"extract-headers\":{\"correlation-id\":\"${message.value.correlationId}\"}}}]}"));
+        assertThat(yaml, not(nullValue()));
+        assertThat(yaml, equalTo(
+                """
+                bootstrap:
+                  - test
+                topics:
+                  - name: test
+                    value: test
+                    transforms:
+                      extract-headers:
+                        correlation-id: "${message.value.correlationId}"
+                """));
     }
 
     @Test
     public void shouldReadAuthorizationOptions()
     {
-        String text = """
-                {
-                    "authorization":
-                    {
-                        "guard0":
-                        {
-                            "credentials":
-                            {
-                                "mechanism": "scram-sha-512",
-                                "username": "{identity}",
-                                "password": "{credentials}"
-                            }
-                        }
-                    }
-                }""";
+        String yaml = """
+                authorization:
+                  guard0:
+                    credentials:
+                      mechanism: scram-sha-512
+                      username: "{identity}"
+                      password: "{credentials}"
+                """;
 
-        KafkaOptionsConfig options = jsonb.fromJson(text, KafkaOptionsConfig.class);
+        KafkaOptionsConfig options = jsonb.fromJson(yaml, KafkaOptionsConfig.class);
 
         assertThat(options, not(nullValue()));
         assertThat(options.authorization, not(nullValue()));
@@ -313,24 +324,17 @@ public class KafkaOptionsConfigAdapterTest
             .build();
 
         String expected = """
-                {
-                    "authorization":
-                    {
-                        "guard0":
-                        {
-                            "credentials":
-                            {
-                                "mechanism":"scram-sha-512",
-                                "username":"{identity}",
-                                "password":"{credentials}"
-                            }
-                        }
-                    }
-                }""".replaceAll("\\s*\\n\\s*", "");
+                authorization:
+                  guard0:
+                    credentials:
+                      mechanism: scram-sha-512
+                      username: "{identity}"
+                      password: "{credentials}"
+                """;
 
-        String text = jsonb.toJson(options);
+        String yaml = jsonb.toJson(options);
 
-        assertThat(text, not(nullValue()));
-        assertThat(text, equalTo(expected));
+        assertThat(yaml, not(nullValue()));
+        assertThat(yaml, equalTo(expected));
     }
 }
