@@ -22,7 +22,6 @@ import static io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream
 import static io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.FileSystemError.FILE_MODIFIED;
 import static io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.FileSystemError.FILE_NOT_FOUND;
 import static io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.FileSystemError.FILE_TAG_MISSING;
-import static io.aklivity.zilla.runtime.engine.budget.BudgetDebitor.NO_DEBITOR_INDEX;
 import static java.nio.file.LinkOption.NOFOLLOW_LINKS;
 import static java.nio.file.StandardCopyOption.ATOMIC_MOVE;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
@@ -45,7 +44,6 @@ import java.nio.file.attribute.BasicFileAttributeView;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
@@ -81,7 +79,7 @@ import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.Window
 import io.aklivity.zilla.runtime.binding.filesystem.model.FileSystemObject;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
-import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
+import io.aklivity.zilla.runtime.engine.budget.BudgetDebit;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
@@ -137,7 +135,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
     private final MutableDirectBuffer errorBuffer;
     private final MutableDirectBuffer readBuffer;
     private final MutableDirectBuffer directoryBuffer;
-    private final LongFunction<BudgetDebitor> supplyDebitor;
+    private final EngineContext context;
     private final LongUnaryOperator supplyReplyId;
     private final int fileSystemTypeId;
     private final URI serverRoot;
@@ -161,7 +159,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         this.readBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.errorBuffer = new UnsafeBuffer(new byte[1]);
         this.directoryBuffer = new UnsafeBuffer();
-        this.supplyDebitor = context::supplyDebitor;
+        this.context = context;
         this.supplyReplyId = context::supplyReplyId;
         this.fileSystemTypeId = context.supplyTypeId(FileSystemBinding.NAME);
         this.bindings = new Long2ObjectHashMap<>();
@@ -321,8 +319,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         private int replyPad;
         private long replyBud;
         private long replyBytes;
-        private BudgetDebitor replyDeb;
-        private long replyDebIndex = NO_DEBITOR_INDEX;
+        private BudgetDebit replyDebit;
 
         private int state;
 
@@ -549,10 +546,10 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             {
                 state = FileSystemState.openReply(state);
 
-                if (replyBud != 0L && replyDebIndex == NO_DEBITOR_INDEX)
+                if (replyBud != 0L && replyDebit == null)
                 {
-                    replyDeb = supplyDebitor.apply(budgetId);
-                    replyDebIndex = replyDeb.acquire(budgetId, replyId, this::flushAppData);
+                    replyDebit = context.supplyDebit(replyId, budgetId, this::flushAppData);
+                    replyDebit.declare(traceId, 0, 0);
                 }
                 flushAppData(traceId);
             }
@@ -722,10 +719,10 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
                                 int reserved = Math.min(replyWin, size + replyPad);
                                 int length = Math.max(reserved - replyPad, 0);
 
-                                if (length > 0 && replyDebIndex != NO_DEBITOR_INDEX && replyDeb != null)
+                                if (length > 0 && replyDebit != null)
                                 {
                                     final int minimum = Math.min(bufferPool.slotCapacity(), reserved);
-                                    reserved = replyDeb.claim(traceId, replyDebIndex, replyId, minimum, reserved, 0);
+                                    reserved = replyDebit.claim(traceId, minimum, reserved);
                                     length = Math.max(reserved - replyPad, 0);
                                 }
 
@@ -766,10 +763,10 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
                             int reserved = Math.min(replyWin, available + replyPad);
                             int length = Math.max(reserved - replyPad, 0);
 
-                            if (length > 0 && replyDebIndex != NO_DEBITOR_INDEX && replyDeb != null)
+                            if (length > 0 && replyDebit != null)
                             {
                                 final int minimum = Math.min(bufferPool.slotCapacity(), reserved); // TODO: fragmentation
-                                reserved = replyDeb.claim(traceId, replyDebIndex, replyId, minimum, reserved, 0);
+                                reserved = replyDebit.claim(traceId, minimum, reserved);
                                 length = Math.max(reserved - replyPad, 0);
                             }
 

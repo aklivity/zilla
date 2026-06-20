@@ -26,6 +26,8 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
+
 public class StdoutOptionsConfigAdapterTest
 {
     private Jsonb jsonb;
@@ -35,17 +37,20 @@ public class StdoutOptionsConfigAdapterTest
     {
         JsonbConfig config = new JsonbConfig()
             .withAdapters(new StdoutOptionsConfigAdapter());
-        jsonb = JsonbBuilder.create(config);
+        jsonb = JsonbBuilder.newBuilder()
+            .withProvider(YamlJson.provider())
+            .withConfig(config)
+            .build();
     }
 
     @Test
     public void shouldReadOptions()
     {
         // GIVEN
-        String text = "{}";
+        String yaml = "{}";
 
         // WHEN
-        StdoutOptionsConfig options = jsonb.fromJson(text, StdoutOptionsConfig.class);
+        StdoutOptionsConfig options = jsonb.fromJson(yaml, StdoutOptionsConfig.class);
 
         // THEN
         assertThat(options, not(nullValue()));
@@ -55,14 +60,14 @@ public class StdoutOptionsConfigAdapterTest
     public void shouldWriteOptions()
     {
         // GIVEN
-        String expectedText = "{}";
+        String expectedYaml = "{}\n";
         StdoutOptionsConfig config = new StdoutOptionsConfig();
 
         // WHEN
-        String text = jsonb.toJson(config);
+        String yaml = jsonb.toJson(config);
 
         // THEN
-        assertThat(text, not(nullValue()));
-        assertThat(text, equalTo(expectedText));
+        assertThat(yaml, not(nullValue()));
+        assertThat(yaml, equalTo(expectedYaml));
     }
 }
