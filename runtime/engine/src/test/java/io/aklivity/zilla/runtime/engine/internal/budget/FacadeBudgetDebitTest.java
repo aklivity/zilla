@@ -133,6 +133,20 @@ public class FacadeBudgetDebitTest
     }
 
     @Test
+    public void shouldReleaseDebitorSlotOnlyOnceWhenClosedRepeatedly()
+    {
+        final BudgetDebitor debitor = mock(BudgetDebitor.class);
+        final BudgetFlusher onResume = mock(BudgetFlusher.class);
+        when(debitor.acquire(eq(BUDGET_ID), eq(WATCHER_ID), any())).thenReturn(BUDGET_INDEX);
+
+        final FacadeBudgetDebit debit = new FacadeBudgetDebit(debitor, BUDGET_ID, WATCHER_ID, onResume);
+        debit.close();
+        debit.close();
+
+        verify(debitor, times(1)).release(BUDGET_INDEX, WATCHER_ID);
+    }
+
+    @Test
     public void shouldGrantMaximumWhenBudgetNotYetAcquired()
     {
         final BudgetDebitor debitor = mock(BudgetDebitor.class);

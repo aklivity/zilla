@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.engine.internal.budget;
 
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -76,5 +77,18 @@ public class FacadeBudgetCreditTest
         credit.close();
 
         verify(creditor).release(BUDGET_INDEX);
+    }
+
+    @Test
+    public void shouldReleaseCreditorSlotOnlyOnceWhenClosedRepeatedly()
+    {
+        final BudgetCreditor creditor = mock(BudgetCreditor.class);
+        when(creditor.acquire(BUDGET_ID)).thenReturn(BUDGET_INDEX);
+
+        final FacadeBudgetCredit credit = new FacadeBudgetCredit(creditor, BUDGET_ID);
+        credit.close();
+        credit.close();
+
+        verify(creditor, times(1)).release(BUDGET_INDEX);
     }
 }

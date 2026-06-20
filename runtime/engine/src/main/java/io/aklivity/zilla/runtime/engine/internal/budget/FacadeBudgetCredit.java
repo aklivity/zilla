@@ -33,6 +33,8 @@ public final class FacadeBudgetCredit implements BudgetCredit
     private final BudgetCreditor creditor;
     private final long budgetIndex;
 
+    private boolean released;
+
     public FacadeBudgetCredit(
         BudgetCreditor creditor,
         long budgetId)
@@ -61,6 +63,10 @@ public final class FacadeBudgetCredit implements BudgetCredit
     @Override
     public void close()
     {
-        creditor.release(budgetIndex);
+        if (!released)
+        {
+            released = true;
+            creditor.release(budgetIndex);
+        }
     }
 }

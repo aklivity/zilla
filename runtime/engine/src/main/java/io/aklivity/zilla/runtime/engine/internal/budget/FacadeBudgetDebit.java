@@ -51,6 +51,7 @@ public final class FacadeBudgetDebit implements BudgetDebit
     private long budgetIndex;
     private int padding;
     private int minimum;
+    private boolean released;
 
     public FacadeBudgetDebit(
         BudgetDebitor debitor,
@@ -112,9 +113,14 @@ public final class FacadeBudgetDebit implements BudgetDebit
     @Override
     public void close()
     {
-        if (budgetIndex != NO_DEBITOR_INDEX)
+        if (!released)
         {
-            debitor.release(budgetIndex, watcherId);
+            released = true;
+            if (budgetIndex != NO_DEBITOR_INDEX)
+            {
+                debitor.release(budgetIndex, watcherId);
+                budgetIndex = NO_DEBITOR_INDEX;
+            }
         }
     }
 }
