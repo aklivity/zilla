@@ -24,6 +24,7 @@ public final class GuardConfigBuilder<T> extends ConfigBuilder<T, GuardConfigBui
     private String namespace;
     private String name;
     private String type;
+    private String kind;
     private String store;
     private OptionsConfig options;
 
@@ -61,6 +62,13 @@ public final class GuardConfigBuilder<T> extends ConfigBuilder<T, GuardConfigBui
         return this;
     }
 
+    public GuardConfigBuilder<T> kind(
+        String kind)
+    {
+        this.kind = kind;
+        return this;
+    }
+
     public GuardConfigBuilder<T> store(
         String store)
     {
@@ -84,6 +92,6 @@ public final class GuardConfigBuilder<T> extends ConfigBuilder<T, GuardConfigBui
     @Override
     public T build()
     {
-        return mapper.apply(new GuardConfig(namespace, name, type, store, options));
+        return mapper.apply(new GuardConfig(namespace, name, type, kind, store, options));
     }
 }

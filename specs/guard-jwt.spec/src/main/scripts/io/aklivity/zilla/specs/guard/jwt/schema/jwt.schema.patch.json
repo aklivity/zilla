@@ -27,6 +27,7 @@
                     {
                         "const": "jwt"
                     },
+                    "kind": false,
                     "options":
                     {
                         "properties":
