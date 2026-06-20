@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.0.0-alpha-2](https://github.com/aklivity/zilla/tree/2.0.0-alpha-2) (2026-06-20)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.0.0-alpha-1...2.0.0-alpha-2)
+
+**Closed issues:**
+
+- common-json: JSON Schema `pattern` compiled with Java Pattern rejects valid ECMA-262 regexes [\#1935](https://github.com/aklivity/zilla/issues/1935)
+
+**Merged pull requests:**
+
+- fix\(common-json\): compile JSON Schema pattern with ECMA-262 brace semantics [\#1936](https://github.com/aklivity/zilla/pull/1936) ([jfallows](https://github.com/jfallows))
+
 ## [2.0.0-alpha-1](https://github.com/aklivity/zilla/tree/2.0.0-alpha-1) (2026-06-20)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/1.2.4...2.0.0-alpha-1)
