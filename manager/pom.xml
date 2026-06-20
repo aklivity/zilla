@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>zilla</artifactId>
-    <version>1.2.4</version>
+    <version>2.0.0-alpha-1</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -101,6 +101,12 @@
   </dependencies>
 
   <build>
+    <testResources>
+      <testResource>
+        <directory>src/test/resources</directory>
+        <filtering>true</filtering>
+      </testResource>
+    </testResources>
     <plugins>
       <plugin>
         <groupId>org.jasig.maven</groupId>
@@ -112,6 +118,7 @@
         <configuration>
           <excludes>
             <exclude>src/main/java/org/apache/ivy/**</exclude>
+            <exclude>src/test/resources/**/*.json</exclude>
           </excludes>
         </configuration>
       </plugin>

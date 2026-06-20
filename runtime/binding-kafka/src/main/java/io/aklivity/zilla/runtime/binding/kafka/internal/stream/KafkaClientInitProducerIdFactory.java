@@ -60,6 +60,7 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
+import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
 public final class KafkaClientInitProducerIdFactory extends KafkaClientSaslHandshaker implements BindingHandler
 {
@@ -192,7 +193,8 @@ public final class KafkaClientInitProducerIdFactory extends KafkaClientSaslHands
                     producerId,
                     producerEpoch,
                     servers,
-                    sasl)::onApplication;
+                    sasl,
+                    binding.guard)::onApplication;
         }
 
         return newStream;
@@ -569,7 +571,8 @@ public final class KafkaClientInitProducerIdFactory extends KafkaClientSaslHands
             long producerId,
             short producerEpoch,
             List<KafkaServerConfig> servers,
-            KafkaSaslConfig sasl)
+            KafkaSaslConfig sasl,
+            GuardHandler guard)
         {
             this.application = application;
             this.originId = originId;
@@ -577,7 +580,8 @@ public final class KafkaClientInitProducerIdFactory extends KafkaClientSaslHands
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.affinity = affinity;
-            this.client = new KafkaInitProducerIdClient(this, routedId, resolvedId, producerId, producerEpoch, servers, sasl);
+            this.client = new KafkaInitProducerIdClient(this, routedId, resolvedId, producerId, producerEpoch, servers, sasl,
+                guard);
         }
 
         private void onApplication(
@@ -846,9 +850,10 @@ public final class KafkaClientInitProducerIdFactory extends KafkaClientSaslHands
             long producerId,
             short producerEpoch,
             List<KafkaServerConfig> servers,
-            KafkaSaslConfig sasl)
+            KafkaSaslConfig sasl,
+            GuardHandler guard)
         {
-            super(servers, sasl, originId, routedId);
+            super(servers, sasl, guard, originId, routedId);
             this.delegate = delegate;
             this.producerId = producerId;
             this.producerEpoch = producerEpoch;

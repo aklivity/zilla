@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>runtime</artifactId>
-    <version>1.2.4</version>
+    <version>2.0.0-alpha-1</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -117,8 +117,10 @@
         <configuration>
           <excludes>
             <exclude>**/keys</exclude>
+            <exclude>**/keys2</exclude>
             <exclude>**/trust</exclude>
             <exclude>**/signers</exclude>
+            <exclude>**/signers2</exclude>
             <exclude>**/*.csr</exclude>
             <exclude>**/*.crt</exclude>
           </excludes>

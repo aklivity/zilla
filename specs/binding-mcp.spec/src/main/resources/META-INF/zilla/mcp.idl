@@ -14,14 +14,19 @@
  */
 scope mcp
 {
-    enum McpCapabilities (uint8)
+    enum McpCapabilities (uint16)
     {
         SERVER_TOOLS(1),
         SERVER_PROMPTS(2),
         SERVER_RESOURCES(4),
-        CLIENT_ROOTS(8),
-        CLIENT_SAMPLING(16),
-        CLIENT_ELICITATION(32)
+        SERVER_TOOLS_LIST_CHANGED(8),
+        SERVER_PROMPTS_LIST_CHANGED(16),
+        SERVER_RESOURCES_LIST_CHANGED(32),
+        CLIENT_ROOTS(64),
+        CLIENT_SAMPLING(128),
+        CLIENT_ELICITATION(256),
+        CLIENT_ELICITATION_FORM(512),
+        CLIENT_ELICITATION_URL(1024)
     }
 
     scope stream
@@ -47,6 +52,7 @@ scope mcp
             case 5: mcp::stream::McpSuspendFlushEx suspend;
             case 6: mcp::stream::McpElicitCallbackFlushEx elicitCallback;
             case 7: mcp::stream::McpElicitCompleteFlushEx elicitComplete;
+            case 8: mcp::stream::McpElicitResponseFlushEx elicitResponse;
         }
 
         union McpChallengeEx switch (uint8) extends core::stream::Extension
@@ -56,6 +62,12 @@ scope mcp
             case 2: mcp::stream::McpElicitCreateChallengeEx elicitCreate;
         }
 
+        union McpResetEx switch (uint8) extends core::stream::Extension
+        {
+            case 0: mcp::stream::McpBearerResetEx bearer;
+            case 1: mcp::stream::McpErrorResetEx error;
+        }
+
         struct McpResumableFlushEx
         {
             string16 id = null;
@@ -63,17 +75,17 @@ scope mcp
 
         struct McpToolsListChangedFlushEx
         {
-            string16 id;
+            string16 id = null;
         }
 
         struct McpPromptsListChangedFlushEx
         {
-            string16 id;
+            string16 id = null;
         }
 
         struct McpResourcesListChangedFlushEx
         {
-            string16 id;
+            string16 id = null;
         }
 
         struct McpProgressFlushEx
@@ -99,43 +111,74 @@ scope mcp
         {
         }
 
+        enum McpBearerError (uint8)
+        {
+            INVALID_REQUEST(0),
+            INVALID_TOKEN(1),
+            INSUFFICIENT_SCOPE(2)
+        }
+
+        struct McpBearerResetEx
+        {
+            string16 realm = null;
+            string16 scopes = null;
+            string16 resourceMetadata = null;
+            McpBearerError error;
+        }
+
+        struct McpErrorResetEx
+        {
+            int32 code;
+            string16 message = null;
+        }
+
         struct McpLifecycleBeginEx
         {
-            string16 sessionId;
-            uint8 capabilities = 0;
+            string16 sessionId = null;
+            uint16 capabilities = 0;
+            string16 authCallback = null;
         }
 
         struct McpToolsListBeginEx
         {
             string16 sessionId;
+            int64 timeout = 0;
         }
 
         struct McpToolsCallBeginEx
         {
             string16 sessionId;
             string16 name;
+            int32 contentLength = -1;
+            int64 timeout = 0;
         }
 
         struct McpPromptsListBeginEx
         {
             string16 sessionId;
+            int64 timeout = 0;
         }
 
         struct McpPromptsGetBeginEx
         {
             string16 sessionId;
             string16 name;
+            int32 contentLength = -1;
+            int64 timeout = 0;
         }
 
         struct McpResourcesListBeginEx
         {
             string16 sessionId;
+            int64 timeout = 0;
         }
 
         struct McpResourcesReadBeginEx
         {
             string16 sessionId;
             string16 uri;
+            int32 contentLength = -1;
+            int64 timeout = 0;
         }
 
         struct McpAbortEx extends core::stream::Extension
@@ -143,28 +186,47 @@ scope mcp
             string16 reason = null;
         }
 
-        enum McpElicitStatus (uint8)
+        enum McpOutcome (uint8)
         {
-            COMPLETED(0),
-            DECLINED(1),
-            CANCELLED(2)
+            OK(0),
+            ERROR(1)
+        }
+
+        struct McpEndEx extends core::stream::Extension
+        {
+            McpOutcome outcome = OK;
+        }
+
+        enum McpElicitAction (uint8)
+        {
+            ACCEPT(0),
+            DECLINE(1),
+            CANCEL(2)
         }
 
         struct McpElicitCreateChallengeEx
         {
             string16 id;
             string16 url;
+            string16 message = null;
+            string16 correlationId = null;
         }
 
         struct McpElicitCallbackFlushEx
         {
             string16 url;
+            string16 correlationId = null;
         }
 
         struct McpElicitCompleteFlushEx
         {
             string16 id;
-            McpElicitStatus status;
+        }
+
+        struct McpElicitResponseFlushEx
+        {
+            string16 correlationId;
+            McpElicitAction action;
         }
     }
 }

@@ -55,4 +55,44 @@ public class MemoryStoreHandlerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("store.lock.yaml")
+    @Specification({
+        "${net}/handshake/client",
+        "${app}/handshake/server"})
+    public void shouldLockResource() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("store.unlock.yaml")
+    @Specification({
+        "${net}/handshake/client",
+        "${app}/handshake/server"})
+    public void shouldUnlockAbsentResource() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("store.renew.yaml")
+    @Specification({
+        "${net}/handshake/client",
+        "${app}/handshake/server"})
+    public void shouldRenewOwnedLock() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("store.watch.yaml")
+    @Specification({
+        "${net}/handshake/client",
+        "${app}/handshake/server"})
+    public void shouldWatchKey() throws Exception
+    {
+        k3po.finish();
+    }
 }

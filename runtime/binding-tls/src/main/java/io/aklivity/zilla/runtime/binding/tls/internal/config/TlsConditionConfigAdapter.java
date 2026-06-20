@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.binding.tls.internal.config;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.IntStream;
 
 import jakarta.json.Json;
@@ -32,6 +34,7 @@ import org.agrona.collections.MutableInteger;
 
 import io.aklivity.zilla.runtime.binding.tls.config.TlsConditionConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsConditionConfigBuilder;
+import io.aklivity.zilla.runtime.binding.tls.config.TlsMutualConfig;
 import io.aklivity.zilla.runtime.binding.tls.internal.TlsBinding;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
@@ -41,6 +44,8 @@ public final class TlsConditionConfigAdapter implements ConditionConfigAdapterSp
     private static final String AUTHORITY_NAME = "authority";
     private static final String ALPN_NAME = "alpn";
     private static final String PORT_NAME = "port";
+    private static final String TRUST_NAME = "trust";
+    private static final String MUTUAL_NAME = "mutual";
 
     @Override
     public String type()
@@ -84,6 +89,21 @@ public final class TlsConditionConfigAdapter implements ConditionConfigAdapterSp
             }
         }
 
+        if (tlsCondition.trust != null)
+        {
+            JsonArrayBuilder trustArray = Json.createArrayBuilder();
+            for (String alias : tlsCondition.trust)
+            {
+                trustArray.add(alias);
+            }
+            object.add(TRUST_NAME, trustArray);
+        }
+
+        if (tlsCondition.mutual != null)
+        {
+            object.add(MUTUAL_NAME, tlsCondition.mutual.name().toLowerCase());
+        }
+
         return object.build();
     }
 
@@ -124,6 +144,19 @@ public final class TlsConditionConfigAdapter implements ConditionConfigAdapterSp
             portsSet.forEach(i -> ports[index.value++] = i);
 
             tlsCondition.ports(ports);
+        }
+
+        if (object.containsKey(TRUST_NAME))
+        {
+            JsonArray trustArray = object.getJsonArray(TRUST_NAME);
+            List<String> trust = new ArrayList<>(trustArray.size());
+            trustArray.forEach(value -> trust.add(((JsonString) value).getString()));
+            tlsCondition.trust(trust);
+        }
+
+        if (object.containsKey(MUTUAL_NAME))
+        {
+            tlsCondition.mutual(TlsMutualConfig.valueOf(object.getString(MUTUAL_NAME).toUpperCase()));
         }
 
         return tlsCondition.build();

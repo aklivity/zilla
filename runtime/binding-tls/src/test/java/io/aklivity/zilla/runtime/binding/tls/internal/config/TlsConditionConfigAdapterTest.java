@@ -17,9 +17,12 @@ package io.aklivity.zilla.runtime.binding.tls.internal.config;
 
 import static java.util.function.Function.identity;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
+
+import java.util.List;
 
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
@@ -29,6 +32,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.tls.config.TlsConditionConfig;
+import io.aklivity.zilla.runtime.binding.tls.config.TlsMutualConfig;
 
 public class TlsConditionConfigAdapterTest
 {
@@ -80,7 +84,7 @@ public class TlsConditionConfigAdapterTest
                 "{" +
                     "\"authority\": \"example.net\"," +
                     "\"alpn\": \"echo\"," +
-                    "\"port\": 8080-8081" +
+                    "\"port\": \"8080-8081\"" +
                 "}";
 
         TlsConditionConfig condition = jsonb.fromJson(text, TlsConditionConfig.class);
@@ -140,5 +144,92 @@ public class TlsConditionConfigAdapterTest
 
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo("{\"authority\":\"example.net\",\"alpn\":\"echo\",\"port\":8080}"));
+    }
+
+    @Test
+    public void shouldReadConditionWithTrust()
+    {
+        String text =
+                "{" +
+                    "\"trust\": [\"clientca\"]" +
+                "}";
+
+        TlsConditionConfig condition = jsonb.fromJson(text, TlsConditionConfig.class);
+
+        assertThat(condition, not(nullValue()));
+        assertThat(condition.trust, not(nullValue()));
+        assertThat(condition.trust, contains("clientca"));
+        assertThat(condition.mutual, nullValue());
+    }
+
+    @Test
+    public void shouldWriteConditionWithTrust()
+    {
+        TlsConditionConfig condition = TlsConditionConfig.builder()
+            .inject(identity())
+            .trust(List.of("clientca"))
+            .build();
+
+        String text = jsonb.toJson(condition);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo("{\"trust\":[\"clientca\"]}"));
+    }
+
+    @Test
+    public void shouldReadConditionWithMutualNone()
+    {
+        String text =
+                "{" +
+                    "\"mutual\": \"none\"" +
+                "}";
+
+        TlsConditionConfig condition = jsonb.fromJson(text, TlsConditionConfig.class);
+
+        assertThat(condition, not(nullValue()));
+        assertThat(condition.mutual, equalTo(TlsMutualConfig.NONE));
+        assertThat(condition.trust, nullValue());
+    }
+
+    @Test
+    public void shouldWriteConditionWithMutualNone()
+    {
+        TlsConditionConfig condition = TlsConditionConfig.builder()
+            .inject(identity())
+            .mutual(TlsMutualConfig.NONE)
+            .build();
+
+        String text = jsonb.toJson(condition);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo("{\"mutual\":\"none\"}"));
+    }
+
+    @Test
+    public void shouldReadConditionWithMutualRequired()
+    {
+        String text =
+                "{" +
+                    "\"mutual\": \"required\"" +
+                "}";
+
+        TlsConditionConfig condition = jsonb.fromJson(text, TlsConditionConfig.class);
+
+        assertThat(condition, not(nullValue()));
+        assertThat(condition.mutual, equalTo(TlsMutualConfig.REQUIRED));
+    }
+
+    @Test
+    public void shouldWriteConditionWithMutualRequired()
+    {
+        TlsConditionConfig condition = TlsConditionConfig.builder()
+            .inject(identity())
+            .mutual(TlsMutualConfig.REQUIRED)
+            .build();
+
+        String text = jsonb.toJson(condition);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo("{\"mutual\":\"required\"}"));
     }
 }

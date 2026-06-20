@@ -20,7 +20,6 @@ connect "zilla://streams/app0"
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .lifecycle()
-                               .sessionId("session-1")
                                .build()
                            .build()}
 
@@ -45,14 +44,15 @@ write zilla:begin.ext ${mcp:beginEx()
                            .toolsCall()
                                .sessionId("session-1")
                                .name("get_weather")
+                               .contentLength(59)
                                .build()
                            .build()}
 
 write advised zilla:challenge ${mcp:matchChallengeEx()
                                     .typeId(zilla:id("mcp"))
                                     .elicitCreate()
-                                        .id("1")
-                                        .url("https://server.example.com/authorize?state=7f3a9b1c&redirect_uri=%s".formatted(http:encodeQuery("https://replace.me/callback")))
+                                        .id("elicit-1")
+                                        .url("https://server.example.com/authorize?state=7f3a9b1c&redirect_uri=%s".formatted(http:encodeQuery("https://localhost:8080/mcp/auth/callback")))
                                         .build()
                                     .build()}
 
@@ -69,18 +69,17 @@ write '{'
 write advise zilla:flush ${mcp:flushEx()
                               .typeId(zilla:id("mcp"))
                               .elicitCallback()
-                                  .url("http://localhost:8080/mcp/auth/callback?error=access_denied&state=session-1.elicit-1.7f3a9b1c")
+                                  .url("http://localhost:8080/mcp/auth/callback?error=access_denied&state=7f3a9b1c")
                                   .build()
                               .build()}
-
-write close
 
 read advised zilla:flush ${mcp:matchFlushEx()
                                .typeId(zilla:id("mcp"))
                                .elicitComplete()
-                                   .id("1")
-                                   .status("DECLINED")
+                                   .id("elicit-1")
                                    .build()
                                .build()}
 
 read abort
+
+write abort

@@ -14,15 +14,11 @@
  */
 module io.aklivity.zilla.runtime.model.avro
 {
-    requires com.fasterxml.jackson.core;
-    requires com.fasterxml.jackson.databind;
     requires io.aklivity.zilla.runtime.engine;
-    requires org.slf4j;
+    requires io.aklivity.zilla.runtime.common.avro;
+    requires io.aklivity.zilla.runtime.common.json;
 
     exports io.aklivity.zilla.runtime.model.avro.config;
-
-    uses io.aklivity.zilla.runtime.model.avro.internal.avro.Conversion;
-    uses io.aklivity.zilla.runtime.model.avro.internal.avro.LogicalTypes$LogicalTypeFactory;
 
     provides io.aklivity.zilla.runtime.engine.config.ModelConfigAdapterSpi
         with io.aklivity.zilla.runtime.model.avro.internal.config.AvroModelConfigAdapter;

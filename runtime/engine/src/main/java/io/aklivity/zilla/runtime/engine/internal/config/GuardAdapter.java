@@ -28,6 +28,7 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 public class GuardAdapter
 {
     private static final String TYPE_NAME = "type";
+    private static final String KIND_NAME = "kind";
     private static final String STORE_NAME = "store";
     private static final String OPTIONS_NAME = "options";
 
@@ -56,6 +57,11 @@ public class GuardAdapter
 
         object.add(TYPE_NAME, guard.type);
 
+        if (guard.kind != null)
+        {
+            object.add(KIND_NAME, guard.kind);
+        }
+
         if (guard.store != null)
         {
             object.add(STORE_NAME, guard.store);
@@ -81,6 +87,11 @@ public class GuardAdapter
             .namespace(namespace)
             .name(name)
             .type(type);
+
+        if (object.containsKey(KIND_NAME))
+        {
+            guard.kind(object.getString(KIND_NAME));
+        }
 
         if (object.containsKey(STORE_NAME))
         {

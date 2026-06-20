@@ -14,17 +14,18 @@
 #
 
 property serverAddress "zilla://streams/app0"
+property authorization 0L
 
 accept ${serverAddress}
        option zilla:window 8192
        option zilla:transmission "half-duplex"
+       option zilla:authorization ${authorization}
 
 accepted
 
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .lifecycle()
-                              .sessionId("session-1")
                               .build()
                           .build()}
 
@@ -45,6 +46,7 @@ read zilla:begin.ext ${mcp:matchBeginEx()
                           .toolsCall()
                               .sessionId("session-1")
                               .name("get_weather")
+                              .contentLength(59)
                               .build()
                           .build()}
 
@@ -57,7 +59,6 @@ read  '{'
           '"location": "New York"'
         '}'
       '}'
-read closed
 
 write flush
 
@@ -74,3 +75,5 @@ write '{'
 write flush
 
 write close
+
+read closed

@@ -122,7 +122,7 @@ public class HttpOptionsConfigAdapterTest
                             "\"query\":" +
                             "{" +
                                 "\"index\": \"test\"" +
-                            "}," +
+                            "}" +
                         "}," +
                         "\"content\": \"test\"" +
                      "}" +

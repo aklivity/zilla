@@ -23,13 +23,22 @@ public final class McpConditionConfig extends ConditionConfig
 {
     public final String toolkit;
     public final List<String> capability;
+    public final List<String> tools;
+    public final List<String> prompts;
+    public final List<String> resources;
 
     McpConditionConfig(
         String toolkit,
-        List<String> capability)
+        List<String> capability,
+        List<String> tools,
+        List<String> prompts,
+        List<String> resources)
     {
         this.toolkit = toolkit;
         this.capability = capability;
+        this.tools = tools;
+        this.prompts = prompts;
+        this.resources = resources;
     }
 
     public static McpConditionConfigBuilder<McpConditionConfig> builder()

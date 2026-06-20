@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.config;
 
+import java.time.Duration;
 import java.util.function.Function;
 
 public final class McpElicitationConfig
@@ -21,11 +22,14 @@ public final class McpElicitationConfig
     public static final String DEFAULT_CALLBACK_PATH = "auth/callback";
 
     public final String callback;
+    public final Duration timeout;
 
     public McpElicitationConfig(
-        String callback)
+        String callback,
+        Duration timeout)
     {
         this.callback = callback;
+        this.timeout = timeout;
     }
 
     public static McpElicitationConfigBuilder<McpElicitationConfig> builder()

@@ -18,6 +18,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
+import jakarta.json.JsonException;
 import jakarta.json.JsonObject;
 
 import org.junit.Rule;
@@ -35,8 +36,98 @@ public class SchemaTest
     @Test
     public void shouldValidateServer()
     {
-        JsonObject config = schema.validate("server.yaml");
+        JsonObject config = schema.validate("server.options.yaml");
 
         assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateClient()
+    {
+        JsonObject config = schema.validate("client.options.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateProxy()
+    {
+        JsonObject config = schema.validate("proxy.options.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateProxyFilter()
+    {
+        JsonObject config = schema.validate("proxy.filter.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectProxyRouteMissingToolkit()
+    {
+        schema.validate("proxy.routes.missing.toolkit.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectProxyRouteFilterCapabilityMismatch()
+    {
+        schema.validate("proxy.routes.filter.capability.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectProxyWithAuthorization()
+    {
+        schema.validate("proxy.authorization.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectServerWithCache()
+    {
+        schema.validate("server.cache.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectServerWithRoutes()
+    {
+        schema.validate("server.routes.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectClientWithRoutes()
+    {
+        schema.validate("client.routes.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectClientWithoutServer()
+    {
+        schema.validate("client.server.missing.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectClientWithNonHttpServer()
+    {
+        schema.validate("client.server.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectClientWithElicitation()
+    {
+        schema.validate("client.elicitation.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectProxyWithElicitation()
+    {
+        schema.validate("proxy.elicitation.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectProxyRouteWithHeaders()
+    {
+        schema.validate("proxy.headers.invalid.yaml");
     }
 }

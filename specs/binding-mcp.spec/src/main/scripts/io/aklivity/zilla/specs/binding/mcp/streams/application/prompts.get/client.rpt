@@ -13,14 +13,16 @@
 # specific language governing permissions and limitations under the License.
 #
 
+property authorization 0L
+
 connect "zilla://streams/app0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
+        option zilla:authorization ${authorization}
 
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .lifecycle()
-                               .sessionId("session-1")
                                .build()
                            .build()}
 
@@ -39,19 +41,22 @@ connect await LIFECYCLE_INITIALIZED
         "zilla://streams/app0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
+        option zilla:authorization ${authorization}
 
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .promptsGet()
                                .sessionId("session-1")
                                .name("weather_prompt")
+                               .contentLength(25)
                                .build()
                            .build()}
 
 connected
 
 write '{"name":"weather_prompt"}'
-write close
 
 read  '{"messages":[{"role":"user","content":{"type":"text","text":"What is the weather like today?"}}]}'
 read closed
+
+write close

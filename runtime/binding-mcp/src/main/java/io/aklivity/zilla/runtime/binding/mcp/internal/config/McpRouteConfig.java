@@ -41,14 +41,12 @@ public final class McpRouteConfig
     static final String CAPABILITY_PROMPTS = "prompts";
     static final String CAPABILITY_RESOURCES = "resources";
 
-    private static final String DELIMITER_NAME = "__";
-    private static final String DELIMITER_URI = "+";
-
     public final long id;
     public final McpWithConfig with;
 
-    private final List<ConditionMatcher> matchers;
+    private final List<McpConditionMatcher> matchers;
     private final LongObjectPredicate<UnaryOperator<String>> authorized;
+    private final String toolkit;
 
     public McpRouteConfig(
         RouteConfig route)
@@ -57,9 +55,19 @@ public final class McpRouteConfig
         this.with = McpWithConfig.class.cast(route.with);
         this.matchers = route.when.stream()
             .map(McpConditionConfig.class::cast)
-            .map(ConditionMatcher::new)
+            .map(McpConditionMatcher::new)
             .collect(toList());
         this.authorized = route.authorized;
+        this.toolkit = matchers.stream()
+            .map(m -> m.toolkit)
+            .filter(t -> t != null)
+            .findFirst()
+            .orElse(null);
+    }
+
+    public String toolkit()
+    {
+        return toolkit;
     }
 
     public boolean authorized(
@@ -78,7 +86,7 @@ public final class McpRouteConfig
         else
         {
             bits = 0;
-            for (ConditionMatcher matcher : matchers)
+            for (McpConditionMatcher matcher : matchers)
             {
                 bits |= matcher.serverCapabilities();
             }
@@ -96,7 +104,7 @@ public final class McpRouteConfig
 
         if (capability != null && identifier != null && !matchers.isEmpty())
         {
-            for (ConditionMatcher matcher : matchers)
+            for (McpConditionMatcher matcher : matchers)
             {
                 final String stripped = matcher.match(capability, identifier);
                 if (stripped != null)
@@ -129,7 +137,7 @@ public final class McpRouteConfig
 
         if (capability != null && !matchers.isEmpty())
         {
-            for (ConditionMatcher matcher : matchers)
+            for (McpConditionMatcher matcher : matchers)
             {
                 final String prefix = matcher.prefix(capability);
                 if (prefix != null)
@@ -151,7 +159,7 @@ public final class McpRouteConfig
 
         if (!result)
         {
-            for (ConditionMatcher matcher : matchers)
+            for (McpConditionMatcher matcher : matchers)
             {
                 if (matcher.match(capability, identifier) != null)
                 {
@@ -171,9 +179,58 @@ public final class McpRouteConfig
 
         if (!result)
         {
-            for (ConditionMatcher matcher : matchers)
+            for (McpConditionMatcher matcher : matchers)
             {
                 if (matcher.serves(capability))
+                {
+                    result = true;
+                    break;
+                }
+            }
+        }
+
+        return result;
+    }
+
+    public boolean admits(
+        int kind,
+        String name)
+    {
+        return admits(capabilityOf(kind), name);
+    }
+
+    public boolean filters(
+        int kind)
+    {
+        final String capability = capabilityOf(kind);
+        boolean result = false;
+
+        if (capability != null)
+        {
+            for (McpConditionMatcher matcher : matchers)
+            {
+                if (matcher.filters(capability))
+                {
+                    result = true;
+                    break;
+                }
+            }
+        }
+
+        return result;
+    }
+
+    public boolean admits(
+        String capability,
+        String name)
+    {
+        boolean result = matchers.isEmpty();
+
+        if (!result)
+        {
+            for (McpConditionMatcher matcher : matchers)
+            {
+                if (matcher.admits(capability, name))
                 {
                     result = true;
                     break;
@@ -212,79 +269,5 @@ public final class McpRouteConfig
         case KIND_RESOURCES_READ -> beginEx.resourcesRead().uri().asString();
         default -> null;
         };
-    }
-
-    private static final class ConditionMatcher
-    {
-        private final String toolsPrefix;
-        private final String promptsPrefix;
-        private final String resourcesPrefix;
-
-        private ConditionMatcher(
-            McpConditionConfig condition)
-        {
-            final List<String> capabilities = condition.capability;
-            final String toolkit = condition.toolkit;
-
-            final boolean anyCapability = capabilities == null;
-            final boolean tools = anyCapability || capabilities.contains(CAPABILITY_TOOLS);
-            final boolean prompts = anyCapability || capabilities.contains(CAPABILITY_PROMPTS);
-            final boolean resources = anyCapability || capabilities.contains(CAPABILITY_RESOURCES);
-
-            this.toolsPrefix = tools ? (toolkit != null ? toolkit + DELIMITER_NAME : "") : null;
-            this.promptsPrefix = prompts ? (toolkit != null ? toolkit + DELIMITER_NAME : "") : null;
-            this.resourcesPrefix = resources ? (toolkit != null ? toolkit + DELIMITER_URI : "") : null;
-        }
-
-        private int serverCapabilities()
-        {
-            int bits = 0;
-            if (toolsPrefix != null)
-            {
-                bits |= SERVER_TOOLS.value();
-            }
-            if (promptsPrefix != null)
-            {
-                bits |= SERVER_PROMPTS.value();
-            }
-            if (resourcesPrefix != null)
-            {
-                bits |= SERVER_RESOURCES.value();
-            }
-            return bits;
-        }
-
-        private String match(
-            String capability,
-            String identifier)
-        {
-            final String prefix = prefix(capability);
-            String result = null;
-
-            if (prefix != null && identifier != null && identifier.startsWith(prefix))
-            {
-                result = identifier.substring(prefix.length());
-            }
-
-            return result;
-        }
-
-        private boolean serves(
-            String capability)
-        {
-            return prefix(capability) != null;
-        }
-
-        private String prefix(
-            String capability)
-        {
-            return switch (capability)
-            {
-            case CAPABILITY_TOOLS -> toolsPrefix;
-            case CAPABILITY_PROMPTS -> promptsPrefix;
-            case CAPABILITY_RESOURCES -> resourcesPrefix;
-            default -> null;
-            };
-        }
     }
 }

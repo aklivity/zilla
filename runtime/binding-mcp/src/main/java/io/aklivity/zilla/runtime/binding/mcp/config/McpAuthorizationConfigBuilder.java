@@ -23,6 +23,7 @@ public final class McpAuthorizationConfigBuilder<T> extends ConfigBuilder<T, Mcp
     private final Function<McpAuthorizationConfig, T> mapper;
 
     private String name;
+    private String credentials;
 
     McpAuthorizationConfigBuilder(
         Function<McpAuthorizationConfig, T> mapper)
@@ -44,9 +45,16 @@ public final class McpAuthorizationConfigBuilder<T> extends ConfigBuilder<T, Mcp
         return this;
     }
 
+    public McpAuthorizationConfigBuilder<T> credentials(
+        String credentials)
+    {
+        this.credentials = credentials;
+        return this;
+    }
+
     @Override
     public T build()
     {
-        return mapper.apply(new McpAuthorizationConfig(name));
+        return mapper.apply(new McpAuthorizationConfig(name, credentials));
     }
 }

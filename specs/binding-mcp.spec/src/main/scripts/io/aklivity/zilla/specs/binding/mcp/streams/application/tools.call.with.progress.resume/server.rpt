@@ -24,7 +24,6 @@ accepted
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .lifecycle()
-                              .sessionId("session-1")
                               .build()
                           .build()}
 
@@ -45,6 +44,7 @@ read zilla:begin.ext ${mcp:matchBeginEx()
                           .toolsCall()
                               .sessionId("session-1")
                               .name("get_weather")
+                              .contentLength(94)
                               .build()
                           .build()}
 
@@ -61,7 +61,6 @@ read  '{'
           '"progressToken":"abc123"'
         '}'
       '}'
-read closed
 
 write flush
 
@@ -88,6 +87,12 @@ write advised zilla:challenge ${mcp:matchChallengeEx()
                                     .suspended()
                                         .build()
                                     .build()}
+
+read advise zilla:challenge ${mcp:challengeEx()
+                                  .typeId(zilla:id("mcp"))
+                                  .suspended()
+                                      .build()
+                                  .build()}
 
 write advised zilla:challenge ${mcp:matchChallengeEx()
                                     .typeId(zilla:id("mcp"))
@@ -117,3 +122,5 @@ write '{"content":[{"type":"text","text":"Sunny, no umbrella needed"}],"isError"
 write flush
 
 write close
+
+read closed

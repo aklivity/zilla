@@ -20,7 +20,6 @@ connect "zilla://streams/app0"
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .lifecycle()
-                               .sessionId("session-1")
                                .build()
                            .build()}
 
@@ -44,15 +43,16 @@ write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .toolsCall()
                                .sessionId("session-1")
-                               .name("bluesky__get_weather")
+                               .name("get_weather")
+                               .contentLength(68)
                                .build()
                            .build()}
 
 write advised zilla:challenge ${mcp:matchChallengeEx()
                                     .typeId(zilla:id("mcp"))
                                     .elicitCreate()
-                                        .id("1")
-                                        .url("https://server.example.com/authorize?state=bluesky__7f3a9b1c&redirect_uri=%s".formatted(http:encodeQuery("https://replace.me/callback")))
+                                        .id("elicit-1")
+                                        .url("https://server.example.com/authorize?state=7f3a9b1c&redirect_uri=%s".formatted(http:encodeQuery("https://replace.me/callback")))
                                         .build()
                                     .build()}
 
@@ -69,17 +69,14 @@ write '{'
 write advise zilla:flush ${mcp:flushEx()
                               .typeId(zilla:id("mcp"))
                               .elicitCallback()
-                                  .url("http://localhost:8080/mcp/auth/callback?code=xyz&state=session-1.elicit-1.bluesky__7f3a9b1c")
+                                  .url("http://localhost:8080/mcp/auth/callback?code=xyz&state=transport-1.elicit-1.7f3a9b1c")
                                   .build()
                               .build()}
-
-write close
 
 read advised zilla:flush ${mcp:matchFlushEx()
                                .typeId(zilla:id("mcp"))
                                .elicitComplete()
-                                   .id("1")
-                                   .status("COMPLETED")
+                                   .id("elicit-1")
                                    .build()
                                .build()}
 
@@ -94,3 +91,5 @@ read '{'
        '"isError": false'
      '}'
 read closed
+
+write close

@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>zilla</artifactId>
-    <version>1.2.4</version>
+    <version>2.0.0-alpha-1</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -28,6 +28,7 @@
     <module>binding-http.spec</module>
     <module>binding-grpc.spec</module>
     <module>binding-mcp.spec</module>
+    <module>binding-mcp-http.spec</module>
     <module>binding-mqtt.spec</module>
     <module>binding-openapi.spec</module>
     <module>binding-openapi-asyncapi.spec</module>
@@ -52,10 +53,12 @@
     <module>metrics-stream.spec</module>
     <module>metrics-http.spec</module>
     <module>metrics-grpc.spec</module>
+    <module>metrics-mcp.spec</module>
     <module>model-avro.spec</module>
     <module>model-core.spec</module>
     <module>model-json.spec</module>
     <module>model-protobuf.spec</module>
+    <module>guard-identity.spec</module>
     <module>guard-jwt.spec</module>
     <module>store-memory.spec</module>
     <module>vault-filesystem.spec</module>
@@ -151,6 +154,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>catalog-schema-registry.spec</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>guard-identity.spec</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

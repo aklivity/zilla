@@ -1,0 +1,188 @@
+#
+# Copyright 2021-2024 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+
+connect "zilla://streams/app0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${mcp:beginEx()
+                           .typeId(zilla:id("mcp"))
+                           .lifecycle()
+                               .build()
+                           .build()}
+
+connected
+
+read zilla:begin.ext ${mcp:matchBeginEx()
+                          .typeId(zilla:id("mcp"))
+                          .lifecycle()
+                              .sessionId("hydrate-1")
+                              .build()
+                          .build()}
+
+read notify LIFECYCLE_OPEN
+
+read await ALL_HYDRATED
+
+read aborted
+
+read notify LIFECYCLE_ABORTED
+
+connect await LIFECYCLE_OPEN
+        "zilla://streams/app0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${mcp:beginEx()
+                           .typeId(zilla:id("mcp"))
+                           .promptsList()
+                               .sessionId("hydrate-1")
+                               .build()
+                           .build()}
+
+connected
+
+read '{"prompts":[]}'
+read closed
+
+write close
+
+read notify PROMPTS_HYDRATED
+
+connect await PROMPTS_HYDRATED
+        "zilla://streams/app0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${mcp:beginEx()
+                           .typeId(zilla:id("mcp"))
+                           .toolsList()
+                               .sessionId("hydrate-1")
+                               .build()
+                           .build()}
+
+connected
+
+read '{"tools":[{"name":"get_weather"}]}'
+read closed
+
+write close
+
+read notify TOOLS_HYDRATED
+
+connect await TOOLS_HYDRATED
+        "zilla://streams/app0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${mcp:beginEx()
+                           .typeId(zilla:id("mcp"))
+                           .resourcesList()
+                               .sessionId("hydrate-1")
+                               .build()
+                           .build()}
+
+connected
+
+read '{"resources":[]}'
+read closed
+
+write close
+
+read notify ALL_HYDRATED
+
+connect await LIFECYCLE_ABORTED
+        "zilla://streams/app0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${mcp:beginEx()
+                           .typeId(zilla:id("mcp"))
+                           .lifecycle()
+                               .build()
+                           .build()}
+
+connected
+
+read zilla:begin.ext ${mcp:matchBeginEx()
+                          .typeId(zilla:id("mcp"))
+                          .lifecycle()
+                              .sessionId("hydrate-1")
+                              .build()
+                          .build()}
+
+read notify LIFECYCLE2_OPEN
+
+connect await LIFECYCLE2_OPEN
+        "zilla://streams/app0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${mcp:beginEx()
+                           .typeId(zilla:id("mcp"))
+                           .promptsList()
+                               .sessionId("hydrate-1")
+                               .build()
+                           .build()}
+
+connected
+
+read '{"prompts":[]}'
+read closed
+
+write close
+
+read notify PROMPTS2_HYDRATED
+
+connect await PROMPTS2_HYDRATED
+        "zilla://streams/app0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${mcp:beginEx()
+                           .typeId(zilla:id("mcp"))
+                           .toolsList()
+                               .sessionId("hydrate-1")
+                               .build()
+                           .build()}
+
+connected
+
+read '{"tools":[{"name":"get_weather"},{"name":"get_time"}]}'
+read closed
+
+write close
+
+read notify TOOLS2_HYDRATED
+
+connect await TOOLS2_HYDRATED
+        "zilla://streams/app0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${mcp:beginEx()
+                           .typeId(zilla:id("mcp"))
+                           .resourcesList()
+                               .sessionId("hydrate-1")
+                               .build()
+                           .build()}
+
+connected
+
+read '{"resources":[]}'
+read closed
+
+write close

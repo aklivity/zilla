@@ -2034,7 +2034,7 @@ public final class TlsClientFactory implements TlsStreamFactory
                         .orElse(null);
 
                 TlsBindingConfig binding = bindings.get(TlsStream.this.routedId);
-                TlsRouteConfig route = binding.resolve(initialAuth, hostname, protocol, port);
+                TlsRouteConfig route = binding.resolve(initialAuth, hostname, protocol, port, null);
 
                 if (route == null || route.id != client.routedId)
                 {

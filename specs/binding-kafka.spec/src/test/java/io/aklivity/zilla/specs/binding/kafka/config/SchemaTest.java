@@ -19,6 +19,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
+import jakarta.json.JsonException;
 import jakarta.json.JsonObject;
 
 import org.junit.Rule;
@@ -32,6 +33,7 @@ public class SchemaTest
     public final ConfigSchemaRule schema = new ConfigSchemaRule()
         .schemaPatch("io/aklivity/zilla/specs/binding/kafka/schema/kafka.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/catalog/test.schema.patch.json")
+        .schemaPatch("io/aklivity/zilla/specs/engine/schema/guard/test.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/model/test.schema.patch.json")
         .configurationRoot("io/aklivity/zilla/specs/binding/kafka/config");
 
@@ -145,5 +147,31 @@ public class SchemaTest
         JsonObject config = schema.validate("cache.options.extract.key.and.headers.yaml");
 
         assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateClientOptionsAuthorization()
+    {
+        JsonObject config = schema.validate("client.options.authorization.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectClientOptionsSaslAndAuthorization()
+    {
+        schema.validate("client.options.sasl.and.authorization.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectClientOptionsAuthorizationOauthbearerWithInvalidCredentials()
+    {
+        schema.validate("client.options.authorization.oauthbearer.invalid.credentials.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectClientOptionsAuthorizationScramWithInvalidCredentials()
+    {
+        schema.validate("client.options.authorization.scram.invalid.credentials.yaml");
     }
 }

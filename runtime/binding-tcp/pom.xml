@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>runtime</artifactId>
-    <version>1.2.4</version>
+    <version>2.0.0-alpha-1</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -248,14 +248,11 @@
             <includes>
               <include>org.agrona:agrona</include>
               <include>io.aklivity.zilla:engine</include>
+              <include>io.aklivity.zilla:common-yaml</include>
+              <include>io.aklivity.zilla:common-json</include>
               <include>jakarta.json:jakarta.json-api</include>
               <include>jakarta.json.bind:jakarta.json.bind-api</include>
               <include>org.eclipse:yasson</include>
-              <include>org.leadpony.justify</include>
-              <include>org.leadpony.joy:joy-yaml</include>
-              <include>org.leadpony.joy:joy-core</include>
-              <include>org.snakeyaml:snakeyaml-engine</include>
-              <include>com.ibm.icu:icu4j</include>
               <include>org.openjdk.jmh:jmh-core</include>
               <include>net.sf.jopt-simple:jopt-simple</include>
               <include>org.apache.commons:commons-math3</include>

@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.vault.config;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
@@ -26,7 +28,7 @@ public final class TestVaultOptionsConfigBuilder<T> extends ConfigBuilder<T, Tes
 
     private TestVaultEntryConfig key;
     private TestVaultEntryConfig signer;
-    private TestVaultEntryConfig trust;
+    private List<TestVaultEntryConfig> trust;
 
     TestVaultOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
@@ -61,7 +63,11 @@ public final class TestVaultOptionsConfigBuilder<T> extends ConfigBuilder<T, Tes
         String alias,
         String entry)
     {
-        trust = new TestVaultEntryConfig(alias, entry);
+        if (trust == null)
+        {
+            trust = new ArrayList<>();
+        }
+        trust.add(new TestVaultEntryConfig(alias, entry));
         return this;
     }
 

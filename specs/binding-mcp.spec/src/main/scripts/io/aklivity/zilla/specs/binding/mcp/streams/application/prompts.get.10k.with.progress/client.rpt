@@ -20,7 +20,6 @@ connect "zilla://streams/app0"
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .lifecycle()
-                               .sessionId("session-1")
                                .build()
                            .build()}
 
@@ -45,13 +44,13 @@ write zilla:begin.ext ${mcp:beginEx()
                            .promptsGet()
                                .sessionId("session-1")
                                .name("weather_prompt")
+                               .contentLength(60)
                                .build()
                            .build()}
 
 connected
 
 write '{"name":"weather_prompt","_meta":{"progressToken":"abc123"}}'
-write close
 
 read advised zilla:flush ${mcp:matchFlushEx()
                                .typeId(zilla:id("mcp"))
@@ -75,3 +74,5 @@ read '{"messages":[{"role":"user","content":{"type":"text","text":"'
 read ${core:randomBase64(10000)}
 read '"}}]}'
 read closed
+
+write close

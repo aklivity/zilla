@@ -247,6 +247,11 @@ public final class HttpServerFactory implements HttpStreamFactory
     private static final String8FW HEADER_TRANSFER_ENCODING = new String8FW("transfer-encoding");
     private static final String8FW HEADER_UPGRADE = new String8FW("upgrade");
     private static final String8FW HEADER_VARY = new String8FW("vary");
+    private static final String8FW HEADER_ALT_SVC = new String8FW("alt-svc");
+
+    private static final byte[] ALT_SVC_PLACEHOLDER_BYTES = "http=".getBytes(US_ASCII);
+    private static final byte[] ALT_SVC_ALPN_HTTP_1_1_BYTES = "http%2F1.1".getBytes(US_ASCII);
+    private static final byte[] ALT_SVC_ALPN_HTTP_2_BYTES = "h2".getBytes(US_ASCII);
 
     private static final String16FW ACCESS_CONTROL_WILDCARD = new String16FW("*");
     private static final String16FW CONNECTION_CLOSE = new String16FW("close");
@@ -407,6 +412,13 @@ public final class HttpServerFactory implements HttpStreamFactory
 
     private final Array32FW.Builder<HttpHeaderFW.Builder, HttpHeaderFW> headersRW =
             new Array32FW.Builder<>(new HttpHeaderFW.Builder(), new HttpHeaderFW());
+
+    private final MutableDirectBuffer altSvcHeadersBuffer = new UnsafeBuffer(new byte[8192]);
+    private final MutableDirectBuffer altSvcValueBuffer = new UnsafeBuffer(new byte[1024]);
+    private final MutableDirectBuffer altSvcRawBuffer = new UnsafeBuffer(new byte[1024]);
+    private final Array32FW.Builder<HttpHeaderFW.Builder, HttpHeaderFW> altSvcHeadersRW =
+            new Array32FW.Builder<>(new HttpHeaderFW.Builder(), new HttpHeaderFW());
+    private final String16FW.Builder altSvcValueRW = new String16FW.Builder();
 
     private final String16FW.Builder httpStatusRW =
             new String16FW.Builder().wrap(new UnsafeBuffer(new byte[16]), 0, 16);
@@ -1888,7 +1900,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                 if (exchange != null)
                 {
-                    exchange.onNetworkEnd(traceId);
+                    exchange.onNetworkEnd(traceId, authorization);
                 }
                 else
                 {
@@ -2484,7 +2496,8 @@ public final class HttpServerFactory implements HttpStreamFactory
                 codecOffset.value = doEncodeHeader(codecBuffer, codecOffset.value,
                         HEADER_SERVER.value(), serverHeader.value(), false);
             }
-            headers.forEach(h -> codecOffset.value = doEncodeHeader(codecBuffer, codecOffset.value, h));
+            final Array32FW<HttpHeaderFW> outboundHeaders = translateAltSvc(headers, ALT_SVC_ALPN_HTTP_1_1_BYTES);
+            outboundHeaders.forEach(h -> codecOffset.value = doEncodeHeader(codecBuffer, codecOffset.value, h));
 
             if (contentLength == null &&
                 !exchange.responseChunked &&
@@ -2969,11 +2982,18 @@ public final class HttpServerFactory implements HttpStreamFactory
             }
 
             private void onNetworkEnd(
-                long traceId)
+                long traceId,
+                long authorization)
             {
                 if (requestState != HttpExchangeState.CLOSED)
                 {
                     doRequestAbort(traceId, EMPTY_OCTETS);
+                }
+
+                if (responseState == HttpExchangeState.OPEN)
+                {
+                    doResponseReset(traceId);
+                    doNetworkAbort(traceId, authorization);
                 }
             }
 
@@ -5679,9 +5699,11 @@ public final class HttpServerFactory implements HttpStreamFactory
             Array32FW<HttpHeaderFW> headers,
             boolean endResponse)
         {
+            final Array32FW<HttpHeaderFW> outboundHeaders = translateAltSvc(headers, ALT_SVC_ALPN_HTTP_2_BYTES);
             final Http2HeadersFW http2Headers = http2HeadersRW.wrap(frameBuffer, 0, frameBuffer.capacity())
                     .streamId(streamId)
-                    .headers(hb -> headersEncoder.encodeHeaders(encodeContext, binding.access(), policy, origin, headers, hb))
+                    .headers(hb -> headersEncoder.encodeHeaders(encodeContext, binding.access(), policy, origin,
+                            outboundHeaders, hb))
                     .endHeaders()
                     .endStream(endResponse)
                     .build();
@@ -7343,6 +7365,65 @@ public final class HttpServerFactory implements HttpStreamFactory
                headers.containsKey(HEADER_NAME_ORIGIN) &&
                (headers.containsKey(HEADER_NAME_ACCESS_CONTROL_REQUEST_METHOD) ||
                 headers.containsKey(HEADER_NAME_ACCESS_CONTROL_REQUEST_HEADERS));
+    }
+
+    private Array32FW<HttpHeaderFW> translateAltSvc(
+        Array32FW<HttpHeaderFW> headers,
+        byte[] alpnBytes)
+    {
+        if (!headers.anyMatch(HttpServerFactory::isAltSvcPlaceholder))
+        {
+            return headers;
+        }
+
+        final Array32FW.Builder<HttpHeaderFW.Builder, HttpHeaderFW> builder =
+            altSvcHeadersRW.wrap(altSvcHeadersBuffer, 0, altSvcHeadersBuffer.capacity());
+
+        headers.forEach(h ->
+        {
+            if (isAltSvcPlaceholder(h))
+            {
+                final DirectBuffer original = h.value().value();
+                final int suffixOffset = ALT_SVC_PLACEHOLDER_BYTES.length - 1;
+                final int suffixLength = original.capacity() - suffixOffset;
+                final int newLength = alpnBytes.length + suffixLength;
+                altSvcRawBuffer.putBytes(0, alpnBytes);
+                altSvcRawBuffer.putBytes(alpnBytes.length, original, suffixOffset, suffixLength);
+                final String16FW translatedValue = altSvcValueRW
+                    .wrap(altSvcValueBuffer, 0, altSvcValueBuffer.capacity())
+                    .set(altSvcRawBuffer, 0, newLength)
+                    .build();
+                builder.item(item -> item.name(HEADER_ALT_SVC).value(translatedValue));
+            }
+            else
+            {
+                builder.item(item -> item.name(h.name()).value(h.value()));
+            }
+        });
+
+        return builder.build();
+    }
+
+    private static boolean isAltSvcPlaceholder(
+        HttpHeaderFW header)
+    {
+        if (!HEADER_ALT_SVC.equals(header.name()))
+        {
+            return false;
+        }
+        final DirectBuffer value = header.value().value();
+        if (value == null || value.capacity() < ALT_SVC_PLACEHOLDER_BYTES.length)
+        {
+            return false;
+        }
+        for (int i = 0; i < ALT_SVC_PLACEHOLDER_BYTES.length; i++)
+        {
+            if (value.getByte(i) != ALT_SVC_PLACEHOLDER_BYTES[i])
+            {
+                return false;
+            }
+        }
+        return true;
     }
 
     private URI createTargetURI(

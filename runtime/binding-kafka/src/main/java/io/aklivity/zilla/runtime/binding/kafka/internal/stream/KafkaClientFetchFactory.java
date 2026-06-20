@@ -91,6 +91,7 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
+import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
 public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker implements BindingHandler
 {
@@ -208,7 +209,6 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
     private final BufferPool encodePool;
     private final Signaler signaler;
     private final BindingHandler streamFactory;
-    private final LongFunction<MessageConsumer> supplyReceiver;
     private final LongFunction<KafkaBindingConfig> supplyBinding;
     private final LongFunction<BudgetDebitor> supplyDebitor;
     private final LongFunction<KafkaClientRoute> supplyClientRoute;
@@ -232,7 +232,6 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
         this.decodePool = context.bufferPool();
         this.encodePool = context.bufferPool();
         this.streamFactory = context.streamFactory();
-        this.supplyReceiver = context::supplyReceiver;
         this.supplyBinding = supplyBinding;
         this.supplyDebitor = supplyDebitor;
         this.supplyClientRoute = supplyClientRoute;
@@ -297,7 +296,8 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                     initialOffset,
                     isolation,
                     server,
-                    sasl)::onApplication;
+                    sasl,
+                    binding.guard)::onApplication;
             }
         }
 
@@ -1762,7 +1762,8 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
             long initialOffset,
             KafkaIsolation isolation,
             KafkaServerConfig server,
-            KafkaSaslConfig sasl)
+            KafkaSaslConfig sasl,
+            GuardHandler guard)
         {
             this.application = application;
             this.originId = originId;
@@ -1772,7 +1773,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
             this.leaderId = leaderId;
             this.clientRoute = supplyClientRoute.apply(resolvedId);
             this.client = new KafkaFetchClient(routedId, resolvedId, topic, partitionId,
-                    initialOffset, latestOffset, isolation, server, sasl);
+                    initialOffset, latestOffset, isolation, server, sasl, guard);
         }
 
         private int replyBudget()
@@ -2234,9 +2235,10 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                 long latestOffset,
                 KafkaIsolation isolation,
                 KafkaServerConfig server,
-                KafkaSaslConfig sasl)
+                KafkaSaslConfig sasl,
+                GuardHandler guard)
             {
-                super(server, sasl, originId, routedId);
+                super(server, sasl, guard, originId, routedId);
                 this.stream = KafkaFetchStream.this;
                 this.topic = requireNonNull(topic);
                 this.topicPartitions = clientRoute.supplyPartitions(topic);
@@ -2461,6 +2463,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                 long authorization,
                 long affinity)
             {
+                client.saslAuthorization = authorization;
                 state = KafkaState.openingInitial(state);
 
                 if (client.sasl != null)
@@ -2989,22 +2992,11 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                     doEncodeRequestIfNecessary(traceId, initialBudgetId);
                     break;
                 default:
-                    if (errorCode == ERROR_NOT_LEADER_FOR_PARTITION)
+                    if (KafkaError.of(errorCode).isRetriable())
                     {
-                        final long metaInitialId = clientRoute.metaInitialId;
-                        if (metaInitialId != 0L)
-                        {
-                            final MessageConsumer metaInitial = supplyReceiver.apply(metaInitialId);
-                            // TODO: improve coordination with meta stream
-                            doFlush(metaInitial, originId, routedId, metaInitialId, 0, 0, 0,
-                                    traceId, authorization, 0, EMPTY_OCTETS);
-                        }
+                        clientRoute.metaFlush.accept(traceId);
                     }
-                    else
-                    {
-                        onDecodeResponseErrorCode(traceId, originId, errorCode, topic);
-                    }
-
+                    onDecodeResponseErrorCode(traceId, originId, errorCode, topic);
                     cleanupApplication(traceId, errorCode);
                     doNetworkEnd(traceId, authorization);
                     break;

@@ -13,7 +13,9 @@
 # specific language governing permissions and limitations under the License.
 #
 
-accept "zilla://streams/app1"
+property serverAddress "zilla://streams/app0"
+
+accept ${serverAddress}
        option zilla:window 8192
        option zilla:transmission "half-duplex"
 
@@ -22,7 +24,6 @@ accepted
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .lifecycle()
-                              .sessionId("session-1")
                               .build()
                           .build()}
 
@@ -43,17 +44,29 @@ read zilla:begin.ext ${mcp:matchBeginEx()
                           .resourcesRead()
                               .sessionId("session-1")
                               .uri("file:///data/readme.txt")
+                              .contentLength(33)
                               .build()
                           .build()}
 
 connected
 
-read  '{"uri":"bluesky+file:///data/readme.txt"}'
-read closed
+read  '{'
+        '"uri":"file:///data/readme.txt"'
+      '}'
 
 write flush
 
-write '{"contents":[{"uri":"file:///data/readme.txt","mimeType":"text/plain","text":"Hello World"}]}'
+write '{"contents":'
+        '['
+          '{'
+            '"uri":"file:///data/readme.txt",'
+            '"mimeType":"text/plain",'
+            '"text":"Hello World"'
+          '}'
+        ']'
+      '}'
 write flush
 
 write close
+
+read closed

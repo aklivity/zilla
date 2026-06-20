@@ -125,6 +125,22 @@ public interface EngineContext
         int hash);
 
     /**
+     * Returns {@code true} if hash-based affinity for the given binding and {@code hash}
+     * selects this thread, {@code false} otherwise. Equivalent to checking whether
+     * {@link #supplyInitialId(long, int)} with the same arguments would pin a stream to
+     * this thread, but without allocating a stream id. The selection is deterministic:
+     * {@code Math.floorMod(hash, mask.cardinality())} over the binding's affinity mask.
+     *
+     * @param bindingId  the binding id whose affinity mask to consult
+     * @param hash       opaque integer hash; same hash yields the same result for a
+     *                   given binding affinity mask
+     * @return {@code true} if hash maps to this thread; otherwise {@code false}
+     */
+    boolean isLocalIndex(
+        long bindingId,
+        int hash);
+
+    /**
      * Returns the reply (outbound) stream id paired with the given initial stream id.
      *
      * @param initialId  the initial stream id

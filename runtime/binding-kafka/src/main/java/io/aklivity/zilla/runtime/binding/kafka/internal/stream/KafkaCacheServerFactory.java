@@ -61,7 +61,7 @@ public final class KafkaCacheServerFactory implements KafkaStreamFactory
         final KafkaCacheBootstrapFactory cacheBootstrapFactory = new KafkaCacheBootstrapFactory(
                 config, context, bindings::get);
 
-        final KafkaCacheMetaFactory cacheMetaFactory = new KafkaCacheMetaFactory(
+        final KafkaCacheServerMetaFactory cacheMetaFactory = new KafkaCacheServerMetaFactory(
                 config, context, bindings::get, supplyCache, supplyCacheRoute, (routedId, resolvedId) -> routedId,
                 KAFKA_CACHE_SERVER_RECONNECT_DELAY);
 

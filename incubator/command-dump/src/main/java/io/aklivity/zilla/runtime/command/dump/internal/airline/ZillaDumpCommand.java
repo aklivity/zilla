@@ -23,14 +23,12 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.agrona.LangUtil.rethrowUnchecked;
 import static org.agrona.concurrent.ringbuffer.RecordDescriptor.HEADER_LENGTH;
 
-import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.WritableByteChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -253,10 +251,10 @@ public final class ZillaDumpCommand extends ZillaCommand
         {
             try
             {
-                InputStream is = getClass().getResourceAsStream("zilla.lua");
+                String dissector = ZillaDumpDissectors.assemble();
                 Files.createDirectories(pluginDirectory);
                 Path target = pluginDirectory.resolve("zilla.lua");
-                Files.copy(is, target, StandardCopyOption.REPLACE_EXISTING);
+                Files.writeString(target, dissector);
                 if (verbose)
                 {
                     System.out.printf("Copied Wireshark plugin to the directory: %s%n", pluginDirectory);

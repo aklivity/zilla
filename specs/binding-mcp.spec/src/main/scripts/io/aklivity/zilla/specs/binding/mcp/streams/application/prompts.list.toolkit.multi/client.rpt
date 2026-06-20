@@ -13,14 +13,13 @@
 # specific language governing permissions and limitations under the License.
 #
 
-connect "zilla://streams/app0"
+connect "zilla://streams/app1"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
 
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .lifecycle()
-                               .sessionId("session-1")
                                .build()
                            .build()}
 
@@ -29,32 +28,78 @@ connected
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .lifecycle()
-                              .sessionId("session-1")
+                              .sessionId("session-1a")
                               .build()
                           .build()}
 
-read notify LIFECYCLE_INITIALIZED
+read notify LIFECYCLE_INITIALIZED_1
 
-connect await LIFECYCLE_INITIALIZED
-        "zilla://streams/app0"
+connect await LIFECYCLE_INITIALIZED_1
+        "zilla://streams/app1"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
 
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .promptsList()
-                               .sessionId("session-1")
+                               .sessionId("session-1a")
                                .build()
                            .build()}
 
 connected
 
-write close
-
 read  '{"prompts":'
         '['
-          '{"name":"bluesky__weather_prompt"},'
-          '{"name":"quartz__current_time_prompt"}'
+          '{"name":"weather_prompt"}'
         ']'
       '}'
 read closed
+
+write close
+
+read notify SERVER_1_DONE
+
+connect await SERVER_1_DONE
+        "zilla://streams/app2"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${mcp:beginEx()
+                           .typeId(zilla:id("mcp"))
+                           .lifecycle()
+                               .build()
+                           .build()}
+
+connected
+
+read zilla:begin.ext ${mcp:matchBeginEx()
+                          .typeId(zilla:id("mcp"))
+                          .lifecycle()
+                              .sessionId("session-1b")
+                              .build()
+                          .build()}
+
+read notify LIFECYCLE_INITIALIZED_2
+
+connect await LIFECYCLE_INITIALIZED_2
+        "zilla://streams/app2"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${mcp:beginEx()
+                           .typeId(zilla:id("mcp"))
+                           .promptsList()
+                               .sessionId("session-1b")
+                               .build()
+                           .build()}
+
+connected
+
+read  '{"prompts":'
+        '['
+          '{"name":"current_time_prompt"}'
+        ']'
+      '}'
+read closed
+
+write close

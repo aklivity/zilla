@@ -20,7 +20,6 @@ connect "zilla://streams/app0"
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .lifecycle()
-                               .sessionId("session-1")
                                .build()
                            .build()}
 
@@ -44,14 +43,26 @@ write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .resourcesRead()
                                .sessionId("session-1")
-                               .uri("bluesky+file:///data/readme.txt")
+                               .uri("file:///data/readme.txt")
+                               .contentLength(33)
                                .build()
                            .build()}
 
 connected
 
-write '{"uri":"bluesky+file:///data/readme.txt"}'
-write close
+write '{'
+        '"uri":"file:///data/readme.txt"'
+      '}'
 
-read  '{"contents":[{"uri":"file:///data/readme.txt","mimeType":"text/plain","text":"Hello World"}]}'
+read  '{"contents":'
+        '['
+          '{'
+            '"uri":"file:///data/readme.txt",'
+            '"mimeType":"text/plain",'
+            '"text":"Hello World"'
+          '}'
+        ']'
+      '}'
 read closed
+
+write close

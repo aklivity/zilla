@@ -22,7 +22,7 @@ accepted
 read zilla:begin.ext ${http:matchBeginEx()
                            .typeId(zilla:id("http"))
                            .header(":method", "GET")
-                           .header(":path", "/mcp/auth/callback?code=xyz&state=session-1.unknown")
+                           .header(":path", "/mcp/auth/callback?code=xyz&state=transport-1.unknown")
                            .build()}
 
 connected

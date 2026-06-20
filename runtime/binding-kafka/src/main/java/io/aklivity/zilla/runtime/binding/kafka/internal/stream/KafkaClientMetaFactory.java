@@ -72,6 +72,7 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
+import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
 public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker implements BindingHandler
 {
@@ -219,7 +220,8 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
                     resolvedId,
                     topicName,
                     binding.servers(),
-                    sasl)::onApplication;
+                    sasl,
+                    binding.guard)::onApplication;
         }
 
         return newStream;
@@ -843,7 +845,8 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
             long resolvedId,
             String topic,
             List<KafkaServerConfig> servers,
-            KafkaSaslConfig sasl)
+            KafkaSaslConfig sasl,
+            GuardHandler guard)
         {
             this.application = application;
             this.originId = originId;
@@ -852,7 +855,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.affinity = affinity;
             this.clientRoute = supplyClientRoute.apply(resolvedId);
-            this.client = new KafkaMetaClient(routedId, resolvedId, topic, servers, sasl);
+            this.client = new KafkaMetaClient(routedId, resolvedId, topic, servers, sasl, guard);
         }
 
         private void onApplication(
@@ -904,6 +907,10 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
 
             state = KafkaState.openingInitial(state);
             clientRoute.metaInitialId = initialId;
+            if (clientRoute.metaFlush == KafkaClientRoute.NOOP)
+            {
+                clientRoute.metaFlush = client::doEncodeRequestIfNecessary;
+            }
 
             client.doNetworkBegin(traceId, authorization, affinity);
         }
@@ -924,6 +931,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
 
             state = KafkaState.closedInitial(state);
             clientRoute.metaInitialId = 0L;
+            clientRoute.metaFlush = KafkaClientRoute.NOOP;
 
             client.doNetworkEnd(traceId, authorization);
         }
@@ -935,6 +943,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
 
             state = KafkaState.closedInitial(state);
             clientRoute.metaInitialId = 0L;
+            clientRoute.metaFlush = KafkaClientRoute.NOOP;
 
             client.doNetworkAbortIfNecessary(traceId);
         }
@@ -1076,6 +1085,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
         {
             state = KafkaState.closedInitial(state);
             clientRoute.metaInitialId = 0L;
+            clientRoute.metaFlush = KafkaClientRoute.NOOP;
             //client.stream = nullIfClosed(state, client.stream);
 
             doReset(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
@@ -1176,9 +1186,10 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
                 long routedId,
                 String topic,
                 List<KafkaServerConfig> servers,
-                KafkaSaslConfig sasl)
+                KafkaSaslConfig sasl,
+                GuardHandler guard)
             {
-                super(servers, sasl, originId, routedId);
+                super(servers, sasl, guard, originId, routedId);
                 this.topic = requireNonNull(topic);
                 this.topicPartitions = clientRoute.supplyPartitions(topic);
                 this.newServers = new Long2ObjectHashMap<>();
@@ -1517,6 +1528,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
             {
                 if (nextRequestId == nextResponseId)
                 {
+                    cancelNextRequestSignal();
                     encoder.accept(traceId, initialBudgetId);
                 }
             }

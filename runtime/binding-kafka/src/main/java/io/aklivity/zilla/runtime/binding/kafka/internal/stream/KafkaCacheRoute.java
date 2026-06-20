@@ -22,10 +22,11 @@ import org.agrona.collections.Long2ObjectHashMap;
 import io.aklivity.zilla.runtime.binding.kafka.internal.budget.KafkaCacheClientBudget;
 import io.aklivity.zilla.runtime.binding.kafka.internal.stream.KafkaCacheClientDescribeFactory.KafkaCacheClientDescribeFanout;
 import io.aklivity.zilla.runtime.binding.kafka.internal.stream.KafkaCacheClientFetchFactory.KafkaCacheClientFetchFanout;
+import io.aklivity.zilla.runtime.binding.kafka.internal.stream.KafkaCacheClientMetaFactory.KafkaCacheClientMetaFanout;
 import io.aklivity.zilla.runtime.binding.kafka.internal.stream.KafkaCacheClientProduceFactory.KafkaCacheClientProduceFan;
-import io.aklivity.zilla.runtime.binding.kafka.internal.stream.KafkaCacheMetaFactory.KafkaCacheMetaFanout;
 import io.aklivity.zilla.runtime.binding.kafka.internal.stream.KafkaCacheServerDescribeFactory.KafkaCacheServerDescribeFanout;
 import io.aklivity.zilla.runtime.binding.kafka.internal.stream.KafkaCacheServerFetchFactory.KafkaCacheServerFetchFanout;
+import io.aklivity.zilla.runtime.binding.kafka.internal.stream.KafkaCacheServerMetaFactory.KafkaCacheServerMetaFanout;
 import io.aklivity.zilla.runtime.binding.kafka.internal.stream.KafkaCacheServerProduceFactory.KafkaCacheServerProduceFan;
 
 public final class KafkaCacheRoute
@@ -33,7 +34,8 @@ public final class KafkaCacheRoute
     public final long resolvedId;
     public final Int2ObjectHashMap<KafkaCacheClientDescribeFanout> clientDescribeFanoutsByTopic;
     public final Int2ObjectHashMap<KafkaCacheServerDescribeFanout> serverDescribeFanoutsByTopic;
-    public final Int2ObjectHashMap<KafkaCacheMetaFanout> metaFanoutsByTopic;
+    public final Int2ObjectHashMap<KafkaCacheClientMetaFanout> clientMetaFanoutsByTopic;
+    public final Int2ObjectHashMap<KafkaCacheServerMetaFanout> serverMetaFanoutsByTopic;
     public final Long2ObjectHashMap<KafkaCacheClientFetchFanout> clientFetchFanoutsByTopicPartition;
     public final Long2ObjectHashMap<KafkaCacheServerFetchFanout> serverFetchFanoutsByTopicPartition;
     public final Long2ObjectHashMap<KafkaCacheClientProduceFan> clientProduceFansByTopicPartition;
@@ -48,7 +50,8 @@ public final class KafkaCacheRoute
         this.resolvedId = resolvedId;
         this.clientDescribeFanoutsByTopic = new Int2ObjectHashMap<>();
         this.serverDescribeFanoutsByTopic = new Int2ObjectHashMap<>();
-        this.metaFanoutsByTopic = new Int2ObjectHashMap<>();
+        this.clientMetaFanoutsByTopic = new Int2ObjectHashMap<>();
+        this.serverMetaFanoutsByTopic = new Int2ObjectHashMap<>();
         this.clientFetchFanoutsByTopicPartition = new Long2ObjectHashMap<>();
         this.serverFetchFanoutsByTopicPartition = new Long2ObjectHashMap<>();
         this.clientProduceFansByTopicPartition = new Long2ObjectHashMap<>();

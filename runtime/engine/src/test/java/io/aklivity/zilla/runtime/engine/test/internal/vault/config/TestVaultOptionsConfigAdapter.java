@@ -16,8 +16,11 @@
 package io.aklivity.zilla.runtime.engine.test.internal.vault.config;
 
 import jakarta.json.Json;
+import jakarta.json.JsonArray;
+import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
+import jakarta.json.JsonValue;
 
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
@@ -62,7 +65,16 @@ public final class TestVaultOptionsConfigAdapter implements OptionsConfigAdapter
 
         if (options.trust != null)
         {
-            object.add(TRUST_NAME, entry.adaptToJson(options.trust));
+            if (options.trust.size() == 1)
+            {
+                object.add(TRUST_NAME, entry.adaptToJson(options.trust.get(0)));
+            }
+            else
+            {
+                JsonArrayBuilder trustArray = Json.createArrayBuilder();
+                options.trust.forEach(t -> trustArray.add(entry.adaptToJson(t)));
+                object.add(TRUST_NAME, trustArray);
+            }
         }
 
         return object.build();
@@ -92,9 +104,21 @@ public final class TestVaultOptionsConfigAdapter implements OptionsConfigAdapter
 
             if (object.containsKey(TRUST_NAME))
             {
-                JsonObject trust = object.getJsonObject(TRUST_NAME);
-                TestVaultEntryConfig config = entry.adaptFromJson(trust);
-                options.trust(config.alias, config.entry);
+                JsonValue trustValue = object.get(TRUST_NAME);
+                if (trustValue.getValueType() == JsonValue.ValueType.ARRAY)
+                {
+                    JsonArray trustArray = trustValue.asJsonArray();
+                    for (JsonValue value : trustArray)
+                    {
+                        TestVaultEntryConfig config = entry.adaptFromJson(value.asJsonObject());
+                        options.trust(config.alias, config.entry);
+                    }
+                }
+                else
+                {
+                    TestVaultEntryConfig config = entry.adaptFromJson(trustValue.asJsonObject());
+                    options.trust(config.alias, config.entry);
+                }
             }
         }
 

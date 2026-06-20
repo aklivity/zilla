@@ -64,6 +64,7 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
+import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
 public final class KafkaClientDeleteTopicsFactory extends KafkaClientSaslHandshaker implements BindingHandler
 {
@@ -203,7 +204,8 @@ public final class KafkaClientDeleteTopicsFactory extends KafkaClientSaslHandsha
                     topics,
                     timeout,
                     binding.servers(),
-                    sasl)::onApplication;
+                    sasl,
+                    binding.guard)::onApplication;
         }
 
         return newStream;
@@ -587,7 +589,8 @@ public final class KafkaClientDeleteTopicsFactory extends KafkaClientSaslHandsha
             List<String> topics,
             int timeout,
             List<KafkaServerConfig> servers,
-            KafkaSaslConfig sasl)
+            KafkaSaslConfig sasl,
+            GuardHandler guard)
         {
             this.application = application;
             this.originId = originId;
@@ -595,7 +598,7 @@ public final class KafkaClientDeleteTopicsFactory extends KafkaClientSaslHandsha
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.affinity = affinity;
-            this.client = new KafkaDeleteTopicsClient(this, routedId, resolvedId, topics, timeout, servers, sasl);
+            this.client = new KafkaDeleteTopicsClient(this, routedId, resolvedId, topics, timeout, servers, sasl, guard);
         }
 
         private void onApplication(
@@ -866,9 +869,10 @@ public final class KafkaClientDeleteTopicsFactory extends KafkaClientSaslHandsha
             List<String> topics,
             int timeout,
             List<KafkaServerConfig> servers,
-            KafkaSaslConfig sasl)
+            KafkaSaslConfig sasl,
+            GuardHandler guard)
         {
-            super(servers, sasl, originId, routedId);
+            super(servers, sasl, guard, originId, routedId);
             this.delegate = delegate;
             this.topics = topics;
             this.timeout = timeout;

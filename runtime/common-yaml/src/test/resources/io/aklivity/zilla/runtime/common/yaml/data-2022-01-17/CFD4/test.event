@@ -1,0 +1,18 @@
++STR
++DOC
++SEQ
++SEQ []
++MAP {}
+=VAL :
+=VAL :empty key
+-MAP
+-SEQ
++SEQ []
++MAP {}
+=VAL :
+=VAL :another empty key
+-MAP
+-SEQ
+-SEQ
+-DOC
+-STR

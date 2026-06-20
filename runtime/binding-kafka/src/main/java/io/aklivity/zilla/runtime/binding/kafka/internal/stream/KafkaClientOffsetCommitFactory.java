@@ -68,6 +68,7 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
+import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
 public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandshaker implements BindingHandler
 {
@@ -224,7 +225,8 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
                     memberId,
                     instanceId,
                     server,
-                    sasl)::onApplication;
+                    sasl,
+                    binding.guard)::onApplication;
         }
 
         return newStream;
@@ -665,7 +667,8 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
             String memberId,
             String instanceId,
             KafkaServerConfig server,
-            KafkaSaslConfig sasl)
+            KafkaSaslConfig sasl,
+            GuardHandler guard)
         {
             this.application = application;
             this.originId = originId;
@@ -675,7 +678,7 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
             this.affinity = affinity;
             this.initialMax = encodeMaxBytes;
             this.client = new KafkaOffsetCommitClient(this, routedId, resolvedId, groupId,
-                memberId, instanceId, server, sasl);
+                memberId, instanceId, server, sasl, guard);
         }
 
         private void onApplication(
@@ -991,9 +994,10 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
             String memberId,
             String instanceId,
             KafkaServerConfig server,
-            KafkaSaslConfig sasl)
+            KafkaSaslConfig sasl,
+            GuardHandler guard)
         {
-            super(server, sasl, originId, routedId);
+            super(server, sasl, guard, originId, routedId);
             this.delegate = delegate;
             this.groupId = requireNonNull(groupId);
             this.memberId = requireNonNull(memberId);

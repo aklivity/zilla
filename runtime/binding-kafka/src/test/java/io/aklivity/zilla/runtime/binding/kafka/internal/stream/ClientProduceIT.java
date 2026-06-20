@@ -95,6 +95,26 @@ public class ClientProduceIT
     @Test
     @Configuration("client.when.topic.yaml")
     @Specification({
+        "${app}/leader.not.available/client",
+        "${net}/leader.not.available/server"})
+    public void shouldRejectLeaderNotAvailable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.when.topic.yaml")
+    @Specification({
+        "${app}/storage.error/client",
+        "${net}/storage.error/server"})
+    public void shouldRejectStorageError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.when.topic.yaml")
+    @Specification({
         "${app}/message.key/client",
         "${net}/message.key/server"})
     public void shouldSendMessageKey() throws Exception
@@ -374,6 +394,26 @@ public class ClientProduceIT
         "${app}/message.values.sequential/client",
         "${net}/message.values.sequential/server"})
     public void shouldSendMessageValueSequential() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.event.produce.error.yaml")
+    @Specification({
+        "${app}/message.too.large/client",
+        "${net}/message.too.large/server"})
+    public void shouldHandleProduceError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.event.transactional.id.authorization.error.yaml")
+    @Specification({
+        "${app}/transaction.id.authorization.error/client",
+        "${net}/transaction.id.authorization.error/server"})
+    public void shouldHandleTransactionalIdAuthorizationError() throws Exception
     {
         k3po.finish();
     }

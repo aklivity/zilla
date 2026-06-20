@@ -24,7 +24,6 @@ accepted
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .lifecycle()
-                              .sessionId("session-1")
                               .build()
                           .build()}
 
@@ -45,13 +44,13 @@ read zilla:begin.ext ${mcp:matchBeginEx()
                           .promptsGet()
                               .sessionId("session-1")
                               .name("weather_prompt")
+                              .contentLength(60)
                               .build()
                           .build()}
 
 connected
 
 read  '{"name":"weather_prompt","_meta":{"progressToken":"abc123"}}'
-read closed
 
 write flush
 
@@ -79,3 +78,5 @@ write '"}}]}'
 write flush
 
 write close
+
+read closed

@@ -112,7 +112,7 @@ public class StringModelConfigAdapterTest
     public void shouldReadDefaultConfig()
     {
         // GIVEN
-        String json = "string";
+        String json = "\"string\"";
 
         // WHEN
         StringModelConfig model = jsonb.fromJson(json, StringModelConfig.class);

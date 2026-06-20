@@ -68,6 +68,7 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
+import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
 public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandshaker implements BindingHandler
 {
@@ -222,7 +223,8 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
                     resolvedId,
                     request,
                     binding.servers(),
-                    sasl)::onApplication;
+                    sasl,
+                    binding.guard)::onApplication;
         }
 
         return newStream;
@@ -605,7 +607,8 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
             long resolvedId,
             CreateTopicsRequestInfo request,
             List<KafkaServerConfig> servers,
-            KafkaSaslConfig sasl)
+            KafkaSaslConfig sasl,
+            GuardHandler guard)
         {
             this.application = application;
             this.originId = originId;
@@ -613,7 +616,7 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.affinity = affinity;
-            this.client = new KafkaCreateTopicsClient(this, routedId, resolvedId, request, servers, sasl);
+            this.client = new KafkaCreateTopicsClient(this, routedId, resolvedId, request, servers, sasl, guard);
         }
 
         private void onApplication(
@@ -883,9 +886,10 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
             long routedId,
             CreateTopicsRequestInfo request,
             List<KafkaServerConfig> servers,
-            KafkaSaslConfig sasl)
+            KafkaSaslConfig sasl,
+            GuardHandler guard)
         {
-            super(servers, sasl, originId, routedId);
+            super(servers, sasl, guard, originId, routedId);
             this.delegate = delegate;
             this.request = request;
             this.encoder = sasl != null ? encodeSaslHandshakeRequest : encodeCreateTopicsRequest;

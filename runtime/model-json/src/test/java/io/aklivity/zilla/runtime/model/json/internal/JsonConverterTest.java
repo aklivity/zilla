@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.model.json.internal;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -21,6 +22,7 @@ import static org.mockito.Mockito.when;
 import java.time.Clock;
 
 import org.agrona.DirectBuffer;
+import org.agrona.ExpandableDirectByteBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Before;
@@ -109,7 +111,10 @@ public class JsonConverterTest
         byte[] bytes = payload.getBytes();
         data.wrap(bytes, 0, bytes.length);
 
-        assertEquals(data.capacity(), converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
+        Capture capture = new Capture();
+        String canonical = "{\"id\":\"123\",\"status\":\"OK\"}";
+        assertEquals(canonical.length(), converter.convert(0L, 0L, data, 0, data.capacity(), capture));
+        assertEquals(canonical, capture.text());
     }
 
     @Test
@@ -152,7 +157,8 @@ public class JsonConverterTest
         byte[] bytes = payload.getBytes();
         data.wrap(bytes, 0, bytes.length);
 
-        assertEquals(data.capacity(), converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
+        String canonical = "[{\"id\":\"123\",\"status\":\"OK\"}]";
+        assertEquals(canonical.length(), converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -240,7 +246,10 @@ public class JsonConverterTest
         byte[] bytes = payload.getBytes();
         data.wrap(bytes, 0, bytes.length);
 
-        assertEquals(data.capacity(), converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
+        Capture capture = new Capture();
+        String canonical = "{\"id\":\"123\",\"status\":\"OK\"}";
+        assertEquals(canonical.length(), converter.convert(0L, 0L, data, 0, data.capacity(), capture));
+        assertEquals(canonical, capture.text());
     }
 
     @Test
@@ -333,7 +342,8 @@ public class JsonConverterTest
                 "}";
         byte[] bytes = payload.getBytes();
         data.wrap(bytes, 0, bytes.length);
-        assertEquals(data.capacity(), converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
+        String canonical = "{\"id\":\"123\",\"zillaId\":321,\"status\":\"OK\"}";
+        assertEquals(canonical.length(), converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
 
         assertEquals(2, converter.extractedLength(statusPath));
         final ConverterHandler.FieldVisitor visitor = (buffer, index, length) ->
@@ -348,5 +358,29 @@ public class JsonConverterTest
             assertEquals("321", buffer.getStringWithoutLengthUtf8(index, length));
         };
         converter.extracted(zillaIdPath, zillaIdVisitor);
+    }
+
+    private static final class Capture implements ValueConsumer
+    {
+        private final MutableDirectBuffer buffer = new ExpandableDirectByteBuffer();
+
+        private int length;
+
+        @Override
+        public void accept(
+            DirectBuffer data,
+            int index,
+            int length)
+        {
+            buffer.putBytes(this.length, data, index, length);
+            this.length += length;
+        }
+
+        private String text()
+        {
+            byte[] bytes = new byte[length];
+            buffer.getBytes(0, bytes);
+            return new String(bytes, UTF_8);
+        }
     }
 }

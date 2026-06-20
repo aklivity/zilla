@@ -37,7 +37,7 @@ public class ProtobufModelFactorySpiTest
         ModelFactory factory = ModelFactory.instantiate();
         Model model = factory.create("protobuf", config);
 
-        ModelContext context = new ProtobufModelContext(mock(EngineContext.class));
+        ModelContext context = new ProtobufModelContext(config, mock(EngineContext.class));
 
         ModelConfig modelConfig = ProtobufModelConfig.builder()
             .subject("test-value")

@@ -17,9 +17,25 @@ module io.aklivity.zilla.runtime.command.dump
     requires io.aklivity.zilla.runtime.command;
     requires io.aklivity.zilla.runtime.engine;
 
+    exports io.aklivity.zilla.runtime.command.dump;
+
     opens io.aklivity.zilla.runtime.command.dump.internal.airline
         to com.github.rvesse.airline;
 
+    uses io.aklivity.zilla.runtime.command.dump.ZillaDumpDissectorSpi;
+
     provides io.aklivity.zilla.runtime.command.ZillaCommandSpi
         with io.aklivity.zilla.runtime.command.dump.internal.ZillaDumpCommandSpi;
+
+    provides io.aklivity.zilla.runtime.command.dump.ZillaDumpDissectorSpi
+        with io.aklivity.zilla.runtime.command.dump.internal.dissector.AmqpDumpDissector,
+            io.aklivity.zilla.runtime.command.dump.internal.dissector.FilesystemDumpDissector,
+            io.aklivity.zilla.runtime.command.dump.internal.dissector.GrpcDumpDissector,
+            io.aklivity.zilla.runtime.command.dump.internal.dissector.HttpDumpDissector,
+            io.aklivity.zilla.runtime.command.dump.internal.dissector.KafkaDumpDissector,
+            io.aklivity.zilla.runtime.command.dump.internal.dissector.MqttDumpDissector,
+            io.aklivity.zilla.runtime.command.dump.internal.dissector.ProxyDumpDissector,
+            io.aklivity.zilla.runtime.command.dump.internal.dissector.SseDumpDissector,
+            io.aklivity.zilla.runtime.command.dump.internal.dissector.TlsDumpDissector,
+            io.aklivity.zilla.runtime.command.dump.internal.dissector.WsDumpDissector;
 }

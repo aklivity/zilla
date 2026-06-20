@@ -1,0 +1,3 @@
+# Binary round-trip conformance cases known not to canonicalize correctly yet.
+# One case name per line; listed cases are expected to FAIL (xfail) and are skipped as known gaps.
+# (none yet -- unknown fields are now retained via verbatim passthrough.)

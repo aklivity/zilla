@@ -260,6 +260,45 @@ public class HttpFunctionsTest
     }
 
     @Test
+    public void shouldMatchBeginExtensionWithHeaderMissing() throws Exception
+    {
+        BytesMatcher matcher = HttpFunctions.matchBeginEx()
+                                            .typeId(0x01)
+                                            .header("name", "value")
+                                            .headerMissing("missing")
+                                            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new HttpBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .headersItem(h -> h.name("name")
+                               .value("value"))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test(expected = Exception.class)
+    public void shouldFailWhenMissingHeaderIsPresent() throws Exception
+    {
+        BytesMatcher matcher = HttpFunctions.matchBeginEx()
+                                            .typeId(0x01)
+                                            .headerMissing("name")
+                                            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new HttpBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .headersItem(h -> h.name("name")
+                               .value("value"))
+            .build();
+
+        matcher.match(byteBuf);
+    }
+
+    @Test
     public void shouldFailWhenDoNotSetTypeId() throws Exception
     {
         BytesMatcher matcher = HttpFunctions.matchBeginEx()

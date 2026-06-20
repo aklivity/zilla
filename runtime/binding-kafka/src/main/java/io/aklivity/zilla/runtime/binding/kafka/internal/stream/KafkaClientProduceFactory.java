@@ -82,6 +82,7 @@ import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
+import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
 public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker implements BindingHandler
 {
@@ -269,7 +270,8 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                         topicName,
                         partitionId,
                         server,
-                        sasl)::onApplication;
+                        sasl,
+                        binding.guard)::onApplication;
             }
         }
 
@@ -923,7 +925,8 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
             String topic,
             int partitionId,
             KafkaServerConfig server,
-            KafkaSaslConfig sasl)
+            KafkaSaslConfig sasl,
+            GuardHandler guard)
         {
             this.application = application;
             this.originId = originId;
@@ -931,7 +934,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.affinity = affinity;
-            this.client = new KafkaProduceClient(this, resolvedId, topic, partitionId, server, sasl);
+            this.client = new KafkaProduceClient(this, resolvedId, topic, partitionId, server, sasl, guard);
         }
 
         private void onApplication(
@@ -1204,6 +1207,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
             private MessageConsumer network;
             private final KafkaProduceStream stream;
+            private final KafkaClientRoute clientRoute;
             private final String topic;
             private final int partitionId;
 
@@ -1258,10 +1262,12 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 String topic,
                 int partitionId,
                 KafkaServerConfig server,
-                KafkaSaslConfig sasl)
+                KafkaSaslConfig sasl,
+                GuardHandler guard)
             {
-                super(server, sasl, stream.routedId, resolvedId);
+                super(server, sasl, guard, stream.routedId, resolvedId);
                 this.stream = stream;
+                this.clientRoute = supplyClientRoute.apply(resolvedId);
                 this.topic = requireNonNull(topic);
                 this.partitionId = partitionId;
                 this.flusher = flushRecord;
@@ -1483,6 +1489,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 long authorization,
                 long affinity)
             {
+                saslAuthorization = authorization;
                 state = KafkaState.openingInitial(state);
 
                 Consumer<OctetsFW.Builder> extension = EMPTY_EXTENSION;
@@ -2261,6 +2268,10 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                     assert partitionId == this.partitionId;
                     break;
                 default:
+                    if (KafkaError.of(errorCode).isRetriable())
+                    {
+                        clientRoute.metaFlush.accept(traceId);
+                    }
                     onDecodeResponseErrorCode(traceId, originId, errorCode, topic);
                     final KafkaResetExFW resetEx = kafkaResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
                                                                  .typeId(kafkaTypeId)

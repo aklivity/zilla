@@ -18,29 +18,44 @@ package io.aklivity.zilla.runtime.binding.tls.internal.config;
 import static java.util.function.UnaryOperator.identity;
 import static java.util.stream.Collectors.toList;
 
+import java.security.cert.Certificate;
 import java.util.List;
 import java.util.function.UnaryOperator;
+
+import javax.net.ssl.TrustManagerFactory;
 
 import io.aklivity.zilla.runtime.binding.tls.config.TlsConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 import io.aklivity.zilla.runtime.engine.util.function.LongObjectPredicate;
+import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 
 public final class TlsRouteConfig
 {
     public final long id;
 
-    private final List<TlsConditionMatcher> when;
+    private final List<TlsConditionConfig> conditions;
     private final LongObjectPredicate<UnaryOperator<String>> authorized;
+    private List<TlsConditionMatcher> when;
 
     public TlsRouteConfig(
         RouteConfig route)
     {
         this.id = route.id;
-        this.when = route.when.stream()
+        this.conditions = route.when.stream()
             .map(TlsConditionConfig.class::cast)
-            .map(TlsConditionMatcher::new)
             .collect(toList());
         this.authorized = route.authorized;
+        this.when = conditions.stream()
+            .map(c -> new TlsConditionMatcher(c, null))
+            .collect(toList());
+    }
+
+    public void init(
+        VaultHandler vault)
+    {
+        this.when = conditions.stream()
+            .map(c -> new TlsConditionMatcher(c, newTrustFactory(vault, c.trust)))
+            .collect(toList());
     }
 
     boolean authorized(
@@ -52,14 +67,33 @@ public final class TlsRouteConfig
     boolean matches(
         String hostname,
         String alpn,
+        int port,
+        Certificate[] clientCerts)
+    {
+        return when.isEmpty() ||
+                when.stream().anyMatch(m -> m.matches(hostname, alpn, port, clientCerts));
+    }
+
+    boolean matchesIgnoringCert(
+        String hostname,
+        String alpn,
         int port)
     {
-        return when.isEmpty() || when.stream().anyMatch(m -> m.matches(hostname, alpn, port));
+        return when.isEmpty() || when.stream().anyMatch(m -> m.matchesIgnoringCert(hostname, alpn, port));
     }
 
     boolean matchesPortOnly(
         int port)
     {
         return when.isEmpty() || when.stream().anyMatch(m -> m.matchesPortOnly(port));
+    }
+
+    private static TrustManagerFactory newTrustFactory(
+        VaultHandler vault,
+        List<String> trustRefs)
+    {
+        return vault != null && trustRefs != null && !trustRefs.isEmpty()
+            ? vault.initTrust(trustRefs, null)
+            : null;
     }
 }
