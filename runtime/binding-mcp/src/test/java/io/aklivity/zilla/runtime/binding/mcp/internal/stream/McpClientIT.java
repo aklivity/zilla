@@ -18,6 +18,8 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTes
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.ENGINE_SYNTHETIC_ABORT_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_CLIENT_NAME_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_CLIENT_VERSION_NAME;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_ELICITATION_ID_NAME;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_ELICIT_CORRELATION_ID_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_INACTIVITY_TIMEOUT_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_SESSION_ID_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -29,6 +31,7 @@ import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
 
+import io.aklivity.k3po.runtime.junit.annotation.ScriptProperty;
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
@@ -50,6 +53,8 @@ public class McpClientIT
         .configure(MCP_CLIENT_NAME_NAME, "test")
         .configure(MCP_CLIENT_VERSION_NAME, "1.0")
         .configure(MCP_SESSION_ID_NAME, "%s::sessionId".formatted(McpClientIT.class.getName()))
+        .configure(MCP_ELICITATION_ID_NAME, "%s::elicitationId".formatted(McpClientIT.class.getName()))
+        .configure(MCP_ELICIT_CORRELATION_ID_NAME, "%s::elicitCorrelationId".formatted(McpClientIT.class.getName()))
         .external("net0")
         .clean();
 
@@ -112,6 +117,16 @@ public class McpClientIT
         "${app}/lifecycle.initialize.reject.bearer/client",
         "${net}/lifecycle.initialize.reject.bearer/server"})
     public void shouldRejectLifecycleInitializeWithBearerChallenge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/lifecycle.initialize.reject.bearer.resource.metadata/client",
+        "${net}/lifecycle.initialize.reject.bearer.resource.metadata/server"})
+    public void shouldRejectLifecycleInitializeWithBearerChallengeResourceMetadata() throws Exception
     {
         k3po.finish();
     }
@@ -183,7 +198,7 @@ public class McpClientIT
     @Configuration("client.yaml")
     @Specification({
         "${app}/tools.call.elicit.timeout.proxied/client",
-        "${net}/tools.call.elicit.timeout/server"})
+        "${net}/tools.call.elicit.timeout.proxied/server"})
     public void shouldCallToolElicitTimeoutProxied() throws Exception
     {
         k3po.finish();
@@ -213,6 +228,26 @@ public class McpClientIT
     @Test
     @Configuration("client.guarded.yaml")
     @Specification({
+        "${app}/prompts.get.elicit.completed.guarded/client",
+        "${net}/prompts.get/server"})
+    public void shouldGetPromptElicitCompletedGuarded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.guarded.yaml")
+    @Specification({
+        "${app}/resources.read.elicit.completed.guarded/client",
+        "${net}/resources.read/server"})
+    public void shouldReadResourceElicitCompletedGuarded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.guarded.yaml")
+    @Specification({
         "${app}/tools.call.elicit.declined.guarded/client",
         "${net}/lifecycle.initialize/server"})
     public void shouldCallToolElicitDeclinedGuarded() throws Exception
@@ -225,11 +260,21 @@ public class McpClientIT
     @Specification({
         "${app}/tools.call.elicit.timeout.guarded/client",
         "${net}/lifecycle.initialize/server"})
-    @Configure(name = MCP_INACTIVITY_TIMEOUT_NAME, value = "PT0.2S")
     public void shouldCallToolElicitTimeoutGuarded() throws Exception
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.guarded.yaml")
+    @Specification({
+        "${app}/tools.call.elicit.reject.guarded/client",
+        "${net}/lifecycle.initialize/server"})
+    public void shouldCallToolElicitRejectGuarded() throws Exception
+    {
+        k3po.finish();
+    }
+
 
     @Test
     @Configuration("client.yaml")
@@ -237,6 +282,27 @@ public class McpClientIT
         "${app}/tools.call/client",
         "${net}/tools.call/server"})
     public void shouldCallTool() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/tools.call.is.error/client",
+        "${net}/tools.call.is.error/server"})
+    public void shouldCallToolIsError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.identity.yaml")
+    @Specification({
+        "${app}/tools.call/client",
+        "${net}/tools.call.identity/server"})
+    @ScriptProperty("authorization 1L")
+    public void shouldCallToolWithIdentity() throws Exception
     {
         k3po.finish();
     }
@@ -384,11 +450,33 @@ public class McpClientIT
     }
 
     @Test
+    @Configuration("client.identity.yaml")
+    @Specification({
+        "${app}/prompts.get/client",
+        "${net}/prompts.get.identity/server"})
+    @ScriptProperty("authorization 1L")
+    public void shouldGetPromptWithIdentity() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("client.yaml")
     @Specification({
         "${app}/resources.read/client",
         "${net}/resources.read/server"})
     public void shouldReadResource() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.identity.yaml")
+    @Specification({
+        "${app}/resources.read/client",
+        "${net}/resources.read.identity/server"})
+    @ScriptProperty("authorization 1L")
+    public void shouldReadResourceWithIdentity() throws Exception
     {
         k3po.finish();
     }
@@ -459,6 +547,26 @@ public class McpClientIT
         "${app}/lifecycle.notify.tools.list.changed/client",
         "${net}/lifecycle.notify.tools.list.changed/server"})
     public void shouldNotifyToolsListChanged() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/lifecycle.events.elicit/client",
+        "${net}/lifecycle.events.elicit/server"})
+    public void shouldRelayRemoteElicitOnLifecycleEvents() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.guarded.yaml")
+    @Specification({
+        "${app}/lifecycle.elicit.reauthorize/client",
+        "${net}/lifecycle.elicit.reauthorize/server"})
+    public void shouldReauthorizeElicitCallbackOnLifecycleEvents() throws Exception
     {
         k3po.finish();
     }
@@ -606,5 +714,15 @@ public class McpClientIT
     public static String sessionId()
     {
         return "session-1";
+    }
+
+    public static String elicitationId()
+    {
+        return "elicit-1";
+    }
+
+    public static String elicitCorrelationId()
+    {
+        return "3";
     }
 }

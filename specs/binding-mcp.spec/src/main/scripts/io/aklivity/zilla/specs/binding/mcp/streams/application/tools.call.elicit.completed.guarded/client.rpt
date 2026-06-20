@@ -20,6 +20,7 @@ connect "zilla://streams/app0"
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .lifecycle()
+                               .authCallback("http://localhost:8080/mcp/auth/callback")
                                .build()
                            .build()}
 
@@ -45,14 +46,16 @@ write zilla:begin.ext ${mcp:beginEx()
                                .sessionId("session-1")
                                .name("get_weather")
                                .contentLength(59)
+                               .timeout(30000)
                                .build()
                            .build()}
 
 write advised zilla:challenge ${mcp:matchChallengeEx()
                                     .typeId(zilla:id("mcp"))
                                     .elicitCreate()
-                                        .id("1")
-                                        .url("https://server.example.com/authorize?state=7f3a9b1c&redirect_uri=%s".formatted(http:encodeQuery("https://replace.me/callback")))
+                                        .id("elicit-1")
+                                        .url("https://server.example.com/authorize?state=7f3a9b1c&redirect_uri=%s".formatted(http:encodeQuery("http://localhost:8080/mcp/auth/callback")))
+                                        .correlationId("3")
                                         .build()
                                     .build()}
 
@@ -69,15 +72,15 @@ write '{'
 write advise zilla:flush ${mcp:flushEx()
                               .typeId(zilla:id("mcp"))
                               .elicitCallback()
-                                  .url("http://localhost:8080/mcp/auth/callback?code=xyz&state=session-1.elicit-1.7f3a9b1c")
+                                  .url("http://localhost:8080/mcp/auth/callback?code=xyz&state=7f3a9b1c")
+                                  .correlationId("3")
                                   .build()
                               .build()}
 
 read advised zilla:flush ${mcp:matchFlushEx()
                                .typeId(zilla:id("mcp"))
                                .elicitComplete()
-                                   .id("1")
-                                   .status("COMPLETED")
+                                   .id("elicit-1")
                                    .build()
                                .build()}
 

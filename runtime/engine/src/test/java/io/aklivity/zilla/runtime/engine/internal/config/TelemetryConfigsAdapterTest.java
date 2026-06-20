@@ -75,7 +75,7 @@ public class TelemetryConfigsAdapterTest
                     "{" +
                         "\"test0\": " +
                         "{" +
-                            "\"type\": \"test\"," +
+                            "\"type\": \"test\"" +
                         "}" +
                     "}" +
                 "}";

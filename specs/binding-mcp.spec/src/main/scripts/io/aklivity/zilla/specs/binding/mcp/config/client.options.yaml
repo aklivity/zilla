@@ -20,19 +20,7 @@ bindings:
     type: mcp
     kind: client
     options:
-      prompts:
-        - name: rule
-          description: house rules
-      elicitation:
-        callback: auth/callback
+      server: http://localhost:8080/mcp
       authorization:
-        name: jwt0
-    routes:
-      - exit: net0
-        when:
-          - capability: [tools, prompts, resources]
-        with:
-          headers:
-            :scheme: http
-            :authority: localhost
-            :path: /mcp
+        jwt0: {}
+    exit: net0

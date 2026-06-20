@@ -92,6 +92,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/lifecycle.initialize.reject.bearer.resource.metadata/client",
+        "${net}/lifecycle.initialize.reject.bearer.resource.metadata/server"})
+    public void shouldRejectLifecycleInitializeOnUpstreamBearerChallengeResourceMetadata() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/tools.call.reject.bearer/client",
         "${net}/tools.call.reject.bearer/server"})
     public void shouldRejectToolsCallOnUpstreamBearerChallenge() throws Exception
@@ -254,6 +263,33 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/tools.call.is.error/client",
+        "${net}/tools.call.is.error/server"})
+    public void shouldCallToolIsError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/tools.call.timeout/client",
+        "${net}/tools.call.timeout/server"})
+    public void shouldCallToolWithTimeout() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/tools.call.identity/client",
+        "${net}/tools.call.identity/server"})
+    public void shouldCallToolWithIdentity() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/tools.list/client",
         "${net}/tools.list/server"})
     public void shouldListTools() throws Exception
@@ -335,6 +371,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/notifications.cancelled.unknown/client",
+        "${net}/notifications.cancelled.unknown/server"})
+    public void shouldAcceptCancelUnknownRequest() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/prompts.list/client",
         "${net}/prompts.list/server"})
     public void shouldListPrompts() throws Exception
@@ -362,9 +407,27 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/prompts.get.identity/client",
+        "${net}/prompts.get.identity/server"})
+    public void shouldGetPromptWithIdentity() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/resources.read/client",
         "${net}/resources.read/server"})
     public void shouldReadResource() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/resources.read.identity/client",
+        "${net}/resources.read.identity/server"})
+    public void shouldReadResourceWithIdentity() throws Exception
     {
         k3po.finish();
     }
@@ -407,6 +470,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/lifecycle.events.resume.reject.bearer.resource.metadata/client",
+        "${net}/lifecycle.events.resume.reject.bearer.resource.metadata/server"})
+    public void shouldRejectLifecycleEventsResumeOnUpstreamBearerChallengeResourceMetadata() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/lifecycle.events.session.unknown/client",
         "${net}/lifecycle.events.session.unknown/server"})
     public void shouldRejectLifecycleEventsSessionUnknown() throws Exception
@@ -419,6 +491,15 @@ public class NetworkIT
         "${net}/lifecycle.events.session.missing/client",
         "${net}/lifecycle.events.session.missing/server"})
     public void shouldRejectLifecycleEventsSessionMissing() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/lifecycle.redirect.session/client",
+        "${net}/lifecycle.redirect.session/server"})
+    public void shouldRedirectLifecycleForRemoteSession() throws Exception
     {
         k3po.finish();
     }
@@ -524,6 +605,42 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/tools.call.elicit.completed.context/client",
+        "${net}/tools.call.elicit.completed.context/server"})
+    public void shouldCallToolElicitCompletedWithContext() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/lifecycle.elicit.completed/client",
+        "${net}/lifecycle.elicit.completed/server"})
+    public void shouldCompleteLifecycleElicit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/tools.call.elicit.after.result/client",
+        "${net}/tools.call.elicit.after.result/server"})
+    public void shouldCallToolElicitAfterResult() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/tools.call.elicit.passthrough/client",
+        "${net}/tools.call.elicit.passthrough/server"})
+    public void shouldCallToolElicitPassthrough() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/tools.call.elicit.declined/client",
         "${net}/tools.call.elicit.declined/server"})
     public void shouldCallToolElicitDeclined() throws Exception
@@ -536,6 +653,15 @@ public class NetworkIT
         "${net}/tools.call.elicit.timeout/client",
         "${net}/tools.call.elicit.timeout/server"})
     public void shouldCallToolElicitTimeout() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/tools.call.elicit.reject/client",
+        "${net}/tools.call.elicit.reject/server"})
+    public void shouldRejectToolsCallElicitUrlRequired() throws Exception
     {
         k3po.finish();
     }

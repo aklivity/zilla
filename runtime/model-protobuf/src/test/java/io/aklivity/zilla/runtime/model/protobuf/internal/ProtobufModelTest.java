@@ -23,6 +23,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 
 import org.agrona.DirectBuffer;
+import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Before;
 import org.junit.Test;
@@ -252,6 +253,32 @@ public class ProtobufModelTest
     }
 
     @Test
+    public void shouldReadInvalidProtobufEvent()
+    {
+        ProtobufModelConfig model = ProtobufModelConfig.builder()
+            .catalog()
+                .name("test0")
+                .schema()
+                    .strategy("topic")
+                    .version("latest")
+                    .subject("test-value")
+                    .build()
+                .build()
+            .build();
+
+        when(context.clock()).thenReturn(Clock.systemUTC());
+        when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
+
+        ProtobufReadConverterHandler converter = new ProtobufReadConverterHandler(model, context);
+
+        DirectBuffer data = new UnsafeBuffer();
+
+        byte[] bytes = {0x00, 0x0a, 0x08, 0x4f, 0x4b};
+        data.wrap(bytes, 0, bytes.length);
+        assertEquals(-1, converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
+    }
+
+    @Test
     public void shouldReadValidProtobufEventNestedMessage()
     {
         ProtobufModelConfig model = ProtobufModelConfig.builder()
@@ -313,6 +340,62 @@ public class ProtobufModelTest
     }
 
     @Test
+    public void shouldReadLargeValidProtobufEventFormatJson()
+    {
+        ProtobufModelConfig model = ProtobufModelConfig.builder()
+            .view("json")
+            .catalog()
+                .name("test0")
+                .schema()
+                    .strategy("topic")
+                    .version("latest")
+                    .subject("test-value")
+                    .build()
+                .build()
+            .build();
+
+        ProtobufReadConverterHandler converter = new ProtobufReadConverterHandler(model, context);
+
+        // 20000-byte content forces the JSON output past the fixed 8192-byte window, exercising the
+        // bounded-chunk streaming drain (multiple next.accept calls), which the consumer reassembles
+        String content = "A".repeat(20000);
+        byte[] contentBytes = content.getBytes(StandardCharsets.UTF_8);
+        byte[] dateBytes = "01012024".getBytes(StandardCharsets.UTF_8);
+        byte[] buf = new byte[contentBytes.length + 16];
+        MutableDirectBuffer builder = new UnsafeBuffer(buf);
+        int p = 0;
+        builder.putByte(p++, (byte) 0x00);                  // message index 0
+        builder.putByte(p++, (byte) 0x0a);                  // field 1 (content), wire type LEN
+        builder.putByte(p++, (byte) 0xa0);                  // length 20000 varint, byte 0
+        builder.putByte(p++, (byte) 0x9c);                  // length 20000 varint, byte 1
+        builder.putByte(p++, (byte) 0x01);                  // length 20000 varint, byte 2
+        builder.putBytes(p, contentBytes);
+        p += contentBytes.length;
+        builder.putByte(p++, (byte) 0x12);                  // field 2 (date_time), wire type LEN
+        builder.putByte(p++, (byte) 0x08);                  // length 8
+        builder.putBytes(p, dateBytes);
+        p += dateBytes.length;
+
+        DirectBuffer data = new UnsafeBuffer();
+        data.wrap(buf, 0, p);
+
+        String json = "{\"content\":\"" + content + "\",\"date_time\":\"01012024\"}";
+        MutableDirectBuffer sink = new UnsafeBuffer(new byte[64 * 1024]);
+        int[] sunk = {0};
+        final ValueConsumer consumer = (buffer, index, length) ->
+        {
+            buffer.getBytes(index, sink, sunk[0], length);
+            sunk[0] += length;
+        };
+        int result = converter.convert(0L, 0L, data, 0, data.capacity(), consumer);
+
+        assertEquals(json.length(), result);
+        byte[] assembled = new byte[sunk[0]];
+        sink.getBytes(0, assembled);
+        assertEquals(json, new String(assembled, StandardCharsets.UTF_8));
+    }
+
+    @Test
     public void shouldWriteValidProtobufEventFormatJson()
     {
         ProtobufModelConfig model = ProtobufModelConfig.builder()
@@ -349,6 +432,36 @@ public class ProtobufModelTest
     }
 
     @Test
+    public void shouldWriteLargeValidProtobufEventFormatJson()
+    {
+        ProtobufModelConfig model = ProtobufModelConfig.builder()
+            .view("json")
+            .catalog()
+                .name("test0")
+                .schema()
+                    .strategy("topic")
+                    .version("latest")
+                    .subject("test-value")
+                    .record("SimpleMessage")
+                    .build()
+                .build()
+            .build();
+
+        ProtobufWriteConverterHandler converter = new ProtobufWriteConverterHandler(model, context);
+
+        // 20000-byte content forces the wire output past the fixed 8192-byte window, exercising the
+        // bounded-chunk streaming drain on the write path
+        String content = "A".repeat(20000);
+        String json = "{\"content\":\"" + content + "\",\"date_time\":\"01012024\"}";
+        DirectBuffer data = new UnsafeBuffer();
+        data.wrap(json.getBytes(StandardCharsets.UTF_8), 0, json.getBytes(StandardCharsets.UTF_8).length);
+
+        int result = converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP);
+
+        assertTrue(result > 20000);
+    }
+
+    @Test
     public void shouldWriteInvalidProtobufEventFormatJson()
     {
         ProtobufModelConfig model = ProtobufModelConfig.builder()
@@ -374,7 +487,8 @@ public class ProtobufModelTest
         String json =
             "{" +
                 "\"content\":\"OK\"," +
-                "\"date\":\"01012024\"" +
+                "\"date_time\":\"01012024\"," +
+                "\"unexpected\":\"value\"" +
             "}";
         data.wrap(json.getBytes(), 0, json.getBytes().length);
 

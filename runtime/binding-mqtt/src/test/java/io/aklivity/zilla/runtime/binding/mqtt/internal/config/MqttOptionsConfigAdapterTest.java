@@ -61,8 +61,8 @@ public class MqttOptionsConfigAdapterTest
                 "{" +
                     "\"versions\":" +
                     "[" +
-                        "v3.1.1," +
-                        "v5" +
+                        "\"v3.1.1\"," +
+                        "\"v5\"" +
                     "]," +
                     "\"store\":\"memory0\"," +
                     "\"authorization\":" +

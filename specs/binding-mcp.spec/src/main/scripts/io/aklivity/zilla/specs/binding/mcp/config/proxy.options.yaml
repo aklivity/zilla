@@ -26,18 +26,8 @@ bindings:
         authorization:
           jwt0:
             credentials: cookies.access_token
-      prompts:
-        - name: rule
-          description: house rules
-      elicitation:
-        callback: auth/callback
-      authorization:
-        name: jwt0
     routes:
       - exit: app1
         when:
           - toolkit: bluesky
             capability: [tools, prompts, resources]
-        with:
-          headers:
-            x-tenant: bluesky

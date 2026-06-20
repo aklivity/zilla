@@ -74,6 +74,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/lifecycle.initialize.reject.bearer.resource.metadata/client",
+        "${app}/lifecycle.initialize.reject.bearer.resource.metadata/server"})
+    public void shouldRejectLifecycleInitializeOnUpstreamBearerChallengeResourceMetadata() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/tools.call.reject.bearer/client",
         "${app}/tools.call.reject.bearer/server"})
     public void shouldRejectToolsCallOnUpstreamBearerChallenge() throws Exception
@@ -191,9 +200,36 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/tools.call.resumable/client",
+        "${app}/tools.call.resumable/server"})
+    public void shouldCallToolWithUpstreamResumableFlush() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/tools.call/client",
         "${app}/tools.call/server"})
     public void shouldCallTool() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/tools.call.is.error/client",
+        "${app}/tools.call.is.error/server"})
+    public void shouldCallToolIsError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/tools.call.timeout/client",
+        "${app}/tools.call.timeout/server"})
+    public void shouldCallToolWithTimeout() throws Exception
     {
         k3po.finish();
     }
@@ -353,6 +389,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/lifecycle.events.resume.reject.bearer.resource.metadata/client",
+        "${app}/lifecycle.events.resume.reject.bearer.resource.metadata/server"})
+    public void shouldRejectLifecycleEventsResumeOnUpstreamBearerChallengeResourceMetadata() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/lifecycle.events.unsupported/client",
         "${app}/lifecycle.events.unsupported/server"})
     public void shouldRejectLifecycleEventsUnsupported() throws Exception
@@ -383,6 +428,24 @@ public class ApplicationIT
         "${app}/lifecycle.notify.tools.list.changed/client",
         "${app}/lifecycle.notify.tools.list.changed/server"})
     public void shouldNotifyToolsListChanged() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/lifecycle.events.elicit/client",
+        "${app}/lifecycle.events.elicit/server"})
+    public void shouldRelayRemoteElicitOnLifecycleEvents() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/lifecycle.elicit.reauthorize/client",
+        "${app}/lifecycle.elicit.reauthorize/server"})
+    public void shouldReauthorizeElicitCallbackOnLifecycleEvents() throws Exception
     {
         k3po.finish();
     }
@@ -488,6 +551,51 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/tools.call.elicit.after.result/client",
+        "${app}/tools.call.elicit.after.result/server"})
+    public void shouldCallToolElicitAfterResult() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/tools.call.elicit.completed.context/client",
+        "${app}/tools.call.elicit.completed.context/server"})
+    public void shouldCallToolElicitCompletedWithContext() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/lifecycle.elicit.toolkit/client",
+        "${app}/lifecycle.elicit.toolkit/server"})
+    public void shouldRouteLifecycleElicitToolkitCallback() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/lifecycle.elicit.completed/client",
+        "${app}/lifecycle.elicit.completed/server"})
+    public void shouldCompleteLifecycleElicit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/tools.call.elicit.passthrough/client",
+        "${app}/tools.call.elicit.passthrough/server"})
+    public void shouldCallToolElicitPassthrough() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/tools.call.elicit.completed.proxied/client",
         "${app}/tools.call.elicit.completed.proxied/server"})
     public void shouldCallToolElicitCompletedProxied() throws Exception
@@ -524,6 +632,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/tools.call.elicit.reject/client",
+        "${app}/tools.call.elicit.reject/server"})
+    public void shouldRejectToolsCallElicitUrlRequired() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/tools.call.elicit.timeout.proxied/client",
         "${app}/tools.call.elicit.timeout.proxied/server"})
     public void shouldCallToolElicitTimeoutProxied() throws Exception
@@ -542,6 +659,24 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/prompts.get.elicit.completed.guarded/client",
+        "${app}/prompts.get.elicit.completed.guarded/server"})
+    public void shouldGetPromptElicitCompletedGuarded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/resources.read.elicit.completed.guarded/client",
+        "${app}/resources.read.elicit.completed.guarded/server"})
+    public void shouldReadResourceElicitCompletedGuarded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/tools.call.elicit.declined.guarded/client",
         "${app}/tools.call.elicit.declined.guarded/server"})
     public void shouldCallToolElicitDeclinedGuarded() throws Exception
@@ -554,6 +689,15 @@ public class ApplicationIT
         "${app}/tools.call.elicit.timeout.guarded/client",
         "${app}/tools.call.elicit.timeout.guarded/server"})
     public void shouldCallToolElicitTimeoutGuarded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/tools.call.elicit.reject.guarded/client",
+        "${app}/tools.call.elicit.reject.guarded/server"})
+    public void shouldCallToolElicitRejectGuarded() throws Exception
     {
         k3po.finish();
     }
@@ -887,6 +1031,24 @@ public class ApplicationIT
         "${app}/tools.list.toolkit.multi.prefixed/client",
         "${app}/tools.list.toolkit.multi.prefixed/server"})
     public void shouldListToolsWithToolkitMultiPrefixed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/tools.list.partial.toolkit.multi/client",
+        "${app}/tools.list.partial.toolkit.multi/server"})
+    public void shouldListToolsWithPartialToolkitMulti() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/tools.list.partial.toolkit.multi.prefixed/client",
+        "${app}/tools.list.partial.toolkit.multi.prefixed/server"})
+    public void shouldListToolsWithPartialToolkitMultiPrefixed() throws Exception
     {
         k3po.finish();
     }

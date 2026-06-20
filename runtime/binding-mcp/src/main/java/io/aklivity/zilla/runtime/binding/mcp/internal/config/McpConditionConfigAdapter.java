@@ -35,6 +35,9 @@ public final class McpConditionConfigAdapter implements ConditionConfigAdapterSp
 {
     private static final String TOOLKIT_NAME = "toolkit";
     private static final String CAPABILITY_NAME = "capability";
+    private static final String TOOLS_NAME = "tools";
+    private static final String PROMPTS_NAME = "prompts";
+    private static final String RESOURCES_NAME = "resources";
 
     @Override
     public String type()
@@ -62,6 +65,27 @@ public final class McpConditionConfigAdapter implements ConditionConfigAdapterSp
             object.add(CAPABILITY_NAME, array);
         }
 
+        if (mcpCondition.tools != null)
+        {
+            JsonArrayBuilder array = Json.createArrayBuilder();
+            mcpCondition.tools.forEach(array::add);
+            object.add(TOOLS_NAME, array);
+        }
+
+        if (mcpCondition.prompts != null)
+        {
+            JsonArrayBuilder array = Json.createArrayBuilder();
+            mcpCondition.prompts.forEach(array::add);
+            object.add(PROMPTS_NAME, array);
+        }
+
+        if (mcpCondition.resources != null)
+        {
+            JsonArrayBuilder array = Json.createArrayBuilder();
+            mcpCondition.resources.forEach(array::add);
+            object.add(RESOURCES_NAME, array);
+        }
+
         return object.build();
     }
 
@@ -73,19 +97,28 @@ public final class McpConditionConfigAdapter implements ConditionConfigAdapterSp
             ? object.getString(TOOLKIT_NAME)
             : null;
 
-        List<String> capability = null;
-        if (object.containsKey(CAPABILITY_NAME))
+        return McpConditionConfig.builder()
+            .toolkit(toolkit)
+            .capability(asStringList(object, CAPABILITY_NAME))
+            .tools(asStringList(object, TOOLS_NAME))
+            .prompts(asStringList(object, PROMPTS_NAME))
+            .resources(asStringList(object, RESOURCES_NAME))
+            .build();
+    }
+
+    private static List<String> asStringList(
+        JsonObject object,
+        String name)
+    {
+        List<String> result = null;
+        if (object.containsKey(name))
         {
-            JsonArray array = object.getJsonArray(CAPABILITY_NAME);
-            capability = array.stream()
+            JsonArray array = object.getJsonArray(name);
+            result = array.stream()
                 .map(JsonString.class::cast)
                 .map(JsonString::getString)
                 .collect(toList());
         }
-
-        return McpConditionConfig.builder()
-            .toolkit(toolkit)
-            .capability(capability)
-            .build();
+        return result;
     }
 }

@@ -30,14 +30,14 @@ write zilla:begin.ext ${http:beginEx()
 
 connected
 
-write '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}}}'
+write '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{"elicitation":{"url":{}}},"clientInfo":{"name":"test","version":"1.0"}}}'
 write close
 
 read zilla:begin.ext ${http:matchBeginEx()
                            .typeId(zilla:id("http"))
                            .header(":status", "200")
                            .header("content-type", "application/json")
-                           .header("mcp-session-id", "session-1")
+                           .header("mcp-session-id", "transport-1")
                            .build()}
 
 read '{"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-11-25","capabilities":{"prompts":{"listChanged":true},"resources":{"listChanged":true},"tools":{"listChanged":true}},"serverInfo":{"name":"zilla","version":"1.0"}}}'
@@ -58,7 +58,7 @@ write zilla:begin.ext ${http:beginEx()
                             .header("content-type", "application/json")
                             .header("accept", "application/json, text/event-stream")
                             .header("mcp-protocol-version", "2025-11-25")
-                            .header("mcp-session-id", "session-1")
+                            .header("mcp-session-id", "transport-1")
                             .build()}
 
 connected
@@ -66,6 +66,10 @@ connected
 write '{"jsonrpc":"2.0","method":"notifications/initialized"}'
 write close
 
+read zilla:begin.ext ${http:matchBeginEx()
+                           .typeId(zilla:id("http"))
+                           .header(":status", "202")
+                           .build()}
 read closed
 read notify LIFECYCLE_INITIALIZED
 
@@ -83,7 +87,7 @@ write zilla:begin.ext ${http:beginEx()
                             .header("content-type", "application/json")
                             .header("accept", "application/json, text/event-stream")
                             .header("mcp-protocol-version", "2025-11-25")
-                            .header("mcp-session-id", "session-1")
+                            .header("mcp-session-id", "transport-1")
                             .header("content-length", "115")
                             .build()}
 
@@ -102,27 +106,25 @@ read zilla:begin.ext ${http:matchBeginEx()
 read 'id: 2:1\n'
 read 'data: {'
        '"jsonrpc":"2.0",'
+       '"id":3,'
        '"method":"elicitation/create",'
        '"params":'
        '{'
          '"mode":"url",'
          '"elicitationId":"elicit-1",'
-         '"url":"https://server.example.com/authorize?state=session-1.elicit-1.7f3a9b1c&redirect_uri='
-         ${http:encodeQuery("https://localhost:8080/mcp/auth/callback")}
-         '"'
+         '"url":"https://server.example.com/authorize?state=7f3a9b1c",'
+         '"message":"Open the link to authorize access."'
        '}'
      '}\n'
 read '\n'
 read notify ELICIT_CREATED
 
-read 'id: 2:1\n'
 read 'data: {'
        '"jsonrpc":"2.0",'
-       '"method":"elicitation/complete",'
+       '"method":"notifications/elicitation/complete",'
        '"params":'
        '{'
-         '"elicitationId":"elicit-1",'
-         '"status":"completed"'
+         '"elicitationId":"elicit-1"'
        '}'
      '}\n'
 read '\n'
@@ -153,21 +155,24 @@ connect await ELICIT_CREATED
 
 write zilla:begin.ext ${http:beginEx()
                             .typeId(zilla:id("http"))
-                            .header(":method", "GET")
+                            .header(":method", "POST")
                             .header(":scheme", "http")
                             .header(":authority", "localhost:8080")
-                            .header(":path", "/mcp/auth/callback?code=xyz&state=session-1.elicit-1.7f3a9b1c")
+                            .header(":path", "/mcp")
+                            .header("content-type", "application/json")
+                            .header("accept", "application/json, text/event-stream")
+                            .header("mcp-protocol-version", "2025-11-25")
+                            .header("mcp-session-id", "transport-1")
                             .build()}
 
 connected
 
+write '{"jsonrpc":"2.0","id":3,"result":{"action":"accept"}}'
 write close
 
 read zilla:begin.ext ${http:matchBeginEx()
                            .typeId(zilla:id("http"))
-                           .header(":status", "200")
-                           .header("content-type", "text/plain")
+                           .header(":status", "202")
                            .build()}
 
-read 'Authorization complete, you may close this tab.'
 read closed

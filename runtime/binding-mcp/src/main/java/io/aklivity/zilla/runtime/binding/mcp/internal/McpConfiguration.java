@@ -42,6 +42,7 @@ public class McpConfiguration extends Configuration
 
     public static final PropertyDef<SessionIdSupplier> MCP_SESSION_ID;
     public static final PropertyDef<ElicitationIdSupplier> MCP_ELICITATION_ID;
+    public static final PropertyDef<ElicitationIdSupplier> MCP_ELICIT_CORRELATION_ID;
     public static final PropertyDef<String> MCP_SERVER_NAME;
     public static final PropertyDef<String> MCP_SERVER_VERSION;
     public static final PropertyDef<String> MCP_CLIENT_NAME;
@@ -64,6 +65,8 @@ public class McpConfiguration extends Configuration
             McpConfiguration::decodeSessionIdSupplier, McpConfiguration::defaultSessionIdSupplier);
         MCP_ELICITATION_ID = config.property(ElicitationIdSupplier.class, "elicitation.id",
             McpConfiguration::decodeElicitationIdSupplier, McpConfiguration::defaultElicitationIdSupplier);
+        MCP_ELICIT_CORRELATION_ID = config.property(ElicitationIdSupplier.class, "elicit.correlation.id",
+            McpConfiguration::decodeElicitationIdSupplier, McpConfiguration::defaultElicitCorrelationIdSupplier);
         MCP_SERVER_NAME = config.property(String.class, "server.name", (c, v) -> v,
             McpConfiguration::defaultServerName);
         MCP_SERVER_VERSION = config.property(String.class, "server.version", (c, v) -> v,
@@ -111,6 +114,11 @@ public class McpConfiguration extends Configuration
     public Supplier<String> elicitationIdSupplier()
     {
         return MCP_ELICITATION_ID.get(this)::get;
+    }
+
+    public Supplier<String> elicitCorrelationIdSupplier()
+    {
+        return MCP_ELICIT_CORRELATION_ID.get(this)::get;
     }
 
     public String serverName()
@@ -250,7 +258,8 @@ public class McpConfiguration extends Configuration
     private static int defaultSessionIdAttempts(
         Configuration config)
     {
-        return Math.max(1, ENGINE_WORKERS.getAsInt(config) * 2);
+        // 64x the expected reject-sampling tries (~workers), leaving ~e^-64 exhaustion
+        return Math.max(1, ENGINE_WORKERS.getAsInt(config) * 64);
     }
 
     private static boolean defaultAltSvcEnabled(
@@ -326,6 +335,13 @@ public class McpConfiguration extends Configuration
     }
 
     private static String defaultElicitationIdSupplier()
+    {
+        final byte[] bytes = new byte[4];
+        ELICITATION_ID_RANDOM.nextBytes(bytes);
+        return ELICITATION_ID_HEX.formatHex(bytes);
+    }
+
+    private static String defaultElicitCorrelationIdSupplier()
     {
         final byte[] bytes = new byte[4];
         ELICITATION_ID_RANDOM.nextBytes(bytes);

@@ -31,11 +31,51 @@ jobs:
           !~/.m2/repository/io/aklivity/zilla
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
         restore-keys: ${{ runner.os }}-m2
+    - name: Cache ZPM test artifacts
+      uses: actions/cache@v5
+      with:
+        path: manager/target/zpm/cache
+        key: zpm-${{ runner.os }}-${{ hashFiles('manager/src/conf/install/zpm.json') }}
+        restore-keys: zpm-${{ runner.os }}-
+    - name: Login to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+    - name: Restore base image cache
+      uses: actions/cache/restore@v5
+      with:
+        path: ~/docker-base-cache/base-images.tar
+        key: docker-base-${{ runner.os }}-${{ github.run_id }}
+        restore-keys: |
+          docker-base-${{ runner.os }}-
+    - name: Load cached base images
+      run: |
+        if [ -f ~/docker-base-cache/base-images.tar ]; then
+          docker load -i ~/docker-base-cache/base-images.tar || true
+        fi
     - name: Build with Maven
-      run: ./mvnw -B -U -nsu -ntp -Ddocker.logStdout -Dfailsafe.skipAfterFailureCount=1 -Ddocker.verbose install jacoco:report-aggregate
+      run: ./mvnw -B -nsu -ntp -Ddocker.logStdout -Dfailsafe.skipAfterFailureCount=1 -Ddocker.verbose install jacoco:report-aggregate
       env:
         GITHUB_ACTOR: ${{ github.actor }}
         GITHUB_TOKEN: ${{ github.token }}
+
+    - name: Save base images
+      if: always()
+      run: |
+        mkdir -p ~/docker-base-cache
+        imgs=$(docker images --format '{{.Repository}}:{{.Tag}}' \
+          | grep -Ev '<none>|ghcr.io/aklivity/zilla' \
+          | grep -E '^(eclipse-temurin|ubuntu|alpine|kreinerattila/tshark):')
+        if [ -n "$imgs" ]; then
+          docker save -o ~/docker-base-cache/base-images.tar $imgs
+        fi
+    - name: Save base image cache
+      if: always()
+      uses: actions/cache/save@v5
+      with:
+        path: ~/docker-base-cache/base-images.tar
+        key: docker-base-${{ runner.os }}-${{ github.run_id }}
 
     - name: Save Docker image
       if: success()
@@ -104,6 +144,12 @@ jobs:
         uses: actions/checkout@v6
         with:
           sparse-checkout: examples/${{ matrix.dir }}
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Restore cached Docker images
         uses: actions/cache@v5

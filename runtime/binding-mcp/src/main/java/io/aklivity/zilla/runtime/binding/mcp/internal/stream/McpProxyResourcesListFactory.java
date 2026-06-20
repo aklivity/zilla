@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_LIST;
 
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 import java.util.function.LongFunction;
 
 import org.agrona.DirectBuffer;
@@ -31,8 +30,6 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 
 final class McpProxyResourcesListFactory extends McpProxyListFactory
 {
-    private static final List<String> RESOURCES_LIST_ITEM_JSON_PATH_INCLUDES = List.of("/resources/-/uri");
-
     private final DirectBuffer prelude =
         new UnsafeBuffer("{\"resources\":[".getBytes(StandardCharsets.UTF_8));
 
@@ -41,7 +38,7 @@ final class McpProxyResourcesListFactory extends McpProxyListFactory
         EngineContext context,
         LongFunction<McpBindingConfig> supplyBinding)
     {
-        super(config, context, supplyBinding, McpBeginExFW.KIND_RESOURCES_LIST, RESOURCES_LIST_ITEM_JSON_PATH_INCLUDES);
+        super(config, context, supplyBinding, McpBeginExFW.KIND_RESOURCES_LIST);
     }
 
     @Override

@@ -43,14 +43,20 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
+      <artifactId>common-avro</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>common-json</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
       <artifactId>engine</artifactId>
       <type>test-jar</type>
       <version>${project.version}</version>
       <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.avro</groupId>
-      <artifactId>avro</artifactId>
     </dependency>
     <dependency>
       <groupId>org.mockito</groupId>
@@ -139,34 +145,6 @@
         </executions>
       </plugin>
       <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-shade-plugin</artifactId>
-        <executions>
-          <execution>
-            <phase>package</phase>
-            <goals>
-              <goal>shade</goal>
-            </goals>
-            <configuration>
-              <artifactSet>
-                <includes>
-                  <include>org.apache.avro:avro</include>
-                </includes>
-              </artifactSet>
-              <relocations>
-                <relocation>
-                  <pattern>org.apache.avro</pattern>
-                  <shadedPattern>io.aklivity.zilla.runtime.model.avro.internal.avro</shadedPattern>
-                </relocation>
-              </relocations>
-              <keepDependenciesWithProvidedScope>true</keepDependenciesWithProvidedScope>
-              <useDependencyReducedPomInJar>true</useDependencyReducedPomInJar>
-              <minimizeJar>true</minimizeJar>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
         <groupId>org.moditect</groupId>
         <artifactId>moditect-maven-plugin</artifactId>
       </plugin>
@@ -191,7 +169,6 @@
         <configuration>
           <excludes>
             <exclude>io/aklivity/zilla/runtime/model/avro/internal/types/**/*.class</exclude>
-            <exclude>org/apache/avro/**/*.class</exclude>
           </excludes>
           <rules>
             <rule>

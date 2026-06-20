@@ -1,0 +1,19 @@
+{
+  "repositories":
+  [ 
+    "https://maven.packages.aklivity.io/",
+    "https://repo1.maven.org/maven2/"
+  ],
+
+  "imports":
+  [
+    "io.aklivity.zilla:runtime:${project.version}"
+  ],
+
+  "dependencies":
+  [
+    "io.aklivity.zilla:engine",
+    "io.aklivity.zilla:binding-tcp",
+    "io.aklivity.zilla:binding-tls"
+  ]
+}

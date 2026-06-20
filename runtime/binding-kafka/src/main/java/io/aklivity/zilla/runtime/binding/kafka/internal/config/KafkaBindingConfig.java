@@ -25,6 +25,7 @@ import java.util.function.ToLongFunction;
 
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslCredentialsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaServerConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaDeltaType;
@@ -32,6 +33,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
+import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
 public final class KafkaBindingConfig
 {
@@ -42,6 +44,7 @@ public final class KafkaBindingConfig
     public final List<KafkaRouteConfig> routes;
     public final ToLongFunction<String> resolveId;
     public final List<KafkaTopicType> topicTypes;
+    public final GuardHandler guard;
 
     public KafkaBindingConfig(
         BindingConfig binding,
@@ -55,6 +58,21 @@ public final class KafkaBindingConfig
         this.resolveId = binding.resolveId;
         this.topicTypes = options != null && options.topics != null
             ? options.topics.stream().map(t -> new KafkaTopicType(context, t)).collect(toList()) : Collections.emptyList();
+        this.guard = resolveGuard(binding, options, context);
+    }
+
+    private static GuardHandler resolveGuard(
+        BindingConfig binding,
+        KafkaOptionsConfig options,
+        EngineContext context)
+    {
+        GuardHandler guard = null;
+        if (options != null && options.authorization != null)
+        {
+            long guardId = binding.resolveId.applyAsLong(options.authorization.name);
+            guard = context.supplyGuard(guardId);
+        }
+        return guard;
     }
 
     public KafkaRouteConfig resolve(
@@ -90,7 +108,25 @@ public final class KafkaBindingConfig
 
     public KafkaSaslConfig sasl()
     {
-        return options != null ? options.sasl : null;
+        KafkaSaslConfig sasl = null;
+        if (options != null)
+        {
+            if (options.sasl != null)
+            {
+                sasl = options.sasl;
+            }
+            else if (options.authorization != null && guard != null)
+            {
+                KafkaSaslCredentialsConfig credentials = options.authorization.credentials;
+                sasl = KafkaSaslConfig.builder()
+                    .mechanism(credentials.mechanism)
+                    .username(credentials.username)
+                    .password(credentials.password)
+                    .token(credentials.token)
+                    .build();
+            }
+        }
+        return sasl;
     }
 
     public List<KafkaServerConfig> servers()

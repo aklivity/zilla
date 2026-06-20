@@ -42,6 +42,21 @@
       <artifactId>junit-jupiter-engine</artifactId>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.openjdk.jmh</groupId>
+      <artifactId>jmh-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.openjdk.jmh</groupId>
+      <artifactId>jmh-generator-annprocess</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.github.biboudis</groupId>
+      <artifactId>jmh-profilers</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>
@@ -53,6 +68,11 @@
       <plugin>
         <groupId>com.mycila</groupId>
         <artifactId>license-maven-plugin</artifactId>
+        <configuration>
+          <excludes>
+            <exclude>src/test/resources/**/jsontestsuite/**</exclude>
+          </excludes>
+        </configuration>
       </plugin>
       <plugin>
         <artifactId>maven-checkstyle-plugin</artifactId>
@@ -68,6 +88,17 @@
       <plugin>
         <groupId>org.moditect</groupId>
         <artifactId>moditect-maven-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <executions>
+          <execution>
+            <goals>
+              <goal>test-jar</goal>
+            </goals>
+          </execution>
+        </executions>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -94,6 +125,23 @@
               </limits>
             </rule>
           </rules>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>io.gatling</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <configuration>
+          <artifactSet>
+            <includes>
+              <include>org.agrona:agrona</include>
+              <include>jakarta.json:jakarta.json-api</include>
+              <include>org.openjdk.jmh:jmh-core</include>
+              <include>net.sf.jopt-simple:jopt-simple</include>
+              <include>org.apache.commons:commons-math3</include>
+              <include>commons-cli:commons-cli</include>
+              <include>com.github.biboudis:jmh-profilers</include>
+            </includes>
+          </artifactSet>
         </configuration>
       </plugin>
     </plugins>

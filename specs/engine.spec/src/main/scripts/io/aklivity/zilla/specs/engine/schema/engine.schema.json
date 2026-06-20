@@ -159,6 +159,11 @@
                     "type": "string",
                     "enum": []
                 },
+                "kind":
+                {
+                    "title": "Kind",
+                    "type": "string"
+                },
                 "store":
                 {
                     "title": "Store",

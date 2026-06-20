@@ -16,7 +16,9 @@ package io.aklivity.zilla.runtime.binding.mcp.internal.config;
 
 import static io.aklivity.zilla.runtime.binding.mcp.config.McpElicitationConfig.DEFAULT_CALLBACK_PATH;
 
+import java.net.URI;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +30,7 @@ import org.agrona.collections.Object2ObjectHashMap;
 import io.aklivity.zilla.runtime.binding.mcp.config.McpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.internal.stream.cache.McpProxyCache;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -36,8 +39,14 @@ import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
 public final class McpBindingConfig
 {
+    private static final String HTTP_HEADER_SCHEME = ":scheme";
     private static final String HTTP_HEADER_AUTHORITY = ":authority";
     private static final String HTTP_HEADER_PATH = ":path";
+
+    private static final String SCHEME_HTTPS = "https";
+    private static final int PORT_HTTP = 80;
+    private static final int PORT_HTTPS = 443;
+    private static final String PATH_ROOT = "/";
 
     public final long id;
     public final McpOptionsConfig options;
@@ -49,6 +58,9 @@ public final class McpBindingConfig
     public final McpAggregateRoute[] aggregateRoutes;
 
     private final List<McpRouteConfig> routes;
+    private final String serverScheme;
+    private final String serverAuthority;
+    private final String serverPath;
 
     public McpBindingConfig(
         BindingConfig binding,
@@ -99,6 +111,52 @@ public final class McpBindingConfig
             .map(cache -> new McpProxyCache(binding, config, context, cache))
             .orElse(null);
         this.sessions = new Object2ObjectHashMap<>();
+
+        final URI server = Optional.ofNullable(options)
+            .map(o -> o.server)
+            .map(URI::create)
+            .orElse(null);
+        this.serverScheme = server != null ? server.getScheme() : null;
+        this.serverAuthority = server != null ? authorityOf(server) : null;
+        this.serverPath = server != null ? pathOf(server) : null;
+    }
+
+    public void injectHeaders(
+        HttpBeginExFW.Builder builder)
+    {
+        builder.headersItem(h -> h.name(HTTP_HEADER_SCHEME).value(serverScheme))
+            .headersItem(h -> h.name(HTTP_HEADER_AUTHORITY).value(serverAuthority))
+            .headersItem(h -> h.name(HTTP_HEADER_PATH).value(serverPath));
+    }
+
+    static String authorityOf(
+        URI server)
+    {
+        final int port = server.getPort() != -1 ? server.getPort() : defaultPort(server.getScheme());
+        return server.getHost() + ":" + port;
+    }
+
+    static String pathOf(
+        URI server)
+    {
+        final String path = server.getRawPath();
+        return path == null || path.isEmpty() ? PATH_ROOT : path;
+    }
+
+    static int defaultPort(
+        String scheme)
+    {
+        return SCHEME_HTTPS.equals(scheme) ? PORT_HTTPS : PORT_HTTP;
+    }
+
+    static String naturalAuthority(
+        String authority,
+        String scheme)
+    {
+        final String defaultSuffix = ":" + defaultPort(scheme);
+        return authority.endsWith(defaultSuffix)
+            ? authority.substring(0, authority.length() - defaultSuffix.length())
+            : authority;
     }
 
     public McpRouteConfig resolve(
@@ -177,6 +235,43 @@ public final class McpBindingConfig
         return result;
     }
 
+    public String routeCacheCredentials(
+        long routedId)
+    {
+        String credentials = null;
+        for (McpRouteConfig route : routes)
+        {
+            if (route.id == routedId && route.with != null && route.with.cache != null)
+            {
+                credentials = route.with.cache.credentials;
+                break;
+            }
+        }
+        return credentials;
+    }
+
+    public List<McpRoutePrefix> resolveAll(
+        int kind,
+        long authorization)
+    {
+        final String capability = McpRouteConfig.capabilityOf(kind);
+        final List<McpRoutePrefix> result = new ArrayList<>();
+
+        if (capability != null)
+        {
+            for (McpRouteConfig route : routes)
+            {
+                if (route.authorized(authorization) && route.serves(capability))
+                {
+                    result.add(new McpRoutePrefix(route.id, new String8FW(route.prefix(kind)), route));
+                }
+            }
+            result.sort(Comparator.comparing(p -> p.prefix().asString()));
+        }
+
+        return result;
+    }
+
     public List<McpRouteConfig> resolveAll(
         McpBeginExFW beginEx,
         long authorization)
@@ -221,7 +316,7 @@ public final class McpBindingConfig
                     .map(o -> o.elicitation)
                     .map(e -> e.callback)
                     .orElse(DEFAULT_CALLBACK_PATH);
-                redirectURI = "https://" + authority + pathOnly + "/" + callback;
+                redirectURI = "https://" + naturalAuthority(authority, SCHEME_HTTPS) + pathOnly + "/" + callback;
             }
         }
         return redirectURI;

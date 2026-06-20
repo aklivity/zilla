@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal.stream.cache;
 
-interface McpProxyCacheHandler
+public interface McpProxyCacheHandler
 {
     void start();
 

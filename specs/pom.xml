@@ -28,6 +28,7 @@
     <module>binding-http.spec</module>
     <module>binding-grpc.spec</module>
     <module>binding-mcp.spec</module>
+    <module>binding-mcp-http.spec</module>
     <module>binding-mqtt.spec</module>
     <module>binding-openapi.spec</module>
     <module>binding-openapi-asyncapi.spec</module>
@@ -52,6 +53,7 @@
     <module>metrics-stream.spec</module>
     <module>metrics-http.spec</module>
     <module>metrics-grpc.spec</module>
+    <module>metrics-mcp.spec</module>
     <module>model-avro.spec</module>
     <module>model-core.spec</module>
     <module>model-json.spec</module>

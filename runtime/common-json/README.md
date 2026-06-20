@@ -1,0 +1,204 @@
+# common-json
+
+A provider-free, streaming JSON library for the hot path: a resumable pull parser and a buffer-backed
+generator over Agrona `DirectBuffer`s, composable into validating, projecting, transforming pipelines.
+It ships its own `jakarta.json` implementation and needs **no JSON provider** on the classpath.
+
+JSON Schema validation and the schema model live alongside the wire codec; the streaming pipeline
+keeps parse, transform, and serialize on a single pass with no intermediate DOM.
+
+## Pull parser
+
+`JsonEx.createParser()` returns a resumable pull cursor fed one frame at a time via
+`wrap(buffer, offset, length)`, then driven with the standard `hasNext()` / `next()`. It also
+implements `jakarta.json.stream.JsonParser`, so `JsonEx.createParser(in)` works anywhere a
+one-shot pull parser is expected. Every value is readable on demand (decoded lazily via
+`getString()`, or spliced verbatim via `getSegment()`); the input window (`wrap`/`feed`) is the
+fragmentation bound — a value that fits the window is delivered whole, while one that fills the
+window is delivered as `deferredBytes()` fragments rather than buffered whole.
+
+```java
+JsonParserEx parser = JsonEx.createParser().wrap(buffer, offset, limit);
+while (parser.hasNext())
+{
+    switch (parser.next())
+    {
+    case KEY_NAME: CharSequence key = parser.getKey(); break;
+    case VALUE_STRING: String value = parser.getString(); break;
+    default: break;
+    }
+}
+```
+
+## Streaming pipeline
+
+`JsonEx.stream(parser)` layers a composable push pipeline over the same cursor: it pumps the
+parser and feeds each event through an ordered chain of `JsonTransform` stages to a terminal `JsonSink`.
+
+```java
+JsonGeneratorEx generator = JsonEx.createGenerator().wrap(out, 0, out.capacity());
+JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+    .transform(JsonEx.projector(List.of("/id", "/name")))
+    .into(JsonSink.of(generator));
+pipeline.reset();
+if (pipeline.feed(in, off, limit) == JsonPipeline.Status.COMPLETED)   // ADVANCED / SUSPENDED / COMPLETED / REJECTED
+{
+    int length = generator.length();    // projected JSON bytes in out
+}
+```
+
+- **`JsonEx.stream(parser)`** begins the pipeline; **`JsonStream`** appends stages (`transform`)
+  and terminates (`into`), yielding the runnable **`JsonPipeline`** (`reset` / `feed` / `Status`).
+- **`JsonSource`** is the per-event read-only value view handed to a stage — the parser's accessors
+  without the cursor advance, so a stage cannot disturb the pump.
+- **`JsonTransform`** is an intermediate stage (`feed(control, source, event, sink)`); **`JsonSink`**
+  is the terminal (`feed(control, source, event)`). Third parties may implement either to consume or
+  rewrite the projected event stream (e.g. field masking, encryption).
+- **`JsonEx.projector(pointers)`** returns a `JsonTransform` that prunes a document to a set of
+  retained RFC 6901 pointers (`-` matches any array index), forwarding only kept events.
+  `projector(schema)` derives the pointers from a `JsonSchema`.
+- **`JsonSchema.of(text).validator()`** returns a `JsonTransform` that forwards every event and adds
+  schema validation, reporting at the value boundary so callers abort on `REJECTED`
+  (emit-then-abort). For a one-shot validating pull parse, `schema.newParser(validate, parser)` wraps a
+  parser and throws on the first violation.
+- **`JsonSink.of(generator)`** renders the event stream as normalized, compact JSON.
+  **`JsonSink.of(generator, Delivery.SEGMENTABLE)`** opts a kept value in to verbatim delivery: it
+  arrives as `SEGMENT` raw byte slices (one per fragment, `deferredBytes()` true on all but the last)
+  spliced unchanged, preserving the original bytes (and any insignificant whitespace) rather than
+  re-rendering.
+
+### Four-state status
+
+`feed` returns one of four states, separating **input** bounding from **output** bounding:
+
+- **`ADVANCED`** — the parser exhausted this frame mid-value; feed the next frame to continue. The
+  parser is not re-wrapped on a resumed feed, so a value spanning frames reassembles seamlessly.
+- **`SUSPENDED`** — the bounded output filled; drain it, re-target the generator, and feed the same
+  frame again to continue (see below).
+- **`COMPLETED`** — the current top-level value finished and was accepted.
+- **`REJECTED`** — the value was rejected (malformed JSON, or a schema violation from a `validator`
+  stage); the output must be abandoned. Malformed input surfaces as `REJECTED` rather than escaping
+  `feed` as an exception.
+
+### Bounded output and streaming
+
+`JsonEx.createGenerator().wrap(out, 0, limit)` bounds the output. `limit` is a **hard bound**
+asserted at `wrap` to fit the buffer capacity: the usable region is exactly `[offset, limit)` and no
+write crosses it. A driver watches `generator.remaining()` and, when it nears the limit at an event
+boundary, the sink returns `SUSPENDED`.
+
+Unlike a format with merge semantics, the chunks are **consecutive byte ranges of one continuous
+serialization that the consumer concatenates** — there is no per-chunk framing to reopen. The
+generator preserves its structural context (open object/array depth and pending separators) across the
+re-wrap, so the value continues exactly where it paused; `reset()` clears that context to begin a fresh
+value.
+
+```java
+JsonGeneratorEx generator = JsonEx.createGenerator().wrap(out, 0, limit);
+JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+    .into(JsonSink.of(generator));
+pipeline.reset();
+
+JsonPipeline.Status status = pipeline.feed(in, off, limit);
+while (status == JsonPipeline.Status.SUSPENDED)   // output full
+{
+    emitDataFrame(out, 0, generator.length());    // drain — flow-controlled
+    generator.wrap(out, 0, limit);                // re-target output, structural context preserved
+    status = pipeline.feed(in, off, limit);       // resume the in-flight value
+}
+// COMPLETED: emit the final generator.length() bytes
+```
+
+`reset()` also clears the generator's structural context (via the pipeline's `reset()` cascade), so a
+generator returned to a pool mid-value — an abandoned `ADVANCED` frame or a `REJECTED` value left with
+open structure — does not leak that structure into the next checkout.
+
+### Fragmenting values larger than the bound
+
+A value whose verbatim form exceeds `remaining()` is **fragmented mid-byte** rather than overrunning
+the bound. `generator.writeSegment(source, index, length)` is **consumption-driven**: it appends as
+many *source* bytes as fit the bound — escaping them when the generator is in escape mode, where one
+source byte may expand to several output bytes. `consumed()` reports the cumulative source bytes taken
+(the source-domain counterpart to `length()`); when fewer than `length` were taken the sink defers the
+remainder and returns `SUSPENDED`; on resume it continues from where it paused until the value is fully
+consumed. A value of any size streams this way, never buffered in full.
+
+This covers both a verbatim container subtree (`SEGMENTABLE` delivery) and a **scalar string value**.
+A string value larger than the bound is read as its raw token bytes — the parser exposes the token
+slice via `JsonSource.getSegment()`, contiguous because a readable scalar is only emitted once whole in
+one frame — and spliced across chunks; a string that fits is still re-encoded normalized (a re-encode is
+never longer than the raw token, so the fit check is safe). So a giant `{"data":"…"}` value streams in
+both `STRUCTURED` and `SEGMENTABLE` delivery.
+
+Resumption is a **per-stage cascade**, not an event replay: `JsonSink.resume(control, source, event)`
+and `JsonTransform.resume(control, source, event, sink)` continue any in-flight fragment before the next
+event is pulled, with the same `control` and `source` context as `feed` plus the value `event` that
+suspended (supplied by the pump, which owns the single resume cursor, so a stage keeps no per-value
+resume state). The sink holds none: it continues only while the source view still has an unwritten
+remainder (`getStringView().length()`/`getSegment().capacity()`) and otherwise just advances.
+`JsonTransform.resume` defaults to `sink.resume(control, source, event)`, so a stage that only forwards
+events ignores it entirely; a stage that itself emits a value across chunks (substituting or expanding
+output) overrides it to continue its own emission, draining the downstream first. This keeps the
+transform contract simple — no stage has to be suspend/resume aware unless it originates `SUSPENDED`.
+
+### Writing JSON directly
+
+`JsonEx.createGenerator()` is a buffer-backed, compact writer that inserts structural separators
+and quoting automatically from an internal context stack, emitting in source order with no
+insignificant whitespace. It implements `jakarta.json.stream.JsonGenerator` with covariant returns for
+fluent chaining, plus the streaming-to-buffer extensions: `writeNumber(literal)` emits a numeric
+lexeme verbatim, `writeRaw` splices a pre-encoded value (emitting its leading separator once), and
+`writeSegment(source, index, length)` appends a bounded, consumption-driven fragment of that value with
+no separator. Its `writeSegment(source, index, length, completion)` overload owns the leading separator
+across fragments — emitted before the first fragment, the value ending on `Completion.COMPLETE` — so a
+fragmented value splices without the caller tracking whether the separator was already written.
+
+`createGenerator(Map.of(JsonGeneratorEx.GENERATE_ESCAPED, true))` opts the generator into **escape mode**: every
+byte it emits is escaped as JSON string *content* (structural bytes and UTF-8 continuation bytes pass
+through; `"`, `\`, and control characters are escaped), composing with the generator's existing
+value-escaping so the whole output stream becomes the escaped form of the document — the inner content of
+a JSON-in-JSON string. The caller writes the surrounding quotes and outer envelope.
+
+```java
+JsonGeneratorEx generator = JsonEx.createGenerator().wrap(out, 0, out.capacity());
+generator.writeStartObject()
+    .write("id", id)
+    .write("name", name)
+    .writeEnd();
+int length = generator.length();
+```
+
+### Bounded-buffer contract
+
+The pipeline operates on a single buffered frame and is bounded by the value size and, for structured
+rendering, by nesting depth — no unbounded document is buffered. The hard `[offset, limit)` bound makes
+the constraint explicit: container subtrees and string values larger than the bound stream across chunks
+(see above), while a one-shot number/`true`/`false`/`null` or an object **key** written in a single call
+must fit the bound. Malformed input (a syntax error in the frame) is rejected as `REJECTED`.
+
+## Run performance benchmarks
+
+Build the benchmark jar from this directory:
+
+```sh
+../../mvnw clean -DskipTests package
+```
+
+Run the JSON validation and projection benchmarks with GC allocation profiling:
+
+```sh
+java --add-opens=java.base/jdk.internal.misc=ALL-UNNAMED \
+  -jar target/common-json-develop-SNAPSHOT-shaded-tests.jar \
+  '.*Json.*BM.*' -prof gc
+```
+
+For a quick smoke run while iterating, reduce the warmup and measurement time:
+
+```sh
+java --add-opens=java.base/jdk.internal.misc=ALL-UNNAMED \
+  -jar target/common-json-develop-SNAPSHOT-shaded-tests.jar \
+  '.*Json.*BM.*' -prof gc -wi 1 -i 1 -r 200ms -w 200ms -f 0
+```
+
+The `--add-opens` option is required on recent JDKs when Agrona accesses
+`jdk.internal.misc.Unsafe` from the shaded benchmark jar.

@@ -14,8 +14,6 @@
  */
 module io.aklivity.zilla.runtime.binding.openapi.asyncapi
 {
-    requires org.leadpony.justify;
-
     requires io.aklivity.zilla.runtime.engine;
     requires io.aklivity.zilla.runtime.binding.asyncapi;
     requires io.aklivity.zilla.runtime.binding.openapi;

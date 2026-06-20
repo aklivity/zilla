@@ -260,13 +260,13 @@ public class HttpFileSystemIT
                 // WHEN
                 k3po.start();
 
-                k3po.notifyBarrier("REGISTERED");
+                k3po.notifyBarrier("REGISTERED_INITIAL");
                 path.register(watcher);
 
                 WatchKey key1 = watcher.take();
                 List<WatchEvent<?>> events1 = key1.pollEvents();
 
-                k3po.notifyBarrier("MODIFIED");
+                k3po.notifyBarrier("RECEIVED_UPDATE");
 
                 WatchKey key2 = watcher.take();
                 List<WatchEvent<?>> events2 = key2.pollEvents();

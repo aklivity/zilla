@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.config;
 
+import java.time.Duration;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
@@ -23,6 +24,7 @@ public final class McpElicitationConfigBuilder<T> extends ConfigBuilder<T, McpEl
     private final Function<McpElicitationConfig, T> mapper;
 
     private String callback;
+    private Duration timeout;
 
     public McpElicitationConfigBuilder(
         Function<McpElicitationConfig, T> mapper)
@@ -37,6 +39,13 @@ public final class McpElicitationConfigBuilder<T> extends ConfigBuilder<T, McpEl
         return this;
     }
 
+    public McpElicitationConfigBuilder<T> timeout(
+        Duration timeout)
+    {
+        this.timeout = timeout;
+        return this;
+    }
+
     @Override
     @SuppressWarnings("unchecked")
     protected Class<McpElicitationConfigBuilder<T>> thisType()
@@ -48,6 +57,6 @@ public final class McpElicitationConfigBuilder<T> extends ConfigBuilder<T, McpEl
     public T build()
     {
         String resolved = callback != null ? callback : McpElicitationConfig.DEFAULT_CALLBACK_PATH;
-        return mapper.apply(new McpElicitationConfig(resolved));
+        return mapper.apply(new McpElicitationConfig(resolved, timeout));
     }
 }

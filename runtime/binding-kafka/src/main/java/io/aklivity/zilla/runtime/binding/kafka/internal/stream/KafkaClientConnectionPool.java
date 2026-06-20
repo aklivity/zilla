@@ -62,6 +62,7 @@ import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
+import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
 public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
 {
@@ -247,7 +248,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         final List<KafkaServerConfig> servers = binding.servers();
         final KafkaSaslConfig sasl = binding.sasl();
 
-        return new KafkaClientConnection(originId, routedId, authorization, servers, sasl);
+        return new KafkaClientConnection(originId, routedId, authorization, servers, sasl, binding.guard);
     }
 
     private MessageConsumer newNetworkStream(
@@ -1251,10 +1252,12 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             long routedId,
             long authorization,
             List<KafkaServerConfig> servers,
-            KafkaSaslConfig sasl)
+            KafkaSaslConfig sasl,
+            GuardHandler guard)
         {
-            super(servers, sasl, originId, routedId);
+            super(servers, sasl, guard, originId, routedId);
 
+            this.saslAuthorization = authorization;
             this.originId = originId;
             this.routedId = routedId;
             this.authorization = authorization;
