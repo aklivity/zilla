@@ -180,6 +180,24 @@ public class PublishIT
 
     @Test
     @Specification({
+        "${net}/publish.message.transform.grow/client",
+        "${net}/publish.message.transform.grow/server"})
+    public void shouldPublishMessageTransformGrow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/publish.message.transform.shrink/client",
+        "${net}/publish.message.transform.shrink/server"})
+    public void shouldPublishMessageTransformShrink() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/publish.unroutable/client",
         "${net}/publish.unroutable/server"})
     public void shouldRejectUnroutable() throws Exception
