@@ -26,6 +26,8 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
+
 public class PrometheusOptionsConfigAdapterTest
 {
     private Jsonb jsonb;
@@ -35,27 +37,26 @@ public class PrometheusOptionsConfigAdapterTest
     {
         JsonbConfig config = new JsonbConfig()
             .withAdapters(new PrometheusOptionsConfigAdapter());
-        jsonb = JsonbBuilder.create(config);
+        jsonb = JsonbBuilder.newBuilder()
+            .withProvider(YamlJson.provider())
+            .withConfig(config)
+            .build();
     }
 
     @Test
     public void shouldReadOptions()
     {
         // GIVEN
-        String text =
-            "{\n" +
-                "\"endpoints\":\n" +
-                "[\n" +
-                    "{\n" +
-                        "\"scheme\": \"http\",\n" +
-                        "\"port\": 9090,\n" +
-                        "\"path\": \"/metrics\"\n" +
-                    "}\n" +
-                "]\n" +
-            "}";
+        String yaml =
+            """
+            endpoints:
+              - scheme: http
+                port: 9090
+                path: /metrics
+            """;
 
         // WHEN
-        PrometheusOptionsConfig options = jsonb.fromJson(text, PrometheusOptionsConfig.class);
+        PrometheusOptionsConfig options = jsonb.fromJson(yaml, PrometheusOptionsConfig.class);
 
         // THEN
         assertThat(options, not(nullValue()));
@@ -68,19 +69,15 @@ public class PrometheusOptionsConfigAdapterTest
     public void shouldApplyDefaultPath()
     {
         // GIVEN
-        String text =
-            "{\n" +
-                "\"endpoints\":\n" +
-                "[\n" +
-                    "{\n" +
-                        "\"scheme\": \"http\",\n" +
-                        "\"port\": 9090\n" +
-                    "}\n" +
-                "]\n" +
-            "}";
+        String yaml =
+            """
+            endpoints:
+              - scheme: http
+                port: 9090
+            """;
 
         // WHEN
-        PrometheusOptionsConfig options = jsonb.fromJson(text, PrometheusOptionsConfig.class);
+        PrometheusOptionsConfig options = jsonb.fromJson(yaml, PrometheusOptionsConfig.class);
 
         // THEN
         assertThat(options, not(nullValue()));
@@ -97,10 +94,16 @@ public class PrometheusOptionsConfigAdapterTest
         PrometheusOptionsConfig config = new PrometheusOptionsConfig(new PrometheusEndpointConfig[]{endpoint});
 
         // WHEN
-        String text = jsonb.toJson(config);
+        String yaml = jsonb.toJson(config);
 
         // THEN
-        assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"endpoints\":[{\"scheme\":\"http\",\"port\":9090,\"path\":\"/metrics\"}]}"));
+        assertThat(yaml, not(nullValue()));
+        assertThat(yaml, equalTo(
+            """
+            endpoints:
+              - scheme: http
+                port: 9090
+                path: /metrics
+            """));
     }
 }

@@ -39,6 +39,7 @@ import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiSpecificationConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
+import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapter;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
@@ -59,50 +60,39 @@ public class OpenapiOptionsConfigAdapterTest
         adapter.adaptType("openapi");
         JsonbConfig config = new JsonbConfig()
             .withAdapters(adapter);
-        jsonb = JsonbBuilder.create(config);
+        jsonb = JsonbBuilder.newBuilder()
+            .withProvider(YamlJson.provider())
+            .withConfig(config)
+            .build();
     }
 
     @Test
     public void shouldReadOptions()
     {
         String text =
-            "{" +
-            "\"specs\": {" +
-            "    \"petstore\": {" +
-            "      \"catalog\": {" +
-            "        \"catalog0\": {" +
-            "          \"subject\": \"petstore\"," +
-            "          \"version\": \"latest\"" +
-            "        }" +
-            "      }" +
-            "    }" +
-            "  }," +
-            "    \"tls\": {" +
-            "      \"keys\": [" +
-            "        \"localhost\"" +
-            "      ]," +
-            "      \"alpn\": [" +
-            "        \"localhost\"" +
-            "      ]" +
-            "    }," +
-            "    \"http\": {" +
-            "      \"authorization\": {" +
-            "        \"test0\": {" +
-            "          \"credentials\": {" +
-            "            \"cookies\": {" +
-            "              \"access_token\": \"{credentials}\"" +
-            "            }," +
-            "            \"headers\": {" +
-            "              \"authorization\": \"Bearer {credentials}\"" +
-            "            }," +
-            "            \"query\": {" +
-            "              \"access_token\": \"{credentials}\"" +
-            "            }" +
-            "          }" +
-            "        }" +
-            "      }" +
-            "    }" +
-            "  }";
+            """
+            specs:
+              petstore:
+                catalog:
+                  catalog0:
+                    subject: petstore
+                    version: latest
+            tls:
+              keys:
+                - localhost
+              alpn:
+                - localhost
+            http:
+              authorization:
+                test0:
+                  credentials:
+                    cookies:
+                      access_token: "{credentials}"
+                    headers:
+                      authorization: "Bearer {credentials}"
+                    query:
+                      access_token: "{credentials}"
+            """;
 
         OpenapiOptionsConfig options = jsonb.fromJson(text, OpenapiOptionsConfig.class);
 
@@ -112,8 +102,21 @@ public class OpenapiOptionsConfigAdapterTest
     @Test
     public void shouldWriteOptions()
     {
-        String expected = "{\"tcp\":{\"host\":\"localhost\",\"port\":8080},\"tls\":{\"sni\":[\"example.net\"]}," +
-            "\"specs\":{\"test\":{\"catalog\":{\"catalog0\":{\"subject\":\"petstore\",\"version\":\"latest\"}}}}}";
+        String expected =
+            """
+            tcp:
+              host: localhost
+              port: 8080
+            tls:
+              sni:
+                - example.net
+            specs:
+              test:
+                catalog:
+                  catalog0:
+                    subject: petstore
+                    version: latest
+            """;
 
         TcpOptionsConfig tcp = TcpOptionsConfig.builder()
             .inject(identity())

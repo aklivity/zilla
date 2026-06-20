@@ -31,6 +31,7 @@ import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaIdempotencyC
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String8FW;
+import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 
 public class HttpKafkaOptionsConfigAdapterTest
 {
@@ -41,29 +42,26 @@ public class HttpKafkaOptionsConfigAdapterTest
     {
         JsonbConfig config = new JsonbConfig()
                 .withAdapters(new HttpKafkaOptionsConfigAdapter());
-        jsonb = JsonbBuilder.create(config);
+        jsonb = JsonbBuilder.newBuilder()
+                .withProvider(YamlJson.provider())
+                .withConfig(config)
+                .build();
     }
 
     @Test
     public void shouldReadOptions()
     {
-        String text =
-                "{" +
-                    "\"idempotency\":" +
-                    "{" +
-                        "\"header\":\"idempotency-key\"" +
-                    "}," +
-                    "\"correlation\":" +
-                    "{" +
-                        "\"headers\":" +
-                        "{" +
-                            "\"reply-to\":\"zilla:reply-to\"," +
-                            "\"correlation-id\":\"zilla:correlation-id\"" +
-                        "}" +
-                    "}" +
-                "}";
+        String yaml =
+                """
+                idempotency:
+                  header: idempotency-key
+                correlation:
+                  headers:
+                    reply-to: zilla:reply-to
+                    correlation-id: zilla:correlation-id
+                """;
 
-        HttpKafkaOptionsConfig options = jsonb.fromJson(text, HttpKafkaOptionsConfig.class);
+        HttpKafkaOptionsConfig options = jsonb.fromJson(yaml, HttpKafkaOptionsConfig.class);
 
         assertThat(options, not(nullValue()));
         assertThat(options.idempotency, not(nullValue()));
@@ -83,23 +81,17 @@ public class HttpKafkaOptionsConfigAdapterTest
                     new String16FW("zilla:x-reply-to"),
                     new String16FW("zilla:x-correlation-id")));
 
-        String text = jsonb.toJson(options);
+        String yaml = jsonb.toJson(options);
 
-        assertThat(text, not(nullValue()));
-        assertThat(text, equalTo(
-                "{" +
-                    "\"idempotency\":" +
-                    "{" +
-                        "\"header\":\"x-idempotency-key\"" +
-                    "}," +
-                    "\"correlation\":" +
-                    "{" +
-                        "\"headers\":" +
-                        "{" +
-                            "\"reply-to\":\"zilla:x-reply-to\"," +
-                            "\"correlation-id\":\"zilla:x-correlation-id\"" +
-                        "}" +
-                    "}" +
-                "}"));
+        assertThat(yaml, not(nullValue()));
+        assertThat(yaml, equalTo(
+                """
+                idempotency:
+                  header: x-idempotency-key
+                correlation:
+                  headers:
+                    reply-to: "zilla:x-reply-to"
+                    correlation-id: "zilla:x-correlation-id"
+                """));
     }
 }

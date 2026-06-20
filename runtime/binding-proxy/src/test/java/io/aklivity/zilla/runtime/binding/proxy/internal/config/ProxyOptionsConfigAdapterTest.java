@@ -28,6 +28,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.proxy.config.ProxyOptionsConfig;
+import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 
 public class ProxyOptionsConfigAdapterTest
 {
@@ -38,7 +39,10 @@ public class ProxyOptionsConfigAdapterTest
     {
         JsonbConfig config = new JsonbConfig()
                 .withAdapters(new ProxyOptionsConfigAdapter());
-        jsonb = JsonbBuilder.create(config);
+        jsonb = JsonbBuilder.newBuilder()
+                .withProvider(YamlJson.provider())
+                .withConfig(config)
+                .build();
     }
 
     @Test
@@ -59,6 +63,9 @@ public class ProxyOptionsConfigAdapterTest
         String text = jsonb.toJson(options);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{}"));
+        assertThat(text, equalTo(
+                """
+                {}
+                """));
     }
 }
