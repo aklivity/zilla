@@ -1506,6 +1506,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             MqttServer.MqttPublishStream publisher = server.publishes.get(server.decodePublisherKey);
             final MqttModel model = publisher.contentType;
+            final boolean canPublish = MqttState.initialOpened(publisher.state);
 
             DirectBuffer payloadBuffer = buffer;
             int payloadOffset = offset;
@@ -1513,8 +1514,10 @@ public final class MqttServerFactory implements MqttStreamFactory
             boolean ready = true;
 
             // when a content model is active the publish payload is buffered whole, transformed once,
-            // then emitted from the model buffer with the true (possibly changed) deferred total
-            if (model.active())
+            // then emitted from the model buffer with the true (possibly changed) deferred total; the
+            // transform is deferred until the application stream is open so rejection timing matches the
+            // unmodeled path
+            if (model.active() && canPublish)
             {
                 if (!server.publishPayloadModeling)
                 {
@@ -1545,7 +1548,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     }
                 }
 
-                if (ready && reasonCode == SUCCESS)
+                if (ready && reasonCode == SUCCESS && server.publishPayloadModeling)
                 {
                     payloadBuffer = model.buffer();
                     payloadOffset = server.publishPayloadModelProgress;
@@ -1558,8 +1561,6 @@ public final class MqttServerFactory implements MqttStreamFactory
                 int initialBudget = publisher.initialBudget();
                 int lengthMax = Math.min(available, server.decodeablePublishPayloadBytes);
                 int reservedMax = Math.max(publisher.initialPad, Math.min(lengthMax + publisher.initialPad, initialBudget));
-
-                boolean canPublish = MqttState.initialOpened(publisher.state);
 
                 final int maximum = reservedMax;
                 final int minimum = Math.min(maximum, Math.max(publisher.initialMin, 1024) + publisher.initialPad);
