@@ -30,21 +30,31 @@ import io.aklivity.zilla.runtime.common.json.JsonReporter;
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
 import io.aklivity.zilla.runtime.common.json.JsonTransform;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
+import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
-public final class JsonReadModelHandler extends JsonModelHandler implements ModelHandler
+// Per-worker factory for a JSON model. One handler serves both directions: supplyDecoder vends a
+// per-stream JsonReadModelPipeline (catalog framing stripped, value validated) and supplyEncoder vends a
+// per-stream JsonWriteModelPipeline (catalog framing emitted, value validated). Configuration-derived
+// state (catalog, schema cache, extraction paths) is shared; in-flight state lives on each pipeline.
+public final class JsonModelHandlerImpl extends JsonModelHandler implements ModelHandler
 {
     private static final String PATH = "^\\$\\.([A-Za-z_][A-Za-z0-9_]*)$";
     private static final Pattern PATH_PATTERN = Pattern.compile(PATH);
+
+    // a no-op encoder so encode() emits only the catalog framing into the destination, never the body
+    private static final CatalogHandler.Encoder NONE_ENCODER =
+        (traceId, bindingId, schemaId, data, index, length, next) -> 0;
 
     private final Matcher matcher;
     private final List<String> paths;
     private final List<String> names;
 
-    public JsonReadModelHandler(
+    public JsonModelHandlerImpl(
         JsonModelConfig config,
         EngineContext context)
     {
@@ -66,7 +76,20 @@ public final class JsonReadModelHandler extends JsonModelHandler implements Mode
     }
 
     @Override
-    public int padding(
+    public ModelPipeline supplyDecoder(
+        ModelVisitor visitor)
+    {
+        return new JsonReadModelPipeline(this, paths, names, visitor);
+    }
+
+    @Override
+    public ModelPipeline supplyEncoder(
+        ModelVisitor visitor)
+    {
+        return new JsonWriteModelPipeline(this);
+    }
+
+    int decodePadding(
         DirectBuffer data,
         int index,
         int length)
@@ -74,11 +97,10 @@ public final class JsonReadModelHandler extends JsonModelHandler implements Mode
         return handler.decodePadding(data, index, length);
     }
 
-    @Override
-    public ModelPipeline supplyPipeline(
-        ModelVisitor visitor)
+    int encodePadding(
+        int length)
     {
-        return new JsonReadModelPipeline(this, paths, names, visitor);
+        return handler.encodePadding(length);
     }
 
     int resolveSchemaId(
@@ -96,6 +118,26 @@ public final class JsonReadModelHandler extends JsonModelHandler implements Mode
         return schemaId;
     }
 
+    int resolveSchemaId()
+    {
+        return catalog != null && catalog.id != NO_SCHEMA_ID
+            ? catalog.id
+            : handler.resolve(subject, catalog.version);
+    }
+
+    // writes the schema framing prefix for the resolved schema id into next, returning the bytes written
+    int encodePrefix(
+        long traceId,
+        long bindingId,
+        int schemaId,
+        DirectBuffer data,
+        int index,
+        int length,
+        ValueConsumer next)
+    {
+        return handler.encode(traceId, bindingId, schemaId, data, index, length, next, NONE_ENCODER);
+    }
+
     JsonPipeline newPipeline(
         int schemaId,
         JsonGeneratorEx generator,
@@ -107,6 +149,20 @@ public final class JsonReadModelHandler extends JsonModelHandler implements Mode
             ? JsonEx.stream(JsonEx.createParser())
                 .transform(schema.validator())
                 .transform(extractor)
+                .reporting(reporter)
+                .into(generator)
+            : null;
+    }
+
+    JsonPipeline newPipeline(
+        int schemaId,
+        JsonGeneratorEx generator,
+        JsonReporter reporter)
+    {
+        JsonSchema schema = supplySchema(schemaId);
+        return schema != null
+            ? JsonEx.stream(JsonEx.createParser())
+                .transform(schema.validator())
                 .reporting(reporter)
                 .into(generator)
             : null;

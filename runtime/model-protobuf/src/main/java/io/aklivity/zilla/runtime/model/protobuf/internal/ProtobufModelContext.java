@@ -50,16 +50,9 @@ public class ProtobufModelContext implements ModelContext
     }
 
     @Override
-    public ModelHandler supplyReadHandler(
+    public ModelHandler supplyHandler(
         ModelConfig config)
     {
-        return new ProtobufReadModelHandler(ProtobufModelConfig.class.cast(config), context);
-    }
-
-    @Override
-    public ModelHandler supplyWriteHandler(
-        ModelConfig config)
-    {
-        return new ProtobufWriteModelHandler(ProtobufModelConfig.class.cast(config), context);
+        return new ProtobufModelHandlerImpl(ProtobufModelConfig.class.cast(config), context);
     }
 }

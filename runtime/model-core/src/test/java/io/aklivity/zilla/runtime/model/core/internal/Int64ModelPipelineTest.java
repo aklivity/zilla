@@ -50,7 +50,7 @@ public class Int64ModelPipelineTest
     public void shouldTransformWholeValue()
     {
         ModelHandler handler = handler(Int64ModelConfig.builder().format("text").build());
-        ModelPipeline pipeline = handler.supplyPipeline(ModelVisitor.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
 
         byte[] bytes = "1234567890".getBytes();
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[16]);
@@ -65,7 +65,7 @@ public class Int64ModelPipelineTest
     public void shouldRejectInvalid()
     {
         ModelHandler handler = handler(Int64ModelConfig.builder().format("text").build());
-        ModelPipeline pipeline = handler.supplyPipeline(ModelVisitor.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
 
         byte[] bytes = "12x".getBytes();
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[16]);
@@ -78,6 +78,6 @@ public class Int64ModelPipelineTest
     private ModelHandler handler(
         Int64ModelConfig config)
     {
-        return new Int64ModelContext(context).supplyReadHandler(config);
+        return new Int64ModelContext(context).supplyHandler(config);
     }
 }

@@ -63,6 +63,7 @@ import io.aklivity.zilla.runtime.engine.internal.types.stream.FrameFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
+import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
 import io.aklivity.zilla.runtime.engine.store.StoreHandler;
@@ -416,6 +417,13 @@ public class TlsWorker implements EngineContext
 
     @Override
     public ConverterHandler supplyWriteConverter(
+        ModelConfig config)
+    {
+        return null;
+    }
+
+    @Override
+    public ModelHandler supplyModel(
         ModelConfig config)
     {
         return null;

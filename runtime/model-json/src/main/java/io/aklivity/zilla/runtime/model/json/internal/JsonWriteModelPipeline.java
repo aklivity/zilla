@@ -28,12 +28,12 @@ import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 
-// Per-stream write transform session vended by JsonWriteModelHandler: owns its own generator and
+// Per-stream write transform session vended by JsonModelHandlerImpl: owns its own generator and
 // schema-keyed pipeline cache. transform emits the catalog framing prefix into the destination on the
 // first fragment, then drives the common-json transform into the destination after it.
 final class JsonWriteModelPipeline implements ModelPipeline
 {
-    private final JsonWriteModelHandler handler;
+    private final JsonModelHandlerImpl handler;
     private final JsonGeneratorEx generator;
     private final Int2ObjectCache<JsonPipeline> pipelines;
     private final ModelPipelineResult result;
@@ -44,7 +44,7 @@ final class JsonWriteModelPipeline implements ModelPipeline
     private int prefixAt;
 
     JsonWriteModelPipeline(
-        JsonWriteModelHandler handler)
+        JsonModelHandlerImpl handler)
     {
         this.handler = handler;
         this.generator = JsonEx.createGenerator();
@@ -102,6 +102,15 @@ final class JsonWriteModelPipeline implements ModelPipeline
             }
         }
         return result.set(status, consumed, produced);
+    }
+
+    @Override
+    public int padding(
+        DirectBuffer data,
+        int index,
+        int length)
+    {
+        return handler.encodePadding(length);
     }
 
     @Override

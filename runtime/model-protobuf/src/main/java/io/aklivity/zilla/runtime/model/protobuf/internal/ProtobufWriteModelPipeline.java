@@ -29,13 +29,13 @@ import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 
-// Per-stream write transform session vended by ProtobufWriteModelHandler: owns its own message-keyed
+// Per-stream write transform session vended by ProtobufModelHandlerImpl: owns its own message-keyed
 // pipeline cache. transform emits the catalog framing then the message-index prefix into the destination on
 // the first fragment, then drives the common-protobuf transform (JSON or wire in, wire out) into the
 // destination after them.
 final class ProtobufWriteModelPipeline implements ModelPipeline
 {
-    private final ProtobufWriteModelHandler handler;
+    private final ProtobufModelHandlerImpl handler;
     private final Map<String, ProtobufPipeline> pipelines;
     private final ModelPipelineResult result;
 
@@ -45,7 +45,7 @@ final class ProtobufWriteModelPipeline implements ModelPipeline
     private int prefixAt;
 
     ProtobufWriteModelPipeline(
-        ProtobufWriteModelHandler handler)
+        ProtobufModelHandlerImpl handler)
     {
         this.handler = handler;
         this.pipelines = new HashMap<>();
@@ -105,6 +105,15 @@ final class ProtobufWriteModelPipeline implements ModelPipeline
             }
         }
         return result.set(status, consumed, produced);
+    }
+
+    @Override
+    public int padding(
+        DirectBuffer data,
+        int index,
+        int length)
+    {
+        return handler.encodePadding(length);
     }
 
     @Override

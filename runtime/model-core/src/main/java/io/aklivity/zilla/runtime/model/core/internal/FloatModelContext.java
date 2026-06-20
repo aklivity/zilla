@@ -54,17 +54,10 @@ public class FloatModelContext implements ModelContext
     }
 
     @Override
-    public ModelHandler supplyReadHandler(
+    public ModelHandler supplyHandler(
         ModelConfig config)
     {
-        return supplyHandler(config);
-    }
-
-    @Override
-    public ModelHandler supplyWriteHandler(
-        ModelConfig config)
-    {
-        return supplyHandler(config);
+        return supplyCoreHandler(config);
     }
 
     private FloatConverterHandler supply(
@@ -73,7 +66,7 @@ public class FloatModelContext implements ModelContext
         return new FloatConverterHandler(FloatModelConfig.class.cast(config), context);
     }
 
-    private CoreModelHandler supplyHandler(
+    private CoreModelHandler supplyCoreHandler(
         ModelConfig config)
     {
         return new CoreModelHandler(context, FloatModel.NAME,

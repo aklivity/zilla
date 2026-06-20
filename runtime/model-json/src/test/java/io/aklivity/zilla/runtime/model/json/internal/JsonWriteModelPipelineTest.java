@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.model.json.internal;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -60,8 +61,8 @@ public class JsonWriteModelPipelineTest
     @Test
     public void shouldTransformWholeValue()
     {
-        JsonWriteModelHandler handler = newHandler();
-        ModelPipeline pipeline = handler.supplyPipeline(ModelVisitor.NONE);
+        JsonModelHandlerImpl handler = newHandler();
+        ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
 
         // the test catalog adds no framing prefix, so the output is the validated value itself
         byte[] in = "{\"id\":\"123\",\"status\":\"OK\"}".getBytes(UTF_8);
@@ -79,8 +80,8 @@ public class JsonWriteModelPipelineTest
     @Test
     public void shouldRejectInvalidValue()
     {
-        JsonWriteModelHandler handler = newHandler();
-        ModelPipeline pipeline = handler.supplyPipeline(ModelVisitor.NONE);
+        JsonModelHandlerImpl handler = newHandler();
+        ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
 
         // missing required "status"
         byte[] in = "{\"id\":\"123\"}".getBytes(UTF_8);
@@ -91,7 +92,17 @@ public class JsonWriteModelPipelineTest
         assertEquals(ModelStatus.REJECTED, result.status());
     }
 
-    private JsonWriteModelHandler newHandler()
+    @Test
+    public void shouldReportEncodePadding()
+    {
+        JsonModelHandlerImpl handler = newHandler();
+        ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
+
+        byte[] in = "{\"id\":\"123\",\"status\":\"OK\"}".getBytes(UTF_8);
+        assertTrue(pipeline.padding(new UnsafeBuffer(in), 0, in.length) >= 0);
+    }
+
+    private JsonModelHandlerImpl newHandler()
     {
         TestCatalogConfig catalog = CatalogConfig.builder(TestCatalogConfig::new)
             .namespace("test")
@@ -116,6 +127,6 @@ public class JsonWriteModelPipelineTest
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
         when(context.clock()).thenReturn(Clock.systemUTC());
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
-        return new JsonWriteModelHandler(model, context);
+        return new JsonModelHandlerImpl(model, context);
     }
 }

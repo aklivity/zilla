@@ -33,14 +33,14 @@ import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
 
-// Per-stream read transform session vended by ProtobufReadModelHandler: owns its own extractor and
+// Per-stream read transform session vended by ProtobufModelHandlerImpl: owns its own extractor and
 // message-keyed pipeline cache so concurrent streams on a worker never share in-flight state. transform
 // strips the catalog framing and the message-index prefix on the first fragment, drives the common-protobuf
 // transform into the caller's destination (re-encoding the wire message as JSON or canonical wire), and
 // surfaces extracted fields to the ModelVisitor when a value completes.
 final class ProtobufReadModelPipeline implements ModelPipeline
 {
-    private final ProtobufReadModelHandler handler;
+    private final ProtobufModelHandlerImpl handler;
     private final List<String> paths;
     private final List<String> names;
     private final ModelVisitor visitor;
@@ -52,7 +52,7 @@ final class ProtobufReadModelPipeline implements ModelPipeline
     private String diagnostic;
 
     ProtobufReadModelPipeline(
-        ProtobufReadModelHandler handler,
+        ProtobufModelHandlerImpl handler,
         List<String> paths,
         List<String> names,
         ModelVisitor visitor)
@@ -128,6 +128,15 @@ final class ProtobufReadModelPipeline implements ModelPipeline
             }
         }
         return result.set(status, consumed, produced);
+    }
+
+    @Override
+    public int padding(
+        DirectBuffer data,
+        int index,
+        int length)
+    {
+        return handler.decodePadding(data, index, length);
     }
 
     @Override

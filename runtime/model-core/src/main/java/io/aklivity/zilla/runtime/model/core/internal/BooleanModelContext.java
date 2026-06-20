@@ -53,17 +53,10 @@ public class BooleanModelContext implements ModelContext
     }
 
     @Override
-    public ModelHandler supplyReadHandler(
+    public ModelHandler supplyHandler(
         ModelConfig config)
     {
-        return supplyHandler(config);
-    }
-
-    @Override
-    public ModelHandler supplyWriteHandler(
-        ModelConfig config)
-    {
-        return supplyHandler(config);
+        return supplyCoreHandler(config);
     }
 
     private BooleanConverterHandler supply(
@@ -72,7 +65,7 @@ public class BooleanModelContext implements ModelContext
         return new BooleanConverterHandler(context);
     }
 
-    private CoreModelHandler supplyHandler(
+    private CoreModelHandler supplyCoreHandler(
         ModelConfig config)
     {
         return new CoreModelHandler(context, BooleanModel.NAME, BooleanModelValidator::new);

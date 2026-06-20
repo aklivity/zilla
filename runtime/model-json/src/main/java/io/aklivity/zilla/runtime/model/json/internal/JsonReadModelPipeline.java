@@ -33,13 +33,13 @@ import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
 
-// Per-stream read transform session vended by JsonReadModelHandler: owns its own generator, extractor and
+// Per-stream read transform session vended by JsonModelHandlerImpl: owns its own generator, extractor and
 // schema-keyed pipeline cache so concurrent streams on a worker never share in-flight state. transform
 // strips the catalog framing on the first fragment, drives the common-json transform into the caller's
 // destination, and surfaces extracted fields to the ModelVisitor when a value completes.
 final class JsonReadModelPipeline implements ModelPipeline
 {
-    private final JsonReadModelHandler handler;
+    private final JsonModelHandlerImpl handler;
     private final List<String> paths;
     private final List<String> names;
     private final ModelVisitor visitor;
@@ -52,7 +52,7 @@ final class JsonReadModelPipeline implements ModelPipeline
     private String diagnostic;
 
     JsonReadModelPipeline(
-        JsonReadModelHandler handler,
+        JsonModelHandlerImpl handler,
         List<String> paths,
         List<String> names,
         ModelVisitor visitor)
@@ -89,7 +89,7 @@ final class JsonReadModelPipeline implements ModelPipeline
             // the catalog framing sits at the value start; strip it once on the first fragment and select
             // the schema-bound pipeline, then later fragments stream straight through
             int schemaId = handler.resolveSchemaId(src, srcIndex, srcLength);
-            prefix = handler.padding(src, srcIndex, srcLength);
+            prefix = handler.decodePadding(src, srcIndex, srcLength);
             active = schemaId != NO_SCHEMA_ID ? supplyPipeline(schemaId) : null;
             if (active != null)
             {
@@ -126,6 +126,15 @@ final class JsonReadModelPipeline implements ModelPipeline
             }
         }
         return result.set(status, consumed, produced);
+    }
+
+    @Override
+    public int padding(
+        DirectBuffer data,
+        int index,
+        int length)
+    {
+        return handler.decodePadding(data, index, length);
     }
 
     @Override

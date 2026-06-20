@@ -97,7 +97,7 @@ public class TestModelHandlerTest
     }
 
     @Test
-    public void shouldValidateOnlyWithEmptyDestination()
+    public void shouldOverflowWithEmptyDestination()
     {
         ModelPipeline pipeline = readPipeline(4);
 
@@ -106,9 +106,18 @@ public class TestModelHandlerTest
         ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
             new UnsafeBuffer(bytes), 0, bytes.length, dst, 0, 0);
 
-        assertEquals(ModelStatus.COMPLETE, result.status());
-        assertEquals(4, result.consumed());
+        assertEquals(ModelStatus.OVERFLOW, result.status());
+        assertEquals(0, result.consumed());
         assertEquals(0, result.produced());
+    }
+
+    @Test
+    public void shouldReportNoPadding()
+    {
+        ModelPipeline pipeline = readPipeline(4);
+
+        byte[] bytes = {1, 2, 3, 4};
+        assertEquals(0, pipeline.padding(new UnsafeBuffer(bytes), 0, bytes.length));
     }
 
     @Test
@@ -130,15 +139,15 @@ public class TestModelHandlerTest
     private ModelPipeline readPipeline(
         int length)
     {
-        ModelHandler handler = new TestModelContext(context).supplyReadHandler(config(length));
-        return handler.supplyPipeline(ModelVisitor.NONE);
+        ModelHandler handler = new TestModelContext(context).supplyHandler(config(length));
+        return handler.supplyDecoder(ModelVisitor.NONE);
     }
 
     private ModelPipeline writePipeline(
         int length)
     {
-        ModelHandler handler = new TestModelContext(context).supplyWriteHandler(config(length));
-        return handler.supplyPipeline();
+        ModelHandler handler = new TestModelContext(context).supplyHandler(config(length));
+        return handler.supplyEncoder();
     }
 
     private static TestModelConfig config(

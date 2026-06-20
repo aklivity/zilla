@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.model.avro.internal;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -65,8 +66,8 @@ public class AvroReadModelPipelineTest
     @Test
     public void shouldTransformWholeValue()
     {
-        AvroReadModelHandler handler = newHandler();
-        ModelPipeline pipeline = handler.supplyPipeline(ModelVisitor.NONE);
+        AvroModelHandlerImpl handler = newHandler();
+        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
 
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
         ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
@@ -80,10 +81,10 @@ public class AvroReadModelPipelineTest
     @Test
     public void shouldIsolateInterleavedStreams()
     {
-        AvroReadModelHandler handler = newHandler();
+        AvroModelHandlerImpl handler = newHandler();
         // two per-stream pipelines from the same per-worker handler
-        ModelPipeline a = handler.supplyPipeline(ModelVisitor.NONE);
-        ModelPipeline b = handler.supplyPipeline(ModelVisitor.NONE);
+        ModelPipeline a = handler.supplyDecoder(ModelVisitor.NONE);
+        ModelPipeline b = handler.supplyDecoder(ModelVisitor.NONE);
 
         // stream A split at the field boundary: the id field first, the status field on the final fragment
         byte[] a1 = {0x06, 0x69, 0x64, 0x30};
@@ -116,14 +117,14 @@ public class AvroReadModelPipelineTest
     @Test
     public void shouldExtractField()
     {
-        AvroReadModelHandler handler = newHandler();
+        AvroModelHandlerImpl handler = newHandler();
         handler.extract("$.id");
         handler.extract("$.status");
 
         Map<String, String> extracted = new HashMap<>();
         ModelVisitor visitor = (path, buffer, index, length) ->
             extracted.put(path, buffer.getStringWithoutLengthUtf8(index, length));
-        ModelPipeline pipeline = handler.supplyPipeline(visitor);
+        ModelPipeline pipeline = handler.supplyDecoder(visitor);
 
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
         ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
@@ -139,8 +140,8 @@ public class AvroReadModelPipelineTest
     {
         when(context.clock()).thenReturn(Clock.systemUTC());
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
-        AvroReadModelHandler handler = newHandler();
-        ModelPipeline pipeline = handler.supplyPipeline(ModelVisitor.NONE);
+        AvroModelHandlerImpl handler = newHandler();
+        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
 
         // truncated: id length prefix promises 3 bytes but the status field is missing under FLAGS_FIN
         byte[] invalid = {0x06, 0x69, 0x64, 0x30, 0x10};
@@ -151,7 +152,16 @@ public class AvroReadModelPipelineTest
         assertEquals(ModelStatus.REJECTED, result.status());
     }
 
-    private AvroReadModelHandler newHandler()
+    @Test
+    public void shouldReportDecodePadding()
+    {
+        AvroModelHandlerImpl handler = newHandler();
+        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
+
+        assertTrue(pipeline.padding(new UnsafeBuffer(AVRO), 0, AVRO.length) >= 0);
+    }
+
+    private AvroModelHandlerImpl newHandler()
     {
         TestCatalogConfig catalog = CatalogConfig.builder(TestCatalogConfig::new)
             .namespace("test")
@@ -174,7 +184,7 @@ public class AvroReadModelPipelineTest
                 .build()
             .build();
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
-        return new AvroReadModelHandler(config, model, context);
+        return new AvroModelHandlerImpl(config, model, context);
     }
 
     private static byte[] concat(

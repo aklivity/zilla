@@ -54,17 +54,10 @@ public class Int64ModelContext implements ModelContext
     }
 
     @Override
-    public ModelHandler supplyReadHandler(
+    public ModelHandler supplyHandler(
         ModelConfig config)
     {
-        return supplyHandler(config);
-    }
-
-    @Override
-    public ModelHandler supplyWriteHandler(
-        ModelConfig config)
-    {
-        return supplyHandler(config);
+        return supplyCoreHandler(config);
     }
 
     private Int64ConverterHandler supply(
@@ -73,7 +66,7 @@ public class Int64ModelContext implements ModelContext
         return new Int64ConverterHandler(Int64ModelConfig.class.cast(config), context);
     }
 
-    private CoreModelHandler supplyHandler(
+    private CoreModelHandler supplyCoreHandler(
         ModelConfig config)
     {
         return new CoreModelHandler(context, Int64Model.NAME,

@@ -50,7 +50,7 @@ public class StringModelPipelineTest
     public void shouldTransformWholeValue()
     {
         ModelHandler handler = handler(StringModelConfig.builder().encoding("utf_8").build());
-        ModelPipeline pipeline = handler.supplyPipeline(ModelVisitor.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
 
         byte[] bytes = "Valid String".getBytes();
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[64]);
@@ -67,7 +67,7 @@ public class StringModelPipelineTest
     public void shouldRejectInvalidEncoding()
     {
         ModelHandler handler = handler(StringModelConfig.builder().encoding("utf_8").build());
-        ModelPipeline pipeline = handler.supplyPipeline(ModelVisitor.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
 
         byte[] bytes = {(byte) 0xc0};
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[64]);
@@ -86,7 +86,7 @@ public class StringModelPipelineTest
             .encoding("utf_8")
             .pattern("^[a-zA-Z\\s]+$")
             .build());
-        ModelPipeline pipeline = handler.supplyPipeline(ModelVisitor.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
 
         byte[] bytes = "Hello123".getBytes();
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[64]);
@@ -100,7 +100,7 @@ public class StringModelPipelineTest
     public void shouldOverflowBoundedDestination()
     {
         ModelHandler handler = handler(StringModelConfig.builder().encoding("utf_8").build());
-        ModelPipeline pipeline = handler.supplyPipeline(ModelVisitor.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
 
         byte[] bytes = "Valid String".getBytes();
         MutableDirectBuffer src = new UnsafeBuffer(bytes);
@@ -124,18 +124,18 @@ public class StringModelPipelineTest
     }
 
     @Test
-    public void shouldValidateOnlyWithEmptyDestination()
+    public void shouldOverflowWithEmptyDestination()
     {
         ModelHandler handler = handler(StringModelConfig.builder().encoding("utf_8").build());
-        ModelPipeline pipeline = handler.supplyPipeline(ModelVisitor.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
 
         byte[] bytes = "Valid String".getBytes();
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[0]);
         ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
             new UnsafeBuffer(bytes), 0, bytes.length, dst, 0, 0);
 
-        assertEquals(ModelStatus.COMPLETE, result.status());
-        assertEquals(bytes.length, result.consumed());
+        assertEquals(ModelStatus.OVERFLOW, result.status());
+        assertEquals(0, result.consumed());
         assertEquals(0, result.produced());
     }
 
@@ -144,8 +144,8 @@ public class StringModelPipelineTest
     {
         ModelHandler handler = handler(StringModelConfig.builder().encoding("utf_8").build());
         // one per-worker handler vends two per-stream pipelines; fragmenting A across B must not corrupt A
-        ModelPipeline a = handler.supplyPipeline(ModelVisitor.NONE);
-        ModelPipeline b = handler.supplyPipeline(ModelVisitor.NONE);
+        ModelPipeline a = handler.supplyDecoder(ModelVisitor.NONE);
+        ModelPipeline b = handler.supplyDecoder(ModelVisitor.NONE);
 
         byte[] a1 = "Valid ".getBytes();
         byte[] a2 = "String".getBytes();
@@ -169,7 +169,7 @@ public class StringModelPipelineTest
     public void shouldResetForNextValue()
     {
         ModelHandler handler = handler(StringModelConfig.builder().encoding("utf_8").build());
-        ModelPipeline pipeline = handler.supplyPipeline(ModelVisitor.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
 
         byte[] bytes = "abc".getBytes();
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[16]);
@@ -186,6 +186,6 @@ public class StringModelPipelineTest
     private ModelHandler handler(
         StringModelConfig config)
     {
-        return new StringModelContext(context).supplyReadHandler(config);
+        return new StringModelContext(context).supplyHandler(config);
     }
 }

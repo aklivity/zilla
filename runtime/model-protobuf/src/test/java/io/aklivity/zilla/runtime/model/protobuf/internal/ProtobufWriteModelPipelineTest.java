@@ -67,8 +67,8 @@ public class ProtobufWriteModelPipelineTest
     @Test
     public void shouldTransformWholeValue()
     {
-        ProtobufWriteModelHandler handler = newHandler();
-        ModelPipeline pipeline = handler.supplyPipeline(ModelVisitor.NONE);
+        ProtobufModelHandlerImpl handler = newHandler();
+        ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
 
         byte[] in = JSON.getBytes(UTF_8);
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
@@ -94,10 +94,10 @@ public class ProtobufWriteModelPipelineTest
     @Test
     public void shouldIsolateInterleavedStreams()
     {
-        ProtobufWriteModelHandler handler = newHandler();
+        ProtobufModelHandlerImpl handler = newHandler();
         // two per-stream pipelines from the same per-worker handler
-        ModelPipeline a = handler.supplyPipeline(ModelVisitor.NONE);
-        ModelPipeline b = handler.supplyPipeline(ModelVisitor.NONE);
+        ModelPipeline a = handler.supplyEncoder(ModelVisitor.NONE);
+        ModelPipeline b = handler.supplyEncoder(ModelVisitor.NONE);
 
         byte[] a1 = "{\"content\":\"OK\",".getBytes(UTF_8);
         byte[] a2tail = "\"date_time\":\"01012024\"}".getBytes(UTF_8);
@@ -132,8 +132,8 @@ public class ProtobufWriteModelPipelineTest
     @Test
     public void shouldDrainOnOverflow()
     {
-        ProtobufWriteModelHandler handler = newHandler();
-        ModelPipeline pipeline = handler.supplyPipeline(ModelVisitor.NONE);
+        ProtobufModelHandlerImpl handler = newHandler();
+        ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
 
         // a 2000-byte content value forces the wire output past a small destination window, exercising the
         // bounded-chunk OVERFLOW drain across re-transforms (INIT cleared on every re-call after the first)
@@ -165,8 +165,8 @@ public class ProtobufWriteModelPipelineTest
     {
         when(context.clock()).thenReturn(Clock.systemUTC());
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
-        ProtobufWriteModelHandler handler = newHandler("Nonexistent");
-        ModelPipeline pipeline = handler.supplyPipeline(ModelVisitor.NONE);
+        ProtobufModelHandlerImpl handler = newHandler("Nonexistent");
+        ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
 
         byte[] in = JSON.getBytes(UTF_8);
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
@@ -181,8 +181,8 @@ public class ProtobufWriteModelPipelineTest
     {
         when(context.clock()).thenReturn(Clock.systemUTC());
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
-        ProtobufWriteModelHandler handler = newHandler();
-        ModelPipeline pipeline = handler.supplyPipeline(ModelVisitor.NONE);
+        ProtobufModelHandlerImpl handler = newHandler();
+        ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
 
         // an unknown field is rejected by the strict JSON parser
         byte[] in = "{\"content\":\"OK\",\"unexpected\":\"value\"}".getBytes(UTF_8);
@@ -193,12 +193,12 @@ public class ProtobufWriteModelPipelineTest
         assertEquals(ModelStatus.REJECTED, result.status());
     }
 
-    private ProtobufWriteModelHandler newHandler()
+    private ProtobufModelHandlerImpl newHandler()
     {
         return newHandler("SimpleMessage");
     }
 
-    private ProtobufWriteModelHandler newHandler(
+    private ProtobufModelHandlerImpl newHandler(
         String record)
     {
         TestCatalogConfig catalog = CatalogConfig.builder(TestCatalogConfig::new)
@@ -223,7 +223,7 @@ public class ProtobufWriteModelPipelineTest
                 .build()
             .build();
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
-        return new ProtobufWriteModelHandler(model, context);
+        return new ProtobufModelHandlerImpl(model, context);
     }
 
     private static byte[] concat(

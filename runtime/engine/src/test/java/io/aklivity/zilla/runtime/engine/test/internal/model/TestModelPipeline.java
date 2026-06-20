@@ -23,8 +23,8 @@ import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 
 // Per-stream identity transform mirroring the test model's whole-value length check: the value bytes are
-// copied through unchanged and accepted only when the total length across fragments equals the configured
-// length. State lives on the pipeline so interleaved streams stay isolated.
+// copied through into dst unchanged and accepted only when the total length across fragments equals the
+// configured length. State lives on the pipeline so interleaved streams stay isolated.
 final class TestModelPipeline implements ModelPipeline
 {
     private final int length;
@@ -56,8 +56,7 @@ final class TestModelPipeline implements ModelPipeline
             processed = 0;
         }
 
-        boolean validateOnly = dstLength == 0;
-        int available = validateOnly ? srcLength : Math.min(srcLength, dstLength);
+        int available = Math.min(srcLength, dstLength);
         boolean tail = (flags & FLAGS_FIN) != 0 && available == srcLength;
         int total = processed + available;
         boolean valid = tail ? total == length : total <= length;
@@ -74,12 +73,9 @@ final class TestModelPipeline implements ModelPipeline
         else
         {
             processed = total;
-            if (!validateOnly)
-            {
-                dst.putBytes(dstIndex, src, srcIndex, available);
-            }
+            dst.putBytes(dstIndex, src, srcIndex, available);
             consumed = available;
-            produced = validateOnly ? 0 : available;
+            produced = available;
             if (available < srcLength)
             {
                 status = ModelStatus.OVERFLOW;

@@ -16,6 +16,8 @@ package io.aklivity.zilla.runtime.model.json.internal;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -59,8 +61,8 @@ public class JsonReadModelPipelineTest
     @Test
     public void shouldTransformWholeValue()
     {
-        JsonReadModelHandler handler = newHandler();
-        ModelPipeline pipeline = handler.supplyPipeline(ModelVisitor.NONE);
+        JsonModelHandlerImpl handler = newHandler();
+        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
 
         byte[] in = "{\"id\":\"123\",\"status\":\"OK\"}".getBytes(UTF_8);
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
@@ -75,10 +77,10 @@ public class JsonReadModelPipelineTest
     @Test
     public void shouldIsolateInterleavedStreams()
     {
-        JsonReadModelHandler handler = newHandler();
+        JsonModelHandlerImpl handler = newHandler();
         // two per-stream pipelines from the same per-worker handler
-        ModelPipeline a = handler.supplyPipeline(ModelVisitor.NONE);
-        ModelPipeline b = handler.supplyPipeline(ModelVisitor.NONE);
+        ModelPipeline a = handler.supplyDecoder(ModelVisitor.NONE);
+        ModelPipeline b = handler.supplyDecoder(ModelVisitor.NONE);
 
         byte[] a1 = "{\"id\":\"A\",".getBytes(UTF_8);
         byte[] a2tail = "\"status\":\"OK\"}".getBytes(UTF_8);
@@ -108,7 +110,41 @@ public class JsonReadModelPipelineTest
         assertEquals("{\"id\":\"A\",\"status\":\"OK\"}", outA.toString(UTF_8));
     }
 
-    private JsonReadModelHandler newHandler()
+    @Test
+    public void shouldExtractField()
+    {
+        JsonModelHandlerImpl handler = newHandler();
+        handler.extract("$.id");
+        String[] captured = new String[1];
+        ModelVisitor visitor = (path, buffer, index, length) ->
+        {
+            byte[] bytes = new byte[length];
+            buffer.getBytes(index, bytes);
+            captured[0] = new String(bytes, UTF_8);
+        };
+        ModelPipeline pipeline = handler.supplyDecoder(visitor);
+
+        byte[] in = "{\"id\":\"123\",\"status\":\"OK\"}".getBytes(UTF_8);
+        MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
+        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+            new UnsafeBuffer(in), 0, in.length, dst, 0, dst.capacity());
+
+        assertEquals(ModelStatus.COMPLETE, result.status());
+        assertNotNull(captured[0]);
+        assertTrue(captured[0].contains("123"));
+    }
+
+    @Test
+    public void shouldReportDecodePadding()
+    {
+        JsonModelHandlerImpl handler = newHandler();
+        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
+
+        byte[] in = "{\"id\":\"123\",\"status\":\"OK\"}".getBytes(UTF_8);
+        assertTrue(pipeline.padding(new UnsafeBuffer(in), 0, in.length) >= 0);
+    }
+
+    private JsonModelHandlerImpl newHandler()
     {
         TestCatalogConfig catalog = CatalogConfig.builder(TestCatalogConfig::new)
             .namespace("test")
@@ -131,7 +167,7 @@ public class JsonReadModelPipelineTest
                 .build()
             .build();
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
-        return new JsonReadModelHandler(model, context);
+        return new JsonModelHandlerImpl(model, context);
     }
 
     private static byte[] concat(

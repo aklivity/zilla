@@ -21,9 +21,9 @@ import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
 
-// Per-worker factory for a core model. The read and write conversions are an identity copy gated by
+// Per-worker factory for a core model. The decode and encode conversions are an identity copy gated by
 // validation, so one handler serves both directions; it owns the config-derived event reporter and
-// vends a fresh per-stream CoreModelPipeline with its own validation state on each supplyPipeline.
+// vends a fresh per-stream CoreModelPipeline with its own validation state on each supplyDecoder/supplyEncoder.
 final class CoreModelHandler implements ModelHandler
 {
     private final CoreModelEventContext event;
@@ -41,7 +41,14 @@ final class CoreModelHandler implements ModelHandler
     }
 
     @Override
-    public ModelPipeline supplyPipeline(
+    public ModelPipeline supplyDecoder(
+        ModelVisitor visitor)
+    {
+        return new CoreModelPipeline(this, supplier.get());
+    }
+
+    @Override
+    public ModelPipeline supplyEncoder(
         ModelVisitor visitor)
     {
         return new CoreModelPipeline(this, supplier.get());

@@ -51,9 +51,7 @@ final class CoreModelPipeline implements ModelPipeline
         int dstIndex,
         int dstLength)
     {
-        // a zero-length dst validates without producing output; the caller forwards the original bytes
-        boolean validateOnly = dstLength == 0;
-        int available = validateOnly ? srcLength : Math.min(srcLength, dstLength);
+        int available = Math.min(srcLength, dstLength);
         // only the tail of the final fragment closes the value; a bounded dst defers FIN to a later call
         boolean tail = (flags & FLAGS_FIN) != 0 && available == srcLength;
         int fragmentFlags = (flags & FLAGS_INIT) | (tail ? FLAGS_FIN : 0);
@@ -70,12 +68,9 @@ final class CoreModelPipeline implements ModelPipeline
         }
         else
         {
-            if (!validateOnly)
-            {
-                dst.putBytes(dstIndex, src, srcIndex, available);
-            }
+            dst.putBytes(dstIndex, src, srcIndex, available);
             consumed = available;
-            produced = validateOnly ? 0 : available;
+            produced = available;
             if (available < srcLength)
             {
                 status = ModelStatus.OVERFLOW;

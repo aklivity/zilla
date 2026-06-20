@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.model.avro.internal;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -64,8 +65,8 @@ public class AvroWriteModelPipelineTest
     @Test
     public void shouldTransformWholeValue()
     {
-        AvroWriteModelHandler handler = newHandler();
-        ModelPipeline pipeline = handler.supplyPipeline(ModelVisitor.NONE);
+        AvroModelHandlerImpl handler = newHandler();
+        ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
 
         byte[] in = JSON.getBytes(UTF_8);
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
@@ -82,10 +83,10 @@ public class AvroWriteModelPipelineTest
     @Test
     public void shouldIsolateInterleavedStreams()
     {
-        AvroWriteModelHandler handler = newHandler();
+        AvroModelHandlerImpl handler = newHandler();
         // two per-stream pipelines from the same per-worker handler
-        ModelPipeline a = handler.supplyPipeline(ModelVisitor.NONE);
-        ModelPipeline b = handler.supplyPipeline(ModelVisitor.NONE);
+        ModelPipeline a = handler.supplyEncoder(ModelVisitor.NONE);
+        ModelPipeline b = handler.supplyEncoder(ModelVisitor.NONE);
 
         byte[] a1 = "{\"id\":\"id0\",".getBytes(UTF_8);
         byte[] a2tail = "\"status\":\"positive\"}".getBytes(UTF_8);
@@ -122,8 +123,8 @@ public class AvroWriteModelPipelineTest
     {
         when(context.clock()).thenReturn(Clock.systemUTC());
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
-        AvroWriteModelHandler handler = newHandler();
-        ModelPipeline pipeline = handler.supplyPipeline(ModelVisitor.NONE);
+        AvroModelHandlerImpl handler = newHandler();
+        ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
 
         // id must be a string, not a number
         byte[] in = "{\"id\":123,\"status\":\"positive\"}".getBytes(UTF_8);
@@ -134,7 +135,17 @@ public class AvroWriteModelPipelineTest
         assertEquals(ModelStatus.REJECTED, result.status());
     }
 
-    private AvroWriteModelHandler newHandler()
+    @Test
+    public void shouldReportEncodePadding()
+    {
+        AvroModelHandlerImpl handler = newHandler();
+        ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
+
+        byte[] in = JSON.getBytes(UTF_8);
+        assertTrue(pipeline.padding(new UnsafeBuffer(in), 0, in.length) >= 0);
+    }
+
+    private AvroModelHandlerImpl newHandler()
     {
         TestCatalogConfig catalog = CatalogConfig.builder(TestCatalogConfig::new)
             .namespace("test")
@@ -157,7 +168,7 @@ public class AvroWriteModelPipelineTest
                 .build()
             .build();
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
-        return new AvroWriteModelHandler(config, model, context);
+        return new AvroModelHandlerImpl(config, model, context);
     }
 
     private static byte[] concat(

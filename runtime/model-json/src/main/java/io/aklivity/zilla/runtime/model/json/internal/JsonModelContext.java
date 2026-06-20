@@ -53,16 +53,9 @@ public class JsonModelContext implements ModelContext
     }
 
     @Override
-    public ModelHandler supplyReadHandler(
+    public ModelHandler supplyHandler(
         ModelConfig config)
     {
-        return new JsonReadModelHandler(JsonModelConfig.class.cast(config), context);
-    }
-
-    @Override
-    public ModelHandler supplyWriteHandler(
-        ModelConfig config)
-    {
-        return new JsonWriteModelHandler(JsonModelConfig.class.cast(config), context);
+        return new JsonModelHandlerImpl(JsonModelConfig.class.cast(config), context);
     }
 }

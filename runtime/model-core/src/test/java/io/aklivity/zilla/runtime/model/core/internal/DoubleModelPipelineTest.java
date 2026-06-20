@@ -50,7 +50,7 @@ public class DoubleModelPipelineTest
     public void shouldTransformWholeValue()
     {
         ModelHandler handler = handler(DoubleModelConfig.builder().format("text").build());
-        ModelPipeline pipeline = handler.supplyPipeline(ModelVisitor.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
 
         byte[] bytes = "4.2".getBytes();
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[16]);
@@ -65,7 +65,7 @@ public class DoubleModelPipelineTest
     public void shouldRejectInvalid()
     {
         ModelHandler handler = handler(DoubleModelConfig.builder().format("text").build());
-        ModelPipeline pipeline = handler.supplyPipeline(ModelVisitor.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
 
         byte[] bytes = "4.x".getBytes();
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[16]);
@@ -78,6 +78,6 @@ public class DoubleModelPipelineTest
     private ModelHandler handler(
         DoubleModelConfig config)
     {
-        return new DoubleModelContext(context).supplyReadHandler(config);
+        return new DoubleModelContext(context).supplyHandler(config);
     }
 }

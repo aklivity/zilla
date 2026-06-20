@@ -58,16 +58,9 @@ public class AvroModelContext implements ModelContext
     }
 
     @Override
-    public ModelHandler supplyReadHandler(
+    public ModelHandler supplyHandler(
         ModelConfig options)
     {
-        return new AvroReadModelHandler(config, AvroModelConfig.class.cast(options), context);
-    }
-
-    @Override
-    public ModelHandler supplyWriteHandler(
-        ModelConfig options)
-    {
-        return new AvroWriteModelHandler(config, AvroModelConfig.class.cast(options), context);
+        return new AvroModelHandlerImpl(config, AvroModelConfig.class.cast(options), context);
     }
 }

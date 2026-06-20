@@ -20,14 +20,14 @@ import org.agrona.DirectBuffer;
 /**
  * Receives field values extracted from a value as a {@link ModelPipeline} transforms it.
  * <p>
- * A {@code ModelVisitor} is wired to a pipeline at {@link ModelHandler#supplyPipeline} time and
+ * A {@code ModelVisitor} is wired to a pipeline at {@link ModelHandler#supplyDecoder} time and
  * confined to the same single I/O thread. The pipeline invokes {@link #onField} once per registered
  * path that is present in a value, when that value completes. The supplied buffer slice is valid
  * only for the duration of the call; an implementation that needs the bytes beyond the call must
  * copy them out.
  * </p>
  *
- * @see ModelHandler#supplyPipeline(ModelVisitor)
+ * @see ModelHandler#supplyDecoder(ModelVisitor)
  */
 @FunctionalInterface
 public interface ModelVisitor

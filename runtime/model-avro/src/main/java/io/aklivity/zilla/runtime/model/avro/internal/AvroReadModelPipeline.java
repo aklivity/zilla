@@ -33,14 +33,14 @@ import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
 
-// Per-stream read transform session vended by AvroReadModelHandler: owns its own JSON generator, extractor
+// Per-stream read transform session vended by AvroModelHandlerImpl: owns its own JSON generator, extractor
 // and schema-keyed pipeline cache so concurrent streams on a worker never share in-flight state. transform
 // strips the catalog framing on the first fragment, drives the common-avro transform into the caller's
 // destination (re-encoding Avro as JSON or canonical Avro), and surfaces extracted fields to the
 // ModelVisitor when a value completes.
 final class AvroReadModelPipeline implements ModelPipeline
 {
-    private final AvroReadModelHandler handler;
+    private final AvroModelHandlerImpl handler;
     private final List<String> paths;
     private final List<String> names;
     private final ModelVisitor visitor;
@@ -53,7 +53,7 @@ final class AvroReadModelPipeline implements ModelPipeline
     private String diagnostic;
 
     AvroReadModelPipeline(
-        AvroReadModelHandler handler,
+        AvroModelHandlerImpl handler,
         List<String> paths,
         List<String> names,
         ModelVisitor visitor)
@@ -127,6 +127,15 @@ final class AvroReadModelPipeline implements ModelPipeline
             }
         }
         return result.set(status, consumed, produced);
+    }
+
+    @Override
+    public int padding(
+        DirectBuffer data,
+        int index,
+        int length)
+    {
+        return handler.decodePadding(data, index, length);
     }
 
     @Override

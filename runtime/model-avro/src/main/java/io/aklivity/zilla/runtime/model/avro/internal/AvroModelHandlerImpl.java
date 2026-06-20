@@ -30,23 +30,34 @@ import io.aklivity.zilla.runtime.common.avro.AvroPipeline;
 import io.aklivity.zilla.runtime.common.avro.AvroReporter;
 import io.aklivity.zilla.runtime.common.avro.AvroSchema;
 import io.aklivity.zilla.runtime.common.avro.json.AvroJson;
+import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
+import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 import io.aklivity.zilla.runtime.model.avro.config.AvroModelConfig;
 
-public final class AvroReadModelHandler extends AvroModelHandler implements ModelHandler
+// Per-worker factory for an Avro model. One handler serves both directions: supplyDecoder vends a
+// per-stream AvroReadModelPipeline (catalog framing stripped, value validated and re-encoded) and supplyEncoder
+// vends a per-stream AvroWriteModelPipeline (catalog framing emitted, value validated). Configuration-derived
+// state (catalog, schema cache, extraction paths) is shared; in-flight state lives on each pipeline.
+public final class AvroModelHandlerImpl extends AvroModelHandler implements ModelHandler
 {
     private static final String PATH = "^\\$\\.([A-Za-z_][A-Za-z0-9_]*)$";
     private static final Pattern PATH_PATTERN = Pattern.compile(PATH);
+
+    // a no-op encoder so encode() emits only the catalog framing into the destination, never the body
+    private static final CatalogHandler.Encoder NONE_ENCODER =
+        (traceId, bindingId, schemaId, data, index, length, next) -> 0;
 
     private final Matcher matcher;
     private final List<String> paths;
     private final List<String> names;
 
-    public AvroReadModelHandler(
+    public AvroModelHandlerImpl(
         AvroModelConfiguration config,
         AvroModelConfig options,
         EngineContext context)
@@ -69,7 +80,20 @@ public final class AvroReadModelHandler extends AvroModelHandler implements Mode
     }
 
     @Override
-    public int padding(
+    public ModelPipeline supplyDecoder(
+        ModelVisitor visitor)
+    {
+        return new AvroReadModelPipeline(this, paths, names, visitor);
+    }
+
+    @Override
+    public ModelPipeline supplyEncoder(
+        ModelVisitor visitor)
+    {
+        return new AvroWriteModelPipeline(this);
+    }
+
+    int decodePadding(
         DirectBuffer data,
         int index,
         int length)
@@ -82,11 +106,10 @@ public final class AvroReadModelHandler extends AvroModelHandler implements Mode
         return padding;
     }
 
-    @Override
-    public ModelPipeline supplyPipeline(
-        ModelVisitor visitor)
+    int encodePadding(
+        int length)
     {
-        return new AvroReadModelPipeline(this, paths, names, visitor);
+        return handler.encodePadding(length);
     }
 
     // the catalog framing the value carries on the wire, stripped once at the start of the first fragment
@@ -113,6 +136,26 @@ public final class AvroReadModelHandler extends AvroModelHandler implements Mode
         return schemaId;
     }
 
+    int resolveSchemaId()
+    {
+        return catalog != null && catalog.id != NO_SCHEMA_ID
+            ? catalog.id
+            : handler.resolve(subject, catalog.version);
+    }
+
+    // writes the schema framing prefix for the resolved schema id into next, returning the bytes written
+    int encodePrefix(
+        long traceId,
+        long bindingId,
+        int schemaId,
+        DirectBuffer data,
+        int index,
+        int length,
+        ValueConsumer next)
+    {
+        return handler.encode(traceId, bindingId, schemaId, data, index, length, next, NONE_ENCODER);
+    }
+
     AvroPipeline newPipeline(
         int schemaId,
         JsonGeneratorEx json,
@@ -134,6 +177,18 @@ public final class AvroReadModelHandler extends AvroModelHandler implements Mode
                 .into(generator);
         }
         return pipeline;
+    }
+
+    AvroPipeline newPipeline(
+        int schemaId,
+        AvroReporter reporter)
+    {
+        AvroSchema schema = supplySchema(schemaId);
+        return schema != null
+            ? AvroJson.stream(schema, JsonEx.createParser(), true)
+                .reporting(reporter)
+                .into(Avro.generator(schema, new UnsafeBuffer(new byte[1]), 0))
+            : null;
     }
 
     void validationFailure(

@@ -21,7 +21,7 @@ import org.agrona.MutableDirectBuffer;
 /**
  * A per-stream, resumable transform session.
  * <p>
- * A {@code ModelPipeline} is created per stream by {@link ModelHandler#supplyPipeline} and confined
+ * A {@code ModelPipeline} is created per stream by {@link ModelHandler#supplyDecoder} and confined
  * to a single I/O thread. It holds all in-flight state for the value being transformed (parser and
  * generator context, unconsumed input carried across fragments, output position), so concurrent
  * streams on the same thread do not interfere.
@@ -32,8 +32,7 @@ import org.agrona.MutableDirectBuffer;
  * {@link ModelPipelineResult}. On {@link ModelStatus#OVERFLOW} the caller drains {@code dst} and calls
  * again; on {@link ModelStatus#UNDERFLOW} it supplies the next input fragment; on
  * {@link ModelStatus#COMPLETE} the value is done and any extracted fields have been visited; on
- * {@link ModelStatus#REJECTED} the stream should be reset. A validate-only caller passes a
- * zero-length {@code dst} and forwards the original {@code src} bytes on success.
+ * {@link ModelStatus#REJECTED} the stream should be reset.
  * </p>
  *
  * @see ModelHandler
@@ -82,6 +81,23 @@ public interface ModelPipeline
         MutableDirectBuffer dst,
         int dstIndex,
         int dstLength);
+
+    /**
+     * Returns the number of additional bytes required in the output buffer to accommodate any framing
+     * overhead this pipeline's transform may add (e.g., schema id prefix bytes) for the given input.
+     *
+     * @param data   the source buffer containing the untransformed input
+     * @param index  the offset of the input
+     * @param length the length of the input
+     * @return the padding byte count (0 for transforms that do not expand the input)
+     */
+    default int padding(
+        DirectBuffer data,
+        int index,
+        int length)
+    {
+        return 0;
+    }
 
     /**
      * Resets this pipeline so it is ready to transform the next value, discarding any in-flight state.

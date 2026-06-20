@@ -31,7 +31,14 @@ public class TestModelHandler implements ModelHandler
     }
 
     @Override
-    public ModelPipeline supplyPipeline(
+    public ModelPipeline supplyDecoder(
+        ModelVisitor visitor)
+    {
+        return new TestModelPipeline(length);
+    }
+
+    @Override
+    public ModelPipeline supplyEncoder(
         ModelVisitor visitor)
     {
         return new TestModelPipeline(length);

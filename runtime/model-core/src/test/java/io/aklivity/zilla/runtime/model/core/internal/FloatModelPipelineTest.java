@@ -50,7 +50,7 @@ public class FloatModelPipelineTest
     public void shouldTransformWholeValue()
     {
         ModelHandler handler = handler(FloatModelConfig.builder().format("text").build());
-        ModelPipeline pipeline = handler.supplyPipeline(ModelVisitor.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
 
         byte[] bytes = "4.2".getBytes();
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[16]);
@@ -65,7 +65,7 @@ public class FloatModelPipelineTest
     public void shouldRejectInvalid()
     {
         ModelHandler handler = handler(FloatModelConfig.builder().format("text").build());
-        ModelPipeline pipeline = handler.supplyPipeline(ModelVisitor.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
 
         byte[] bytes = "4.x".getBytes();
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[16]);
@@ -78,6 +78,6 @@ public class FloatModelPipelineTest
     private ModelHandler handler(
         FloatModelConfig config)
     {
-        return new FloatModelContext(context).supplyReadHandler(config);
+        return new FloatModelContext(context).supplyHandler(config);
     }
 }

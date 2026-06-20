@@ -54,17 +54,10 @@ public class StringModelContext implements ModelContext
     }
 
     @Override
-    public ModelHandler supplyReadHandler(
+    public ModelHandler supplyHandler(
         ModelConfig config)
     {
-        return supplyHandler(config);
-    }
-
-    @Override
-    public ModelHandler supplyWriteHandler(
-        ModelConfig config)
-    {
-        return supplyHandler(config);
+        return supplyCoreHandler(config);
     }
 
     private StringConverterHandler supply(
@@ -73,7 +66,7 @@ public class StringModelContext implements ModelContext
         return new StringConverterHandler(StringModelConfig.class.cast(config), context);
     }
 
-    private CoreModelHandler supplyHandler(
+    private CoreModelHandler supplyCoreHandler(
         ModelConfig config)
     {
         return new CoreModelHandler(context, StringModel.NAME,

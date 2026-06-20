@@ -50,7 +50,7 @@ public class Int32ModelPipelineTest
     public void shouldTransformWholeValue()
     {
         ModelHandler handler = handler(Int32ModelConfig.builder().format("text").build());
-        ModelPipeline pipeline = handler.supplyPipeline(ModelVisitor.NONE);
+        ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
 
         byte[] bytes = "42".getBytes();
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[16]);
@@ -67,7 +67,7 @@ public class Int32ModelPipelineTest
     public void shouldRejectInvalid()
     {
         ModelHandler handler = handler(Int32ModelConfig.builder().format("text").build());
-        ModelPipeline pipeline = handler.supplyPipeline(ModelVisitor.NONE);
+        ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
 
         byte[] bytes = "12x".getBytes();
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[16]);
@@ -81,7 +81,7 @@ public class Int32ModelPipelineTest
     public void shouldRejectOutOfRange()
     {
         ModelHandler handler = handler(Int32ModelConfig.builder().format("text").max(10).build());
-        ModelPipeline pipeline = handler.supplyPipeline(ModelVisitor.NONE);
+        ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
 
         byte[] bytes = "42".getBytes();
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[16]);
@@ -95,7 +95,7 @@ public class Int32ModelPipelineTest
     public void shouldTransformBinaryFragmented()
     {
         ModelHandler handler = handler(Int32ModelConfig.builder().format("binary").build());
-        ModelPipeline pipeline = handler.supplyPipeline(ModelVisitor.NONE);
+        ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
 
         byte[] head = {0x00, 0x00};
         byte[] tail = {0x00, 0x2a};
@@ -115,6 +115,6 @@ public class Int32ModelPipelineTest
     private ModelHandler handler(
         Int32ModelConfig config)
     {
-        return new Int32ModelContext(context).supplyWriteHandler(config);
+        return new Int32ModelContext(context).supplyHandler(config);
     }
 }

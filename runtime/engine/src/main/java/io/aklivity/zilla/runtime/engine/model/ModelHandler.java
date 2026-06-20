@@ -15,15 +15,13 @@
  */
 package io.aklivity.zilla.runtime.engine.model;
 
-import org.agrona.DirectBuffer;
-
 /**
  * Per-worker factory for {@link ModelPipeline} transform sessions on the I/O hot path.
  * <p>
  * A {@code ModelHandler} is supplied by {@link ModelContext} and confined to a single I/O thread. It
  * owns the configuration-derived state shared across every stream — schema resolution and caches,
  * registered extraction paths, and padding policy — and vends a fresh {@link ModelPipeline} per
- * stream via {@link #supplyPipeline}.
+ * stream via {@link #supplyDecoder} and {@link #supplyEncoder}.
  * </p>
  * <p>
  * {@link ModelContext} returns {@code null} when no model is configured; a caller that holds a
@@ -36,23 +34,43 @@ import org.agrona.DirectBuffer;
 public interface ModelHandler
 {
     /**
-     * Supplies a new {@link ModelPipeline} for a single stream, wiring the given {@link ModelVisitor}
-     * to receive any extracted field values as the pipeline transforms each value.
+     * Supplies a new read-direction {@link ModelPipeline} for a single stream, wiring the given
+     * {@link ModelVisitor} to receive any extracted field values as the pipeline transforms each value.
      *
      * @param visitor  the visitor to receive extracted field values
-     * @return a new per-stream pipeline
+     * @return a new per-stream decode pipeline
      */
-    ModelPipeline supplyPipeline(
+    ModelPipeline supplyDecoder(
         ModelVisitor visitor);
 
     /**
-     * Supplies a new {@link ModelPipeline} for a single stream with no extraction visitor.
+     * Supplies a new read-direction {@link ModelPipeline} for a single stream with no extraction visitor.
      *
-     * @return a new per-stream pipeline
+     * @return a new per-stream decode pipeline
      */
-    default ModelPipeline supplyPipeline()
+    default ModelPipeline supplyDecoder()
     {
-        return supplyPipeline(ModelVisitor.NONE);
+        return supplyDecoder(ModelVisitor.NONE);
+    }
+
+    /**
+     * Supplies a new write-direction {@link ModelPipeline} for a single stream, wiring the given
+     * {@link ModelVisitor} to receive any extracted field values as the pipeline transforms each value.
+     *
+     * @param visitor  the visitor to receive extracted field values
+     * @return a new per-stream encode pipeline
+     */
+    ModelPipeline supplyEncoder(
+        ModelVisitor visitor);
+
+    /**
+     * Supplies a new write-direction {@link ModelPipeline} for a single stream with no extraction visitor.
+     *
+     * @return a new per-stream encode pipeline
+     */
+    default ModelPipeline supplyEncoder()
+    {
+        return supplyEncoder(ModelVisitor.NONE);
     }
 
     /**
@@ -68,22 +86,5 @@ public interface ModelHandler
     default void extract(
         String path)
     {
-    }
-
-    /**
-     * Returns the number of additional bytes required in the output buffer to accommodate any framing
-     * overhead the transform may add (e.g., schema id prefix bytes).
-     *
-     * @param data   the source buffer containing the untransformed input
-     * @param index  the offset of the input
-     * @param length the length of the input
-     * @return the padding byte count (0 for transforms that do not expand the input)
-     */
-    default int padding(
-        DirectBuffer data,
-        int index,
-        int length)
-    {
-        return 0;
     }
 }

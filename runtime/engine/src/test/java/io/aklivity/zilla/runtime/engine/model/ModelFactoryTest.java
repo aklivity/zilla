@@ -67,14 +67,7 @@ public class ModelFactoryTest
             }
 
             @Override
-            public ModelHandler supplyReadHandler(
-                ModelConfig config)
-            {
-                return null;
-            }
-
-            @Override
-            public ModelHandler supplyWriteHandler(
+            public ModelHandler supplyHandler(
                 ModelConfig config)
             {
                 return null;

@@ -50,7 +50,7 @@ public class BooleanModelPipelineTest
     public void shouldTransformWholeValue()
     {
         ModelHandler handler = handler();
-        ModelPipeline pipeline = handler.supplyPipeline(ModelVisitor.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
 
         byte[] bytes = {0x01};
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[8]);
@@ -65,7 +65,7 @@ public class BooleanModelPipelineTest
     public void shouldRejectInvalid()
     {
         ModelHandler handler = handler();
-        ModelPipeline pipeline = handler.supplyPipeline(ModelVisitor.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
 
         byte[] bytes = {0x05};
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[8]);
@@ -77,6 +77,6 @@ public class BooleanModelPipelineTest
 
     private ModelHandler handler()
     {
-        return new BooleanModelContext(context).supplyReadHandler(BooleanModelConfig.builder().build());
+        return new BooleanModelContext(context).supplyHandler(BooleanModelConfig.builder().build());
     }
 }

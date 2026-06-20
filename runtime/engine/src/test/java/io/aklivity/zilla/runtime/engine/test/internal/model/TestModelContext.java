@@ -58,14 +58,7 @@ public class TestModelContext implements ModelContext
     }
 
     @Override
-    public ModelHandler supplyReadHandler(
-        ModelConfig config)
-    {
-        return new TestModelHandler(TestModelConfig.class.cast(config));
-    }
-
-    @Override
-    public ModelHandler supplyWriteHandler(
+    public ModelHandler supplyHandler(
         ModelConfig config)
     {
         return new TestModelHandler(TestModelConfig.class.cast(config));

@@ -93,8 +93,8 @@ public class ProtobufReadModelPipelineTest
     @Test
     public void shouldTransformWholeValueToJson()
     {
-        ProtobufReadModelHandler handler = newHandler("json");
-        ModelPipeline pipeline = handler.supplyPipeline(ModelVisitor.NONE);
+        ProtobufModelHandlerImpl handler = newHandler("json");
+        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
 
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
         ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
@@ -115,8 +115,8 @@ public class ProtobufReadModelPipelineTest
     @Test
     public void shouldTransformWholeValueToWire()
     {
-        ProtobufReadModelHandler handler = newHandler(null);
-        ModelPipeline pipeline = handler.supplyPipeline(ModelVisitor.NONE);
+        ProtobufModelHandlerImpl handler = newHandler(null);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
 
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
         ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
@@ -132,10 +132,10 @@ public class ProtobufReadModelPipelineTest
     @Test
     public void shouldIsolateInterleavedStreams()
     {
-        ProtobufReadModelHandler handler = newHandler(null);
+        ProtobufModelHandlerImpl handler = newHandler(null);
         // two per-stream pipelines from the same per-worker handler
-        ModelPipeline a = handler.supplyPipeline(ModelVisitor.NONE);
-        ModelPipeline b = handler.supplyPipeline(ModelVisitor.NONE);
+        ModelPipeline a = handler.supplyDecoder(ModelVisitor.NONE);
+        ModelPipeline b = handler.supplyDecoder(ModelVisitor.NONE);
 
         // stream A split at the field boundary: index byte + content field first, date_time on the final fragment
         byte[] a1 = {0x00, 0x0a, 0x02, 0x4f, 0x4b};
@@ -170,14 +170,14 @@ public class ProtobufReadModelPipelineTest
     @Test
     public void shouldExtractField()
     {
-        ProtobufReadModelHandler handler = newHandler(null);
+        ProtobufModelHandlerImpl handler = newHandler(null);
         handler.extract("$.content");
         handler.extract("$.date_time");
 
         Map<String, String> extracted = new HashMap<>();
         ModelVisitor visitor = (path, buffer, index, length) ->
             extracted.put(path, buffer.getStringWithoutLengthUtf8(index, length));
-        ModelPipeline pipeline = handler.supplyPipeline(visitor);
+        ModelPipeline pipeline = handler.supplyDecoder(visitor);
 
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
         ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
@@ -211,7 +211,7 @@ public class ProtobufReadModelPipelineTest
                     .build()
                 .build()
             .build();
-        ProtobufReadModelHandler handler = new ProtobufReadModelHandler(model, context);
+        ProtobufModelHandlerImpl handler = new ProtobufModelHandlerImpl(model, context);
         handler.extract("$.field_string");
         handler.extract("$.field_float");
         handler.extract("$.field_int64");
@@ -225,7 +225,7 @@ public class ProtobufReadModelPipelineTest
         Map<String, String> extracted = new HashMap<>();
         ModelVisitor visitor = (path, buffer, index, length) ->
             extracted.put(path, buffer.getStringWithoutLengthUtf8(index, length));
-        ModelPipeline pipeline = handler.supplyPipeline(visitor);
+        ModelPipeline pipeline = handler.supplyDecoder(visitor);
 
         // leading message index 0, then the complex message's scalar fields (matches the legacy extract case)
         byte[] wire = {0, 9, 119, -66, -97, 26, 47, -35, 94, 64, 21, 102, -26, -11, 66, 24, -107, -102, -17, 58,
@@ -247,8 +247,8 @@ public class ProtobufReadModelPipelineTest
     @Test
     public void shouldDrainJsonOnOverflow()
     {
-        ProtobufReadModelHandler handler = newHandler("json");
-        ModelPipeline pipeline = handler.supplyPipeline(ModelVisitor.NONE);
+        ProtobufModelHandlerImpl handler = newHandler("json");
+        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
 
         // a 2000-byte content field forces the JSON output past a small destination window, exercising the
         // bounded-chunk OVERFLOW drain across re-transforms (INIT cleared on every re-call after the first)
@@ -293,8 +293,8 @@ public class ProtobufReadModelPipelineTest
     {
         when(context.clock()).thenReturn(Clock.systemUTC());
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
-        ProtobufReadModelHandler handler = newHandler(null);
-        ModelPipeline pipeline = handler.supplyPipeline(ModelVisitor.NONE);
+        ProtobufModelHandlerImpl handler = newHandler(null);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
 
         // index byte, then content length prefix promises 8 bytes but only "OK" follows under FLAGS_COMPLETE
         byte[] invalid = {0x00, 0x0a, 0x08, 0x4f, 0x4b};
@@ -305,7 +305,7 @@ public class ProtobufReadModelPipelineTest
         assertEquals(ModelStatus.REJECTED, result.status());
     }
 
-    private ProtobufReadModelHandler newHandler(
+    private ProtobufModelHandlerImpl newHandler(
         String view)
     {
         TestCatalogConfig catalog = CatalogConfig.builder(TestCatalogConfig::new)
@@ -333,7 +333,7 @@ public class ProtobufReadModelPipelineTest
                 .build()
             .build();
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
-        return new ProtobufReadModelHandler(model, context);
+        return new ProtobufModelHandlerImpl(model, context);
     }
 
     private static byte[] concat(
