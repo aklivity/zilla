@@ -48,6 +48,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 import io.aklivity.zilla.runtime.binding.sse.internal.SseBinding;
 import io.aklivity.zilla.runtime.binding.sse.internal.SseConfiguration;
 import io.aklivity.zilla.runtime.binding.sse.internal.config.SseBindingConfig;
+import io.aklivity.zilla.runtime.binding.sse.internal.config.SseModel;
 import io.aklivity.zilla.runtime.binding.sse.internal.config.SseRouteConfig;
 import io.aklivity.zilla.runtime.binding.sse.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.sse.internal.types.Flyweight;
@@ -80,8 +81,7 @@ import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
-import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
-import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
+import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 
 public final class SseServerFactory implements SseStreamFactory
 {
@@ -178,7 +178,9 @@ public final class SseServerFactory implements SseStreamFactory
     private final Long2ObjectHashMap<SseBindingConfig> bindings;
     private final Consumer<Array32FW.Builder<HttpHeaderFW.Builder, HttpHeaderFW>> setHttpResponseHeaders;
     private final Consumer<Array32FW.Builder<HttpHeaderFW.Builder, HttpHeaderFW>> setHttpResponseHeadersWithTimestampExt;
-    private final Function<ModelConfig, ValidatorHandler> supplyValidator;
+    private final Function<ModelConfig, ModelHandler> supplyModel;
+    private final MutableDirectBuffer modelBuffer;
+    private final OctetsFW contentRO = new OctetsFW();
     private final Clock clock;
     private final long maxIdleMillis;
 
@@ -202,7 +204,8 @@ public final class SseServerFactory implements SseStreamFactory
         this.setHttpResponseHeaders = this::setHttpResponseHeaders;
         this.setHttpResponseHeadersWithTimestampExt = this::setHttpResponseHeadersWithTimestampExt;
         this.challengeEventType = new String8FW(config.challengeEventType());
-        this.supplyValidator = context::supplyValidator;
+        this.supplyModel = context::supplyModel;
+        this.modelBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.clock = context.clock();
         this.maxIdleMillis = SECONDS.toMillis(config.maximumIdleTime());
     }
@@ -350,7 +353,7 @@ public final class SseServerFactory implements SseStreamFactory
         private final long replyId;
         private final Consumer<Array32FW.Builder<HttpHeaderFW.Builder, HttpHeaderFW>> setHttpHeaders;
         private final SseStream stream;
-        private final ValidatorHandler contentType;
+        private final SseModel contentType;
 
         private long initialSeq;
         private long initialAck;
@@ -393,7 +396,7 @@ public final class SseServerFactory implements SseStreamFactory
             this.setHttpHeaders = timestampRequested ? setHttpResponseHeadersWithTimestampExt : setHttpResponseHeaders;
             this.commentPending = initialCommentEnabled;
             this.stream = new SseStream(routedId, resolvedId, timestampRequested ? SseDataExFW::timestamp : ex -> 0L);
-            this.contentType = config != null ? supplyValidator.apply(config) : null;
+            this.contentType = SseModel.decoder(config != null ? supplyModel.apply(config) : null, modelBuffer);
         }
 
         private void onNetMessage(
@@ -1131,9 +1134,27 @@ public final class SseServerFactory implements SseStreamFactory
                         timestamp = supplyTimestamp.applyAsLong(sseDataEx);
                     }
 
-                    if (contentType == null || payload != null && validContent(traceId, contentType, payload))
+                    OctetsFW content = payload;
+                    boolean encode;
+                    if (!contentType.active())
                     {
-                        doEncodeEvent(traceId, authorization, budgetId, reserved, flags, payload, id, type, timestamp);
+                        encode = true;
+                    }
+                    else if (payload != null)
+                    {
+                        final int produced = contentType.transform(traceId, routedId,
+                            payload.buffer(), payload.offset(), payload.limit());
+                        content = produced < 0 ? null : contentRO.wrap(contentType.buffer(), 0, produced);
+                        encode = content != null;
+                    }
+                    else
+                    {
+                        encode = false;
+                    }
+
+                    if (encode)
+                    {
+                        doEncodeEvent(traceId, authorization, budgetId, reserved, flags, content, id, type, timestamp);
                     }
                 }
             }
@@ -1334,15 +1355,6 @@ public final class SseServerFactory implements SseStreamFactory
             }
         }
 
-        private boolean validContent(
-            long traceId,
-            ValidatorHandler contentType,
-            OctetsFW payload)
-        {
-            return contentType == null ||
-                contentType.validate(traceId, routedId, payload.buffer(), payload.offset(),
-                    payload.sizeof(), ValueConsumer.NOP);
-        }
     }
 
     private final class HttpDecodeHelper
