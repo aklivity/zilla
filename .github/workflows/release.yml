@@ -161,20 +161,6 @@ jobs:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-    - name: Restore base image cache
-      uses: actions/cache/restore@v5
-      with:
-        path: ~/docker-base-cache/base-images.tar
-        key: docker-base-${{ runner.os }}-${{ github.run_id }}
-        restore-keys: |
-          docker-base-${{ runner.os }}-
-
-    - name: Load cached base images
-      run: |
-        if [ -f ~/docker-base-cache/base-images.tar ]; then
-          docker load -i ~/docker-base-cache/base-images.tar || true
-        fi
-
     - name: Determine docker tag
       id: tag
       run: |
@@ -201,23 +187,6 @@ jobs:
       env:
         GITHUB_ACTOR: ${{ github.actor }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Save base images
-      if: always()
-      run: |
-        mkdir -p ~/docker-base-cache
-        imgs=$(docker images --format '{{.Repository}}:{{.Tag}}' \
-          | grep -Ev '<none>|ghcr.io/aklivity/zilla' \
-          | grep -E '^(eclipse-temurin|ubuntu|alpine):')
-        if [ -n "$imgs" ]; then
-          docker save -o ~/docker-base-cache/base-images.tar $imgs
-        fi
-    - name: Save base image cache
-      if: always()
-      uses: actions/cache/save@v5
-      with:
-        path: ~/docker-base-cache/base-images.tar
-        key: docker-base-${{ runner.os }}-${{ github.run_id }}
 
     - name: Setup buildx to publish multi-arch images
       run: |
