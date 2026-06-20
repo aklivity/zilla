@@ -91,6 +91,22 @@ public interface BudgetDebit extends AutoCloseable
         int deferred);
 
     /**
+     * Indicates whether this handle is currently backed by an available shared budget.
+     * <p>
+     * A producer that must not proceed without a shared budget can abort the stream when this
+     * returns {@code false}. Producers that tolerate a not-yet-available budget ignore it: a
+     * {@link #claim} grants the full requested amount until the budget becomes available. The
+     * default is {@code true}; implementations backed by a shared budget report its presence.
+     * </p>
+     *
+     * @return {@code true} when a shared budget is available to claim against
+     */
+    default boolean available()
+    {
+        return true;
+    }
+
+    /**
      * Releases the underlying budget resources held by this handle. Optional; resources are
      * released implicitly when the stream terminates.
      */

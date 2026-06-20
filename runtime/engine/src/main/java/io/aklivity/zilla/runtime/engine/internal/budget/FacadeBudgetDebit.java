@@ -29,7 +29,7 @@ import io.aklivity.zilla.runtime.engine.budget.BudgetFlusher;
  * Behavior-preserving: it owns the acquire/claim/release dance the binding does by hand
  * today, folds the declared per-frame padding into one claimed frame, composes the declared
  * minimum with each claim, and delegates to the existing six-argument
- * {@link BudgetDebitor#claim} with {@code deferred} of {@code 0}.
+ * {@link BudgetDebitor#claim}, passing through the per-claim {@code deferred} bytes.
  * </p>
  * <p>
  * {@link BudgetDebitor#acquire} returns {@link BudgetDebitor#NO_DEBITOR_INDEX} when the shared
@@ -101,6 +101,12 @@ public final class FacadeBudgetDebit implements BudgetDebit
         }
 
         return claimed;
+    }
+
+    @Override
+    public boolean available()
+    {
+        return budgetIndex != NO_DEBITOR_INDEX;
     }
 
     @Override

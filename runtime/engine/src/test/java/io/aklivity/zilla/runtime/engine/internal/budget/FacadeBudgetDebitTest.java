@@ -16,6 +16,8 @@
 package io.aklivity.zilla.runtime.engine.internal.budget;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -190,5 +192,29 @@ public class FacadeBudgetDebitTest
         debit.close();
 
         verify(debitor, never()).release(anyLong(), anyLong());
+    }
+
+    @Test
+    public void shouldReportAvailableWhenAcquired()
+    {
+        final BudgetDebitor debitor = mock(BudgetDebitor.class);
+        final BudgetFlusher onResume = mock(BudgetFlusher.class);
+        when(debitor.acquire(eq(BUDGET_ID), eq(WATCHER_ID), any())).thenReturn(BUDGET_INDEX);
+
+        final FacadeBudgetDebit debit = new FacadeBudgetDebit(debitor, BUDGET_ID, WATCHER_ID, onResume);
+
+        assertTrue(debit.available());
+    }
+
+    @Test
+    public void shouldReportUnavailableWhenNotAcquired()
+    {
+        final BudgetDebitor debitor = mock(BudgetDebitor.class);
+        final BudgetFlusher onResume = mock(BudgetFlusher.class);
+        when(debitor.acquire(eq(BUDGET_ID), eq(WATCHER_ID), any())).thenReturn(BudgetDebitor.NO_DEBITOR_INDEX);
+
+        final FacadeBudgetDebit debit = new FacadeBudgetDebit(debitor, BUDGET_ID, WATCHER_ID, onResume);
+
+        assertFalse(debit.available());
     }
 }
