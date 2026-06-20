@@ -604,7 +604,103 @@ public final class JsonSchemaImpl implements JsonSchema
             matcher.appendReplacement(result, replacement);
         }
         matcher.appendTail(result);
-        return Pattern.compile(result.toString());
+        return Pattern.compile(escapeLiteralBraces(result.toString()));
+    }
+
+    // ECMA-262 treats a "{" that does not form a well-formed quantifier as a literal, whereas
+    // java.util.regex rejects it with PatternSyntaxException; escape such braces so an ECMA-valid
+    // pattern compiles. Valid quantifiers ({n}, {n,}, {n,m}), unicode property escapes (\p{...},
+    // \P{...}, \x{...}) and character classes are left untouched.
+    private static String escapeLiteralBraces(
+        String regex)
+    {
+        StringBuilder result = new StringBuilder(regex.length());
+        int length = regex.length();
+        int index = 0;
+        boolean inCharClass = false;
+        while (index < length)
+        {
+            char ch = regex.charAt(index);
+            if (ch == '\\' && index + 1 < length)
+            {
+                char escaped = regex.charAt(index + 1);
+                result.append(ch).append(escaped);
+                index += 2;
+                if ((escaped == 'p' || escaped == 'P' || escaped == 'x') &&
+                    index < length && regex.charAt(index) == '{')
+                {
+                    int close = regex.indexOf('}', index);
+                    int end = close < 0 ? length : close + 1;
+                    result.append(regex, index, end);
+                    index = end;
+                }
+            }
+            else if (ch == '[')
+            {
+                inCharClass = true;
+                result.append(ch);
+                index++;
+            }
+            else if (ch == ']')
+            {
+                inCharClass = false;
+                result.append(ch);
+                index++;
+            }
+            else if (ch == '{' && !inCharClass)
+            {
+                int end = quantifierEnd(regex, index);
+                if (end > index)
+                {
+                    result.append(regex, index, end);
+                    index = end;
+                }
+                else
+                {
+                    result.append("\\{");
+                    index++;
+                }
+            }
+            else
+            {
+                result.append(ch);
+                index++;
+            }
+        }
+        return result.toString();
+    }
+
+    // Returns the index just past a well-formed ECMA-262 quantifier ({n}, {n,}, {n,m}) starting at
+    // start, or start itself when the brace does not open a valid quantifier.
+    private static int quantifierEnd(
+        String regex,
+        int start)
+    {
+        int length = regex.length();
+        int index = start + 1;
+        int digits = 0;
+        int result = start;
+        while (index < length && Character.isDigit(regex.charAt(index)))
+        {
+            index++;
+            digits++;
+        }
+        if (digits > 0)
+        {
+            if (index < length && regex.charAt(index) == ',')
+            {
+                index++;
+                while (index < length && Character.isDigit(regex.charAt(index)))
+                {
+                    index++;
+                }
+            }
+            if (index < length && regex.charAt(index) == '}')
+            {
+                result = index + 1;
+            }
+        }
+        return result;
     }
 
     private static Map<Pattern, JsonSchemaImpl> parsePatternProperties(
@@ -2157,13 +2253,14 @@ public final class JsonSchemaImpl implements JsonSchema
         }
 
         private final JsonController decline = new Decline();
+        private final List<JsonSchemaDiagnostic> diagnostics = new ArrayList<>();
 
         private JsonController upstreamControl;
         private Eval eval;
 
         private Validator()
         {
-            this.eval = eval();
+            this.eval = eval(new Trace(diagnostics::add));
         }
 
         @Override
@@ -2174,36 +2271,65 @@ public final class JsonSchemaImpl implements JsonSchema
             JsonSink sink)
         {
             upstreamControl = control;
-            Status downstream = sink.feed(decline, source, event);
             Status status;
+            boolean scalar = event == JsonEvent.VALUE_STRING || event == JsonEvent.VALUE_NUMBER;
             if (event.segmented() || event == JsonEvent.START_DOCUMENT || event == JsonEvent.END_DOCUMENT)
             {
+                Status downstream = sink.feed(decline, source, event);
                 status = downstream == Status.REJECTED ? Status.REJECTED
                     : downstream == Status.SUSPENDED ? Status.SUSPENDED : Status.ADVANCED;
             }
+            else if (scalar && source.deferredBytes())
+            {
+                // Eval is not fragment-aware: a value spanning windows must be reassembled before it can be
+                // validated against any keyword. Decline the fragment (consumed(0), do not forward) so the
+                // source accumulates it and re-presents the value whole on a later window; only then validate.
+                control.consumed(0);
+                status = Status.STARVED;
+            }
+            else if (scalar)
+            {
+                // a complete scalar: validate before forwarding, so eval reads the whole value rather than the
+                // remainder the sink leaves after advancing the consumed cursor
+                Verdict verdict = eval.feed(toEvent(event), source);
+                if (verdict == Verdict.INVALID)
+                {
+                    throw new JsonValidationException(diagnostics);
+                }
+                Status downstream = sink.feed(decline, source, event);
+                status = verdictStatus(verdict, downstream);
+            }
             else
             {
+                // structural events and keys forward first, preserving the emit-then-reject ordering (e.g. a
+                // missing required property is detected at END_OBJECT only after the object has been emitted)
+                Status downstream = sink.feed(decline, source, event);
                 Verdict verdict = eval.feed(toEvent(event), source);
-                if (downstream == Status.REJECTED || verdict == Verdict.INVALID)
+                // throw a descriptive exception at the point of detection so the pipeline maps it to REJECTED
+                // and pushes the diagnostic to the reporter, rather than rejecting structurally with no message
+                if (verdict == Verdict.INVALID)
                 {
-                    status = Status.REJECTED;
+                    throw new JsonValidationException(diagnostics);
                 }
-                else if (verdict == Verdict.VALID)
-                {
-                    status = Status.COMPLETED;
-                }
-                else
-                {
-                    status = downstream == Status.SUSPENDED ? Status.SUSPENDED : Status.ADVANCED;
-                }
+                status = verdictStatus(verdict, downstream);
             }
             return status;
+        }
+
+        private Status verdictStatus(
+            Verdict verdict,
+            Status downstream)
+        {
+            return downstream == Status.REJECTED ? Status.REJECTED
+                : verdict == Verdict.VALID ? Status.COMPLETED
+                : downstream == Status.SUSPENDED ? Status.SUSPENDED : Status.ADVANCED;
         }
 
         @Override
         public void reset()
         {
-            eval = eval();
+            diagnostics.clear();
+            eval = eval(new Trace(diagnostics::add));
         }
     }
 

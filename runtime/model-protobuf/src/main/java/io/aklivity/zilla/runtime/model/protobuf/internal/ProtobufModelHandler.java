@@ -20,22 +20,22 @@ import java.util.List;
 
 import org.agrona.BitUtil;
 import org.agrona.DirectBuffer;
-import org.agrona.ExpandableDirectByteBuffer;
-import org.agrona.LangUtil;
+import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.Int2ObjectCache;
-import org.agrona.collections.Object2ObjectHashMap;
-import org.agrona.io.DirectBufferInputStream;
-import org.agrona.io.ExpandableDirectBufferOutputStream;
+import org.agrona.concurrent.UnsafeBuffer;
 
-import com.google.protobuf.Descriptors;
-import com.google.protobuf.Descriptors.FileDescriptor;
-import com.google.protobuf.DynamicMessage;
-
+import io.aklivity.zilla.runtime.common.protobuf.Protobuf;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufField;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufGenerator;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufMessage;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufSchema;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
+import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 import io.aklivity.zilla.runtime.model.protobuf.config.ProtobufModelConfig;
 
 public class ProtobufModelHandler
@@ -46,21 +46,21 @@ public class ProtobufModelHandler
     private static final int JSON_FIELD_STRUCTURE_LENGTH = "\"\":\"\",".length();
     private static final int JSON_OBJECT_CURLY_BRACES = 2;
 
+    // a fixed, reused output window the pipeline generator fills; when a feed fills it the chunk is emitted
+    // downstream and the feed resumes into the same window, so output of any size streams in bounded chunks
+    // with no per-message allocation (the common-protobuf generators fragment a single value across windows)
+    private static final int OUT_WINDOW = 8192;
+
     protected final SchemaConfig catalog;
     protected final CatalogHandler handler;
     protected final String subject;
     protected final String view;
     protected final List<Integer> indexes;
-    protected final DirectBufferInputStream in;
-    protected final ExpandableDirectBufferOutputStream out;
+    protected final MutableDirectBuffer out;
     protected final ProtobufModelEventContext event;
 
-    private final Int2ObjectCache<FileDescriptor> descriptors;
-    private final Int2ObjectCache<DescriptorTree> tree;
-    private final Object2ObjectHashMap<String, DynamicMessage.Builder> builders;
-    private final FileDescriptor[] dependencies;
+    private final Int2ObjectCache<ProtobufSchema> schemas;
     private final Int2IntHashMap paddings;
-    private final ProtobufParser parser;
 
     protected ProtobufModelHandler(
         ProtobufModelConfig config,
@@ -73,28 +73,64 @@ public class ProtobufModelHandler
                 ? catalog.subject
                 : config.subject;
         this.view = config.view;
-        this.descriptors = new Int2ObjectCache<>(1, 1024, i -> {});
-        this.tree = new Int2ObjectCache<>(1, 1024, i -> {});
-        this.builders = new Object2ObjectHashMap<>();
-        this.in = new DirectBufferInputStream();
-        this.dependencies = new FileDescriptor[0];
+        this.schemas = new Int2ObjectCache<>(1, 1024, i -> {});
         this.indexes = new LinkedList<>();
         this.paddings = new Int2IntHashMap(-1);
-        this.out = new ExpandableDirectBufferOutputStream(new ExpandableDirectByteBuffer());
+        this.out = new UnsafeBuffer(new byte[OUT_WINDOW]);
         this.event = new ProtobufModelEventContext(context);
-        this.parser = new ProtobufParser(dependencies);
     }
 
-    protected FileDescriptor supplyDescriptor(
-        int schemaId)
+    // Streams a whole message through the pipeline as bounded output chunks emitted via {@code next}, returning
+    // the total number of bytes emitted or -1 when the message is rejected. The fixed window {@code out} is
+    // filled, flushed downstream, then re-wrapped and the feed resumed each time it fills, so output of any size
+    // streams in bounded chunks with no per-message allocation and no re-parse. A late rejection (after some
+    // chunks have already been emitted) returns -1 so the caller aborts the downstream stream; the pipeline's
+    // configured reporter receives the diagnostic on rejection.
+    protected final int transcode(
+        ProtobufPipeline pipeline,
+        ProtobufGenerator generator,
+        DirectBuffer data,
+        int index,
+        int length,
+        ValueConsumer next)
     {
-        return descriptors.computeIfAbsent(schemaId, this::createDescriptors);
+        int produced = -1;
+        try
+        {
+            int emitted = 0;
+            generator.wrap(out, 0, out.capacity());
+            pipeline.reset();
+            ProtobufPipeline.Status status = pipeline.feed(data, index, index + length);
+            // each filled window is a finished chunk (the sink backfills any open length slots before
+            // suspending); emit it as-is and resume into the same window — flush() is only for completion
+            while (status == ProtobufPipeline.Status.SUSPENDED)
+            {
+                int chunk = generator.length();
+                next.accept(out, 0, chunk);
+                emitted += chunk;
+                generator.wrap(out, 0, out.capacity());
+                status = pipeline.feed(data, index, index + length);
+            }
+            if (status == ProtobufPipeline.Status.COMPLETED)
+            {
+                generator.flush();
+                int chunk = generator.length();
+                next.accept(out, 0, chunk);
+                emitted += chunk;
+                produced = emitted;
+            }
+        }
+        catch (Exception ex)
+        {
+            produced = -1;
+        }
+        return produced;
     }
 
-    protected DescriptorTree supplyDescriptorTree(
+    protected ProtobufSchema supplySchema(
         int schemaId)
     {
-        return tree.computeIfAbsent(schemaId, this::createDescriptorTree);
+        return schemas.computeIfAbsent(schemaId, this::createSchema);
     }
 
     protected byte[] encodeIndexes()
@@ -140,6 +176,27 @@ public class ProtobufModelHandler
         return progress;
     }
 
+    protected int[] decodedPath()
+    {
+        int[] path = new int[indexes.size()];
+        for (int i = 0; i < indexes.size(); i++)
+        {
+            path[i] = indexes.get(i);
+        }
+        return path;
+    }
+
+    protected void encodeIndexes(
+        int[] path)
+    {
+        indexes.clear();
+        indexes.add(path.length);
+        for (int entry : path)
+        {
+            indexes.add(entry);
+        }
+    }
+
     protected int supplyIndexPadding(
         int schemaId)
     {
@@ -149,29 +206,7 @@ public class ProtobufModelHandler
     protected int supplyJsonFormatPadding(
         int schemaId)
     {
-        return paddings.computeIfAbsent(schemaId, id -> calculateJsonFormatPadding(supplyDescriptor(id)));
-    }
-
-    protected DynamicMessage.Builder supplyDynamicMessageBuilder(
-        Descriptors.Descriptor descriptor)
-    {
-        DynamicMessage.Builder builder;
-        if (builders.containsKey(descriptor.getFullName()))
-        {
-            builder = builders.get(descriptor.getFullName());
-        }
-        else
-        {
-            builder = createDynamicMessageBuilder(descriptor);
-            builders.put(descriptor.getFullName(), builder);
-        }
-        return builder;
-    }
-
-    private DynamicMessage.Builder createDynamicMessageBuilder(
-        Descriptors.Descriptor descriptor)
-    {
-        return DynamicMessage.newBuilder(descriptor);
+        return paddings.computeIfAbsent(schemaId, this::calculateJsonFormatPadding);
     }
 
     private int decodeIndex(
@@ -192,68 +227,53 @@ public class ProtobufModelHandler
         int schemaId)
     {
         int padding = 0;
-        DescriptorTree trees = supplyDescriptorTree(schemaId);
-        if (trees != null && catalog.record != null)
+        ProtobufSchema schema = supplySchema(schemaId);
+        if (schema != null && catalog.record != null)
         {
-            DescriptorTree tree = trees.findByName(catalog.record);
-            if (tree != null)
+            int[] path = schema.messageIndexes(catalog.record);
+            if (path != null)
             {
-                padding = tree.indexes.size() + 1;
+                padding = path.length + 1;
             }
         }
         return padding;
     }
 
     private int calculateJsonFormatPadding(
-        FileDescriptor descriptor)
+        int schemaId)
     {
         int padding = 0;
+        ProtobufSchema schema = supplySchema(schemaId);
 
-        if (descriptor != null)
+        if (schema != null)
         {
-            for (Descriptors.Descriptor message : descriptor.getMessageTypes())
+            for (int i = 0; ; i++)
             {
-                padding += JSON_OBJECT_CURLY_BRACES;
-                for (Descriptors.FieldDescriptor field : message.getFields())
+                ProtobufMessage message = schema.messageByIndexes(new int[]{i});
+                if (message == null)
                 {
-                    padding += field.getName().getBytes().length + JSON_FIELD_STRUCTURE_LENGTH;
+                    break;
+                }
+                padding += JSON_OBJECT_CURLY_BRACES;
+                for (ProtobufField field : message.fields())
+                {
+                    padding += field.name().getBytes().length + JSON_FIELD_STRUCTURE_LENGTH;
                 }
             }
-
         }
         return padding;
     }
 
-    private FileDescriptor createDescriptors(
+    private ProtobufSchema createSchema(
         int schemaId)
     {
-        FileDescriptor descriptor = null;
+        ProtobufSchema schema = null;
 
         String schemaText = handler.resolve(schemaId);
         if (schemaText != null)
         {
-            try
-            {
-                descriptor = parser.parse(schemaText);
-            }
-            catch (Exception ex)
-            {
-                LangUtil.rethrowUnchecked(ex);
-            }
+            schema = Protobuf.schema(schemaText);
         }
-        return descriptor;
-    }
-
-    private DescriptorTree createDescriptorTree(
-        int schemaId)
-    {
-        DescriptorTree tree = null;
-        FileDescriptor descriptor = supplyDescriptor(schemaId);
-
-        if (descriptor != null)
-        {
-            tree = new DescriptorTree(descriptor);
-        }
-        return tree;
+        return schema;
     }
 }

@@ -32,6 +32,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.mockito.quality.Strictness;
 
+import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapter;
@@ -56,18 +57,19 @@ public class OptionsConfigAdapterTest
         adapter.adaptType("test");
         JsonbConfig config = new JsonbConfig()
                 .withAdapters(adapter);
-        jsonb = JsonbBuilder.create(config);
+        jsonb = JsonbBuilder.newBuilder()
+                .withProvider(YamlJson.provider())
+                .withConfig(config)
+                .build();
     }
 
     @Test
     public void shouldReadOptions()
     {
-        String text =
-                "{" +
-                    "\"mode\": \"test\"" +
-                "}";
+        String yaml =
+                "mode: test";
 
-        TestBindingOptionsConfig options = (TestBindingOptionsConfig) jsonb.fromJson(text, OptionsConfig.class);
+        TestBindingOptionsConfig options = (TestBindingOptionsConfig) jsonb.fromJson(yaml, OptionsConfig.class);
 
         assertThat(options, not(nullValue()));
         assertThat(options.mode, equalTo("test"));
@@ -80,22 +82,20 @@ public class OptionsConfigAdapterTest
             .mode("test")
             .build();
 
-        String text = jsonb.toJson(options);
+        String yaml = jsonb.toJson(options);
 
-        assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"mode\":\"test\"}"));
+        assertThat(yaml, not(nullValue()));
+        assertThat(yaml, equalTo("mode: test\n"));
     }
 
     @Test
     public void shouldReadNullWhenNotAdapting()
     {
-        String text =
-                "{" +
-                    "\"mode\": \"test\"" +
-                "}";
+        String yaml =
+                "mode: test";
 
         adapter.adaptType(null);
-        TestBindingOptionsConfig options = (TestBindingOptionsConfig) jsonb.fromJson(text, OptionsConfig.class);
+        TestBindingOptionsConfig options = (TestBindingOptionsConfig) jsonb.fromJson(yaml, OptionsConfig.class);
 
         assertThat(options, nullValue());
     }
@@ -108,9 +108,9 @@ public class OptionsConfigAdapterTest
                 .build();
 
         adapter.adaptType(null);
-        String text = jsonb.toJson(options);
+        String yaml = jsonb.toJson(options);
 
-        assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("null"));
+        assertThat(yaml, not(nullValue()));
+        assertThat(yaml, equalTo("null\n"));
     }
 }

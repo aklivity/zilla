@@ -30,6 +30,15 @@ import org.agrona.DirectBuffer;
 public interface JsonParserEx extends JsonParser
 {
     /**
+     * Config key (for {@link JsonEx#createParser(java.util.Map)}) whose {@link Integer} value caps the
+     * number of decoded chars retained for a single value or key. A consumer that needs a value whole
+     * declines its fragments (consumed(0)) so the source accumulates them; this bounds that accumulation
+     * so an adversarially large value fails closed with a {@link JsonPipeline.Status#REJECTED} rather than
+     * exhausting memory. Absent ⇒ a generous default.
+     */
+    String MAX_VALUE_SIZE = "io.aklivity.zilla.runtime.common.json.parser.maxValueSize";
+
+    /**
      * Borrows {@code buffer} as the input window for the next pump, the half-open range
      * {@code [offset, limit)}. The buffer is read in place for the duration of the pump.
      * <p>

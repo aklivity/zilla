@@ -539,9 +539,19 @@ public final class AvroParserImpl implements AvroParser
         else
         {
             int chunk = Math.min(available, valueRemaining);
-            if (chunk < valueRemaining && !segmenting && node.kind == AvroKind.STRING)
+            if (chunk < valueRemaining && !segmenting)
             {
-                chunk = utf8Boundary(progress, chunk);
+                if (node.kind == AvroKind.STRING)
+                {
+                    chunk = utf8Boundary(progress, chunk);
+                }
+                else if (node.kind == AvroKind.BYTES || node.kind == AvroKind.FIXED)
+                {
+                    // base64 renders a whole 3-byte group at a time, so a non-final bytes/fixed chunk must end on
+                    // a 3-byte boundary — the bytes analog of utf8Boundary — withholding a 1-2 byte tail until the
+                    // next input window so a base64 group is never split across windows
+                    chunk = chunk / 3 * 3;
+                }
             }
             if (chunk == 0 && valueRemaining > 0)
             {

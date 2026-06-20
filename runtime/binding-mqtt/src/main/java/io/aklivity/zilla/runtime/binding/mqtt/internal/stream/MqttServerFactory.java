@@ -64,8 +64,6 @@ import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttPr
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.DataFW.FIELD_OFFSET_PAYLOAD;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttPublishDataExFW.Builder.DEFAULT_EXPIRY_INTERVAL;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttPublishDataExFW.Builder.DEFAULT_FORMAT;
-import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_CREDITOR_INDEX;
-import static io.aklivity.zilla.runtime.engine.budget.BudgetDebitor.NO_DEBITOR_INDEX;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static java.nio.ByteOrder.BIG_ENDIAN;
@@ -91,7 +89,6 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.IntConsumer;
 import java.util.function.IntSupplier;
-import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
 import java.util.function.Supplier;
@@ -188,8 +185,8 @@ import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
-import io.aklivity.zilla.runtime.engine.budget.BudgetCreditor;
-import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
+import io.aklivity.zilla.runtime.engine.budget.BudgetCredit;
+import io.aklivity.zilla.runtime.engine.budget.BudgetDebit;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
@@ -457,7 +454,6 @@ public final class MqttServerFactory implements MqttStreamFactory
 
     private final ByteBuffer charsetBuffer;
     private final BufferPool bufferPool;
-    private final BudgetCreditor creditor;
     private final Signaler signaler;
     private final MessageConsumer droppedHandler;
     private final BindingHandler streamFactory;
@@ -465,7 +461,6 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final LongUnaryOperator supplyReplyId;
     private final LongSupplier supplyTraceId;
     private final LongSupplier supplyBudgetId;
-    private final LongFunction<BudgetDebitor> supplyDebitor;
     private final Long2ObjectHashMap<MqttBindingConfig> bindings;
     private final int mqttTypeId;
 
@@ -502,11 +497,9 @@ public final class MqttServerFactory implements MqttStreamFactory
         this.willMessageBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.willUserPropertiesBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.bufferPool = context.bufferPool();
-        this.creditor = context.creditor();
         this.signaler = context.signaler();
         this.droppedHandler = context.droppedFrameHandler();
         this.streamFactory = context.streamFactory();
-        this.supplyDebitor = context::supplyDebitor;
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.supplyBudgetId = context::supplyBudgetId;
@@ -1507,10 +1500,9 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             int valueClaimed = maximum;
 
-            if (canPublish && publisher.debitorIndex != NO_DEBITOR_INDEX && lengthMax != 0)
+            if (canPublish && publisher.debit != null && lengthMax != 0)
             {
-                valueClaimed =
-                    publisher.debitor.claim(traceId, publisher.debitorIndex, publisher.initialId, minimum, maximum, 0);
+                valueClaimed = publisher.debit.claim(traceId, minimum, maximum);
             }
 
             int sizeClaimed = valueClaimed - publisher.initialPad;
@@ -2435,7 +2427,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         private int encodeMax;
         private int encodePad;
 
-        private long encodeBudgetIndex = NO_CREDITOR_INDEX;
+        private BudgetCredit encodeCredit;
         private int encodeSharedBudget;
 
         private int decodeSlot = NO_SLOT;
@@ -2703,12 +2695,8 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             if (encodeSharedCredit > 0)
             {
-                final long encodeSharedBudgetPrevious = creditor.credit(traceId, encodeBudgetIndex, encodeSharedCredit);
+                encodeCredit.capacity(traceId, encodeSharedCredit);
                 encodeSharedBudget += encodeSharedCredit;
-
-                assert encodeSharedBudgetPrevious + encodeSharedCredit <= encodeBudgetMax
-                    : String.format("%d + %d <= %d, encodeBudget = %d",
-                    encodeSharedBudgetPrevious, encodeSharedCredit, encodeBudgetMax, encodeWin);
 
                 assert encodeSharedCredit <= encodeBudgetMax
                     : String.format("%d <= %d", encodeSharedCredit, encodeBudgetMax);
@@ -3999,8 +3987,8 @@ public final class MqttServerFactory implements MqttStreamFactory
             doBegin(network, originId, routedId, replyId, encodeSeq, encodeAck, encodeMax,
                 traceId, authorization, affinity, EMPTY_OCTETS);
 
-            assert encodeBudgetIndex == NO_CREDITOR_INDEX;
-            this.encodeBudgetIndex = creditor.acquire(encodeBudgetId);
+            assert encodeCredit == null;
+            this.encodeCredit = context.supplyCredit(replyId, encodeBudgetId);
         }
 
         private void doNetworkData(
@@ -4043,7 +4031,6 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 state = MqttState.closeReply(state);
 
-                cleanupBudgetCreditor();
                 cleanupEncodeSlot();
 
                 doEnd(network, originId, routedId, replyId, encodeSeq, encodeAck, encodeMax,
@@ -4059,7 +4046,6 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 state = MqttState.closeReply(state);
 
-                cleanupBudgetCreditor();
                 cleanupEncodeSlot();
 
                 doAbort(network, originId, routedId, replyId, encodeSeq, encodeAck, encodeMax,
@@ -4902,15 +4888,6 @@ public final class MqttServerFactory implements MqttStreamFactory
             decoder = decodeIgnoreAll;
         }
 
-        private void cleanupBudgetCreditor()
-        {
-            if (encodeBudgetIndex != NO_CREDITOR_INDEX)
-            {
-                creditor.release(encodeBudgetIndex);
-                encodeBudgetIndex = NO_CREDITOR_INDEX;
-            }
-        }
-
         private void cleanupDecodeSlot()
         {
             if (decodeSlot != NO_SLOT)
@@ -5071,8 +5048,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             private long replyId;
             private long budgetId;
 
-            private BudgetDebitor debitor;
-            private long debitorIndex = NO_DEBITOR_INDEX;
+            private BudgetDebit debit;
 
             private long initialSeq;
             private long initialAck;
@@ -5176,10 +5152,9 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 decodeNetwork(traceId);
 
-                if (budgetId != 0L && debitorIndex == NO_DEBITOR_INDEX)
+                if (budgetId != 0L && debit == null)
                 {
-                    debitor = supplyDebitor.apply(budgetId);
-                    debitorIndex = debitor.acquire(budgetId, initialId, MqttServer.this::decodeNetwork);
+                    debit = context.supplyDebit(initialId, budgetId, MqttServer.this::decodeNetwork);
                 }
 
                 if (MqttState.initialClosing(state) && !MqttState.initialClosed(state))
@@ -5627,11 +5602,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 state = MqttState.closeInitial(state);
 
-                if (debitorIndex != NO_DEBITOR_INDEX)
-                {
-                    debitor.release(debitorIndex, initialId);
-                    debitorIndex = NO_DEBITOR_INDEX;
-                }
+                debit = null;
             }
 
             public void setSubscriptions(List<Subscription> subscriptions)
@@ -5662,8 +5633,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             private final ValidatorHandler contentType;
             private long budgetId;
 
-            private BudgetDebitor debitor;
-            private long debitorIndex = NO_DEBITOR_INDEX;
+            private BudgetDebit debit;
 
             private long initialSeq;
             private long initialAck;
@@ -5897,10 +5867,10 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 assert initialAck <= initialSeq;
 
-                if (budgetId != 0L && debitorIndex == NO_DEBITOR_INDEX)
+                if (budgetId != 0L && debit == null)
                 {
-                    debitor = supplyDebitor.apply(budgetId);
-                    debitorIndex = debitor.acquire(budgetId, initialId, MqttServer.this::decodeNetwork);
+                    debit = context.supplyDebit(initialId, budgetId, MqttServer.this::decodeNetwork);
+                    debit.declare(traceId, 0, 0);
                 }
 
                 if (MqttState.initialClosing(state))
@@ -6095,11 +6065,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 state = MqttState.closeInitial(state);
 
-                if (debitorIndex != NO_DEBITOR_INDEX)
-                {
-                    debitor.release(debitorIndex, initialId);
-                    debitorIndex = NO_DEBITOR_INDEX;
-                }
+                debit = null;
 
                 if (MqttState.closed(state))
                 {
@@ -6144,8 +6110,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             private final long compositeId;
             private long budgetId;
 
-            private BudgetDebitor debitor;
-            private long debitorIndex = NO_DEBITOR_INDEX;
+            private BudgetDebit debit;
 
             private long initialSeq;
             private long initialAck;
@@ -6339,11 +6304,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 state = MqttState.closeInitial(state);
 
-                if (debitorIndex != NO_DEBITOR_INDEX)
-                {
-                    debitor.release(debitorIndex, initialId);
-                    debitorIndex = NO_DEBITOR_INDEX;
-                }
+                debit = null;
 
                 if (MqttState.closed(state))
                 {
@@ -6577,10 +6538,9 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 assert initialAck <= initialSeq;
 
-                if (budgetId != 0L && debitorIndex == NO_DEBITOR_INDEX)
+                if (budgetId != 0L && debit == null)
                 {
-                    debitor = supplyDebitor.apply(budgetId);
-                    debitorIndex = debitor.acquire(budgetId, initialId, MqttServer.this::decodeNetwork);
+                    debit = context.supplyDebit(initialId, budgetId, MqttServer.this::decodeNetwork);
                 }
 
                 if (MqttState.initialClosing(state) &&

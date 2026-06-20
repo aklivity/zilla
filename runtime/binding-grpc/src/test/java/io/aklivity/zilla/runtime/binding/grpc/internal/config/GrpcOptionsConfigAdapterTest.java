@@ -41,6 +41,7 @@ import io.aklivity.zilla.runtime.binding.grpc.config.GrpcMethodConfig;
 import io.aklivity.zilla.runtime.binding.grpc.config.GrpcOptionsConfig;
 import io.aklivity.zilla.runtime.binding.grpc.config.GrpcProtobufConfig;
 import io.aklivity.zilla.runtime.binding.grpc.config.GrpcServiceConfig;
+import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapter;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
@@ -71,18 +72,22 @@ public class GrpcOptionsConfigAdapterTest
         adapter.adaptType("grpc");
         JsonbConfig config = new JsonbConfig()
             .withAdapters(adapter);
-        jsonb = JsonbBuilder.create(config);
+        jsonb = JsonbBuilder.newBuilder()
+            .withProvider(YamlJson.provider())
+            .withConfig(config)
+            .build();
     }
 
     @Test
     public void shouldReadOptions()
     {
-        String text =
-            "{" +
-                "\"services\": [\"protobuf/echo.proto\"]" +
-            "}";
+        String yaml =
+            """
+            services:
+              - protobuf/echo.proto
+            """;
 
-        GrpcOptionsConfig options = jsonb.fromJson(text, GrpcOptionsConfig.class);
+        GrpcOptionsConfig options = jsonb.fromJson(yaml, GrpcOptionsConfig.class);
         GrpcProtobufConfig protobuf = options.protobufs.stream().findFirst().get();
         GrpcServiceConfig service = protobuf.services.stream().findFirst().get();
         GrpcMethodConfig method = service.methods.stream().filter(m -> "EchoUnary".equals(m.method)).findFirst().get();
@@ -99,9 +104,13 @@ public class GrpcOptionsConfigAdapterTest
         GrpcOptionsConfig options = new GrpcOptionsConfig(Arrays.asList(
             new GrpcProtobufConfig("protobuf/echo.proto", Collections.emptySet())));
 
-        String text = jsonb.toJson(options);
+        String yaml = jsonb.toJson(options);
 
-        assertThat(text, not(nullValue()));
-        assertEquals("{\"services\":[\"protobuf/echo.proto\"]}", text);
+        assertThat(yaml, not(nullValue()));
+        assertEquals(
+            """
+            services:
+              - protobuf/echo.proto
+            """, yaml);
     }
 }

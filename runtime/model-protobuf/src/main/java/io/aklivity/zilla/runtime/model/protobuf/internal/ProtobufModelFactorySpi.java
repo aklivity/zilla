@@ -37,6 +37,6 @@ public final class ProtobufModelFactorySpi implements ModelFactorySpi
     public Model create(
         Configuration config)
     {
-        return new ProtobufModel();
+        return new ProtobufModel(config);
     }
 }
