@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
@@ -49,6 +50,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaAckMode;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaCapabilities;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaHeaderFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaKeyFW;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttKafkaSessionOffsetsFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttPayloadFormat;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttPayloadFormatFW;
@@ -66,7 +68,9 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.FlushF
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.KafkaBeginExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.KafkaDataExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.KafkaFlushExFW;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.KafkaMergedDataExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.KafkaMergedFlushExFW;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.KafkaMergedProduceDataExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.KafkaMergedProduceFlushExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.KafkaResetExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttBeginExFW;
@@ -235,6 +239,9 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
 
     public final class MqttPublishProxy
     {
+        private static final Consumer<KafkaOffsetFW.Builder> COMMIT_OFFSET_PARTITION =
+            p -> p.partitionId(-1).partitionOffset(-1);
+
         private final MessageConsumer mqtt;
         private final long originId;
         private final long routedId;
@@ -273,6 +280,21 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
         private List<KafkaOffsetMetadata> orderedOffsets;
         private Int2ObjectHashMap<List<KafkaTopicPartition>> partitions;
         private Long2LongHashMap leaderEpochs;
+
+        private final Consumer<KafkaKeyFW.Builder> commitOffsetKey = b -> b
+            .length(clientIdOffsets.length())
+            .value(clientIdOffsets.value(), 0, clientIdOffsets.length());
+        private final Consumer<KafkaKeyFW.Builder> commitOffsetHashKey = b -> b
+            .length(clientId.length())
+            .value(clientId.value(), 0, clientId.length());
+        private final Consumer<KafkaMergedProduceDataExFW.Builder> commitOffsetProduce = mp -> mp
+            .deferred(0)
+            .timestamp(System.currentTimeMillis())
+            .partition(COMMIT_OFFSET_PARTITION)
+            .key(commitOffsetKey)
+            .hashKey(commitOffsetHashKey);
+        private final Consumer<KafkaMergedDataExFW.Builder> commitOffsetMerged =
+            m -> m.produce(commitOffsetProduce);
 
         private MqttPublishProxy(
             MessageConsumer mqtt,
@@ -861,14 +883,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             final Flyweight offsetsDataEx = kafkaDataExRW
                 .wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(kafkaTypeId)
-                .merged(m -> m.produce(mp -> mp
-                    .deferred(0)
-                    .timestamp(System.currentTimeMillis())
-                    .partition(p -> p.partitionId(-1).partitionOffset(-1))
-                    .key(b -> b.length(clientIdOffsets.length())
-                        .value(clientIdOffsets.value(), 0, clientIdOffsets.length()))
-                    .hashKey(b -> b.length(this.clientId.length())
-                        .value(this.clientId.value(), 0, this.clientId.length()))))
+                .merged(commitOffsetMerged)
                 .build();
 
             offsetCommit.unfinishedKafkas.add(kafka);
