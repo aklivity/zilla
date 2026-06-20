@@ -54,6 +54,28 @@ public class HttpModelTest
     }
 
     @Test
+    public void shouldTransformWholeValueToLargerLength()
+    {
+        HttpModel model = HttpModel.decoder(handler(5, 8), new UnsafeBuffer(new byte[256]));
+
+        int produced = model.transform(0L, 0L, value("hello"), 0, 5);
+
+        assertEquals(8, produced);
+        assertValue(model, 5, "hello");
+    }
+
+    @Test
+    public void shouldTransformWholeValueToSmallerLength()
+    {
+        HttpModel model = HttpModel.decoder(handler(5, 3), new UnsafeBuffer(new byte[256]));
+
+        int produced = model.transform(0L, 0L, value("hello"), 0, 5);
+
+        assertEquals(3, produced);
+        assertValue(model, produced, "hel");
+    }
+
+    @Test
     public void shouldSupplyNoneWhenNoHandler()
     {
         assertSame(HttpModel.NONE, HttpModel.decoder(null, new UnsafeBuffer(new byte[8])));
@@ -117,6 +139,13 @@ public class HttpModelTest
         int length)
     {
         return new TestModelHandler(new TestModelConfig(length, emptyList(), true));
+    }
+
+    private static TestModelHandler handler(
+        int length,
+        int transformLength)
+    {
+        return new TestModelHandler(new TestModelConfig(length, emptyList(), true, transformLength));
     }
 
     private MutableDirectBuffer value(

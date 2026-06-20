@@ -78,7 +78,7 @@ public class TestModelHandlerTest
 
         int progress = first.consumed();
         ModelPipelineResult second = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_FIN,
-            src, progress, bytes.length - progress, dst, progress, bytes.length - progress);
+            src, progress, bytes.length, dst, progress, bytes.length);
         assertEquals(ModelStatus.COMPLETE, second.status());
     }
 

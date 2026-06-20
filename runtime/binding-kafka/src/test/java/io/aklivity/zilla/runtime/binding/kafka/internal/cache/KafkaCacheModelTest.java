@@ -63,6 +63,31 @@ public class KafkaCacheModelTest
     }
 
     @Test
+    public void shouldTransformWholeValueToLargerLength()
+    {
+        KafkaCacheModel model = KafkaCacheModel.decoder(handler(5, 8), new UnsafeBuffer(new byte[256]));
+
+        int produced = model.transform(0L, 0L, value("hello"), 0, 5, sink);
+
+        assertEquals(8, produced);
+        assertEquals(8, outputLength.value);
+        byte[] prefix = new byte[5];
+        output.getBytes(0, prefix);
+        assertArrayEquals("hello".getBytes(UTF_8), prefix);
+    }
+
+    @Test
+    public void shouldTransformWholeValueToSmallerLength()
+    {
+        KafkaCacheModel model = KafkaCacheModel.decoder(handler(5, 3), new UnsafeBuffer(new byte[256]));
+
+        int produced = model.transform(0L, 0L, value("hello"), 0, 5, sink);
+
+        assertEquals(3, produced);
+        assertOutput("hel");
+    }
+
+    @Test
     public void shouldTransformAcrossOverflow()
     {
         KafkaCacheModel model = KafkaCacheModel.decoder(handler(5), new UnsafeBuffer(new byte[2]));
@@ -135,6 +160,13 @@ public class KafkaCacheModelTest
         int length)
     {
         return new TestModelHandler(new TestModelConfig(length, emptyList(), true));
+    }
+
+    private static TestModelHandler handler(
+        int length,
+        int transformLength)
+    {
+        return new TestModelHandler(new TestModelConfig(length, emptyList(), true, transformLength));
     }
 
     private MutableDirectBuffer value(

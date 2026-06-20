@@ -31,6 +31,7 @@ public class TestModelHandler implements ModelHandler
     private static final Pattern PATH_PATTERN = Pattern.compile(PATH);
 
     private final int length;
+    private final int transformLength;
     private final List<String> paths;
     private final Matcher matcher;
 
@@ -38,6 +39,7 @@ public class TestModelHandler implements ModelHandler
         TestModelConfig config)
     {
         this.length = config.length;
+        this.transformLength = config.transformLength;
         this.paths = new ArrayList<>();
         this.matcher = PATH_PATTERN.matcher("");
     }
@@ -56,13 +58,13 @@ public class TestModelHandler implements ModelHandler
     public ModelPipeline supplyDecoder(
         ModelVisitor visitor)
     {
-        return new TestModelPipeline(length, paths, visitor);
+        return new TestModelPipeline(length, transformLength, paths, visitor);
     }
 
     @Override
     public ModelPipeline supplyEncoder(
         ModelVisitor visitor)
     {
-        return new TestModelPipeline(length, paths, visitor);
+        return new TestModelPipeline(length, transformLength, paths, visitor);
     }
 }

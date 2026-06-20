@@ -28,15 +28,18 @@ import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
 
-// Per-stream identity transform mirroring the test model's whole-value length check: the value bytes are
-// copied through into dst unchanged and accepted only when the total length across fragments equals the
-// configured length. Registered extraction paths surface a fixed token to the visitor when a value
-// completes. State lives on the pipeline so interleaved streams stay isolated.
+// Per-stream transform mirroring the test model's whole-value length check: the value is accepted only when
+// the total length across fragments equals the configured length. By default the value bytes are copied
+// through into dst unchanged (identity); when a transformed length is configured, the whole value is padded
+// or truncated to that length so a non-identity, length-changing transform can be exercised. Registered
+// extraction paths surface a fixed token to the visitor when a value completes. State lives on the pipeline
+// so interleaved streams stay isolated.
 final class TestModelPipeline implements ModelPipeline
 {
     private final DirectBuffer extractedValue = new UnsafeBuffer("1234".getBytes(UTF_8));
 
     private final int length;
+    private final int transformLength;
     private final List<String> paths;
     private final ModelVisitor visitor;
     private final ModelPipelineResult result;
@@ -45,10 +48,12 @@ final class TestModelPipeline implements ModelPipeline
 
     TestModelPipeline(
         int length,
+        int transformLength,
         List<String> paths,
         ModelVisitor visitor)
     {
         this.length = length;
+        this.transformLength = transformLength;
         this.paths = paths;
         this.visitor = visitor;
         this.result = new ModelPipelineResult();
@@ -86,6 +91,24 @@ final class TestModelPipeline implements ModelPipeline
             status = ModelStatus.REJECTED;
             consumed = 0;
             produced = 0;
+        }
+        else if (tail && transformLength >= 0)
+        {
+            // whole-value transform: pad or truncate the value to the configured transformed length
+            processed = total;
+            final int copy = Math.min(available, transformLength);
+            dst.putBytes(dstIndex, src, srcIndex, copy);
+            for (int index = copy; index < transformLength; index++)
+            {
+                dst.putByte(dstIndex + index, (byte) 0);
+            }
+            consumed = available;
+            produced = transformLength;
+            status = ModelStatus.COMPLETE;
+            for (int i = 0; i < paths.size(); i++)
+            {
+                visitor.onField(paths.get(i), extractedValue, 0, extractedValue.capacity());
+            }
         }
         else
         {
