@@ -604,7 +604,103 @@ public final class JsonSchemaImpl implements JsonSchema
             matcher.appendReplacement(result, replacement);
         }
         matcher.appendTail(result);
-        return Pattern.compile(result.toString());
+        return Pattern.compile(escapeLiteralBraces(result.toString()));
+    }
+
+    // ECMA-262 treats a "{" that does not form a well-formed quantifier as a literal, whereas
+    // java.util.regex rejects it with PatternSyntaxException; escape such braces so an ECMA-valid
+    // pattern compiles. Valid quantifiers ({n}, {n,}, {n,m}), unicode property escapes (\p{...},
+    // \P{...}, \x{...}) and character classes are left untouched.
+    private static String escapeLiteralBraces(
+        String regex)
+    {
+        StringBuilder result = new StringBuilder(regex.length());
+        int length = regex.length();
+        int index = 0;
+        boolean inCharClass = false;
+        while (index < length)
+        {
+            char ch = regex.charAt(index);
+            if (ch == '\\' && index + 1 < length)
+            {
+                char escaped = regex.charAt(index + 1);
+                result.append(ch).append(escaped);
+                index += 2;
+                if ((escaped == 'p' || escaped == 'P' || escaped == 'x') &&
+                    index < length && regex.charAt(index) == '{')
+                {
+                    int close = regex.indexOf('}', index);
+                    int end = close < 0 ? length : close + 1;
+                    result.append(regex, index, end);
+                    index = end;
+                }
+            }
+            else if (ch == '[')
+            {
+                inCharClass = true;
+                result.append(ch);
+                index++;
+            }
+            else if (ch == ']')
+            {
+                inCharClass = false;
+                result.append(ch);
+                index++;
+            }
+            else if (ch == '{' && !inCharClass)
+            {
+                int end = quantifierEnd(regex, index);
+                if (end > index)
+                {
+                    result.append(regex, index, end);
+                    index = end;
+                }
+                else
+                {
+                    result.append("\\{");
+                    index++;
+                }
+            }
+            else
+            {
+                result.append(ch);
+                index++;
+            }
+        }
+        return result.toString();
+    }
+
+    // Returns the index just past a well-formed ECMA-262 quantifier ({n}, {n,}, {n,m}) starting at
+    // start, or start itself when the brace does not open a valid quantifier.
+    private static int quantifierEnd(
+        String regex,
+        int start)
+    {
+        int length = regex.length();
+        int index = start + 1;
+        int digits = 0;
+        int result = start;
+        while (index < length && Character.isDigit(regex.charAt(index)))
+        {
+            index++;
+            digits++;
+        }
+        if (digits > 0)
+        {
+            if (index < length && regex.charAt(index) == ',')
+            {
+                index++;
+                while (index < length && Character.isDigit(regex.charAt(index)))
+                {
+                    index++;
+                }
+            }
+            if (index < length && regex.charAt(index) == '}')
+            {
+                result = index + 1;
+            }
+        }
+        return result;
     }
 
     private static Map<Pattern, JsonSchemaImpl> parsePatternProperties(
