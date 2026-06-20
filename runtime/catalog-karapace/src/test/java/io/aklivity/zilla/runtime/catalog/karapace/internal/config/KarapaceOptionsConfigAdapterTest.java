@@ -29,6 +29,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.catalog.karapace.config.KarapaceOptionsConfig;
+import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 
 public class KarapaceOptionsConfigAdapterTest
 {
@@ -39,19 +40,22 @@ public class KarapaceOptionsConfigAdapterTest
     {
         JsonbConfig config = new JsonbConfig()
                 .withAdapters(new KarapaceOptionsConfigAdapter());
-        jsonb = JsonbBuilder.create(config);
+        jsonb = JsonbBuilder.newBuilder()
+                .withProvider(YamlJson.provider())
+                .withConfig(config)
+                .build();
     }
 
     @Test
     public void shouldReadOptions()
     {
-        String text =
-                "{" +
-                    "\"url\": \"http://localhost:8081\"," +
-                    "\"context\": \"default\"" +
-                "}";
+        String yaml =
+                """
+                url: "http://localhost:8081"
+                context: default
+                """;
 
-        KarapaceOptionsConfig catalog = jsonb.fromJson(text, KarapaceOptionsConfig.class);
+        KarapaceOptionsConfig catalog = jsonb.fromJson(yaml, KarapaceOptionsConfig.class);
 
         assertThat(catalog, not(nullValue()));
         assertThat(catalog.url, equalTo("http://localhost:8081"));
@@ -68,9 +72,14 @@ public class KarapaceOptionsConfigAdapterTest
             .maxAge(Duration.ofSeconds(300))
             .build();
 
-        String text = jsonb.toJson(catalog);
+        String yaml = jsonb.toJson(catalog);
 
-        assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"url\":\"http://localhost:8081\",\"context\":\"default\",\"max-age\":300}"));
+        assertThat(yaml, not(nullValue()));
+        assertThat(yaml, equalTo(
+                """
+                url: "http://localhost:8081"
+                context: default
+                max-age: 300
+                """));
     }
 }

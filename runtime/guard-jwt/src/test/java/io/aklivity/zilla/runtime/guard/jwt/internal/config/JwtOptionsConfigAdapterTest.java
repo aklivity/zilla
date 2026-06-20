@@ -31,6 +31,7 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 import io.aklivity.zilla.runtime.guard.jwt.config.JwtOptionsConfig;
 
 public class JwtOptionsConfigAdapterTest
@@ -41,39 +42,33 @@ public class JwtOptionsConfigAdapterTest
     {
         JsonbConfig config = new JsonbConfig()
                 .withAdapters(new JwtOptionsConfigAdapter());
-        jsonb = JsonbBuilder.create(config);
+        jsonb = JsonbBuilder.newBuilder()
+                .withProvider(YamlJson.provider())
+                .withConfig(config)
+                .build();
     }
 
     @Test
     public void shouldReadOptions()
     {
-        String text = """
-            {
-              "issuer": "https://auth.example.com",
-              "audience": "https://api.example.com",
-              "keys": [
-                {
-                  "kty": "EC",
-                  "crv": "P-256",
-                  "x": "MKBCTNIcKUSDii11ySs3526iDZ8AiTo7Tu6KPAqv7D4",
-                  "y": "4Etl6SRW2YiLUrN5vfvVHuhp7x8PxltmWWlbbM4IFyM",
-                  "use": "enc",
-                  "kid": "1"
-                },
-                {
-                  "kty": "RSA",
-                  "n": "%s",
-                  "e": "AQAB",
-                  "alg": "RS256",
-                  "kid": "2011-04-29"
-                }
-              ],
-              "challenge": 30,
-              "attributes":
-              {
-                  "mail_to": "email"
-              }
-            }
+        String yaml = """
+            issuer: "https://auth.example.com"
+            audience: "https://api.example.com"
+            keys:
+              - kty: EC
+                crv: P-256
+                x: MKBCTNIcKUSDii11ySs3526iDZ8AiTo7Tu6KPAqv7D4
+                y: 4Etl6SRW2YiLUrN5vfvVHuhp7x8PxltmWWlbbM4IFyM
+                use: enc
+                kid: "1"
+              - kty: RSA
+                n: "%s"
+                e: AQAB
+                alg: RS256
+                kid: 2011-04-29
+            challenge: 30
+            attributes:
+              mail_to: email
             """.formatted("""
                 0vx7agoebGcQSuuPiLJXZptN9nndrQmbXEps2aiAFbWhM78LhWx
                 4cbbfAAtVT86zwu1RK7aPFFxuhDR1L6tSoc_BJECPebWKRXjBZCiFV4n3oknjhMst
@@ -83,7 +78,7 @@ public class JwtOptionsConfigAdapterTest
                 0Ls1jF44-csFCur-kEgU8awapJzKnqDKgw
                 """.replaceAll("\\n", ""));
 
-        JwtOptionsConfig options = jsonb.fromJson(text, JwtOptionsConfig.class);
+        JwtOptionsConfig options = jsonb.fromJson(yaml, JwtOptionsConfig.class);
 
         assertThat(options, not(nullValue()));
         assertThat(options.issuer, equalTo("https://auth.example.com"));
@@ -139,35 +134,26 @@ public class JwtOptionsConfigAdapterTest
                 .attributes(Map.of("mail_to", "email"))
                 .build();
 
-        String text = jsonb.toJson(options);
+        String yaml = jsonb.toJson(options);
 
         String expected = """
-            {
-              "issuer":"https://auth.example.com",
-              "audience":"https://api.example.com",
-              "keys":[
-                {
-                  "kty":"EC",
-                  "crv":"P-256",
-                  "x":"MKBCTNIcKUSDii11ySs3526iDZ8AiTo7Tu6KPAqv7D4",
-                  "y":"4Etl6SRW2YiLUrN5vfvVHuhp7x8PxltmWWlbbM4IFyM",
-                  "use":"enc",
-                  "kid":"1"
-                },
-                {
-                  "kty":"RSA",
-                  "n":"%s",
-                  "e":"AQAB",
-                  "alg":"RS256",
-                  "kid":"2011-04-29"
-                }
-              ],
-              "challenge":30,
-              "attributes":
-              {
-                  "mail_to":"email"
-              }
-            }
+            issuer: "https://auth.example.com"
+            audience: "https://api.example.com"
+            keys:
+              - kty: EC
+                crv: P-256
+                x: MKBCTNIcKUSDii11ySs3526iDZ8AiTo7Tu6KPAqv7D4
+                y: 4Etl6SRW2YiLUrN5vfvVHuhp7x8PxltmWWlbbM4IFyM
+                use: enc
+                kid: "1"
+              - kty: RSA
+                n: %s
+                e: AQAB
+                alg: RS256
+                kid: 2011-04-29
+            challenge: 30
+            attributes:
+              mail_to: email
             """.formatted("""
                 0vx7agoebGcQSuuPiLJXZptN9nndrQmbXEps2aiAFbWhM78LhWx
                 4cbbfAAtVT86zwu1RK7aPFFxuhDR1L6tSoc_BJECPebWKRXjBZCiFV4n3oknjhMst
@@ -175,11 +161,10 @@ public class JwtOptionsConfigAdapterTest
                 QvzqY368QQMicAtaSqzs8KJZgnYb9c7d0zgdAZHzu6qMQvRL5hajrn1n91CbOpbI
                 SD08qNLyrdkt-bFTWhAI4vMQFh6WeZu0fM4lFd2NcRwr3XPksINHaQ-G_xBniIqbw
                 0Ls1jF44-csFCur-kEgU8awapJzKnqDKgw
-                """.replaceAll("\\n", ""))
-            .replaceAll("\\s*\\n\\s*", "");
+                """.replaceAll("\\n", ""));
 
-        assertThat(text, not(nullValue()));
-        assertThat(text, equalTo(expected));
+        assertThat(yaml, not(nullValue()));
+        assertThat(yaml, equalTo(expected));
     }
 
     @Test

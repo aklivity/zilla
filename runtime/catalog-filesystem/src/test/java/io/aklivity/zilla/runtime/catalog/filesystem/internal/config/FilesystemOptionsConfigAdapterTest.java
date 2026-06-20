@@ -27,6 +27,8 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
+
 public class FilesystemOptionsConfigAdapterTest
 {
     private Jsonb jsonb;
@@ -36,23 +38,23 @@ public class FilesystemOptionsConfigAdapterTest
     {
         JsonbConfig config = new JsonbConfig()
                 .withAdapters(new FilesystemOptionsConfigAdapter());
-        jsonb = JsonbBuilder.create(config);
+        jsonb = JsonbBuilder.newBuilder()
+                .withProvider(YamlJson.provider())
+                .withConfig(config)
+                .build();
     }
 
     @Test
     public void shouldReadCondition()
     {
-        String text = "{" +
-                "\"subjects\":" +
-                    "{" +
-                    "\"subject1\":" +
-                        "{" +
-                            "\"path\":\"asyncapi/mqtt.yaml\"" +
-                        "}" +
-                    "}" +
-                "}";
+        String yaml =
+                """
+                subjects:
+                  subject1:
+                    path: asyncapi/mqtt.yaml
+                """;
 
-        FilesystemOptionsConfig catalog = jsonb.fromJson(text, FilesystemOptionsConfig.class);
+        FilesystemOptionsConfig catalog = jsonb.fromJson(yaml, FilesystemOptionsConfig.class);
 
         assertThat(catalog, not(nullValue()));
         FilesystemSchemaConfig schema = catalog.subjects.get(0);
@@ -63,15 +65,12 @@ public class FilesystemOptionsConfigAdapterTest
     @Test
     public void shouldWriteCondition()
     {
-        String expectedJson = "{" +
-            "\"subjects\":" +
-                "{" +
-                    "\"subject1\":" +
-                        "{" +
-                            "\"path\":\"asyncapi/mqtt.yaml\"" +
-                        "}" +
-                    "}" +
-                "}";
+        String expectedYaml =
+                """
+                subjects:
+                  subject1:
+                    path: asyncapi/mqtt.yaml
+                """;
 
         FilesystemOptionsConfig catalog = (FilesystemOptionsConfig) new FilesystemOptionsConfigBuilder<>(identity())
                 .subjects()
@@ -80,9 +79,9 @@ public class FilesystemOptionsConfigAdapterTest
                         .build()
                 .build();
 
-        String json = jsonb.toJson(catalog);
+        String yaml = jsonb.toJson(catalog);
 
-        assertThat(json, not(nullValue()));
-        assertThat(json, equalTo(expectedJson));
+        assertThat(yaml, not(nullValue()));
+        assertThat(yaml, equalTo(expectedYaml));
     }
 }

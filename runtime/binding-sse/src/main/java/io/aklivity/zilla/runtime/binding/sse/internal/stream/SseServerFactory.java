@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.binding.sse.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.sse.internal.util.Flags.FIN;
 import static io.aklivity.zilla.runtime.binding.sse.internal.util.Flags.INIT;
-import static io.aklivity.zilla.runtime.engine.budget.BudgetDebitor.NO_DEBITOR_INDEX;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -30,7 +29,6 @@ import java.net.URLDecoder;
 import java.time.Clock;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
 import java.util.function.ToLongFunction;
@@ -76,7 +74,7 @@ import io.aklivity.zilla.runtime.binding.sse.internal.util.Flags;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
-import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
+import io.aklivity.zilla.runtime.engine.budget.BudgetDebit;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
@@ -170,7 +168,7 @@ public final class SseServerFactory implements SseStreamFactory
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final LongSupplier supplyTraceId;
-    private final LongFunction<BudgetDebitor> supplyDebitor;
+    private final EngineContext context;
     private final boolean initialCommentEnabled;
     private final int httpTypeId;
     private final int sseTypeId;
@@ -196,7 +194,7 @@ public final class SseServerFactory implements SseStreamFactory
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.supplyTraceId = context::supplyTraceId;
-        this.supplyDebitor = context::supplyDebitor;
+        this.context = context;
         this.bindings = new Long2ObjectHashMap<>();
         this.initialCommentEnabled = config.initialCommentEnabled();
         this.httpTypeId = context.supplyTypeId(HTTP_TYPE_NAME);
@@ -374,8 +372,7 @@ public final class SseServerFactory implements SseStreamFactory
         private long httpReplyBud;
         private int httpReplyPad;
         private long httpReplyAuth;
-        private BudgetDebitor httpReplyDeb;
-        private long httpReplyDebIdx = NO_DEBITOR_INDEX;
+        private BudgetDebit httpReplyDebit;
         private long httpReplyAt;
         private long httpReplyIdleAt = NO_CANCEL_ID;
 
@@ -551,13 +548,13 @@ public final class SseServerFactory implements SseStreamFactory
 
             assert httpReplyAck <= httpReplySeq;
 
-            if (httpReplyBud != 0L && httpReplyDebIdx == NO_DEBITOR_INDEX)
+            if (httpReplyBud != 0L && httpReplyDebit == null)
             {
-                httpReplyDeb = supplyDebitor.apply(budgetId);
-                httpReplyDebIdx = httpReplyDeb.acquire(budgetId, replyId, this::flushNetwork);
+                httpReplyDebit = context.supplyDebit(replyId, httpReplyBud, this::flushNetwork);
+                httpReplyDebit.declare(traceId, 0, 0);
             }
 
-            if (httpReplyBud != 0L && httpReplyDebIdx == NO_DEBITOR_INDEX)
+            if (httpReplyBud != 0L && !httpReplyDebit.available())
             {
                 doNetAbort(traceId, authorization);
                 stream.doAppEndDeferred(traceId, authorization);
@@ -650,7 +647,7 @@ public final class SseServerFactory implements SseStreamFactory
                     buffer.putBytes(networkSlotOffset, data.buffer(), data.offset(), data.sizeof());
                     networkSlotOffset += data.sizeof();
 
-                    if (httpReplyDebIdx != NO_DEBITOR_INDEX)
+                    if (httpReplyDebit != null)
                     {
                         deferredClaim += data.reserved();
                     }
@@ -863,10 +860,9 @@ public final class SseServerFactory implements SseStreamFactory
                 }
 
                 int claimed = reserved;
-                if (httpReplyDebIdx != NO_DEBITOR_INDEX)
+                if (httpReplyDebit != null)
                 {
-                    claimed = httpReplyDeb.claim(traceId, httpReplyDebIdx, replyId,
-                        reserved, reserved, 0);
+                    claimed = httpReplyDebit.claim(traceId, reserved, reserved);
                 }
 
                 if (claimed == reserved)
@@ -887,10 +883,9 @@ public final class SseServerFactory implements SseStreamFactory
 
             if (deferredClaim > 0)
             {
-                assert httpReplyDebIdx != NO_DEBITOR_INDEX;
+                assert httpReplyDebit != null;
 
-                int claimed = httpReplyDeb.claim(traceId, httpReplyDebIdx, replyId,
-                    deferredClaim, deferredClaim, 0);
+                int claimed = httpReplyDebit.claim(traceId, deferredClaim, deferredClaim);
 
                 if (claimed == deferredClaim)
                 {
@@ -937,12 +932,7 @@ public final class SseServerFactory implements SseStreamFactory
 
         private void cleanupNet()
         {
-            if (httpReplyDebIdx != NO_DEBITOR_INDEX)
-            {
-                httpReplyDeb.release(httpReplyDebIdx, replyId);
-                httpReplyDeb = null;
-                httpReplyDebIdx = NO_DEBITOR_INDEX;
-            }
+            httpReplyDebit = null;
 
             if (httpReplyIdleAt != NO_CANCEL_ID)
             {
@@ -1214,7 +1204,7 @@ public final class SseServerFactory implements SseStreamFactory
                         buffer.putBytes(networkSlotOffset, data.buffer(), data.offset(), data.sizeof());
                         networkSlotOffset += data.sizeof();
 
-                        if (httpReplyDebIdx != NO_DEBITOR_INDEX)
+                        if (httpReplyDebit != null)
                         {
                             deferredClaim += data.reserved();
                         }

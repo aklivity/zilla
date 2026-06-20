@@ -30,6 +30,7 @@ import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaTopicsConfig;
+import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 
 public class MqttKafkaOptionsConfigAdapterTest
 {
@@ -40,27 +41,26 @@ public class MqttKafkaOptionsConfigAdapterTest
     {
         JsonbConfig config = new JsonbConfig()
             .withAdapters(new MqttKafkaOptionsConfigAdapter());
-        jsonb = JsonbBuilder.create(config);
+        jsonb = JsonbBuilder.newBuilder()
+            .withProvider(YamlJson.provider())
+            .withConfig(config)
+            .build();
     }
 
     @Test
     public void shouldReadOptions()
     {
         String text =
-            "{" +
-                "\"server\":\"mqtt-1.example.com:1883\"," +
-                "\"topics\":" +
-                "{" +
-                    "\"sessions\":\"sessions\"," +
-                    "\"messages\":\"messages\"," +
-                    "\"retained\":\"retained\"" +
-                "}," +
-                "\"clients\":" +
-                "[" +
-                    "\"/clients/{identity}/#\"," +
-                    "\"/department/clients/{identity}/#\"" +
-                "]" +
-            "}";
+            """
+            server: mqtt-1.example.com:1883
+            topics:
+              sessions: sessions
+              messages: messages
+              retained: retained
+            clients:
+              - /clients/{identity}/#
+              - /department/clients/{identity}/#
+            """;
 
         MqttKafkaOptionsConfig options = jsonb.fromJson(text, MqttKafkaOptionsConfig.class);
 
@@ -93,34 +93,28 @@ public class MqttKafkaOptionsConfigAdapterTest
 
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo(
-                "{" +
-                "\"server\":\"mqtt-1.example.com:1883\"," +
-                "\"topics\":" +
-                "{" +
-                    "\"sessions\":\"sessions\"," +
-                    "\"messages\":\"messages\"," +
-                    "\"retained\":\"retained\"" +
-                "}," +
-                "\"clients\":" +
-                "[" +
-                    "\"/clients/{identity}/#\"," +
-                    "\"/department/clients/{identity}/#\"" +
-                "]" +
-            "}"));
+            """
+            server: "mqtt-1.example.com:1883"
+            topics:
+              sessions: sessions
+              messages: messages
+              retained: retained
+            clients:
+              - "/clients/{identity}/#"
+              - "/department/clients/{identity}/#"
+            """));
     }
 
     @Test
     public void shouldReadOptionsWithoutClients()
     {
         String text =
-            "{" +
-                "\"topics\":" +
-                "{" +
-                    "\"sessions\":\"sessions\"," +
-                    "\"messages\":\"messages\"," +
-                    "\"retained\":\"retained\"" +
-                "}" +
-            "}";
+            """
+            topics:
+              sessions: sessions
+              messages: messages
+              retained: retained
+            """;
 
         MqttKafkaOptionsConfig options = jsonb.fromJson(text, MqttKafkaOptionsConfig.class);
 
@@ -146,13 +140,11 @@ public class MqttKafkaOptionsConfigAdapterTest
 
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo(
-            "{" +
-                    "\"topics\":" +
-                    "{" +
-                        "\"sessions\":\"sessions\"," +
-                        "\"messages\":\"messages\"," +
-                        "\"retained\":\"retained\"" +
-                    "}" +
-                "}"));
+            """
+            topics:
+              sessions: sessions
+              messages: messages
+              retained: retained
+            """));
     }
 }

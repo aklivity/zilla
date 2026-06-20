@@ -26,6 +26,8 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
+
 public class InlineOptionsConfigAdapterTest
 {
     private Jsonb jsonb;
@@ -35,26 +37,26 @@ public class InlineOptionsConfigAdapterTest
     {
         JsonbConfig config = new JsonbConfig()
                 .withAdapters(new InlineOptionsConfigAdapter());
-        jsonb = JsonbBuilder.create(config);
+        jsonb = JsonbBuilder.newBuilder()
+                .withProvider(YamlJson.provider())
+                .withConfig(config)
+                .build();
     }
 
     @Test
     public void shouldReadCondition()
     {
-        String text = "{" +
-                "\"subjects\":" +
-                    "{" +
-                    "\"subject1\":" +
-                        "{" +
-                            "\"version\": \"latest\"," +
-                            "\"schema\": \"{\\\"type\\\":\\\"object\\\",\\\"properties\\\":" +
-                                "{\\\"id\\\":{\\\"type\\\":\\\"string\\\"},\\\"status\\\":{\\\"type\\\":\\\"string\\\"}}," +
-                                "\\\"required\\\":[\\\"id\\\",\\\"status\\\"]}\"" +
-                        "}" +
-                    "}" +
-                "}";
+        String yaml =
+                """
+                subjects:
+                  subject1:
+                    version: latest
+                    schema: "{\\"type\\":\\"object\\",\\"properties\\":\
+                {\\"id\\":{\\"type\\":\\"string\\"},\\"status\\":{\\"type\\":\\"string\\"}},\
+                \\"required\\":[\\"id\\",\\"status\\"]}"
+                """;
 
-        InlineOptionsConfig catalog = jsonb.fromJson(text, InlineOptionsConfig.class);
+        InlineOptionsConfig catalog = jsonb.fromJson(yaml, InlineOptionsConfig.class);
 
         assertThat(catalog, not(nullValue()));
         InlineSchemaConfig schema = catalog.subjects.get(0);
@@ -68,18 +70,15 @@ public class InlineOptionsConfigAdapterTest
     @Test
     public void shouldWriteCondition()
     {
-        String expectedJson = "{" +
-            "\"subjects\":" +
-                "{" +
-                    "\"subject1\":" +
-                        "{" +
-                            "\"schema\":\"{\\\"type\\\":\\\"object\\\",\\\"properties\\\":" +
-                            "{\\\"id\\\":{\\\"type\\\":\\\"string\\\"},\\\"status\\\":{\\\"type\\\":\\\"string\\\"}}," +
-                            "\\\"required\\\":[\\\"id\\\",\\\"status\\\"]}\"," +
-                            "\"version\":\"latest\"" +
-                        "}" +
-                    "}" +
-                "}";
+        String expectedYaml =
+                """
+                subjects:
+                  subject1:
+                    schema: "{\\"type\\":\\"object\\",\\"properties\\":\
+                {\\"id\\":{\\"type\\":\\"string\\"},\\"status\\":{\\"type\\":\\"string\\"}},\
+                \\"required\\":[\\"id\\",\\"status\\"]}"
+                    version: latest
+                """;
 
         InlineOptionsConfig catalog = InlineOptionsConfig.builder()
             .schema()
@@ -91,9 +90,9 @@ public class InlineOptionsConfigAdapterTest
                 .build()
             .build();
 
-        String json = jsonb.toJson(catalog);
+        String yaml = jsonb.toJson(catalog);
 
-        assertThat(json, not(nullValue()));
-        assertThat(json, equalTo(expectedJson));
+        assertThat(yaml, not(nullValue()));
+        assertThat(yaml, equalTo(expectedYaml));
     }
 }

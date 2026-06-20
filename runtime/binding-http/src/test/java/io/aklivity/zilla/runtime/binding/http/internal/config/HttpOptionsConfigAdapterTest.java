@@ -42,6 +42,7 @@ import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpVersion;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
+import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 import io.aklivity.zilla.runtime.engine.test.internal.model.config.TestModelConfig;
 
 public class HttpOptionsConfigAdapterTest
@@ -53,84 +54,59 @@ public class HttpOptionsConfigAdapterTest
     {
         JsonbConfig config = new JsonbConfig()
                 .withAdapters(new HttpOptionsConfigAdapter());
-        jsonb = JsonbBuilder.create(config);
+        jsonb = JsonbBuilder.newBuilder()
+                .withProvider(YamlJson.provider())
+                .withConfig(config)
+                .build();
     }
 
     @Test
     public void shouldReadOptions()
     {
         // GIVEN
-        String json =
-            "{" +
-                "\"versions\":" +
-                "[" +
-                    "\"http/1.1\"," +
-                    "\"h2\"" +
-                "]," +
-                "\"access-control\":" +
-                "{" +
-                    "\"policy\": \"cross-origin\"," +
-                    "\"allow\":" +
-                    "{" +
-                        "\"origins\": [ \"https://example.com:9090\" ]," +
-                        "\"methods\": [ \"DELETE\" ]," +
-                        "\"headers\": [ \"x-api-key\" ]," +
-                        "\"credentials\": true" +
-                    "}," +
-                    "\"max-age\": 10," +
-                    "\"expose\":" +
-                    "{" +
-                        "\"headers\": [ \"x-custom-header\" ]" +
-                    "}" +
-                "}," +
-                "\"authorization\":" +
-                "{" +
-                    "\"test0\":" +
-                    "{" +
-                        "\"credentials\":" +
-                        "{" +
-                            "\"headers\":" +
-                            "{" +
-                                "\"authorization\":\"Bearer {credentials}\"" +
-                            "}" +
-                        "}" +
-                    "}" +
-                "}," +
-                "\"overrides\":" +
-                "{" +
-                    "\":authority\": \"example.com:443\"" +
-                "}," +
-                "\"requests\":" +
-                "[" +
-                    "{" +
-                        "\"path\": \"/hello\"," +
-                        "\"method\": \"GET\"," +
-                        "\"content-type\": " +
-                        "[" +
-                            "\"application/json\"" +
-                        "]," +
-                        "\"headers\": " +
-                        "{" +
-                            "\"content-type\": \"test\"" +
-                        "}," +
-                        "\"params\": " +
-                        "{" +
-                            "\"path\":" +
-                            "{" +
-                                "\"id\": \"test\"" +
-                            "}," +
-                            "\"query\":" +
-                            "{" +
-                                "\"index\": \"test\"" +
-                            "}" +
-                        "}," +
-                        "\"content\": \"test\"" +
-                     "}" +
-                "]" +
-            "}";
+        String yaml =
+            """
+            versions:
+              - http/1.1
+              - h2
+            access-control:
+              policy: cross-origin
+              allow:
+                origins:
+                  - "https://example.com:9090"
+                methods:
+                  - DELETE
+                headers:
+                  - x-api-key
+                credentials: true
+              max-age: 10
+              expose:
+                headers:
+                  - x-custom-header
+            authorization:
+              test0:
+                credentials:
+                  headers:
+                    authorization: "Bearer {credentials}"
+            overrides:
+              ":authority": "example.com:443"
+            requests:
+              - path: /hello
+                method: GET
+                content-type:
+                  - application/json
+                headers:
+                  content-type: test
+                params:
+                  path:
+                    id: test
+                  query:
+                    index: test
+                content: test
+            """;
 
         // WHEN
-        HttpOptionsConfig options = jsonb.fromJson(json, HttpOptionsConfig.class);
+        HttpOptionsConfig options = jsonb.fromJson(yaml, HttpOptionsConfig.class);
 
         // THEN
         assertThat(options, not(nullValue()));
@@ -174,74 +150,46 @@ public class HttpOptionsConfigAdapterTest
     public void shouldWriteOptions()
     {
         // GIVEN
-        String expectedJson =
-            "{" +
-                "\"versions\":" +
-                "[" +
-                    "\"http/1.1\"," +
-                    "\"h2\"" +
-                "]," +
-                "\"access-control\":" +
-                "{" +
-                    "\"policy\":\"cross-origin\"," +
-                    "\"allow\":" +
-                    "{" +
-                        "\"origins\":[\"https://example.com:9090\"]," +
-                        "\"methods\":[\"DELETE\"]," +
-                        "\"headers\":[\"x-api-key\"]," +
-                        "\"credentials\":true" +
-                    "}," +
-                    "\"max-age\":10," +
-                    "\"expose\":" +
-                    "{" +
-                        "\"headers\":[\"x-custom-header\"]" +
-                    "}" +
-                "}," +
-                "\"authorization\":" +
-                "{" +
-                    "\"test0\":" +
-                    "{" +
-                        "\"credentials\":" +
-                        "{" +
-                            "\"headers\":" +
-                            "{" +
-                                "\"authorization\":\"Bearer {credentials}\"" +
-                            "}" +
-                        "}" +
-                    "}" +
-                "}," +
-                "\"overrides\":" +
-                "{" +
-                    "\":authority\":\"example.com:443\"" +
-                "}," +
-                "\"requests\":" +
-                "[" +
-                    "{" +
-                        "\"path\":\"/hello\"," +
-                        "\"method\":\"GET\"," +
-                        "\"content-type\":" +
-                        "[" +
-                            "\"application/json\"" +
-                        "]," +
-                        "\"headers\":" +
-                        "{" +
-                            "\"content-type\":\"test\"" +
-                        "}," +
-                        "\"params\":" +
-                        "{" +
-                            "\"path\":" +
-                            "{" +
-                                "\"id\":\"test\"" +
-                            "}," +
-                            "\"query\":" +
-                            "{" +
-                                "\"index\":\"test\"" +
-                            "}" +
-                        "}," +
-                        "\"content\":\"test\"" +
-                    "}" +
-                "]" +
-            "}";
+        String expectedYaml =
+            """
+            versions:
+              - http/1.1
+              - h2
+            access-control:
+              policy: cross-origin
+              allow:
+                origins:
+                  - "https://example.com:9090"
+                methods:
+                  - DELETE
+                headers:
+                  - x-api-key
+                credentials: true
+              max-age: 10
+              expose:
+                headers:
+                  - x-custom-header
+            authorization:
+              test0:
+                credentials:
+                  headers:
+                    authorization: "Bearer {credentials}"
+            overrides:
+              ":authority": "example.com:443"
+            requests:
+              - path: /hello
+                method: GET
+                content-type:
+                  - application/json
+                headers:
+                  content-type: test
+                params:
+                  path:
+                    id: test
+                  query:
+                    index: test
+                content: test
+            """;
         HttpOptionsConfig options = HttpOptionsConfig.builder()
             .inject(identity())
             .version(HttpVersion.HTTP_1_1)
@@ -299,10 +247,10 @@ public class HttpOptionsConfigAdapterTest
             .build();
 
         // WHEN
-        String json = jsonb.toJson(options);
+        String yaml = jsonb.toJson(options);
 
         // THEN
-        assertThat(json, not(nullValue()));
-        assertThat(json, equalTo(expectedJson));
+        assertThat(yaml, not(nullValue()));
+        assertThat(yaml, equalTo(expectedYaml));
     }
 }

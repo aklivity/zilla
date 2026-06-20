@@ -102,8 +102,11 @@ import io.aklivity.zilla.runtime.engine.binding.BindingContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageReader;
+import io.aklivity.zilla.runtime.engine.budget.BudgetCredit;
 import io.aklivity.zilla.runtime.engine.budget.BudgetCreditor;
+import io.aklivity.zilla.runtime.engine.budget.BudgetDebit;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
+import io.aklivity.zilla.runtime.engine.budget.BudgetFlusher;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.catalog.Catalog;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
@@ -123,8 +126,11 @@ import io.aklivity.zilla.runtime.engine.guard.Guard;
 import io.aklivity.zilla.runtime.engine.guard.GuardContext;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.internal.LabelManager;
+import io.aklivity.zilla.runtime.engine.internal.budget.BudgetHandleRegistry;
 import io.aklivity.zilla.runtime.engine.internal.budget.DefaultBudgetCreditor;
 import io.aklivity.zilla.runtime.engine.internal.budget.DefaultBudgetDebitor;
+import io.aklivity.zilla.runtime.engine.internal.budget.FacadeBudgetCredit;
+import io.aklivity.zilla.runtime.engine.internal.budget.FacadeBudgetDebit;
 import io.aklivity.zilla.runtime.engine.internal.event.io.EventWriter;
 import io.aklivity.zilla.runtime.engine.internal.exporter.ExporterAgent;
 import io.aklivity.zilla.runtime.engine.internal.layouts.BindingsLayout;
@@ -233,6 +239,7 @@ public class EngineWorker implements EngineContext, Agent
 
     private final DefaultBudgetCreditor creditor;
     private final Int2ObjectHashMap<DefaultBudgetDebitor> debitorsByIndex;
+    private final BudgetHandleRegistry budgetHandles;
 
     private final Long2ObjectHashMap<Affinity> affinityByBindingId;
 
@@ -422,6 +429,7 @@ public class EngineWorker implements EngineContext, Agent
         this.creditor = new DefaultBudgetCreditor(index, budgetsLayout, this::doSystemFlush, this::supplyBudgetId,
             signaler::executeTaskAt, config.childCleanupLingerMillis());
         this.debitorsByIndex = new Int2ObjectHashMap<DefaultBudgetDebitor>();
+        this.budgetHandles = new BudgetHandleRegistry();
 
         this.routerConfig = routerConfig;
         EngineRouteable routeable = new EngineRouteable(config, this::newStream,
@@ -607,6 +615,7 @@ public class EngineWorker implements EngineContext, Agent
         long streamId)
     {
         throttles[throttleIndex(streamId)].remove(instanceId(streamId));
+        budgetHandles.release(streamId);
     }
 
     @Override
@@ -619,6 +628,8 @@ public class EngineWorker implements EngineContext, Agent
             streamIdSet.forEach(streamId ->
                 {
                     MessageConsumer handler = streams[streamIndex(streamId)].remove(instanceId(streamId));
+                    budgetHandles.release(streamId);
+                    budgetHandles.release(supplyReplyId(streamId));
                     if (handler != null)
                     {
                         doSyntheticAbort(streamId, handler);
@@ -630,17 +641,49 @@ public class EngineWorker implements EngineContext, Agent
     }
 
     @Override
+    @Deprecated
     public BudgetCreditor creditor()
     {
         return creditor;
     }
 
     @Override
+    @Deprecated
     public BudgetDebitor supplyDebitor(
         long budgetId)
     {
         final int ownerIndex = ownerIndex(budgetId);
         return debitorsByIndex.computeIfAbsent(ownerIndex, this::newBudgetDebitor);
+    }
+
+    @Override
+    public BudgetDebit supplyDebit(
+        long streamId,
+        long sharedStreamId,
+        BudgetFlusher onResume)
+    {
+        if (sharedStreamId == NO_BUDGET_ID)
+        {
+            throw new UnsupportedOperationException("unshared per-stream window debit lands in T2");
+        }
+        final DefaultBudgetDebitor debitor = debitorsByIndex.computeIfAbsent(ownerIndex(sharedStreamId), this::newBudgetDebitor);
+        final FacadeBudgetDebit debit = new FacadeBudgetDebit(debitor, sharedStreamId, streamId, onResume);
+        budgetHandles.register(streamId, debit);
+        return debit;
+    }
+
+    @Override
+    public BudgetCredit supplyCredit(
+        long streamId,
+        long sharedStreamId)
+    {
+        if (sharedStreamId == NO_BUDGET_ID)
+        {
+            throw new UnsupportedOperationException("unshared per-stream window credit lands in T2");
+        }
+        final FacadeBudgetCredit credit = new FacadeBudgetCredit(creditor, sharedStreamId);
+        budgetHandles.register(streamId, credit);
+        return credit;
     }
 
     @Override
@@ -1055,6 +1098,8 @@ public class EngineWorker implements EngineContext, Agent
         router.detach(routerConfig.id);
 
         poller.onClose();
+
+        budgetHandles.releaseAll();
 
         int acquiredBuffers = 0;
         int acquiredCreditors = 0;
@@ -1484,10 +1529,12 @@ public class EngineWorker implements EngineContext, Agent
                 case EndFW.TYPE_ID:
                     handler.accept(msgTypeId, buffer, index, length);
                     dispatcher.remove(instanceId);
+                    budgetHandles.release(streamId);
                     break;
                 case AbortFW.TYPE_ID:
                     handler.accept(msgTypeId, buffer, index, length);
                     dispatcher.remove(instanceId);
+                    budgetHandles.release(streamId);
                     break;
                 case FlushFW.TYPE_ID:
                     handler.accept(msgTypeId, buffer, index, length);
@@ -1516,6 +1563,7 @@ public class EngineWorker implements EngineContext, Agent
                 case ResetFW.TYPE_ID:
                     throttle.accept(msgTypeId, buffer, index, length);
                     dispatcher.remove(instanceId);
+                    budgetHandles.release(streamId);
                     break;
                 case SignalFW.TYPE_ID:
                     final SignalFW signal = signalRO.wrap(buffer, index, index + length);
@@ -1532,6 +1580,7 @@ public class EngineWorker implements EngineContext, Agent
                 case RedirectFW.TYPE_ID:
                     throttle.accept(msgTypeId, buffer, index, length);
                     dispatcher.remove(instanceId);
+                    budgetHandles.release(streamId);
                     break;
                 default:
                     break;
@@ -1680,10 +1729,12 @@ public class EngineWorker implements EngineContext, Agent
                 case EndFW.TYPE_ID:
                     handler.accept(msgTypeId, buffer, index, length);
                     dispatcher.remove(instanceId);
+                    budgetHandles.release(streamId);
                     break;
                 case AbortFW.TYPE_ID:
                     handler.accept(msgTypeId, buffer, index, length);
                     dispatcher.remove(instanceId);
+                    budgetHandles.release(streamId);
                     break;
                 case FlushFW.TYPE_ID:
                     handler.accept(msgTypeId, buffer, index, length);
@@ -1712,6 +1763,7 @@ public class EngineWorker implements EngineContext, Agent
                 case ResetFW.TYPE_ID:
                     throttle.accept(msgTypeId, buffer, index, length);
                     dispatcher.remove(instanceId);
+                    budgetHandles.release(streamId);
                     break;
                 case SignalFW.TYPE_ID:
                     final SignalFW signal = signalRO.wrap(buffer, index, index + length);
@@ -1728,6 +1780,7 @@ public class EngineWorker implements EngineContext, Agent
                 case RedirectFW.TYPE_ID:
                     throttle.accept(msgTypeId, buffer, index, length);
                     dispatcher.remove(instanceId);
+                    budgetHandles.release(streamId);
                     break;
                 default:
                     break;

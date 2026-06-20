@@ -30,8 +30,6 @@ import static io.aklivity.zilla.runtime.binding.http.internal.types.ProxyInfoTyp
 import static io.aklivity.zilla.runtime.binding.http.internal.types.ProxySecureInfoType.VERSION;
 import static io.aklivity.zilla.runtime.binding.http.internal.util.BufferUtil.indexOfByte;
 import static io.aklivity.zilla.runtime.binding.http.internal.util.BufferUtil.limitOfBytes;
-import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_CREDITOR_INDEX;
-import static io.aklivity.zilla.runtime.engine.budget.BudgetDebitor.NO_DEBITOR_INDEX;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static io.aklivity.zilla.runtime.engine.guard.GuardHandler.EXPIRES_NEVER;
@@ -141,8 +139,8 @@ import io.aklivity.zilla.runtime.binding.http.internal.util.HttpUtil;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
-import io.aklivity.zilla.runtime.engine.budget.BudgetCreditor;
-import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
+import io.aklivity.zilla.runtime.engine.budget.BudgetCredit;
+import io.aklivity.zilla.runtime.engine.budget.BudgetDebit;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
@@ -554,10 +552,8 @@ public final class HttpServerFactory implements HttpStreamFactory
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer frameBuffer;
     private final BufferPool bufferPool;
-    private final BudgetCreditor creditor;
     private final EngineContext context;
     private final BindingHandler streamFactory;
-    private final LongFunction<BudgetDebitor> supplyDebitor;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final LongSupplier supplyBudgetId;
@@ -586,9 +582,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         this.context = context;
         this.writeBuffer = context.writeBuffer();
         this.bufferPool = context.bufferPool();
-        this.creditor = context.creditor();
         this.streamFactory = context.streamFactory();
-        this.supplyDebitor = context::supplyDebitor;
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.supplyBudgetId = context::supplyBudgetId;
@@ -2017,8 +2011,8 @@ public final class HttpServerFactory implements HttpStreamFactory
                 delegate.replyMax = replyMax;
                 delegate.replyPad = replyPad;
 
-                assert delegate.responseSharedBudgetIndex == NO_CREDITOR_INDEX;
-                delegate.responseSharedBudgetIndex = creditor.acquire(delegate.budgetId);
+                assert delegate.responseCredit == null;
+                delegate.responseCredit = context.supplyCredit(delegate.replyId, delegate.budgetId);
                 delegate.replySharedBudget = replyMax - replyPendingAck();
 
                 delegate.decodeSlot = decodeSlot;
@@ -4161,7 +4155,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
         private int remoteSharedBudget;
         private int responseSharedBudget;
-        private long responseSharedBudgetIndex = NO_CREDITOR_INDEX;
+        private BudgetCredit responseCredit;
 
         private int decodeSlot = NO_SLOT;
         private int decodeSlotOffset;
@@ -4455,7 +4449,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             final long authorization = reset.authorization();
             state = HttpState.closeReply(state);
 
-            cleanupBudgetCreditorIfNecessary();
+            responseCredit = null;
             cleanupEncodeSlotIfNecessary();
 
             if (!HttpState.initialClosing(state))
@@ -4544,8 +4538,8 @@ public final class HttpServerFactory implements HttpStreamFactory
             doBegin(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
                 traceId, authorization, affinity, EMPTY_OCTETS);
 
-            assert responseSharedBudgetIndex == NO_CREDITOR_INDEX;
-            responseSharedBudgetIndex = creditor.acquire(budgetId);
+            assert responseCredit == null;
+            responseCredit = context.supplyCredit(replyId, budgetId);
             state = HttpState.openReply(state);
         }
 
@@ -4649,7 +4643,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             long traceId,
             long authorization)
         {
-            cleanupBudgetCreditorIfNecessary();
+            responseCredit = null;
             cleanupEncodeSlotIfNecessary();
             doEnd(network, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, EMPTY_OCTETS);
             state = HttpState.closeReply(state);
@@ -4659,7 +4653,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             long traceId,
             long authorization)
         {
-            cleanupBudgetCreditorIfNecessary();
+            responseCredit = null;
             cleanupEncodeSlotIfNecessary();
             doAbort(network, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, EMPTY_OCTETS);
             state = HttpState.closeReply(state);
@@ -5108,7 +5102,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 remoteSharedBudget += credit;
 
                 // TODO: instead use HttpState.replyClosed(state)
-                if (responseSharedBudgetIndex != NO_CREDITOR_INDEX)
+                if (responseCredit != null)
                 {
                     flushResponseSharedBudget(traceId);
                 }
@@ -5643,10 +5637,9 @@ public final class HttpServerFactory implements HttpStreamFactory
             final int responseSharedBudgetDelta = remoteSharedBudgetMax - (responseSharedBudget + encodeSlotReserved);
             final int replySharedCredit = Math.min(responseSharedCredit, responseSharedBudgetDelta);
 
-            if (replySharedCredit > 0 && responseSharedBudgetIndex != NO_CREDITOR_INDEX)
+            if (replySharedCredit > 0 && responseCredit != null)
             {
-                final long responseSharedPrevious =
-                    creditor.credit(traceId, responseSharedBudgetIndex, replySharedCredit);
+                responseCredit.capacity(traceId, replySharedCredit);
 
                 if (HttpConfiguration.DEBUG_HTTP2_BUDGETS)
                 {
@@ -5657,11 +5650,6 @@ public final class HttpServerFactory implements HttpStreamFactory
                 }
 
                 responseSharedBudget += replySharedCredit;
-
-                final long responseSharedBudgetUpdated = responseSharedPrevious + replySharedCredit;
-                assert responseSharedBudgetUpdated <= decodeMax
-                    : String.format("%d <= %d, remoteSharedBudget = %d",
-                    responseSharedBudgetUpdated, decodeMax, remoteSharedBudget);
 
                 assert responseSharedBudget <= decodeMax
                     : String.format("%d <= %d", responseSharedBudget, decodeMax);
@@ -6000,15 +5988,6 @@ public final class HttpServerFactory implements HttpStreamFactory
             }
         }
 
-        private void cleanupBudgetCreditorIfNecessary()
-        {
-            if (responseSharedBudgetIndex != NO_CREDITOR_INDEX)
-            {
-                creditor.release(responseSharedBudgetIndex);
-                responseSharedBudgetIndex = NO_CREDITOR_INDEX;
-            }
-        }
-
         private final class Http2Exchange
         {
             private final long originId;
@@ -6044,8 +6023,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             private long requestBud;
             private int requestCaps;
 
-            private BudgetDebitor requestDeb;
-            private long requestDebIndex = NO_DEBITOR_INDEX;
+            private BudgetDebit requestDebit;
 
             private int localBudget;
             private int remoteBudget;
@@ -6128,10 +6106,10 @@ public final class HttpServerFactory implements HttpStreamFactory
                     int length = Math.max(Math.min(initialWindow() - requestPad, remaining.value), 0);
                     int reserved = length + requestPad;
 
-                    if (requestDebIndex != NO_DEBITOR_INDEX && requestDeb != null)
+                    if (requestDebit != null)
                     {
                         final int minimum = reserved; // TODO: fragmentation
-                        reserved = requestDeb.claim(0L, requestDebIndex, requestId, minimum, reserved, 0);
+                        reserved = requestDebit.claim(0L, minimum, reserved);
                         length = Math.max(reserved - requestPad, 0);
                     }
 
@@ -6167,10 +6145,10 @@ public final class HttpServerFactory implements HttpStreamFactory
                         {
                             int reserved = produced + requestPad;
 
-                            if (requestDebIndex != NO_DEBITOR_INDEX && requestDeb != null)
+                            if (requestDebit != null)
                             {
                                 final int minimum = reserved; // TODO: fragmentation
-                                reserved = requestDeb.claim(0L, requestDebIndex, requestId, minimum, reserved, 0);
+                                reserved = requestDebit.claim(0L, minimum, reserved);
                             }
 
                             doData(application, originId, routedId, requestId, requestSeq, requestAck, requestMax, traceId,
@@ -6289,7 +6267,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                 doResponseReset(traceId);
                 state = HttpState.closeInitial(state);
-                cleanupRequestDebitorIfNecessary();
+                requestDebit = null;
                 streams.remove(streamId);
 
                 clear();
@@ -6375,10 +6353,10 @@ public final class HttpServerFactory implements HttpStreamFactory
                 requestBud = budgetId;
                 requestCaps = capabilities;
 
-                if (requestBud != 0L && requestDebIndex == NO_DEBITOR_INDEX)
+                if (requestBud != 0L && requestDebit == null)
                 {
-                    requestDeb = supplyDebitor.apply(budgetId);
-                    requestDebIndex = requestDeb.acquire(budgetId, requestId, Http2Server.this::decodeNetworkIfNecessary);
+                    requestDebit = context.supplyDebit(requestId, budgetId, Http2Server.this::decodeNetworkIfNecessary);
+                    requestDebit.declare(traceId, 0, 0);
                 }
 
                 decodeNetworkIfNecessary(traceId);
@@ -6426,7 +6404,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 assert !HttpState.initialClosed(state);
 
                 state = HttpState.closeInitial(state);
-                cleanupRequestDebitorIfNecessary();
+                requestDebit = null;
                 deauthorizeIfNecessary();
                 removeStreamIfNecessary();
             }
@@ -6436,15 +6414,6 @@ public final class HttpServerFactory implements HttpStreamFactory
                 if (HttpState.closed(state) && (sessionId & MASK_AUTHORIZED) != 0 && guard != null)
                 {
                     guard.deauthorize(sessionId);
-                }
-            }
-
-            private void cleanupRequestDebitorIfNecessary()
-            {
-                if (requestDebIndex != NO_DEBITOR_INDEX)
-                {
-                    requestDeb.release(requestDebIndex, requestId);
-                    requestDebIndex = NO_DEBITOR_INDEX;
                 }
             }
 

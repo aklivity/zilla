@@ -28,6 +28,7 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemOptionsConfig;
 import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemStoreConfig;
 
@@ -40,17 +41,19 @@ public class FileSystemOptionsConfigAdapterTest
     {
         JsonbConfig config = new JsonbConfig()
                 .withAdapters(new FileSystemOptionsConfigAdapter());
-        jsonb = JsonbBuilder.create(config);
+        jsonb = JsonbBuilder.newBuilder()
+                .withProvider(YamlJson.provider())
+                .withConfig(config)
+                .build();
     }
 
     @Test
     public void shouldReadOptions()
     {
-        String text =
-                "{" +
-                "}";
+        String yaml =
+                "{}";
 
-        FileSystemOptionsConfig options = jsonb.fromJson(text, FileSystemOptionsConfig.class);
+        FileSystemOptionsConfig options = jsonb.fromJson(yaml, FileSystemOptionsConfig.class);
 
         assertThat(options, not(nullValue()));
         assertThat(options.keys, nullValue(FileSystemStoreConfig.class));
@@ -59,17 +62,15 @@ public class FileSystemOptionsConfigAdapterTest
     @Test
     public void shouldReadOptionsWithKeys()
     {
-        String text =
-                "{" +
-                    "\"keys\":" +
-                    "{" +
-                        "\"store\": \"localhost.p12\"," +
-                        "\"type\": \"pkcs12\"," +
-                        "\"password\": \"generated\"" +
-                    "}" +
-                "}";
+        String yaml =
+                """
+                keys:
+                  store: localhost.p12
+                  type: pkcs12
+                  password: generated
+                """;
 
-        FileSystemOptionsConfig options = jsonb.fromJson(text, FileSystemOptionsConfig.class);
+        FileSystemOptionsConfig options = jsonb.fromJson(yaml, FileSystemOptionsConfig.class);
 
         assertThat(options, not(nullValue()));
         assertThat(options.keys, not(nullValue()));
@@ -84,10 +85,10 @@ public class FileSystemOptionsConfigAdapterTest
         FileSystemOptionsConfig options = FileSystemOptionsConfig.builder()
             .build();
 
-        String text = jsonb.toJson(options);
+        String yaml = jsonb.toJson(options);
 
-        assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{}"));
+        assertThat(yaml, not(nullValue()));
+        assertThat(yaml, equalTo("{}\n"));
     }
 
     @Test
@@ -103,9 +104,15 @@ public class FileSystemOptionsConfigAdapterTest
                 .build()
             .build();
 
-        String text = jsonb.toJson(options);
+        String yaml = jsonb.toJson(options);
 
-        assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"keys\":{\"store\":\"localhost.p12\",\"type\":\"pkcs12\",\"password\":\"generated\"}}"));
+        assertThat(yaml, not(nullValue()));
+        assertThat(yaml, equalTo(
+                """
+                keys:
+                  store: localhost.p12
+                  type: pkcs12
+                  password: generated
+                """));
     }
 }

@@ -37,6 +37,7 @@ import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveKafkaConfig
 import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveKafkaPropertiesConfig;
 import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveOptionsConfig;
 import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveUdfConfig;
+import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapter;
@@ -59,43 +60,33 @@ public class RisingwaveOptionsConfigAdapterTest
         adapter.adaptType("risingwave");
         JsonbConfig config = new JsonbConfig()
             .withAdapters(adapter);
-        jsonb = JsonbBuilder.create(config);
+        jsonb = JsonbBuilder.newBuilder()
+            .withProvider(YamlJson.provider())
+            .withConfig(config)
+            .build();
     }
 
     @Test
     public void shouldReadOptions()
     {
-        String text =
+        String yaml =
             """
-                {\
-                  "kafka": {
-                    "properties": {
-                      "bootstrap.server": "localhost:9092"
-                    },
-                    "format": {
-                      "model": "test",
-                      "length": 0,
-                      "catalog": {
-                        "test0": [
-                          {
-                            "id": 1
-                          }
-                        ]
-                      }
-                    }
-                  },
-                  "udf": [
-                    {
-                      "server": "http://udf.zillabase.dev:8815"
-                    },
-                    {
-                      "server": "http://udf-python.zillabase.dev:8815",
-                      "language": "python"
-                    }
-                    ]
-                }""";
+            kafka:
+              properties:
+                bootstrap.server: localhost:9092
+              format:
+                model: test
+                length: 0
+                catalog:
+                  test0:
+                    - id: 1
+            udf:
+              - server: http://udf.zillabase.dev:8815
+              - server: http://udf-python.zillabase.dev:8815
+                language: python
+            """;
 
-        RisingwaveOptionsConfig options = jsonb.fromJson(text, RisingwaveOptionsConfig.class);
+        RisingwaveOptionsConfig options = jsonb.fromJson(yaml, RisingwaveOptionsConfig.class);
 
         assertThat(options, not(nullValue()));
         assertEquals(options.udfs.get(0).server, "http://udf.zillabase.dev:8815");
@@ -105,8 +96,16 @@ public class RisingwaveOptionsConfigAdapterTest
     @Test
     public void shouldWriteOptions()
     {
-        String expected = "{\"kafka\":{\"properties\":{\"bootstrap.server\":\"localhost:9092\"},\"format\":\"test\"}," +
-            "\"udf\":[{\"server\":\"http://udf-python.zillabase.dev:8815\",\"language\":\"python\"}]}";
+        String expected =
+            """
+            kafka:
+              properties:
+                bootstrap.server: "localhost:9092"
+              format: test
+            udf:
+              - server: "http://udf-python.zillabase.dev:8815"
+                language: python
+            """;
 
         RisingwaveKafkaPropertiesConfig properties = RisingwaveKafkaPropertiesConfig.builder()
             .inject(identity())
@@ -137,9 +136,9 @@ public class RisingwaveOptionsConfigAdapterTest
             .udf(udf)
             .build();
 
-        String text = jsonb.toJson(options);
+        String yaml = jsonb.toJson(options);
 
-        assertThat(text, not(nullValue()));
-        assertEquals(expected, text);
+        assertThat(yaml, not(nullValue()));
+        assertEquals(expected, yaml);
     }
 }
