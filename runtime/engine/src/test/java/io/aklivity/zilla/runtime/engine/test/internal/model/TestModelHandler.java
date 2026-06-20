@@ -15,6 +15,11 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.model;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
@@ -22,25 +27,42 @@ import io.aklivity.zilla.runtime.engine.test.internal.model.config.TestModelConf
 
 public class TestModelHandler implements ModelHandler
 {
+    private static final String PATH = "^\\$\\.([A-Za-z_][A-Za-z0-9_]*)$";
+    private static final Pattern PATH_PATTERN = Pattern.compile(PATH);
+
     private final int length;
+    private final List<String> paths;
+    private final Matcher matcher;
 
     public TestModelHandler(
         TestModelConfig config)
     {
         this.length = config.length;
+        this.paths = new ArrayList<>();
+        this.matcher = PATH_PATTERN.matcher("");
+    }
+
+    @Override
+    public void extract(
+        String path)
+    {
+        if (matcher.reset(path).matches())
+        {
+            paths.add(path);
+        }
     }
 
     @Override
     public ModelPipeline supplyDecoder(
         ModelVisitor visitor)
     {
-        return new TestModelPipeline(length);
+        return new TestModelPipeline(length, paths, visitor);
     }
 
     @Override
     public ModelPipeline supplyEncoder(
         ModelVisitor visitor)
     {
-        return new TestModelPipeline(length);
+        return new TestModelPipeline(length, paths, visitor);
     }
 }

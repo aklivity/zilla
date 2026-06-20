@@ -15,27 +15,42 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.model;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
+import java.util.List;
+
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
+import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
+import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
 
 // Per-stream identity transform mirroring the test model's whole-value length check: the value bytes are
 // copied through into dst unchanged and accepted only when the total length across fragments equals the
-// configured length. State lives on the pipeline so interleaved streams stay isolated.
+// configured length. Registered extraction paths surface a fixed token to the visitor when a value
+// completes. State lives on the pipeline so interleaved streams stay isolated.
 final class TestModelPipeline implements ModelPipeline
 {
+    private final DirectBuffer extractedValue = new UnsafeBuffer("1234".getBytes(UTF_8));
+
     private final int length;
+    private final List<String> paths;
+    private final ModelVisitor visitor;
     private final ModelPipelineResult result;
 
     private int processed;
 
     TestModelPipeline(
-        int length)
+        int length,
+        List<String> paths,
+        ModelVisitor visitor)
     {
         this.length = length;
+        this.paths = paths;
+        this.visitor = visitor;
         this.result = new ModelPipelineResult();
     }
 
@@ -83,6 +98,10 @@ final class TestModelPipeline implements ModelPipeline
             else if (tail)
             {
                 status = ModelStatus.COMPLETE;
+                for (int i = 0; i < paths.size(); i++)
+                {
+                    visitor.onField(paths.get(i), extractedValue, 0, extractedValue.capacity());
+                }
             }
             else
             {
