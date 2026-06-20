@@ -16,16 +16,18 @@ package io.aklivity.zilla.runtime.common.json.internal;
 
 import java.math.BigDecimal;
 
+import jakarta.json.JsonException;
 import jakarta.json.stream.JsonLocation;
-import jakarta.json.stream.JsonParsingException;
 
 import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.common.json.JsonController;
+import io.aklivity.zilla.runtime.common.json.JsonDiagnostic;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx.Mode;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
+import io.aklivity.zilla.runtime.common.json.JsonReporter;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonSource;
 
@@ -41,6 +43,8 @@ public final class JsonPipelineImpl implements JsonPipeline
     private final Source source;
     private final Control control;
     private final JsonSink root;
+    private final JsonReporter reporter;
+    private final Diagnostic diagnostic;
 
     private boolean suspended;
     // the value event in flight across a suspend, handed to root.resume() so no stage stores it
@@ -48,13 +52,16 @@ public final class JsonPipelineImpl implements JsonPipeline
 
     public JsonPipelineImpl(
         JsonParserEx parser,
-        JsonSink root)
+        JsonSink root,
+        JsonReporter reporter)
     {
         this.parser = parser;
         // the source view and the upstream controller a stage steers are adapters over the parser surface
         this.source = new Source(parser);
         this.control = new Control(parser);
         this.root = root;
+        this.reporter = reporter;
+        this.diagnostic = new Diagnostic();
     }
 
     @Override
@@ -63,6 +70,7 @@ public final class JsonPipelineImpl implements JsonPipeline
         parser.reset();
         root.reset();
         suspended = false;
+        diagnostic.message = null;
         resumeEvent = null;
     }
 
@@ -114,9 +122,16 @@ public final class JsonPipelineImpl implements JsonPipeline
                 status = last ? Status.REJECTED : Status.STARVED;
             }
         }
-        catch (JsonParsingException ex)
+        catch (JsonException ex)
         {
             status = Status.REJECTED;
+            diagnostic.message = ex.getMessage();
+        }
+        if (status == Status.REJECTED && reporter != null)
+        {
+            // terminal failure only — never STARVED/SUSPENDED back-pressure; the diagnostic is a reused,
+            // call-scoped view, so the reporter must copy out anything it needs before returning
+            reporter.rejected(diagnostic);
         }
         suspended = status == Status.SUSPENDED;
         return status;
@@ -221,6 +236,19 @@ public final class JsonPipelineImpl implements JsonPipeline
             Mode mode = segmented ? Mode.SEGMENTED : Mode.STRUCTURED;
             segmented = false;
             return mode;
+        }
+    }
+
+    // the reused, call-scoped diagnostic pushed to the reporter: its message is whatever the rejecting
+    // component populated — here the parser's caught parsing exception, or null for a truncated value
+    private static final class Diagnostic implements JsonDiagnostic
+    {
+        private String message;
+
+        @Override
+        public String message()
+        {
+            return message;
         }
     }
 }

@@ -1257,6 +1257,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         {
             super(servers, sasl, guard, originId, routedId);
 
+            this.saslAuthorization = authorization;
             this.originId = originId;
             this.routedId = routedId;
             this.authorization = authorization;

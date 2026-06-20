@@ -30,6 +30,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.catalog.schema.registry.config.SchemaRegistryOptionsConfig;
+import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 
 public class SchemaRegistryOptionsConfigAdapterTest
 {
@@ -40,38 +41,30 @@ public class SchemaRegistryOptionsConfigAdapterTest
     {
         JsonbConfig config = new JsonbConfig()
                 .withAdapters(new SchemaRegistryOptionsConfigAdapter());
-        jsonb = JsonbBuilder.create(config);
+        jsonb = JsonbBuilder.newBuilder()
+                .withProvider(YamlJson.provider())
+                .withConfig(config)
+                .build();
     }
 
     @Test
     public void shouldReadOptions()
     {
-        String text = """
-            {
-              "url": "http://localhost:8081",
-              "context": "default",
-              "tls":
-              {
-                "keys":
-                [
-                  "client1"
-                ],
-                "trust":
-                [
-                  "serverca"
-                ]
-              },
-              "credentials":
-              {
-                "headers":
-                {
-                  "authorization": "Basic dXNlcjpzZWNyZXQ="
-                }
-              }
-            }
+        String yaml =
+            """
+            url: "http://localhost:8081"
+            context: default
+            tls:
+              keys:
+                - client1
+              trust:
+                - serverca
+            credentials:
+              headers:
+                authorization: "Basic dXNlcjpzZWNyZXQ="
             """;
 
-        SchemaRegistryOptionsConfig catalog = jsonb.fromJson(text, SchemaRegistryOptionsConfig.class);
+        SchemaRegistryOptionsConfig catalog = jsonb.fromJson(yaml, SchemaRegistryOptionsConfig.class);
 
         assertThat(catalog, not(nullValue()));
         assertThat(catalog.url, equalTo("http://localhost:8081"));
@@ -94,35 +87,24 @@ public class SchemaRegistryOptionsConfigAdapterTest
             .authorization("Basic dXNlcjpzZWNyZXQ=")
             .build();
 
-        String text = jsonb.toJson(catalog);
+        String yaml = jsonb.toJson(catalog);
 
-        String expected = """
-            {
-              "url":"http://localhost:8081",
-              "context":"default",
-              "max-age":300,
-              "tls":
-              {
-                "keys":
-                [
-                  "client1"
-                ],
-                "trust":
-                [
-                  "serverca"
-                ]
-              },
-              "credentials":
-              {
-                "headers":
-                {
-                  "authorization":"Basic dXNlcjpzZWNyZXQ="
-                }
-              }
-            }
-            """.replaceAll("\\s*\\n\\s*", "");
+        String expected =
+            """
+            url: "http://localhost:8081"
+            context: default
+            max-age: 300
+            tls:
+              keys:
+                - client1
+              trust:
+                - serverca
+            credentials:
+              headers:
+                authorization: "Basic dXNlcjpzZWNyZXQ="
+            """;
 
-        assertThat(text, not(nullValue()));
-        assertThat(text, equalTo(expected));
+        assertThat(yaml, not(nullValue()));
+        assertThat(yaml, equalTo(expected));
     }
 }

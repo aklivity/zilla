@@ -21,6 +21,7 @@ import org.agrona.collections.Long2ObjectHashMap;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.GuardConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardContext;
+import io.aklivity.zilla.runtime.guard.identity.internal.config.IdentityOptionsConfig;
 
 public class IdentityGuardContext implements GuardContext
 {
@@ -40,7 +41,10 @@ public class IdentityGuardContext implements GuardContext
     public IdentityGuardHandler attach(
         GuardConfig guard)
     {
-        IdentityGuardHandler handler = new IdentityGuardHandler(supplyAuthorizedId);
+        IdentityOptionsConfig options = guard.options instanceof IdentityOptionsConfig
+            ? (IdentityOptionsConfig) guard.options
+            : null;
+        IdentityGuardHandler handler = new IdentityGuardHandler(supplyAuthorizedId, options);
         handlersById.put(guard.id, handler);
         return handler;
     }

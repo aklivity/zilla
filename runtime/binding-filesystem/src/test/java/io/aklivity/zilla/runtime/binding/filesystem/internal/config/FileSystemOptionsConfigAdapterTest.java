@@ -30,6 +30,7 @@ import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.filesystem.config.FileSystemOptionsConfig;
 import io.aklivity.zilla.runtime.binding.filesystem.config.FileSystemSymbolicLinksConfig;
+import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 
 public class FileSystemOptionsConfigAdapterTest
 {
@@ -40,19 +41,22 @@ public class FileSystemOptionsConfigAdapterTest
     {
         JsonbConfig config = new JsonbConfig()
                 .withAdapters(new FileSystemOptionsConfigAdapter());
-        jsonb = JsonbBuilder.create(config);
+        jsonb = JsonbBuilder.newBuilder()
+                .withProvider(YamlJson.provider())
+                .withConfig(config)
+                .build();
     }
 
     @Test
     public void shouldReadOptions()
     {
-        String text =
-                "{" +
-                    "\"location\":\"target/files\"," +
-                    "\"symlinks\":\"follow\"" +
-                "}";
+        String yaml =
+                """
+                location: target/files
+                symlinks: follow
+                """;
 
-        FileSystemOptionsConfig options = jsonb.fromJson(text, FileSystemOptionsConfig.class);
+        FileSystemOptionsConfig options = jsonb.fromJson(yaml, FileSystemOptionsConfig.class);
 
         assertThat(options, not(nullValue()));
         assertThat(options.location, equalTo(URI.create("target/files")));
@@ -66,13 +70,13 @@ public class FileSystemOptionsConfigAdapterTest
                 URI.create("target/files"),
                 FileSystemSymbolicLinksConfig.FOLLOW);
 
-        String text = jsonb.toJson(options);
+        String yaml = jsonb.toJson(options);
 
-        assertThat(text, not(nullValue()));
-        assertThat(text, equalTo(
-                    "{" +
-                        "\"location\":\"target/files\"," +
-                        "\"symlinks\":\"follow\"" +
-                    "}"));
+        assertThat(yaml, not(nullValue()));
+        assertThat(yaml, equalTo(
+                """
+                location: target/files
+                symlinks: follow
+                """));
     }
 }

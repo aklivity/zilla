@@ -31,6 +31,7 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufGenerator;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufParser;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline.Status;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufReporter;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSchema;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSink;
 
@@ -40,6 +41,10 @@ public class ProtobufJsonStrictTest
         "syntax = \"proto3\";\n" +
         "message Person { string name = 1; int32 id = 2; }\n";
 
+    // captures the call-scoped diagnostic the pipeline pushes on a terminal REJECTED, copying the message out
+    private final String[] reason = new String[1];
+    private final ProtobufReporter reporter = d -> reason[0] = d.message();
+
     @Test
     public void shouldRejectUnknownFieldWhenConfigured()
     {
@@ -47,12 +52,13 @@ public class ProtobufJsonStrictTest
         ProtobufGenerator generator = Protobuf.generator().wrap(new UnsafeBuffer(new byte[256]), 0, 256);
         ProtobufParser parser = ProtobufJson.parser(JsonEx.createParser(), schema, "Person",
             Map.of(ProtobufJson.REJECT_UNKNOWN_FIELDS, Boolean.TRUE));
-        ProtobufPipeline pipeline = Protobuf.stream(parser).into(ProtobufSink.of(generator, schema, "Person"));
+        ProtobufPipeline pipeline = Protobuf.stream(parser).reporting(reporter).into(ProtobufSink.of(generator, schema,
+            "Person"));
         pipeline.reset();
 
         byte[] in = "{\"name\":\"neo\",\"nope\":1}".getBytes(UTF_8);
         assertEquals(Status.REJECTED, pipeline.feed(new UnsafeBuffer(in), 0, in.length));
-        assertTrue(pipeline.reason().contains("nope"), pipeline.reason());
+        assertTrue(reason[0].contains("nope"), reason[0]);
     }
 
     @Test
@@ -61,37 +67,40 @@ public class ProtobufJsonStrictTest
         ProtobufSchema schema = Protobuf.schema(SCHEMA);
         ProtobufGenerator generator = Protobuf.generator().wrap(new UnsafeBuffer(new byte[256]), 0, 256);
         ProtobufParser parser = ProtobufJson.parser(JsonEx.createParser(), schema, "Person");
-        ProtobufPipeline pipeline = Protobuf.stream(parser).into(ProtobufSink.of(generator, schema, "Person"));
+        ProtobufPipeline pipeline = Protobuf.stream(parser).reporting(reporter).into(ProtobufSink.of(generator, schema,
+            "Person"));
         pipeline.reset();
 
         byte[] in = "{\"name\":\"neo\",\"nope\":1}".getBytes(UTF_8);
         assertEquals(Status.COMPLETED, pipeline.feed(new UnsafeBuffer(in), 0, in.length));
-        assertNull(pipeline.reason());
+        assertNull(reason[0]);
     }
 
     @Test
-    public void shouldReportNoReasonOnSuccess()
+    public void shouldNotReportOnSuccess()
     {
         ProtobufSchema schema = Protobuf.schema(SCHEMA);
         ProtobufGenerator generator = Protobuf.generator().wrap(new UnsafeBuffer(new byte[256]), 0, 256);
         ProtobufParser parser = ProtobufJson.parser(JsonEx.createParser(), schema, "Person",
             Map.of(ProtobufJson.REJECT_UNKNOWN_FIELDS, Boolean.TRUE));
-        ProtobufPipeline pipeline = Protobuf.stream(parser).into(ProtobufSink.of(generator, schema, "Person"));
+        ProtobufPipeline pipeline = Protobuf.stream(parser).reporting(reporter).into(ProtobufSink.of(generator, schema,
+            "Person"));
         pipeline.reset();
 
         byte[] in = "{\"name\":\"neo\"}".getBytes(UTF_8);
         assertEquals(Status.COMPLETED, pipeline.feed(new UnsafeBuffer(in), 0, in.length));
-        assertNull(pipeline.reason());
+        assertNull(reason[0]);
     }
 
     @Test
-    public void shouldClearReasonOnReset()
+    public void shouldNotReportOnSuccessAfterReject()
     {
         ProtobufSchema schema = Protobuf.schema(SCHEMA);
         ProtobufGenerator generator = Protobuf.generator();
         ProtobufParser parser = ProtobufJson.parser(JsonEx.createParser(), schema, "Person",
             Map.of(ProtobufJson.REJECT_UNKNOWN_FIELDS, Boolean.TRUE));
-        ProtobufPipeline pipeline = Protobuf.stream(parser).into(ProtobufSink.of(generator, schema, "Person"));
+        ProtobufPipeline pipeline = Protobuf.stream(parser).reporting(reporter).into(ProtobufSink.of(generator, schema,
+            "Person"));
 
         MutableDirectBuffer out = new UnsafeBuffer(new byte[256]);
         generator.wrap(out, 0, out.capacity());
@@ -101,8 +110,10 @@ public class ProtobufJsonStrictTest
 
         generator.wrap(out, 0, out.capacity());
         pipeline.reset();
-        assertNull(pipeline.reason());
+        // the prior reject's message must not leak onto a clean value: the reporter fires only on REJECTED
+        reason[0] = null;
         byte[] good = "{\"name\":\"neo\"}".getBytes(UTF_8);
         assertEquals(Status.COMPLETED, pipeline.feed(new UnsafeBuffer(good), 0, good.length));
+        assertNull(reason[0]);
     }
 }

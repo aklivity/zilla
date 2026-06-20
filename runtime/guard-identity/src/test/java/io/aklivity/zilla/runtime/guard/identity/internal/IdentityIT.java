@@ -63,7 +63,7 @@ public class IdentityIT
     @Test
     public void shouldVerifyIdentityAndRolesWhenAllowAccess() throws Exception
     {
-        IdentityGuardHandler guard = new IdentityGuardHandler(new MutableLong(1L)::getAndIncrement);
+        IdentityGuardHandler guard = new IdentityGuardHandler(new MutableLong(1L)::getAndIncrement, null);
 
         String token = "authorization-token";
         long sessionId = guard.reauthorize(0L, 0L, 101L, token);

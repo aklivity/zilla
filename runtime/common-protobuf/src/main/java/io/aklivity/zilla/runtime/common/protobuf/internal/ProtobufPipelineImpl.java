@@ -19,12 +19,14 @@ import java.util.List;
 import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufController;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufDiagnostic;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufEvent;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufException;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufField;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufMessage;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufParser;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufReporter;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSink;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSource;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufTransform;
@@ -43,19 +45,23 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
     private final Source source;
     private final Control control;
     private final ProtobufSink head;
+    private final ProtobufReporter reporter;
+    private final Diagnostic diagnostic;
 
     private boolean suspended;
     private boolean starved;
-    private String reason;
     // the event in flight across an output suspend, handed to head.resume() so no sink stores it
     private ProtobufEvent resumeEvent;
 
     public ProtobufPipelineImpl(
         ProtobufParser parser,
         List<ProtobufTransform> transforms,
-        ProtobufSink sink)
+        ProtobufSink sink,
+        ProtobufReporter reporter)
     {
         this.parser = parser;
+        this.reporter = reporter;
+        this.diagnostic = new Diagnostic();
         // the per-edge handles the stages see: a read-only source view of the parser, and a control handle
         // that records a stage's segment request which the pump turns into the SEGMENTED mode on the next pull
         this.source = new Source(parser);
@@ -75,7 +81,7 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
         head.reset();
         suspended = false;
         starved = false;
-        reason = null;
+        diagnostic.message = null;
         resumeEvent = null;
     }
 
@@ -83,12 +89,6 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
     public int remaining()
     {
         return parser.remaining();
-    }
-
-    @Override
-    public String reason()
-    {
-        return reason;
     }
 
     @Override
@@ -130,6 +130,8 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
                         // the pump owns the resume cursor: remember the in-flight event for the next entry
                         resumeEvent = event;
                     }
+                    // a sink STARVED leaves the unconsumed tail uncommitted (consumed() advanced the cursor by
+                    // only what the sink took), so remaining() already reports it for the next window — no rewind
                 }
             }
             suspended = status == Status.SUSPENDED;
@@ -138,7 +140,13 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
         catch (ProtobufException ex)
         {
             status = Status.REJECTED;
-            reason = ex.getMessage();
+            diagnostic.message = ex.getMessage();
+        }
+        if (status == Status.REJECTED && reporter != null)
+        {
+            // terminal failure only — never STARVED/SUSPENDED back-pressure; the diagnostic is a reused,
+            // call-scoped view, so the reporter must copy out anything it needs before returning
+            reporter.rejected(diagnostic);
         }
         return status;
     }
@@ -273,6 +281,19 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
             ProtobufParser.Mode mode = segmented ? ProtobufParser.Mode.SEGMENTED : ProtobufParser.Mode.STRUCTURED;
             segmented = false;
             return mode;
+        }
+    }
+
+    // the reused, call-scoped diagnostic pushed to the reporter: its message is whatever the rejecting
+    // component populated — the parser's caught exception, or the validator's structural-reject exception
+    private static final class Diagnostic implements ProtobufDiagnostic
+    {
+        private String message;
+
+        @Override
+        public String message()
+        {
+            return message;
         }
     }
 }

@@ -19,6 +19,7 @@ import java.util.List;
 
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufParser;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufReporter;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSink;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufStream;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufTransform;
@@ -31,6 +32,8 @@ public final class ProtobufStreamImpl implements ProtobufStream
 {
     private final ProtobufParser parser;
     private final List<ProtobufTransform> transforms;
+
+    private ProtobufReporter reporter;
 
     public ProtobufStreamImpl(
         ProtobufParser parser)
@@ -48,9 +51,17 @@ public final class ProtobufStreamImpl implements ProtobufStream
     }
 
     @Override
+    public ProtobufStream reporting(
+        ProtobufReporter reporter)
+    {
+        this.reporter = reporter;
+        return this;
+    }
+
+    @Override
     public ProtobufPipeline into(
         ProtobufSink sink)
     {
-        return new ProtobufPipelineImpl(parser, transforms, sink);
+        return new ProtobufPipelineImpl(parser, transforms, sink, reporter);
     }
 }

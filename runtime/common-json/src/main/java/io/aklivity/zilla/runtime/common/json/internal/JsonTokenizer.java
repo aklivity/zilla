@@ -49,13 +49,31 @@ public final class JsonTokenizer
         VALUE_NULL
     }
 
+    // states of the RFC 8259 number grammar, advanced one char at a time by validateNumberChar
+    private enum NumberState
+    {
+        START,
+        SIGN,
+        ZERO,
+        INT,
+        DOT,
+        FRAC,
+        EXP,
+        EXP_SIGN,
+        EXP_INT
+    }
+
     private static final int MAX_DEPTH = 64;
 
     private final Deque<ParseState> stack = new ArrayDeque<>();
     private final StringBuilder scratch = new StringBuilder();
-    // accumulates the full lexeme of a fragmented number across its fragments (scratch holds only the
-    // current fragment); getBigDecimal() reads this on the final fragment to read the value whole.
-    private final StringBuilder numberLexeme = new StringBuilder();
+    // chars of the current scratch the consumer has taken; on resume only this prefix is dropped so the
+    // unconsumed remainder accumulates, letting a consumer that declines fragments (consumed(0)) receive
+    // the value whole. Set by the parser from its consumed cursor before each resuming advance.
+    private int scratchConsumed;
+    // cap on the decoded chars retained for one value/key; appendScratch fails closed past it so a
+    // consumer that declines fragments cannot grow scratch without bound
+    private final int maxValueSize;
     private boolean terminalEof;
     // byte length of the current input window; a value whose own bytes reach this length without
     // completing fills the window and is delivered as fragments rather than reassembled across windows.
@@ -77,6 +95,14 @@ public final class JsonTokenizer
     private long streamOffset;
     private long valueStreamStart;
     private long valueStreamEnd;
+    // 1-based line/column of the next byte to read; snapshots restore them when the scan rewinds the
+    // stream offset to a value start (value*) or a complete-unit boundary (unit*) at a window edge
+    private long line = 1;
+    private long column = 1;
+    private long valueLine = 1;
+    private long valueColumn = 1;
+    private long unitLine = 1;
+    private long unitColumn = 1;
     // raw stream offset where the current value (string or number) fragment began; getSegment() of a
     // fragmented value returns [fragmentStart, valueStreamEnd] so each fragment's verbatim bytes splice
     // back to the whole token (fragment 1 includes the opening quote, the final fragment the closing one)
@@ -93,9 +119,9 @@ public final class JsonTokenizer
     // to unitStartOffset) for the caller to re-present, so no partial state crosses a wrap.
     private boolean fragmenting;
     private long unitStartOffset;
-    // true once the current/just-completed number was delivered in more than one fragment: getInt()/
-    // getLong() then throw (the value would overflow) and getBigDecimal() reads the accumulated lexeme.
-    private boolean numberFragmented;
+    // RFC 8259 number grammar validated incrementally as each char is scanned, so a number spanning
+    // windows needs no retained whole lexeme to validate; the state persists across fragments.
+    private NumberState numberState;
 
     // set at each VALUE_STRING delivery: true when the value-string was streamed verbatim as raw bytes
     // (a segment scan or an armed scalar leaf), so the caller splices its raw token bytes; false when it
@@ -118,14 +144,23 @@ public final class JsonTokenizer
         this(false);
     }
 
+    public JsonTokenizer(
+        boolean terminalEof)
+    {
+        this(terminalEof, Integer.MAX_VALUE);
+    }
+
     // terminalEof distinguishes a one-shot stream (EOF is the final delimiter) from the chunked
     // wrap()/feed model (EOF marks a frame boundary with more bytes possibly still to come). It
     // only matters for numbers, which unlike strings and the true/false/null literals are not
     // self-terminating and need a following non-digit byte to know they have ended.
+    // maxValueSize caps the decoded chars retained for one value/key; growth past it fails closed.
     public JsonTokenizer(
-        boolean terminalEof)
+        boolean terminalEof,
+        int maxValueSize)
     {
         this.terminalEof = terminalEof;
+        this.maxValueSize = maxValueSize;
         for (int i = 0; i < MAX_DEPTH; i++)
         {
             pathKeyChars[i] = new StringBuilder();
@@ -136,8 +171,8 @@ public final class JsonTokenizer
     {
         stack.clear();
         scratch.setLength(0);
-        numberLexeme.setLength(0);
-        numberFragmented = false;
+        scratchConsumed = 0;
+        numberState = NumberState.START;
         stringVerbatim = false;
         pathDepth = 0;
         state = ParseState.DOC_START;
@@ -145,6 +180,12 @@ public final class JsonTokenizer
         pendingString = null;
         valuePending = false;
         streamOffset = 0;
+        line = 1;
+        column = 1;
+        valueLine = 1;
+        valueColumn = 1;
+        unitLine = 1;
+        unitColumn = 1;
         fragmentStart = 0;
         segmenting = false;
         scalarSegment = false;
@@ -248,11 +289,16 @@ public final class JsonTokenizer
             {
                 // rewind to the last complete code-point/escape boundary, leaving the partial unit for the caller
                 streamOffset = unitStartOffset;
+                line = unitLine;
+                column = unitColumn;
                 resumeEscape = false;
                 resumeUnicodePending = 0;
                 resumeUnicodeValue = 0;
                 fragmenting = true;
-                if (scalarSegment ? streamOffset > fragmentStart : scratch.length() > 0)
+                // ship a fragment only when this round scanned new bytes; with consumed(0) accumulation the
+                // retained remainder keeps scratch non-empty, so a non-empty scratch alone is not progress and
+                // re-shipping it would spin the pump — require streamOffset to have advanced past fragmentStart
+                if (streamOffset > fragmentStart)
                 {
                     valueStreamStart = fragmentStart;
                     valueStreamEnd = streamOffset;
@@ -267,13 +313,11 @@ public final class JsonTokenizer
             }
             else if (fragment)
             {
-                // number: every digit is a complete unit so nothing is rewound; accumulate the whole
-                // lexeme and ship the digits scanned so far
+                // number: every digit is a complete unit so nothing is rewound; ship only when this round
+                // scanned new bytes (consumed(0) accumulation keeps the rest in scratch, re-presented whole)
                 fragmenting = true;
-                numberFragmented = true;
-                if (scratch.length() > 0)
+                if (streamOffset > fragmentStart)
                 {
-                    numberLexeme.append(scratch);
                     valueStreamStart = fragmentStart;
                     valueStreamEnd = streamOffset;
                     pendingEvent = JsonParser.Event.VALUE_NUMBER;
@@ -285,6 +329,8 @@ public final class JsonTokenizer
             {
                 // value fits a window (or terminal): rewind to its start and reassemble whole next window
                 streamOffset = valueStreamStart;
+                line = valueLine;
+                column = valueColumn;
                 scratch.setLength(0);
                 resumeOp = ResumeOp.NONE;
                 resumeEscape = false;
@@ -324,9 +370,27 @@ public final class JsonTokenizer
         return valuePending ? scratch : pendingString;
     }
 
+    // The parser reports, before a resuming advance, how many chars of the current fragment the consumer
+    // took, so resume keeps the unconsumed remainder rather than discarding the whole fragment.
+    void markScratchConsumed(
+        int consumed)
+    {
+        this.scratchConsumed = consumed;
+    }
+
     public long streamOffset()
     {
         return streamOffset;
+    }
+
+    public long line()
+    {
+        return line;
+    }
+
+    public long column()
+    {
+        return column;
     }
 
     // Stream-offset span of the most recent readable scalar token (a VALUE_STRING including its
@@ -365,23 +429,11 @@ public final class JsonTokenizer
         return fragmenting;
     }
 
-    // True when the current/just-completed number was delivered in more than one fragment, so its whole
-    // lexeme is in numberLexeme() rather than the current scratch.
-    public boolean numberFragmented()
-    {
-        return numberFragmented;
-    }
-
     // True when the just-delivered value-string was streamed verbatim as raw bytes rather than decoded
     // into scratch; the parser then splices its raw token bytes instead of rendering canonically.
     public boolean stringVerbatim()
     {
         return stringVerbatim;
-    }
-
-    public CharSequence numberLexeme()
-    {
-        return numberLexeme;
     }
 
     public String currentPath()
@@ -486,9 +538,11 @@ public final class JsonTokenizer
             }
             break;
         case VALUE_STRING:
-            // discard the prior fragment's chars (already shipped, captured lazily) before decoding the
-            // next fragment into scratch
-            scratch.setLength(0);
+            // keep the part of the prior fragment the consumer did not take (a decliner keeps all of it
+            // via consumed(0)) so the next fragment accumulates onto the remainder and the value is
+            // re-presented whole; a consumer that took the whole fragment drops it all, as before
+            scratch.delete(0, Math.min(scratchConsumed, scratch.length()));
+            scratchConsumed = 0;
             fragmentStart = streamOffset;
             continueStringContent(in);
             if (!starved)
@@ -497,7 +551,10 @@ public final class JsonTokenizer
             }
             break;
         case VALUE_NUMBER:
-            scratch.setLength(0);
+            // keep the unconsumed remainder (a decliner keeps all of it via consumed(0)) so the next
+            // fragment accumulates onto it and the number is re-presented whole; full consumption drops it
+            scratch.delete(0, Math.min(scratchConsumed, scratch.length()));
+            scratchConsumed = 0;
             fragmentStart = streamOffset;
             continueNumberContent(in);
             if (!starved)
@@ -561,20 +618,12 @@ public final class JsonTokenizer
     }
 
     // Completes a VALUE_NUMBER scan: continueNumberContent only returns here once the number terminator
-    // (or the terminal window's EOF) is seen, so the number is whole. A fragmented number's full lexeme
-    // is validated from numberLexeme (the final fragment's digits appended); an unfragmented one from
-    // scratch. Captured lazily and the parse state advances.
+    // (or the terminal window's EOF) is seen, so the number is whole. The grammar was validated char by
+    // char as the lexeme was scanned; here only the accepting-state check remains. The whole lexeme, when
+    // a consumer needs it, lives in scratch via consumed(0) accumulation — no separate retained buffer.
     private void finishNumberValue()
     {
-        if (numberFragmented)
-        {
-            numberLexeme.append(scratch);
-            validateNumber(numberLexeme);
-        }
-        else
-        {
-            validateNumber(scratch);
-        }
+        validateNumberComplete();
         valueStreamStart = fragmentStart;
         valueStreamEnd = streamOffset;
         pendingEvent = JsonParser.Event.VALUE_NUMBER;
@@ -705,6 +754,8 @@ public final class JsonTokenizer
         case '"':
             valueStreamStart = streamOffset - 1;
             fragmentStart = streamOffset - 1;
+            valueLine = line;
+            valueColumn = column - 1;
             scratch.setLength(0);
             resumeEscape = false;
             resumeUnicodePending = 0;
@@ -753,10 +804,13 @@ public final class JsonTokenizer
             {
                 valueStreamStart = streamOffset - 1;
                 fragmentStart = streamOffset - 1;
-                numberLexeme.setLength(0);
-                numberFragmented = false;
+                valueLine = line;
+                valueColumn = column - 1;
                 scratch.setLength(0);
-                scratch.append((char) c);
+                scratchConsumed = 0;
+                numberState = NumberState.START;
+                appendScratch((char) c);
+                validateNumberChar(c);
                 resumeOp = ResumeOp.VALUE_NUMBER;
                 continueNumberContent(in);
                 if (!starved)
@@ -923,6 +977,8 @@ public final class JsonTokenizer
             if (!resumeEscape && resumeUnicodePending == 0)
             {
                 unitStartOffset = streamOffset;
+                unitLine = line;
+                unitColumn = column;
             }
             int c = readByte(in);
             if (!starved)
@@ -1002,6 +1058,10 @@ public final class JsonTokenizer
     {
         if (!streamingValue())
         {
+            if (scratch.length() >= maxValueSize)
+            {
+                throw resourceExhausted();
+            }
             scratch.append(c);
         }
     }
@@ -1011,8 +1071,20 @@ public final class JsonTokenizer
     {
         if (!streamingValue())
         {
+            if (scratch.length() >= maxValueSize)
+            {
+                throw resourceExhausted();
+            }
             scratch.appendCodePoint(codePoint);
         }
+    }
+
+    // fail closed when a retained value/key exceeds the cap: a consumer that declines fragments to gather
+    // a value whole must not be able to drive scratch past maxValueSize. Surfaced as REJECTED by the pump.
+    private JsonParsingException resourceExhausted()
+    {
+        return new JsonParsingException("JSON value exceeds the maximum retained size of " + maxValueSize +
+            " chars (resource exhausted)", null);
     }
 
     // A value-string being streamed as raw segment bytes is not retained in scratch; keys and numbers
@@ -1097,6 +1169,8 @@ public final class JsonTokenizer
             else if (c >= '0' && c <= '9' || c == '.' || c == '-' || c == '+' || c == 'e' || c == 'E')
             {
                 streamOffset++;
+                advance(c);
+                validateNumberChar(c);
                 appendScratch((char) c);
             }
             else
@@ -1107,60 +1181,67 @@ public final class JsonTokenizer
         }
     }
 
-    // RFC 8259 number grammar: -?(0|[1-9][0-9]*)(\.[0-9]+)?([eE][+-]?[0-9]+)?. scratch holds the
-    // complete lexeme (numbers are always retained in scratch for validation and lazy materialization).
-    private void validateNumber(
-        CharSequence lexeme)
+    // RFC 8259 number grammar -?(0|[1-9][0-9]*)(\.[0-9]+)?([eE][+-]?[0-9]+)? validated as a state machine,
+    // one char at a time as it is scanned. The state persists across windows, so a number spanning windows
+    // is validated without retaining its whole lexeme. continueNumberContent only feeds the number-class
+    // chars [0-9.+-eE], so this rejects any that are illegal in their position.
+    private void validateNumberChar(
+        int c)
     {
-        final int length = lexeme.length();
-        int index = 0;
-        boolean valid = length > 0;
-        if (valid && lexeme.charAt(index) == '-')
+        switch (numberState)
         {
-            index++;
+        case START:
+            numberState = c == '-' ? NumberState.SIGN : c == '0' ? NumberState.ZERO
+                : isDigit((char) c) ? NumberState.INT : rejectNumber(c);
+            break;
+        case SIGN:
+            numberState = c == '0' ? NumberState.ZERO : isDigit((char) c) ? NumberState.INT : rejectNumber(c);
+            break;
+        case ZERO:
+            numberState = c == '.' ? NumberState.DOT : c == 'e' || c == 'E' ? NumberState.EXP : rejectNumber(c);
+            break;
+        case INT:
+            numberState = isDigit((char) c) ? NumberState.INT : c == '.' ? NumberState.DOT
+                : c == 'e' || c == 'E' ? NumberState.EXP : rejectNumber(c);
+            break;
+        case DOT:
+            numberState = isDigit((char) c) ? NumberState.FRAC : rejectNumber(c);
+            break;
+        case FRAC:
+            numberState = isDigit((char) c) ? NumberState.FRAC : c == 'e' || c == 'E' ? NumberState.EXP : rejectNumber(c);
+            break;
+        case EXP:
+            numberState = c == '+' || c == '-' ? NumberState.EXP_SIGN
+                : isDigit((char) c) ? NumberState.EXP_INT : rejectNumber(c);
+            break;
+        case EXP_SIGN:
+            numberState = isDigit((char) c) ? NumberState.EXP_INT : rejectNumber(c);
+            break;
+        case EXP_INT:
+            numberState = isDigit((char) c) ? NumberState.EXP_INT : rejectNumber(c);
+            break;
+        default:
+            rejectNumber(c);
+            break;
         }
-        final int intStart = index;
-        if (index < length && lexeme.charAt(index) == '0')
+    }
+
+    // A complete number must end in an accepting state: an integer (with or without leading zero), a
+    // fractional part, or an exponent's digits — not a dangling sign, dot, or exponent marker.
+    private void validateNumberComplete()
+    {
+        boolean accepting = numberState == NumberState.ZERO || numberState == NumberState.INT ||
+            numberState == NumberState.FRAC || numberState == NumberState.EXP_INT;
+        if (!accepting)
         {
-            index++;
+            throw new JsonParsingException("Invalid JSON number: " + scratch, null);
         }
-        else
-        {
-            while (index < length && isDigit(lexeme.charAt(index)))
-            {
-                index++;
-            }
-        }
-        valid &= index > intStart;
-        if (valid && index < length && lexeme.charAt(index) == '.')
-        {
-            index++;
-            final int fracStart = index;
-            while (index < length && isDigit(lexeme.charAt(index)))
-            {
-                index++;
-            }
-            valid &= index > fracStart;
-        }
-        if (valid && index < length && (lexeme.charAt(index) == 'e' || lexeme.charAt(index) == 'E'))
-        {
-            index++;
-            if (index < length && (lexeme.charAt(index) == '+' || lexeme.charAt(index) == '-'))
-            {
-                index++;
-            }
-            final int expStart = index;
-            while (index < length && isDigit(lexeme.charAt(index)))
-            {
-                index++;
-            }
-            valid &= index > expStart;
-        }
-        valid &= index == length;
-        if (!valid)
-        {
-            throw new JsonParsingException("Invalid JSON number: " + lexeme, null);
-        }
+    }
+
+    private NumberState rejectNumber(
+        int c)
+    {
+        throw new JsonParsingException("Invalid JSON number char: " + describe(c), null);
     }
 
     private static boolean isDigit(
@@ -1180,8 +1261,25 @@ public final class JsonTokenizer
         else
         {
             streamOffset++;
+            advance(c);
         }
         return c;
+    }
+
+    // Advances line/column for one consumed byte: a newline opens the next line; every other byte that
+    // begins a character (i.e. not a UTF-8 continuation byte) advances the column by one.
+    private void advance(
+        int c)
+    {
+        if (c == '\n')
+        {
+            line++;
+            column = 1;
+        }
+        else if ((c & 0xC0) != 0x80)
+        {
+            column++;
+        }
     }
 
     private static String describe(

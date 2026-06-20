@@ -26,7 +26,6 @@
   <properties>
     <jacoco.coverage.ratio>0.89</jacoco.coverage.ratio>
     <jacoco.missed.count>0</jacoco.missed.count>
-    <protobuf.version>4.34.1</protobuf.version>
   </properties>
 
   <dependencies>
@@ -43,19 +42,14 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>com.google.protobuf</groupId>
-      <artifactId>protobuf-java</artifactId>
-      <version>${protobuf.version}</version>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>common-protobuf</artifactId>
+      <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.google.protobuf</groupId>
-      <artifactId>protobuf-java-util</artifactId>
-      <version>${protobuf.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.antlr</groupId>
-      <artifactId>antlr4-runtime</artifactId>
-      <scope>provided</scope>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>common-json</artifactId>
+      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
@@ -111,10 +105,6 @@
         <artifactId>maven-checkstyle-plugin</artifactId>
       </plugin>
       <plugin>
-        <groupId>org.antlr</groupId>
-        <artifactId>antlr4-maven-plugin</artifactId>
-      </plugin>
-      <plugin>
         <artifactId>maven-dependency-plugin</artifactId>
         <executions>
           <execution>
@@ -137,58 +127,6 @@
               </artifactItems>
               <includes>io/aklivity/zilla/specs/model/protobuf/schema/protobuf.schema.patch.json</includes>
               <outputDirectory>${project.build.directory}/classes</outputDirectory>
-            </configuration>
-          </execution>
-          <execution>
-            <id>unpack-proto</id>
-            <phase>generate-sources</phase>
-            <goals>
-              <goal>unpack</goal>
-            </goals>
-            <configuration>
-              <artifactItems>
-                <artifactItem>
-                  <groupId>${project.groupId}</groupId>
-                  <artifactId>model-protobuf.spec</artifactId>
-                  <version>${project.version}</version>
-                  <outputDirectory>${basedir}/target/test-classes</outputDirectory>
-                  <includes>**\/*.proto</includes>
-                </artifactItem>
-              </artifactItems>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-shade-plugin</artifactId>
-        <executions>
-          <execution>
-            <phase>package</phase>
-            <goals>
-              <goal>shade</goal>
-            </goals>
-            <configuration>
-              <artifactSet>
-                <includes>
-                  <include>com.google.code.gson:gson</include>
-                  <include>com.google.protobuf:protobuf-java</include>
-                  <include>com.google.protobuf:protobuf-java-util</include>
-                </includes>
-              </artifactSet>
-              <relocations>
-                <relocation>
-                  <pattern>com.google.protobuf</pattern>
-                  <shadedPattern>io.aklivity.zilla.runtime.model.protobuf.internal.protobuf</shadedPattern>
-                </relocation>
-                <relocation>
-                  <pattern>com.google.gson</pattern>
-                  <shadedPattern>io.aklivity.zilla.runtime.model.protobuf.internal.gson</shadedPattern>
-                </relocation>
-              </relocations>
-              <keepDependenciesWithProvidedScope>true</keepDependenciesWithProvidedScope>
-              <useDependencyReducedPomInJar>true</useDependencyReducedPomInJar>
-              <minimizeJar>true</minimizeJar>
             </configuration>
           </execution>
         </executions>
@@ -214,7 +152,6 @@
         <artifactId>jacoco-maven-plugin</artifactId>
         <configuration>
           <excludes>
-            <exclude>io/aklivity/zilla/runtime/model/protobuf/internal/parser/**/*.class</exclude>
             <exclude>io/aklivity/zilla/runtime/model/protobuf/internal/types/**/*.class</exclude>
           </excludes>
           <rules>

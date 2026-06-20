@@ -50,6 +50,7 @@
     <module>common</module>
     <module>common-avro</module>
     <module>common-json</module>
+    <module>common-lang</module>
     <module>common-protobuf</module>
     <module>common-yaml</module>
     <module>command</module>
@@ -236,6 +237,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>common-json</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>common-lang</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

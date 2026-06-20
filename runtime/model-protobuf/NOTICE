@@ -10,8 +10,12 @@ WARRANTIES OF ANY KIND, either express or implied.  See the License for the
 specific language governing permissions and limitations under the License.
 
 This project includes:
-  Protocol Buffers [Core] under BSD-3-Clause
-  Protocol Buffers [Util] under BSD-3-Clause
+  agrona under The Apache License, Version 2.0
+  ANTLR 4 Runtime under BSD-3-Clause
+  Jakarta JSON Processing API under Eclipse Public License 2.0 or GNU General Public License, version 2 with the GNU Classpath Exception
+  zilla::runtime::common-json under Aklivity Community License Agreement
+  zilla::runtime::common-lang under Aklivity Community License Agreement
+  zilla::runtime::common-protobuf under Aklivity Community License Agreement
 
 
 This project also includes code under copyright of the following entities:

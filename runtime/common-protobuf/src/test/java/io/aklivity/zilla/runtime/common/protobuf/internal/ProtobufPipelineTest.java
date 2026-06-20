@@ -18,6 +18,8 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayOutputStream;
@@ -38,6 +40,7 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufMessage;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufParser;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline.Status;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufReporter;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSchema;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSink;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSource;
@@ -48,6 +51,9 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
 public class ProtobufPipelineTest
 {
     private final ProtobufSchema schema = newSchema();
+    // captures the call-scoped diagnostic the pipeline pushes on a terminal REJECTED, copying the message out
+    private final String[] reason = new String[1];
+    private final ProtobufReporter reporter = d -> reason[0] = d.message();
 
     private boolean sawSuspended;
     private boolean sawStarved;
@@ -233,6 +239,59 @@ public class ProtobufPipelineTest
         pipeline.reset();
 
         assertEquals(Status.REJECTED, feed(pipeline, message));
+    }
+
+    @Test
+    public void shouldReportNamedFieldWhenRequiredMissing()
+    {
+        byte[] message = wire(w ->
+        {
+            w.writeTag(2, ProtobufWireType.VARINT);
+            w.writeVarint64(4);
+        });
+
+        ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, "R"))
+            .transform(schema.validator("R"))
+            .reporting(reporter)
+            .into(new ProtobufDiscardSinkImpl());
+        pipeline.reset();
+
+        // the structural reject names the missing required field "a", closing the reason-less-reject gap
+        assertEquals(Status.REJECTED, feed(pipeline, message));
+        assertTrue(reason[0].contains("a"), reason[0]);
+        assertTrue(reason[0].contains("required"), reason[0]);
+    }
+
+    @Test
+    public void shouldReportReasonWhenMalformed()
+    {
+        ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, "P"))
+            .reporting(reporter)
+            .into(new ProtobufDiscardSinkImpl());
+        pipeline.reset();
+
+        assertEquals(Status.REJECTED, feed(pipeline, new byte[]{(byte) 0x10, (byte) 0x80}));
+        assertNotNull(reason[0]);
+    }
+
+    @Test
+    public void shouldNotReportOnStarved()
+    {
+        byte[] message = wire(w ->
+        {
+            w.writeTag(2, ProtobufWireType.VARINT);
+            w.writeVarint64(300);
+        });
+
+        ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, "P"))
+            .reporting(reporter)
+            .into(new ProtobufDiscardSinkImpl());
+        pipeline.reset();
+
+        // back-pressure is not failure: a value split mid-varint STARVES without firing the reporter
+        UnsafeBuffer buffer = new UnsafeBuffer(message);
+        assertEquals(Status.STARVED, pipeline.feed(buffer, 0, message.length - 1, false));
+        assertNull(reason[0]);
     }
 
     @Test

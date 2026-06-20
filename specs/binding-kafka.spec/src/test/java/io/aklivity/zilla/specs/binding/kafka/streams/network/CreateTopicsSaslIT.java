@@ -55,4 +55,13 @@ public class CreateTopicsSaslIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/create.topics.sasl.oauthbearer/client",
+        "${net}/create.topics.sasl.oauthbearer/server"})
+    public void shouldCreateTopicsWithSaslOauthBearer() throws Exception
+    {
+        k3po.finish();
+    }
 }
