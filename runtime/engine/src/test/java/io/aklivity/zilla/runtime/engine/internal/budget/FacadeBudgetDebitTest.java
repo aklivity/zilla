@@ -165,6 +165,21 @@ public class FacadeBudgetDebitTest
     }
 
     @Test
+    public void shouldPassDeferredThrough()
+    {
+        final BudgetDebitor debitor = mock(BudgetDebitor.class);
+        final BudgetFlusher onResume = mock(BudgetFlusher.class);
+        when(debitor.acquire(eq(BUDGET_ID), eq(WATCHER_ID), any())).thenReturn(BUDGET_INDEX);
+        when(debitor.claim(TRACE_ID, BUDGET_INDEX, WATCHER_ID, 100, 1000, 64)).thenReturn(1000);
+
+        final FacadeBudgetDebit debit = new FacadeBudgetDebit(debitor, BUDGET_ID, WATCHER_ID, onResume);
+        final int granted = debit.claim(TRACE_ID, 100, 1000, 64);
+
+        assertEquals(1000, granted);
+        verify(debitor).claim(TRACE_ID, BUDGET_INDEX, WATCHER_ID, 100, 1000, 64);
+    }
+
+    @Test
     public void shouldNotReleaseWhenNeverAcquired()
     {
         final BudgetDebitor debitor = mock(BudgetDebitor.class);

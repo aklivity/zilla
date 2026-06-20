@@ -79,7 +79,8 @@ public final class FacadeBudgetDebit implements BudgetDebit
     public int claim(
         long traceId,
         int minimum,
-        int maximum)
+        int maximum,
+        int deferred)
     {
         if (budgetIndex == NO_DEBITOR_INDEX)
         {
@@ -95,7 +96,7 @@ public final class FacadeBudgetDebit implements BudgetDebit
         {
             final int claimMinimum = Math.max(minimum, this.minimum) + padding;
             final int claimMaximum = maximum + padding;
-            final int reserved = debitor.claim(traceId, budgetIndex, watcherId, claimMinimum, claimMaximum, 0);
+            final int reserved = debitor.claim(traceId, budgetIndex, watcherId, claimMinimum, claimMaximum, deferred);
             claimed = reserved == 0 ? 0 : reserved - padding;
         }
 

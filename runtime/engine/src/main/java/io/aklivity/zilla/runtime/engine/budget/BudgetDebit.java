@@ -62,10 +62,33 @@ public interface BudgetDebit extends AutoCloseable
      *         {@code 0} if insufficient capacity is available; on {@code 0} the sender is
      *         parked and the registered {@link BudgetFlusher} fires when capacity frees
      */
+    default int claim(
+        long traceId,
+        int minimum,
+        int maximum)
+    {
+        return claim(traceId, minimum, maximum, 0);
+    }
+
+    /**
+     * Attempts to claim between {@code minimum} and {@code maximum} payload bytes for the one
+     * frame about to be sent, reserving the declared per-frame padding in addition, and signals
+     * that {@code deferred} further bytes will be written beyond this claim.
+     *
+     * @param traceId  the trace identifier for diagnostics
+     * @param minimum  the minimum payload bytes required (the claim parks if unavailable)
+     * @param maximum  the maximum payload bytes desired
+     * @param deferred the additional bytes the producer will write beyond this claim, passed
+     *                 through to the underlying flow-control claim
+     * @return the granted payload bytes, between {@code minimum} and {@code maximum}, or
+     *         {@code 0} if insufficient capacity is available; on {@code 0} the sender is
+     *         parked and the registered {@link BudgetFlusher} fires when capacity frees
+     */
     int claim(
         long traceId,
         int minimum,
-        int maximum);
+        int maximum,
+        int deferred);
 
     /**
      * Releases the underlying budget resources held by this handle. Optional; resources are
