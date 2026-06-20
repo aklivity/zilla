@@ -4351,7 +4351,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             final long authorization = reset.authorization();
             state = HttpState.closeReply(state);
 
-            cleanupBudgetCreditorIfNecessary();
+            responseCredit = null;
             cleanupEncodeSlotIfNecessary();
 
             if (!HttpState.initialClosing(state))
@@ -4545,7 +4545,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             long traceId,
             long authorization)
         {
-            cleanupBudgetCreditorIfNecessary();
+            responseCredit = null;
             cleanupEncodeSlotIfNecessary();
             doEnd(network, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, EMPTY_OCTETS);
             state = HttpState.closeReply(state);
@@ -4555,7 +4555,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             long traceId,
             long authorization)
         {
-            cleanupBudgetCreditorIfNecessary();
+            responseCredit = null;
             cleanupEncodeSlotIfNecessary();
             doAbort(network, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, EMPTY_OCTETS);
             state = HttpState.closeReply(state);
@@ -5881,15 +5881,6 @@ public final class HttpServerFactory implements HttpStreamFactory
             }
         }
 
-        private void cleanupBudgetCreditorIfNecessary()
-        {
-            if (responseCredit != null)
-            {
-                responseCredit.close();
-                responseCredit = null;
-            }
-        }
-
         private final class Http2Exchange
         {
             private final long originId;
@@ -6125,7 +6116,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                 doResponseReset(traceId);
                 state = HttpState.closeInitial(state);
-                cleanupRequestDebitorIfNecessary();
+                requestDebit = null;
                 streams.remove(streamId);
 
                 clear();
@@ -6262,7 +6253,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 assert !HttpState.initialClosed(state);
 
                 state = HttpState.closeInitial(state);
-                cleanupRequestDebitorIfNecessary();
+                requestDebit = null;
                 deauthorizeIfNecessary();
                 removeStreamIfNecessary();
             }
@@ -6272,15 +6263,6 @@ public final class HttpServerFactory implements HttpStreamFactory
                 if (HttpState.closed(state) && (sessionId & MASK_AUTHORIZED) != 0 && guard != null)
                 {
                     guard.deauthorize(sessionId);
-                }
-            }
-
-            private void cleanupRequestDebitorIfNecessary()
-            {
-                if (requestDebit != null)
-                {
-                    requestDebit.close();
-                    requestDebit = null;
                 }
             }
 

@@ -482,11 +482,7 @@ public final class FanServerFactory implements FanStreamFactory
 
         private void cleanupInitial()
         {
-            if (initialBudCredit != null)
-            {
-                initialBudCredit.close();
-                initialBudCredit = null;
-            }
+            initialBudCredit = null;
         }
 
         private void join(
@@ -785,11 +781,7 @@ public final class FanServerFactory implements FanStreamFactory
 
         private void cleanupReply()
         {
-            if (replyDebit != null)
-            {
-                replyDebit.close();
-                replyDebit = null;
-            }
+            replyDebit = null;
         }
     }
 

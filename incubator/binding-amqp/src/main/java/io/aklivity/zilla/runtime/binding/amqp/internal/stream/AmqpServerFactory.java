@@ -2297,7 +2297,6 @@ public final class AmqpServerFactory implements AmqpStreamFactory
             final long authorization = abort.authorization();
 
             cleanupStreams(traceId, authorization);
-            cleanupBudgetCreditorIfNecessary();
             cleanupEncodeSlotIfNecessary();
 
             doNetworkAbort(traceId, authorization);
@@ -2380,7 +2379,6 @@ public final class AmqpServerFactory implements AmqpStreamFactory
             final long authorization = reset.authorization();
 
             cleanupStreams(traceId, authorization);
-            cleanupBudgetCreditorIfNecessary();
             cleanupEncodeSlotIfNecessary();
 
             doNetworkReset(traceId, authorization);
@@ -2509,7 +2507,6 @@ public final class AmqpServerFactory implements AmqpStreamFactory
         {
             state = AmqpState.closeReply(state);
 
-            cleanupBudgetCreditorIfNecessary();
             cleanupEncodeSlotIfNecessary();
 
             doEnd(network, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, EMPTY_OCTETS);
@@ -2521,7 +2518,6 @@ public final class AmqpServerFactory implements AmqpStreamFactory
         {
             state = AmqpState.closeReply(state);
 
-            cleanupBudgetCreditorIfNecessary();
             cleanupEncodeSlotIfNecessary();
 
             doAbort(network, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, EMPTY_OCTETS);
@@ -2943,15 +2939,6 @@ public final class AmqpServerFactory implements AmqpStreamFactory
             {
                 signaler.cancel(closeTimeoutId);
                 closeTimeoutId = NO_CANCEL_ID;
-            }
-        }
-
-        private void cleanupBudgetCreditorIfNecessary()
-        {
-            if (replyCredit != null)
-            {
-                replyCredit.close();
-                replyCredit = null;
             }
         }
 
@@ -3616,11 +3603,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
 
                     state = AmqpState.closeInitial(state);
 
-                    if (debit != null)
-                    {
-                        debit.close();
-                        debit = null;
-                    }
+                    debit = null;
 
                     if (AmqpState.closed(state))
                     {

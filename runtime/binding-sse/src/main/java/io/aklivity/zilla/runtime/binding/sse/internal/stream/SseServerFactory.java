@@ -929,11 +929,7 @@ public final class SseServerFactory implements SseStreamFactory
 
         private void cleanupNet()
         {
-            if (httpReplyDebit != null)
-            {
-                httpReplyDebit.close();
-                httpReplyDebit = null;
-            }
+            httpReplyDebit = null;
 
             if (httpReplyIdleAt != NO_CANCEL_ID)
             {

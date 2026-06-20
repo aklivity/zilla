@@ -2040,7 +2040,6 @@ public final class MqttClientFactory implements MqttStreamFactory
             {
                 state = MqttState.closeInitial(state);
 
-                cleanupBudgetCreditor();
                 cleanupEncodeSlot();
 
                 doEnd(network, originId, routedId, initialId, encodeSeq, encodeAck, encodeMax,
@@ -2056,7 +2055,6 @@ public final class MqttClientFactory implements MqttStreamFactory
             {
                 state = MqttState.closeReply(state);
 
-                cleanupBudgetCreditor();
                 cleanupEncodeSlot();
 
                 doAbort(network, originId, routedId, initialId, encodeSeq, encodeAck, encodeMax,
@@ -2668,15 +2666,6 @@ public final class MqttClientFactory implements MqttStreamFactory
             if (sessionStream != null)
             {
                 sessionStream.cleanupEnd(traceId, authorization);
-            }
-        }
-
-        private void cleanupBudgetCreditor()
-        {
-            if (encodeCredit != null)
-            {
-                encodeCredit.close();
-                encodeCredit = null;
             }
         }
 

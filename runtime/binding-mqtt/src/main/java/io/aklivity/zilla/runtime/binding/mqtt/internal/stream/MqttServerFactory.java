@@ -4031,7 +4031,6 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 state = MqttState.closeReply(state);
 
-                cleanupBudgetCreditor();
                 cleanupEncodeSlot();
 
                 doEnd(network, originId, routedId, replyId, encodeSeq, encodeAck, encodeMax,
@@ -4047,7 +4046,6 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 state = MqttState.closeReply(state);
 
-                cleanupBudgetCreditor();
                 cleanupEncodeSlot();
 
                 doAbort(network, originId, routedId, replyId, encodeSeq, encodeAck, encodeMax,
@@ -4890,15 +4888,6 @@ public final class MqttServerFactory implements MqttStreamFactory
             decoder = decodeIgnoreAll;
         }
 
-        private void cleanupBudgetCreditor()
-        {
-            if (encodeCredit != null)
-            {
-                encodeCredit.close();
-                encodeCredit = null;
-            }
-        }
-
         private void cleanupDecodeSlot()
         {
             if (decodeSlot != NO_SLOT)
@@ -5613,11 +5602,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 state = MqttState.closeInitial(state);
 
-                if (debit != null)
-                {
-                    debit.close();
-                    debit = null;
-                }
+                debit = null;
             }
 
             public void setSubscriptions(List<Subscription> subscriptions)
@@ -6080,11 +6065,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 state = MqttState.closeInitial(state);
 
-                if (debit != null)
-                {
-                    debit.close();
-                    debit = null;
-                }
+                debit = null;
 
                 if (MqttState.closed(state))
                 {
@@ -6323,11 +6304,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 state = MqttState.closeInitial(state);
 
-                if (debit != null)
-                {
-                    debit.close();
-                    debit = null;
-                }
+                debit = null;
 
                 if (MqttState.closed(state))
                 {

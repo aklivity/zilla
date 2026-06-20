@@ -2517,7 +2517,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
             state = HttpState.closeInitial(state);
 
-            cleanupBudgetCreditorIfNecessary();
+            requestCredit = null;
             cleanupEncodeSlotIfNecessary();
 
             exchanges.forEach((id, exchange) -> exchange.cleanup(traceId, authorization));
@@ -2706,7 +2706,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             {
                 state = HttpState.closeInitial(state);
 
-                cleanupBudgetCreditorIfNecessary();
+                requestCredit = null;
                 cleanupEncodeSlotIfNecessary();
 
                 doEnd(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
@@ -2727,7 +2727,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             {
                 state = HttpState.closeInitial(state);
 
-                cleanupBudgetCreditorIfNecessary();
+                requestCredit = null;
                 cleanupEncodeSlotIfNecessary();
 
                 doAbort(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
@@ -4550,14 +4550,6 @@ public final class HttpClientFactory implements HttpStreamFactory
             }
         }
 
-        private void cleanupBudgetCreditorIfNecessary()
-        {
-            if (requestCredit != null)
-            {
-                requestCredit.close();
-                requestCredit = null;
-            }
-        }
     }
 
 

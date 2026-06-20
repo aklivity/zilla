@@ -1712,11 +1712,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
 
         private void cleanupBudgetIfNecessary()
         {
-            if (initialDebit != null)
-            {
-                initialDebit.close();
-                initialDebit = null;
-            }
+            initialDebit = null;
         }
 
         private void metadata(
