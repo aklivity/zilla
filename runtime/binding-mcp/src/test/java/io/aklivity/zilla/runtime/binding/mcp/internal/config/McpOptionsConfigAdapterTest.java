@@ -29,6 +29,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.mcp.config.McpOptionsConfig;
+import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public class McpOptionsConfigAdapterTest
@@ -40,13 +41,20 @@ public class McpOptionsConfigAdapterTest
     {
         JsonbConfig config = new JsonbConfig()
                 .withAdapters(new McpOptionsConfigAdapter());
-        jsonb = JsonbBuilder.create(config);
+        jsonb = JsonbBuilder.newBuilder()
+                .withProvider(YamlJson.provider())
+                .withConfig(config)
+                .build();
     }
 
     @Test
     public void shouldReadOptionsWithElicitationTimeout()
     {
-        String text = "{\"elicitation\":{\"timeout\":\"PT30S\"}}";
+        String text =
+                """
+                elicitation:
+                  timeout: PT30S
+                """;
 
         McpOptionsConfig options = (McpOptionsConfig) jsonb.fromJson(text, OptionsConfig.class);
 
@@ -67,13 +75,21 @@ public class McpOptionsConfigAdapterTest
         String text = jsonb.toJson(options);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"elicitation\":{\"callback\":\"auth/callback\",\"timeout\":\"PT30S\"}}"));
+        assertThat(text, equalTo(
+                """
+                elicitation:
+                  callback: auth/callback
+                  timeout: PT30S
+                """));
     }
 
     @Test
     public void shouldReadOptionsWithServer()
     {
-        String text = "{\"server\":\"http://localhost:8080/mcp\"}";
+        String text =
+                """
+                server: http://localhost:8080/mcp
+                """;
 
         McpOptionsConfig options = (McpOptionsConfig) jsonb.fromJson(text, OptionsConfig.class);
 
@@ -91,6 +107,9 @@ public class McpOptionsConfigAdapterTest
         String text = jsonb.toJson(options);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"server\":\"http://localhost:8080/mcp\"}"));
+        assertThat(text, equalTo(
+                """
+                server: "http://localhost:8080/mcp"
+                """));
     }
 }

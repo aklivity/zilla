@@ -32,6 +32,7 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 import io.aklivity.zilla.runtime.exporter.otlp.config.OtlpOptionsConfig;
 
 public class OtlpOptionsConfigAdapterTest
@@ -43,33 +44,30 @@ public class OtlpOptionsConfigAdapterTest
     {
         JsonbConfig config = new JsonbConfig()
             .withAdapters(new OtlpOptionsConfigAdapter());
-        jsonb = JsonbBuilder.create(config);
+        jsonb = JsonbBuilder.newBuilder()
+            .withProvider(YamlJson.provider())
+            .withConfig(config)
+            .build();
     }
 
     @Test
     public void shouldReadOptions()
     {
         // GIVEN
-        String text =
-            "{\n" +
-                "\"interval\": 30,\n" +
-                "\"signals\":\n" +
-                    "[\n" +
-                        "\"metrics\"\n" +
-                    "],\n" +
-                "\"endpoint\":\n" +
-                    "{\n" +
-                        "\"location\": \"http://localhost:4317\",\n" +
-                        "\"overrides\": \n" +
-                            "{\n" +
-                                "\"metrics\": \"/v1/metricsOverride\",\n" +
-                                "\"logs\": \"/v1/logsOverride\"\n" +
-                            "}\n" +
-                    "}\n" +
-            "}";
+        String yaml =
+            """
+            interval: 30
+            signals:
+              - metrics
+            endpoint:
+              location: "http://localhost:4317"
+              overrides:
+                metrics: /v1/metricsOverride
+                logs: /v1/logsOverride
+            """;
 
         // WHEN
-        OtlpOptionsConfig options = jsonb.fromJson(text, OtlpOptionsConfig.class);
+        OtlpOptionsConfig options = jsonb.fromJson(yaml, OtlpOptionsConfig.class);
 
         // THEN
         assertThat(options, not(nullValue()));
@@ -85,22 +83,16 @@ public class OtlpOptionsConfigAdapterTest
     {
         // GIVEN
         String expected =
-            "{" +
-                "\"interval\":30," +
-                "\"signals\":" +
-                    "[" +
-                        "\"metrics\"" +
-                    "]," +
-                "\"endpoint\":" +
-                    "{" +
-                        "\"location\":\"http://localhost:4317\"," +
-                        "\"overrides\":" +
-                            "{" +
-                                "\"metrics\":\"/v1/metrics\"," +
-                                "\"logs\":\"/v1/logs\"" +
-                            "}" +
-                    "}" +
-            "}";
+            """
+            interval: 30
+            signals:
+              - metrics
+            endpoint:
+              location: "http://localhost:4317"
+              overrides:
+                metrics: /v1/metrics
+                logs: /v1/logs
+            """;
 
         OtlpOptionsConfig config = OtlpOptionsConfig.builder()
             .interval(Duration.ofSeconds(30))
@@ -116,10 +108,10 @@ public class OtlpOptionsConfigAdapterTest
             .build();
 
         // WHEN
-        String json = jsonb.toJson(config);
+        String yaml = jsonb.toJson(config);
 
         // THEN
-        assertThat(json, not(nullValue()));
-        assertThat(json, equalTo(expected));
+        assertThat(yaml, not(nullValue()));
+        assertThat(yaml, equalTo(expected));
     }
 }

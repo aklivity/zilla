@@ -28,6 +28,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.sse.config.SseOptionsConfig;
+import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 
 public class SseOptionsConfigAdapterTest
 {
@@ -38,16 +39,19 @@ public class SseOptionsConfigAdapterTest
     {
         JsonbConfig config = new JsonbConfig()
                 .withAdapters(new SseOptionsConfigAdapter());
-        jsonb = JsonbBuilder.create(config);
+        jsonb = JsonbBuilder.newBuilder()
+                .withProvider(YamlJson.provider())
+                .withConfig(config)
+                .build();
     }
 
     @Test
     public void shouldReadOptions()
     {
         String text =
-                "{" +
-                    "\"retry\": 3000" +
-                "}";
+                """
+                retry: 3000
+                """;
 
         SseOptionsConfig options = jsonb.fromJson(text, SseOptionsConfig.class);
 
@@ -63,6 +67,9 @@ public class SseOptionsConfigAdapterTest
         String text = jsonb.toJson(options);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"retry\":3000}"));
+        assertThat(text, equalTo(
+                """
+                retry: 3000
+                """));
     }
 }

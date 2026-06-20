@@ -26,6 +26,8 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
+
 public class IdentityOptionsConfigAdapterTest
 {
     private Jsonb jsonb;
@@ -35,15 +37,18 @@ public class IdentityOptionsConfigAdapterTest
     {
         JsonbConfig config = new JsonbConfig()
             .withAdapters(new IdentityOptionsConfigAdapter());
-        jsonb = JsonbBuilder.create(config);
+        jsonb = JsonbBuilder.newBuilder()
+            .withProvider(YamlJson.provider())
+            .withConfig(config)
+            .build();
     }
 
     @Test
     public void shouldReadOptionsWithCredentials()
     {
-        String text = "{\"credentials\":\"token\"}";
+        String yaml = "credentials: token";
 
-        IdentityOptionsConfig options = jsonb.fromJson(text, IdentityOptionsConfig.class);
+        IdentityOptionsConfig options = jsonb.fromJson(yaml, IdentityOptionsConfig.class);
 
         assertThat(options, not(nullValue()));
         assertThat(options.credentials, equalTo("token"));
@@ -52,9 +57,9 @@ public class IdentityOptionsConfigAdapterTest
     @Test
     public void shouldReadOptionsWithIdentity()
     {
-        String text = "{\"identity\":\"alice\"}";
+        String yaml = "identity: alice";
 
-        IdentityOptionsConfig options = jsonb.fromJson(text, IdentityOptionsConfig.class);
+        IdentityOptionsConfig options = jsonb.fromJson(yaml, IdentityOptionsConfig.class);
 
         assertThat(options, not(nullValue()));
         assertThat(options.identity, equalTo("alice"));
@@ -65,10 +70,10 @@ public class IdentityOptionsConfigAdapterTest
     {
         IdentityOptionsConfig options = new IdentityOptionsConfig(null, "token");
 
-        String json = jsonb.toJson(options);
+        String yaml = jsonb.toJson(options);
 
-        assertThat(json, not(nullValue()));
-        assertThat(json, equalTo("{\"credentials\":\"token\"}"));
+        assertThat(yaml, not(nullValue()));
+        assertThat(yaml, equalTo("credentials: token\n"));
     }
 
     @Test
@@ -76,10 +81,10 @@ public class IdentityOptionsConfigAdapterTest
     {
         IdentityOptionsConfig options = new IdentityOptionsConfig("alice", null);
 
-        String json = jsonb.toJson(options);
+        String yaml = jsonb.toJson(options);
 
-        assertThat(json, not(nullValue()));
-        assertThat(json, equalTo("{\"identity\":\"alice\"}"));
+        assertThat(yaml, not(nullValue()));
+        assertThat(yaml, equalTo("identity: alice\n"));
     }
 
     @Test
@@ -87,9 +92,9 @@ public class IdentityOptionsConfigAdapterTest
     {
         IdentityOptionsConfig options = new IdentityOptionsConfig(null, null);
 
-        String json = jsonb.toJson(options);
+        String yaml = jsonb.toJson(options);
 
-        assertThat(json, not(nullValue()));
-        assertThat(json, equalTo("{}"));
+        assertThat(yaml, not(nullValue()));
+        assertThat(yaml, equalTo("{}\n"));
     }
 }

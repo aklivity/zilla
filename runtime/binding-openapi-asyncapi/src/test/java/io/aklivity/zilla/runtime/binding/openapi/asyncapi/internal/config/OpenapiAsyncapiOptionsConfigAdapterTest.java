@@ -40,6 +40,7 @@ import io.aklivity.zilla.runtime.binding.openapi.asyncapi.config.OpenapiAsyncapi
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.config.OpenapiAsyncapiSpecConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiCatalogConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiSpecificationConfig;
+import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapter;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
@@ -60,37 +61,31 @@ public class OpenapiAsyncapiOptionsConfigAdapterTest
         adapter.adaptType("openapi-asyncapi");
         JsonbConfig config = new JsonbConfig()
             .withAdapters(adapter);
-        jsonb = JsonbBuilder.create(config);
+        jsonb = JsonbBuilder.newBuilder()
+            .withProvider(YamlJson.provider())
+            .withConfig(config)
+            .build();
     }
 
     @Test
     public void shouldReadOptions()
     {
         String text =
-            "{" +
-                "  \"specs\": {" +
-                "    \"openapi\": {" +
-                "      \"openapi-id\": {" +
-                "        \"catalog\": {" +
-                "          \"catalog0\": {" +
-                "            \"subject\": \"petstore\"," +
-                "            \"version\": \"latest\"" +
-                "          }" +
-                "        }" +
-                "      }" +
-                "    }," +
-                "    \"asyncapi\": {" +
-                "      \"asyncapi-id\": {" +
-                "        \"catalog\": {" +
-                "          \"catalog0\": {" +
-                "            \"subject\": \"petstore\"," +
-                "            \"version\": \"latest\"" +
-                "          }" +
-                "        }" +
-                "      }" +
-                "    }" +
-                "  }" +
-                "}";
+            """
+            specs:
+              openapi:
+                openapi-id:
+                  catalog:
+                    catalog0:
+                      subject: petstore
+                      version: latest
+              asyncapi:
+                asyncapi-id:
+                  catalog:
+                    catalog0:
+                      subject: petstore
+                      version: latest
+            """;
 
         OpenapiAsyncapiOptionsConfig options = jsonb.fromJson(text, OpenapiAsyncapiOptionsConfig.class);
         assertThat(options, not(nullValue()));
@@ -105,9 +100,22 @@ public class OpenapiAsyncapiOptionsConfigAdapterTest
     @Test
     public void shouldWriteOptions()
     {
-        String expected = "{\"specs\":{\"openapi\":{\"openapi-id\":{\"catalog\":{\"catalog0\":{\"subject\":\"petstore\"," +
-            "\"version\":\"latest\"}}}},\"asyncapi\":{\"asyncapi-id\":{\"catalog\":" +
-            "{\"catalog0\":{\"subject\":\"petstore\",\"version\":\"latest\"}}}}}}";
+        String expected =
+            """
+            specs:
+              openapi:
+                openapi-id:
+                  catalog:
+                    catalog0:
+                      subject: petstore
+                      version: latest
+              asyncapi:
+                asyncapi-id:
+                  catalog:
+                    catalog0:
+                      subject: petstore
+                      version: latest
+            """;
 
         Set<OpenapiSpecificationConfig> openapiConfigs = new HashSet<>();
         openapiConfigs.add(new OpenapiSpecificationConfig("openapi-id",
