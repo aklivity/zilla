@@ -122,6 +122,18 @@ jobs:
         server-username: GITHUB_ACTOR
         server-password: GITHUB_TOKEN
 
+    - name: Route Docker Hub pulls through mirror.gcr.io
+      run: |
+        sudo mkdir -p /etc/docker
+        if [ -f /etc/docker/daemon.json ]; then
+          sudo jq '. + {"registry-mirrors": ["https://mirror.gcr.io"]}' /etc/docker/daemon.json > /tmp/daemon.json
+        else
+          echo '{"registry-mirrors": ["https://mirror.gcr.io"]}' > /tmp/daemon.json
+        fi
+        sudo mv /tmp/daemon.json /etc/docker/daemon.json
+        sudo systemctl restart docker
+        timeout 30 sh -c 'until docker info >/dev/null 2>&1; do sleep 1; done'
+
     - name: Create Maven cache key input
       run: |
         find . -name pom.xml -print0 \
@@ -208,7 +220,15 @@ jobs:
         key: docker-base-${{ runner.os }}-${{ github.run_id }}
 
     - name: Setup buildx to publish multi-arch images
-      run: docker buildx create --driver docker-container --name release --use
+      run: |
+        # The docker-container driver runs its own BuildKit instance that does
+        # not inherit the daemon's registry-mirrors, so scope the mirror to
+        # docker.io here too. ghcr.io is not matched and pulls direct.
+        cat > /tmp/buildkitd.toml <<'EOF'
+        [registry."docker.io"]
+          mirrors = ["mirror.gcr.io"]
+        EOF
+        docker buildx create --driver docker-container --name release --use --config /tmp/buildkitd.toml
 
     - name: Extract docker build contexts
       run: |
