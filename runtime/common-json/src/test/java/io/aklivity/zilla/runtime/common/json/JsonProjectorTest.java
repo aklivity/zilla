@@ -220,13 +220,13 @@ class JsonProjectorTest
         int outBound)
     {
         JsonGeneratorEx gen = JsonEx.createGenerator();
-        MutableDirectBuffer buffer = new UnsafeBuffer(new byte[outBound]);
+        MutableDirectBuffer buffer = new UnsafeBufferEx(new byte[outBound]);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonEx.projector(retained))
             .into(JsonEx.createSink(gen));
 
         byte[] bytes = (input + " ").getBytes(UTF_8);
-        UnsafeBuffer in = new UnsafeBuffer(bytes);
+        UnsafeBufferEx in = new UnsafeBufferEx(bytes);
         StringBuilder result = new StringBuilder();
         pipeline.reset();
         gen.wrap(buffer, 0, outBound);
