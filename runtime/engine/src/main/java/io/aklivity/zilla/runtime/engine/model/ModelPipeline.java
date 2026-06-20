@@ -57,18 +57,18 @@ public interface ModelPipeline
     int FLAGS_COMPLETE = 0x03;
 
     /**
-     * Transforms input from {@code src[srcIndex..srcIndex+srcLength)} into
-     * {@code dst[dstIndex..dstIndex+dstLength)} and reports progress.
+     * Transforms input from {@code src[srcIndex..srcLimit)} into {@code dst[dstIndex..dstLimit)} and
+     * reports progress.
      *
      * @param traceId    the trace identifier for diagnostics
      * @param bindingId  the binding identifier
      * @param flags      the fragment flags ({@link #FLAGS_INIT}, {@link #FLAGS_FIN})
      * @param src        the source buffer
      * @param srcIndex   the offset of the input in {@code src}
-     * @param srcLength  the length of the input
+     * @param srcLimit   the offset just past the input in {@code src}
      * @param dst        the destination buffer
      * @param dstIndex   the offset to write output at in {@code dst}
-     * @param dstLength  the number of output bytes available in {@code dst}
+     * @param dstLimit   the offset just past the available output in {@code dst}
      * @return the reused {@link ModelPipelineResult} describing the outcome, consumed, and produced bytes
      */
     ModelPipelineResult transform(
@@ -77,10 +77,10 @@ public interface ModelPipeline
         int flags,
         DirectBuffer src,
         int srcIndex,
-        int srcLength,
+        int srcLimit,
         MutableDirectBuffer dst,
         int dstIndex,
-        int dstLength);
+        int dstLimit);
 
     /**
      * Returns the number of additional bytes required in the output buffer to accommodate any framing

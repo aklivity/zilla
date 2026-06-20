@@ -61,16 +61,18 @@ final class TestModelPipeline implements ModelPipeline
         int flags,
         DirectBuffer src,
         int srcIndex,
-        int srcLength,
+        int srcLimit,
         MutableDirectBuffer dst,
         int dstIndex,
-        int dstLength)
+        int dstLimit)
     {
         if ((flags & FLAGS_INIT) != 0)
         {
             processed = 0;
         }
 
+        int srcLength = srcLimit - srcIndex;
+        int dstLength = dstLimit - dstIndex;
         int available = Math.min(srcLength, dstLength);
         boolean tail = (flags & FLAGS_FIN) != 0 && available == srcLength;
         int total = processed + available;

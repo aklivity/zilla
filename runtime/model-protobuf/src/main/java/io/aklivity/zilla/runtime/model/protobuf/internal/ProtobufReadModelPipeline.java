@@ -77,11 +77,13 @@ final class ProtobufReadModelPipeline implements ModelPipeline
         int flags,
         DirectBuffer src,
         int srcIndex,
-        int srcLength,
+        int srcLimit,
         MutableDirectBuffer dst,
         int dstIndex,
-        int dstLength)
+        int dstLimit)
     {
+        int srcLength = srcLimit - srcIndex;
+        int dstLength = dstLimit - dstIndex;
         int prefix = 0;
         if ((flags & FLAGS_INIT) != 0)
         {

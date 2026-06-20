@@ -5002,7 +5002,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 final int responseNoAck = (int)(responseSeq - responseAck);
                 final int window = Math.max(responseMax - responseNoAck - responsePad, 0);
                 final int dstMax = Math.min(window, modelBuffer.capacity());
-                final int consumed = content.transform(traceId, routedId, flags, buffer, offset, limit - offset, dstMax);
+                final int consumed = content.transform(traceId, routedId, flags, buffer, offset, limit, dstMax);
 
                 if (consumed < 0)
                 {

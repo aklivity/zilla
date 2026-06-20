@@ -107,7 +107,7 @@ public class HttpModelTest
         assertEquals(2, model.produced());
         assertOutput(model, "he");
 
-        int consumed2 = model.transform(0L, 0L, FLAGS_FIN, value("hello"), 2, 3, 256);
+        int consumed2 = model.transform(0L, 0L, FLAGS_FIN, value("hello"), 2, 5, 256);
         assertEquals(3, consumed2);
         assertEquals(3, model.produced());
         assertOutput(model, "llo");

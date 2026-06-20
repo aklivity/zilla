@@ -479,7 +479,7 @@ public final class KafkaCachePartition
 
             OctetsFW value = key.value();
             int transformed = transformKey.transform(traceId, bindingId,
-                    value.buffer(), value.offset(), value.sizeof(), writeKey);
+                    value.buffer(), value.offset(), value.limit(), writeKey);
 
             if (transformed == -1)
             {
@@ -624,7 +624,7 @@ public final class KafkaCachePartition
             if ((entryFlags & CACHE_ENTRY_FLAGS_ABORTED) == 0x00)
             {
                 int transformed = transformValue.transform(traceId, bindingId, logFile.buffer(),
-                    valueMark.value, valueLength, consumeTransformed);
+                    valueMark.value, valueMark.value + valueLength, consumeTransformed);
                 if (transformed == -1)
                 {
                     logFile.writeInt(entryMark.value + FIELD_OFFSET_FLAGS, CACHE_ENTRY_FLAGS_ABORTED);
@@ -832,7 +832,7 @@ public final class KafkaCachePartition
                 };
 
                 transformed = transformKey.transform(traceId, bindingId,
-                    value.buffer(), value.offset(), value.sizeof(), writeKey);
+                    value.buffer(), value.offset(), value.limit(), writeKey);
 
                 if (transformed == -1)
                 {
@@ -906,7 +906,7 @@ public final class KafkaCachePartition
                 if ((flags & FLAGS_FIN) != 0x00)
                 {
                     transformed = transformValue.transform(traceId, bindingId, logFile.buffer(),
-                        valueMark.value, valueLength, consumeTransformed);
+                        valueMark.value, valueMark.value + valueLength, consumeTransformed);
                 }
             }
         }

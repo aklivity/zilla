@@ -107,7 +107,7 @@ public class Int32ModelPipelineTest
         assertEquals(head.length, first.consumed());
 
         ModelPipelineResult second = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_FIN,
-            new UnsafeBuffer(tail), 0, tail.length, dst, head.length, dst.capacity() - head.length);
+            new UnsafeBuffer(tail), 0, tail.length, dst, head.length, dst.capacity());
         assertEquals(ModelStatus.COMPLETE, second.status());
         assertEquals(tail.length, second.consumed());
     }

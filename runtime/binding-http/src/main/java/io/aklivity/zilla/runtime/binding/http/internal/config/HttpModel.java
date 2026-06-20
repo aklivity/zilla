@@ -71,11 +71,12 @@ public final class HttpModel
         long bindingId,
         DirectBuffer data,
         int index,
-        int length)
+        int limit)
     {
         int total;
         if (pipeline == null)
         {
+            final int length = limit - index;
             scratch.putBytes(0, data, index, length);
             total = length;
         }
@@ -83,13 +84,12 @@ public final class HttpModel
         {
             total = 0;
             int srcAt = index;
-            int srcRem = length;
             int flags = ModelPipeline.FLAGS_INIT | ModelPipeline.FLAGS_FIN;
             boolean done = false;
             while (!done)
             {
                 final ModelPipelineResult result = pipeline.transform(traceId, bindingId, flags,
-                    data, srcAt, srcRem, scratch, total, scratch.capacity() - total);
+                    data, srcAt, limit, scratch, total, scratch.capacity());
                 final ModelStatus status = result.status();
 
                 if (status == ModelStatus.REJECTED)
@@ -108,7 +108,6 @@ public final class HttpModel
                     else
                     {
                         srcAt += result.consumed();
-                        srcRem -= result.consumed();
                         flags = ModelPipeline.FLAGS_FIN;
                     }
                 }
@@ -125,11 +124,11 @@ public final class HttpModel
         int flags,
         DirectBuffer src,
         int srcIndex,
-        int srcLength,
+        int srcLimit,
         int dstMax)
     {
         final ModelPipelineResult result = pipeline.transform(traceId, bindingId, flags,
-            src, srcIndex, srcLength, scratch, 0, dstMax);
+            src, srcIndex, srcLimit, scratch, 0, dstMax);
         final ModelStatus status = result.status();
 
         int consumed;

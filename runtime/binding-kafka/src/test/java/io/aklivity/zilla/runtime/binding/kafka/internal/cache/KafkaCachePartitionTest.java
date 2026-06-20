@@ -420,11 +420,12 @@ public class KafkaCachePartitionTest
             int flags,
             DirectBuffer src,
             int srcIndex,
-            int srcLength,
+            int srcLimit,
             MutableDirectBuffer dst,
             int dstIndex,
-            int dstLength)
+            int dstLimit)
         {
+            int srcLength = srcLimit - srcIndex;
             dst.putBytes(dstIndex, src, srcIndex, srcLength);
             visitor.onField(path, src, srcIndex, srcLength);
             return result.set(ModelStatus.COMPLETE, srcLength, srcLength);

@@ -2962,7 +2962,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 {
                     final int dstMax = Math.min(window, modelBuffer.capacity());
                     final int consumed = content.transform(traceId, routedId, flags & FLAG_COM,
-                        buffer, offset, limit - offset, dstMax);
+                        buffer, offset, limit, dstMax);
 
                     if (consumed < 0)
                     {

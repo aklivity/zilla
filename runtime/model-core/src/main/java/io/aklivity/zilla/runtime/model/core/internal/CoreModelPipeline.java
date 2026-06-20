@@ -46,11 +46,13 @@ final class CoreModelPipeline implements ModelPipeline
         int flags,
         DirectBuffer src,
         int srcIndex,
-        int srcLength,
+        int srcLimit,
         MutableDirectBuffer dst,
         int dstIndex,
-        int dstLength)
+        int dstLimit)
     {
+        int srcLength = srcLimit - srcIndex;
+        int dstLength = dstLimit - dstIndex;
         int available = Math.min(srcLength, dstLength);
         // only the tail of the final fragment closes the value; a bounded dst defers FIN to a later call
         boolean tail = (flags & FLAGS_FIN) != 0 && available == srcLength;

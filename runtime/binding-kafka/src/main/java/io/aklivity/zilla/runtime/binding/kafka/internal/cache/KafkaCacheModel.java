@@ -85,12 +85,13 @@ public final class KafkaCacheModel
         long bindingId,
         DirectBuffer data,
         int index,
-        int length,
+        int limit,
         Output next)
     {
         int total;
         if (pipeline == null)
         {
+            final int length = limit - index;
             next.accept(data, index, length);
             total = length;
         }
@@ -103,13 +104,12 @@ public final class KafkaCacheModel
 
             total = 0;
             int srcAt = index;
-            int srcRem = length;
             int flags = ModelPipeline.FLAGS_INIT | ModelPipeline.FLAGS_FIN;
             boolean done = false;
             while (!done)
             {
                 final ModelPipelineResult result = pipeline.transform(traceId, bindingId, flags,
-                    data, srcAt, srcRem, scratch, 0, scratch.capacity());
+                    data, srcAt, limit, scratch, 0, scratch.capacity());
                 final ModelStatus status = result.status();
                 final int produced = result.produced();
                 final int consumed = result.consumed();
@@ -134,7 +134,6 @@ public final class KafkaCacheModel
                     else
                     {
                         srcAt += consumed;
-                        srcRem -= consumed;
                         flags = ModelPipeline.FLAGS_FIN;
                     }
                 }

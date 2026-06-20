@@ -116,7 +116,7 @@ public class StringModelPipelineTest
         // re-call advancing the source by what was consumed, INIT cleared per the driver contract
         int progress = first.consumed();
         ModelPipelineResult second = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_FIN,
-            src, progress, bytes.length - progress, dst, progress, bytes.length - progress);
+            src, progress, bytes.length, dst, progress, bytes.length);
         assertEquals(ModelStatus.COMPLETE, second.status());
         assertEquals(bytes.length - progress, second.consumed());
         assertEquals(bytes.length - progress, second.produced());
