@@ -75,8 +75,6 @@ import static io.aklivity.zilla.runtime.binding.amqp.internal.types.codec.AmqpTy
 import static io.aklivity.zilla.runtime.binding.amqp.internal.util.AmqpTypeUtil.amqpCapabilities;
 import static io.aklivity.zilla.runtime.binding.amqp.internal.util.AmqpTypeUtil.amqpReceiverSettleMode;
 import static io.aklivity.zilla.runtime.binding.amqp.internal.util.AmqpTypeUtil.amqpSenderSettleMode;
-import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_CREDITOR_INDEX;
-import static io.aklivity.zilla.runtime.engine.budget.BudgetDebitor.NO_DEBITOR_INDEX;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static java.lang.System.currentTimeMillis;
@@ -89,7 +87,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.Map;
-import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
 
@@ -174,8 +171,8 @@ import io.aklivity.zilla.runtime.binding.amqp.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
-import io.aklivity.zilla.runtime.engine.budget.BudgetCreditor;
-import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
+import io.aklivity.zilla.runtime.engine.budget.BudgetCredit;
+import io.aklivity.zilla.runtime.engine.budget.BudgetDebit;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
@@ -452,12 +449,11 @@ public final class AmqpServerFactory implements AmqpStreamFactory
     private final LongUnaryOperator supplyReplyId;
     private final LongSupplier supplyTraceId;
     private final LongSupplier supplyBudgetId;
-    private final LongFunction<BudgetDebitor> supplyDebitor;
 
     private final BufferPool bufferPool;
-    private final BudgetCreditor creditor;
     private final Signaler signaler;
     private final BindingHandler streamFactory;
+    private final EngineContext context;
 
     private final Long2ObjectHashMap<AmqpBindingConfig> bindings;
     private final int amqpTypeId;
@@ -481,10 +477,9 @@ public final class AmqpServerFactory implements AmqpStreamFactory
         this.stringBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.valueBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.bufferPool = context.bufferPool();
-        this.creditor = context.creditor();
         this.signaler = context.signaler();
         this.streamFactory = context.streamFactory();
-        this.supplyDebitor = context::supplyDebitor;
+        this.context = context;
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.supplyBudgetId = context::supplyBudgetId;
@@ -1238,9 +1233,9 @@ public final class AmqpServerFactory implements AmqpStreamFactory
                 int reserved = fragmentSize + sender.initialPad;
                 boolean canSend = reserved <= sender.initialMax;
 
-                if (canSend && sender.debitorIndex != NO_DEBITOR_INDEX)
+                if (canSend && sender.debit != null)
                 {
-                    reserved = sender.debitor.claim(traceId, sender.debitorIndex, sender.initialId, reserved, reserved, 0);
+                    reserved = sender.debit.claim(traceId, reserved, reserved);
                 }
 
                 if (canSend && reserved != 0)
@@ -1472,7 +1467,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
         private int replyPad;
         private long replyBudgetId;
 
-        private long replyBudgetIndex = NO_CREDITOR_INDEX;
+        private BudgetCredit replyCredit;
         private int replySharedBudget;
         private int replyBudgetReserved;
 
@@ -2302,7 +2297,6 @@ public final class AmqpServerFactory implements AmqpStreamFactory
             final long authorization = abort.authorization();
 
             cleanupStreams(traceId, authorization);
-            cleanupBudgetCreditorIfNecessary();
             cleanupEncodeSlotIfNecessary();
 
             doNetworkAbort(traceId, authorization);
@@ -2369,12 +2363,9 @@ public final class AmqpServerFactory implements AmqpStreamFactory
 
             if (replySharedCredit != 0 && replyBudgetReserved == 0)
             {
-                final long replySharedBudgetPrevious = creditor.credit(traceId, replyBudgetIndex, replySharedCredit);
+                replyCredit.capacity(traceId, replySharedCredit);
 
                 this.replySharedBudget += replySharedCredit;
-                assert replySharedBudgetPrevious <= slotCapacity
-                    : String.format("%d <= %d, replyBudget = %d",
-                    replySharedBudgetPrevious, slotCapacity, budget);
 
                 assert replySharedBudget <= slotCapacity
                     : String.format("%d <= %d", replySharedBudget, slotCapacity);
@@ -2388,7 +2379,6 @@ public final class AmqpServerFactory implements AmqpStreamFactory
             final long authorization = reset.authorization();
 
             cleanupStreams(traceId, authorization);
-            cleanupBudgetCreditorIfNecessary();
             cleanupEncodeSlotIfNecessary();
 
             doNetworkReset(traceId, authorization);
@@ -2480,8 +2470,8 @@ public final class AmqpServerFactory implements AmqpStreamFactory
             doBegin(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, affinity, EMPTY_OCTETS);
 
-            assert replyBudgetIndex == NO_CREDITOR_INDEX;
-            this.replyBudgetIndex = creditor.acquire(replySharedBudgetId);
+            assert replyCredit == null;
+            this.replyCredit = context.supplyCredit(replyId, replySharedBudgetId);
         }
 
         private void doNetworkData(
@@ -2517,7 +2507,6 @@ public final class AmqpServerFactory implements AmqpStreamFactory
         {
             state = AmqpState.closeReply(state);
 
-            cleanupBudgetCreditorIfNecessary();
             cleanupEncodeSlotIfNecessary();
 
             doEnd(network, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, EMPTY_OCTETS);
@@ -2529,7 +2518,6 @@ public final class AmqpServerFactory implements AmqpStreamFactory
         {
             state = AmqpState.closeReply(state);
 
-            cleanupBudgetCreditorIfNecessary();
             cleanupEncodeSlotIfNecessary();
 
             doAbort(network, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, EMPTY_OCTETS);
@@ -2954,15 +2942,6 @@ public final class AmqpServerFactory implements AmqpStreamFactory
             }
         }
 
-        private void cleanupBudgetCreditorIfNecessary()
-        {
-            if (replyBudgetIndex != NO_CREDITOR_INDEX)
-            {
-                creditor.release(replyBudgetIndex);
-                replyBudgetIndex = NO_CREDITOR_INDEX;
-            }
-        }
-
         private void cleanupDecodeSlotIfNecessary()
         {
             if (decodeSlot != NO_SLOT)
@@ -3312,8 +3291,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
                 private int remoteLinkCredit;
                 private int linkCredit;
 
-                private BudgetDebitor debitor;
-                private long debitorIndex = NO_DEBITOR_INDEX;
+                private BudgetDebit debit;
 
                 private long initialBudgetId;
 
@@ -3625,11 +3603,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
 
                     state = AmqpState.closeInitial(state);
 
-                    if (debitorIndex != NO_DEBITOR_INDEX)
-                    {
-                        debitor.release(debitorIndex, initialId);
-                        debitorIndex = NO_DEBITOR_INDEX;
-                    }
+                    debit = null;
 
                     if (AmqpState.closed(state))
                     {
@@ -3706,10 +3680,10 @@ public final class AmqpServerFactory implements AmqpStreamFactory
 
                     assert initialAck <= initialSeq;
 
-                    if (budgetId != 0L && debitorIndex == NO_DEBITOR_INDEX)
+                    if (budgetId != 0L && debit == null)
                     {
-                        debitor = supplyDebitor.apply(budgetId);
-                        debitorIndex = debitor.acquire(budgetId, initialId, AmqpServer.this::decodeNetworkIfNecessary);
+                        debit = context.supplyDebit(initialId, budgetId, AmqpServer.this::decodeNetworkIfNecessary);
+                        debit.declare(traceId, 0, 0);
                     }
 
                     flushInitialWindow(traceId, authorization);
