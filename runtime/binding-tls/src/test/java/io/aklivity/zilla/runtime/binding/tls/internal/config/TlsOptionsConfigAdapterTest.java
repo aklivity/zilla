@@ -31,6 +31,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
+import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 
 public class TlsOptionsConfigAdapterTest
 {
@@ -41,18 +42,21 @@ public class TlsOptionsConfigAdapterTest
     {
         JsonbConfig config = new JsonbConfig()
                 .withAdapters(new TlsOptionsConfigAdapter());
-        jsonb = JsonbBuilder.create(config);
+        jsonb = JsonbBuilder.newBuilder()
+                .withProvider(YamlJson.provider())
+                .withConfig(config)
+                .build();
     }
 
     @Test
     public void shouldReadOptions()
     {
-        String text =
-                "{" +
-                    "\"version\": \"TLSv1.2\"" +
-                "}";
+        String yaml =
+                """
+                version: TLSv1.2
+                """;
 
-        TlsOptionsConfig options = jsonb.fromJson(text, TlsOptionsConfig.class);
+        TlsOptionsConfig options = jsonb.fromJson(yaml, TlsOptionsConfig.class);
 
         assertThat(options, not(nullValue()));
         assertThat(options.version, equalTo("TLSv1.2"));
@@ -66,21 +70,25 @@ public class TlsOptionsConfigAdapterTest
             .version("TLSv1.2")
             .build();
 
-        String text = jsonb.toJson(options);
+        String yaml = jsonb.toJson(options);
 
-        assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"version\":\"TLSv1.2\"}"));
+        assertThat(yaml, not(nullValue()));
+        assertThat(yaml, equalTo(
+                """
+                version: TLSv1.2
+                """));
     }
 
     @Test
     public void shouldReadOptionsWithKeys()
     {
-        String text =
-                "{" +
-                    "\"trust\": [ \"serverca\" ]" +
-                "}";
+        String yaml =
+                """
+                trust:
+                  - serverca
+                """;
 
-        TlsOptionsConfig options = jsonb.fromJson(text, TlsOptionsConfig.class);
+        TlsOptionsConfig options = jsonb.fromJson(yaml, TlsOptionsConfig.class);
 
         assertThat(options, not(nullValue()));
         assertThat(options.trust, equalTo(asList("serverca")));
@@ -94,21 +102,26 @@ public class TlsOptionsConfigAdapterTest
                 .keys(asList("localhost"))
                 .build();
 
-        String text = jsonb.toJson(options);
+        String yaml = jsonb.toJson(options);
 
-        assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"keys\":[\"localhost\"]}"));
+        assertThat(yaml, not(nullValue()));
+        assertThat(yaml, equalTo(
+                """
+                keys:
+                  - localhost
+                """));
     }
 
     @Test
     public void shouldReadOptionsWithTrust()
     {
-        String text =
-                "{" +
-                    "\"trust\": [ \"serverca\" ]" +
-                "}";
+        String yaml =
+                """
+                trust:
+                  - serverca
+                """;
 
-        TlsOptionsConfig options = jsonb.fromJson(text, TlsOptionsConfig.class);
+        TlsOptionsConfig options = jsonb.fromJson(yaml, TlsOptionsConfig.class);
 
         assertThat(options, not(nullValue()));
         assertThat(options.trust, equalTo(asList("serverca")));
@@ -122,21 +135,25 @@ public class TlsOptionsConfigAdapterTest
             .trust(asList("serverca"))
             .build();
 
-        String text = jsonb.toJson(options);
+        String yaml = jsonb.toJson(options);
 
-        assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"trust\":[\"serverca\"]}"));
+        assertThat(yaml, not(nullValue()));
+        assertThat(yaml, equalTo(
+                """
+                trust:
+                  - serverca
+                """));
     }
 
     @Test
     public void shouldReadOptionsWithTrustcacerts()
     {
-        String text =
-                "{" +
-                    "\"trustcacerts\": true" +
-                "}";
+        String yaml =
+                """
+                trustcacerts: true
+                """;
 
-        TlsOptionsConfig options = jsonb.fromJson(text, TlsOptionsConfig.class);
+        TlsOptionsConfig options = jsonb.fromJson(yaml, TlsOptionsConfig.class);
 
         assertThat(options, not(nullValue()));
         assertThat(options.trustcacerts, equalTo(true));
@@ -150,21 +167,25 @@ public class TlsOptionsConfigAdapterTest
             .trustcacerts(false)
             .build();
 
-        String text = jsonb.toJson(options);
+        String yaml = jsonb.toJson(options);
 
-        assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"trustcacerts\":false}"));
+        assertThat(yaml, not(nullValue()));
+        assertThat(yaml, equalTo(
+                """
+                trustcacerts: false
+                """));
     }
 
     @Test
     public void shouldReadOptionsWithServerName()
     {
-        String text =
-                "{" +
-                    "\"sni\": [ \"example.net\" ]" +
-                "}";
+        String yaml =
+                """
+                sni:
+                  - example.net
+                """;
 
-        TlsOptionsConfig options = jsonb.fromJson(text, TlsOptionsConfig.class);
+        TlsOptionsConfig options = jsonb.fromJson(yaml, TlsOptionsConfig.class);
 
         assertThat(options, not(nullValue()));
         assertThat(options.sni, equalTo(asList("example.net")));
@@ -178,21 +199,26 @@ public class TlsOptionsConfigAdapterTest
             .sni(asList("example.net"))
             .build();
 
-        String text = jsonb.toJson(options);
+        String yaml = jsonb.toJson(options);
 
-        assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"sni\":[\"example.net\"]}"));
+        assertThat(yaml, not(nullValue()));
+        assertThat(yaml, equalTo(
+                """
+                sni:
+                  - example.net
+                """));
     }
 
     @Test
     public void shouldReadOptionsWithAlpn()
     {
-        String text =
-                "{" +
-                    "\"alpn\": [ \"echo\" ]" +
-                "}";
+        String yaml =
+                """
+                alpn:
+                  - echo
+                """;
 
-        TlsOptionsConfig options = jsonb.fromJson(text, TlsOptionsConfig.class);
+        TlsOptionsConfig options = jsonb.fromJson(yaml, TlsOptionsConfig.class);
 
         assertThat(options, not(nullValue()));
         assertThat(options.alpn, equalTo(asList("echo")));
@@ -206,21 +232,25 @@ public class TlsOptionsConfigAdapterTest
             .alpn(asList("echo"))
             .build();
 
-        String text = jsonb.toJson(options);
+        String yaml = jsonb.toJson(options);
 
-        assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"alpn\":[\"echo\"]}"));
+        assertThat(yaml, not(nullValue()));
+        assertThat(yaml, equalTo(
+                """
+                alpn:
+                  - echo
+                """));
     }
 
     @Test
     public void shouldReadOptionsWithMutual()
     {
-        String text =
-                "{" +
-                    "\"mutual\": \"requested\"" +
-                "}";
+        String yaml =
+                """
+                mutual: requested
+                """;
 
-        TlsOptionsConfig options = jsonb.fromJson(text, TlsOptionsConfig.class);
+        TlsOptionsConfig options = jsonb.fromJson(yaml, TlsOptionsConfig.class);
 
         assertThat(options, not(nullValue()));
         assertThat(options.mutual, equalTo(REQUESTED));
@@ -234,21 +264,25 @@ public class TlsOptionsConfigAdapterTest
             .mutual(REQUESTED)
             .build();
 
-        String text = jsonb.toJson(options);
+        String yaml = jsonb.toJson(options);
 
-        assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"mutual\":\"requested\"}"));
+        assertThat(yaml, not(nullValue()));
+        assertThat(yaml, equalTo(
+                """
+                mutual: requested
+                """));
     }
 
     @Test
     public void shouldReadOptionsWithSigners()
     {
-        String text =
-                "{" +
-                    "\"signers\": [ \"clientca\" ]" +
-                "}";
+        String yaml =
+                """
+                signers:
+                  - clientca
+                """;
 
-        TlsOptionsConfig options = jsonb.fromJson(text, TlsOptionsConfig.class);
+        TlsOptionsConfig options = jsonb.fromJson(yaml, TlsOptionsConfig.class);
 
         assertThat(options, not(nullValue()));
         assertThat(options.signers, equalTo(asList("clientca")));
@@ -262,9 +296,13 @@ public class TlsOptionsConfigAdapterTest
             .signers(asList("clientca"))
             .build();
 
-        String text = jsonb.toJson(options);
+        String yaml = jsonb.toJson(options);
 
-        assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"signers\":[\"clientca\"]}"));
+        assertThat(yaml, not(nullValue()));
+        assertThat(yaml, equalTo(
+                """
+                signers:
+                  - clientca
+                """));
     }
 }

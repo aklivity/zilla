@@ -40,6 +40,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttPatternConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttTopicConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttUserPropertyConfig;
+import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 import io.aklivity.zilla.runtime.engine.test.internal.model.config.TestModelConfig;
 
 public class MqttOptionsConfigAdapterTest
@@ -51,45 +52,32 @@ public class MqttOptionsConfigAdapterTest
     {
         JsonbConfig config = new JsonbConfig()
                 .withAdapters(new MqttOptionsConfigAdapter());
-        jsonb = JsonbBuilder.create(config);
+        jsonb = JsonbBuilder.newBuilder()
+                .withProvider(YamlJson.provider())
+                .withConfig(config)
+                .build();
     }
 
     @Test
     public void shouldReadOptions()
     {
         String text =
-                "{" +
-                    "\"versions\":" +
-                    "[" +
-                        "\"v3.1.1\"," +
-                        "\"v5\"" +
-                    "]," +
-                    "\"store\":\"memory0\"," +
-                    "\"authorization\":" +
-                    "{" +
-                        "\"test0\":" +
-                        "{" +
-                            "\"credentials\":" +
-                            "{" +
-                                "\"connect\":" +
-                                "{" +
-                                    "\"username\":\"Bearer {credentials}\"" +
-                                "}" +
-                            "}" +
-                        "}" +
-                    "}," +
-                    "\"topics\":" +
-                    "[" +
-                        "{" +
-                            "\"name\": \"sensor/one\"," +
-                            "\"content\":\"test\"," +
-                            "\"user-properties\":" +
-                            "{" +
-                                "\"user-property\":\"test\"" +
-                            "}" +
-                        "}" +
-                    "]" +
-                "}";
+                """
+                versions:
+                  - v3.1.1
+                  - v5
+                store: memory0
+                authorization:
+                  test0:
+                    credentials:
+                      connect:
+                        username: "Bearer {credentials}"
+                topics:
+                  - name: sensor/one
+                    content: test
+                    user-properties:
+                      user-property: test
+                """;
 
         MqttOptionsConfig options = jsonb.fromJson(text, MqttOptionsConfig.class);
 
@@ -148,37 +136,21 @@ public class MqttOptionsConfigAdapterTest
 
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo(
-                    "{" +
-                        "\"authorization\":" +
-                        "{" +
-                            "\"test0\":" +
-                            "{" +
-                                "\"credentials\":" +
-                                "{" +
-                                    "\"connect\":" +
-                                    "{" +
-                                        "\"username\":\"Bearer {credentials}\"" +
-                                    "}" +
-                                "}" +
-                            "}" +
-                        "}," +
-                        "\"topics\":" +
-                        "[" +
-                            "{" +
-                                "\"name\":\"sensor/one\"," +
-                                "\"content\":\"test\"," +
-                                "\"user-properties\":" +
-                                "{" +
-                                    "\"user-property\":\"test\"" +
-                                "}" +
-                            "}" +
-                        "]," +
-                        "\"versions\":" +
-                        "[" +
-                            "\"v3.1.1\"," +
-                            "\"v5\"" +
-                        "]," +
-                        "\"store\":\"memory0\"" +
-                    "}"));
+                """
+                authorization:
+                  test0:
+                    credentials:
+                      connect:
+                        username: "Bearer {credentials}"
+                topics:
+                  - name: sensor/one
+                    content: test
+                    user-properties:
+                      user-property: test
+                versions:
+                  - v3.1.1
+                  - v5
+                store: memory0
+                """));
     }
 }

@@ -28,6 +28,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.ws.config.WsOptionsConfig;
+import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 
 public class WsOptionsConfigAdapterTest
 {
@@ -38,22 +39,23 @@ public class WsOptionsConfigAdapterTest
     {
         JsonbConfig config = new JsonbConfig()
                 .withAdapters(new WsOptionsConfigAdapter());
-        jsonb = JsonbBuilder.create(config);
+        jsonb = JsonbBuilder.newBuilder()
+                .withProvider(YamlJson.provider())
+                .withConfig(config)
+                .build();
     }
 
     @Test
     public void shouldReadOptions()
     {
-        String text =
-                "{" +
-                    "\"defaults\":" +
-                    "{" +
-                        "\"protocol\": \"echo\"," +
-                        "\"authority\": \"example.net:443\"" +
-                    "}" +
-                "}";
+        String yaml =
+                """
+                defaults:
+                  protocol: echo
+                  authority: "example.net:443"
+                """;
 
-        WsOptionsConfig options = jsonb.fromJson(text, WsOptionsConfig.class);
+        WsOptionsConfig options = jsonb.fromJson(yaml, WsOptionsConfig.class);
 
         assertThat(options, not(nullValue()));
         assertThat(options.protocol, equalTo("echo"));
@@ -65,9 +67,14 @@ public class WsOptionsConfigAdapterTest
     {
         WsOptionsConfig options = new WsOptionsConfig("echo", null, "example.net:443", null);
 
-        String text = jsonb.toJson(options);
+        String yaml = jsonb.toJson(options);
 
-        assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"defaults\":{\"protocol\":\"echo\",\"authority\":\"example.net:443\"}}"));
+        assertThat(yaml, not(nullValue()));
+        assertThat(yaml, equalTo(
+                """
+                defaults:
+                  protocol: echo
+                  authority: "example.net:443"
+                """));
     }
 }

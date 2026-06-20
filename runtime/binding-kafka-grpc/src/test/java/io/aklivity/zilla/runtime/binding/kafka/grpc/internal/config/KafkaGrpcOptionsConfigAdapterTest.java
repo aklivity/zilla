@@ -32,6 +32,7 @@ import io.aklivity.zilla.runtime.binding.kafka.grpc.config.KafkaGrpcIdempotencyC
 import io.aklivity.zilla.runtime.binding.kafka.grpc.config.KafkaGrpcOptionsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.String8FW;
+import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 
 public class KafkaGrpcOptionsConfigAdapterTest
 {
@@ -42,28 +43,27 @@ public class KafkaGrpcOptionsConfigAdapterTest
     {
         JsonbConfig config = new JsonbConfig()
                 .withAdapters(new KafkaGrpcOptionsConfigAdapter());
-        jsonb = JsonbBuilder.create(config);
+        jsonb = JsonbBuilder.newBuilder()
+                .withProvider(YamlJson.provider())
+                .withConfig(config)
+                .build();
     }
 
     @Test
     public void shouldReadOptions()
     {
-        String text =
-                "{" +
-                    "\"acks\":\"leader_only\"," +
-                    "\"correlation\":" +
-                    "{" +
-                        "\"headers\":" +
-                        "{" +
-                            "\"service\":\"zilla:x-service\"," +
-                            "\"method\":\"zilla:x-method\"," +
-                            "\"correlation-id\":\"zilla:x-correlation-id\"," +
-                            "\"reply-to\":\"zilla:x-reply-to\"" +
-                        "}" +
-                    "}" +
-                "}";
+        String yaml =
+                """
+                acks: leader_only
+                correlation:
+                  headers:
+                    service: zilla:x-service
+                    method: zilla:x-method
+                    correlation-id: zilla:x-correlation-id
+                    reply-to: zilla:x-reply-to
+                """;
 
-        KafkaGrpcOptionsConfig options = jsonb.fromJson(text, KafkaGrpcOptionsConfig.class);
+        KafkaGrpcOptionsConfig options = jsonb.fromJson(yaml, KafkaGrpcOptionsConfig.class);
 
         assertThat(options, not(nullValue()));
         assertThat(options.acks, equalTo(LEADER_ONLY));
@@ -86,26 +86,20 @@ public class KafkaGrpcOptionsConfigAdapterTest
                     new String16FW("zilla:x-method"),
                     new String16FW("zilla:x-reply-to")));
 
-        String text = jsonb.toJson(options);
+        String yaml = jsonb.toJson(options);
 
-        assertThat(text, not(nullValue()));
-        assertThat(text, equalTo(
-                "{" +
-                    "\"acks\":\"leader_only\"," +
-                    "\"idempotency\":" +
-                    "{" +
-                        "\"metadata\":\"zilla:x-idempotency-key\"" +
-                    "}," +
-                    "\"correlation\":" +
-                    "{" +
-                        "\"headers\":" +
-                        "{" +
-                            "\"service\":\"zilla:x-service\"," +
-                            "\"method\":\"zilla:x-method\"," +
-                            "\"correlation-id\":\"zilla:x-correlation-id\"," +
-                            "\"reply-to\":\"zilla:x-reply-to\"" +
-                        "}" +
-                    "}" +
-                "}"));
+        assertThat(yaml, not(nullValue()));
+        assertThat(yaml, equalTo(
+                """
+                acks: leader_only
+                idempotency:
+                  metadata: "zilla:x-idempotency-key"
+                correlation:
+                  headers:
+                    service: "zilla:x-service"
+                    method: "zilla:x-method"
+                    correlation-id: "zilla:x-correlation-id"
+                    reply-to: "zilla:x-reply-to"
+                """));
     }
 }

@@ -29,6 +29,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.catalog.apicurio.config.ApicurioOptionsConfig;
+import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 
 public class ApicurioOptionsConfigAdapterTest
 {
@@ -39,19 +40,22 @@ public class ApicurioOptionsConfigAdapterTest
     {
         JsonbConfig config = new JsonbConfig()
                 .withAdapters(new ApicurioOptionsConfigAdapter());
-        jsonb = JsonbBuilder.create(config);
+        jsonb = JsonbBuilder.newBuilder()
+                .withProvider(YamlJson.provider())
+                .withConfig(config)
+                .build();
     }
 
     @Test
     public void shouldReadCondition()
     {
-        String text =
-                "{" +
-                    "\"url\": \"http://localhost:8081\"," +
-                    "\"group-id\": \"default\"" +
-                "}";
+        String yaml =
+                """
+                url: "http://localhost:8081"
+                group-id: default
+                """;
 
-        ApicurioOptionsConfig catalog = jsonb.fromJson(text, ApicurioOptionsConfig.class);
+        ApicurioOptionsConfig catalog = jsonb.fromJson(yaml, ApicurioOptionsConfig.class);
 
         assertThat(catalog, not(nullValue()));
         assertThat(catalog.url, equalTo("http://localhost:8081"));
@@ -68,9 +72,14 @@ public class ApicurioOptionsConfigAdapterTest
             .maxAge(Duration.ofSeconds(300))
             .build();
 
-        String text = jsonb.toJson(catalog);
+        String yaml = jsonb.toJson(catalog);
 
-        assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"url\":\"http://localhost:8081\",\"group-id\":\"default\",\"max-age\":300}"));
+        assertThat(yaml, not(nullValue()));
+        assertThat(yaml, equalTo(
+                """
+                url: "http://localhost:8081"
+                group-id: default
+                max-age: 300
+                """));
     }
 }
