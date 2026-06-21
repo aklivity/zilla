@@ -22,46 +22,44 @@ import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx.Completion;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
-import io.aklivity.zilla.runtime.common.json.JsonSink.Delivery;
 import io.aklivity.zilla.runtime.common.json.JsonSource;
 
 /**
  * Terminal {@link JsonSink} that materializes each fed event into the corresponding {@code writeXxx}
  * call on the wrapped {@link JsonGeneratorEx}. Reaches {@link Status#COMPLETED} when the current
- * top-level value closes at depth zero. A {@link JsonEvent#isVerbatim()} event copies the original
- * source bytes instead of re-serializing — the byte-preserving fidelity an upstream mediator (e.g. a
- * validator) emits when this sink opts in via {@link JsonController#verbatim()}.
+ * top-level value closes at depth zero.
+ * <p>
+ * By default the sink <em>prefers bytes</em>: it opts into both {@link JsonController#segmentable()} and
+ * {@link JsonController#verbatim()}, so the pipeline negotiates the most efficient byte-preserving delivery
+ * it can — an opaque {@code SEGMENT} run when a value's structure is not needed downstream, or per-event
+ * {@link JsonEvent#VERBATIM} events when an upstream mediator (e.g. a validator) must see structure yet
+ * preserve the original bytes. It falls back to canonical re-rendering only for structured events that
+ * arrive when neither was honored (a transform that changes content). A {@code canonical} sink opts out of
+ * both and always re-renders.
  */
 public final class JsonSinkImpl implements JsonSink
 {
     private static final int HEADROOM = 16;
 
     private final JsonGeneratorEx generator;
-    private final Delivery delivery;
-    private final boolean verbatim;
+    private final boolean canonical;
     private int depth;
+    // whether a VERBATIM event has been copied this document: gates flush() so a segment-mode sink (whose
+    // verbatim cursor never advanced) does not re-emit the whole input from cursor zero
+    private boolean verbatimSeen;
 
     public JsonSinkImpl(
         JsonGeneratorEx generator)
     {
-        this(generator, Delivery.STRUCTURED, false);
+        this(generator, false);
     }
 
     public JsonSinkImpl(
         JsonGeneratorEx generator,
-        Delivery delivery)
-    {
-        this(generator, delivery, false);
-    }
-
-    public JsonSinkImpl(
-        JsonGeneratorEx generator,
-        Delivery delivery,
-        boolean verbatim)
+        boolean canonical)
     {
         this.generator = generator;
-        this.delivery = delivery;
-        this.verbatim = verbatim;
+        this.canonical = canonical;
     }
 
     @Override
@@ -101,6 +99,7 @@ public final class JsonSinkImpl implements JsonSink
         case VERBATIM:
             // a byte-preserving event from an upstream mediator: copy the original source bytes; the mediator
             // owns structure (and so document completion), the sink is only the byte conduit here
+            verbatimSeen = true;
             status = writeVerbatim(source);
             break;
         case VALUE_TRUE:
@@ -116,12 +115,12 @@ public final class JsonSinkImpl implements JsonSink
             status = scalarStatus();
             break;
         case START_DOCUMENT:
-            if (delivery == Delivery.SEGMENTABLE)
+            if (!canonical)
             {
+                // prefer bytes: request the most efficient byte-preserving delivery the pipeline can honor —
+                // an opaque segment run where structure is not needed, or VERBATIM events where a mediator
+                // must see structure; whichever the nearest upstream grants
                 control.segmentable();
-            }
-            else if (verbatim)
-            {
                 control.verbatim();
             }
             break;
@@ -143,6 +142,7 @@ public final class JsonSinkImpl implements JsonSink
         Status status;
         if (event != null && event.isVerbatim())
         {
+            verbatimSeen = true;
             status = writeVerbatim(source);
         }
         else
@@ -160,11 +160,11 @@ public final class JsonSinkImpl implements JsonSink
         JsonSource source)
     {
         Status status = Status.ADVANCED;
-        if (verbatim)
+        if (verbatimSeen)
         {
             // drain bytes the parser consumed during end-of-window lookahead (e.g. a separator after the last
-            // value) that no event pulled, so they are not lost when this window is replaced; the run cursor
-            // makes this a no-op when nothing trails the last pulled event
+            // value) that no event pulled, so they are not lost when this window is replaced; gated on having
+            // copied a VERBATIM event so a segment-mode sink (verbatim cursor still at zero) is not re-drained
             status = writeVerbatim(source);
         }
         return status;
@@ -174,6 +174,7 @@ public final class JsonSinkImpl implements JsonSink
     public void reset()
     {
         depth = 0;
+        verbatimSeen = false;
         generator.reset();
     }
 

@@ -26,28 +26,19 @@ public interface JsonSink
 {
     /**
      * Config key (for {@link JsonEx#createSink(JsonGeneratorEx, java.util.Map)}) whose value is the
-     * {@link Delivery} mode the terminal sink requests; absent ⇒ {@link Delivery#STRUCTURED}.
+     * {@link Delivery} mode the terminal sink requests. The terminal sink prefers bytes by default;
+     * {@link Delivery#STRUCTURED} is the explicit opt-out that forces canonical re-rendering.
      */
     String DELIVERY = "io.aklivity.zilla.runtime.common.json.sink.delivery";
 
     /**
-     * Config key (for {@link JsonEx#createSink(JsonGeneratorEx, java.util.Map)}) whose {@link Boolean} value
-     * opts the sink into <em>verbatim fidelity</em>: a fidelity modifier on {@link Delivery#STRUCTURED}
-     * (orthogonal to the structured-vs-segmented delivery fork), absent ⇒ {@code false} (canonical). When set
-     * the sink calls {@link JsonController#verbatim()} and an upstream mediator emits {@link JsonEvent#VERBATIM}
-     * events the sink copies byte-for-byte (insignificant whitespace preserved) — the parser still delivers the
-     * structured stream, so the mediator can validate while the output stays the original bytes.
-     */
-    String VERBATIM = "io.aklivity.zilla.runtime.common.json.sink.verbatim";
-
-    /**
-     * Delivery mode a terminal sink requests — the structured-vs-segmented fork (what the parser delivers).
-     * {@link #STRUCTURED} consumes the typed event stream and renders each scalar canonically from its decoded
-     * value ({@link JsonSource#getStringView()}), the generator owning quoting/escaping so a value delivered as
-     * fragments forms one value without the sink concatenating; {@link #SEGMENTABLE} opts in to opaque verbatim
-     * byte delivery, the parser <em>substituting</em> a segment run for a kept value's structure (best-effort,
-     * demand-gated) by calling {@link JsonController#segmentable()}. Byte-preserving fidelity within structured
-     * delivery is the orthogonal {@link #VERBATIM} modifier, not a third mode here.
+     * Delivery mode a terminal sink requests. The terminal sink <em>prefers bytes</em> by default — it opts
+     * into both {@link JsonController#segmentable()} and {@link JsonController#verbatim()} so the pipeline
+     * negotiates the most efficient byte-preserving delivery (an opaque segment run, or per-event
+     * {@link JsonEvent#VERBATIM} events from a mediator that needs structure). {@link #STRUCTURED} is the
+     * explicit opt-out: it requests neither, so every value is re-rendered canonically from its decoded value
+     * ({@link JsonSource#getStringView()}). {@link #SEGMENTABLE} is retained as a named synonym for the default
+     * byte-preferring behavior.
      */
     enum Delivery
     {

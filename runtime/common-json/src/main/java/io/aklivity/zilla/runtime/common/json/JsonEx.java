@@ -103,8 +103,11 @@ public final class JsonEx
 
     /**
      * Returns a terminal {@link JsonSink} that materializes each fed event into the corresponding
-     * {@code writeXxx} call on {@code generator} (structured delivery). The supplied generator must
-     * already be wrapped over its target buffer; reuse a single instance per thread.
+     * {@code writeXxx} call on {@code generator}. The sink prefers bytes by default — it opts into both
+     * {@code segmentable()} and {@code verbatim()}, so the pipeline negotiates the most efficient
+     * byte-preserving delivery and the original bytes (insignificant whitespace included) are reproduced
+     * wherever the pipeline is pass-through or validate. The supplied generator must already be wrapped over
+     * its target buffer; reuse a single instance per thread.
      */
     public static JsonSink createSink(
         JsonGeneratorEx generator)
@@ -113,19 +116,16 @@ public final class JsonEx
     }
 
     /**
-     * Variant of {@link #createSink(JsonGeneratorEx)} taking sink config; the {@link JsonSink#DELIVERY}
-     * key selects the {@link JsonSink.Delivery} mode (absent ⇒ {@link JsonSink.Delivery#STRUCTURED}), and the
-     * {@link JsonSink#VERBATIM} key opts into byte-preserving fidelity within structured delivery (absent ⇒
-     * canonical).
+     * Variant of {@link #createSink(JsonGeneratorEx)} taking sink config. The sink prefers bytes by default;
+     * {@link JsonSink.Delivery#STRUCTURED} on the {@link JsonSink#DELIVERY} key is the explicit opt-out that
+     * forces canonical re-rendering of every value.
      */
     public static JsonSink createSink(
         JsonGeneratorEx generator,
         Map<String, ?> config)
     {
-        final Object delivery = config.get(JsonSink.DELIVERY);
-        final boolean verbatim = Boolean.TRUE.equals(config.get(JsonSink.VERBATIM));
-        return new JsonSinkImpl(generator,
-            delivery instanceof JsonSink.Delivery mode ? mode : JsonSink.Delivery.STRUCTURED, verbatim);
+        final boolean canonical = config.get(JsonSink.DELIVERY) == JsonSink.Delivery.STRUCTURED;
+        return new JsonSinkImpl(generator, canonical);
     }
 
     /**

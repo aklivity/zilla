@@ -62,7 +62,7 @@ class JsonPipelineDeferralTest
         JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(new WholeValueTransform())
-            .into(JsonEx.createSink(gen));
+            .into(JsonEx.createSink(gen, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.STRUCTURED)));
         pipeline.reset();
 
         // a bare string split across two windows: open-quote + 20 'a' (no close), then 20 'b' + close-quote
@@ -84,7 +84,7 @@ class JsonPipelineDeferralTest
         // cap the retained value at 16 chars; a decliner that grows the value past it must fail closed
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser(Map.of(JsonParserEx.MAX_VALUE_SIZE, 16)))
             .transform(new WholeValueTransform())
-            .into(JsonEx.createSink(gen));
+            .into(JsonEx.createSink(gen, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.STRUCTURED)));
         pipeline.reset();
 
         // a bare string declined fragment by fragment grows past the 16-char cap on the second window

@@ -42,13 +42,33 @@ delivering typed events; verbatim only adds the ability to reproduce the origina
 | `Delivery.STRUCTURED` + `verbatim` flag | `STRUCTURED` | byte-preserving |
 | `Delivery.SEGMENTABLE` | `SEGMENTED` | opaque runs |
 
-Accordingly `JsonSink.Delivery = {STRUCTURED, SEGMENTABLE}` and verbatim is a separate boolean
-(`JsonSink.VERBATIM`) — *not* a third `Delivery` value. The flag drives the sink to call
-`JsonController.verbatim()`; the per-event signal is `JsonEvent.VERBATIM` (`isVerbatim()`), emitted by a
-mediator (the validator), so the sink renders canonically for normal structured events and copies bytes
-for `VERBATIM` ones. Because verbatim is per-event, a mediator can interleave injected canonical events
-with `VERBATIM` ones (Phase 3). The terminal sink does **not** track completion on the verbatim path — the
-mediator owns structure (and so completion); the sink is only the byte conduit.
+Accordingly `JsonSink.Delivery = {STRUCTURED, SEGMENTABLE}` and verbatim is not a third `Delivery`
+value. The per-event signal is `JsonEvent.VERBATIM` (`isVerbatim()`), emitted by a mediator (the
+validator), so the sink renders canonically for normal structured events and copies bytes for `VERBATIM`
+ones. Because verbatim is per-event, a mediator can interleave injected canonical events with `VERBATIM`
+ones (Phase 3). The terminal sink does **not** track completion on the verbatim path — the mediator owns
+structure (and so completion); the sink is only the byte conduit.
+
+### The terminal sink prefers bytes by default
+
+The terminal generator sink **always opts into both** `segmentable()` and `verbatim()` (unless explicitly
+made canonical via `Delivery.STRUCTURED`). It exists to emit bytes, so byte-preserving is both faster (no
+re-quote/escape) and faithful, and the requests are self-resolving by negotiation:
+
+| pipeline | outcome |
+|---|---|
+| bare `parser → sink` | parser honors `segmentable()` → whole value as one opaque `SEGMENT` → byte passthrough |
+| `parser → validator → sink` | validator declines `segmentable()` (needs structure), absorbs `verbatim()` → emits `VERBATIM` → byte passthrough |
+| `parser → projector/converter → sink` | transform honors neither (it drops/substitutes) → emits structured events → canonical |
+
+So bytes wherever the pipeline is pass-through or validate; canonical only where a transform actually
+changes content. Canonical is the explicit **opt-out** (`Delivery.STRUCTURED`).
+
+Consequence: a **non-mediating** transform that inspects or accumulates *decoded* values (not just
+forwards them) must **decline** `segmentable()` — as the validator does — or it will be handed opaque
+`SEGMENT` runs instead of structured events. Forwarding `segmentable()` blindly downstream opts the whole
+document into segmentation. (Several unit tests that probe/accumulate decoded values pass
+`Delivery.STRUCTURED` for exactly this reason.)
 
 ### Bounded pull vs `consumed()` — the ratio decides
 

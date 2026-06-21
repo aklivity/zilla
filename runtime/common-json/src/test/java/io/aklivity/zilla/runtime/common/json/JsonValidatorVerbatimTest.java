@@ -18,8 +18,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.Map;
-
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
@@ -28,7 +26,6 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
 class JsonValidatorVerbatimTest
 {
-    private static final Map<String, ?> VERBATIM = Map.of(JsonSink.VERBATIM, Boolean.TRUE);
     private static final String SCHEMA = "{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\"}}}";
 
     @Test
@@ -39,7 +36,7 @@ class JsonValidatorVerbatimTest
         gen.wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonSchema.of(SCHEMA).validator())
-            .into(JsonEx.createSink(gen, VERBATIM));
+            .into(JsonEx.createSink(gen));
 
         // the regression: through the validator a structured replay canonicalizes to {"id":"123","status":"OK"}
         byte[] bytes = "{\"id\": \"123\", \"status\": \"OK\"}".getBytes(UTF_8);
@@ -58,7 +55,7 @@ class JsonValidatorVerbatimTest
         gen.wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonSchema.of(SCHEMA).validator())
-            .into(JsonEx.createSink(gen, VERBATIM));
+            .into(JsonEx.createSink(gen));
 
         // the separator consumed during end-of-window lookahead must be drained through the validator's
         // flush before the window is replaced
@@ -81,7 +78,7 @@ class JsonValidatorVerbatimTest
         gen.wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonSchema.of(SCHEMA).validator())
-            .into(JsonEx.createSink(gen, VERBATIM));
+            .into(JsonEx.createSink(gen));
 
         // id must be a string; a number violates the schema
         byte[] bytes = "{\"id\": 123}".getBytes(UTF_8);
@@ -98,7 +95,7 @@ class JsonValidatorVerbatimTest
         MutableDirectBuffer output = new UnsafeBuffer(new byte[256]);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonSchema.of("{\"type\":\"object\"}").validator())
-            .into(JsonEx.createSink(gen, VERBATIM));
+            .into(JsonEx.createSink(gen));
 
         // a validated document whose verbatim form far exceeds the output bound: the run drains in pieces via
         // SUSPENDED/resume through the validator, reassembling byte-identical with whitespace preserved
