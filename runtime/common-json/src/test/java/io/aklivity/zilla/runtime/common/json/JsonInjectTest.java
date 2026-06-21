@@ -238,8 +238,8 @@ class JsonInjectTest
     }
 
     // Supplies an injected key or number value: getStringView() returns the injected text. The injected events
-    // are fed structurally (not verbatim), so the generator tracks state from them directly — getSteps() is never
-    // consulted for an injected source.
+    // are fed structurally (not verbatim), so the generator tracks state from them directly — getVerbatim() is
+    // never consulted for an injected source.
     private static final class InjectSource implements JsonSource
     {
         private final CharSequence text;
@@ -254,12 +254,6 @@ class JsonInjectTest
         public CharSequence getStringView()
         {
             return text;
-        }
-
-        @Override
-        public JsonSteps getSteps()
-        {
-            throw new UnsupportedOperationException();
         }
 
         @Override
@@ -311,7 +305,7 @@ class JsonInjectTest
         }
 
         @Override
-        public DirectBuffer getVerbatim(
+        public JsonVerbatim getVerbatim(
             int limit)
         {
             throw new UnsupportedOperationException();

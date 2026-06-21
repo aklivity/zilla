@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.common.json.internal;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.List;
 import java.util.Map;
 import java.util.function.IntConsumer;
 
@@ -27,10 +28,10 @@ import jakarta.json.JsonValue;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 
-import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx.Completion;
-import io.aklivity.zilla.runtime.common.json.JsonSteps;
+import io.aklivity.zilla.runtime.common.json.JsonStep;
+import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
 
 /**
  * Streaming, compact {@link JsonGeneratorEx} that writes directly into a {@link
@@ -485,44 +486,31 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
 
     @Override
     public JsonGeneratorImpl writeVerbatim(
-        DirectBuffer source,
-        int index,
-        int length,
-        JsonSteps steps)
+        JsonVerbatim verbatim)
     {
-        final int count = steps.count();
-        // synthesize the leading separator only when the run begins a member/element that was first in the
-        // source (its leading step is not separated, so its bytes carry no leading comma) yet the container
-        // already holds a member in the output — an injected value took the first slot, displacing this
-        // former-first member. Only the leading step can need it: interior member-starts of a coalesced run are
-        // contiguous in the source, so they carry their own separators. Source occupancy, not the run bytes.
-        if (count > 0 && needsSeparator(steps.step(0), steps.separated(0)))
+        final List<JsonStep> steps = verbatim.getStructure();
+        final DirectBuffer segment = verbatim.getSegment();
+        final int count = steps.size();
+        // synthesize the leading separator only when the block begins a member/element that was first in the
+        // source (its leading step is a member/element start rather than a SEPARATOR, so its bytes carry no
+        // leading comma) yet the container already holds a member in the output — an injected value took the
+        // first slot, displacing this former-first member. A leading SEPARATOR means the comma is in the bytes;
+        // interior separators of a coalesced block likewise ride in the bytes. Source occupancy, not the bytes.
+        if (count > 0 && needsSeparator(steps.get(0)))
         {
             putByte.accept(',');
         }
-        copy(source, index, length);
+        copy(segment, 0, segment.capacity());
         // apply every step's structural effect (open/close depth, member occupancy) so the generator's state
         // stays coherent for an injected value that follows — state only, the bytes carried the structure
-        for (int index0 = 0; index0 < count; index0++)
+        for (int index = 0; index < count; index++)
         {
-            advance(steps.step(index0));
+            advance(steps.get(index));
         }
         return this;
     }
 
-    @Override
-    public JsonGeneratorImpl writeVerbatim(
-        DirectBuffer source,
-        int index,
-        int length)
-    {
-        // continuation chunk of a block already begun: the step was applied on the first chunk, so this is a
-        // pure byte conduit
-        copy(source, index, length);
-        return this;
-    }
-
-    // Copies the verbatim run 1:1; the caller pre-bounds the pull to remaining(), so the bytes always fit.
+    // Copies the verbatim block 1:1; the caller pre-bounds the pull to remaining(), so the bytes always fit.
     private void copy(
         DirectBuffer source,
         int index,
@@ -536,21 +524,21 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     // Whether the block begins a member (object key) or array element that was first in the source (so carries
     // no leading separator) into a container that already holds a member in the output — so one is synthesized.
     private boolean needsSeparator(
-        JsonEvent step,
-        boolean separated)
+        JsonStep step)
     {
         boolean result = false;
-        if (depth > 0 && hasMembers[depth - 1] && !separated)
+        if (step != JsonStep.SEPARATOR && depth > 0 && hasMembers[depth - 1])
         {
-            result = inArray[depth - 1] ? isValue(step) : step == JsonEvent.KEY_NAME;
+            result = inArray[depth - 1] ? isValueStart(step) : step == JsonStep.KEY_NAME;
         }
         return result;
     }
 
     // Tracks the structural effect of a verbatim block without emitting (the bytes carried the structure): the
-    // state-only analog of preValue()/writeKey()/push()/writeEnd().
+    // state-only analog of preValue()/writeKey()/push()/writeEnd(). A SEPARATOR rides in the bytes and moves no
+    // state.
     private void advance(
-        JsonEvent step)
+        JsonStep step)
     {
         switch (step)
         {
@@ -570,11 +558,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
             hasMembers[depth - 1] = true;
             pending = Pending.AFTER_KEY;
             break;
-        case VALUE_STRING:
-        case VALUE_NUMBER:
-        case VALUE_TRUE:
-        case VALUE_FALSE:
-        case VALUE_NULL:
+        case VALUE:
             markValueStart();
             break;
         default:
@@ -596,12 +580,10 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         }
     }
 
-    private static boolean isValue(
-        JsonEvent step)
+    private static boolean isValueStart(
+        JsonStep step)
     {
-        return step == JsonEvent.START_OBJECT || step == JsonEvent.START_ARRAY ||
-            step == JsonEvent.VALUE_STRING || step == JsonEvent.VALUE_NUMBER ||
-            step == JsonEvent.VALUE_TRUE || step == JsonEvent.VALUE_FALSE || step == JsonEvent.VALUE_NULL;
+        return step == JsonStep.START_OBJECT || step == JsonStep.START_ARRAY || step == JsonStep.VALUE;
     }
 
     @Override

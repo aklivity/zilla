@@ -23,7 +23,7 @@ import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx.Completion;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonSource;
-import io.aklivity.zilla.runtime.common.json.JsonSteps;
+import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
 
 /**
  * Terminal {@link JsonSink} that materializes each fed event into the corresponding {@code writeXxx}
@@ -48,11 +48,6 @@ public final class JsonSinkImpl implements JsonSink
     // whether a VERBATIM event has been copied this document: gates flush() so a segment-mode sink (whose
     // verbatim cursor never advanced) does not re-emit the whole input from cursor zero
     private boolean verbatimSeen;
-    // the structural steps the current verbatim run represents, applied to the generator on the run's first
-    // byte-copying chunk so it tracks open/close depth and member occupancy as the bytes splice through (and
-    // synthesizes a leading separator for a displaced former-first member); null once applied, so a resumed
-    // continuation chunk is a pure byte conduit
-    private JsonSteps verbatimSteps;
 
     public JsonSinkImpl(
         JsonGeneratorEx generator)
@@ -108,7 +103,6 @@ public final class JsonSinkImpl implements JsonSink
             // structural step is applied to the generator as the bytes splice through, so its state stays
             // coherent for any injected value that follows.
             verbatimSeen = true;
-            verbatimSteps = source.getSteps();
             status = writeVerbatim(source);
             break;
         case VALUE_TRUE:
@@ -184,7 +178,6 @@ public final class JsonSinkImpl implements JsonSink
     {
         depth = 0;
         verbatimSeen = false;
-        verbatimSteps = null;
         generator.reset();
     }
 
@@ -311,24 +304,18 @@ public final class JsonSinkImpl implements JsonSink
         JsonSource source)
     {
         final int free = generator.remaining();
-        final DirectBuffer run = source.getVerbatim(free);
-        final int length = run.capacity();
+        final JsonVerbatim verbatim = source.getVerbatim(free);
+        final int length = verbatim.getSegment().capacity();
         if (length > 0)
         {
-            if (verbatimSteps != null)
-            {
-                // first byte-copying chunk of this run: the generator tracks each step's structural effect and
-                // synthesizes a leading separator for a displaced former-first member (source occupancy carried
-                // by the steps, not the run bytes)
-                generator.writeVerbatim(run, 0, length, verbatimSteps);
-                verbatimSteps = null;
-            }
-            else
-            {
-                // a continuation chunk (resume) or end-of-window lookahead drain: pure byte conduit, no step
-                generator.writeVerbatim(run, 0, length);
-            }
+            // splice the block's bytes and apply its structure so the generator tracks open/close depth and
+            // member occupancy, synthesizing a leading separator for a displaced former-first member (source
+            // occupancy carried by the block's leading step, not its bytes)
+            generator.writeVerbatim(verbatim);
         }
+        // a block shorter than the bound reached the parse frontier (run drained, ADVANCED); a full-bound block
+        // means the output capped the run, so suspend and resume against a freshly drained buffer. An empty
+        // block (drained, or no token fit) is shorter than the bound, so it advances.
         return length < free ? Status.ADVANCED : Status.SUSPENDED;
     }
 

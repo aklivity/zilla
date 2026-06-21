@@ -30,7 +30,7 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline;
 import io.aklivity.zilla.runtime.common.json.JsonReporter;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonSource;
-import io.aklivity.zilla.runtime.common.json.JsonSteps;
+import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
 
 /**
  * Backs {@link JsonPipeline}: holds the bound root {@link JsonSink} and the {@link JsonParserEx}
@@ -210,7 +210,7 @@ public final class JsonPipelineImpl implements JsonPipeline
         }
 
         @Override
-        public DirectBuffer getVerbatim(
+        public JsonVerbatim getVerbatim(
             int limit)
         {
             return parser.getVerbatim(limit);
@@ -220,12 +220,6 @@ public final class JsonPipelineImpl implements JsonPipeline
         public void skipValue()
         {
             parser.skipValue();
-        }
-
-        @Override
-        public JsonSteps getSteps()
-        {
-            return parser.getSteps();
         }
 
         @Override

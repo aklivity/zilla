@@ -17,6 +17,8 @@ package io.aklivity.zilla.runtime.common.json;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.util.List;
+
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
@@ -24,7 +26,7 @@ import org.junit.jupiter.api.Test;
 class JsonVerbatimTest
 {
     @Test
-    void shouldPullVerbatimBytesSpanningStructuredEventsPreservingWhitespace()
+    void shouldPullVerbatimBlockSpanningStructuredEventsPreservingWhitespace()
     {
         JsonParserEx parser = JsonEx.createParser();
         byte[] bytes = "{\"id\": \"123\", \"status\": \"OK\"}".getBytes(UTF_8);
@@ -39,13 +41,18 @@ class JsonVerbatimTest
         assertEquals(JsonEvent.VALUE_STRING, parser.nextEvent());
         assertEquals(JsonEvent.END_OBJECT, parser.nextEvent());
 
-        // re-read the inspected run verbatim — byte-identical, insignificant whitespace preserved
-        DirectBuffer verbatim = parser.getVerbatim(bytes.length);
-        assertEquals("{\"id\": \"123\", \"status\": \"OK\"}", asString(verbatim));
+        // re-read the inspected run verbatim — byte-identical, insignificant whitespace preserved — with its
+        // structural transcript; the separated second member is preceded by a SEPARATOR step
+        JsonVerbatim verbatim = parser.getVerbatim(bytes.length);
+        assertEquals("{\"id\": \"123\", \"status\": \"OK\"}", asString(verbatim.getSegment()));
+        assertEquals(
+            List.of(JsonStep.START_OBJECT, JsonStep.KEY_NAME, JsonStep.VALUE,
+                JsonStep.SEPARATOR, JsonStep.KEY_NAME, JsonStep.VALUE, JsonStep.END_OBJECT),
+            List.copyOf(verbatim.getStructure()));
     }
 
     @Test
-    void shouldBoundVerbatimPullByLimitAndAdvanceCursor()
+    void shouldBoundVerbatimBlockToTokenBoundaryWithinLimitAndAdvanceCursor()
     {
         JsonParserEx parser = JsonEx.createParser();
         byte[] bytes = "{\"id\": \"123\"}".getBytes(UTF_8);
@@ -57,10 +64,20 @@ class JsonVerbatimTest
         assertEquals(JsonEvent.VALUE_STRING, parser.nextEvent());
         assertEquals(JsonEvent.END_OBJECT, parser.nextEvent());
 
-        // a bounded pull returns at most `limit` source bytes and advances the cursor by exactly that,
-        // so the next pull continues the run — no overlap, no gap
-        assertEquals("{\"id\"", asString(parser.getVerbatim(5)));
-        assertEquals(": \"123\"}", asString(parser.getVerbatim(bytes.length)));
+        // a bounded pull yields the highest whole-token prefix that fits the limit and advances the cursor by
+        // exactly that, so the next pull continues the run with neither gap nor overlap; structure tracks bytes
+        JsonVerbatim first = parser.getVerbatim(5);
+        assertEquals("{\"id\"", asString(first.getSegment()));
+        assertEquals(List.of(JsonStep.START_OBJECT, JsonStep.KEY_NAME), List.copyOf(first.getStructure()));
+
+        JsonVerbatim rest = parser.getVerbatim(bytes.length);
+        assertEquals(": \"123\"}", asString(rest.getSegment()));
+        assertEquals(List.of(JsonStep.VALUE, JsonStep.END_OBJECT), List.copyOf(rest.getStructure()));
+
+        // the run is fully drained: a further pull yields an empty block (empty structure, zero-length segment)
+        JsonVerbatim drained = parser.getVerbatim(bytes.length);
+        assertEquals(0, drained.getSegment().capacity());
+        assertEquals(0, drained.getStructure().size());
     }
 
     private static String asString(

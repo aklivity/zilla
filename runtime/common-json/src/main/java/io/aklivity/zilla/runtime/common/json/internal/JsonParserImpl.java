@@ -17,8 +17,10 @@ package io.aklivity.zilla.runtime.common.json.internal;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.util.AbstractList;
 import java.util.AbstractMap;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.Spliterator;
 import java.util.Spliterators;
@@ -41,7 +43,8 @@ import io.aklivity.zilla.runtime.common.json.DirectBufferInputStreamEx;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx.Mode;
-import io.aklivity.zilla.runtime.common.json.JsonSteps;
+import io.aklivity.zilla.runtime.common.json.JsonStep;
+import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
 import io.aklivity.zilla.runtime.common.json.internal.json.JsonValues;
 
 public final class JsonParserImpl implements JsonParserEx
@@ -84,13 +87,20 @@ public final class JsonParserImpl implements JsonParserEx
     // the leading separator off the new-first surviving sibling so the survivors stay well-formed
     private boolean trimLeadingSeparator;
     private final StringView stringViewRO = new StringView();
-    // structural step log of the current verbatim run: each delivered body event's kind and source occupancy,
-    // returned by getSteps() and reset lazily on the next appended event after a getSteps() call
-    private JsonEvent[] stepKinds = new JsonEvent[16];
-    private boolean[] stepSeparated = new boolean[16];
+    // structural step log of the current verbatim run: each delivered body event's step kind plus the stream
+    // offset at the end of its token, so getVerbatim() can bound a block on a token boundary. stepHead is the
+    // first step not yet handed out by a block; the log compacts once a prior run has been fully drained
+    private JsonStep[] stepKinds = new JsonStep[16];
+    private long[] stepEnds = new long[16];
     private int stepCount;
-    private boolean stepsConsumed;
-    private final Steps steps = new Steps();
+    private int stepHead;
+    // container nesting of the parsed run, tracked as steps are appended, so a SEPARATOR step is emitted only
+    // before an actual member/element start (an object key, or an array element) — memberSeparated() otherwise
+    // stays set across a whole separated member, including its value and the trailing close
+    private boolean[] frameArray = new boolean[16];
+    private int frameDepth;
+    private final Structure structure = new Structure();
+    private final Block block = new Block();
 
     private enum SegmentState
     {
@@ -194,7 +204,8 @@ public final class JsonParserImpl implements JsonParserEx
         verbatimCursor = 0;
         trimLeadingSeparator = false;
         stepCount = 0;
-        stepsConsumed = false;
+        stepHead = 0;
+        frameDepth = 0;
         lastEvent = null;
         currentEvent = null;
         docState = DocState.NOT_STARTED;
@@ -324,7 +335,7 @@ public final class JsonParserImpl implements JsonParserEx
             currentEvent = toEvent(event);
             if (isBodyEvent(event))
             {
-                // record the run's structural step (kind + source occupancy) for getSteps(); framing and
+                // record the run's structural step for getVerbatim(); framing and
                 // segment events are not verbatim steps, and skipValue()'s internal next() never reaches here
                 appendStep(event);
             }
@@ -616,27 +627,58 @@ public final class JsonParserImpl implements JsonParserEx
     }
 
     @Override
-    public DirectBuffer getVerbatim(
+    public JsonVerbatim getVerbatim(
         int limit)
     {
         // verbatim consumption of a structured run; a segment's bytes are pulled via getSegment() instead
         assert lastEvent != null && !lastEvent.segmented();
+        // drop any steps already behind the cursor — a skipValue() jumps the cursor past the dropped member's
+        // own steps
+        while (stepHead < stepCount && stepEnds[stepHead] <= verbatimCursor)
+        {
+            stepHead++;
+        }
         // a prior skipValue() of a container's first member leaves the new-first survivor with a dangling
-        // leading separator; trim it (and any leading whitespace) off the front of this run before pulling
+        // leading separator; trim it (and any leading whitespace) off the front of this run, and drop the
+        // SEPARATOR step the trimmed comma stood for so the block's structure matches its trimmed bytes
         if (trimLeadingSeparator)
         {
             trimLeadingSeparator();
             trimLeadingSeparator = false;
+            if (stepHead < stepCount && stepKinds[stepHead] == JsonStep.SEPARATOR)
+            {
+                stepHead++;
+            }
         }
-        // the run not yet pulled is [verbatimCursor, parse-frontier) in stream-offset space; hand out at most
-        // `limit` source bytes of it as an on-stack view and advance the cursor by exactly that, so the splice
-        // is 1:1 and the next pull continues with neither gap nor overlap
+        // the run not yet pulled is [verbatimCursor, parse-frontier); when it fits the byte limit drain all of
+        // it — to the frontier, so trailing bytes consumed in end-of-window lookahead (a separator or whitespace
+        // past the last token) are not stranded into a replaced window — otherwise bound to the highest token
+        // boundary at or before the limit, so a partial block's bytes and structure still agree on a token
         final long frontier = tokenizer.streamOffset();
-        final int available = (int) (frontier - verbatimCursor);
-        final int length = Math.min(available, limit);
+        final long budget = verbatimCursor + limit;
+        final int from = stepHead;
+        final long byteEnd;
+        int last;
+        if (frontier <= budget)
+        {
+            byteEnd = frontier;
+            last = stepCount - 1;
+        }
+        else
+        {
+            last = from - 1;
+            for (int index = from; index < stepCount && stepEnds[index] <= budget; index++)
+            {
+                last = index;
+            }
+            byteEnd = last >= from ? stepEnds[last] : verbatimCursor;
+        }
+        final int length = (int) (byteEnd - verbatimCursor);
         verbatimView.wrap(ownedInput.buffer(), bufferOffset(verbatimCursor), length);
-        verbatimCursor += length;
-        return verbatimView;
+        structure.wrap(from, last);
+        verbatimCursor = byteEnd;
+        stepHead = last + 1;
+        return block;
     }
 
     @Override
@@ -695,35 +737,90 @@ public final class JsonParserImpl implements JsonParserEx
         return b == ' ' || b == '\t' || b == '\n' || b == '\r';
     }
 
-    @Override
-    public JsonSteps getSteps()
-    {
-        // verbatim consumption of a structured run; a segment is delivered substitutively, not as steps
-        assert lastEvent != null && !lastEvent.segmented();
-        // the structural steps delivered since the last getSteps() — a sink copying a verbatim run hands these
-        // to the generator to advance its state across the run; the log resets lazily on the next appended event
-        stepsConsumed = true;
-        return steps;
-    }
-
-    // Records a delivered body event (and its source occupancy) as a step of the current verbatim run; the log
-    // resets on the first append after a getSteps() so each run reports only its own steps.
+    // Records a delivered body event as one or more steps of the current verbatim run, each tagged with the
+    // stream offset at the end of its token so getVerbatim() can bound a block on a token boundary. A separated
+    // member/element is preceded by a SEPARATOR step (the comma carried in the source bytes). The log compacts
+    // once a prior run has been fully drained by getVerbatim() (stepHead caught up to stepCount).
     private void appendStep(
         JsonEvent kind)
     {
-        if (stepsConsumed)
+        if (stepHead == stepCount)
         {
             stepCount = 0;
-            stepsConsumed = false;
+            stepHead = 0;
         }
+        final long end = tokenizer.streamOffset();
+        // a comma precedes only a member/element start in the source: an object key, or an array element (a
+        // value whose enclosing container is an array). An object value follows a colon and a close follows a
+        // value, so neither is separated, even though memberSeparated() stays set across the whole member.
+        final boolean memberStart = kind == JsonEvent.KEY_NAME ||
+            isValueEvent(kind) && frameDepth > 0 && frameArray[frameDepth - 1];
+        if (memberStart && tokenizer.memberSeparated())
+        {
+            append(JsonStep.SEPARATOR, end);
+        }
+        append(toStep(kind), end);
+        switch (kind)
+        {
+        case START_OBJECT:
+            pushFrame(false);
+            break;
+        case START_ARRAY:
+            pushFrame(true);
+            break;
+        case END_OBJECT:
+        case END_ARRAY:
+            frameDepth--;
+            break;
+        default:
+            break;
+        }
+    }
+
+    private void append(
+        JsonStep step,
+        long end)
+    {
         if (stepCount == stepKinds.length)
         {
             stepKinds = Arrays.copyOf(stepKinds, stepCount * 2);
-            stepSeparated = Arrays.copyOf(stepSeparated, stepCount * 2);
+            stepEnds = Arrays.copyOf(stepEnds, stepCount * 2);
         }
-        stepKinds[stepCount] = kind;
-        stepSeparated[stepCount] = tokenizer.memberSeparated();
+        stepKinds[stepCount] = step;
+        stepEnds[stepCount] = end;
         stepCount++;
+    }
+
+    private void pushFrame(
+        boolean array)
+    {
+        if (frameDepth == frameArray.length)
+        {
+            frameArray = Arrays.copyOf(frameArray, frameDepth * 2);
+        }
+        frameArray[frameDepth++] = array;
+    }
+
+    private static JsonStep toStep(
+        JsonEvent kind)
+    {
+        return switch (kind)
+        {
+        case START_OBJECT -> JsonStep.START_OBJECT;
+        case END_OBJECT -> JsonStep.END_OBJECT;
+        case START_ARRAY -> JsonStep.START_ARRAY;
+        case END_ARRAY -> JsonStep.END_ARRAY;
+        case KEY_NAME -> JsonStep.KEY_NAME;
+        default -> JsonStep.VALUE;
+        };
+    }
+
+    private static boolean isValueEvent(
+        JsonEvent kind)
+    {
+        return kind == JsonEvent.START_OBJECT || kind == JsonEvent.START_ARRAY ||
+            kind == JsonEvent.VALUE_STRING || kind == JsonEvent.VALUE_NUMBER ||
+            kind == JsonEvent.VALUE_TRUE || kind == JsonEvent.VALUE_FALSE || kind == JsonEvent.VALUE_NULL;
     }
 
     private static boolean isBodyEvent(
@@ -973,28 +1070,49 @@ public final class JsonParserImpl implements JsonParserEx
         }
     }
 
-    // Reused, on-stack JsonSteps view over the parser's step log: the run's structural steps since the last
-    // getSteps(), read by a sink to drive the generator's state across a verbatim run.
-    private final class Steps implements JsonSteps
+    // Reused, on-stack read-only view over the step log for the current block: steps [from, from + count) of
+    // the parser's array. Mutators inherited from AbstractList throw, so a caller cannot corrupt parser state.
+    private final class Structure extends AbstractList<JsonStep>
+    {
+        private int from;
+        private int count;
+
+        private void wrap(
+            int from,
+            int last)
+        {
+            this.from = from;
+            this.count = Math.max(0, last - from + 1);
+        }
+
+        @Override
+        public JsonStep get(
+            int index)
+        {
+            return stepKinds[from + index];
+        }
+
+        @Override
+        public int size()
+        {
+            return count;
+        }
+    }
+
+    // Reused, on-stack JsonVerbatim block: the contiguous run bytes and their structural transcript, both
+    // bounded to the same whole-token prefix by getVerbatim(). Valid on-stack only.
+    private final class Block implements JsonVerbatim
     {
         @Override
-        public int count()
+        public List<JsonStep> getStructure()
         {
-            return stepCount;
+            return structure;
         }
 
         @Override
-        public JsonEvent step(
-            int index)
+        public DirectBuffer getSegment()
         {
-            return stepKinds[index];
-        }
-
-        @Override
-        public boolean separated(
-            int index)
-        {
-            return stepSeparated[index];
+            return verbatimView;
         }
     }
 }

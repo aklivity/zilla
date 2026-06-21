@@ -28,8 +28,8 @@ import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonSource;
-import io.aklivity.zilla.runtime.common.json.JsonSteps;
 import io.aklivity.zilla.runtime.common.json.JsonTransform;
+import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
 
 /**
  * Resumable, event-driven {@link JsonTransform} that projects a document down to a set of retained
@@ -737,7 +737,7 @@ public final class JsonProjectorImpl implements JsonTransform
         }
 
         @Override
-        public DirectBuffer getVerbatim(
+        public JsonVerbatim getVerbatim(
             int limit)
         {
             throw new UnsupportedOperationException();
@@ -745,12 +745,6 @@ public final class JsonProjectorImpl implements JsonTransform
 
         @Override
         public void skipValue()
-        {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public JsonSteps getSteps()
         {
             throw new UnsupportedOperationException();
         }

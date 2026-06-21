@@ -47,8 +47,8 @@ import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonSource;
-import io.aklivity.zilla.runtime.common.json.JsonSteps;
 import io.aklivity.zilla.runtime.common.json.JsonTransform;
+import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
 
 /**
  * Measures the two mutating verbatim transforms — {@code skip} (Phase 2 prune, via
@@ -454,12 +454,6 @@ public class JsonMutateBM
         }
 
         @Override
-        public JsonSteps getSteps()
-        {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
         public boolean deferredBytes()
         {
             return false;
@@ -508,7 +502,7 @@ public class JsonMutateBM
         }
 
         @Override
-        public DirectBuffer getVerbatim(
+        public JsonVerbatim getVerbatim(
             int limit)
         {
             throw new UnsupportedOperationException();

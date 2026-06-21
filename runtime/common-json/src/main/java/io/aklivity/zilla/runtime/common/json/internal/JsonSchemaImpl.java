@@ -60,9 +60,9 @@ import io.aklivity.zilla.runtime.common.json.JsonSchema.Draft;
 import io.aklivity.zilla.runtime.common.json.JsonSchemaDiagnostic;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonSource;
-import io.aklivity.zilla.runtime.common.json.JsonSteps;
 import io.aklivity.zilla.runtime.common.json.JsonTransform;
 import io.aklivity.zilla.runtime.common.json.JsonValidationException;
+import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
 
 /**
  * An immutable, compiled JSON Schema that validates an instance by consuming a streaming
@@ -1197,7 +1197,7 @@ public final class JsonSchemaImpl implements JsonSchema
         }
 
         @Override
-        public DirectBuffer getVerbatim(
+        public JsonVerbatim getVerbatim(
             int limit)
         {
             throw new UnsupportedOperationException();
@@ -1205,12 +1205,6 @@ public final class JsonSchemaImpl implements JsonSchema
 
         @Override
         public void skipValue()
-        {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public JsonSteps getSteps()
         {
             throw new UnsupportedOperationException();
         }
@@ -1994,7 +1988,7 @@ public final class JsonSchemaImpl implements JsonSchema
         }
 
         @Override
-        public DirectBuffer getVerbatim(
+        public JsonVerbatim getVerbatim(
             int limit)
         {
             throw new UnsupportedOperationException();
@@ -2002,12 +1996,6 @@ public final class JsonSchemaImpl implements JsonSchema
 
         @Override
         public void skipValue()
-        {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public JsonSteps getSteps()
         {
             throw new UnsupportedOperationException();
         }
@@ -2257,7 +2245,7 @@ public final class JsonSchemaImpl implements JsonSchema
         }
 
         @Override
-        public DirectBuffer getVerbatim(
+        public JsonVerbatim getVerbatim(
             int limit)
         {
             return delegateEx.getVerbatim(limit);
@@ -2267,12 +2255,6 @@ public final class JsonSchemaImpl implements JsonSchema
         public void skipValue()
         {
             delegateEx.skipValue();
-        }
-
-        @Override
-        public JsonSteps getSteps()
-        {
-            return delegateEx.getSteps();
         }
 
         @Override

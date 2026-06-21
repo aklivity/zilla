@@ -63,16 +63,19 @@ public interface JsonSource
     DirectBuffer getSegment();
 
     /**
-     * Bounded pull of the coalesced <em>verbatim</em> run: the original source bytes parsed since the last
-     * call, at most {@code limit} of them, advancing the verbatim cursor by exactly that. Valid on a
-     * {@link JsonEvent#isVerbatim()} or {@link JsonEvent} {@code STRUCTURED} event when the consumer has opted
-     * in via {@link JsonController#verbatim()}; lets a stage that inspects structure (e.g. a validator)
-     * reproduce the input byte-for-byte without the canonical re-serialization a structured replay imposes.
-     * The splice is 1:1, so the caller pre-sizes {@code limit} to its free output space and the returned
-     * bytes always fit — no {@link JsonController#consumed(int)} report is needed on this path. A source that
-     * does not track verbatim runs rejects this (verbatim is opt-in via {@link JsonController#verbatim()}).
+     * Bounded pull of the coalesced <em>verbatim</em> run as a {@link JsonVerbatim} block: the original source
+     * bytes parsed since the last call, bounded to the whole-token prefix that fits {@code limit}, advancing the
+     * verbatim cursor by exactly that. The returned block's {@link JsonVerbatim#getSegment()} is the contiguous
+     * bytes and {@link JsonVerbatim#getStructure()} their structural transcript, always agreeing on a token
+     * boundary. An empty block (empty structure, zero-length segment) signals the run is fully drained. Valid on
+     * a {@link JsonEvent#isVerbatim()} or {@link JsonEvent} {@code STRUCTURED} event when the consumer has opted
+     * in via {@link JsonController#verbatim()}; lets a stage that inspects structure (e.g. a validator) reproduce
+     * the input byte-for-byte without the canonical re-serialization a structured replay imposes. The splice is
+     * 1:1, so the caller pre-sizes {@code limit} to its free output space and the returned bytes always fit — no
+     * {@link JsonController#consumed(int)} report is needed on this path. The returned instance is non-owning and
+     * reused across calls (valid on-stack only). A source that does not track verbatim runs rejects this.
      */
-    DirectBuffer getVerbatim(
+    JsonVerbatim getVerbatim(
         int limit);
 
     /**
@@ -88,17 +91,6 @@ public interface JsonSource
      * it.
      */
     void skipValue();
-
-    /**
-     * The structural {@link JsonSteps} the current verbatim run represents — the typed events the run's bytes
-     * would have produced structurally, each with its source occupancy — even when the run is forwarded to a
-     * sink relabeled as {@link JsonEvent#VERBATIM}. A terminal sink copying a verbatim run reads this and hands
-     * it to {@link JsonGeneratorEx#writeVerbatim(org.agrona.DirectBuffer, int, int, JsonSteps)} so the generator
-     * advances its structural state across the run and a displaced former-first member gets the correct
-     * separator — without re-inspecting the run bytes. The returned instance is non-owning and reused across
-     * calls (valid on-stack only). A source that does not track structured events rejects this.
-     */
-    JsonSteps getSteps();
 
     /**
      * Whether the current value has bytes still deferred to later events — {@code true} while more of
