@@ -40,6 +40,8 @@ import io.aklivity.zilla.runtime.common.json.DirectBufferInputStreamEx;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx.Mode;
+import io.aklivity.zilla.runtime.common.json.JsonPosition;
+import io.aklivity.zilla.runtime.common.json.JsonStep;
 import io.aklivity.zilla.runtime.common.json.internal.json.JsonValues;
 
 public final class JsonParserImpl implements JsonParserEx
@@ -58,6 +60,7 @@ public final class JsonParserImpl implements JsonParserEx
     private final JsonLocationImpl location;
     private final UnsafeBuffer segmentView = new UnsafeBuffer(0, 0);
     private final UnsafeBuffer verbatimView = new UnsafeBuffer(0, 0);
+    private final Position position = new Position();
 
     private Event currentEvent;
     private JsonEvent lastEvent;
@@ -677,6 +680,26 @@ public final class JsonParserImpl implements JsonParserEx
     }
 
     @Override
+    public JsonPosition getPosition()
+    {
+        // container-anchored: one step per open level, root to insertion point, each carrying its kind and
+        // occupancy so a generator seeds CONTINUE_* (already has a child → next member needs a separator) or
+        // START_* (entered, empty)
+        final int levels = tokenizer.pathDepth();
+        position.reset(levels);
+        for (int level = 0; level < levels; level++)
+        {
+            final boolean array = tokenizer.pathInArray(level);
+            final boolean occupied = tokenizer.pathOccupied(level);
+            final JsonStep step = array
+                ? occupied ? JsonStep.CONTINUE_ARRAY : JsonStep.START_ARRAY
+                : occupied ? JsonStep.CONTINUE_OBJECT : JsonStep.START_OBJECT;
+            position.set(level, step);
+        }
+        return position;
+    }
+
+    @Override
     public void close()
     {
     }
@@ -911,6 +934,43 @@ public final class JsonParserImpl implements JsonParserEx
         public String toString()
         {
             return base.subSequence(offset, base.length()).toString();
+        }
+    }
+
+    // Reused, on-stack JsonPosition: the parser refills its steps per getPosition() call rather than allocating.
+    private static final class Position implements JsonPosition
+    {
+        private JsonStep[] steps = new JsonStep[16];
+        private int depth;
+
+        private void reset(
+            int depth)
+        {
+            if (depth > steps.length)
+            {
+                steps = new JsonStep[depth];
+            }
+            this.depth = depth;
+        }
+
+        private void set(
+            int index,
+            JsonStep step)
+        {
+            steps[index] = step;
+        }
+
+        @Override
+        public int depth()
+        {
+            return depth;
+        }
+
+        @Override
+        public JsonStep step(
+            int index)
+        {
+            return steps[index];
         }
     }
 }

@@ -29,6 +29,8 @@ import org.agrona.MutableDirectBuffer;
 
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx.Completion;
+import io.aklivity.zilla.runtime.common.json.JsonPosition;
+import io.aklivity.zilla.runtime.common.json.JsonStep;
 
 /**
  * Streaming, compact {@link JsonGeneratorEx} that writes directly into a {@link
@@ -56,6 +58,9 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     private int limit;
     private int depth;
     private int consumed;
+    // depth the generator was seeded to on a verbatim->inject transition: an injected run must not close below
+    // it (A5 balance — that container's close is verbatim's job), asserted on writeEnd
+    private int seedBaseline;
     // at most one of these positions holds at a time: a value is expected after a key, or an
     // incomplete string/number fragment is open awaiting its remaining fragments
     private Pending pending = Pending.NONE;
@@ -104,7 +109,49 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     public void reset()
     {
         this.depth = 0;
+        this.seedBaseline = 0;
         this.pending = Pending.NONE;
+    }
+
+    @Override
+    public JsonGeneratorImpl seed(
+        JsonPosition position)
+    {
+        // adopt the structural context the verbatim copy already wrote — one open frame per descended level,
+        // occupancy from the step kind — without emitting any bytes, so an injected value gets the right leading
+        // separator (a CONTINUE_* frame already has a child, so the next member needs a comma)
+        reset();
+        final int levels = position.depth();
+        for (int level = 0; level < levels; level++)
+        {
+            final JsonStep step = position.step(level);
+            switch (step)
+            {
+            case START_OBJECT:
+                push(false);
+                break;
+            case CONTINUE_OBJECT:
+                push(false);
+                hasMembers[depth - 1] = true;
+                break;
+            case START_ARRAY:
+                push(true);
+                break;
+            case CONTINUE_ARRAY:
+                push(true);
+                hasMembers[depth - 1] = true;
+                break;
+            case KEY_NAME:
+                // terminal after-key cut: the innermost open object has a pending key whose value is expected,
+                // so the next value write emits neither comma nor key
+                pending = Pending.AFTER_KEY;
+                break;
+            default:
+                break;
+            }
+        }
+        seedBaseline = depth;
+        return this;
     }
 
     @Override

@@ -170,6 +170,18 @@ public interface JsonGeneratorEx extends JsonGenerator
         int index,
         int length);
 
+    /**
+     * Seeds the generator's structural context from {@code position} without emitting any bytes — pushing one
+     * open object/array frame per {@link JsonStep}, each frame's occupancy taken from the step kind — so that an
+     * injected value written after a verbatim copy gets the correct leading separator (a {@code CONTINUE_*}
+     * frame already has a child, so the next member needs a comma; a {@code START_*} frame is empty) without
+     * re-emitting the brackets the verbatim copy already wrote. Used on a verbatim&rarr;inject transition; the
+     * baseline it establishes is also where structural balance is checked, so an injected run cannot close a
+     * container it was seeded into.
+     */
+    JsonGeneratorEx seed(
+        JsonPosition position);
+
     @Override
     JsonGeneratorEx writeStartObject();
 

@@ -165,6 +165,13 @@ public interface JsonParserEx extends JsonParser
     void skipValue();
 
     /**
+     * The container-anchored insertion point at the current event, read on a verbatim&rarr;inject transition so
+     * a generator seeds its structural state before emitting an injected value. The {@link JsonSource#getPosition()}
+     * accessor promoted onto the parser surface.
+     */
+    JsonPosition getPosition();
+
+    /**
      * Whether the current value has bytes still deferred to later events — {@code true} while more of this same
      * value follows (the value is being streamed across input frames because it exceeds the input window),
      * {@code false} when this event completes it. The {@link JsonSource#deferredBytes()} accessor promoted onto

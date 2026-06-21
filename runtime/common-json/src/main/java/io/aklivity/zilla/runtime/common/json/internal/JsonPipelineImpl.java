@@ -27,6 +27,7 @@ import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx.Mode;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
+import io.aklivity.zilla.runtime.common.json.JsonPosition;
 import io.aklivity.zilla.runtime.common.json.JsonReporter;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonSource;
@@ -219,6 +220,12 @@ public final class JsonPipelineImpl implements JsonPipeline
         public void skipValue()
         {
             parser.skipValue();
+        }
+
+        @Override
+        public JsonPosition getPosition()
+        {
+            return parser.getPosition();
         }
 
         @Override

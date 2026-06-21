@@ -24,6 +24,7 @@ import org.agrona.DirectBuffer;
 import io.aklivity.zilla.runtime.common.json.JsonController;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
+import io.aklivity.zilla.runtime.common.json.JsonPosition;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonSource;
 import io.aklivity.zilla.runtime.common.json.JsonTransform;
@@ -153,6 +154,12 @@ public final class McpHttpRename implements JsonTransform
 
         @Override
         public void skipValue()
+        {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public JsonPosition getPosition()
         {
             throw new UnsupportedOperationException();
         }

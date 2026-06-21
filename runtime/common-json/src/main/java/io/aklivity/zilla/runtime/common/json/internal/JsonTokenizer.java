@@ -86,6 +86,9 @@ public final class JsonTokenizer
     private final StringBuilder[] pathKeyChars = new StringBuilder[MAX_DEPTH];
     private final boolean[] pathKeySet = new boolean[MAX_DEPTH];
     private final int[] pathIndex = new int[MAX_DEPTH];
+    // per-level occupancy: true once a member value has been consumed in the container at this depth, so the
+    // next member needs a leading separator. Read by getPosition() to mark a seeded frame CONTINUE_* vs START_*.
+    private final boolean[] pathOccupied = new boolean[MAX_DEPTH];
     private int pathDepth;
 
     private ParseState state = ParseState.DOC_START;
@@ -437,6 +440,28 @@ public final class JsonTokenizer
         return memberSeparated;
     }
 
+    // The number of open container levels at the current boundary; getPosition() seeds one generator frame per
+    // level.
+    public int pathDepth()
+    {
+        return pathDepth;
+    }
+
+    // Whether the open container at level {@code index} is an array (else an object).
+    public boolean pathInArray(
+        int index)
+    {
+        return pathInArray[index];
+    }
+
+    // Whether the open container at level {@code index} already has a member, so the next sibling needs a
+    // leading separator (a seeded CONTINUE_* frame); false for an entered-but-empty container (START_*).
+    public boolean pathOccupied(
+        int index)
+    {
+        return pathOccupied[index];
+    }
+
     // True while a value-string is being delivered in fragments and more fragments follow the current
     // event; drives the parser's deferredBytes() for over-slot scalars.
     public boolean fragmenting()
@@ -483,6 +508,7 @@ public final class JsonTokenizer
         pathInArray[pathDepth] = inArray;
         pathKeySet[pathDepth] = false;
         pathIndex[pathDepth] = 0;
+        pathOccupied[pathDepth] = false;
         pathDepth++;
     }
 
@@ -494,9 +520,13 @@ public final class JsonTokenizer
 
     private void markValueConsumed()
     {
-        if (pathDepth > 0 && pathInArray[pathDepth - 1])
+        if (pathDepth > 0)
         {
-            pathIndex[pathDepth - 1]++;
+            pathOccupied[pathDepth - 1] = true;
+            if (pathInArray[pathDepth - 1])
+            {
+                pathIndex[pathDepth - 1]++;
+            }
         }
     }
 

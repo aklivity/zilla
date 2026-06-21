@@ -90,6 +90,16 @@ public interface JsonSource
     void skipValue();
 
     /**
+     * The container-anchored insertion point at the current event — valid on a {@code STRUCTURED} or
+     * {@link JsonEvent#isVerbatim()} event — read on a verbatim&rarr;inject transition so a generator can seed
+     * its structural state (open object/array depth and pending separators) before emitting an injected value,
+     * without re-emitting the brackets the verbatim copy already wrote. The returned {@link JsonPosition} is
+     * non-owning and reused across calls (valid on-stack only). A source that does not track verbatim runs
+     * rejects this.
+     */
+    JsonPosition getPosition();
+
+    /**
      * Whether the current value has bytes still deferred to later events — {@code true} while more of
      * this same value follows (the value is being streamed across input frames because it exceeds the
      * input window), {@code false} when this event completes it. A JSON string is quote-delimited, so

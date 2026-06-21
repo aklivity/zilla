@@ -47,6 +47,10 @@ public final class JsonSinkImpl implements JsonSink
     // whether a VERBATIM event has been copied this document: gates flush() so a segment-mode sink (whose
     // verbatim cursor never advanced) does not re-emit the whole input from cursor zero
     private boolean verbatimSeen;
+    // set after a verbatim copy and cleared once the generator has been re-seeded: marks the generator's
+    // structural state stale (the verbatim bytes bypassed its state machine), so the next injected structured
+    // value seeds from getPosition() before emitting — the verbatim->inject transition (Q2/A2)
+    private boolean seedPending;
 
     public JsonSinkImpl(
         JsonGeneratorEx generator)
@@ -72,13 +76,16 @@ public final class JsonSinkImpl implements JsonSink
         switch (event)
         {
         case KEY_NAME:
+            seed(source);
             generator.writeKey(source.getStringView());
             break;
         case START_OBJECT:
+            seed(source);
             generator.writeStartObject();
             depth++;
             break;
         case START_ARRAY:
+            seed(source);
             generator.writeStartArray();
             depth++;
             break;
@@ -94,23 +101,29 @@ public final class JsonSinkImpl implements JsonSink
         case VALUE_STRING:
         case VALUE_NUMBER:
         case SEGMENT:
+            seed(source);
             status = writeValue(control, source, event);
             break;
         case VERBATIM:
             // a byte-preserving event from an upstream mediator: copy the original source bytes; the mediator
-            // owns structure (and so document completion), the sink is only the byte conduit here
+            // owns structure (and so document completion), the sink is only the byte conduit here. The copy
+            // bypasses the generator state machine, so mark it stale for a following injected value to re-seed.
             verbatimSeen = true;
+            seedPending = true;
             status = writeVerbatim(source);
             break;
         case VALUE_TRUE:
+            seed(source);
             generator.write(true);
             status = scalarStatus();
             break;
         case VALUE_FALSE:
+            seed(source);
             generator.write(false);
             status = scalarStatus();
             break;
         case VALUE_NULL:
+            seed(source);
             generator.writeNull();
             status = scalarStatus();
             break;
@@ -175,7 +188,21 @@ public final class JsonSinkImpl implements JsonSink
     {
         depth = 0;
         verbatimSeen = false;
+        seedPending = false;
         generator.reset();
+    }
+
+    // On the first generated value after a verbatim copy, seed the generator's structural state from the live
+    // position so the injected value gets the correct leading separator without re-emitting the brackets the
+    // verbatim copy already wrote; a no-op when no verbatim run precedes (canonical generation).
+    private void seed(
+        JsonSource source)
+    {
+        if (seedPending)
+        {
+            generator.seed(source.getPosition());
+            seedPending = false;
+        }
     }
 
     // Whether the suspended event still has value bytes/chars left to write, read from the source cursor —
