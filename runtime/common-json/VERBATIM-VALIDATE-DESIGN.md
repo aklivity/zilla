@@ -74,6 +74,35 @@ re-quote/escape) and faithful, and the requests are self-resolving by negotiatio
 So bytes wherever the pipeline is pass-through or validate; canonical only where a transform actually
 changes content. Canonical is the explicit **opt-out** (`Delivery.STRUCTURED`).
 
+### The mediating-transform rule (generalized)
+
+A structure-inspecting transform behind a byte-preferring sink must **intercept** the downstream's
+byte-delivery opt-ins (`segmentable()` *and* `verbatim()`) — supplying its own controller rather than
+passing the downstream's through — so its own upstream keeps delivering structured events for it to
+inspect, and then **re-assert** verbatim toward its downstream so the terminal sink still reproduces the
+original bytes. This is the same pattern in the validator (`JsonSchemaImpl.Validator`) and the model-json
+`JsonExtractor`. A transform that *restructures* (e.g. the projector) absorbs the opt-ins but does **not**
+re-assert — it emits structured events and the sink renders them canonically, which is correct because its
+output is not the original bytes. (In the unified `ModelHandler`, this mediation belongs in shared
+infrastructure rather than re-implemented per transform.)
+
+### Cross-window value fragmentation
+
+A value spanning input windows can't be held until validated *and* pulled verbatim before its window is
+replaced. The resolution: the validator keeps **declining** fragments (`consumed(0)`, accumulating the
+decoded value for `eval`), while the pump **always drains the sink via `flush()` when the loop exits
+because the window was consumed** — so the verbatim run pulls the bytes consumed so far and its cursor
+tracks the parse frontier across windows. Validation still happens on the whole value at completion; output
+is byte-copied with no re-render (emit-then-reject for the fragmented case, as with structural events).
+
+### Verification
+
+Built and tested locally end-to-end: `common-json` (4811), `model-json` (25 — validator forwards verbatim,
+converters forward verbatim, extractor mediates), `binding-mcp-http` (11 unit + 28 k3po IT). `model-avro`/
+`model-protobuf` use `createGenerator()` directly (not the verbatim sink) and are unaffected;
+`binding-asyncapi`/`binding-openapi` parse schemas via `common-json` but don't use `createSink`, and their
+example regressions are fixed through the model-json validator.
+
 Consequence: a **non-mediating** transform that inspects or accumulates *decoded* values (not just
 forwards them) must **decline** `segmentable()` — as the validator does — or it will be handed opaque
 `SEGMENT` runs instead of structured events. Forwarding `segmentable()` blindly downstream opts the whole
