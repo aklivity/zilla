@@ -26,8 +26,18 @@ which suppresses the structured events the validator needs.
 | relation to structure | substitutive (replaces inner events) | additive (rides alongside events) |
 | consumer sees | structure **or** bytes | structure **and** bytes |
 | purpose | skip tokenizing (nobody inspects) | preserve bytes while inspecting (validate) |
-| accessor | `getSegment(limit)`, valid on `segmented()` | `getVerbatim(limit)`, valid on `VERBATIM`/`STRUCTURED` |
+| accessor | `getSegment()` + `consumed()` | `getVerbatim(limit)`, valid on `VERBATIM`/`STRUCTURED` |
 | opt-in | `JsonController.segmentable()` | `JsonController.verbatim()` |
+
+> **Correction (implementation finding).** An earlier draft proposed `getSegment(int limit)` as a
+> consumed-free bounded pull symmetric with `getVerbatim`. That does **not** hold: the segment accessor
+> serves a generator-owned leading separator on nested values (output ≠ source on the first fragment) and,
+> more decisively, the **escaped** generator (`GENERATE_ESCAPED`, used by `binding-mcp-http` and projector
+> segment tests) is genuinely 1:N — one source byte expands to up to six output bytes. An auto-advancing
+> bounded pull would drop un-emitted source bytes there. So `consumed()` correctly **stays** on the segment
+> path (it advances the cursor by what the generator actually emitted); only the **verbatim** path is a pure
+> 1:1 bounded pull. `consumed()` is therefore scoped to "paths where output width ≠ source width" — escaped
+> output, number lexemes, and the nested-segment separator — not removed from segments.
 
 ### Delivery axis vs verbatim fidelity (not a third delivery mode)
 
@@ -72,21 +82,23 @@ document into segmentation. (Several unit tests that probe/accumulate decoded va
 
 ### Bounded pull vs `consumed()` — the ratio decides
 
-Both raw byte primitives become **bounded pulls** denominated in source bytes; only the
-output-expanding path keeps a post-hoc `consumed()` report.
+Only the pure 1:1 path is a consumed-free bounded pull; every path where output width can differ from
+source width keeps a post-hoc `consumed()` report.
 
 | path | source→output | accessor | flow control |
 |---|---|---|---|
-| `SEGMENT` (raw subtree bytes) | 1:1 | `getSegment(int limit)` | bounded pull; **no `consumed()`** |
-| `VERBATIM` (raw run bytes) | 1:1 | `getVerbatim(int limit)` | bounded pull; **no `consumed()`** |
-| structured scalar generate/escape | 1:N (quote, escape, lexeme) | char view + `writeScalar` | **`consumed(N)`** kept — one source unit may expand to several output bytes, so the bound is hit mid-value and the consumed source-unit count must be reported back |
+| `VERBATIM` (raw run bytes) | 1:1 always | `getVerbatim(int limit)` | bounded pull; **no `consumed()`** |
+| `SEGMENT` (raw subtree bytes) | 1:1 at top level, but 1:(N) once a generator-owned separator or an escaped generator is involved | `getSegment()` | **`consumed()`** kept |
+| structured scalar generate/escape | 1:N (quote, escape, lexeme) | char view + `writeScalar` | **`consumed(N)`** kept |
 
-The pull is pre-bounded to the generator's free output space, so a 1:1 copy always fits whole
-and the source advances its cursor by exactly what it returned — no output→input translation, no
-`consumed()`. `consumed()` survives **only** where output width ≠ source width (escaping a string,
-emitting a number lexeme), the one place the generator cannot pre-size the pull. This is the
-symmetry the user asked for: `getSegment`/`getVerbatim` are pull-bounded and `consumed`-free;
-`consumed()` is now *exclusively* the partial-value (generate/escape) signal.
+A `VERBATIM` run is pure source bytes spliced raw with no generator-owned separator (the run carries its
+own `{ , : }`), so the pull is pre-bounded to the generator's free output space, the copy always fits whole,
+and the source advances its cursor by exactly what it returned — no `consumed()`. The `SEGMENT` path cannot
+join it: a nested kept value carries a generator-emitted leading separator, and the escaped generator
+(`GENERATE_ESCAPED`) expands one source byte to several output bytes, so the cursor must advance by what the
+generator *emitted*, which only `consumed()` knows. So `consumed()` is scoped to "output width ≠ source
+width" — escaped output, number/string generation, and the nested-segment separator — and the verbatim path
+is the one place it is not needed.
 
 `VERBATIM` events are **not** `segmented()`. A `VERBATIM` event is best understood as a
 **`STRUCTURED` event that also carries a coalesced byte run** — the two are one integrated
@@ -101,12 +113,11 @@ The generator's only branch is "do I have verbatim bytes to copy here, or do I g
   the run (the generator passes its free output space, so it never over-pulls); valid on a
   `STRUCTURED` **or** `VERBATIM` event. The return amount is the source-consumption signal, so
   `controller.consumed()` is **not** invoked on this path.
-- `JsonSource.getSegment(int limit)` — the existing `SEGMENT` accessor, narrowed to the **same
-  bounded-pull shape** for symmetry: returns at most `limit` source bytes of the segment slice and
-  advances the segment cursor by exactly that. A `SEGMENT` is a 1:1 raw splice, so the generator
-  passes its free space and copies the whole returned slice — `controller.consumed()` is **no
-  longer called on the segment path** (it was the only caller for raw copies). `consumed()` now
-  serves *only* the structured generate/escape path (1:N), where output width ≠ source width.
+- `JsonSource.getSegment()` — the existing `SEGMENT` accessor, **unchanged**: it re-exposes the
+  unconsumed remainder of the segment slice and `controller.consumed()` advances the cursor by what the
+  generator emitted. This stays consumed-based by necessity — a nested segment carries a generator-owned
+  leading separator and the escaped generator expands bytes 1:N, so the cursor cannot be pre-advanced by a
+  source-byte pull. (An earlier `getSegment(int limit)` symmetry proposal was abandoned for this reason.)
 - `JsonSource.getPosition()` — lazy `JsonPosition` (container-anchored; see section below); valid
   on `STRUCTURED` or `VERBATIM` events; only consumed to seed the generator on a verbatim→inject
   transition (Phase 3).
