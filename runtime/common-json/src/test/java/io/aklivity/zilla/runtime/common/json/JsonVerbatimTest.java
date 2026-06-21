@@ -17,6 +17,8 @@ package io.aklivity.zilla.runtime.common.json;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import org.agrona.DirectBuffer;
@@ -48,7 +50,7 @@ class JsonVerbatimTest
         assertEquals(
             List.of(JsonStep.START_OBJECT, JsonStep.KEY_NAME, JsonStep.VALUE,
                 JsonStep.SEPARATOR, JsonStep.KEY_NAME, JsonStep.VALUE, JsonStep.END_OBJECT),
-            List.copyOf(verbatim.getStructure()));
+            steps(verbatim));
     }
 
     @Test
@@ -76,7 +78,7 @@ class JsonVerbatimTest
             List.of(JsonStep.START_ARRAY, JsonStep.VALUE, JsonStep.SEPARATOR, JsonStep.START_OBJECT,
                 JsonStep.KEY_NAME, JsonStep.VALUE, JsonStep.END_OBJECT, JsonStep.SEPARATOR, JsonStep.VALUE,
                 JsonStep.END_ARRAY),
-            List.copyOf(verbatim.getStructure()));
+            steps(verbatim));
     }
 
     @Test
@@ -96,16 +98,28 @@ class JsonVerbatimTest
         // exactly that, so the next pull continues the run with neither gap nor overlap; structure tracks bytes
         JsonVerbatim first = parser.getVerbatim(5);
         assertEquals("{\"id\"", asString(first.getSegment()));
-        assertEquals(List.of(JsonStep.START_OBJECT, JsonStep.KEY_NAME), List.copyOf(first.getStructure()));
+        assertEquals(List.of(JsonStep.START_OBJECT, JsonStep.KEY_NAME), steps(first));
 
         JsonVerbatim rest = parser.getVerbatim(bytes.length);
         assertEquals(": \"123\"}", asString(rest.getSegment()));
-        assertEquals(List.of(JsonStep.VALUE, JsonStep.END_OBJECT), List.copyOf(rest.getStructure()));
+        assertEquals(List.of(JsonStep.VALUE, JsonStep.END_OBJECT), steps(rest));
 
-        // the run is fully drained: a further pull yields an empty block (empty structure, zero-length segment)
+        // the run is fully drained: a further pull yields an empty block (no steps, zero-length segment)
         JsonVerbatim drained = parser.getVerbatim(bytes.length);
         assertEquals(0, drained.getSegment().capacity());
-        assertEquals(0, drained.getStructure().size());
+        assertEquals(List.of(), steps(drained));
+    }
+
+    private static List<JsonStep> steps(
+        JsonVerbatim verbatim)
+    {
+        List<JsonStep> steps = new ArrayList<>();
+        Iterator<JsonStep> iterator = verbatim.getSteps();
+        while (iterator.hasNext())
+        {
+            steps.add(iterator.next());
+        }
+        return steps;
     }
 
     private static String asString(

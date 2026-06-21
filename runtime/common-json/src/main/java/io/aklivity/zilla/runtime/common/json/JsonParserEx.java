@@ -145,7 +145,7 @@ public interface JsonParserEx extends JsonParser
      * Bounded pull of the coalesced <em>verbatim</em> run as a {@link JsonVerbatim} block — the original source
      * bytes parsed since the last {@code getVerbatim} call, bounded to the whole-token prefix that fits
      * {@code limit} and advancing the verbatim cursor by exactly that, so the next call continues the run with no
-     * gap or overlap. The block's {@link JsonVerbatim#getSegment()} and {@link JsonVerbatim#getStructure()} agree
+     * gap or overlap. The block's {@link JsonVerbatim#getSegment()} and {@link JsonVerbatim#getSteps()} agree
      * on a token boundary; an empty block signals the run is drained. Unlike {@link #getSegment()} this is valid
      * alongside the structured event stream (the parser keeps delivering typed events; this reads their underlying
      * bytes), letting a stage inspect structure yet reproduce the input byte-for-byte. The pull is denominated in

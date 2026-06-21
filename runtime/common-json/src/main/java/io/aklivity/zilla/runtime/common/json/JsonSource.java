@@ -66,8 +66,8 @@ public interface JsonSource
      * Bounded pull of the coalesced <em>verbatim</em> run as a {@link JsonVerbatim} block: the original source
      * bytes parsed since the last call, bounded to the whole-token prefix that fits {@code limit}, advancing the
      * verbatim cursor by exactly that. The returned block's {@link JsonVerbatim#getSegment()} is the contiguous
-     * bytes and {@link JsonVerbatim#getStructure()} their structural transcript, always agreeing on a token
-     * boundary. An empty block (empty structure, zero-length segment) signals the run is fully drained. Valid on
+     * bytes and {@link JsonVerbatim#getSteps()} their structural transcript, always agreeing on a token
+     * boundary. An empty block (no steps, zero-length segment) signals the run is fully drained. Valid on
      * a {@link JsonEvent#isVerbatim()} or {@link JsonEvent} {@code STRUCTURED} event when the consumer has opted
      * in via {@link JsonController#verbatim()}; lets a stage that inspects structure (e.g. a validator) reproduce
      * the input byte-for-byte without the canonical re-serialization a structured replay imposes. The splice is

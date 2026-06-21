@@ -17,10 +17,9 @@ package io.aklivity.zilla.runtime.common.json.internal;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
-import java.util.AbstractList;
 import java.util.AbstractMap;
 import java.util.Arrays;
-import java.util.List;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Spliterator;
 import java.util.Spliterators;
@@ -94,7 +93,7 @@ public final class JsonParserImpl implements JsonParserEx
     private long[] stepEnds = new long[16];
     private int stepCount;
     private int stepHead;
-    private final Structure structure = new Structure();
+    private final StepCursor cursor = new StepCursor();
     private final Block block = new Block();
 
     private enum SegmentState
@@ -669,7 +668,7 @@ public final class JsonParserImpl implements JsonParserEx
         }
         final int length = (int) (byteEnd - verbatimCursor);
         verbatimView.wrap(ownedInput.buffer(), bufferOffset(verbatimCursor), length);
-        structure.wrap(from, last);
+        block.wrap(from, last);
         verbatimCursor = byteEnd;
         stepHead = last + 1;
         return block;
@@ -1028,43 +1027,55 @@ public final class JsonParserImpl implements JsonParserEx
         }
     }
 
-    // Reused, on-stack read-only view over the step log for the current block: steps [from, from + count) of
-    // the parser's array. Mutators inherited from AbstractList throw, so a caller cannot corrupt parser state.
-    private final class Structure extends AbstractList<JsonStep>
+    // Reused, on-stack single-pass cursor over the step log for the current block: steps [from, from + count)
+    // of the parser's array. remove() inherited from Iterator throws, so a caller cannot corrupt parser state.
+    private final class StepCursor implements Iterator<JsonStep>
+    {
+        private int index;
+        private int end;
+
+        private StepCursor reset(
+            int from,
+            int last)
+        {
+            this.index = from;
+            this.end = Math.max(from, last + 1);
+            return this;
+        }
+
+        @Override
+        public boolean hasNext()
+        {
+            return index < end;
+        }
+
+        @Override
+        public JsonStep next()
+        {
+            return stepKinds[index++];
+        }
+    }
+
+    // Reused, on-stack JsonVerbatim block: the contiguous run bytes and their structural transcript, both
+    // bounded to the same whole-token prefix by getVerbatim(). getSteps() hands back the shared cursor reset to
+    // this block's step range, so a fresh forward pass each call with no allocation. Valid on-stack only.
+    private final class Block implements JsonVerbatim
     {
         private int from;
-        private int count;
+        private int last;
 
         private void wrap(
             int from,
             int last)
         {
             this.from = from;
-            this.count = Math.max(0, last - from + 1);
+            this.last = last;
         }
 
         @Override
-        public JsonStep get(
-            int index)
+        public Iterator<JsonStep> getSteps()
         {
-            return stepKinds[from + index];
-        }
-
-        @Override
-        public int size()
-        {
-            return count;
-        }
-    }
-
-    // Reused, on-stack JsonVerbatim block: the contiguous run bytes and their structural transcript, both
-    // bounded to the same whole-token prefix by getVerbatim(). Valid on-stack only.
-    private final class Block implements JsonVerbatim
-    {
-        @Override
-        public List<JsonStep> getStructure()
-        {
-            return structure;
+            return cursor.reset(from, last);
         }
 
         @Override

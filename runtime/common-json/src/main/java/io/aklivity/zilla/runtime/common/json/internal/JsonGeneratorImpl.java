@@ -16,7 +16,7 @@ package io.aklivity.zilla.runtime.common.json.internal;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.List;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.function.IntConsumer;
 
@@ -488,24 +488,28 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     public JsonGeneratorImpl writeVerbatim(
         JsonVerbatim verbatim)
     {
-        final List<JsonStep> steps = verbatim.getStructure();
+        final Iterator<JsonStep> steps = verbatim.getSteps();
         final DirectBuffer segment = verbatim.getSegment();
-        final int count = steps.size();
         // synthesize the leading separator only when the block begins a member/element that was first in the
         // source (its leading step is a member/element start rather than a SEPARATOR, so its bytes carry no
         // leading comma) yet the container already holds a member in the output — an injected value took the
         // first slot, displacing this former-first member. A leading SEPARATOR means the comma is in the bytes;
         // interior separators of a coalesced block likewise ride in the bytes. Source occupancy, not the bytes.
-        if (count > 0 && needsSeparator(steps.get(0)))
+        final JsonStep first = steps.hasNext() ? steps.next() : null;
+        if (first != null && needsSeparator(first))
         {
             putByte.accept(',');
         }
         copy(segment, 0, segment.capacity());
         // apply every step's structural effect (open/close depth, member occupancy) so the generator's state
         // stays coherent for an injected value that follows — state only, the bytes carried the structure
-        for (int index = 0; index < count; index++)
+        if (first != null)
         {
-            advance(steps.get(index));
+            advance(first);
+            while (steps.hasNext())
+            {
+                advance(steps.next());
+            }
         }
         return this;
     }

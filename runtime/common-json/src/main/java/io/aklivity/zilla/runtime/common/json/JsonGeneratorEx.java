@@ -159,7 +159,7 @@ public interface JsonGeneratorEx extends JsonGenerator
     /**
      * Splices a {@link JsonVerbatim} block straight to the output: its {@link JsonVerbatim#getSegment()} bytes are
      * copied 1:1 (they already carry their own braces, commas, colons, and whitespace) while the generator
-     * <em>applies</em> every step of {@link JsonVerbatim#getStructure()} (open/close depth, member occupancy) so
+     * <em>applies</em> every step of {@link JsonVerbatim#getSteps()} (open/close depth, member occupancy) so
      * its state stays coherent for any injected value that follows. It synthesizes a single leading separator when
      * the block begins a member/element that was first in the source — its leading step is a member/element start
      * rather than a {@link JsonStep#SEPARATOR}, so the bytes carry no leading comma — yet the container already
