@@ -128,6 +128,12 @@ public final class JsonTokenizer
     // was decoded into scratch, so the caller renders it canonically from the decoded chars.
     private boolean stringVerbatim;
 
+    // set as each object key / array element begins: true when it was reached after a separator comma (a
+    // sibling precedes it in its container), false when it was the first member after the container open.
+    // A prune reads this at the dropped member to decide whether the next surviving sibling's leading
+    // separator must be trimmed.
+    private boolean memberSeparated;
+
     // set when a read hits the end of the current input window mid-token: the scan unwinds logically
     // (no exception) and advance() routes to onScalarStarved; reset at the top of each advance()
     private boolean starved;
@@ -174,6 +180,7 @@ public final class JsonTokenizer
         scratchConsumed = 0;
         numberState = NumberState.START;
         stringVerbatim = false;
+        memberSeparated = false;
         pathDepth = 0;
         state = ParseState.DOC_START;
         pendingEvent = null;
@@ -422,6 +429,14 @@ public final class JsonTokenizer
         return pathDepth > 0 && pathInArray[pathDepth - 1];
     }
 
+    // True when the member (object key or array element) at the current boundary was reached after a
+    // separator comma — a sibling precedes it in its container — and false when it was the first member
+    // after the container open. Read by a prune at a dropped member to decide leading-separator trimming.
+    public boolean memberSeparated()
+    {
+        return memberSeparated;
+    }
+
     // True while a value-string is being delivered in fragments and more fragments follow the current
     // event; drives the parser's deferredBytes() for over-slot scalars.
     public boolean fragmenting()
@@ -494,6 +509,7 @@ public final class JsonTokenizer
             consumeValue(in);
             break;
         case OBJ_AFTER_OPEN:
+            memberSeparated = false;
             consumeKeyOrEnd(in);
             break;
         case OBJ_AFTER_KEY:
@@ -506,15 +522,18 @@ public final class JsonTokenizer
             consumeSeparatorOrEnd(in, true);
             break;
         case OBJ_AFTER_COMMA:
+            memberSeparated = true;
             consumeKey(in);
             break;
         case ARR_AFTER_OPEN:
+            memberSeparated = false;
             consumeValueOrEnd(in);
             break;
         case ARR_AFTER_VALUE:
             consumeSeparatorOrEnd(in, false);
             break;
         case ARR_AFTER_COMMA:
+            memberSeparated = true;
             consumeValue(in);
             break;
         default:

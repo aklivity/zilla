@@ -152,6 +152,12 @@ public final class McpHttpRename implements JsonTransform
         }
 
         @Override
+        public void skipValue()
+        {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
         public boolean deferredBytes()
         {
             return false;

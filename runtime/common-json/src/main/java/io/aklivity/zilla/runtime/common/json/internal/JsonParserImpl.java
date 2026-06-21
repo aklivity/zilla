@@ -78,6 +78,9 @@ public final class JsonParserImpl implements JsonParserEx
     // handed out is [verbatimCursor, parse-frontier); each bounded pull advances this cursor by what it
     // returned, so the source can discard flushed bytes and retain only the unpulled remainder
     private long verbatimCursor;
+    // armed by skipValue() when the dropped member was its container's first: the next verbatim pull trims
+    // the leading separator off the new-first surviving sibling so the survivors stay well-formed
+    private boolean trimLeadingSeparator;
     private final StringView stringViewRO = new StringView();
 
     private enum SegmentState
@@ -180,6 +183,7 @@ public final class JsonParserImpl implements JsonParserEx
         armNextValue = false;
         stringViewOffset = 0;
         verbatimCursor = 0;
+        trimLeadingSeparator = false;
         lastEvent = null;
         currentEvent = null;
         docState = DocState.NOT_STARTED;
@@ -598,6 +602,13 @@ public final class JsonParserImpl implements JsonParserEx
     public DirectBuffer getVerbatim(
         int limit)
     {
+        // a prior skipValue() of a container's first member leaves the new-first survivor with a dangling
+        // leading separator; trim it (and any leading whitespace) off the front of this run before pulling
+        if (trimLeadingSeparator)
+        {
+            trimLeadingSeparator();
+            trimLeadingSeparator = false;
+        }
         // the run not yet pulled is [verbatimCursor, parse-frontier) in stream-offset space; hand out at most
         // `limit` source bytes of it as an on-stack view and advance the cursor by exactly that, so the splice
         // is 1:1 and the next pull continues with neither gap nor overlap
@@ -607,6 +618,62 @@ public final class JsonParserImpl implements JsonParserEx
         verbatimView.wrap(ownedInput.buffer(), bufferOffset(verbatimCursor), length);
         verbatimCursor += length;
         return verbatimView;
+    }
+
+    @Override
+    public void skipValue()
+    {
+        // valid only at an object member boundary (current event is a delivered KEY_NAME); the value has not
+        // yet been read, so the member's leading-separator occupancy is still the key's
+        assert lastEvent == JsonEvent.KEY_NAME;
+        final boolean occupied = tokenizer.memberSeparated();
+        // drive the value's events internally so the caller never sees them: a scalar is one event, a container
+        // runs to its matching close
+        final Event value = next();
+        if (value == Event.START_OBJECT || value == Event.START_ARRAY)
+        {
+            int depth = 1;
+            while (depth > 0)
+            {
+                final Event token = next();
+                if (token == Event.START_OBJECT || token == Event.START_ARRAY)
+                {
+                    depth++;
+                }
+                else if (token == Event.END_OBJECT || token == Event.END_ARRAY)
+                {
+                    depth--;
+                }
+            }
+        }
+        // discard the whole member by advancing the verbatim cursor to the value's end: when occupied this also
+        // drops the dropped member's leading separator (the surviving sibling carries its own); when the dropped
+        // member was the container's first, defer trimming the next survivor's now-dangling leading separator
+        verbatimCursor = tokenizer.streamOffset();
+        trimLeadingSeparator = !occupied;
+    }
+
+    // Advances the verbatim cursor past the new-first survivor's leading whitespace and a single separator
+    // comma if present — bounded to the parse frontier so an empty container (the dropped member had no
+    // surviving sibling) consumes only its trailing whitespace, leaving the bare close to render {@code {}}.
+    private void trimLeadingSeparator()
+    {
+        final long frontier = tokenizer.streamOffset();
+        final DirectBuffer buffer = ownedInput.buffer();
+        while (verbatimCursor < frontier && isWhitespace(buffer.getByte(bufferOffset(verbatimCursor))))
+        {
+            verbatimCursor++;
+        }
+        if (verbatimCursor < frontier && buffer.getByte(bufferOffset(verbatimCursor)) == ',')
+        {
+            verbatimCursor++;
+        }
+    }
+
+    private static boolean isWhitespace(
+        byte b)
+    {
+        return b == ' ' || b == '\t' || b == '\n' || b == '\r';
     }
 
     @Override

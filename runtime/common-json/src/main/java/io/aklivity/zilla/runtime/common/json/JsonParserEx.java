@@ -156,6 +156,15 @@ public interface JsonParserEx extends JsonParser
         int limit);
 
     /**
+     * Drops the value at the current member boundary — valid only when the current event is a
+     * {@link JsonEvent#KEY_NAME} — advancing the parser past the whole member (key, separator, value) and the
+     * verbatim cursor past its bytes so they are never emitted, folding in the leading-separator trim a prune
+     * needs to keep the surviving siblings well-formed. The {@link JsonSource#skipValue()} accessor promoted
+     * onto the parser surface.
+     */
+    void skipValue();
+
+    /**
      * Whether the current value has bytes still deferred to later events — {@code true} while more of this same
      * value follows (the value is being streamed across input frames because it exceeds the input window),
      * {@code false} when this event completes it. The {@link JsonSource#deferredBytes()} accessor promoted onto

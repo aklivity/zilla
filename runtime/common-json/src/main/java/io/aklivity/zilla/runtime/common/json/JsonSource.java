@@ -76,6 +76,20 @@ public interface JsonSource
         int limit);
 
     /**
+     * Drops the value at the current member boundary — valid only when the current event is a
+     * {@link JsonEvent#KEY_NAME} (an object member) — advancing the source past the whole member: its key, the
+     * separator, and the value (a scalar, or a container to its matching close). The dropped member's
+     * sub-events are consumed internally, so the calling stage never sees them. The verbatim cursor advances
+     * past the dropped bytes so they are never emitted, and the source folds in the leading-separator trim a
+     * prune needs: dropping the first surviving member of a container defers trimming the next kept sibling's
+     * leading separator, so the survivors stay well-formed (e.g. dropping {@code a} from {@code {"a":1,"b":2}}
+     * yields {@code {"b":2}}, not {@code {,"b":2}}). Like {@link #getVerbatim(int)} this requires the consumer
+     * to have opted in via {@link JsonController#verbatim()}; a source that does not track verbatim runs rejects
+     * it.
+     */
+    void skipValue();
+
+    /**
      * Whether the current value has bytes still deferred to later events — {@code true} while more of
      * this same value follows (the value is being streamed across input frames because it exceeds the
      * input window), {@code false} when this event completes it. A JSON string is quote-delimited, so

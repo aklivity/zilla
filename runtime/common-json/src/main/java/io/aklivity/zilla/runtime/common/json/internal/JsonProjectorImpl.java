@@ -743,6 +743,12 @@ public final class JsonProjectorImpl implements JsonTransform
         }
 
         @Override
+        public void skipValue()
+        {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
         public boolean deferredBytes()
         {
             return false;

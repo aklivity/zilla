@@ -1203,6 +1203,12 @@ public final class JsonSchemaImpl implements JsonSchema
         }
 
         @Override
+        public void skipValue()
+        {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
         public boolean deferredBytes()
         {
             return false;
@@ -1988,6 +1994,12 @@ public final class JsonSchemaImpl implements JsonSchema
         }
 
         @Override
+        public void skipValue()
+        {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
         public boolean deferredBytes()
         {
             return false;
@@ -2236,6 +2248,12 @@ public final class JsonSchemaImpl implements JsonSchema
             int limit)
         {
             return delegateEx.getVerbatim(limit);
+        }
+
+        @Override
+        public void skipValue()
+        {
+            delegateEx.skipValue();
         }
 
         @Override

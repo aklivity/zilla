@@ -216,6 +216,12 @@ public final class JsonPipelineImpl implements JsonPipeline
         }
 
         @Override
+        public void skipValue()
+        {
+            parser.skipValue();
+        }
+
+        @Override
         public boolean deferredBytes()
         {
             return parser.deferredBytes();
