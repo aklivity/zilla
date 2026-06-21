@@ -114,15 +114,18 @@ public final class JsonEx
 
     /**
      * Variant of {@link #createSink(JsonGeneratorEx)} taking sink config; the {@link JsonSink#DELIVERY}
-     * key selects the {@link JsonSink.Delivery} mode (absent ⇒ {@link JsonSink.Delivery#STRUCTURED}).
+     * key selects the {@link JsonSink.Delivery} mode (absent ⇒ {@link JsonSink.Delivery#STRUCTURED}), and the
+     * {@link JsonSink#VERBATIM} key opts into byte-preserving fidelity within structured delivery (absent ⇒
+     * canonical).
      */
     public static JsonSink createSink(
         JsonGeneratorEx generator,
         Map<String, ?> config)
     {
         final Object delivery = config.get(JsonSink.DELIVERY);
+        final boolean verbatim = Boolean.TRUE.equals(config.get(JsonSink.VERBATIM));
         return new JsonSinkImpl(generator,
-            delivery instanceof JsonSink.Delivery mode ? mode : JsonSink.Delivery.STRUCTURED);
+            delivery instanceof JsonSink.Delivery mode ? mode : JsonSink.Delivery.STRUCTURED, verbatim);
     }
 
     /**

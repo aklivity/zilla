@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.common.json;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Map;
 
@@ -27,7 +28,7 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
 class JsonValidatorVerbatimTest
 {
-    private static final Map<String, ?> VERBATIM = Map.of(JsonSink.DELIVERY, JsonSink.Delivery.VERBATIM);
+    private static final Map<String, ?> VERBATIM = Map.of(JsonSink.VERBATIM, Boolean.TRUE);
     private static final String SCHEMA = "{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\"}}}";
 
     @Test
@@ -90,6 +91,21 @@ class JsonValidatorVerbatimTest
         assertEquals(Status.REJECTED, status);
     }
 
+    @Test
+    void shouldValidateThenForwardVerbatimThroughBoundedOutput()
+    {
+        JsonGeneratorEx gen = JsonEx.createGenerator();
+        MutableDirectBuffer output = new UnsafeBuffer(new byte[256]);
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(JsonSchema.of("{\"type\":\"object\"}").validator())
+            .into(JsonEx.createSink(gen, VERBATIM));
+
+        // a validated document whose verbatim form far exceeds the output bound: the run drains in pieces via
+        // SUSPENDED/resume through the validator, reassembling byte-identical with whitespace preserved
+        String json = "{ \"id\" : \"123\", \"items\" : [ \"aaaaaaaa\", \"bbbbbbbb\", \"cccccccc\" ], \"ok\" : true }";
+        assertEquals(json, chunked(pipeline, gen, output, json, 16));
+    }
+
     private static String output(
         JsonGeneratorEx gen,
         MutableDirectBuffer buffer)
@@ -97,5 +113,39 @@ class JsonValidatorVerbatimTest
         byte[] out = new byte[gen.length()];
         buffer.getBytes(0, out);
         return new String(out, UTF_8);
+    }
+
+    private static String chunked(
+        JsonPipeline pipeline,
+        JsonGeneratorEx gen,
+        MutableDirectBuffer output,
+        String json,
+        int bound)
+    {
+        byte[] bytes = (json + " ").getBytes(UTF_8);
+        UnsafeBuffer in = new UnsafeBuffer(bytes);
+        StringBuilder result = new StringBuilder();
+        pipeline.reset();
+        gen.wrap(output, 0, bound);
+        int suspends = 0;
+        int guard = 0;
+        Status status;
+        do
+        {
+            status = pipeline.feed(in, 0, bytes.length);
+            byte[] chunk = new byte[gen.length()];
+            output.getBytes(0, chunk);
+            result.append(new String(chunk, UTF_8));
+            if (status == Status.SUSPENDED)
+            {
+                suspends++;
+                gen.wrap(output, 0, bound);
+            }
+            guard++;
+        }
+        while (status == Status.SUSPENDED && guard < 10_000);
+        assertEquals(Status.COMPLETED, status);
+        assertTrue(suspends >= 1, "expected at least one SUSPENDED chunk boundary");
+        return result.toString();
     }
 }

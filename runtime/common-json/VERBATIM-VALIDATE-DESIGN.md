@@ -29,6 +29,27 @@ which suppresses the structured events the validator needs.
 | accessor | `getSegment(limit)`, valid on `segmented()` | `getVerbatim(limit)`, valid on `VERBATIM`/`STRUCTURED` |
 | opt-in | `JsonController.segmentable()` | `JsonController.verbatim()` |
 
+### Delivery axis vs verbatim fidelity (not a third delivery mode)
+
+The genuine delivery fork is **structured vs segmented** — the parser `Mode`. `SEGMENTABLE` switches the
+parser to `Mode.SEGMENTED` (it *substitutes* opaque runs for a value's structure). **Verbatim is not a
+peer of segmented**: it lives on the *structured* side as a **fidelity modifier** — the parser keeps
+delivering typed events; verbatim only adds the ability to reproduce the original bytes. So:
+
+| sink intent | parser `Mode` | fidelity |
+|---|---|---|
+| `Delivery.STRUCTURED` | `STRUCTURED` | canonical re-render |
+| `Delivery.STRUCTURED` + `verbatim` flag | `STRUCTURED` | byte-preserving |
+| `Delivery.SEGMENTABLE` | `SEGMENTED` | opaque runs |
+
+Accordingly `JsonSink.Delivery = {STRUCTURED, SEGMENTABLE}` and verbatim is a separate boolean
+(`JsonSink.VERBATIM`) — *not* a third `Delivery` value. The flag drives the sink to call
+`JsonController.verbatim()`; the per-event signal is `JsonEvent.VERBATIM` (`isVerbatim()`), emitted by a
+mediator (the validator), so the sink renders canonically for normal structured events and copies bytes
+for `VERBATIM` ones. Because verbatim is per-event, a mediator can interleave injected canonical events
+with `VERBATIM` ones (Phase 3). The terminal sink does **not** track completion on the verbatim path — the
+mediator owns structure (and so completion); the sink is only the byte conduit.
+
 ### Bounded pull vs `consumed()` — the ratio decides
 
 Both raw byte primitives become **bounded pulls** denominated in source bytes; only the
