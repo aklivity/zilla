@@ -2316,6 +2316,19 @@ public final class JsonSchemaImpl implements JsonSchema
             return status;
         }
 
+        @Override
+        public Status flush(
+            JsonController control,
+            JsonSource source,
+            JsonSink sink)
+        {
+            // the validator mediates: give the sink the same Decline controller it sees in feed(), so an
+            // end-of-feed drain (e.g. a verbatim sink pulling bytes consumed during lookahead) routes any
+            // pushback back through the validator to the parser
+            upstreamControl = control;
+            return sink.flush(decline, source);
+        }
+
         private Status verdictStatus(
             Verdict verdict,
             Status downstream)
