@@ -124,6 +124,14 @@ public final class JsonStreamImpl implements JsonStream
         }
 
         @Override
+        public Status flush(
+            JsonController control,
+            JsonSource source)
+        {
+            return transform.flush(control, source, downstream);
+        }
+
+        @Override
         public void reset()
         {
             transform.reset();

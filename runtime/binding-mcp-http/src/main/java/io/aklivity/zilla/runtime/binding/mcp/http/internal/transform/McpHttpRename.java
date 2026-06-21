@@ -27,6 +27,7 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonSource;
 import io.aklivity.zilla.runtime.common.json.JsonTransform;
+import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
 
 /**
  * Composable forwarding {@link JsonTransform} that rewrites top-level object keys per a rename map,
@@ -140,6 +141,19 @@ public final class McpHttpRename implements JsonTransform
 
         @Override
         public DirectBuffer getSegment()
+        {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public JsonVerbatim getVerbatim(
+            int limit)
+        {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void skipValue()
         {
             throw new UnsupportedOperationException();
         }

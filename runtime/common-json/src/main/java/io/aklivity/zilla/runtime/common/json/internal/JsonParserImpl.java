@@ -18,6 +18,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.util.AbstractMap;
+import java.util.Arrays;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Spliterator;
 import java.util.Spliterators;
@@ -40,6 +42,8 @@ import io.aklivity.zilla.runtime.common.json.DirectBufferInputStreamEx;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx.Mode;
+import io.aklivity.zilla.runtime.common.json.JsonStep;
+import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
 import io.aklivity.zilla.runtime.common.json.internal.json.JsonValues;
 
 public final class JsonParserImpl implements JsonParserEx
@@ -57,6 +61,7 @@ public final class JsonParserImpl implements JsonParserEx
     private final JsonTokenizer tokenizer;
     private final JsonLocationImpl location;
     private final UnsafeBuffer segmentView = new UnsafeBuffer(0, 0);
+    private final UnsafeBuffer verbatimView = new UnsafeBuffer(0, 0);
 
     private Event currentEvent;
     private JsonEvent lastEvent;
@@ -73,7 +78,23 @@ public final class JsonParserImpl implements JsonParserEx
     // exposes the unconsumed remainder from here and consumed() advances it, so a resumed bounded write
     // continues where the output bound left off
     private int stringViewOffset;
+    // stream offset up to which verbatim bytes have already been pulled via getVerbatim(): the run not yet
+    // handed out is [verbatimCursor, parse-frontier); each bounded pull advances this cursor by what it
+    // returned, so the source can discard flushed bytes and retain only the unpulled remainder
+    private long verbatimCursor;
+    // armed by skipValue() when the dropped member was its container's first: the next verbatim pull trims
+    // the leading separator off the new-first surviving sibling so the survivors stay well-formed
+    private boolean trimLeadingSeparator;
     private final StringView stringViewRO = new StringView();
+    // structural step log of the current verbatim run: each delivered body event's step kind plus the stream
+    // offset at the end of its token, so getVerbatim() can bound a block on a token boundary. stepHead is the
+    // first step not yet handed out by a block; the log compacts once a prior run has been fully drained
+    private JsonStep[] stepKinds = new JsonStep[16];
+    private long[] stepEnds = new long[16];
+    private int stepCount;
+    private int stepHead;
+    private final StepCursor cursor = new StepCursor();
+    private final Block block = new Block();
 
     private enum SegmentState
     {
@@ -174,6 +195,10 @@ public final class JsonParserImpl implements JsonParserEx
         segmentConsumed = 0;
         armNextValue = false;
         stringViewOffset = 0;
+        verbatimCursor = 0;
+        trimLeadingSeparator = false;
+        stepCount = 0;
+        stepHead = 0;
         lastEvent = null;
         currentEvent = null;
         docState = DocState.NOT_STARTED;
@@ -301,6 +326,12 @@ public final class JsonParserImpl implements JsonParserEx
             // shared jakarta getters' asserts valid whether driven by the pipeline or the raw parser
             lastEvent = event;
             currentEvent = toEvent(event);
+            if (isBodyEvent(event))
+            {
+                // record the run's structural step for getVerbatim(); framing and
+                // segment events are not verbatim steps, and skipValue()'s internal next() never reaches here
+                appendStep(event);
+            }
         }
         return event;
     }
@@ -596,6 +627,176 @@ public final class JsonParserImpl implements JsonParserEx
     }
 
     @Override
+    public JsonVerbatim getVerbatim(
+        int limit)
+    {
+        // verbatim consumption of a structured run; a segment's bytes are pulled via getSegment() instead
+        assert lastEvent != null && !lastEvent.segmented();
+        // drop any steps already behind the cursor — a skipValue() jumps the cursor past the dropped member's
+        // own steps
+        while (stepHead < stepCount && stepEnds[stepHead] <= verbatimCursor)
+        {
+            stepHead++;
+        }
+        // a prior skipValue() of a container's first member leaves the new-first survivor with a dangling
+        // leading separator; trim it (and any leading whitespace) off the front of this run, and drop the
+        // SEPARATOR step the trimmed comma stood for so the block's structure matches its trimmed bytes
+        if (trimLeadingSeparator)
+        {
+            trimLeadingSeparator();
+            trimLeadingSeparator = false;
+            if (stepHead < stepCount && stepKinds[stepHead] == JsonStep.SEPARATOR)
+            {
+                stepHead++;
+            }
+        }
+        // the run not yet pulled is [verbatimCursor, parse-frontier); when it fits the byte limit drain all of
+        // it — to the frontier, so trailing bytes consumed in end-of-window lookahead (a separator or whitespace
+        // past the last token) are not stranded into a replaced window — otherwise bound to the highest token
+        // boundary at or before the limit, so a partial block's bytes and structure still agree on a token
+        final long frontier = tokenizer.streamOffset();
+        final long budget = verbatimCursor + limit;
+        final int from = stepHead;
+        final long byteEnd;
+        int last;
+        if (frontier <= budget)
+        {
+            byteEnd = frontier;
+            last = stepCount - 1;
+        }
+        else
+        {
+            last = from - 1;
+            for (int index = from; index < stepCount && stepEnds[index] <= budget; index++)
+            {
+                last = index;
+            }
+            byteEnd = last >= from ? stepEnds[last] : verbatimCursor;
+        }
+        final int length = (int) (byteEnd - verbatimCursor);
+        verbatimView.wrap(ownedInput.buffer(), bufferOffset(verbatimCursor), length);
+        block.wrap(from, last);
+        verbatimCursor = byteEnd;
+        stepHead = last + 1;
+        return block;
+    }
+
+    @Override
+    public void skipValue()
+    {
+        // valid only at an object member boundary (current event is a delivered KEY_NAME); the value has not
+        // yet been read, so the member's leading-separator occupancy is still the key's
+        assert lastEvent == JsonEvent.KEY_NAME;
+        final boolean occupied = tokenizer.memberSeparated();
+        // drive the value's events internally so the caller never sees them: a scalar is one event, a container
+        // runs to its matching close
+        final Event value = next();
+        if (value == Event.START_OBJECT || value == Event.START_ARRAY)
+        {
+            int depth = 1;
+            while (depth > 0)
+            {
+                final Event token = next();
+                if (token == Event.START_OBJECT || token == Event.START_ARRAY)
+                {
+                    depth++;
+                }
+                else if (token == Event.END_OBJECT || token == Event.END_ARRAY)
+                {
+                    depth--;
+                }
+            }
+        }
+        // discard the whole member by advancing the verbatim cursor to the value's end: when occupied this also
+        // drops the dropped member's leading separator (the surviving sibling carries its own); when the dropped
+        // member was the container's first, defer trimming the next survivor's now-dangling leading separator
+        verbatimCursor = tokenizer.streamOffset();
+        trimLeadingSeparator = !occupied;
+    }
+
+    // Advances the verbatim cursor past the new-first survivor's leading whitespace and a single separator
+    // comma if present — bounded to the parse frontier so an empty container (the dropped member had no
+    // surviving sibling) consumes only its trailing whitespace, leaving the bare close to render {@code {}}.
+    private void trimLeadingSeparator()
+    {
+        final long frontier = tokenizer.streamOffset();
+        final DirectBuffer buffer = ownedInput.buffer();
+        while (verbatimCursor < frontier && isWhitespace(buffer.getByte(bufferOffset(verbatimCursor))))
+        {
+            verbatimCursor++;
+        }
+        if (verbatimCursor < frontier && buffer.getByte(bufferOffset(verbatimCursor)) == ',')
+        {
+            verbatimCursor++;
+        }
+    }
+
+    private static boolean isWhitespace(
+        byte b)
+    {
+        return b == ' ' || b == '\t' || b == '\n' || b == '\r';
+    }
+
+    // Records a delivered body event as one or more steps of the current verbatim run, each tagged with the
+    // stream offset at the end of its token so getVerbatim() can bound a block on a token boundary. A separated
+    // member/element is preceded by a SEPARATOR step (the comma carried in the source bytes). The log compacts
+    // once a prior run has been fully drained by getVerbatim() (stepHead caught up to stepCount).
+    private void appendStep(
+        JsonEvent kind)
+    {
+        if (stepHead == stepCount)
+        {
+            stepCount = 0;
+            stepHead = 0;
+        }
+        final long end = tokenizer.streamOffset();
+        // a separated member/element carries its comma in the source bytes; the tokenizer reports it one-shot
+        // per token, so emit exactly one SEPARATOR step ahead of that token — no container tracking needed
+        if (tokenizer.separatorBefore())
+        {
+            append(JsonStep.SEPARATOR, end);
+        }
+        append(toStep(kind), end);
+    }
+
+    private void append(
+        JsonStep step,
+        long end)
+    {
+        if (stepCount == stepKinds.length)
+        {
+            stepKinds = Arrays.copyOf(stepKinds, stepCount * 2);
+            stepEnds = Arrays.copyOf(stepEnds, stepCount * 2);
+        }
+        stepKinds[stepCount] = step;
+        stepEnds[stepCount] = end;
+        stepCount++;
+    }
+
+    private static JsonStep toStep(
+        JsonEvent kind)
+    {
+        return switch (kind)
+        {
+        case START_OBJECT -> JsonStep.START_OBJECT;
+        case END_OBJECT -> JsonStep.END_OBJECT;
+        case START_ARRAY -> JsonStep.START_ARRAY;
+        case END_ARRAY -> JsonStep.END_ARRAY;
+        case KEY_NAME -> JsonStep.KEY_NAME;
+        default -> JsonStep.VALUE;
+        };
+    }
+
+    private static boolean isBodyEvent(
+        JsonEvent event)
+    {
+        return event == JsonEvent.START_OBJECT || event == JsonEvent.END_OBJECT ||
+            event == JsonEvent.START_ARRAY || event == JsonEvent.END_ARRAY ||
+            event == JsonEvent.KEY_NAME || event == JsonEvent.VALUE_STRING || event == JsonEvent.VALUE_NUMBER ||
+            event == JsonEvent.VALUE_TRUE || event == JsonEvent.VALUE_FALSE || event == JsonEvent.VALUE_NULL;
+    }
+
+    @Override
     public void close()
     {
     }
@@ -830,6 +1031,64 @@ public final class JsonParserImpl implements JsonParserEx
         public String toString()
         {
             return base.subSequence(offset, base.length()).toString();
+        }
+    }
+
+    // Reused, on-stack single-pass cursor over the step log for the current block: steps [from, from + count)
+    // of the parser's array. remove() inherited from Iterator throws, so a caller cannot corrupt parser state.
+    private final class StepCursor implements Iterator<JsonStep>
+    {
+        private int index;
+        private int end;
+
+        private StepCursor reset(
+            int from,
+            int last)
+        {
+            this.index = from;
+            this.end = Math.max(from, last + 1);
+            return this;
+        }
+
+        @Override
+        public boolean hasNext()
+        {
+            return index < end;
+        }
+
+        @Override
+        public JsonStep next()
+        {
+            return stepKinds[index++];
+        }
+    }
+
+    // Reused, on-stack JsonVerbatim block: the contiguous run bytes and their structural transcript, both
+    // bounded to the same whole-token prefix by getVerbatim(). getSteps() hands back the shared cursor reset to
+    // this block's step range, so a fresh forward pass each call with no allocation. Valid on-stack only.
+    private final class Block implements JsonVerbatim
+    {
+        private int from;
+        private int last;
+
+        private void wrap(
+            int from,
+            int last)
+        {
+            this.from = from;
+            this.last = last;
+        }
+
+        @Override
+        public Iterator<JsonStep> getSteps()
+        {
+            return cursor.reset(from, last);
+        }
+
+        @Override
+        public DirectBuffer getSegment()
+        {
+            return verbatimView;
         }
     }
 }

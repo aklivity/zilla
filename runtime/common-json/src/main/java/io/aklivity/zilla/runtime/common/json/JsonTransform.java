@@ -50,6 +50,22 @@ public interface JsonTransform
         return sink.resume(control, source, event);
     }
 
+    /**
+     * Forwards the pump's end-of-feed {@link JsonSink#flush(JsonController, JsonSource) flush} to {@code sink}
+     * when the input window is consumed before a terminal value, letting the terminal sink do end-of-feed work
+     * (e.g. a verbatim sink draining bytes consumed during lookahead) before the window is replaced. The
+     * default forwards to {@code sink.flush(control, source)} — sufficient for a stage that only forwards
+     * events. A mediating stage that supplies its own {@link JsonController} to {@code sink} overrides this to
+     * pass the same controller it uses in {@link #feed}.
+     */
+    default JsonPipeline.Status flush(
+        JsonController control,
+        JsonSource source,
+        JsonSink sink)
+    {
+        return sink.flush(control, source);
+    }
+
     default void reset()
     {
     }

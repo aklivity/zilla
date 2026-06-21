@@ -33,6 +33,7 @@ import io.aklivity.zilla.runtime.common.json.JsonPipelineResult;
 import io.aklivity.zilla.runtime.common.json.JsonReporter;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonSource;
+import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
 
 /**
  * Backs {@link JsonPipeline}: holds the bound root {@link JsonSink} and the {@link JsonParserEx}
@@ -124,11 +125,23 @@ public final class JsonPipelineImpl implements JsonPipeline
                     resumeEvent = event;
                 }
             }
-            if (status == Status.ADVANCED)
+            if (status == Status.ADVANCED || status == Status.STARVED)
             {
-                // the window was consumed before the value completed: more input is needed, unless this was
-                // the final window, in which case the value is truncated
-                status = last ? Status.REJECTED : Status.STARVED;
+                // the window was consumed before a terminal value — either the pump ran out of events, or a
+                // stage starved mid-value (e.g. a validator declining a fragment to accumulate it). Always
+                // give the sink a final drain before the window is replaced: a verbatim run pulls the bytes it
+                // has consumed so far via getVerbatim, so its cursor tracks the parse frontier across windows
+                // and never lags into a replaced window. STARVED stays STARVED; an exhausted-but-advancing
+                // pump needs more input (or is truncated on the final window).
+                final Status drained = root.flush(control, source);
+                if (drained == Status.SUSPENDED)
+                {
+                    status = Status.SUSPENDED;
+                }
+                else if (status == Status.ADVANCED)
+                {
+                    status = last ? Status.REJECTED : Status.STARVED;
+                }
             }
         }
         catch (JsonException ex)
@@ -225,6 +238,19 @@ public final class JsonPipelineImpl implements JsonPipeline
         public DirectBuffer getSegment()
         {
             return parser.getSegment();
+        }
+
+        @Override
+        public JsonVerbatim getVerbatim(
+            int limit)
+        {
+            return parser.getVerbatim(limit);
+        }
+
+        @Override
+        public void skipValue()
+        {
+            parser.skipValue();
         }
 
         @Override

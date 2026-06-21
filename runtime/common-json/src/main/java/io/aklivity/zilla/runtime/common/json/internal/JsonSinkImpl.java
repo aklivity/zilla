@@ -22,34 +22,45 @@ import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx.Completion;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
-import io.aklivity.zilla.runtime.common.json.JsonSink.Delivery;
 import io.aklivity.zilla.runtime.common.json.JsonSource;
+import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
 
 /**
  * Terminal {@link JsonSink} that materializes each fed event into the corresponding {@code writeXxx}
  * call on the wrapped {@link JsonGeneratorEx}. Reaches {@link Status#COMPLETED} when the current
  * top-level value closes at depth zero.
+ * <p>
+ * By default the sink <em>prefers bytes</em>: it opts into both {@link JsonController#segmentable()} and
+ * {@link JsonController#verbatim()}, so the pipeline negotiates the most efficient byte-preserving delivery
+ * it can — an opaque {@code SEGMENT} run when a value's structure is not needed downstream, or per-event
+ * {@link JsonEvent#VERBATIM} events when an upstream mediator (e.g. a validator) must see structure yet
+ * preserve the original bytes. It falls back to canonical re-rendering only for structured events that
+ * arrive when neither was honored (a transform that changes content). A {@code canonical} sink opts out of
+ * both and always re-renders.
  */
 public final class JsonSinkImpl implements JsonSink
 {
     private static final int HEADROOM = 16;
 
     private final JsonGeneratorEx generator;
-    private final Delivery delivery;
+    private final boolean canonical;
     private int depth;
+    // whether a VERBATIM event has been copied this document: gates flush() so a segment-mode sink (whose
+    // verbatim cursor never advanced) does not re-emit the whole input from cursor zero
+    private boolean verbatimSeen;
 
     public JsonSinkImpl(
         JsonGeneratorEx generator)
     {
-        this(generator, Delivery.STRUCTURED);
+        this(generator, false);
     }
 
     public JsonSinkImpl(
         JsonGeneratorEx generator,
-        Delivery delivery)
+        boolean canonical)
     {
         this.generator = generator;
-        this.delivery = delivery;
+        this.canonical = canonical;
     }
 
     @Override
@@ -86,6 +97,14 @@ public final class JsonSinkImpl implements JsonSink
         case SEGMENT:
             status = writeValue(control, source, event);
             break;
+        case VERBATIM:
+            // a byte-preserving event from an upstream mediator: copy the original source bytes; the mediator
+            // owns structure (and so document completion), the sink is only the byte conduit here. The run's
+            // structural step is applied to the generator as the bytes splice through, so its state stays
+            // coherent for any injected value that follows.
+            verbatimSeen = true;
+            status = writeVerbatim(source);
+            break;
         case VALUE_TRUE:
             generator.write(true);
             status = scalarStatus();
@@ -99,9 +118,13 @@ public final class JsonSinkImpl implements JsonSink
             status = scalarStatus();
             break;
         case START_DOCUMENT:
-            if (delivery == Delivery.SEGMENTABLE)
+            if (!canonical)
             {
+                // prefer bytes: request the most efficient byte-preserving delivery the pipeline can honor —
+                // an opaque segment run where structure is not needed, or VERBATIM events where a mediator
+                // must see structure; whichever the nearest upstream grants
                 control.segmentable();
+                control.verbatim();
             }
             break;
         case END_DOCUMENT:
@@ -119,16 +142,42 @@ public final class JsonSinkImpl implements JsonSink
         JsonSource source,
         JsonEvent event)
     {
-        // the pump supplies the event that suspended; continue only while its value still has an unwritten
-        // remainder (a boundary drain after a completed value, or a structural event, leaves none)
-        Status status = inFlight(source, event) ? writeValue(control, source, event) : Status.ADVANCED;
+        Status status;
+        if (event != null && event.isVerbatim())
+        {
+            verbatimSeen = true;
+            status = writeVerbatim(source);
+        }
+        else
+        {
+            // the pump supplies the event that suspended; continue only while its value still has an unwritten
+            // remainder (a boundary drain after a completed value, or a structural event, leaves none)
+            status = inFlight(source, event) ? writeValue(control, source, event) : Status.ADVANCED;
+        }
         return boundary(status);
+    }
+
+    @Override
+    public Status flush(
+        JsonController control,
+        JsonSource source)
+    {
+        Status status = Status.ADVANCED;
+        if (verbatimSeen)
+        {
+            // drain bytes the parser consumed during end-of-window lookahead (e.g. a separator after the last
+            // value) that no event pulled, so they are not lost when this window is replaced; gated on having
+            // copied a VERBATIM event so a segment-mode sink (verbatim cursor still at zero) is not re-drained
+            status = writeVerbatim(source);
+        }
+        return status;
     }
 
     @Override
     public void reset()
     {
         depth = 0;
+        verbatimSeen = false;
         generator.reset();
     }
 
@@ -280,6 +329,31 @@ public final class JsonSinkImpl implements JsonSink
             status = scalarStatus();
         }
         return status;
+    }
+
+    // Copies as much of the pending verbatim run as fits the bounded output, advancing the source cursor by
+    // exactly what it returned. The pull is pre-bounded to the free output space, so a 1:1 copy always fits and
+    // the returned length is the drain signal: fewer bytes than asked for means the run reached the parse
+    // frontier (drained, ADVANCED); a full-bound pull means the output bound capped the run, so suspend and
+    // resume against a freshly drained buffer. Document completion is the mediator's responsibility (it owns
+    // structure), so a verbatim copy never reports COMPLETED itself.
+    private Status writeVerbatim(
+        JsonSource source)
+    {
+        final int free = generator.remaining();
+        final JsonVerbatim verbatim = source.getVerbatim(free);
+        final int length = verbatim.getSegment().capacity();
+        if (length > 0)
+        {
+            // splice the block's bytes and apply its structure so the generator tracks open/close depth and
+            // member occupancy, synthesizing a leading separator for a displaced former-first member (source
+            // occupancy carried by the block's leading step, not its bytes)
+            generator.writeVerbatim(verbatim);
+        }
+        // a block shorter than the bound reached the parse frontier (run drained, ADVANCED); a full-bound block
+        // means the output capped the run, so suspend and resume against a freshly drained buffer. An empty
+        // block (drained, or no token fit) is shorter than the bound, so it advances.
+        return length < free ? Status.ADVANCED : Status.SUSPENDED;
     }
 
     // Suspends at an event boundary once the bounded output nears its limit, so the next event's write
