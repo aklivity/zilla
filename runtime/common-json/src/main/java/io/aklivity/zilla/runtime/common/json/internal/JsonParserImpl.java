@@ -94,11 +94,6 @@ public final class JsonParserImpl implements JsonParserEx
     private long[] stepEnds = new long[16];
     private int stepCount;
     private int stepHead;
-    // container nesting of the parsed run, tracked as steps are appended, so a SEPARATOR step is emitted only
-    // before an actual member/element start (an object key, or an array element) — memberSeparated() otherwise
-    // stays set across a whole separated member, including its value and the trailing close
-    private boolean[] frameArray = new boolean[16];
-    private int frameDepth;
     private final Structure structure = new Structure();
     private final Block block = new Block();
 
@@ -205,7 +200,6 @@ public final class JsonParserImpl implements JsonParserEx
         trimLeadingSeparator = false;
         stepCount = 0;
         stepHead = 0;
-        frameDepth = 0;
         lastEvent = null;
         currentEvent = null;
         docState = DocState.NOT_STARTED;
@@ -750,31 +744,13 @@ public final class JsonParserImpl implements JsonParserEx
             stepHead = 0;
         }
         final long end = tokenizer.streamOffset();
-        // a comma precedes only a member/element start in the source: an object key, or an array element (a
-        // value whose enclosing container is an array). An object value follows a colon and a close follows a
-        // value, so neither is separated, even though memberSeparated() stays set across the whole member.
-        final boolean memberStart = kind == JsonEvent.KEY_NAME ||
-            isValueEvent(kind) && frameDepth > 0 && frameArray[frameDepth - 1];
-        if (memberStart && tokenizer.memberSeparated())
+        // a separated member/element carries its comma in the source bytes; the tokenizer reports it one-shot
+        // per token, so emit exactly one SEPARATOR step ahead of that token — no container tracking needed
+        if (tokenizer.separatorBefore())
         {
             append(JsonStep.SEPARATOR, end);
         }
         append(toStep(kind), end);
-        switch (kind)
-        {
-        case START_OBJECT:
-            pushFrame(false);
-            break;
-        case START_ARRAY:
-            pushFrame(true);
-            break;
-        case END_OBJECT:
-        case END_ARRAY:
-            frameDepth--;
-            break;
-        default:
-            break;
-        }
     }
 
     private void append(
@@ -791,16 +767,6 @@ public final class JsonParserImpl implements JsonParserEx
         stepCount++;
     }
 
-    private void pushFrame(
-        boolean array)
-    {
-        if (frameDepth == frameArray.length)
-        {
-            frameArray = Arrays.copyOf(frameArray, frameDepth * 2);
-        }
-        frameArray[frameDepth++] = array;
-    }
-
     private static JsonStep toStep(
         JsonEvent kind)
     {
@@ -813,14 +779,6 @@ public final class JsonParserImpl implements JsonParserEx
         case KEY_NAME -> JsonStep.KEY_NAME;
         default -> JsonStep.VALUE;
         };
-    }
-
-    private static boolean isValueEvent(
-        JsonEvent kind)
-    {
-        return kind == JsonEvent.START_OBJECT || kind == JsonEvent.START_ARRAY ||
-            kind == JsonEvent.VALUE_STRING || kind == JsonEvent.VALUE_NUMBER ||
-            kind == JsonEvent.VALUE_TRUE || kind == JsonEvent.VALUE_FALSE || kind == JsonEvent.VALUE_NULL;
     }
 
     private static boolean isBodyEvent(

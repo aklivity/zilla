@@ -52,6 +52,34 @@ class JsonVerbatimTest
     }
 
     @Test
+    void shouldTranscribeOneSeparatorPerCommaAcrossArraysAndNesting()
+    {
+        JsonParserEx parser = JsonEx.createParser();
+        byte[] bytes = "[1, {\"a\": 2}, 3]".getBytes(UTF_8);
+        parser.wrap(new UnsafeBuffer(bytes), 0, bytes.length);
+
+        assertEquals(JsonEvent.START_DOCUMENT, parser.nextEvent());
+        assertEquals(JsonEvent.START_ARRAY, parser.nextEvent());
+        assertEquals(JsonEvent.VALUE_NUMBER, parser.nextEvent());
+        assertEquals(JsonEvent.START_OBJECT, parser.nextEvent());
+        assertEquals(JsonEvent.KEY_NAME, parser.nextEvent());
+        assertEquals(JsonEvent.VALUE_NUMBER, parser.nextEvent());
+        assertEquals(JsonEvent.END_OBJECT, parser.nextEvent());
+        assertEquals(JsonEvent.VALUE_NUMBER, parser.nextEvent());
+        assertEquals(JsonEvent.END_ARRAY, parser.nextEvent());
+
+        // exactly one SEPARATOR per source comma, and none before an object value, a first key/element, or a
+        // close — the structure never over- or under-states the commas actually in the bytes
+        JsonVerbatim verbatim = parser.getVerbatim(bytes.length);
+        assertEquals("[1, {\"a\": 2}, 3]", asString(verbatim.getSegment()));
+        assertEquals(
+            List.of(JsonStep.START_ARRAY, JsonStep.VALUE, JsonStep.SEPARATOR, JsonStep.START_OBJECT,
+                JsonStep.KEY_NAME, JsonStep.VALUE, JsonStep.END_OBJECT, JsonStep.SEPARATOR, JsonStep.VALUE,
+                JsonStep.END_ARRAY),
+            List.copyOf(verbatim.getStructure()));
+    }
+
+    @Test
     void shouldBoundVerbatimBlockToTokenBoundaryWithinLimitAndAdvanceCursor()
     {
         JsonParserEx parser = JsonEx.createParser();
