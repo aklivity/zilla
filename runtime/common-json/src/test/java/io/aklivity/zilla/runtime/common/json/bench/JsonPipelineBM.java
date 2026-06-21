@@ -42,6 +42,7 @@ import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
+import io.aklivity.zilla.runtime.common.json.JsonSchema;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonSink.Delivery;
 
@@ -84,10 +85,17 @@ public class JsonPipelineBM
 
     private static final int FRAGMENT_WINDOW = 64;
 
+    // a schema-valid document carrying insignificant whitespace, so canonical re-render and verbatim copy
+    // diverge: re-render normalizes the spacing (and re-quotes/re-lexes each value), verbatim splices bytes
+    private static final String VALIDATE_DOCUMENT = ROOT_IDENTITY;
+    private static final String VALIDATE_SCHEMA = "{\"type\":\"object\"}";
+
     private final MutableDirectBuffer outputBuffer = new UnsafeBuffer(new byte[16 * 1024]);
     private final JsonGeneratorEx generator = JsonEx.createGenerator();
-    private final JsonSink structuredSink = JsonEx.createSink(generator);
+    // structured = the explicit canonical opt-out (re-render); the bare default now prefers bytes
+    private final JsonSink structuredSink = JsonEx.createSink(generator, Map.of(JsonSink.DELIVERY, Delivery.STRUCTURED));
     private final JsonSink segmentableSink = JsonEx.createSink(generator, Map.of(JsonSink.DELIVERY, Delivery.SEGMENTABLE));
+    private final JsonSink bytePreferringSink = JsonEx.createSink(generator);
 
     private JsonPipeline scalarLeavesPipeline;
     private JsonPipeline keptContainerStructuredPipeline;
@@ -99,6 +107,8 @@ public class JsonPipelineBM
     private JsonPipeline fragmentStringStructuredPipeline;
     private JsonPipeline fragmentStringSegmentedPipeline;
     private JsonPipeline fragmentNumberStructuredPipeline;
+    private JsonPipeline validateCanonicalPipeline;
+    private JsonPipeline validateVerbatimPipeline;
 
     private UnsafeBuffer flatBuffer;
     private UnsafeBuffer nestedBuffer;
@@ -106,6 +116,7 @@ public class JsonPipelineBM
     private UnsafeBuffer mostlySkippedBuffer;
     private UnsafeBuffer largeStringBuffer;
     private UnsafeBuffer largeNumberBuffer;
+    private UnsafeBuffer validateBuffer;
 
     private int flatLength;
     private int nestedLength;
@@ -113,6 +124,7 @@ public class JsonPipelineBM
     private int mostlySkippedLength;
     private int largeStringLength;
     private int largeNumberLength;
+    private int validateLength;
 
     @Setup(Level.Trial)
     public void init()
@@ -140,12 +152,20 @@ public class JsonPipelineBM
         fragmentStringSegmentedPipeline = JsonEx.stream(JsonEx.createParser()).into(segmentableSink);
         fragmentNumberStructuredPipeline = JsonEx.stream(JsonEx.createParser()).into(structuredSink);
 
+        // the validate path: validator forwards unchanged — canonical re-renders each value, verbatim copies
+        // the original bytes; same schema and input so the two are directly comparable
+        validateCanonicalPipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(JsonSchema.of(VALIDATE_SCHEMA).validator()).into(structuredSink);
+        validateVerbatimPipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(JsonSchema.of(VALIDATE_SCHEMA).validator()).into(bytePreferringSink);
+
         byte[] flatBytes = FLAT_OBJECT.getBytes(UTF_8);
         byte[] nestedBytes = NESTED_OBJECT.getBytes(UTF_8);
         byte[] rootIdentityBytes = ROOT_IDENTITY.getBytes(UTF_8);
         byte[] mostlySkippedBytes = MOSTLY_SKIPPED.getBytes(UTF_8);
         byte[] largeStringBytes = LARGE_STRING.getBytes(UTF_8);
         byte[] largeNumberBytes = LARGE_NUMBER.getBytes(UTF_8);
+        byte[] validateBytes = VALIDATE_DOCUMENT.getBytes(UTF_8);
 
         flatBuffer = new UnsafeBuffer(flatBytes);
         nestedBuffer = new UnsafeBuffer(nestedBytes);
@@ -153,6 +173,7 @@ public class JsonPipelineBM
         mostlySkippedBuffer = new UnsafeBuffer(mostlySkippedBytes);
         largeStringBuffer = new UnsafeBuffer(largeStringBytes);
         largeNumberBuffer = new UnsafeBuffer(largeNumberBytes);
+        validateBuffer = new UnsafeBuffer(validateBytes);
 
         flatLength = flatBytes.length;
         nestedLength = nestedBytes.length;
@@ -160,6 +181,7 @@ public class JsonPipelineBM
         mostlySkippedLength = mostlySkippedBytes.length;
         largeStringLength = largeStringBytes.length;
         largeNumberLength = largeNumberBytes.length;
+        validateLength = validateBytes.length;
     }
 
     @Benchmark
@@ -220,6 +242,18 @@ public class JsonPipelineBM
     public int fragmentNumberStructured()
     {
         return runWindowed(fragmentNumberStructuredPipeline, largeNumberBuffer, largeNumberLength, FRAGMENT_WINDOW);
+    }
+
+    @Benchmark
+    public int validateCanonical()
+    {
+        return run(validateCanonicalPipeline, validateBuffer, validateLength);
+    }
+
+    @Benchmark
+    public int validateVerbatim()
+    {
+        return run(validateVerbatimPipeline, validateBuffer, validateLength);
     }
 
     private int run(

@@ -62,6 +62,7 @@ import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonSource;
 import io.aklivity.zilla.runtime.common.json.JsonTransform;
 import io.aklivity.zilla.runtime.common.json.JsonValidationException;
+import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
 
 /**
  * An immutable, compiled JSON Schema that validates an instance by consuming a streaming
@@ -1196,6 +1197,19 @@ public final class JsonSchemaImpl implements JsonSchema
         }
 
         @Override
+        public JsonVerbatim getVerbatim(
+            int limit)
+        {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void skipValue()
+        {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
         public boolean deferredBytes()
         {
             return false;
@@ -1974,6 +1988,19 @@ public final class JsonSchemaImpl implements JsonSchema
         }
 
         @Override
+        public JsonVerbatim getVerbatim(
+            int limit)
+        {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void skipValue()
+        {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
         public boolean deferredBytes()
         {
             return false;
@@ -2218,6 +2245,19 @@ public final class JsonSchemaImpl implements JsonSchema
         }
 
         @Override
+        public JsonVerbatim getVerbatim(
+            int limit)
+        {
+            return delegateEx.getVerbatim(limit);
+        }
+
+        @Override
+        public void skipValue()
+        {
+            delegateEx.skipValue();
+        }
+
+        @Override
         public boolean deferredBytes()
         {
             return delegateEx.deferredBytes();
@@ -2236,12 +2276,20 @@ public final class JsonSchemaImpl implements JsonSchema
 
     private final class Validator implements JsonTransform
     {
-        // declines segmentable() (validation needs structured events) but relays consumed() upstream
+        // declines segmentable() (validation needs structured events) but absorbs verbatim() — the validator
+        // keeps taking structured events to validate, and re-asserts verbatim downstream by emitting VERBATIM
+        // events — and relays consumed() upstream
         private final class Decline implements JsonController
         {
             @Override
             public void segmentable()
             {
+            }
+
+            @Override
+            public void verbatim()
+            {
+                downstreamVerbatim = true;
             }
 
             @Override
@@ -2257,6 +2305,7 @@ public final class JsonSchemaImpl implements JsonSchema
 
         private JsonController upstreamControl;
         private Eval eval;
+        private boolean downstreamVerbatim;
 
         private Validator()
         {
@@ -2284,6 +2333,8 @@ public final class JsonSchemaImpl implements JsonSchema
                 // Eval is not fragment-aware: a value spanning windows must be reassembled before it can be
                 // validated against any keyword. Decline the fragment (consumed(0), do not forward) so the
                 // source accumulates it and re-presents the value whole on a later window; only then validate.
+                // The verbatim cursor is advanced by the pump's STARVED-path flush, so it tracks the parse
+                // frontier across windows without the validator forwarding partial values.
                 control.consumed(0);
                 status = Status.STARVED;
             }
@@ -2296,14 +2347,14 @@ public final class JsonSchemaImpl implements JsonSchema
                 {
                     throw new JsonValidationException(diagnostics);
                 }
-                Status downstream = sink.feed(decline, source, event);
+                Status downstream = sink.feed(decline, source, forward(event));
                 status = verdictStatus(verdict, downstream);
             }
             else
             {
                 // structural events and keys forward first, preserving the emit-then-reject ordering (e.g. a
                 // missing required property is detected at END_OBJECT only after the object has been emitted)
-                Status downstream = sink.feed(decline, source, event);
+                Status downstream = sink.feed(decline, source, forward(event));
                 Verdict verdict = eval.feed(toEvent(event), source);
                 // throw a descriptive exception at the point of detection so the pipeline maps it to REJECTED
                 // and pushes the diagnostic to the reporter, rather than rejecting structurally with no message
@@ -2314,6 +2365,42 @@ public final class JsonSchemaImpl implements JsonSchema
                 status = verdictStatus(verdict, downstream);
             }
             return status;
+        }
+
+        @Override
+        public Status resume(
+            JsonController control,
+            JsonSource source,
+            JsonEvent event,
+            JsonSink sink)
+        {
+            // continue the in-flight value the same way it was fed: re-assert verbatim so the sink resumes its
+            // byte copy rather than a canonical re-render of the structured event that suspended
+            upstreamControl = control;
+            return sink.resume(decline, source, forward(event));
+        }
+
+        @Override
+        public Status flush(
+            JsonController control,
+            JsonSource source,
+            JsonSink sink)
+        {
+            // the validator mediates: give the sink the same Decline controller it sees in feed(), so an
+            // end-of-feed drain (e.g. a verbatim sink pulling bytes consumed during lookahead) routes any
+            // pushback back through the validator to the parser
+            upstreamControl = control;
+            return sink.flush(decline, source);
+        }
+
+        // Re-asserts verbatim downstream: once the sink has opted in, a body event (a scalar, key, or structural
+        // event — not document framing or a segment) is forwarded as a VERBATIM event so the sink copies the
+        // original source bytes; the validator still feeds eval the real event to apply schema rules.
+        private JsonEvent forward(
+            JsonEvent event)
+        {
+            boolean body = event != JsonEvent.START_DOCUMENT && event != JsonEvent.END_DOCUMENT && !event.segmented();
+            return downstreamVerbatim && body ? JsonEvent.VERBATIM : event;
         }
 
         private Status verdictStatus(
@@ -2330,6 +2417,7 @@ public final class JsonSchemaImpl implements JsonSchema
         {
             diagnostics.clear();
             eval = eval(new Trace(diagnostics::add));
+            downstreamVerbatim = false;
         }
     }
 
