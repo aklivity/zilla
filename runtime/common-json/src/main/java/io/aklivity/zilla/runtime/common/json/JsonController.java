@@ -28,8 +28,24 @@ public interface JsonController
     void segmentable();
 
     /**
-     * Reports {@code sourceBytes} source bytes consumed by a verbatim segment write so the upstream
-     * advances its consumed stream position and re-exposes the value remainder on resume.
+     * Opts in to receiving {@link JsonEvent#isVerbatim()} events: the caller is willing to read the current
+     * value (and the run it coalesces into) as original source bytes via {@link JsonSource#getVerbatim(int)}
+     * <em>alongside</em> the structured event stream, rather than re-serializing it canonically. Peer of
+     * {@link #segmentable()} but additive, not substitutive — a mediating stage (e.g. a validator) absorbs the
+     * request upstream (it still takes structured events to inspect) and re-asserts it downstream (it emits
+     * verbatim events to its sink). Best-effort and demand-gated; when unset the upstream does no verbatim
+     * tracking. The default does nothing, for an upstream that does not retain source bytes.
+     */
+    default void verbatim()
+    {
+    }
+
+    /**
+     * Reports {@code sourceBytes} source bytes consumed by a bounded value write where output width differs
+     * from source width (a structured scalar the generator quotes/escapes, or a number lexeme it emits), so
+     * the upstream advances its consumed cursor and re-exposes the remainder on resume. The 1:1 raw-copy paths
+     * ({@link JsonSource#getSegment()}, {@link JsonSource#getVerbatim(int)}) are pre-bounded pulls and never
+     * call this.
      */
     default void consumed(
         int sourceBytes)

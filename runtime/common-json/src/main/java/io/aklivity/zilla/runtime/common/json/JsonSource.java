@@ -63,6 +63,22 @@ public interface JsonSource
     DirectBuffer getSegment();
 
     /**
+     * Bounded pull of the coalesced <em>verbatim</em> run: the original source bytes parsed since the last
+     * call, at most {@code limit} of them, advancing the verbatim cursor by exactly that. Valid on a
+     * {@link JsonEvent#isVerbatim()} or {@link JsonEvent} {@code STRUCTURED} event when the consumer has opted
+     * in via {@link JsonController#verbatim()}; lets a stage that inspects structure (e.g. a validator)
+     * reproduce the input byte-for-byte without the canonical re-serialization a structured replay imposes.
+     * The splice is 1:1, so the caller pre-sizes {@code limit} to its free output space and the returned
+     * bytes always fit — no {@link JsonController#consumed(int)} report is needed on this path. The default
+     * declines, for a source that does not track verbatim runs.
+     */
+    default DirectBuffer getVerbatim(
+        int limit)
+    {
+        throw new UnsupportedOperationException();
+    }
+
+    /**
      * Whether the current value has bytes still deferred to later events — {@code true} while more of
      * this same value follows (the value is being streamed across input frames because it exceeds the
      * input window), {@code false} when this event completes it. A JSON string is quote-delimited, so

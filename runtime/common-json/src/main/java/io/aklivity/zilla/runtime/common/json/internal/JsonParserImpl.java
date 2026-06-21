@@ -57,6 +57,7 @@ public final class JsonParserImpl implements JsonParserEx
     private final JsonTokenizer tokenizer;
     private final JsonLocationImpl location;
     private final UnsafeBuffer segmentView = new UnsafeBuffer(0, 0);
+    private final UnsafeBuffer verbatimView = new UnsafeBuffer(0, 0);
 
     private Event currentEvent;
     private JsonEvent lastEvent;
@@ -73,6 +74,10 @@ public final class JsonParserImpl implements JsonParserEx
     // exposes the unconsumed remainder from here and consumed() advances it, so a resumed bounded write
     // continues where the output bound left off
     private int stringViewOffset;
+    // stream offset up to which verbatim bytes have already been pulled via getVerbatim(): the run not yet
+    // handed out is [verbatimCursor, parse-frontier); each bounded pull advances this cursor by what it
+    // returned, so the source can discard flushed bytes and retain only the unpulled remainder
+    private long verbatimCursor;
     private final StringView stringViewRO = new StringView();
 
     private enum SegmentState
@@ -174,6 +179,7 @@ public final class JsonParserImpl implements JsonParserEx
         segmentConsumed = 0;
         armNextValue = false;
         stringViewOffset = 0;
+        verbatimCursor = 0;
         lastEvent = null;
         currentEvent = null;
         docState = DocState.NOT_STARTED;
@@ -586,6 +592,21 @@ public final class JsonParserImpl implements JsonParserEx
         // re-expose the unconsumed remainder of the segment slice after consumed() pushback, append-only
         segmentView.wrap(ownedInput.buffer(), segmentSliceOffset + segmentConsumed, segmentSliceLength - segmentConsumed);
         return segmentView;
+    }
+
+    @Override
+    public DirectBuffer getVerbatim(
+        int limit)
+    {
+        // the run not yet pulled is [verbatimCursor, parse-frontier) in stream-offset space; hand out at most
+        // `limit` source bytes of it as an on-stack view and advance the cursor by exactly that, so the splice
+        // is 1:1 and the next pull continues with neither gap nor overlap
+        final long frontier = tokenizer.streamOffset();
+        final int available = (int) (frontier - verbatimCursor);
+        final int length = Math.min(available, limit);
+        verbatimView.wrap(ownedInput.buffer(), bufferOffset(verbatimCursor), length);
+        verbatimCursor += length;
+        return verbatimView;
     }
 
     @Override

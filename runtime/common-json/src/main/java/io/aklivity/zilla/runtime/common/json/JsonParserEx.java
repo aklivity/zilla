@@ -142,6 +142,23 @@ public interface JsonParserEx extends JsonParser
     DirectBuffer getSegment();
 
     /**
+     * Bounded pull of the coalesced <em>verbatim</em> run — the original source bytes parsed since the last
+     * {@code getVerbatim} call — returning at most {@code limit} bytes (a non-owning, on-stack view) and
+     * advancing the verbatim cursor by exactly that, so the next call continues the run with no gap or
+     * overlap. Unlike {@link #getSegment()} this is valid alongside the structured event stream (the parser
+     * keeps delivering typed events; this reads their underlying bytes), letting a stage inspect structure
+     * yet reproduce the input byte-for-byte. The pull is denominated in source bytes and the splice is 1:1,
+     * so the caller pre-bounds it to its free output space and never needs {@link JsonController#consumed(int)}
+     * to report partial progress. The {@link JsonSource#getVerbatim(int)} accessor promoted onto the parser
+     * surface.
+     */
+    default DirectBuffer getVerbatim(
+        int limit)
+    {
+        throw new UnsupportedOperationException();
+    }
+
+    /**
      * Whether the current value has bytes still deferred to later events — {@code true} while more of this same
      * value follows (the value is being streamed across input frames because it exceeds the input window),
      * {@code false} when this event completes it. The {@link JsonSource#deferredBytes()} accessor promoted onto
