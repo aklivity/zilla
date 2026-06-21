@@ -24,7 +24,7 @@ which suppresses the structured events the validator needs.
 | relation to structure | substitutive (replaces inner events) | additive (rides alongside events) |
 | consumer sees | structure **or** bytes | structure **and** bytes |
 | purpose | skip tokenizing (nobody inspects) | preserve bytes while inspecting (validate) |
-| accessor | `getSegment()`, valid on `segmented()` | `getVerbatim()`, valid on `VERBATIM` |
+| accessor | `getSegment()`, valid on `segmented()` | `getVerbatim(limit)`, valid on `VERBATIM`/`STRUCTURED` |
 | opt-in | `JsonController.segmentable()` | `JsonController.verbatim()` |
 
 `VERBATIM` events are **not** `segmented()`. A `VERBATIM` event is best understood as a
@@ -36,8 +36,10 @@ The generator's only branch is "do I have verbatim bytes to copy here, or do I g
 
 - `JsonEvent.VERBATIM` — `segmented()` returns false; add `isVerbatim()`. Treated as a
   `STRUCTURED` flavor (see `getPosition()` below).
-- `JsonSource.getVerbatim()` — covering source slice; valid on a `STRUCTURED` **or**
-  `VERBATIM` event (they are integrated; a `VERBATIM` event is the coalesced-run case).
+- `JsonSource.getVerbatim(int limit)` — **bounded pull**: returns at most `limit` source bytes of
+  the run (the generator passes its free output space, so it never over-pulls); valid on a
+  `STRUCTURED` **or** `VERBATIM` event. The return amount is the source-consumption signal, so
+  `controller.consumed()` is **not** widened — it stays value-relative for `SEGMENT`.
 - `JsonSource.getPosition()` — lazy `JsonPosition` (container-anchored; see section below); valid
   on `STRUCTURED` or `VERBATIM` events; only consumed to seed the generator on a verbatim→inject
   transition (Phase 3).
@@ -64,9 +66,9 @@ copy-vs-generate dispatch (Phase 3 inject).
 
 ## Q1 — the verbatim cursor (no extra skip signal)
 
-The parser holds one **verbatim cursor**. `getVerbatim()` returns `[cursor, currentEventEnd)`
-and advances `cursor`. Per source-backed value (or per coalesced run) the sink does exactly
-one of:
+The parser holds one **verbatim cursor**. `getVerbatim(limit)` returns up to `limit` bytes from
+`[cursor, producedFrontier)` and advances `cursor` by the amount returned. Per source-backed value
+(or per coalesced run) the sink does exactly one of:
 
 - **passthrough** — call `getVerbatim()`, copy the bytes (cursor advances).
 - **mutate** — call `getVerbatim()`, ignore the bytes, write canonical (cursor still advances,
@@ -144,26 +146,38 @@ Two backpressure levels:
 2. **cross-call** — downstream `WINDOW` is exhausted: stop, push back to the source, **return from
    `feed()`**, resume on a later `WINDOW`/`feed()`.
 
-The cross-call path must push back. `consumed(N)` propagates **from the generator through the
-validator to the source** (the run's bytes are the source's bytes) and advances a byte-granular
-**output stream offset**. The source then **discards `[…, offset)`** — freeing the input buffer
-for new data — and **retains `[offset, validatedEnd)`**, the already-validated but not-yet-flushed
-remainder. On the next `feed()` the source re-presents that retained region to be **re-flushed,
-not re-parsed**, interleaved with newly arrived bytes for incremental decode. This is the
-byte/stream-offset generalization of per-token `consumed()`: it spans the multi-event run because
-it counts bytes, and it terminates at the **source** (which owns the cross-call buffer), not the
-validator.
+The cross-call path pushes back via a **bounded pull**, not a post-hoc consumed report:
+`getVerbatim(int limit)` — the generator passes its free output space, so the source returns at
+most `limit` bytes of the run and the generator copies **all** of them (fits by construction).
+This keeps things clean:
 
-Consequence — **bound the parse/coalesce-ahead.** The retained "validated, pending-flush" region
-occupies the source's buffer, so validation must not run arbitrarily far past the output stream
-offset; the verbatim build is bounded by available output + retention budget. ("Anticipate sink
-space" was right after all — not by pre-sizing each run, but by not letting parse-ahead outrun the
-output offset by more than the retention budget.)
+- **`controller.consumed(N)` is unchanged** — still value/scalar-relative, used only by the
+  `SEGMENT` path. There is no partial-consumption to report on the verbatim path because the pull
+  is pre-bounded.
+- `getVerbatim(limit)` is **source-byte-denominated and 1:1** (a raw copy), so the source advances
+  its run cursor by *exactly what it returned* — no output→input translation, and **no transform
+  maintains an output stream position or added/removed math**. The return amount *is* the
+  consumption signal: handing out X bytes ⇒ X source bytes flushable ⇒ source discards
+  `[runStart, runStart+X)`, retains `[X, validatedEnd)` for the next pull. (Source-byte
+  consumption overall = `getVerbatim`-returned + `skip()`-ed; injected bytes are generated
+  separately and never touch this.)
+- **Retention splits cleanly:** un-pulled bytes stay in the source's input buffer
+  `[pullCursor, validatedEnd)`; pulled-but-not-yet-drained bytes sit in the generator's bounded
+  scratch (it only pulled `limit` = its free space). Both bounded; neither needs reconciliation.
+  `limit` need not respect token boundaries — a raw copy splits anywhere.
 
-This is Zilla's normal stream flow control — decode-slot retention, `WINDOW`-gated emission,
-ACK-on-consume — applied to the verbatim flush, not bypassed. It implies the binding<->model
-contract must carry "bytes consumed / still pending" across calls (more than `validate()`'s
-current pass/fail return) so the un-flushed output is re-driven on subsequent calls.
+Two backpressure levels still apply: **within-call** the generator pulls `getVerbatim(limit)` to
+fill its scratch and drains to `next`; **cross-call**, when `WINDOW` is exhausted it stops pulling,
+returns from `feed()`, and resumes on a later `WINDOW`/`feed()` — the source meanwhile holds the
+un-pulled remainder.
+
+Consequence — **bound the parse/coalesce-ahead.** The retained un-pulled region occupies the
+source's buffer, so validation must not run arbitrarily far past `pullCursor`; the verbatim build
+is bounded by a retention budget. ("Anticipate sink space" was right after all — as a retention
+cap, not per-run pre-sizing.) This is Zilla's normal flow control (decode-slot retention,
+`WINDOW`-gated emission) applied to the flush; the binding<->model contract still carries
+"bytes still pending" across calls so the un-flushed output is re-driven, but via the bounded pull
+rather than a widened `consumed()`.
 
 ## Phasing
 
