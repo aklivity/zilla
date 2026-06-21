@@ -1,7 +1,9 @@
 # Verbatim validate path — design
 
-Status: design converged; Phase 1 implementation pending (build not runnable in the
-authoring environment). Tracking branch: `claude/blissful-newton-pcpyx9`.
+Status: design converged; Phase 1 implementation in progress. The `common-json` module **does
+build and test** in this environment (it depends only on Maven Central artifacts + agrona, with
+no `flyweight-maven-plugin` SNAPSHOT dependency — unlike `model-json`), so the implementation is
+verified here against the existing test suite. Tracking branch: `claude/blissful-newton-pcpyx9`.
 
 ## Problem
 
@@ -24,8 +26,26 @@ which suppresses the structured events the validator needs.
 | relation to structure | substitutive (replaces inner events) | additive (rides alongside events) |
 | consumer sees | structure **or** bytes | structure **and** bytes |
 | purpose | skip tokenizing (nobody inspects) | preserve bytes while inspecting (validate) |
-| accessor | `getSegment()`, valid on `segmented()` | `getVerbatim(limit)`, valid on `VERBATIM`/`STRUCTURED` |
+| accessor | `getSegment(limit)`, valid on `segmented()` | `getVerbatim(limit)`, valid on `VERBATIM`/`STRUCTURED` |
 | opt-in | `JsonController.segmentable()` | `JsonController.verbatim()` |
+
+### Bounded pull vs `consumed()` — the ratio decides
+
+Both raw byte primitives become **bounded pulls** denominated in source bytes; only the
+output-expanding path keeps a post-hoc `consumed()` report.
+
+| path | source→output | accessor | flow control |
+|---|---|---|---|
+| `SEGMENT` (raw subtree bytes) | 1:1 | `getSegment(int limit)` | bounded pull; **no `consumed()`** |
+| `VERBATIM` (raw run bytes) | 1:1 | `getVerbatim(int limit)` | bounded pull; **no `consumed()`** |
+| structured scalar generate/escape | 1:N (quote, escape, lexeme) | char view + `writeScalar` | **`consumed(N)`** kept — one source unit may expand to several output bytes, so the bound is hit mid-value and the consumed source-unit count must be reported back |
+
+The pull is pre-bounded to the generator's free output space, so a 1:1 copy always fits whole
+and the source advances its cursor by exactly what it returned — no output→input translation, no
+`consumed()`. `consumed()` survives **only** where output width ≠ source width (escaping a string,
+emitting a number lexeme), the one place the generator cannot pre-size the pull. This is the
+symmetry the user asked for: `getSegment`/`getVerbatim` are pull-bounded and `consumed`-free;
+`consumed()` is now *exclusively* the partial-value (generate/escape) signal.
 
 `VERBATIM` events are **not** `segmented()`. A `VERBATIM` event is best understood as a
 **`STRUCTURED` event that also carries a coalesced byte run** — the two are one integrated
@@ -39,7 +59,13 @@ The generator's only branch is "do I have verbatim bytes to copy here, or do I g
 - `JsonSource.getVerbatim(int limit)` — **bounded pull**: returns at most `limit` source bytes of
   the run (the generator passes its free output space, so it never over-pulls); valid on a
   `STRUCTURED` **or** `VERBATIM` event. The return amount is the source-consumption signal, so
-  `controller.consumed()` is **not** widened — it stays value-relative for `SEGMENT`.
+  `controller.consumed()` is **not** invoked on this path.
+- `JsonSource.getSegment(int limit)` — the existing `SEGMENT` accessor, narrowed to the **same
+  bounded-pull shape** for symmetry: returns at most `limit` source bytes of the segment slice and
+  advances the segment cursor by exactly that. A `SEGMENT` is a 1:1 raw splice, so the generator
+  passes its free space and copies the whole returned slice — `controller.consumed()` is **no
+  longer called on the segment path** (it was the only caller for raw copies). `consumed()` now
+  serves *only* the structured generate/escape path (1:N), where output width ≠ source width.
 - `JsonSource.getPosition()` — lazy `JsonPosition` (container-anchored; see section below); valid
   on `STRUCTURED` or `VERBATIM` events; only consumed to seed the generator on a verbatim→inject
   transition (Phase 3).
@@ -50,8 +76,10 @@ The generator's only branch is "do I have verbatim bytes to copy here, or do I g
 - Default stays `STRUCTURED` (canonical) for generic consumers; only the model-json validate
   handler opts in.
 
-Reused, not new: `JsonController.consumed(int)` (output backpressure drain, Q3),
-`JsonSource.deferredBytes()` (a `VERBATIM` run delivered in output-sized pieces),
+Reused, not new: `JsonController.consumed(int)` — but **re-scoped**: no longer the raw-copy
+backpressure signal (the bounded `getSegment`/`getVerbatim` pulls replace it there); it now fires
+*only* on the structured generate/escape path where one source unit expands to several output
+bytes. `JsonSource.deferredBytes()` (a `VERBATIM` run delivered in output-sized pieces),
 `reset()` (resets the verbatim cursor + frame stack per document).
 
 Correction vs an earlier draft: there is **no** `JsonParserEx.Mode.VERBATIM`. `SEGMENTED`
@@ -151,9 +179,11 @@ The cross-call path pushes back via a **bounded pull**, not a post-hoc consumed 
 most `limit` bytes of the run and the generator copies **all** of them (fits by construction).
 This keeps things clean:
 
-- **`controller.consumed(N)` is unchanged** — still value/scalar-relative, used only by the
-  `SEGMENT` path. There is no partial-consumption to report on the verbatim path because the pull
-  is pre-bounded.
+- **`controller.consumed(N)` is re-scoped, not widened** — with `getSegment` now also a bounded
+  pull, *no* raw-copy path calls `consumed()` any more. It survives only on the structured
+  generate/escape path (1:N), where the bound is hit mid-value and the consumed source-unit count
+  is genuinely needed. There is no partial-consumption to report on the verbatim/segment paths
+  because the pull is pre-bounded.
 - `getVerbatim(limit)` is **source-byte-denominated and 1:1** (a raw copy), so the source advances
   its run cursor by *exactly what it returned* — no output→input translation, and **no transform
   maintains an output stream position or added/removed math**. The return amount *is* the
