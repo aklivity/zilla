@@ -1196,6 +1196,13 @@ public final class JsonSchemaImpl implements JsonSchema
         }
 
         @Override
+        public DirectBuffer getVerbatim(
+            int limit)
+        {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
         public boolean deferredBytes()
         {
             return false;
@@ -1974,6 +1981,13 @@ public final class JsonSchemaImpl implements JsonSchema
         }
 
         @Override
+        public DirectBuffer getVerbatim(
+            int limit)
+        {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
         public boolean deferredBytes()
         {
             return false;
@@ -2215,6 +2229,13 @@ public final class JsonSchemaImpl implements JsonSchema
         public DirectBuffer getSegment()
         {
             return delegateEx.getSegment();
+        }
+
+        @Override
+        public DirectBuffer getVerbatim(
+            int limit)
+        {
+            return delegateEx.getVerbatim(limit);
         }
 
         @Override

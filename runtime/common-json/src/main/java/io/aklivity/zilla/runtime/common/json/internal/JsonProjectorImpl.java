@@ -736,6 +736,13 @@ public final class JsonProjectorImpl implements JsonTransform
         }
 
         @Override
+        public DirectBuffer getVerbatim(
+            int limit)
+        {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
         public boolean deferredBytes()
         {
             return false;

@@ -152,11 +152,8 @@ public interface JsonParserEx extends JsonParser
      * to report partial progress. The {@link JsonSource#getVerbatim(int)} accessor promoted onto the parser
      * surface.
      */
-    default DirectBuffer getVerbatim(
-        int limit)
-    {
-        throw new UnsupportedOperationException();
-    }
+    DirectBuffer getVerbatim(
+        int limit);
 
     /**
      * Whether the current value has bytes still deferred to later events — {@code true} while more of this same

@@ -69,14 +69,11 @@ public interface JsonSource
      * in via {@link JsonController#verbatim()}; lets a stage that inspects structure (e.g. a validator)
      * reproduce the input byte-for-byte without the canonical re-serialization a structured replay imposes.
      * The splice is 1:1, so the caller pre-sizes {@code limit} to its free output space and the returned
-     * bytes always fit — no {@link JsonController#consumed(int)} report is needed on this path. The default
-     * declines, for a source that does not track verbatim runs.
+     * bytes always fit — no {@link JsonController#consumed(int)} report is needed on this path. A source that
+     * does not track verbatim runs rejects this (verbatim is opt-in via {@link JsonController#verbatim()}).
      */
-    default DirectBuffer getVerbatim(
-        int limit)
-    {
-        throw new UnsupportedOperationException();
-    }
+    DirectBuffer getVerbatim(
+        int limit);
 
     /**
      * Whether the current value has bytes still deferred to later events — {@code true} while more of
