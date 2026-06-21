@@ -182,6 +182,18 @@ public interface JsonGeneratorEx extends JsonGenerator
     JsonGeneratorEx seed(
         JsonPosition position);
 
+    /**
+     * Emits the leading structural separator for a verbatim value that does not carry its own — used when an
+     * injected value took a container's first slot, displacing the former-first member, whose verbatim bytes
+     * (having been first in the source) carry no leading comma. Honors the seeded occupancy: the innermost open
+     * container is known to already hold the injected member, so a comma is emitted before the displaced
+     * member's {@link #writeVerbatim(DirectBuffer, int, int)} run splices in. Unlike a member written through
+     * {@link #writeKey}, the verbatim copy bypasses the generator's separator machinery, so this restores it for
+     * the one displaced run. Distinct from the between-members case, where the following verbatim run carries
+     * the original separator and this is not called.
+     */
+    JsonGeneratorEx writeVerbatimSeparator();
+
     @Override
     JsonGeneratorEx writeStartObject();
 

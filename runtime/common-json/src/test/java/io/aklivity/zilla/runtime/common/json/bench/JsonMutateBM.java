@@ -73,6 +73,7 @@ public class JsonMutateBM
     // constants the transforms reuse, so no String/CharSequence is allocated per op
     private static final String DROP_KEY = "b";
     private static final String BEFORE_KEY = "c";
+    private static final String FIRST_KEY = "a";
     private static final String INJECT_KEY = "x";
     private static final String INJECT_VALUE = "9";
 
@@ -82,6 +83,7 @@ public class JsonMutateBM
 
     private JsonPipeline skipPipeline;
     private JsonPipeline injectPipeline;
+    private JsonPipeline injectFirstPipeline;
     private JsonPipeline passthroughPipeline;
 
     private UnsafeBuffer documentBuffer;
@@ -94,6 +96,10 @@ public class JsonMutateBM
             .transform(new Skip(DROP_KEY)).into(sink);
         injectPipeline = JsonEx.stream(JsonEx.createParser())
             .transform(new Inject(BEFORE_KEY, INJECT_KEY, INJECT_VALUE)).into(sink);
+        // inject before the container's first member: exercises the synthesized leading separator the
+        // displaced former-first member's verbatim bytes do not carry
+        injectFirstPipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(new Inject(FIRST_KEY, INJECT_KEY, INJECT_VALUE)).into(sink);
         // the verbatim passthrough control: forwards every event verbatim, no mutation
         passthroughPipeline = JsonEx.stream(JsonEx.createParser())
             .transform(new Passthrough()).into(sink);
@@ -113,6 +119,12 @@ public class JsonMutateBM
     public int injectMember()
     {
         return run(injectPipeline);
+    }
+
+    @Benchmark
+    public int injectBeforeFirstMember()
+    {
+        return run(injectFirstPipeline);
     }
 
     @Benchmark

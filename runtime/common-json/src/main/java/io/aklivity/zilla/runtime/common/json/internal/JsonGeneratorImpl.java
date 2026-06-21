@@ -529,6 +529,16 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     }
 
     @Override
+    public JsonGeneratorImpl writeVerbatimSeparator()
+    {
+        // the innermost container holds the just-injected member, so the displaced verbatim sibling that
+        // follows needs the leading separator its own bytes do not carry
+        assert depth > 0 && hasMembers[depth - 1];
+        putByte.accept(',');
+        return this;
+    }
+
+    @Override
     public JsonGeneratorImpl writeVerbatim(
         DirectBuffer source,
         int index,

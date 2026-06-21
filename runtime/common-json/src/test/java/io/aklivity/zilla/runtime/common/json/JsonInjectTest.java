@@ -49,6 +49,22 @@ class JsonInjectTest
             inject("b", "tag", JsonEvent.VALUE_STRING, "new", "{\"a\": 1, \"b\": 2}"));
     }
 
+    @Test
+    void shouldInjectMemberBeforeOnlyField()
+    {
+        // injecting before a container's first member displaces it to non-first: the seeded generator
+        // synthesizes the separator the displaced member's verbatim bytes do not carry
+        assertEquals("{\"x\":9,\"a\": 1}",
+            inject("a", "x", "9", "{\"a\": 1}"));
+    }
+
+    @Test
+    void shouldInjectMemberBeforeFirstOfManyFields()
+    {
+        assertEquals("{\"x\":9,\"a\": 1, \"b\": 2}",
+            inject("a", "x", "9", "{\"a\": 1, \"b\": 2}"));
+    }
+
     private static String inject(
         String beforeKey,
         String injectKey,

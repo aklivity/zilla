@@ -309,10 +309,12 @@ rather than a widened `consumed()`.
 
 ## Phasing
 
-**Status:** Phases 1, 2, and 3 implemented and verified in `common-json` (4818 tests green, JaCoCo
+**Status:** Phases 1, 2, and 3 implemented and verified in `common-json` (4820 tests green, JaCoCo
 class + 90% instruction gate met, checkstyle clean; model-json 25 + EventIT and mcp-http 11 unit
-unaffected). The prune semantic fork flagged below was settled when building Phase 2 (see the note);
-the symmetric inject-before-first-member separator case is the one piece still deferred.
+unaffected). The prune semantic fork flagged below was settled when building Phase 2 (see the note),
+and the symmetric inject-before-first-member separator case is now handled too (see the resolution
+note) — a generator `writeVerbatimSeparator()` synthesizes the leading separator the displaced
+former-first member's verbatim bytes do not carry.
 
 - **Phase 1 — validate fidelity (the CI fix). DONE.** `JsonEvent.VERBATIM` + `getVerbatim(int)` +
   `JsonController.verbatim()`; the validator emits `VERBATIM` events when its downstream opts in
@@ -329,28 +331,37 @@ the symmetric inject-before-first-member separator case is the one piece still d
   the parse frontier) onto the next verbatim pull — so an unoccupied container's dropped first member leaves
   the new-first survivor well-formed. The semantic fork below was settled here: trim whitespace **and** the
   single comma, so an empty container renders `{}` and a first-of-many drop keeps the survivor's spacing.
-  Covered by `JsonPruneTest` (drop middle / last / first / object-value / only-field).
+  Covered by `JsonSkipTest` (drop middle / last / first / object-value / only-field).
 - **Phase 3 — inject. DONE.** `JsonSource.getPosition()` returns a container-anchored `JsonPosition`
   (list of `JsonStep`: `START_*`/`CONTINUE_*`/terminal `KEY_NAME`), built lazily from the tokenizer's
   per-level occupancy (`pathOccupied`). The generator gains `seed(JsonPosition)` (push one frame per step,
   no emit) and an A5 seed-baseline assertion on `writeEnd`. The terminal sink seeds the generator from
   `getPosition()` on the first generated value after a verbatim copy (`seedPending`), so an injected member
   gets the correct leading separator without re-emitting the verbatim-written brackets; the following verbatim
-  run owns its own separator (no double comma). Covered by `JsonInjectTest` (the worked example — inject a
-  number member between two verbatim runs — plus a string-member variant). The `VERBATIM … STRUCTURED×N …
+  run owns its own separator (no double comma). Injecting before a container's *first* member is handled by
+  the mirror of the prune trim: the sink reads the seed occupancy and, when it is `START_*` (empty), sets
+  `separatorPending` so the displaced former-first member's verbatim run is preceded by a generator-synthesized
+  separator (`writeVerbatimSeparator()`) its own bytes do not carry. Covered by `JsonInjectTest` (the worked
+  example — inject a number member between two verbatim runs — a string-member variant, and inject-before-first
+  for the only-field and first-of-many cases). The `VERBATIM … STRUCTURED×N …
   VERBATIM` interleaving is exercised end-to-end.
 
 > **Resolution (Phases 2 & 3 built).** Phases 2 and 3 were implemented to validate that the verbatim
 > abstraction generalizes beyond validate. The **semantic fork** prune raised — dropping the first surviving
 > sibling leaves a dangling separator (`{"a": 1, "b": 2}` drop `a` → `{,"b": 2}` naively) — is settled by the
 > trim rule "skip leading whitespace, then a single comma, bounded to the parse frontier": a first-of-many
-> drop keeps the survivor's spacing (`{ "b" : 2 }`) and an only-field drop collapses to `{}`. One symmetric
-> case is **still deferred**: injecting *before* a container's first member makes the previously-first member
-> non-first, so its verbatim run (which owns no leading separator) would need one synthesized — the mirror of
-> the prune trim, on the generator side. No worked example in this doc needs it, and it carries the same
-> "whose separator, with what whitespace" fork; the implemented inject path therefore covers injection at any
-> position whose following verbatim run already carries a separator (the design's worked example). Revisit the
-> before-first case when a consumer requires it.
+> drop keeps the survivor's spacing (`{ "b" : 2 }`) and an only-field drop collapses to `{}`. The symmetric
+> inject case is now handled too: injecting *before* a container's first member makes the previously-first
+> member non-first, so its verbatim run (which owns no leading separator) needs one synthesized — the mirror
+> of the prune trim, on the generator side. The information is already present (the seed occupancy: `START_*`
+> means the container was empty, so the injected value takes the first slot and the displaced member needs a
+> separator), and the generator already has the comma machinery, so it is an additive signal — `separatorPending`
+> in the sink, consumed by a single `writeVerbatimSeparator()` before the displaced run — not a break of
+> "verbatim owns its separator". The synthesized comma is emitted compact (`,`), matching the canonical injected
+> member (`"x":9`); there is nothing to preserve since it has no source bytes. The one position not covered is
+> injecting into a genuinely *empty* container (no member to displace), which is a different operation (append)
+> with its own complication — `getPosition()` at the container's close reports the popped, outer context — and
+> is left for a consumer that needs it.
 
 ## Tests (Phase 1, test-first)
 
@@ -413,13 +424,14 @@ the generator's pending flag (no double comma).
 ## Open items
 
 - Names, as built: `getVerbatim()` / `skipValue()` / `getPosition()` / `JsonPosition` / `JsonStep` /
-  `JsonController.verbatim()` / `JsonEvent.VERBATIM` / generator `seed(JsonPosition)`. The Phase-2 prune
-  primitive landed as `JsonSource.skipValue()` rather than the earlier `JsonController.skip()` sketch (the
-  occupancy/trim is the source's, not a controller signal). `getPointer()` was renamed `getPosition()` to
-  match the `JsonPosition` return type.
+  `JsonController.verbatim()` / `JsonEvent.VERBATIM` / generator `seed(JsonPosition)` / generator
+  `writeVerbatimSeparator()`. The Phase-2 prune primitive landed as `JsonSource.skipValue()` rather than the
+  earlier `JsonController.skip()` sketch (the occupancy/trim is the source's, not a controller signal).
+  `getPointer()` was renamed `getPosition()` to match the `JsonPosition` return type.
 - `JsonPosition` is consumed only at inject; the implemented form carries one `JsonStep` per open level with
   occupancy folded into the kind (`START_*` empty, `CONTINUE_*` occupied), and the generator seeds one frame
   per step. The terminal `KEY_NAME` step (after-key cut) and array-injection steps are wired in `seed` but not
   yet exercised by a test — they fall out the same way and gain coverage when an after-key / array consumer lands.
-- Still open: inject **before** a container's first member (the separator the now-non-first survivor needs is
-  the mirror of the prune trim, on the generator side) — see the resolution note under *Phasing*.
+- Still open: injecting into a genuinely **empty** container (append, no member to displace) — distinct from
+  inject-before-first, which is implemented; the close-time `getPosition()` reports the popped outer context,
+  so it needs its own handling. See the resolution note under *Phasing*.

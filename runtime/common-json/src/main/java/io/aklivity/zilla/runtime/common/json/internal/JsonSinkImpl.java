@@ -21,8 +21,10 @@ import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx.Completion;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
+import io.aklivity.zilla.runtime.common.json.JsonPosition;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonSource;
+import io.aklivity.zilla.runtime.common.json.JsonStep;
 
 /**
  * Terminal {@link JsonSink} that materializes each fed event into the corresponding {@code writeXxx}
@@ -51,6 +53,10 @@ public final class JsonSinkImpl implements JsonSink
     // structural state stale (the verbatim bytes bypassed its state machine), so the next injected structured
     // value seeds from getPosition() before emitting — the verbatim->inject transition (Q2/A2)
     private boolean seedPending;
+    // set when an injection seeds into an empty container: the injected value takes the first slot, so the
+    // displaced former-first member (the next verbatim run) needs a synthesized leading separator its own
+    // bytes do not carry — the mirror of the prune leading-separator trim, on the inject side
+    private boolean separatorPending;
 
     public JsonSinkImpl(
         JsonGeneratorEx generator)
@@ -110,6 +116,13 @@ public final class JsonSinkImpl implements JsonSink
             // bypasses the generator state machine, so mark it stale for a following injected value to re-seed.
             verbatimSeen = true;
             seedPending = true;
+            if (separatorPending)
+            {
+                // this run is the former-first member an injection displaced; its bytes carry no leading
+                // separator, so the seeded generator synthesizes one before the splice
+                generator.writeVerbatimSeparator();
+                separatorPending = false;
+            }
             status = writeVerbatim(source);
             break;
         case VALUE_TRUE:
@@ -189,6 +202,7 @@ public final class JsonSinkImpl implements JsonSink
         depth = 0;
         verbatimSeen = false;
         seedPending = false;
+        separatorPending = false;
         generator.reset();
     }
 
@@ -200,9 +214,30 @@ public final class JsonSinkImpl implements JsonSink
     {
         if (seedPending)
         {
-            generator.seed(source.getPosition());
+            final JsonPosition position = source.getPosition();
+            generator.seed(position);
+            // injecting into an empty container displaces no existing member only if the container has none;
+            // when it does have a first member, that member's verbatim run follows and needs the synthesized
+            // separator the injected value's occupancy of the first slot now requires
+            separatorPending = startsEmpty(position);
             seedPending = false;
         }
+    }
+
+    // Whether the insertion container is entered-but-empty (its terminal step is START_*), so an injected value
+    // takes its first slot; a CONTINUE_* container already has a member whose following sibling carries its own
+    // separator.
+    private static boolean startsEmpty(
+        JsonPosition position)
+    {
+        final int depth = position.depth();
+        boolean empty = false;
+        if (depth > 0)
+        {
+            final JsonStep step = position.step(depth - 1);
+            empty = step == JsonStep.START_OBJECT || step == JsonStep.START_ARRAY;
+        }
+        return empty;
     }
 
     // Whether the suspended event still has value bytes/chars left to write, read from the source cursor —
