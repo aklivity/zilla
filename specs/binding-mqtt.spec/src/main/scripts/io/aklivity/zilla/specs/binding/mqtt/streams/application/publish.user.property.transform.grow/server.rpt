@@ -60,7 +60,7 @@ connected
 read zilla:data.ext ${mqtt:matchDataEx()
                             .typeId(zilla:id("mqtt"))
                             .publish()
+                                .userProperty("my-user-property", "12345123")
                                 .build()
                             .build()}
-
-read "1234567890123123"
+read "hello"

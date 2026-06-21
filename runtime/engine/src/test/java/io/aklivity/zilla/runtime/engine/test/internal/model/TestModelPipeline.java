@@ -94,13 +94,15 @@ final class TestModelPipeline implements ModelPipeline
         }
         else if (tail && transformLength >= 0)
         {
-            // whole-value transform: pad or truncate the value to the configured transformed length
+            // whole-value transform: truncate, or grow by stamping the original value repeatedly,
+            // clipped to the configured transformed length
             processed = total;
             final int copy = Math.min(available, transformLength);
             dst.putBytes(dstIndex, src, srcIndex, copy);
             for (int index = copy; index < transformLength; index++)
             {
-                dst.putByte(dstIndex + index, (byte) 0);
+                final byte stamp = available > 0 ? src.getByte(srcIndex + index % available) : (byte) 0;
+                dst.putByte(dstIndex + index, stamp);
             }
             consumed = available;
             produced = transformLength;

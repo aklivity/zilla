@@ -157,6 +157,16 @@ public class PublishIT
     }
 
     @Test
+    @Configuration("server.user.property.transform.grow.yaml")
+    @Specification({
+        "${net}/publish.user.property.transform.grow/client",
+        "${app}/publish.user.property.transform.grow/server"})
+    public void shouldPublishUserPropertyTransformGrow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.yaml")
     @Specification({
         "${net}/publish.retained/client",

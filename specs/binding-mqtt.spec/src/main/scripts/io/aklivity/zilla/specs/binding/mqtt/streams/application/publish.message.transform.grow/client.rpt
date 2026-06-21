@@ -65,4 +65,4 @@ write zilla:data.ext ${mqtt:dataEx()
                                 .build()
                              .build()}
 
-write "1234567890123" [0x00 0x00 0x00]
+write "1234567890123123"

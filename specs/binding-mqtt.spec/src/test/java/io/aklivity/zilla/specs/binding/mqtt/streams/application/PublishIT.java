@@ -247,6 +247,15 @@ public class PublishIT
 
     @Test
     @Specification({
+        "${app}/publish.user.property.transform.grow/client",
+        "${app}/publish.user.property.transform.grow/server"})
+    public void shouldPublishUserPropertyTransformGrow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/publish.unroutable/client",
         "${app}/publish.unroutable/server"})
     public void shouldRejectUnroutable() throws Exception

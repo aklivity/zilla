@@ -14,21 +14,19 @@
 # under the License.
 #
 
-accept "zilla://streams/app0"
-        option zilla:window 8192
-        option zilla:transmission "duplex"
-
-accepted
-
-read zilla:begin.ext ${mqtt:matchBeginEx()
-                             .typeId(zilla:id("mqtt"))
-                             .session()
-                                .flags("CLEAN_START")
-                                .clientId("client")
-                                .build()
-                             .build()}
+connect "zilla://streams/app0"
+         option zilla:window 8192
+         option zilla:transmission "duplex"
 
 write zilla:begin.ext ${mqtt:beginEx()
+                            .typeId(zilla:id("mqtt"))
+                            .session()
+                              .flags("CLEAN_START")
+                              .clientId("client")
+                              .build()
+                            .build()}
+
+read zilla:begin.ext ${mqtt:matchBeginEx()
                               .typeId(zilla:id("mqtt"))
                               .session()
                                 .flags("CLEAN_START")
@@ -42,25 +40,30 @@ write zilla:begin.ext ${mqtt:beginEx()
 
 connected
 
-write zilla:data.empty
-write flush
+read zilla:data.empty
+read notify RECEIVED_SESSION_STATE
 
-accepted
 
-read zilla:begin.ext ${mqtt:matchBeginEx()
-                             .typeId(zilla:id("mqtt"))
-                             .publish()
+connect await RECEIVED_SESSION_STATE
+        "zilla://streams/app0"
+         option zilla:window 8192
+         option zilla:transmission "duplex"
+
+write zilla:begin.ext ${mqtt:beginEx()
+                              .typeId(zilla:id("mqtt"))
+                              .publish()
                                 .clientId("client")
                                 .topic("sensor/one")
                                 .build()
-                             .build()}
+                              .build()}
 
 connected
 
-read zilla:data.ext ${mqtt:matchDataEx()
+write zilla:data.ext ${mqtt:dataEx()
                             .typeId(zilla:id("mqtt"))
                             .publish()
+                                .userProperty("my-user-property", "12345123")
                                 .build()
                             .build()}
-
-read "1234567890123123"
+write "hello"
+write flush
