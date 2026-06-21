@@ -58,6 +58,11 @@ public final class JsonSinkImpl implements JsonSink
         JsonSource source,
         JsonEvent event)
     {
+        if (delivery == Delivery.VERBATIM)
+        {
+            return boundary(feedVerbatim(control, source, event));
+        }
+
         Status status = Status.ADVANCED;
         switch (event)
         {
@@ -119,10 +124,38 @@ public final class JsonSinkImpl implements JsonSink
         JsonSource source,
         JsonEvent event)
     {
+        if (delivery == Delivery.VERBATIM)
+        {
+            return boundary(resumeVerbatim(source, event));
+        }
+
         // the pump supplies the event that suspended; continue only while its value still has an unwritten
         // remainder (a boundary drain after a completed value, or a structural event, leaves none)
         Status status = inFlight(source, event) ? writeValue(control, source, event) : Status.ADVANCED;
         return boundary(status);
+    }
+
+    @Override
+    public Status flush(
+        JsonController control,
+        JsonSource source)
+    {
+        Status status = Status.ADVANCED;
+        if (delivery == Delivery.VERBATIM)
+        {
+            // drain bytes the parser consumed during end-of-window lookahead (e.g. a separator after the last
+            // value) that no event pulled, so they are not lost when this window is replaced; the run cursor
+            // makes this a no-op when nothing trails the last pulled event
+            final int free = generator.remaining();
+            final DirectBuffer run = source.getVerbatim(free);
+            final int length = run.capacity();
+            if (length > 0)
+            {
+                generator.writeVerbatim(run, 0, length);
+            }
+            status = length < free ? Status.ADVANCED : Status.SUSPENDED;
+        }
+        return status;
     }
 
     @Override
@@ -243,6 +276,92 @@ public final class JsonSinkImpl implements JsonSink
             status = scalarStatus();
         }
         return status;
+    }
+
+    // Verbatim delivery: the structured event stream still arrives (so depth tracking and document completion
+    // work), but each event's original source bytes are copied straight through rather than re-serialized, so
+    // insignificant whitespace is preserved. The generator owns no separators here — the run is self-describing.
+    private Status feedVerbatim(
+        JsonController control,
+        JsonSource source,
+        JsonEvent event)
+    {
+        Status status;
+        switch (event)
+        {
+        case START_DOCUMENT:
+            control.verbatim();
+            status = Status.ADVANCED;
+            break;
+        case END_DOCUMENT:
+            status = Status.ADVANCED;
+            break;
+        case START_OBJECT:
+        case START_ARRAY:
+            depth++;
+            status = copyVerbatim(source, event);
+            break;
+        case END_OBJECT:
+        case END_ARRAY:
+            depth--;
+            status = copyVerbatim(source, event);
+            break;
+        default:
+            status = copyVerbatim(source, event);
+            break;
+        }
+        return status;
+    }
+
+    // Continues a verbatim run left in flight by a SUSPENDED drain: pull and copy the remainder of the run
+    // into the freshly drained buffer; the document completes once the run is fully drained on its terminal
+    // event. Same machinery as a fresh copy — the source cursor carries the resume position, so the sink keeps
+    // no state of its own.
+    private Status resumeVerbatim(
+        JsonSource source,
+        JsonEvent event)
+    {
+        return copyVerbatim(source, event);
+    }
+
+    // Copies as much of the pending verbatim run as fits the bounded output, advancing the source cursor by
+    // exactly what it returned. The pull is pre-bounded to the free output space, so a 1:1 copy always fits and
+    // the returned length is the drain signal: fewer bytes than asked for means the run reached the parse
+    // frontier (drained), so the value completes on a terminal event; a full-bound pull means the output bound
+    // capped the run, so suspend and resume against a freshly drained buffer.
+    private Status copyVerbatim(
+        JsonSource source,
+        JsonEvent event)
+    {
+        final int free = generator.remaining();
+        final DirectBuffer run = source.getVerbatim(free);
+        final int length = run.capacity();
+        if (length > 0)
+        {
+            generator.writeVerbatim(run, 0, length);
+        }
+        final boolean drained = length < free;
+        Status status;
+        if (!drained)
+        {
+            status = Status.SUSPENDED;
+        }
+        else
+        {
+            status = terminal(event) ? Status.COMPLETED : Status.ADVANCED;
+        }
+        return status;
+    }
+
+    // Whether the current verbatim event closes the top-level value: a value-yielding event at depth zero is a
+    // top-level scalar; an end event reaches depth zero when the outermost container closes.
+    private boolean terminal(
+        JsonEvent event)
+    {
+        boolean value = event == JsonEvent.VALUE_STRING || event == JsonEvent.VALUE_NUMBER ||
+            event == JsonEvent.VALUE_TRUE || event == JsonEvent.VALUE_FALSE || event == JsonEvent.VALUE_NULL;
+        boolean end = event == JsonEvent.END_OBJECT || event == JsonEvent.END_ARRAY;
+        return depth == 0 && (value || end);
     }
 
     // Suspends at an event boundary once the bounded output nears its limit, so the next event's write

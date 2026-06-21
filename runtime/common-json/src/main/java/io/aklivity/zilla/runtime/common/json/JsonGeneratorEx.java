@@ -156,6 +156,20 @@ public interface JsonGeneratorEx extends JsonGenerator
         int length,
         Completion completion);
 
+    /**
+     * Splices {@code length} bytes of an original-document run from {@code source} starting at {@code index}
+     * straight to the output with no interpretation — no structural separator, no escaping, no quoting: the
+     * run already carries its own braces, commas, colons, and whitespace. The copy is 1:1, so a caller
+     * pre-bounds the pull (via {@link JsonSource#getVerbatim(int)}) to {@link #remaining()} and the bytes
+     * always fit. Unlike {@link #writeSegment(DirectBuffer, int, int)} this does not drive the generator's
+     * structural state (it is a pure byte conduit), so it is used only in verbatim delivery where the source
+     * bytes are self-describing.
+     */
+    JsonGeneratorEx writeVerbatim(
+        DirectBuffer source,
+        int index,
+        int length);
+
     @Override
     JsonGeneratorEx writeStartObject();
 

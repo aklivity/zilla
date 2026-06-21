@@ -482,6 +482,21 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     }
 
     @Override
+    public JsonGeneratorImpl writeVerbatim(
+        DirectBuffer source,
+        int index,
+        int length)
+    {
+        // a pure byte conduit: the run is self-describing (it carries its own structure and whitespace), so no
+        // separator, escaping, or structural-state update — the caller pre-bounds the pull to remaining(), so
+        // the copy always fits
+        assert progress + length <= limit;
+        buffer.putBytes(progress, source, index, length);
+        progress += length;
+        return this;
+    }
+
+    @Override
     public void flush()
     {
     }

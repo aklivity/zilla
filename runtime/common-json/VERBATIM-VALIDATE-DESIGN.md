@@ -76,6 +76,21 @@ The generator's only branch is "do I have verbatim bytes to copy here, or do I g
 - Default stays `STRUCTURED` (canonical) for generic consumers; only the model-json validate
   handler opts in.
 
+- `JsonSink.flush(JsonController, JsonSource)` — **end-of-feed drain hook**. The pump calls it when the
+  input window is consumed before a terminal value (the `event == null` break, just before `STARVED`).
+  A verbatim sink pulls `getVerbatim()` here for bytes the parser consumed during end-of-window
+  lookahead (e.g. a separator after the last value) that no event pulled, writing them out **before the
+  window is replaced**. This is how cross-window fidelity is achieved **without any retention buffer**:
+  un-pulled bytes simply stay in the source's own input buffer until pulled, and `flush()` guarantees the
+  trailing lookahead bytes are pulled before that buffer goes away. Returns `SUSPENDED` if the bounded
+  output fills mid-drain (resume continues it, since `getVerbatim` is frontier-relative, not event-relative)
+  or `ADVANCED` otherwise. Default no-op.
+
+There is **no** `verbatimPending()` peek: `getVerbatim(limit)` is self-signalling — a return shorter than
+`limit` means the run reached the parse frontier (drained); a full-`limit` return means the output bound
+capped it (suspend, resume). This is the same `available − consumed` signal `writeChunk`/`writeScalar`
+already use, so no extra accessor is introduced.
+
 Reused, not new: `JsonController.consumed(int)` — but **re-scoped**: no longer the raw-copy
 backpressure signal (the bounded `getSegment`/`getVerbatim` pulls replace it there); it now fires
 *only* on the structured generate/escape path where one source unit expands to several output

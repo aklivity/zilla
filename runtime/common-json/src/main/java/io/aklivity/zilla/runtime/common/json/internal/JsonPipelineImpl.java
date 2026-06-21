@@ -106,6 +106,9 @@ public final class JsonPipelineImpl implements JsonPipeline
                 final JsonEvent event = parser.nextEvent(control.mode());
                 if (event == null)
                 {
+                    // the window is consumed mid-document: let the sink drain any end-of-feed work (e.g. a
+                    // verbatim run's bytes consumed during lookahead) before this window is replaced
+                    status = root.flush(control, source);
                     break;
                 }
                 status = root.feed(control, source, event);
@@ -194,6 +197,13 @@ public final class JsonPipelineImpl implements JsonPipeline
         public DirectBuffer getSegment()
         {
             return parser.getSegment();
+        }
+
+        @Override
+        public DirectBuffer getVerbatim(
+            int limit)
+        {
+            return parser.getVerbatim(limit);
         }
 
         @Override
