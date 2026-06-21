@@ -27,20 +27,40 @@ which suppresses the structured events the validator needs.
 | accessor | `getSegment()`, valid on `segmented()` | `getVerbatim()`, valid on `VERBATIM` |
 | opt-in | `JsonController.segmentable()` | `JsonController.verbatim()` |
 
-`VERBATIM` events are **not** `segmented()`. They are "structural": structured events may
-be injected between `VERBATIM` events (for mutation), and the generator renders those
-canonically.
+`VERBATIM` events are **not** `segmented()`. A `VERBATIM` event is best understood as a
+**`STRUCTURED` event that also carries a coalesced byte run** — the two are one integrated
+event stream, and structured events may be injected between `VERBATIM` events (for mutation).
+The generator's only branch is "do I have verbatim bytes to copy here, or do I generate."
 
-## Contract surface (mirrors `SEGMENT`)
+## Contract surface
 
-- `JsonEvent.VERBATIM` — `segmented()` returns false; add `isVerbatim()`.
-- `JsonSource.getVerbatim()` — covering source slice; legitimate only on a `VERBATIM` event.
-- `JsonController.verbatim()` — opt-in request (peer of `segmentable()`).
-- `JsonParserEx.Mode.VERBATIM` — peer of `SEGMENTED`.
+- `JsonEvent.VERBATIM` — `segmented()` returns false; add `isVerbatim()`. Treated as a
+  `STRUCTURED` flavor (see `getPointer()` below).
+- `JsonSource.getVerbatim()` — covering source slice; valid on a `STRUCTURED` **or**
+  `VERBATIM` event (they are integrated; a `VERBATIM` event is the coalesced-run case).
+- `JsonSource.getPointer()` — lazy position "at" the current value in its parent (see Q-pointer
+  below); valid on `STRUCTURED` or `VERBATIM` events; only consumed to seed the generator on a
+  verbatim→inject transition (Phase 3).
+- `JsonController.verbatim()` — opt-in: indicates the caller is **willing to receive**
+  `VERBATIM` events (peer of `segmentable()`); when unset the source does no verbatim tracking.
 - Mediating validator: **absorbs** the request upstream (still takes structured events from
   the parser to validate), **re-asserts** it downstream (emits `VERBATIM` to the generator).
-- Default delivery stays `STRUCTURED` (canonical) for generic consumers; only the model-json
-  validate handler opts in.
+- Default stays `STRUCTURED` (canonical) for generic consumers; only the model-json validate
+  handler opts in.
+
+Reused, not new: `JsonController.consumed(int)` (output backpressure drain, Q3),
+`JsonSource.deferredBytes()` (a `VERBATIM` run delivered in output-sized pieces),
+`reset()` (resets the verbatim cursor + frame stack per document).
+
+Correction vs an earlier draft: there is **no** `JsonParserEx.Mode.VERBATIM`. `SEGMENTED`
+*substitutes* opaque bytes for structured events; verbatim is **additive** — the parser keeps
+delivering structured events and `getVerbatim()`/`getPointer()` are accessors over them, so
+there is no parser delivery-mode switch.
+
+Deferred to later phases: `JsonController.skip()` (Phase 2 prune — advance the cursor past a
+dropped value **without** marking it emitted, so the new-first surviving sibling's leading
+separator is trimmed); generator "seed context from `getPointer()` without emitting" + sink
+copy-vs-generate dispatch (Phase 3 inject).
 
 ## Q1 — the verbatim cursor (no extra skip signal)
 
@@ -148,9 +168,29 @@ span at a feed-window boundary before the window is released. Runs are bounded b
 - opt-out assertion: no `verbatim()` request -> canonical output (back-compat).
 - `JsonPipelineBM`: validate path allocation approaches passthrough (no re-encode copy).
 
+## `getPointer()` semantics (the structural-effect carrier)
+
+The structural effect a verbatim run hands to the generator is expressed lazily via
+`getPointer()` — the position "at" the current value **in its parent container**, reflecting
+the document up to and including the current event but not advanced into the next slot. For a
+close event it points at the value that just closed, at its parent depth (e.g. after `[{"a":1}`
+it is `/0`, depth 1 in the array — not inside the closed object). The generator reads it only
+to seed itself on a verbatim→inject transition (silently, reusing `SUSPENDED`-resume context
+preservation, so it does not re-emit the brackets the verbatim copy already wrote); within an
+injected run it then tracks its own state, and re-seeds at the next transition. Verbatim bytes
+own their separators, so a verbatim run following an injection ignores the generator's
+pending flag (no double comma).
+
 ## Open items
 
-- Names: `getVerbatim()` / `JsonController.verbatim()` / `JsonEvent.VERBATIM` /
-  `Mode.VERBATIM` — confirm.
-- Exact carrier for the structural-effect metadata (fields on the event vs a small value object
-  exposed via the source).
+- Names: `getVerbatim()` / `getPointer()` / `JsonController.verbatim()` / `JsonEvent.VERBATIM`
+  / `JsonController.skip()` — confirm.
+- `getPointer()` return type, deferred to Phase 3 (not consumed before inject). A path-from-root
+  is the right backbone — segment types (string key vs integer index) encode the container-kind
+  stack for free — but it is short by one bit: RFC 6901 addresses *values*, not insertion points,
+  so it cannot distinguish "at scalar `a`" from "inside `a`'s empty container" (it has `-` for the
+  array append slot but no object equivalent), and from a coalesced `VERBATIM` event there is no
+  last-inner-event kind to fall back on. So `getPointer()` = pointer backbone **plus a one-bit
+  terminal marker** (`at-value` | `entered-empty` | `entered-after-child`), from which
+  separator-pending follows; the alternative is a frame-stack position (kind + ordinal/emitted per
+  level). Decide when building inject.
