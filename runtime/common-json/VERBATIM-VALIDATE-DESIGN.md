@@ -278,18 +278,32 @@ rather than a widened `consumed()`.
 
 ## Phasing
 
-- **Phase 1 — validate fidelity (the CI fix).** `JsonEvent.VERBATIM` + `getVerbatim()` +
-  `JsonController.verbatim()`; validator emits coalesced `VERBATIM` events when its downstream
-  opts in (structured fallback otherwise); the generator copies a `VERBATIM` run into the
-  **bounded sink**, draining via `SUSPENDED`/`resume()` against the aggregate output cursor (Q3) —
-  the same path a converter uses, exercised here by the identity case. No mutation, so no
+**Status:** Phase 1 implemented and verified in `common-json` (4811 tests + dedicated verbatim/validator
+tests green). Phases 2 and 3 are **deferred** — see the note at the end of this section.
+
+- **Phase 1 — validate fidelity (the CI fix). DONE.** `JsonEvent.VERBATIM` + `getVerbatim(int)` +
+  `JsonController.verbatim()`; the validator emits `VERBATIM` events when its downstream opts in
+  (canonical fallback otherwise); the sink copies a `VERBATIM` run into the **bounded sink**, draining via
+  `SUSPENDED`/`resume()` and a `flush()` end-of-feed hook (Q3). The terminal sink **prefers bytes by
+  default** (opts into both `segmentable()` and `verbatim()`), so the negotiation yields byte-preserving
+  output for pass-through/validate and canonical only where a transform changes content. No mutation, so no
   `getPosition()`/inject interleaving yet.
-- **Phase 2 — prune.** `JsonController.skip()` for the new-first/occupancy bookkeeping (per-
-  container first-flag + leading-separator trim); `getVerbatim`-and-discard already covers
-  middle/last/all drops, so `skip()` is scoped to drops that change a later sibling's separator
-  or a later injection's occupancy.
+- **Phase 2 — prune.** `JsonController.skip()` (or `getVerbatim`-and-discard from the transform) for the
+  new-first/occupancy bookkeeping (per-container first-flag + leading-separator trim); `getVerbatim`-and-
+  discard already covers middle/last/all drops, so `skip()` is scoped to drops that change a later sibling's
+  separator or a later injection's occupancy.
 - **Phase 3 — inject.** Generator renders injected members + join commas using A2/A3; this is
   where `VERBATIM … STRUCTURED×N … VERBATIM` interleaving is fully exercised.
+
+> **Deferral decision.** Phases 2 and 3 are deferred until a concrete mutating-transform consumer (field
+> masking, JSON Patch, redaction) exists to define the semantics. Two reasons: (1) no consumer needs them
+> yet — the validate path was the real fix; (2) prune has a genuine **semantic fork** that only a consumer
+> can settle: dropping the *first* surviving sibling leaves a dangling separator on the new first sibling
+> (`{"a": 1, "b": 2}` drop `a` → `{,"b": 2}` naively), and the trim could yield `{"b": 2}` (trim comma +
+> following whitespace) or `{ "b": 2}` (comma only). Building either phase now would bake in that guess as
+> speculative API. The design above stands as the record; revisit when the consumer lands. (Phase 1 already
+> proves the verbatim primitive generalizes — the sink/generator path it exercises is the converter path,
+> not a validate special case.)
 
 ## Tests (Phase 1, test-first)
 
