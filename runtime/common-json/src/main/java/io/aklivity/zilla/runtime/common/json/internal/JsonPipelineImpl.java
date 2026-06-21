@@ -106,9 +106,6 @@ public final class JsonPipelineImpl implements JsonPipeline
                 final JsonEvent event = parser.nextEvent(control.mode());
                 if (event == null)
                 {
-                    // the window is consumed mid-document: let the sink drain any end-of-feed work (e.g. a
-                    // verbatim run's bytes consumed during lookahead) before this window is replaced
-                    status = root.flush(control, source);
                     break;
                 }
                 status = root.feed(control, source, event);
@@ -118,11 +115,23 @@ public final class JsonPipelineImpl implements JsonPipeline
                     resumeEvent = event;
                 }
             }
-            if (status == Status.ADVANCED)
+            if (status == Status.ADVANCED || status == Status.STARVED)
             {
-                // the window was consumed before the value completed: more input is needed, unless this was
-                // the final window, in which case the value is truncated
-                status = last ? Status.REJECTED : Status.STARVED;
+                // the window was consumed before a terminal value — either the pump ran out of events, or a
+                // stage starved mid-value (e.g. a validator declining a fragment to accumulate it). Always
+                // give the sink a final drain before the window is replaced: a verbatim run pulls the bytes it
+                // has consumed so far via getVerbatim, so its cursor tracks the parse frontier across windows
+                // and never lags into a replaced window. STARVED stays STARVED; an exhausted-but-advancing
+                // pump needs more input (or is truncated on the final window).
+                final Status drained = root.flush(control, source);
+                if (drained == Status.SUSPENDED)
+                {
+                    status = Status.SUSPENDED;
+                }
+                else if (status == Status.ADVANCED)
+                {
+                    status = last ? Status.REJECTED : Status.STARVED;
+                }
             }
         }
         catch (JsonException ex)

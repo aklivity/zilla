@@ -2293,6 +2293,8 @@ public final class JsonSchemaImpl implements JsonSchema
                 // Eval is not fragment-aware: a value spanning windows must be reassembled before it can be
                 // validated against any keyword. Decline the fragment (consumed(0), do not forward) so the
                 // source accumulates it and re-presents the value whole on a later window; only then validate.
+                // The verbatim cursor is advanced by the pump's STARVED-path flush, so it tracks the parse
+                // frontier across windows without the validator forwarding partial values.
                 control.consumed(0);
                 status = Status.STARVED;
             }
