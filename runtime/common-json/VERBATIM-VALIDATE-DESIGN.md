@@ -35,12 +35,12 @@ The generator's only branch is "do I have verbatim bytes to copy here, or do I g
 ## Contract surface
 
 - `JsonEvent.VERBATIM` — `segmented()` returns false; add `isVerbatim()`. Treated as a
-  `STRUCTURED` flavor (see `getPointer()` below).
+  `STRUCTURED` flavor (see `getPosition()` below).
 - `JsonSource.getVerbatim()` — covering source slice; valid on a `STRUCTURED` **or**
   `VERBATIM` event (they are integrated; a `VERBATIM` event is the coalesced-run case).
-- `JsonSource.getPointer()` — lazy position "at" the current value in its parent (see Q-pointer
-  below); valid on `STRUCTURED` or `VERBATIM` events; only consumed to seed the generator on a
-  verbatim→inject transition (Phase 3).
+- `JsonSource.getPosition()` — lazy `JsonPosition` (container-anchored; see section below); valid
+  on `STRUCTURED` or `VERBATIM` events; only consumed to seed the generator on a verbatim→inject
+  transition (Phase 3).
 - `JsonController.verbatim()` — opt-in: indicates the caller is **willing to receive**
   `VERBATIM` events (peer of `segmentable()`); when unset the source does no verbatim tracking.
 - Mediating validator: **absorbs** the request upstream (still takes structured events from
@@ -54,12 +54,12 @@ Reused, not new: `JsonController.consumed(int)` (output backpressure drain, Q3),
 
 Correction vs an earlier draft: there is **no** `JsonParserEx.Mode.VERBATIM`. `SEGMENTED`
 *substitutes* opaque bytes for structured events; verbatim is **additive** — the parser keeps
-delivering structured events and `getVerbatim()`/`getPointer()` are accessors over them, so
+delivering structured events and `getVerbatim()`/`getPosition()` are accessors over them, so
 there is no parser delivery-mode switch.
 
 Deferred to later phases: `JsonController.skip()` (Phase 2 prune — advance the cursor past a
 dropped value **without** marking it emitted, so the new-first surviving sibling's leading
-separator is trimmed); generator "seed context from `getPointer()` without emitting" + sink
+separator is trimmed); generator "seed context from `getPosition()` without emitting" + sink
 copy-vs-generate dispatch (Phase 3 inject).
 
 ## Q1 — the verbatim cursor (no extra skip signal)
@@ -85,8 +85,9 @@ seam always well-formed:
 
 - **A1 boundary alignment** — mode switches occur only at value boundaries (between complete
   members/elements), never mid-token/mid-value.
-- **A2 structural-effect handoff** — each `VERBATIM` event carries its net structural effect so
-  the generator's state is correct for the following structured events.
+- **A2 structural-effect handoff** — on a verbatim→inject transition the generator seeds itself
+  from `getPosition()` (a `JsonPosition`; see below) so its state is correct for the injected
+  structured events. (Lazy/pull, not carried eagerly on every event.)
 - **A3 separator ownership** — every value contributes its own leading separator; the **first**
   value in each container contributes none. A per-container "has-a-sibling-been-emitted-yet"
   first-flag is **shared** between the verbatim source and the generator (also fixes prune).
@@ -168,47 +169,50 @@ span at a feed-window boundary before the window is released. Runs are bounded b
 - opt-out assertion: no `verbatim()` request -> canonical output (back-compat).
 - `JsonPipelineBM`: validate path allocation approaches passthrough (no re-encode copy).
 
-## `getPointer()` semantics — container-anchored `JsonPointerEx`
+## `getPosition()` semantics — container-anchored `JsonPosition`
 
-`getPointer()` is anchored on the **current (innermost open) container** — the thing an
+`getPosition()` is anchored on the **current (innermost open) container** — the thing an
 injected member would be added *to* — not on the last value. This follows JSON Patch
 (RFC 6902) `add`, whose destination path is *container + slot*, and it dissolves the `/a`
 ambiguity: "sibling after `a` at root" anchors at container `` (depth 1), "first child inside
 `a`" anchors at container `/a` (depth 2) — distinct, no extra bit needed for depth. Close
 events fall out: after `END_OBJECT` of `a`'s value the current container is again root.
 (RFC 6902, like Merge Patch RFC 7386, re-serializes and so never places a comma itself; the
-separator stays our byte-splice burden — see `isOccupied()`.)
+separator stays our byte-splice burden — encoded here in the step kind.)
 
-It returns a **`JsonPointerEx`**: a minimal, replayable sequence of the **open-container**
-`JsonEvent`s (`START_OBJECT`/`START_ARRAY` + the `KEY_NAME` for each object level — the nesting
-chain only, *never* the members within, so nothing the verbatim copy already emitted is
-re-represented), plus **`isOccupied()`** (does the innermost container already have a child →
-separator pending). `isOccupied()` is carried separately precisely because occupancy can't be
-expressed by nesting events without replaying members.
+It returns a **`JsonPosition`**: a single list of **`JsonStep`**, root → insertion point, one
+step per descended level, each carrying container kind **and** occupancy:
 
-The generator **replays** those events into its structural tracking in a **track-only** mode
-(updates nesting / kind / key-expectation, emits nothing — reusing the `SUSPENDED`-resume
-context preservation, so the brackets the verbatim copy already wrote are not re-emitted), then
-applies `isOccupied()` to the innermost separator-pending, then emits the injected member
-normally. This is DRY — seeding reuses the same `JsonEvent`-processing path the generator
-already uses to emit, so there is no bespoke "set depth/kinds" API. Examples:
+- `START_OBJECT` / `START_ARRAY` — entered, **empty** (no child yet).
+- `CONTINUE_OBJECT` / `CONTINUE_ARRAY` — in a container that **already has a child** (occupied →
+  the next sibling needs a leading separator).
 
-- "at root after `a`" → `[START_OBJECT]`, `isOccupied()==true` → inject emits `,"x":9`.
-- "inside empty `a`" → `[START_OBJECT, KEY_NAME(a), START_OBJECT]`, `isOccupied()==false` → `"x":9`.
-- innermost `START_ARRAY` → inject emits an element (no key); `isOccupied()` decides the comma.
+Occupancy lives in the step kind, so there is no trailing boolean (which would be meaningless for
+scalars) and occupancy is captured per level, not just innermost. No member **keys** are carried:
+the originals were emitted verbatim, and the generator needs only kind + occupancy + depth — it
+reads "object ⇒ write a key, array ⇒ write an element" from the innermost step. `JsonStep` has a
+natural equivalence to `JsonEvent` (`START_*` parallels `JsonEvent.START_*`; `CONTINUE_*` are the
+occupancy-bearing additions — a *state*, where the event is a *transition*).
 
-Keys' *values* are irrelevant to generator state (the originals were emitted verbatim) but are
-included to keep the sequence a valid event stream and renderable to RFC 6901 for diagnostics.
-Bounded by nesting depth; built lazily, only on a verbatim→inject transition (Phase 3). Within an
-injected run the generator then tracks its own state; it re-reads `getPointer()` at the next
+The generator **seeds** itself from the `JsonPosition` (push a `{kind, occupied}` frame per step)
+without emitting — reusing the `SUSPENDED`-resume context preservation, so the brackets the
+verbatim copy already wrote are not re-emitted — then injects the member normally. Examples:
+
+- `[CONTINUE_OBJECT]` → inject emits `,"x":9` (occupied root object).
+- `[CONTINUE_OBJECT, START_OBJECT]` → inject emits `"x":9` (descended into an empty object, depth 2).
+- innermost `*_ARRAY` → inject emits an element (no key); `START`/`CONTINUE` decides the comma.
+
+Computed lazily, only on a verbatim→inject transition (Phase 3); bounded by nesting depth. Within
+an injected run the generator tracks its own state and re-reads `getPosition()` at the next
 transition. Verbatim bytes own their separators, so a verbatim run following an injection ignores
 the generator's pending flag (no double comma).
 
 ## Open items
 
-- Names: `getVerbatim()` / `getPointer()` / `JsonPointerEx` / `isOccupied()` /
+- Names: `getVerbatim()` / `getPosition()` / `JsonPosition` / `JsonStep` /
   `JsonController.verbatim()` / `JsonController.skip()` / `JsonEvent.VERBATIM` — confirm.
-- `JsonPointerEx` is only consumed at inject (Phase 3); Phases 1–2 don't call `getPointer()`, so
-  its exact form can be finalized when building inject. Open sub-question: whether the track-only
-  replay needs real `KEY_NAME` values or accepts placeholders (leaning real, since the parser has
-  them and it keeps the event stream valid + diagnosable).
+  (Accessor renamed `getPointer()` -> `getPosition()` to match the `JsonPosition` return type.)
+- `JsonPosition` is only consumed at inject (Phase 3); Phases 1–2 never call `getPosition()`, so
+  its exact form can be finalized when building inject. The generator-side `seed(JsonPosition)`
+  (push frames, no emit) is the one new capability inject needs; it extends the existing
+  context-preservation and does not touch Phase 1.
