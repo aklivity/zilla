@@ -29,10 +29,10 @@ import org.junit.jupiter.api.Test;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
 // Phase 3 (inject): a transform injects a canonical member between two verbatim runs, exercising the
-// VERBATIM ... STRUCTURED ... VERBATIM interleaving. On the verbatim->inject transition the sink seeds the
-// generator from getPosition() (so the brackets the verbatim copy already wrote are not re-emitted and the
-// injected member's leading separator is correct); the following verbatim run owns its own separator, so no
-// double comma. Worked example from the design doc.
+// VERBATIM ... STRUCTURED ... VERBATIM interleaving. The generator tracks structural state continuously as
+// each verbatim run's step is applied, so an injected member separates correctly without re-emitting the
+// verbatim-written brackets, and a displaced former-first member gets a synthesized separator; the following
+// verbatim run owns its own separator, so no double comma. Worked example from the design doc.
 class JsonInjectTest
 {
     @Test
@@ -195,10 +195,11 @@ class JsonInjectTest
             case KEY_NAME:
                 if (depth == 1 && contentEquals(beforeKey, source.getStringView()))
                 {
-                    // inject the canonical member, then forward the original key verbatim; the sink seeds the
-                    // generator from source.getPosition() on the first injected (structured) event
-                    sink.feed(injectControl, new InjectSource(source, injectKey), JsonEvent.KEY_NAME);
-                    sink.feed(injectControl, new InjectSource(source, injectValue), injectKind);
+                    // inject the canonical member, then forward the original key verbatim; the generator's state
+                    // is already current from the verbatim steps applied so far, so the injected key separates
+                    // correctly and a displaced first member gets its synthesized separator
+                    sink.feed(injectControl, new InjectSource(injectKey), JsonEvent.KEY_NAME);
+                    sink.feed(injectControl, new InjectSource(injectValue), injectKind);
                 }
                 status = sink.feed(mediator, source, forward(event));
                 break;
@@ -236,18 +237,16 @@ class JsonInjectTest
         }
     }
 
-    // Supplies an injected key or number value: getStringView() returns the injected text, getPosition()
-    // delegates to the real parser source so the generator seeds its structural state from the live position.
+    // Supplies an injected key or number value: getStringView() returns the injected text. The injected events
+    // are fed structurally (not verbatim), so the generator tracks state from them directly — event() is never
+    // consulted for an injected source.
     private static final class InjectSource implements JsonSource
     {
-        private final JsonSource delegate;
         private final CharSequence text;
 
         private InjectSource(
-            JsonSource delegate,
             CharSequence text)
         {
-            this.delegate = delegate;
             this.text = text;
         }
 
@@ -258,9 +257,15 @@ class JsonInjectTest
         }
 
         @Override
-        public JsonPosition getPosition()
+        public JsonEvent event()
         {
-            return delegate.getPosition();
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean separated()
+        {
+            throw new UnsupportedOperationException();
         }
 
         @Override

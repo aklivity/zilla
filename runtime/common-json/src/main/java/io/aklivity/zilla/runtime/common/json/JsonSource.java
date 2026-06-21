@@ -90,14 +90,24 @@ public interface JsonSource
     void skipValue();
 
     /**
-     * The container-anchored insertion point at the current event — valid on a {@code STRUCTURED} or
-     * {@link JsonEvent#isVerbatim()} event — read on a verbatim&rarr;inject transition so a generator can seed
-     * its structural state (open object/array depth and pending separators) before emitting an injected value,
-     * without re-emitting the brackets the verbatim copy already wrote. The returned {@link JsonPosition} is
-     * non-owning and reused across calls (valid on-stack only). A source that does not track verbatim runs
-     * rejects this.
+     * The structured {@link JsonEvent} the current run represents — the typed event the source is positioned
+     * on, even when it is being forwarded to a sink relabeled as {@link JsonEvent#VERBATIM}. A terminal sink
+     * copying a verbatim run reads this to drive its generator's structural state (open object/array depth and
+     * pending separators) as the bytes splice through, so an injected value gets the correct leading separator
+     * and an injection into an occupied container is told apart from one into an empty one — without a separate
+     * re-sync step. A source that does not track structured events rejects this.
      */
-    JsonPosition getPosition();
+    JsonEvent event();
+
+    /**
+     * Whether the member or element at the current event was preceded by a separator in the original source — a
+     * sibling came before it in its container — as opposed to being the container's first member. This is source
+     * occupancy, robust to how verbatim runs are chunked (the original separator may be split into a prior run),
+     * so a terminal sink copying a verbatim run uses it (rather than inspecting the run bytes) to decide whether
+     * a displaced former-first member needs a synthesized leading separator. Meaningful only at a member/element
+     * boundary; a source that does not track structured events rejects this.
+     */
+    boolean separated();
 
     /**
      * Whether the current value has bytes still deferred to later events — {@code true} while more of

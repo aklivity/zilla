@@ -21,10 +21,8 @@ import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx.Completion;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
-import io.aklivity.zilla.runtime.common.json.JsonPosition;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonSource;
-import io.aklivity.zilla.runtime.common.json.JsonStep;
 
 /**
  * Terminal {@link JsonSink} that materializes each fed event into the corresponding {@code writeXxx}
@@ -49,14 +47,14 @@ public final class JsonSinkImpl implements JsonSink
     // whether a VERBATIM event has been copied this document: gates flush() so a segment-mode sink (whose
     // verbatim cursor never advanced) does not re-emit the whole input from cursor zero
     private boolean verbatimSeen;
-    // set after a verbatim copy and cleared once the generator has been re-seeded: marks the generator's
-    // structural state stale (the verbatim bytes bypassed its state machine), so the next injected structured
-    // value seeds from getPosition() before emitting — the verbatim->inject transition (Q2/A2)
-    private boolean seedPending;
-    // set when an injection seeds into an empty container: the injected value takes the first slot, so the
-    // displaced former-first member (the next verbatim run) needs a synthesized leading separator its own
-    // bytes do not carry — the mirror of the prune leading-separator trim, on the inject side
-    private boolean separatorPending;
+    // the structural step the current verbatim run represents, applied to the generator on the run's first
+    // byte-copying chunk so it tracks open/close depth and member occupancy as the bytes splice through (and
+    // synthesizes a leading separator for a displaced former-first member); null once applied, so a resumed
+    // continuation chunk is a pure byte conduit
+    private JsonEvent verbatimStep;
+    // source occupancy of that step's member/element (whether a separator preceded it in the original), passed
+    // with the step so the generator decides separator synthesis from source structure, not the run bytes
+    private boolean verbatimSeparated;
 
     public JsonSinkImpl(
         JsonGeneratorEx generator)
@@ -82,16 +80,13 @@ public final class JsonSinkImpl implements JsonSink
         switch (event)
         {
         case KEY_NAME:
-            seed(source);
             generator.writeKey(source.getStringView());
             break;
         case START_OBJECT:
-            seed(source);
             generator.writeStartObject();
             depth++;
             break;
         case START_ARRAY:
-            seed(source);
             generator.writeStartArray();
             depth++;
             break;
@@ -107,36 +102,27 @@ public final class JsonSinkImpl implements JsonSink
         case VALUE_STRING:
         case VALUE_NUMBER:
         case SEGMENT:
-            seed(source);
             status = writeValue(control, source, event);
             break;
         case VERBATIM:
             // a byte-preserving event from an upstream mediator: copy the original source bytes; the mediator
-            // owns structure (and so document completion), the sink is only the byte conduit here. The copy
-            // bypasses the generator state machine, so mark it stale for a following injected value to re-seed.
+            // owns structure (and so document completion), the sink is only the byte conduit here. The run's
+            // structural step is applied to the generator as the bytes splice through, so its state stays
+            // coherent for any injected value that follows.
             verbatimSeen = true;
-            seedPending = true;
-            if (separatorPending)
-            {
-                // this run is the former-first member an injection displaced; its bytes carry no leading
-                // separator, so the seeded generator synthesizes one before the splice
-                generator.writeVerbatimSeparator();
-                separatorPending = false;
-            }
+            verbatimStep = source.event();
+            verbatimSeparated = source.separated();
             status = writeVerbatim(source);
             break;
         case VALUE_TRUE:
-            seed(source);
             generator.write(true);
             status = scalarStatus();
             break;
         case VALUE_FALSE:
-            seed(source);
             generator.write(false);
             status = scalarStatus();
             break;
         case VALUE_NULL:
-            seed(source);
             generator.writeNull();
             status = scalarStatus();
             break;
@@ -201,43 +187,8 @@ public final class JsonSinkImpl implements JsonSink
     {
         depth = 0;
         verbatimSeen = false;
-        seedPending = false;
-        separatorPending = false;
+        verbatimStep = null;
         generator.reset();
-    }
-
-    // On the first generated value after a verbatim copy, seed the generator's structural state from the live
-    // position so the injected value gets the correct leading separator without re-emitting the brackets the
-    // verbatim copy already wrote; a no-op when no verbatim run precedes (canonical generation).
-    private void seed(
-        JsonSource source)
-    {
-        if (seedPending)
-        {
-            final JsonPosition position = source.getPosition();
-            generator.seed(position);
-            // injecting into an empty container displaces no existing member only if the container has none;
-            // when it does have a first member, that member's verbatim run follows and needs the synthesized
-            // separator the injected value's occupancy of the first slot now requires
-            separatorPending = startsEmpty(position);
-            seedPending = false;
-        }
-    }
-
-    // Whether the insertion container is entered-but-empty (its terminal step is START_*), so an injected value
-    // takes its first slot; a CONTINUE_* container already has a member whose following sibling carries its own
-    // separator.
-    private static boolean startsEmpty(
-        JsonPosition position)
-    {
-        final int depth = position.depth();
-        boolean empty = false;
-        if (depth > 0)
-        {
-            final JsonStep step = position.step(depth - 1);
-            empty = step == JsonStep.START_OBJECT || step == JsonStep.START_ARRAY;
-        }
-        return empty;
     }
 
     // Whether the suspended event still has value bytes/chars left to write, read from the source cursor —
@@ -367,7 +318,19 @@ public final class JsonSinkImpl implements JsonSink
         final int length = run.capacity();
         if (length > 0)
         {
-            generator.writeVerbatim(run, 0, length);
+            if (verbatimStep != null)
+            {
+                // first byte-copying chunk of this run: the generator tracks the step's structural effect and
+                // synthesizes a leading separator for a displaced former-first member (source occupancy via
+                // verbatimSeparated, not the run bytes)
+                generator.writeVerbatim(run, 0, length, verbatimStep, verbatimSeparated);
+                verbatimStep = null;
+            }
+            else
+            {
+                // a continuation chunk (resume) or end-of-window lookahead drain: pure byte conduit, no step
+                generator.writeVerbatim(run, 0, length);
+            }
         }
         return length < free ? Status.ADVANCED : Status.SUSPENDED;
     }

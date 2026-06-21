@@ -45,19 +45,18 @@ import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
-import io.aklivity.zilla.runtime.common.json.JsonPosition;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonSource;
 import io.aklivity.zilla.runtime.common.json.JsonTransform;
 
 /**
  * Measures the two mutating verbatim transforms — {@code skip} (Phase 2 prune, via
- * {@link JsonSource#skipValue()}) and {@code inject} (Phase 3, via {@link JsonSource#getPosition()} +
- * generator seed) — against a verbatim passthrough control over the same input. Both transforms reuse
- * constant injected key/value and a reused mediating controller and (for inject) reused injection sources,
- * so the only per-op allocation under {@code -prof gc} is in the pipeline itself (parser, generator, sink,
- * source) — the verbatim primitives splice through reused buffer views and a reused position, so skip and
- * inject should approach the passthrough control's allocation rate rather than the canonical re-render's.
+ * {@link JsonSource#skipValue()}) and {@code inject} (Phase 3, via {@link JsonSource#event()}-driven generator
+ * step tracking) — against a verbatim passthrough control over the same input. Both transforms reuse constant
+ * injected key/value and a reused mediating controller and (for inject) reused injection sources, so the only
+ * per-op allocation under {@code -prof gc} is in the pipeline itself (parser, generator, sink, source) — the
+ * verbatim primitives splice through reused buffer views, so skip and inject should approach the passthrough
+ * control's allocation rate rather than the canonical re-render's.
  */
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.Throughput)
@@ -412,9 +411,10 @@ public class JsonMutateBM
             case KEY_NAME:
                 if (depth == 1 && contentEquals(beforeKey, source.getStringView()))
                 {
-                    // the injection sources delegate getPosition() to the live parser source for the seed
-                    sink.feed(injectControl, keySource.delegate(source), JsonEvent.KEY_NAME);
-                    sink.feed(injectControl, valueSource.delegate(source), JsonEvent.VALUE_NUMBER);
+                    // the generator's state is current from the verbatim steps applied so far, so the injected
+                    // member separates correctly with no per-op allocation in the transform
+                    sink.feed(injectControl, keySource, JsonEvent.KEY_NAME);
+                    sink.feed(injectControl, valueSource, JsonEvent.VALUE_NUMBER);
                 }
                 status = sink.feed(mediator, source, forward(downstreamVerbatim, event));
                 break;
@@ -433,25 +433,17 @@ public class JsonMutateBM
         }
     }
 
-    // Supplies an injected key or number value: getStringView() returns the constant injected text,
-    // getPosition() delegates to the live parser source so the generator seeds from the live position. The
-    // delegate is reset per use (a field assignment, no allocation).
+    // Supplies an injected key or number value: getStringView() returns the constant injected text. The
+    // injected events are fed structurally (not verbatim), so the generator tracks state from them directly —
+    // event() is never consulted for an injected source.
     private static final class InjectSource implements JsonSource
     {
         private final CharSequence text;
-        private JsonSource delegate;
 
         private InjectSource(
             CharSequence text)
         {
             this.text = text;
-        }
-
-        private InjectSource delegate(
-            JsonSource delegate)
-        {
-            this.delegate = delegate;
-            return this;
         }
 
         @Override
@@ -461,9 +453,15 @@ public class JsonMutateBM
         }
 
         @Override
-        public JsonPosition getPosition()
+        public JsonEvent event()
         {
-            return delegate.getPosition();
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean separated()
+        {
+            throw new UnsupportedOperationException();
         }
 
         @Override

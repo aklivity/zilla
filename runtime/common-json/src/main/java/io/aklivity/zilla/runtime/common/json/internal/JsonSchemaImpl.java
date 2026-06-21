@@ -54,7 +54,6 @@ import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx.Mode;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
-import io.aklivity.zilla.runtime.common.json.JsonPosition;
 import io.aklivity.zilla.runtime.common.json.JsonRefResolver;
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
 import io.aklivity.zilla.runtime.common.json.JsonSchema.Draft;
@@ -1210,7 +1209,13 @@ public final class JsonSchemaImpl implements JsonSchema
         }
 
         @Override
-        public JsonPosition getPosition()
+        public JsonEvent event()
+        {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean separated()
         {
             throw new UnsupportedOperationException();
         }
@@ -2007,7 +2012,13 @@ public final class JsonSchemaImpl implements JsonSchema
         }
 
         @Override
-        public JsonPosition getPosition()
+        public JsonEvent event()
+        {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean separated()
         {
             throw new UnsupportedOperationException();
         }
@@ -2270,9 +2281,15 @@ public final class JsonSchemaImpl implements JsonSchema
         }
 
         @Override
-        public JsonPosition getPosition()
+        public JsonEvent event()
         {
-            return delegateEx.getPosition();
+            return delegateEx.event();
+        }
+
+        @Override
+        public boolean separated()
+        {
+            return delegateEx.separated();
         }
 
         @Override

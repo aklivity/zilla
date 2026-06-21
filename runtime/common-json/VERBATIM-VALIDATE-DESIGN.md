@@ -138,7 +138,7 @@ The generator's only branch is "do I have verbatim bytes to copy here, or do I g
 ## Contract surface
 
 - `JsonEvent.VERBATIM` — `segmented()` returns false; add `isVerbatim()`. Treated as a
-  `STRUCTURED` flavor (see `getPosition()` below).
+  `STRUCTURED` flavor (its structural step is read via `event()`; see step-tracking below).
 - `JsonSource.getVerbatim(int limit)` — **bounded pull**: returns at most `limit` source bytes of
   the run (the generator passes its free output space, so it never over-pulls); valid on a
   `STRUCTURED` **or** `VERBATIM` event. The return amount is the source-consumption signal, so
@@ -148,9 +148,11 @@ The generator's only branch is "do I have verbatim bytes to copy here, or do I g
   generator emitted. This stays consumed-based by necessity — a nested segment carries a generator-owned
   leading separator and the escaped generator expands bytes 1:N, so the cursor cannot be pre-advanced by a
   source-byte pull. (An earlier `getSegment(int limit)` symmetry proposal was abandoned for this reason.)
-- `JsonSource.getPosition()` — lazy `JsonPosition` (container-anchored; see section below); valid
-  on `STRUCTURED` or `VERBATIM` events; only consumed to seed the generator on a verbatim→inject
-  transition (Phase 3).
+- `JsonSource.event()` — the structural `JsonEvent` the current run represents (even when forwarded
+  relabeled as `VERBATIM`); and `JsonSource.separated()` — whether a separator preceded this member/element
+  in the source. A terminal sink reads both for each verbatim run and passes them to
+  `generator.writeVerbatim(bytes, step, separated)` so the generator tracks structural state and decides
+  separator synthesis (step-tracking, see below). These replaced the earlier `getPosition()`/`JsonPosition`.
 - `JsonController.verbatim()` — opt-in: indicates the caller is **willing to receive**
   `VERBATIM` events (peer of `segmentable()`); when unset the source does no verbatim tracking.
 - Mediating validator: **absorbs** the request upstream (still takes structured events from
@@ -181,14 +183,14 @@ bytes. `JsonSource.deferredBytes()` (a `VERBATIM` run delivered in output-sized 
 
 Correction vs an earlier draft: there is **no** `JsonParserEx.Mode.VERBATIM`. `SEGMENTED`
 *substitutes* opaque bytes for structured events; verbatim is **additive** — the parser keeps
-delivering structured events and `getVerbatim()`/`getPosition()` are accessors over them, so
+delivering structured events and `getVerbatim()`/`event()`/`separated()` are accessors over them, so
 there is no parser delivery-mode switch.
 
 Implemented in later phases (the `JsonController.skip()` sketch was dropped in favor of a source-side
 primitive): `JsonSource.skipValue()` (Phase 2 prune — advance the parser and verbatim cursor past a
-dropped member, folding in the new-first survivor's leading-separator trim); `JsonSource.getPosition()`
-→ `JsonPosition`/`JsonStep`, generator `seed(JsonPosition)` ("seed context without emitting"), and the
-sink's seed-on-verbatim→inject-transition dispatch (Phase 3 inject).
+dropped member, folding in the new-first survivor's leading-separator trim); `JsonSource.event()` +
+`JsonSource.separated()` driving `generator.writeVerbatim(bytes, step, separated)` for continuous generator
+step tracking (Phase 3 inject — replaced the earlier `getPosition()`/`seed()` one-shot re-sync).
 
 ## Q1 — the verbatim cursor (no extra skip signal)
 
@@ -213,46 +215,41 @@ seam always well-formed:
 
 - **A1 boundary alignment** — mode switches occur only at value boundaries (between complete
   members/elements), never mid-token/mid-value.
-- **A2 structural-effect handoff** — on a verbatim→inject transition the generator seeds itself
-  from `getPosition()` (a `JsonPosition`; see below) so its state is correct for the injected
-  structured events. (Lazy/pull, not carried eagerly on every event.)
+- **A2 structural-effect handoff** — the generator's state is kept correct for injected structured events by
+  **applying each verbatim run's step** (`event()` + `separated()`) to its state machine as the run is copied
+  — so at any verbatim→inject transition the state is already current, with no separate seed. (Originally
+  sketched as a one-shot `getPosition()` re-sync; realized as continuous step tracking — see below.)
 - **A3 separator ownership** — every value contributes its own leading separator; the **first**
-  value in each container contributes none. A per-container "has-a-sibling-been-emitted-yet"
-  first-flag is **shared** between the verbatim source and the generator (also fixes prune).
+  value in each container contributes none. The "has-a-sibling-been-emitted" occupancy is the source's
+  `separated()` for the inject side (and the tokenizer's `memberSeparated` first-flag for the prune side).
 - **A4 boundary points** — hand off only at well-defined points: a value boundary (between
-  complete members/elements) **or** the after-key value-expected boundary (verbatim through a
-  `KEY_NAME`, value replaced by injection — terminal `KEY_NAME`, see below). Never mid-token.
-- **A5 balance verification** — the generator asserts structural balance on injected `END_*`:
-  the close kind matches the innermost open it tracks, it does not pop below the seed baseline
-  (an injected run must not close the container it was seeded into — that's verbatim's job), and
-  `END_DOCUMENT` leaves no injected container open. Scoped to injected runs; verbatim bytes are
-  copied raw (well-formed from the validated original), so whole-document validity stays the
-  validator's responsibility. Fail-fast (`IllegalStateException`) against a buggy transform.
+  complete members/elements). Never mid-token.
+- **A5 balance** — verbatim bytes are copied raw (well-formed from the validated original), so whole-document
+  validity stays the validator's responsibility; the generator tracks depth across verbatim steps so injected
+  structured events compose against a correct depth. (The earlier seed-baseline `writeEnd` assertion went with
+  `seed()`; an injected run still cannot under/over-close because it threads the live tracked depth.)
 
-### Structural-effect metadata — shape and example
+### Structural effect of a step — `event()` + `separated()`
 
-Minimal sufficient metadata on a `VERBATIM` event:
-
-```
-depthDelta       : int               // net containers opened (+) / closed (-) by this chunk
-openedKinds      : [OBJECT|ARRAY]     // kinds of still-open containers (innermost last); empty if depthDelta <= 0
-separatorPending : boolean           // does the innermost open container already have a child,
-                                     //   so the next sibling needs a leading comma?
-```
-
-"expects key vs value" needs no field: per A1/A4 a cut is always between complete
-members/elements, so the next expected token is implied by the innermost kind.
+What an earlier draft sketched as eager per-event metadata (`depthDelta` / `openedKinds` / `separatorPending`)
+is realized as the run's structural step, read lazily off the source: `event()` gives the kind (so the
+generator updates depth and member occupancy exactly as the structured write would) and `separated()` gives
+the source occupancy that decides the one synthesized separator. "expects key vs value" needs no field — per
+A1/A4 a cut is between complete members/elements, so the innermost container kind implies it.
 
 Worked example — inject `"x": 9` between `b` and `c` of `{"a": 1, "b": 2, "c": 3}`:
 
-- `VERBATIM` V1 = `{"a": 1, "b": 2` -> `{depthDelta:+1, openedKinds:[OBJECT], separatorPending:true}`
-- generator copies V1, adopts metadata; injected `KEY_NAME(x)` sees `separatorPending:true` ->
-  emits `,` then `"x":9` (canonical) -> `…"b": 2,"x":9`
-- `VERBATIM` V2 = `, "c": 3}` carries c's own leading comma -> `…9, "c": 3}` (no double comma)
-- result: `{"a": 1, "b": 2,"x":9, "c": 3}` — verbatim except the injected member
+- verbatim runs `{`, `"a"`, `: 1`, `, "b"`, `: 2` each apply their step; after them the generator tracks
+  `depth=1`, root object `hasMembers=true`.
+- injected `KEY_NAME(x)` via the normal `writeKey` path sees `hasMembers=true` -> emits `,` then `"x":9`
+  (canonical) -> `…"b": 2,"x":9`.
+- verbatim run `, "c"` has step `KEY_NAME`, `separated=true` -> no synthesized separator (its comma is in the
+  bytes) -> `…9, "c"` (no double comma).
+- result: `{"a": 1, "b": 2,"x":9, "c": 3}` — verbatim except the injected member.
 
-Contrast: V1 = `{` -> `separatorPending:false` (injected first member emits no comma);
-V1 = `{"a":1,"b":{"x":1}}` -> `{depthDelta:0, openedKinds:[], separatorPending:true}`.
+Contrast (inject before the first member `a`): the displaced `"a"` run has step `KEY_NAME`, `separated=false`,
+and the output container is already occupied by the injected `x` -> the generator synthesizes the `,` the
+bytes lack -> `{"x":9,"a": 1}`.
 
 ## Q3 — bounded output across `feed()` calls (push back to the source)
 
@@ -312,9 +309,22 @@ rather than a widened `consumed()`.
 **Status:** Phases 1, 2, and 3 implemented and verified in `common-json` (4820 tests green, JaCoCo
 class + 90% instruction gate met, checkstyle clean; model-json 25 + EventIT and mcp-http 11 unit
 unaffected). The prune semantic fork flagged below was settled when building Phase 2 (see the note),
-and the symmetric inject-before-first-member separator case is now handled too (see the resolution
-note) — a generator `writeVerbatimSeparator()` synthesizes the leading separator the displaced
-former-first member's verbatim bytes do not carry.
+and the symmetric inject-before-first-member separator case is handled too.
+
+**Generator step-tracking (converged realization).** The earlier `getPosition()`/`JsonPosition`/`seed()`
+one-shot re-sync and the standalone `writeVerbatimSeparator()` were replaced by **continuous step
+tracking**: a verbatim run carries the structural step it represents — `source.event()` (the `JsonEvent`)
+plus `source.separated()` (whether the member/element was preceded by a separator in the source) — and the
+generator's `writeVerbatim(bytes, step, separated)` applies that step to its own state machine (depth,
+member occupancy, after-key) as the bytes splice through. Because the generator's state stays coherent
+across verbatim runs, an injected value just uses the normal `writeKey`/`write` path (no re-sync), and the
+displaced-first-member separator falls out of the same machinery: the generator synthesizes a leading
+separator when a member-start step is **not** `separated` in the source yet the container already holds a
+member in the output. Source occupancy — not the run bytes — is the signal, so it is robust to a separator
+being split into a prior run across input frames. `JsonPosition`, `JsonStep`, `seed()`, and
+`writeVerbatimSeparator()` were removed. (A verbatim run is one structural step under the current per-event
+forwarding; true multi-step byte-coalescing — one `getVerbatim` copy spanning a run — is a deferred
+follow-up, see the note at the end of Phasing.)
 
 - **Phase 1 — validate fidelity (the CI fix). DONE.** `JsonEvent.VERBATIM` + `getVerbatim(int)` +
   `JsonController.verbatim()`; the validator emits `VERBATIM` events when its downstream opts in
@@ -322,7 +332,7 @@ former-first member's verbatim bytes do not carry.
   `SUSPENDED`/`resume()` and a `flush()` end-of-feed hook (Q3). The terminal sink **prefers bytes by
   default** (opts into both `segmentable()` and `verbatim()`), so the negotiation yields byte-preserving
   output for pass-through/validate and canonical only where a transform changes content. No mutation, so no
-  `getPosition()`/inject interleaving yet.
+  inject interleaving yet.
 - **Phase 2 — prune. DONE.** Implemented as `JsonSource.skipValue()` (not the earlier `JsonController.skip()`
   sketch): called on a matched object `KEY_NAME`, the source advances past the whole member (key, separator,
   value — scalar or container-to-close) and the verbatim cursor past its bytes. Occupancy is owned by the
@@ -332,19 +342,17 @@ former-first member's verbatim bytes do not carry.
   the new-first survivor well-formed. The semantic fork below was settled here: trim whitespace **and** the
   single comma, so an empty container renders `{}` and a first-of-many drop keeps the survivor's spacing.
   Covered by `JsonSkipTest` (drop middle / last / first / object-value / only-field).
-- **Phase 3 — inject. DONE.** `JsonSource.getPosition()` returns a container-anchored `JsonPosition`
-  (list of `JsonStep`: `START_*`/`CONTINUE_*`/terminal `KEY_NAME`), built lazily from the tokenizer's
-  per-level occupancy (`pathOccupied`). The generator gains `seed(JsonPosition)` (push one frame per step,
-  no emit) and an A5 seed-baseline assertion on `writeEnd`. The terminal sink seeds the generator from
-  `getPosition()` on the first generated value after a verbatim copy (`seedPending`), so an injected member
-  gets the correct leading separator without re-emitting the verbatim-written brackets; the following verbatim
-  run owns its own separator (no double comma). Injecting before a container's *first* member is handled by
-  the mirror of the prune trim: the sink reads the seed occupancy and, when it is `START_*` (empty), sets
-  `separatorPending` so the displaced former-first member's verbatim run is preceded by a generator-synthesized
-  separator (`writeVerbatimSeparator()`) its own bytes do not carry. Covered by `JsonInjectTest` (the worked
-  example — inject a number member between two verbatim runs — a string-member variant, and inject-before-first
-  for the only-field and first-of-many cases). The `VERBATIM … STRUCTURED×N …
-  VERBATIM` interleaving is exercised end-to-end.
+- **Phase 3 — inject. DONE.** Realized via continuous generator step tracking (see the status note above):
+  the terminal sink reads `source.event()` + `source.separated()` for each verbatim run and hands the
+  generator `writeVerbatim(bytes, step, separated)`, which applies the step's structural effect to its state
+  machine. An injected member is then fed through the ordinary `writeKey`/`write` path — the generator's
+  occupancy is already current, so the injected member's leading separator is correct with no re-sync — and a
+  displaced former-first member (inject before a container's first) gets a synthesized leading separator from
+  the same `needsSeparator` rule (member-start step, not `separated` in source, container occupied in output).
+  Covered by `JsonInjectTest` (the worked example — inject a number member between two verbatim runs — a
+  string-member variant, and inject-before-first for the only-field and first-of-many cases). The
+  `VERBATIM … STRUCTURED×N … VERBATIM` interleaving is exercised end-to-end, and the cross-frame validate
+  case (`JsonValidatorVerbatimTest`) guards the source-occupancy (not byte-inspection) separator decision.
 
 > **Resolution (Phases 2 & 3 built).** Phases 2 and 3 were implemented to validate that the verbatim
 > abstraction generalizes beyond validate. The **semantic fork** prune raised — dropping the first surviving
@@ -353,15 +361,13 @@ former-first member's verbatim bytes do not carry.
 > drop keeps the survivor's spacing (`{ "b" : 2 }`) and an only-field drop collapses to `{}`. The symmetric
 > inject case is now handled too: injecting *before* a container's first member makes the previously-first
 > member non-first, so its verbatim run (which owns no leading separator) needs one synthesized — the mirror
-> of the prune trim, on the generator side. The information is already present (the seed occupancy: `START_*`
-> means the container was empty, so the injected value takes the first slot and the displaced member needs a
-> separator), and the generator already has the comma machinery, so it is an additive signal — `separatorPending`
-> in the sink, consumed by a single `writeVerbatimSeparator()` before the displaced run — not a break of
-> "verbatim owns its separator". The synthesized comma is emitted compact (`,`), matching the canonical injected
-> member (`"x":9`); there is nothing to preserve since it has no source bytes. The one position not covered is
-> injecting into a genuinely *empty* container (no member to displace), which is a different operation (append)
-> with its own complication — `getPosition()` at the container's close reports the popped, outer context — and
-> is left for a consumer that needs it.
+> of the prune trim, on the generator side. It falls out of the continuous step tracking: the displaced run's
+> step is a member-start with `separated()` false (it was first in the source), and the generator's tracked
+> occupancy already shows the container holding the injected member, so `needsSeparator` synthesizes the
+> compact `,` the bytes lack. The synthesized comma matches the canonical injected member (`"x":9`); there is
+> nothing to preserve since it has no source bytes. The one position not covered is injecting into a genuinely
+> *empty* container (no member to displace), a different operation (append) whose step at the container's close
+> reports the popped, outer context — left for a consumer that needs it.
 
 ## Tests (Phase 1, test-first)
 
@@ -375,63 +381,62 @@ former-first member's verbatim bytes do not carry.
 - opt-out assertion: no `verbatim()` request -> canonical output (back-compat).
 - `JsonPipelineBM`: validate path allocation approaches passthrough (no re-encode copy).
 
-## `getPosition()` semantics — container-anchored `JsonPosition`
+## Step-tracking semantics — `event()` + `separated()` (as built)
 
-`getPosition()` is anchored on the **current (innermost open) container** — the thing an
-injected member would be added *to* — not on the last value. This follows JSON Patch
-(RFC 6902) `add`, whose destination path is *container + slot*, and it dissolves the `/a`
-ambiguity: "sibling after `a` at root" anchors at container `` (depth 1), "first child inside
-`a`" anchors at container `/a` (depth 2) — distinct, no extra bit needed for depth. Close
-events fall out: after `END_OBJECT` of `a`'s value the current container is again root.
-(RFC 6902, like Merge Patch RFC 7386, re-serializes and so never places a comma itself; the
-separator stays our byte-splice burden — encoded here in the step kind.)
+> An earlier draft anchored injection on `getPosition()`, an absolute container-anchored `JsonPosition`
+> (a list of `JsonStep` carrying kind + occupancy) consulted once on a verbatim→inject transition to `seed()`
+> the generator. That was replaced by **continuous, incremental** step tracking; this section records the
+> realization. The absolute-position write-up is preserved in git history.
 
-It returns a **`JsonPosition`**: a single list of **`JsonStep`**, root → insertion point, one
-step per descended level, each carrying container kind **and** occupancy:
+A verbatim run carries the structural step it represents, read off the source as the bytes splice through:
 
-- `START_OBJECT` / `START_ARRAY` — entered, **empty** (no child yet).
-- `CONTINUE_OBJECT` / `CONTINUE_ARRAY` — in a container that **already has a child** (occupied →
-  the next sibling needs a leading separator).
-- `KEY_NAME` (**terminal only**) — verbatim emitted a key, its **value is expected** (an
-  after-key cut, replacing the value). The generator writes `:value` — no comma, no key; it owns
-  the colon (the `: ` spacing canonicalizes; the key stays verbatim). This is the one place a
-  `KEY_NAME` step is needed — for ancestor path levels the key name is never carried.
+- `source.event()` — the `JsonEvent` the run represents (`START_OBJECT` / `START_ARRAY` / `END_*` / `KEY_NAME`
+  / `VALUE_*`). The terminal sink passes it to `generator.writeVerbatim(bytes, step, separated)`, and the
+  generator applies its structural effect to the same `depth` / `hasMembers` / `pending` state machine the
+  structured `writeKey`/`writeStartObject`/`writeEnd`/`preValue` calls drive — but **state only**, emitting no
+  bytes, because the run already carries its braces, commas, colons, and whitespace.
+- `source.separated()` — whether the member/element at this step was preceded by a separator in the **source**
+  (a sibling came before it in its container). This is source occupancy, not a property of the run bytes — so
+  it is robust to the original separator being split into a prior verbatim run across input frames.
 
-Invariant: every **non-terminal** step is necessarily `CONTINUE_*` (descending into a child
-makes each ancestor non-empty), and only the **terminal** step is consulted by the generator for
-a single injection — so the list's earlier steps are diagnostic/headroom, not load-bearing.
+Because the generator's state is maintained continuously across verbatim runs, there is no separate re-sync:
+an injected value is fed through the ordinary `writeKey`/`write` path and gets the correct leading separator
+from the generator's already-current `hasMembers`. The one synthesized separator — for a member-start whose
+bytes carry none because it was the source's first member but an injection took that slot — falls out of a
+single rule in `writeVerbatim`:
 
-Occupancy lives in the step kind, so there is no trailing boolean (which would be meaningless for
-scalars). No member key **names** are carried (the originals were emitted verbatim); the terminal
-step tells the generator what to write next — `*_OBJECT` ⇒ a member (key+value), `*_ARRAY` ⇒ an
-element, terminal `KEY_NAME` ⇒ just the value of a pending key. `JsonStep` has a natural
-equivalence to `JsonEvent` (`START_*`/`KEY_NAME` parallel the events; `CONTINUE_*` are the
-occupancy-bearing additions — a *state*, where the event is a *transition*).
+```
+needsSeparator = depth > 0 && hasMembers[depth-1] && !separated &&
+                 (inArray[depth-1] ? isValue(step) : step == KEY_NAME)
+```
 
-The generator **seeds** itself from the `JsonPosition` (push a `{kind, occupied}` frame per step)
-without emitting — reusing the `SUSPENDED`-resume context preservation, so the brackets the
-verbatim copy already wrote are not re-emitted — then injects the member normally. Examples:
+i.e. the container already holds a member in the output, this run begins a member/element, and the source did
+**not** separate it. Examples (root object, after injecting `"x":9` into its first slot):
 
-- `[CONTINUE_OBJECT]` → inject emits `,"x":9` (occupied root object).
-- `[CONTINUE_OBJECT, START_OBJECT]` → inject emits `"x":9` (descended into an empty object, depth 2).
-- innermost `*_ARRAY` → inject emits an element (no key); `START`/`CONTINUE` decides the comma.
+- displaced former-first key `"a"`: step `KEY_NAME`, `separated=false`, output occupied → synthesize `,`.
+- a normal non-first key `"b"`: `separated=true` → no synthesis (its comma is in the bytes, this run or a
+  prior one).
+- a normal first key with nothing injected: output `hasMembers=false` → no synthesis.
 
-Computed lazily, only on a verbatim→inject transition (Phase 3); bounded by nesting depth. Within
-an injected run the generator tracks its own state and re-reads `getPosition()` at the next
-transition. Verbatim bytes own their separators, so a verbatim run following an injection ignores
-the generator's pending flag (no double comma).
+A chunked run applies its step once, on the first byte-copying chunk (the sink clears its held step after);
+resumed chunks are a pure byte conduit. `END_*` steps only decrement depth; framing and segments are not
+verbatim steps.
 
 ## Open items
 
-- Names, as built: `getVerbatim()` / `skipValue()` / `getPosition()` / `JsonPosition` / `JsonStep` /
-  `JsonController.verbatim()` / `JsonEvent.VERBATIM` / generator `seed(JsonPosition)` / generator
-  `writeVerbatimSeparator()`. The Phase-2 prune primitive landed as `JsonSource.skipValue()` rather than the
-  earlier `JsonController.skip()` sketch (the occupancy/trim is the source's, not a controller signal).
-  `getPointer()` was renamed `getPosition()` to match the `JsonPosition` return type.
-- `JsonPosition` is consumed only at inject; the implemented form carries one `JsonStep` per open level with
-  occupancy folded into the kind (`START_*` empty, `CONTINUE_*` occupied), and the generator seeds one frame
-  per step. The terminal `KEY_NAME` step (after-key cut) and array-injection steps are wired in `seed` but not
-  yet exercised by a test — they fall out the same way and gain coverage when an after-key / array consumer lands.
+- Names, as built: `getVerbatim()` / `skipValue()` / `event()` / `separated()` / `JsonController.verbatim()` /
+  `JsonEvent.VERBATIM` / generator `writeVerbatim(bytes, step, separated)`. The Phase-2 prune primitive landed
+  as `JsonSource.skipValue()` rather than the earlier `JsonController.skip()` sketch (the occupancy/trim is the
+  source's, not a controller signal). The Phase-3 inject mechanism landed as continuous step tracking
+  (`event()` + `separated()` driving the generator's state machine) rather than the earlier
+  `getPosition()`/`JsonPosition`/`seed()` one-shot re-sync, which — along with `JsonStep` and
+  `writeVerbatimSeparator()` — was removed.
+- **Byte-coalescing (deferred):** today a verbatim run is one structural step (the sink pulls `getVerbatim`
+  once per forwarded event). True coalescing — one `getVerbatim` copy spanning a multi-step run, with the run's
+  steps applied as a batch — is the design doc's Q1 efficiency goal but reworks the pump's completion/flush
+  timing (the mediator reports `COMPLETED` at the top-level close, where the pump does not flush), so it is a
+  focused follow-up. The `event()`/`separated()` primitive generalizes to it (a per-run step sequence) when it
+  lands.
 - Still open: injecting into a genuinely **empty** container (append, no member to displace) — distinct from
-  inject-before-first, which is implemented; the close-time `getPosition()` reports the popped outer context,
-  so it needs its own handling. See the resolution note under *Phasing*.
+  inject-before-first, which is implemented; at the container's close the parser has popped it, so the step
+  reports the outer context and it needs its own handling.

@@ -27,10 +27,9 @@ import jakarta.json.JsonValue;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 
+import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx.Completion;
-import io.aklivity.zilla.runtime.common.json.JsonPosition;
-import io.aklivity.zilla.runtime.common.json.JsonStep;
 
 /**
  * Streaming, compact {@link JsonGeneratorEx} that writes directly into a {@link
@@ -58,9 +57,6 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     private int limit;
     private int depth;
     private int consumed;
-    // depth the generator was seeded to on a verbatim->inject transition: an injected run must not close below
-    // it (A5 balance — that container's close is verbatim's job), asserted on writeEnd
-    private int seedBaseline;
     // at most one of these positions holds at a time: a value is expected after a key, or an
     // incomplete string/number fragment is open awaiting its remaining fragments
     private Pending pending = Pending.NONE;
@@ -109,49 +105,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     public void reset()
     {
         this.depth = 0;
-        this.seedBaseline = 0;
         this.pending = Pending.NONE;
-    }
-
-    @Override
-    public JsonGeneratorImpl seed(
-        JsonPosition position)
-    {
-        // adopt the structural context the verbatim copy already wrote — one open frame per descended level,
-        // occupancy from the step kind — without emitting any bytes, so an injected value gets the right leading
-        // separator (a CONTINUE_* frame already has a child, so the next member needs a comma)
-        reset();
-        final int levels = position.depth();
-        for (int level = 0; level < levels; level++)
-        {
-            final JsonStep step = position.step(level);
-            switch (step)
-            {
-            case START_OBJECT:
-                push(false);
-                break;
-            case CONTINUE_OBJECT:
-                push(false);
-                hasMembers[depth - 1] = true;
-                break;
-            case START_ARRAY:
-                push(true);
-                break;
-            case CONTINUE_ARRAY:
-                push(true);
-                hasMembers[depth - 1] = true;
-                break;
-            case KEY_NAME:
-                // terminal after-key cut: the innermost open object has a pending key whose value is expected,
-                // so the next value write emits neither comma nor key
-                pending = Pending.AFTER_KEY;
-                break;
-            default:
-                break;
-            }
-        }
-        seedBaseline = depth;
-        return this;
     }
 
     @Override
@@ -529,12 +483,25 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     }
 
     @Override
-    public JsonGeneratorImpl writeVerbatimSeparator()
+    public JsonGeneratorImpl writeVerbatim(
+        DirectBuffer source,
+        int index,
+        int length,
+        JsonEvent step,
+        boolean separated)
     {
-        // the innermost container holds the just-injected member, so the displaced verbatim sibling that
-        // follows needs the leading separator its own bytes do not carry
-        assert depth > 0 && hasMembers[depth - 1];
-        putByte.accept(',');
+        // synthesize the leading separator only when this block begins a member/element that was first in the
+        // source ({@code !separated}, so its bytes carry no leading comma) yet the container already holds a
+        // member in the output — an injected value took the first slot, displacing this former-first member.
+        // Source occupancy, not the run bytes: the original separator may have been split into a prior run.
+        if (needsSeparator(step, separated))
+        {
+            putByte.accept(',');
+        }
+        copy(source, index, length);
+        // track the block's structural effect (open/close depth, member occupancy) so the generator's state
+        // stays coherent for an injected value that follows — state only, the bytes carried the structure
+        advance(step);
         return this;
     }
 
@@ -544,13 +511,92 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         int index,
         int length)
     {
-        // a pure byte conduit: the run is self-describing (it carries its own structure and whitespace), so no
-        // separator, escaping, or structural-state update — the caller pre-bounds the pull to remaining(), so
-        // the copy always fits
+        // continuation chunk of a block already begun: the step was applied on the first chunk, so this is a
+        // pure byte conduit
+        copy(source, index, length);
+        return this;
+    }
+
+    // Copies the verbatim run 1:1; the caller pre-bounds the pull to remaining(), so the bytes always fit.
+    private void copy(
+        DirectBuffer source,
+        int index,
+        int length)
+    {
         assert progress + length <= limit;
         buffer.putBytes(progress, source, index, length);
         progress += length;
-        return this;
+    }
+
+    // Whether the block begins a member (object key) or array element that was first in the source (so carries
+    // no leading separator) into a container that already holds a member in the output — so one is synthesized.
+    private boolean needsSeparator(
+        JsonEvent step,
+        boolean separated)
+    {
+        boolean result = false;
+        if (depth > 0 && hasMembers[depth - 1] && !separated)
+        {
+            result = inArray[depth - 1] ? isValue(step) : step == JsonEvent.KEY_NAME;
+        }
+        return result;
+    }
+
+    // Tracks the structural effect of a verbatim block without emitting (the bytes carried the structure): the
+    // state-only analog of preValue()/writeKey()/push()/writeEnd().
+    private void advance(
+        JsonEvent step)
+    {
+        switch (step)
+        {
+        case START_OBJECT:
+            markValueStart();
+            push(false);
+            break;
+        case START_ARRAY:
+            markValueStart();
+            push(true);
+            break;
+        case END_OBJECT:
+        case END_ARRAY:
+            depth--;
+            break;
+        case KEY_NAME:
+            hasMembers[depth - 1] = true;
+            pending = Pending.AFTER_KEY;
+            break;
+        case VALUE_STRING:
+        case VALUE_NUMBER:
+        case VALUE_TRUE:
+        case VALUE_FALSE:
+        case VALUE_NULL:
+            markValueStart();
+            break;
+        default:
+            break;
+        }
+    }
+
+    // The state-only effect of preValue() for a verbatim value: clear an after-key expectation, or mark the
+    // current array occupied; no separator is emitted (the bytes carry it, or needsSeparator synthesized it).
+    private void markValueStart()
+    {
+        if (pending == Pending.AFTER_KEY)
+        {
+            pending = Pending.NONE;
+        }
+        else if (depth > 0 && inArray[depth - 1])
+        {
+            hasMembers[depth - 1] = true;
+        }
+    }
+
+    private static boolean isValue(
+        JsonEvent step)
+    {
+        return step == JsonEvent.START_OBJECT || step == JsonEvent.START_ARRAY ||
+            step == JsonEvent.VALUE_STRING || step == JsonEvent.VALUE_NUMBER ||
+            step == JsonEvent.VALUE_TRUE || step == JsonEvent.VALUE_FALSE || step == JsonEvent.VALUE_NULL;
     }
 
     @Override

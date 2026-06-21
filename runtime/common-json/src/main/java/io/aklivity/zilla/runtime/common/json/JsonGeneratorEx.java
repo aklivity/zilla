@@ -158,41 +158,35 @@ public interface JsonGeneratorEx extends JsonGenerator
 
     /**
      * Splices {@code length} bytes of an original-document run from {@code source} starting at {@code index}
-     * straight to the output with no interpretation — no structural separator, no escaping, no quoting: the
-     * run already carries its own braces, commas, colons, and whitespace. The copy is 1:1, so a caller
-     * pre-bounds the pull (via {@link JsonSource#getVerbatim(int)}) to {@link #remaining()} and the bytes
-     * always fit. Unlike {@link #writeSegment(DirectBuffer, int, int)} this does not drive the generator's
-     * structural state (it is a pure byte conduit), so it is used only in verbatim delivery where the source
-     * bytes are self-describing.
+     * straight to the output, the run representing the structural {@code step} (the {@link JsonEvent} the bytes
+     * would have produced structurally). The bytes already carry their own braces, commas, colons, and
+     * whitespace, so the copy is verbatim — but the generator <em>tracks</em> the structural effect of
+     * {@code step} (open/close depth, member occupancy) so its state stays coherent for any injected value that
+     * follows, and synthesizes a single leading separator when the block begins a member that was first in the
+     * source ({@code separated} is {@code false}) yet the container already holds a member in the output (an
+     * injected value took the first slot, displacing this former-first member). {@code separated} is the
+     * source's occupancy — whether a separator preceded this member in the original — not a property of the run
+     * bytes, since the original separator may have been split into a prior run. The copy is 1:1, so a caller
+     * pre-bounds the pull (via {@link JsonSource#getVerbatim(int)}) to {@link #remaining()} and the bytes always
+     * fit. Used on the first chunk of a block; {@link #writeVerbatim(DirectBuffer, int, int)} continues a chunked
+     * block without re-applying the step.
+     */
+    JsonGeneratorEx writeVerbatim(
+        DirectBuffer source,
+        int index,
+        int length,
+        JsonEvent step,
+        boolean separated);
+
+    /**
+     * Continues a verbatim block already begun by {@link #writeVerbatim(DirectBuffer, int, int, JsonEvent, boolean)},
+     * splicing {@code length} more of its bytes with no structural-state change — the step was applied on the
+     * first chunk, so a resumed chunk is a pure byte conduit.
      */
     JsonGeneratorEx writeVerbatim(
         DirectBuffer source,
         int index,
         int length);
-
-    /**
-     * Seeds the generator's structural context from {@code position} without emitting any bytes — pushing one
-     * open object/array frame per {@link JsonStep}, each frame's occupancy taken from the step kind — so that an
-     * injected value written after a verbatim copy gets the correct leading separator (a {@code CONTINUE_*}
-     * frame already has a child, so the next member needs a comma; a {@code START_*} frame is empty) without
-     * re-emitting the brackets the verbatim copy already wrote. Used on a verbatim&rarr;inject transition; the
-     * baseline it establishes is also where structural balance is checked, so an injected run cannot close a
-     * container it was seeded into.
-     */
-    JsonGeneratorEx seed(
-        JsonPosition position);
-
-    /**
-     * Emits the leading structural separator for a verbatim value that does not carry its own — used when an
-     * injected value took a container's first slot, displacing the former-first member, whose verbatim bytes
-     * (having been first in the source) carry no leading comma. Honors the seeded occupancy: the innermost open
-     * container is known to already hold the injected member, so a comma is emitted before the displaced
-     * member's {@link #writeVerbatim(DirectBuffer, int, int)} run splices in. Unlike a member written through
-     * {@link #writeKey}, the verbatim copy bypasses the generator's separator machinery, so this restores it for
-     * the one displaced run. Distinct from the between-members case, where the following verbatim run carries
-     * the original separator and this is not called.
-     */
-    JsonGeneratorEx writeVerbatimSeparator();
 
     @Override
     JsonGeneratorEx writeStartObject();
